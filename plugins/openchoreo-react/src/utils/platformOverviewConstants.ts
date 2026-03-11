@@ -13,6 +13,8 @@ import {
   RELATION_HOSTS,
   RELATION_OBSERVED_BY,
   RELATION_OBSERVES,
+  RELATION_BUILDS_ON,
+  RELATION_BUILDS,
 } from '@openchoreo/backstage-plugin-common';
 
 export type GraphViewDefinition = {
@@ -23,6 +25,16 @@ export type GraphViewDefinition = {
   relations: string[];
   relationPairs: [string, string][];
 };
+
+/** Special Backstage catalog namespace used for cluster-scoped entities. */
+export const CLUSTER_NAMESPACE = 'openchoreo-cluster';
+
+/** Entity kinds that are cluster-scoped (live in CLUSTER_NAMESPACE). */
+export const CLUSTER_SCOPED_KINDS = [
+  'clusterdataplane',
+  'clusterbuildplane',
+  'clusterobservabilityplane',
+];
 
 export const APPLICATION_VIEW: GraphViewDefinition = {
   id: 'developer',
@@ -68,9 +80,31 @@ export const INFRASTRUCTURE_VIEW: GraphViewDefinition = {
   ],
 };
 
+export const CLUSTER_VIEW: GraphViewDefinition = {
+  id: 'cluster',
+  label: 'Cluster Resources',
+  description:
+    'Cluster Data Planes, Cluster Build Planes, and Cluster Observability Planes',
+  kinds: ['clusterdataplane', 'clusterbuildplane', 'clusterobservabilityplane'],
+  relations: [
+    RELATION_HOSTED_ON,
+    RELATION_HOSTS,
+    RELATION_OBSERVED_BY,
+    RELATION_OBSERVES,
+    RELATION_BUILDS_ON,
+    RELATION_BUILDS,
+  ],
+  relationPairs: [
+    [RELATION_HOSTED_ON, RELATION_HOSTS],
+    [RELATION_OBSERVED_BY, RELATION_OBSERVES],
+    [RELATION_BUILDS_ON, RELATION_BUILDS],
+  ],
+};
+
 export const ALL_VIEWS: GraphViewDefinition[] = [
   APPLICATION_VIEW,
   INFRASTRUCTURE_VIEW,
+  CLUSTER_VIEW,
 ];
 
 // --- Filter-based view system ---
@@ -82,24 +116,49 @@ export type FilterPreset = {
 };
 
 const ALL_KINDS = [
-  ...new Set([...APPLICATION_VIEW.kinds, ...INFRASTRUCTURE_VIEW.kinds]),
+  ...new Set([
+    ...APPLICATION_VIEW.kinds,
+    ...INFRASTRUCTURE_VIEW.kinds,
+    ...CLUSTER_VIEW.kinds,
+  ]),
 ];
 
-export const FILTER_PRESETS: FilterPreset[] = [
-  { id: 'all', label: 'All', kinds: ALL_KINDS },
-  {
-    id: 'developer',
-    label: 'Developer Resources',
-    kinds: APPLICATION_VIEW.kinds,
-  },
-  {
-    id: 'platform',
-    label: 'Platform Resources',
-    kinds: INFRASTRUCTURE_VIEW.kinds,
-  },
-];
+/**
+ * Returns filter presets dynamically based on whether cluster scope is active.
+ * When cluster scope is active, "All" and "Platform Resources" include cluster kinds.
+ * When off, cluster kinds are excluded entirely.
+ */
+export function getFilterPresets(clusterScopeActive: boolean): FilterPreset[] {
+  const allKinds = clusterScopeActive
+    ? ALL_KINDS
+    : [...APPLICATION_VIEW.kinds, ...INFRASTRUCTURE_VIEW.kinds];
+  const platformKinds = clusterScopeActive
+    ? [...INFRASTRUCTURE_VIEW.kinds, ...CLUSTER_VIEW.kinds]
+    : INFRASTRUCTURE_VIEW.kinds;
 
-export const ALL_FILTERABLE_KINDS: { id: string; label: string }[] = [
+  return [
+    { id: 'all', label: 'All', kinds: allKinds },
+    {
+      id: 'developer',
+      label: 'Developer Resources',
+      kinds: APPLICATION_VIEW.kinds,
+    },
+    {
+      id: 'platform',
+      label: 'Platform Resources',
+      kinds: platformKinds,
+    },
+  ];
+}
+
+/** @deprecated Use getFilterPresets() instead */
+export const FILTER_PRESETS: FilterPreset[] = getFilterPresets(true);
+
+export const ALL_FILTERABLE_KINDS: {
+  id: string;
+  label: string;
+  clusterScoped?: boolean;
+}[] = [
   { id: 'system', label: 'Project' },
   { id: 'component', label: 'Component' },
   { id: 'deploymentpipeline', label: 'Pipeline' },
@@ -107,9 +166,37 @@ export const ALL_FILTERABLE_KINDS: { id: string; label: string }[] = [
   { id: 'dataplane', label: 'Data Plane' },
   { id: 'buildplane', label: 'Build Plane' },
   { id: 'observabilityplane', label: 'Obs Plane' },
+  // Cluster-scoped kinds
+  { id: 'clusterdataplane', label: 'Cluster Data Plane', clusterScoped: true },
+  {
+    id: 'clusterbuildplane',
+    label: 'Cluster Build Plane',
+    clusterScoped: true,
+  },
+  {
+    id: 'clusterobservabilityplane',
+    label: 'Cluster Obs Plane',
+    clusterScoped: true,
+  },
 ];
 
-const VIEW_SOURCES = [APPLICATION_VIEW, INFRASTRUCTURE_VIEW];
+const VIEW_SOURCES = [APPLICATION_VIEW, INFRASTRUCTURE_VIEW, CLUSTER_VIEW];
+
+/**
+ * Returns the effective set of kinds to fetch, accounting for cluster scope.
+ * When cluster scope is off, strips out cluster-scoped kinds.
+ * When cluster scope is on, passes through selectedKinds as-is (the kind
+ * filter and presets already manage cluster kind inclusion).
+ */
+export function getEffectiveKinds(
+  selectedKinds: string[],
+  clusterScopeActive: boolean,
+): string[] {
+  if (!clusterScopeActive) {
+    return selectedKinds.filter(k => !CLUSTER_SCOPED_KINDS.includes(k));
+  }
+  return selectedKinds;
+}
 
 /**
  * Builds a dynamic GraphViewDefinition by merging relations from all views
@@ -129,13 +216,15 @@ export function buildDynamicView(selectedKinds: string[]): GraphViewDefinition {
     }
   }
 
-  // Find matching preset for description
-  const matchingPreset = FILTER_PRESETS.find(p => {
-    const presetSet = new Set(p.kinds);
-    return (
-      presetSet.size === kindsSet.size && p.kinds.every(k => kindsSet.has(k))
-    );
-  });
+  // Find matching preset for description (check both cluster states)
+  const matchingPreset = getFilterPresets(true)
+    .concat(getFilterPresets(false))
+    .find(p => {
+      const presetSet = new Set(p.kinds);
+      return (
+        presetSet.size === kindsSet.size && p.kinds.every(k => kindsSet.has(k))
+      );
+    });
 
   const label = matchingPreset?.label ?? 'Custom View';
   const description = matchingPreset

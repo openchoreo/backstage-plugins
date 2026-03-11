@@ -11,9 +11,6 @@ import { Page, Header, Content } from '@backstage/core-components';
 import { useApi, useRouteRef } from '@backstage/core-plugin-api';
 import { catalogApiRef, entityRouteRef } from '@backstage/plugin-catalog-react';
 import { makeStyles } from '@material-ui/core/styles';
-import FormControl from '@material-ui/core/FormControl';
-import InputLabel from '@material-ui/core/InputLabel';
-import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
 import Button from '@material-ui/core/Button';
 import Popover from '@material-ui/core/Popover';
@@ -22,13 +19,17 @@ import Checkbox from '@material-ui/core/Checkbox';
 import Divider from '@material-ui/core/Divider';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
+import ListSubheader from '@material-ui/core/ListSubheader';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import {
   PlatformOverviewGraphView,
   GraphKindFilter,
   buildDynamicView,
+  getEffectiveKinds,
   APPLICATION_VIEW,
+  CLUSTER_NAMESPACE,
   useProjects,
+  type ProjectEntry,
   type EntityNode,
 } from '@openchoreo/backstage-plugin-react';
 import { useQueryParams } from '@openchoreo/backstage-plugin';
@@ -38,9 +39,6 @@ const useStyles = makeStyles(theme => ({
     minHeight: 0,
     display: 'flex',
     flexDirection: 'column',
-  },
-  namespaceSelector: {
-    minWidth: 160,
   },
   triggerButton: {
     textTransform: 'none',
@@ -66,9 +64,18 @@ const useStyles = makeStyles(theme => ({
   checkbox: {
     padding: 4,
   },
+  subheader: {
+    lineHeight: '28px',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    color: theme.palette.text.secondary,
+  },
 }));
 
 const DEFAULT_KINDS = APPLICATION_VIEW.kinds;
+const DEFAULT_SCOPE = `${CLUSTER_NAMESPACE},default`;
 
 function useNamespaces() {
   const catalogApi = useApi(catalogApiRef);
@@ -96,27 +103,55 @@ function useNamespaces() {
   return namespaces;
 }
 
+/** Unique key for a project entry, used for query param encoding. */
+function projectKey(p: ProjectEntry): string {
+  return `${p.namespace}/${p.name}`;
+}
+
 export function PlatformOverviewPage() {
   const classes = useStyles();
   const [params, setParams] = useQueryParams<{
     kinds: string;
-    ns: string;
+    scope: string;
     excludedProjects: string | undefined;
   }>({
-    kinds: {
-      defaultValue: DEFAULT_KINDS.join(','),
-    },
-    ns: { defaultValue: 'default' },
+    kinds: { defaultValue: DEFAULT_KINDS.join(',') },
+    scope: { defaultValue: DEFAULT_SCOPE },
     excludedProjects: { defaultValue: undefined },
   });
   const navigate = useNavigate();
   const catalogEntityRoute = useRouteRef(entityRouteRef);
-  const namespaces = useNamespaces();
-  const projects = useProjects(params.ns);
+  const availableNamespaces = useNamespaces();
+
+  // --- Scope state ---
+  const selectedScopes = useMemo(
+    () =>
+      typeof params.scope === 'string'
+        ? params.scope.split(',').filter(Boolean)
+        : DEFAULT_SCOPE.split(','),
+    [params.scope],
+  );
+  const clusterSelected = selectedScopes.includes(CLUSTER_NAMESPACE);
+  const selectedNamespaces = useMemo(
+    () => selectedScopes.filter(s => s !== CLUSTER_NAMESPACE),
+    [selectedScopes],
+  );
+
+  // Namespaces for project fetching (excludes cluster namespace)
+  const projectNamespaces = useMemo(
+    () => (selectedNamespaces.length > 0 ? selectedNamespaces : undefined),
+    [selectedNamespaces],
+  );
+  const projects = useProjects(projectNamespaces);
+
+  const [scopeAnchor, setScopeAnchor] = useState<HTMLButtonElement | null>(
+    null,
+  );
   const [projectAnchor, setProjectAnchor] = useState<HTMLButtonElement | null>(
     null,
   );
 
+  // --- Kinds ---
   const selectedKinds = useMemo(
     () =>
       typeof params.kinds === 'string'
@@ -125,23 +160,36 @@ export function PlatformOverviewPage() {
     [params.kinds],
   );
 
-  // Clear excluded projects when namespace changes or system kind is deselected
-  const currentNs = params.ns;
+  // Build effective view with auto-included cluster kinds
+  const effectiveView = useMemo(() => {
+    const effectiveKinds = getEffectiveKinds(selectedKinds, clusterSelected);
+    return buildDynamicView(effectiveKinds);
+  }, [selectedKinds, clusterSelected]);
+
+  // The user-facing view (for description/subtitle) uses the raw selected kinds
+  const displayView = useMemo(
+    () => buildDynamicView(selectedKinds),
+    [selectedKinds],
+  );
+
+  // --- Clear excluded projects when scope changes or system kind is deselected ---
+  const currentScope = params.scope;
   const systemKindSelected = selectedKinds.includes('system');
-  const prevNsRef = useRef(currentNs);
+  const prevScopeRef = useRef(currentScope);
   const prevSystemKindRef = useRef(systemKindSelected);
   useEffect(() => {
-    const nsChanged = currentNs !== prevNsRef.current;
+    const scopeChanged = currentScope !== prevScopeRef.current;
     const systemDeselected = prevSystemKindRef.current && !systemKindSelected;
-    prevNsRef.current = currentNs;
+    prevScopeRef.current = currentScope;
     prevSystemKindRef.current = systemKindSelected;
 
-    if ((nsChanged || systemDeselected) && params.excludedProjects) {
+    if ((scopeChanged || systemDeselected) && params.excludedProjects) {
       setParams({ excludedProjects: undefined }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentNs, systemKindSelected]);
+  }, [currentScope, systemKindSelected]);
 
+  // --- Project filter ---
   const excludedSet = useMemo(
     () =>
       new Set(
@@ -153,19 +201,19 @@ export function PlatformOverviewPage() {
   );
 
   const selectedProjects = useMemo(
-    () => projects.filter(p => !excludedSet.has(p)),
+    () => projects.filter(p => !excludedSet.has(projectKey(p))),
     [projects, excludedSet],
   );
 
   const handleProjectToggle = useCallback(
-    (project: string) => {
+    (project: ProjectEntry) => {
+      const key = projectKey(project);
       const next = new Set(excludedSet);
-      if (next.has(project)) {
-        next.delete(project);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        // Don't allow excluding if it would leave 0 selected
         if (selectedProjects.length <= 1) return;
-        next.add(project);
+        next.add(key);
       }
       setParams({
         excludedProjects: next.size > 0 ? [...next].join(',') : undefined,
@@ -177,11 +225,34 @@ export function PlatformOverviewPage() {
   const showProjectFilter =
     selectedKinds.includes('system') && projects.length > 0;
 
-  const currentView = useMemo(
-    () => buildDynamicView(selectedKinds),
-    [selectedKinds],
+  // --- Scope selector ---
+  const handleScopeToggle = useCallback(
+    (item: string) => {
+      const current = new Set(selectedScopes);
+      if (current.has(item)) {
+        if (current.size <= 1) return; // prevent empty scope
+        current.delete(item);
+      } else {
+        current.add(item);
+      }
+      setParams({ scope: [...current].join(',') });
+    },
+    [selectedScopes, setParams],
   );
 
+  const scopeButtonLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (clusterSelected) parts.push('Cluster');
+    if (selectedNamespaces.length === 1) {
+      parts.push(selectedNamespaces[0]);
+    } else if (selectedNamespaces.length > 1) {
+      parts.push(`${selectedNamespaces.length} namespaces`);
+    }
+    if (parts.length === 0) return 'Scope: None';
+    return `Scope: ${parts.join(' + ')}`;
+  }, [clusterSelected, selectedNamespaces]);
+
+  // --- Kind filter ---
   const handleKindsChange = useCallback(
     (kinds: string[]) => {
       setParams({ kinds: kinds.join(',') });
@@ -189,6 +260,7 @@ export function PlatformOverviewPage() {
     [setParams],
   );
 
+  // --- Node click ---
   const handleNodeClick = useCallback(
     (node: EntityNode, _event: MouseEvent<unknown>) => {
       const route = catalogEntityRoute({
@@ -201,11 +273,90 @@ export function PlatformOverviewPage() {
     [catalogEntityRoute, navigate],
   );
 
+  // --- Project filter labels ---
+  const multiNamespace = selectedNamespaces.length > 1;
   const projectButtonLabel = useMemo(() => {
     if (selectedProjects.length === projects.length) return 'Project: All';
     return `Project: ${selectedProjects.length} of ${projects.length}`;
   }, [selectedProjects.length, projects.length]);
 
+  const projectDisplayName = useCallback(
+    (p: ProjectEntry) => (multiNamespace ? `${p.namespace}/${p.name}` : p.name),
+    [multiNamespace],
+  );
+
+  // --- Scope selector popover ---
+  const scopeLeading = (
+    <>
+      <Button
+        className={classes.triggerButton}
+        endIcon={<ArrowDropDownIcon />}
+        onClick={e => setScopeAnchor(e.currentTarget)}
+      >
+        {scopeButtonLabel}
+      </Button>
+      <Popover
+        open={Boolean(scopeAnchor)}
+        anchorEl={scopeAnchor}
+        onClose={() => setScopeAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        PaperProps={{ className: classes.popoverPaper }}
+      >
+        <MenuList dense>
+          <MenuItem
+            className={classes.menuItem}
+            disabled={clusterSelected && selectedScopes.length <= 1}
+            onClick={() => handleScopeToggle(CLUSTER_NAMESPACE)}
+          >
+            <ListItemIcon>
+              <Checkbox
+                className={classes.checkbox}
+                checked={clusterSelected}
+                disabled={clusterSelected && selectedScopes.length <= 1}
+                color="primary"
+                size="small"
+                disableRipple
+              />
+            </ListItemIcon>
+            <ListItemText primary="Cluster" />
+          </MenuItem>
+        </MenuList>
+        <Divider />
+        <ListSubheader className={classes.subheader} disableSticky>
+          Namespaces
+        </ListSubheader>
+        <MenuList dense>
+          {availableNamespaces.map(ns => {
+            const isSelected = selectedNamespaces.includes(ns);
+            const isLastItem = isSelected && selectedScopes.length <= 1;
+            return (
+              <MenuItem
+                key={ns}
+                className={classes.menuItem}
+                disabled={isLastItem}
+                onClick={() => handleScopeToggle(ns)}
+              >
+                <ListItemIcon>
+                  <Checkbox
+                    className={classes.checkbox}
+                    checked={isSelected}
+                    disabled={isLastItem}
+                    color="primary"
+                    size="small"
+                    disableRipple
+                  />
+                </ListItemIcon>
+                <ListItemText primary={ns} />
+              </MenuItem>
+            );
+          })}
+        </MenuList>
+      </Popover>
+    </>
+  );
+
+  // --- Project filter popover ---
   const projectTrailing = showProjectFilter ? (
     <>
       <Button
@@ -249,11 +400,12 @@ export function PlatformOverviewPage() {
           </MenuItem>
           <Divider />
           {projects.map(p => {
-            const isSelected = !excludedSet.has(p);
+            const key = projectKey(p);
+            const isSelected = !excludedSet.has(key);
             const isLastSelected = isSelected && selectedProjects.length <= 1;
             return (
               <MenuItem
-                key={p}
+                key={key}
                 className={classes.menuItem}
                 disabled={isLastSelected}
                 onClick={() => handleProjectToggle(p)}
@@ -268,7 +420,7 @@ export function PlatformOverviewPage() {
                     disableRipple
                   />
                 </ListItemIcon>
-                <ListItemText primary={p} />
+                <ListItemText primary={projectDisplayName(p)} />
               </MenuItem>
             );
           })}
@@ -286,37 +438,18 @@ export function PlatformOverviewPage() {
 
   return (
     <Page themeId="tool">
-      <Header title="Platform Overview" subtitle={currentView.description} />
+      <Header title="Platform Overview" subtitle={displayView.description} />
       <Content stretch noPadding className={classes.content}>
         <GraphKindFilter
           selectedKinds={selectedKinds}
           onKindsChange={handleKindsChange}
-          leading={
-            <FormControl
-              variant="outlined"
-              size="small"
-              className={classes.namespaceSelector}
-            >
-              <InputLabel id="graph-namespace-label">Namespace</InputLabel>
-              <Select
-                labelId="graph-namespace-label"
-                label="Namespace"
-                value={params.ns}
-                onChange={e => setParams({ ns: e.target.value as string })}
-              >
-                {namespaces.map(ns => (
-                  <MenuItem key={ns} value={ns}>
-                    {ns}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          }
+          clusterScopeActive={clusterSelected}
+          leading={scopeLeading}
           trailing={projectTrailing}
         />
         <PlatformOverviewGraphView
-          view={currentView}
-          namespace={params.ns}
+          view={effectiveView}
+          namespaces={selectedScopes}
           projects={showProjectFilter ? activeProjectFilter : undefined}
           allProjects={showProjectFilter ? projects : undefined}
           onNodeClick={handleNodeClick}

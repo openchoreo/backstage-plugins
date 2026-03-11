@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CompoundEntityRef, DEFAULT_NAMESPACE } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 
-export function useAllEntitiesOfKinds(kinds: string[], namespace?: string) {
+export function useAllEntitiesOfKinds(kinds: string[], namespaces?: string[]) {
   const catalogApi = useApi(catalogApiRef);
   const [entityRefs, setEntityRefs] = useState<CompoundEntityRef[]>([]);
   const [loading, setLoading] = useState(true);
@@ -11,6 +11,10 @@ export function useAllEntitiesOfKinds(kinds: string[], namespace?: string) {
   const [entityCount, setEntityCount] = useState(0);
 
   const kindsKey = kinds.join(',');
+  const namespacesKey = useMemo(
+    () => namespaces?.slice().sort().join(',') ?? '',
+    [namespaces],
+  );
 
   const fetchEntities = useCallback(async () => {
     try {
@@ -20,7 +24,10 @@ export function useAllEntitiesOfKinds(kinds: string[], namespace?: string) {
       const response = await catalogApi.getEntities({
         filter: {
           kind: kinds,
-          ...(namespace && { 'metadata.namespace': namespace }),
+          ...(namespaces &&
+            namespaces.length > 0 && {
+              'metadata.namespace': namespaces,
+            }),
         },
         fields: ['kind', 'metadata.name', 'metadata.namespace'],
       });
@@ -39,7 +46,7 @@ export function useAllEntitiesOfKinds(kinds: string[], namespace?: string) {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalogApi, kindsKey, namespace]);
+  }, [catalogApi, kindsKey, namespacesKey]);
 
   useEffect(() => {
     fetchEntities();

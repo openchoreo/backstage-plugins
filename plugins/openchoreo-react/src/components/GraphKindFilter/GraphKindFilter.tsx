@@ -11,7 +11,7 @@ import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import {
-  FILTER_PRESETS,
+  getFilterPresets,
   ALL_FILTERABLE_KINDS,
 } from '../../utils/platformOverviewConstants';
 import { ENTITY_KIND_COLORS, DEFAULT_NODE_COLOR } from '../../utils/graphUtils';
@@ -67,6 +67,7 @@ const useStyles = makeStyles(theme => ({
 export type GraphKindFilterProps = {
   selectedKinds: string[];
   onKindsChange: (kinds: string[]) => void;
+  clusterScopeActive?: boolean;
   leading?: ReactNode;
   trailing?: ReactNode;
 };
@@ -74,6 +75,7 @@ export type GraphKindFilterProps = {
 export function GraphKindFilter({
   selectedKinds,
   onKindsChange,
+  clusterScopeActive = false,
   leading,
   trailing,
 }: GraphKindFilterProps) {
@@ -82,8 +84,21 @@ export function GraphKindFilter({
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const open = Boolean(anchorEl);
 
+  const presets = useMemo(
+    () => getFilterPresets(clusterScopeActive),
+    [clusterScopeActive],
+  );
+
+  const visibleKinds = useMemo(
+    () =>
+      clusterScopeActive
+        ? ALL_FILTERABLE_KINDS
+        : ALL_FILTERABLE_KINDS.filter(k => !k.clusterScoped),
+    [clusterScopeActive],
+  );
+
   const activePreset = useMemo(() => {
-    for (const preset of FILTER_PRESETS) {
+    for (const preset of presets) {
       const presetSet = new Set(preset.kinds);
       if (
         presetSet.size === selectedSet.size &&
@@ -93,7 +108,7 @@ export function GraphKindFilter({
       }
     }
     return undefined;
-  }, [selectedSet]);
+  }, [selectedSet, presets]);
 
   const buttonLabel = useMemo(() => {
     if (activePreset) return `Kind: ${activePreset.label}`;
@@ -113,7 +128,7 @@ export function GraphKindFilter({
   };
 
   const handlePresetClick = (presetId: string) => {
-    const preset = FILTER_PRESETS.find(p => p.id === presetId);
+    const preset = presets.find(p => p.id === presetId);
     if (preset) {
       onKindsChange([...preset.kinds]);
     }
@@ -148,7 +163,7 @@ export function GraphKindFilter({
         PaperProps={{ className: classes.popoverPaper }}
       >
         <MenuList dense>
-          {FILTER_PRESETS.map(preset => {
+          {presets.map(preset => {
             const state = getPresetState(preset.kinds);
             return (
               <MenuItem
@@ -173,34 +188,40 @@ export function GraphKindFilter({
         </MenuList>
         <Divider />
         <MenuList dense>
-          {ALL_FILTERABLE_KINDS.map(kind => {
+          {visibleKinds.map((kind, index) => {
             const isSelected = selectedSet.has(kind.id);
             const isLastSelected = isSelected && selectedSet.size <= 1;
             const color =
               ENTITY_KIND_COLORS[kind.id.toLowerCase()] ?? DEFAULT_NODE_COLOR;
+            const showDivider =
+              kind.clusterScoped &&
+              index > 0 &&
+              !visibleKinds[index - 1].clusterScoped;
             return (
-              <MenuItem
-                key={kind.id}
-                className={classes.menuItem}
-                disabled={isLastSelected}
-                onClick={() => handleKindToggle(kind.id)}
-              >
-                <ListItemIcon>
-                  <Checkbox
-                    className={classes.checkbox}
-                    checked={isSelected}
-                    disabled={isLastSelected}
-                    color="primary"
-                    size="small"
-                    disableRipple
+              <span key={kind.id}>
+                {showDivider && <Divider />}
+                <MenuItem
+                  className={classes.menuItem}
+                  disabled={isLastSelected}
+                  onClick={() => handleKindToggle(kind.id)}
+                >
+                  <ListItemIcon>
+                    <Checkbox
+                      className={classes.checkbox}
+                      checked={isSelected}
+                      disabled={isLastSelected}
+                      color="primary"
+                      size="small"
+                      disableRipple
+                    />
+                  </ListItemIcon>
+                  <span
+                    className={classes.kindDot}
+                    style={{ backgroundColor: color }}
                   />
-                </ListItemIcon>
-                <span
-                  className={classes.kindDot}
-                  style={{ backgroundColor: color }}
-                />
-                <ListItemText primary={kind.label} />
-              </MenuItem>
+                  <ListItemText primary={kind.label} />
+                </MenuItem>
+              </span>
             );
           })}
         </MenuList>

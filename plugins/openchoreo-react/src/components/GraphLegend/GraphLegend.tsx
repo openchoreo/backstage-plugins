@@ -53,6 +53,9 @@ const KIND_LABELS: Record<string, string> = {
   dataplane: 'Data Plane',
   buildplane: 'Build Plane',
   observabilityplane: 'Observability Plane',
+  clusterdataplane: 'Cluster Data Plane',
+  clusterbuildplane: 'Cluster Build Plane',
+  clusterobservabilityplane: 'Cluster Obs Plane',
 };
 
 export type GraphLegendProps = {
