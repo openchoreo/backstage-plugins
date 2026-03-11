@@ -229,14 +229,13 @@ export function PlatformOverviewPage() {
       if (next.has(key)) {
         next.delete(key);
       } else {
-        if (selectedProjects.length <= 1) return;
         next.add(key);
       }
       setParams({
         excludedProjects: next.size > 0 ? [...next].join(',') : undefined,
       });
     },
-    [excludedSet, selectedProjects.length, setParams],
+    [excludedSet, setParams],
   );
 
   const showProjectFilter =
@@ -394,9 +393,16 @@ export function PlatformOverviewPage() {
         <MenuList dense>
           <MenuItem
             className={classes.menuItem}
-            disabled={selectedProjects.length === projects.length}
             onClick={() => {
-              setParams({ excludedProjects: undefined });
+              if (selectedProjects.length === projects.length) {
+                // Deselect all
+                setParams({
+                  excludedProjects: projects.map(p => projectKey(p)).join(','),
+                });
+              } else {
+                // Select all
+                setParams({ excludedProjects: undefined });
+              }
               setProjectAnchor(null);
             }}
           >
@@ -419,19 +425,16 @@ export function PlatformOverviewPage() {
           {projects.map(p => {
             const key = projectKey(p);
             const isSelected = !excludedSet.has(key);
-            const isLastSelected = isSelected && selectedProjects.length <= 1;
             return (
               <MenuItem
                 key={key}
                 className={classes.menuItem}
-                disabled={isLastSelected}
                 onClick={() => handleProjectToggle(p)}
               >
                 <ListItemIcon>
                   <Checkbox
                     className={classes.checkbox}
                     checked={isSelected}
-                    disabled={isLastSelected}
                     color="primary"
                     size="small"
                     disableRipple

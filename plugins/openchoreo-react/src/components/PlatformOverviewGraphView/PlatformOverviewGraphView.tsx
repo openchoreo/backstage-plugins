@@ -244,7 +244,7 @@ export function PlatformOverviewGraphView({
 
   const loading = refsLoading || graphLoading;
   const error = refsError || graphError;
-  const showGraph = !loading && !error && entityCount > 0;
+  const showGraph = !loading && !error && entityCount > 0 && nodes.length > 0;
 
   // Stable key to detect graph content changes (e.g. project filter)
   const graphContentKey = useMemo(

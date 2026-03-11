@@ -129,14 +129,19 @@ export function GraphKindFilter({
 
   const handlePresetClick = (presetId: string) => {
     const preset = presets.find(p => p.id === presetId);
-    if (preset) {
+    if (!preset) return;
+    const state = getPresetState(preset.kinds);
+    if (state === 'checked') {
+      // Deselect: remove this preset's kinds from the selection
+      const remaining = selectedKinds.filter(k => !preset.kinds.includes(k));
+      onKindsChange(remaining);
+    } else {
       onKindsChange([...preset.kinds]);
     }
   };
 
   const handleKindToggle = (kind: string) => {
     if (selectedSet.has(kind)) {
-      if (selectedSet.size <= 1) return;
       onKindsChange(selectedKinds.filter(k => k !== kind));
     } else {
       onKindsChange([...selectedKinds, kind]);
@@ -190,7 +195,6 @@ export function GraphKindFilter({
         <MenuList dense>
           {visibleKinds.map((kind, index) => {
             const isSelected = selectedSet.has(kind.id);
-            const isLastSelected = isSelected && selectedSet.size <= 1;
             const color =
               ENTITY_KIND_COLORS[kind.id.toLowerCase()] ?? DEFAULT_NODE_COLOR;
             const showDivider =
@@ -202,14 +206,12 @@ export function GraphKindFilter({
                 {showDivider && <Divider />}
                 <MenuItem
                   className={classes.menuItem}
-                  disabled={isLastSelected}
                   onClick={() => handleKindToggle(kind.id)}
                 >
                   <ListItemIcon>
                     <Checkbox
                       className={classes.checkbox}
                       checked={isSelected}
-                      disabled={isLastSelected}
                       color="primary"
                       size="small"
                       disableRipple
