@@ -345,10 +345,15 @@ export {
   type FilterPreset,
   APPLICATION_VIEW,
   INFRASTRUCTURE_VIEW,
+  CLUSTER_VIEW,
   ALL_VIEWS,
   FILTER_PRESETS,
+  getFilterPresets,
   ALL_FILTERABLE_KINDS,
+  CLUSTER_NAMESPACE,
+  CLUSTER_SCOPED_KINDS,
   buildDynamicView,
+  getEffectiveKinds,
 } from './utils/platformOverviewConstants';
 
 // Graph components
@@ -369,7 +374,7 @@ export {
   useEntityGraphData,
   type UseEntityGraphDataResult,
 } from './hooks/useEntityGraphData';
-export { useProjects } from './hooks/useProjects';
+export { useProjects, type ProjectEntry } from './hooks/useProjects';
 export {
   useCreateComponentPath,
   type UseCreateComponentPathResult,

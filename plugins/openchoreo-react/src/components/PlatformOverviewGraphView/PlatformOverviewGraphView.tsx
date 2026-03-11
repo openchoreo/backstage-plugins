@@ -20,6 +20,7 @@ import { useAllEntitiesOfKinds } from '../../hooks/useAllEntitiesOfKinds';
 import { useEntityGraphData } from '../../hooks/useEntityGraphData';
 import { useGraphZoom } from '../../hooks/useGraphZoom';
 import type { GraphViewDefinition } from '../../utils/platformOverviewConstants';
+import type { ProjectEntry } from '../../hooks/useProjects';
 import { EDGE_COLOR } from '../../utils/graphUtils';
 
 const useStyles = makeStyles(theme => ({
@@ -163,9 +164,9 @@ function GraphDefs() {
 
 export type PlatformOverviewGraphViewProps = {
   view: GraphViewDefinition;
-  namespace?: string;
-  projects?: string[];
-  allProjects?: string[];
+  namespaces?: string[];
+  projects?: ProjectEntry[];
+  allProjects?: ProjectEntry[];
   onNodeClick?: (node: EntityNode, event: MouseEvent<unknown>) => void;
   direction?: DependencyGraphTypes.Direction;
   nodeMargin?: number;
@@ -174,7 +175,7 @@ export type PlatformOverviewGraphViewProps = {
 
 export function PlatformOverviewGraphView({
   view,
-  namespace,
+  namespaces,
   projects,
   allProjects,
   onNodeClick,
@@ -202,11 +203,11 @@ export function PlatformOverviewGraphView({
       projects?.map(p =>
         stringifyEntityRef({
           kind: 'system',
-          namespace: namespace ?? 'default',
-          name: p,
+          namespace: p.namespace,
+          name: p.name,
         }),
       ),
-    [projects, namespace],
+    [projects],
   );
 
   const allProjectRefsComputed = useMemo(
@@ -214,11 +215,11 @@ export function PlatformOverviewGraphView({
       allProjects?.map(p =>
         stringifyEntityRef({
           kind: 'system',
-          namespace: namespace ?? 'default',
-          name: p,
+          namespace: p.namespace,
+          name: p.name,
         }),
       ),
-    [allProjects, namespace],
+    [allProjects],
   );
 
   const {
@@ -226,7 +227,7 @@ export function PlatformOverviewGraphView({
     loading: refsLoading,
     error: refsError,
     entityCount,
-  } = useAllEntitiesOfKinds(view.kinds, namespace);
+  } = useAllEntitiesOfKinds(view.kinds, namespaces);
 
   const {
     nodes,
