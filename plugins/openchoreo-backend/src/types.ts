@@ -1,5 +1,6 @@
 import { Project } from '@wso2/cell-diagram';
 import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
+import type { WorkloadWithRaw } from '@openchoreo/backstage-plugin-common';
 import type { ModelsSecretReferences } from './services/SecretReferencesService/SecretReferencesService';
 import type {
   GitSecretResponse,
@@ -142,7 +143,7 @@ export interface WorkloadService {
       namespaceName: string;
     },
     token?: string,
-  ): Promise<any>;
+  ): Promise<WorkloadWithRaw | null>;
 
   applyWorkload(
     request: {

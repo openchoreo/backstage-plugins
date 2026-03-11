@@ -1,6 +1,9 @@
 import { createApiRef } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
-import type { ModelsWorkload } from '@openchoreo/backstage-plugin-common';
+import type {
+  ModelsWorkload,
+  WorkloadWithRaw,
+} from '@openchoreo/backstage-plugin-common';
 import type { Environment } from '../components/RuntimeLogs/types';
 
 // ============================================
@@ -426,7 +429,7 @@ export interface OpenChoreoClientApi {
   // === Workload Operations ===
 
   /** Fetch workload configuration for an entity */
-  fetchWorkloadInfo(entity: Entity): Promise<ModelsWorkload>;
+  fetchWorkloadInfo(entity: Entity): Promise<WorkloadWithRaw>;
 
   /** Apply workload configuration changes */
   applyWorkload(entity: Entity, workloadSpec: ModelsWorkload): Promise<any>;
@@ -447,10 +450,12 @@ export interface OpenChoreoClientApi {
 
   // === Component & Environment Info ===
 
-  /** Get component details (including UID and deletionTimestamp) */
-  getComponentDetails(
-    entity: Entity,
-  ): Promise<{ uid?: string; deletionTimestamp?: string }>;
+  /** Get component details (including UID, deletionTimestamp, and parameters) */
+  getComponentDetails(entity: Entity): Promise<{
+    uid?: string;
+    deletionTimestamp?: string;
+    parameters?: Record<string, unknown>;
+  }>;
 
   /** Get project details (including UID and deletionTimestamp) */
   getProjectDetails(
@@ -499,6 +504,18 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     traits: ComponentTrait[],
   ): Promise<ComponentTrait[]>;
+
+  /** Fetch the input parameter schema for a component type */
+  fetchComponentTypeSchema(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
+  /** Update component config (traits and/or parameters) in a single call */
+  updateComponentConfig(
+    entity: Entity,
+    traits?: ComponentTrait[],
+    parameters?: Record<string, unknown>,
+  ): Promise<any>;
 
   /** Fetch available traits for a namespace (no entity required) */
   fetchTraitsByNamespace(

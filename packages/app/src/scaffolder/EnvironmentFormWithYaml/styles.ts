@@ -6,10 +6,6 @@ export const useStyles = makeStyles(theme => ({
     justifyContent: 'flex-end',
     marginBottom: theme.spacing(2),
   },
-  toggleButton: {
-    textTransform: 'none',
-    padding: theme.spacing(0.5, 2),
-  },
   formContainer: {
     width: '100%',
   },

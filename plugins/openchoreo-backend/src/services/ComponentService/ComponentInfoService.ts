@@ -3,7 +3,11 @@ import {
   createOpenChoreoApiClient,
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
-import type { ComponentResponse } from '@openchoreo/backstage-plugin-common';
+import type {
+  APIResponse,
+  ComponentResponse,
+  ComponentTraitRequest,
+} from '@openchoreo/backstage-plugin-common';
 import { transformComponent } from '../transformers';
 
 export type ModelsCompleteComponent = ComponentResponse;
@@ -144,6 +148,137 @@ export class ComponentInfoService {
    * @param componentName - Component name
    * @param token - Optional user token (overrides default token if provided)
    */
+  /**
+   * Updates component configuration (traits and/or parameters).
+   * Fetches the current component, merges in the provided traits/parameters, and PUTs back.
+   */
+  async updateComponentConfig(
+    namespaceName: string,
+    componentName: string,
+    traits?: ComponentTraitRequest[],
+    parameters?: Record<string, unknown>,
+    token?: string,
+  ): Promise<ModelsCompleteComponent> {
+    this.logger.debug(
+      `Updating component config for: ${componentName} in namespace: ${namespaceName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      // Fetch the current component
+      const {
+        data: component,
+        error: getError,
+        response: getResponse,
+      } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+        {
+          params: { path: { namespaceName, componentName } },
+        },
+      );
+
+      if (getError || !getResponse.ok) {
+        throw new Error(
+          `Failed to fetch component: ${getResponse.status} ${getResponse.statusText}`,
+        );
+      }
+
+      if (!component.spec?.owner) {
+        throw new Error(`Component ${componentName} is missing spec.owner`);
+      }
+
+      // Merge in traits and/or parameters
+      const updatedComponent = {
+        metadata: component.metadata,
+        spec: {
+          ...component.spec,
+          owner: component.spec.owner,
+          ...(traits !== undefined && { traits }),
+          ...(parameters !== undefined && { parameters }),
+        },
+      } as typeof component;
+
+      const { data, error, response } = await client.PUT(
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+        {
+          params: { path: { namespaceName, componentName } },
+          body: updatedComponent,
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to update component config: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      this.logger.debug(
+        `Successfully updated component config for: ${componentName}`,
+      );
+      return transformComponent(data);
+    } catch (error) {
+      this.logger.error(
+        `Failed to update component config for ${componentName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches the input parameter schema for a namespace-scoped ComponentType.
+   */
+  async fetchComponentTypeSchema(
+    namespaceName: string,
+    ctName: string,
+    token?: string,
+  ): Promise<APIResponse & { data?: { [key: string]: unknown } }> {
+    this.logger.debug(
+      `Fetching schema for component type: ${ctName} in namespace: ${namespaceName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema',
+        {
+          params: {
+            path: { namespaceName, ctName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch component type schema: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      this.logger.debug(
+        `Successfully fetched schema for component type: ${ctName}`,
+      );
+
+      return {
+        success: true,
+        data: data,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch schema for component type ${ctName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
   async deleteComponent(
     namespaceName: string,
     projectName: string,
