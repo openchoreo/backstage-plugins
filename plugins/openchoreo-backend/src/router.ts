@@ -645,18 +645,18 @@ export async function createRouter({
 
       res.json(result);
     } catch (error) {
-      const statusCode =
-        error instanceof InputError
-          ? 400
-          : error instanceof AuthenticationError
-          ? 401
-          : error instanceof NotAllowedError
-          ? 403
-          : error instanceof NotFoundError
-          ? 404
-          : error instanceof ConflictError
-          ? 409
-          : 500;
+      let statusCode = 500;
+      if (error instanceof InputError) {
+        statusCode = 400;
+      } else if (error instanceof AuthenticationError) {
+        statusCode = 401;
+      } else if (error instanceof NotAllowedError) {
+        statusCode = 403;
+      } else if (error instanceof NotFoundError) {
+        statusCode = 404;
+      } else if (error instanceof ConflictError) {
+        statusCode = 409;
+      }
       res.status(statusCode).json({
         error: {
           message: error instanceof Error ? error.message : 'Unknown error',
