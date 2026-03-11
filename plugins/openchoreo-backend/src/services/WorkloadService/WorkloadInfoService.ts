@@ -82,7 +82,9 @@ export class WorkloadInfoService implements WorkloadService {
 
     try {
       this.logger.info(
-        `${isNew ? 'Creating' : 'Updating'} workload for component: ${componentName} in namespace: ${namespaceName}`,
+        `${
+          isNew ? 'Creating' : 'Updating'
+        } workload for component: ${componentName} in namespace: ${namespaceName}`,
       );
 
       const client = createOpenChoreoApiClient({
