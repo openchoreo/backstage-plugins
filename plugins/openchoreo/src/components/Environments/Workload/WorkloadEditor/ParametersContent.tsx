@@ -121,8 +121,9 @@ export const ParametersContent = ({
         omitExtraData
         tagName="div"
         disabled={disabled}
-        children={<div />}
-      />
+      >
+        <div />
+      </Form>
     </Box>
   );
 };
