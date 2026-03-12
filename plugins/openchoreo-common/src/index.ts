@@ -131,7 +131,7 @@ export type {
   ComponentTypeResponse,
   AllowedTraitResponse,
   PatchComponentRequest,
-  ComponentWorkflow,
+  ComponentWorkflowConfig,
   ComponentTraitResponse,
   ComponentTraitRequest,
   UpdateComponentTraitsRequest,

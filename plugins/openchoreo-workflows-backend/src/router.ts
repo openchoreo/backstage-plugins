@@ -168,8 +168,14 @@ export async function createRouter({
   // POST /workflow-runs - Create (trigger) a new workflow run
   router.post('/workflow-runs', requireAuth, async (req, res) => {
     const { namespaceName } = req.query;
-    const { workflowName, parameters, labels, annotations, workflowRunName } =
-      req.body;
+    const {
+      workflowName,
+      workflowKind,
+      parameters,
+      labels,
+      annotations,
+      workflowRunName,
+    } = req.body;
 
     if (!namespaceName) {
       throw new InputError('namespaceName is required query parameter');
@@ -184,7 +190,14 @@ export async function createRouter({
     res.json(
       await workflowService.createWorkflowRun(
         namespaceName as string,
-        { workflowName, parameters, labels, annotations, workflowRunName },
+        {
+          workflowName,
+          workflowKind,
+          parameters,
+          labels,
+          annotations,
+          workflowRunName,
+        },
         userToken,
       ),
     );

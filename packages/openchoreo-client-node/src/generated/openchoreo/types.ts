@@ -2380,6 +2380,12 @@ export interface components {
     /** @description Component workflow configuration */
     ComponentWorkflowConfig: {
       /**
+       * @description Kind of workflow (Workflow or ClusterWorkflow)
+       * @default Workflow
+       * @enum {string}
+       */
+      kind: 'Workflow' | 'ClusterWorkflow';
+      /**
        * @description Workflow name
        * @example docker-build
        */
@@ -2484,6 +2490,12 @@ export interface components {
     };
     /** @description Workflow configuration for component creation */
     ComponentWorkflowInput: {
+      /**
+       * @description Kind of workflow (Workflow or ClusterWorkflow)
+       * @default Workflow
+       * @enum {string}
+       */
+      kind: 'Workflow' | 'ClusterWorkflow';
       /**
        * @description ComponentWorkflow resource name
        * @example docker-build
@@ -3597,6 +3609,12 @@ export interface components {
     };
     /** @description Workflow configuration referencing the Workflow and providing schema values. */
     WorkflowRunConfig: {
+      /**
+       * @description Kind of workflow (Workflow or ClusterWorkflow)
+       * @default Workflow
+       * @enum {string}
+       */
+      kind: 'Workflow' | 'ClusterWorkflow';
       /** @description Referenced Workflow name */
       name: string;
       /** @description Developer-provided parameters for the referenced workflow */

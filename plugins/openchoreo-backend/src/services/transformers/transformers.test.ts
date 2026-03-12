@@ -96,6 +96,7 @@ describe('transformComponent', () => {
       componentType: { kind: 'ComponentType', name: 'deployment/go-service' },
       autoDeploy: true,
       workflow: {
+        kind: 'Workflow',
         name: 'docker-build',
         parameters: {
           repository: {
@@ -362,6 +363,7 @@ describe('transformComponentWorkflowRun', () => {
     },
     spec: {
       workflow: {
+        kind: 'Workflow',
         name: 'docker-build',
       },
     },

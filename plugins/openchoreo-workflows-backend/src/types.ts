@@ -68,6 +68,7 @@ export interface WorkflowRun {
  */
 export interface CreateWorkflowRunRequest {
   workflowName: string;
+  workflowKind?: 'Workflow' | 'ClusterWorkflow';
   workflowRunName?: string;
   labels?: Record<string, string>;
   annotations?: Record<string, string>;

@@ -122,7 +122,7 @@ export interface ComponentResponse {
     [key: string]: unknown;
   };
   workload?: WorkloadResponse;
-  componentWorkflow?: ComponentWorkflow;
+  componentWorkflow?: ComponentWorkflowConfig;
   parameters?: Record<string, unknown>;
 }
 
@@ -156,7 +156,9 @@ export interface PatchComponentRequest {
 // Component workflow
 // ---------------------------------------------------------------------------
 
-export interface ComponentWorkflow {
+export interface ComponentWorkflowConfig {
+  /** @description Kind of workflow (Workflow or ClusterWorkflow) */
+  kind?: 'Workflow' | 'ClusterWorkflow';
   name: string;
   /** @description Workflow parameters as arbitrary JSON */
   parameters?: {
@@ -269,6 +271,8 @@ export interface ComponentWorkflowRunResponse {
 }
 
 export interface ComponentWorkflowConfigResponse {
+  /** @description Kind of workflow (Workflow or ClusterWorkflow) */
+  kind?: 'Workflow' | 'ClusterWorkflow';
   name: string;
   /** @description Workflow parameters as arbitrary JSON */
   parameters?: {

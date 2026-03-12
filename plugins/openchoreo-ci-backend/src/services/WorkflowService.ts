@@ -292,6 +292,7 @@ export class WorkflowService {
       const compData = compResult.data;
 
       const workflowName = (compData as any)?.spec?.workflow?.name;
+      const workflowKind = (compData as any)?.spec?.workflow?.kind;
       if (!workflowName) {
         throw new Error(
           `Component ${componentName} has no workflow configured`,
@@ -317,6 +318,7 @@ export class WorkflowService {
             },
             spec: {
               workflow: {
+                kind: workflowKind,
                 name: workflowName,
                 parameters: parameters as any,
               },

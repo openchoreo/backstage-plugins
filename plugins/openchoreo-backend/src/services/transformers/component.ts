@@ -1,7 +1,7 @@
 import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import type {
   ComponentResponse,
-  ComponentWorkflow,
+  ComponentWorkflowConfig,
 } from '@openchoreo/backstage-plugin-common';
 import {
   getName,
@@ -37,17 +37,18 @@ export function transformComponent(component: Component): ComponentResponse {
     status: deriveStatus(component),
     autoDeploy: component.spec?.autoDeploy,
     componentWorkflow: workflow
-      ? transformComponentWorkflow(workflow)
+      ? transformComponentWorkflowConfig(workflow)
       : undefined,
     parameters: (component.spec as any)?.parameters,
   };
 }
 
-function transformComponentWorkflow(
+function transformComponentWorkflowConfig(
   workflow: NonNullable<Component['spec']>['workflow'],
-): ComponentWorkflow | undefined {
+): ComponentWorkflowConfig | undefined {
   if (!workflow) return undefined;
   return {
+    kind: workflow.kind as ComponentWorkflowConfig['kind'],
     name: workflow.name ?? '',
     parameters: workflow.parameters,
   };
