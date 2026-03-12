@@ -191,14 +191,32 @@ export const EnvironmentFormWithYamlExtension = ({
     [formData],
   );
 
-  // Fetch Dataplane and ClusterDataplane entities
+  // Fetch Dataplane and ClusterDataplane entities filtered by selected namespace
   useEffect(() => {
+    const nsName = data.namespace_name ? extractName(data.namespace_name) : '';
+
     const fetchDataplanes = async () => {
+      setLoadingDataplanes(true);
       try {
-        const [namespaceScoped, clusterScoped] = await Promise.all([
-          catalogApi.getEntities({ filter: { kind: 'Dataplane' } }),
+        const results = await Promise.all([
+          // Only fetch namespace-scoped dataplanes if a namespace is selected
+          ...(nsName
+            ? [
+                catalogApi.getEntities({
+                  filter: {
+                    kind: 'Dataplane',
+                    'metadata.namespace': nsName,
+                  },
+                }),
+              ]
+            : []),
           catalogApi.getEntities({ filter: { kind: 'ClusterDataplane' } }),
         ]);
+
+        // When nsName is set, results[0] = namespace-scoped, results[1] = cluster-scoped
+        // When nsName is empty, results[0] = cluster-scoped only
+        const namespaceScoped = nsName ? results[0] : { items: [] };
+        const clusterScoped = nsName ? results[1] : results[0];
 
         const nsList = namespaceScoped.items.map(entity => ({
           name: entity.metadata.name,
@@ -219,8 +237,11 @@ export const EnvironmentFormWithYamlExtension = ({
         const combined = [...clusterList, ...nsList];
         setDataplanes(combined);
 
-        // Auto-select first dataplane if none set
-        if (combined.length > 0 && !formData?.dataPlaneRef) {
+        // Auto-select first dataplane if current selection is not in the list
+        if (
+          combined.length > 0 &&
+          !combined.some(dp => dp.entityRef === data.dataPlaneRef)
+        ) {
           onChange({ ...data, dataPlaneRef: combined[0].entityRef });
         }
       } catch {
@@ -231,7 +252,7 @@ export const EnvironmentFormWithYamlExtension = ({
     };
     fetchDataplanes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [data.namespace_name]);
 
   // Initialize form data on mount if empty
   useEffect(() => {
@@ -402,8 +423,12 @@ export const EnvironmentFormWithYamlExtension = ({
                 fullWidth
                 variant="outlined"
                 required
-                disabled={loadingDataplanes}
-                helperText="Select the data plane cluster for workloads in this environment"
+                disabled={loadingDataplanes || !data.namespace_name}
+                helperText={
+                  !data.namespace_name
+                    ? 'Select a namespace first'
+                    : 'Select the data plane cluster for workloads in this environment'
+                }
                 SelectProps={{
                   renderValue: value => {
                     const selected = dataplanes.find(
