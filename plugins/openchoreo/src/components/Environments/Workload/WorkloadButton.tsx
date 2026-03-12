@@ -8,7 +8,7 @@ import {
 } from '@backstage/core-plugin-api';
 import { Alert, Skeleton } from '@material-ui/lab';
 import { ModelsBuild } from '@openchoreo/backstage-plugin-common';
-import { useDeployPermission } from '@openchoreo/backstage-plugin-react';
+import { useConfigureAndDeployPermission } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 
@@ -34,12 +34,12 @@ export const WorkloadButton = ({
   const [hasWorkload, setHasWorkload] = useState(false);
   const [builds, setBuilds] = useState<ModelsBuild[]>([]);
 
-  // Check if user has permission to deploy
+  // Check if user has at least one of deploy/component-update/workload-update permissions
   const {
-    canDeploy,
-    loading: deployPermissionLoading,
+    canConfigureAndDeploy,
+    loading: permissionLoading,
     deniedTooltip,
-  } = useDeployPermission();
+  } = useConfigureAndDeployPermission();
 
   // Fetch workload info to check if it exists
   useEffect(() => {
@@ -162,8 +162,8 @@ export const WorkloadButton = ({
               !enableDeploy ||
               isLoading ||
               isWorking ||
-              deployPermissionLoading ||
-              !canDeploy
+              permissionLoading ||
+              !canConfigureAndDeploy
             }
             variant="contained"
             color="primary"

@@ -48,12 +48,12 @@ export const openchoreoComponentViewBuildsPermission = createPermission({
 });
 
 /**
- * Permission to deploy a component to an environment.
+ * Permission to create a release binding (deploy a component to an environment).
  * Resource-based: requires the specific component context.
  */
-export const openchoreoComponentDeployPermission = createPermission({
-  name: 'openchoreo.component.deploy',
-  attributes: { action: 'update' },
+export const openchoreoReleaseBindingCreatePermission = createPermission({
+  name: 'openchoreo.releasebinding.create',
+  attributes: { action: 'create' },
   resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
@@ -63,6 +63,16 @@ export const openchoreoComponentDeployPermission = createPermission({
  */
 export const openchoreoComponentUpdatePermission = createPermission({
   name: 'openchoreo.component.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update workload configuration.
+ * Resource-based: requires the specific component context.
+ */
+export const openchoreoWorkloadUpdatePermission = createPermission({
+  name: 'openchoreo.workload.update',
   attributes: { action: 'update' },
   resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
@@ -707,8 +717,9 @@ export const openchoreoPermissions = [
   openchoreoComponentReadPermission,
   openchoreoComponentBuildPermission,
   openchoreoComponentViewBuildsPermission,
-  openchoreoComponentDeployPermission,
+  openchoreoReleaseBindingCreatePermission,
   openchoreoComponentUpdatePermission,
+  openchoreoWorkloadUpdatePermission,
   openchoreoProjectCreatePermission,
   openchoreoProjectReadPermission,
   openchoreoNamespaceReadPermission,
@@ -788,9 +799,10 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.component.create': 'component:create',
   'openchoreo.component.read': 'component:view',
   'openchoreo.component.update': 'component:update',
+  'openchoreo.workload.update': 'workload:update',
   'openchoreo.component.build': 'workflowrun:create',
   'openchoreo.component.viewbuilds': 'workflowrun:view',
-  'openchoreo.component.deploy': 'component:deploy',
+  'openchoreo.releasebinding.create': 'releasebinding:create',
   'openchoreo.project.create': 'project:create',
   'openchoreo.project.read': 'project:view',
   'openchoreo.namespace.read': 'namespace:view',
