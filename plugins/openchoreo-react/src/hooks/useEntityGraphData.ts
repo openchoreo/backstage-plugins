@@ -99,7 +99,10 @@ export function useEntityGraphData(
   );
 
   const projectRefsKey = useMemo(
-    () => projectRefs?.slice().sort().join(',') ?? '',
+    () =>
+      projectRefs === undefined
+        ? undefined
+        : projectRefs.slice().sort().join(','),
     [projectRefs],
   );
 
@@ -238,13 +241,12 @@ export function useEntityGraphData(
 
   // Apply project reachability filter client-side (no re-fetch)
   const filtered = useMemo(() => {
-    if (
-      !projectRefs ||
-      projectRefs.length === 0 ||
-      !allProjectRefs ||
-      fullGraph.nodes.length === 0
-    ) {
+    if (!projectRefs || !allProjectRefs || fullGraph.nodes.length === 0) {
       return fullGraph;
+    }
+    // Empty projectRefs = all projects deselected → show nothing
+    if (projectRefs.length === 0) {
+      return { nodes: [], edges: [] };
     }
     const nodeIdSet = new Set(fullGraph.nodes.map(n => n.id));
     const validRoots = projectRefs.filter(ref => nodeIdSet.has(ref));

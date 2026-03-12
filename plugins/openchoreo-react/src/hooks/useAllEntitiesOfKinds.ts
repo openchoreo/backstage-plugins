@@ -17,6 +17,13 @@ export function useAllEntitiesOfKinds(kinds: string[], namespaces?: string[]) {
   );
 
   const fetchEntities = useCallback(async () => {
+    if (kinds.length === 0) {
+      setEntityRefs([]);
+      setEntityCount(0);
+      setLoading(false);
+      setError(undefined);
+      return;
+    }
     try {
       setLoading(true);
       setError(undefined);
