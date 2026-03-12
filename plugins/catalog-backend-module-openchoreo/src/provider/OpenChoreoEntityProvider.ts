@@ -19,7 +19,6 @@ import {
   isReady,
   isCreated,
   type OpenChoreoComponents,
-  getAnnotation,
 } from '@openchoreo/openchoreo-client-node';
 import type {
   NamespaceResponse,
@@ -102,6 +101,7 @@ import {
   translateClusterTraitToEntity as translateClusterTrait,
   translateClusterWorkflowToEntity as translateClusterWF,
   translateWorkflowToEntity as translateWF,
+  extractWorkflowParameters,
 } from '../utils/entityTranslation';
 
 /**
@@ -1741,15 +1741,14 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     cwf: NewClusterWorkflow,
   ): ClusterWorkflowEntityV1alpha1 {
     const isCI =
-      cwf.metadata?.annotations?.['openchoreo.dev/workflow-scope'] ===
-      'component';
+      cwf.metadata?.labels?.['openchoreo.dev/workflow-type'] === 'component';
     return translateClusterWF(
       {
         name: getName(cwf)!,
         displayName: getDisplayName(cwf),
         description: getDescription(cwf),
         createdAt: getCreatedAt(cwf),
-        parameters: getAnnotation(cwf, CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS),
+        parameters: extractWorkflowParameters((cwf as any).spec),
         type: isCI ? 'CI' : 'Generic',
         deletionTimestamp: getDeletionTimestamp(cwf),
       },
@@ -1989,15 +1988,14 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     namespaceName: string,
   ): WorkflowEntityV1alpha1 {
     const isCI =
-      wf.metadata?.annotations?.['openchoreo.dev/workflow-scope'] ===
-      'component';
+      wf.metadata?.labels?.['openchoreo.dev/workflow-type'] === 'component';
     return translateWF(
       {
         name: getName(wf)!,
         displayName: getDisplayName(wf),
         description: getDescription(wf),
         createdAt: getCreatedAt(wf),
-        parameters: getAnnotation(wf, CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS),
+        parameters: extractWorkflowParameters((wf as any).spec),
         type: isCI ? 'CI' : 'Generic',
         deletionTimestamp: getDeletionTimestamp(wf),
       },

@@ -11,6 +11,7 @@ const DEFAULT_CLUSTER_WORKFLOW_TEMPLATE = {
   metadata: {
     name: '',
     annotations: {} as Record<string, string>,
+    labels: {} as Record<string, string>,
   },
   spec: {
     schema: {
@@ -51,8 +52,7 @@ function generateInitialYaml(formData: Record<string, unknown>): string {
     template.metadata.annotations['openchoreo.dev/description'] = description;
   }
   if (isComponentWorkflow) {
-    template.metadata.annotations['openchoreo.dev/workflow-scope'] =
-      'component';
+    template.metadata.labels['openchoreo.dev/workflow-type'] = 'component';
   }
 
   return YAML.stringify(template, { indent: 2 });
@@ -70,7 +70,7 @@ export const ClusterWorkflowYamlEditorExtension = ({
   const isComponentWorkflow =
     formContext?.formData?.is_component_workflow === true;
 
-  // Generate initial YAML or sync workflow-scope annotation on mount.
+  // Generate initial YAML or sync workflow-type label on mount.
   // This runs each time the step mounts (e.g., navigating back and forth between steps).
   useEffect(() => {
     if (!formContext?.formData) {
@@ -84,26 +84,24 @@ export const ClusterWorkflowYamlEditorExtension = ({
       return;
     }
 
-    // Existing YAML — sync the workflow-scope annotation with the toggle
+    // Existing YAML — sync the workflow-type label with the toggle
     try {
       const parsed = YAML.parse(formData);
       if (!parsed?.metadata) {
         return;
       }
-      if (!parsed.metadata.annotations) {
-        parsed.metadata.annotations = {};
+      if (!parsed.metadata.labels) {
+        parsed.metadata.labels = {};
       }
 
-      const hasAnnotation =
-        parsed.metadata.annotations['openchoreo.dev/workflow-scope'] ===
-        'component';
+      const hasLabel =
+        parsed.metadata.labels['openchoreo.dev/workflow-type'] === 'component';
 
-      if (isComponentWorkflow && !hasAnnotation) {
-        parsed.metadata.annotations['openchoreo.dev/workflow-scope'] =
-          'component';
+      if (isComponentWorkflow && !hasLabel) {
+        parsed.metadata.labels['openchoreo.dev/workflow-type'] = 'component';
         onChange(YAML.stringify(parsed, { indent: 2 }));
-      } else if (!isComponentWorkflow && hasAnnotation) {
-        delete parsed.metadata.annotations['openchoreo.dev/workflow-scope'];
+      } else if (!isComponentWorkflow && hasLabel) {
+        delete parsed.metadata.labels['openchoreo.dev/workflow-type'];
         onChange(YAML.stringify(parsed, { indent: 2 }));
       }
     } catch {

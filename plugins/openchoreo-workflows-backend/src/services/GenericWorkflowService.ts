@@ -130,8 +130,7 @@ export class GenericWorkflowService {
       const items: Workflow[] = ((data as any)?.items || []).map((wf: any) => {
         const name: string = wf.metadata?.name ?? '';
         const isCI =
-          wf.metadata?.annotations?.['openchoreo.dev/workflow-scope'] ===
-          'component';
+          wf.metadata?.labels?.[CHOREO_LABELS.WORKFLOW_TYPE] === 'component';
         return {
           name,
           displayName:
