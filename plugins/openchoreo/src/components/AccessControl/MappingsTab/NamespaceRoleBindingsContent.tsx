@@ -51,6 +51,7 @@ import { NotificationBanner } from '../../Environments/components';
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { SCOPE_NAMESPACE } from '../constants';
 import { MappingDialog } from './MappingDialog';
+import { BindingDetailDialog, BindingDetail } from './BindingDetailDialog';
 
 const useStyles = makeStyles(theme => ({
   filters: {
@@ -85,6 +86,12 @@ const useStyles = makeStyles(theme => ({
   emptyState: {
     textAlign: 'center',
     padding: theme.spacing(4),
+  },
+  clickableRow: {
+    cursor: 'pointer',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
   },
   deleteButton: {
     borderColor: theme.palette.error.main,
@@ -170,6 +177,9 @@ export const NamespaceRoleBindingsContent = ({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [bindingToDelete, setBindingToDelete] =
     useState<NamespaceRoleBinding | null>(null);
+  const [detailBinding, setDetailBinding] = useState<BindingDetail | null>(
+    null,
+  );
 
   // Clear all filters
   const handleClearFilters = useCallback(() => {
@@ -218,6 +228,19 @@ export const NamespaceRoleBindingsContent = ({
       return true;
     });
   }, [bindings, roleFilter, searchQuery, effectFilter]);
+
+  const handleRowClick = (binding: NamespaceRoleBinding) => {
+    setDetailBinding({
+      name: binding.name,
+      entitlement: binding.entitlement,
+      effect: binding.effect,
+      labels: binding.labels,
+      roleMappings: (binding.roleMappings || []).map(rm => ({
+        role: rm.role?.name || '\u2014',
+        scope: formatNsMappingScope(rm.scope, binding.namespace),
+      })),
+    });
+  };
 
   const handleCreateBinding = () => {
     setEditingBinding(undefined);
@@ -453,7 +476,11 @@ export const NamespaceRoleBindingsContent = ({
                       <TableBody>
                         {filteredBindings.map(binding => {
                           return (
-                            <TableRow key={binding.name}>
+                            <TableRow
+                              key={binding.name}
+                              className={classes.clickableRow}
+                              onClick={() => handleRowClick(binding)}
+                            >
                               <TableCell>
                                 <Typography variant="body2">
                                   {binding.name}
@@ -527,7 +554,10 @@ export const NamespaceRoleBindingsContent = ({
                                   }`}
                                 />
                               </TableCell>
-                              <TableCell align="right">
+                              <TableCell
+                                align="right"
+                                onClick={e => e.stopPropagation()}
+                              >
                                 <Tooltip title={updateDeniedTooltip}>
                                   <span>
                                     <IconButton
@@ -613,6 +643,13 @@ export const NamespaceRoleBindingsContent = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <BindingDetailDialog
+        open={!!detailBinding}
+        onClose={() => setDetailBinding(null)}
+        binding={detailBinding}
+        scopeLabel="Namespace"
+      />
     </Box>
   );
 };
