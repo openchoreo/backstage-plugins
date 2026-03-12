@@ -11,7 +11,10 @@ import {
 // Type definitions from the OpenAPI spec
 export type ActionInfo = OpenChoreoComponents['schemas']['ActionInfo'];
 export type Entitlement = OpenChoreoComponents['schemas']['Entitlement'];
-export type UserTypeConfig = OpenChoreoComponents['schemas']['UserTypeConfig'];
+export type SubjectTypeConfig =
+  OpenChoreoComponents['schemas']['SubjectTypeConfig'];
+/** @deprecated Use SubjectTypeConfig instead */
+export type UserTypeConfig = SubjectTypeConfig;
 
 export class AuthzService {
   private readonly logger: LoggerService;
@@ -214,7 +217,8 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.GET(
-        '/api/v1/clusterroles',
+        '/api/v1/clusterauthzroles',
+        { params: {} },
       );
 
       assertApiResponse({ data, error, response }, 'fetch cluster roles');
@@ -247,7 +251,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.GET(
-        '/api/v1/clusterroles/{name}',
+        '/api/v1/clusterauthzroles/{name}',
         {
           params: { path: { name } },
         },
@@ -277,7 +281,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.POST(
-        '/api/v1/clusterroles',
+        '/api/v1/clusterauthzroles',
         {
           body: {
             metadata: {
@@ -311,7 +315,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.PUT(
-        '/api/v1/clusterroles/{name}',
+        '/api/v1/clusterauthzroles/{name}',
         {
           params: { path: { name } },
           body: {
@@ -342,7 +346,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { error, response } = await client.DELETE(
-        '/api/v1/clusterroles/{name}',
+        '/api/v1/clusterauthzroles/{name}',
         {
           params: { path: { name } },
         },
@@ -370,7 +374,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/roles',
+        '/api/v1/namespaces/{namespaceName}/authzroles',
         {
           params: { path: { namespaceName: namespace } },
         },
@@ -405,7 +409,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/roles/{name}',
+        '/api/v1/namespaces/{namespaceName}/authzroles/{name}',
         {
           params: { path: { namespaceName: namespace, name } },
         },
@@ -444,7 +448,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.POST(
-        '/api/v1/namespaces/{namespaceName}/roles',
+        '/api/v1/namespaces/{namespaceName}/authzroles',
         {
           params: { path: { namespaceName: role.namespace } },
           body: {
@@ -484,7 +488,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.PUT(
-        '/api/v1/namespaces/{namespaceName}/roles/{name}',
+        '/api/v1/namespaces/{namespaceName}/authzroles/{name}',
         {
           params: { path: { namespaceName: namespace, name } },
           body: {
@@ -523,7 +527,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { error, response } = await client.DELETE(
-        '/api/v1/namespaces/{namespaceName}/roles/{name}',
+        '/api/v1/namespaces/{namespaceName}/authzroles/{name}',
         {
           params: { path: { namespaceName: namespace, name } },
         },
@@ -561,7 +565,8 @@ export class AuthzService {
       const client = this.createNewClient(userToken);
 
       const { data, error, response } = await client.GET(
-        '/api/v1/clusterrolebindings',
+        '/api/v1/clusterauthzrolebindings',
+        { params: {} },
       );
 
       assertApiResponse(
@@ -612,7 +617,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.GET(
-        '/api/v1/clusterrolebindings/{name}',
+        '/api/v1/clusterauthzrolebindings/{name}',
         {
           params: { path: { name } },
         },
@@ -649,7 +654,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.POST(
-        '/api/v1/clusterrolebindings',
+        '/api/v1/clusterauthzrolebindings',
         {
           body: {
             metadata: { name: binding.name },
@@ -697,7 +702,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.PUT(
-        '/api/v1/clusterrolebindings/{name}',
+        '/api/v1/clusterauthzrolebindings/{name}',
         {
           params: { path: { name } },
           body: {
@@ -745,7 +750,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { error, response } = await client.DELETE(
-        '/api/v1/clusterrolebindings/{name}',
+        '/api/v1/clusterauthzrolebindings/{name}',
         {
           params: { path: { name } },
         },
@@ -785,7 +790,7 @@ export class AuthzService {
       const client = this.createNewClient(userToken);
 
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/rolebindings',
+        '/api/v1/namespaces/{namespaceName}/authzrolebindings',
         {
           params: {
             path: { namespaceName: namespace },
@@ -856,7 +861,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/rolebindings/{name}',
+        '/api/v1/namespaces/{namespaceName}/authzrolebindings/{name}',
         {
           params: { path: { namespaceName: namespace, name } },
         },
@@ -908,7 +913,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.POST(
-        '/api/v1/namespaces/{namespaceName}/rolebindings',
+        '/api/v1/namespaces/{namespaceName}/authzrolebindings',
         {
           params: { path: { namespaceName: binding.namespace } },
           body: {
@@ -975,7 +980,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { data, error, response } = await client.PUT(
-        '/api/v1/namespaces/{namespaceName}/rolebindings/{name}',
+        '/api/v1/namespaces/{namespaceName}/authzrolebindings/{name}',
         {
           params: { path: { namespaceName: namespace, name } },
           body: {
@@ -1043,7 +1048,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const { error, response } = await client.DELETE(
-        '/api/v1/namespaces/{namespaceName}/rolebindings/{name}',
+        '/api/v1/namespaces/{namespaceName}/authzrolebindings/{name}',
         {
           params: { path: { namespaceName: namespace, name } },
         },

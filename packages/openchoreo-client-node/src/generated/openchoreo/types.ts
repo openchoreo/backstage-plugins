@@ -1277,7 +1277,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/clusterroles': {
+  '/api/v1/clusterauthzroles': {
     parameters: {
       query?: never;
       header?: never;
@@ -1301,7 +1301,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/clusterroles/{name}': {
+  '/api/v1/clusterauthzroles/{name}': {
     parameters: {
       query?: never;
       header?: never;
@@ -1329,7 +1329,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/clusterrolebindings': {
+  '/api/v1/clusterauthzrolebindings': {
     parameters: {
       query?: never;
       header?: never;
@@ -1353,7 +1353,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/clusterrolebindings/{name}': {
+  '/api/v1/clusterauthzrolebindings/{name}': {
     parameters: {
       query?: never;
       header?: never;
@@ -1381,7 +1381,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/roles': {
+  '/api/v1/namespaces/{namespaceName}/authzroles': {
     parameters: {
       query?: never;
       header?: never;
@@ -1405,7 +1405,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/roles/{name}': {
+  '/api/v1/namespaces/{namespaceName}/authzroles/{name}': {
     parameters: {
       query?: never;
       header?: never;
@@ -1433,7 +1433,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/rolebindings': {
+  '/api/v1/namespaces/{namespaceName}/authzrolebindings': {
     parameters: {
       query?: never;
       header?: never;
@@ -1457,7 +1457,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/rolebindings/{name}': {
+  '/api/v1/namespaces/{namespaceName}/authzrolebindings/{name}': {
     parameters: {
       query?: never;
       header?: never;
@@ -4256,7 +4256,7 @@ export interface components {
     /** @description Cluster-scoped authorization role (Kubernetes CRD).
      *     Defines a set of actions that can be assigned to subjects via role bindings.
      *      */
-    AuthzClusterRole: {
+    ClusterAuthzRole: {
       /**
        * @description API version of the resource
        * @example openchoreo.dev/v1alpha1
@@ -4264,14 +4264,14 @@ export interface components {
       readonly apiVersion?: string;
       /**
        * @description Kind of the resource
-       * @example AuthzClusterRole
+       * @example ClusterAuthzRole
        */
       readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
-      spec?: components['schemas']['AuthzClusterRoleSpec'];
+      spec?: components['schemas']['ClusterAuthzRoleSpec'];
     };
     /** @description Specification for a cluster-scoped authorization role */
-    AuthzClusterRoleSpec: {
+    ClusterAuthzRoleSpec: {
       /**
        * @description List of actions this role permits
        * @example [
@@ -4288,8 +4288,8 @@ export interface components {
       description?: string;
     };
     /** @description List of cluster-scoped authorization roles */
-    AuthzClusterRoleList: {
-      items: components['schemas']['AuthzClusterRole'][];
+    ClusterAuthzRoleList: {
+      items: components['schemas']['ClusterAuthzRole'][];
       pagination: components['schemas']['Pagination'];
     };
     /** @description Namespace-scoped authorization role (Kubernetes CRD).
@@ -4333,7 +4333,7 @@ export interface components {
     /** @description Cluster-scoped role binding (Kubernetes CRD).
      *     Binds a cluster role to a subject identified by an entitlement claim.
      *      */
-    AuthzClusterRoleBinding: {
+    ClusterAuthzRoleBinding: {
       /**
        * @description API version of the resource
        * @example openchoreo.dev/v1alpha1
@@ -4341,17 +4341,17 @@ export interface components {
       readonly apiVersion?: string;
       /**
        * @description Kind of the resource
-       * @example AuthzClusterRoleBinding
+       * @example ClusterAuthzRoleBinding
        */
       readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
-      spec?: components['schemas']['AuthzClusterRoleBindingSpec'];
+      spec?: components['schemas']['ClusterAuthzRoleBindingSpec'];
     };
     /** @description Specification for a cluster-scoped role binding */
-    AuthzClusterRoleBindingSpec: {
+    ClusterAuthzRoleBindingSpec: {
       entitlement: components['schemas']['AuthzEntitlementClaim'];
       /** @description List of cluster role mappings this binding grants */
-      roleMappings: components['schemas']['AuthzClusterRoleMapping'][];
+      roleMappings: components['schemas']['ClusterAuthzRoleMapping'][];
       /**
        * @description Policy effect (allow or deny)
        * @default allow
@@ -4361,8 +4361,8 @@ export interface components {
       effect: 'allow' | 'deny';
     };
     /** @description List of cluster-scoped role bindings */
-    AuthzClusterRoleBindingList: {
-      items: components['schemas']['AuthzClusterRoleBinding'][];
+    ClusterAuthzRoleBindingList: {
+      items: components['schemas']['ClusterAuthzRoleBinding'][];
       pagination: components['schemas']['Pagination'];
     };
     /** @description Namespace-scoped role binding (Kubernetes CRD).
@@ -4413,14 +4413,14 @@ export interface components {
        */
       value: string;
     };
-    /** @description Reference to an AuthzRole or AuthzClusterRole */
+    /** @description Reference to an AuthzRole or ClusterAuthzRole */
     AuthzRoleRef: {
       /**
-       * @description Kind of role (AuthzRole or AuthzClusterRole)
-       * @example AuthzClusterRole
+       * @description Kind of role (AuthzRole or ClusterAuthzRole)
+       * @example ClusterAuthzRole
        * @enum {string}
        */
-      kind: 'AuthzRole' | 'AuthzClusterRole';
+      kind: 'AuthzRole' | 'ClusterAuthzRole';
       /**
        * @description Name of the role
        * @example admin
@@ -4464,13 +4464,13 @@ export interface components {
       component?: string;
     };
     /** @description Pairs a role reference with an optional scope for cluster-scoped bindings */
-    AuthzClusterRoleMapping: {
+    ClusterAuthzRoleMapping: {
       roleRef: components['schemas']['AuthzRoleRef'] & {
         /**
-         * @example AuthzClusterRole
+         * @example ClusterAuthzRole
          * @enum {string}
          */
-        kind?: 'AuthzClusterRole';
+        kind?: 'ClusterAuthzRole';
       };
       scope?: components['schemas']['AuthzClusterScope'];
     };
@@ -8759,7 +8759,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AuthzClusterRoleList'];
+          'application/json': components['schemas']['ClusterAuthzRoleList'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -8777,7 +8777,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['AuthzClusterRole'];
+        'application/json': components['schemas']['ClusterAuthzRole'];
       };
     };
     responses: {
@@ -8787,7 +8787,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AuthzClusterRole'];
+          'application/json': components['schemas']['ClusterAuthzRole'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -8815,7 +8815,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AuthzClusterRole'];
+          'application/json': components['schemas']['ClusterAuthzRole'];
         };
       };
       401: components['responses']['Unauthorized'];
@@ -8836,7 +8836,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['AuthzClusterRole'];
+        'application/json': components['schemas']['ClusterAuthzRole'];
       };
     };
     responses: {
@@ -8846,7 +8846,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AuthzClusterRole'];
+          'application/json': components['schemas']['ClusterAuthzRole'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -8911,7 +8911,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AuthzClusterRoleBindingList'];
+          'application/json': components['schemas']['ClusterAuthzRoleBindingList'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -8929,7 +8929,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['AuthzClusterRoleBinding'];
+        'application/json': components['schemas']['ClusterAuthzRoleBinding'];
       };
     };
     responses: {
@@ -8939,7 +8939,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AuthzClusterRoleBinding'];
+          'application/json': components['schemas']['ClusterAuthzRoleBinding'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -8967,7 +8967,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AuthzClusterRoleBinding'];
+          'application/json': components['schemas']['ClusterAuthzRoleBinding'];
         };
       };
       401: components['responses']['Unauthorized'];
@@ -8988,7 +8988,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['AuthzClusterRoleBinding'];
+        'application/json': components['schemas']['ClusterAuthzRoleBinding'];
       };
     };
     responses: {
@@ -8998,7 +8998,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AuthzClusterRoleBinding'];
+          'application/json': components['schemas']['ClusterAuthzRoleBinding'];
         };
       };
       400: components['responses']['BadRequest'];
