@@ -13,7 +13,10 @@ import { useNavigate } from 'react-router-dom';
 import { useApi, alertApiRef, IconComponent } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import {
+  openChoreoClientApiRef,
+  CLUSTER_SCOPED_RESOURCE_KINDS,
+} from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { useStyles } from '../styles';
 import { isMarkedForDeletion } from '../utils';
@@ -51,6 +54,8 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
   clusterdataplane: 'Cluster Data Plane',
   buildplane: 'Build Plane',
   clusterbuildplane: 'Cluster Build Plane',
+  workflowplane: 'Workflow Plane',
+  clusterworkflowplane: 'Cluster Workflow Plane',
   observabilityplane: 'Observability Plane',
   clusterobservabilityplane: 'Cluster Observability Plane',
   deploymentpipeline: 'Deployment Pipeline',
@@ -124,10 +129,17 @@ export function useDeleteEntityMenuItems(
       } else if (isPlatformResource) {
         const apiKind = mapKindToApiKind(entityKind);
         const namespace =
-          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+
+        if (!CLUSTER_SCOPED_RESOURCE_KINDS.has(apiKind) && !namespace) {
+          throw new Error(
+            `Missing namespace annotation for ${entityDisplayType.toLowerCase()} "${entityName}"`,
+          );
+        }
+
         await openChoreoClient.deleteResourceDefinition(
           apiKind,
-          namespace,
+          namespace ?? '',
           entityName,
         );
       } else {
