@@ -1181,6 +1181,15 @@ const clusterWorkflowPage = (
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route
+      path="/runs"
+      title="Runs"
+      if={entity => (entity.spec as any)?.type === 'Generic'}
+    >
+      <EntityNamespaceProvider>
+        <WorkflowRunsContent />
+      </EntityNamespaceProvider>
+    </OpenChoreoEntityLayout.Route>
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>

@@ -20,14 +20,20 @@ import type {
  * Namespace → Project → Component
  */
 export interface GenericWorkflowsClientApi {
+  /** List OpenChoreo namespaces (labeled openchoreo.dev/namespace=true) */
+  listNamespaces(): Promise<string[]>;
+
   /** List all workflow templates for a namespace */
   listWorkflows(namespaceName: string): Promise<PaginatedResponse<Workflow>>;
 
-  /** Get the JSONSchema for a workflow's parameters */
+  /** Get the JSONSchema for a namespace-scoped workflow's parameters */
   getWorkflowSchema(
     namespaceName: string,
     workflowName: string,
   ): Promise<unknown>;
+
+  /** Get the JSONSchema for a cluster-scoped workflow's parameters */
+  getClusterWorkflowSchema(clusterWorkflowName: string): Promise<unknown>;
 
   /** List workflow runs for a namespace, optionally filtered by workflow name */
   listWorkflowRuns(

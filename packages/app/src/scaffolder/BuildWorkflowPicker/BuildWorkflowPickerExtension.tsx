@@ -292,10 +292,7 @@ export const BuildWorkflowPicker = ({
                   {getWorkflowDisplayName(workflow)}
                 </Typography>
                 {workflow.description && (
-                  <Typography
-                    variant="body2"
-                    color="textSecondary"
-                  >
+                  <Typography variant="body2" color="textSecondary">
                     {workflow.description}
                   </Typography>
                 )}

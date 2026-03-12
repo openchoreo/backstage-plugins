@@ -203,6 +203,51 @@ export class GenericWorkflowService {
   }
 
   /**
+   * Get the JSONSchema for a cluster-scoped workflow's parameters
+   */
+  async getClusterWorkflowSchema(
+    clusterWorkflowName: string,
+    token?: string,
+  ): Promise<unknown> {
+    this.logger.debug(
+      `Fetching schema for cluster workflow: ${clusterWorkflowName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/clusterworkflows/{clusterWorkflowName}/schema' as any,
+        {
+          params: {
+            path: { clusterWorkflowName },
+          },
+        } as any,
+      );
+
+      assertApiResponse(
+        { data, error, response },
+        'fetch cluster workflow schema',
+      );
+
+      this.logger.debug(
+        `Successfully fetched schema for cluster workflow: ${clusterWorkflowName}`,
+      );
+
+      return data;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch schema for cluster workflow ${clusterWorkflowName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * List workflow runs for a namespace, optionally filtered by workflow name
    */
   async listWorkflowRuns(
@@ -284,6 +329,37 @@ export class GenericWorkflowService {
       this.logger.error(
         `Failed to fetch workflow runs for namespace ${namespaceName}: ${error}`,
       );
+      throw error;
+    }
+  }
+
+  /**
+   * List OpenChoreo namespaces (those labeled openchoreo.dev/namespace=true).
+   * Used to populate the namespace selector on the ClusterWorkflow runs page.
+   */
+  async listNamespaces(token?: string): Promise<string[]> {
+    this.logger.debug('Fetching OpenChoreo namespaces');
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET('/api/v1/namespaces');
+
+      assertApiResponse({ data, error, response }, 'fetch namespaces');
+
+      const names: string[] = ((data as any)?.items || [])
+        .map((ns: any) => ns.metadata?.name ?? '')
+        .filter(Boolean);
+
+      this.logger.debug(`Successfully fetched ${names.length} namespaces`);
+
+      return names;
+    } catch (error) {
+      this.logger.error(`Failed to fetch namespaces: ${error}`);
       throw error;
     }
   }

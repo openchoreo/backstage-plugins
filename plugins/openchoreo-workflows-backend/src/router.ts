@@ -62,6 +62,29 @@ export async function createRouter({
     );
   });
 
+  // GET /cluster-workflows/:clusterWorkflowName/schema - Get cluster workflow parameter schema
+  router.get(
+    '/cluster-workflows/:clusterWorkflowName/schema',
+    async (req, res) => {
+      const { clusterWorkflowName } = req.params;
+
+      const userToken = getUserTokenFromRequest(req);
+
+      res.json(
+        await workflowService.getClusterWorkflowSchema(
+          clusterWorkflowName,
+          userToken,
+        ),
+      );
+    },
+  );
+
+  // GET /namespaces - List OpenChoreo namespaces (for ClusterWorkflow namespace selector)
+  router.get('/namespaces', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await workflowService.listNamespaces(userToken));
+  });
+
   // GET /workflow-runs - List workflow runs (with optional workflow/project/component filter)
   router.get('/workflow-runs', async (req, res) => {
     const { namespaceName, workflowName, projectName, componentName } =

@@ -55,6 +55,10 @@ export class GenericWorkflowsClient implements GenericWorkflowsClientApi {
     return response.json();
   }
 
+  async listNamespaces(): Promise<string[]> {
+    return this.apiFetch<string[]>('/namespaces');
+  }
+
   async listWorkflows(
     namespaceName: string,
   ): Promise<PaginatedResponse<Workflow>> {
@@ -72,6 +76,14 @@ export class GenericWorkflowsClient implements GenericWorkflowsClientApi {
       {
         params: { namespaceName },
       },
+    );
+  }
+
+  async getClusterWorkflowSchema(
+    clusterWorkflowName: string,
+  ): Promise<unknown> {
+    return this.apiFetch<unknown>(
+      `/cluster-workflows/${encodeURIComponent(clusterWorkflowName)}/schema`,
     );
   }
 

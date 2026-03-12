@@ -18,7 +18,11 @@ import {
 } from '@material-ui/lab';
 import {
   Box,
+  FormControl,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
   Typography,
   Paper,
   Button,
@@ -48,6 +52,7 @@ import {
 import { useWorkflowRuns } from '../../hooks/useWorkflowRuns';
 import { useWorkflowRunDetails } from '../../hooks/useWorkflowRunDetails';
 import { useWorkflowSchema } from '../../hooks/useWorkflowSchema';
+import { useNamespaces } from '../../hooks/useNamespaces';
 import { genericWorkflowsClientApiRef } from '../../api';
 import { useSelectedNamespace } from '../../context';
 import { WorkflowRunStatusChip } from '../WorkflowRunStatusChip';
@@ -128,6 +133,10 @@ const useStyles = makeStyles(theme => ({
     borderRadius: theme.shape.borderRadius,
     overflow: 'hidden',
   },
+  namespaceSelector: {
+    minWidth: 200,
+    marginBottom: theme.spacing(2),
+  },
 }));
 
 // Helper to calculate duration
@@ -165,17 +174,24 @@ type EditorMode = 'form' | 'yaml';
 
 const TriggerForm = ({
   workflowName,
+  namespaceName,
+  isClusterScoped,
   onTriggered,
   onCancel,
 }: {
   workflowName: string;
+  /** The namespace in which to create the WorkflowRun. */
+  namespaceName: string;
+  isClusterScoped?: boolean;
   onTriggered: (runName: string) => void;
   onCancel: () => void;
 }) => {
   const classes = useStyles();
-  const namespaceName = useSelectedNamespace();
   const client = useApi(genericWorkflowsClientApiRef);
-  const { schema, loading, error } = useWorkflowSchema(workflowName);
+  const { schema, loading, error } = useWorkflowSchema(
+    workflowName,
+    isClusterScoped,
+  );
 
   const [mode, setMode] = useState<EditorMode>('form');
   const [formData, setFormData] = useState<Record<string, unknown>>({});
@@ -687,6 +703,10 @@ const RunDetailView = ({
  * Must be used within a NamespaceProvider.
  * Gets workflowName from the entity's metadata.name.
  * Shows a list of runs with the ability to trigger new runs and drill into run details/logs.
+ * Supports both namespace-scoped Workflow and cluster-scoped ClusterWorkflow entities.
+ *
+ * For ClusterWorkflow entities a namespace selector dropdown is shown so the user
+ * can choose which OpenChoreo namespace to query for WorkflowRun CRs.
  */
 export const WorkflowRunsContent = () => {
   const classes = useStyles();
@@ -695,14 +715,41 @@ export const WorkflowRunsContent = () => {
   const [showTriggerForm, setShowTriggerForm] = useState(false);
 
   const workflowName = entity.metadata.name;
+  const isClusterScoped = entity.kind?.toLowerCase() === 'clusterworkflow';
   const selectedRunName = searchParams.get('run');
+
+  // For namespace-scoped workflows
+  const contextNamespace = useSelectedNamespace();
+
+  // For ClusterWorkflows
+  const { namespaces, loading: namespacesLoading } = useNamespaces();
+  const [selectedNamespace, setSelectedNamespace] = useState<string>('default');
+
+  const [namespaceInitialised, setNamespaceInitialised] = useState(false);
+  if (
+    isClusterScoped &&
+    !namespacesLoading &&
+    namespaces.length > 0 &&
+    !namespaceInitialised
+  ) {
+    const preferred = namespaces.includes('default')
+      ? 'default'
+      : namespaces[0];
+    setSelectedNamespace(preferred);
+    setNamespaceInitialised(true);
+  }
+
+  // The namespace used for fetching runs:
+  // - ClusterWorkflow: user-selected namespace from dropdown
+  // - Workflow: namespace from context (entity annotation / entity.metadata.namespace)
+  const runsNamespace = isClusterScoped ? selectedNamespace : contextNamespace;
 
   const {
     runs,
     loading: runsLoading,
     error,
     refetch,
-  } = useWorkflowRuns(workflowName);
+  } = useWorkflowRuns(workflowName, runsNamespace);
 
   const handleRunClick = (runName: string) => {
     setSearchParams({ run: runName });
@@ -768,6 +815,26 @@ export const WorkflowRunsContent = () => {
 
   return (
     <Content>
+      {/* Namespace selector — only shown for ClusterWorkflow entities */}
+      {isClusterScoped && (
+        <FormControl variant="outlined" className={classes.namespaceSelector}>
+          <InputLabel id="namespace-select-label">Namespace</InputLabel>
+          <Select
+            labelId="namespace-select-label"
+            label="Namespace"
+            value={selectedNamespace}
+            onChange={e => setSelectedNamespace(e.target.value as string)}
+            disabled={namespacesLoading || namespaces.length === 0}
+          >
+            {namespaces.map(ns => (
+              <MenuItem key={ns} value={ns}>
+                {ns}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
+
       <Box className={classes.header}>
         <Typography variant="h6" className={classes.title}>
           Workflow Runs
@@ -795,6 +862,8 @@ export const WorkflowRunsContent = () => {
         <Box className={classes.triggerSection}>
           <TriggerForm
             workflowName={workflowName}
+            namespaceName={runsNamespace}
+            isClusterScoped={isClusterScoped}
             onTriggered={handleTriggered}
             onCancel={() => setShowTriggerForm(false)}
           />
