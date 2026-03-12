@@ -199,6 +199,7 @@ export const Workflows = () => {
             },
             body: JSON.stringify({
               workflowName: workflow.name,
+              workflowKind: workflow.kind,
               workflowRunName: `${componentName}-${Date.now()}`,
               parameters,
               labels: {

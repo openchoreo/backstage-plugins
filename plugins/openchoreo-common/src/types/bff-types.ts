@@ -157,6 +157,8 @@ export interface PatchComponentRequest {
 // ---------------------------------------------------------------------------
 
 export interface ComponentWorkflow {
+  /** @description Kind of workflow (Workflow or ClusterWorkflow) */
+  kind?: 'Workflow' | 'ClusterWorkflow';
   name: string;
   /** @description Workflow parameters as arbitrary JSON */
   parameters?: {
@@ -269,6 +271,8 @@ export interface ComponentWorkflowRunResponse {
 }
 
 export interface ComponentWorkflowConfigResponse {
+  /** @description Kind of workflow (Workflow or ClusterWorkflow) */
+  kind?: 'Workflow' | 'ClusterWorkflow';
   name: string;
   /** @description Workflow parameters as arbitrary JSON */
   parameters?: {

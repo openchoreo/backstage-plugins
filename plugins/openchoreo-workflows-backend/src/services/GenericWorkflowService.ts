@@ -365,6 +365,7 @@ export class GenericWorkflowService {
             },
             spec: {
               workflow: {
+                kind: request.workflowKind,
                 name: request.workflowName,
                 parameters: request.parameters,
               },

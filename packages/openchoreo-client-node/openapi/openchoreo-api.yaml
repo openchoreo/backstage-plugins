@@ -5550,6 +5550,11 @@ components:
       type: object
       description: Component workflow configuration
       properties:
+        kind:
+          type: string
+          description: Kind of workflow (Workflow or ClusterWorkflow)
+          enum: [Workflow, ClusterWorkflow]
+          default: Workflow
         name:
           type: string
           description: Workflow name
@@ -5667,6 +5672,11 @@ components:
         - name
         - systemParameters
       properties:
+        kind:
+          type: string
+          description: Kind of workflow (Workflow or ClusterWorkflow)
+          enum: [Workflow, ClusterWorkflow]
+          default: Workflow
         name:
           type: string
           description: ComponentWorkflow resource name
@@ -7424,6 +7434,11 @@ components:
       required:
         - name
       properties:
+        kind:
+          type: string
+          description: Kind of workflow (Workflow or ClusterWorkflow)
+          enum: [Workflow, ClusterWorkflow]
+          default: Workflow
         name:
           type: string
           description: Referenced Workflow name
