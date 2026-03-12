@@ -272,8 +272,6 @@ export const EnvironmentDeployedComponentsCard = () => {
                         navigate(componentLink);
                       }
                     }}
-                    role="button"
-                    tabIndex={0}
                   >
                     <TableCell>
                       <Link

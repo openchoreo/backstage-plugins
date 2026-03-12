@@ -155,7 +155,7 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
           }/${plane.kind.toLowerCase()}/${plane.name}`;
           return (
             <div
-              key={`${plane.kind}-${plane.name}`}
+              key={`${plane.kind}-${plane.namespace}-${plane.name}`}
               className={classes.environmentItem}
               onClick={e => {
                 if (shouldNavigateOnRowClick(e)) {
