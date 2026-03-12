@@ -199,6 +199,18 @@ export {
   type UseDeployPermissionResult,
 } from './hooks/useDeployPermission';
 export {
+  useComponentUpdatePermission,
+  type UseComponentUpdatePermissionResult,
+} from './hooks/useComponentUpdatePermission';
+export {
+  useWorkloadUpdatePermission,
+  type UseWorkloadUpdatePermissionResult,
+} from './hooks/useWorkloadUpdatePermission';
+export {
+  useConfigureAndDeployPermission,
+  type UseConfigureAndDeployPermissionResult,
+} from './hooks/useConfigureAndDeployPermission';
+export {
   useLogsPermission,
   type UseLogsPermissionResult,
 } from './hooks/useLogsPermission';

@@ -15,6 +15,7 @@ import {
   UnsavedChangesDialog,
   useUrlSyncedTab,
   DetailPageLayout,
+  useDeployPermission,
 } from '@openchoreo/backstage-plugin-react';
 import {
   calculateHasOverrides,
@@ -103,6 +104,9 @@ export const EnvironmentOverridesPage = ({
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
     useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Check deploy permission for the final Deploy/Promote button
+  const { canDeploy, loading: deployPermissionLoading } = useDeployPermission();
 
   // Load secret references for workload overrides
   const { secretReferences } = useSecretReferences();
@@ -683,7 +687,8 @@ export const EnvironmentOverridesPage = ({
           loading ||
           !!error ||
           missingRequiredFields.length > 0 ||
-          (!pendingAction && totalChanges === 0)
+          (!pendingAction && totalChanges === 0) ||
+          (!!pendingAction && (deployPermissionLoading || !canDeploy))
         }
       >
         {getSaveButtonText()}
@@ -857,7 +862,7 @@ export const EnvironmentOverridesPage = ({
               variant="contained"
               color="primary"
               onClick={handleSaveClick}
-              disabled={saving}
+              disabled={saving || deployPermissionLoading || !canDeploy}
             >
               {getSaveButtonText()}
             </Button>

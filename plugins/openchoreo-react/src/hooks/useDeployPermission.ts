@@ -1,7 +1,7 @@
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import { usePermission } from '@backstage/plugin-permission-react';
-import { openchoreoComponentDeployPermission } from '@openchoreo/backstage-plugin-common';
+import { openchoreoReleaseBindingCreatePermission } from '@openchoreo/backstage-plugin-common';
 
 /**
  * Result of the useDeployPermission hook.
@@ -39,7 +39,7 @@ export interface UseDeployPermissionResult {
 export const useDeployPermission = (): UseDeployPermissionResult => {
   const { entity } = useEntity();
   const { allowed, loading } = usePermission({
-    permission: openchoreoComponentDeployPermission,
+    permission: openchoreoReleaseBindingCreatePermission,
     resourceRef: stringifyEntityRef(entity),
   });
 
@@ -50,6 +50,6 @@ export const useDeployPermission = (): UseDeployPermissionResult => {
     canDeploy: allowed,
     loading,
     deniedTooltip,
-    permissionName: openchoreoComponentDeployPermission.name,
+    permissionName: openchoreoReleaseBindingCreatePermission.name,
   };
 };
