@@ -590,6 +590,22 @@ export class PlatformResourceService {
           );
           break;
         }
+        case 'workflows': {
+          const { error, response } = await client.PUT(
+            '/api/v1/namespaces/{namespaceName}/workflows/{workflowName}',
+            {
+              params: {
+                path: { namespaceName, workflowName: resourceName },
+              },
+              body,
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
+          break;
+        }
         case 'clustercomponenttypes': {
           const { error, response } = await client.PUT(
             '/api/v1/clustercomponenttypes/{cctName}',
@@ -808,6 +824,36 @@ export class PlatformResourceService {
             {
               params: {
                 path: { namespaceName, deploymentPipelineName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
+          break;
+        }
+        case 'workflows': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/namespaces/{namespaceName}/workflows/{workflowName}',
+            {
+              params: {
+                path: { namespaceName, workflowName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
+          break;
+        }
+        case 'environments': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/namespaces/{namespaceName}/environments/{envName}',
+            {
+              params: {
+                path: { namespaceName, envName: resourceName },
               },
             },
           );
