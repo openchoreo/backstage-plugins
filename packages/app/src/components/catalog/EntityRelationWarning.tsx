@@ -14,8 +14,8 @@ import { ResponseErrorPanel } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 
 const PLATFORM_KINDS = new Set([
-  'buildplane',
-  'clusterbuildplane',
+  'workflowplane',
+  'clusterworkflowplane',
   'componenttype',
   'clustercomponenttype',
   'traittype',

@@ -297,15 +297,15 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/buildplanes': {
+  '/namespaces/{namespaceName}/workflowplanes': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List build planes */
-    get: operations['listBuildPlanes'];
+    /** List workflow planes */
+    get: operations['listWorkflowPlanes'];
     put?: never;
     post?: never;
     delete?: never;
@@ -803,7 +803,7 @@ export interface paths {
     };
     /**
      * Get component workflow run logs
-     * @description Returns logs from a component workflow run. Logs are fetched from the build plane
+     * @description Returns logs from a component workflow run. Logs are fetched from the workflow plane
      *     through the cluster gateway. For multi-container pods, logs from all containers
      *     (excluding Argo sidecar containers) are merged.
      *
@@ -827,7 +827,7 @@ export interface paths {
     /**
      * Get component workflow run events
      * @description Returns Kubernetes events associated with a component workflow run. Events are
-     *     fetched from the build plane through the cluster gateway and aggregated across
+     *     fetched from the workflow plane through the cluster gateway and aggregated across
      *     all relevant pods for the workflow and optional step filter.
      *
      */
@@ -1285,11 +1285,11 @@ export interface components {
     /** @description Wrapped schema containing component-type and trait environment override schemas */
     ComponentSchemaResponse: {
       /** @description JSON Schema for component-type environment overrides */
-      componentTypeEnvOverrides?: {
+      componentTypeEnvironmentConfigs?: {
         [key: string]: unknown;
       };
       /** @description Object mapping trait instance names to their JSON Schemas for environment overrides */
-      traitOverrides?: {
+      traitEnvironmentConfigs?: {
         [key: string]: {
           [key: string]: unknown;
         };
@@ -1545,7 +1545,7 @@ export interface components {
       organizationHTTPSPort?: number;
       observabilityPlaneRef?: string;
     };
-    BuildPlaneResponse: {
+    WorkflowPlaneResponse: {
       name: string;
       namespace: string;
       displayName?: string;
@@ -1866,10 +1866,10 @@ export interface components {
       namespaceName: string;
       environment: string;
       releaseName: string;
-      componentTypeEnvOverrides?: {
+      componentTypeEnvironmentConfigs?: {
         [key: string]: unknown;
       };
-      traitOverrides?: {
+      traitEnvironmentConfigs?: {
         [key: string]: unknown;
       };
       workloadOverrides?: components['schemas']['WorkloadOverrides'];
@@ -1880,10 +1880,10 @@ export interface components {
     PatchReleaseBindingRequest: {
       releaseName?: string;
       environment?: string;
-      componentTypeEnvOverrides?: {
+      componentTypeEnvironmentConfigs?: {
         [key: string]: unknown;
       };
-      traitOverrides?: {
+      traitEnvironmentConfigs?: {
         [key: string]: unknown;
       };
       workloadOverrides?: components['schemas']['WorkloadOverrides'];
@@ -2833,7 +2833,7 @@ export interface operations {
       };
     };
   };
-  listBuildPlanes: {
+  listWorkflowPlanes: {
     parameters: {
       query?: never;
       header?: never;
@@ -2851,7 +2851,7 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['BuildPlaneResponse'][];
+            data?: components['schemas']['WorkflowPlaneResponse'][];
           };
         };
       };

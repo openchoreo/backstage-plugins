@@ -9,29 +9,29 @@ import {
   RELATION_OBSERVED_BY,
   RELATION_OBSERVES,
 } from '@openchoreo/backstage-plugin-common';
-import { ClusterBuildPlaneEntityV1alpha1 } from '../kinds/ClusterBuildPlaneEntityV1alpha1';
+import { ClusterWorkflowPlaneEntityV1alpha1 } from '../kinds/ClusterWorkflowPlaneEntityV1alpha1';
 
 /**
- * Processor for ClusterBuildPlane entities.
+ * Processor for ClusterWorkflowPlane entities.
  * Cluster-scoped: no domain relationships. Emits observedBy/observes to ClusterObservabilityPlane.
  */
-export class ClusterBuildPlaneEntityProcessor implements CatalogProcessor {
+export class ClusterWorkflowPlaneEntityProcessor implements CatalogProcessor {
   getProcessorName(): string {
-    return 'ClusterBuildPlaneEntityProcessor';
+    return 'ClusterWorkflowPlaneEntityProcessor';
   }
 
   async validateEntityKind(
-    entity: ClusterBuildPlaneEntityV1alpha1,
+    entity: ClusterWorkflowPlaneEntityV1alpha1,
   ): Promise<boolean> {
-    return entity.kind === 'ClusterBuildPlane';
+    return entity.kind === 'ClusterWorkflowPlane';
   }
 
   async postProcessEntity(
-    entity: ClusterBuildPlaneEntityV1alpha1,
+    entity: ClusterWorkflowPlaneEntityV1alpha1,
     _location: LocationSpec,
     emit: CatalogProcessorEmit,
-  ): Promise<ClusterBuildPlaneEntityV1alpha1> {
-    if (entity.kind === 'ClusterBuildPlane') {
+  ): Promise<ClusterWorkflowPlaneEntityV1alpha1> {
+    if (entity.kind === 'ClusterWorkflowPlane') {
       const sourceRef = {
         kind: entity.kind.toLowerCase(),
         namespace: entity.metadata.namespace || 'openchoreo-cluster',
@@ -79,19 +79,19 @@ export class ClusterBuildPlaneEntityProcessor implements CatalogProcessor {
   }
 
   async preProcessEntity(
-    entity: ClusterBuildPlaneEntityV1alpha1,
+    entity: ClusterWorkflowPlaneEntityV1alpha1,
     _location: LocationSpec,
     _emit: CatalogProcessorEmit,
-  ): Promise<ClusterBuildPlaneEntityV1alpha1> {
+  ): Promise<ClusterWorkflowPlaneEntityV1alpha1> {
     return entity;
   }
 
   async processEntity(
-    entity: ClusterBuildPlaneEntityV1alpha1,
+    entity: ClusterWorkflowPlaneEntityV1alpha1,
     location: LocationSpec,
     emit: CatalogProcessorEmit,
-  ): Promise<ClusterBuildPlaneEntityV1alpha1> {
-    if (entity.kind !== 'ClusterBuildPlane') {
+  ): Promise<ClusterWorkflowPlaneEntityV1alpha1> {
+    if (entity.kind !== 'ClusterWorkflowPlane') {
       return entity;
     }
 

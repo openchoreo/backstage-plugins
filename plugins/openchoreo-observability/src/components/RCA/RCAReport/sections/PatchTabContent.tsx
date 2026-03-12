@@ -51,8 +51,8 @@ export function patchAppliedKey(reportId: string): string {
 
 const ALLOWED_OVERRIDE_CATEGORIES = new Set([
   'workloadOverrides',
-  'traitOverrides',
-  'componentTypeEnvOverrides',
+  'traitEnvironmentConfigs',
+  'componentTypeEnvironmentConfigs',
 ]);
 
 function applyJsonPointer(doc: any, pointer: string, value: any): void {

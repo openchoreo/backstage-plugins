@@ -18,8 +18,8 @@ import {
   openchoreoEnvironmentDeletePermission,
   openchoreoDataplaneUpdatePermission,
   openchoreoDataplaneDeletePermission,
-  openchoreoBuildplaneUpdatePermission,
-  openchoreoBuildplaneDeletePermission,
+  openchoreoWorkflowplaneUpdatePermission,
+  openchoreoWorkflowplaneDeletePermission,
   openchoreoObservabilityplaneUpdatePermission,
   openchoreoObservabilityplaneDeletePermission,
   openchoreoDeploymentpipelineUpdatePermission,
@@ -30,8 +30,8 @@ import {
   openchoreoClusterTraitDeletePermission,
   openchoreoClusterDataplaneUpdatePermission,
   openchoreoClusterDataplaneDeletePermission,
-  openchoreoClusterBuildplaneUpdatePermission,
-  openchoreoClusterBuildplaneDeletePermission,
+  openchoreoClusterWorkflowplaneUpdatePermission,
+  openchoreoClusterWorkflowplaneDeletePermission,
   openchoreoClusterObservabilityplaneUpdatePermission,
   openchoreoClusterObservabilityplaneDeletePermission,
   openchoreoClusterWorkflowUpdatePermission,
@@ -96,9 +96,9 @@ const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
     delete: openchoreoDataplaneDeletePermission,
     isResourceScoped: true,
   },
-  buildplane: {
-    update: openchoreoBuildplaneUpdatePermission,
-    delete: openchoreoBuildplaneDeletePermission,
+  workflowplane: {
+    update: openchoreoWorkflowplaneUpdatePermission,
+    delete: openchoreoWorkflowplaneDeletePermission,
     isResourceScoped: true,
   },
   observabilityplane: {
@@ -126,9 +126,9 @@ const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
     delete: openchoreoClusterDataplaneDeletePermission,
     isResourceScoped: false,
   },
-  clusterbuildplane: {
-    update: openchoreoClusterBuildplaneUpdatePermission,
-    delete: openchoreoClusterBuildplaneDeletePermission,
+  clusterworkflowplane: {
+    update: openchoreoClusterWorkflowplaneUpdatePermission,
+    delete: openchoreoClusterWorkflowplaneDeletePermission,
     isResourceScoped: false,
   },
   clusterobservabilityplane: {

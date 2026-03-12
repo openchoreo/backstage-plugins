@@ -39,9 +39,9 @@ export const CHOREO_ANNOTATIONS = {
   OBSERVER_URL: 'openchoreo.io/observer-url',
   // Data plane reference kind (DataPlane vs ClusterDataPlane)
   DATA_PLANE_REF_KIND: 'openchoreo.io/data-plane-ref-kind',
-  // Build plane reference
-  BUILD_PLANE_REF: 'openchoreo.io/build-plane-ref',
-  BUILD_PLANE_REF_KIND: 'openchoreo.io/build-plane-ref-kind',
+  // Workflow plane reference
+  WORKFLOW_PLANE_REF: 'openchoreo.io/workflow-plane-ref',
+  WORKFLOW_PLANE_REF_KIND: 'openchoreo.io/workflow-plane-ref-kind',
   // Workflow parameters schema
   WORKFLOW_PARAMETERS: 'openchoreo.dev/component-workflow-parameters',
 } as const;
@@ -94,25 +94,25 @@ export const RELATION_HOSTED_ON = 'hostedOn';
 export const RELATION_HOSTS = 'hosts';
 
 /**
- * A relation indicating that a DataPlane/BuildPlane is observed by an ObservabilityPlane.
- * The source is the DataPlane/BuildPlane, the target is the ObservabilityPlane.
+ * A relation indicating that a DataPlane/WorkflowPlane is observed by an ObservabilityPlane.
+ * The source is the DataPlane/WorkflowPlane, the target is the ObservabilityPlane.
  */
 export const RELATION_OBSERVED_BY = 'observedBy';
 
 /**
- * A relation indicating that an ObservabilityPlane observes DataPlanes/BuildPlanes.
+ * A relation indicating that an ObservabilityPlane observes DataPlanes/WorkflowPlanes.
  * This is the inverse of RELATION_OBSERVED_BY.
  */
 export const RELATION_OBSERVES = 'observes';
 
 /**
- * A relation indicating that a System (Project) builds on a BuildPlane or ClusterBuildPlane.
- * The source is the project, the target is the build plane.
+ * A relation indicating that a System (Project) builds on a WorkflowPlane or ClusterWorkflowPlane.
+ * The source is the project, the target is the workflow plane.
  */
 export const RELATION_BUILDS_ON = 'buildsOn';
 
 /**
- * A relation indicating that a BuildPlane or ClusterBuildPlane builds for a System (Project).
+ * A relation indicating that a WorkflowPlane or ClusterWorkflowPlane builds for a System (Project).
  * This is the inverse of RELATION_BUILDS_ON.
  */
 export const RELATION_BUILDS = 'builds';

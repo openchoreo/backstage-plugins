@@ -53,7 +53,7 @@ export interface DataPlaneWithEnvironments extends DataPlane {
   environments: Environment[];
 }
 
-export interface BuildPlane {
+export interface WorkflowPlane {
   name: string;
   namespace?: string;
   displayName?: string;

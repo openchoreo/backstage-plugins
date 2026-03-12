@@ -52,11 +52,11 @@ components:
       type: object
       description: Wrapped schema containing component-type and trait environment override schemas
       properties:
-        componentTypeEnvOverrides:
+        componentTypeEnvironmentConfigs:
           type: object
           description: JSON Schema for component-type environment overrides
           additionalProperties: true
-        traitOverrides:
+        traitEnvironmentConfigs:
           type: object
           description: Object mapping trait instance names to their JSON Schemas for environment overrides
           additionalProperties:
@@ -595,8 +595,8 @@ components:
         observabilityPlaneRef:
           type: string
 
-    # BuildPlane
-    BuildPlaneResponse:
+    # WorkflowPlane
+    WorkflowPlaneResponse:
       type: object
       required:
         - name
@@ -1235,10 +1235,10 @@ components:
           type: string
         releaseName:
           type: string
-        componentTypeEnvOverrides:
+        componentTypeEnvironmentConfigs:
           type: object
           additionalProperties: true
-        traitOverrides:
+        traitEnvironmentConfigs:
           type: object
           additionalProperties: true
         workloadOverrides:
@@ -1256,10 +1256,10 @@ components:
           type: string
         environment:
           type: string
-        componentTypeEnvOverrides:
+        componentTypeEnvironmentConfigs:
           type: object
           additionalProperties: true
-        traitOverrides:
+        traitEnvironmentConfigs:
           type: object
           additionalProperties: true
         workloadOverrides:
@@ -2643,13 +2643,13 @@ paths:
                       data:
                         $ref: '#/components/schemas/EnvironmentResponse'
 
-  # BuildPlanes
-  /namespaces/{namespaceName}/buildplanes:
+  # WorkflowPlanes
+  /namespaces/{namespaceName}/workflowplanes:
     get:
-      summary: List build planes
-      operationId: listBuildPlanes
+      summary: List workflow planes
+      operationId: listWorkflowPlanes
       tags:
-        - BuildPlanes
+        - WorkflowPlanes
       parameters:
         - name: namespaceName
           in: path
@@ -2669,7 +2669,7 @@ paths:
                       data:
                         type: array
                         items:
-                          $ref: '#/components/schemas/BuildPlaneResponse'
+                          $ref: '#/components/schemas/WorkflowPlaneResponse'
 
   # ObservabilityPlanes
   /namespaces/{namespaceName}/observabilityplanes:
@@ -4174,7 +4174,7 @@ paths:
       operationId: getComponentWorkflowRunLogs
       summary: Get component workflow run logs
       description: |
-        Returns logs from a component workflow run. Logs are fetched from the build plane
+        Returns logs from a component workflow run. Logs are fetched from the workflow plane
         through the cluster gateway. For multi-container pods, logs from all containers
         (excluding Argo sidecar containers) are merged.
       tags:
@@ -4250,7 +4250,7 @@ paths:
       summary: Get component workflow run events
       description: |
         Returns Kubernetes events associated with a component workflow run. Events are
-        fetched from the build plane through the cluster gateway and aggregated across
+        fetched from the workflow plane through the cluster gateway and aggregated across
         all relevant pods for the workflow and optional step filter.
       tags:
         - ComponentWorkflows

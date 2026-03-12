@@ -23,10 +23,10 @@ export interface GitSecretsListResponse {
 
 /** Schema response containing component-type and trait environment override schemas */
 export interface ComponentSchemaResponse {
-  componentTypeEnvOverrides?: {
+  componentTypeEnvironmentConfigs?: {
     [key: string]: unknown;
   };
-  traitOverrides?: {
+  traitEnvironmentConfigs?: {
     [key: string]: {
       [key: string]: unknown;
     };
@@ -38,8 +38,8 @@ export interface ReleaseBinding {
   name: string;
   environment: string;
   releaseName?: string;
-  componentTypeEnvOverrides?: unknown;
-  traitOverrides?: unknown;
+  componentTypeEnvironmentConfigs?: unknown;
+  traitEnvironmentConfigs?: unknown;
   workloadOverrides?: unknown;
   endpoints?: { url: string }[];
   status?: string;
@@ -267,7 +267,7 @@ export type PlatformResourceKind =
   | 'component-workflows'
   | 'environments'
   | 'dataplanes'
-  | 'buildplanes'
+  | 'workflowplanes'
   | 'observabilityplanes'
   | 'deploymentpipelines'
   | 'clustercomponenttypes'
@@ -275,7 +275,7 @@ export type PlatformResourceKind =
   | 'clusterworkflows'
   | 'clusterdataplanes'
   | 'clusterobservabilityplanes'
-  | 'clusterbuildplanes'
+  | 'clusterworkflowplanes'
   | 'clusterworkflows';
 
 /** Cluster-scoped resource kinds that don't require a namespace */
@@ -286,7 +286,7 @@ export const CLUSTER_SCOPED_RESOURCE_KINDS: ReadonlySet<PlatformResourceKind> =
     'clusterworkflows',
     'clusterdataplanes',
     'clusterobservabilityplanes',
-    'clusterbuildplanes',
+    'clusterworkflowplanes',
     'clusterworkflows',
   ]);
 
@@ -386,8 +386,8 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     environment: string,
     releaseName: string,
-    componentTypeEnvOverrides?: unknown,
-    traitOverrides?: unknown,
+    componentTypeEnvironmentConfigs?: unknown,
+    traitEnvironmentConfigs?: unknown,
     workloadOverrides?: any,
   ): Promise<any>;
 
@@ -395,8 +395,8 @@ export interface OpenChoreoClientApi {
   patchReleaseBindingOverrides(
     entity: Entity,
     environment: string,
-    componentTypeEnvOverrides?: unknown,
-    traitOverrides?: unknown,
+    componentTypeEnvironmentConfigs?: unknown,
+    traitEnvironmentConfigs?: unknown,
     workloadOverrides?: any,
     releaseName?: string,
   ): Promise<any>;

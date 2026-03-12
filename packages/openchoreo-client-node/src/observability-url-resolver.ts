@@ -34,7 +34,7 @@ const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
  *   Environment → DataPlane (or ClusterDataPlane) → ObservabilityPlane → observerURL / rcaAgentURL
  *
  * **Build observability** (project-based):
- *   Project → BuildPlane (or ClusterBuildPlane) → ObservabilityPlane → observerURL
+ *   Project → WorkflowPlane (or ClusterWorkflowPlane) → ObservabilityPlane → observerURL
  */
 export class ObservabilityUrlResolver {
   private readonly baseUrl: string;
@@ -141,7 +141,7 @@ export class ObservabilityUrlResolver {
   /**
    * Resolve observability URLs for build logs (project-based).
    *
-   * Chain: Project → BuildPlane/ClusterBuildPlane → ObservabilityPlane/ClusterObservabilityPlane
+   * Chain: Project → WorkflowPlane/ClusterWorkflowPlane → ObservabilityPlane/ClusterObservabilityPlane
    */
   async resolveForBuild(
     namespaceName: string,
@@ -154,7 +154,7 @@ export class ObservabilityUrlResolver {
 
     const client = this.createClient(token);
 
-    // Step 1: Get the project to read its buildPlaneRef
+    // Step 1: Get the project to read its workflowPlaneRef
     const {
       data: project,
       error: projError,
@@ -169,29 +169,29 @@ export class ObservabilityUrlResolver {
       );
     }
 
-    const buildPlaneRef = (project as any)?.spec?.buildPlaneRef;
+    const workflowPlaneRef = (project as any)?.spec?.workflowPlaneRef;
 
-    // Step 2: Get the BuildPlane or ClusterBuildPlane
+    // Step 2: Get the WorkflowPlane or ClusterWorkflowPlane
     let observabilityPlaneRef: { kind: string; name: string } | undefined;
 
-    if (!buildPlaneRef || buildPlaneRef.kind === 'BuildPlane') {
-      const bpName = buildPlaneRef?.name ?? DEFAULT_PLANE_NAME;
+    if (!workflowPlaneRef || workflowPlaneRef.kind === 'WorkflowPlane') {
+      const bpName = workflowPlaneRef?.name ?? DEFAULT_PLANE_NAME;
       const {
         data: bp,
         error: bpError,
         response: bpResp,
       } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/buildplanes/{buildPlaneName}',
-        { params: { path: { namespaceName, buildPlaneName: bpName } } },
+        '/api/v1/namespaces/{namespaceName}/workflowplanes/{workflowPlaneName}',
+        { params: { path: { namespaceName, workflowPlaneName: bpName } } },
       );
 
       if (bpError || !bpResp.ok) {
-        // Fallback: try ClusterBuildPlane "default" (matches Go backend behavior)
-        if (bpResp.status === 404 && !buildPlaneRef) {
+        // Fallback: try ClusterWorkflowPlane "default" (matches Go backend behavior)
+        if (bpResp.status === 404 && !workflowPlaneRef) {
           this.logger?.debug(
-            `BuildPlane '${bpName}' not found in namespace '${namespaceName}', trying ClusterBuildPlane '${DEFAULT_PLANE_NAME}'`,
+            `WorkflowPlane '${bpName}' not found in namespace '${namespaceName}', trying ClusterWorkflowPlane '${DEFAULT_PLANE_NAME}'`,
           );
-          return this.resolveForBuildViaClusterBuildPlane(
+          return this.resolveForBuildViaClusterWorkflowPlane(
             client,
             namespaceName,
             DEFAULT_PLANE_NAME,
@@ -199,7 +199,7 @@ export class ObservabilityUrlResolver {
           );
         }
         throw new Error(
-          `Failed to get BuildPlane '${bpName}': ${bpResp.status} ${bpResp.statusText}`,
+          `Failed to get WorkflowPlane '${bpName}': ${bpResp.status} ${bpResp.statusText}`,
         );
       }
       const ref = (bp as any)?.spec?.observabilityPlaneRef;
@@ -207,15 +207,17 @@ export class ObservabilityUrlResolver {
         kind: 'ObservabilityPlane',
         name: DEFAULT_PLANE_NAME,
       };
-    } else if (buildPlaneRef.kind === 'ClusterBuildPlane') {
-      return this.resolveForBuildViaClusterBuildPlane(
+    } else if (workflowPlaneRef.kind === 'ClusterWorkflowPlane') {
+      return this.resolveForBuildViaClusterWorkflowPlane(
         client,
         namespaceName,
-        buildPlaneRef.name,
+        workflowPlaneRef.name,
         cacheKey,
       );
     } else {
-      throw new Error(`Unsupported buildPlaneRef kind '${buildPlaneRef.kind}'`);
+      throw new Error(
+        `Unsupported workflowPlaneRef kind '${workflowPlaneRef.kind}'`,
+      );
     }
 
     // Step 3: Get the ObservabilityPlane or ClusterObservabilityPlane
@@ -241,22 +243,25 @@ export class ObservabilityUrlResolver {
     } as OpenChoreoClientConfig);
   }
 
-  private async resolveForBuildViaClusterBuildPlane(
+  private async resolveForBuildViaClusterWorkflowPlane(
     client: ReturnType<typeof createOpenChoreoApiClient>,
     namespaceName: string,
-    clusterBuildPlaneName: string,
+    clusterWorkflowPlaneName: string,
     cacheKey: string,
   ): Promise<ObservabilityUrlsResult> {
     const {
       data: cbp,
       error: cbpError,
       response: cbpResp,
-    } = await client.GET('/api/v1/clusterbuildplanes/{clusterBuildPlaneName}', {
-      params: { path: { clusterBuildPlaneName } },
-    });
+    } = await client.GET(
+      '/api/v1/clusterworkflowplanes/{clusterWorkflowPlaneName}',
+      {
+        params: { path: { clusterWorkflowPlaneName } },
+      },
+    );
     if (cbpError || !cbpResp.ok) {
       throw new Error(
-        `Failed to get ClusterBuildPlane '${clusterBuildPlaneName}': ${cbpResp.status} ${cbpResp.statusText}`,
+        `Failed to get ClusterWorkflowPlane '${clusterWorkflowPlaneName}': ${cbpResp.status} ${cbpResp.statusText}`,
       );
     }
     const ref = (cbp as any)?.spec?.observabilityPlaneRef;

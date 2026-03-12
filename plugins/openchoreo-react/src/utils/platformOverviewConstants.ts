@@ -32,7 +32,7 @@ export const CLUSTER_NAMESPACE = 'openchoreo-cluster';
 /** Entity kinds that are cluster-scoped (live in CLUSTER_NAMESPACE). */
 export const CLUSTER_SCOPED_KINDS = [
   'clusterdataplane',
-  'clusterbuildplane',
+  'clusterworkflowplane',
   'clusterobservabilityplane',
 ];
 
@@ -63,8 +63,8 @@ export const INFRASTRUCTURE_VIEW: GraphViewDefinition = {
   id: 'platform',
   label: 'Platform Resources',
   description:
-    'Data Planes, Build Planes, Observability Planes, and Environments',
-  kinds: ['dataplane', 'buildplane', 'observabilityplane', 'environment'],
+    'Data Planes, Workflow Planes, Observability Planes, and Environments',
+  kinds: ['dataplane', 'workflowplane', 'observabilityplane', 'environment'],
   relations: [
     RELATION_HOSTED_ON,
     RELATION_HOSTS,
@@ -84,8 +84,12 @@ export const CLUSTER_VIEW: GraphViewDefinition = {
   id: 'cluster',
   label: 'Cluster Resources',
   description:
-    'Cluster Data Planes, Cluster Build Planes, and Cluster Observability Planes',
-  kinds: ['clusterdataplane', 'clusterbuildplane', 'clusterobservabilityplane'],
+    'Cluster Data Planes, Cluster Workflow Planes, and Cluster Observability Planes',
+  kinds: [
+    'clusterdataplane',
+    'clusterworkflowplane',
+    'clusterobservabilityplane',
+  ],
   relations: [
     RELATION_HOSTED_ON,
     RELATION_HOSTS,
@@ -164,13 +168,13 @@ export const ALL_FILTERABLE_KINDS: {
   { id: 'deploymentpipeline', label: 'Pipeline' },
   { id: 'environment', label: 'Environment' },
   { id: 'dataplane', label: 'Data Plane' },
-  { id: 'buildplane', label: 'Build Plane' },
+  { id: 'workflowplane', label: 'Workflow Plane' },
   { id: 'observabilityplane', label: 'Obs Plane' },
   // Cluster-scoped kinds
   { id: 'clusterdataplane', label: 'Cluster Data Plane', clusterScoped: true },
   {
-    id: 'clusterbuildplane',
-    label: 'Cluster Build Plane',
+    id: 'clusterworkflowplane',
+    label: 'Cluster Workflow Plane',
     clusterScoped: true,
   },
   {

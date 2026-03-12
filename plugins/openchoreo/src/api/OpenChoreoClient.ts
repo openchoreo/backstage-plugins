@@ -337,8 +337,8 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     entity: Entity,
     environment: string,
     releaseName: string,
-    componentTypeEnvOverrides?: unknown,
-    traitOverrides?: unknown,
+    componentTypeEnvironmentConfigs?: unknown,
+    traitEnvironmentConfigs?: unknown,
     workloadOverrides?: any,
   ): Promise<any> {
     const { component, project, namespace } = extractEntityMetadata(entity);
@@ -351,11 +351,11 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       releaseName,
     };
 
-    if (componentTypeEnvOverrides !== undefined) {
-      body.componentTypeEnvOverrides = componentTypeEnvOverrides;
+    if (componentTypeEnvironmentConfigs !== undefined) {
+      body.componentTypeEnvironmentConfigs = componentTypeEnvironmentConfigs;
     }
-    if (traitOverrides !== undefined) {
-      body.traitOverrides = traitOverrides;
+    if (traitEnvironmentConfigs !== undefined) {
+      body.traitEnvironmentConfigs = traitEnvironmentConfigs;
     }
     if (workloadOverrides !== undefined) {
       body.workloadOverrides = workloadOverrides;
@@ -370,8 +370,8 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async patchReleaseBindingOverrides(
     entity: Entity,
     environment: string,
-    componentTypeEnvOverrides?: unknown,
-    traitOverrides?: unknown,
+    componentTypeEnvironmentConfigs?: unknown,
+    traitEnvironmentConfigs?: unknown,
     workloadOverrides?: any,
     releaseName?: string,
   ): Promise<any> {
@@ -384,11 +384,12 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       environment,
     };
 
-    if (componentTypeEnvOverrides !== undefined) {
-      patchReq.componentTypeEnvOverrides = componentTypeEnvOverrides;
+    if (componentTypeEnvironmentConfigs !== undefined) {
+      patchReq.componentTypeEnvironmentConfigs =
+        componentTypeEnvironmentConfigs;
     }
-    if (traitOverrides !== undefined) {
-      patchReq.traitOverrides = traitOverrides;
+    if (traitEnvironmentConfigs !== undefined) {
+      patchReq.traitEnvironmentConfigs = traitEnvironmentConfigs;
     }
     if (workloadOverrides !== undefined) {
       patchReq.workloadOverrides = workloadOverrides;

@@ -17,7 +17,7 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
 
-export const BuildPlaneStatusCard = () => {
+export const WorkflowPlaneStatusCard = () => {
   const classes = useDataplaneOverviewStyles();
   const { entity } = useEntity();
 
@@ -89,7 +89,7 @@ export const BuildPlaneStatusCard = () => {
   return (
     <Card padding={24} className={classes.card}>
       <Box className={classes.cardHeader}>
-        <Typography variant="h5">Build Plane Configuration</Typography>
+        <Typography variant="h5">Workflow Plane Configuration</Typography>
       </Box>
 
       <Box className={classes.statusGrid}>

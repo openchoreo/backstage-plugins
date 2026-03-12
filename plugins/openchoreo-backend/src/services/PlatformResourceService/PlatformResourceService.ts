@@ -32,7 +32,7 @@ type ResourceKind =
   | 'component-workflows'
   | 'environments'
   | 'dataplanes'
-  | 'buildplanes'
+  | 'workflowplanes'
   | 'observabilityplanes'
   | 'deploymentpipelines'
   | 'clustercomponenttypes'
@@ -40,7 +40,7 @@ type ResourceKind =
   | 'clusterdataplanes'
   | 'clusterworkflows'
   | 'clusterobservabilityplanes'
-  | 'clusterbuildplanes';
+  | 'clusterworkflowplanes';
 
 // Mapping from ResourceKind to CRD kind (PascalCase)
 const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
@@ -50,7 +50,7 @@ const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
   'component-workflows': 'ComponentWorkflow',
   environments: 'Environment',
   dataplanes: 'DataPlane',
-  buildplanes: 'BuildPlane',
+  workflowplanes: 'WorkflowPlane',
   observabilityplanes: 'ObservabilityPlane',
   deploymentpipelines: 'DeploymentPipeline',
   clustercomponenttypes: 'ClusterComponentType',
@@ -58,7 +58,7 @@ const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
   clusterworkflows: 'ClusterWorkflow',
   clusterdataplanes: 'ClusterDataPlane',
   clusterobservabilityplanes: 'ClusterObservabilityPlane',
-  clusterbuildplanes: 'ClusterBuildPlane',
+  clusterworkflowplanes: 'ClusterWorkflowPlane',
 };
 
 // Resource kinds that have full CRUD in the new API
@@ -67,7 +67,7 @@ const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
   'traits',
   'environments',
   'dataplanes',
-  'buildplanes',
+  'workflowplanes',
   'observabilityplanes',
   'workflows',
   'deploymentpipelines',
@@ -76,7 +76,7 @@ const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
   'clusterworkflows',
   'clusterdataplanes',
   'clusterobservabilityplanes',
-  'clusterbuildplanes',
+  'clusterworkflowplanes',
 ]);
 
 // TODO: Migrate to new API when individual CRUD endpoints are available
@@ -250,12 +250,12 @@ export class PlatformResourceService {
           resource = data as Record<string, unknown>;
           break;
         }
-        case 'buildplanes': {
+        case 'workflowplanes': {
           const { data, error, response } = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/buildplanes/{buildPlaneName}',
+            '/api/v1/namespaces/{namespaceName}/workflowplanes/{workflowPlaneName}',
             {
               params: {
-                path: { namespaceName, buildPlaneName: resourceName },
+                path: { namespaceName, workflowPlaneName: resourceName },
               },
             },
           );
@@ -426,12 +426,12 @@ export class PlatformResourceService {
           resource = data as Record<string, unknown>;
           break;
         }
-        case 'clusterbuildplanes': {
+        case 'clusterworkflowplanes': {
           const { data, error, response } = await client.GET(
-            '/api/v1/clusterbuildplanes/{clusterBuildPlaneName}',
+            '/api/v1/clusterworkflowplanes/{clusterWorkflowPlaneName}',
             {
               params: {
-                path: { clusterBuildPlaneName: resourceName },
+                path: { clusterWorkflowPlaneName: resourceName },
               },
             },
           );
@@ -510,12 +510,12 @@ export class PlatformResourceService {
           );
           break;
         }
-        case 'buildplanes': {
+        case 'workflowplanes': {
           const { error, response } = await client.PUT(
-            '/api/v1/namespaces/{namespaceName}/buildplanes/{buildPlaneName}',
+            '/api/v1/namespaces/{namespaceName}/workflowplanes/{workflowPlaneName}',
             {
               params: {
-                path: { namespaceName, buildPlaneName: resourceName },
+                path: { namespaceName, workflowPlaneName: resourceName },
               },
               body,
             },
@@ -670,12 +670,12 @@ export class PlatformResourceService {
           );
           break;
         }
-        case 'clusterbuildplanes': {
+        case 'clusterworkflowplanes': {
           const { error, response } = await client.PUT(
-            '/api/v1/clusterbuildplanes/{clusterBuildPlaneName}',
+            '/api/v1/clusterworkflowplanes/{clusterWorkflowPlaneName}',
             {
               params: {
-                path: { clusterBuildPlaneName: resourceName },
+                path: { clusterWorkflowPlaneName: resourceName },
               },
               body,
             },
@@ -742,12 +742,12 @@ export class PlatformResourceService {
           );
           break;
         }
-        case 'buildplanes': {
+        case 'workflowplanes': {
           const { error, response } = await client.DELETE(
-            '/api/v1/namespaces/{namespaceName}/buildplanes/{buildPlaneName}',
+            '/api/v1/namespaces/{namespaceName}/workflowplanes/{workflowPlaneName}',
             {
               params: {
-                path: { namespaceName, buildPlaneName: resourceName },
+                path: { namespaceName, workflowPlaneName: resourceName },
               },
             },
           );
@@ -892,12 +892,12 @@ export class PlatformResourceService {
           );
           break;
         }
-        case 'clusterbuildplanes': {
+        case 'clusterworkflowplanes': {
           const { error, response } = await client.DELETE(
-            '/api/v1/clusterbuildplanes/{clusterBuildPlaneName}',
+            '/api/v1/clusterworkflowplanes/{clusterWorkflowPlaneName}',
             {
               params: {
-                path: { clusterBuildPlaneName: resourceName },
+                path: { clusterWorkflowPlaneName: resourceName },
               },
             },
           );

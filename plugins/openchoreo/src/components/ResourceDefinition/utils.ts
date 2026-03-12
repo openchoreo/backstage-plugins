@@ -18,8 +18,8 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'environments';
     case 'dataplane':
       return 'dataplanes';
-    case 'buildplane':
-      return 'buildplanes';
+    case 'workflowplane':
+      return 'workflowplanes';
     case 'observabilityplane':
       return 'observabilityplanes';
     case 'deploymentpipeline':
@@ -34,8 +34,8 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'clusterdataplanes';
     case 'clusterobservabilityplane':
       return 'clusterobservabilityplanes';
-    case 'clusterbuildplane':
-      return 'clusterbuildplanes';
+    case 'clusterworkflowplane':
+      return 'clusterworkflowplanes';
     default:
       throw new Error(`Unsupported entity kind: ${backstageKind}`);
   }
@@ -60,8 +60,8 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'Environment';
     case 'dataplane':
       return 'DataPlane';
-    case 'buildplane':
-      return 'BuildPlane';
+    case 'workflowplane':
+      return 'WorkflowPlane';
     case 'observabilityplane':
       return 'ObservabilityPlane';
     case 'deploymentpipeline':
@@ -76,8 +76,8 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'ClusterDataPlane';
     case 'clusterobservabilityplane':
       return 'ClusterObservabilityPlane';
-    case 'clusterbuildplane':
-      return 'ClusterBuildPlane';
+    case 'clusterworkflowplane':
+      return 'ClusterWorkflowPlane';
     default:
       throw new Error(`Unsupported entity kind: ${backstageKind}`);
   }
@@ -94,7 +94,7 @@ export function isClusterScopedKind(kind: string): boolean {
     'clusterworkflow',
     'clusterdataplane',
     'clusterobservabilityplane',
-    'clusterbuildplane',
+    'clusterworkflowplane',
   ].includes(kindLower);
 }
 
@@ -144,7 +144,7 @@ export function isSupportedKind(kind: string): boolean {
     'componentworkflow',
     'environment',
     'dataplane',
-    'buildplane',
+    'workflowplane',
     'observabilityplane',
     'deploymentpipeline',
     'clustercomponenttype',
@@ -152,6 +152,6 @@ export function isSupportedKind(kind: string): boolean {
     'clusterworkflow',
     'clusterdataplane',
     'clusterobservabilityplane',
-    'clusterbuildplane',
+    'clusterworkflowplane',
   ].includes(kindLower);
 }

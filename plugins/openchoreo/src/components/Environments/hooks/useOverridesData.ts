@@ -21,8 +21,8 @@ interface FormInitFlags {
 interface ReleaseBinding {
   name: string;
   environment: string;
-  componentTypeEnvOverrides?: Record<string, unknown>;
-  traitOverrides?: Record<string, Record<string, unknown>>;
+  componentTypeEnvironmentConfigs?: Record<string, unknown>;
+  traitEnvironmentConfigs?: Record<string, Record<string, unknown>>;
   workloadOverrides?: {
     container?: any;
   };
@@ -37,7 +37,7 @@ export interface OverridesFormState {
   workloadFormData: any;
   // Track whether actual overrides exist from backend (not just defaults)
   hasActualComponentOverrides: boolean;
-  hasActualTraitOverridesMap: Record<string, boolean>;
+  hasActualTraitEnvironmentConfigsMap: Record<string, boolean>;
   hasActualWorkloadOverrides: boolean;
   // Base workload data for reference (shows original env vars)
   baseWorkloadData: ModelsWorkload | null;
@@ -124,9 +124,10 @@ export function useOverridesData(
   // Track whether actual overrides exist from backend (not just defaults)
   const [hasActualComponentOverrides, setHasActualComponentOverrides] =
     useState<boolean>(false);
-  const [hasActualTraitOverridesMap, setHasActualTraitOverridesMap] = useState<
-    Record<string, boolean>
-  >({});
+  const [
+    hasActualTraitEnvironmentConfigsMap,
+    setHasActualTraitEnvironmentConfigsMap,
+  ] = useState<Record<string, boolean>>({});
   const [hasActualWorkloadOverrides, setHasActualWorkloadOverrides] =
     useState<boolean>(false);
 
@@ -190,22 +191,25 @@ export function useOverridesData(
       if (schemaResponse.success && schemaResponse.data) {
         const wrappedSchema = schemaResponse.data as {
           properties?: {
-            componentTypeEnvOverrides?: JSONSchema7;
-            traitOverrides?: { properties?: Record<string, JSONSchema7> };
+            componentTypeEnvironmentConfigs?: JSONSchema7;
+            traitEnvironmentConfigs?: {
+              properties?: Record<string, JSONSchema7>;
+            };
           };
         };
         const compTypeOverrides =
-          wrappedSchema.properties?.componentTypeEnvOverrides;
-        const traitOverrides = wrappedSchema.properties?.traitOverrides;
+          wrappedSchema.properties?.componentTypeEnvironmentConfigs;
+        const traitEnvironmentConfigs =
+          wrappedSchema.properties?.traitEnvironmentConfigs;
 
         if (compTypeOverrides) {
           compTypeOverridesSchema = compTypeOverrides as JSONSchema7;
           setComponentTypeSchema(compTypeOverridesSchema);
         }
 
-        if (traitOverrides?.properties) {
+        if (traitEnvironmentConfigs?.properties) {
           const traitSchemas: Record<string, JSONSchema7> = {};
-          Object.entries(traitOverrides.properties).forEach(
+          Object.entries(traitEnvironmentConfigs.properties).forEach(
             ([traitName, schema]) => {
               traitSchemas[traitName] = schema as JSONSchema7;
             },
@@ -237,7 +241,7 @@ export function useOverridesData(
 
         if (currentBinding) {
           const componentOverrides =
-            currentBinding.componentTypeEnvOverrides || {};
+            currentBinding.componentTypeEnvironmentConfigs || {};
 
           // Track whether actual component overrides exist from backend
           const hasActualComponent = Object.keys(componentOverrides).length > 0;
@@ -254,17 +258,19 @@ export function useOverridesData(
             setInitialComponentTypeFormData(componentOverrides);
           }
 
-          const existingTraitOverrides = currentBinding.traitOverrides || {};
-          setTraitFormDataMap(existingTraitOverrides);
-          setInitialTraitFormDataMap(existingTraitOverrides);
+          const existingTraitEnvironmentConfigs =
+            currentBinding.traitEnvironmentConfigs || {};
+          setTraitFormDataMap(existingTraitEnvironmentConfigs);
+          setInitialTraitFormDataMap(existingTraitEnvironmentConfigs);
 
           // Track which traits have actual overrides from backend
-          const traitOverridesMap: Record<string, boolean> = {};
-          Object.keys(existingTraitOverrides).forEach(traitName => {
-            traitOverridesMap[traitName] =
-              Object.keys(existingTraitOverrides[traitName] || {}).length > 0;
+          const traitEnvironmentConfigsMap: Record<string, boolean> = {};
+          Object.keys(existingTraitEnvironmentConfigs).forEach(traitName => {
+            traitEnvironmentConfigsMap[traitName] =
+              Object.keys(existingTraitEnvironmentConfigs[traitName] || {})
+                .length > 0;
           });
-          setHasActualTraitOverridesMap(traitOverridesMap);
+          setHasActualTraitEnvironmentConfigsMap(traitEnvironmentConfigsMap);
 
           const workloadOverrides = currentBinding.workloadOverrides || {};
           // Track whether actual workload overrides exist from backend
@@ -326,7 +332,7 @@ export function useOverridesData(
 
           // No actual overrides exist
           setHasActualComponentOverrides(false);
-          setHasActualTraitOverridesMap({});
+          setHasActualTraitEnvironmentConfigsMap({});
           setHasActualWorkloadOverrides(false);
         }
       }
@@ -394,7 +400,7 @@ export function useOverridesData(
       initialWorkloadFormData,
       workloadFormData,
       hasActualComponentOverrides,
-      hasActualTraitOverridesMap,
+      hasActualTraitEnvironmentConfigsMap,
       hasActualWorkloadOverrides,
       baseWorkloadData,
     },

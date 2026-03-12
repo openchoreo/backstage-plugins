@@ -3,7 +3,7 @@ import { transformProject } from './project';
 import { transformComponent } from './component';
 import { transformEnvironment } from './environment';
 import { transformDataPlane } from './dataplane';
-import { transformBuildPlane } from './buildplane';
+import { transformWorkflowPlane } from './workflowplane';
 import { transformObservabilityPlane } from './observabilityplane';
 import { transformComponentWorkflowRun } from './workflow-run';
 import { transformDeploymentPipeline } from './deployment-pipeline';
@@ -275,11 +275,11 @@ describe('transformDataPlane', () => {
 });
 
 // ---------------------------------------------------------------------------
-// BuildPlane
+// WorkflowPlane
 // ---------------------------------------------------------------------------
 
-describe('transformBuildPlane', () => {
-  const buildPlane: OpenChoreoComponents['schemas']['BuildPlane'] = {
+describe('transformWorkflowPlane', () => {
+  const workflowPlane: OpenChoreoComponents['schemas']['WorkflowPlane'] = {
     metadata: { ...baseMeta, name: 'ci-bp' },
     spec: {
       clusterAgent: {},
@@ -295,7 +295,7 @@ describe('transformBuildPlane', () => {
   };
 
   it('maps core fields', () => {
-    const result = transformBuildPlane(buildPlane);
+    const result = transformWorkflowPlane(workflowPlane);
     expect(result.name).toBe('ci-bp');
     expect(result.namespace).toBe('test-ns');
     expect(result.observabilityPlaneRef).toBe('default-obs');
@@ -303,9 +303,9 @@ describe('transformBuildPlane', () => {
   });
 
   it('maps agent connection', () => {
-    expect(transformBuildPlane(buildPlane).agentConnection?.connected).toBe(
-      true,
-    );
+    expect(
+      transformWorkflowPlane(workflowPlane).agentConnection?.connected,
+    ).toBe(true);
   });
 });
 
@@ -497,7 +497,13 @@ describe('transformDeploymentPipeline', () => {
       promotionPaths: [
         {
           sourceEnvironmentRef: { kind: 'Environment' as const, name: 'dev' },
-          targetEnvironmentRefs: [{ name: 'staging', requiresApproval: true }],
+          targetEnvironmentRefs: [
+            {
+              kind: 'Environment' as const,
+              name: 'staging',
+              requiresApproval: true,
+            },
+          ],
         },
       ],
     },

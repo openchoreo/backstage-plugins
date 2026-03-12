@@ -411,7 +411,7 @@ export interface components {
       mount_path?: string;
     };
     FieldChange: {
-      /** @description RFC 6901 JSON Pointer for non-array fields. Example: /spec/traitOverrides/my-trait/enabled */
+      /** @description RFC 6901 JSON Pointer for non-array fields. Example: /spec/traitEnvironmentConfigs/my-trait/enabled */
       json_pointer: string;
       /** @description Value to set at the JSON Pointer location */
       value: string | number | boolean | Record<string, never> | unknown[];

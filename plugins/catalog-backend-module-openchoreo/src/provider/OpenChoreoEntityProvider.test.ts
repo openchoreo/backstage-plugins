@@ -117,7 +117,7 @@ const k8sDataPlane = {
   },
 };
 
-const k8sBuildPlane = {
+const k8sWorkflowPlane = {
   metadata: k8sMeta('default-bp'),
   spec: {
     observabilityPlaneRef: { name: 'default-obs' },
@@ -351,8 +351,8 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/namespaces/{namespaceName}/dataplanes': okData({
           items: [k8sDataPlane],
         }),
-        '/api/v1/namespaces/{namespaceName}/buildplanes': okData({
-          items: [k8sBuildPlane],
+        '/api/v1/namespaces/{namespaceName}/workflowplanes': okData({
+          items: [k8sWorkflowPlane],
         }),
         '/api/v1/namespaces/{namespaceName}/observabilityplanes': okData({
           items: [k8sObservabilityPlane],
@@ -400,7 +400,7 @@ describe('OpenChoreoEntityProvider', () => {
       expect(findEntities(entities, 'Domain')).toHaveLength(1);
       expect(findEntities(entities, 'Environment')).toHaveLength(1);
       expect(findEntities(entities, 'Dataplane')).toHaveLength(1);
-      expect(findEntities(entities, 'BuildPlane')).toHaveLength(1);
+      expect(findEntities(entities, 'WorkflowPlane')).toHaveLength(1);
       expect(findEntities(entities, 'ObservabilityPlane')).toHaveLength(1);
       expect(findEntities(entities, 'System')).toHaveLength(1);
       expect(findEntities(entities, 'DeploymentPipeline')).toHaveLength(1);
@@ -524,8 +524,8 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/namespaces/{namespaceName}/dataplanes': okData({
           items: [k8sDataPlane],
         }),
-        '/api/v1/namespaces/{namespaceName}/buildplanes': okData({
-          items: [k8sBuildPlane],
+        '/api/v1/namespaces/{namespaceName}/workflowplanes': okData({
+          items: [k8sWorkflowPlane],
         }),
         '/api/v1/namespaces/{namespaceName}/observabilityplanes': okData({
           items: [k8sObservabilityPlane],
@@ -591,8 +591,8 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/namespaces/{namespaceName}/dataplanes': okData({
           items: [k8sDataPlane],
         }),
-        '/api/v1/namespaces/{namespaceName}/buildplanes': okData({
-          items: [k8sBuildPlane],
+        '/api/v1/namespaces/{namespaceName}/workflowplanes': okData({
+          items: [k8sWorkflowPlane],
         }),
         '/api/v1/namespaces/{namespaceName}/observabilityplanes': okData({
           items: [k8sObservabilityPlane],

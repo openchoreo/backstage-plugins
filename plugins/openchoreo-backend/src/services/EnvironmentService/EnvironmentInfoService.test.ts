@@ -82,7 +82,7 @@ const k8sReleaseBinding = {
     owner: { projectName: 'my-project', componentName: 'api-service' },
     environment: 'dev',
     releaseName: 'release-1',
-    componentTypeEnvOverrides: {},
+    componentTypeEnvironmentConfigs: {},
   },
   status: {
     conditions: [

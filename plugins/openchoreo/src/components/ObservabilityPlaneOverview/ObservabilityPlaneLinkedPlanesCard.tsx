@@ -38,13 +38,13 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
       setLoading(true);
       setError(false);
 
-      // Query catalog for DataPlane and BuildPlane entities with matching observability-plane-ref annotation
-      const [dataplaneResult, buildplaneResult] = await Promise.all([
+      // Query catalog for DataPlane and WorkflowPlane entities with matching observability-plane-ref annotation
+      const [dataplaneResult, workflowplaneResult] = await Promise.all([
         catalogApi.getEntities({
           filter: { kind: 'Dataplane' },
         }),
         catalogApi.getEntities({
-          filter: { kind: 'BuildPlane' },
+          filter: { kind: 'WorkflowPlane' },
         }),
       ]);
 
@@ -65,10 +65,10 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
         });
       });
 
-      buildplaneResult.items.filter(matchesRef).forEach(bp => {
+      workflowplaneResult.items.filter(matchesRef).forEach(bp => {
         planes.push({
           name: bp.metadata.name,
-          kind: 'BuildPlane',
+          kind: 'WorkflowPlane',
           namespace: bp.metadata.namespace || 'default',
           displayName: bp.metadata.title || bp.metadata.name,
         });
@@ -128,7 +128,7 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
         <Box className={classes.emptyState}>
           <CloudOffIcon className={classes.emptyIcon} />
           <Typography variant="body2">
-            No data planes or build planes linked to this observability plane
+            No data planes or workflow planes linked to this observability plane
           </Typography>
         </Box>
       </Card>
@@ -184,7 +184,7 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
                   fontSize: '0.75rem',
                 }}
               >
-                {plane.kind === 'Dataplane' ? 'Data Plane' : 'Build Plane'}
+                {plane.kind === 'Dataplane' ? 'Data Plane' : 'Workflow Plane'}
               </Typography>
             </Box>
 

@@ -10,7 +10,7 @@ import { PlatformDetailsCard } from '../PlatformDetailsCard';
 import { fetchDataplanesWithEnvironmentsAndComponents } from '../../api/dataplanesWithEnvironmentsAndComponents';
 import {
   DataPlaneWithEnvironments,
-  BuildPlane,
+  WorkflowPlane,
   ObservabilityPlane,
 } from '../../types';
 import { Box, CircularProgress, Typography } from '@material-ui/core';
@@ -25,10 +25,10 @@ export const HomePagePlatformDetailsCard = () => {
   const [clusterDataplanes, setClusterDataplanes] = useState<
     DataPlaneWithEnvironments[]
   >([]);
-  const [buildPlanes, setBuildPlanes] = useState<BuildPlane[]>([]);
-  const [clusterBuildPlanes, setClusterBuildPlanes] = useState<BuildPlane[]>(
-    [],
-  );
+  const [workflowPlanes, setWorkflowPlanes] = useState<WorkflowPlane[]>([]);
+  const [clusterWorkflowPlanes, setClusterWorkflowPlanes] = useState<
+    WorkflowPlane[]
+  >([]);
   const [observabilityPlanes, setObservabilityPlanes] = useState<
     ObservabilityPlane[]
   >([]);
@@ -50,7 +50,7 @@ export const HomePagePlatformDetailsCard = () => {
       const [
         dataplanesData,
         dataplaneCatalogResult,
-        buildPlaneResult,
+        workflowPlaneResult,
         obsPlaneResult,
         clusterDpResult,
         clusterBpResult,
@@ -62,10 +62,10 @@ export const HomePagePlatformDetailsCard = () => {
           catalogApi,
         ),
         catalogApi.getEntities({ filter: { kind: 'DataPlane' } }),
-        catalogApi.getEntities({ filter: { kind: 'BuildPlane' } }),
+        catalogApi.getEntities({ filter: { kind: 'WorkflowPlane' } }),
         catalogApi.getEntities({ filter: { kind: 'ObservabilityPlane' } }),
         catalogApi.getEntities({ filter: { kind: 'ClusterDataplane' } }),
-        catalogApi.getEntities({ filter: { kind: 'ClusterBuildPlane' } }),
+        catalogApi.getEntities({ filter: { kind: 'ClusterWorkflowPlane' } }),
         catalogApi.getEntities({
           filter: { kind: 'ClusterObservabilityPlane' },
         }),
@@ -112,9 +112,9 @@ export const HomePagePlatformDetailsCard = () => {
         })),
       );
 
-      const mapBuildPlane = (
-        entity: (typeof buildPlaneResult.items)[0],
-      ): BuildPlane => ({
+      const mapWorkflowPlane = (
+        entity: (typeof workflowPlaneResult.items)[0],
+      ): WorkflowPlane => ({
         name: entity.metadata.name,
         namespace: entity.metadata.namespace,
         displayName: entity.metadata.title || entity.metadata.name,
@@ -136,8 +136,8 @@ export const HomePagePlatformDetailsCard = () => {
         ),
       });
 
-      setBuildPlanes(buildPlaneResult.items.map(mapBuildPlane));
-      setClusterBuildPlanes(clusterBpResult.items.map(mapBuildPlane));
+      setWorkflowPlanes(workflowPlaneResult.items.map(mapWorkflowPlane));
+      setClusterWorkflowPlanes(clusterBpResult.items.map(mapWorkflowPlane));
 
       const mapObsPlane = (
         entity: (typeof obsPlaneResult.items)[0],
@@ -171,8 +171,8 @@ export const HomePagePlatformDetailsCard = () => {
       );
       setDataplanesWithEnvironments([]);
       setClusterDataplanes([]);
-      setBuildPlanes([]);
-      setClusterBuildPlanes([]);
+      setWorkflowPlanes([]);
+      setClusterWorkflowPlanes([]);
       setObservabilityPlanes([]);
       setClusterObservabilityPlanes([]);
     } finally {
@@ -216,8 +216,8 @@ export const HomePagePlatformDetailsCard = () => {
     <PlatformDetailsCard
       dataplanesWithEnvironments={dataplanesWithEnvironments}
       clusterDataplanes={clusterDataplanes}
-      buildPlanes={buildPlanes}
-      clusterBuildPlanes={clusterBuildPlanes}
+      workflowPlanes={workflowPlanes}
+      clusterWorkflowPlanes={clusterWorkflowPlanes}
       observabilityPlanes={observabilityPlanes}
       clusterObservabilityPlanes={clusterObservabilityPlanes}
     />

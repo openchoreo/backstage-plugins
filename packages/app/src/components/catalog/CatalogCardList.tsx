@@ -42,7 +42,7 @@ const kindPluralNames: Record<string, string> = {
   Location: 'Locations',
   Template: 'Templates',
   Dataplane: 'Dataplanes',
-  'Build Plane': 'Build Planes',
+  'Workflow Plane': 'Workflow Planes',
   'Observability Plane': 'Observability Planes',
   Environment: 'Environments',
   'Deployment Pipeline': 'Deployment Pipelines',
@@ -54,10 +54,10 @@ const kindPluralNames: Record<string, string> = {
 
 const PLANE_KINDS = new Set([
   'dataplane',
-  'buildplane',
+  'workflowplane',
   'observabilityplane',
   'clusterdataplane',
-  'clusterbuildplane',
+  'clusterworkflowplane',
   'clusterobservabilityplane',
 ]);
 

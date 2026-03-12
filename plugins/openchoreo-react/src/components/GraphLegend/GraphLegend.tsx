@@ -51,10 +51,10 @@ const KIND_LABELS: Record<string, string> = {
   deploymentpipeline: 'Pipeline',
   environment: 'Environment',
   dataplane: 'Data Plane',
-  buildplane: 'Build Plane',
+  workflowplane: 'Workflow Plane',
   observabilityplane: 'Observability Plane',
   clusterdataplane: 'Cluster Data Plane',
-  clusterbuildplane: 'Cluster Build Plane',
+  clusterworkflowplane: 'Cluster Workflow Plane',
   clusterobservabilityplane: 'Cluster Obs Plane',
 };
 

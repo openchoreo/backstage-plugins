@@ -125,7 +125,7 @@ export function isReady(resource: HasConditions): boolean {
 
 /**
  * Returns true if the resource has a `Created` condition with status `True`.
- * Used for plane resources (DataPlane, BuildPlane, ObservabilityPlane) which
+ * Used for plane resources (DataPlane, WorkflowPlane, ObservabilityPlane) which
  * use "Created" instead of "Ready" as their readiness condition.
  */
 export function isCreated(resource: HasConditions): boolean {

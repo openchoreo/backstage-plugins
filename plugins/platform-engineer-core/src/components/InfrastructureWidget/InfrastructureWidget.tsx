@@ -20,8 +20,8 @@ export const InfrastructureWidget = () => {
   const [totalDataplanes, setTotalDataplanes] = useState<number>(0);
   const [totalClusterDataplanes, setTotalClusterDataplanes] =
     useState<number>(0);
-  const [totalBuildPlanes, setTotalBuildPlanes] = useState<number>(0);
-  const [totalClusterBuildPlanes, setTotalClusterBuildPlanes] =
+  const [totalWorkflowPlanes, setTotalWorkflowPlanes] = useState<number>(0);
+  const [totalClusterWorkflowPlanes, setTotalClusterWorkflowPlanes] =
     useState<number>(0);
   const [totalObservabilityPlanes, setTotalObservabilityPlanes] =
     useState<number>(0);
@@ -43,17 +43,17 @@ export const InfrastructureWidget = () => {
 
       const [
         platformData,
-        buildPlaneResult,
+        workflowPlaneResult,
         obsPlaneResult,
         clusterDpResult,
         clusterBpResult,
         clusterOpResult,
       ] = await Promise.all([
         fetchPlatformOverview(discovery, fetchApi, catalogApi),
-        catalogApi.getEntities({ filter: { kind: 'BuildPlane' } }),
+        catalogApi.getEntities({ filter: { kind: 'WorkflowPlane' } }),
         catalogApi.getEntities({ filter: { kind: 'ObservabilityPlane' } }),
         catalogApi.getEntities({ filter: { kind: 'ClusterDataplane' } }),
-        catalogApi.getEntities({ filter: { kind: 'ClusterBuildPlane' } }),
+        catalogApi.getEntities({ filter: { kind: 'ClusterWorkflowPlane' } }),
         catalogApi.getEntities({
           filter: { kind: 'ClusterObservabilityPlane' },
         }),
@@ -63,8 +63,8 @@ export const InfrastructureWidget = () => {
       setTotalClusterDataplanes(clusterDpResult.items.length);
       setTotalEnvironments(platformData.environments.length);
       setHealthyWorkloadCount(platformData.healthyWorkloadCount);
-      setTotalBuildPlanes(buildPlaneResult.items.length);
-      setTotalClusterBuildPlanes(clusterBpResult.items.length);
+      setTotalWorkflowPlanes(workflowPlaneResult.items.length);
+      setTotalClusterWorkflowPlanes(clusterBpResult.items.length);
       setTotalObservabilityPlanes(obsPlaneResult.items.length);
       setTotalClusterObservabilityPlanes(clusterOpResult.items.length);
     } catch (err) {
@@ -77,8 +77,8 @@ export const InfrastructureWidget = () => {
       setTotalClusterDataplanes(0);
       setTotalEnvironments(0);
       setHealthyWorkloadCount(0);
-      setTotalBuildPlanes(0);
-      setTotalClusterBuildPlanes(0);
+      setTotalWorkflowPlanes(0);
+      setTotalClusterWorkflowPlanes(0);
       setTotalObservabilityPlanes(0);
       setTotalClusterObservabilityPlanes(0);
     } finally {
@@ -103,9 +103,9 @@ export const InfrastructureWidget = () => {
           icon: <InfrastructureIcon />,
         },
         {
-          label: 'Build Planes',
-          value: totalBuildPlanes,
-          link: '/catalog?filters[kind]=buildplane',
+          label: 'Workflow Planes',
+          value: totalWorkflowPlanes,
+          link: '/catalog?filters[kind]=workflowplane',
           icon: <BuildIcon />,
         },
         {
@@ -121,9 +121,9 @@ export const InfrastructureWidget = () => {
           icon: <InfrastructureIcon />,
         },
         {
-          label: 'Cluster Build Planes',
-          value: totalClusterBuildPlanes,
-          link: '/catalog?filters[kind]=clusterbuildplane',
+          label: 'Cluster Workflow Planes',
+          value: totalClusterWorkflowPlanes,
+          link: '/catalog?filters[kind]=clusterworkflowplane',
           icon: <BuildIcon />,
         },
         {

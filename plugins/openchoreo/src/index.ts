@@ -46,8 +46,8 @@ export {
 } from './components/ClusterDataplaneOverview';
 export { GatewayConfigurationCard } from './components/GatewayConfigurationCard';
 export type { GatewayConfigurationCardProps } from './components/GatewayConfigurationCard';
-export { BuildPlaneStatusCard } from './components/BuildPlaneOverview';
-export { ClusterBuildPlaneStatusCard } from './components/ClusterBuildPlaneOverview';
+export { WorkflowPlaneStatusCard } from './components/WorkflowPlaneOverview';
+export { ClusterWorkflowPlaneStatusCard } from './components/ClusterWorkflowPlaneOverview';
 export {
   ObservabilityPlaneStatusCard,
   ObservabilityPlaneLinkedPlanesCard,

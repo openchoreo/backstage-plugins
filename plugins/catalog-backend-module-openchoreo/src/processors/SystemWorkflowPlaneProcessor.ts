@@ -13,11 +13,11 @@ import {
 
 /**
  * Processor for System entities that emits buildsOn/builds relations
- * to BuildPlane or ClusterBuildPlane based on annotations.
+ * to WorkflowPlane or ClusterWorkflowPlane based on annotations.
  */
-export class SystemBuildPlaneProcessor implements CatalogProcessor {
+export class SystemWorkflowPlaneProcessor implements CatalogProcessor {
   getProcessorName(): string {
-    return 'SystemBuildPlaneProcessor';
+    return 'SystemWorkflowPlaneProcessor';
   }
 
   async validateEntityKind(entity: Entity): Promise<boolean> {
@@ -34,22 +34,24 @@ export class SystemBuildPlaneProcessor implements CatalogProcessor {
     }
 
     const annotations = entity.metadata.annotations || {};
-    const buildPlaneRef =
-      annotations[CHOREO_ANNOTATIONS.BUILD_PLANE_REF]?.trim();
-    const buildPlaneRefKind =
-      annotations[CHOREO_ANNOTATIONS.BUILD_PLANE_REF_KIND]?.trim();
+    const workflowPlaneRef =
+      annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF]?.trim();
+    const workflowPlaneRefKind =
+      annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND]?.trim();
 
-    if (buildPlaneRef) {
-      const normalizedKind = (buildPlaneRefKind || 'BuildPlane').toLowerCase();
+    if (workflowPlaneRef) {
+      const normalizedKind = (
+        workflowPlaneRefKind || 'WorkflowPlane'
+      ).toLowerCase();
       if (
-        normalizedKind !== 'buildplane' &&
-        normalizedKind !== 'clusterbuildplane'
+        normalizedKind !== 'workflowplane' &&
+        normalizedKind !== 'clusterworkflowplane'
       ) {
-        // Unrecognized build plane kind — skip relation
+        // Unrecognized workflow plane kind — skip relation
         return entity;
       }
-      const isCluster = normalizedKind === 'clusterbuildplane';
-      const targetKind = isCluster ? 'clusterbuildplane' : 'buildplane';
+      const isCluster = normalizedKind === 'clusterworkflowplane';
+      const targetKind = isCluster ? 'clusterworkflowplane' : 'workflowplane';
       const targetNamespace = isCluster
         ? 'openchoreo-cluster'
         : entity.metadata.namespace || 'default';
@@ -62,7 +64,7 @@ export class SystemBuildPlaneProcessor implements CatalogProcessor {
       const targetRef = {
         kind: targetKind,
         namespace: targetNamespace,
-        name: buildPlaneRef,
+        name: workflowPlaneRef,
       };
 
       emit(

@@ -151,7 +151,7 @@ export function getMissingRequiredFields(
 /**
  * Check if any trait has overrides
  */
-export function hasAnyTraitOverrides(
+export function hasAnyTraitEnvironmentConfigs(
   traitMap: Record<string, Record<string, unknown>>,
 ): boolean {
   return Object.values(traitMap).some(data => Object.keys(data).length > 0);
@@ -175,17 +175,20 @@ export function calculateHasOverrides(
   workloadData: Record<string, unknown>,
 ): {
   hasComponentOverrides: boolean;
-  hasTraitOverrides: boolean;
+  hasTraitEnvironmentConfigs: boolean;
   hasWorkloadOverrides: boolean;
   hasAny: boolean;
 } {
   const hasComponentOverrides = hasData(componentData);
-  const hasTraitOverrides = hasAnyTraitOverrides(traitMap);
+  const hasTraitEnvironmentConfigs = hasAnyTraitEnvironmentConfigs(traitMap);
   const hasWorkloadOverrides = hasWorkloadOverridesData(workloadData);
   return {
     hasComponentOverrides,
-    hasTraitOverrides,
+    hasTraitEnvironmentConfigs,
     hasWorkloadOverrides: hasWorkloadOverrides,
-    hasAny: hasComponentOverrides || hasTraitOverrides || hasWorkloadOverrides,
+    hasAny:
+      hasComponentOverrides ||
+      hasTraitEnvironmentConfigs ||
+      hasWorkloadOverrides,
   };
 }

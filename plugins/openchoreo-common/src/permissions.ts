@@ -308,21 +308,21 @@ export const openchoreoDataplaneDeletePermission = createPermission({
 });
 
 /**
- * Permission to update a buildplane.
+ * Permission to update a workflowplane.
  * Resource-based: requires entity context.
  */
-export const openchoreoBuildplaneUpdatePermission = createPermission({
-  name: 'openchoreo.buildplane.update',
+export const openchoreoWorkflowplaneUpdatePermission = createPermission({
+  name: 'openchoreo.workflowplane.update',
   attributes: { action: 'update' },
   resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
- * Permission to delete a buildplane.
+ * Permission to delete a workflowplane.
  * Resource-based: requires entity context.
  */
-export const openchoreoBuildplaneDeletePermission = createPermission({
-  name: 'openchoreo.buildplane.delete',
+export const openchoreoWorkflowplaneDeletePermission = createPermission({
+  name: 'openchoreo.workflowplane.delete',
   attributes: { action: 'delete' },
   resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
@@ -422,20 +422,20 @@ export const openchoreoClusterDataplaneDeletePermission = createPermission({
 });
 
 /**
- * Permission to update a cluster buildplane.
+ * Permission to update a cluster workflowplane.
  * Cluster-scoped permission (no namespace context required).
  */
-export const openchoreoClusterBuildplaneUpdatePermission = createPermission({
-  name: 'openchoreo.clusterbuildplane.update',
+export const openchoreoClusterWorkflowplaneUpdatePermission = createPermission({
+  name: 'openchoreo.clusterworkflowplane.update',
   attributes: { action: 'update' },
 });
 
 /**
- * Permission to delete a cluster buildplane.
+ * Permission to delete a cluster workflowplane.
  * Cluster-scoped permission (no namespace context required).
  */
-export const openchoreoClusterBuildplaneDeletePermission = createPermission({
-  name: 'openchoreo.clusterbuildplane.delete',
+export const openchoreoClusterWorkflowplaneDeletePermission = createPermission({
+  name: 'openchoreo.clusterworkflowplane.delete',
   attributes: { action: 'delete' },
 });
 
@@ -679,8 +679,8 @@ export const openchoreoPermissions = [
   openchoreoEnvironmentDeletePermission,
   openchoreoDataplaneUpdatePermission,
   openchoreoDataplaneDeletePermission,
-  openchoreoBuildplaneUpdatePermission,
-  openchoreoBuildplaneDeletePermission,
+  openchoreoWorkflowplaneUpdatePermission,
+  openchoreoWorkflowplaneDeletePermission,
   openchoreoObservabilityplaneUpdatePermission,
   openchoreoObservabilityplaneDeletePermission,
   openchoreoDeploymentpipelineUpdatePermission,
@@ -691,8 +691,8 @@ export const openchoreoPermissions = [
   openchoreoClusterTraitDeletePermission,
   openchoreoClusterDataplaneUpdatePermission,
   openchoreoClusterDataplaneDeletePermission,
-  openchoreoClusterBuildplaneUpdatePermission,
-  openchoreoClusterBuildplaneDeletePermission,
+  openchoreoClusterWorkflowplaneUpdatePermission,
+  openchoreoClusterWorkflowplaneDeletePermission,
   openchoreoClusterObservabilityplaneUpdatePermission,
   openchoreoClusterObservabilityplaneDeletePermission,
   openchoreoClusterWorkflowUpdatePermission,
@@ -753,8 +753,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.environment.delete': 'environment:delete',
   'openchoreo.dataplane.update': 'dataplane:update',
   'openchoreo.dataplane.delete': 'dataplane:delete',
-  'openchoreo.buildplane.update': 'buildplane:update',
-  'openchoreo.buildplane.delete': 'buildplane:delete',
+  'openchoreo.workflowplane.update': 'workflowplane:update',
+  'openchoreo.workflowplane.delete': 'workflowplane:delete',
   'openchoreo.observabilityplane.update': 'observabilityplane:update',
   'openchoreo.observabilityplane.delete': 'observabilityplane:delete',
   'openchoreo.deploymentpipeline.update': 'deploymentpipeline:update',
@@ -765,8 +765,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.clustertrait.delete': 'clustertrait:delete',
   'openchoreo.clusterdataplane.update': 'clusterdataplane:update',
   'openchoreo.clusterdataplane.delete': 'clusterdataplane:delete',
-  'openchoreo.clusterbuildplane.update': 'clusterbuildplane:update',
-  'openchoreo.clusterbuildplane.delete': 'clusterbuildplane:delete',
+  'openchoreo.clusterworkflowplane.update': 'clusterworkflowplane:update',
+  'openchoreo.clusterworkflowplane.delete': 'clusterworkflowplane:delete',
   'openchoreo.clusterobservabilityplane.update':
     'clusterobservabilityplane:update',
   'openchoreo.clusterobservabilityplane.delete':
@@ -793,8 +793,8 @@ export const CATALOG_PERMISSION_TO_ACTION: Record<string, string> = {
  * - Component: Maps to OpenChoreo components
  * - System: Maps to OpenChoreo projects
  * - Domain: Maps to OpenChoreo namespaces
- * - Dataplane, BuildPlane, ObservabilityPlane, DeploymentPipeline: Namespace-scoped infrastructure
- * - ClusterDataplane, ClusterBuildPlane, ClusterObservabilityPlane: Cluster-scoped infrastructure
+ * - Dataplane, WorkflowPlane, ObservabilityPlane, DeploymentPipeline: Namespace-scoped infrastructure
+ * - ClusterDataplane, ClusterWorkflowPlane, ClusterObservabilityPlane: Cluster-scoped infrastructure
  * - ComponentType, TraitType, Workflow, ComponentWorkflow, Environment: Namespace-scoped platform resources
  * - ClusterComponentType, ClusterTraitType, ClusterWorkflow: Cluster-scoped platform resources
  */
@@ -803,11 +803,11 @@ export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
   'System',
   'Domain',
   'Dataplane',
-  'BuildPlane',
+  'WorkflowPlane',
   'ObservabilityPlane',
   'DeploymentPipeline',
   'ClusterDataplane',
-  'ClusterBuildPlane',
+  'ClusterWorkflowPlane',
   'ClusterObservabilityPlane',
   'ComponentType',
   'ClusterComponentType',
@@ -828,8 +828,8 @@ export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
  * - Component → component:* actions
  * - System → project:* actions
  * - Domain → namespace:* actions
- * - Dataplane/BuildPlane/ObservabilityPlane/DeploymentPipeline → respective :view actions
- * - ClusterDataplane/ClusterBuildPlane/ClusterObservabilityPlane → respective cluster:view actions
+ * - Dataplane/WorkflowPlane/ObservabilityPlane/DeploymentPipeline → respective :view actions
+ * - ClusterDataplane/ClusterWorkflowPlane/ClusterObservabilityPlane → respective cluster:view actions
  * - ComponentType/TraitType/Workflow/ComponentWorkflow/Environment → respective :view actions
  * - ClusterComponentType/ClusterTraitType/ClusterWorkflow → respective cluster:view actions
  */
@@ -848,8 +848,8 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   dataplane: {
     'catalog.entity.read': 'dataplane:view',
   },
-  buildplane: {
-    'catalog.entity.read': 'buildplane:view',
+  workflowplane: {
+    'catalog.entity.read': 'workflowplane:view',
   },
   observabilityplane: {
     'catalog.entity.read': 'observabilityplane:view',
@@ -860,8 +860,8 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   clusterdataplane: {
     'catalog.entity.read': 'clusterdataplane:view',
   },
-  clusterbuildplane: {
-    'catalog.entity.read': 'clusterbuildplane:view',
+  clusterworkflowplane: {
+    'catalog.entity.read': 'clusterworkflowplane:view',
   },
   clusterobservabilityplane: {
     'catalog.entity.read': 'clusterobservabilityplane:view',

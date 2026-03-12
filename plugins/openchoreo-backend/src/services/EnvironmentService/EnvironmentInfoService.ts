@@ -399,8 +399,8 @@ export class EnvironmentInfoService implements EnvironmentService {
       resourceName: envResourceName,
       bindingName: binding?.name,
       hasComponentTypeOverrides:
-        binding?.componentTypeEnvOverrides &&
-        Object.keys(binding.componentTypeEnvOverrides).length > 0,
+        binding?.componentTypeEnvironmentConfigs &&
+        Object.keys(binding.componentTypeEnvironmentConfigs).length > 0,
       dataPlaneRef: envData.dataPlaneRef?.name,
       deployment: {
         status: deploymentStatus,
@@ -588,7 +588,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         logger: this.logger,
       });
 
-      const { error, response } = await client.POST(
+      const { error, response } = await (client as any).POST(
         '/api/v1/namespaces/{namespaceName}/components/{componentName}/promote',
         {
           params: {
@@ -950,7 +950,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Deploy release request: namespace=${request.namespaceName}, component=${request.componentName}, release=${request.releaseName}`,
       );
 
-      const { error, response } = await client.POST(
+      const { error, response } = await (client as any).POST(
         '/api/v1/namespaces/{namespaceName}/components/{componentName}/deploy',
         {
           params: {
@@ -1130,8 +1130,8 @@ export class EnvironmentInfoService implements EnvironmentService {
       projectName: string;
       namespaceName: string;
       environment: string;
-      componentTypeEnvOverrides?: any;
-      traitOverrides?: any;
+      componentTypeEnvironmentConfigs?: any;
+      traitEnvironmentConfigs?: any;
       workloadOverrides?: any;
       releaseName: string;
     },
@@ -1176,11 +1176,14 @@ export class EnvironmentInfoService implements EnvironmentService {
             ...existing.spec!,
             releaseName: request.releaseName,
             state: 'Active' as const,
-            ...(request.componentTypeEnvOverrides !== undefined
-              ? { componentTypeEnvOverrides: request.componentTypeEnvOverrides }
+            ...(request.componentTypeEnvironmentConfigs !== undefined
+              ? {
+                  componentTypeEnvironmentConfigs:
+                    request.componentTypeEnvironmentConfigs,
+                }
               : {}),
-            ...(request.traitOverrides !== undefined
-              ? { traitOverrides: request.traitOverrides }
+            ...(request.traitEnvironmentConfigs !== undefined
+              ? { traitEnvironmentConfigs: request.traitEnvironmentConfigs }
               : {}),
             ...(request.workloadOverrides !== undefined
               ? { workloadOverrides: request.workloadOverrides }
@@ -1235,11 +1238,14 @@ export class EnvironmentInfoService implements EnvironmentService {
           environment: request.environment,
           releaseName: request.releaseName,
           state: 'Active' as const,
-          ...(request.componentTypeEnvOverrides !== undefined
-            ? { componentTypeEnvOverrides: request.componentTypeEnvOverrides }
+          ...(request.componentTypeEnvironmentConfigs !== undefined
+            ? {
+                componentTypeEnvironmentConfigs:
+                  request.componentTypeEnvironmentConfigs,
+              }
             : {}),
-          ...(request.traitOverrides !== undefined
-            ? { traitOverrides: request.traitOverrides }
+          ...(request.traitEnvironmentConfigs !== undefined
+            ? { traitEnvironmentConfigs: request.traitEnvironmentConfigs }
             : {}),
           ...(request.workloadOverrides !== undefined
             ? { workloadOverrides: request.workloadOverrides }
@@ -1326,8 +1332,8 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {string} request.projectName - Name of the project containing the component
    * @param {string} request.namespaceName - Name of the namespace
    * @param {string} request.environment - Environment to patch binding for
-   * @param {any} request.componentTypeEnvOverrides - Component type environment overrides to apply
-   * @param {any} request.traitOverrides - Trait-specific overrides to apply
+   * @param {any} request.componentTypeEnvironmentConfigs - Component type environment overrides to apply
+   * @param {any} request.traitEnvironmentConfigs - Trait-specific overrides to apply
    * @param {any} request.workloadOverrides - Workload container overrides to apply
    * @returns {Promise<any>} Updated binding response
    */
@@ -1337,8 +1343,8 @@ export class EnvironmentInfoService implements EnvironmentService {
       projectName: string;
       namespaceName: string;
       environment: string;
-      componentTypeEnvOverrides: any;
-      traitOverrides?: any;
+      componentTypeEnvironmentConfigs: any;
+      traitEnvironmentConfigs?: any;
       workloadOverrides?: any;
       releaseName?: string;
     },
@@ -1384,8 +1390,9 @@ export class EnvironmentInfoService implements EnvironmentService {
         ...existing!,
         spec: {
           ...existing!.spec!,
-          componentTypeEnvOverrides: request.componentTypeEnvOverrides,
-          traitOverrides: request.traitOverrides,
+          componentTypeEnvironmentConfigs:
+            request.componentTypeEnvironmentConfigs,
+          traitEnvironmentConfigs: request.traitEnvironmentConfigs,
           workloadOverrides: request.workloadOverrides,
           ...(request.releaseName ? { releaseName: request.releaseName } : {}),
         },

@@ -477,7 +477,7 @@ export interface ClusterDataPlaneResponse {
   status?: string;
 }
 
-export interface BuildPlaneResponse {
+export interface WorkflowPlaneResponse {
   name: string;
   namespace: string;
   displayName?: string;
@@ -527,10 +527,10 @@ export interface ReleaseBindingResponse {
   namespaceName: string;
   environment: string;
   releaseName: string;
-  componentTypeEnvOverrides?: {
+  componentTypeEnvironmentConfigs?: {
     [key: string]: unknown;
   };
-  traitOverrides?: {
+  traitEnvironmentConfigs?: {
     [key: string]: unknown;
   };
   workloadOverrides?: WorkloadOverrides;
@@ -575,11 +575,11 @@ export interface ComponentReleaseResponse {
 /** @description Wrapped schema containing component-type and trait environment override schemas */
 export interface ComponentSchemaResponse {
   /** @description JSON Schema for component-type environment overrides */
-  componentTypeEnvOverrides?: {
+  componentTypeEnvironmentConfigs?: {
     [key: string]: unknown;
   };
   /** @description Object mapping trait instance names to their JSON Schemas for environment overrides */
-  traitOverrides?: {
+  traitEnvironmentConfigs?: {
     [key: string]: {
       [key: string]: unknown;
     };
@@ -917,10 +917,10 @@ export interface DeployReleaseRequest {
 export interface PatchReleaseBindingRequest {
   releaseName?: string;
   environment?: string;
-  componentTypeEnvOverrides?: {
+  componentTypeEnvironmentConfigs?: {
     [key: string]: unknown;
   };
-  traitOverrides?: {
+  traitEnvironmentConfigs?: {
     [key: string]: unknown;
   };
   workloadOverrides?: WorkloadOverrides;
