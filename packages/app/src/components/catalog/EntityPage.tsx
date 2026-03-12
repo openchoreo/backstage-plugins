@@ -638,10 +638,7 @@ const systemPage = (
  * to show "Namespace" instead of "Domain" for OpenChoreo domains.
  */
 const domainPage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
-    kindDisplayNames={{ domain: 'Namespace' }}
-  >
+  <EntityLayoutWithDelete kindDisplayNames={{ domain: 'Namespace' }}>
     <OpenChoreoEntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
@@ -665,7 +662,7 @@ const domainPage = (
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const resourcePage = (
@@ -695,8 +692,7 @@ const resourcePage = (
 );
 
 const environmentPage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
+  <EntityLayoutWithDelete
     parentEntityRelations={['partOf']}
     kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
   >
@@ -742,12 +738,11 @@ const environmentPage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const dataplanePage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
+  <EntityLayoutWithDelete
     parentEntityRelations={['partOf']}
     kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
   >
@@ -789,14 +784,11 @@ const dataplanePage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const clusterDataplanePage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
-    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
-  >
+  <EntityLayoutWithDelete kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}>
     <OpenChoreoEntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
@@ -833,12 +825,11 @@ const clusterDataplanePage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const workflowPlanePage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
+  <EntityLayoutWithDelete
     parentEntityRelations={['partOf']}
     kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
   >
@@ -871,14 +862,11 @@ const workflowPlanePage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const clusterWorkflowPlanePage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
-    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
-  >
+  <EntityLayoutWithDelete kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}>
     <OpenChoreoEntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
@@ -901,12 +889,11 @@ const clusterWorkflowPlanePage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const observabilityPlanePage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
+  <EntityLayoutWithDelete
     parentEntityRelations={['partOf']}
     kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
   >
@@ -943,14 +930,11 @@ const observabilityPlanePage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const clusterObservabilityPlanePage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
-    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
-  >
+  <EntityLayoutWithDelete kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}>
     <OpenChoreoEntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
@@ -978,12 +962,11 @@ const clusterObservabilityPlanePage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const deploymentPipelinePage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
+  <EntityLayoutWithDelete
     parentEntityRelations={['partOf']}
     kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
   >
@@ -1021,12 +1004,11 @@ const deploymentPipelinePage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const componentTypePage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
+  <EntityLayoutWithDelete
     parentEntityRelations={['partOf']}
     kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
   >
@@ -1051,12 +1033,11 @@ const componentTypePage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const traitTypePage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
+  <EntityLayoutWithDelete
     parentEntityRelations={['partOf']}
     kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
   >
@@ -1081,14 +1062,11 @@ const traitTypePage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const clusterComponentTypePage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
-    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
-  >
+  <EntityLayoutWithDelete kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}>
     <OpenChoreoEntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
@@ -1110,14 +1088,11 @@ const clusterComponentTypePage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const clusterTraitTypePage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
-    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
-  >
+  <EntityLayoutWithDelete kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}>
     <OpenChoreoEntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
@@ -1139,12 +1114,11 @@ const clusterTraitTypePage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const workflowPage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
+  <EntityLayoutWithDelete
     parentEntityRelations={['partOf']}
     kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
   >
@@ -1178,14 +1152,11 @@ const workflowPage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const clusterWorkflowPage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
-    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
-  >
+  <EntityLayoutWithDelete kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}>
     <OpenChoreoEntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
@@ -1207,12 +1178,11 @@ const clusterWorkflowPage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const componentWorkflowPage = (
-  <OpenChoreoEntityLayout
-    contextMenuOptions={{ disableUnregister: 'hidden' }}
+  <EntityLayoutWithDelete
     parentEntityRelations={['partOf']}
     kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
   >
@@ -1243,7 +1213,7 @@ const componentWorkflowPage = (
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
-  </OpenChoreoEntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 export const entityPage = (
