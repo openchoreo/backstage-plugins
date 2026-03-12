@@ -1209,9 +1209,9 @@ export async function createRouter({
 
   router.post('/clusterrolebindings', requireAuth, async (req, res) => {
     const binding = req.body;
-    if (!binding || !binding.role || !binding.entitlement) {
+    if (!binding || !binding.roleMappings || !binding.entitlement) {
       throw new InputError(
-        'Cluster role binding must have role.name and entitlement fields',
+        'Cluster role binding must have roleMappings and entitlement fields',
       );
     }
     const userToken = getUserTokenFromRequest(req);
@@ -1271,9 +1271,9 @@ export async function createRouter({
     async (req, res) => {
       const { namespace } = req.params;
       const binding = req.body;
-      if (!binding || !binding.role?.name || !binding.entitlement) {
+      if (!binding || !binding.roleMappings || !binding.entitlement) {
         throw new InputError(
-          'Namespace role binding must have role.name and entitlement fields',
+          'Namespace role binding must have roleMappings and entitlement fields',
         );
       }
       const userToken = getUserTokenFromRequest(req);

@@ -4369,7 +4369,7 @@ export interface components {
     ClusterAuthzRoleBindingSpec: {
       entitlement: components['schemas']['AuthzEntitlementClaim'];
       /** @description List of cluster role mappings this binding grants */
-      roleMappings: components['schemas']['ClusterAuthzRoleMapping'][];
+      roleMappings: components['schemas']['AuthzClusterRoleMapping'][];
       /**
        * @description Policy effect (allow or deny)
        * @default allow
@@ -4483,13 +4483,13 @@ export interface components {
       component?: string;
     };
     /** @description Pairs a role reference with an optional scope for cluster-scoped bindings */
-    ClusterAuthzRoleMapping: {
+    AuthzClusterRoleMapping: {
       roleRef: components['schemas']['AuthzRoleRef'] & {
         /**
-         * @example ClusterAuthzRole
+         * @example AuthzClusterRole
          * @enum {string}
          */
-        kind?: 'ClusterAuthzRole';
+        kind?: 'AuthzClusterRole';
       };
       scope?: components['schemas']['AuthzClusterScope'];
     };

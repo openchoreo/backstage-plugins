@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Box, Typography, Paper, TextField } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
@@ -11,6 +12,7 @@ import { getK8sNameError, toK8sName } from './utils';
 const useStyles = makeStyles(theme => ({
   root: {
     minHeight: 350,
+    marginTop: theme.spacing(2),
   },
   title: {
     marginBottom: theme.spacing(2),
@@ -105,11 +107,9 @@ interface EffectStepProps {
 
 function getSuggestedName(state: WizardState): string {
   let suggestedName = '';
-  if (state.selectedRole) {
-    suggestedName += state.selectedRole;
-  }
-  if (state.selectedRoleNamespace) {
-    suggestedName += `-${state.selectedRoleNamespace.trim()}`;
+  const firstRole = state.roleMappings[0]?.role;
+  if (firstRole) {
+    suggestedName += firstRole;
   }
   if (state.subjectType && state.entitlementValue) {
     suggestedName += `-${state.subjectType}-${state.entitlementValue.trim()}`;
@@ -125,13 +125,20 @@ export const EffectStep = ({
   const classes = useStyles();
   const suggestedName = getSuggestedName(state);
 
+  // Auto-populate the name with the suggested name on first visit (create mode only)
+  useEffect(() => {
+    if (!isEditMode && !state.name && suggestedName) {
+      onChange({ name: suggestedName });
+    }
+  }, [isEditMode, suggestedName]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleEffectChange = (effect: PolicyEffect) => {
     onChange({ effect });
   };
 
   return (
     <Box className={classes.root}>
-      <Typography variant="h6" className={classes.title}>
+      <Typography variant="h5" className={classes.title}>
         Should this mapping allow or deny access?
       </Typography>
 
@@ -160,7 +167,7 @@ export const EffectStep = ({
           <Box className={classes.effectContent}>
             <Typography className={classes.effectTitle}>ALLOW</Typography>
             <Typography className={classes.effectDescription}>
-              Grant the "{state.selectedRole}" role permissions to this subject
+              Grant the selected role permissions to this subject
             </Typography>
           </Box>
         </Paper>

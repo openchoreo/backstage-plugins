@@ -47,8 +47,35 @@ import {
 import { ClusterRoleBindingRequest } from '../../../api/OpenChoreoClientApi';
 import { useNotification } from '../../../hooks';
 import { NotificationBanner } from '../../Environments/components';
+import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { SCOPE_CLUSTER } from '../constants';
 import { MappingDialog } from './MappingDialog';
+
+/** Format scope for a single cluster role mapping */
+const formatClusterMappingScope = (scope?: {
+  namespace?: string;
+  project?: string;
+  component?: string;
+}): string => {
+  if (!scope?.namespace && !scope?.project && !scope?.component) {
+    return 'cluster:*';
+  }
+  const parts: string[] = [];
+  if (scope?.namespace) {
+    parts.push(`ns:${scope.namespace}`);
+    if (scope?.project) {
+      parts.push(`proj:${scope.project}`);
+      if (scope?.component) {
+        parts.push(`comp:${scope.component}`);
+      } else {
+        parts.push('*');
+      }
+    } else {
+      parts.push('*');
+    }
+  }
+  return parts.join('/');
+};
 
 const useStyles = makeStyles(theme => ({
   filters: {
@@ -166,9 +193,12 @@ export const ClusterRoleBindingsContent = ({
       // Search filter (client-side)
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
+        const roleNames = (binding.roleMappings || []).map(rm =>
+          rm.role.toLowerCase(),
+        );
         const searchFields = [
           binding.name,
-          binding.role.name,
+          ...roleNames,
           binding.entitlement.claim,
           binding.entitlement.value,
         ].map(s => s.toLowerCase());
@@ -367,7 +397,7 @@ export const ClusterRoleBindingsContent = ({
             <TableHead>
               <TableRow>
                 <TableCell>Binding Name</TableCell>
-                <TableCell>Role</TableCell>
+                <TableCell>Role Mappings</TableCell>
                 <TableCell className={classes.entitlementCell}>
                   Entitlement (claim=value)
                 </TableCell>
@@ -376,61 +406,85 @@ export const ClusterRoleBindingsContent = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredBindings.map(binding => (
-                <TableRow key={binding.name}>
-                  <TableCell>
-                    <Typography variant="body2">{binding.name}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{binding.role.name}</Typography>
-                  </TableCell>
-                  <TableCell className={classes.entitlementCell}>
-                    <Typography variant="body2">
-                      {binding.entitlement.claim}={binding.entitlement.value}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={binding.effect.toUpperCase()}
-                      size="small"
-                      variant="outlined"
-                      className={`${classes.effectChip} ${
-                        binding.effect === 'allow'
-                          ? classes.allowChip
-                          : classes.denyChip
-                      }`}
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title={updateDeniedTooltip}>
-                      <span>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditBinding(binding)}
-                          title="Edit"
-                          disabled={!canUpdate}
-                          color="primary"
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                    <Tooltip title={deleteDeniedTooltip}>
-                      <span>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteBinding(binding)}
-                          title="Delete"
-                          disabled={!canDelete}
-                          color="primary"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filteredBindings.map(binding => {
+                return (
+                  <TableRow key={binding.name}>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {binding.name}
+                        {binding.labels?.[CHOREO_LABELS.SYSTEM] === 'true' && (
+                          <Chip
+                            label="System"
+                            size="small"
+                            variant="outlined"
+                            style={{
+                              marginLeft: 8,
+                              fontSize: '0.7rem',
+                              height: 20,
+                            }}
+                          />
+                        )}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {(binding.roleMappings || []).length > 0 ? (
+                        binding.roleMappings.map((rm, idx) => (
+                          <Typography variant="body2" key={idx}>
+                            {rm.role} → {formatClusterMappingScope(rm.scope)}
+                          </Typography>
+                        ))
+                      ) : (
+                        <Typography variant="body2">{'\u2014'}</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell className={classes.entitlementCell}>
+                      <Typography variant="body2">
+                        {binding.entitlement.claim}={binding.entitlement.value}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={binding.effect.toUpperCase()}
+                        size="small"
+                        variant="outlined"
+                        className={`${classes.effectChip} ${
+                          binding.effect === 'allow'
+                            ? classes.allowChip
+                            : classes.denyChip
+                        }`}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title={updateDeniedTooltip}>
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditBinding(binding)}
+                            title="Edit"
+                            disabled={!canUpdate}
+                            color="primary"
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title={deleteDeniedTooltip}>
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteBinding(binding)}
+                            title="Delete"
+                            disabled={!canDelete}
+                            color="primary"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>

@@ -48,6 +48,7 @@ export const CHOREO_ANNOTATIONS = {
 
 export const CHOREO_LABELS = {
   MANAGED: 'openchoreo.io/managed',
+  SYSTEM: 'openchoreo.io/system',
   WORKFLOW_PROJECT: 'openchoreo.dev/project',
   WORKFLOW_COMPONENT: 'openchoreo.dev/component',
 } as const;

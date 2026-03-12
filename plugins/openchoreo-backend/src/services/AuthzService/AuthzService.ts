@@ -260,6 +260,7 @@ export class AuthzService {
         name: r.metadata?.name ?? '',
         actions: r.spec?.actions ?? [],
         description: r.metadata?.annotations?.description ?? '',
+        labels: r.metadata?.labels || {},
       }));
       return { data: roles };
     } catch (err) {
@@ -419,6 +420,7 @@ export class AuthzService {
         actions: r.spec?.actions ?? [],
         namespace,
         description: r.metadata?.annotations?.description ?? '',
+        labels: r.metadata?.labels || {},
       }));
       return { data: roles };
     } catch (err) {
@@ -610,16 +612,23 @@ export class AuthzService {
 
       const allBindings = (data?.items || []).map((b: any) => ({
         name: b.metadata?.name ?? '',
-        role: { name: b.spec?.roleRef?.name ?? '' },
+        roleMappings: (b.spec?.roleMappings || []).map((rm: any) => ({
+          role: rm.roleRef?.name ?? '',
+          scope: rm.scope || undefined,
+        })),
         entitlement: {
           claim: b.spec?.entitlement?.claim ?? '',
           value: b.spec?.entitlement?.value ?? '',
         },
         effect: b.spec?.effect ?? 'allow',
+        labels: b.metadata?.labels || {},
       }));
       const bindings = filters
         ? allBindings.filter(b => {
-            if (filters.roleName && b.role?.name !== filters.roleName)
+            if (
+              filters.roleName &&
+              !b.roleMappings.some((rm: any) => rm.role === filters.roleName)
+            )
               return false;
             if (filters.claim && b.entitlement?.claim !== filters.claim)
               return false;
@@ -659,7 +668,12 @@ export class AuthzService {
       return {
         data: {
           name: (data as any).metadata?.name ?? '',
-          role: { name: (data as any).spec?.roleRef?.name ?? '' },
+          roleMappings: ((data as any).spec?.roleMappings || []).map(
+            (rm: any) => ({
+              role: rm.roleRef?.name ?? '',
+              scope: rm.scope || undefined,
+            }),
+          ),
           entitlement: {
             claim: (data as any).spec?.entitlement?.claim ?? '',
             value: (data as any).spec?.entitlement?.value ?? '',
@@ -681,13 +695,18 @@ export class AuthzService {
 
     try {
       const client = this.createNewClient(userToken);
+      const roleMappings = (binding.roleMappings || []).map((rm: any) => ({
+        roleRef: { kind: 'AuthzClusterRole', name: rm.role },
+        ...(rm.scope && { scope: rm.scope }),
+      }));
+
       const { data, error, response } = await client.POST(
         '/api/v1/clusterauthzrolebindings',
         {
           body: {
             metadata: { name: binding.name },
             spec: {
-              roleRef: { kind: 'AuthzClusterRole', name: binding.role },
+              roleMappings,
               entitlement: binding.entitlement,
               effect: binding.effect ?? 'allow',
             },
@@ -706,7 +725,12 @@ export class AuthzService {
       return {
         data: {
           name: (data as any).metadata?.name ?? '',
-          role: { name: (data as any).spec?.roleRef?.name ?? '' },
+          roleMappings: ((data as any).spec?.roleMappings || []).map(
+            (rm: any) => ({
+              role: rm.roleRef?.name ?? '',
+              scope: rm.scope || undefined,
+            }),
+          ),
           entitlement: {
             claim: (data as any).spec?.entitlement?.claim ?? '',
             value: (data as any).spec?.entitlement?.value ?? '',
@@ -729,6 +753,11 @@ export class AuthzService {
 
     try {
       const client = this.createNewClient(userToken);
+      const roleMappings = (binding.roleMappings || []).map((rm: any) => ({
+        roleRef: { kind: 'AuthzClusterRole', name: rm.role },
+        ...(rm.scope && { scope: rm.scope }),
+      }));
+
       const { data, error, response } = await client.PUT(
         '/api/v1/clusterauthzrolebindings/{name}',
         {
@@ -736,7 +765,7 @@ export class AuthzService {
           body: {
             metadata: { name: binding.name ?? name },
             spec: {
-              roleRef: { kind: 'AuthzClusterRole', name: binding.role },
+              roleMappings,
               entitlement: binding.entitlement,
               effect: binding.effect ?? 'allow',
             },
@@ -753,7 +782,12 @@ export class AuthzService {
       return {
         data: {
           name: (data as any).metadata?.name ?? '',
-          role: { name: (data as any).spec?.roleRef?.name ?? '' },
+          roleMappings: ((data as any).spec?.roleMappings || []).map(
+            (rm: any) => ({
+              role: rm.roleRef?.name ?? '',
+              scope: rm.scope || undefined,
+            }),
+          ),
           entitlement: {
             claim: (data as any).spec?.entitlement?.claim ?? '',
             value: (data as any).spec?.entitlement?.value ?? '',
@@ -839,29 +873,35 @@ export class AuthzService {
 
       const allBindings = (data?.items || []).map((b: any) => ({
         name: b.metadata?.name ?? '',
-        role: {
-          name: b.spec?.roleRef?.name ?? '',
-          namespace:
-            b.spec?.roleRef?.kind === 'AuthzRole' ? namespace : undefined,
-        },
+        namespace,
+        roleMappings: (b.spec?.roleMappings || []).map((rm: any) => ({
+          role: {
+            name: rm.roleRef?.name ?? '',
+            namespace: rm.roleRef?.kind === 'AuthzRole' ? namespace : undefined,
+          },
+          scope: rm.scope || undefined,
+        })),
         entitlement: {
           claim: b.spec?.entitlement?.claim ?? '',
           value: b.spec?.entitlement?.value ?? '',
         },
-        hierarchy: {
-          namespace,
-          project: b.spec?.targetPath?.project,
-          component: b.spec?.targetPath?.component,
-        },
         effect: b.spec?.effect ?? 'allow',
+        labels: b.metadata?.labels || {},
       }));
       const bindings = filters
         ? allBindings.filter(b => {
-            if (filters.roleName && b.role?.name !== filters.roleName)
+            if (
+              filters.roleName &&
+              !b.roleMappings.some(
+                (rm: any) => rm.role?.name === filters.roleName,
+              )
+            )
               return false;
             if (
               filters.roleNamespace &&
-              b.role?.namespace !== filters.roleNamespace
+              !b.roleMappings.some(
+                (rm: any) => rm.role?.namespace === filters.roleNamespace,
+              )
             )
               return false;
             if (filters.claim && b.entitlement?.claim !== filters.claim)
@@ -903,21 +943,20 @@ export class AuthzService {
       return {
         data: {
           name: (data as any).metadata?.name ?? '',
-          role: {
-            name: (data as any).spec?.roleRef?.name ?? '',
-            namespace:
-              (data as any).spec?.roleRef?.kind === 'AuthzRole'
-                ? namespace
-                : undefined,
-          },
+          namespace,
+          roleMappings: ((data as any).spec?.roleMappings || []).map(
+            (rm: any) => ({
+              role: {
+                name: rm.roleRef?.name ?? '',
+                namespace:
+                  rm.roleRef?.kind === 'AuthzRole' ? namespace : undefined,
+              },
+              scope: rm.scope || undefined,
+            }),
+          ),
           entitlement: {
             claim: (data as any).spec?.entitlement?.claim ?? '',
             value: (data as any).spec?.entitlement?.value ?? '',
-          },
-          hierarchy: {
-            namespace,
-            project: (data as any).spec?.targetPath?.project,
-            component: (data as any).spec?.targetPath?.component,
           },
           effect: (data as any).spec?.effect ?? 'allow',
         },
@@ -940,6 +979,14 @@ export class AuthzService {
 
     try {
       const client = this.createNewClient(userToken);
+      const roleMappings = (binding.roleMappings || []).map((rm: any) => ({
+        roleRef: {
+          kind: rm.role?.namespace ? 'AuthzRole' : 'AuthzClusterRole',
+          name: rm.role?.name ?? rm.role,
+        },
+        ...(rm.scope && { scope: rm.scope }),
+      }));
+
       const { data, error, response } = await client.POST(
         '/api/v1/namespaces/{namespaceName}/authzrolebindings',
         {
@@ -947,15 +994,9 @@ export class AuthzService {
           body: {
             metadata: { name: binding.name },
             spec: {
-              roleRef: {
-                kind: binding.role?.namespace
-                  ? 'AuthzRole'
-                  : 'AuthzClusterRole',
-                name: binding.role?.name ?? binding.role,
-              },
+              roleMappings,
               entitlement: binding.entitlement,
               effect: binding.effect ?? 'allow',
-              ...(binding.targetPath && { targetPath: binding.targetPath }),
             },
           } as any,
         },
@@ -972,21 +1013,22 @@ export class AuthzService {
       return {
         data: {
           name: (data as any).metadata?.name ?? '',
-          role: {
-            name: (data as any).spec?.roleRef?.name ?? '',
-            namespace:
-              (data as any).spec?.roleRef?.kind === 'AuthzRole'
-                ? binding.namespace
-                : undefined,
-          },
+          namespace: binding.namespace,
+          roleMappings: ((data as any).spec?.roleMappings || []).map(
+            (rm: any) => ({
+              role: {
+                name: rm.roleRef?.name ?? '',
+                namespace:
+                  rm.roleRef?.kind === 'AuthzRole'
+                    ? binding.namespace
+                    : undefined,
+              },
+              scope: rm.scope || undefined,
+            }),
+          ),
           entitlement: {
             claim: (data as any).spec?.entitlement?.claim ?? '',
             value: (data as any).spec?.entitlement?.value ?? '',
-          },
-          hierarchy: {
-            namespace: binding.namespace,
-            project: (data as any).spec?.targetPath?.project,
-            component: (data as any).spec?.targetPath?.component,
           },
           effect: (data as any).spec?.effect ?? 'allow',
         },
@@ -1007,6 +1049,14 @@ export class AuthzService {
 
     try {
       const client = this.createNewClient(userToken);
+      const roleMappings = (binding.roleMappings || []).map((rm: any) => ({
+        roleRef: {
+          kind: rm.role?.namespace ? 'AuthzRole' : 'AuthzClusterRole',
+          name: rm.role?.name ?? rm.role,
+        },
+        ...(rm.scope && { scope: rm.scope }),
+      }));
+
       const { data, error, response } = await client.PUT(
         '/api/v1/namespaces/{namespaceName}/authzrolebindings/{name}',
         {
@@ -1014,15 +1064,9 @@ export class AuthzService {
           body: {
             metadata: { name: binding.name ?? name },
             spec: {
-              roleRef: {
-                kind: binding.role?.namespace
-                  ? 'AuthzRole'
-                  : 'AuthzClusterRole',
-                name: binding.role?.name ?? binding.role,
-              },
+              roleMappings,
               entitlement: binding.entitlement,
               effect: binding.effect ?? 'allow',
-              ...(binding.targetPath && { targetPath: binding.targetPath }),
             },
           } as any,
         },
@@ -1039,21 +1083,20 @@ export class AuthzService {
       return {
         data: {
           name: (data as any).metadata?.name ?? '',
-          role: {
-            name: (data as any).spec?.roleRef?.name ?? '',
-            namespace:
-              (data as any).spec?.roleRef?.kind === 'AuthzRole'
-                ? namespace
-                : undefined,
-          },
+          namespace,
+          roleMappings: ((data as any).spec?.roleMappings || []).map(
+            (rm: any) => ({
+              role: {
+                name: rm.roleRef?.name ?? '',
+                namespace:
+                  rm.roleRef?.kind === 'AuthzRole' ? namespace : undefined,
+              },
+              scope: rm.scope || undefined,
+            }),
+          ),
           entitlement: {
             claim: (data as any).spec?.entitlement?.claim ?? '',
             value: (data as any).spec?.entitlement?.value ?? '',
-          },
-          hierarchy: {
-            namespace,
-            project: (data as any).spec?.targetPath?.project,
-            component: (data as any).spec?.targetPath?.component,
           },
           effect: (data as any).spec?.effect ?? 'allow',
         },
@@ -1129,7 +1172,9 @@ export class AuthzService {
             userToken,
           );
           return result.data
-            .filter(b => !b.role?.namespace)
+            .filter(b =>
+              (b.roleMappings || []).some((rm: any) => !rm.role?.namespace),
+            )
             .map(b => ({ ...b, namespace: ns.name }));
         }),
       );
