@@ -10,7 +10,6 @@ import {
   EntityKindPicker,
   EntityListProvider,
   EntityLifecyclePicker,
-  EntityNamespacePicker,
   EntityProcessingStatusPicker,
   EntityTagPicker,
 } from '@backstage/plugin-catalog-react';
@@ -48,9 +47,6 @@ export const CustomApiExplorerPage = () => {
             {/* Filters at the top (desktop) */}
             <Box className={classes.filterSection}>
               <Grid container spacing={2} alignItems="center">
-                <Grid item sm={12} md={4} lg={3}>
-                  <EntityNamespacePicker />
-                </Grid>
                 <Grid item className={classes.advancedFiltersGridItem}>
                   <button
                     className={classes.advancedFiltersToggle}
@@ -100,9 +96,6 @@ export const CustomApiExplorerPage = () => {
             >
               <Box className={classes.filterDrawerContent}>
                 <Box className={classes.filterGrid}>
-                  <Box className={classes.filterItem}>
-                    <EntityNamespacePicker />
-                  </Box>
                   <Box className={classes.filterItem}>
                     <StarredFilter />
                   </Box>
