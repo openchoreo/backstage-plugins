@@ -39,6 +39,8 @@ function getAnnotationFilteredProperties(annotation: string): Set<string> {
   return properties;
 }
 
+type WorkflowKind = 'Workflow' | 'ClusterWorkflow' | 'ComponentWorkflow';
+
 /*
  Schema for the Build Workflow Parameters Field
 */
@@ -83,7 +85,22 @@ export const BuildWorkflowParameters = ({
   const catalogApi = useApi(catalogApiRef);
 
   // Get the selected workflow from sibling field in the same section
-  const selectedWorkflowName = formContext?.formData?.workflow_name;
+  const selectedWorkflowValue = formContext?.formData?.workflow_name as
+    | { kind?: WorkflowKind; name?: string }
+    | undefined;
+
+  // Determine CTD kind from ui:options so we can treat all workflows for
+  // ClusterComponentType as ClusterWorkflows.
+  const ctdKind =
+    typeof uiSchema?.['ui:options']?.ctdKind === 'string'
+      ? (uiSchema['ui:options'].ctdKind as string)
+      : 'ComponentType';
+  const isClusterComponentType = ctdKind === 'ClusterComponentType';
+  const selectedWorkflowKind: WorkflowKind | null = selectedWorkflowValue?.name
+    ? selectedWorkflowValue.kind ??
+      (isClusterComponentType ? 'ClusterWorkflow' : 'Workflow')
+    : null;
+  const selectedWorkflowBaseName = selectedWorkflowValue?.name;
   // Get namespace from ui:options (set by the converter) or fall back to form data
   const namespaceName =
     (typeof uiSchema?.['ui:options']?.namespaceName === 'string'
@@ -97,19 +114,19 @@ export const BuildWorkflowParameters = ({
   useEffect(() => {
     if (
       prevWorkflowRef.current !== undefined &&
-      prevWorkflowRef.current !== selectedWorkflowName
+      prevWorkflowRef.current !== selectedWorkflowValue?.name
     ) {
       setResetKey(prev => prev + 1);
     }
-    prevWorkflowRef.current = selectedWorkflowName;
-  }, [selectedWorkflowName]);
+    prevWorkflowRef.current = selectedWorkflowValue?.name;
+  }, [selectedWorkflowValue]);
 
   // Fetch workflow schema when workflow selection changes
   useEffect(() => {
     let ignore = false;
 
     const fetchWorkflowSchema = async () => {
-      if (!selectedWorkflowName || !namespaceName) {
+      if (!selectedWorkflowBaseName) {
         setWorkflowSchema(null);
         setError(null);
         return;
@@ -121,21 +138,35 @@ export const BuildWorkflowParameters = ({
         return parts[parts.length - 1];
       };
 
-      const nsName = extractNsName(namespaceName);
+      const nsName =
+        namespaceName && selectedWorkflowKind === 'Workflow'
+          ? extractNsName(namespaceName)
+          : '';
 
       setLoading(true);
       setError(null);
 
       try {
-        const baseUrl = await discoveryApi.getBaseUrl(
-          'openchoreo-workflows-backend',
-        );
+        // Use different backend plugins for namespaced vs cluster workflows:
+        // - Namespaced Workflow schemas come from openchoreo-workflows-backend
+        // - ClusterWorkflow schemas come from openchoreo-ci-backend
+        const backendId =
+          selectedWorkflowKind === 'ClusterWorkflow'
+            ? 'openchoreo-ci-backend'
+            : 'openchoreo-workflows-backend';
+
+        const baseUrl = await discoveryApi.getBaseUrl(backendId);
+
         // Use fetchApi which automatically injects Backstage + IDP tokens
-        const response = await fetchApi.fetch(
-          `${baseUrl}/workflows/${encodeURIComponent(
-            selectedWorkflowName,
-          )}/schema?namespaceName=${encodeURIComponent(nsName)}`,
-        );
+        const url =
+          selectedWorkflowKind === 'ClusterWorkflow'
+            ? `${baseUrl}/cluster-workflow-schema?workflowName=${encodeURIComponent(
+                selectedWorkflowBaseName,
+              )}`
+            : `${baseUrl}/workflows/${encodeURIComponent(
+                selectedWorkflowBaseName,
+              )}/schema?namespaceName=${encodeURIComponent(nsName)}`;
+        const response = await fetchApi.fetch(url);
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -172,13 +203,18 @@ export const BuildWorkflowParameters = ({
           // implicitly (projectName, componentName), so they shouldn't appear
           // as duplicate fields in the RJSF form.
           try {
-            const workflowEntities = await catalogApi.getEntities({
-              filter: {
-                kind: 'Workflow',
-                'metadata.name': selectedWorkflowName,
-                ...(nsName && { 'metadata.namespace': nsName }),
-              },
-            });
+            const filter: Record<string, string> = {
+              'metadata.name': selectedWorkflowBaseName!,
+            };
+            if (selectedWorkflowKind === 'Workflow' && nsName) {
+              filter.kind = 'Workflow';
+              filter['metadata.namespace'] = nsName;
+            } else if (selectedWorkflowKind === 'ClusterWorkflow') {
+              // ClusterWorkflows are cluster-scoped; filter only by kind + name
+              filter.kind = 'ClusterWorkflow';
+            }
+
+            const workflowEntities = await catalogApi.getEntities({ filter });
 
             if (ignore) return;
 
@@ -230,7 +266,14 @@ export const BuildWorkflowParameters = ({
     return () => {
       ignore = true;
     };
-  }, [selectedWorkflowName, namespaceName, discoveryApi, fetchApi, catalogApi]);
+  }, [
+    selectedWorkflowBaseName,
+    selectedWorkflowKind,
+    namespaceName,
+    discoveryApi,
+    fetchApi,
+    catalogApi,
+  ]);
 
   // Sync schema to formData when workflow changes (not just when schema loads).
   // Compute default values from the schema so they are always included — RJSF
@@ -301,7 +344,7 @@ export const BuildWorkflowParameters = ({
   }
 
   if (
-    selectedWorkflowName &&
+    selectedWorkflowBaseName &&
     (!workflowSchema ||
       !workflowSchema.properties ||
       Object.keys(workflowSchema.properties).length === 0)

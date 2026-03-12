@@ -58,7 +58,7 @@ export interface ComponentResourceInput {
   repoUrl?: string;
   branch?: string;
   componentPath?: string;
-  workflowName?: string;
+  workflow?: { kind?: string; name: string };
   workflowParameters?: Record<string, any>;
   containerImage?: string; // For deploy-from-image
   gitSecretRef?: string; // Secret reference for private repository credentials
@@ -119,7 +119,7 @@ export function buildComponentResource(
   // Add workflow configuration only for build-from-source deployment source
   // For external-ci and deploy-from-image, no workflow is attached to the component
   // External CI will create workloads via API, deploy-from-image creates a workload directly
-  if (input.deploymentSource === 'build-from-source' && input.workflowName) {
+  if (input.deploymentSource === 'build-from-source' && input.workflow) {
     // Build workflow parameters from flat dot-notation to nested structure.
     // The RJSF form provides the developer-editable fields (e.g., docker.context).
     // These were filtered to exclude annotation-mapped fields (git source, scope).
@@ -180,25 +180,9 @@ export function buildComponentResource(
       }
     }
 
-    // Determine workflow kind and actual name.
-    // ClusterComponentType always uses ClusterWorkflow.
-    // For ComponentType, if the name has a "ClusterWorkflow:" prefix (from merged picker results),
-    // strip the prefix and set kind to ClusterWorkflow.
-    let resolvedWorkflowName = input.workflowName!;
-    let workflowKind: string | undefined;
-
-    if (input.componentTypeKind === 'ClusterComponentType') {
-      workflowKind = 'ClusterWorkflow';
-    } else if (resolvedWorkflowName.startsWith('ClusterWorkflow:')) {
-      workflowKind = 'ClusterWorkflow';
-      resolvedWorkflowName = resolvedWorkflowName.slice(
-        'ClusterWorkflow:'.length,
-      );
-    }
-
     resource.spec.workflow = {
-      ...(workflowKind && { kind: workflowKind }),
-      name: resolvedWorkflowName,
+      ...(input.workflow && { kind: input.workflow.kind }),
+      name: input.workflow.name,
       parameters: workflowParams,
     };
   }

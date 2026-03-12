@@ -77,8 +77,17 @@ export const GitSourceField = ({
   const fetchApi = useApi(fetchApiRef);
   const catalogApi = useApi(catalogApiRef);
 
-  // Read the selected workflow name from formContext
-  const selectedWorkflowName = formContext?.formData?.workflow_name;
+  // Read the selected workflow from formContext (object with kind and name)
+  const selectedWorkflow = formContext?.formData?.workflow_name as
+    | { kind?: string; name?: string }
+    | undefined;
+  const selectedWorkflowName =
+    selectedWorkflow &&
+    typeof selectedWorkflow === 'object' &&
+    selectedWorkflow.name
+      ? selectedWorkflow.name
+      : undefined;
+  const selectedWorkflowKind = selectedWorkflow?.kind;
 
   // Get namespace from ui:options (set by the converter)
   const namespaceName =
@@ -114,12 +123,19 @@ export const GitSourceField = ({
       }
 
       try {
+        const filter: Record<string, string> = {
+          'metadata.name': selectedWorkflowName,
+        };
+        if (selectedWorkflowKind === 'ClusterWorkflow') {
+          filter.kind = 'ClusterWorkflow';
+          filter['metadata.namespace'] = 'openchoreo-cluster';
+        } else {
+          filter.kind = 'Workflow';
+          if (nsName) filter['metadata.namespace'] = nsName;
+        }
+
         const response = await catalogApi.getEntities({
-          filter: {
-            kind: 'Workflow',
-            'metadata.name': selectedWorkflowName,
-            ...(nsName && { 'metadata.namespace': nsName }),
-          },
+          filter,
         });
 
         if (ignore) return;
@@ -153,7 +169,7 @@ export const GitSourceField = ({
     return () => {
       ignore = true;
     };
-  }, [selectedWorkflowName, catalogApi, nsName]);
+  }, [selectedWorkflowName, selectedWorkflowKind, catalogApi, nsName]);
 
   // Determine which fields to show
   const showRepoUrl = !visibleFields || 'repoUrl' in visibleFields;

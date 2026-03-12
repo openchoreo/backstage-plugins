@@ -255,8 +255,10 @@ export const createComponentAction = (
 
         // Only use workflow-related fields if deploying from source
         const autoDeploy = ctx.input.autoDeploy ?? false;
-        const workflowName = isBuildFromSource
-          ? (ctx.input as any).workflow_name
+        const workflow = isBuildFromSource
+          ? ((ctx.input as any).workflow as
+              | { kind?: string; name: string }
+              | undefined)
           : undefined;
         const workflowParametersData = isBuildFromSource
           ? (ctx.input as any).workflow_parameters
@@ -283,6 +285,7 @@ export const createComponentAction = (
             'containerImage',
             'autoDeploy',
             'workflow_name',
+            'workflow_kind',
             'workflow_parameters',
             'traits',
             'repo_url',
@@ -312,17 +315,15 @@ export const createComponentAction = (
         // This tells us where git source fields and implicit fields (projectName,
         // componentName) should be placed in the workflow parameters structure.
         let workflowParameterMapping: WorkflowParameterMapping | undefined;
-        if (workflowName) {
+        if (workflow) {
           try {
-            // Determine if this is a ClusterWorkflow based on component type kind or name prefix
+            // Determine if this is a ClusterWorkflow based on workflow_kind or component type kind
             const componentTypeKindForLookup =
               (ctx.input as any).component_type_kind || 'ComponentType';
             const isClusterWorkflow =
-              componentTypeKindForLookup === 'ClusterComponentType' ||
-              workflowName.startsWith('ClusterWorkflow:');
-            const lookupName = workflowName.startsWith('ClusterWorkflow:')
-              ? workflowName.slice('ClusterWorkflow:'.length)
-              : workflowName;
+              workflow.kind === 'ClusterWorkflow' ||
+              componentTypeKindForLookup === 'ClusterComponentType';
+            const lookupName = workflow.name;
 
             let namespaceFilter: Record<string, string> = {};
             if (isClusterWorkflow) {
@@ -380,7 +381,7 @@ export const createComponentAction = (
           repoUrl: (ctx.input as any).repo_url,
           branch: (ctx.input as any).branch,
           componentPath: (ctx.input as any).component_path,
-          workflowName: workflowName,
+          workflow: workflow,
           workflowParameters: workflowParameters,
           containerImage: (ctx.input as any).containerImage,
           gitSecretRef: (ctx.input as any).gitSecretRef,
