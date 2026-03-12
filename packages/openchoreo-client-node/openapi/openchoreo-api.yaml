@@ -8499,7 +8499,7 @@ components:
           description: List of cluster role mappings this binding grants
           minItems: 1
           items:
-            $ref: '#/components/schemas/AuthzClusterRoleMapping'
+            $ref: '#/components/schemas/ClusterAuthzRoleMapping'
         effect:
           type: string
           description: Policy effect (allow or deny)
@@ -8654,7 +8654,7 @@ components:
           description: Component name
           example: api-service
 
-    AuthzClusterRoleMapping:
+    ClusterAuthzRoleMapping:
       type: object
       description: Pairs a role reference with an optional scope for cluster-scoped bindings
       required:
@@ -8667,8 +8667,8 @@ components:
               properties:
                 kind:
                   type: string
-                  enum: [AuthzClusterRole]
-                  example: AuthzClusterRole
+                  enum: [ClusterAuthzRole]
+                  example: ClusterAuthzRole
         scope:
           $ref: '#/components/schemas/AuthzClusterScope'
 

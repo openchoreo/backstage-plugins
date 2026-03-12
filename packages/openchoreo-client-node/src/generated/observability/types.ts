@@ -817,13 +817,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          /**
-           * @example {
-           *       "title": "badRequest",
-           *       "errorCode": "",
-           *       "message": "Missing required fields 'startTime' and 'endTime'"
-           *     }
-           */
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
@@ -833,13 +826,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          /**
-           * @example {
-           *       "title": "unauthorized",
-           *       "errorCode": "",
-           *       "message": "Invalid or missing token"
-           *     }
-           */
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
@@ -849,13 +835,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          /**
-           * @example {
-           *       "title": "forbidden",
-           *       "errorCode": "",
-           *       "message": "Subject <xyz> has no permission to view logs of Namespace foo, Project bar, Component baz in Environment development"
-           *     }
-           */
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
@@ -865,13 +844,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          /**
-           * @example {
-           *       "title": "internalServerError",
-           *       "errorCode": "OBS-V1-L-29",
-           *       "message": ""
-           *     }
-           */
           'application/json': components['schemas']['ErrorResponse'];
         };
       };

@@ -696,7 +696,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const roleMappings = (binding.roleMappings || []).map((rm: any) => ({
-        roleRef: { kind: 'AuthzClusterRole', name: rm.role },
+        roleRef: { kind: 'ClusterAuthzRole', name: rm.role },
         ...(rm.scope && { scope: rm.scope }),
       }));
 
@@ -754,7 +754,7 @@ export class AuthzService {
     try {
       const client = this.createNewClient(userToken);
       const roleMappings = (binding.roleMappings || []).map((rm: any) => ({
-        roleRef: { kind: 'AuthzClusterRole', name: rm.role },
+        roleRef: { kind: 'ClusterAuthzRole', name: rm.role },
         ...(rm.scope && { scope: rm.scope }),
       }));
 
@@ -981,7 +981,7 @@ export class AuthzService {
       const client = this.createNewClient(userToken);
       const roleMappings = (binding.roleMappings || []).map((rm: any) => ({
         roleRef: {
-          kind: rm.role?.namespace ? 'AuthzRole' : 'AuthzClusterRole',
+          kind: rm.role?.namespace ? 'AuthzRole' : 'ClusterAuthzRole',
           name: rm.role?.name ?? rm.role,
         },
         ...(rm.scope && { scope: rm.scope }),
@@ -1051,7 +1051,7 @@ export class AuthzService {
       const client = this.createNewClient(userToken);
       const roleMappings = (binding.roleMappings || []).map((rm: any) => ({
         roleRef: {
-          kind: rm.role?.namespace ? 'AuthzRole' : 'AuthzClusterRole',
+          kind: rm.role?.namespace ? 'AuthzRole' : 'ClusterAuthzRole',
           name: rm.role?.name ?? rm.role,
         },
         ...(rm.scope && { scope: rm.scope }),
