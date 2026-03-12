@@ -15,4 +15,3 @@ export { ClusterDataplaneEntityProcessor } from './ClusterDataplaneEntityProcess
 export { ClusterObservabilityPlaneEntityProcessor } from './ClusterObservabilityPlaneEntityProcessor';
 export { ClusterWorkflowPlaneEntityProcessor } from './ClusterWorkflowPlaneEntityProcessor';
 export { ClusterWorkflowEntityProcessor } from './ClusterWorkflowEntityProcessor';
-export { SystemWorkflowPlaneProcessor } from './SystemWorkflowPlaneProcessor';

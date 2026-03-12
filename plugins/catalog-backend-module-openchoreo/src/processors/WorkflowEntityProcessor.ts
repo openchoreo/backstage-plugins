@@ -9,6 +9,11 @@ import {
   RELATION_PART_OF,
   parseEntityRef,
 } from '@backstage/catalog-model';
+import {
+  CHOREO_ANNOTATIONS,
+  RELATION_BUILDS_ON,
+  RELATION_BUILDS,
+} from '@openchoreo/backstage-plugin-common';
 import { WorkflowEntityV1alpha1 } from '../kinds/WorkflowEntityV1alpha1';
 
 /**
@@ -58,6 +63,51 @@ export class WorkflowEntityProcessor implements CatalogProcessor {
             source: domainTarget,
             target: sourceRef,
             type: RELATION_HAS_PART,
+          }),
+        );
+      }
+
+      // Emit buildsOn/builds relationship to WorkflowPlane or ClusterWorkflowPlane
+      const annotations = entity.metadata.annotations || {};
+      const workflowPlaneRef =
+        annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF]?.trim();
+      const workflowPlaneRefKind =
+        annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND]?.trim();
+
+      if (workflowPlaneRef) {
+        const normalizedKind = (
+          workflowPlaneRefKind || 'WorkflowPlane'
+        ).toLowerCase();
+        if (
+          normalizedKind !== 'workflowplane' &&
+          normalizedKind !== 'clusterworkflowplane'
+        ) {
+          // Unrecognized workflow plane kind — skip relation
+          return entity;
+        }
+        const isCluster = normalizedKind === 'clusterworkflowplane';
+        const targetKind = isCluster ? 'clusterworkflowplane' : 'workflowplane';
+        const targetNamespace = isCluster
+          ? 'openchoreo-cluster'
+          : entity.metadata.namespace || 'default';
+
+        const targetRef = {
+          kind: targetKind,
+          namespace: targetNamespace,
+          name: workflowPlaneRef,
+        };
+        emit(
+          processingResult.relation({
+            source: sourceRef,
+            target: targetRef,
+            type: RELATION_BUILDS_ON,
+          }),
+        );
+        emit(
+          processingResult.relation({
+            source: targetRef,
+            target: sourceRef,
+            type: RELATION_BUILDS,
           }),
         );
       }

@@ -1059,7 +1059,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Fetch cluster workflow planes (once, not per namespace)
-      let clusterWorkflowPlaneNames: string[] = [];
       try {
         const clusterWorkflowPlanes =
           await fetchAllPages<NewClusterWorkflowPlane>(cursor =>
@@ -1095,17 +1094,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           })
           .filter((e): e is Entity => e !== null);
 
-        clusterWorkflowPlaneNames = cbpEntities
-          .map(e => e.metadata.name)
-          .filter((n): n is string => !!n);
-
         allEntities.push(...cbpEntities);
       } catch (error) {
         this.logger.warn(`Failed to fetch cluster workflow planes: ${error}`);
       }
-
-      // Apply workflowPlaneRef fallback for projects without explicit workflowPlaneRef
-      this.applyWorkflowPlaneFallback(allEntities, clusterWorkflowPlaneNames);
 
       await this.connection!.applyMutation({
         type: 'full',
@@ -1742,6 +1734,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   ): ClusterWorkflowEntityV1alpha1 {
     const isCI =
       cwf.metadata?.labels?.['openchoreo.dev/workflow-type'] === 'component';
+    const wpRef = (cwf as any).spec?.workflowPlaneRef;
     return translateClusterWF(
       {
         name: getName(cwf)!,
@@ -1751,6 +1744,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         parameters: extractWorkflowParameters((cwf as any).spec),
         type: isCI ? 'CI' : 'Generic',
         deletionTimestamp: getDeletionTimestamp(cwf),
+        ...(wpRef && {
+          workflowPlaneRef: { kind: wpRef.kind, name: wpRef.name },
+        }),
       },
       { locationKey: this.getProviderName() },
     );
@@ -1928,59 +1924,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   }
 
   /**
-   * Applies workflowPlaneRef fallback for projects without explicit workflowPlaneRef.
-   * For each System entity without WORKFLOW_PLANE_REF annotation:
-   *   1. If a WorkflowPlane exists in the same namespace → use it
-   *   2. If no namespace WorkflowPlane but a ClusterWorkflowPlane named "default" exists → use that
-   */
-  private applyWorkflowPlaneFallback(
-    allEntities: Entity[],
-    clusterWorkflowPlaneNames: string[],
-  ): void {
-    const hasDefaultClusterWorkflowPlane =
-      clusterWorkflowPlaneNames.includes('default');
-
-    // Build a map of namespace -> deterministically chosen WorkflowPlane name
-    const namespaceWorkflowPlanes = new Map<string, string[]>();
-    for (const entity of allEntities) {
-      if (entity.kind === 'WorkflowPlane' && entity.metadata.namespace) {
-        const ns = entity.metadata.namespace;
-        if (!namespaceWorkflowPlanes.has(ns)) {
-          namespaceWorkflowPlanes.set(ns, []);
-        }
-        namespaceWorkflowPlanes.get(ns)!.push(entity.metadata.name);
-      }
-    }
-    const namespacesWithWorkflowPlane = new Map<string, string>();
-    namespaceWorkflowPlanes.forEach((names, ns) => {
-      names.sort();
-      namespacesWithWorkflowPlane.set(ns, names[0]);
-    });
-
-    for (const entity of allEntities) {
-      if (entity.kind !== 'System') continue;
-
-      const annotations = entity.metadata.annotations || {};
-      if (annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF]) continue;
-
-      const ns = entity.metadata.namespace || 'default';
-      const nsWorkflowPlane = namespacesWithWorkflowPlane.get(ns);
-
-      if (nsWorkflowPlane) {
-        annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF] = nsWorkflowPlane;
-        annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND] =
-          'WorkflowPlane';
-        entity.metadata.annotations = annotations;
-      } else if (hasDefaultClusterWorkflowPlane) {
-        annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF] = 'default';
-        annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND] =
-          'ClusterWorkflowPlane';
-        entity.metadata.annotations = annotations;
-      }
-    }
-  }
-
-  /**
    * Translates a new API Workflow to a Backstage Workflow entity.
    */
   private translateNewWorkflowToEntity(
@@ -1989,6 +1932,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   ): WorkflowEntityV1alpha1 {
     const isCI =
       wf.metadata?.labels?.['openchoreo.dev/workflow-type'] === 'component';
+    const wpRef = (wf as any).spec?.workflowPlaneRef;
     return translateWF(
       {
         name: getName(wf)!,
@@ -1998,6 +1942,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         parameters: extractWorkflowParameters((wf as any).spec),
         type: isCI ? 'CI' : 'Generic',
         deletionTimestamp: getDeletionTimestamp(wf),
+        ...(wpRef && {
+          workflowPlaneRef: { kind: wpRef.kind, name: wpRef.name },
+        }),
       },
       namespaceName,
       { locationKey: this.getProviderName() },

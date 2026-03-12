@@ -26,5 +26,14 @@ export interface WorkflowEntityV1alpha1 extends Entity {
      * The type of workflow (e.g. 'CI' or 'Generic')
      */
     type?: string;
+    /**
+     * Reference to the WorkflowPlane or ClusterWorkflowPlane this workflow builds on.
+     * Format: "kind:namespace/name" or "name" (defaults to WorkflowPlane in same namespace)
+     */
+    workflowPlaneRef?: string;
+    /**
+     * Kind of the workflow plane reference (WorkflowPlane or ClusterWorkflowPlane)
+     */
+    workflowPlaneRefKind?: string;
   };
 }

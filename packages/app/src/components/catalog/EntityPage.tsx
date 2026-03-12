@@ -59,6 +59,8 @@ import {
   RELATION_OBSERVES,
   RELATION_USES_WORKFLOW,
   RELATION_WORKFLOW_USED_BY,
+  RELATION_BUILDS_ON,
+  RELATION_BUILDS,
 } from '@openchoreo/backstage-plugin-common';
 
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
@@ -846,6 +848,8 @@ const workflowPlanePage = (
               RELATION_HAS_PART,
               RELATION_OBSERVED_BY,
               RELATION_OBSERVES,
+              RELATION_BUILDS_ON,
+              RELATION_BUILDS,
             ]}
             renderNode={CustomGraphNode}
           />
@@ -874,7 +878,12 @@ const clusterWorkflowPlanePage = (
           <EntityCatalogGraphCard
             variant="gridItem"
             height={400}
-            relations={[RELATION_OBSERVED_BY, RELATION_OBSERVES]}
+            relations={[
+              RELATION_OBSERVED_BY,
+              RELATION_OBSERVES,
+              RELATION_BUILDS_ON,
+              RELATION_BUILDS,
+            ]}
             renderNode={CustomGraphNode}
           />
         </Grid>
