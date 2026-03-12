@@ -217,13 +217,13 @@ export interface WorkloadResourceInput {
   envVars?: Array<{
     key: string;
     value?: string;
-    valueFrom?: { secretRef?: { name: string; key: string } };
+    valueFrom?: { secretKeyRef?: { name: string; key: string } };
   }>;
   fileMounts?: Array<{
     key: string;
     mountPath: string;
     value?: string;
-    valueFrom?: { secretRef?: { name: string; key: string } };
+    valueFrom?: { secretKeyRef?: { name: string; key: string } };
   }>;
 }
 

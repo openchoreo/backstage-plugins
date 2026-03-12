@@ -62,7 +62,7 @@ export interface UseEnvVarEditBufferResult {
  */
 function isEnvVarEmpty(envVar: EnvVar | undefined | null): boolean {
   if (!envVar) return true;
-  return !envVar.key && !envVar.value && !envVar.valueFrom?.secretRef?.name;
+  return !envVar.key && !envVar.value && !envVar.valueFrom?.secretKeyRef?.name;
 }
 
 /**

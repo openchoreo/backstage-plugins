@@ -99,8 +99,8 @@ export function getBaseEnvVarsForContainer(
  * @returns Display string for the value
  */
 export function formatEnvVarValue(envVar: EnvVar): string {
-  if (envVar.valueFrom?.secretRef) {
-    const { name, key } = envVar.valueFrom.secretRef;
+  if (envVar.valueFrom?.secretKeyRef) {
+    const { name, key } = envVar.valueFrom.secretKeyRef;
     return `Secret: ${name}/${key}`;
   }
   if (envVar.value !== undefined) {

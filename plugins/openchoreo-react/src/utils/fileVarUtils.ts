@@ -101,8 +101,8 @@ export function getBaseFileVarsForContainer(
  * @returns Display string for the value
  */
 export function formatFileVarValue(fileVar: FileVar): string {
-  if (fileVar.valueFrom?.secretRef) {
-    const { name, key } = fileVar.valueFrom.secretRef;
+  if (fileVar.valueFrom?.secretKeyRef) {
+    const { name, key } = fileVar.valueFrom.secretKeyRef;
     return `Secret: ${name}/${key}`;
   }
   if (fileVar.value !== undefined && fileVar.value.length > 0) {
