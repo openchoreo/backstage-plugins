@@ -26,7 +26,7 @@ export interface UseModeStateOptions {
  *
  * This hook tracks which items are in 'plain' or 'secret' mode using a key-based state map.
  * It handles:
- * - Getting mode from existing data (if it has valueFrom.secretRef, it's secret mode)
+ * - Getting mode from existing data (if it has valueFrom.secretKeyRef, it's secret mode)
  * - Setting mode for UI state
  * - Cleaning up state when items are removed
  * - Shifting indices when items are removed from the middle
@@ -63,12 +63,12 @@ export function useModeState(options: UseModeStateOptions): UseModeStateResult {
         if (container) {
           if (type === 'env') {
             const envVar = container.env?.[index];
-            if (envVar?.valueFrom?.secretRef) {
+            if (envVar?.valueFrom?.secretKeyRef) {
               return 'secret';
             }
           } else if (type === 'file') {
             const fileVar = (container as any).files?.[index];
-            if (fileVar?.valueFrom?.secretRef) {
+            if (fileVar?.valueFrom?.secretKeyRef) {
               return 'secret';
             }
           }

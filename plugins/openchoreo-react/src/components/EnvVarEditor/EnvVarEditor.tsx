@@ -166,20 +166,20 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
       onChange('valueFrom', undefined);
     } else {
       onChange('value', undefined);
-      onChange('valueFrom', { secretRef: { name: '', key: '' } });
+      onChange('valueFrom', { secretKeyRef: { name: '', key: '' } });
     }
   };
 
   const handleSecretNameChange = (name: string) => {
-    onChange('valueFrom', { secretRef: { name, key: '' } });
+    onChange('valueFrom', { secretKeyRef: { name, key: '' } });
     if (name && envVar.value) {
       onChange('value', undefined);
     }
   };
 
   const handleSecretKeyChange = (key: string) => {
-    const currentName = envVar.valueFrom?.secretRef?.name || '';
-    onChange('valueFrom', { secretRef: { name: currentName, key } });
+    const currentName = envVar.valueFrom?.secretKeyRef?.name || '';
+    onChange('valueFrom', { secretKeyRef: { name: currentName, key } });
     if (key && envVar.value) {
       onChange('value', undefined);
     }
@@ -194,8 +194,8 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
 
   // Format value for display (both current and base)
   const formatDisplayValue = (ev: EnvVar, m: 'plain' | 'secret') => {
-    if (m === 'secret' && ev.valueFrom?.secretRef) {
-      const { name, key } = ev.valueFrom.secretRef;
+    if (m === 'secret' && ev.valueFrom?.secretKeyRef) {
+      const { name, key } = ev.valueFrom.secretKeyRef;
       return `Secret: ${name}/${key}`;
     }
     // Mask sensitive values
@@ -213,7 +213,7 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
   const getDisplayValue = () => formatDisplayValue(envVar, mode);
 
   // Determine base value mode
-  const baseValueMode: 'plain' | 'secret' = baseValue?.valueFrom?.secretRef
+  const baseValueMode: 'plain' | 'secret' = baseValue?.valueFrom?.secretKeyRef
     ? 'secret'
     : 'plain';
 
@@ -317,8 +317,8 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
       </Grid>
       <Grid item xs={8}>
         <SecretSelector
-          secretName={envVar.valueFrom?.secretRef?.name || ''}
-          secretKey={envVar.valueFrom?.secretRef?.key || ''}
+          secretName={envVar.valueFrom?.secretKeyRef?.name || ''}
+          secretKey={envVar.valueFrom?.secretKeyRef?.key || ''}
           secrets={secrets}
           onSecretNameChange={handleSecretNameChange}
           onSecretKeyChange={handleSecretKeyChange}

@@ -130,7 +130,7 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
         editBuffer.setBuffer({
           ...editBuffer.editBuffer,
           value: undefined,
-          valueFrom: { secretRef: { name: '', key: '' } },
+          valueFrom: { secretKeyRef: { name: '', key: '' } },
         });
       }
     } else {
@@ -196,7 +196,7 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
 
   // Render an inherited (read-only) env var row using EnvVarEditor
   const renderInheritedRow = (item: EnvVarWithStatus) => {
-    const baseMode = item.envVar.valueFrom?.secretRef ? 'secret' : 'plain';
+    const baseMode = item.envVar.valueFrom?.secretKeyRef ? 'secret' : 'plain';
     return (
       <Box
         key={`inherited-${item.envVar.key}`}

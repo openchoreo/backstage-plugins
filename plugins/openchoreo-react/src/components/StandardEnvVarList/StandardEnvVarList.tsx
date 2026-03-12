@@ -100,7 +100,7 @@ export const StandardEnvVarList: FC<StandardEnvVarListProps> = ({
         editBuffer.setBuffer({
           ...editBuffer.editBuffer,
           value: undefined,
-          valueFrom: { secretRef: { name: '', key: '' } },
+          valueFrom: { secretKeyRef: { name: '', key: '' } },
         });
       }
     } else {

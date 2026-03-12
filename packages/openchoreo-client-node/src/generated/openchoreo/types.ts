@@ -2725,7 +2725,7 @@ export interface components {
     };
     /** @description Reference to a secret or inline value */
     ValueFrom: {
-      secretRef?: components['schemas']['SecretKeyReference'];
+      secretKeyRef?: components['schemas']['SecretKeyReference'];
       /** @description Inline value (optional fallback) */
       value?: string;
     };
@@ -4006,7 +4006,7 @@ export interface components {
     /** @description Value source reference */
     EnvVarValueFrom: {
       /** @description Secret reference */
-      secretRef?: {
+      secretKeyRef?: {
         /** @description Secret name */
         name?: string;
         /** @description Secret key */

@@ -6033,7 +6033,7 @@ components:
       type: object
       description: Reference to a secret or inline value
       properties:
-        secretRef:
+        secretKeyRef:
           $ref: '#/components/schemas/SecretKeyReference'
         value:
           type: string
@@ -7978,7 +7978,7 @@ components:
       type: object
       description: Value source reference
       properties:
-        secretRef:
+        secretKeyRef:
           type: object
           description: Secret reference
           properties:

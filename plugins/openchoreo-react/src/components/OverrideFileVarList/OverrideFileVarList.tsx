@@ -133,7 +133,7 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
         editBuffer.setBuffer({
           ...editBuffer.editBuffer,
           value: undefined,
-          valueFrom: { secretRef: { name: '', key: '' } },
+          valueFrom: { secretKeyRef: { name: '', key: '' } },
         });
       }
     } else {
@@ -200,7 +200,7 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
 
   // Render an inherited (read-only) file var row using FileVarEditor
   const renderInheritedRow = (item: FileVarWithStatus, index: number) => {
-    const baseMode = item.fileVar.valueFrom?.secretRef ? 'secret' : 'plain';
+    const baseMode = item.fileVar.valueFrom?.secretKeyRef ? 'secret' : 'plain';
     return (
       <Box
         key={`inherited-${item.fileVar.key}`}

@@ -80,7 +80,7 @@ configurations:
     # Reference a secret
     - key: DB_PASSWORD
       valueFrom:
-        secretRef:
+        secretKeyRef:
           name: db-credentials
           key: password
 
@@ -707,7 +707,7 @@ export const WorkloadDetailsField = ({
         return {
           ...ev,
           value: undefined,
-          valueFrom: { secretRef: { name: '', key: '' } },
+          valueFrom: { secretKeyRef: { name: '', key: '' } },
         };
       });
       setEnvVars(newEnvVars);
@@ -812,7 +812,7 @@ export const WorkloadDetailsField = ({
         return {
           ...fm,
           value: undefined,
-          valueFrom: { secretRef: { name: '', key: '' } },
+          valueFrom: { secretKeyRef: { name: '', key: '' } },
         };
       });
       setFileMounts(newFileMounts);
@@ -1473,7 +1473,7 @@ export const workloadDetailsFieldValidation = (
   // Validate env var keys are non-empty when values exist
   if (value.envVars) {
     value.envVars.forEach((ev, index) => {
-      const hasValue = ev.value || ev.valueFrom?.secretRef?.name;
+      const hasValue = ev.value || ev.valueFrom?.secretKeyRef?.name;
       if (hasValue && !ev.key) {
         validation.addError(
           `Environment Variable #${
@@ -1487,7 +1487,7 @@ export const workloadDetailsFieldValidation = (
   // Validate file mount keys and mount paths
   if (value.fileMounts) {
     value.fileMounts.forEach((fm, index) => {
-      const hasValue = fm.value || fm.valueFrom?.secretRef?.name;
+      const hasValue = fm.value || fm.valueFrom?.secretKeyRef?.name;
       if ((hasValue || fm.mountPath) && !fm.key) {
         validation.addError(`File Mount #${index + 1}: Filename is required`);
       }

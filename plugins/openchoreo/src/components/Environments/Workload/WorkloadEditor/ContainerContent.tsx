@@ -176,7 +176,7 @@ export function ContainerContent({
       } else {
         onEnvVarChange(index, 'value', undefined as any);
         onEnvVarChange(index, 'valueFrom', {
-          secretRef: { name: '', key: '' },
+          secretKeyRef: { name: '', key: '' },
         } as any);
       }
     }
@@ -196,7 +196,7 @@ export function ContainerContent({
       } else {
         onFileVarChange(index, 'value', undefined as any);
         onFileVarChange(index, 'valueFrom', {
-          secretRef: { name: '', key: '' },
+          secretKeyRef: { name: '', key: '' },
         } as any);
       }
     }

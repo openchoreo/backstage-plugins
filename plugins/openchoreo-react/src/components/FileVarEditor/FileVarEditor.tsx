@@ -284,20 +284,20 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
       onChange('valueFrom', undefined);
     } else {
       onChange('value', undefined);
-      onChange('valueFrom', { secretRef: { name: '', key: '' } });
+      onChange('valueFrom', { secretKeyRef: { name: '', key: '' } });
     }
   };
 
   const handleSecretNameChange = (name: string) => {
-    onChange('valueFrom', { secretRef: { name, key: '' } });
+    onChange('valueFrom', { secretKeyRef: { name, key: '' } });
     if (name && fileVar.value) {
       onChange('value', undefined);
     }
   };
 
   const handleSecretKeyChange = (key: string) => {
-    const currentName = fileVar.valueFrom?.secretRef?.name || '';
-    onChange('valueFrom', { secretRef: { name: currentName, key } });
+    const currentName = fileVar.valueFrom?.secretKeyRef?.name || '';
+    onChange('valueFrom', { secretKeyRef: { name: currentName, key } });
     if (key && fileVar.value) {
       onChange('value', undefined);
     }
@@ -341,8 +341,8 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
 
   // Format base value for display
   const formatBaseValue = (fv: FileVar): string => {
-    if (fv.valueFrom?.secretRef) {
-      const { name, key } = fv.valueFrom.secretRef;
+    if (fv.valueFrom?.secretKeyRef) {
+      const { name, key } = fv.valueFrom.secretKeyRef;
       return `Secret: ${name}/${key}`;
     }
     if (fv.value && fv.value.length > 0) {
@@ -377,10 +377,10 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
                   → {fileVar.mountPath || '(no path)'}
                 </Typography>
               </Box>
-              {isSecret && fileVar.valueFrom?.secretRef && (
+              {isSecret && fileVar.valueFrom?.secretKeyRef && (
                 <Typography className={classes.secretRef}>
-                  Secret: {fileVar.valueFrom.secretRef.name}/
-                  {fileVar.valueFrom.secretRef.key}
+                  Secret: {fileVar.valueFrom.secretKeyRef.name}/
+                  {fileVar.valueFrom.secretKeyRef.key}
                 </Typography>
               )}
             </Box>
@@ -544,8 +544,8 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
         <Box className={classes.editContent}>
           {isSecret ? (
             <SecretSelector
-              secretName={fileVar.valueFrom?.secretRef?.name || ''}
-              secretKey={fileVar.valueFrom?.secretRef?.key || ''}
+              secretName={fileVar.valueFrom?.secretKeyRef?.name || ''}
+              secretKey={fileVar.valueFrom?.secretKeyRef?.key || ''}
               secrets={secrets}
               onSecretNameChange={handleSecretNameChange}
               onSecretKeyChange={handleSecretKeyChange}

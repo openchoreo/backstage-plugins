@@ -1910,7 +1910,7 @@ export interface components {
       valueFrom?: components['schemas']['EnvVarValueFrom'];
     };
     EnvVarValueFrom: {
-      secretRef?: components['schemas']['SecretKeyRef'];
+      secretKeyRef?: components['schemas']['SecretKeyRef'];
     };
     SecretKeyRef: {
       name: string;

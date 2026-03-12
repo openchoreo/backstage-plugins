@@ -704,7 +704,7 @@ export interface FileVar {
 }
 
 export interface EnvVarValueFrom {
-  secretRef?: SecretKeyRef;
+  secretKeyRef?: SecretKeyRef;
 }
 
 export interface SecretKeyRef {

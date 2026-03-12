@@ -100,7 +100,7 @@ export const StandardFileVarList: FC<StandardFileVarListProps> = ({
         editBuffer.setBuffer({
           ...editBuffer.editBuffer,
           value: undefined,
-          valueFrom: { secretRef: { name: '', key: '' } },
+          valueFrom: { secretKeyRef: { name: '', key: '' } },
         });
       }
     } else {

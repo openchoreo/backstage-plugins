@@ -66,7 +66,7 @@ function isFileVarEmpty(fileVar: FileVar | undefined | null): boolean {
     !fileVar.key &&
     !fileVar.mountPath &&
     !fileVar.value &&
-    !fileVar.valueFrom?.secretRef?.name
+    !fileVar.valueFrom?.secretKeyRef?.name
   );
 }
 

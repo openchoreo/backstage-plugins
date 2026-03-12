@@ -1321,7 +1321,7 @@ components:
     EnvVarValueFrom:
       type: object
       properties:
-        secretRef:
+        secretKeyRef:
           $ref: '#/components/schemas/SecretKeyRef'
 
     SecretKeyRef:
