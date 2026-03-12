@@ -8,6 +8,8 @@ import {
   MenuItem,
   FormHelperText,
   CircularProgress,
+  Box,
+  Typography,
 } from '@material-ui/core';
 import {
   useApi,
@@ -39,6 +41,7 @@ interface AllowedWorkflowRef {
 
 interface WorkflowOption extends WorkflowSelection {
   displayName?: string;
+  description?: string;
 }
 
 function workflowKey(workflow: WorkflowSelection): string {
@@ -50,12 +53,17 @@ function normalizeWorkflowItem(item: any, kind: WorkflowKind): WorkflowOption {
     item.metadata?.annotations?.['openchoreo.dev/display-name'] ??
     item.name ??
     item.metadata?.name) as string | undefined;
+  const description = (item.description ??
+    item.metadata?.annotations?.['openchoreo.dev/description']) as
+    | string
+    | undefined;
   return {
     kind,
     name: (item.name ?? item.metadata?.name) as string,
     displayName: `${displayName} ${
       kind === 'ClusterWorkflow' ? '(cluster)' : ''
     }`,
+    description,
   };
 }
 
@@ -279,7 +287,19 @@ export const BuildWorkflowPicker = ({
         {!loading &&
           filteredOptions.map(workflow => (
             <MenuItem key={workflowKey(workflow)} value={workflowKey(workflow)}>
-              {getWorkflowDisplayName(workflow)}
+              <Box display="flex" flexDirection="column">
+                <Typography variant="body1">
+                  {getWorkflowDisplayName(workflow)}
+                </Typography>
+                {workflow.description && (
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                  >
+                    {workflow.description}
+                  </Typography>
+                )}
+              </Box>
             </MenuItem>
           ))}
       </Select>
