@@ -12,15 +12,25 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import { useNavigate } from 'react-router-dom';
 import { useApi, alertApiRef, IconComponent } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
-import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  openChoreoClientApiRef,
+  CLUSTER_SCOPED_RESOURCE_KINDS,
+} from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { useStyles } from '../styles';
 import { isMarkedForDeletion } from '../utils';
+import {
+  isSupportedKind,
+  mapKindToApiKind,
+} from '../../ResourceDefinition/utils';
 
 interface ExtraContextMenuItem {
   title: string;
   Icon: IconComponent;
   onClick: () => void;
+  disabled?: boolean;
+  tooltip?: string;
 }
 
 interface UseDeleteEntityMenuItemsResult {
@@ -28,28 +38,47 @@ interface UseDeleteEntityMenuItemsResult {
   DeleteConfirmationDialog: React.FC;
 }
 
+export interface DeletePermissionInfo {
+  canDelete: boolean;
+  loading: boolean;
+  deniedTooltip: string;
+}
+
+/** Human-friendly display names for all deletable entity kinds */
+const KIND_DISPLAY_NAMES: Record<string, string> = {
+  component: 'Component',
+  system: 'Project',
+  domain: 'Namespace',
+  environment: 'Environment',
+  dataplane: 'Dataplane',
+  clusterdataplane: 'Cluster Data Plane',
+  buildplane: 'Build Plane',
+  clusterbuildplane: 'Cluster Build Plane',
+  workflowplane: 'Workflow Plane',
+  clusterworkflowplane: 'Cluster Workflow Plane',
+  observabilityplane: 'Observability Plane',
+  clusterobservabilityplane: 'Cluster Observability Plane',
+  deploymentpipeline: 'Deployment Pipeline',
+  componenttype: 'Component Type',
+  clustercomponenttype: 'Cluster Component Type',
+  traittype: 'Trait Type',
+  clustertraittype: 'Cluster Trait Type',
+  workflow: 'Workflow',
+  clusterworkflow: 'Cluster Workflow',
+  componentworkflow: 'Component Workflow',
+};
+
 /**
- * Hook that provides delete menu items for EntityLayout's UNSTABLE_extraContextMenuItems.
+ * Hook that provides delete menu items for EntityLayout's extraContextMenuItems.
  *
- * Usage in EntityPage:
- * ```tsx
- * function MyEntityLayout({ children }) {
- *   const { entity } = useEntity();
- *   const { extraMenuItems, DeleteConfirmationDialog } = useDeleteEntityMenuItems(entity);
- *
- *   return (
- *     <>
- *       <EntityLayout UNSTABLE_extraContextMenuItems={extraMenuItems}>
- *         {children}
- *       </EntityLayout>
- *       <DeleteConfirmationDialog />
- *     </>
- *   );
- * }
- * ```
+ * Supports component, project (system), namespace (domain), and all platform
+ * resource kinds. When `deletePermission` is provided and `canDelete` is false,
+ * the menu item is shown disabled with a tooltip. For component/project/domain
+ * kinds (no upfront permission check), a 403 is handled in the confirmation dialog.
  */
 export function useDeleteEntityMenuItems(
   entity: Entity,
+  deletePermission?: DeletePermissionInfo,
 ): UseDeleteEntityMenuItemsResult {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -63,17 +92,16 @@ export function useDeleteEntityMenuItems(
   const entityKind = entity.kind.toLowerCase();
   const entityName = entity.metadata.name;
   const isComponent = entityKind === 'component';
-  const isProject = entityKind === 'system'; // Projects are represented as System entities
+  const isProject = entityKind === 'system';
+  const isDomain = entityKind === 'domain';
+  const isPlatformResource = isSupportedKind(entityKind);
 
-  const getEntityDisplayType = () => {
-    if (isComponent) return 'Component';
-    if (isProject) return 'Project';
-    return entityKind;
-  };
-  const entityDisplayType = getEntityDisplayType();
+  const entityDisplayType = KIND_DISPLAY_NAMES[entityKind] ?? entityKind;
 
   const alreadyMarkedForDeletion = isMarkedForDeletion(entity);
-  const canDelete = (isComponent || isProject) && !alreadyMarkedForDeletion;
+  const isDeletableKind =
+    isComponent || isProject || isDomain || isPlatformResource;
+  const canDelete = isDeletableKind && !alreadyMarkedForDeletion;
 
   const handleOpenDialog = useCallback(() => {
     setDialogOpen(true);
@@ -96,6 +124,24 @@ export function useDeleteEntityMenuItems(
         await openChoreoClient.deleteComponent(entity);
       } else if (isProject) {
         await openChoreoClient.deleteProject(entity);
+      } else if (isDomain) {
+        await openChoreoClient.deleteNamespace(entity);
+      } else if (isPlatformResource) {
+        const apiKind = mapKindToApiKind(entityKind);
+        const namespace =
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+
+        if (!CLUSTER_SCOPED_RESOURCE_KINDS.has(apiKind) && !namespace) {
+          throw new Error(
+            `Missing namespace annotation for ${entityDisplayType.toLowerCase()} "${entityName}"`,
+          );
+        }
+
+        await openChoreoClient.deleteResourceDefinition(
+          apiKind,
+          namespace ?? '',
+          entityName,
+        );
       } else {
         throw new Error(`Unsupported entity kind for deletion: ${entityKind}`);
       }
@@ -107,7 +153,6 @@ export function useDeleteEntityMenuItems(
       });
 
       setDialogOpen(false);
-      // Navigate to catalog after successful deletion
       navigate('/catalog');
     } catch (err) {
       const errorMessage = isForbiddenError(err)
@@ -128,6 +173,8 @@ export function useDeleteEntityMenuItems(
     entityDisplayType,
     isComponent,
     isProject,
+    isDomain,
+    isPlatformResource,
     openChoreoClient,
     alertApi,
     navigate,
@@ -138,6 +185,24 @@ export function useDeleteEntityMenuItems(
       return [];
     }
 
+    // If deletePermission is provided and still loading, don't show the item yet
+    if (deletePermission?.loading) {
+      return [];
+    }
+
+    // If deletePermission is provided and denied, show disabled item with tooltip
+    if (deletePermission && !deletePermission.canDelete) {
+      return [
+        {
+          title: `Delete ${entityDisplayType}`,
+          Icon: DeleteIcon as IconComponent,
+          onClick: () => {},
+          disabled: true,
+          tooltip: deletePermission.deniedTooltip,
+        },
+      ];
+    }
+
     return [
       {
         title: `Delete ${entityDisplayType}`,
@@ -145,7 +210,7 @@ export function useDeleteEntityMenuItems(
         onClick: handleOpenDialog,
       },
     ];
-  }, [canDelete, entityDisplayType, handleOpenDialog]);
+  }, [canDelete, entityDisplayType, handleOpenDialog, deletePermission]);
 
   const DeleteConfirmationDialog: React.FC = useCallback(
     () => (
@@ -175,6 +240,13 @@ export function useDeleteEntityMenuItems(
           {isProject && (
             <Typography variant="h5">
               Note: All components within this project will also be deleted.
+            </Typography>
+          )}
+
+          {isDomain && (
+            <Typography variant="h5">
+              Note: All projects and components within this namespace will also
+              be deleted.
             </Typography>
           )}
 
@@ -215,6 +287,7 @@ export function useDeleteEntityMenuItems(
       entityDisplayType,
       entityName,
       isProject,
+      isDomain,
       error,
       deleting,
     ],

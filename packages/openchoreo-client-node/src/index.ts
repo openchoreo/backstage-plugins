@@ -40,6 +40,7 @@ export {
   getNamespace,
   getUid,
   getCreatedAt,
+  getDeletionTimestamp,
   getLabels,
   getAnnotations,
   getLabel,

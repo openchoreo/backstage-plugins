@@ -1,2 +1,5 @@
-export { useDeleteEntityMenuItems } from './useDeleteEntityMenuItems';
+export {
+  useDeleteEntityMenuItems,
+  type DeletePermissionInfo,
+} from './useDeleteEntityMenuItems';
 export { useEntityExistsCheck } from './useEntityExistsCheck';

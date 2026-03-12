@@ -1459,6 +1459,17 @@ export async function createRouter({
     },
   );
 
+  // Delete a namespace
+  router.delete('/namespaces/:namespaceName', requireAuth, async (req, res) => {
+    const { namespaceName } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    await authzService.deleteNamespace(namespaceName, userToken);
+
+    logger.info(`Namespace ${namespaceName} marked for deletion in OpenChoreo`);
+
+    res.status(204).send();
+  });
+
   // === Custom Entity Annotations ===
 
   // Blocked annotation key prefixes (system-managed, not user-editable)

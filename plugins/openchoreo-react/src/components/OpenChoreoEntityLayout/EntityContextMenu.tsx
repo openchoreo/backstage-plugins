@@ -56,20 +56,35 @@ export function EntityContextMenu(props: EntityContextMenuProps) {
 
   const extraItems = extraContextMenuItems?.length
     ? [
-        ...extraContextMenuItems.map(item => (
-          <MenuItem
-            key={item.title}
-            onClick={() => {
-              onClose();
-              item.onClick();
-            }}
-          >
-            <ListItemIcon>
-              <item.Icon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary={item.title} />
-          </MenuItem>
-        )),
+        ...extraContextMenuItems.map(item => {
+          const menuItem = (
+            <MenuItem
+              key={item.title}
+              onClick={() => {
+                if (!item.disabled) {
+                  onClose();
+                  item.onClick();
+                }
+              }}
+              disabled={item.disabled}
+            >
+              <ListItemIcon>
+                <item.Icon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary={item.title} />
+            </MenuItem>
+          );
+
+          if (item.disabled && item.tooltip) {
+            return (
+              <Tooltip key={item.title} title={item.tooltip} arrow>
+                <span>{menuItem}</span>
+              </Tooltip>
+            );
+          }
+
+          return menuItem;
+        }),
         <Divider key="divider" />,
       ]
     : null;

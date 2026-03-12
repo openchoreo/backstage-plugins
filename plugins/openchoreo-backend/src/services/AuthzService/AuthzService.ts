@@ -119,6 +119,34 @@ export class AuthzService {
     }
   }
 
+  async deleteNamespace(
+    namespaceName: string,
+    userToken?: string,
+  ): Promise<void> {
+    this.logger.info(`Deleting namespace: ${namespaceName}`);
+
+    try {
+      const client = this.createNewClient(userToken);
+      const { error, response } = await client.DELETE(
+        '/api/v1/namespaces/{namespaceName}',
+        {
+          params: {
+            path: { namespaceName },
+          },
+        },
+      );
+
+      assertApiResponse({ error, response }, 'delete namespace');
+
+      this.logger.info(`Successfully deleted namespace: ${namespaceName}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete namespace ${namespaceName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
   // Projects
   async listProjects(
     namespaceName: string,

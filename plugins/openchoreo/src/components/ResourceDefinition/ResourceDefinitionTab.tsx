@@ -7,12 +7,6 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogActions from '@material-ui/core/DialogActions';
 import Snackbar from '@material-ui/core/Snackbar';
 import Alert from '@material-ui/lab/Alert';
 import {
@@ -77,13 +71,9 @@ export function ResourceDefinitionTab() {
   const { entity } = useEntity();
   const navigate = useNavigate();
   const navigation = useContext(NavigationContext);
-  const {
-    canUpdate,
-    canDelete,
-    loading: permissionsLoading,
-  } = useResourceDefinitionPermission();
+  const { canUpdate, loading: permissionsLoading } =
+    useResourceDefinitionPermission();
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>(
@@ -105,7 +95,6 @@ export function ResourceDefinitionTab() {
     error: fetchError,
     rawError: fetchRawError,
     save,
-    deleteResource,
     isSaving,
     refresh,
   } = useResourceDefinition({ entity });
@@ -141,33 +130,10 @@ export function ResourceDefinitionTab() {
     [save, showSnackbar],
   );
 
-  // Handle delete
-  const handleDelete = useCallback(async () => {
-    try {
-      await deleteResource();
-      showSnackbar('Resource deleted successfully', 'success');
-      setDeleteDialogOpen(false);
-      // Navigate back to catalog after deletion
-      navigate('/catalog');
-    } catch (err) {
-      if (isForbiddenError(err)) {
-        showSnackbar(
-          'You do not have permission to delete this resource. Contact your administrator.',
-          'error',
-        );
-      } else {
-        showSnackbar(getErrorMessage(err), 'error');
-      }
-    }
-  }, [deleteResource, showSnackbar, navigate]);
-
   // YAML editor hook - only initialize when we have definition
   const yamlEditor = useYamlEditor({
     initialContent: definition || {},
     onSave: handleSave,
-    onDelete: async () => {
-      setDeleteDialogOpen(true);
-    },
   });
 
   // Update editor when definition changes
@@ -353,7 +319,6 @@ export function ResourceDefinitionTab() {
           onChange={yamlEditor.setContent}
           onSave={yamlEditor.handleSave}
           onDiscard={yamlEditor.handleDiscard}
-          onDelete={canDelete ? () => setDeleteDialogOpen(true) : undefined}
           errorText={editorError}
           isDirty={yamlEditor.isDirty}
           isSaving={isSaving}
@@ -367,29 +332,6 @@ export function ResourceDefinitionTab() {
           next entity provider sync cycle.
         </Typography>
       </Box>
-
-      {/* Delete confirmation dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-      >
-        <DialogTitle>Delete {entity.kind}?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete "{entity.metadata.name}"? This
-            action cannot be undone and will remove the resource from the
-            Kubernetes cluster.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)} color="default">
-            Cancel
-          </Button>
-          <Button onClick={handleDelete} color="secondary">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Unsaved changes confirmation dialog */}
       <UnsavedChangesDialog

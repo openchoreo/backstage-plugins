@@ -13,6 +13,7 @@ import {
   getNamespace,
   getUid,
   getCreatedAt,
+  getDeletionTimestamp,
   getDisplayName,
   getDescription,
   isReady,
@@ -1297,6 +1298,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           : undefined,
         createdAt: getCreatedAt(env),
         status: isReady(env) ? 'Ready' : 'Not Ready',
+        deletionTimestamp: getDeletionTimestamp(env),
       },
       namespaceName,
       { locationKey: this.getProviderName() },
@@ -1336,6 +1338,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           [CHOREO_ANNOTATIONS.STATUS]: isCreated(dp) ? 'Ready' : 'Not Ready',
           [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
           ...this.mapNewAgentConnectionAnnotations(dp.status?.agentConnection),
+          ...(getDeletionTimestamp(dp) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(dp)!,
+          }),
         },
         labels: {
           [CHOREO_LABELS.MANAGED]: 'true',
@@ -1422,6 +1427,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           [CHOREO_ANNOTATIONS.STATUS]: isCreated(bp) ? 'Ready' : 'Not Ready',
           [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
           ...this.mapNewAgentConnectionAnnotations(bp.status?.agentConnection),
+          ...(getDeletionTimestamp(bp) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(bp)!,
+          }),
         },
         labels: {
           [CHOREO_LABELS.MANAGED]: 'true',
@@ -1463,6 +1471,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             [CHOREO_ANNOTATIONS.OBSERVER_URL]: op.spec.observerURL,
           }),
           ...this.mapNewAgentConnectionAnnotations(op.status?.agentConnection),
+          ...(getDeletionTimestamp(op) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(op)!,
+          }),
         },
         labels: {
           [CHOREO_LABELS.MANAGED]: 'true',
@@ -1515,6 +1526,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         description: getDescription(project),
         namespaceName: getNamespace(project) ?? namespaceName,
         uid: getUid(project),
+        deletionTimestamp: getDeletionTimestamp(project),
       },
       namespaceName,
       {
@@ -1553,7 +1565,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         status: isReady(component) ? 'Ready' : 'Not Ready',
         createdAt: getCreatedAt(component),
         description: getDescription(component),
-        deletionTimestamp: undefined,
+        deletionTimestamp: getDeletionTimestamp(component),
         // Pass componentWorkflow for repository info extraction
         componentWorkflow: component.spec?.workflow
           ? {
@@ -1622,6 +1634,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           [CHOREO_ANNOTATIONS.STATUS]: isReady(pipeline)
             ? 'Ready'
             : 'Not Ready',
+          ...(getDeletionTimestamp(pipeline) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]:
+              getDeletionTimestamp(pipeline)!,
+          }),
         },
         labels: {
           [CHOREO_LABELS.MANAGED]: 'true',
@@ -1652,6 +1668,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         allowedWorkflows: ct.spec?.allowedWorkflows?.map(w => w.name),
         allowedTraits: ct.spec?.allowedTraits,
         createdAt: getCreatedAt(ct),
+        deletionTimestamp: getDeletionTimestamp(ct),
       },
       namespaceName,
       { locationKey: this.getProviderName() },
@@ -1671,6 +1688,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         displayName: getDisplayName(trait),
         description: getDescription(trait),
         createdAt: getCreatedAt(trait),
+        deletionTimestamp: getDeletionTimestamp(trait),
       },
       namespaceName,
       { locationKey: this.getProviderName() },
@@ -1692,6 +1710,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         allowedWorkflows: cct.spec?.allowedWorkflows,
         allowedTraits: cct.spec?.allowedTraits,
         createdAt: getCreatedAt(cct),
+        deletionTimestamp: getDeletionTimestamp(cct),
       },
       { locationKey: this.getProviderName() },
     );
@@ -1709,6 +1728,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         displayName: getDisplayName(ct),
         description: getDescription(ct),
         createdAt: getCreatedAt(ct),
+        deletionTimestamp: getDeletionTimestamp(ct),
       },
       { locationKey: this.getProviderName() },
     );
@@ -1731,6 +1751,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         createdAt: getCreatedAt(cwf),
         parameters: getAnnotation(cwf, CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS),
         type: isCI ? 'CI' : 'Generic',
+        deletionTimestamp: getDeletionTimestamp(cwf),
       },
       { locationKey: this.getProviderName() },
     );
@@ -1765,6 +1786,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
           }),
           ...this.mapNewAgentConnectionAnnotations(cdp.status?.agentConnection),
+          ...(getDeletionTimestamp(cdp) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cdp)!,
+          }),
         },
         labels: {
           [CHOREO_LABELS.MANAGED]: 'true',
@@ -1846,6 +1870,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             [CHOREO_ANNOTATIONS.OBSERVER_URL]: cop.spec.observerURL,
           }),
           ...this.mapNewAgentConnectionAnnotations(cop.status?.agentConnection),
+          ...(getDeletionTimestamp(cop) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cop)!,
+          }),
         },
         labels: {
           [CHOREO_LABELS.MANAGED]: 'true',
@@ -1886,6 +1913,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
           }),
           ...this.mapNewAgentConnectionAnnotations(cbp.status?.agentConnection),
+          ...(getDeletionTimestamp(cbp) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cbp)!,
+          }),
         },
         labels: {
           [CHOREO_LABELS.MANAGED]: 'true',
@@ -1969,6 +1999,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         createdAt: getCreatedAt(wf),
         parameters: getAnnotation(wf, CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS),
         type: isCI ? 'CI' : 'Generic',
+        deletionTimestamp: getDeletionTimestamp(wf),
       },
       namespaceName,
       { locationKey: this.getProviderName() },

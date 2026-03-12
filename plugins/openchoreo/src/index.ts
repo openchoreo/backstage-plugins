@@ -25,6 +25,7 @@ export {
   DeletionWarning,
   isMarkedForDeletion,
   getDeletionTimestamp,
+  type DeletePermissionInfo,
 } from './components/DeleteEntity';
 export { useAnnotationEditorMenuItems } from './components/AnnotationEditor';
 export {

@@ -284,6 +284,7 @@ export function translateEnvironmentToEntity(
     };
     createdAt?: string;
     status?: string;
+    deletionTimestamp?: string;
   },
   namespaceName: string,
   config: EntityTranslationConfig,
@@ -328,6 +329,10 @@ export function translateEnvironmentToEntity(
         ...(environment.isProduction !== undefined && {
           'openchoreo.io/is-production': environment.isProduction.toString(),
         }),
+        ...(environment.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]:
+            environment.deletionTimestamp,
+        }),
       },
       labels: {
         [CHOREO_LABELS.MANAGED]: 'true',
@@ -364,6 +369,7 @@ export function translateComponentTypeToEntity(
     allowedWorkflows?: Array<string | AllowedWorkflowRef>;
     allowedTraits?: Array<string | AllowedTraitRef>;
     createdAt?: string;
+    deletionTimestamp?: string;
   },
   namespaceName: string,
   config: EntityTranslationConfig,
@@ -387,6 +393,9 @@ export function translateComponentTypeToEntity(
         'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
         [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
         [CHOREO_ANNOTATIONS.CREATED_AT]: ct.createdAt || '',
+        ...(ct.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: ct.deletionTimestamp,
+        }),
       },
       labels: {
         [CHOREO_LABELS.MANAGED]: 'true',
@@ -416,6 +425,7 @@ export function translateWorkflowToEntity(
     createdAt?: string;
     parameters?: string;
     type?: string;
+    deletionTimestamp?: string;
   },
   namespaceName: string,
   config: EntityTranslationConfig,
@@ -436,6 +446,9 @@ export function translateWorkflowToEntity(
         [CHOREO_ANNOTATIONS.CREATED_AT]: wf.createdAt || '',
         ...(wf.parameters && {
           [CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS]: wf.parameters,
+        }),
+        ...(wf.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: wf.deletionTimestamp,
         }),
       },
       labels: {
@@ -459,6 +472,7 @@ export function translateTraitToEntity(
     displayName?: string;
     description?: string;
     createdAt?: string;
+    deletionTimestamp?: string;
   },
   namespaceName: string,
   config: EntityTranslationConfig,
@@ -477,6 +491,9 @@ export function translateTraitToEntity(
         'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
         [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
         [CHOREO_ANNOTATIONS.CREATED_AT]: trait.createdAt || '',
+        ...(trait.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: trait.deletionTimestamp,
+        }),
       },
       labels: {
         [CHOREO_LABELS.MANAGED]: 'true',
@@ -498,6 +515,7 @@ export function translateComponentWorkflowToEntity(
     displayName?: string;
     description?: string;
     createdAt?: string;
+    deletionTimestamp?: string;
   },
   namespaceName: string,
   config: EntityTranslationConfig,
@@ -516,6 +534,9 @@ export function translateComponentWorkflowToEntity(
         'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
         [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
         [CHOREO_ANNOTATIONS.CREATED_AT]: cw.createdAt || '',
+        ...(cw.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: cw.deletionTimestamp,
+        }),
       },
       labels: {
         [CHOREO_LABELS.MANAGED]: 'true',
@@ -591,6 +612,7 @@ export function translateClusterComponentTypeToEntity(
     allowedWorkflows?: Array<string | AllowedWorkflowRef>;
     allowedTraits?: Array<string | AllowedTraitRef>;
     createdAt?: string;
+    deletionTimestamp?: string;
   },
   config: EntityTranslationConfig,
 ): ClusterComponentTypeEntityV1alpha1 {
@@ -612,6 +634,9 @@ export function translateClusterComponentTypeToEntity(
         'backstage.io/managed-by-location': `provider:${config.locationKey}`,
         'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
         [CHOREO_ANNOTATIONS.CREATED_AT]: ct.createdAt || '',
+        ...(ct.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: ct.deletionTimestamp,
+        }),
       },
       labels: {
         [CHOREO_LABELS.MANAGED]: 'true',
@@ -638,6 +663,7 @@ export function translateClusterTraitToEntity(
     displayName?: string;
     description?: string;
     createdAt?: string;
+    deletionTimestamp?: string;
   },
   config: EntityTranslationConfig,
 ): ClusterTraitTypeEntityV1alpha1 {
@@ -654,6 +680,9 @@ export function translateClusterTraitToEntity(
         'backstage.io/managed-by-location': `provider:${config.locationKey}`,
         'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
         [CHOREO_ANNOTATIONS.CREATED_AT]: trait.createdAt || '',
+        ...(trait.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: trait.deletionTimestamp,
+        }),
       },
       labels: {
         [CHOREO_LABELS.MANAGED]: 'true',
@@ -675,6 +704,7 @@ export function translateClusterWorkflowToEntity(
     createdAt?: string;
     parameters?: string;
     type?: string;
+    deletionTimestamp?: string;
   },
   config: EntityTranslationConfig,
 ): ClusterWorkflowEntityV1alpha1 {
@@ -693,6 +723,9 @@ export function translateClusterWorkflowToEntity(
         [CHOREO_ANNOTATIONS.CREATED_AT]: wf.createdAt || '',
         ...(wf.parameters && {
           [CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS]: wf.parameters,
+        }),
+        ...(wf.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: wf.deletionTimestamp,
         }),
       },
       labels: {

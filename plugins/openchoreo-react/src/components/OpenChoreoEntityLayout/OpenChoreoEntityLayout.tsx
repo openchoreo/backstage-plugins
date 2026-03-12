@@ -52,6 +52,8 @@ export interface ExtraContextMenuItem {
   title: string;
   Icon: IconComponent;
   onClick: () => void;
+  disabled?: boolean;
+  tooltip?: string;
 }
 
 function findParentRelation(

@@ -960,6 +960,17 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       },
     );
   }
+  async deleteNamespace(entity: Entity): Promise<void> {
+    const namespaceName = entity.metadata.name;
+    if (!namespaceName) {
+      throw new Error('Missing namespace name for deletion.');
+    }
+
+    await this.apiFetch(`/namespaces/${encodeURIComponent(namespaceName)}`, {
+      method: 'DELETE',
+    });
+  }
+
   // ============================================
   // Namespace Roles Operations
   // ============================================

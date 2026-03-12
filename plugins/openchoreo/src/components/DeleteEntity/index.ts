@@ -1,5 +1,9 @@
 // Hooks
-export { useDeleteEntityMenuItems, useEntityExistsCheck } from './hooks';
+export {
+  useDeleteEntityMenuItems,
+  useEntityExistsCheck,
+  type DeletePermissionInfo,
+} from './hooks';
 
 // Components
 export { DeletionBadge, DeletionWarning } from './components';

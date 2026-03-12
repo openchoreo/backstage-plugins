@@ -1,8 +1,34 @@
 import { useEffect, useState } from 'react';
 import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import {
+  isSupportedKind,
+  mapKindToApiKind,
+} from '../../ResourceDefinition/utils';
 import { EntityStatus, EntityExistsCheckResult } from '../types';
+
+/** Human-friendly display names for entity kinds */
+const KIND_DISPLAY_NAMES: Record<string, string> = {
+  component: 'Component',
+  system: 'Project',
+  environment: 'Environment',
+  dataplane: 'Dataplane',
+  clusterdataplane: 'Cluster Data Plane',
+  workflowplane: 'Workflow Plane',
+  clusterworkflowplane: 'Cluster Workflow Plane',
+  observabilityplane: 'Observability Plane',
+  clusterobservabilityplane: 'Cluster Observability Plane',
+  deploymentpipeline: 'Deployment Pipeline',
+  componenttype: 'Component Type',
+  clustercomponenttype: 'Cluster Component Type',
+  traittype: 'Trait Type',
+  clustertraittype: 'Cluster Trait Type',
+  workflow: 'Workflow',
+  clusterworkflow: 'Cluster Workflow',
+  componentworkflow: 'Component Workflow',
+};
 
 /**
  * Hook to check if an entity exists in OpenChoreo and its deletion status.
@@ -24,16 +50,32 @@ export function useEntityExistsCheck(entity: Entity): EntityExistsCheckResult {
 
       try {
         let details: { uid?: string; deletionTimestamp?: string } | null = null;
-        let entityTypeLabel = entityKind; // Display label for the entity type
+        const entityTypeLabel = KIND_DISPLAY_NAMES[entityKind] ?? entityKind;
 
         if (entityKind === 'component') {
           details = await client.getComponentDetails(entity);
         } else if (entityKind === 'system') {
           // System in Backstage = Project in OpenChoreo
           details = await client.getProjectDetails(entity);
-          entityTypeLabel = 'project';
+        } else if (isSupportedKind(entityKind)) {
+          const apiKind = mapKindToApiKind(entityKind);
+          const namespace =
+            entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
+          const resourceDef = await client.getResourceDefinition(
+            apiKind,
+            namespace,
+            entityName,
+          );
+          const metadata = resourceDef?.metadata as
+            | Record<string, unknown>
+            | undefined;
+          details = {
+            deletionTimestamp: metadata?.deletionTimestamp as
+              | string
+              | undefined,
+          };
         } else {
-          // For other entity types, assume they exist
+          // For unsupported entity types (domain, api, user, group, etc.), assume exists
           setStatus('exists');
           return;
         }
@@ -52,9 +94,7 @@ export function useEntityExistsCheck(entity: Entity): EntityExistsCheckResult {
 
         setStatus('exists');
       } catch (error: unknown) {
-        // Determine the display label for the entity type
-        const entityTypeLabel =
-          entityKind === 'system' ? 'project' : entityKind;
+        const entityTypeLabel = KIND_DISPLAY_NAMES[entityKind] ?? entityKind;
 
         // Check if it's a 404 error
         const is404 =
