@@ -56,6 +56,7 @@ export {
   openchoreoMetricsViewPermission,
   openchoreoTracesViewPermission,
   openchoreoRcaViewPermission,
+  openchoreoRcaUpdatePermission,
   openchoreoTraitsViewPermission,
   openchoreoTraitCreatePermission,
   openchoreoComponentTypeCreatePermission,

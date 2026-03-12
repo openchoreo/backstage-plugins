@@ -20,7 +20,7 @@ import { IncidentOverviewSection } from './sections/IncidentOverviewSection';
 import { AssessmentSection } from './sections/AssessmentSection';
 import { ChatPanelSection } from './sections/ChatPanelSection';
 import { QuickFixesPanelSection } from './sections/QuickFixesPanelSection';
-import { patchAppliedKey } from './sections/PatchTabContent';
+import { allActionsResolved } from './sections/PatchTabContent';
 import { useRCAReportStyles } from './styles';
 import { EntityLinkContext } from './EntityLinkContext';
 import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
@@ -63,7 +63,12 @@ export const RCAReportView = ({
     const actions = recs?.recommended_actions;
     if (actions) {
       actions.forEach((action, idx) => {
-        if (action.status === 'revised' && action.changes?.length > 0) {
+        if (
+          (action.status === 'revised' ||
+            action.status === 'applied' ||
+            action.status === 'dismissed') &&
+          action.change
+        ) {
           result.push({ index: idx, action });
         }
       });
@@ -76,13 +81,7 @@ export const RCAReportView = ({
   const [activePanel, setActivePanel] = useState<'chat' | 'fixes' | null>(
     () => {
       if (!hasRevised) return null;
-      try {
-        if (localStorage.getItem(patchAppliedKey(reportId)) === 'true') {
-          return null;
-        }
-      } catch {
-        // ignore
-      }
+      if (allActionsResolved(revisedActions)) return null;
       return 'fixes';
     },
   );
