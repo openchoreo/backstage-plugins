@@ -546,7 +546,7 @@ export const DeploymentPipelineFormWithYamlExtension = ({
           {/* Promotion Paths */}
           <div className={classes.promotionPathsSection}>
             <Divider style={{ marginBottom: 16 }} />
-            <Typography variant="subtitle1" gutterBottom>
+            <Typography variant="subtitle2" gutterBottom>
               Promotion Paths
             </Typography>
             <Typography variant="body2" color="textSecondary" gutterBottom>

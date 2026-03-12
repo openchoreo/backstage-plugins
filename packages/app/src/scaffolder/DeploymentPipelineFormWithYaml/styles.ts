@@ -63,6 +63,6 @@ export const useStyles = makeStyles(theme => ({
     marginTop: theme.spacing(1),
   },
   removeButton: {
-    color: theme.palette.error.main,
+    color: theme.palette.text.secondary,
   },
 }));
