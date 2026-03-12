@@ -45,6 +45,12 @@ export function getCreatedAt(resource: HasMetadata): string | undefined {
   return resource.metadata?.creationTimestamp;
 }
 
+export function getDeletionTimestamp(
+  resource: HasMetadata,
+): string | undefined {
+  return resource.metadata?.deletionTimestamp;
+}
+
 export function getLabels(
   resource: HasMetadata,
 ): Record<string, string> | undefined {
