@@ -50,6 +50,7 @@ export const CHOREO_LABELS = {
   MANAGED: 'openchoreo.io/managed',
   WORKFLOW_PROJECT: 'openchoreo.dev/project',
   WORKFLOW_COMPONENT: 'openchoreo.dev/component',
+  WORKFLOW_TYPE: 'openchoreo.dev/workflow-type',
 } as const;
 
 /**

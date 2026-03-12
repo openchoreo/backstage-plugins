@@ -9,6 +9,7 @@ import YAML from 'yaml';
 import {
   type ImmediateCatalogService,
   translateClusterWorkflowToEntity,
+  extractWorkflowParameters,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
 export const createClusterWorkflowDefinitionAction = (
@@ -137,9 +138,9 @@ export const createClusterWorkflowDefinitionAction = (
             string,
             string
           >;
+          const labels = (yamlMetadata?.labels || {}) as Record<string, string>;
 
-          const isCI =
-            annotations['openchoreo.dev/workflow-scope'] === 'component';
+          const isCI = labels['openchoreo.dev/workflow-type'] === 'component';
 
           const entity = translateClusterWorkflowToEntity(
             {
@@ -147,8 +148,7 @@ export const createClusterWorkflowDefinitionAction = (
               displayName: annotations['openchoreo.dev/display-name'],
               description: annotations['openchoreo.dev/description'],
               createdAt: new Date().toISOString(),
-              parameters:
-                annotations['openchoreo.dev/component-workflow-parameters'],
+              parameters: extractWorkflowParameters(resourceObj.spec),
               type: isCI ? 'CI' : 'Generic',
             },
             {

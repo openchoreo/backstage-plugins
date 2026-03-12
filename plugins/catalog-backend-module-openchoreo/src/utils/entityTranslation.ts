@@ -21,6 +21,55 @@ type ModelsComponent = ComponentResponse;
 type AllowedTraitRef = { kind?: string; name: string };
 type AllowedWorkflowRef = { kind?: string; name: string };
 
+const COMPONENT_REPOSITORY_EXTENSIONS: Record<string, string> = {
+  'x-openchoreo-component-parameter-repository-url': 'repoUrl',
+  'x-openchoreo-component-parameter-repository-branch': 'branch',
+  'x-openchoreo-component-parameter-repository-commit': 'commit',
+  'x-openchoreo-component-parameter-repository-app-path': 'appPath',
+  'x-openchoreo-component-parameter-repository-secret-ref': 'secretRef',
+};
+
+function walkSchemaForExtensions(
+  properties: Record<string, any>,
+  prefix: string,
+  mapping: Record<string, string>,
+): void {
+  for (const [propName, propSchema] of Object.entries(properties)) {
+    if (!propSchema || typeof propSchema !== 'object') continue;
+    const currentPath = `${prefix}.${propName}`;
+    for (const [ext, key] of Object.entries(COMPONENT_REPOSITORY_EXTENSIONS)) {
+      if (propSchema[ext] === true) {
+        mapping[key] = currentPath;
+      }
+    }
+    if (propSchema.properties) {
+      walkSchemaForExtensions(propSchema.properties, currentPath, mapping);
+    }
+  }
+}
+
+/**
+ * Extracts workflow parameter path mappings from a workflow spec's schema extensions.
+ * The new API uses x-openchoreo-component-parameter-repository-* extensions on schema
+ * properties instead of the openchoreo.dev/component-workflow-parameters annotation.
+ *
+ * Returns the annotation-compatible string format (e.g., "repoUrl: parameters.repository.url")
+ * so existing consumers continue to work without changes.
+ */
+export function extractWorkflowParameters(spec: any): string | undefined {
+  const schemaSection = spec?.parameters || spec?.schema?.parameters;
+  const schema = schemaSection?.openAPIV3Schema || schemaSection?.ocSchema;
+  if (!schema?.properties) return undefined;
+
+  const mapping: Record<string, string> = {};
+  walkSchemaForExtensions(schema.properties, 'parameters', mapping);
+
+  if (Object.keys(mapping).length === 0) return undefined;
+  return Object.entries(mapping)
+    .map(([key, path]) => `${key}: ${path}`)
+    .join('\n');
+}
+
 const normalizeAllowedTraits = (
   traits: Array<string | AllowedTraitRef> | undefined,
   defaultKind: 'Trait' | 'ClusterTrait',
