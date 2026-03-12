@@ -73,6 +73,11 @@ export const useDataplaneOverviewStyles = makeStyles(theme => ({
     borderRadius: theme.spacing(1),
     marginBottom: theme.spacing(1),
     backgroundColor: theme.palette.background.default,
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
     '&:last-child': {
       marginBottom: 0,
     },

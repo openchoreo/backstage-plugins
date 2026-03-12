@@ -13,13 +13,13 @@ import {
   Tooltip,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import LaunchIcon from '@material-ui/icons/Launch';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
 import ClearIcon from '@material-ui/icons/Clear';
 import clsx from 'clsx';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Link } from '@backstage/core-components';
+import { useNavigate } from 'react-router-dom';
 import { parseEntityRef } from '@backstage/catalog-model';
 import { Card } from '@openchoreo/backstage-design-system';
 import {
@@ -27,6 +27,7 @@ import {
   type DeployedComponent,
 } from './hooks';
 import { useEnvironmentOverviewStyles } from './styles';
+import { shouldNavigateOnRowClick } from '../../utils/shouldNavigateOnRowClick';
 
 const StatusChip = ({
   status,
@@ -84,6 +85,7 @@ const statusFilterMap: Record<string, DeployedComponent['status'][]> = {
 export const EnvironmentDeployedComponentsCard = () => {
   const classes = useEnvironmentOverviewStyles();
   const { entity } = useEntity();
+  const navigate = useNavigate();
   const { components, loading, error, refresh } =
     useEnvironmentDeployedComponents(entity);
 
@@ -145,15 +147,11 @@ export const EnvironmentDeployedComponentsCard = () => {
                 <TableCell>Release</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Endpoints</TableCell>
-                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {[1, 2, 3].map(i => (
                 <TableRow key={i}>
-                  <TableCell>
-                    <Skeleton variant="text" />
-                  </TableCell>
                   <TableCell>
                     <Skeleton variant="text" />
                   </TableCell>
@@ -243,64 +241,69 @@ export const EnvironmentDeployedComponentsCard = () => {
               <TableCell>Release</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Endpoints</TableCell>
-              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredComponents.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={5} align="center">
                   <Typography variant="body2" color="textSecondary">
                     No components match the selected filter
                   </Typography>
                 </TableCell>
               </TableRow>
             ) : (
-              filteredComponents.map(component => (
-                <TableRow key={`${component.projectName}-${component.name}`}>
-                  <TableCell>
-                    <Link
-                      to={`/catalog/${
-                        parseEntityRef(component.entityRef).namespace
-                      }/component/${component.name}`}
-                      className={classes.componentLink}
-                    >
-                      {component.displayName || component.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {component.projectName}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {component.releaseVersion || '-'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <StatusChip status={component.status} classes={classes} />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {component.endpoints || 0} routes
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip title="View Component">
-                      <IconButton
-                        size="small"
-                        component={Link}
-                        to={`/catalog/${
-                          parseEntityRef(component.entityRef).namespace
-                        }/component/${component.name}`}
+              filteredComponents.map(component => {
+                const componentLink = `/catalog/${
+                  parseEntityRef(component.entityRef).namespace
+                }/component/${component.name}`;
+                return (
+                  <TableRow
+                    key={`${component.projectName}-${component.name}`}
+                    className={classes.clickableRow}
+                    onClick={e => {
+                      if (shouldNavigateOnRowClick(e)) {
+                        navigate(componentLink);
+                      }
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(componentLink);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <TableCell>
+                      <Link
+                        to={componentLink}
+                        className={classes.componentLink}
                       >
-                        <LaunchIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))
+                        {component.displayName || component.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {component.projectName}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {component.releaseVersion || '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <StatusChip status={component.status} classes={classes} />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {component.endpoints || 0} routes
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
