@@ -50,6 +50,7 @@ import { NotificationBanner } from '../../Environments/components';
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { SCOPE_CLUSTER } from '../constants';
 import { MappingDialog } from './MappingDialog';
+import { BindingDetailDialog, BindingDetail } from './BindingDetailDialog';
 
 /** Format scope for a single cluster role mapping */
 const formatClusterMappingScope = (scope?: {
@@ -111,6 +112,12 @@ const useStyles = makeStyles(theme => ({
     textAlign: 'center',
     padding: theme.spacing(4),
   },
+  clickableRow: {
+    cursor: 'pointer',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
+  },
   deleteButton: {
     borderColor: theme.palette.error.main,
     color: theme.palette.error.main,
@@ -162,6 +169,9 @@ export const ClusterRoleBindingsContent = ({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [bindingToDelete, setBindingToDelete] =
     useState<ClusterRoleBinding | null>(null);
+  const [detailBinding, setDetailBinding] = useState<BindingDetail | null>(
+    null,
+  );
 
   // Server-side role filter
   const handleRoleFilterChange = useCallback(
@@ -211,6 +221,19 @@ export const ClusterRoleBindingsContent = ({
       return true;
     });
   }, [bindings, searchQuery, effectFilter]);
+
+  const handleRowClick = (binding: ClusterRoleBinding) => {
+    setDetailBinding({
+      name: binding.name,
+      entitlement: binding.entitlement,
+      effect: binding.effect,
+      labels: binding.labels,
+      roleMappings: (binding.roleMappings || []).map(rm => ({
+        role: rm.role,
+        scope: formatClusterMappingScope(rm.scope),
+      })),
+    });
+  };
 
   const handleCreateBinding = () => {
     setEditingBinding(undefined);
@@ -408,7 +431,11 @@ export const ClusterRoleBindingsContent = ({
             <TableBody>
               {filteredBindings.map(binding => {
                 return (
-                  <TableRow key={binding.name}>
+                  <TableRow
+                    key={binding.name}
+                    className={classes.clickableRow}
+                    onClick={() => handleRowClick(binding)}
+                  >
                     <TableCell>
                       <Typography variant="body2">
                         {binding.name}
@@ -468,7 +495,7 @@ export const ClusterRoleBindingsContent = ({
                         }`}
                       />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="right" onClick={e => e.stopPropagation()}>
                       <Tooltip title={updateDeniedTooltip}>
                         <span>
                           <IconButton
@@ -546,6 +573,13 @@ export const ClusterRoleBindingsContent = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <BindingDetailDialog
+        open={!!detailBinding}
+        onClose={() => setDetailBinding(null)}
+        binding={detailBinding}
+        scopeLabel="Cluster"
+      />
     </Box>
   );
 };
