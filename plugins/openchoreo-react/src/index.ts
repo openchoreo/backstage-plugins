@@ -223,9 +223,17 @@ export {
   type UseRolePermissionsResult,
 } from './hooks/useRolePermissions';
 export {
+  useClusterRolePermissions,
+  type UseClusterRolePermissionsResult,
+} from './hooks/useClusterRolePermissions';
+export {
   useRoleMappingPermissions,
   type UseRoleMappingPermissionsResult,
 } from './hooks/useRoleMappingPermissions';
+export {
+  useClusterRoleMappingPermissions,
+  type UseClusterRoleMappingPermissionsResult,
+} from './hooks/useClusterRoleMappingPermissions';
 export {
   useNamespacePermission,
   type UseNamespacePermissionResult,

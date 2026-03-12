@@ -541,6 +541,42 @@ export const openchoreoRoleDeletePermission = createPermission({
 });
 
 /**
+ * Permission to view cluster roles.
+ * Org-scoped permission.
+ */
+export const openchoreoClusterRoleViewPermission = createPermission({
+  name: 'openchoreo.clusterrole.view',
+  attributes: { action: 'read' },
+});
+
+/**
+ * Permission to create a new cluster role.
+ * Org-scoped permission.
+ */
+export const openchoreoClusterRoleCreatePermission = createPermission({
+  name: 'openchoreo.clusterrole.create',
+  attributes: { action: 'create' },
+});
+
+/**
+ * Permission to update an existing cluster role.
+ * Org-scoped permission.
+ */
+export const openchoreoClusterRoleUpdatePermission = createPermission({
+  name: 'openchoreo.clusterrole.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster role.
+ * Org-scoped permission.
+ */
+export const openchoreoClusterRoleDeletePermission = createPermission({
+  name: 'openchoreo.clusterrole.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
  * Permission to view role bindings.
  * Org-scoped permission.
  */
@@ -573,6 +609,42 @@ export const openchoreoRoleMappingUpdatePermission = createPermission({
  */
 export const openchoreoRoleMappingDeletePermission = createPermission({
   name: 'openchoreo.rolemapping.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to view cluster role bindings.
+ * Org-scoped permission.
+ */
+export const openchoreoClusterRoleMappingViewPermission = createPermission({
+  name: 'openchoreo.clusterrolemapping.view',
+  attributes: { action: 'read' },
+});
+
+/**
+ * Permission to create a new cluster role mapping.
+ * Org-scoped permission.
+ */
+export const openchoreoClusterRoleMappingCreatePermission = createPermission({
+  name: 'openchoreo.clusterrolemapping.create',
+  attributes: { action: 'create' },
+});
+
+/**
+ * Permission to update an existing cluster role mapping.
+ * Org-scoped permission.
+ */
+export const openchoreoClusterRoleMappingUpdatePermission = createPermission({
+  name: 'openchoreo.clusterrolemapping.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster role mapping.
+ * Org-scoped permission.
+ */
+export const openchoreoClusterRoleMappingDeletePermission = createPermission({
+  name: 'openchoreo.clusterrolemapping.delete',
   attributes: { action: 'delete' },
 });
 
@@ -650,10 +722,18 @@ export const openchoreoPermissions = [
   openchoreoRoleCreatePermission,
   openchoreoRoleUpdatePermission,
   openchoreoRoleDeletePermission,
+  openchoreoClusterRoleViewPermission,
+  openchoreoClusterRoleCreatePermission,
+  openchoreoClusterRoleUpdatePermission,
+  openchoreoClusterRoleDeletePermission,
   openchoreoRoleMappingViewPermission,
   openchoreoRoleMappingCreatePermission,
   openchoreoRoleMappingUpdatePermission,
   openchoreoRoleMappingDeletePermission,
+  openchoreoClusterRoleMappingViewPermission,
+  openchoreoClusterRoleMappingCreatePermission,
+  openchoreoClusterRoleMappingUpdatePermission,
+  openchoreoClusterRoleMappingDeletePermission,
   openchoreoLogsViewPermission,
   openchoreoMetricsViewPermission,
   openchoreoTracesViewPermission,
@@ -720,14 +800,22 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.release.create': 'componentrelease:create',
   'openchoreo.release.read': 'componentrelease:view',
   'openchoreo.releasebinding.read': 'releasebinding:view',
-  'openchoreo.role.view': 'role:view',
-  'openchoreo.role.create': 'role:create',
-  'openchoreo.role.update': 'role:update',
-  'openchoreo.role.delete': 'role:delete',
-  'openchoreo.rolemapping.view': 'rolemapping:view',
-  'openchoreo.rolemapping.create': 'rolemapping:create',
-  'openchoreo.rolemapping.update': 'rolemapping:update',
-  'openchoreo.rolemapping.delete': 'rolemapping:delete',
+  'openchoreo.role.view': 'authzrole:view',
+  'openchoreo.role.create': 'authzrole:create',
+  'openchoreo.role.update': 'authzrole:update',
+  'openchoreo.role.delete': 'authzrole:delete',
+  'openchoreo.clusterrole.view': 'clusterauthzrole:view',
+  'openchoreo.clusterrole.create': 'clusterauthzrole:create',
+  'openchoreo.clusterrole.update': 'clusterauthzrole:update',
+  'openchoreo.clusterrole.delete': 'clusterauthzrole:delete',
+  'openchoreo.rolemapping.view': 'authzrolebinding:view',
+  'openchoreo.rolemapping.create': 'authzrolebinding:create',
+  'openchoreo.rolemapping.update': 'authzrolebinding:update',
+  'openchoreo.rolemapping.delete': 'authzrolebinding:delete',
+  'openchoreo.clusterrolemapping.view': 'clusterauthzrolebinding:view',
+  'openchoreo.clusterrolemapping.create': 'clusterauthzrolebinding:create',
+  'openchoreo.clusterrolemapping.update': 'clusterauthzrolebinding:update',
+  'openchoreo.clusterrolemapping.delete': 'clusterauthzrolebinding:delete',
   'openchoreo.logs.view': 'logs:view',
   'openchoreo.metrics.view': 'metrics:view',
   'openchoreo.traces.view': 'traces:view',
