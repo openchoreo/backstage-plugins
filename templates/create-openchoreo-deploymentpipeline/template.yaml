@@ -1,0 +1,36 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-openchoreo-deploymentpipeline
+  title: Deployment Pipeline
+  description: Create a new deployment pipeline that defines promotion paths between environments for component deployments.
+spec:
+  owner: openchoreo-users
+  type: DeploymentPipeline
+  # Enable user token injection for user-based authorization at OpenChoreo API
+  EXPERIMENTAL_formDecorators:
+    - id: openchoreo:inject-user-token
+  parameters:
+    - title: Deployment Pipeline Details
+      required:
+        - deploymentPipelineConfig
+      properties:
+        deploymentPipelineConfig:
+          title: ' '
+          type: object
+          ui:field: DeploymentPipelineFormWithYaml
+  steps:
+    - id: create-openchoreo-deploymentpipeline
+      name: Create OpenChoreo Deployment Pipeline
+      action: openchoreo:deployment-pipeline:create
+      input:
+        namespaceName: ${{ parameters.deploymentPipelineConfig.namespace_name }}
+        pipelineName: ${{ parameters.deploymentPipelineConfig.pipeline_name }}
+        displayName: ${{ parameters.deploymentPipelineConfig.displayName }}
+        description: ${{ parameters.deploymentPipelineConfig.description }}
+        promotionPaths: ${{ parameters.deploymentPipelineConfig.promotionPaths }}
+  output:
+    links:
+      - title: View Deployment Pipeline
+        icon: catalog
+        entityRef: ${{ steps['create-openchoreo-deploymentpipeline'].output.entityRef }}

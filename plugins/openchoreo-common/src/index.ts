@@ -80,6 +80,7 @@ export {
   openchoreoWorkflowplaneDeletePermission,
   openchoreoObservabilityplaneUpdatePermission,
   openchoreoObservabilityplaneDeletePermission,
+  openchoreoDeploymentpipelineCreatePermission,
   openchoreoDeploymentpipelineUpdatePermission,
   openchoreoDeploymentpipelineDeletePermission,
   openchoreoClusterComponentTypeUpdatePermission,

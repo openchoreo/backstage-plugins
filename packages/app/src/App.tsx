@@ -35,6 +35,7 @@ import { GitSourceFieldExtension } from './scaffolder/GitSourceField';
 import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
 import { NamespaceEntityPickerFieldExtension } from './scaffolder/NamespaceEntityPicker';
 import { EnvironmentFormWithYamlFieldExtension } from './scaffolder/EnvironmentFormWithYaml';
+import { DeploymentPipelineFormWithYamlFieldExtension } from './scaffolder/DeploymentPipelineFormWithYaml';
 import { WorkloadDetailsFieldExtension } from './scaffolder/WorkloadDetailsField';
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
 import { CustomTemplateListPage } from './components/scaffolder/CustomTemplateListPage';
@@ -265,6 +266,7 @@ const routes = (
         <ComponentWorkflowYamlEditorFieldExtension />
         <ClusterWorkflowYamlEditorFieldExtension />
         <EnvironmentFormWithYamlFieldExtension />
+        <DeploymentPipelineFormWithYamlFieldExtension />
         <GitSecretFieldExtension />
         <GitSourceFieldExtension />
         <WorkloadDetailsFieldExtension />
