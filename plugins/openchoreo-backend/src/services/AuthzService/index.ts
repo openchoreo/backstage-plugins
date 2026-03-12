@@ -1,2 +1,2 @@
 export { AuthzService } from './AuthzService';
-export type { Entitlement, UserTypeConfig } from './AuthzService';
+export type { ActionInfo, Entitlement, UserTypeConfig } from './AuthzService';

@@ -8,6 +8,7 @@ import {
 import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
   OpenChoreoClientApi,
+  ActionInfo,
   CreateReleaseResponse,
   SchemaResponse,
   ReleaseBindingsResponse,
@@ -782,8 +783,8 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // Authorization Operations
   // ============================================
 
-  async listActions(): Promise<string[]> {
-    const response = await this.apiFetch<{ data: string[] }>(
+  async listActions(): Promise<ActionInfo[]> {
+    const response = await this.apiFetch<{ data: ActionInfo[] }>(
       API_ENDPOINTS.AUTHZ_ACTIONS,
     );
     return response.data || [];

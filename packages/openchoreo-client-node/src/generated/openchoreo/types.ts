@@ -4727,6 +4727,21 @@ export interface components {
         reason?: string;
       };
     };
+    /** @description An authorization action with its scope in the resource hierarchy. */
+    ActionInfo: {
+      /**
+       * @description The action identifier (e.g. "component:create").
+       * @example component:create
+       */
+      name: string;
+      /**
+       * @description The lowest resource hierarchy level at which this action is evaluated. One of cluster, namespace, project, or component.
+       *
+       * @example component
+       * @enum {string}
+       */
+      lowestScope: 'cluster' | 'namespace' | 'project' | 'component';
+    };
     /** @description Capabilities for a specific action */
     ActionCapability: {
       /** @description Resources where action is allowed */
@@ -8844,7 +8859,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': string[];
+          'application/json': components['schemas']['ActionInfo'][];
         };
       };
       401: components['responses']['Unauthorized'];

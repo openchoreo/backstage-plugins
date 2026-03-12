@@ -21,9 +21,14 @@ import { useStyles } from './styles';
 import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
 import { isForbiddenError } from '../../../utils/errorUtils';
 
+interface ActionItem {
+  name: string;
+  lowestScope: string;
+}
+
 interface ActionGroup {
   resource: string;
-  actions: string[];
+  actions: ActionItem[];
 }
 
 export const ActionsTab = () => {
@@ -34,10 +39,10 @@ export const ActionsTab = () => {
 
   // Group actions by resource type
   const groupedActions = useMemo<ActionGroup[]>(() => {
-    const groups: Record<string, string[]> = {};
+    const groups: Record<string, ActionItem[]> = {};
 
     actions.forEach(action => {
-      const [resource] = action.split(':');
+      const [resource] = action.name.split(':');
       if (!groups[resource]) {
         groups[resource] = [];
       }
@@ -47,7 +52,7 @@ export const ActionsTab = () => {
     return Object.entries(groups)
       .map(([resource, resourceActions]) => ({
         resource,
-        actions: resourceActions.sort(),
+        actions: resourceActions.sort((a, b) => a.name.localeCompare(b.name)),
       }))
       .sort((a, b) => a.resource.localeCompare(b.resource));
   }, [actions]);
@@ -61,7 +66,7 @@ export const ActionsTab = () => {
       .map(group => ({
         ...group,
         actions: group.actions.filter(action =>
-          action.toLowerCase().includes(query),
+          action.name.toLowerCase().includes(query),
         ),
       }))
       .filter(group => group.actions.length > 0);
@@ -221,11 +226,14 @@ export const ActionsTab = () => {
                   <Box className={classes.collapseContent}>
                     <List component="div" disablePadding>
                       {group.actions.map(action => (
-                        <ListItem key={action} className={classes.actionItem}>
+                        <ListItem
+                          key={action.name}
+                          className={classes.actionItem}
+                        >
                           <ListItemText
                             primary={
                               <Typography className={classes.actionText}>
-                                {action}
+                                {action.name}
                               </Typography>
                             }
                           />
