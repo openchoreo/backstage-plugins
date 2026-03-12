@@ -375,10 +375,13 @@ describe('CtdToTemplateConverter', () => {
         buildFromSourceBranch.properties.workflow_parameters,
       ).toBeDefined();
 
-      // Check workflow_name has enum from allowedWorkflows
-      expect(buildFromSourceBranch.properties.workflow_name.enum).toEqual([
-        'nodejs-build',
-        'docker-build',
+      // Check workflow_name passes allowedWorkflows via ui:options
+      expect(
+        buildFromSourceBranch.properties.workflow_name['ui:options']
+          .allowedWorkflows,
+      ).toEqual([
+        { kind: 'Workflow', name: 'nodejs-build' },
+        { kind: 'Workflow', name: 'docker-build' },
       ]);
       expect(buildFromSourceBranch.properties.workflow_name['ui:field']).toBe(
         'BuildWorkflowPicker',
@@ -415,7 +418,7 @@ describe('CtdToTemplateConverter', () => {
       expect(deployFromImageBranch.required).toEqual(['containerImage']);
     });
 
-    it('should encode ClusterWorkflow allowedWorkflows with kind-prefixed names', () => {
+    it('should encode mixed Workflow and ClusterWorkflow allowedWorkflows with correct kind', () => {
       const ctd: ComponentType = {
         metadata: {
           workloadType: 'deployment',
@@ -441,9 +444,12 @@ describe('CtdToTemplateConverter', () => {
       const buildFromSourceBranch =
         buildDeploySection.dependencies.deploymentSource.oneOf[0];
 
-      expect(buildFromSourceBranch.properties.workflow_name.enum).toEqual([
-        'nodejs-build',
-        'ClusterWorkflow:dockerfile-builder',
+      expect(
+        buildFromSourceBranch.properties.workflow_name['ui:options']
+          .allowedWorkflows,
+      ).toEqual([
+        { kind: 'Workflow', name: 'nodejs-build' },
+        { kind: 'ClusterWorkflow', name: 'dockerfile-builder' },
       ]);
     });
 

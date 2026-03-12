@@ -17,6 +17,7 @@ import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 import createSchemaUtils from '@rjsf/utils/lib/createSchemaUtils';
+import type { WorkflowKind } from '../types';
 
 /**
  * Extract top-level property names to remove from the RJSF schema based on
@@ -38,8 +39,6 @@ function getAnnotationFilteredProperties(annotation: string): Set<string> {
   }
   return properties;
 }
-
-type WorkflowKind = 'Workflow' | 'ClusterWorkflow' | 'ComponentWorkflow';
 
 /*
  Schema for the Build Workflow Parameters Field

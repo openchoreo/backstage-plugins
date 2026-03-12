@@ -3,6 +3,12 @@ import { JSONSchema7 } from 'json-schema';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
 /**
+ * Namespace used for cluster-scoped resources such as ClusterWorkflows
+ * and ClusterComponentType templates.
+ */
+const CLUSTER_WORKFLOW_NAMESPACE = 'openchoreo-cluster';
+
+/**
  * ComponentType CRD structure as returned by the Kubernetes API.
  * This represents the full CRD object with metadata and spec.
  */
@@ -439,7 +445,7 @@ export class CtdToTemplateConverter {
       kind: 'Template',
       metadata: {
         name: templateName,
-        namespace: 'openchoreo-cluster',
+        namespace: CLUSTER_WORKFLOW_NAMESPACE,
         title,
         description,
         annotations: {
@@ -520,8 +526,7 @@ export class CtdToTemplateConverter {
           branch: '${{ parameters.git_source.branch }}',
           component_path: '${{ parameters.git_source.component_path }}',
           gitSecretRef: '${{ parameters.git_source.git_secret_ref }}',
-          workflow_kind: '${{ parameters.workflow_name.kind }}',
-          workflow_name: '${{ parameters.workflow_name.name }}',
+          workflow: '${{ parameters.workflow_name }}',
           workflow_parameters: '${{ parameters.workflow_parameters }}',
           // External CI parameters
           ciPlatform: '${{ parameters.ciPlatform }}',

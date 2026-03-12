@@ -1,4 +1,4 @@
-import { ChangeEvent, useState, useEffect } from 'react';
+import { ChangeEvent, useState, useEffect, useMemo } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import type { FieldValidation } from '@rjsf/utils';
 import {
@@ -14,13 +14,9 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
+import type { WorkflowKind, WorkflowSelection } from '../types';
 
-type WorkflowKind = 'Workflow' | 'ClusterWorkflow' | 'ComponentWorkflow';
-
-export interface WorkflowSelection {
-  kind: WorkflowKind;
-  name: string;
-}
+export type { WorkflowSelection };
 
 /*
  Schema for the Build Workflow Picker field
@@ -47,6 +43,27 @@ interface WorkflowOption extends WorkflowSelection {
 
 function workflowKey(workflow: WorkflowSelection): string {
   return `${workflow.kind}:${workflow.name}`;
+}
+
+function normalizeWorkflowItem(item: any, kind: WorkflowKind): WorkflowOption {
+  const displayName = (item.displayName ??
+    item.metadata?.annotations?.['openchoreo.dev/display-name'] ??
+    item.name ??
+    item.metadata?.name) as string | undefined;
+  return {
+    kind,
+    name: (item.name ?? item.metadata?.name) as string,
+    displayName: `${displayName} ${
+      kind === 'ClusterWorkflow' ? '(cluster)' : ''
+    }`,
+  };
+}
+
+function getWorkflowDisplayName(workflow: WorkflowOption): string {
+  if (workflow.displayName) return workflow.displayName;
+  return workflow.kind === 'ClusterWorkflow'
+    ? `${workflow.name} (cluster)`
+    : workflow.name;
 }
 
 /*
@@ -93,11 +110,6 @@ export const BuildWorkflowPicker = ({
 
   const [selectedKey, setSelectedKey] = useState<string>('');
 
-  const getWorkflowDisplayName = (workflow: WorkflowSelection): string => {
-    return workflow.kind === 'ClusterWorkflow'
-      ? `${workflow.name} (cluster)`
-      : workflow.name;
-  };
   // Keep selectedKey in sync with formData
   useEffect(() => {
     if (formData && formData.name) {
@@ -140,16 +152,9 @@ export const BuildWorkflowPicker = ({
             const items = result.data?.items ?? result.items ?? [];
             if (Array.isArray(items)) {
               allWorkflows.push(
-                ...items.map((item: any) => ({
-                  kind: 'ClusterWorkflow' as WorkflowKind,
-                  name: (item.name ?? item.metadata?.name) as string,
-                  displayName: (item.displayName ??
-                    item.metadata?.annotations?.[
-                      'openchoreo.dev/display-name'
-                    ] ??
-                    item.name ??
-                    item.metadata?.name) as string | undefined,
-                })),
+                ...items.map((item: any) =>
+                  normalizeWorkflowItem(item, 'ClusterWorkflow'),
+                ),
               );
             }
           }
@@ -172,16 +177,9 @@ export const BuildWorkflowPicker = ({
             const nsItems = nsResult.items ?? nsResult.data?.items ?? [];
             if (Array.isArray(nsItems)) {
               allWorkflows.push(
-                ...nsItems.map((item: any) => ({
-                  kind: 'Workflow' as WorkflowKind,
-                  name: (item.name ?? item.metadata?.name) as string,
-                  displayName: (item.displayName ??
-                    item.metadata?.annotations?.[
-                      'openchoreo.dev/display-name'
-                    ] ??
-                    item.name ??
-                    item.metadata?.name) as string | undefined,
-                })),
+                ...nsItems.map((item: any) =>
+                  normalizeWorkflowItem(item, 'Workflow'),
+                ),
               );
             }
           }
@@ -193,38 +191,16 @@ export const BuildWorkflowPicker = ({
               clusterResult.data?.items ?? clusterResult.items ?? [];
             if (Array.isArray(clusterItems)) {
               allWorkflows.push(
-                ...clusterItems.map((item: any) => ({
-                  kind: 'ClusterWorkflow' as WorkflowKind,
-                  name: (item.name ?? item.metadata?.name) as string,
-                  displayName: (item.displayName ??
-                    item.metadata?.annotations?.[
-                      'openchoreo.dev/display-name'
-                    ] ??
-                    item.name ??
-                    item.metadata?.name) as string | undefined,
-                })),
+                ...clusterItems.map((item: any) =>
+                  normalizeWorkflowItem(item, 'ClusterWorkflow'),
+                ),
               );
             }
           }
         }
 
         if (!ignore) {
-          let options = allWorkflows;
-
-          if (allowedWorkflows && allowedWorkflows.length > 0) {
-            const normalizedAllowed = allowedWorkflows.map(w => ({
-              kind: (w.kind as WorkflowKind | undefined) ?? defaultWorkflowKind,
-              name: w.name,
-            }));
-
-            options = allWorkflows.filter(opt =>
-              normalizedAllowed.some(
-                aw => aw.name === opt.name && aw.kind === opt.kind,
-              ),
-            );
-          }
-
-          setWorkflowOptions(options);
+          setWorkflowOptions(allWorkflows);
         }
       } catch (err) {
         if (!ignore) {
@@ -246,10 +222,27 @@ export const BuildWorkflowPicker = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespaceName, isClusterComponentType]);
 
+  // Separate filtering from fetching so that allowedWorkflows changes are
+  // reflected without triggering a full re-fetch.
+  const filteredOptions = useMemo(() => {
+    if (!allowedWorkflows || allowedWorkflows.length === 0) {
+      return workflowOptions;
+    }
+    const normalizedAllowed = allowedWorkflows.map(w => ({
+      kind: (w.kind as WorkflowKind | undefined) ?? defaultWorkflowKind,
+      name: w.name,
+    }));
+    return workflowOptions.filter(opt =>
+      normalizedAllowed.some(
+        aw => aw.name === opt.name && aw.kind === opt.kind,
+      ),
+    );
+  }, [workflowOptions, allowedWorkflows, defaultWorkflowKind]);
+
   const handleDropdownChange = (event: ChangeEvent<{ value: unknown }>) => {
     const key = event.target.value as string;
     setSelectedKey(key);
-    const selected = workflowOptions.find(w => workflowKey(w) === key);
+    const selected = filteredOptions.find(w => workflowKey(w) === key);
     if (selected) {
       onChange({ kind: selected.kind, name: selected.name });
     }
@@ -272,7 +265,7 @@ export const BuildWorkflowPicker = ({
         label={label}
         value={selectedKey || ''}
         onChange={handleDropdownChange}
-        disabled={loading || workflowOptions.length === 0}
+        disabled={loading || filteredOptions.length === 0}
       >
         {loading && (
           <MenuItem disabled>
@@ -280,11 +273,11 @@ export const BuildWorkflowPicker = ({
             Loading workflows...
           </MenuItem>
         )}
-        {!loading && workflowOptions.length === 0 && (
+        {!loading && filteredOptions.length === 0 && (
           <MenuItem disabled>No workflows available</MenuItem>
         )}
         {!loading &&
-          workflowOptions.map(workflow => (
+          filteredOptions.map(workflow => (
             <MenuItem key={workflowKey(workflow)} value={workflowKey(workflow)}>
               {getWorkflowDisplayName(workflow)}
             </MenuItem>

@@ -24,6 +24,7 @@ import {
   parseWorkflowParametersAnnotation,
 } from '@openchoreo/backstage-plugin-common';
 import { GitSecretDialog } from '../GitSecretField/GitSecretDialog';
+import { CLUSTER_WORKFLOW_NAMESPACE } from '../types';
 
 export interface GitSourceData {
   repo_url: string;
@@ -128,7 +129,7 @@ export const GitSourceField = ({
         };
         if (selectedWorkflowKind === 'ClusterWorkflow') {
           filter.kind = 'ClusterWorkflow';
-          filter['metadata.namespace'] = 'openchoreo-cluster';
+          filter['metadata.namespace'] = CLUSTER_WORKFLOW_NAMESPACE;
         } else {
           filter.kind = 'Workflow';
           if (nsName) filter['metadata.namespace'] = nsName;

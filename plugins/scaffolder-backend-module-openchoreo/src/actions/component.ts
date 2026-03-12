@@ -25,6 +25,11 @@ import {
 import type { DiscoveryService } from '@backstage/backend-plugin-api';
 
 /**
+ * Namespace used for cluster-scoped resources such as ClusterWorkflows.
+ */
+const CLUSTER_WORKFLOW_NAMESPACE = 'openchoreo-cluster';
+
+/**
  * Maps CI platform identifier to the corresponding annotation key
  */
 function getCIAnnotationKey(platform: string): string | undefined {
@@ -120,6 +125,13 @@ export const createComponentAction = (
               .describe(
                 'CI job/project identifier (e.g., Jenkins job path, GitHub repo slug)',
               ),
+            workflow: zImpl
+              .object({
+                kind: zImpl.string().optional(),
+                name: zImpl.string(),
+              })
+              .optional()
+              .describe('Selected build workflow (kind + name)'),
           })
           .passthrough(), // Allow any additional fields (CTD params, workflow params, traits, etc.)
       output: (zImpl: typeof z) =>
@@ -284,8 +296,8 @@ export const createComponentAction = (
             'deploymentSource',
             'containerImage',
             'autoDeploy',
+            'workflow',
             'workflow_name',
-            'workflow_kind',
             'workflow_parameters',
             'traits',
             'repo_url',
@@ -327,7 +339,9 @@ export const createComponentAction = (
 
             let namespaceFilter: Record<string, string> = {};
             if (isClusterWorkflow) {
-              namespaceFilter = { 'metadata.namespace': 'openchoreo-cluster' };
+              namespaceFilter = {
+                'metadata.namespace': CLUSTER_WORKFLOW_NAMESPACE,
+              };
             } else if (namespaceName) {
               namespaceFilter = { 'metadata.namespace': namespaceName };
             }
