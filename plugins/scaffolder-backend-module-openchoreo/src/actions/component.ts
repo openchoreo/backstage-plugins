@@ -435,10 +435,6 @@ export const createComponentAction = (
           logger: ctx.logger,
         });
 
-        ctx.logger.debug(
-          `Creating component: ${componentResource.metadata.name}`,
-        );
-
         // Call the API to create the component
         const { error: applyError, response: applyResponse } =
           await client.POST('/api/v1/namespaces/{namespaceName}/components', {
@@ -591,6 +587,9 @@ export const createComponentAction = (
             componentWorkflow: componentResource.spec.workflow
               ? {
                   name: componentResource.spec.workflow.name,
+                  kind: (componentResource.spec.workflow.kind ?? 'Workflow') as
+                    | 'Workflow'
+                    | 'ClusterWorkflow',
                   parameters: componentResource.spec.workflow.parameters,
                 }
               : undefined,

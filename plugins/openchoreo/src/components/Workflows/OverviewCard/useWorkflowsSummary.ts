@@ -141,6 +141,7 @@ export function useWorkflowsSummary() {
           body: JSON.stringify({
             workflowRunName: `${componentName}-${Date.now()}`,
             workflowName: workflow.name,
+            workflowKind: workflow.kind ?? 'Workflow',
             parameters: workflow.parameters,
             labels: {
               [CHOREO_LABELS.WORKFLOW_PROJECT]: projectName,

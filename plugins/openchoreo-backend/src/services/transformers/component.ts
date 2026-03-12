@@ -48,7 +48,7 @@ function transformComponentWorkflowConfig(
 ): ComponentWorkflowConfig | undefined {
   if (!workflow) return undefined;
   return {
-    kind: workflow.kind as ComponentWorkflowConfig['kind'],
+    kind: (workflow.kind as ComponentWorkflowConfig['kind']) ?? 'Workflow',
     name: workflow.name ?? '',
     parameters: workflow.parameters,
   };

@@ -12,6 +12,8 @@ export const useWorkflowStyles = makeStyles(theme => ({
     borderRadius: theme.shape.borderRadius,
     border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
     height: '100%',
+    overflow: 'hidden',
+    minWidth: 0,
     transition: 'all 0.2s ease',
     '&:hover': {
       backgroundColor: alpha(theme.palette.background.paper, 0.8),
@@ -53,6 +55,10 @@ export const useWorkflowStyles = makeStyles(theme => ({
     padding: theme.spacing(0.5, 1),
     borderRadius: theme.spacing(0.5),
     fontSize: '0.875rem',
+    wordBreak: 'break-all',
+    overflowWrap: 'break-word',
+    display: 'inline-block',
+    maxWidth: '100%',
   },
   emptyValue: {
     color: theme.palette.text.disabled,
@@ -86,6 +92,43 @@ export const useWorkflowStyles = makeStyles(theme => ({
     '&:hover': {
       textDecoration: 'underline',
     },
+  },
+  envTable: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: theme.spacing(0.75),
+  },
+  envRow: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: theme.spacing(1),
+  },
+  envName: {
+    backgroundColor: alpha(
+      theme.palette.type === 'dark'
+        ? theme.palette.common.white
+        : theme.palette.common.black,
+      0.07,
+    ),
+    padding: theme.spacing(0.25, 0.75),
+    borderRadius: theme.spacing(0.5),
+    fontSize: '0.875rem',
+    fontWeight: 600,
+    wordBreak: 'break-all' as const,
+    overflowWrap: 'break-word' as const,
+  },
+  envValue: {
+    backgroundColor: alpha(
+      theme.palette.type === 'dark'
+        ? theme.palette.common.white
+        : theme.palette.common.black,
+      0.04,
+    ),
+    padding: theme.spacing(0.25, 0.75),
+    borderRadius: theme.spacing(0.5),
+    fontSize: '0.875rem',
+    wordBreak: 'break-all' as const,
+    overflowWrap: 'break-word' as const,
   },
   emptyStateCard: {
     padding: theme.spacing(3),

@@ -48,6 +48,7 @@ export interface OpenChoreoCiClientApi {
   fetchWorkflowSchema(
     namespaceName: string,
     workflowName: string,
+    workflowKind?: 'Workflow' | 'ClusterWorkflow',
   ): Promise<WorkflowSchemaResponse>;
 
   /** Update component workflow parameters */

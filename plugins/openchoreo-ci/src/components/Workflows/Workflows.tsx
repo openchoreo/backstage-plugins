@@ -199,7 +199,7 @@ export const Workflows = () => {
             },
             body: JSON.stringify({
               workflowName: workflow.name,
-              workflowKind: workflow.kind,
+              workflowKind: workflow.kind ?? 'Workflow',
               workflowRunName: `${componentName}-${Date.now()}`,
               parameters,
               labels: {
@@ -338,6 +338,7 @@ export const Workflows = () => {
         workflowName={
           workflowData.componentDetails.componentWorkflow.name || ''
         }
+        workflowKind={workflowData.componentDetails.componentWorkflow.kind}
         parameters={
           workflowData.componentDetails.componentWorkflow.parameters || null
         }
