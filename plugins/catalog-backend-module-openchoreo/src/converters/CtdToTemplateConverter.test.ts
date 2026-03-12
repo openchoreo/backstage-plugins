@@ -375,10 +375,13 @@ describe('CtdToTemplateConverter', () => {
         buildFromSourceBranch.properties.workflow_parameters,
       ).toBeDefined();
 
-      // Check workflow_name has enum from allowedWorkflows
-      expect(buildFromSourceBranch.properties.workflow_name.enum).toEqual([
-        'nodejs-build',
-        'docker-build',
+      // Check workflow_name passes allowedWorkflows via ui:options
+      expect(
+        buildFromSourceBranch.properties.workflow_name['ui:options']
+          .allowedWorkflows,
+      ).toEqual([
+        { kind: 'Workflow', name: 'nodejs-build' },
+        { kind: 'Workflow', name: 'docker-build' },
       ]);
       expect(buildFromSourceBranch.properties.workflow_name['ui:field']).toBe(
         'BuildWorkflowPicker',
@@ -413,6 +416,41 @@ describe('CtdToTemplateConverter', () => {
 
       // Check required fields for deploy-from-image
       expect(deployFromImageBranch.required).toEqual(['containerImage']);
+    });
+
+    it('should encode mixed Workflow and ClusterWorkflow allowedWorkflows with correct kind', () => {
+      const ctd: ComponentType = {
+        metadata: {
+          workloadType: 'deployment',
+          createdAt: '2025-01-01T00:00:00Z',
+          name: 'web-service',
+          displayName: 'Web Service',
+          allowedWorkflows: [
+            'nodejs-build',
+            { kind: 'ClusterWorkflow', name: 'dockerfile-builder' },
+          ] as any,
+        },
+        spec: {
+          inputParametersSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+      };
+
+      const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
+      const parameters = result.spec?.parameters as any[];
+      const buildDeploySection = parameters[0];
+      const buildFromSourceBranch =
+        buildDeploySection.dependencies.deploymentSource.oneOf[0];
+
+      expect(
+        buildFromSourceBranch.properties.workflow_name['ui:options']
+          .allowedWorkflows,
+      ).toEqual([
+        { kind: 'Workflow', name: 'nodejs-build' },
+        { kind: 'ClusterWorkflow', name: 'dockerfile-builder' },
+      ]);
     });
 
     it('should still have 3 sections when CTD has no allowedWorkflows', () => {

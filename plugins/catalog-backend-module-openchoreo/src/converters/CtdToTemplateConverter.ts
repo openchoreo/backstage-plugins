@@ -3,6 +3,12 @@ import { JSONSchema7 } from 'json-schema';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
 /**
+ * Namespace used for cluster-scoped resources such as ClusterWorkflows
+ * and ClusterComponentType templates.
+ */
+const CLUSTER_WORKFLOW_NAMESPACE = 'openchoreo-cluster';
+
+/**
  * ComponentType CRD structure as returned by the Kubernetes API.
  * This represents the full CRD object with metadata and spec.
  */
@@ -122,17 +128,6 @@ export class CtdToTemplateConverter {
       .join(' ');
   }
 
-  private normalizeWorkflowNames(
-    allowedWorkflows?: Array<string | { kind?: string; name: string }>,
-  ): string[] {
-    if (!allowedWorkflows || allowedWorkflows.length === 0) return [];
-    return allowedWorkflows
-      .map(workflow =>
-        typeof workflow === 'string' ? workflow : workflow.name,
-      )
-      .filter(Boolean);
-  }
-
   /**
    * Generate template parameters from component type schema
    * Includes standard fields + component type-specific fields
@@ -241,27 +236,49 @@ export class CtdToTemplateConverter {
     namespaceName: string,
     ctdKind: 'ComponentType' | 'ClusterComponentType' = 'ComponentType',
   ): any {
-    const allowedWorkflowNames = this.normalizeWorkflowNames(
-      componentType.metadata.allowedWorkflows,
-    );
-    const hasAllowedWorkflows = allowedWorkflowNames.length > 0;
+    const rawAllowedWorkflows = componentType.metadata.allowedWorkflows;
+    const defaultWorkflowKind =
+      ctdKind === 'ClusterComponentType' ? 'ClusterWorkflow' : 'Workflow';
+    const allowedWorkflows =
+      rawAllowedWorkflows
+        ?.map(workflow => {
+          if (!workflow) return null;
+          if (typeof workflow === 'string') {
+            return { kind: defaultWorkflowKind, name: workflow };
+          }
+          if (!workflow.name) return null;
+          return {
+            kind: workflow.kind ?? defaultWorkflowKind,
+            name: workflow.name,
+          };
+        })
+        ?.filter((w): w is { kind: string; name: string } =>
+          Boolean(w?.name),
+        ) ?? [];
 
-    // Build workflow_name field properties
-    const workflowNameField: any = {
+    // Build workflow field properties
+    const workflowField: any = {
       title: 'Build Workflow',
-      type: 'string',
+      type: 'object',
       description: 'Select the build workflow to use for this component',
+      properties: {
+        kind: {
+          title: 'Workflow Kind',
+          type: 'string',
+        },
+        name: {
+          title: 'Workflow Name',
+          type: 'string',
+        },
+      },
+      required: ['kind', 'name'],
       'ui:field': 'BuildWorkflowPicker',
       'ui:options': {
         namespaceName: namespaceName,
         ctdKind: ctdKind,
+        allowedWorkflows,
       },
     };
-
-    // Only add enum if allowedWorkflows is available
-    if (hasAllowedWorkflows) {
-      workflowNameField.enum = allowedWorkflowNames;
-    }
 
     // Auto Deploy field - only for deploy-from-image (build-from-source and external-ci don't have an immediate image to deploy)
     const autoDeployField = {
@@ -294,7 +311,7 @@ export class CtdToTemplateConverter {
                 deploymentSource: {
                   const: 'build-from-source',
                 },
-                workflow_name: workflowNameField,
+                workflow_name: workflowField,
                 git_source: {
                   title: 'Source Repository',
                   type: 'object',
@@ -315,6 +332,7 @@ export class CtdToTemplateConverter {
                   'ui:field': 'BuildWorkflowParameters',
                   'ui:options': {
                     namespaceName: namespaceName,
+                    ctdKind: ctdKind,
                   },
                 },
               },
@@ -427,7 +445,7 @@ export class CtdToTemplateConverter {
       kind: 'Template',
       metadata: {
         name: templateName,
-        namespace: 'openchoreo-cluster',
+        namespace: CLUSTER_WORKFLOW_NAMESPACE,
         title,
         description,
         annotations: {
@@ -508,7 +526,7 @@ export class CtdToTemplateConverter {
           branch: '${{ parameters.git_source.branch }}',
           component_path: '${{ parameters.git_source.component_path }}',
           gitSecretRef: '${{ parameters.git_source.git_secret_ref }}',
-          workflow_name: '${{ parameters.workflow_name }}',
+          workflow: '${{ parameters.workflow_name }}',
           workflow_parameters: '${{ parameters.workflow_parameters }}',
           // External CI parameters
           ciPlatform: '${{ parameters.ciPlatform }}',

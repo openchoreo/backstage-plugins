@@ -629,9 +629,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     displayName: getDisplayName(ct),
                     description: getDescription(ct),
                     workloadType: ct.spec?.workloadType ?? 'deployment',
-                    allowedWorkflows: ct.spec?.allowedWorkflows?.map(
-                      w => w.name,
-                    ),
+                    allowedWorkflows: ct.spec?.allowedWorkflows,
                     allowedTraits: ct.spec?.allowedTraits,
                     createdAt: getCreatedAt(ct) || '',
                   },

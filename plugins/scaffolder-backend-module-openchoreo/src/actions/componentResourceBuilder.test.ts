@@ -87,7 +87,7 @@ describe('buildComponentResource', () => {
       const result = buildComponentResource({
         ...minimalInput,
         deploymentSource: 'build-from-source',
-        workflowName: 'google-cloud-buildpacks',
+        workflow: { name: 'google-cloud-buildpacks' },
         workflowParameters: {
           'docker.context': '/app',
           'docker.filePath': '/Dockerfile',
@@ -108,7 +108,7 @@ describe('buildComponentResource', () => {
       const result = buildComponentResource({
         ...minimalInput,
         deploymentSource: 'build-from-source',
-        workflowName: 'google-cloud-buildpacks',
+        workflow: { name: 'google-cloud-buildpacks' },
         workflowParameters: {},
         repoUrl: 'https://github.com/org/repo.git',
         branch: 'develop',
@@ -133,7 +133,7 @@ describe('buildComponentResource', () => {
       const result = buildComponentResource({
         ...minimalInput,
         deploymentSource: 'build-from-source',
-        workflowName: 'google-cloud-buildpacks',
+        workflow: { name: 'google-cloud-buildpacks' },
         workflowParameters: {},
         repoUrl: 'https://github.com/org/private-repo.git',
         branch: 'main',
@@ -161,7 +161,7 @@ describe('buildComponentResource', () => {
       const result = buildComponentResource({
         ...minimalInput,
         deploymentSource: 'build-from-source',
-        workflowName: 'google-cloud-buildpacks',
+        workflow: { name: 'google-cloud-buildpacks' },
         workflowParameters: {},
         repoUrl: 'https://github.com/org/repo.git',
         branch: 'main',
@@ -183,7 +183,7 @@ describe('buildComponentResource', () => {
       const result = buildComponentResource({
         ...minimalInput,
         deploymentSource: 'build-from-source',
-        workflowName: 'google-cloud-buildpacks',
+        workflow: { name: 'google-cloud-buildpacks' },
         workflowParameters: {},
         repoUrl: 'https://github.com/org/repo.git',
         workflowParameterMapping: {
@@ -206,7 +206,7 @@ describe('buildComponentResource', () => {
       const result = buildComponentResource({
         ...minimalInput,
         deploymentSource: 'build-from-source',
-        workflowName: 'google-cloud-buildpacks',
+        workflow: { name: 'google-cloud-buildpacks' },
         workflowParameters: {
           'docker.context': '/app',
         },
@@ -229,7 +229,7 @@ describe('buildComponentResource', () => {
       const result = buildComponentResource({
         ...minimalInput,
         deploymentSource: 'build-from-source',
-        workflowName: 'google-cloud-buildpacks',
+        workflow: { name: 'google-cloud-buildpacks' },
         workflowParameters: {
           'docker.context': '/app',
         },

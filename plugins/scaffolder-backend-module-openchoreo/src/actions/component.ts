@@ -25,6 +25,11 @@ import {
 import type { DiscoveryService } from '@backstage/backend-plugin-api';
 
 /**
+ * Namespace used for cluster-scoped resources such as ClusterWorkflows.
+ */
+const CLUSTER_WORKFLOW_NAMESPACE = 'openchoreo-cluster';
+
+/**
  * Maps CI platform identifier to the corresponding annotation key
  */
 function getCIAnnotationKey(platform: string): string | undefined {
@@ -120,6 +125,13 @@ export const createComponentAction = (
               .describe(
                 'CI job/project identifier (e.g., Jenkins job path, GitHub repo slug)',
               ),
+            workflow: zImpl
+              .object({
+                kind: zImpl.string().optional(),
+                name: zImpl.string(),
+              })
+              .optional()
+              .describe('Selected build workflow (kind + name)'),
           })
           .passthrough(), // Allow any additional fields (CTD params, workflow params, traits, etc.)
       output: (zImpl: typeof z) =>
@@ -255,8 +267,10 @@ export const createComponentAction = (
 
         // Only use workflow-related fields if deploying from source
         const autoDeploy = ctx.input.autoDeploy ?? false;
-        const workflowName = isBuildFromSource
-          ? (ctx.input as any).workflow_name
+        const workflow = isBuildFromSource
+          ? ((ctx.input as any).workflow as
+              | { kind?: string; name: string }
+              | undefined)
           : undefined;
         const workflowParametersData = isBuildFromSource
           ? (ctx.input as any).workflow_parameters
@@ -282,6 +296,7 @@ export const createComponentAction = (
             'deploymentSource',
             'containerImage',
             'autoDeploy',
+            'workflow',
             'workflow_name',
             'workflow_parameters',
             'traits',
@@ -312,21 +327,21 @@ export const createComponentAction = (
         // This tells us where git source fields and implicit fields (projectName,
         // componentName) should be placed in the workflow parameters structure.
         let workflowParameterMapping: WorkflowParameterMapping | undefined;
-        if (workflowName) {
+        if (workflow) {
           try {
-            // Determine if this is a ClusterWorkflow based on component type kind or name prefix
+            // Determine if this is a ClusterWorkflow based on workflow_kind or component type kind
             const componentTypeKindForLookup =
               (ctx.input as any).component_type_kind || 'ComponentType';
             const isClusterWorkflow =
-              componentTypeKindForLookup === 'ClusterComponentType' ||
-              workflowName.startsWith('ClusterWorkflow:');
-            const lookupName = workflowName.startsWith('ClusterWorkflow:')
-              ? workflowName.slice('ClusterWorkflow:'.length)
-              : workflowName;
+              workflow.kind === 'ClusterWorkflow' ||
+              componentTypeKindForLookup === 'ClusterComponentType';
+            const lookupName = workflow.name;
 
             let namespaceFilter: Record<string, string> = {};
             if (isClusterWorkflow) {
-              namespaceFilter = { 'metadata.namespace': 'openchoreo-cluster' };
+              namespaceFilter = {
+                'metadata.namespace': CLUSTER_WORKFLOW_NAMESPACE,
+              };
             } else if (namespaceName) {
               namespaceFilter = { 'metadata.namespace': namespaceName };
             }
@@ -380,7 +395,7 @@ export const createComponentAction = (
           repoUrl: (ctx.input as any).repo_url,
           branch: (ctx.input as any).branch,
           componentPath: (ctx.input as any).component_path,
-          workflowName: workflowName,
+          workflow: workflow,
           workflowParameters: workflowParameters,
           containerImage: (ctx.input as any).containerImage,
           gitSecretRef: (ctx.input as any).gitSecretRef,
