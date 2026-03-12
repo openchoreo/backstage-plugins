@@ -440,7 +440,7 @@ export const useRCAReportStyles = makeStyles(theme => ({
   },
   patchActionDescription: {
     fontWeight: 500,
-    fontSize: theme.typography.body2.fontSize,
+    fontSize: theme.typography.caption.fontSize,
     color: theme.palette.text.primary,
     lineHeight: 1.4,
   },
@@ -454,5 +454,11 @@ export const useRCAReportStyles = makeStyles(theme => ({
     fontSize: theme.typography.caption.fontSize,
     color: theme.palette.text.secondary,
     fontStyle: 'italic',
+  },
+  patchBindingName: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.palette.primary.main,
+    fontWeight: 500,
+    letterSpacing: '0.3px',
   },
 }));

@@ -689,6 +689,16 @@ export const openchoreoRcaViewPermission = createPermission({
 });
 
 /**
+ * Permission to update RCA reports for a project (apply/dismiss fixes).
+ * Resource-based: requires the specific project context.
+ */
+export const openchoreoRcaUpdatePermission = createPermission({
+  name: 'openchoreo.rca.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_PROJECT,
+});
+
+/**
  * Permission to view traits for a component.
  * Resource-based: requires the specific component context.
  */
@@ -738,6 +748,7 @@ export const openchoreoPermissions = [
   openchoreoMetricsViewPermission,
   openchoreoTracesViewPermission,
   openchoreoRcaViewPermission,
+  openchoreoRcaUpdatePermission,
   openchoreoTraitsViewPermission,
   openchoreoTraitCreatePermission,
   openchoreoComponentTypeCreatePermission,
@@ -820,6 +831,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.metrics.view': 'metrics:view',
   'openchoreo.traces.view': 'traces:view',
   'openchoreo.rca.view': 'rcareport:view',
+  'openchoreo.rca.update': 'rcareport:update',
   'openchoreo.traits.view': 'trait:view',
   'openchoreo.trait.create': 'trait:create',
   'openchoreo.componenttype.create': 'componenttype:create',

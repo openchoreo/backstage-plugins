@@ -36,10 +36,10 @@ export interface RCAAgentApi {
     signal?: AbortSignal,
   ): Promise<void>;
 
-  markActionsApplied(
+  updateActionStatuses(
     reportId: string,
     routing: ChatRoutingContext,
-    appliedIndices: number[],
+    update: { appliedIndices?: number[]; dismissedIndices?: number[] },
   ): Promise<void>;
 }
 
@@ -142,10 +142,10 @@ export class RCAAgentClient implements RCAAgentApi {
     }
   }
 
-  async markActionsApplied(
+  async updateActionStatuses(
     reportId: string,
     routing: ChatRoutingContext,
-    appliedIndices: number[],
+    update: { appliedIndices?: number[]; dismissedIndices?: number[] },
   ): Promise<void> {
     const { rcaAgentUrl } = await this.urlCache.resolveUrls(
       routing.namespaceName,
@@ -160,7 +160,7 @@ export class RCAAgentClient implements RCAAgentApi {
       `${rcaAgentUrl}/api/v1/rca-agent/reports/${encodeURIComponent(reportId)}`,
       {
         method: 'PUT',
-        body: JSON.stringify({ appliedIndices }),
+        body: JSON.stringify(update),
         headers: {
           'Content-Type': 'application/json',
           'x-openchoreo-direct': 'true',
