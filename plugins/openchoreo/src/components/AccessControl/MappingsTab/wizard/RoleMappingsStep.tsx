@@ -470,7 +470,10 @@ export const RoleMappingsStep = ({
                 </MenuItem>
               ),
               ...namespaceRoles.map(role => (
-                <MenuItem key={`ns-${getRoleKey(role)}`} value={getRoleKey(role)}>
+                <MenuItem
+                  key={`ns-${getRoleKey(role)}`}
+                  value={getRoleKey(role)}
+                >
                   {role.name}
                 </MenuItem>
               )),
@@ -482,7 +485,10 @@ export const RoleMappingsStep = ({
                 </MenuItem>
               ),
               ...clusterRoles.map(role => (
-                <MenuItem key={`cr-${getRoleKey(role)}`} value={getRoleKey(role)}>
+                <MenuItem
+                  key={`cr-${getRoleKey(role)}`}
+                  value={getRoleKey(role)}
+                >
                   {role.name}
                 </MenuItem>
               )),
