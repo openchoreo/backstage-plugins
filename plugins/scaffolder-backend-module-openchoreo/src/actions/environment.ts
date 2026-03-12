@@ -79,8 +79,14 @@ export const createEnvironmentAction = (
         `Extracted dataplane ref: ${dataPlaneRefName} from ${ctx.input.dataPlaneRef}`,
       );
 
+      // Determine kind from entityRef prefix (clusterdataplane: vs dataplane:)
+      const dataPlaneRefKind: 'DataPlane' | 'ClusterDataPlane' =
+        ctx.input.dataPlaneRef?.startsWith('clusterdataplane:')
+          ? 'ClusterDataPlane'
+          : 'DataPlane';
+
       const dataPlaneRef = dataPlaneRefName
-        ? { kind: 'DataPlane' as const, name: dataPlaneRefName }
+        ? { kind: dataPlaneRefKind, name: dataPlaneRefName }
         : undefined;
 
       // Get the base URL from configuration
@@ -167,7 +173,9 @@ export const createEnvironmentAction = (
               isProduction: ctx.input.isProduction ?? data?.spec?.isProduction,
               dataPlaneRef:
                 data?.spec?.dataPlaneRef ||
-                (dataPlaneRefName ? { name: dataPlaneRefName } : undefined),
+                (dataPlaneRefName
+                  ? { kind: dataPlaneRefKind, name: dataPlaneRefName }
+                  : undefined),
               dnsPrefix: undefined,
               createdAt:
                 data?.metadata?.creationTimestamp || new Date().toISOString(),

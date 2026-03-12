@@ -1,10 +1,18 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import type { FieldValidation } from '@rjsf/utils';
 import {
   Grid,
   TextField,
   MenuItem,
+  ListSubheader,
   CircularProgress,
   InputAdornment,
   Switch,
@@ -41,7 +49,19 @@ const DEFAULT_FORM_DATA: EnvironmentFormData = {
   isProduction: false,
 };
 
-const DEFAULT_ENVIRONMENT_TEMPLATE = {
+const DEFAULT_ENVIRONMENT_TEMPLATE: {
+  apiVersion: string;
+  kind: string;
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations: Record<string, string>;
+  };
+  spec: {
+    dataPlaneRef: string | { kind: string; name: string };
+    isProduction: boolean;
+  };
+} = {
   apiVersion: 'openchoreo.dev/v1alpha1',
   kind: 'Environment',
   metadata: {
@@ -72,7 +92,13 @@ function formToYaml(data: EnvironmentFormData): string {
     data.displayName;
   template.metadata.annotations['openchoreo.dev/description'] =
     data.description;
-  template.spec.dataPlaneRef = extractName(data.dataPlaneRef);
+  if (data.dataPlaneRef) {
+    const isCluster = data.dataPlaneRef.startsWith('clusterdataplane:');
+    template.spec.dataPlaneRef = {
+      kind: isCluster ? 'ClusterDataPlane' : 'DataPlane',
+      name: extractName(data.dataPlaneRef),
+    };
+  }
   template.spec.isProduction = data.isProduction;
   return YAML.stringify(template, { indent: 2 });
 }
@@ -80,20 +106,37 @@ function formToYaml(data: EnvironmentFormData): string {
 function yamlToForm(
   yamlContent: string,
   namespaces: Array<{ name: string; entityRef: string }>,
-  dataplanes: Array<{ name: string; entityRef: string }>,
+  dataplanes: Array<{
+    name: string;
+    entityRef: string;
+    kind: 'DataPlane' | 'ClusterDataPlane';
+  }>,
 ): Partial<EnvironmentFormData> {
   const parsed = YAML.parse(yamlContent);
   if (!parsed || typeof parsed !== 'object') return {};
 
   const namespaceName = parsed.metadata?.namespace || '';
-  const dataPlaneRef = parsed.spec?.dataPlaneRef || '';
+  const rawDataPlaneRef = parsed.spec?.dataPlaneRef;
+
+  // Extract dataplane name and kind from YAML value (string or object)
+  let dataplaneName = '';
+  let dataplaneKind: 'DataPlane' | 'ClusterDataPlane' = 'DataPlane';
+  if (typeof rawDataPlaneRef === 'string') {
+    dataplaneName = rawDataPlaneRef;
+  } else if (rawDataPlaneRef && typeof rawDataPlaneRef === 'object') {
+    dataplaneName = rawDataPlaneRef.name || '';
+    dataplaneKind =
+      rawDataPlaneRef.kind === 'ClusterDataPlane'
+        ? 'ClusterDataPlane'
+        : 'DataPlane';
+  }
 
   // Try to match back to entity refs
   const matchedNamespace = namespaces.find(
     ns => extractName(ns.entityRef) === namespaceName,
   );
   const matchedDataplane = dataplanes.find(
-    dp => extractName(dp.entityRef) === dataPlaneRef,
+    dp => dp.name === dataplaneName && dp.kind === dataplaneKind,
   );
 
   return {
@@ -127,7 +170,11 @@ export const EnvironmentFormWithYamlExtension = ({
 
   const [namespaces, setNamespaces] = useState<NamespaceOption[]>([]);
   const [dataplanes, setDataplanes] = useState<
-    Array<{ name: string; entityRef: string }>
+    Array<{
+      name: string;
+      entityRef: string;
+      kind: 'DataPlane' | 'ClusterDataPlane';
+    }>
   >([]);
   const [loadingDataplanes, setLoadingDataplanes] = useState(true);
 
@@ -144,24 +191,37 @@ export const EnvironmentFormWithYamlExtension = ({
     [formData],
   );
 
-  // Fetch Dataplane entities
+  // Fetch Dataplane and ClusterDataplane entities
   useEffect(() => {
     const fetchDataplanes = async () => {
       try {
-        const { items } = await catalogApi.getEntities({
-          filter: { kind: 'Dataplane' },
-        });
-        const list = items.map(entity => ({
+        const [namespaceScoped, clusterScoped] = await Promise.all([
+          catalogApi.getEntities({ filter: { kind: 'Dataplane' } }),
+          catalogApi.getEntities({ filter: { kind: 'ClusterDataplane' } }),
+        ]);
+
+        const nsList = namespaceScoped.items.map(entity => ({
           name: entity.metadata.name,
           entityRef: `dataplane:${entity.metadata.namespace || 'default'}/${
             entity.metadata.name
           }`,
+          kind: 'DataPlane' as const,
         }));
-        setDataplanes(list);
+
+        const clusterList = clusterScoped.items.map(entity => ({
+          name: entity.metadata.name,
+          entityRef: `clusterdataplane:${
+            entity.metadata.namespace || 'openchoreo-cluster'
+          }/${entity.metadata.name}`,
+          kind: 'ClusterDataPlane' as const,
+        }));
+
+        const combined = [...clusterList, ...nsList];
+        setDataplanes(combined);
 
         // Auto-select first dataplane if none set
-        if (list.length > 0 && !formData?.dataPlaneRef) {
-          onChange({ ...data, dataPlaneRef: list[0].entityRef });
+        if (combined.length > 0 && !formData?.dataPlaneRef) {
+          onChange({ ...data, dataPlaneRef: combined[0].entityRef });
         }
       } catch {
         // ignore fetch errors
@@ -344,6 +404,19 @@ export const EnvironmentFormWithYamlExtension = ({
                 required
                 disabled={loadingDataplanes}
                 helperText="Select the data plane cluster for workloads in this environment"
+                SelectProps={{
+                  renderValue: value => {
+                    const selected = dataplanes.find(
+                      dp => dp.entityRef === value,
+                    );
+                    if (!selected) return value as string;
+                    const typeLabel =
+                      selected.kind === 'ClusterDataPlane'
+                        ? 'Cluster'
+                        : 'Namespace';
+                    return `${selected.name} (${typeLabel})`;
+                  },
+                }}
                 InputProps={{
                   endAdornment: loadingDataplanes ? (
                     <InputAdornment position="end">
@@ -352,11 +425,47 @@ export const EnvironmentFormWithYamlExtension = ({
                   ) : undefined,
                 }}
               >
-                {dataplanes.map(dp => (
-                  <MenuItem key={dp.entityRef} value={dp.entityRef}>
-                    {dp.name}
-                  </MenuItem>
-                ))}
+                {(() => {
+                  const clusterDps = dataplanes.filter(
+                    dp => dp.kind === 'ClusterDataPlane',
+                  );
+                  const namespaceDps = dataplanes.filter(
+                    dp => dp.kind === 'DataPlane',
+                  );
+                  const items: ReactNode[] = [];
+
+                  if (clusterDps.length > 0) {
+                    items.push(
+                      <ListSubheader key="header-cluster" disableSticky>
+                        Cluster Data Planes
+                      </ListSubheader>,
+                    );
+                    clusterDps.forEach(dp => {
+                      items.push(
+                        <MenuItem key={dp.entityRef} value={dp.entityRef}>
+                          {dp.name}
+                        </MenuItem>,
+                      );
+                    });
+                  }
+
+                  if (namespaceDps.length > 0) {
+                    items.push(
+                      <ListSubheader key="header-namespace" disableSticky>
+                        Namespace Data Planes
+                      </ListSubheader>,
+                    );
+                    namespaceDps.forEach(dp => {
+                      items.push(
+                        <MenuItem key={dp.entityRef} value={dp.entityRef}>
+                          {dp.name}
+                        </MenuItem>,
+                      );
+                    });
+                  }
+
+                  return items;
+                })()}
               </TextField>
             </Grid>
 
