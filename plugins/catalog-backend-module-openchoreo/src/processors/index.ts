@@ -1,6 +1,6 @@
 export { EnvironmentEntityProcessor } from './EnvironmentEntityProcessor';
 export { DataplaneEntityProcessor } from './DataplaneEntityProcessor';
-export { BuildPlaneEntityProcessor } from './BuildPlaneEntityProcessor';
+export { WorkflowPlaneEntityProcessor } from './WorkflowPlaneEntityProcessor';
 export { ObservabilityPlaneEntityProcessor } from './ObservabilityPlaneEntityProcessor';
 export { DeploymentPipelineEntityProcessor } from './DeploymentPipelineEntityProcessor';
 export { ComponentEntityProcessor } from './ComponentEntityProcessor';
@@ -13,6 +13,6 @@ export { ClusterComponentTypeEntityProcessor } from './ClusterComponentTypeEntit
 export { ClusterTraitTypeEntityProcessor } from './ClusterTraitTypeEntityProcessor';
 export { ClusterDataplaneEntityProcessor } from './ClusterDataplaneEntityProcessor';
 export { ClusterObservabilityPlaneEntityProcessor } from './ClusterObservabilityPlaneEntityProcessor';
-export { ClusterBuildPlaneEntityProcessor } from './ClusterBuildPlaneEntityProcessor';
+export { ClusterWorkflowPlaneEntityProcessor } from './ClusterWorkflowPlaneEntityProcessor';
 export { ClusterWorkflowEntityProcessor } from './ClusterWorkflowEntityProcessor';
-export { SystemBuildPlaneProcessor } from './SystemBuildPlaneProcessor';
+export { SystemWorkflowPlaneProcessor } from './SystemWorkflowPlaneProcessor';

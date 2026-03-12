@@ -169,7 +169,7 @@ openchoreo:
   # These can be controlled via Helm values: backstage.features.*
   # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED
   features:
-    # Build plane / Workflows functionality
+    # Workflow plane / Workflows functionality
     # When disabled, hides Workflows tab and WorkflowsOverviewCard from entity pages
     workflows:
       enabled: ${OPENCHOREO_FEATURES_WORKFLOWS_ENABLED}

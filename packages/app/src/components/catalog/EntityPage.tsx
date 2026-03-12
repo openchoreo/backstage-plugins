@@ -88,8 +88,8 @@ import {
   ClusterDataplaneStatusCard,
   ClusterDataplaneEnvironmentsCard,
   ClusterDataplaneGatewayConfigurationCard,
-  BuildPlaneStatusCard,
-  ClusterBuildPlaneStatusCard,
+  WorkflowPlaneStatusCard,
+  ClusterWorkflowPlaneStatusCard,
   ObservabilityPlaneStatusCard,
   ObservabilityPlaneLinkedPlanesCard,
   ClusterObservabilityPlaneStatusCard,
@@ -137,8 +137,8 @@ const PLATFORM_KIND_DISPLAY_NAMES: Record<string, string> = {
   domain: 'Namespace',
   dataplane: 'Dataplane',
   clusterdataplane: 'Cluster Data Plane',
-  buildplane: 'Build Plane',
-  clusterbuildplane: 'Cluster Build Plane',
+  workflowplane: 'Workflow Plane',
+  clusterworkflowplane: 'Cluster Workflow Plane',
   observabilityplane: 'Observability Plane',
   clusterobservabilityplane: 'Cluster Observability Plane',
   environment: 'Environment',
@@ -836,7 +836,7 @@ const clusterDataplanePage = (
   </OpenChoreoEntityLayout>
 );
 
-const buildPlanePage = (
+const workflowPlanePage = (
   <OpenChoreoEntityLayout
     contextMenuOptions={{ disableUnregister: 'hidden' }}
     parentEntityRelations={['partOf']}
@@ -847,7 +847,7 @@ const buildPlanePage = (
         {entityWarningContent}
         {/* Row 1: Status + Relations */}
         <Grid item md={6} xs={12}>
-          <BuildPlaneStatusCard />
+          <WorkflowPlaneStatusCard />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -874,7 +874,7 @@ const buildPlanePage = (
   </OpenChoreoEntityLayout>
 );
 
-const clusterBuildPlanePage = (
+const clusterWorkflowPlanePage = (
   <OpenChoreoEntityLayout
     contextMenuOptions={{ disableUnregister: 'hidden' }}
     kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
@@ -883,7 +883,7 @@ const clusterBuildPlanePage = (
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
         <Grid item md={6} xs={12}>
-          <ClusterBuildPlaneStatusCard />
+          <ClusterWorkflowPlaneStatusCard />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -1260,11 +1260,11 @@ export const entityPage = (
     <EntitySwitch.Case if={isKind('clusterdataplane')}>
       {clusterDataplanePage}
     </EntitySwitch.Case>
-    <EntitySwitch.Case if={isKind('buildplane')}>
-      {buildPlanePage}
+    <EntitySwitch.Case if={isKind('workflowplane')}>
+      {workflowPlanePage}
     </EntitySwitch.Case>
-    <EntitySwitch.Case if={isKind('clusterbuildplane')}>
-      {clusterBuildPlanePage}
+    <EntitySwitch.Case if={isKind('clusterworkflowplane')}>
+      {clusterWorkflowPlanePage}
     </EntitySwitch.Case>
     <EntitySwitch.Case if={isKind('observabilityplane')}>
       {observabilityPlanePage}

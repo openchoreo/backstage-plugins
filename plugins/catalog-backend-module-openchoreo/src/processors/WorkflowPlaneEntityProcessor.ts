@@ -13,26 +13,26 @@ import {
   RELATION_OBSERVED_BY,
   RELATION_OBSERVES,
 } from '@openchoreo/backstage-plugin-common';
-import { BuildPlaneEntityV1alpha1 } from '../kinds/BuildPlaneEntityV1alpha1';
+import { WorkflowPlaneEntityV1alpha1 } from '../kinds/WorkflowPlaneEntityV1alpha1';
 
 /**
- * Processor for BuildPlane entities
+ * Processor for WorkflowPlane entities
  */
-export class BuildPlaneEntityProcessor implements CatalogProcessor {
+export class WorkflowPlaneEntityProcessor implements CatalogProcessor {
   getProcessorName(): string {
-    return 'BuildPlaneEntityProcessor';
+    return 'WorkflowPlaneEntityProcessor';
   }
 
-  async validateEntityKind(entity: BuildPlaneEntityV1alpha1): Promise<boolean> {
-    return entity.kind === 'BuildPlane';
+  async validateEntityKind(entity: WorkflowPlaneEntityV1alpha1): Promise<boolean> {
+    return entity.kind === 'WorkflowPlane';
   }
 
   async postProcessEntity(
-    entity: BuildPlaneEntityV1alpha1,
+    entity: WorkflowPlaneEntityV1alpha1,
     _location: LocationSpec,
     emit: CatalogProcessorEmit,
-  ): Promise<BuildPlaneEntityV1alpha1> {
-    if (entity.kind === 'BuildPlane') {
+  ): Promise<WorkflowPlaneEntityV1alpha1> {
+    if (entity.kind === 'WorkflowPlane') {
       const sourceRef = {
         kind: entity.kind.toLowerCase(),
         namespace: entity.metadata.namespace || 'default',
@@ -101,19 +101,19 @@ export class BuildPlaneEntityProcessor implements CatalogProcessor {
   }
 
   async preProcessEntity(
-    entity: BuildPlaneEntityV1alpha1,
+    entity: WorkflowPlaneEntityV1alpha1,
     _location: LocationSpec,
     _emit: CatalogProcessorEmit,
-  ): Promise<BuildPlaneEntityV1alpha1> {
+  ): Promise<WorkflowPlaneEntityV1alpha1> {
     return entity;
   }
 
   async processEntity(
-    entity: BuildPlaneEntityV1alpha1,
+    entity: WorkflowPlaneEntityV1alpha1,
     location: LocationSpec,
     emit: CatalogProcessorEmit,
-  ): Promise<BuildPlaneEntityV1alpha1> {
-    if (entity.kind !== 'BuildPlane') {
+  ): Promise<WorkflowPlaneEntityV1alpha1> {
+    if (entity.kind !== 'WorkflowPlane') {
       return entity;
     }
 

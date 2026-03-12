@@ -20,7 +20,7 @@ const NAMESPACE_SCOPED_KINDS = new Set([
   'componentworkflow',
   'environment',
   'dataplane',
-  'buildplane',
+  'workflowplane',
   'observabilityplane',
   'deploymentpipeline',
 ]);

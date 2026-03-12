@@ -38,13 +38,13 @@ export const ClusterObservabilityPlaneLinkedPlanesCard = () => {
       setLoading(true);
       setError(false);
 
-      // Query catalog for ClusterDataplane and ClusterBuildPlane entities with matching observability-plane-ref annotation
-      const [dataplaneResult, buildplaneResult] = await Promise.all([
+      // Query catalog for ClusterDataplane and ClusterWorkflowPlane entities with matching observability-plane-ref annotation
+      const [dataplaneResult, workflowplaneResult] = await Promise.all([
         catalogApi.getEntities({
           filter: { kind: 'ClusterDataplane' },
         }),
         catalogApi.getEntities({
-          filter: { kind: 'ClusterBuildPlane' },
+          filter: { kind: 'ClusterWorkflowPlane' },
         }),
       ]);
 
@@ -65,10 +65,10 @@ export const ClusterObservabilityPlaneLinkedPlanesCard = () => {
         });
       });
 
-      buildplaneResult.items.filter(matchesRef).forEach(bp => {
+      workflowplaneResult.items.filter(matchesRef).forEach(bp => {
         planes.push({
           name: bp.metadata.name,
-          kind: 'ClusterBuildPlane',
+          kind: 'ClusterWorkflowPlane',
           namespace: bp.metadata.namespace || 'openchoreo-cluster',
           displayName: bp.metadata.title || bp.metadata.name,
         });
@@ -128,7 +128,7 @@ export const ClusterObservabilityPlaneLinkedPlanesCard = () => {
         <Box className={classes.emptyState}>
           <CloudOffIcon className={classes.emptyIcon} />
           <Typography variant="body2">
-            No cluster data planes or cluster build planes linked to this
+            No cluster data planes or cluster workflow planes linked to this
             observability plane
           </Typography>
         </Box>
@@ -187,7 +187,7 @@ export const ClusterObservabilityPlaneLinkedPlanesCard = () => {
               >
                 {plane.kind === 'ClusterDataplane'
                   ? 'Cluster Data Plane'
-                  : 'Cluster Build Plane'}
+                  : 'Cluster Workflow Plane'}
               </Typography>
             </Box>
 

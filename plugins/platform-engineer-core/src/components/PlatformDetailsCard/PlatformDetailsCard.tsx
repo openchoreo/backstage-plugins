@@ -6,7 +6,7 @@ import clsx from 'clsx';
 import { useNavigate } from 'react-router-dom';
 import {
   DataPlaneWithEnvironments,
-  BuildPlane,
+  WorkflowPlane,
   ObservabilityPlane,
 } from '../../types';
 import { useStyles } from './styles';
@@ -22,8 +22,8 @@ type PlaneItem = {
 interface PlatformDetailsCardProps {
   dataplanesWithEnvironments: DataPlaneWithEnvironments[];
   clusterDataplanes?: DataPlaneWithEnvironments[];
-  buildPlanes?: BuildPlane[];
-  clusterBuildPlanes?: BuildPlane[];
+  workflowPlanes?: WorkflowPlane[];
+  clusterWorkflowPlanes?: WorkflowPlane[];
   observabilityPlanes?: ObservabilityPlane[];
   clusterObservabilityPlanes?: ObservabilityPlane[];
 }
@@ -31,8 +31,8 @@ interface PlatformDetailsCardProps {
 export const PlatformDetailsCard = ({
   dataplanesWithEnvironments,
   clusterDataplanes = [],
-  buildPlanes = [],
-  clusterBuildPlanes = [],
+  workflowPlanes = [],
+  clusterWorkflowPlanes = [],
   observabilityPlanes = [],
   clusterObservabilityPlanes = [],
 }: PlatformDetailsCardProps) => {
@@ -42,8 +42,8 @@ export const PlatformDetailsCard = ({
   const hasAnyPlanes =
     dataplanesWithEnvironments.length > 0 ||
     clusterDataplanes.length > 0 ||
-    buildPlanes.length > 0 ||
-    clusterBuildPlanes.length > 0 ||
+    workflowPlanes.length > 0 ||
+    clusterWorkflowPlanes.length > 0 ||
     observabilityPlanes.length > 0 ||
     clusterObservabilityPlanes.length > 0;
 
@@ -133,10 +133,10 @@ export const PlatformDetailsCard = ({
             dp => `/catalog/${dp.namespaceName}/dataplane/${dp.name}`,
           )}
           {renderPlaneSection(
-            'Build Planes',
+            'Workflow Planes',
             <BuildIcon className={classes.planeSectionIcon} />,
-            buildPlanes,
-            bp => `/catalog/${bp.namespaceName}/buildplane/${bp.name}`,
+            workflowPlanes,
+            bp => `/catalog/${bp.namespaceName}/workflowplane/${bp.name}`,
           )}
           {renderPlaneSection(
             'Observability Planes',
@@ -151,10 +151,10 @@ export const PlatformDetailsCard = ({
             dp => `/catalog/openchoreo-cluster/clusterdataplane/${dp.name}`,
           )}
           {renderPlaneSection(
-            'Cluster Build Planes',
+            'Cluster Workflow Planes',
             <BuildIcon className={classes.planeSectionIcon} />,
-            clusterBuildPlanes,
-            bp => `/catalog/openchoreo-cluster/clusterbuildplane/${bp.name}`,
+            clusterWorkflowPlanes,
+            bp => `/catalog/openchoreo-cluster/clusterworkflowplane/${bp.name}`,
           )}
           {renderPlaneSection(
             'Cluster Observability Planes',

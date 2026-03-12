@@ -94,8 +94,8 @@ export function transformReleaseBinding(
     namespaceName: getNamespace(binding) ?? '',
     environment: binding.spec?.environment ?? '',
     releaseName: binding.spec?.releaseName ?? '',
-    componentTypeEnvOverrides: binding.spec?.componentTypeEnvOverrides,
-    traitOverrides: binding.spec?.traitOverrides,
+    componentTypeEnvironmentConfigs: binding.spec?.componentTypeEnvironmentConfigs,
+    traitEnvironmentConfigs: binding.spec?.traitEnvironmentConfigs,
     workloadOverrides: binding.spec?.workloadOverrides as
       | ReleaseBindingResponse['workloadOverrides']
       | undefined,

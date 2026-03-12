@@ -35,7 +35,7 @@ interface UseRequiredOverridesCheckReturn extends RequiredOverridesCheckResult {
 }
 
 /**
- * Hook for checking if required ComponentType envOverrides are missing
+ * Hook for checking if required ComponentType environmentConfigs are missing
  * from a release binding for a specific environment.
  *
  * Usage:
@@ -80,14 +80,14 @@ export function useRequiredOverridesCheck(
           return [];
         }
 
-        // Extract componentTypeEnvOverrides schema
+        // Extract componentTypeEnvironmentConfigs schema
         const wrappedSchema = schemaResponse.data as {
           properties?: {
-            componentTypeEnvOverrides?: JSONSchema7;
+            componentTypeEnvironmentConfigs?: JSONSchema7;
           };
         };
         const componentTypeSchema =
-          wrappedSchema.properties?.componentTypeEnvOverrides;
+          wrappedSchema.properties?.componentTypeEnvironmentConfigs;
 
         // Check if schema has any required fields
         const requiredFields =
@@ -117,9 +117,9 @@ export function useRequiredOverridesCheck(
               b.environment?.toLowerCase() === environmentName?.toLowerCase(),
           );
 
-          if (currentBinding?.componentTypeEnvOverrides) {
+          if (currentBinding?.componentTypeEnvironmentConfigs) {
             currentOverrides =
-              currentBinding.componentTypeEnvOverrides as Record<
+              currentBinding.componentTypeEnvironmentConfigs as Record<
                 string,
                 unknown
               >;

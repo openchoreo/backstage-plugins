@@ -20,7 +20,7 @@ const DEFAULT_COMPONENT_TYPE_TEMPLATE = {
     workloadType: 'deployment',
     schema: {
       parameters: {},
-      envOverrides: {
+      environmentConfigs: {
         replicas: 'integer | default=1',
       },
     },
@@ -36,7 +36,7 @@ const DEFAULT_COMPONENT_TYPE_TEMPLATE = {
             labels: '${metadata.labels}',
           },
           spec: {
-            replicas: '${envOverrides.replicas}',
+            replicas: '${environmentConfigs.replicas}',
             selector: {
               matchLabels: '${metadata.podSelectors}',
             },

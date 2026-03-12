@@ -9,7 +9,7 @@ import { ClusterObservabilityPlaneEntityV1alpha1 } from '../kinds/ClusterObserva
 /**
  * Processor for ClusterObservabilityPlane entities.
  * Cluster-scoped: no domain relationships. The observedBy/observes relationships
- * are emitted by ClusterDataplaneEntityProcessor and ClusterBuildPlaneEntityProcessor.
+ * are emitted by ClusterDataplaneEntityProcessor and ClusterWorkflowPlaneEntityProcessor.
  */
 export class ClusterObservabilityPlaneEntityProcessor
   implements CatalogProcessor

@@ -12,7 +12,7 @@ import { ScaffolderEntityProvider } from './provider/ScaffolderEntityProvider';
 import {
   EnvironmentEntityProcessor,
   DataplaneEntityProcessor,
-  BuildPlaneEntityProcessor,
+  WorkflowPlaneEntityProcessor,
   ObservabilityPlaneEntityProcessor,
   DeploymentPipelineEntityProcessor,
   ComponentEntityProcessor,
@@ -25,9 +25,9 @@ import {
   ClusterTraitTypeEntityProcessor,
   ClusterDataplaneEntityProcessor,
   ClusterObservabilityPlaneEntityProcessor,
-  ClusterBuildPlaneEntityProcessor,
+  ClusterWorkflowPlaneEntityProcessor,
   ClusterWorkflowEntityProcessor,
-  SystemBuildPlaneProcessor,
+  SystemWorkflowPlaneProcessor,
 } from './processors';
 import {
   immediateCatalogServiceRef,
@@ -101,8 +101,8 @@ export const catalogModuleOpenchoreo = createBackendModule({
         // Register the Dataplane entity processor
         catalog.addProcessor(new DataplaneEntityProcessor());
 
-        // Register the BuildPlane entity processor
-        catalog.addProcessor(new BuildPlaneEntityProcessor());
+        // Register the WorkflowPlane entity processor
+        catalog.addProcessor(new WorkflowPlaneEntityProcessor());
 
         // Register the ObservabilityPlane entity processor
         catalog.addProcessor(new ObservabilityPlaneEntityProcessor());
@@ -137,14 +137,14 @@ export const catalogModuleOpenchoreo = createBackendModule({
         // Register the ClusterObservabilityPlane entity processor
         catalog.addProcessor(new ClusterObservabilityPlaneEntityProcessor());
 
-        // Register the ClusterBuildPlane entity processor
-        catalog.addProcessor(new ClusterBuildPlaneEntityProcessor());
+        // Register the ClusterWorkflowPlane entity processor
+        catalog.addProcessor(new ClusterWorkflowPlaneEntityProcessor());
 
         // Register the ClusterWorkflow entity processor
         catalog.addProcessor(new ClusterWorkflowEntityProcessor());
 
-        // Register the SystemBuildPlane processor (emits buildsOn/builds relations)
-        catalog.addProcessor(new SystemBuildPlaneProcessor());
+        // Register the SystemWorkflowPlane processor (emits buildsOn/builds relations)
+        catalog.addProcessor(new SystemWorkflowPlaneProcessor());
 
         // Register the scheduled OpenChoreo entity provider
         catalog.addEntityProvider(

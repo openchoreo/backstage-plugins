@@ -22,14 +22,14 @@ export const ENTITY_KIND_COLORS: Record<string, string> = {
   dataplane: '#6b7280', // secondary.main - Gray for dataplanes
   deploymentpipeline: '#f59e0b', // warning.main - Orange for pipelines
   observabilityplane: '#8b5cf6', // Purple for observability planes
-  buildplane: '#3b82f6', // Blue for build planes
+  workflowplane: '#3b82f6', // Blue for workflow planes
   componenttype: '#f59e0b', // Orange for component types
   traittype: '#10b981', // Green for trait types
   clustercomponenttype: '#f59e0b', // Orange for cluster component types (same as componenttype)
   clustertraittype: '#10b981', // Green for cluster trait types (same as traittype)
   clusterdataplane: '#6b7280', // secondary.main - Gray for cluster dataplanes (same as dataplane)
   clusterobservabilityplane: '#8b5cf6', // Purple for cluster observability planes (same as observabilityplane)
-  clusterbuildplane: '#3b82f6', // Blue for cluster build planes (same as buildplane)
+  clusterworkflowplane: '#3b82f6', // Blue for cluster workflow planes (same as workflowplane)
   workflow: '#8b5cf6', // Purple for workflows
   clusterworkflow: '#8b5cf6', // Purple for cluster workflows (same as workflow)
   componentworkflow: '#3b82f6', // Blue for component workflows
@@ -86,14 +86,14 @@ export const KIND_LABEL_PREFIXES: Record<string, string> = {
   environment: 'Env',
   deploymentpipeline: 'Pipeline',
   observabilityplane: 'Obs',
-  buildplane: 'BP',
+  workflowplane: 'WP',
   componenttype: 'CT',
   traittype: 'Trait',
   clustercomponenttype: 'CCT',
   clustertraittype: 'CTrait',
   clusterdataplane: 'CDP',
   clusterobservabilityplane: 'CObs',
-  clusterbuildplane: 'CBP',
+  clusterworkflowplane: 'CWP',
   workflow: 'WF',
   clusterworkflow: 'CWF',
   componentworkflow: 'CompWF',
@@ -121,14 +121,14 @@ export const KIND_FULL_LABELS: Record<string, string> = {
   environment: 'Environment',
   deploymentpipeline: 'Pipeline',
   observabilityplane: 'Obs Plane',
-  buildplane: 'Build Plane',
+  workflowplane: 'Workflow Plane',
   componenttype: 'Component Type',
   traittype: 'Trait Type',
   clustercomponenttype: 'Cluster Component Type',
   clustertraittype: 'Cluster Trait Type',
   clusterdataplane: 'Cluster Data Plane',
   clusterobservabilityplane: 'Cluster Obs Plane',
-  clusterbuildplane: 'Cluster Build Plane',
+  clusterworkflowplane: 'Cluster Workflow Plane',
   workflow: 'Workflow',
   clusterworkflow: 'Cluster Workflow',
   componentworkflow: 'Component Workflow',

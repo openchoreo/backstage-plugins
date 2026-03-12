@@ -162,7 +162,7 @@ openchoreo:
   # Feature flags for enabling/disabling OpenChoreo functionality
   # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED
   features:
-    # Build plane / Workflows functionality
+    # Workflow plane / Workflows functionality
     # When disabled, hides Workflows tab and WorkflowsOverviewCard from entity pages
     workflows:
       enabled: ${OPENCHOREO_FEATURES_WORKFLOWS_ENABLED}

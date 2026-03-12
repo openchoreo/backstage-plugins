@@ -2999,7 +2999,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ActionInfo'
+                  type: string
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -8961,29 +8961,6 @@ components:
               type: string
               description: Reason for the decision
               example: User has admin role
-
-    ActionInfo:
-      type: object
-      description: An authorization action with its scope in the resource hierarchy.
-      required:
-        - name
-        - lowestScope
-      properties:
-        name:
-          type: string
-          description: The action identifier (e.g. "component:create").
-          example: component:create
-        lowestScope:
-          type: string
-          description: >
-            The lowest resource hierarchy level at which this action is evaluated.
-            One of cluster, namespace, project, or component.
-          enum:
-            - cluster
-            - namespace
-            - project
-            - component
-          example: component
 
     ActionCapability:
       type: object

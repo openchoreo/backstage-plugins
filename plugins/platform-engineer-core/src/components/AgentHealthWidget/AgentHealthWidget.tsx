@@ -23,16 +23,16 @@ export const AgentHealthWidget = () => {
       setLoading(true);
       setError(null);
 
-      const [dataplaneResult, buildPlaneResult, obsPlaneResult] =
+      const [dataplaneResult, workflowPlaneResult, obsPlaneResult] =
         await Promise.all([
           catalogApi.getEntities({ filter: { kind: 'Dataplane' } }),
-          catalogApi.getEntities({ filter: { kind: 'BuildPlane' } }),
+          catalogApi.getEntities({ filter: { kind: 'WorkflowPlane' } }),
           catalogApi.getEntities({ filter: { kind: 'ObservabilityPlane' } }),
         ]);
 
       const allPlanes = [
         ...dataplaneResult.items,
-        ...buildPlaneResult.items,
+        ...workflowPlaneResult.items,
         ...obsPlaneResult.items,
       ];
 

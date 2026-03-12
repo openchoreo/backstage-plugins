@@ -19,7 +19,7 @@
  * ```
  */
 export interface OpenChoreoFeatures {
-  /** Build plane / Workflows feature */
+  /** Workflow plane / Workflows feature */
   workflows: { enabled: boolean };
   /** Observability plane features (Metrics, Traces, Logs) */
   observability: { enabled: boolean };

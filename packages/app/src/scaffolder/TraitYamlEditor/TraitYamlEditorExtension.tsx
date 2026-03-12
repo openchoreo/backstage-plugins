@@ -29,7 +29,7 @@ metadata:
 spec:
   schema:
     parameters: {}
-    envOverrides: {}
+    environmentConfigs: {}
   creates: []
   patches: []
 `;

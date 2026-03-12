@@ -105,7 +105,7 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   system: 'system',
   component: 'component',
   dataplane: 'namespace-scoped',
-  buildplane: 'namespace-scoped',
+  workflowplane: 'namespace-scoped',
   observabilityplane: 'namespace-scoped',
   deploymentpipeline: 'namespace-scoped',
   componenttype: 'namespace-scoped',
@@ -114,7 +114,7 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   componentworkflow: 'namespace-scoped',
   environment: 'namespace-scoped',
   clusterdataplane: 'cluster-scoped',
-  clusterbuildplane: 'cluster-scoped',
+  clusterworkflowplane: 'cluster-scoped',
   clusterobservabilityplane: 'cluster-scoped',
   clustercomponenttype: 'cluster-scoped',
   clustertraittype: 'cluster-scoped',
@@ -124,7 +124,7 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
 /** Entity kinds that are cluster-scoped (no namespace annotation). */
 const CLUSTER_SCOPED_KINDS = new Set([
   'clusterdataplane',
-  'clusterbuildplane',
+  'clusterworkflowplane',
   'clusterobservabilityplane',
   'clustercomponenttype',
   'clustertraittype',

@@ -226,7 +226,7 @@ describe('PlatformResourceService', () => {
       expect(mockDELETE).toHaveBeenCalledTimes(1);
     });
 
-    it('deletes buildplane via new API', async () => {
+    it('deletes workflowplane via new API', async () => {
       mockDELETE.mockResolvedValueOnce({
         error: undefined,
         response: { ok: true, status: 200 },
@@ -234,14 +234,14 @@ describe('PlatformResourceService', () => {
 
       const service = createService();
       const result = await service.deleteResourceDefinition(
-        'buildplanes' as any,
+        'workflowplanes' as any,
         'test-ns',
         'bp-1',
         'token-123',
       );
 
       expect(result.success).toBe(true);
-      expect(result.data?.kind).toBe('BuildPlane');
+      expect(result.data?.kind).toBe('WorkflowPlane');
     });
 
     it('throws on API error', async () => {

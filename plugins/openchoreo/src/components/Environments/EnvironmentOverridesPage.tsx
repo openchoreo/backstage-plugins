@@ -234,9 +234,9 @@ export const EnvironmentOverridesPage = ({
     const traitTabs: TabItemData[] = [];
     Object.keys(schemas.traitSchemasMap).forEach(traitName => {
       const traitSchema = schemas.traitSchemasMap[traitName];
-      // Use hasActualTraitOverridesMap to check if backend has real overrides for this trait
+      // Use hasActualTraitEnvironmentConfigsMap to check if backend has real overrides for this trait
       const hasInitialTraitData =
-        formState.hasActualTraitOverridesMap[traitName] || false;
+        formState.hasActualTraitEnvironmentConfigsMap[traitName] || false;
       const hasTraitChanges = (changes.traits[traitName]?.length || 0) > 0;
       const traitMissingRequired = getMissingRequiredFields(
         traitSchema,
@@ -281,7 +281,7 @@ export const EnvironmentOverridesPage = ({
   }, [
     schemas,
     formState.hasActualComponentOverrides,
-    formState.hasActualTraitOverridesMap,
+    formState.hasActualTraitEnvironmentConfigsMap,
     formState.hasActualWorkloadOverrides,
     formState.traitFormDataMap,
     changes,

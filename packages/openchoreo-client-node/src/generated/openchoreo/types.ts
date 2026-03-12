@@ -121,7 +121,7 @@ export interface paths {
     /**
      * List namespaces
      * @description Returns a paginated list of OpenChoreo control plane namespaces the user has access to.
-     *     Only namespaces with the label `openchoreo.dev/controlplane-namespace=true` are returned.
+     *     Only namespaces with the label `openchoreo.dev/namespace=true` are returned.
      *     This filters out system namespaces (e.g., openchoreo-control-plane, kube-system) and
      *     data plane runtime namespaces.
      *
@@ -131,7 +131,7 @@ export interface paths {
     /**
      * Create namespace
      * @description Creates a new OpenChoreo control plane namespace.
-     *     The namespace is automatically labeled with `openchoreo.dev/controlplane-namespace=true`.
+     *     The namespace is automatically labeled with `openchoreo.dev/namespace=true`.
      *
      */
     post: operations['createNamespace'];
@@ -349,7 +349,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/buildplanes': {
+  '/api/v1/namespaces/{namespaceName}/workflowplanes': {
     parameters: {
       query?: never;
       header?: never;
@@ -357,23 +357,23 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * List build planes
-     * @description Returns a paginated list of build planes within a namespace. Typically one per namespace.
+     * List workflow planes
+     * @description Returns a paginated list of workflow planes within a namespace. Typically one per namespace.
      */
-    get: operations['listBuildPlanes'];
+    get: operations['listWorkflowPlanes'];
     put?: never;
     /**
-     * Create build plane
-     * @description Creates a new build plane within a namespace.
+     * Create workflow plane
+     * @description Creates a new workflow plane within a namespace.
      */
-    post: operations['createBuildPlane'];
+    post: operations['createWorkflowPlane'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/buildplanes/{buildPlaneName}': {
+  '/api/v1/namespaces/{namespaceName}/workflowplanes/{workflowPlaneName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -381,21 +381,21 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Get build plane
-     * @description Returns details of a specific build plane.
+     * Get workflow plane
+     * @description Returns details of a specific workflow plane.
      */
-    get: operations['getBuildPlane'];
+    get: operations['getWorkflowPlane'];
     /**
-     * Update build plane
-     * @description Replaces an existing build plane (full update).
+     * Update workflow plane
+     * @description Replaces an existing workflow plane (full update).
      */
-    put: operations['updateBuildPlane'];
+    put: operations['updateWorkflowPlane'];
     post?: never;
     /**
-     * Delete build plane
-     * @description Deletes a build plane by name.
+     * Delete workflow plane
+     * @description Deletes a workflow plane by name.
      */
-    delete: operations['deleteBuildPlane'];
+    delete: operations['deleteWorkflowPlane'];
     options?: never;
     head?: never;
     patch?: never;
@@ -505,7 +505,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/clusterbuildplanes': {
+  '/api/v1/clusterworkflowplanes': {
     parameters: {
       query?: never;
       header?: never;
@@ -513,23 +513,23 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * List cluster build planes
-     * @description Returns a list of cluster-scoped build planes.
+     * List cluster workflow planes
+     * @description Returns a list of cluster-scoped workflow planes.
      */
-    get: operations['listClusterBuildPlanes'];
+    get: operations['listClusterWorkflowPlanes'];
     put?: never;
     /**
-     * Create cluster build plane
-     * @description Creates a new cluster-scoped build plane.
+     * Create cluster workflow plane
+     * @description Creates a new cluster-scoped workflow plane.
      */
-    post: operations['createClusterBuildPlane'];
+    post: operations['createClusterWorkflowPlane'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/v1/clusterbuildplanes/{clusterBuildPlaneName}': {
+  '/api/v1/clusterworkflowplanes/{clusterWorkflowPlaneName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -537,21 +537,21 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Get a cluster build plane
-     * @description Returns details of a specific cluster-scoped build plane.
+     * Get a cluster workflow plane
+     * @description Returns details of a specific cluster-scoped workflow plane.
      */
-    get: operations['getClusterBuildPlane'];
+    get: operations['getClusterWorkflowPlane'];
     /**
-     * Update cluster build plane
-     * @description Replaces an existing cluster-scoped build plane (full update).
+     * Update cluster workflow plane
+     * @description Replaces an existing cluster-scoped workflow plane (full update).
      */
-    put: operations['updateClusterBuildPlane'];
+    put: operations['updateClusterWorkflowPlane'];
     post?: never;
     /**
-     * Delete cluster build plane
-     * @description Deletes a cluster-scoped build plane by name.
+     * Delete cluster workflow plane
+     * @description Deletes a cluster-scoped workflow plane by name.
      */
-    delete: operations['deleteClusterBuildPlane'];
+    delete: operations['deleteClusterWorkflowPlane'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1118,7 +1118,7 @@ export interface paths {
     };
     /**
      * Get workflow run logs
-     * @description Returns logs for a specific workflow run from the build plane. Logs are fetched live from the build plane; no archived logs are returned for completed runs.
+     * @description Returns logs for a specific workflow run from the workflow plane. Logs are fetched live from the workflow plane; no archived logs are returned for completed runs.
      */
     get: operations['getWorkflowRunLogs'];
     put?: never;
@@ -1191,106 +1191,6 @@ export interface paths {
     get: operations['getComponentSchema'];
     put?: never;
     post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get release resource tree
-     * @description Returns all live Kubernetes resources deployed by the active release for a component in an environment, including child resources like Pods.
-     */
-    get: operations['getReleaseResourceTree'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/events': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get resource events
-     * @description Returns Kubernetes events for a specific resource in the release resource tree.
-     */
-    get: operations['getReleaseResourceEvents'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/pod-logs': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get pod logs
-     * @description Returns logs for a specific pod in the release resource tree.
-     */
-    get: operations['getReleaseResourcePodLogs'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/components/{componentName}/deploy': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Deploy release
-     * @description Deploys a component release to an environment.
-     */
-    post: operations['deployRelease'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/components/{componentName}/promote': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Promote component
-     * @description Promotes a component release from one environment to another.
-     */
-    post: operations['promoteComponent'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1593,10 +1493,10 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * List user types
-     * @description Returns the configured user types for authentication and authorization.
+     * List subject types
+     * @description Returns the configured subject types for authentication and authorization.
      */
-    get: operations['listUserTypes'];
+    get: operations['listSubjectTypes'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2243,24 +2143,24 @@ export interface components {
        */
       scopes: string[];
     };
-    /** @description Configuration for a user type used in authentication and authorization */
-    UserTypeConfig: {
+    /** @description Configuration for a subject type used in authentication and authorization */
+    SubjectTypeConfig: {
       /**
-       * @description User type identifier (e.g., "user", "service_account")
+       * @description Subject type identifier (e.g., "user", "service_account")
        * @example user
        */
       type: string;
       /**
-       * @description Human-readable name for the user type
+       * @description Human-readable name for the subject type
        * @example Human User
        */
       displayName: string;
       /**
-       * @description Check order for user type detection (lower = higher priority)
+       * @description Check order for subject type detection (lower = higher priority)
        * @example 1
        */
       priority: number;
-      /** @description Supported authentication mechanisms for this user type */
+      /** @description Supported authentication mechanisms for this subject type */
       authMechanisms: components['schemas']['AuthMechanismConfig'][];
     };
     /** @description Configuration for an authentication mechanism */
@@ -2315,7 +2215,7 @@ export interface components {
     };
     /** @description Namespace resource.
      *     Control plane namespaces hold resources like Projects, Components, and Environments.
-     *     These namespaces are identified by the label `openchoreo.dev/controlplane-namespace=true`.
+     *     These namespaces are identified by the label `openchoreo.dev/namespace=true`.
      *      */
     Namespace: {
       metadata: components['schemas']['ObjectMeta'];
@@ -2342,8 +2242,11 @@ export interface components {
          * @enum {string}
          */
         kind: 'DeploymentPipeline';
-        /** @description Name of the deployment pipeline resource */
-        name?: string;
+        /**
+         * @description Name of the deployment pipeline resource
+         * @example default
+         */
+        name: string;
       };
     };
     /** @description Observed state of a Project */
@@ -2527,12 +2430,12 @@ export interface components {
       /**
        * @deprecated
        * @description DEPRECATED: Use componentType instead. Legacy component type field.
-       * @example deployment/go-service
+       * @example service/go-service
        */
       type?: string;
       /**
-       * @description Component type reference in format: {workloadType}/{componentTypeName}
-       * @example deployment/go-service
+       * @description Component type reference (format: {workloadType}/{componentTypeName})
+       * @example service/go-service
        */
       componentType?: string;
       /**
@@ -2751,15 +2654,15 @@ export interface components {
       /** @description Virtual host for the listener */
       host?: string;
     };
-    /** @description Paginated list of build planes */
-    BuildPlaneList: {
-      items: components['schemas']['BuildPlane'][];
+    /** @description Paginated list of workflow planes */
+    WorkflowPlaneList: {
+      items: components['schemas']['WorkflowPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description BuildPlane resource.
+    /** @description WorkflowPlane resource.
      *     Represents CI/CD build infrastructure within a namespace.
      *      */
-    BuildPlane: {
+    WorkflowPlane: {
       /**
        * @description API version of the resource
        * @example openchoreo.dev/v1alpha1
@@ -2767,18 +2670,18 @@ export interface components {
       readonly apiVersion?: string;
       /**
        * @description Kind of the resource
-       * @example BuildPlane
+       * @example WorkflowPlane
        */
       readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
-      spec?: components['schemas']['BuildPlaneSpec'];
-      readonly status?: components['schemas']['BuildPlaneStatus'];
+      spec?: components['schemas']['WorkflowPlaneSpec'];
+      readonly status?: components['schemas']['WorkflowPlaneStatus'];
     };
-    /** @description Desired state of a BuildPlane */
-    BuildPlaneSpec: {
+    /** @description Desired state of a WorkflowPlane */
+    WorkflowPlaneSpec: {
       /**
        * @description Logical plane identifier for the physical cluster.
-       *     Multiple BuildPlane CRs can share the same planeID.
+       *     Multiple WorkflowPlane CRs can share the same planeID.
        *
        * @example ci-cluster
        */
@@ -2787,14 +2690,14 @@ export interface components {
       secretStoreRef?: components['schemas']['SecretStoreRef'];
       observabilityPlaneRef?: components['schemas']['ObservabilityPlaneRef'];
     };
-    /** @description Observed state of a BuildPlane */
-    BuildPlaneStatus: {
+    /** @description Observed state of a WorkflowPlane */
+    WorkflowPlaneStatus: {
       /**
        * Format: int64
-       * @description Generation of the most recently observed BuildPlane
+       * @description Generation of the most recently observed WorkflowPlane
        */
       observedGeneration?: number;
-      /** @description Current state conditions of the BuildPlane */
+      /** @description Current state conditions of the WorkflowPlane */
       conditions?: components['schemas']['Condition'][];
       agentConnection?: components['schemas']['AgentConnectionStatus'];
     };
@@ -2963,15 +2866,15 @@ export interface components {
       conditions?: components['schemas']['Condition'][];
       agentConnection?: components['schemas']['AgentConnectionStatus'];
     };
-    /** @description List of cluster-scoped build planes */
-    ClusterBuildPlaneList: {
-      items: components['schemas']['ClusterBuildPlane'][];
+    /** @description List of cluster-scoped workflow planes */
+    ClusterWorkflowPlaneList: {
+      items: components['schemas']['ClusterWorkflowPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ClusterBuildPlane resource.
+    /** @description ClusterWorkflowPlane resource.
      *     Represents cluster-scoped CI/CD build infrastructure.
      *      */
-    ClusterBuildPlane: {
+    ClusterWorkflowPlane: {
       /**
        * @description API version of the resource
        * @example openchoreo.dev/v1alpha1
@@ -2979,18 +2882,18 @@ export interface components {
       readonly apiVersion?: string;
       /**
        * @description Kind of the resource
-       * @example ClusterBuildPlane
+       * @example ClusterWorkflowPlane
        */
       readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
-      spec?: components['schemas']['ClusterBuildPlaneSpec'];
-      readonly status?: components['schemas']['ClusterBuildPlaneStatus'];
+      spec?: components['schemas']['ClusterWorkflowPlaneSpec'];
+      readonly status?: components['schemas']['ClusterWorkflowPlaneStatus'];
     };
-    /** @description Desired state of a ClusterBuildPlane */
-    ClusterBuildPlaneSpec: {
+    /** @description Desired state of a ClusterWorkflowPlane */
+    ClusterWorkflowPlaneSpec: {
       /**
        * @description Logical plane identifier for the physical cluster.
-       *     Multiple ClusterBuildPlane CRs can share the same planeID.
+       *     Multiple ClusterWorkflowPlane CRs can share the same planeID.
        *
        * @example ci-cluster
        */
@@ -2999,14 +2902,14 @@ export interface components {
       secretStoreRef?: components['schemas']['SecretStoreRef'];
       observabilityPlaneRef?: components['schemas']['ClusterObservabilityPlaneRef'];
     };
-    /** @description Observed state of a ClusterBuildPlane */
-    ClusterBuildPlaneStatus: {
+    /** @description Observed state of a ClusterWorkflowPlane */
+    ClusterWorkflowPlaneStatus: {
       /**
        * Format: int64
-       * @description Generation of the most recently observed ClusterBuildPlane
+       * @description Generation of the most recently observed ClusterWorkflowPlane
        */
       observedGeneration?: number;
-      /** @description Current state conditions of the ClusterBuildPlane */
+      /** @description Current state conditions of the ClusterWorkflowPlane */
       conditions?: components['schemas']['Condition'][];
       agentConnection?: components['schemas']['AgentConnectionStatus'];
     };
@@ -3132,24 +3035,8 @@ export interface components {
         /** @description Name of the ClusterWorkflow resource */
         name: string;
       }[];
-      /** @description Developer-configurable schema definition */
-      schema?: {
-        /** @description Schema using OpenChoreo's simple schema format */
-        ocSchema?: {
-          /** @description Reusable type definitions */
-          types?: {
-            [key: string]: unknown;
-          };
-          /** @description Static developer configuration parameters */
-          parameters?: {
-            [key: string]: unknown;
-          };
-          /** @description Environment-specific overrides for platform engineers */
-          envOverrides?: {
-            [key: string]: unknown;
-          };
-        };
-      };
+      parameters?: components['schemas']['SchemaSection'];
+      environmentConfigs?: components['schemas']['SchemaSection'];
       /** @description Pre-configured trait instances embedded in this component type */
       traits?: {
         /**
@@ -3167,7 +3054,7 @@ export interface components {
           [key: string]: unknown;
         };
         /** @description Trait environment override bindings */
-        envOverrides?: {
+        environmentConfigs?: {
           [key: string]: unknown;
         };
       }[];
@@ -3232,24 +3119,8 @@ export interface components {
     };
     /** @description Desired state of a ClusterTrait */
     ClusterTraitSpec: {
-      /** @description Trait parameter schema definition */
-      schema?: {
-        /** @description Schema using OpenChoreo's simple schema format */
-        ocSchema?: {
-          /** @description Reusable type definitions */
-          types?: {
-            [key: string]: unknown;
-          };
-          /** @description Developer-facing configuration options */
-          parameters?: {
-            [key: string]: unknown;
-          };
-          /** @description Environment-specific overrides */
-          envOverrides?: {
-            [key: string]: unknown;
-          };
-        };
-      };
+      parameters?: components['schemas']['SchemaSection'];
+      environmentConfigs?: components['schemas']['SchemaSection'];
       /** @description CEL-based validation rules evaluated during rendering */
       validations?: components['schemas']['ValidationRule'][];
       /** @description New Kubernetes resources to create when this trait is applied */
@@ -3346,24 +3217,8 @@ export interface components {
         /** @description Name of the workflow resource */
         name: string;
       }[];
-      /** @description Developer-configurable schema definition */
-      schema?: {
-        /** @description Schema using OpenChoreo's simple schema format */
-        ocSchema?: {
-          /** @description Reusable type definitions */
-          types?: {
-            [key: string]: unknown;
-          };
-          /** @description Static developer configuration parameters */
-          parameters?: {
-            [key: string]: unknown;
-          };
-          /** @description Environment-specific overrides for platform engineers */
-          envOverrides?: {
-            [key: string]: unknown;
-          };
-        };
-      };
+      parameters?: components['schemas']['SchemaSection'];
+      environmentConfigs?: components['schemas']['SchemaSection'];
       /** @description Pre-configured trait instances embedded in this component type */
       traits?: {
         /**
@@ -3381,7 +3236,7 @@ export interface components {
           [key: string]: unknown;
         };
         /** @description Trait environment override bindings */
-        envOverrides?: {
+        environmentConfigs?: {
           [key: string]: unknown;
         };
       }[];
@@ -3447,24 +3302,8 @@ export interface components {
     };
     /** @description Desired state of a Trait */
     TraitSpec: {
-      /** @description Trait parameter schema definition */
-      schema?: {
-        /** @description Schema using OpenChoreo's simple schema format */
-        ocSchema?: {
-          /** @description Reusable type definitions */
-          types?: {
-            [key: string]: unknown;
-          };
-          /** @description Developer-facing configuration options */
-          parameters?: {
-            [key: string]: unknown;
-          };
-          /** @description Environment-specific overrides */
-          envOverrides?: {
-            [key: string]: unknown;
-          };
-        };
-      };
+      parameters?: components['schemas']['SchemaSection'];
+      environmentConfigs?: components['schemas']['SchemaSection'];
       /** @description CEL-based validation rules evaluated during rendering */
       validations?: components['schemas']['ValidationRule'][];
       /** @description New Kubernetes resources to create when this trait is applied */
@@ -3591,8 +3430,8 @@ export interface components {
     };
     /** @description Desired state of a Workflow */
     WorkflowSpec: {
-      buildPlaneRef?: components['schemas']['BuildPlaneRef'];
-      schema?: components['schemas']['WorkflowSchema'];
+      workflowPlaneRef?: components['schemas']['WorkflowPlaneRef'];
+      parameters?: components['schemas']['SchemaSection'];
       /** @description Kubernetes resource template to render and apply for this workflow run. */
       runTemplate: {
         [key: string]: unknown;
@@ -3604,32 +3443,29 @@ export interface components {
       /** @description Time-to-live for WorkflowRun instances after completion (duration string like 10d1h30m). */
       ttlAfterCompletion?: string;
     };
-    /** @description Reference to a BuildPlane or ClusterBuildPlane */
-    BuildPlaneRef: {
+    /** @description Reference to a WorkflowPlane or ClusterWorkflowPlane */
+    WorkflowPlaneRef: {
       /**
-       * @description Kind of build plane
-       * @example BuildPlane
+       * @description Kind of workflow plane
+       * @example WorkflowPlane
        * @enum {string}
        */
-      kind: 'BuildPlane' | 'ClusterBuildPlane';
+      kind: 'WorkflowPlane' | 'ClusterWorkflowPlane';
       /**
-       * @description Name of the build plane resource
+       * @description Name of the workflow plane resource
        * @example default
        */
       name: string;
     };
-    /** @description Developer-facing schema definition for workflow parameters */
-    WorkflowSchema: {
-      /** @description Schema using OpenChoreo's simple schema format */
+    /** @description Schema section supporting either ocSchema or openAPIV3Schema format (mutually exclusive) */
+    SchemaSection: {
+      /** @description Schema using OpenChoreo's simple schema format. May contain $types for reusable type definitions. */
       ocSchema?: {
-        /** @description Reusable type definitions */
-        types?: {
-          [key: string]: unknown;
-        };
-        /** @description Developer-facing configuration options */
-        parameters?: {
-          [key: string]: unknown;
-        };
+        [key: string]: unknown;
+      };
+      /** @description Schema using standard OpenAPI V3 / JSON Schema format */
+      openAPIV3Schema?: {
+        [key: string]: unknown;
       };
     };
     /** @description Template for generating an additional Kubernetes resource for a workflow run. */
@@ -3687,9 +3523,9 @@ export interface components {
     };
     /** @description Desired state of a ClusterWorkflow */
     ClusterWorkflowSpec: {
-      /** @description Reference to the ClusterBuildPlane for this workflow's build operations. Defaults to the ClusterBuildPlane named "default" when omitted. */
-      buildPlaneRef?: components['schemas']['ClusterBuildPlaneRef'];
-      schema?: components['schemas']['WorkflowSchema'];
+      /** @description Reference to the ClusterWorkflowPlane for this workflow's build operations. Defaults to the ClusterWorkflowPlane named "default" when omitted. */
+      workflowPlaneRef?: components['schemas']['ClusterWorkflowPlaneRef'];
+      parameters?: components['schemas']['SchemaSection'];
       /** @description Kubernetes resource template to render and apply for this workflow run. */
       runTemplate: {
         [key: string]: unknown;
@@ -3701,16 +3537,16 @@ export interface components {
       /** @description Time-to-live for WorkflowRun instances after completion (duration string like 10d1h30m). */
       ttlAfterCompletion?: string;
     };
-    /** @description Reference to a ClusterBuildPlane */
-    ClusterBuildPlaneRef: {
+    /** @description Reference to a ClusterWorkflowPlane */
+    ClusterWorkflowPlaneRef: {
       /**
-       * @description Kind of build plane (must be ClusterBuildPlane)
-       * @example ClusterBuildPlane
+       * @description Kind of workflow plane (must be ClusterWorkflowPlane)
+       * @example ClusterWorkflowPlane
        * @enum {string}
        */
-      kind: 'ClusterBuildPlane';
+      kind: 'ClusterWorkflowPlane';
       /**
-       * @description Name of the cluster build plane resource
+       * @description Name of the cluster workflow plane resource
        * @example default
        */
       name: string;
@@ -3796,7 +3632,7 @@ export interface components {
       /** @description Per-step status details */
       steps: components['schemas']['WorkflowStepStatus'][];
       /**
-       * @description Whether live logs/events are available from the build plane
+       * @description Whether live logs/events are available from the workflow plane
        * @example true
        */
       hasLiveObservability: boolean;
@@ -4035,11 +3871,11 @@ export interface components {
        */
       releaseName?: string;
       /** @description Environment-specific ComponentType overrides */
-      componentTypeEnvOverrides?: {
+      componentTypeEnvironmentConfigs?: {
         [key: string]: unknown;
       };
-      /** @description Environment-specific trait overrides */
-      traitOverrides?: {
+      /** @description Environment-specific trait environment configs */
+      traitEnvironmentConfigs?: {
         [key: string]: unknown;
       };
       workloadOverrides?: components['schemas']['WorkloadOverrides'];
@@ -4319,11 +4155,6 @@ export interface components {
       };
       health?: components['schemas']['HealthInfo'];
     };
-    /** @description Response containing the resource tree for a release */
-    ResourceTreeResponse: {
-      /** @description All resource nodes in the tree */
-      nodes: components['schemas']['ResourceNode'][];
-    };
     /** @description A Kubernetes event associated with a resource */
     ResourceEvent: {
       /**
@@ -4405,27 +4236,6 @@ export interface components {
       /** @description Full RenderedRelease CR (metadata + spec + status).
        *      */
       renderedRelease?: components['schemas']['RenderedRelease'];
-    };
-    /** @description Request to deploy a release */
-    DeployReleaseRequest: {
-      /**
-       * @description Component release name to deploy
-       * @example v1.0.0
-       */
-      releaseName: string;
-    };
-    /** @description Request to promote a component between environments */
-    PromoteComponentRequest: {
-      /**
-       * @description Source environment name
-       * @example dev
-       */
-      sourceEnv: string;
-      /**
-       * @description Target environment name
-       * @example staging
-       */
-      targetEnv: string;
     };
     /** @description Request to generate an immutable release snapshot from the current component state */
     GenerateReleaseRequest: {
@@ -4540,7 +4350,8 @@ export interface components {
     /** @description Specification for a cluster-scoped role binding */
     AuthzClusterRoleBindingSpec: {
       entitlement: components['schemas']['AuthzEntitlementClaim'];
-      roleRef: components['schemas']['AuthzRoleRef'];
+      /** @description List of cluster role mappings this binding grants */
+      roleMappings: components['schemas']['AuthzClusterRoleMapping'][];
       /**
        * @description Policy effect (allow or deny)
        * @default allow
@@ -4574,8 +4385,8 @@ export interface components {
     /** @description Specification for a namespace-scoped role binding */
     AuthzRoleBindingSpec: {
       entitlement: components['schemas']['AuthzEntitlementClaim'];
-      roleRef: components['schemas']['AuthzRoleRef'];
-      targetPath?: components['schemas']['AuthzTargetPath'];
+      /** @description List of role-scope pair mappings this binding grants */
+      roleMappings: components['schemas']['AuthzRoleMapping'][];
       /**
        * @description Policy effect (allow or deny)
        * @default allow
@@ -4616,8 +4427,8 @@ export interface components {
        */
       name: string;
     };
-    /** @description Target resource path within a namespace (project/component scope) */
-    AuthzTargetPath: {
+    /** @description Target resource scope within a namespace (project/component scope) */
+    AuthzScope: {
       /**
        * @description Project name
        * @example my-project
@@ -4628,6 +4439,40 @@ export interface components {
        * @example api-service
        */
       component?: string;
+    };
+    /** @description Pairs a role reference with an optional scope */
+    AuthzRoleMapping: {
+      roleRef: components['schemas']['AuthzRoleRef'];
+      scope?: components['schemas']['AuthzScope'];
+    };
+    /** @description Target resource scope for cluster-scoped bindings (namespace/project/component) */
+    AuthzClusterScope: {
+      /**
+       * @description Namespace name
+       * @example acme
+       */
+      namespace?: string;
+      /**
+       * @description Project name
+       * @example my-project
+       */
+      project?: string;
+      /**
+       * @description Component name
+       * @example api-service
+       */
+      component?: string;
+    };
+    /** @description Pairs a role reference with an optional scope for cluster-scoped bindings */
+    AuthzClusterRoleMapping: {
+      roleRef: components['schemas']['AuthzRoleRef'] & {
+        /**
+         * @example AuthzClusterRole
+         * @enum {string}
+         */
+        kind?: 'AuthzClusterRole';
+      };
+      scope?: components['schemas']['AuthzClusterScope'];
     };
     /** @description Entitlement with claim and value */
     Entitlement: {
@@ -4918,7 +4763,7 @@ export interface components {
        */
       description?: string;
     };
-    /** @description Request to create a cluster-scoped role binding (legacy) */
+    /** @description Request to create a cluster-scoped role binding (legacy, single mapping only) */
     CreateClusterRoleBindingRequest: {
       /**
        * @description Unique cluster role binding name
@@ -4939,7 +4784,7 @@ export interface components {
        */
       effect: 'allow' | 'deny';
     };
-    /** @description Request to update a cluster role binding (legacy) */
+    /** @description Request to update a cluster role binding (legacy, single mapping only) */
     UpdateClusterRoleBindingRequest: {
       entitlement: components['schemas']['Entitlement'];
       /**
@@ -4992,7 +4837,7 @@ export interface components {
        */
       description?: string;
     };
-    /** @description Request to create a namespace-scoped role binding (legacy) */
+    /** @description Request to create a namespace-scoped role binding (legacy, single mapping only) */
     CreateNamespaceRoleBindingRequest: {
       /**
        * @description Unique namespace role binding name
@@ -5010,7 +4855,7 @@ export interface components {
        */
       effect: 'allow' | 'deny';
     };
-    /** @description Request to update a namespace role binding (legacy) */
+    /** @description Request to update a namespace role binding (legacy, single mapping only) */
     UpdateNamespaceRoleBindingRequest: {
       entitlement: components['schemas']['Entitlement'];
       role: components['schemas']['RoleRef'];
@@ -5323,7 +5168,8 @@ export interface components {
     };
     /** @description Promotion path between environments */
     PromotionPath: {
-      /** @description Reference to the source environment for this promotion path. */
+      /** @description Reference to the source environment for this promotion path.
+       *      */
       sourceEnvironmentRef: {
         /**
          * @description Kind of environment resource
@@ -5342,6 +5188,12 @@ export interface components {
     };
     /** @description Target environment reference with approval settings */
     TargetEnvironmentRef: {
+      /**
+       * @description Kind of environment resource
+       * @default Environment
+       * @enum {string}
+       */
+      kind: 'Environment';
       /**
        * @description Target environment name
        * @example staging
@@ -5617,8 +5469,8 @@ export interface components {
     NamespaceNameParam: string;
     /** @description Project name */
     ProjectNameParam: string;
-    /** @description Build plane name */
-    BuildPlaneNameParam: string;
+    /** @description Workflow plane name */
+    WorkflowPlaneNameParam: string;
     /** @description Filter resources by project name */
     ProjectQueryParam: string;
     /** @description Filter resources by component name */
@@ -5631,8 +5483,6 @@ export interface components {
     WorkloadNameParam: string;
     /** @description Environment name */
     EnvironmentNameParam: string;
-    /** @description Environment name for component-scoped operations */
-    ComponentEnvironmentNameParam: string;
     /** @description DataPlane name */
     DataPlaneNameParam: string;
     /** @description ClusterDataPlane name */
@@ -5673,6 +5523,13 @@ export interface components {
     MappingIdParam: number;
     /** @description Git secret name */
     GitSecretNameParam: string;
+    /** @description A label selector to filter resources using Kubernetes label selector syntax.
+     *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+     *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+     *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+     *     Multiple requirements are comma-separated and ANDed together.
+     *      */
+    LabelSelectorParam: string;
     /** @description Maximum number of items to return per page */
     LimitParam: number;
     /** @description Opaque pagination cursor from a previous response.
@@ -5789,6 +5646,13 @@ export interface operations {
   listNamespaces: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -5811,6 +5675,7 @@ export interface operations {
           'application/json': components['schemas']['NamespaceList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -5932,6 +5797,13 @@ export interface operations {
   listProjects: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -5957,6 +5829,7 @@ export interface operations {
           'application/json': components['schemas']['ProjectList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
@@ -6091,6 +5964,13 @@ export interface operations {
       query?: {
         /** @description Filter resources by project name */
         project?: components['parameters']['ProjectQueryParam'];
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -6116,6 +5996,7 @@ export interface operations {
           'application/json': components['schemas']['ComponentList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
@@ -6157,6 +6038,13 @@ export interface operations {
   listEnvironments: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -6182,6 +6070,7 @@ export interface operations {
           'application/json': components['schemas']['EnvironmentList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -6313,6 +6202,13 @@ export interface operations {
   listDataPlanes: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -6338,6 +6234,7 @@ export interface operations {
           'application/json': components['schemas']['DataPlaneList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -6466,9 +6363,16 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  listBuildPlanes: {
+  listWorkflowPlanes: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -6485,21 +6389,22 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description List of build planes */
+      /** @description List of workflow planes */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['BuildPlaneList'];
+          'application/json': components['schemas']['WorkflowPlaneList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
     };
   };
-  createBuildPlane: {
+  createWorkflowPlane: {
     parameters: {
       query?: never;
       header?: never;
@@ -6511,17 +6416,17 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['BuildPlane'];
+        'application/json': components['schemas']['WorkflowPlane'];
       };
     };
     responses: {
-      /** @description BuildPlane created successfully */
+      /** @description WorkflowPlane created successfully */
       201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['BuildPlane'];
+          'application/json': components['schemas']['WorkflowPlane'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -6531,27 +6436,27 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  getBuildPlane: {
+  getWorkflowPlane: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Build plane name */
-        buildPlaneName: components['parameters']['BuildPlaneNameParam'];
+        /** @description Workflow plane name */
+        workflowPlaneName: components['parameters']['WorkflowPlaneNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Build plane details */
+      /** @description Workflow plane details */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['BuildPlane'];
+          'application/json': components['schemas']['WorkflowPlane'];
         };
       };
       401: components['responses']['Unauthorized'];
@@ -6560,31 +6465,31 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  updateBuildPlane: {
+  updateWorkflowPlane: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Build plane name */
-        buildPlaneName: components['parameters']['BuildPlaneNameParam'];
+        /** @description Workflow plane name */
+        workflowPlaneName: components['parameters']['WorkflowPlaneNameParam'];
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['BuildPlane'];
+        'application/json': components['schemas']['WorkflowPlane'];
       };
     };
     responses: {
-      /** @description BuildPlane updated successfully */
+      /** @description WorkflowPlane updated successfully */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['BuildPlane'];
+          'application/json': components['schemas']['WorkflowPlane'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -6595,21 +6500,21 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  deleteBuildPlane: {
+  deleteWorkflowPlane: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Build plane name */
-        buildPlaneName: components['parameters']['BuildPlaneNameParam'];
+        /** @description Workflow plane name */
+        workflowPlaneName: components['parameters']['WorkflowPlaneNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description BuildPlane deleted successfully */
+      /** @description WorkflowPlane deleted successfully */
       204: {
         headers: {
           [name: string]: unknown;
@@ -6625,6 +6530,13 @@ export interface operations {
   listObservabilityPlanes: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -6650,6 +6562,7 @@ export interface operations {
           'application/json': components['schemas']['ObservabilityPlaneList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -6781,6 +6694,13 @@ export interface operations {
   listClusterDataPlanes: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -6923,9 +6843,16 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  listClusterBuildPlanes: {
+  listClusterWorkflowPlanes: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -6939,21 +6866,22 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description List of cluster build planes */
+      /** @description List of cluster workflow planes */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ClusterBuildPlaneList'];
+          'application/json': components['schemas']['ClusterWorkflowPlaneList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
     };
   };
-  createClusterBuildPlane: {
+  createClusterWorkflowPlane: {
     parameters: {
       query?: never;
       header?: never;
@@ -6962,17 +6890,17 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['ClusterBuildPlane'];
+        'application/json': components['schemas']['ClusterWorkflowPlane'];
       };
     };
     responses: {
-      /** @description ClusterBuildPlane created successfully */
+      /** @description ClusterWorkflowPlane created successfully */
       201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ClusterBuildPlane'];
+          'application/json': components['schemas']['ClusterWorkflowPlane'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -6982,25 +6910,25 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  getClusterBuildPlane: {
+  getClusterWorkflowPlane: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        /** @description Name of the cluster build plane */
-        clusterBuildPlaneName: string;
+        /** @description Name of the cluster workflow plane */
+        clusterWorkflowPlaneName: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Cluster build plane details */
+      /** @description Cluster workflow plane details */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ClusterBuildPlane'];
+          'application/json': components['schemas']['ClusterWorkflowPlane'];
         };
       };
       401: components['responses']['Unauthorized'];
@@ -7009,29 +6937,29 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  updateClusterBuildPlane: {
+  updateClusterWorkflowPlane: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        /** @description Name of the cluster build plane */
-        clusterBuildPlaneName: string;
+        /** @description Name of the cluster workflow plane */
+        clusterWorkflowPlaneName: string;
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['ClusterBuildPlane'];
+        'application/json': components['schemas']['ClusterWorkflowPlane'];
       };
     };
     responses: {
-      /** @description ClusterBuildPlane updated successfully */
+      /** @description ClusterWorkflowPlane updated successfully */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ClusterBuildPlane'];
+          'application/json': components['schemas']['ClusterWorkflowPlane'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -7042,19 +6970,19 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  deleteClusterBuildPlane: {
+  deleteClusterWorkflowPlane: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        /** @description Name of the cluster build plane */
-        clusterBuildPlaneName: string;
+        /** @description Name of the cluster workflow plane */
+        clusterWorkflowPlaneName: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description ClusterBuildPlane deleted successfully */
+      /** @description ClusterWorkflowPlane deleted successfully */
       204: {
         headers: {
           [name: string]: unknown;
@@ -7070,6 +6998,13 @@ export interface operations {
   listClusterObservabilityPlanes: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -7092,6 +7027,7 @@ export interface operations {
           'application/json': components['schemas']['ClusterObservabilityPlaneList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -7214,6 +7150,13 @@ export interface operations {
   listClusterComponentTypes: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -7236,6 +7179,7 @@ export interface operations {
           'application/json': components['schemas']['ClusterComponentTypeList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -7385,6 +7329,13 @@ export interface operations {
   listClusterTraits: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -7407,6 +7358,7 @@ export interface operations {
           'application/json': components['schemas']['ClusterTraitList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -7556,6 +7508,13 @@ export interface operations {
   listComponentTypes: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -7581,6 +7540,7 @@ export interface operations {
           'application/json': components['schemas']['ComponentTypeList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -7741,6 +7701,13 @@ export interface operations {
   listTraits: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -7766,6 +7733,7 @@ export interface operations {
           'application/json': components['schemas']['TraitList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -7926,6 +7894,13 @@ export interface operations {
   listClusterWorkflows: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -7948,6 +7923,7 @@ export interface operations {
           'application/json': components['schemas']['ClusterWorkflowList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -8097,6 +8073,13 @@ export interface operations {
   listWorkflows: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -8122,6 +8105,7 @@ export interface operations {
           'application/json': components['schemas']['WorkflowList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -8284,6 +8268,13 @@ export interface operations {
       query?: {
         /** @description Filter workflow runs by workflow name */
         workflow?: components['parameters']['WorkflowQueryParam'];
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -8309,6 +8300,7 @@ export interface operations {
           'application/json': components['schemas']['WorkflowRunList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -8623,193 +8615,6 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  getReleaseResourceTree: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Project name */
-        projectName: components['parameters']['ProjectNameParam'];
-        /** @description Component name */
-        componentName: components['parameters']['ComponentNameParam'];
-        /** @description Environment name for component-scoped operations */
-        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Resource tree for the active release */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ResourceTreeResponse'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getReleaseResourceEvents: {
-    parameters: {
-      query: {
-        /** @description Kind of the resource */
-        kind: string;
-        /** @description Name of the resource */
-        name: string;
-        /** @description Namespace of the resource */
-        namespace?: string;
-        /** @description UID of the resource for precise event matching */
-        uid?: string;
-      };
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Project name */
-        projectName: components['parameters']['ProjectNameParam'];
-        /** @description Component name */
-        componentName: components['parameters']['ComponentNameParam'];
-        /** @description Environment name for component-scoped operations */
-        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Events for the specified resource */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ResourceEventsResponse'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getReleaseResourcePodLogs: {
-    parameters: {
-      query: {
-        /** @description Name of the pod */
-        name: string;
-        /** @description Namespace of the pod */
-        namespace: string;
-        /** @description Specific container name to get logs from */
-        container?: string;
-        /** @description Only return logs newer than this many seconds */
-        sinceSeconds?: number;
-      };
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Project name */
-        projectName: components['parameters']['ProjectNameParam'];
-        /** @description Component name */
-        componentName: components['parameters']['ComponentNameParam'];
-        /** @description Environment name for component-scoped operations */
-        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Logs for the specified pod */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ResourcePodLogsResponse'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  deployRelease: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Component name */
-        componentName: components['parameters']['ComponentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['DeployReleaseRequest'];
-      };
-    };
-    responses: {
-      /** @description Release deployed */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ReleaseBinding'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  promoteComponent: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Component name */
-        componentName: components['parameters']['ComponentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PromoteComponentRequest'];
-      };
-    };
-    responses: {
-      /** @description Component promoted */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ReleaseBinding'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
   generateRelease: {
     parameters: {
       query?: never;
@@ -8928,6 +8733,13 @@ export interface operations {
   listClusterRoles: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -8950,6 +8762,7 @@ export interface operations {
           'application/json': components['schemas']['AuthzClusterRoleList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -9072,6 +8885,13 @@ export interface operations {
   listClusterRoleBindings: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -9094,6 +8914,7 @@ export interface operations {
           'application/json': components['schemas']['AuthzClusterRoleBindingList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -9216,6 +9037,13 @@ export interface operations {
   listNamespaceRoles: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -9375,6 +9203,13 @@ export interface operations {
   listNamespaceRoleBindings: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -9531,7 +9366,7 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  listUserTypes: {
+  listSubjectTypes: {
     parameters: {
       query?: never;
       header?: never;
@@ -9540,13 +9375,13 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description List of configured user types */
+      /** @description List of configured subject types */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['UserTypeConfig'][];
+          'application/json': components['schemas']['SubjectTypeConfig'][];
         };
       };
       401: components['responses']['Unauthorized'];
@@ -9592,6 +9427,13 @@ export interface operations {
   listSecretReferences: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -9617,6 +9459,7 @@ export interface operations {
           'application/json': components['schemas']['SecretReferenceList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -9749,6 +9592,13 @@ export interface operations {
       query?: {
         /** @description Filter resources by component name */
         component?: components['parameters']['ComponentQueryParam'];
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -9774,6 +9624,7 @@ export interface operations {
           'application/json': components['schemas']['WorkloadList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
@@ -9907,6 +9758,13 @@ export interface operations {
       query?: {
         /** @description Filter resources by component name */
         component?: components['parameters']['ComponentQueryParam'];
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -9932,6 +9790,7 @@ export interface operations {
           'application/json': components['schemas']['ComponentReleaseList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
@@ -9972,6 +9831,13 @@ export interface operations {
       query?: {
         /** @description Filter resources by component name */
         component?: components['parameters']['ComponentQueryParam'];
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -9997,6 +9863,7 @@ export interface operations {
           'application/json': components['schemas']['ReleaseBindingList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
@@ -10232,6 +10099,13 @@ export interface operations {
   listDeploymentPipelines: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -10257,6 +10131,7 @@ export interface operations {
           'application/json': components['schemas']['DeploymentPipelineList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];
@@ -10387,6 +10262,13 @@ export interface operations {
   listObservabilityAlertsNotificationChannels: {
     parameters: {
       query?: {
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         *      */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -10412,6 +10294,7 @@ export interface operations {
           'application/json': components['schemas']['ObservabilityAlertsNotificationChannelList'];
         };
       };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       500: components['responses']['InternalError'];

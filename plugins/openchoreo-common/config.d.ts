@@ -38,8 +38,8 @@ export interface Config {
      */
     features?: {
       /**
-       * Build plane / Workflows configuration.
-       * Controls the Workflows tab, WorkflowsOverviewCard, and build-related features.
+       * Workflow plane / Workflows configuration.
+       * Controls the Workflows tab, WorkflowsOverviewCard, and workflow-related features.
        * @deepVisibility frontend
        */
       workflows?: {

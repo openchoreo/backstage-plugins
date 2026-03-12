@@ -11,7 +11,7 @@ export { transformProject } from './project';
 export { transformComponent } from './component';
 export { transformEnvironment } from './environment';
 export { transformDataPlane } from './dataplane';
-export { transformBuildPlane } from './buildplane';
+export { transformWorkflowPlane } from './workflowplane';
 export { transformObservabilityPlane } from './observabilityplane';
 export { transformComponentWorkflowRun } from './workflow-run';
 export { transformDeploymentPipeline } from './deployment-pipeline';

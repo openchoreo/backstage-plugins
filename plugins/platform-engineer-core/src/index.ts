@@ -9,7 +9,7 @@ export type {
   Environment,
   DataPlane,
   DataPlaneWithEnvironments,
-  BuildPlane,
+  WorkflowPlane,
   ObservabilityPlane,
 } from './types';
 export {

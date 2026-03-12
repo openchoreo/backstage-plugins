@@ -206,7 +206,7 @@ export function translateProjectToEntity(
     namespaceName?: string;
     uid?: string;
     deletionTimestamp?: string;
-    buildPlaneRef?: { kind?: string; name?: string };
+    workflowPlaneRef?: { kind?: string; name?: string };
   },
   namespaceName: string,
   config: ProjectEntityTranslationConfig,
@@ -231,11 +231,11 @@ export function translateProjectToEntity(
         ...(project.deletionTimestamp && {
           [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: project.deletionTimestamp,
         }),
-        ...(project.buildPlaneRef?.name && {
-          [CHOREO_ANNOTATIONS.BUILD_PLANE_REF]: project.buildPlaneRef.name,
+        ...(project.workflowPlaneRef?.name && {
+          [CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF]: project.workflowPlaneRef.name,
         }),
-        ...(project.buildPlaneRef?.kind && {
-          [CHOREO_ANNOTATIONS.BUILD_PLANE_REF_KIND]: project.buildPlaneRef.kind,
+        ...(project.workflowPlaneRef?.kind && {
+          [CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND]: project.workflowPlaneRef.kind,
         }),
       },
       labels: {
