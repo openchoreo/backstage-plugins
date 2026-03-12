@@ -5,7 +5,7 @@ import AddIcon from '@material-ui/icons/Add';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
 import {
-  useRolePermissions,
+  useClusterRolePermissions,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
 import { isForbiddenError } from '../../../utils/errorUtils';
@@ -35,7 +35,7 @@ export const ClusterRolesContent = ({
     createDeniedTooltip,
     updateDeniedTooltip,
     deleteDeniedTooltip,
-  } = useRolePermissions();
+  } = useClusterRolePermissions();
   const client = useApi(openChoreoClientApiRef);
   const { roles, loading, error, fetchRoles, addRole, updateRole, deleteRole } =
     useClusterRoles();

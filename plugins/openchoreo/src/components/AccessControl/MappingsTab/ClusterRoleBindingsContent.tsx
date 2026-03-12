@@ -35,7 +35,7 @@ import RefreshIcon from '@material-ui/icons/Refresh';
 import ClearIcon from '@material-ui/icons/Clear';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
 import {
-  useRoleMappingPermissions,
+  useClusterRoleMappingPermissions,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
 import { isForbiddenError } from '../../../utils/errorUtils';
@@ -112,7 +112,7 @@ export const ClusterRoleBindingsContent = ({
     createDeniedTooltip,
     updateDeniedTooltip,
     deleteDeniedTooltip,
-  } = useRoleMappingPermissions();
+  } = useClusterRoleMappingPermissions();
   const {
     bindings,
     loading,

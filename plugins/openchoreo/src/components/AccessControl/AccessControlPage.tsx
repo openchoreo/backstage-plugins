@@ -13,7 +13,9 @@ import {
 } from '@openchoreo/backstage-design-system';
 import {
   useRolePermissions,
+  useClusterRolePermissions,
   useRoleMappingPermissions,
+  useClusterRoleMappingPermissions,
 } from '@openchoreo/backstage-plugin-react';
 import { useQueryParams } from '../../hooks/useQueryParams';
 import SecurityIcon from '@material-ui/icons/Security';
@@ -45,14 +47,26 @@ const isAuthzDisabledError = (error: Error | null): boolean => {
 export const AccessControlContent = () => {
   const classes = useStyles();
   const { error: rolesError, loading: rolesLoading } = useClusterRoles();
-  const { canView: canViewRoles, loading: rolesPermissionLoading } =
+  const { canView: canViewNamespaceRoles, loading: nsRolesPermLoading } =
     useRolePermissions();
-  const { canView: canViewMappings, loading: mappingsPermissionLoading } =
+  const { canView: canViewClusterRoles, loading: clusterRolesPermLoading } =
+    useClusterRolePermissions();
+  const { canView: canViewNamespaceMappings, loading: nsMappingsPermLoading } =
     useRoleMappingPermissions();
+  const {
+    canView: canViewClusterMappings,
+    loading: clusterMappingsPermLoading,
+  } = useClusterRoleMappingPermissions();
+
+  const canViewRoles = canViewNamespaceRoles || canViewClusterRoles;
+  const canViewMappings = canViewNamespaceMappings || canViewClusterMappings;
 
   const authzDisabled = !rolesLoading && isAuthzDisabledError(rolesError);
   const permissionsLoading =
-    rolesPermissionLoading || mappingsPermissionLoading;
+    nsRolesPermLoading ||
+    clusterRolesPermLoading ||
+    nsMappingsPermLoading ||
+    clusterMappingsPermLoading;
 
   const tabs = useMemo<TabItemData[]>(() => {
     const visibleTabs: TabItemData[] = [];
