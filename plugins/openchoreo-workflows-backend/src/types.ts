@@ -73,6 +73,8 @@ export interface CreateWorkflowRunRequest {
   labels?: Record<string, string>;
   annotations?: Record<string, string>;
   parameters?: Record<string, unknown>;
+  /** When true, workflowName refers to a cluster-scoped ClusterWorkflow resource */
+  isClusterScoped?: boolean;
 }
 
 /**

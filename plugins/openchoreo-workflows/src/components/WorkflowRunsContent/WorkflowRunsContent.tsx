@@ -273,6 +273,7 @@ const TriggerForm = ({
       },
       spec: {
         workflow: {
+          kind: isClusterScoped ? 'ClusterWorkflow' : 'Workflow',
           name: workflowName,
           ...(Object.keys(meaningful).length > 0
             ? { parameters: meaningful }
@@ -373,6 +374,7 @@ const TriggerForm = ({
           namespaceName,
           workflowName,
           parameters,
+          isClusterScoped,
         );
 
         onTriggered(run.name);
@@ -393,6 +395,7 @@ const TriggerForm = ({
         namespaceName,
         workflowName,
         parameters,
+        isClusterScoped,
       );
 
       onTriggered(run.name);

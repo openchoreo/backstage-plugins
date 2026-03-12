@@ -49,6 +49,7 @@ export interface GenericWorkflowsClientApi {
     namespaceName: string,
     workflowName: string,
     parameters?: Record<string, unknown>,
+    isClusterScoped?: boolean,
   ): Promise<WorkflowRun>;
 
   /** Get logs for a specific workflow run, optionally filtered by task */
