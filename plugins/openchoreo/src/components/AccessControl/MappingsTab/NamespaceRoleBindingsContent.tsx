@@ -48,6 +48,7 @@ import {
 import { useNotification } from '../../../hooks';
 import { isForbiddenError } from '../../../utils/errorUtils';
 import { NotificationBanner } from '../../Environments/components';
+import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { SCOPE_NAMESPACE } from '../constants';
 import { MappingDialog } from './MappingDialog';
 
@@ -69,12 +70,6 @@ const useStyles = makeStyles(theme => ({
   },
   entitlementCell: {
     maxWidth: 200,
-  },
-  truncateCell: {
-    maxWidth: 200,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
   },
   effectChip: {
     fontWeight: 600,
@@ -101,28 +96,22 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const getFormattedScope = (hierarchy?: {
-  namespace?: string;
-  project?: string;
-  component?: string;
-}): string => {
-  const parts: string[] = [];
-
-  if (!hierarchy?.namespace) {
-    return '*';
-  }
-  parts.push(`ns/${hierarchy.namespace}`);
-
-  if (hierarchy?.project) {
-    parts.push(`project/${hierarchy.project}`);
+/** Format scope for a single namespace role mapping */
+const formatNsMappingScope = (
+  scope?: { project?: string; component?: string },
+  namespace?: string,
+): string => {
+  const ns = namespace || '*';
+  const parts: string[] = [`ns:${ns}`];
+  if (scope?.project) {
+    parts.push(`proj:${scope.project}`);
+    if (scope?.component) {
+      parts.push(`comp:${scope.component}`);
+    } else {
+      parts.push('*');
+    }
   } else {
-    return `${parts.join('/')}/ *`;
-  }
-
-  if (hierarchy?.component) {
-    parts.push(`component/${hierarchy.component}`);
-  } else {
-    return `${parts.join('/')}/ *`;
+    parts.push('*');
   }
   return parts.join('/');
 };
@@ -194,10 +183,11 @@ export const NamespaceRoleBindingsContent = ({
     return bindings.filter(binding => {
       // Role filter
       if (roleFilter !== 'all') {
-        const bindingKey = `${binding.role.name}|${
-          binding.role.namespace || ''
-        }`;
-        if (bindingKey !== roleFilter) {
+        const hasMatchingRole = (binding.roleMappings || []).some(rm => {
+          const bindingKey = `${rm.role.name}|${rm.role.namespace || ''}`;
+          return bindingKey === roleFilter;
+        });
+        if (!hasMatchingRole) {
           return false;
         }
       }
@@ -210,9 +200,12 @@ export const NamespaceRoleBindingsContent = ({
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
+        const roleNames = (binding.roleMappings || []).map(rm =>
+          rm.role.name.toLowerCase(),
+        );
         const searchFields = [
           binding.name,
-          binding.role.name,
+          ...roleNames,
           binding.entitlement.claim,
           binding.entitlement.value,
         ].map(s => s.toLowerCase());
@@ -449,60 +442,78 @@ export const NamespaceRoleBindingsContent = ({
                       <TableHead>
                         <TableRow>
                           <TableCell>Binding Name</TableCell>
-                          <TableCell>Role</TableCell>
+                          <TableCell>Role Mappings</TableCell>
                           <TableCell className={classes.entitlementCell}>
                             Entitlement (claim=value)
                           </TableCell>
-                          <TableCell>Scope</TableCell>
                           <TableCell>Effect</TableCell>
                           <TableCell align="right">Actions</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {filteredBindings.map(binding => {
-                          const formattedScope = getFormattedScope(
-                            binding.hierarchy,
-                          );
                           return (
                             <TableRow key={binding.name}>
                               <TableCell>
                                 <Typography variant="body2">
                                   {binding.name}
+                                  {binding.labels?.[CHOREO_LABELS.SYSTEM] ===
+                                    'true' && (
+                                    <Chip
+                                      label="System"
+                                      size="small"
+                                      variant="outlined"
+                                      style={{
+                                        marginLeft: 8,
+                                        fontSize: '0.7rem',
+                                        height: 20,
+                                      }}
+                                    />
+                                  )}
                                 </Typography>
                               </TableCell>
                               <TableCell>
-                                <Typography variant="body2">
-                                  {binding.role.name}
-                                  {binding.role.namespace && (
-                                    <Chip
-                                      label="Namespace"
-                                      size="small"
-                                      variant="outlined"
-                                      style={{ marginLeft: 8 }}
-                                    />
-                                  )}
-                                  {!binding.role.namespace && (
-                                    <Chip
-                                      label="Cluster"
-                                      size="small"
-                                      variant="outlined"
-                                      style={{ marginLeft: 8 }}
-                                    />
-                                  )}
-                                </Typography>
+                                {(binding.roleMappings || []).length > 0 ? (
+                                  <>
+                                    {binding.roleMappings
+                                      .slice(0, 2)
+                                      .map((rm, idx) => (
+                                        <Typography variant="body2" key={idx}>
+                                          {rm.role?.name || '\u2014'} →{' '}
+                                          {formatNsMappingScope(
+                                            rm.scope,
+                                            binding.namespace,
+                                          )}
+                                          {idx === 1 &&
+                                            binding.roleMappings.length > 2 && (
+                                              <Chip
+                                                label={`+${
+                                                  binding.roleMappings.length -
+                                                  2
+                                                }`}
+                                                size="small"
+                                                variant="outlined"
+                                                style={{
+                                                  marginLeft: 6,
+                                                  fontSize: '0.65rem',
+                                                  height: 18,
+                                                }}
+                                              />
+                                            )}
+                                        </Typography>
+                                      ))}
+                                  </>
+                                ) : (
+                                  <Typography variant="body2">
+                                    {'\u2014'}
+                                  </Typography>
+                                )}
                               </TableCell>
                               <TableCell className={classes.entitlementCell}>
                                 <Typography variant="body2">
                                   {binding.entitlement.claim}=
                                   {binding.entitlement.value}
                                 </Typography>
-                              </TableCell>
-                              <TableCell className={classes.truncateCell}>
-                                <Tooltip title={formattedScope}>
-                                  <Typography variant="body2" noWrap>
-                                    {formattedScope}
-                                  </Typography>
-                                </Tooltip>
                               </TableCell>
                               <TableCell>
                                 <Chip

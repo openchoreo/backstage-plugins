@@ -17,6 +17,7 @@ import { getEntitlementClaim } from '../../hooks';
 const useStyles = makeStyles(theme => ({
   root: {
     minHeight: 350,
+    marginTop: theme.spacing(2),
   },
   title: {
     marginBottom: theme.spacing(2),
@@ -142,7 +143,7 @@ export const SubjectStep = ({
   return (
     <Box className={classes.root}>
       <Typography variant="subtitle2" className={classes.title}>
-        Who should receive the "{state.selectedRole}" role?
+        Who should receive this role binding?
       </Typography>
 
       <Typography variant="body2" className={classes.subtitle}>
@@ -221,10 +222,9 @@ export const SubjectStep = ({
             showIcon
             message={
               <Typography>
-                This will map the "{state.selectedRole}" role to any request
-                where{' '}
+                This will bind roles to any request where{' '}
                 <strong>
-                  {entitlementClaim} = "{state.entitlementValue}"
+                  {entitlementClaim} = &quot;{state.entitlementValue}&quot;
                 </strong>
               </Typography>
             }

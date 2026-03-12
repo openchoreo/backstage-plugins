@@ -130,6 +130,7 @@ export interface ClusterRole {
   actions: string[];
   namespace?: string;
   description?: string;
+  labels?: Record<string, string>;
 }
 
 /** Namespace Role - namespace-scoped role definition */
@@ -138,52 +139,71 @@ export interface NamespaceRole {
   namespace: string;
   actions: string[];
   description?: string;
+  labels?: Record<string, string>;
 }
 
-/** Cluster Role Binding - binds a cluster role to an entitlement */
+/** Scope for cluster-scoped role mappings */
+export interface ClusterRoleMappingScope {
+  namespace?: string;
+  project?: string;
+  component?: string;
+}
+
+/** A single cluster role mapping (role + optional scope) */
+export interface ClusterRoleMappingEntry {
+  role: string;
+  scope?: ClusterRoleMappingScope;
+}
+
+/** Cluster Role Binding - binds cluster roles to an entitlement */
 export interface ClusterRoleBinding {
   name: string;
-  role: { name: string };
+  roleMappings: ClusterRoleMappingEntry[];
   entitlement: Entitlement;
   effect: PolicyEffect;
+  labels?: Record<string, string>;
 }
 
 /** Cluster Role Binding Request - request body for creating/updating cluster role bindings */
 export interface ClusterRoleBindingRequest {
   name: string;
-  role: string;
+  roleMappings: ClusterRoleMappingEntry[];
   entitlement: {
     claim: string;
     value: string;
   };
   effect: PolicyEffect;
+}
+
+/** Scope for namespace-scoped role mappings */
+export interface NamespaceRoleMappingScope {
+  project?: string;
+  component?: string;
+}
+
+/** A single namespace role mapping (role + optional scope) */
+export interface NamespaceRoleMappingEntry {
+  role: { name: string; namespace?: string };
+  scope?: NamespaceRoleMappingScope;
 }
 
 /** Namespace Role Binding - response shape from the API */
 export interface NamespaceRoleBinding {
   name: string;
   namespace: string;
-  role: { name: string; namespace?: string };
+  roleMappings: NamespaceRoleMappingEntry[];
   entitlement: Entitlement;
-  hierarchy?: {
-    namespace?: string;
-    project?: string;
-    component?: string;
-  };
   effect: PolicyEffect;
+  labels?: Record<string, string>;
 }
 
 /** Namespace Role Binding Request - body sent for create / update */
 export interface NamespaceRoleBindingRequest {
   name: string;
-  role: { name: string; namespace: string };
+  roleMappings: NamespaceRoleMappingEntry[];
   entitlement: {
     claim: string;
     value: string;
-  };
-  targetPath?: {
-    project?: string;
-    component?: string;
   };
   effect: PolicyEffect;
 }

@@ -32,7 +32,7 @@ export const useStyles = makeStyles(theme => ({
   },
   groupTitle: {
     fontWeight: 600,
-    textTransform: 'capitalize',
+    textTransform: 'none' as const,
     fontSize: '0.875rem',
     color: theme.palette.text.primary,
   },

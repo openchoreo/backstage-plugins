@@ -17,6 +17,7 @@ import {
   SCOPE_NAMESPACE,
   type BindingScope,
 } from '../constants';
+import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { ActionSelectionDialog } from './ActionSelectionDialog';
 import { getActionDisplayLabel } from './actionUtils';
@@ -177,13 +178,29 @@ export const RoleDialog = ({
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
         <DialogTitle disableTypography>
           <Typography variant="h4">
-            {editingRole
-              ? `Edit ${
-                  scope === SCOPE_CLUSTER ? 'Cluster' : 'Namespace'
-                } Role: ${editingRole.name}`
-              : `Create New ${
-                  scope === SCOPE_CLUSTER ? 'Cluster' : 'Namespace'
-                } Role`}
+            {editingRole ? (
+              <>
+                Edit {scope === SCOPE_CLUSTER ? 'Cluster' : 'Namespace'} Role:{' '}
+                {editingRole.name}
+                {editingRole.labels?.[CHOREO_LABELS.SYSTEM] === 'true' && (
+                  <Chip
+                    label="System"
+                    size="small"
+                    variant="outlined"
+                    style={{
+                      marginLeft: 8,
+                      fontSize: '0.7rem',
+                      height: 20,
+                      verticalAlign: 'middle',
+                    }}
+                  />
+                )}
+              </>
+            ) : (
+              `Create New ${
+                scope === SCOPE_CLUSTER ? 'Cluster' : 'Namespace'
+              } Role`
+            )}
           </Typography>
         </DialogTitle>
         <DialogContent>

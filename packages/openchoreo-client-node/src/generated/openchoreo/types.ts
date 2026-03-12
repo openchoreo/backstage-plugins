@@ -100,6 +100,7 @@ export interface paths {
      *     OpenChoreo-specific extension fields (RFC 9728 §2):
      *     - `openchoreo_clients`: OAuth client configurations for integrations (e.g., CLI).
      *     - `openchoreo_security_enabled`: Whether authentication is enforced on this server.
+     *
      */
     get: operations['getOAuthProtectedResourceMetadata'];
     put?: never;
@@ -123,6 +124,7 @@ export interface paths {
      *     Only namespaces with the label `openchoreo.dev/namespace=true` are returned.
      *     This filters out system namespaces (e.g., openchoreo-control-plane, kube-system) and
      *     data plane runtime namespaces.
+     *
      */
     get: operations['listNamespaces'];
     put?: never;
@@ -130,6 +132,7 @@ export interface paths {
      * Create namespace
      * @description Creates a new OpenChoreo control plane namespace.
      *     The namespace is automatically labeled with `openchoreo.dev/namespace=true`.
+     *
      */
     post: operations['createNamespace'];
     delete?: never;
@@ -1518,6 +1521,7 @@ export interface paths {
      *     - GitHub: `X-Hub-Signature-256`
      *     - GitLab: `X-Gitlab-Token`
      *     - Bitbucket: `X-Event-Key`
+     *
      */
     post: operations['handleAutoBuild'];
     delete?: never;
@@ -1968,10 +1972,9 @@ export interface components {
         message?: string;
       }[];
     };
-    /**
-     * @description Standard Kubernetes object metadata (without kind/apiVersion).
+    /** @description Standard Kubernetes object metadata (without kind/apiVersion).
      *     Matches the structure of metav1.ObjectMeta for the fields exposed via the API.
-     */
+     *      */
     ObjectMeta: {
       /**
        * @description Name of the resource (unique within namespace)
@@ -2110,16 +2113,16 @@ export interface components {
       bearer_methods_supported: string[];
       /** @description Supported OAuth scopes */
       scopes_supported: string[];
-      /**
-       * @description OpenChoreo extension (RFC 9728 §2). OAuth client configurations for
+      /** @description OpenChoreo extension (RFC 9728 §2). OAuth client configurations for
        *     external integrations (e.g., CLI). Used by clients to discover their
        *     client_id and required scopes.
-       */
+       *      */
       openchoreo_clients?: components['schemas']['OpenChoreoClient'][];
       /**
        * @description OpenChoreo extension (RFC 9728 §2). Indicates whether authentication
        *     is enforced on this server. When false, requests without tokens are
        *     accepted.
+       *
        * @example true
        */
       openchoreo_security_enabled?: boolean;
@@ -2188,15 +2191,15 @@ export interface components {
        */
       displayName: string;
     };
-    /**
-     * @description Cursor-based pagination metadata. Uses Kubernetes-native continuation tokens
+    /** @description Cursor-based pagination metadata. Uses Kubernetes-native continuation tokens
      *     for efficient pagination through large result sets.
-     */
+     *      */
     Pagination: {
       /**
        * @description Opaque cursor for fetching the next page. Pass this value as the
        *     `cursor` query parameter in the next request. Absent when there
        *     are no more items.
+       *
        * @example eyJ2IjoibWV0YS5rOHMuaW8vdjEiLCJydiI6MzQ0N30=
        */
       nextCursor?: string;
@@ -2206,6 +2209,7 @@ export interface components {
        *     This is an estimate provided by Kubernetes and may not be exact.
        *     Use for UI hints like "~50 more items". May be absent for
        *     filtered queries.
+       *
        * @example 42
        */
       remainingCount?: number;
@@ -2215,11 +2219,10 @@ export interface components {
       items: components['schemas']['Namespace'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description Namespace resource.
+    /** @description Namespace resource.
      *     Control plane namespaces hold resources like Projects, Components, and Environments.
      *     These namespaces are identified by the label `openchoreo.dev/namespace=true`.
-     */
+     *      */
     Namespace: {
       metadata: components['schemas']['ObjectMeta'];
       readonly status?: components['schemas']['NamespaceStatus'];
@@ -2235,10 +2238,9 @@ export interface components {
     };
     /** @description Desired state of a Project */
     ProjectSpec: {
-      /**
-       * @description Reference to the DeploymentPipeline that defines the environments
+      /** @description Reference to the DeploymentPipeline that defines the environments
        *     and deployment progression for components in this project.
-       */
+       *      */
       deploymentPipelineRef?: {
         /**
          * @description Kind of deployment pipeline resource
@@ -2263,10 +2265,9 @@ export interface components {
       /** @description Current state conditions of the Project */
       conditions?: components['schemas']['Condition'][];
     };
-    /**
-     * @description Project resource.
+    /** @description Project resource.
      *     Projects group components within a namespace and reference a deployment pipeline.
-     */
+     *      */
     Project: {
       /**
        * @description API version of the resource
@@ -2358,10 +2359,9 @@ export interface components {
         releaseHash?: string;
       };
     };
-    /**
-     * @description Component resource.
+    /** @description Component resource.
      *     Components group source code and deployment configuration within a project.
-     */
+     *      */
     Component: {
       /**
        * @description API version of the resource
@@ -2535,11 +2535,10 @@ export interface components {
     };
     /** @description Desired state of an Environment */
     EnvironmentSpec: {
-      /**
-       * @description Reference to the DataPlane or ClusterDataPlane for this environment.
+      /** @description Reference to the DataPlane or ClusterDataPlane for this environment.
        *     If not specified, defaults to a DataPlane named "default" in the same namespace.
        *     Immutable once set.
-       */
+       *      */
       dataPlaneRef?: {
         /**
          * @description Kind of data plane (DataPlane or ClusterDataPlane)
@@ -2570,10 +2569,9 @@ export interface components {
       /** @description Current state conditions of the Environment */
       conditions?: components['schemas']['Condition'][];
     };
-    /**
-     * @description Environment resource.
+    /** @description Environment resource.
      *     Environments represent deployment targets within a namespace.
-     */
+     *      */
     Environment: {
       /**
        * @description API version of the resource
@@ -2599,10 +2597,9 @@ export interface components {
       items: components['schemas']['DataPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description DataPlane resource.
+    /** @description DataPlane resource.
      *     Represents a Kubernetes cluster for workload deployment.
-     */
+     *      */
     DataPlane: {
       /**
        * @description API version of the resource
@@ -2623,6 +2620,7 @@ export interface components {
       /**
        * @description Logical plane identifier for the physical cluster.
        *     Multiple DataPlane CRs can share the same planeID.
+       *
        * @example prod-cluster
        */
       planeID?: string;
@@ -2679,10 +2677,9 @@ export interface components {
       items: components['schemas']['WorkflowPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description WorkflowPlane resource.
+    /** @description WorkflowPlane resource.
      *     Represents CI/CD build infrastructure within a namespace.
-     */
+     *      */
     WorkflowPlane: {
       /**
        * @description API version of the resource
@@ -2703,6 +2700,7 @@ export interface components {
       /**
        * @description Logical plane identifier for the physical cluster.
        *     Multiple WorkflowPlane CRs can share the same planeID.
+       *
        * @example ci-cluster
        */
       planeID?: string;
@@ -2788,10 +2786,9 @@ export interface components {
       items: components['schemas']['ObservabilityPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description ObservabilityPlane resource.
+    /** @description ObservabilityPlane resource.
      *     Represents monitoring and logging infrastructure within a namespace.
-     */
+     *      */
     ObservabilityPlane: {
       /**
        * @description API version of the resource
@@ -2812,6 +2809,7 @@ export interface components {
       /**
        * @description Logical plane identifier for the physical cluster.
        *     Multiple ObservabilityPlane CRs can share the same planeID.
+       *
        * @example shared-obs
        */
       planeID?: string;
@@ -2843,10 +2841,9 @@ export interface components {
       items: components['schemas']['ClusterDataPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description ClusterDataPlane resource.
+    /** @description ClusterDataPlane resource.
      *     Represents a cluster-scoped data plane for workload deployment.
-     */
+     *      */
     ClusterDataPlane: {
       /**
        * @description API version of the resource
@@ -2867,6 +2864,7 @@ export interface components {
       /**
        * @description Logical plane identifier for the physical cluster.
        *     Multiple ClusterDataPlane CRs can share the same planeID.
+       *
        * @example us-west-prod-cluster
        */
       planeID?: string;
@@ -2891,10 +2889,9 @@ export interface components {
       items: components['schemas']['ClusterWorkflowPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description ClusterWorkflowPlane resource.
+    /** @description ClusterWorkflowPlane resource.
      *     Represents cluster-scoped CI/CD build infrastructure.
-     */
+     *      */
     ClusterWorkflowPlane: {
       /**
        * @description API version of the resource
@@ -2915,6 +2912,7 @@ export interface components {
       /**
        * @description Logical plane identifier for the physical cluster.
        *     Multiple ClusterWorkflowPlane CRs can share the same planeID.
+       *
        * @example ci-cluster
        */
       planeID?: string;
@@ -2952,10 +2950,9 @@ export interface components {
       items: components['schemas']['ClusterObservabilityPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description ClusterObservabilityPlane resource.
+    /** @description ClusterObservabilityPlane resource.
      *     Represents cluster-scoped monitoring and logging infrastructure.
-     */
+     *      */
     ClusterObservabilityPlane: {
       /**
        * @description API version of the resource
@@ -2976,6 +2973,7 @@ export interface components {
       /**
        * @description Logical plane identifier for the physical cluster.
        *     Multiple ClusterObservabilityPlane CRs can share the same planeID.
+       *
        * @example monitoring-cluster
        */
       planeID?: string;
@@ -3007,10 +3005,9 @@ export interface components {
       items: components['schemas']['ClusterComponentType'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description ClusterComponentType resource.
+    /** @description ClusterComponentType resource.
      *     Cluster-scoped version of ComponentType.
-     */
+     *      */
     ClusterComponentType: {
       /**
        * @description API version of the resource
@@ -3120,10 +3117,9 @@ export interface components {
       items: components['schemas']['ClusterTrait'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description ClusterTrait resource.
+    /** @description ClusterTrait resource.
      *     Cluster-scoped version of Trait.
-     */
+     *      */
     ClusterTrait: {
       /**
        * @description API version of the resource
@@ -3299,10 +3295,9 @@ export interface components {
     };
     /** @description Observed state of a ComponentType */
     ComponentTypeStatus: Record<string, never>;
-    /**
-     * @description ComponentType resource.
+    /** @description ComponentType resource.
      *     Defines workload templates used by platform engineers to govern component behavior.
-     */
+     *      */
     ComponentType: {
       /**
        * @description API version of the resource
@@ -3394,10 +3389,9 @@ export interface components {
       /** @description Error message shown when the rule evaluates to false */
       message: string;
     };
-    /**
-     * @description Trait resource.
+    /** @description Trait resource.
      *     Defines composable cross-cutting concerns that can be applied to components.
-     */
+     *      */
     Trait: {
       /**
        * @description API version of the resource
@@ -3527,10 +3521,9 @@ export interface components {
       items: components['schemas']['ClusterWorkflow'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description ClusterWorkflow resource.
+    /** @description ClusterWorkflow resource.
      *     Cluster-scoped version of Workflow that can be referenced by Components across all namespaces.
-     */
+     *      */
     ClusterWorkflow: {
       /**
        * @description API version of the resource
@@ -3797,10 +3790,9 @@ export interface components {
       items: components['schemas']['ComponentRelease'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description ComponentRelease resource.
+    /** @description ComponentRelease resource.
      *     Immutable snapshot of component state at release time.
-     */
+     *      */
     ComponentRelease: {
       /**
        * @description API version of the resource
@@ -3859,10 +3851,9 @@ export interface components {
       items: components['schemas']['ReleaseBinding'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description ReleaseBinding resource.
+    /** @description ReleaseBinding resource.
      *     Binds a ComponentRelease to a specific environment.
-     */
+     *      */
     ReleaseBinding: {
       /**
        * @description API version of the resource
@@ -4038,10 +4029,9 @@ export interface components {
       value?: string;
       valueFrom?: components['schemas']['EnvVarValueFrom'];
     };
-    /**
-     * @description RenderedRelease resource.
+    /** @description RenderedRelease resource.
      *     Contains the final rendered Kubernetes manifests deployed to data plane clusters.
-     */
+     *      */
     RenderedRelease: {
       /**
        * @description API version of the resource
@@ -4267,7 +4257,8 @@ export interface components {
       targetPlane: 'dataplane' | 'observabilityplane';
       /** @description All resource nodes in the tree */
       nodes: components['schemas']['ResourceNode'][];
-      /** @description Full RenderedRelease CR (metadata + spec + status). */
+      /** @description Full RenderedRelease CR (metadata + spec + status).
+       *      */
       renderedRelease?: components['schemas']['RenderedRelease'];
     };
     /** @description Request to generate an immutable release snapshot from the current component state */
@@ -4286,10 +4277,9 @@ export interface components {
        */
       message: string;
     };
-    /**
-     * @description Cluster-scoped authorization role (Kubernetes CRD).
+    /** @description Cluster-scoped authorization role (Kubernetes CRD).
      *     Defines a set of actions that can be assigned to subjects via role bindings.
-     */
+     *      */
     ClusterAuthzRole: {
       /**
        * @description API version of the resource
@@ -4326,10 +4316,9 @@ export interface components {
       items: components['schemas']['ClusterAuthzRole'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description Namespace-scoped authorization role (Kubernetes CRD).
+    /** @description Namespace-scoped authorization role (Kubernetes CRD).
      *     Defines a set of actions that can be assigned to subjects via role bindings within a namespace.
-     */
+     *      */
     AuthzRole: {
       /**
        * @description API version of the resource
@@ -4365,10 +4354,9 @@ export interface components {
       items: components['schemas']['AuthzRole'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description Cluster-scoped role binding (Kubernetes CRD).
+    /** @description Cluster-scoped role binding (Kubernetes CRD).
      *     Binds a cluster role to a subject identified by an entitlement claim.
-     */
+     *      */
     ClusterAuthzRoleBinding: {
       /**
        * @description API version of the resource
@@ -4401,10 +4389,9 @@ export interface components {
       items: components['schemas']['ClusterAuthzRoleBinding'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description Namespace-scoped role binding (Kubernetes CRD).
+    /** @description Namespace-scoped role binding (Kubernetes CRD).
      *     Binds a role to a subject identified by an entitlement claim within a namespace.
-     */
+     *      */
     AuthzRoleBinding: {
       /**
        * @description API version of the resource
@@ -4618,6 +4605,7 @@ export interface components {
       name: string;
       /**
        * @description The lowest resource hierarchy level at which this action is evaluated. One of cluster, namespace, project, or component.
+       *
        * @example component
        * @enum {string}
        */
@@ -4935,10 +4923,9 @@ export interface components {
       items: components['schemas']['SecretReference'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description SecretReference resource.
+    /** @description SecretReference resource.
      *     Defines references to external secrets that are synced into the cluster.
-     */
+     *      */
     SecretReference: {
       /**
        * @description API version of the resource
@@ -5056,10 +5043,9 @@ export interface components {
       items: components['schemas']['Workload'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description Workload resource.
+    /** @description Workload resource.
      *     Defines the source code, container, endpoints and dependencies for a component.
-     */
+     *      */
     Workload: {
       /**
        * @description API version of the resource
@@ -5159,11 +5145,10 @@ export interface components {
     };
     /** @description Maps resolved connection address components to environment variable names */
     ConnectionEnvBindings: {
-      /**
-       * @description Env var name for the protocol-appropriate connection string.
+      /** @description Env var name for the protocol-appropriate connection string.
        *     For HTTP/HTTPS/WS/WSS: scheme://host:port/basePath
        *     For gRPC/TCP/UDP: host:port
-       */
+       *      */
       address?: string;
       /** @description Env var name for just the hostname */
       host?: string;
@@ -5177,10 +5162,9 @@ export interface components {
       items: components['schemas']['DeploymentPipeline'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description DeploymentPipeline resource.
+    /** @description DeploymentPipeline resource.
      *     Defines promotion paths between environments for component deployments.
-     */
+     *      */
     DeploymentPipeline: {
       /**
        * @description API version of the resource
@@ -5208,7 +5192,8 @@ export interface components {
     };
     /** @description Promotion path between environments */
     PromotionPath: {
-      /** @description Reference to the source environment for this promotion path. */
+      /** @description Reference to the source environment for this promotion path.
+       *      */
       sourceEnvironmentRef: {
         /**
          * @description Kind of environment resource
@@ -5254,10 +5239,9 @@ export interface components {
       items: components['schemas']['ObservabilityAlertsNotificationChannel'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description ObservabilityAlertsNotificationChannel resource.
+    /** @description ObservabilityAlertsNotificationChannel resource.
      *     Defines a channel for sending alert notifications. Currently email and webhook notifications are supported.
-     */
+     *      */
     ObservabilityAlertsNotificationChannel: {
       /**
        * @description API version of the resource
@@ -5455,18 +5439,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Invalid request: name is required",
-         *       "code": "BAD_REQUEST",
-         *       "details": [
-         *         {
-         *           "field": "name",
-         *           "message": "is required"
-         *         }
-         *       ]
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -5476,12 +5448,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Authentication required",
-         *       "code": "UNAUTHORIZED"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -5491,12 +5457,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "You do not have permission to access this resource",
-         *       "code": "FORBIDDEN"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -5506,12 +5466,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Project 'my-project' not found",
-         *       "code": "NOT_FOUND"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -5521,12 +5475,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Project 'my-project' already exists",
-         *       "code": "CONFLICT"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -5536,12 +5484,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Internal server error",
-         *       "code": "INTERNAL_ERROR"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -5605,20 +5547,18 @@ export interface components {
     MappingIdParam: number;
     /** @description Git secret name */
     GitSecretNameParam: string;
-    /**
-     * @description A label selector to filter resources using Kubernetes label selector syntax.
+    /** @description A label selector to filter resources using Kubernetes label selector syntax.
      *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
      *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
      *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
      *     Multiple requirements are comma-separated and ANDed together.
-     */
+     *      */
     LabelSelectorParam: string;
     /** @description Maximum number of items to return per page */
     LimitParam: number;
-    /**
-     * @description Opaque pagination cursor from a previous response.
+    /** @description Opaque pagination cursor from a previous response.
      *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-     */
+     *      */
     CursorParam: string;
   };
   requestBodies: never;
@@ -5730,20 +5670,18 @@ export interface operations {
   listNamespaces: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -5883,20 +5821,18 @@ export interface operations {
   listProjects: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -6052,20 +5988,18 @@ export interface operations {
       query?: {
         /** @description Filter resources by project name */
         project?: components['parameters']['ProjectQueryParam'];
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -6128,20 +6062,18 @@ export interface operations {
   listEnvironments: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -6294,20 +6226,18 @@ export interface operations {
   listDataPlanes: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -6460,20 +6390,18 @@ export interface operations {
   listWorkflowPlanes: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -6626,20 +6554,18 @@ export interface operations {
   listObservabilityPlanes: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -6792,20 +6718,18 @@ export interface operations {
   listClusterDataPlanes: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -6946,20 +6870,18 @@ export interface operations {
   listClusterWorkflowPlanes: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -7100,20 +7022,18 @@ export interface operations {
   listClusterObservabilityPlanes: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -7254,20 +7174,18 @@ export interface operations {
   listClusterComponentTypes: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -7435,20 +7353,18 @@ export interface operations {
   listClusterTraits: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -7616,20 +7532,18 @@ export interface operations {
   listComponentTypes: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -7811,20 +7725,18 @@ export interface operations {
   listTraits: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -8006,20 +7918,18 @@ export interface operations {
   listClusterWorkflows: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -8187,20 +8097,18 @@ export interface operations {
   listWorkflows: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -8384,20 +8292,18 @@ export interface operations {
       query?: {
         /** @description Filter workflow runs by workflow name */
         workflow?: components['parameters']['WorkflowQueryParam'];
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -8851,20 +8757,18 @@ export interface operations {
   listClusterRoles: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -9005,20 +8909,18 @@ export interface operations {
   listClusterRoleBindings: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -9159,20 +9061,18 @@ export interface operations {
   listNamespaceRoles: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -9327,20 +9227,18 @@ export interface operations {
   listNamespaceRoleBindings: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -9553,20 +9451,18 @@ export interface operations {
   listSecretReferences: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -9720,20 +9616,18 @@ export interface operations {
       query?: {
         /** @description Filter resources by component name */
         component?: components['parameters']['ComponentQueryParam'];
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -9888,20 +9782,18 @@ export interface operations {
       query?: {
         /** @description Filter resources by component name */
         component?: components['parameters']['ComponentQueryParam'];
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -9963,20 +9855,18 @@ export interface operations {
       query?: {
         /** @description Filter resources by component name */
         component?: components['parameters']['ComponentQueryParam'];
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -10233,20 +10123,18 @@ export interface operations {
   listDeploymentPipelines: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -10398,20 +10286,18 @@ export interface operations {
   listObservabilityAlertsNotificationChannels: {
     parameters: {
       query?: {
-        /**
-         * @description A label selector to filter resources using Kubernetes label selector syntax.
+        /** @description A label selector to filter resources using Kubernetes label selector syntax.
          *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
          *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
          *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
          *     Multiple requirements are comma-separated and ANDed together.
-         */
+         *      */
         labelSelector?: components['parameters']['LabelSelectorParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;

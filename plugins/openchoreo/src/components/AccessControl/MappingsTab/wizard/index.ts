@@ -1,7 +1,6 @@
 export * from './types';
 export { WizardStepper } from './WizardStepper';
-export { RoleStep } from './RoleStep';
 export { SubjectStep } from './SubjectStep';
-export { ScopeStep } from './ScopeStep';
+export { RoleMappingsStep } from './RoleMappingsStep';
 export { EffectStep } from './EffectStep';
 export { ReviewStep } from './ReviewStep';

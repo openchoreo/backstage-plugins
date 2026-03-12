@@ -29,6 +29,7 @@ import DeleteIcon from '@material-ui/icons/DeleteOutlined';
 import EditIcon from '@material-ui/icons/EditOutlined';
 import SearchIcon from '@material-ui/icons/Search';
 import WarningIcon from '@material-ui/icons/Warning';
+import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { useStyles } from './styles';
 import { SCOPE_CLUSTER, type BindingScope } from '../constants';
 
@@ -36,6 +37,7 @@ interface RoleRow {
   name: string;
   actions: string[];
   description?: string;
+  labels?: Record<string, string>;
 }
 
 export interface BindingSummary {
@@ -163,7 +165,21 @@ export const RolesTable = ({
               {filteredRoles.map(role => (
                 <TableRow key={role.name}>
                   <TableCell>
-                    <Typography variant="body1">{role.name}</Typography>
+                    <Typography variant="body1">
+                      {role.name}
+                      {role.labels?.[CHOREO_LABELS.SYSTEM] === 'true' && (
+                        <Chip
+                          label="System"
+                          size="small"
+                          variant="outlined"
+                          style={{
+                            marginLeft: 8,
+                            fontSize: '0.7rem',
+                            height: 20,
+                          }}
+                        />
+                      )}
+                    </Typography>
                     {role.description && (
                       <Typography variant="body2" color="textSecondary">
                         {role.description}
