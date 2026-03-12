@@ -78,6 +78,30 @@ export const WorkflowDetailsRenderer = ({
       return <code className={classes.propertyValueCode}>{arrayValue}</code>;
     }
 
+    // Check if all items are objects with "name" and "value" keys (env var pattern)
+    const isNameValueArray = data.every(
+      (item: any) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'name' in item &&
+        'value' in item &&
+        Object.keys(item).length === 2,
+    );
+
+    // Render name/value arrays as a compact table
+    if (isNameValueArray) {
+      return (
+        <Box className={classes.envTable}>
+          {data.map((item: any, index: number) => (
+            <Box key={index} className={classes.envRow}>
+              <code className={classes.envName}>{String(item.name)}</code>
+              <code className={classes.envValue}>{String(item.value)}</code>
+            </Box>
+          ))}
+        </Box>
+      );
+    }
+
     // For arrays of objects, render vertically
     return (
       <Box>
@@ -162,7 +186,7 @@ export const WorkflowDetailsRenderer = ({
     return (
       <Grid container spacing={2}>
         {entries.map(([key, value]) => (
-          <Grid item xs={12} sm={6} md={4} key={key}>
+          <Grid item xs={12} sm={6} key={key}>
             <Box className={classes.propertyCard}>
               <Box className={classes.propertyRow}>
                 <Typography className={classes.propertyKey}>

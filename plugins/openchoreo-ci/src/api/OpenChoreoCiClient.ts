@@ -98,7 +98,15 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
   async fetchWorkflowSchema(
     namespaceName: string,
     workflowName: string,
+    workflowKind?: 'Workflow' | 'ClusterWorkflow',
   ): Promise<WorkflowSchemaResponse> {
+    if (workflowKind === 'ClusterWorkflow') {
+      return this.apiFetch<WorkflowSchemaResponse>('/cluster-workflow-schema', {
+        params: {
+          workflowName,
+        },
+      });
+    }
     return this.apiFetch<WorkflowSchemaResponse>('/workflow-schema', {
       params: {
         namespaceName,

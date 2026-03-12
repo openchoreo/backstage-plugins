@@ -27,7 +27,7 @@ export const BuildStatusCell = ({ component }: BuildStatusCellProps) => {
   const status = build.status?.toLowerCase() || '';
   let StatusIcon = StatusPending;
 
-  if (status.includes('success') || status.includes('complete')) {
+  if (status.includes('succeeded') || status.includes('completed')) {
     StatusIcon = StatusOK;
   } else if (status.includes('fail') || status.includes('error')) {
     StatusIcon = StatusError;

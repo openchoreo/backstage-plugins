@@ -36,6 +36,7 @@ import { useStyles } from './styles';
 
 interface WorkflowConfigPageProps {
   workflowName: string;
+  workflowKind?: 'Workflow' | 'ClusterWorkflow';
   parameters?: { [key: string]: unknown } | null;
   onBack: () => void;
   onSaved: () => void;
@@ -43,6 +44,7 @@ interface WorkflowConfigPageProps {
 
 export const WorkflowConfigPage = ({
   workflowName,
+  workflowKind,
   parameters,
   onBack,
   onSaved,
@@ -84,6 +86,7 @@ export const WorkflowConfigPage = ({
       const schemaResponse = await client.fetchWorkflowSchema(
         namespace,
         workflowName,
+        workflowKind,
       );
 
       // The backend returns the raw JSON Schema directly (or a {success, data} wrapper for legacy responses)
@@ -113,7 +116,7 @@ export const WorkflowConfigPage = ({
     } finally {
       setLoading(false);
     }
-  }, [entity, client, workflowName, parameters]);
+  }, [entity, client, workflowName, workflowKind, parameters]);
 
   useEffect(() => {
     if (workflowName) {
