@@ -474,15 +474,35 @@ export const NamespaceRoleBindingsContent = ({
                               </TableCell>
                               <TableCell>
                                 {(binding.roleMappings || []).length > 0 ? (
-                                  binding.roleMappings.map((rm, idx) => (
-                                    <Typography variant="body2" key={idx}>
-                                      {rm.role?.name || '\u2014'} →{' '}
-                                      {formatNsMappingScope(
-                                        rm.scope,
-                                        binding.namespace,
-                                      )}
-                                    </Typography>
-                                  ))
+                                  <>
+                                    {binding.roleMappings
+                                      .slice(0, 2)
+                                      .map((rm, idx) => (
+                                        <Typography variant="body2" key={idx}>
+                                          {rm.role?.name || '\u2014'} →{' '}
+                                          {formatNsMappingScope(
+                                            rm.scope,
+                                            binding.namespace,
+                                          )}
+                                          {idx === 1 &&
+                                            binding.roleMappings.length > 2 && (
+                                              <Chip
+                                                label={`+${
+                                                  binding.roleMappings.length -
+                                                  2
+                                                }`}
+                                                size="small"
+                                                variant="outlined"
+                                                style={{
+                                                  marginLeft: 6,
+                                                  fontSize: '0.65rem',
+                                                  height: 18,
+                                                }}
+                                              />
+                                            )}
+                                        </Typography>
+                                      ))}
+                                  </>
                                 ) : (
                                   <Typography variant="body2">
                                     {'\u2014'}
