@@ -39,7 +39,7 @@ export const CHOREO_ANNOTATIONS = {
   OBSERVER_URL: 'openchoreo.io/observer-url',
   // Data plane reference kind (DataPlane vs ClusterDataPlane)
   DATA_PLANE_REF_KIND: 'openchoreo.io/data-plane-ref-kind',
-  // Workflow plane reference
+  // Workflow plane reference (on Workflow/ClusterWorkflow entities)
   WORKFLOW_PLANE_REF: 'openchoreo.io/workflow-plane-ref',
   WORKFLOW_PLANE_REF_KIND: 'openchoreo.io/workflow-plane-ref-kind',
   // Workflow parameters schema
@@ -108,13 +108,13 @@ export const RELATION_OBSERVED_BY = 'observedBy';
 export const RELATION_OBSERVES = 'observes';
 
 /**
- * A relation indicating that a System (Project) builds on a WorkflowPlane or ClusterWorkflowPlane.
- * The source is the project, the target is the workflow plane.
+ * A relation indicating that a Workflow or ClusterWorkflow builds on a WorkflowPlane or ClusterWorkflowPlane.
+ * The source is the workflow, the target is the workflow plane.
  */
 export const RELATION_BUILDS_ON = 'buildsOn';
 
 /**
- * A relation indicating that a WorkflowPlane or ClusterWorkflowPlane builds for a System (Project).
+ * A relation indicating that a WorkflowPlane or ClusterWorkflowPlane is used by a Workflow or ClusterWorkflow.
  * This is the inverse of RELATION_BUILDS_ON.
  */
 export const RELATION_BUILDS = 'builds';

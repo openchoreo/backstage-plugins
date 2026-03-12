@@ -256,7 +256,6 @@ export function translateProjectToEntity(
     namespaceName?: string;
     uid?: string;
     deletionTimestamp?: string;
-    workflowPlaneRef?: { kind?: string; name?: string };
   },
   namespaceName: string,
   config: ProjectEntityTranslationConfig,
@@ -280,14 +279,6 @@ export function translateProjectToEntity(
         [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
         ...(project.deletionTimestamp && {
           [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: project.deletionTimestamp,
-        }),
-        ...(project.workflowPlaneRef?.name && {
-          [CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF]:
-            project.workflowPlaneRef.name,
-        }),
-        ...(project.workflowPlaneRef?.kind && {
-          [CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND]:
-            project.workflowPlaneRef.kind,
         }),
       },
       labels: {
@@ -476,6 +467,7 @@ export function translateWorkflowToEntity(
     parameters?: string;
     type?: string;
     deletionTimestamp?: string;
+    workflowPlaneRef?: { kind?: string; name?: string };
   },
   namespaceName: string,
   config: EntityTranslationConfig,
@@ -500,6 +492,13 @@ export function translateWorkflowToEntity(
         ...(wf.deletionTimestamp && {
           [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: wf.deletionTimestamp,
         }),
+        ...(wf.workflowPlaneRef?.name && {
+          [CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF]: wf.workflowPlaneRef.name,
+        }),
+        ...(wf.workflowPlaneRef?.kind && {
+          [CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND]:
+            wf.workflowPlaneRef.kind,
+        }),
       },
       labels: {
         [CHOREO_LABELS.MANAGED]: 'true',
@@ -508,6 +507,10 @@ export function translateWorkflowToEntity(
     spec: {
       domain: `default/${namespaceName}`,
       ...(wf.type && { type: wf.type }),
+      ...(wf.workflowPlaneRef?.name && {
+        workflowPlaneRef: wf.workflowPlaneRef.name,
+        workflowPlaneRefKind: wf.workflowPlaneRef.kind || 'WorkflowPlane',
+      }),
     },
   };
 }
@@ -816,6 +819,7 @@ export function translateClusterWorkflowToEntity(
     parameters?: string;
     type?: string;
     deletionTimestamp?: string;
+    workflowPlaneRef?: { kind?: string; name?: string };
   },
   config: EntityTranslationConfig,
 ): ClusterWorkflowEntityV1alpha1 {
@@ -838,6 +842,13 @@ export function translateClusterWorkflowToEntity(
         ...(wf.deletionTimestamp && {
           [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: wf.deletionTimestamp,
         }),
+        ...(wf.workflowPlaneRef?.name && {
+          [CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF]: wf.workflowPlaneRef.name,
+        }),
+        ...(wf.workflowPlaneRef?.kind && {
+          [CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND]:
+            wf.workflowPlaneRef.kind,
+        }),
       },
       labels: {
         [CHOREO_LABELS.MANAGED]: 'true',
@@ -845,6 +856,11 @@ export function translateClusterWorkflowToEntity(
     },
     spec: {
       ...(wf.type && { type: wf.type }),
+      ...(wf.workflowPlaneRef?.name && {
+        workflowPlaneRef: wf.workflowPlaneRef.name,
+        workflowPlaneRefKind:
+          wf.workflowPlaneRef.kind || 'ClusterWorkflowPlane',
+      }),
     },
   };
 }

@@ -34,6 +34,7 @@ export const CLUSTER_SCOPED_KINDS = [
   'clusterdataplane',
   'clusterworkflowplane',
   'clusterobservabilityplane',
+  'clusterworkflow',
 ];
 
 export const APPLICATION_VIEW: GraphViewDefinition = {
@@ -63,8 +64,14 @@ export const INFRASTRUCTURE_VIEW: GraphViewDefinition = {
   id: 'platform',
   label: 'Platform Resources',
   description:
-    'Data Planes, Workflow Planes, Observability Planes, and Environments',
-  kinds: ['dataplane', 'workflowplane', 'observabilityplane', 'environment'],
+    'Data Planes, Workflow Planes, Observability Planes, Workflows, and Environments',
+  kinds: [
+    'dataplane',
+    'workflowplane',
+    'observabilityplane',
+    'environment',
+    'workflow',
+  ],
   relations: [
     RELATION_HOSTED_ON,
     RELATION_HOSTS,
@@ -72,11 +79,14 @@ export const INFRASTRUCTURE_VIEW: GraphViewDefinition = {
     RELATION_OBSERVES,
     RELATION_PROMOTES_TO,
     RELATION_PROMOTED_BY,
+    RELATION_BUILDS_ON,
+    RELATION_BUILDS,
   ],
   relationPairs: [
     [RELATION_HOSTED_ON, RELATION_HOSTS],
     [RELATION_OBSERVED_BY, RELATION_OBSERVES],
     [RELATION_PROMOTES_TO, RELATION_PROMOTED_BY],
+    [RELATION_BUILDS_ON, RELATION_BUILDS],
   ],
 };
 
@@ -89,6 +99,7 @@ export const CLUSTER_VIEW: GraphViewDefinition = {
     'clusterdataplane',
     'clusterworkflowplane',
     'clusterobservabilityplane',
+    'clusterworkflow',
   ],
   relations: [
     RELATION_HOSTED_ON,
@@ -168,6 +179,7 @@ export const ALL_FILTERABLE_KINDS: {
   { id: 'deploymentpipeline', label: 'Pipeline' },
   { id: 'environment', label: 'Environment' },
   { id: 'dataplane', label: 'Data Plane' },
+  { id: 'workflow', label: 'Workflow' },
   { id: 'workflowplane', label: 'Workflow Plane' },
   { id: 'observabilityplane', label: 'Obs Plane' },
   // Cluster-scoped kinds
@@ -180,6 +192,11 @@ export const ALL_FILTERABLE_KINDS: {
   {
     id: 'clusterobservabilityplane',
     label: 'Cluster Obs Plane',
+    clusterScoped: true,
+  },
+  {
+    id: 'clusterworkflow',
+    label: 'Cluster Workflow',
     clusterScoped: true,
   },
 ];

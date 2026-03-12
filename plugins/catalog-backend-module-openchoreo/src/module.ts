@@ -27,7 +27,6 @@ import {
   ClusterObservabilityPlaneEntityProcessor,
   ClusterWorkflowPlaneEntityProcessor,
   ClusterWorkflowEntityProcessor,
-  SystemWorkflowPlaneProcessor,
 } from './processors';
 import {
   immediateCatalogServiceRef,
@@ -142,9 +141,6 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register the ClusterWorkflow entity processor
         catalog.addProcessor(new ClusterWorkflowEntityProcessor());
-
-        // Register the SystemWorkflowPlane processor (emits buildsOn/builds relations)
-        catalog.addProcessor(new SystemWorkflowPlaneProcessor());
 
         // Register the scheduled OpenChoreo entity provider
         catalog.addEntityProvider(
