@@ -101,7 +101,7 @@ export function isStepValid(stepId: WizardStepId, state: WizardState): boolean {
     case 'roleMappings':
       return (
         state.roleMappings.length > 0 &&
-        state.roleMappings.every(rm => !!rm.role)
+        state.roleMappings.every(rm => !!rm.role && rm.confirmed)
       );
     case 'effect':
       return (

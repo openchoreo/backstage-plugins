@@ -413,13 +413,19 @@ export const RoleMappingsStep = ({
     setDraft(null);
   };
 
-  const handleRoleChange = (index: number, roleName: string) => {
+  const getRoleKey = (role: { name: string; namespace?: string }) =>
+    `${role.name}|${role.namespace || ''}`;
+
+  const getMappingRoleKey = (rm: WizardRoleMapping) =>
+    `${rm.role}|${rm.roleNamespace || ''}`;
+
+  const handleRoleChange = (index: number, compositeKey: string) => {
+    const [roleName, roleNamespace] = compositeKey.split('|');
     const updated = [...state.roleMappings];
-    const matchedRole = availableRoles.find(r => r.name === roleName);
     updated[index] = {
       ...updated[index],
       role: roleName,
-      roleNamespace: matchedRole?.namespace || '',
+      roleNamespace: roleNamespace || '',
     };
     onChange({ roleMappings: updated });
   };
@@ -440,12 +446,12 @@ export const RoleMappingsStep = ({
       className={classes.fieldSelect}
     >
       <Select
-        value={mapping.role || ''}
+        value={mapping.role ? getMappingRoleKey(mapping) : ''}
         onChange={e => handleRoleChange(index, e.target.value as string)}
         displayEmpty
         renderValue={selected =>
           selected ? (
-            String(selected)
+            String(selected).split('|')[0]
           ) : (
             <span style={{ color: '#9e9e9e' }}>Select a role...</span>
           )
@@ -464,7 +470,7 @@ export const RoleMappingsStep = ({
                 </MenuItem>
               ),
               ...namespaceRoles.map(role => (
-                <MenuItem key={`ns-${role.name}`} value={role.name}>
+                <MenuItem key={`ns-${getRoleKey(role)}`} value={getRoleKey(role)}>
                   {role.name}
                 </MenuItem>
               )),
@@ -476,13 +482,13 @@ export const RoleMappingsStep = ({
                 </MenuItem>
               ),
               ...clusterRoles.map(role => (
-                <MenuItem key={`cr-${role.name}`} value={role.name}>
+                <MenuItem key={`cr-${getRoleKey(role)}`} value={getRoleKey(role)}>
                   {role.name}
                 </MenuItem>
               )),
             ]
           : availableRoles.map(role => (
-              <MenuItem key={role.name} value={role.name}>
+              <MenuItem key={getRoleKey(role)} value={getRoleKey(role)}>
                 {role.name}
               </MenuItem>
             ))}
