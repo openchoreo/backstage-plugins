@@ -50,6 +50,7 @@ import {
   useWorkflowPermission,
   useClusterWorkflowPermission,
   useNamespacePermission,
+  useDeploymentPipelinePermission,
 } from '@openchoreo/backstage-plugin-react';
 import { ScaffolderStarredFilter } from './ScaffolderStarredFilter';
 import { ScaffolderCategoryPicker } from './ScaffolderCategoryPicker';
@@ -63,6 +64,7 @@ const APPLICATION_TYPES = ['System (Project)'];
 const PLATFORM_TYPES = [
   'Namespace',
   'Environment',
+  'DeploymentPipeline',
   'ClusterTrait',
   'Trait',
   'ClusterComponentType',
@@ -136,6 +138,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   const workflowPerm = useWorkflowPermission();
   const clusterWorkflowPerm = useClusterWorkflowPermission();
   const namespacePerm = useNamespacePermission();
+  const deploymentPipelinePerm = useDeploymentPipelinePermission();
 
   // Map template spec.type to whether the card should be disabled
   const isTemplateDisabled = useCallback(
@@ -168,6 +171,10 @@ const TemplateListContent = (props: TemplateListPageProps) => {
           return !clusterWorkflowPerm.loading && !clusterWorkflowPerm.canCreate;
         case 'Namespace':
           return !namespacePerm.loading && !namespacePerm.canCreate;
+        case 'DeploymentPipeline':
+          return (
+            !deploymentPipelinePerm.loading && !deploymentPipelinePerm.canCreate
+          );
         default:
           return false;
       }
@@ -184,6 +191,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
       workflowPerm,
       clusterWorkflowPerm,
       namespacePerm,
+      deploymentPipelinePerm,
     ],
   );
 

@@ -31,6 +31,7 @@ export {
   translateClusterComponentTypeToEntity,
   translateClusterTraitToEntity,
   translateClusterWorkflowToEntity,
+  translateDeploymentPipelineToEntity,
   extractWorkflowParameters,
   type ComponentEntityTranslationConfig,
   type EntityTranslationConfig,

@@ -358,6 +358,15 @@ export const openchoreoObservabilityplaneDeletePermission = createPermission({
 });
 
 /**
+ * Permission to create a new deployment pipeline.
+ * Org-scoped permission (no resource context required).
+ */
+export const openchoreoDeploymentpipelineCreatePermission = createPermission({
+  name: 'openchoreo.deploymentpipeline.create',
+  attributes: { action: 'create' },
+});
+
+/**
  * Permission to update a deployment pipeline.
  * Resource-based: requires entity context.
  */
@@ -768,6 +777,7 @@ export const openchoreoPermissions = [
   openchoreoWorkflowCreatePermission,
   openchoreoClusterWorkflowCreatePermission,
   openchoreoComponentWorkflowCreatePermission,
+  openchoreoDeploymentpipelineCreatePermission,
   // Update & Delete permissions for resource definition kinds
   openchoreoComponentTypeUpdatePermission,
   openchoreoComponentTypeDeletePermission,
@@ -869,6 +879,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.workflowplane.delete': 'workflowplane:delete',
   'openchoreo.observabilityplane.update': 'observabilityplane:update',
   'openchoreo.observabilityplane.delete': 'observabilityplane:delete',
+  'openchoreo.deploymentpipeline.create': 'deploymentpipeline:create',
   'openchoreo.deploymentpipeline.update': 'deploymentpipeline:update',
   'openchoreo.deploymentpipeline.delete': 'deploymentpipeline:delete',
   'openchoreo.clustercomponenttype.update': 'clustercomponenttype:update',

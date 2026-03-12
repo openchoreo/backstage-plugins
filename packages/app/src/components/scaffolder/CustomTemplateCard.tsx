@@ -10,6 +10,7 @@ import CategoryOutlinedIcon from '@material-ui/icons/CategoryOutlined';
 import SettingsApplicationsOutlinedIcon from '@material-ui/icons/SettingsApplicationsOutlined';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import ApartmentOutlined from '@material-ui/icons/ApartmentOutlined';
+import AccountTreeOutlined from '@material-ui/icons/AccountTreeOutlined';
 import { useStarredEntity } from '@backstage/plugin-catalog-react';
 import type { TemplateEntityV1beta3 } from '@backstage/plugin-scaffolder-common';
 import { useStyles } from './styles';
@@ -24,6 +25,7 @@ const TYPE_ICONS: Record<string, React.ReactElement> = {
   ClusterComponentType: <CategoryOutlinedIcon fontSize="inherit" />,
   ComponentWorkflow: <SettingsApplicationsOutlinedIcon fontSize="inherit" />,
   Namespace: <ApartmentOutlined fontSize="inherit" />,
+  DeploymentPipeline: <AccountTreeOutlined fontSize="inherit" />,
 };
 
 const DEFAULT_ICON = <DescriptionOutlinedIcon fontSize="inherit" />;

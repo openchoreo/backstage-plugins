@@ -15,6 +15,7 @@ import type {
   ClusterComponentTypeEntityV1alpha1,
   ClusterTraitTypeEntityV1alpha1,
   ClusterWorkflowEntityV1alpha1,
+  DeploymentPipelineEntityV1alpha1,
 } from '../kinds';
 
 type ModelsComponent = ComponentResponse;
@@ -738,6 +739,67 @@ export function translateClusterTraitToEntity(
       },
     },
     spec: {},
+  };
+}
+
+/**
+ * Translates an OpenChoreo DeploymentPipeline to a Backstage DeploymentPipeline entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateDeploymentPipelineToEntity(
+  pipeline: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    uid?: string;
+    createdAt?: string;
+    status?: string;
+    deletionTimestamp?: string;
+    promotionPaths?: Array<{
+      sourceEnvironment: string;
+      targetEnvironments: Array<{
+        name: string;
+        requiresApproval?: boolean;
+        isManualApprovalRequired?: boolean;
+      }>;
+    }>;
+    projectRefs?: string[];
+  },
+  namespaceName: string,
+  config: EntityTranslationConfig,
+): DeploymentPipelineEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'DeploymentPipeline',
+    metadata: {
+      name: pipeline.name,
+      namespace: namespaceName,
+      title: pipeline.displayName || pipeline.name,
+      description:
+        pipeline.description || `Deployment pipeline ${pipeline.name}`,
+      tags: ['openchoreo', 'deployment-pipeline', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: pipeline.createdAt || '',
+        ...(pipeline.status && {
+          [CHOREO_ANNOTATIONS.STATUS]: pipeline.status,
+        }),
+        ...(pipeline.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: pipeline.deletionTimestamp,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+        'openchoreo.io/deployment-pipeline': 'true',
+      },
+    },
+    spec: {
+      projectRefs: pipeline.projectRefs || [],
+      namespaceName,
+      promotionPaths: pipeline.promotionPaths || [],
+    },
   };
 }
 

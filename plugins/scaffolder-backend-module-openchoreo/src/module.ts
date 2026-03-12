@@ -15,6 +15,7 @@ import { createClusterTraitDefinitionAction } from './actions/clusterTrait';
 import { createClusterWorkflowDefinitionAction } from './actions/clusterWorkflow';
 import { createEnvironmentAction } from './actions/environment';
 import { createNamespaceAction } from './actions/namespace';
+import { createDeploymentPipelineAction } from './actions/deploymentPipeline';
 /**
  * A backend module that registers the actions into the scaffolder
  */
@@ -53,6 +54,7 @@ export const scaffolderModule = createBackendModule({
           createClusterComponentTypeDefinitionAction(config, immediateCatalog),
           createClusterTraitDefinitionAction(config, immediateCatalog),
           createClusterWorkflowDefinitionAction(config, immediateCatalog),
+          createDeploymentPipelineAction(config, immediateCatalog),
         );
       },
     });

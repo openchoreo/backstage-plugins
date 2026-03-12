@@ -267,6 +267,10 @@ export {
   type UseEnvironmentPermissionResult,
 } from './hooks/useEnvironmentPermission';
 export {
+  useDeploymentPipelinePermission,
+  type UseDeploymentPipelinePermissionResult,
+} from './hooks/useDeploymentPipelinePermission';
+export {
   useEnvironmentReadPermission,
   type UseEnvironmentReadPermissionResult,
 } from './hooks/useEnvironmentReadPermission';
