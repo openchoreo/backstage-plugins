@@ -23,7 +23,9 @@ export class WorkflowPlaneEntityProcessor implements CatalogProcessor {
     return 'WorkflowPlaneEntityProcessor';
   }
 
-  async validateEntityKind(entity: WorkflowPlaneEntityV1alpha1): Promise<boolean> {
+  async validateEntityKind(
+    entity: WorkflowPlaneEntityV1alpha1,
+  ): Promise<boolean> {
     return entity.kind === 'WorkflowPlane';
   }
 

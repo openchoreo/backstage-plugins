@@ -85,7 +85,11 @@ export const CLUSTER_VIEW: GraphViewDefinition = {
   label: 'Cluster Resources',
   description:
     'Cluster Data Planes, Cluster Workflow Planes, and Cluster Observability Planes',
-  kinds: ['clusterdataplane', 'clusterworkflowplane', 'clusterobservabilityplane'],
+  kinds: [
+    'clusterdataplane',
+    'clusterworkflowplane',
+    'clusterobservabilityplane',
+  ],
   relations: [
     RELATION_HOSTED_ON,
     RELATION_HOSTS,

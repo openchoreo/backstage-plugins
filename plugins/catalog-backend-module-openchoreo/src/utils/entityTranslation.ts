@@ -232,10 +232,12 @@ export function translateProjectToEntity(
           [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: project.deletionTimestamp,
         }),
         ...(project.workflowPlaneRef?.name && {
-          [CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF]: project.workflowPlaneRef.name,
+          [CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF]:
+            project.workflowPlaneRef.name,
         }),
         ...(project.workflowPlaneRef?.kind && {
-          [CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND]: project.workflowPlaneRef.kind,
+          [CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND]:
+            project.workflowPlaneRef.kind,
         }),
       },
       labels: {

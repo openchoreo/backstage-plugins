@@ -124,9 +124,10 @@ export function useOverridesData(
   // Track whether actual overrides exist from backend (not just defaults)
   const [hasActualComponentOverrides, setHasActualComponentOverrides] =
     useState<boolean>(false);
-  const [hasActualTraitEnvironmentConfigsMap, setHasActualTraitEnvironmentConfigsMap] = useState<
-    Record<string, boolean>
-  >({});
+  const [
+    hasActualTraitEnvironmentConfigsMap,
+    setHasActualTraitEnvironmentConfigsMap,
+  ] = useState<Record<string, boolean>>({});
   const [hasActualWorkloadOverrides, setHasActualWorkloadOverrides] =
     useState<boolean>(false);
 
@@ -191,12 +192,15 @@ export function useOverridesData(
         const wrappedSchema = schemaResponse.data as {
           properties?: {
             componentTypeEnvironmentConfigs?: JSONSchema7;
-            traitEnvironmentConfigs?: { properties?: Record<string, JSONSchema7> };
+            traitEnvironmentConfigs?: {
+              properties?: Record<string, JSONSchema7>;
+            };
           };
         };
         const compTypeOverrides =
           wrappedSchema.properties?.componentTypeEnvironmentConfigs;
-        const traitEnvironmentConfigs = wrappedSchema.properties?.traitEnvironmentConfigs;
+        const traitEnvironmentConfigs =
+          wrappedSchema.properties?.traitEnvironmentConfigs;
 
         if (compTypeOverrides) {
           compTypeOverridesSchema = compTypeOverrides as JSONSchema7;
@@ -254,7 +258,8 @@ export function useOverridesData(
             setInitialComponentTypeFormData(componentOverrides);
           }
 
-          const existingTraitEnvironmentConfigs = currentBinding.traitEnvironmentConfigs || {};
+          const existingTraitEnvironmentConfigs =
+            currentBinding.traitEnvironmentConfigs || {};
           setTraitFormDataMap(existingTraitEnvironmentConfigs);
           setInitialTraitFormDataMap(existingTraitEnvironmentConfigs);
 
@@ -262,7 +267,8 @@ export function useOverridesData(
           const traitEnvironmentConfigsMap: Record<string, boolean> = {};
           Object.keys(existingTraitEnvironmentConfigs).forEach(traitName => {
             traitEnvironmentConfigsMap[traitName] =
-              Object.keys(existingTraitEnvironmentConfigs[traitName] || {}).length > 0;
+              Object.keys(existingTraitEnvironmentConfigs[traitName] || {})
+                .length > 0;
           });
           setHasActualTraitEnvironmentConfigsMap(traitEnvironmentConfigsMap);
 

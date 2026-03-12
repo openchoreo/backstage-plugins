@@ -40,7 +40,9 @@ export class SystemWorkflowPlaneProcessor implements CatalogProcessor {
       annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND]?.trim();
 
     if (workflowPlaneRef) {
-      const normalizedKind = (workflowPlaneRefKind || 'WorkflowPlane').toLowerCase();
+      const normalizedKind = (
+        workflowPlaneRefKind || 'WorkflowPlane'
+      ).toLowerCase();
       if (
         normalizedKind !== 'workflowplane' &&
         normalizedKind !== 'clusterworkflowplane'

@@ -299,7 +299,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               })
               .then(res => {
                 if (res.error)
-                  throw new Error(`Failed to fetch workflowplanes for ${nsName}`);
+                  throw new Error(
+                    `Failed to fetch workflowplanes for ${nsName}`,
+                  );
                 return res.data;
               }),
           );
@@ -1060,8 +1062,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       // Fetch cluster workflow planes (once, not per namespace)
       let clusterWorkflowPlaneNames: string[] = [];
       try {
-        const clusterWorkflowPlanes = await fetchAllPages<NewClusterWorkflowPlane>(
-          cursor =>
+        const clusterWorkflowPlanes =
+          await fetchAllPages<NewClusterWorkflowPlane>(cursor =>
             client
               .GET('/api/v1/clusterworkflowplanes', {
                 params: { query: { limit: 100, cursor } },
@@ -1071,7 +1073,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   throw new Error('Failed to fetch cluster workflow planes');
                 return res.data;
               }),
-        );
+          );
 
         this.logger.debug(
           `Found ${clusterWorkflowPlanes.length} cluster workflow planes`,
@@ -1080,10 +1082,14 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         const cbpEntities: Entity[] = clusterWorkflowPlanes
           .map(cbp => {
             try {
-              return this.translateNewClusterWorkflowPlaneToEntity(cbp) as Entity;
+              return this.translateNewClusterWorkflowPlaneToEntity(
+                cbp,
+              ) as Entity;
             } catch (err) {
               this.logger.warn(
-                `Failed to translate ClusterWorkflowPlane ${getName(cbp)}: ${err}`,
+                `Failed to translate ClusterWorkflowPlane ${getName(
+                  cbp,
+                )}: ${err}`,
               );
               return null;
             }
@@ -1935,7 +1941,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
       if (nsWorkflowPlane) {
         annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF] = nsWorkflowPlane;
-        annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND] = 'WorkflowPlane';
+        annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND] =
+          'WorkflowPlane';
         entity.metadata.annotations = annotations;
       } else if (hasDefaultClusterWorkflowPlane) {
         annotations[CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF] = 'default';

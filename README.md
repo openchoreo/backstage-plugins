@@ -271,12 +271,12 @@ OpenChoreo includes configurable feature flags that allow you to enable or disab
 
 ### Available Feature Flags
 
-| Feature           | Environment Variable                        | Description                                                                                                            |
-| ----------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Feature           | Environment Variable                        | Description                                                                                                               |
+| ----------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Workflows**     | `OPENCHOREO_FEATURES_WORKFLOWS_ENABLED`     | Workflow plane / CI pipeline features. When disabled, hides Workflows tab and WorkflowsOverviewCard from component pages. |
-| **Observability** | `OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED` | Metrics, Traces, and Runtime Logs. When disabled, hides these tabs and RuntimeHealthCard from component pages.         |
-| **Auth**          | `OPENCHOREO_FEATURES_AUTH_ENABLED`          | OAuth authentication. When disabled, users are automatically logged in as guests (demo/development mode).              |
-| **Authz**         | `OPENCHOREO_FEATURES_AUTHZ_ENABLED`         | Authorization / Access Control. When disabled, hides Access Control sidebar and pages.                                 |
+| **Observability** | `OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED` | Metrics, Traces, and Runtime Logs. When disabled, hides these tabs and RuntimeHealthCard from component pages.            |
+| **Auth**          | `OPENCHOREO_FEATURES_AUTH_ENABLED`          | OAuth authentication. When disabled, users are automatically logged in as guests (demo/development mode).                 |
+| **Authz**         | `OPENCHOREO_FEATURES_AUTHZ_ENABLED`         | Authorization / Access Control. When disabled, hides Access Control sidebar and pages.                                    |
 
 ### Configuration
 

@@ -26,9 +26,9 @@ export const HomePagePlatformDetailsCard = () => {
     DataPlaneWithEnvironments[]
   >([]);
   const [workflowPlanes, setWorkflowPlanes] = useState<WorkflowPlane[]>([]);
-  const [clusterWorkflowPlanes, setClusterWorkflowPlanes] = useState<WorkflowPlane[]>(
-    [],
-  );
+  const [clusterWorkflowPlanes, setClusterWorkflowPlanes] = useState<
+    WorkflowPlane[]
+  >([]);
   const [observabilityPlanes, setObservabilityPlanes] = useState<
     ObservabilityPlane[]
   >([]);

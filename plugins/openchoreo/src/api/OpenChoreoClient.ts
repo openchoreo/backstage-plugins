@@ -385,7 +385,8 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     };
 
     if (componentTypeEnvironmentConfigs !== undefined) {
-      patchReq.componentTypeEnvironmentConfigs = componentTypeEnvironmentConfigs;
+      patchReq.componentTypeEnvironmentConfigs =
+        componentTypeEnvironmentConfigs;
     }
     if (traitEnvironmentConfigs !== undefined) {
       patchReq.traitEnvironmentConfigs = traitEnvironmentConfigs;

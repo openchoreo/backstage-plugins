@@ -1177,7 +1177,10 @@ export class EnvironmentInfoService implements EnvironmentService {
             releaseName: request.releaseName,
             state: 'Active' as const,
             ...(request.componentTypeEnvironmentConfigs !== undefined
-              ? { componentTypeEnvironmentConfigs: request.componentTypeEnvironmentConfigs }
+              ? {
+                  componentTypeEnvironmentConfigs:
+                    request.componentTypeEnvironmentConfigs,
+                }
               : {}),
             ...(request.traitEnvironmentConfigs !== undefined
               ? { traitEnvironmentConfigs: request.traitEnvironmentConfigs }
@@ -1236,7 +1239,10 @@ export class EnvironmentInfoService implements EnvironmentService {
           releaseName: request.releaseName,
           state: 'Active' as const,
           ...(request.componentTypeEnvironmentConfigs !== undefined
-            ? { componentTypeEnvironmentConfigs: request.componentTypeEnvironmentConfigs }
+            ? {
+                componentTypeEnvironmentConfigs:
+                  request.componentTypeEnvironmentConfigs,
+              }
             : {}),
           ...(request.traitEnvironmentConfigs !== undefined
             ? { traitEnvironmentConfigs: request.traitEnvironmentConfigs }
@@ -1384,7 +1390,8 @@ export class EnvironmentInfoService implements EnvironmentService {
         ...existing!,
         spec: {
           ...existing!.spec!,
-          componentTypeEnvironmentConfigs: request.componentTypeEnvironmentConfigs,
+          componentTypeEnvironmentConfigs:
+            request.componentTypeEnvironmentConfigs,
           traitEnvironmentConfigs: request.traitEnvironmentConfigs,
           workloadOverrides: request.workloadOverrides,
           ...(request.releaseName ? { releaseName: request.releaseName } : {}),

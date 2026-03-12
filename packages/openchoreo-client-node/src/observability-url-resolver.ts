@@ -215,7 +215,9 @@ export class ObservabilityUrlResolver {
         cacheKey,
       );
     } else {
-      throw new Error(`Unsupported workflowPlaneRef kind '${workflowPlaneRef.kind}'`);
+      throw new Error(
+        `Unsupported workflowPlaneRef kind '${workflowPlaneRef.kind}'`,
+      );
     }
 
     // Step 3: Get the ObservabilityPlane or ClusterObservabilityPlane
@@ -251,9 +253,12 @@ export class ObservabilityUrlResolver {
       data: cbp,
       error: cbpError,
       response: cbpResp,
-    } = await client.GET('/api/v1/clusterworkflowplanes/{clusterWorkflowPlaneName}', {
-      params: { path: { clusterWorkflowPlaneName } },
-    });
+    } = await client.GET(
+      '/api/v1/clusterworkflowplanes/{clusterWorkflowPlaneName}',
+      {
+        params: { path: { clusterWorkflowPlaneName } },
+      },
+    );
     if (cbpError || !cbpResp.ok) {
       throw new Error(
         `Failed to get ClusterWorkflowPlane '${clusterWorkflowPlaneName}': ${cbpResp.status} ${cbpResp.statusText}`,

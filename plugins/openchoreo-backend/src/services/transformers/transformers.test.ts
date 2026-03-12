@@ -303,9 +303,9 @@ describe('transformWorkflowPlane', () => {
   });
 
   it('maps agent connection', () => {
-    expect(transformWorkflowPlane(workflowPlane).agentConnection?.connected).toBe(
-      true,
-    );
+    expect(
+      transformWorkflowPlane(workflowPlane).agentConnection?.connected,
+    ).toBe(true);
   });
 });
 
@@ -497,7 +497,13 @@ describe('transformDeploymentPipeline', () => {
       promotionPaths: [
         {
           sourceEnvironmentRef: { kind: 'Environment' as const, name: 'dev' },
-          targetEnvironmentRefs: [{ kind: 'Environment' as const, name: 'staging', requiresApproval: true }],
+          targetEnvironmentRefs: [
+            {
+              kind: 'Environment' as const,
+              name: 'staging',
+              requiresApproval: true,
+            },
+          ],
         },
       ],
     },

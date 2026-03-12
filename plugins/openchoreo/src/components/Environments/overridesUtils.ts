@@ -186,6 +186,9 @@ export function calculateHasOverrides(
     hasComponentOverrides,
     hasTraitEnvironmentConfigs,
     hasWorkloadOverrides: hasWorkloadOverrides,
-    hasAny: hasComponentOverrides || hasTraitEnvironmentConfigs || hasWorkloadOverrides,
+    hasAny:
+      hasComponentOverrides ||
+      hasTraitEnvironmentConfigs ||
+      hasWorkloadOverrides,
   };
 }
