@@ -34,10 +34,6 @@ export const EntityNamespaceProvider = ({
   const annotationNamespace =
     entity.metadata.annotations?.[NAMESPACE_ANNOTATION];
 
-  const isClusterScoped = CLUSTER_SCOPED_KINDS.has(
-    entity.kind?.toLowerCase() ?? '',
-  );
-
   // Priority:
   // 1. Explicit openchoreo.io/namespace annotation (always wins)
   // 2. For namespace-scoped kinds: entity.metadata.namespace
@@ -45,7 +41,9 @@ export const EntityNamespaceProvider = ({
   // 4. Empty string fallback
   const namespace =
     annotationNamespace ||
-    (isClusterScoped ? 'default' : entity.metadata.namespace) ||
+    (CLUSTER_SCOPED_KINDS.has(entity.kind?.toLowerCase() ?? '')
+      ? 'default'
+      : entity.metadata.namespace) ||
     '';
 
   return (

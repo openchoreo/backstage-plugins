@@ -175,14 +175,14 @@ type EditorMode = 'form' | 'yaml';
 const TriggerForm = ({
   workflowName,
   namespaceName,
-  isClusterScoped,
+  workflowKind,
   onTriggered,
   onCancel,
 }: {
   workflowName: string;
   /** The namespace in which to create the WorkflowRun. */
   namespaceName: string;
-  isClusterScoped?: boolean;
+  workflowKind?: 'Workflow' | 'ClusterWorkflow';
   onTriggered: (runName: string) => void;
   onCancel: () => void;
 }) => {
@@ -190,7 +190,7 @@ const TriggerForm = ({
   const client = useApi(genericWorkflowsClientApiRef);
   const { schema, loading, error } = useWorkflowSchema(
     workflowName,
-    isClusterScoped,
+    workflowKind,
   );
 
   const [mode, setMode] = useState<EditorMode>('form');
@@ -273,7 +273,7 @@ const TriggerForm = ({
       },
       spec: {
         workflow: {
-          kind: isClusterScoped ? 'ClusterWorkflow' : 'Workflow',
+          kind: workflowKind ?? 'Workflow',
           name: workflowName,
           ...(Object.keys(meaningful).length > 0
             ? { parameters: meaningful }
@@ -374,7 +374,7 @@ const TriggerForm = ({
           namespaceName,
           workflowName,
           parameters,
-          isClusterScoped,
+          workflowKind,
         );
 
         onTriggered(run.name);
@@ -395,7 +395,7 @@ const TriggerForm = ({
         namespaceName,
         workflowName,
         parameters,
-        isClusterScoped,
+        workflowKind,
       );
 
       onTriggered(run.name);
@@ -731,7 +731,10 @@ export const WorkflowRunsContent = () => {
   const [showTriggerForm, setShowTriggerForm] = useState(false);
 
   const workflowName = entity.metadata.name;
-  const isClusterScoped = entity.kind?.toLowerCase() === 'clusterworkflow';
+  const workflowKind: 'Workflow' | 'ClusterWorkflow' =
+    entity.kind?.toLowerCase() === 'clusterworkflow'
+      ? 'ClusterWorkflow'
+      : 'Workflow';
   const selectedRunName = searchParams.get('run');
 
   // For namespace-scoped workflows
@@ -743,7 +746,7 @@ export const WorkflowRunsContent = () => {
 
   const [namespaceInitialised, setNamespaceInitialised] = useState(false);
   if (
-    isClusterScoped &&
+    workflowKind === 'ClusterWorkflow' &&
     !namespacesLoading &&
     namespaces.length > 0 &&
     !namespaceInitialised
@@ -758,7 +761,8 @@ export const WorkflowRunsContent = () => {
   // The namespace used for fetching runs:
   // - ClusterWorkflow: user-selected namespace from dropdown
   // - Workflow: namespace from context (entity annotation / entity.metadata.namespace)
-  const runsNamespace = isClusterScoped ? selectedNamespace : contextNamespace;
+  const runsNamespace =
+    workflowKind === 'ClusterWorkflow' ? selectedNamespace : contextNamespace;
 
   const {
     runs,
@@ -836,7 +840,7 @@ export const WorkflowRunsContent = () => {
   return (
     <Content>
       {/* Namespace selector — only shown for ClusterWorkflow entities */}
-      {isClusterScoped && (
+      {workflowKind === 'ClusterWorkflow' && (
         <FormControl variant="outlined" className={classes.namespaceSelector}>
           <InputLabel id="namespace-select-label">Namespace</InputLabel>
           <Select
@@ -883,7 +887,7 @@ export const WorkflowRunsContent = () => {
           <TriggerForm
             workflowName={workflowName}
             namespaceName={runsNamespace}
-            isClusterScoped={isClusterScoped}
+            workflowKind={workflowKind}
             onTriggered={handleTriggered}
             onCancel={() => setShowTriggerForm(false)}
           />

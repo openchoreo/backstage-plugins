@@ -415,7 +415,9 @@ export class GenericWorkflowService {
   ): Promise<WorkflowRun> {
     this.logger.info(
       `Creating workflow run for ${
-        request.isClusterScoped ? 'cluster workflow' : 'workflow'
+        request.workflowKind === 'ClusterWorkflow'
+          ? 'cluster workflow'
+          : 'workflow'
       }: ${request.workflowName} in namespace: ${namespaceName}`,
     );
 
@@ -430,14 +432,6 @@ export class GenericWorkflowService {
       // namespace-scoped Workflow or a cluster-scoped ClusterWorkflow.
       // Default (omitted / 'Workflow') resolves a namespace-scoped Workflow;
       // 'ClusterWorkflow' resolves a cluster-scoped ClusterWorkflow.
-      const workflowRef = {
-        kind: request.isClusterScoped
-          ? ('ClusterWorkflow' as const)
-          : ('Workflow' as const),
-        name: request.workflowName,
-        parameters: request.parameters,
-      };
-
       const { data, error, response } = await client.POST(
         '/api/v1/namespaces/{namespaceName}/workflowruns',
         {
@@ -473,7 +467,9 @@ export class GenericWorkflowService {
     } catch (error) {
       this.logger.error(
         `Failed to create workflow run for ${
-          request.isClusterScoped ? 'cluster workflow' : 'workflow'
+          request.workflowKind === 'ClusterWorkflow'
+            ? 'cluster workflow'
+            : 'workflow'
         } ${request.workflowName} in namespace ${namespaceName}: ${error}`,
       );
       throw error;

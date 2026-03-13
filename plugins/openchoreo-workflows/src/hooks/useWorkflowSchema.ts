@@ -15,12 +15,12 @@ interface UseWorkflowSchemaResult {
  * Must be used within a NamespaceProvider.
  *
  * @param workflowName - The workflow name
- * @param isClusterScoped - When true, calls the cluster-scoped schema endpoint
- *                          (for ClusterWorkflow entities). Defaults to false.
+ * @param workflowKind - 'ClusterWorkflow' calls the cluster-scoped schema endpoint;
+ *                       anything else (or omitted) calls the namespace-scoped endpoint.
  */
 export function useWorkflowSchema(
   workflowName: string,
-  isClusterScoped = false,
+  workflowKind?: 'Workflow' | 'ClusterWorkflow',
 ): UseWorkflowSchemaResult {
   const client = useApi(genericWorkflowsClientApiRef);
   const namespaceName = useSelectedNamespace();
@@ -36,7 +36,7 @@ export function useWorkflowSchema(
     }
 
     // Namespace-scoped workflows also require a namespace
-    if (!isClusterScoped && !namespaceName) {
+    if (workflowKind !== 'ClusterWorkflow' && !namespaceName) {
       setLoading(false);
       return;
     }
@@ -45,7 +45,7 @@ export function useWorkflowSchema(
       setLoading(true);
       setError(null);
       let data: unknown;
-      if (isClusterScoped) {
+      if (workflowKind === 'ClusterWorkflow') {
         data = await client.getClusterWorkflowSchema(workflowName);
       } else {
         data = await client.getWorkflowSchema(namespaceName, workflowName);
@@ -56,7 +56,7 @@ export function useWorkflowSchema(
     } finally {
       setLoading(false);
     }
-  }, [client, namespaceName, workflowName, isClusterScoped]);
+  }, [client, namespaceName, workflowName, workflowKind]);
 
   useEffect(() => {
     fetchSchema();

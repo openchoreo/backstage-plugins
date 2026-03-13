@@ -116,12 +116,12 @@ export class GenericWorkflowsClient implements GenericWorkflowsClientApi {
     namespaceName: string,
     workflowName: string,
     parameters?: Record<string, unknown>,
-    isClusterScoped?: boolean,
+    workflowKind?: 'Workflow' | 'ClusterWorkflow',
   ): Promise<WorkflowRun> {
     return this.apiFetch<WorkflowRun>('/workflow-runs', {
       method: 'POST',
       params: { namespaceName },
-      body: { workflowName, parameters, isClusterScoped },
+      body: { workflowName, parameters, workflowKind },
     });
   }
 
