@@ -13,9 +13,14 @@ interface UseWorkflowSchemaResult {
 /**
  * Hook to fetch the JSONSchema for a workflow's parameters.
  * Must be used within a NamespaceProvider.
+ *
+ * @param workflowName - The workflow name
+ * @param workflowKind - 'ClusterWorkflow' calls the cluster-scoped schema endpoint;
+ *                       anything else (or omitted) calls the namespace-scoped endpoint.
  */
 export function useWorkflowSchema(
   workflowName: string,
+  workflowKind?: 'Workflow' | 'ClusterWorkflow',
 ): UseWorkflowSchemaResult {
   const client = useApi(genericWorkflowsClientApiRef);
   const namespaceName = useSelectedNamespace();
@@ -25,7 +30,13 @@ export function useWorkflowSchema(
   const [error, setError] = useState<Error | null>(null);
 
   const fetchSchema = useCallback(async () => {
-    if (!namespaceName || !workflowName) {
+    if (!workflowName) {
+      setLoading(false);
+      return;
+    }
+
+    // Namespace-scoped workflows also require a namespace
+    if (workflowKind !== 'ClusterWorkflow' && !namespaceName) {
       setLoading(false);
       return;
     }
@@ -33,14 +44,19 @@ export function useWorkflowSchema(
     try {
       setLoading(true);
       setError(null);
-      const data = await client.getWorkflowSchema(namespaceName, workflowName);
+      let data: unknown;
+      if (workflowKind === 'ClusterWorkflow') {
+        data = await client.getClusterWorkflowSchema(workflowName);
+      } else {
+        data = await client.getWorkflowSchema(namespaceName, workflowName);
+      }
       setSchema(data);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
     }
-  }, [client, namespaceName, workflowName]);
+  }, [client, namespaceName, workflowName, workflowKind]);
 
   useEffect(() => {
     fetchSchema();

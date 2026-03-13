@@ -100,12 +100,18 @@ const useStyles = makeStyles(theme => ({
 
 interface WorkflowRunEventsProps {
   runName: string;
+  /** Explicit namespace override; falls back to the NamespaceContext value. */
+  namespaceName?: string;
 }
 
-export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
+export const WorkflowRunEvents = ({
+  runName,
+  namespaceName: namespaceNameProp,
+}: WorkflowRunEventsProps) => {
   const classes = useStyles();
   const client = useApi(genericWorkflowsClientApiRef);
-  const namespaceName = useSelectedNamespace();
+  const contextNamespace = useSelectedNamespace();
+  const namespaceName = namespaceNameProp ?? contextNamespace;
 
   const [statusState, setStatusState] =
     useState<WorkflowRunStatusResponse | null>(null);

@@ -20,13 +20,17 @@ const POLLING_INTERVAL = 5000; // 5 seconds
  *
  * @param runName - The name of the workflow run to fetch logs for
  * @param isRunActive - Whether the run is still active (Pending or Running)
+ * @param namespaceName - Explicit namespace override. Falls back to the NamespaceContext value.
+ *   Pass this explicitly for ClusterWorkflow runs whose namespace is user-selected.
  */
 export function useWorkflowRunLogs(
   runName: string | undefined,
   isRunActive: boolean = false,
+  namespaceName?: string,
 ): UseWorkflowRunLogsResult {
   const client = useApi(genericWorkflowsClientApiRef);
-  const namespaceName = useSelectedNamespace();
+  const contextNamespace = useSelectedNamespace();
+  const resolvedNamespace = namespaceName ?? contextNamespace;
 
   const [logs, setLogs] = useState<LogsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,21 +38,24 @@ export function useWorkflowRunLogs(
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchLogs = useCallback(async () => {
-    if (!runName || !namespaceName) {
+    if (!runName || !resolvedNamespace) {
       setLoading(false);
       return;
     }
 
     try {
       setError(null);
-      const response = await client.getWorkflowRunLogs(namespaceName, runName);
+      const response = await client.getWorkflowRunLogs(
+        resolvedNamespace,
+        runName,
+      );
       setLogs(response);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
     }
-  }, [client, namespaceName, runName]);
+  }, [client, resolvedNamespace, runName]);
 
   // Set up polling when run is active
   useEffect(() => {

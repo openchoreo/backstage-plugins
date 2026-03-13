@@ -158,9 +158,19 @@ export const WorkflowRunDetailsPage = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'logs':
-        return <WorkflowRunStepLogs runName={decodedRunName} />;
+        return (
+          <WorkflowRunStepLogs
+            runName={decodedRunName}
+            namespaceName={run.namespaceName}
+          />
+        );
       case 'events':
-        return <WorkflowRunEvents runName={decodedRunName} />;
+        return (
+          <WorkflowRunEvents
+            runName={decodedRunName}
+            namespaceName={run.namespaceName}
+          />
+        );
       case 'details':
         return (
           <>

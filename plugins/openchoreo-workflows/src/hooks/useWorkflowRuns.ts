@@ -14,15 +14,20 @@ interface UseWorkflowRunsResult {
 const POLLING_INTERVAL = 5000; // 5 seconds
 
 /**
- * Hook to fetch workflow runs for the selected namespace.
+ * Hook to fetch workflow runs.
  * Automatically polls for updates when there are active runs.
  * Must be used within a NamespaceProvider.
  *
  * @param workflowName - Optional workflow name to filter runs by
+ * @param namespaceName - Optional explicit namespace override for cluster workflows; falls back to NamespaceContext
  */
-export function useWorkflowRuns(workflowName?: string): UseWorkflowRunsResult {
+export function useWorkflowRuns(
+  workflowName?: string,
+  namespaceName?: string,
+): UseWorkflowRunsResult {
   const client = useApi(genericWorkflowsClientApiRef);
-  const namespaceName = useSelectedNamespace();
+  const contextNamespace = useSelectedNamespace();
+  const resolvedNamespace = namespaceName ?? contextNamespace;
 
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +35,7 @@ export function useWorkflowRuns(workflowName?: string): UseWorkflowRunsResult {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchRuns = useCallback(async () => {
-    if (!namespaceName) {
+    if (!resolvedNamespace) {
       setRuns([]);
       setLoading(false);
       return;
@@ -39,7 +44,7 @@ export function useWorkflowRuns(workflowName?: string): UseWorkflowRunsResult {
     try {
       setError(null);
       const response = await client.listWorkflowRuns(
-        namespaceName,
+        resolvedNamespace,
         workflowName,
       );
       setRuns(response.items);
@@ -48,7 +53,7 @@ export function useWorkflowRuns(workflowName?: string): UseWorkflowRunsResult {
     } finally {
       setLoading(false);
     }
-  }, [client, namespaceName, workflowName]);
+  }, [client, resolvedNamespace, workflowName]);
 
   // Check if there are any active runs (Pending or Running)
   const hasActiveRuns = runs.some(run => {

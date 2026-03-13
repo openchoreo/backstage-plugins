@@ -203,6 +203,51 @@ export class GenericWorkflowService {
   }
 
   /**
+   * Get the JSONSchema for a cluster-scoped workflow's parameters
+   */
+  async getClusterWorkflowSchema(
+    clusterWorkflowName: string,
+    token?: string,
+  ): Promise<unknown> {
+    this.logger.debug(
+      `Fetching schema for cluster workflow: ${clusterWorkflowName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/clusterworkflows/{clusterWorkflowName}/schema' as any,
+        {
+          params: {
+            path: { clusterWorkflowName },
+          },
+        } as any,
+      );
+
+      assertApiResponse(
+        { data, error, response },
+        'fetch cluster workflow schema',
+      );
+
+      this.logger.debug(
+        `Successfully fetched schema for cluster workflow: ${clusterWorkflowName}`,
+      );
+
+      return data;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch schema for cluster workflow ${clusterWorkflowName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * List workflow runs for a namespace, optionally filtered by workflow name
    */
   async listWorkflowRuns(
@@ -289,6 +334,37 @@ export class GenericWorkflowService {
   }
 
   /**
+   * List OpenChoreo namespaces (those labeled openchoreo.dev/namespace=true).
+   * Used to populate the namespace selector on the ClusterWorkflow runs page.
+   */
+  async listNamespaces(token?: string): Promise<string[]> {
+    this.logger.debug('Fetching OpenChoreo namespaces');
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET('/api/v1/namespaces');
+
+      assertApiResponse({ data, error, response }, 'fetch namespaces');
+
+      const names: string[] = ((data as any)?.items || [])
+        .map((ns: any) => ns.metadata?.name ?? '')
+        .filter(Boolean);
+
+      this.logger.debug(`Successfully fetched ${names.length} namespaces`);
+
+      return names;
+    } catch (error) {
+      this.logger.error(`Failed to fetch namespaces: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
    * Get details of a specific workflow run
    */
   async getWorkflowRun(
@@ -338,7 +414,11 @@ export class GenericWorkflowService {
     token?: string,
   ): Promise<WorkflowRun> {
     this.logger.info(
-      `Creating workflow run for workflow: ${request.workflowName} in namespace: ${namespaceName}`,
+      `Creating workflow run for ${
+        request.workflowKind === 'ClusterWorkflow'
+          ? 'cluster workflow'
+          : 'workflow'
+      }: ${request.workflowName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -348,6 +428,10 @@ export class GenericWorkflowService {
         logger: this.logger,
       });
 
+      // The WorkflowRunConfig.kind field tells the server whether to look up a
+      // namespace-scoped Workflow or a cluster-scoped ClusterWorkflow.
+      // Default (omitted / 'Workflow') resolves a namespace-scoped Workflow;
+      // 'ClusterWorkflow' resolves a cluster-scoped ClusterWorkflow.
       const { data, error, response } = await client.POST(
         '/api/v1/namespaces/{namespaceName}/workflowruns',
         {
@@ -382,7 +466,11 @@ export class GenericWorkflowService {
       return transformWorkflowRun(data);
     } catch (error) {
       this.logger.error(
-        `Failed to create workflow run for workflow ${request.workflowName} in namespace ${namespaceName}: ${error}`,
+        `Failed to create workflow run for ${
+          request.workflowKind === 'ClusterWorkflow'
+            ? 'cluster workflow'
+            : 'workflow'
+        } ${request.workflowName} in namespace ${namespaceName}: ${error}`,
       );
       throw error;
     }
