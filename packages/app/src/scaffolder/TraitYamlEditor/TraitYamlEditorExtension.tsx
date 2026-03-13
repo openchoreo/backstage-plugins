@@ -25,8 +25,8 @@ metadata:
   name: ${name}
   namespace: ${namespace}
   annotations:
-    openchoreo.dev/display-name: ${displayName}
-    openchoreo.dev/description: ${description}
+    openchoreo.dev/display-name: ${JSON.stringify(displayName)}
+    openchoreo.dev/description: ${JSON.stringify(description)}
 spec:
   schema:
     parameters: {}
