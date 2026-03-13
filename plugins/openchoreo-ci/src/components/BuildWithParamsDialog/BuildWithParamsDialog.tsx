@@ -123,7 +123,11 @@ function getNestedValue(obj: Record<string, any>, path: string): any {
   const parts = path.split('.');
   let current: any = obj;
   for (const part of parts) {
-    if (current === null || current === undefined || typeof current !== 'object')
+    if (
+      current === null ||
+      current === undefined ||
+      typeof current !== 'object'
+    )
       return undefined;
     current = current[part];
   }
@@ -207,9 +211,9 @@ export const BuildWithParamsDialog = ({
   const [schemaLoading, setSchemaLoading] = useState(false);
   const [schemaError, setSchemaError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, unknown>>({});
-  const [gitFieldValues, setGitFieldValues] = useState<
-    Record<string, string>
-  >({});
+  const [gitFieldValues, setGitFieldValues] = useState<Record<string, string>>(
+    {},
+  );
   const [error, setError] = useState('');
 
   // Detect git fields from the schema extensions
@@ -224,7 +228,9 @@ export const BuildWithParamsDialog = ({
   // Build ordered, visible git field list for rendering
   const gitFields = useMemo(() => {
     return Object.entries(gitFieldMapping)
-      .filter(([key]) => key in GIT_FIELD_CONFIG && !GIT_FIELD_CONFIG[key].hidden)
+      .filter(
+        ([key]) => key in GIT_FIELD_CONFIG && !GIT_FIELD_CONFIG[key].hidden,
+      )
       .map(([key, path]) => ({ key, path, ...GIT_FIELD_CONFIG[key] }))
       .sort((a, b) => a.order - b.order);
   }, [gitFieldMapping]);
@@ -394,9 +400,7 @@ export const BuildWithParamsDialog = ({
                 fullWidth
                 label={field.label}
                 value={gitFieldValues[field.key] || ''}
-                onChange={e =>
-                  handleGitFieldChange(field.key, e.target.value)
-                }
+                onChange={e => handleGitFieldChange(field.key, e.target.value)}
                 helperText={field.helperText}
                 variant="outlined"
                 disabled={isLoading || !field.editable}
@@ -411,9 +415,7 @@ export const BuildWithParamsDialog = ({
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle disableTypography>
-        <Typography variant="h4">
-        Build with Custom Parameters
-        </Typography>
+        <Typography variant="h4">Build with Custom Parameters</Typography>
       </DialogTitle>
       <DialogContent className={classes.dialogContent}>
         <Typography variant="body1" className={classes.workflowInfo}>
