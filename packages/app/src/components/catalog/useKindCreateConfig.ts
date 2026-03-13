@@ -1,3 +1,5 @@
+import { useRouteRef } from '@backstage/core-plugin-api';
+import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { useEntityList } from '@backstage/plugin-catalog-react';
 import {
   useNamespacePermission,
@@ -25,6 +27,9 @@ export function useKindCreateConfig(): KindCreateConfig | null {
   const { filters } = useEntityList();
   const kind = filters.kind?.value?.toLowerCase();
 
+  const scaffolderRoot = useRouteRef(scaffolderPlugin.routes.root)();
+  const templateRoute = useRouteRef(scaffolderPlugin.routes.selectedTemplate);
+
   // Call all permission hooks unconditionally (React rules of hooks)
   const namespacePerm = useNamespacePermission();
   const projectPerm = useProjectPermission();
@@ -41,7 +46,10 @@ export function useKindCreateConfig(): KindCreateConfig | null {
   switch (kind) {
     case 'domain':
       return {
-        createPath: '/create/templates/default/create-openchoreo-namespace',
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-namespace',
+        }),
         buttonLabel: 'Create Namespace',
         canCreate: namespacePerm.canCreate,
         loading: namespacePerm.loading,
@@ -49,7 +57,10 @@ export function useKindCreateConfig(): KindCreateConfig | null {
       };
     case 'system':
       return {
-        createPath: '/create/templates/default/create-openchoreo-project',
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-project',
+        }),
         buttonLabel: 'Create Project',
         canCreate: projectPerm.canCreate,
         loading: projectPerm.loading,
@@ -57,7 +68,7 @@ export function useKindCreateConfig(): KindCreateConfig | null {
       };
     case 'component':
       return {
-        createPath: '/create?view=components',
+        createPath: `${scaffolderRoot}?view=components`,
         buttonLabel: 'Create Component',
         canCreate: componentPerm.canCreate,
         loading: componentPerm.loading,
@@ -65,7 +76,10 @@ export function useKindCreateConfig(): KindCreateConfig | null {
       };
     case 'environment':
       return {
-        createPath: '/create/templates/default/create-openchoreo-environment',
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-environment',
+        }),
         buttonLabel: 'Create Environment',
         canCreate: environmentPerm.canCreate,
         loading: environmentPerm.loading,
@@ -73,8 +87,10 @@ export function useKindCreateConfig(): KindCreateConfig | null {
       };
     case 'deploymentpipeline':
       return {
-        createPath:
-          '/create/templates/default/create-openchoreo-deploymentpipeline',
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-deploymentpipeline',
+        }),
         buttonLabel: 'Create Pipeline',
         canCreate: deploymentPipelinePerm.canCreate,
         loading: deploymentPipelinePerm.loading,
@@ -82,7 +98,10 @@ export function useKindCreateConfig(): KindCreateConfig | null {
       };
     case 'componenttype':
       return {
-        createPath: '/create/templates/default/create-openchoreo-componenttype',
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-componenttype',
+        }),
         buttonLabel: 'Create Component Type',
         canCreate: componentTypePerm.canCreate,
         loading: componentTypePerm.loading,
@@ -90,8 +109,10 @@ export function useKindCreateConfig(): KindCreateConfig | null {
       };
     case 'clustercomponenttype':
       return {
-        createPath:
-          '/create/templates/default/create-openchoreo-clustercomponenttype',
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-clustercomponenttype',
+        }),
         buttonLabel: 'Create Cluster Component Type',
         canCreate: clusterComponentTypePerm.canCreate,
         loading: clusterComponentTypePerm.loading,
@@ -99,7 +120,10 @@ export function useKindCreateConfig(): KindCreateConfig | null {
       };
     case 'traittype':
       return {
-        createPath: '/create/templates/default/create-openchoreo-trait',
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-trait',
+        }),
         buttonLabel: 'Create Trait',
         canCreate: traitPerm.canCreate,
         loading: traitPerm.loading,
@@ -107,7 +131,10 @@ export function useKindCreateConfig(): KindCreateConfig | null {
       };
     case 'clustertraittype':
       return {
-        createPath: '/create/templates/default/create-openchoreo-clustertrait',
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-clustertrait',
+        }),
         buttonLabel: 'Create Cluster Trait',
         canCreate: clusterTraitPerm.canCreate,
         loading: clusterTraitPerm.loading,
@@ -115,8 +142,10 @@ export function useKindCreateConfig(): KindCreateConfig | null {
       };
     case 'workflow':
       return {
-        createPath:
-          '/create/templates/default/create-openchoreo-componentworkflow',
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-componentworkflow',
+        }),
         buttonLabel: 'Create Workflow',
         canCreate: workflowPerm.canCreate,
         loading: workflowPerm.loading,
@@ -124,8 +153,10 @@ export function useKindCreateConfig(): KindCreateConfig | null {
       };
     case 'clusterworkflow':
       return {
-        createPath:
-          '/create/templates/default/create-openchoreo-clusterworkflow',
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-clusterworkflow',
+        }),
         buttonLabel: 'Create Cluster Workflow',
         canCreate: clusterWorkflowPerm.canCreate,
         loading: clusterWorkflowPerm.loading,
