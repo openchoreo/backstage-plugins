@@ -61,11 +61,12 @@ const DEFAULT_CLUSTER_COMPONENT_TYPE_TEMPLATE = {
 
 function generateInitialYaml(formData: Record<string, unknown>): string {
   const name = (formData?.clustercomponenttype_name as string) || '';
+  const displayName = (formData?.displayName as string) || '';
   const description = (formData?.description as string) || '';
 
   const template = structuredClone(DEFAULT_CLUSTER_COMPONENT_TYPE_TEMPLATE);
   template.metadata.name = name;
-  template.metadata.annotations['openchoreo.dev/display-name'] = name;
+  template.metadata.annotations['openchoreo.dev/display-name'] = displayName;
   template.metadata.annotations['openchoreo.dev/description'] = description;
 
   return YAML.stringify(template, { indent: 2 });

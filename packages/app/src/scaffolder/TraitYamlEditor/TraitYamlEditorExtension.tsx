@@ -8,6 +8,7 @@ import { useStyles } from './styles';
 function generateInitialYaml(formData: Record<string, unknown>): string {
   const name = (formData?.trait_name as string) || '';
   const namespaceName = (formData?.namespace_name as string) || '';
+  const displayName = (formData?.displayName as string) || '';
   const description = (formData?.description as string) || '';
 
   // Extract namespace from entity reference format (e.g., "domain:default/my-namespace" -> "my-namespace")
@@ -24,7 +25,7 @@ metadata:
   name: ${name}
   namespace: ${namespace}
   annotations:
-    openchoreo.dev/display-name: ${name}
+    openchoreo.dev/display-name: ${displayName}
     openchoreo.dev/description: ${description}
 spec:
   schema:

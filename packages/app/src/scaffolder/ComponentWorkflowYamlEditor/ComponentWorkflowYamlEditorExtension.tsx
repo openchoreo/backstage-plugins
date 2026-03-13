@@ -42,6 +42,7 @@ const DEFAULT_WORKFLOW_TEMPLATE = {
 function generateInitialYaml(formData: Record<string, unknown>): string {
   const name = (formData?.componentworkflow_name as string) || '';
   const namespaceName = (formData?.namespace_name as string) || '';
+  const displayName = (formData?.displayName as string) || '';
   const description = (formData?.description as string) || '';
   const isComponentWorkflow = formData?.is_component_workflow === true;
 
@@ -54,6 +55,9 @@ function generateInitialYaml(formData: Record<string, unknown>): string {
   const template = structuredClone(DEFAULT_WORKFLOW_TEMPLATE);
   template.metadata.name = name;
   template.metadata.namespace = extractName(namespaceName);
+  if (displayName) {
+    template.metadata.annotations['openchoreo.dev/display-name'] = displayName;
+  }
   if (description) {
     template.metadata.annotations['openchoreo.dev/description'] = description;
   }

@@ -23,6 +23,10 @@ spec:
           ui:options:
             catalogKind: ClusterTraitType
             resourceLabel: ClusterTrait
+        displayName:
+          title: Display Name
+          type: string
+          description: A human-readable display name for the cluster trait
         description:
           title: Description
           type: string

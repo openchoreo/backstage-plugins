@@ -30,6 +30,10 @@ spec:
           type: string
           description: Namespace where the trait will be created
           ui:field: NamespaceEntityPicker
+        displayName:
+          title: Display Name
+          type: string
+          description: A human-readable display name for the trait
         description:
           title: Description
           type: string
