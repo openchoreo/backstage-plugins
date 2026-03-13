@@ -275,7 +275,7 @@ export const WorkflowConfigPage = ({
             DescriptionFieldTemplate,
             TitleFieldTemplate,
           }}
-          liveValidate
+          liveValidate={false}
           showErrorList={false}
           noHtml5Validate
         >
