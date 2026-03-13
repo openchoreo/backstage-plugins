@@ -1,19 +1,22 @@
 import { Box, Typography, IconButton, Tooltip } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import LaunchIcon from '@material-ui/icons/Launch';
+import CloudIcon from '@material-ui/icons/Cloud';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
 import clsx from 'clsx';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { parseEntityRef } from '@backstage/catalog-model';
 import { Link } from '@backstage/core-components';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@openchoreo/backstage-design-system';
 import { useClusterDataplaneEnvironments } from './hooks';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
+import { shouldNavigateOnRowClick } from '../../utils/shouldNavigateOnRowClick';
 
 export const ClusterDataplaneEnvironmentsCard = () => {
   const classes = useDataplaneOverviewStyles();
   const { entity } = useEntity();
+  const navigate = useNavigate();
   const { environments, loading, error, refresh } =
     useClusterDataplaneEnvironments(entity);
 
@@ -23,13 +26,13 @@ export const ClusterDataplaneEnvironmentsCard = () => {
         <Box className={classes.cardHeader}>
           <Skeleton variant="text" width={180} height={28} />
         </Box>
-        <ul className={classes.environmentList}>
+        <div className={classes.environmentList}>
           {[1, 2, 3].map(i => (
-            <li key={i} className={classes.environmentItem}>
+            <div key={i} className={classes.environmentItem}>
               <Skeleton variant="text" width="100%" height={40} />
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       </Card>
     );
   }
@@ -81,7 +84,7 @@ export const ClusterDataplaneEnvironmentsCard = () => {
         </Tooltip>
       </Box>
 
-      <ul className={classes.environmentList}>
+      <div className={classes.environmentList}>
         {environments.map(env => {
           const parsedRef = parseEntityRef(env.entityRef, {
             defaultKind: 'environment',
@@ -89,8 +92,26 @@ export const ClusterDataplaneEnvironmentsCard = () => {
           });
           const envLink = `/catalog/${parsedRef.namespace}/environment/${parsedRef.name}`;
           return (
-            <li key={env.name} className={classes.environmentItem}>
+            <div
+              key={env.name}
+              className={classes.environmentItem}
+              onClick={e => {
+                if (shouldNavigateOnRowClick(e)) {
+                  navigate(envLink);
+                }
+              }}
+              onKeyDown={e => {
+                if (e.target !== e.currentTarget) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate(envLink);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
               <Box className={classes.environmentInfo}>
+                <CloudIcon style={{ fontSize: '1.2rem', color: 'inherit' }} />
                 <Link to={envLink} className={classes.environmentName}>
                   {env.displayName || env.name}
                 </Link>
@@ -105,23 +126,10 @@ export const ClusterDataplaneEnvironmentsCard = () => {
                   {env.isProduction ? 'prod' : 'non-prod'}
                 </Typography>
               </Box>
-
-              <Box className={classes.environmentStats}>
-                <Tooltip title="View Environment">
-                  <IconButton
-                    size="small"
-                    component={Link}
-                    to={envLink}
-                    aria-label="View Environment"
-                  >
-                    <LaunchIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            </li>
+            </div>
           );
         })}
-      </ul>
+      </div>
     </Card>
   );
 };

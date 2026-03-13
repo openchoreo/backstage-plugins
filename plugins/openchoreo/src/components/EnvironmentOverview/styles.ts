@@ -221,4 +221,11 @@ export const useEnvironmentOverviewStyles = makeStyles(theme => ({
     fontSize: theme.typography.caption.fontSize,
     color: theme.palette.text.secondary,
   },
+  clickableRow: {
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
+  },
 }));

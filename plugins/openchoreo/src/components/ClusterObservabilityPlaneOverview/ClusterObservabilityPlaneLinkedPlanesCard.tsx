@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import LaunchIcon from '@material-ui/icons/Launch';
 import StorageIcon from '@material-ui/icons/Storage';
 import BuildIcon from '@material-ui/icons/Build';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
@@ -11,9 +10,11 @@ import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { Link } from '@backstage/core-components';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
+import { shouldNavigateOnRowClick } from '../../utils/shouldNavigateOnRowClick';
 
 interface LinkedPlane {
   name: string;
@@ -26,6 +27,7 @@ export const ClusterObservabilityPlaneLinkedPlanesCard = () => {
   const classes = useDataplaneOverviewStyles();
   const { entity } = useEntity();
   const catalogApi = useApi(catalogApiRef);
+  const navigate = useNavigate();
 
   const [linkedPlanes, setLinkedPlanes] = useState<LinkedPlane[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,13 +94,13 @@ export const ClusterObservabilityPlaneLinkedPlanesCard = () => {
         <Box className={classes.cardHeader}>
           <Skeleton variant="text" width={180} height={28} />
         </Box>
-        <ul className={classes.environmentList}>
+        <div className={classes.environmentList}>
           {[1, 2].map(i => (
-            <li key={i} className={classes.environmentItem}>
+            <div key={i} className={classes.environmentItem}>
               <Skeleton variant="text" width="100%" height={40} />
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       </Card>
     );
   }
@@ -147,64 +149,68 @@ export const ClusterObservabilityPlaneLinkedPlanesCard = () => {
         </Tooltip>
       </Box>
 
-      <ul className={classes.environmentList}>
-        {linkedPlanes.map(plane => (
-          <li
-            key={`${plane.kind}-${plane.namespace}-${plane.name}`}
-            className={classes.environmentItem}
-          >
-            <Box className={classes.environmentInfo}>
-              {plane.kind === 'ClusterDataplane' ? (
-                <StorageIcon style={{ fontSize: '1.2rem', color: 'inherit' }} />
-              ) : (
-                <BuildIcon style={{ fontSize: '1.2rem', color: 'inherit' }} />
-              )}
-              <Box>
-                <Link
-                  to={`/catalog/${
-                    plane.namespace
-                  }/${plane.kind.toLowerCase()}/${plane.name}`}
-                  className={classes.environmentName}
-                >
-                  {plane.displayName || plane.name}
-                </Link>
+      <div className={classes.environmentList}>
+        {linkedPlanes.map(plane => {
+          const planeLink = `/catalog/${
+            plane.namespace
+          }/${plane.kind.toLowerCase()}/${plane.name}`;
+          return (
+            <div
+              key={`${plane.kind}-${plane.namespace}-${plane.name}`}
+              className={classes.environmentItem}
+              onClick={e => {
+                if (shouldNavigateOnRowClick(e)) {
+                  navigate(planeLink);
+                }
+              }}
+              onKeyDown={e => {
+                if (e.target !== e.currentTarget) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate(planeLink);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              <Box className={classes.environmentInfo}>
+                {plane.kind === 'ClusterDataplane' ? (
+                  <StorageIcon
+                    style={{ fontSize: '1.2rem', color: 'inherit' }}
+                  />
+                ) : (
+                  <BuildIcon style={{ fontSize: '1.2rem', color: 'inherit' }} />
+                )}
+                <Box>
+                  <Link to={planeLink} className={classes.environmentName}>
+                    {plane.displayName || plane.name}
+                  </Link>
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    style={{ display: 'block' }}
+                  >
+                    {plane.namespace}
+                  </Typography>
+                </Box>
                 <Typography
-                  variant="caption"
-                  color="textSecondary"
-                  style={{ display: 'block' }}
+                  className={classes.environmentType}
+                  style={{
+                    backgroundColor: 'rgba(0,0,0,0.08)',
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    fontSize: '0.75rem',
+                  }}
                 >
-                  {plane.namespace}
+                  {plane.kind === 'ClusterDataplane'
+                    ? 'Cluster Data Plane'
+                    : 'Cluster Workflow Plane'}
                 </Typography>
               </Box>
-              <Typography
-                className={classes.environmentType}
-                style={{
-                  backgroundColor: 'rgba(0,0,0,0.08)',
-                  padding: '2px 8px',
-                  borderRadius: 4,
-                  fontSize: '0.75rem',
-                }}
-              >
-                {plane.kind === 'ClusterDataplane'
-                  ? 'Cluster Data Plane'
-                  : 'Cluster Workflow Plane'}
-              </Typography>
-            </Box>
-
-            <Tooltip title={`View ${plane.kind}`}>
-              <IconButton
-                size="small"
-                component={Link}
-                to={`/catalog/${plane.namespace}/${plane.kind.toLowerCase()}/${
-                  plane.name
-                }`}
-              >
-                <LaunchIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </li>
-        ))}
-      </ul>
+            </div>
+          );
+        })}
+      </div>
     </Card>
   );
 };

@@ -9,8 +9,12 @@ export function shouldNavigateOnRowClick(event: unknown): boolean {
     e.altKey
   )
     return false;
-  const target = e.target as HTMLElement;
-  if (target.closest('a, button, input, textarea, select, [role="button"]'))
-    return false;
+  const target = e.target;
+  if (!(target instanceof Element)) return true;
+  const interactive = target.closest(
+    'a, button, input, textarea, select, [role="button"]',
+  );
+  // Allow if the only matched interactive element is the row container itself
+  if (interactive && interactive !== e.currentTarget) return false;
   return true;
 }

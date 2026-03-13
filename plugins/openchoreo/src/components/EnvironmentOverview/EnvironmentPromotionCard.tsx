@@ -1,12 +1,14 @@
 import { Box, Typography, List, ListItem } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import TimelineIcon from '@material-ui/icons/Timeline';
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import { Link } from '@backstage/core-components';
+import { useNavigate } from 'react-router-dom';
 import { parseEntityRef } from '@backstage/catalog-model';
 import { Card } from '@openchoreo/backstage-design-system';
 import { useEnvironmentOverviewStyles } from './styles';
 import { useEnvironmentPipelines } from './useEnvironmentPipelines';
+import { shouldNavigateOnRowClick } from '../../utils/shouldNavigateOnRowClick';
 import { makeStyles } from '@material-ui/core/styles';
 
 const MAX_VISIBLE_PIPELINES = 3;
@@ -20,21 +22,29 @@ const useLocalStyles = makeStyles(theme => ({
   },
   list: {
     padding: 0,
+    margin: 0,
+    listStyle: 'none',
   },
   listItem: {
-    padding: theme.spacing(1.5, 0),
-    borderBottom: `1px solid ${theme.palette.divider}`,
+    padding: theme.spacing(1.5),
+    borderRadius: theme.spacing(1),
+    marginBottom: theme.spacing(1),
+    backgroundColor: theme.palette.background.default,
     display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
     '&:last-child': {
-      borderBottom: 'none',
+      marginBottom: 0,
     },
   },
   pipelineInfo: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(0.5),
+    alignItems: 'center',
+    gap: theme.spacing(1),
     flex: 1,
   },
   pipelineLink: {
@@ -48,20 +58,20 @@ const useLocalStyles = makeStyles(theme => ({
     fontWeight: 500,
     fontSize: theme.typography.body2.fontSize,
   },
+  pipelineSeparator: {
+    color: theme.palette.text.disabled,
+    fontSize: theme.typography.caption.fontSize,
+  },
   pipelinePath: {
     color: theme.palette.text.secondary,
     fontSize: theme.typography.caption.fontSize,
-  },
-  chevron: {
-    color: theme.palette.text.secondary,
-    fontSize: '1.2rem',
-    marginTop: theme.spacing(0.5),
   },
 }));
 
 export const EnvironmentPromotionCard = () => {
   const classes = useEnvironmentOverviewStyles();
   const localClasses = useLocalStyles();
+  const navigate = useNavigate();
   const { pipelines, loading, error } = useEnvironmentPipelines();
 
   if (loading) {
@@ -112,45 +122,51 @@ export const EnvironmentPromotionCard = () => {
 
       <Box className={classes.content}>
         <List className={localClasses.list}>
-          {visiblePipelines.map(pipeline => (
-            <ListItem
-              key={pipeline.pipelineEntityRef}
-              className={localClasses.listItem}
-              disableGutters
-            >
-              <Box className={localClasses.pipelineInfo}>
-                <Link
-                  to={(() => {
-                    const ref = parseEntityRef(pipeline.pipelineEntityRef, {
-                      defaultKind: 'deploymentpipeline',
-                      defaultNamespace: 'default',
-                    });
-                    return `/catalog/${ref.namespace}/${ref.kind}/${ref.name}`;
-                  })()}
-                  className={localClasses.pipelineLink}
-                >
-                  <Typography className={localClasses.pipelineName}>
-                    {pipeline.pipelineName}
-                  </Typography>
-                </Link>
-                <Typography className={localClasses.pipelinePath}>
-                  {formatPipelinePath(pipeline.environments)}
-                </Typography>
-              </Box>
-              <Link
-                to={(() => {
-                  const ref = parseEntityRef(pipeline.pipelineEntityRef, {
-                    defaultKind: 'deploymentpipeline',
-                    defaultNamespace: 'default',
-                  });
-                  return `/catalog/${ref.namespace}/${ref.kind}/${ref.name}`;
-                })()}
-                style={{ textDecoration: 'none' }}
+          {visiblePipelines.map(pipeline => {
+            const ref = parseEntityRef(pipeline.pipelineEntityRef, {
+              defaultKind: 'deploymentpipeline',
+              defaultNamespace: 'default',
+            });
+            const pipelineLink = `/catalog/${ref.namespace}/${ref.kind}/${ref.name}`;
+            return (
+              <ListItem
+                key={pipeline.pipelineEntityRef}
+                className={localClasses.listItem}
+                disableGutters
+                onClick={e => {
+                  if (shouldNavigateOnRowClick(e)) {
+                    navigate(pipelineLink);
+                  }
+                }}
+                onKeyDown={e => {
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(pipelineLink);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
-                <ChevronRightIcon className={localClasses.chevron} />
-              </Link>
-            </ListItem>
-          ))}
+                <Box className={localClasses.pipelineInfo}>
+                  <AccountTreeIcon
+                    style={{ fontSize: '1.2rem', color: 'inherit' }}
+                  />
+                  <Link to={pipelineLink} className={localClasses.pipelineLink}>
+                    <Typography className={localClasses.pipelineName}>
+                      {pipeline.pipelineName}
+                    </Typography>
+                  </Link>
+                  <Typography className={localClasses.pipelineSeparator}>
+                    —
+                  </Typography>
+                  <Typography className={localClasses.pipelinePath}>
+                    {formatPipelinePath(pipeline.environments)}
+                  </Typography>
+                </Box>
+              </ListItem>
+            );
+          })}
         </List>
       </Box>
     </Card>
