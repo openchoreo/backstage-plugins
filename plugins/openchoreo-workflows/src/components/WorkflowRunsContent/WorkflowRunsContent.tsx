@@ -42,6 +42,9 @@ import type { IChangeEvent } from '@rjsf/core';
 import {
   VerticalTabNav,
   TabItemData,
+  ArrayFieldTemplate,
+  DescriptionFieldTemplate,
+  TitleFieldTemplate,
 } from '@openchoreo/backstage-design-system';
 import {
   DetailPageLayout,
@@ -479,6 +482,7 @@ const TriggerForm = ({
               uiSchema={uiSchema}
               formData={formData}
               validator={validator}
+              templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
               onChange={e => setFormData(e.formData || {})}
               onSubmit={handleSubmit}
             >

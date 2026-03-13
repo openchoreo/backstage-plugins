@@ -24,6 +24,9 @@ import {
 import {
   VerticalTabNav,
   TabItemData,
+  ArrayFieldTemplate,
+  DescriptionFieldTemplate,
+  TitleFieldTemplate,
 } from '@openchoreo/backstage-design-system';
 import {
   UnsavedChangesDialog,
@@ -267,6 +270,7 @@ export const WorkflowConfigPage = ({
           formData={{ [activeTab]: formData[activeTab] }}
           onChange={handleFormChange}
           validator={validator}
+          templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
           liveValidate
           showErrorList={false}
           noHtml5Validate

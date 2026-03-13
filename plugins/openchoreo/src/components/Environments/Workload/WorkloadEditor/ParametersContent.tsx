@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Box, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import Form from '@rjsf/material-ui';
+import { ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
 import validator from '@rjsf/validator-ajv8';
 import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
@@ -115,6 +116,7 @@ export const ParametersContent = ({
         formData={parameters}
         onChange={data => onChange(data.formData)}
         validator={validator}
+        templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
         liveValidate
         showErrorList={false}
         noHtml5Validate
