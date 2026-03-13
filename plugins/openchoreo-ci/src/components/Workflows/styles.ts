@@ -22,6 +22,10 @@ export const useStyles = makeStyles(theme => ({
     display: 'flex',
     flexDirection: 'column',
   },
+  splitDropdown: {
+    padding: '6px 4px',
+    minWidth: 'unset',
+  },
   notFoundContainer: {
     display: 'flex',
     flexDirection: 'column',
