@@ -59,12 +59,12 @@ export const WorkflowsOverviewCard = choreoPlugin.provide(
   }),
 );
 
-export const ProductionOverviewCard = choreoPlugin.provide(
+export const DeploymentStatusCard = choreoPlugin.provide(
   createComponentExtension({
-    name: 'ProductionOverviewCard',
+    name: 'DeploymentStatusCard',
     component: {
       lazy: () =>
-        import('./components/Environments').then(m => m.ProductionOverviewCard),
+        import('./components/Environments').then(m => m.DeploymentStatusCard),
     },
   }),
 );

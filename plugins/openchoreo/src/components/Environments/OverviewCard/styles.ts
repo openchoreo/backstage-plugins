@@ -1,5 +1,4 @@
 import { makeStyles } from '@material-ui/core/styles';
-import { alpha } from '@material-ui/core/styles/colorManipulator';
 
 export const useOverviewCardStyles = makeStyles(theme => ({
   card: {
@@ -19,65 +18,39 @@ export const useOverviewCardStyles = makeStyles(theme => ({
     fontSize: theme.typography.h6.fontSize,
     color: theme.palette.text.primary,
   },
-  viewLink: {
-    fontSize: theme.typography.body2.fontSize,
-    color: theme.palette.primary.main,
-    textDecoration: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(0.5),
-    '&:hover': {
-      textDecoration: 'underline',
-    },
-  },
   content: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
     gap: theme.spacing(1.5),
   },
-  statusRow: {
+  environmentChips: {
     display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1.5),
     flexWrap: 'wrap',
-  },
-  metaRow: {
-    display: 'flex',
+    gap: theme.spacing(1),
     alignItems: 'center',
-    gap: theme.spacing(2),
-    flexWrap: 'wrap',
-    color: theme.palette.text.secondary,
-    fontSize: theme.typography.caption.fontSize,
   },
-  metaItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(0.5),
+  envChip: {
+    height: '24px',
+    fontWeight: 500,
+    textTransform: 'capitalize',
   },
-  metaIcon: {
-    fontSize: '1rem',
+  statusIconReady: {
+    color: theme.palette.success.main,
   },
-  imageContainer: {
-    fontFamily: 'monospace',
-    backgroundColor: alpha(
-      theme.palette.type === 'dark'
-        ? theme.palette.common.white
-        : theme.palette.common.black,
-      0.05,
-    ),
-    padding: theme.spacing(0.75, 1),
-    borderRadius: theme.spacing(0.5),
-    fontSize: '0.75rem',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    color: theme.palette.text.secondary,
+  statusIconWarning: {
+    color: theme.palette.warning.main,
+  },
+  statusIconError: {
+    color: theme.palette.error.main,
   },
   actions: {
     marginTop: 'auto',
     paddingTop: theme.spacing(2),
     borderTop: `1px solid ${theme.palette.divider}`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   disabledState: {
     display: 'flex',
@@ -93,12 +66,5 @@ export const useOverviewCardStyles = makeStyles(theme => ({
     fontSize: '2.5rem',
     color: theme.palette.action.disabled,
     marginBottom: theme.spacing(1),
-  },
-  sectionLabel: {
-    fontSize: theme.typography.caption.fontSize,
-    color: theme.palette.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    fontWeight: 600,
   },
 }));

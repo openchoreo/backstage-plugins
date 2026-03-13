@@ -74,7 +74,7 @@ import {
 import {
   Environments,
   CellDiagram,
-  ProductionOverviewCard,
+  DeploymentStatusCard,
   RuntimeHealthCard,
   DeploymentPipelineCard,
   ProjectComponentsCard,
@@ -220,7 +220,7 @@ function OverviewContent() {
           {/* CI Status Card - shows external CI card if annotation present, otherwise OpenChoreo WorkflowsOverviewCard */}
           <WorkflowsOrExternalCICard />
           <Grid item md={4} xs={12}>
-            <ProductionOverviewCard />
+            <DeploymentStatusCard />
           </Grid>
           <FeatureGate feature="observability">
             <Grid item md={4} xs={12}>

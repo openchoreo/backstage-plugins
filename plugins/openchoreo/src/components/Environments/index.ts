@@ -1,2 +1,2 @@
 export { Environments } from './Environments';
-export { ProductionOverviewCard } from './OverviewCard';
+export { DeploymentStatusCard } from './OverviewCard';

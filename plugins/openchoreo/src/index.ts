@@ -4,7 +4,7 @@ export { Environments } from './components/Environments/Environments';
 export { CellDiagram } from './components/CellDiagram/CellDiagram';
 export {
   WorkflowsOverviewCard,
-  ProductionOverviewCard,
+  DeploymentStatusCard,
   RuntimeHealthCard,
   DeploymentPipelineCard,
   AccessControlPage,
