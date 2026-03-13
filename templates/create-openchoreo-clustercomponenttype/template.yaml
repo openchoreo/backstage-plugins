@@ -23,6 +23,10 @@ spec:
           ui:options:
             catalogKind: ClusterComponentType
             resourceLabel: ClusterComponentType
+        displayName:
+          title: Display Name
+          type: string
+          description: A human-readable display name for the cluster component type
         description:
           title: Description
           type: string

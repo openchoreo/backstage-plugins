@@ -36,6 +36,10 @@ spec:
           default: false
           description: Mark this workflow as a component workflow to scope it for component-level automation
           ui:field: SwitchField
+        displayName:
+          title: Display Name
+          type: string
+          description: A human-readable display name for the workflow
         description:
           title: Description
           type: string

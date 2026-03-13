@@ -40,13 +40,14 @@ const DEFAULT_CLUSTER_WORKFLOW_TEMPLATE = {
 
 function generateInitialYaml(formData: Record<string, unknown>): string {
   const name = (formData?.clusterworkflow_name as string) || '';
+  const displayName = (formData?.displayName as string) || '';
   const description = (formData?.description as string) || '';
   const isComponentWorkflow = formData?.is_component_workflow === true;
 
   const template = structuredClone(DEFAULT_CLUSTER_WORKFLOW_TEMPLATE);
   template.metadata.name = name;
-  if (name) {
-    template.metadata.annotations['openchoreo.dev/display-name'] = name;
+  if (displayName) {
+    template.metadata.annotations['openchoreo.dev/display-name'] = displayName;
   }
   if (description) {
     template.metadata.annotations['openchoreo.dev/description'] = description;

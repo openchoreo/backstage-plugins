@@ -35,6 +35,10 @@ spec:
           type: string
           description: Namespace where the component type will be created
           ui:field: NamespaceEntityPicker
+        displayName:
+          title: Display Name
+          type: string
+          description: A human-readable display name for the component type
         description:
           title: Description
           type: string

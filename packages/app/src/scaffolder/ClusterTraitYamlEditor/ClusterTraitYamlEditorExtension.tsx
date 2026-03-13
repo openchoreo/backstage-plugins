@@ -7,6 +7,7 @@ import { useStyles } from './styles';
 
 function generateInitialYaml(formData: Record<string, unknown>): string {
   const name = (formData?.clustertrait_name as string) || '';
+  const displayName = (formData?.displayName as string) || '';
   const description = (formData?.description as string) || '';
 
   return `apiVersion: openchoreo.dev/v1alpha1
@@ -14,8 +15,8 @@ kind: ClusterTrait
 metadata:
   name: ${name}
   annotations:
-    openchoreo.dev/display-name: ${name}
-    openchoreo.dev/description: ${description}
+    openchoreo.dev/display-name: ${JSON.stringify(displayName)}
+    openchoreo.dev/description: ${JSON.stringify(description)}
 spec:
   schema:
     parameters: {}
