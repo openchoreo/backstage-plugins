@@ -50,7 +50,7 @@ const { conditions, createConditionalDecision } = createConditionExports({
  * return createOpenChoreoConditionalDecision(
  *   request.permission,
  *   openchoreoConditions.matchesCapability({
- *     action: 'component:deploy',
+ *     action: 'releasebinding:create',
  *     capability: { allowed: [{ path: 'namespace/*' }] }
  *   })
  * );
