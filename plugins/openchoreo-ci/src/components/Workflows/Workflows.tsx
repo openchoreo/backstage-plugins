@@ -4,39 +4,33 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
-import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import {
   Progress,
   ResponseErrorPanel,
   EmptyState,
 } from '@backstage/core-components';
-import {
-  Typography,
-  Button,
-  Box,
-  CircularProgress,
-  Tooltip,
-} from '@material-ui/core';
+import { Typography, Button, Box, CircularProgress } from '@material-ui/core';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import SettingsIcon from '@material-ui/icons/SettingsOutlined';
 import ListAltOutlinedIcon from '@material-ui/icons/ListAltOutlined';
 import EditIcon from '@material-ui/icons/Edit';
-import CodeIcon from '@material-ui/icons/CodeOutlined';
 import {
   VerticalTabNav,
   TabItemData,
+  SplitButton,
 } from '@openchoreo/backstage-design-system';
+import type { SplitButtonOption } from '@openchoreo/backstage-design-system';
 import { WorkflowConfigPage } from '../WorkflowConfigPage';
 import { WorkflowRunDetailsPage } from '../WorkflowRunDetailsPage';
 import { RunsTab } from '../RunsTab';
 import { OverviewTab } from '../OverviewTab';
-import { BuildWithCommitDialog } from '../BuildWithCommitDialog';
+import { BuildWithParamsDialog } from '../BuildWithParamsDialog';
 import { useWorkflowData, useWorkflowRouting } from '../../hooks';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 import {
   CHOREO_LABELS,
   CHOREO_ANNOTATIONS,
-  parseWorkflowParametersAnnotation,
+  filterEmptyObjectProperties,
 } from '@openchoreo/backstage-plugin-common';
 import {
   useComponentEntityDetails,
@@ -44,34 +38,37 @@ import {
   useAsyncOperation,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { useEntity } from '@backstage/plugin-catalog-react';
+import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
+import { walkSchemaForGitFields } from '../../utils/schemaExtensions';
+import type { GitFieldMapping } from '../../utils/schemaExtensions';
 import { useStyles } from './styles';
 
 /**
- * Set a value at a dot-delimited path in a nested object.
- * The path should be relative to the parameters root (strip "parameters." prefix first).
+ * Unwrap the "parameters" wrapper from the API schema.
  */
-function setNestedValue(
-  obj: Record<string, any>,
-  path: string,
-  value: any,
-): void {
-  const parts = path.split('.');
-  let current = obj;
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    if (!current[part] || typeof current[part] !== 'object') {
-      current[part] = {};
-    }
-    current = current[part];
+function unwrapParametersSchema(schema: any): any {
+  const innerParams = schema?.properties?.parameters;
+  if (
+    innerParams &&
+    typeof innerParams === 'object' &&
+    innerParams.properties
+  ) {
+    return {
+      ...schema,
+      ...innerParams,
+      properties: innerParams.properties,
+    };
   }
-  current[parts[parts.length - 1]] = value;
+  return schema;
 }
 
 export const Workflows = () => {
   const classes = useStyles();
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
-  const catalogApi = useApi(catalogApiRef);
+  const { entity } = useEntity();
+  const client = useApi(openChoreoCiClientApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
   const {
     canBuild,
@@ -93,10 +90,10 @@ export const Workflows = () => {
   } = useWorkflowRouting();
 
   // Dialog state
-  const [isCommitDialogOpen, setIsCommitDialogOpen] = useState(false);
+  const [isParamsDialogOpen, setIsParamsDialogOpen] = useState(false);
 
-  // Commit annotation path — non-null only when the workflow annotation has a `commit` key
-  const [commitParamPath, setCommitParamPath] = useState<string | null>(null);
+  // Git field mapping detected from workflow schema extensions
+  const [gitFieldMapping, setGitFieldMapping] = useState<GitFieldMapping>({});
 
   // Data fetching hook
   const workflowData = useWorkflowData();
@@ -104,53 +101,65 @@ export const Workflows = () => {
   // Check if component has workflow from componentDetails
   const hasWorkflow = !!workflowData.componentDetails?.componentWorkflow;
 
-  // Fetch WORKFLOW_PARAMETERS annotation to check if `commit` key exists
+  // Fetch workflow schema and detect git field mapping from extensions
   const workflowName = workflowData.componentDetails?.componentWorkflow?.name;
+  const workflowKind = workflowData.componentDetails?.componentWorkflow?.kind;
   useEffect(() => {
     let ignore = false;
 
-    const fetchCommitAnnotation = async () => {
+    const detectGitFields = async () => {
       if (!workflowName) {
-        setCommitParamPath(null);
+        setGitFieldMapping({});
         return;
       }
 
       try {
-        const { namespaceName } = await getEntityDetails();
-        const response = await catalogApi.getEntities({
-          filter: {
-            kind: 'Workflow',
-            'metadata.name': workflowName,
-            'metadata.namespace': namespaceName,
-          },
-        });
+        const namespace =
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+        if (!namespace) {
+          setGitFieldMapping({});
+          return;
+        }
+
+        const schemaResponse = await client.fetchWorkflowSchema(
+          namespace,
+          workflowName,
+          workflowKind,
+        );
 
         if (ignore) return;
 
-        const workflowEntity = response.items[0];
-        const annotation =
-          workflowEntity?.metadata?.annotations?.[
-            CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS
-          ];
+        const rawSchema = (
+          schemaResponse.success !== undefined && schemaResponse.data
+            ? schemaResponse.data
+            : schemaResponse
+        ) as any;
 
-        if (annotation) {
-          const mapping = parseWorkflowParametersAnnotation(annotation);
-          setCommitParamPath(mapping.commit ?? null);
+        if (!rawSchema || typeof rawSchema !== 'object') {
+          setGitFieldMapping({});
+          return;
+        }
+
+        const cleaned = filterEmptyObjectProperties(rawSchema);
+        const unwrapped = unwrapParametersSchema(cleaned);
+
+        if (unwrapped?.properties) {
+          setGitFieldMapping(walkSchemaForGitFields(unwrapped.properties, ''));
         } else {
-          setCommitParamPath(null);
+          setGitFieldMapping({});
         }
       } catch {
         if (!ignore) {
-          setCommitParamPath(null);
+          setGitFieldMapping({});
         }
       }
     };
 
-    fetchCommitAnnotation();
+    detectGitFields();
     return () => {
       ignore = true;
     };
-  }, [workflowName, catalogApi, getEntityDetails]);
+  }, [workflowName, workflowKind, entity, client]);
 
   // Find run by ID for run-details view
   const selectedRun = useMemo(() => {
@@ -160,10 +169,58 @@ export const Workflows = () => {
     return workflowData.builds.find(build => build.name === routingState.runId);
   }, [routingState.view, routingState.runId, workflowData.builds]);
 
-  // Async operation for triggering workflow
+  // Async operation for triggering workflow with default parameters
   const triggerWorkflowOp = useAsyncOperation(
+    useCallback(async () => {
+      const { componentName, projectName, namespaceName } =
+        await getEntityDetails();
+      const baseUrl = await discoveryApi.getBaseUrl(
+        'openchoreo-workflows-backend',
+      );
+
+      const workflow = workflowData.componentDetails?.componentWorkflow;
+      if (!workflow?.name) {
+        throw new Error('No workflow configured for this component');
+      }
+
+      const parameters = workflow.parameters
+        ? JSON.parse(JSON.stringify(workflow.parameters))
+        : {};
+
+      const response = await fetchApi.fetch(
+        `${baseUrl}/workflow-runs?namespaceName=${encodeURIComponent(
+          namespaceName,
+        )}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            workflowName: workflow.name,
+            workflowKind: workflow.kind ?? 'Workflow',
+            workflowRunName: `${componentName}-${Date.now()}`,
+            parameters,
+            labels: {
+              [CHOREO_LABELS.WORKFLOW_PROJECT]: projectName,
+              [CHOREO_LABELS.WORKFLOW_COMPONENT]: componentName,
+            },
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      await workflowData.fetchBuilds();
+    }, [discoveryApi, fetchApi, getEntityDetails, workflowData]),
+  );
+
+  // Async operation for triggering workflow with custom parameters
+  const triggerWithParamsOp = useAsyncOperation(
     useCallback(
-      async (commit?: string) => {
+      async (customParameters: Record<string, unknown>) => {
         const { componentName, projectName, namespaceName } =
           await getEntityDetails();
         const baseUrl = await discoveryApi.getBaseUrl(
@@ -173,19 +230,6 @@ export const Workflows = () => {
         const workflow = workflowData.componentDetails?.componentWorkflow;
         if (!workflow?.name) {
           throw new Error('No workflow configured for this component');
-        }
-
-        // Clone workflow parameters so we can inject commit without mutating the original
-        const parameters = workflow.parameters
-          ? JSON.parse(JSON.stringify(workflow.parameters))
-          : {};
-
-        // If a commit was provided and the annotation defines a commit path, inject it
-        if (commit && commitParamPath) {
-          const path = commitParamPath.startsWith('parameters.')
-            ? commitParamPath.slice('parameters.'.length)
-            : commitParamPath;
-          setNestedValue(parameters, path, commit);
         }
 
         const response = await fetchApi.fetch(
@@ -201,7 +245,7 @@ export const Workflows = () => {
               workflowName: workflow.name,
               workflowKind: workflow.kind ?? 'Workflow',
               workflowRunName: `${componentName}-${Date.now()}`,
-              parameters,
+              parameters: customParameters,
               labels: {
                 [CHOREO_LABELS.WORKFLOW_PROJECT]: projectName,
                 [CHOREO_LABELS.WORKFLOW_COMPONENT]: componentName,
@@ -216,7 +260,7 @@ export const Workflows = () => {
 
         await workflowData.fetchBuilds();
       },
-      [discoveryApi, fetchApi, getEntityDetails, workflowData, commitParamPath],
+      [discoveryApi, fetchApi, getEntityDetails, workflowData],
     ),
   );
 
@@ -240,19 +284,47 @@ export const Workflows = () => {
     [navigateToRunDetails],
   );
 
-  const handleOpenCommitDialog = useCallback(() => {
-    setIsCommitDialogOpen(true);
+  const handleOpenParamsDialog = useCallback(() => {
+    setIsParamsDialogOpen(true);
   }, []);
 
-  const handleCloseCommitDialog = useCallback(() => {
-    setIsCommitDialogOpen(false);
+  const handleCloseParamsDialog = useCallback(() => {
+    setIsParamsDialogOpen(false);
   }, []);
 
-  const handleTriggerWithCommit = useCallback(
-    async (commit: string) => {
-      await triggerWorkflowOp.execute(commit);
+  const handleTriggerWithParams = useCallback(
+    async (parameters: Record<string, unknown>) => {
+      await triggerWithParamsOp.execute(parameters);
     },
-    [triggerWorkflowOp],
+    [triggerWithParamsOp],
+  );
+
+  // Split button options for the build action
+  const buildOptions = useMemo<SplitButtonOption[]>(
+    () => [
+      {
+        key: 'build-latest',
+        label: 'Build Latest',
+        icon: <PlayArrowIcon />,
+      },
+      {
+        key: 'build-custom',
+        label: 'Build with Custom Parameters',
+        icon: <PlayArrowIcon />,
+      },
+    ],
+    [],
+  );
+
+  const handleBuildAction = useCallback(
+    (key: string) => {
+      if (key === 'build-latest') {
+        triggerWorkflowOp.execute();
+      } else if (key === 'build-custom') {
+        handleOpenParamsDialog();
+      }
+    },
+    [triggerWorkflowOp, handleOpenParamsDialog],
   );
 
   // Tab configuration
@@ -283,7 +355,7 @@ export const Workflows = () => {
             isRefreshing={refreshOp.isLoading}
             onRefresh={() => refreshOp.execute()}
             onRowClick={handleOpenRunDetails}
-            commitParamPath={commitParamPath}
+            gitFieldMapping={gitFieldMapping}
           />
         );
       case 'configurations':
@@ -375,12 +447,18 @@ export const Workflows = () => {
         onBack={handleBack}
         initialTab={routingState.runDetailsTab}
         onTabChange={tab => setRunDetailsTab(tab)}
+        gitFieldMapping={gitFieldMapping}
       />
     );
   }
 
   // Main list view with vertical tabs
   const { componentDetails } = workflowData;
+  const buildDisabled =
+    triggerWorkflowOp.isLoading ||
+    !componentDetails?.componentWorkflow ||
+    permissionLoading ||
+    !canBuild;
 
   return (
     <Box className={classes.container}>
@@ -390,51 +468,14 @@ export const Workflows = () => {
         </Typography>
         <Box className={classes.headerActions}>
           {routingState.tab === 'runs' ? (
-            <>
-              {commitParamPath && (
-                <Tooltip title={deniedTooltip}>
-                  <span>
-                    <Button
-                      variant="outlined"
-                      color="primary"
-                      onClick={handleOpenCommitDialog}
-                      startIcon={<CodeIcon />}
-                      disabled={
-                        !componentDetails?.componentWorkflow ||
-                        permissionLoading ||
-                        !canBuild
-                      }
-                    >
-                      Build With Commit
-                    </Button>
-                  </span>
-                </Tooltip>
-              )}
-              <Tooltip title={deniedTooltip}>
-                <span>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => triggerWorkflowOp.execute()}
-                    disabled={
-                      triggerWorkflowOp.isLoading ||
-                      !componentDetails?.componentWorkflow ||
-                      permissionLoading ||
-                      !canBuild
-                    }
-                    startIcon={
-                      triggerWorkflowOp.isLoading ? (
-                        <CircularProgress size={16} />
-                      ) : (
-                        <PlayArrowIcon />
-                      )
-                    }
-                  >
-                    Build Latest
-                  </Button>
-                </span>
-              </Tooltip>
-            </>
+            <SplitButton
+              options={buildOptions}
+              onClick={handleBuildAction}
+              disabled={buildDisabled}
+              loading={triggerWorkflowOp.isLoading}
+              loadingIcon={<CircularProgress size={16} />}
+              tooltip={deniedTooltip}
+            />
           ) : (
             <>
               {componentDetails?.componentWorkflow && (
@@ -460,11 +501,16 @@ export const Workflows = () => {
         {renderTabContent()}
       </VerticalTabNav>
 
-      <BuildWithCommitDialog
-        open={isCommitDialogOpen}
-        onClose={handleCloseCommitDialog}
-        onTrigger={handleTriggerWithCommit}
-        isLoading={triggerWorkflowOp.isLoading}
+      <BuildWithParamsDialog
+        open={isParamsDialogOpen}
+        onClose={handleCloseParamsDialog}
+        onTrigger={handleTriggerWithParams}
+        isLoading={triggerWithParamsOp.isLoading}
+        workflowName={componentDetails?.componentWorkflow?.name || ''}
+        workflowKind={componentDetails?.componentWorkflow?.kind}
+        currentParameters={
+          componentDetails?.componentWorkflow?.parameters || null
+        }
       />
     </Box>
   );

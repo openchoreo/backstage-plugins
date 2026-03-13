@@ -10,13 +10,10 @@ import type {
 // Response Types
 // ============================================
 
-/** Workflow schema response */
+/** Workflow schema response — `data` is the JSON Schema directly */
 export interface WorkflowSchemaResponse {
   success: boolean;
-  data?: {
-    schema?: unknown;
-    parameters?: unknown;
-  };
+  data?: unknown;
 }
 
 /** Workflow run event entry for a single Kubernetes event */

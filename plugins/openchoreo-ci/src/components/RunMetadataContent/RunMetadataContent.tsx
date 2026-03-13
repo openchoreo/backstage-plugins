@@ -1,20 +1,34 @@
+import { useMemo } from 'react';
 import { Typography, Box, Grid, CircularProgress } from '@material-ui/core';
+import { CodeSnippet } from '@backstage/core-components';
+import { stringify as yamlStringify } from 'yaml';
 import { BuildStatusChip } from '../BuildStatusChip';
 import { useWorkflowRun } from '../../hooks';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
+import { extractGitFieldValues } from '../../utils/schemaExtensions';
+import type { GitFieldMapping } from '../../utils/schemaExtensions';
 import { useStyles } from './styles';
 
 interface RunMetadataContentProps {
   build: ModelsBuild;
+  gitFieldMapping?: GitFieldMapping;
 }
 
-export const RunMetadataContent = ({ build }: RunMetadataContentProps) => {
+export const RunMetadataContent = ({
+  build,
+  gitFieldMapping,
+}: RunMetadataContentProps) => {
   const classes = useStyles();
   const {
     workflowRun: workflowRunDetails,
     loading,
     error,
   } = useWorkflowRun(build.name);
+
+  const gitValues = useMemo(
+    () => extractGitFieldValues(build.parameters, gitFieldMapping ?? {}),
+    [build.parameters, gitFieldMapping],
+  );
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
@@ -40,6 +54,7 @@ export const RunMetadataContent = ({ build }: RunMetadataContentProps) => {
   }
 
   const workflowData = workflowRunDetails || build;
+  const commitDisplay = gitValues.commit || workflowData.commit || 'N/A';
 
   return (
     <Box>
@@ -67,7 +82,7 @@ export const RunMetadataContent = ({ build }: RunMetadataContentProps) => {
               <Typography
                 className={`${classes.propertyValue} ${classes.commitValue}`}
               >
-                {workflowData.commit || 'N/A'}
+                {commitDisplay}
               </Typography>
             </Box>
 
@@ -112,25 +127,18 @@ export const RunMetadataContent = ({ build }: RunMetadataContentProps) => {
 
         {workflowRunDetails?.workflow?.parameters &&
           Object.keys(workflowRunDetails.workflow.parameters).length > 0 && (
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <Box className={classes.metadataCard}>
                 <Typography variant="h6" gutterBottom>
-                  Custom Parameters
+                  Workflow Parameters
                 </Typography>
-                {Object.entries(workflowRunDetails.workflow.parameters).map(
-                  ([key, value]) => (
-                    <Box key={key} className={classes.propertyRow}>
-                      <Typography className={classes.propertyKey}>
-                        {key}:
-                      </Typography>
-                      <Typography className={classes.propertyValue}>
-                        {typeof value === 'object'
-                          ? JSON.stringify(value)
-                          : String(value)}
-                      </Typography>
-                    </Box>
-                  ),
-                )}
+                <CodeSnippet
+                  language="yaml"
+                  text={yamlStringify(workflowRunDetails.workflow.parameters, {
+                    lineWidth: 0,
+                  }).trimEnd()}
+                  showCopyCodeButton
+                />
               </Box>
             </Grid>
           )}

@@ -28,3 +28,8 @@ export type {
   FormYamlToggleProps,
   FormYamlMode,
 } from './components/FormYamlToggle';
+export { SplitButton } from './components/SplitButton';
+export type {
+  SplitButtonProps,
+  SplitButtonOption,
+} from './components/SplitButton';

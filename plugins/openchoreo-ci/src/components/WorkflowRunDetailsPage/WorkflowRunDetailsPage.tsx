@@ -18,6 +18,7 @@ import { LogsContent } from '../BuildLogs';
 import { EventsContent } from '../BuildEvents';
 import { RunMetadataContent } from '../RunMetadataContent';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
+import type { GitFieldMapping } from '../../utils/schemaExtensions';
 
 interface WorkflowRunDetailsPageProps {
   run: ModelsBuild;
@@ -26,6 +27,7 @@ interface WorkflowRunDetailsPageProps {
   initialTab?: RunDetailsTab;
   /** Callback when tab changes (to update URL) */
   onTabChange?: (tab: RunDetailsTab) => void;
+  gitFieldMapping?: GitFieldMapping;
 }
 
 export const WorkflowRunDetailsPage = ({
@@ -33,6 +35,7 @@ export const WorkflowRunDetailsPage = ({
   onBack,
   initialTab,
   onTabChange,
+  gitFieldMapping,
 }: WorkflowRunDetailsPageProps) => {
   const [activeTab, setActiveTab] = useUrlSyncedTab<RunDetailsTab>({
     initialTab,
@@ -68,7 +71,9 @@ export const WorkflowRunDetailsPage = ({
       case 'events':
         return <EventsContent build={run} />;
       case 'details':
-        return <RunMetadataContent build={run} />;
+        return (
+          <RunMetadataContent build={run} gitFieldMapping={gitFieldMapping} />
+        );
       default:
         return null;
     }
