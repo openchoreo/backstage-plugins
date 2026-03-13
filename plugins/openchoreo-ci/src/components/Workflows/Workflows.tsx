@@ -1,10 +1,9 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   useApi,
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
-import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import {
   Progress,
   ResponseErrorPanel,
@@ -13,26 +12,19 @@ import {
 import {
   Typography,
   Button,
-  ButtonGroup,
   Box,
   CircularProgress,
-  Tooltip,
-  Popper,
-  Grow,
-  Paper,
-  ClickAwayListener,
-  MenuList,
-  MenuItem,
 } from '@material-ui/core';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
-import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import SettingsIcon from '@material-ui/icons/SettingsOutlined';
 import ListAltOutlinedIcon from '@material-ui/icons/ListAltOutlined';
 import EditIcon from '@material-ui/icons/Edit';
 import {
   VerticalTabNav,
   TabItemData,
+  SplitButton,
 } from '@openchoreo/backstage-design-system';
+import type { SplitButtonOption } from '@openchoreo/backstage-design-system';
 import { WorkflowConfigPage } from '../WorkflowConfigPage';
 import { WorkflowRunDetailsPage } from '../WorkflowRunDetailsPage';
 import { RunsTab } from '../RunsTab';
@@ -43,7 +35,7 @@ import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 import {
   CHOREO_LABELS,
   CHOREO_ANNOTATIONS,
-  parseWorkflowParametersAnnotation,
+  filterEmptyObjectProperties,
 } from '@openchoreo/backstage-plugin-common';
 import {
   useComponentEntityDetails,
@@ -51,13 +43,33 @@ import {
   useAsyncOperation,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { useEntity } from '@backstage/plugin-catalog-react';
+import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
+import { walkSchemaForGitFields } from '../../utils/schemaExtensions';
+import type { GitFieldMapping } from '../../utils/schemaExtensions';
 import { useStyles } from './styles';
+
+/**
+ * Unwrap the "parameters" wrapper from the API schema.
+ */
+function unwrapParametersSchema(schema: any): any {
+  const innerParams = schema?.properties?.parameters;
+  if (innerParams && typeof innerParams === 'object' && innerParams.properties) {
+    return {
+      ...schema,
+      ...innerParams,
+      properties: innerParams.properties,
+    };
+  }
+  return schema;
+}
 
 export const Workflows = () => {
   const classes = useStyles();
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
-  const catalogApi = useApi(catalogApiRef);
+  const { entity } = useEntity();
+  const client = useApi(openChoreoCiClientApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
   const {
     canBuild,
@@ -81,15 +93,9 @@ export const Workflows = () => {
   // Dialog state
   const [isParamsDialogOpen, setIsParamsDialogOpen] = useState(false);
 
-  // Split button menu state
-  const [splitMenuOpen, setSplitMenuOpen] = useState(false);
-  const splitButtonRef = useRef<HTMLDivElement>(null);
 
-  // Full WORKFLOW_PARAMETERS annotation mapping
-  const [parameterMapping, setParameterMapping] = useState<Record<
-    string,
-    string
-  > | null>(null);
+  // Git field mapping detected from workflow schema extensions
+  const [gitFieldMapping, setGitFieldMapping] = useState<GitFieldMapping>({});
 
   // Data fetching hook
   const workflowData = useWorkflowData();
@@ -97,55 +103,65 @@ export const Workflows = () => {
   // Check if component has workflow from componentDetails
   const hasWorkflow = !!workflowData.componentDetails?.componentWorkflow;
 
-  // Fetch WORKFLOW_PARAMETERS annotation to get full mapping (git fields, etc.)
+  // Fetch workflow schema and detect git field mapping from extensions
   const workflowName = workflowData.componentDetails?.componentWorkflow?.name;
+  const workflowKind = workflowData.componentDetails?.componentWorkflow?.kind;
   useEffect(() => {
     let ignore = false;
 
-    const fetchParameterMapping = async () => {
+    const detectGitFields = async () => {
       if (!workflowName) {
-        setParameterMapping(null);
+        setGitFieldMapping({});
         return;
       }
 
       try {
-        const { namespaceName } = await getEntityDetails();
-        const response = await catalogApi.getEntities({
-          filter: {
-            kind: 'Workflow',
-            'metadata.name': workflowName,
-            'metadata.namespace': namespaceName,
-          },
-        });
+        const namespace =
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+        if (!namespace) {
+          setGitFieldMapping({});
+          return;
+        }
+
+        const schemaResponse = await client.fetchWorkflowSchema(
+          namespace,
+          workflowName,
+          workflowKind,
+        );
 
         if (ignore) return;
 
-        const workflowEntity = response.items[0];
-        const annotation =
-          workflowEntity?.metadata?.annotations?.[
-            CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS
-          ];
+        const rawSchema = (
+          schemaResponse.success !== undefined && schemaResponse.data
+            ? schemaResponse.data
+            : schemaResponse
+        ) as any;
 
-        if (annotation) {
-          setParameterMapping(parseWorkflowParametersAnnotation(annotation));
+        if (!rawSchema || typeof rawSchema !== 'object') {
+          setGitFieldMapping({});
+          return;
+        }
+
+        const cleaned = filterEmptyObjectProperties(rawSchema);
+        const unwrapped = unwrapParametersSchema(cleaned);
+
+        if (unwrapped?.properties) {
+          setGitFieldMapping(walkSchemaForGitFields(unwrapped.properties, ''));
         } else {
-          setParameterMapping(null);
+          setGitFieldMapping({});
         }
       } catch {
         if (!ignore) {
-          setParameterMapping(null);
+          setGitFieldMapping({});
         }
       }
     };
 
-    fetchParameterMapping();
+    detectGitFields();
     return () => {
       ignore = true;
     };
-  }, [workflowName, catalogApi, getEntityDetails]);
-
-  // Derive commitParamPath for RunsTab (commit column display)
-  const commitParamPath = parameterMapping?.commit ?? null;
+  }, [workflowName, workflowKind, entity, client]);
 
   // Find run by ID for run-details view
   const selectedRun = useMemo(() => {
@@ -271,7 +287,6 @@ export const Workflows = () => {
   );
 
   const handleOpenParamsDialog = useCallback(() => {
-    setSplitMenuOpen(false);
     setIsParamsDialogOpen(true);
   }, []);
 
@@ -284,6 +299,34 @@ export const Workflows = () => {
       await triggerWithParamsOp.execute(parameters);
     },
     [triggerWithParamsOp],
+  );
+
+  // Split button options for the build action
+  const buildOptions = useMemo<SplitButtonOption[]>(
+    () => [
+      {
+        key: 'build-latest',
+        label: 'Build Latest',
+        icon: <PlayArrowIcon />,
+      },
+      {
+        key: 'build-custom',
+        label: 'Build with Custom Parameters',
+        icon: <PlayArrowIcon />,
+      },
+    ],
+    [],
+  );
+
+  const handleBuildAction = useCallback(
+    (key: string) => {
+      if (key === 'build-latest') {
+        triggerWorkflowOp.execute();
+      } else if (key === 'build-custom') {
+        handleOpenParamsDialog();
+      }
+    },
+    [triggerWorkflowOp, handleOpenParamsDialog],
   );
 
   // Tab configuration
@@ -314,7 +357,7 @@ export const Workflows = () => {
             isRefreshing={refreshOp.isLoading}
             onRefresh={() => refreshOp.execute()}
             onRowClick={handleOpenRunDetails}
-            commitParamPath={commitParamPath}
+            gitFieldMapping={gitFieldMapping}
           />
         );
       case 'configurations':
@@ -406,6 +449,7 @@ export const Workflows = () => {
         onBack={handleBack}
         initialTab={routingState.runDetailsTab}
         onTabChange={tab => setRunDetailsTab(tab)}
+        gitFieldMapping={gitFieldMapping}
       />
     );
   }
@@ -426,68 +470,14 @@ export const Workflows = () => {
         </Typography>
         <Box className={classes.headerActions}>
           {routingState.tab === 'runs' ? (
-            <Tooltip title={deniedTooltip}>
-              <span>
-                <ButtonGroup
-                  variant="contained"
-                  color="primary"
-                  ref={splitButtonRef}
-                  disabled={buildDisabled}
-                >
-                  <Button
-                    onClick={() => triggerWorkflowOp.execute()}
-                    startIcon={
-                      triggerWorkflowOp.isLoading ? (
-                        <CircularProgress size={16} />
-                      ) : (
-                        <PlayArrowIcon />
-                      )
-                    }
-                  >
-                    Build Latest
-                  </Button>
-                  <Button
-                    size="small"
-                    onClick={() => setSplitMenuOpen(prev => !prev)}
-                    className={classes.splitDropdown}
-                  >
-                    <ArrowDropDownIcon />
-                  </Button>
-                </ButtonGroup>
-                <Popper
-                  open={splitMenuOpen}
-                  anchorEl={splitButtonRef.current}
-                  role={undefined}
-                  transition
-                  disablePortal
-                  style={{ zIndex: 1 }}
-                >
-                  {({ TransitionProps, placement }) => (
-                    <Grow
-                      {...TransitionProps}
-                      style={{
-                        transformOrigin:
-                          placement === 'bottom'
-                            ? 'center top'
-                            : 'center bottom',
-                      }}
-                    >
-                      <Paper>
-                        <ClickAwayListener
-                          onClickAway={() => setSplitMenuOpen(false)}
-                        >
-                          <MenuList>
-                            <MenuItem onClick={handleOpenParamsDialog}>
-                              Build with Custom Parameters
-                            </MenuItem>
-                          </MenuList>
-                        </ClickAwayListener>
-                      </Paper>
-                    </Grow>
-                  )}
-                </Popper>
-              </span>
-            </Tooltip>
+            <SplitButton
+              options={buildOptions}
+              onClick={handleBuildAction}
+              disabled={buildDisabled}
+              loading={triggerWorkflowOp.isLoading}
+              loadingIcon={<CircularProgress size={16} />}
+              tooltip={deniedTooltip}
+            />
           ) : (
             <>
               {componentDetails?.componentWorkflow && (

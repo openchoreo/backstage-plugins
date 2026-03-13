@@ -22,17 +22,8 @@ import {
   filterEmptyObjectProperties,
 } from '@openchoreo/backstage-plugin-common';
 import { addTitlesToSchema } from '../WorkflowConfigPage/EditWorkflowConfigs/utils';
+import { walkSchemaForGitFields, getNestedValue, setNestedValue } from '../../utils/schemaExtensions';
 import { useStyles } from './styles';
-
-// ─── Schema extension keys for git-related fields ───────────────────────────
-
-const REPOSITORY_EXTENSIONS: Record<string, string> = {
-  'x-openchoreo-component-parameter-repository-url': 'repoUrl',
-  'x-openchoreo-component-parameter-repository-branch': 'branch',
-  'x-openchoreo-component-parameter-repository-commit': 'commit',
-  'x-openchoreo-component-parameter-repository-app-path': 'appPath',
-  'x-openchoreo-component-parameter-repository-secret-ref': 'secretRef',
-};
 
 /**
  * Git field display config.
@@ -87,69 +78,6 @@ const GIT_FIELD_CONFIG: Record<
 };
 
 // ─── Schema helpers ─────────────────────────────────────────────────────────
-
-/**
- * Recursively walk schema properties looking for repository extension markers.
- * Returns a mapping of semantic key → dot-delimited path.
- */
-function walkSchemaForGitFields(
-  properties: Record<string, any>,
-  prefix: string,
-): Record<string, string> {
-  const mapping: Record<string, string> = {};
-
-  for (const [propName, propSchema] of Object.entries(properties)) {
-    if (!propSchema || typeof propSchema !== 'object') continue;
-    const currentPath = prefix ? `${prefix}.${propName}` : propName;
-
-    for (const [ext, key] of Object.entries(REPOSITORY_EXTENSIONS)) {
-      if (propSchema[ext] === true) {
-        mapping[key] = currentPath;
-      }
-    }
-
-    if (propSchema.properties) {
-      Object.assign(
-        mapping,
-        walkSchemaForGitFields(propSchema.properties, currentPath),
-      );
-    }
-  }
-
-  return mapping;
-}
-
-function getNestedValue(obj: Record<string, any>, path: string): any {
-  const parts = path.split('.');
-  let current: any = obj;
-  for (const part of parts) {
-    if (
-      current === null ||
-      current === undefined ||
-      typeof current !== 'object'
-    )
-      return undefined;
-    current = current[part];
-  }
-  return current;
-}
-
-function setNestedValue(
-  obj: Record<string, any>,
-  path: string,
-  value: any,
-): void {
-  const parts = path.split('.');
-  let current = obj;
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    if (!current[part] || typeof current[part] !== 'object') {
-      current[part] = {};
-    }
-    current = current[part];
-  }
-  current[parts[parts.length - 1]] = value;
-}
 
 function getGitFilteredTopLevelKeys(
   mapping: Record<string, string>,
@@ -484,7 +412,7 @@ export const BuildWithParamsDialog = ({
           disabled={isLoading || schemaLoading || !!schemaError || !schema}
           startIcon={isLoading ? <CircularProgress size={16} /> : null}
         >
-          {isLoading ? 'Triggering...' : 'Trigger Workflow'}
+          {isLoading ? 'Triggering...' : 'Trigger Build'}
         </Button>
       </DialogActions>
     </Dialog>

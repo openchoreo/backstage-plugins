@@ -4,24 +4,9 @@ import Refresh from '@material-ui/icons/Refresh';
 import { BuildStatusChip } from '../BuildStatusChip';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
+import { extractGitFieldValues } from '../../utils/schemaExtensions';
+import type { GitFieldMapping } from '../../utils/schemaExtensions';
 import { useStyles } from './styles';
-
-/**
- * Retrieve a value from a nested object using a dot-delimited path.
- */
-function getNestedValue(obj: Record<string, any>, path: string): any {
-  let current: any = obj;
-  for (const part of path.split('.')) {
-    if (
-      current === null ||
-      current === undefined ||
-      typeof current !== 'object'
-    )
-      return undefined;
-    current = current[part];
-  }
-  return current;
-}
 
 interface RunsTabProps {
   builds: ModelsBuild[];
@@ -29,8 +14,7 @@ interface RunsTabProps {
   isRefreshing: boolean;
   onRefresh: () => void;
   onRowClick: (build: ModelsBuild) => void;
-  /** Dot-delimited path into parameters where commit lives (from annotation). Null if not available. */
-  commitParamPath?: string | null;
+  gitFieldMapping?: GitFieldMapping;
 }
 
 export const RunsTab = ({
@@ -39,17 +23,9 @@ export const RunsTab = ({
   isRefreshing,
   onRefresh,
   onRowClick,
-  commitParamPath,
+  gitFieldMapping,
 }: RunsTabProps) => {
   const classes = useStyles();
-
-  // Derive the lookup path by stripping the "parameters." prefix
-  let commitLookupPath: string | null = null;
-  if (commitParamPath) {
-    commitLookupPath = commitParamPath.startsWith('parameters.')
-      ? commitParamPath.slice('parameters.'.length)
-      : commitParamPath;
-  }
 
   const columns: TableColumn[] = [
     {
@@ -69,19 +45,11 @@ export const RunsTab = ({
       field: 'commit',
       render: (row: any) => {
         const build = row as ModelsBuild;
-        // Extract commit: annotation path → legacy build.commit → 'latest'
-        const paramCommit =
-          commitLookupPath && build.parameters
-            ? getNestedValue(build.parameters, commitLookupPath)
-            : null;
-        const display = paramCommit || build.commit || 'latest';
-        return display !== 'latest' ? (
-          <Typography variant="body2" style={{ fontFamily: 'monospace' }}>
-            {String(display).substring(0, 8)}
-          </Typography>
-        ) : (
+        const gitValues = extractGitFieldValues(build.parameters, gitFieldMapping ?? {});
+        const display = gitValues.commit || build.commit || 'latest';
+        return (
           <Typography variant="body2" color="textSecondary">
-            latest
+            {display !== 'latest' ? String(display).substring(0, 8) : 'latest'}
           </Typography>
         );
       },
