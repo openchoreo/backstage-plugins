@@ -61,7 +61,7 @@ const ROLE_TEMPLATES = {
       'component:view',
       'component:create',
       'component:update',
-      'component:deploy',
+      'releasebinding:create',
       'namespace:view',
       'environment:view',
       'project:view',

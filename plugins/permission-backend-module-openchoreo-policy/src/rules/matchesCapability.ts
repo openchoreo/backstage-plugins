@@ -46,7 +46,7 @@ export const openchoreoNamespacedResourceRef = createPermissionResourceRef<
  * Uses primitive types only (Backstage permission rule constraint).
  */
 const paramsSchema = z.object({
-  /** The OpenChoreo action to check (e.g., 'component:deploy') */
+  /** The OpenChoreo action to check (e.g., 'releasebinding:create') */
   action: z.string(),
   /** Allowed paths from user's capabilities (e.g., ['ns/*', 'ns/project/*']) */
   allowedPaths: z.array(z.string()),
