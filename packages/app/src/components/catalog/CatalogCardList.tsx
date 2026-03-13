@@ -4,6 +4,7 @@ import {
   Chip,
   CircularProgress,
   IconButton,
+  Tooltip,
   Typography,
 } from '@material-ui/core';
 import { TablePagination } from '@material-ui/core';
@@ -420,11 +421,20 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
                 >
                   <FavoriteEntity entity={entity} />
                   {!markedForDeletion && (
-                    <EntityRefLink entityRef={entity} defaultKind={entity.kind}>
-                      <IconButton size="small">
+                    <Tooltip title="Open in new tab">
+                      <IconButton
+                        component="a"
+                        href={entityRoute({
+                          kind: entity.kind.toLocaleLowerCase('en-US'),
+                          namespace: entity.metadata.namespace || 'default',
+                          name: entity.metadata.name,
+                        })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         <OpenInNewIcon fontSize="small" />
                       </IconButton>
-                    </EntityRefLink>
+                    </Tooltip>
                   )}
                 </Box>
               </Box>
