@@ -11,10 +11,15 @@ import {
   TextField,
   Grid,
 } from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
 import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import { JSONSchema7 } from 'json-schema';
-import { useApi } from '@backstage/core-plugin-api';
+import {
+  useApi,
+  discoveryApiRef,
+  fetchApiRef,
+} from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import {
@@ -69,11 +74,11 @@ const GIT_FIELD_CONFIG: Record<
     hidden: false,
   },
   secretRef: {
-    label: 'Secret Ref',
-    helperText: 'Secret reference name for Git credentials',
+    label: 'Git Secret',
+    helperText: 'Secret reference for private repository credentials (optional for public repos)',
     order: 4,
-    editable: false,
-    hidden: true,
+    editable: true,
+    hidden: false,
   },
 };
 
@@ -132,6 +137,8 @@ export const BuildWithParamsDialog = ({
   const classes = useStyles();
   const { entity } = useEntity();
   const client = useApi(openChoreoCiClientApiRef);
+  const discoveryApi = useApi(discoveryApiRef);
+  const fetchApi = useApi(fetchApiRef);
 
   const [schema, setSchema] = useState<JSONSchema7 | null>(null);
   const [rawUnwrappedSchema, setRawUnwrappedSchema] =
@@ -143,6 +150,30 @@ export const BuildWithParamsDialog = ({
     {},
   );
   const [error, setError] = useState('');
+  const [gitSecrets, setGitSecrets] = useState<string[]>([]);
+  const [secretsLoading, setSecretsLoading] = useState(false);
+
+  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
+
+  // Fetch available git secrets
+  const fetchGitSecrets = useCallback(async () => {
+    if (!namespace) return;
+    setSecretsLoading(true);
+    try {
+      const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+      const response = await fetchApi.fetch(
+        `${baseUrl}/git-secrets?namespaceName=${encodeURIComponent(namespace)}`,
+      );
+      if (response.ok) {
+        const result = await response.json();
+        setGitSecrets((result.items || []).map((s: { name: string }) => s.name));
+      }
+    } catch {
+      // Silently fail — dropdown will just be empty
+    } finally {
+      setSecretsLoading(false);
+    }
+  }, [namespace, discoveryApi, fetchApi]);
 
   // Detect git fields from the schema extensions
   const gitFieldMapping = useMemo<Record<string, string>>(() => {
@@ -209,9 +240,6 @@ export const BuildWithParamsDialog = ({
     setSchemaError(null);
 
     try {
-      const namespace =
-        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
-
       if (!namespace) {
         throw new Error('Namespace not found in entity');
       }
@@ -244,12 +272,13 @@ export const BuildWithParamsDialog = ({
     } finally {
       setSchemaLoading(false);
     }
-  }, [entity, client, workflowName, workflowKind]);
+  }, [namespace, client, workflowName, workflowKind]);
 
-  // Load schema and reset form data when dialog opens
+  // Load schema, secrets, and reset form data when dialog opens
   useEffect(() => {
     if (open) {
       loadSchema();
+      fetchGitSecrets();
       const params = currentParameters
         ? JSON.parse(JSON.stringify(currentParameters))
         : {};
@@ -257,7 +286,7 @@ export const BuildWithParamsDialog = ({
       setGitFieldValues({});
       setError('');
     }
-  }, [open, loadSchema, currentParameters]);
+  }, [open, loadSchema, fetchGitSecrets, currentParameters]);
 
   // Populate git field values once schema extensions are detected
   useEffect(() => {
@@ -309,17 +338,54 @@ export const BuildWithParamsDialog = ({
   const renderGitFields = () => {
     const hasBranch = gitFields.some(f => f.key === 'branch');
     const hasAppPath = gitFields.some(f => f.key === 'appPath');
-    const sideBySide = hasBranch && hasAppPath;
+    const hasCommit = gitFields.some(f => f.key === 'commit');
+    const hasSecretRef = gitFields.some(f => f.key === 'secretRef');
 
     return (
       <Grid container spacing={2}>
         {gitFields.map(field => {
           let sm: 6 | 12 = 12;
-          if (
-            sideBySide &&
-            (field.key === 'branch' || field.key === 'appPath')
-          ) {
+          if (hasBranch && hasAppPath && (field.key === 'branch' || field.key === 'appPath')) {
             sm = 6;
+          }
+          if (hasCommit && hasSecretRef && (field.key === 'commit' || field.key === 'secretRef')) {
+            sm = 6;
+          }
+
+          if (field.key === 'secretRef') {
+            return (
+              <Grid item xs={12} sm={sm} key={field.key}>
+                <Autocomplete
+                  options={gitSecrets}
+                  value={gitFieldValues[field.key] || null}
+                  onChange={(_e, value) =>
+                    handleGitFieldChange(field.key, value || '')
+                  }
+                  loading={secretsLoading}
+                  disabled={isLoading}
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      label={field.label}
+                      helperText={field.helperText}
+                      variant="outlined"
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {secretsLoading ? (
+                              <CircularProgress size={20} />
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                  noOptionsText="No git secrets available"
+                />
+              </Grid>
+            );
           }
 
           return (
