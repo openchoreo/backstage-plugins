@@ -10,7 +10,7 @@ interface UseNamespacesResult {
 
 /**
  * Hook to fetch the list of OpenChoreo namespaces
- * (Kubernetes namespaces labeled openchoreo.dev/namespace=true).
+ * (Kubernetes namespaces labeled openchoreo.dev/control-plane=true).
  */
 export function useNamespaces(): UseNamespacesResult {
   const client = useApi(genericWorkflowsClientApiRef);

@@ -334,7 +334,7 @@ export class GenericWorkflowService {
   }
 
   /**
-   * List OpenChoreo namespaces (those labeled openchoreo.dev/namespace=true).
+   * List OpenChoreo namespaces (those labeled openchoreo.dev/control-plane=true).
    * Used to populate the namespace selector on the ClusterWorkflow runs page.
    */
   async listNamespaces(token?: string): Promise<string[]> {
