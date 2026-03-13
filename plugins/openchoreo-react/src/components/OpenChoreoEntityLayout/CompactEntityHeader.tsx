@@ -665,8 +665,25 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
             let nameNode: ReactNode;
 
             if (node.path) {
+              const namePath = node.path;
               nameNode = (
-                <a href={node.path} className={classes.breadcrumbNameLink}>
+                <a
+                  href={namePath}
+                  className={classes.breadcrumbNameLink}
+                  onClick={event => {
+                    // Allow new tab behaviors (middle-click, ctrl/meta+click)
+                    if (
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey
+                    ) {
+                      return;
+                    }
+                    event.preventDefault();
+                    navigate(namePath);
+                  }}
+                >
                   {node.value}
                 </a>
               );
@@ -690,6 +707,18 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
                 <a
                   href={kindCatalogPath}
                   className={classes.breadcrumbKindLink}
+                  onClick={event => {
+                    if (
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey
+                    ) {
+                      return;
+                    }
+                    event.preventDefault();
+                    navigate(kindCatalogPath);
+                  }}
                 >
                   {levelLabel}
                 </a>
