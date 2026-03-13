@@ -258,35 +258,36 @@ const ScopeEditor = ({
         </FormControl>
       )}
 
-      <FormControl
-        size="small"
-        variant="outlined"
-        className={classes.fieldSelect}
-      >
-        <Select
-          value={mapping.project || '_all'}
-          onChange={e => {
-            const val = e.target.value as string;
-            onUpdate({
-              project: val === '_all' ? '' : val,
-              component: '',
-            });
-          }}
-          disabled={!effectiveNamespace}
+      {effectiveNamespace && (
+        <FormControl
+          size="small"
+          variant="outlined"
+          className={classes.fieldSelect}
         >
-          <MenuItem value="_all">All Projects</MenuItem>
-          {projectsLoading && (
-            <MenuItem disabled>
-              <CircularProgress size={16} />
-            </MenuItem>
-          )}
-          {projects.map(p => (
-            <MenuItem key={p.name} value={p.name}>
-              {p.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          <Select
+            value={mapping.project || '_all'}
+            onChange={e => {
+              const val = e.target.value as string;
+              onUpdate({
+                project: val === '_all' ? '' : val,
+                component: '',
+              });
+            }}
+          >
+            <MenuItem value="_all">All Projects</MenuItem>
+            {projectsLoading && (
+              <MenuItem disabled>
+                <CircularProgress size={16} />
+              </MenuItem>
+            )}
+            {projects.map(p => (
+              <MenuItem key={p.name} value={p.name}>
+                {p.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
 
       {mapping.project && (
         <FormControl
