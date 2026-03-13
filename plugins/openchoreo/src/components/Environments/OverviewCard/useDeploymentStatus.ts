@@ -5,8 +5,8 @@ import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError } from '../../../utils/errorUtils';
 import type { Environment } from '../hooks/useEnvironmentData';
 
-interface ProductionStatusState {
-  productionEnv: Environment | null;
+interface DeploymentStatusState {
+  environments: Environment[];
   loading: boolean;
   error: Error | null;
   isForbidden: boolean;
@@ -14,15 +14,14 @@ interface ProductionStatusState {
 }
 
 /**
- * Hook for fetching production environment status for the overview card.
- * Filters environments to find production (matches "prod" or "production").
+ * Hook for fetching deployment status across all environments for the overview card.
  */
-export function useProductionStatus() {
+export function useDeploymentStatus() {
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
 
-  const [state, setState] = useState<ProductionStatusState>({
-    productionEnv: null,
+  const [state, setState] = useState<DeploymentStatusState>({
+    environments: [],
     loading: true,
     error: null,
     isForbidden: false,
@@ -35,15 +34,9 @@ export function useProductionStatus() {
         entity,
       )) as Environment[];
 
-      // Find production environment (matches "prod" or "production", case-insensitive)
-      const productionEnv = environments.find(env => {
-        const name = env.name.toLowerCase();
-        return name === 'prod' || name === 'production';
-      });
-
       setState(prev => ({
         ...prev,
-        productionEnv: productionEnv || null,
+        environments,
         loading: false,
         error: null,
       }));
@@ -71,26 +64,22 @@ export function useProductionStatus() {
     fetchData();
   }, [fetchData]);
 
-  // Poll if deployment is pending (NotReady)
+  // Poll if any environment has NotReady status
   useEffect(() => {
-    const status = state.productionEnv?.deployment?.status;
-    if (status !== 'NotReady') return undefined;
+    const hasNotReady = state.environments.some(
+      env => env.deployment?.status === 'NotReady',
+    );
+    if (!hasNotReady) return undefined;
 
     const intervalId = setInterval(() => {
       fetchData();
     }, 10000);
 
     return () => clearInterval(intervalId);
-  }, [state.productionEnv, fetchData]);
-
-  // Determine deployment status
-  const isDeployed = Boolean(state.productionEnv?.deployment?.status);
-  const deploymentStatus = state.productionEnv?.deployment?.status;
+  }, [state.environments, fetchData]);
 
   return {
-    productionEnv: state.productionEnv,
-    isDeployed,
-    deploymentStatus,
+    environments: state.environments,
     loading: state.loading,
     error: state.error,
     isForbidden: state.isForbidden,

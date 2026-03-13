@@ -1,1 +1,1 @@
-export { ProductionOverviewCard } from './ProductionOverviewCard';
+export { DeploymentStatusCard } from './DeploymentStatusCard';
