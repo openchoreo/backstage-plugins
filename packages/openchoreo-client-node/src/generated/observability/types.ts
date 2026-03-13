@@ -200,6 +200,7 @@ export interface components {
     WorkflowSearchScope: {
       namespace: string;
       workflowRunName?: string;
+      taskName?: string;
     };
     LogsQueryRequest: {
       /**
@@ -280,8 +281,6 @@ export interface components {
       timestamp?: string;
       /** @description The log message */
       log?: string;
-      /** @description The metadata of the log entry */
-      metadata?: Record<string, never>;
     };
     LogsQueryResponse: {
       /** @description The logs queried successfully */
@@ -391,7 +390,10 @@ export interface components {
          * @description The end time of the trace
          */
         endTime?: string;
-        /** @description The duration of the trace in nanoseconds */
+        /**
+         * Format: int64
+         * @description The duration of the trace in nanoseconds
+         */
         durationNs?: number;
       }[];
       /** @description The total number of traces */
@@ -418,7 +420,10 @@ export interface components {
          * @description The end time of the span
          */
         endTime?: string;
-        /** @description The duration of the span in nanoseconds */
+        /**
+         * Format: int64
+         * @description The duration of the span in nanoseconds
+         */
         durationNs?: number;
         /** @description The parent span ID */
         parentSpanId?: string;
@@ -443,7 +448,10 @@ export interface components {
        * @description The end time of the span
        */
       endTime?: string;
-      /** @description The duration of the span in nanoseconds */
+      /**
+       * Format: int64
+       * @description The duration of the span in nanoseconds
+       */
       durationNs?: number;
       /** @description The parent span ID */
       parentSpanId?: string;
@@ -727,21 +735,26 @@ export interface components {
     };
     ErrorResponse: {
       /**
-       * @description Error type
-       * @example invalidRequest
+       * @description The error message
        * @enum {string}
        */
-      error: 'missingParameter' | 'invalidRequest' | 'internalError';
+      title?:
+        | 'badRequest'
+        | 'unauthorized'
+        | 'forbidden'
+        | 'notFound'
+        | 'conflict'
+        | 'internalServerError';
       /**
-       * @description Error code
-       * @example OBS-L-12
+       * @description The error code from observer service
+       * @example OBS-V1-L-22
        */
-      code: string;
+      errorCode?: string;
       /**
        * @description Human-readable error message
-       * @example Invalid request format
+       * @example Missing required fields 'startTime' and 'endTime'
        */
-      message: string;
+      message?: string;
     };
   };
   responses: never;
@@ -1198,6 +1211,15 @@ export interface operations {
       };
       /** @description Forbidden */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Incident not found */
+      404: {
         headers: {
           [name: string]: unknown;
         };
