@@ -1,10 +1,7 @@
 import { useState } from 'react';
-import { Box, Button, Drawer, Grid } from '@material-ui/core';
+import { Box, Drawer, Grid } from '@material-ui/core';
 import FilterListIcon from '@material-ui/icons/FilterList';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import { useRouteRef } from '@backstage/core-plugin-api';
-import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
-import { Link } from 'react-router-dom';
 import { PageWithHeader, Content } from '@backstage/core-components';
 import {
   EntityListProvider,
@@ -15,6 +12,7 @@ import {
 import { ChoreoEntityKindPicker } from './ChoreoEntityKindPicker';
 import { StarredFilter } from './CustomPersonalFilters';
 import { CatalogCardList } from './CatalogCardList';
+import { ContextAwareCreateButton } from './ContextAwareCreateButton';
 import { useStyles } from './styles';
 
 export interface CustomCatalogPageProps {
@@ -27,7 +25,6 @@ export const CustomCatalogPage = ({
   const classes = useStyles();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
-  const createComponentLink = useRouteRef(scaffolderPlugin.routes.root);
 
   return (
     <PageWithHeader title="OpenChoreo Catalog" themeId="home">
@@ -125,19 +122,7 @@ export const CustomCatalogPage = ({
 
             {/* Catalog card list */}
             <Box className={classes.contentArea}>
-              <CatalogCardList
-                actionButton={
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    component={Link}
-                    to={createComponentLink()}
-                    size="small"
-                  >
-                    Create
-                  </Button>
-                }
-              />
+              <CatalogCardList actionButton={<ContextAwareCreateButton />} />
             </Box>
           </Box>
         </EntityListProvider>
