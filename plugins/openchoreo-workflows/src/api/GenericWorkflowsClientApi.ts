@@ -20,7 +20,7 @@ import type {
  * Namespace → Project → Component
  */
 export interface GenericWorkflowsClientApi {
-  /** List OpenChoreo namespaces (labeled openchoreo.dev/namespace=true) */
+  /** List OpenChoreo namespaces (labeled openchoreo.dev/control-plane=true) */
   listNamespaces(): Promise<string[]>;
 
   /** List all workflow templates for a namespace */

@@ -121,7 +121,7 @@ export interface paths {
     /**
      * List namespaces
      * @description Returns a paginated list of OpenChoreo control plane namespaces the user has access to.
-     *     Only namespaces with the label `openchoreo.dev/namespace=true` are returned.
+     *     Only namespaces with the label `openchoreo.dev/control-plane=true` are returned.
      *     This filters out system namespaces (e.g., openchoreo-control-plane, kube-system) and
      *     data plane runtime namespaces.
      *
@@ -131,7 +131,7 @@ export interface paths {
     /**
      * Create namespace
      * @description Creates a new OpenChoreo control plane namespace.
-     *     The namespace is automatically labeled with `openchoreo.dev/namespace=true`.
+     *     The namespace is automatically labeled with `openchoreo.dev/control-plane=true`.
      *
      */
     post: operations['createNamespace'];
@@ -2221,7 +2221,7 @@ export interface components {
     };
     /** @description Namespace resource.
      *     Control plane namespaces hold resources like Projects, Components, and Environments.
-     *     These namespaces are identified by the label `openchoreo.dev/namespace=true`.
+     *     These namespaces are identified by the label `openchoreo.dev/control-plane=true`.
      *      */
     Namespace: {
       metadata: components['schemas']['ObjectMeta'];
