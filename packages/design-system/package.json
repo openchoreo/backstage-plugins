@@ -32,6 +32,7 @@
     "@material-ui/core": "4.12.4",
     "@material-ui/icons": "^4.11.3",
     "@material-ui/lab": "4.0.0-alpha.61",
+    "@rjsf/utils": "5.24.13",
     "react-syntax-highlighter": "^15.6.1"
   },
   "peerDependencies": {
