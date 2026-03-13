@@ -12,7 +12,11 @@ import {
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { JSONSchema7 } from 'json-schema';
 import Form from '@rjsf/material-ui';
-import { ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate } from '@openchoreo/backstage-design-system';
+import {
+  ArrayFieldTemplate,
+  DescriptionFieldTemplate,
+  TitleFieldTemplate,
+} from '@openchoreo/backstage-design-system';
 import validator from '@rjsf/validator-ajv8';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 
@@ -183,7 +187,11 @@ export const AdvancedConfigurationField = ({
           formData={essentialFormData}
           onChange={handleEssentialChange}
           validator={validator}
-          templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
+          templates={{
+            ArrayFieldTemplate,
+            DescriptionFieldTemplate,
+            TitleFieldTemplate,
+          }}
           liveValidate={false}
           showErrorList={false}
           noHtml5Validate
@@ -227,7 +235,11 @@ export const AdvancedConfigurationField = ({
               formData={advancedFormData}
               onChange={handleAdvancedChange}
               validator={validator}
-              templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
+              templates={{
+                ArrayFieldTemplate,
+                DescriptionFieldTemplate,
+                TitleFieldTemplate,
+              }}
               liveValidate={false}
               showErrorList={false}
               noHtml5Validate

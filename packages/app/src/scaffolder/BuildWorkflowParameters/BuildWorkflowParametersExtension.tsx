@@ -14,7 +14,11 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 import { JSONSchema7 } from 'json-schema';
 import Form from '@rjsf/material-ui';
-import { ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate } from '@openchoreo/backstage-design-system';
+import {
+  ArrayFieldTemplate,
+  DescriptionFieldTemplate,
+  TitleFieldTemplate,
+} from '@openchoreo/backstage-design-system';
 import validator from '@rjsf/validator-ajv8';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 import createSchemaUtils from '@rjsf/utils/lib/createSchemaUtils';
@@ -362,7 +366,11 @@ export const BuildWorkflowParameters = ({
           formData={formData?.parameters || {}}
           onChange={handleFormChange}
           validator={validator}
-          templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
+          templates={{
+            ArrayFieldTemplate,
+            DescriptionFieldTemplate,
+            TitleFieldTemplate,
+          }}
           liveValidate={false}
           showErrorList={false}
           noHtml5Validate

@@ -433,7 +433,11 @@ export const WorkflowConfigPage = ({
           validator={validator}
           widgets={customWidgets}
           formContext={{ gitSecrets, secretsLoading }}
-          templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
+          templates={{
+            ArrayFieldTemplate,
+            DescriptionFieldTemplate,
+            TitleFieldTemplate,
+          }}
           liveValidate
           showErrorList={false}
           noHtml5Validate

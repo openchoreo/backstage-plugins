@@ -19,7 +19,11 @@ import {
   fetchApiRef,
 } from '@backstage/core-plugin-api';
 import Form from '@rjsf/material-ui';
-import { ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate } from '@openchoreo/backstage-design-system';
+import {
+  ArrayFieldTemplate,
+  DescriptionFieldTemplate,
+  TitleFieldTemplate,
+} from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
 import validator from '@rjsf/validator-ajv8';
 import { NoTraitsAvailableMessage } from './NoTraitsAvailableMessage';
@@ -233,7 +237,11 @@ const TraitAccordionItem = ({
             formData={localConfig}
             onChange={data => handleLocalConfigChange(data.formData)}
             validator={validator}
-            templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
+            templates={{
+              ArrayFieldTemplate,
+              DescriptionFieldTemplate,
+              TitleFieldTemplate,
+            }}
             showErrorList={false}
             tagName="div"
             children={<div />} // Hide submit button

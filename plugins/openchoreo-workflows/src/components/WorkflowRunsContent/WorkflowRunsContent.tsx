@@ -482,7 +482,11 @@ const TriggerForm = ({
               uiSchema={uiSchema}
               formData={formData}
               validator={validator}
-              templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
+              templates={{
+                ArrayFieldTemplate,
+                DescriptionFieldTemplate,
+                TitleFieldTemplate,
+              }}
               onChange={e => setFormData(e.formData || {})}
               onSubmit={handleSubmit}
             >
