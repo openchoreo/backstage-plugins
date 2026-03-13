@@ -27,7 +27,11 @@ import {
   filterEmptyObjectProperties,
 } from '@openchoreo/backstage-plugin-common';
 import { addTitlesToSchema } from '../WorkflowConfigPage/EditWorkflowConfigs/utils';
-import { walkSchemaForGitFields, getNestedValue, setNestedValue } from '../../utils/schemaExtensions';
+import {
+  walkSchemaForGitFields,
+  getNestedValue,
+  setNestedValue,
+} from '../../utils/schemaExtensions';
 import { useStyles } from './styles';
 
 /**
@@ -75,7 +79,8 @@ const GIT_FIELD_CONFIG: Record<
   },
   secretRef: {
     label: 'Git Secret',
-    helperText: 'Secret reference for private repository credentials (optional for public repos)',
+    helperText:
+      'Secret reference for private repository credentials (optional for public repos)',
     order: 4,
     editable: true,
     hidden: false,
@@ -153,7 +158,8 @@ export const BuildWithParamsDialog = ({
   const [gitSecrets, setGitSecrets] = useState<string[]>([]);
   const [secretsLoading, setSecretsLoading] = useState(false);
 
-  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
 
   // Fetch available git secrets
   const fetchGitSecrets = useCallback(async () => {
@@ -166,7 +172,9 @@ export const BuildWithParamsDialog = ({
       );
       if (response.ok) {
         const result = await response.json();
-        setGitSecrets((result.items || []).map((s: { name: string }) => s.name));
+        setGitSecrets(
+          (result.items || []).map((s: { name: string }) => s.name),
+        );
       }
     } catch {
       // Silently fail — dropdown will just be empty
@@ -345,10 +353,18 @@ export const BuildWithParamsDialog = ({
       <Grid container spacing={2}>
         {gitFields.map(field => {
           let sm: 6 | 12 = 12;
-          if (hasBranch && hasAppPath && (field.key === 'branch' || field.key === 'appPath')) {
+          if (
+            hasBranch &&
+            hasAppPath &&
+            (field.key === 'branch' || field.key === 'appPath')
+          ) {
             sm = 6;
           }
-          if (hasCommit && hasSecretRef && (field.key === 'commit' || field.key === 'secretRef')) {
+          if (
+            hasCommit &&
+            hasSecretRef &&
+            (field.key === 'commit' || field.key === 'secretRef')
+          ) {
             sm = 6;
           }
 

@@ -45,7 +45,10 @@ export const RunsTab = ({
       field: 'commit',
       render: (row: any) => {
         const build = row as ModelsBuild;
-        const gitValues = extractGitFieldValues(build.parameters, gitFieldMapping ?? {});
+        const gitValues = extractGitFieldValues(
+          build.parameters,
+          gitFieldMapping ?? {},
+        );
         const display = gitValues.commit || build.commit || 'latest';
         return (
           <Typography variant="body2" color="textSecondary">

@@ -9,12 +9,7 @@ import {
   ResponseErrorPanel,
   EmptyState,
 } from '@backstage/core-components';
-import {
-  Typography,
-  Button,
-  Box,
-  CircularProgress,
-} from '@material-ui/core';
+import { Typography, Button, Box, CircularProgress } from '@material-ui/core';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import SettingsIcon from '@material-ui/icons/SettingsOutlined';
 import ListAltOutlinedIcon from '@material-ui/icons/ListAltOutlined';
@@ -54,7 +49,11 @@ import { useStyles } from './styles';
  */
 function unwrapParametersSchema(schema: any): any {
   const innerParams = schema?.properties?.parameters;
-  if (innerParams && typeof innerParams === 'object' && innerParams.properties) {
+  if (
+    innerParams &&
+    typeof innerParams === 'object' &&
+    innerParams.properties
+  ) {
     return {
       ...schema,
       ...innerParams,
@@ -92,7 +91,6 @@ export const Workflows = () => {
 
   // Dialog state
   const [isParamsDialogOpen, setIsParamsDialogOpen] = useState(false);
-
 
   // Git field mapping detected from workflow schema extensions
   const [gitFieldMapping, setGitFieldMapping] = useState<GitFieldMapping>({});

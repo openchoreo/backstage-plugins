@@ -71,7 +71,9 @@ export const WorkflowRunDetailsPage = ({
       case 'events':
         return <EventsContent build={run} />;
       case 'details':
-        return <RunMetadataContent build={run} gitFieldMapping={gitFieldMapping} />;
+        return (
+          <RunMetadataContent build={run} gitFieldMapping={gitFieldMapping} />
+        );
       default:
         return null;
     }

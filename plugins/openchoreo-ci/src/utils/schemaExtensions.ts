@@ -14,7 +14,12 @@ export const REPOSITORY_EXTENSIONS: Record<string, string> = {
 };
 
 /** Semantic keys for git-related fields detected from schema extensions. */
-export type GitFieldKey = 'repoUrl' | 'branch' | 'commit' | 'appPath' | 'secretRef';
+export type GitFieldKey =
+  | 'repoUrl'
+  | 'branch'
+  | 'commit'
+  | 'appPath'
+  | 'secretRef';
 
 /** Mapping of semantic git field key → dot-delimited path in the parameters object. */
 export type GitFieldMapping = Partial<Record<GitFieldKey, string>>;

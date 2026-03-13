@@ -14,7 +14,10 @@ interface RunMetadataContentProps {
   gitFieldMapping?: GitFieldMapping;
 }
 
-export const RunMetadataContent = ({ build, gitFieldMapping }: RunMetadataContentProps) => {
+export const RunMetadataContent = ({
+  build,
+  gitFieldMapping,
+}: RunMetadataContentProps) => {
   const classes = useStyles();
   const {
     workflowRun: workflowRunDetails,
@@ -131,10 +134,9 @@ export const RunMetadataContent = ({ build, gitFieldMapping }: RunMetadataConten
                 </Typography>
                 <CodeSnippet
                   language="yaml"
-                  text={yamlStringify(
-                    workflowRunDetails.workflow.parameters,
-                    { lineWidth: 0 },
-                  ).trimEnd()}
+                  text={yamlStringify(workflowRunDetails.workflow.parameters, {
+                    lineWidth: 0,
+                  }).trimEnd()}
                   showCopyCodeButton
                 />
               </Box>
