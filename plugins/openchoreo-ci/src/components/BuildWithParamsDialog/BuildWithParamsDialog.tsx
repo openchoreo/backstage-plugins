@@ -534,7 +534,7 @@ export const BuildWithParamsDialog = ({
                       DescriptionFieldTemplate,
                       TitleFieldTemplate,
                     }}
-                    liveValidate
+                    liveValidate={false}
                     showErrorList={false}
                     noHtml5Validate
                   >
