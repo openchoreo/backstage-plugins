@@ -561,15 +561,21 @@ const TriggerForm = ({
  */
 const RunDetailView = ({
   runName,
+  namespaceName,
   onBack,
 }: {
   runName: string;
+  /** The namespace the WorkflowRun lives in. Needed for ClusterWorkflow runs. */
+  namespaceName?: string;
   onBack: () => void;
 }) => {
   const classes = useStyles();
   const [activeTab, setActiveTab] = useState<RunDetailsTab>('logs');
 
-  const { run, loading, error, refetch } = useWorkflowRunDetails(runName);
+  const { run, loading, error, refetch } = useWorkflowRunDetails(
+    runName,
+    namespaceName,
+  );
 
   const handleRefresh = () => {
     refetch();
@@ -653,9 +659,16 @@ const RunDetailView = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'logs':
-        return <WorkflowRunStepLogs runName={runName} />;
+        return (
+          <WorkflowRunStepLogs
+            runName={runName}
+            namespaceName={namespaceName}
+          />
+        );
       case 'events':
-        return <WorkflowRunEvents runName={runName} />;
+        return (
+          <WorkflowRunEvents runName={runName} namespaceName={namespaceName} />
+        );
       case 'details':
         return (
           <>
@@ -773,7 +786,11 @@ export const WorkflowRunsContent = () => {
   if (selectedRunName) {
     return (
       <Content>
-        <RunDetailView runName={selectedRunName} onBack={handleBackToList} />
+        <RunDetailView
+          runName={selectedRunName}
+          namespaceName={runsNamespace}
+          onBack={handleBackToList}
+        />
       </Content>
     );
   }
