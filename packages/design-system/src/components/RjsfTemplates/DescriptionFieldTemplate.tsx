@@ -1,7 +1,9 @@
 import { Typography } from '@material-ui/core';
 import type { DescriptionFieldProps } from '@rjsf/utils';
 
-export function DescriptionFieldTemplate({ description }: DescriptionFieldProps) {
+export function DescriptionFieldTemplate({
+  description,
+}: DescriptionFieldProps) {
   if (!description) return null;
 
   return (

@@ -43,7 +43,11 @@ import {
   YamlEditor,
   TraitConfigToggle,
 } from '@openchoreo/backstage-plugin-react';
-import { ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate } from '@openchoreo/backstage-design-system';
+import {
+  ArrayFieldTemplate,
+  DescriptionFieldTemplate,
+  TitleFieldTemplate,
+} from '@openchoreo/backstage-design-system';
 import type { SecretOption } from '@openchoreo/backstage-design-system';
 import type {
   WorkloadEndpoint as CommonWorkloadEndpoint,
@@ -317,7 +321,11 @@ const TraitInstanceAccordion = ({
               formData={localConfig}
               onChange={data => handleLocalConfigChange(data.formData)}
               validator={validator}
-              templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
+              templates={{
+                ArrayFieldTemplate,
+                DescriptionFieldTemplate,
+                TitleFieldTemplate,
+              }}
               showErrorList={false}
               tagName="div"
               children={<div />}
@@ -1085,7 +1093,11 @@ export const WorkloadDetailsField = ({
               formData={essentialFormData}
               onChange={handleCtdEssentialChange}
               validator={validator}
-              templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
+              templates={{
+                ArrayFieldTemplate,
+                DescriptionFieldTemplate,
+                TitleFieldTemplate,
+              }}
               liveValidate={false}
               showErrorList={false}
               noHtml5Validate
@@ -1298,7 +1310,11 @@ export const WorkloadDetailsField = ({
                 formData={advancedFormData}
                 onChange={handleCtdAdvancedChange}
                 validator={validator}
-                templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
+                templates={{
+                  ArrayFieldTemplate,
+                  DescriptionFieldTemplate,
+                  TitleFieldTemplate,
+                }}
                 liveValidate={false}
                 showErrorList={false}
                 noHtml5Validate

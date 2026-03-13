@@ -270,7 +270,11 @@ export const WorkflowConfigPage = ({
           formData={{ [activeTab]: formData[activeTab] }}
           onChange={handleFormChange}
           validator={validator}
-          templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
+          templates={{
+            ArrayFieldTemplate,
+            DescriptionFieldTemplate,
+            TitleFieldTemplate,
+          }}
           liveValidate
           showErrorList={false}
           noHtml5Validate

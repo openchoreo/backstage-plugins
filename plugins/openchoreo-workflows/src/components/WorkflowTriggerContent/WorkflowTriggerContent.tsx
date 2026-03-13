@@ -7,7 +7,11 @@ import { Alert, AlertTitle } from '@material-ui/lab';
 import { Box, Button, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import Form from '@rjsf/material-ui';
-import { ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate } from '@openchoreo/backstage-design-system';
+import {
+  ArrayFieldTemplate,
+  DescriptionFieldTemplate,
+  TitleFieldTemplate,
+} from '@openchoreo/backstage-design-system';
 import validator from '@rjsf/validator-ajv8';
 import type { RJSFSchema, UiSchema } from '@rjsf/utils';
 import type { IChangeEvent } from '@rjsf/core';
@@ -117,7 +121,11 @@ export const WorkflowTriggerContent = () => {
               uiSchema={uiSchema}
               formData={formData}
               validator={validator}
-              templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
+              templates={{
+                ArrayFieldTemplate,
+                DescriptionFieldTemplate,
+                TitleFieldTemplate,
+              }}
               onChange={e => setFormData(e.formData || {})}
               onSubmit={handleSubmit}
             >

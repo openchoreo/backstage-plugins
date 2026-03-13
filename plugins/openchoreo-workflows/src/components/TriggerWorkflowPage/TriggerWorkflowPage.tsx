@@ -7,7 +7,11 @@ import { Box, Button, IconButton, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import Form from '@rjsf/material-ui';
-import { ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate } from '@openchoreo/backstage-design-system';
+import {
+  ArrayFieldTemplate,
+  DescriptionFieldTemplate,
+  TitleFieldTemplate,
+} from '@openchoreo/backstage-design-system';
 import validator from '@rjsf/validator-ajv8';
 import type { RJSFSchema, UiSchema } from '@rjsf/utils';
 import { useWorkflowSchema } from '../../hooks/useWorkflowSchema';
@@ -139,7 +143,11 @@ export const TriggerWorkflowPage = () => {
               uiSchema={uiSchema}
               formData={formData}
               validator={validator}
-              templates={{ ArrayFieldTemplate, DescriptionFieldTemplate, TitleFieldTemplate }}
+              templates={{
+                ArrayFieldTemplate,
+                DescriptionFieldTemplate,
+                TitleFieldTemplate,
+              }}
               onChange={e => setFormData(e.formData || {})}
               onSubmit={handleSubmit}
             >
