@@ -407,6 +407,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Incident not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal Server Error
           content:
@@ -482,6 +488,8 @@ components:
         namespace:
           type: string
         workflowRunName:
+          type: string
+        taskName:
           type: string
       required: [namespace]
 
@@ -585,9 +593,6 @@ components:
         log:
           type: string
           description: The log message
-        metadata:
-          type: object
-          description: The metadata of the log entry
 
     LogsQueryResponse:
       type: object
@@ -774,7 +779,8 @@ components:
                 description: The end time of the trace
                 format: date-time
               durationNs:
-                type: number
+                type: integer
+                format: int64
                 description: The duration of the trace in nanoseconds
         total:
           type: integer
@@ -810,7 +816,8 @@ components:
                 description: The end time of the span
                 format: date-time
               durationNs:
-                type: number
+                type: integer
+                format: int64
                 description: The duration of the span in nanoseconds
               parentSpanId:
                 type: string
@@ -840,7 +847,8 @@ components:
           description: The end time of the span
           format: date-time
         durationNs:
-          type: number
+          type: integer
+          format: int64
           description: The duration of the span in nanoseconds
         parentSpanId:
           type: string
@@ -1204,26 +1212,32 @@ components:
               description: The UID of the project
               format: uuid
 
+    # New error response schema
     ErrorResponse:
       type: object
-      required:
-        - error
-        - code
-        - message
       properties:
-        error:
+        title:
           type: string
-          description: Error type
+          description: The error message
           enum:
-            - missingParameter
-            - invalidRequest
-            - internalError
-          example: 'invalidRequest'
-        code:
+            - badRequest
+            - unauthorized
+            - forbidden
+            - notFound
+            - conflict
+            - internalServerError
+        errorCode:
           type: string
-          description: Error code
-          example: 'OBS-L-12'
+          description: The error code from observer service
+          example: OBS-V1-L-22
         message:
           type: string
           description: Human-readable error message
-          example: 'Invalid request format'
+          example: "Missing required fields 'startTime' and 'endTime'"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication. Include the token in the Authorization header as 'Bearer <token>'.
