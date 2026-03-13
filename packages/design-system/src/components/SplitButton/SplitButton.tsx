@@ -85,7 +85,7 @@ export const SplitButton: React.FC<SplitButtonProps> = ({
   const selectedOption = options[selectedIndex] ?? options[0];
 
   const handlePrimaryClick = useCallback(() => {
-    if (selectedOption) {
+    if (selectedOption && !selectedOption.disabled) {
       onClick(selectedOption.key);
     }
   }, [onClick, selectedOption]);
@@ -126,7 +126,11 @@ export const SplitButton: React.FC<SplitButtonProps> = ({
           aria-label="split button"
           className={classes.buttonGroup}
         >
-          <Button onClick={handlePrimaryClick} startIcon={startIcon}>
+          <Button
+            onClick={handlePrimaryClick}
+            startIcon={startIcon}
+            disabled={selectedOption?.disabled}
+          >
             {selectedOption?.label}
           </Button>
           <Button

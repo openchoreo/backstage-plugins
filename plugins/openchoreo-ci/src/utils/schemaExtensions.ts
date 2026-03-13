@@ -27,12 +27,22 @@ export type GitFieldMapping = Partial<Record<GitFieldKey, string>>;
 /** Resolved values of git fields extracted from a build's parameters. */
 export type GitFieldValues = Partial<Record<GitFieldKey, string>>;
 
+const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+
+function validatePathParts(parts: string[]): void {
+  if (parts.some(part => UNSAFE_KEYS.has(part))) {
+    throw new Error(`Unsafe path segment in: ${parts.join('.')}`);
+  }
+}
+
 /**
  * Retrieve a value from a nested object using a dot-delimited path.
  */
 export function getNestedValue(obj: Record<string, any>, path: string): any {
+  const parts = path.split('.');
+  validatePathParts(parts);
   let current: any = obj;
-  for (const part of path.split('.')) {
+  for (const part of parts) {
     if (
       current === null ||
       current === undefined ||
@@ -54,6 +64,7 @@ export function setNestedValue(
   value: any,
 ): void {
   const parts = path.split('.');
+  validatePathParts(parts);
   let current = obj;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
