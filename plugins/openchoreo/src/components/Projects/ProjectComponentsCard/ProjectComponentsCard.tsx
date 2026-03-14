@@ -10,6 +10,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   useCreateComponentPath,
   useReleaseBindingPermission,
+  useScopedComponentCreatePermission,
 } from '@openchoreo/backstage-plugin-react';
 import {
   useComponentsWithDeployment,
@@ -39,6 +40,11 @@ export const ProjectComponentsCard = () => {
     useCreateComponentPath(entity);
   const { canViewBindings, loading: bindingsPermissionLoading } =
     useReleaseBindingPermission();
+  const {
+    canCreate,
+    loading: createPermLoading,
+    createDeniedTooltip,
+  } = useScopedComponentCreatePermission();
 
   // Filter and sort environments based on deployment pipeline
   const pipelineEnvironments = useMemo(() => {
@@ -138,7 +144,13 @@ export const ProjectComponentsCard = () => {
     },
   ];
 
-  if (loading || envsLoading || pipelineLoading || bindingsPermissionLoading) {
+  if (
+    loading ||
+    envsLoading ||
+    pipelineLoading ||
+    bindingsPermissionLoading ||
+    createPermLoading
+  ) {
     return (
       <Box p={3}>
         <Typography variant="body1" color="textSecondary" align="center">
@@ -186,18 +198,23 @@ export const ProjectComponentsCard = () => {
         ]}
         components={{
           Action: ({ action }: any) => (
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              startIcon={<AddIcon />}
-              className={classes.createComponentButton}
-              onClick={(event: React.MouseEvent) =>
-                action.onClick(event, undefined)
-              }
-            >
-              Create Component
-            </Button>
+            <Tooltip title={createDeniedTooltip}>
+              <span>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  className={classes.createComponentButton}
+                  disabled={!canCreate || createPermLoading}
+                  onClick={(event: React.MouseEvent) =>
+                    action.onClick(event, undefined)
+                  }
+                >
+                  Create Component
+                </Button>
+              </span>
+            </Tooltip>
           ),
         }}
       />

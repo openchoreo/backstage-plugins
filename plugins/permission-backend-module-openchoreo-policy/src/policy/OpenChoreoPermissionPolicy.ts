@@ -179,9 +179,36 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
       }
 
       // For basic permissions (non-resource), check if action has any allowed paths
+      // Also verify that not every allowed path is covered by a deny path
       const actionCapability =
         capabilities.capabilities?.[action] ?? capabilities.capabilities?.['*'];
-      const isAllowed = (actionCapability?.allowed?.length ?? 0) > 0;
+      const allowedPaths =
+        actionCapability?.allowed
+          ?.map(a => a.path)
+          .filter((p): p is string => !!p) ?? [];
+      const deniedPaths =
+        actionCapability?.denied
+          ?.map(d => d.path)
+          .filter((p): p is string => !!p) ?? [];
+
+      let isAllowed = allowedPaths.length > 0;
+
+      // Safety net: if there are deny paths, check that at least one allowed path
+      // is not fully covered by a deny path. A deny of '*' covers everything.
+      if (isAllowed && deniedPaths.length > 0) {
+        const hasGlobalDeny = deniedPaths.includes('*');
+        if (hasGlobalDeny) {
+          isAllowed = false;
+        } else {
+          // Check if every allowed path is covered by a deny path
+          const allCovered = allowedPaths.every(ap =>
+            deniedPaths.some(dp => ap === dp || ap.startsWith(`${dp}/`)),
+          );
+          if (allCovered) {
+            isAllowed = false;
+          }
+        }
+      }
 
       this.logger.debug(`${permission.name}: ${isAllowed ? 'ALLOW' : 'DENY'}`);
 

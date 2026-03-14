@@ -201,7 +201,11 @@ export const matchesCapability = createPermissionRule({
     // TODO: need to handle annotation change from org to namespace
     const namespace =
       entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
-    const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+    // System entities use PROJECT_ID annotation, others use PROJECT
+    const project =
+      entity.kind.toLowerCase() === 'system'
+        ? entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT_ID]
+        : entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
     const component =
       entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
 
