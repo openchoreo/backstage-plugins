@@ -125,7 +125,7 @@ export const ParametersContent = ({
           DescriptionFieldTemplate,
           TitleFieldTemplate,
         }}
-        liveValidate={false}
+        liveValidate
         showErrorList={false}
         noHtml5Validate
         omitExtraData
