@@ -151,11 +151,21 @@ export function PlatformOverviewPage() {
     if (availableNamespaces.length === 0) return;
     scopeInitialised.current = true;
 
-    const hasValidNamespace = selectedNamespaces.some(ns =>
+    const filteredValid = selectedNamespaces.filter(ns =>
       availableNamespaces.includes(ns),
     );
-    if (hasValidNamespace) return;
 
+    if (filteredValid.length > 0) {
+      // Some namespaces are valid — only update if stale ones were removed
+      if (filteredValid.length === selectedNamespaces.length) return;
+      const newScopes = clusterSelected
+        ? [CLUSTER_NAMESPACE, ...filteredValid]
+        : filteredValid;
+      setParams({ scope: newScopes.join(',') }, { replace: true });
+      return;
+    }
+
+    // No valid namespaces — fall back to preferred
     const preferred = availableNamespaces.includes('default')
       ? 'default'
       : availableNamespaces[0];
