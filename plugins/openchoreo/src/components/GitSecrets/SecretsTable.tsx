@@ -1,49 +1,93 @@
 import { useState } from 'react';
 import {
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
   IconButton,
   Tooltip,
   Typography,
   Box,
   Button,
-  TextField,
-  InputAdornment,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
   DialogActions,
   CircularProgress,
+  Chip,
 } from '@material-ui/core';
-import DeleteIcon from '@material-ui/icons/Delete';
-import SearchIcon from '@material-ui/icons/Search';
+import { Table, TableColumn } from '@backstage/core-components';
+import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import AddIcon from '@material-ui/icons/Add';
+import VpnKeyOutlinedIcon from '@material-ui/icons/VpnKeyOutlined';
 import { makeStyles } from '@material-ui/core/styles';
 import { GitSecret } from '../../api/OpenChoreoClientApi';
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 
 const useStyles = makeStyles(theme => ({
-  toolbar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing(2),
-  },
-  searchField: {
-    width: 300,
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: theme.spacing(4),
-  },
-  table: {
-    '& .MuiTableCell-head': {
-      fontWeight: 600,
+  tableWrapper: {
+    '& [class*="MuiPaper-root"][class*="MuiPaper-elevation"]': {
+      borderRadius: '12px !important',
+      border: `1px solid ${
+        theme.palette.type === 'dark'
+          ? 'rgba(255, 255, 255, 0.12)'
+          : 'rgb(243, 244, 246)'
+      } !important`,
+      boxShadow:
+        'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px !important',
     },
+    '& [class*="MuiTableFooter-root"]': {
+      borderRadius: '0 0 12px 12px !important',
+    },
+    '& tfoot td': {
+      borderBottom: 'none !important',
+    },
+    '& [class*="MuiTablePagination-toolbar"]': {
+      borderBottomLeftRadius: '12px !important',
+      borderBottomRightRadius: '12px !important',
+    },
+    '& tbody tr': {
+      transition: 'background-color 0.2s ease',
+      '&:hover': {
+        backgroundColor: theme.palette.action.hover,
+      },
+    },
+  },
+  nameCell: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+  },
+  nameIcon: {
+    color: theme.palette.text.secondary,
+    fontSize: '1.2rem',
+  },
+  scopeChip: {
+    height: 22,
+    fontSize: '0.75rem',
+    fontWeight: 500,
+  },
+  deleteButton: {
+    color: theme.palette.text.secondary,
+    '&:hover': {
+      color: theme.palette.error.main,
+      backgroundColor: 'rgba(244, 67, 54, 0.08)',
+    },
+  },
+  emptyStateContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing(6, 2),
+    gap: theme.spacing(1),
+  },
+  emptyStateIcon: {
+    fontSize: 48,
+    color: theme.palette.text.disabled,
+    marginBottom: theme.spacing(1),
+  },
+  createButton: {
+    textTransform: 'none',
+    marginRight: theme.spacing(2),
+    borderRadius: theme.spacing(1),
   },
 }));
 
@@ -63,21 +107,16 @@ export const SecretsTable = ({
   namespaceName,
 }: SecretsTableProps) => {
   const classes = useStyles();
-  const [searchQuery, setSearchQuery] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [secretToDelete, setSecretToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const filteredSecrets = secrets.filter(secret => {
-    const query = searchQuery.toLowerCase();
-    return (
-      secret.name.toLowerCase().includes(query) ||
-      (secret.workflowPlaneName || '').toLowerCase().includes(query)
-    );
-  });
-
-  const handleDeleteClick = (secretName: string) => {
+  const handleDeleteClick = (
+    event: React.MouseEvent,
+    secretName: string,
+  ) => {
+    event.stopPropagation();
     setSecretToDelete(secretName);
     setDeleteDialogOpen(true);
     setDeleteError(null);
@@ -114,98 +153,138 @@ export const SecretsTable = ({
     }
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" p={4}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const columns: TableColumn<GitSecret>[] = [
+    {
+      title: 'Name',
+      field: 'name',
+      highlight: true,
+      render: (row: GitSecret) => (
+        <Box className={classes.nameCell}>
+          <VpnKeyOutlinedIcon className={classes.nameIcon} />
+          <Typography variant="body2" style={{ fontWeight: 500 }}>
+            {row.name}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      title: 'Workflow Plane',
+      field: 'workflowPlaneName',
+      render: (row: GitSecret) => {
+        if (!row.workflowPlaneName) {
+          return (
+            <Typography variant="body2" color="textSecondary">
+              -
+            </Typography>
+          );
+        }
+        const isCluster = row.workflowPlaneKind === 'ClusterWorkflowPlane';
+        return (
+          <Box display="flex" alignItems="center" gridGap={8}>
+            <Typography variant="body2">{row.workflowPlaneName}</Typography>
+            {isCluster && (
+              <Chip
+                label="Cluster"
+                size="small"
+                variant="outlined"
+                className={classes.scopeChip}
+              />
+            )}
+          </Box>
+        );
+      },
+    },
+    {
+      title: '',
+      field: 'actions',
+      sorting: false,
+      searchable: false,
+      width: '60px',
+      render: (row: GitSecret) => (
+        <Tooltip title="Delete secret">
+          <IconButton
+            size="small"
+            className={classes.deleteButton}
+            onClick={e => handleDeleteClick(e, row.name)}
+          >
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      ),
+    },
+  ];
 
   return (
     <>
-      <Box className={classes.toolbar}>
-        <TextField
-          className={classes.searchField}
-          placeholder="Search secrets..."
-          variant="outlined"
-          size="small"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon color="action" />
-              </InputAdornment>
+      <Box className={classes.tableWrapper}>
+        <Table
+          title=""
+          columns={columns}
+          data={secrets}
+          isLoading={loading}
+          emptyContent={
+            <Box className={classes.emptyStateContainer}>
+              <VpnKeyOutlinedIcon className={classes.emptyStateIcon} />
+              <Typography variant="h6" color="textSecondary">
+                No git secrets in {namespaceName}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Create a git secret to access private repositories during
+                builds.
+              </Typography>
+              <Button
+                variant="outlined"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={onCreateClick}
+                style={{ marginTop: 8 }}
+              >
+                Create Secret
+              </Button>
+            </Box>
+          }
+          options={{
+            paging: secrets.length > 10,
+            pageSize: 10,
+            pageSizeOptions: [10, 20, 50],
+            search: secrets.length > 0,
+            padding: 'default',
+            draggable: false,
+            actionsColumnIndex: -1,
+          }}
+          actions={[
+            {
+              icon: () => <AddIcon />,
+              tooltip: 'Create Secret',
+              isFreeAction: true,
+              onClick: () => onCreateClick(),
+            },
+          ]}
+          components={{
+            Action: ({ action }: any) => (
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                startIcon={<AddIcon />}
+                className={classes.createButton}
+                onClick={(event: React.MouseEvent) =>
+                  action.onClick(event, undefined)
+                }
+              >
+                Create Secret
+              </Button>
             ),
           }}
         />
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={onCreateClick}
-        >
-          Create Secret
-        </Button>
       </Box>
 
-      {filteredSecrets.length === 0 ? (
-        <Box className={classes.emptyState}>
-          <Typography variant="h6" color="textSecondary">
-            {searchQuery
-              ? 'No secrets match your search'
-              : `No git secrets in namespace ${namespaceName}`}
-          </Typography>
-          {!searchQuery && (
-            <Typography variant="body2" color="textSecondary">
-              Create a git secret to access private repositories
-            </Typography>
-          )}
-        </Box>
-      ) : (
-        <Table className={classes.table}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Secret Name</TableCell>
-              <TableCell>Namespace</TableCell>
-              <TableCell>Workflow Plane</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredSecrets.map(secret => (
-              <TableRow key={secret.name}>
-                <TableCell>{secret.name}</TableCell>
-                <TableCell>{secret.namespace}</TableCell>
-                <TableCell>
-                  {secret.workflowPlaneName
-                    ? `${secret.workflowPlaneName}${
-                        secret.workflowPlaneKind === 'ClusterWorkflowPlane'
-                          ? ' (Cluster)'
-                          : ''
-                      }`
-                    : '-'}
-                </TableCell>
-                <TableCell align="right">
-                  <Tooltip title="Delete secret">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteClick(secret.name)}
-                      color="secondary"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        PaperProps={{ style: { borderRadius: 12 } }}
+      >
         <DialogTitle>Delete Git Secret</DialogTitle>
         <DialogContent>
           <DialogContentText>
