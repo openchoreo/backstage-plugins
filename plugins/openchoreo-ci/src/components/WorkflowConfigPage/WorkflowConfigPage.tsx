@@ -8,13 +8,23 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  TextField,
 } from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
 import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
-import { RJSFValidationError } from '@rjsf/utils';
+import { RJSFValidationError, WidgetProps } from '@rjsf/utils';
 import { JSONSchema7 } from 'json-schema';
-import { useApi, alertApiRef } from '@backstage/core-plugin-api';
-import { useEntity } from '@backstage/plugin-catalog-react';
+import {
+  useApi,
+  alertApiRef,
+  discoveryApiRef,
+  fetchApiRef,
+} from '@backstage/core-plugin-api';
+import {
+  useEntity,
+  catalogApiRef,
+} from '@backstage/plugin-catalog-react';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import {
   CHOREO_ANNOTATIONS,
@@ -32,7 +42,48 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import { ChangesPreview } from './EditWorkflowConfigs/ChangesPreview';
 import { addTitlesToSchema } from './EditWorkflowConfigs/utils';
+import { walkSchemaForGitFields } from '../../utils/schemaExtensions';
 import { useStyles } from './styles';
+
+/**
+ * Custom RJSF widget that renders a git secret dropdown instead of a plain
+ * text input.  Receives available secrets via formContext.
+ */
+const SecretRefWidget = (props: WidgetProps) => {
+  const { value, onChange, label, formContext } = props;
+  const secrets: string[] = formContext?.gitSecrets ?? [];
+  const loading: boolean = formContext?.secretsLoading ?? false;
+
+  return (
+    <Autocomplete
+      options={secrets}
+      value={value || ''}
+      onChange={(_e: any, newValue: string | null) =>
+        onChange(newValue || '')
+      }
+      freeSolo
+      loading={loading}
+      renderInput={params => (
+        <TextField
+          {...params}
+          label={label || 'Secret Reference'}
+          variant="outlined"
+          helperText="Secret reference for private repository credentials (optional for public repos)"
+          InputProps={{
+            ...params.InputProps,
+            endAdornment: (
+              <>
+                {loading ? <CircularProgress size={20} /> : null}
+                {params.InputProps.endAdornment}
+              </>
+            ),
+          }}
+        />
+      )}
+      noOptionsText="No git secrets available"
+    />
+  );
+};
 
 interface WorkflowConfigPageProps {
   workflowName: string;
@@ -53,6 +104,8 @@ export const WorkflowConfigPage = ({
   const { entity } = useEntity();
   const client = useApi(openChoreoCiClientApiRef);
   const alertApi = useApi(alertApiRef);
+  const discoveryApi = useApi(discoveryApiRef);
+  const fetchApi = useApi(fetchApiRef);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -65,6 +118,90 @@ export const WorkflowConfigPage = ({
   const [initialFormData, setInitialFormData] = useState<any>({});
   const [formErrors, setFormErrors] = useState<RJSFValidationError[]>([]);
   const [activeTab, setActiveTab] = useState<string>('');
+  const [gitSecrets, setGitSecrets] = useState<string[]>([]);
+  const [secretsLoading, setSecretsLoading] = useState(false);
+  const catalogApi = useApi(catalogApiRef);
+
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
+
+  // Fetch available git secrets for the component's namespace, filtered by
+  // the workflow's workflowPlaneRef so only relevant secrets are shown.
+  const fetchGitSecrets = useCallback(async () => {
+    if (!namespace) return;
+    setSecretsLoading(true);
+    try {
+      // 1. Fetch the workflow entity to get its plane annotations
+      let planeRef: string | undefined;
+      let planeRefKind: string | undefined;
+
+      if (workflowName) {
+        const filter: Record<string, string> = {
+          'metadata.name': workflowName,
+        };
+        if (workflowKind === 'ClusterWorkflow') {
+          filter.kind = 'ClusterWorkflow';
+          filter['metadata.namespace'] = 'openchoreo-cluster';
+        } else {
+          filter.kind = 'Workflow';
+          filter['metadata.namespace'] = namespace;
+        }
+
+        const catalogResponse = await catalogApi.getEntities({ filter });
+        const workflowEntity = catalogResponse.items[0];
+        planeRef =
+          workflowEntity?.metadata?.annotations?.[
+            CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF
+          ];
+        planeRefKind =
+          workflowEntity?.metadata?.annotations?.[
+            CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND
+          ];
+      }
+
+      // 2. Fetch all secrets for the namespace
+      const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+      const response = await fetchApi.fetch(
+        `${baseUrl}/git-secrets?namespaceName=${encodeURIComponent(namespace)}`,
+      );
+      if (response.ok) {
+        const result = await response.json();
+        const allSecrets: Array<{
+          name: string;
+          workflowPlaneName?: string;
+          workflowPlaneKind?: string;
+        }> = result.items || [];
+
+        // 3. Filter by workflow plane if the workflow has a plane ref
+        const filtered =
+          planeRef && planeRefKind
+            ? allSecrets.filter(
+                s =>
+                  !s.workflowPlaneName ||
+                  (s.workflowPlaneName === planeRef &&
+                    s.workflowPlaneKind === planeRefKind),
+              )
+            : allSecrets;
+
+        setGitSecrets(filtered.map(s => s.name));
+      }
+    } catch {
+      // Silently fail — dropdown will just be empty
+    } finally {
+      setSecretsLoading(false);
+    }
+  }, [
+    namespace,
+    workflowName,
+    workflowKind,
+    discoveryApi,
+    fetchApi,
+    catalogApi,
+  ]);
+
+  useEffect(() => {
+    fetchGitSecrets();
+  }, [fetchGitSecrets]);
 
   const loadWorkflowSchema = useCallback(async () => {
     if (!workflowName) {
@@ -161,6 +298,32 @@ export const WorkflowConfigPage = ({
       },
     };
   }, [schema, activeTab]);
+
+  // Detect secretRef fields via vendor extensions and build a uiSchema that
+  // maps them to the custom SecretRefWidget dropdown.
+  const secretRefUiSchema = useMemo(() => {
+    if (!schema?.properties) return {};
+    const mapping = walkSchemaForGitFields(
+      schema.properties as Record<string, any>,
+      '',
+    );
+    const secretRefPath = mapping.secretRef;
+    if (!secretRefPath) return {};
+
+    // Convert dot-delimited path to nested uiSchema object.
+    // e.g. "repository.secretRef" → { repository: { secretRef: { 'ui:widget': ... } } }
+    let ui: any = { 'ui:widget': 'secretRefWidget' };
+    const parts = secretRefPath.split('.');
+    for (let i = parts.length - 1; i >= 0; i--) {
+      ui = { [parts[i]]: ui };
+    }
+    return ui;
+  }, [schema]);
+
+  const customWidgets = useMemo(
+    () => ({ secretRefWidget: SecretRefWidget }),
+    [],
+  );
 
   // Use shared change detection hook
   const { changes, hasChanges, changeCount } = useChangeDetection(
@@ -264,9 +427,12 @@ export const WorkflowConfigPage = ({
 
         <Form
           schema={activePropertySchema}
+          uiSchema={secretRefUiSchema}
           formData={{ [activeTab]: formData[activeTab] }}
           onChange={handleFormChange}
           validator={validator}
+          widgets={customWidgets}
+          formContext={{ gitSecrets, secretsLoading }}
           liveValidate
           showErrorList={false}
           noHtml5Validate
