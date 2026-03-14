@@ -396,6 +396,15 @@ export const BuildWithParamsDialog = ({
         }
       }
 
+      // Validate merged payload against the full schema before triggering
+      if (schema) {
+        const result = validator.validateFormData(mergedData, schema);
+        if (result.errors.length > 0) {
+          setError(result.errors.map(e => e.message).filter(Boolean).join(', '));
+          return;
+        }
+      }
+
       await onTrigger(mergedData);
       onClose();
     } catch (err) {
