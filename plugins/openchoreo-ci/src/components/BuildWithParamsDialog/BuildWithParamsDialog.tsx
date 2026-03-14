@@ -13,6 +13,11 @@ import {
 } from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import Form from '@rjsf/material-ui';
+import {
+  ArrayFieldTemplate,
+  DescriptionFieldTemplate,
+  TitleFieldTemplate,
+} from '@openchoreo/backstage-design-system';
 import validator from '@rjsf/validator-ajv8';
 import { JSONSchema7 } from 'json-schema';
 import {
@@ -467,7 +472,12 @@ export const BuildWithParamsDialog = ({
                     formData={formData}
                     onChange={e => setFormData(e.formData)}
                     validator={validator}
-                    liveValidate
+                    templates={{
+                      ArrayFieldTemplate,
+                      DescriptionFieldTemplate,
+                      TitleFieldTemplate,
+                    }}
+                    liveValidate={false}
                     showErrorList={false}
                     noHtml5Validate
                   >

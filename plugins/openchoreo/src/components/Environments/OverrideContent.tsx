@@ -2,6 +2,11 @@ import type { FC } from 'react';
 import { Box, Typography, Button } from '@material-ui/core';
 import DeleteIcon from '@material-ui/icons/Delete';
 import Form from '@rjsf/material-ui';
+import {
+  ArrayFieldTemplate,
+  DescriptionFieldTemplate,
+  TitleFieldTemplate,
+} from '@openchoreo/backstage-design-system';
 import validator from '@rjsf/validator-ajv8';
 import { JSONSchema7 } from 'json-schema';
 import { makeStyles } from '@material-ui/core/styles';
@@ -157,6 +162,11 @@ export const OverrideContent: FC<OverrideContentProps> = ({
               formData={formData}
               onChange={handleFormChange}
               validator={validator}
+              templates={{
+                ArrayFieldTemplate,
+                DescriptionFieldTemplate,
+                TitleFieldTemplate,
+              }}
               liveValidate={showValidation}
               showErrorList={false}
               noHtml5Validate

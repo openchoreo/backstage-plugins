@@ -29,6 +29,11 @@ export type {
   FormYamlMode,
 } from './components/FormYamlToggle';
 export { SplitButton } from './components/SplitButton';
+export {
+  ArrayFieldTemplate,
+  DescriptionFieldTemplate,
+  TitleFieldTemplate,
+} from './components/RjsfTemplates';
 export type {
   SplitButtonProps,
   SplitButtonOption,
