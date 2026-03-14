@@ -133,9 +133,9 @@ export class CtdToTemplateConverter {
    * Includes standard fields + component type-specific fields
    *
    * Structure: 3 sections
-   *   1. Build & Deploy (deployment source + CI/CD)
-   *   2. Workload Details (CTD params + endpoints + env vars + file mounts + traits)
-   *   3. Component Metadata (project, name, description)
+   *   1. Component Metadata (project, name, description)
+   *   2. Build & Deploy (deployment source + CI/CD)
+   *   3. Workload Details (CTD params + endpoints + env vars + file mounts + traits)
    */
   private generateParameters(
     componentType: ComponentType,
@@ -180,13 +180,9 @@ export class CtdToTemplateConverter {
       },
     };
 
-    // For ClusterComponentType, the namespace is not known at template
-    // generation time — the user selects it via ProjectNamespaceField.
-    // Place Component Metadata first so the namespace is available in
-    // formContext when Build & Deploy fields (GitSourceField, etc.) render.
-    if (!namespaceName) {
-      parameters.push(metadataSection);
-    }
+    // Always show Component Metadata first so the user provides project/namespace
+    // context before configuring Build & Deploy fields.
+    parameters.push(metadataSection);
 
     // Build & Deploy (deployment source selection + conditional fields)
     parameters.push(
@@ -197,12 +193,6 @@ export class CtdToTemplateConverter {
     parameters.push(
       this.generateWorkloadDetailsSection(componentType, namespaceName),
     );
-
-    // For namespace-scoped ComponentType the namespace is already baked into
-    // ui:options, so Component Metadata can stay at the end.
-    if (namespaceName) {
-      parameters.push(metadataSection);
-    }
 
     return parameters;
   }
