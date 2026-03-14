@@ -101,13 +101,7 @@ export function isClusterScopedKind(kind: string): boolean {
 /**
  * Server-managed fields that should be stripped from CRD before displaying
  */
-const SERVER_MANAGED_FIELDS = [
-  'managedFields',
-  'resourceVersion',
-  'uid',
-  'creationTimestamp',
-  'generation',
-];
+const SERVER_MANAGED_FIELDS = ['resourceVersion', 'managedFields'];
 
 /**
  * Cleans a CRD for editing by removing server-managed fields
@@ -125,9 +119,6 @@ export function cleanCrdForEditing(
     }
     cleaned.metadata = metadata;
   }
-
-  // Remove status (should not be edited by users)
-  delete cleaned.status;
 
   return cleaned;
 }
