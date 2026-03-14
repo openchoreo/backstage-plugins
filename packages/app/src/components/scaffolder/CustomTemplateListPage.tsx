@@ -58,6 +58,7 @@ import { ScaffolderTagPicker } from './ScaffolderTagPicker';
 import { ScaffolderSearchBar } from './ScaffolderSearchBar';
 import { ScaffolderNamespacePicker } from './ScaffolderNamespacePicker';
 import { CustomTemplateCard } from './CustomTemplateCard';
+import { TemplateCardSkeletons } from './TemplateCardSkeleton';
 import { useStyles } from './styles';
 
 const APPLICATION_TYPES = ['System (Project)'];
@@ -196,7 +197,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   );
 
   // Get all template entities from the catalog (filtered by search/category/tag/starred)
-  const { entities } = useEntityList();
+  const { entities, loading } = useEntityList();
   const templates = entities as TemplateEntityV1beta3[];
 
   const applicationTemplates = useMemo(
@@ -398,7 +399,11 @@ const TemplateListContent = (props: TemplateListPageProps) => {
           Application Resources
         </Typography>
         <Grid container spacing={3}>
-          {renderTemplateCards(applicationTemplates)}
+          {loading ? (
+            <TemplateCardSkeletons count={2} />
+          ) : (
+            renderTemplateCards(applicationTemplates)
+          )}
           {/* Component — navigation card, no single backing template */}
           <Grid item xs={12} sm={6} md={3}>
             {componentDisabled ? (
@@ -414,13 +419,17 @@ const TemplateListContent = (props: TemplateListPageProps) => {
         </Grid>
 
         {/* Platform Resources */}
-        {platformTemplates.length > 0 && (
+        {(loading || platformTemplates.length > 0) && (
           <>
             <Typography className={classes.sectionSubtitle}>
               Platform Resources
             </Typography>
             <Grid container spacing={3}>
-              {renderTemplateCards(platformTemplates)}
+              {loading ? (
+                <TemplateCardSkeletons count={3} />
+              ) : (
+                renderTemplateCards(platformTemplates)
+              )}
             </Grid>
           </>
         )}
