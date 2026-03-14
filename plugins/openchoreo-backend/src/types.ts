@@ -63,6 +63,8 @@ export interface Environment {
   dataPlaneRef?: string;
   deployment: {
     status?: 'Ready' | 'NotReady' | 'Failed' | undefined;
+    statusReason?: string;
+    statusMessage?: string;
     lastDeployed?: string;
     image?: string;
     releaseName?: string;

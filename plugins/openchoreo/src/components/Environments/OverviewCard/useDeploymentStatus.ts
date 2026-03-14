@@ -64,12 +64,14 @@ export function useDeploymentStatus() {
     fetchData();
   }, [fetchData]);
 
-  // Poll if any environment has NotReady status
+  // Poll if any environment has NotReady or Failed status (failed deployments may recover)
   useEffect(() => {
-    const hasNotReady = state.environments.some(
-      env => env.deployment?.status === 'NotReady',
+    const shouldPoll = state.environments.some(
+      env =>
+        env.deployment?.status === 'NotReady' ||
+        env.deployment?.status === 'Failed',
     );
-    if (!hasNotReady) return undefined;
+    if (!shouldPoll) return undefined;
 
     const intervalId = setInterval(() => {
       fetchData();

@@ -43,6 +43,8 @@ export interface ReleaseBinding {
   workloadOverrides?: unknown;
   endpoints?: { url: string }[];
   status?: string;
+  statusReason?: string;
+  statusMessage?: string;
 }
 
 /** Release bindings response */

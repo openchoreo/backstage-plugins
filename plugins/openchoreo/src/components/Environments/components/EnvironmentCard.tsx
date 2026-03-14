@@ -48,6 +48,8 @@ export const EnvironmentCard = ({
       <>
         <EnvironmentCardContent
           status={deployment.status}
+          statusReason={deployment.statusReason}
+          statusMessage={deployment.statusMessage}
           lastDeployed={deployment.lastDeployed}
           image={deployment.image}
           releaseName={deployment.releaseName}
