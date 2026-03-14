@@ -195,6 +195,8 @@ export interface GitSecretsService {
     username?: string,
     sshKeyId?: string,
     userToken?: string,
+    workflowPlaneKind?: string,
+    workflowPlaneName?: string,
   ): Promise<GitSecretResponse>;
   deleteGitSecret(
     namespaceName: string,

@@ -36,6 +36,8 @@ export interface GitSourceData {
 interface GitSecret {
   name: string;
   namespace: string;
+  workflowPlaneKind?: string;
+  workflowPlaneName?: string;
 }
 
 const CREATE_NEW_SECRET = '__create_new__';
@@ -90,11 +92,16 @@ export const GitSourceField = ({
       : undefined;
   const selectedWorkflowKind = selectedWorkflow?.kind;
 
-  // Get namespace from ui:options (set by the converter)
+  // Get namespace from ui:options (set by the converter), falling back to
+  // formContext for ClusterComponentType templates where the namespace is
+  // selected by the user in a later step (ProjectNamespaceField).
   const namespaceName =
-    typeof uiSchema?.['ui:options']?.namespaceName === 'string'
+    (typeof uiSchema?.['ui:options']?.namespaceName === 'string'
       ? uiSchema['ui:options'].namespaceName
-      : '';
+      : undefined) ||
+    formContext?.formData?.project_namespace?.namespace_name ||
+    formContext?.formData?.namespace_name ||
+    '';
 
   // Extract the actual namespace name from entity reference format if needed
   const extractNsName = (fullNsName: string): string => {
@@ -111,6 +118,14 @@ export const GitSourceField = ({
     string
   > | null>(null);
   const [annotationLoaded, setAnnotationLoaded] = useState(false);
+
+  // Workflow plane info from the selected workflow entity
+  const [workflowPlaneRef, setWorkflowPlaneRef] = useState<string | undefined>(
+    undefined,
+  );
+  const [workflowPlaneRefKind, setWorkflowPlaneRefKind] = useState<
+    string | undefined
+  >(undefined);
 
   useEffect(() => {
     let ignore = false;
@@ -153,10 +168,24 @@ export const GitSourceField = ({
           // No annotation — show all fields (backward compat)
           setVisibleFields(null);
         }
+
+        // Read workflow plane ref annotations
+        const planeRef =
+          workflowEntity?.metadata?.annotations?.[
+            CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF
+          ];
+        const planeRefKind =
+          workflowEntity?.metadata?.annotations?.[
+            CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND
+          ];
+        setWorkflowPlaneRef(planeRef);
+        setWorkflowPlaneRefKind(planeRefKind);
       } catch {
         if (!ignore) {
           // On error, fall back to showing all fields
           setVisibleFields(null);
+          setWorkflowPlaneRef(undefined);
+          setWorkflowPlaneRefKind(undefined);
         }
       } finally {
         if (!ignore) {
@@ -261,6 +290,13 @@ export const GitSourceField = ({
         secretType,
       };
 
+      // Auto-populate workflow plane from the selected workflow's annotations.
+      // Both fields are required as a pair by CreateGitSecretRequest.
+      if (workflowPlaneRefKind && workflowPlaneRef) {
+        requestBody.workflowPlaneKind = workflowPlaneRefKind;
+        requestBody.workflowPlaneName = workflowPlaneRef;
+      }
+
       if (secretType === 'basic-auth') {
         requestBody.token = tokenOrKey;
         if (username) {
@@ -298,12 +334,22 @@ export const GitSourceField = ({
     }
   };
 
+  // Filter secrets by workflow plane if the selected workflow has a plane ref
+  const filteredSecrets =
+    workflowPlaneRef && workflowPlaneRefKind
+      ? secrets.filter(
+          s =>
+            s.workflowPlaneName === workflowPlaneRef &&
+            s.workflowPlaneKind === workflowPlaneRefKind,
+        )
+      : secrets;
+
   // Autocomplete options for git secret
   const secretOptions = [
     ...(nsName ? [CREATE_NEW_SECRET] : []),
     NO_SECRET,
     DIVIDER,
-    ...(secretsLoading ? [] : secrets.map(s => s.name)),
+    ...(secretsLoading ? [] : filteredSecrets.map(s => s.name)),
   ];
 
   const handleSecretChange = (_event: any, value: string | null) => {
@@ -327,6 +373,13 @@ export const GitSourceField = ({
   };
 
   const hasError = !!rawErrors?.length;
+
+  const secretNoOptionsText = (() => {
+    if (!nsName) return 'Select a namespace first';
+    if (workflowPlaneRef)
+      return 'No git secrets available for this workflow plane';
+    return 'No git secrets available';
+  })();
 
   // Hide until a workflow is selected — we need the annotation to decide which fields to show
   if (!selectedWorkflowName || !annotationLoaded) {
@@ -449,11 +502,7 @@ export const GitSourceField = ({
                     }}
                   />
                 )}
-                noOptionsText={
-                  !nsName
-                    ? 'Select a namespace first'
-                    : 'No git secrets available'
-                }
+                noOptionsText={secretNoOptionsText}
               />
               {secretsError && (
                 <FormHelperText error>{secretsError}</FormHelperText>

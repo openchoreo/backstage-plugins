@@ -11,6 +11,8 @@ import type { Environment } from '../components/RuntimeLogs/types';
 export interface GitSecret {
   name: string;
   namespace: string;
+  workflowPlaneKind?: string;
+  workflowPlaneName?: string;
 }
 
 /** Git secrets list response */
@@ -606,6 +608,8 @@ export interface OpenChoreoClientApi {
     tokenOrKey: string,
     username?: string,
     sshKeyId?: string,
+    workflowPlaneKind?: string,
+    workflowPlaneName?: string,
   ): Promise<GitSecret>;
 
   /** Delete a git secret */

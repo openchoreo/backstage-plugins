@@ -15,10 +15,18 @@ import {
   FormLabel,
   FormHelperText,
   Box,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@material-ui/core';
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 
 type SecretType = 'basic-auth' | 'ssh-auth';
+
+export interface WorkflowPlaneOption {
+  name: string;
+  kind: 'WorkflowPlane' | 'ClusterWorkflowPlane';
+}
 
 interface CreateSecretDialogProps {
   open: boolean;
@@ -29,9 +37,13 @@ interface CreateSecretDialogProps {
     tokenOrKey: string,
     username?: string,
     sshKeyId?: string,
+    workflowPlaneKind?: string,
+    workflowPlaneName?: string,
   ) => Promise<void>;
   namespaceName: string;
   existingSecretNames?: string[];
+  workflowPlanes?: WorkflowPlaneOption[];
+  workflowPlanesLoading?: boolean;
 }
 
 /**
@@ -44,6 +56,8 @@ export const CreateSecretDialog = ({
   onSubmit,
   namespaceName,
   existingSecretNames = [],
+  workflowPlanes = [],
+  workflowPlanesLoading = false,
 }: CreateSecretDialogProps) => {
   const [secretName, setSecretName] = useState('');
   const [secretType, setSecretType] = useState<SecretType>('basic-auth');
@@ -51,10 +65,17 @@ export const CreateSecretDialog = ({
   const [sshKey, setSshKey] = useState('');
   const [username, setUsername] = useState('');
   const [sshKeyId, setSshKeyId] = useState('');
+  const [selectedPlaneIndex, setSelectedPlaneIndex] = useState<number | ''>('');
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-select the first plane by default
+  const effectivePlaneIndex =
+    selectedPlaneIndex === '' && workflowPlanes.length > 0
+      ? 0
+      : selectedPlaneIndex;
 
   const handleSubmit = async () => {
     // Validate required fields based on secret type
@@ -68,6 +89,12 @@ export const CreateSecretDialog = ({
       setError(
         'A secret with this name already exists. Please choose a unique name.',
       );
+      return;
+    }
+
+    // Validate workflow plane selection
+    if (workflowPlanes.length > 0 && effectivePlaneIndex === '') {
+      setError('Workflow Plane is required');
       return;
     }
 
@@ -113,12 +140,19 @@ export const CreateSecretDialog = ({
           ? sshKey.trim().replace(/\r\n/g, '\n') // Normalize line endings
           : token.trim();
 
+      const selectedPlane =
+        effectivePlaneIndex !== ''
+          ? workflowPlanes[effectivePlaneIndex]
+          : undefined;
+
       await onSubmit(
         secretName.trim(),
         secretType,
         formattedValue,
         username.trim() || undefined,
         sshKeyId.trim() || undefined,
+        selectedPlane?.kind,
+        selectedPlane?.name,
       );
 
       // Reset form on success
@@ -127,6 +161,7 @@ export const CreateSecretDialog = ({
       setSshKey('');
       setUsername('');
       setSshKeyId('');
+      setSelectedPlaneIndex('');
       setUploadedFileName('');
       setSecretType('basic-auth');
       setError(null);
@@ -153,6 +188,7 @@ export const CreateSecretDialog = ({
       setSshKey('');
       setUsername('');
       setSshKeyId('');
+      setSelectedPlaneIndex('');
       setUploadedFileName('');
       setSecretType('basic-auth');
       setError(null);
@@ -242,6 +278,48 @@ export const CreateSecretDialog = ({
             Unique name of the secret.
           </FormHelperText>
         </Box>
+
+        <FormControl
+          variant="outlined"
+          fullWidth
+          style={{ marginTop: 16 }}
+          required
+          disabled={
+            loading || workflowPlanesLoading || workflowPlanes.length === 0
+          }
+        >
+          <InputLabel id="workflow-plane-select-label">
+            Workflow Plane
+          </InputLabel>
+          <Select
+            labelId="workflow-plane-select-label"
+            label="Workflow Plane"
+            value={effectivePlaneIndex}
+            onChange={e => setSelectedPlaneIndex(e.target.value as number | '')}
+          >
+            {workflowPlanesLoading && (
+              <MenuItem disabled>
+                <CircularProgress size={16} style={{ marginRight: 8 }} />
+                Loading...
+              </MenuItem>
+            )}
+            {!workflowPlanesLoading && workflowPlanes.length === 0 && (
+              <MenuItem disabled>
+                No workflow planes available in this namespace
+              </MenuItem>
+            )}
+            {!workflowPlanesLoading &&
+              workflowPlanes.map((plane, index) => (
+                <MenuItem key={`${plane.kind}-${plane.name}`} value={index}>
+                  {plane.name}
+                  {plane.kind === 'ClusterWorkflowPlane' ? ' (Cluster)' : ''}
+                </MenuItem>
+              ))}
+          </Select>
+          <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
+            Select the workflow plane where this secret will be available.
+          </FormHelperText>
+        </FormControl>
 
         <FormControl component="fieldset" style={{ marginTop: 24 }}>
           <FormLabel component="legend">Authentication Type</FormLabel>
@@ -408,6 +486,7 @@ export const CreateSecretDialog = ({
           disabled={
             loading ||
             !secretName.trim() ||
+            (workflowPlanes.length > 0 && effectivePlaneIndex === '') ||
             (secretType === 'basic-auth' && !token.trim()) ||
             (secretType === 'ssh-auth' && !sshKey.trim())
           }

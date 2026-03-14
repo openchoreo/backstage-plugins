@@ -70,12 +70,29 @@ export class GitSecretsService {
     username?: string,
     sshKeyId?: string,
     userToken?: string,
+    workflowPlaneKind?: string,
+    workflowPlaneName?: string,
   ): Promise<GitSecretResponse> {
     this.logger.debug(
       `Creating git secret ${secretName} (${secretType}) in namespace: ${namespaceName}`,
     );
 
     try {
+      // Treat workflowPlaneKind and workflowPlaneName as an atomic pair:
+      // both provided, or both default.
+      const hasBoth = workflowPlaneKind && workflowPlaneName;
+      const hasNeither = !workflowPlaneKind && !workflowPlaneName;
+
+      if (!hasBoth && !hasNeither) {
+        throw new Error(
+          'workflowPlaneKind and workflowPlaneName must both be provided or both be omitted',
+        );
+      }
+
+      const resolvedPlaneKind = (workflowPlaneKind ??
+        'ClusterWorkflowPlane') as 'WorkflowPlane' | 'ClusterWorkflowPlane';
+      const resolvedPlaneName = workflowPlaneName ?? 'default';
+
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
@@ -91,6 +108,8 @@ export class GitSecretsService {
           body: {
             secretName,
             secretType,
+            workflowPlaneKind: resolvedPlaneKind,
+            workflowPlaneName: resolvedPlaneName,
             token: gitToken,
             sshKey,
             username,

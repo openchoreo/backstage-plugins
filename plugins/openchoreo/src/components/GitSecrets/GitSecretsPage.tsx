@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -17,10 +17,14 @@ import {
 import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
+import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { useGitSecrets } from './hooks/useGitSecrets';
 import { SecretsTable } from './SecretsTable';
-import { CreateSecretDialog } from './CreateSecretDialog';
+import {
+  CreateSecretDialog,
+  type WorkflowPlaneOption,
+} from './CreateSecretDialog';
 import { useAsync } from 'react-use';
 
 const useStyles = makeStyles(theme => ({
@@ -45,6 +49,7 @@ const useStyles = makeStyles(theme => ({
 export const GitSecretsContent = () => {
   const classes = useStyles();
   const client = useApi(openChoreoClientApiRef);
+  const catalogApi = useApi(catalogApiRef);
   const [selectedNamespace, setSelectedNamespace] = useState<string>('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
@@ -56,6 +61,37 @@ export const GitSecretsContent = () => {
   } = useAsync(async () => {
     return client.listNamespaces();
   }, [client]);
+
+  // Fetch workflow planes for the selected namespace
+  const { value: workflowPlanes, loading: workflowPlanesLoading } =
+    useAsync(async (): Promise<WorkflowPlaneOption[]> => {
+      if (!selectedNamespace) return [];
+
+      const [wpResult, cwpResult] = await Promise.all([
+        catalogApi.getEntities({
+          filter: {
+            kind: 'WorkflowPlane',
+            'metadata.namespace': selectedNamespace,
+          },
+        }),
+        catalogApi.getEntities({
+          filter: { kind: 'ClusterWorkflowPlane' },
+        }),
+      ]);
+
+      const planes: WorkflowPlaneOption[] = [];
+
+      // Cluster workflow planes first
+      cwpResult.items.forEach(e => {
+        planes.push({ name: e.metadata.name, kind: 'ClusterWorkflowPlane' });
+      });
+
+      wpResult.items.forEach(e => {
+        planes.push({ name: e.metadata.name, kind: 'WorkflowPlane' });
+      });
+
+      return planes;
+    }, [catalogApi, selectedNamespace]);
 
   // Use the git secrets hook for the selected namespace
   const {
@@ -80,8 +116,18 @@ export const GitSecretsContent = () => {
     tokenOrKey: string,
     username?: string,
     sshKeyId?: string,
+    workflowPlaneKind?: string,
+    workflowPlaneName?: string,
   ) => {
-    await createSecret(secretName, secretType, tokenOrKey, username, sshKeyId);
+    await createSecret(
+      secretName,
+      secretType,
+      tokenOrKey,
+      username,
+      sshKeyId,
+      workflowPlaneKind,
+      workflowPlaneName,
+    );
   };
 
   const handleDeleteSecret = async (secretName: string) => {
@@ -93,6 +139,13 @@ export const GitSecretsContent = () => {
     if (!namespaces) return [];
     return [...namespaces].sort((a, b) => a.name.localeCompare(b.name));
   }, [namespaces]);
+
+  // Auto-select the first namespace once loaded
+  useEffect(() => {
+    if (!selectedNamespace && sortedNamespaces.length > 0) {
+      setSelectedNamespace(sortedNamespaces[0].name);
+    }
+  }, [sortedNamespaces, selectedNamespace]);
 
   return (
     <>
@@ -175,6 +228,8 @@ export const GitSecretsContent = () => {
         onSubmit={handleCreateSecret}
         namespaceName={selectedNamespace}
         existingSecretNames={secrets.map(s => s.name)}
+        workflowPlanes={workflowPlanes || []}
+        workflowPlanesLoading={workflowPlanesLoading}
       />
     </>
   );

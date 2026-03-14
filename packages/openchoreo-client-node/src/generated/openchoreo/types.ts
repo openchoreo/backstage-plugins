@@ -5398,6 +5398,17 @@ export interface components {
        * @enum {string}
        */
       secretType: 'basic-auth' | 'ssh-auth';
+      /**
+       * @description Kind of the workflow plane resource
+       * @example WorkflowPlane
+       * @enum {string}
+       */
+      workflowPlaneKind: 'WorkflowPlane' | 'ClusterWorkflowPlane';
+      /**
+       * @description Name of the workflow plane resource
+       * @example default
+       */
+      workflowPlaneName: string;
       /** @description Username for basic authentication (optional) */
       username?: string;
       /** @description Authentication token (required for basic-auth) */
@@ -5419,6 +5430,16 @@ export interface components {
        * @example my-namespace
        */
       namespace?: string;
+      /**
+       * @description Kind of the workflow plane resource used
+       * @example WorkflowPlane
+       */
+      workflowPlaneKind?: string;
+      /**
+       * @description Name of the workflow plane resource used
+       * @example default
+       */
+      workflowPlaneName?: string;
     };
     /** @description List of git secrets */
     GitSecretListResponse: {

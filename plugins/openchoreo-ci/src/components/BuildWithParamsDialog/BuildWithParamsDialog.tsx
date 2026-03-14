@@ -20,7 +20,7 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
-import { useEntity } from '@backstage/plugin-catalog-react';
+import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import {
   CHOREO_ANNOTATIONS,
@@ -144,6 +144,7 @@ export const BuildWithParamsDialog = ({
   const client = useApi(openChoreoCiClientApiRef);
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
+  const catalogApi = useApi(catalogApiRef);
 
   const [schema, setSchema] = useState<JSONSchema7 | null>(null);
   const [rawUnwrappedSchema, setRawUnwrappedSchema] =
@@ -161,27 +162,83 @@ export const BuildWithParamsDialog = ({
   const namespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
 
-  // Fetch available git secrets
+  // Fetch available git secrets, filtered by the workflow's workflowPlaneRef
   const fetchGitSecrets = useCallback(async () => {
-    if (!namespace) return;
+    if (!namespace) {
+      setGitSecrets([]);
+      return;
+    }
     setSecretsLoading(true);
+    setGitSecrets([]);
     try {
+      // 1. Fetch the workflow entity to get its plane annotations
+      let planeRef: string | undefined;
+      let planeRefKind: string | undefined;
+
+      if (workflowName) {
+        const filter: Record<string, string> = {
+          'metadata.name': workflowName,
+        };
+        if (workflowKind === 'ClusterWorkflow') {
+          filter.kind = 'ClusterWorkflow';
+          filter['metadata.namespace'] = 'openchoreo-cluster';
+        } else {
+          filter.kind = 'Workflow';
+          filter['metadata.namespace'] = namespace;
+        }
+
+        const catalogResponse = await catalogApi.getEntities({ filter });
+        const workflowEntity = catalogResponse.items[0];
+        planeRef =
+          workflowEntity?.metadata?.annotations?.[
+            CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF
+          ];
+        planeRefKind =
+          workflowEntity?.metadata?.annotations?.[
+            CHOREO_ANNOTATIONS.WORKFLOW_PLANE_REF_KIND
+          ];
+      }
+
+      // 2. Fetch all secrets for the namespace
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
       const response = await fetchApi.fetch(
         `${baseUrl}/git-secrets?namespaceName=${encodeURIComponent(namespace)}`,
       );
       if (response.ok) {
         const result = await response.json();
-        setGitSecrets(
-          (result.items || []).map((s: { name: string }) => s.name),
-        );
+        const allSecrets: Array<{
+          name: string;
+          workflowPlaneName?: string;
+          workflowPlaneKind?: string;
+        }> = result.items || [];
+
+        // 3. Filter by workflow plane if the workflow has a plane ref
+        const filtered =
+          planeRef && planeRefKind
+            ? allSecrets.filter(
+                s =>
+                  s.workflowPlaneName === planeRef &&
+                  s.workflowPlaneKind === planeRefKind,
+              )
+            : allSecrets;
+
+        setGitSecrets(filtered.map(s => s.name));
+      } else {
+        setGitSecrets([]);
       }
     } catch {
-      // Silently fail — dropdown will just be empty
+      setGitSecrets([]);
     } finally {
       setSecretsLoading(false);
     }
-  }, [namespace, discoveryApi, fetchApi]);
+  }, [
+    namespace,
+    workflowName,
+    workflowKind,
+    discoveryApi,
+    fetchApi,
+    catalogApi,
+  ]);
 
   // Detect git fields from the schema extensions
   const gitFieldMapping = useMemo<Record<string, string>>(() => {
