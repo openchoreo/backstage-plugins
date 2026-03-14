@@ -374,7 +374,9 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
 
                 {/* Type column */}
                 {showType && (
-                  <Box className={classes.hiddenOnMobile}>
+                  <Box
+                    className={`${classes.columnCell} ${classes.hiddenOnMobile}`}
+                  >
                     {componentType ? (
                       <Chip
                         label={componentType}
