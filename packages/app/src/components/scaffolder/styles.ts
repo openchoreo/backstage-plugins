@@ -121,6 +121,16 @@ export const useStyles = makeStyles(theme => ({
       transform: 'translateY(-2px)',
     },
   },
+  // Non-interactive skeleton placeholder card
+  skeletonCard: {
+    cursor: 'default',
+    '&:hover': {
+      borderColor: '#f3f4f6',
+      boxShadow:
+        'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px',
+      transform: 'none',
+    },
+  },
   // Centered icon + label card layout
   resourceCard: {
     alignItems: 'center',
