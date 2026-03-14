@@ -76,11 +76,12 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const DEFAULT_KINDS = APPLICATION_VIEW.kinds;
-const DEFAULT_SCOPE = `${CLUSTER_NAMESPACE},default`;
+const DEFAULT_SCOPE = CLUSTER_NAMESPACE;
 
 function useNamespaces() {
   const catalogApi = useApi(catalogApiRef);
-  const [namespaces, setNamespaces] = useState<string[]>(['default']);
+  const [namespaces, setNamespaces] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchNamespaces = useCallback(async () => {
     try {
@@ -93,7 +94,9 @@ function useNamespaces() {
         setNamespaces(names);
       }
     } catch {
-      // Namespace fetch is non-critical; fall back to initial ['default']
+      // Namespace fetch is non-critical; fall back to empty
+    } finally {
+      setLoading(false);
     }
   }, [catalogApi]);
 
@@ -101,7 +104,7 @@ function useNamespaces() {
     fetchNamespaces();
   }, [fetchNamespaces]);
 
-  return namespaces;
+  return { namespaces, loading };
 }
 
 /** Unique key for a project entry, used for query param encoding. */
@@ -122,7 +125,8 @@ export function PlatformOverviewPage() {
   });
   const navigate = useNavigate();
   const catalogEntityRoute = useRouteRef(entityRouteRef);
-  const availableNamespaces = useNamespaces();
+  const { namespaces: availableNamespaces, loading: namespacesLoading } =
+    useNamespaces();
 
   // --- Scope state ---
   const selectedScopes = useMemo(
@@ -137,6 +141,35 @@ export function PlatformOverviewPage() {
     () => selectedScopes.filter(s => s !== CLUSTER_NAMESPACE),
     [selectedScopes],
   );
+
+  // Once namespaces load, ensure the scope includes a valid namespace.
+  // If none of the currently selected namespaces are available, replace with
+  // the preferred namespace (prefer "default" if available, else first in list).
+  const scopeInitialised = useRef(false);
+  useEffect(() => {
+    if (namespacesLoading || scopeInitialised.current) return;
+    if (availableNamespaces.length === 0) return;
+    scopeInitialised.current = true;
+
+    const hasValidNamespace = selectedNamespaces.some(ns =>
+      availableNamespaces.includes(ns),
+    );
+    if (hasValidNamespace) return;
+
+    const preferred = availableNamespaces.includes('default')
+      ? 'default'
+      : availableNamespaces[0];
+    const newScopes = clusterSelected
+      ? [CLUSTER_NAMESPACE, preferred]
+      : [preferred];
+    setParams({ scope: newScopes.join(',') }, { replace: true });
+  }, [
+    namespacesLoading,
+    availableNamespaces,
+    selectedNamespaces,
+    clusterSelected,
+    setParams,
+  ]);
 
   // Namespaces for project fetching (excludes cluster namespace).
   // Pass [] when no namespaces selected (cluster-only) so useProjects returns
