@@ -123,6 +123,10 @@ catalog:
       rules:
         - allow: [Template]
     - type: file
+      target: /app/templates/create-openchoreo-deploymentpipeline/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
       target: /app/templates/create-openchoreo-clustercomponenttype/template.yaml
       rules:
         - allow: [Template]
