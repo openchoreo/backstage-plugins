@@ -112,10 +112,7 @@ export const SecretsTable = ({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const handleDeleteClick = (
-    event: React.MouseEvent,
-    secretName: string,
-  ) => {
+  const handleDeleteClick = (event: React.MouseEvent, secretName: string) => {
     event.stopPropagation();
     setSecretToDelete(secretName);
     setDeleteDialogOpen(true);

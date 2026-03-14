@@ -63,37 +63,35 @@ export const GitSecretsContent = () => {
   }, [client]);
 
   // Fetch workflow planes for the selected namespace
-  const {
-    value: workflowPlanes,
-    loading: workflowPlanesLoading,
-  } = useAsync(async (): Promise<WorkflowPlaneOption[]> => {
-    if (!selectedNamespace) return [];
+  const { value: workflowPlanes, loading: workflowPlanesLoading } =
+    useAsync(async (): Promise<WorkflowPlaneOption[]> => {
+      if (!selectedNamespace) return [];
 
-    const [wpResult, cwpResult] = await Promise.all([
-      catalogApi.getEntities({
-        filter: {
-          kind: 'WorkflowPlane',
-          'metadata.namespace': selectedNamespace,
-        },
-      }),
-      catalogApi.getEntities({
-        filter: { kind: 'ClusterWorkflowPlane' },
-      }),
-    ]);
+      const [wpResult, cwpResult] = await Promise.all([
+        catalogApi.getEntities({
+          filter: {
+            kind: 'WorkflowPlane',
+            'metadata.namespace': selectedNamespace,
+          },
+        }),
+        catalogApi.getEntities({
+          filter: { kind: 'ClusterWorkflowPlane' },
+        }),
+      ]);
 
-    const planes: WorkflowPlaneOption[] = [];
+      const planes: WorkflowPlaneOption[] = [];
 
-    // Cluster workflow planes first
-    cwpResult.items.forEach(e => {
-      planes.push({ name: e.metadata.name, kind: 'ClusterWorkflowPlane' });
-    });
+      // Cluster workflow planes first
+      cwpResult.items.forEach(e => {
+        planes.push({ name: e.metadata.name, kind: 'ClusterWorkflowPlane' });
+      });
 
-    wpResult.items.forEach(e => {
-      planes.push({ name: e.metadata.name, kind: 'WorkflowPlane' });
-    });
+      wpResult.items.forEach(e => {
+        planes.push({ name: e.metadata.name, kind: 'WorkflowPlane' });
+      });
 
-    return planes;
-  }, [catalogApi, selectedNamespace]);
+      return planes;
+    }, [catalogApi, selectedNamespace]);
 
   // Use the git secrets hook for the selected namespace
   const {

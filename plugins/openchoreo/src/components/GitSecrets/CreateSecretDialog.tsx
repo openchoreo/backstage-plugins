@@ -93,10 +93,7 @@ export const CreateSecretDialog = ({
     }
 
     // Validate workflow plane selection
-    if (
-      workflowPlanes.length > 0 &&
-      effectivePlaneIndex === ''
-    ) {
+    if (workflowPlanes.length > 0 && effectivePlaneIndex === '') {
       setError('Workflow Plane is required');
       return;
     }
@@ -288,9 +285,7 @@ export const CreateSecretDialog = ({
           style={{ marginTop: 16 }}
           required
           disabled={
-            loading ||
-            workflowPlanesLoading ||
-            workflowPlanes.length === 0
+            loading || workflowPlanesLoading || workflowPlanes.length === 0
           }
         >
           <InputLabel id="workflow-plane-select-label">
@@ -300,9 +295,7 @@ export const CreateSecretDialog = ({
             labelId="workflow-plane-select-label"
             label="Workflow Plane"
             value={effectivePlaneIndex}
-            onChange={e =>
-              setSelectedPlaneIndex(e.target.value as number | '')
-            }
+            onChange={e => setSelectedPlaneIndex(e.target.value as number | '')}
           >
             {workflowPlanesLoading && (
               <MenuItem disabled>
@@ -319,9 +312,7 @@ export const CreateSecretDialog = ({
               workflowPlanes.map((plane, index) => (
                 <MenuItem key={`${plane.kind}-${plane.name}`} value={index}>
                   {plane.name}
-                  {plane.kind === 'ClusterWorkflowPlane'
-                    ? ' (Cluster)'
-                    : ''}
+                  {plane.kind === 'ClusterWorkflowPlane' ? ' (Cluster)' : ''}
                 </MenuItem>
               ))}
           </Select>

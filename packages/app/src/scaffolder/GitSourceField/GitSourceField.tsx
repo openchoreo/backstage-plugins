@@ -379,7 +379,8 @@ export const GitSourceField = ({
 
   const secretNoOptionsText = (() => {
     if (!nsName) return 'Select a namespace first';
-    if (workflowPlaneRef) return 'No git secrets available for this workflow plane';
+    if (workflowPlaneRef)
+      return 'No git secrets available for this workflow plane';
     return 'No git secrets available';
   })();
 

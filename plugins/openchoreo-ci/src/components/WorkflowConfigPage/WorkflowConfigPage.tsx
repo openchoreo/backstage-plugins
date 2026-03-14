@@ -21,10 +21,7 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
-import {
-  useEntity,
-  catalogApiRef,
-} from '@backstage/plugin-catalog-react';
+import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import {
   CHOREO_ANNOTATIONS,
@@ -58,9 +55,7 @@ const SecretRefWidget = (props: WidgetProps) => {
     <Autocomplete
       options={secrets}
       value={value || ''}
-      onChange={(_e: any, newValue: string | null) =>
-        onChange(newValue || '')
-      }
+      onChange={(_e: any, newValue: string | null) => onChange(newValue || '')}
       freeSolo
       loading={loading}
       renderInput={params => (
@@ -213,9 +208,6 @@ export const WorkflowConfigPage = ({
     setError(null);
 
     try {
-      const namespace =
-        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
-
       if (!namespace) {
         throw new Error('Namespace not found in entity');
       }
@@ -253,7 +245,7 @@ export const WorkflowConfigPage = ({
     } finally {
       setLoading(false);
     }
-  }, [entity, client, workflowName, workflowKind, parameters]);
+  }, [namespace, client, workflowName, workflowKind, parameters]);
 
   useEffect(() => {
     if (workflowName) {
