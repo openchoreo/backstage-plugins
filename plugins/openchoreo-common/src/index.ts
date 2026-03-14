@@ -29,6 +29,8 @@ export {
   openchoreoComponentUpdatePermission,
   openchoreoWorkloadUpdatePermission,
   openchoreoProjectCreatePermission,
+  openchoreoComponentCreateScopedPermission,
+  openchoreoProjectCreateScopedPermission,
   openchoreoProjectReadPermission,
   openchoreoNamespaceReadPermission,
   openchoreoNamespaceCreatePermission,

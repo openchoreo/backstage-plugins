@@ -87,6 +87,28 @@ export const openchoreoProjectCreatePermission = createPermission({
 });
 
 /**
+ * Scoped permission to create a component within a specific project/namespace.
+ * Resource-based: evaluates deny paths against entity scope.
+ * Use on project pages where entity context is available.
+ */
+export const openchoreoComponentCreateScopedPermission = createPermission({
+  name: 'openchoreo.component.create.scoped',
+  attributes: { action: 'create' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Scoped permission to create a project within a specific namespace.
+ * Resource-based: evaluates deny paths against entity scope.
+ * Use on namespace pages where entity context is available.
+ */
+export const openchoreoProjectCreateScopedPermission = createPermission({
+  name: 'openchoreo.project.create.scoped',
+  attributes: { action: 'create' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
  * Permission to read/view a project.
  * Resource-based: requires the specific project context.
  */
@@ -809,6 +831,9 @@ export const openchoreoPermissions = [
   openchoreoClusterObservabilityplaneDeletePermission,
   openchoreoClusterWorkflowUpdatePermission,
   openchoreoClusterWorkflowDeletePermission,
+  // Scoped create permissions (for entity-context pages)
+  openchoreoComponentCreateScopedPermission,
+  openchoreoProjectCreateScopedPermission,
 ];
 
 /**
@@ -825,6 +850,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.component.viewbuilds': 'workflowrun:view',
   'openchoreo.releasebinding.create': 'releasebinding:create',
   'openchoreo.project.create': 'project:create',
+  'openchoreo.component.create.scoped': 'component:create',
+  'openchoreo.project.create.scoped': 'project:create',
   'openchoreo.project.read': 'project:view',
   'openchoreo.namespace.read': 'namespace:view',
   'openchoreo.namespace.create': 'namespace:create',

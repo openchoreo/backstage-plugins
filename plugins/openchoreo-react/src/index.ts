@@ -311,6 +311,14 @@ export {
   type UseResourceDefinitionPermissionResult,
 } from './hooks/useResourceDefinitionPermission';
 export {
+  useScopedComponentCreatePermission,
+  type UseScopedComponentCreatePermissionResult,
+} from './hooks/useScopedComponentCreatePermission';
+export {
+  useScopedProjectCreatePermission,
+  type UseScopedProjectCreatePermissionResult,
+} from './hooks/useScopedProjectCreatePermission';
+export {
   useAsyncOperation,
   type AsyncStatus,
   type AsyncState,

@@ -5,7 +5,7 @@ import { useEntity, useRelatedEntities } from '@backstage/plugin-catalog-react';
 import { Box, Button, Tooltip, Typography } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
 import { useNavigate } from 'react-router-dom';
-import { useProjectPermission } from '@openchoreo/backstage-plugin-react';
+import { useScopedProjectCreatePermission } from '@openchoreo/backstage-plugin-react';
 import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import { useNamespaceProjectsCardStyles } from './styles';
 
@@ -22,7 +22,7 @@ export const NamespaceProjectsCard = () => {
     canCreate,
     loading: permLoading,
     createDeniedTooltip,
-  } = useProjectPermission();
+  } = useScopedProjectCreatePermission();
   const navigate = useNavigate();
 
   const columns: TableColumn<Entity>[] = [
