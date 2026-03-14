@@ -23,6 +23,8 @@ export const DeploymentStatusCell = ({
         const deployment = component.deploymentStatus?.[env.name.toLowerCase()];
         const isDeployed = deployment?.isDeployed || false;
         const status = deployment?.status;
+        const statusReason = deployment?.statusReason;
+        const statusMessage = deployment?.statusMessage;
 
         // Determine status icon and color
         let StatusIcon = null;
@@ -30,21 +32,35 @@ export const DeploymentStatusCell = ({
         let iconClass = '';
 
         if (isDeployed) {
+          let reasonDetail: string | undefined;
+          if (statusReason && statusMessage) {
+            reasonDetail = `${statusReason}: ${statusMessage}`;
+          } else if (statusReason) {
+            reasonDetail = statusReason;
+          }
+
           if (status === 'Ready') {
             StatusIcon = CheckCircleIcon;
             iconClass = classes.statusIconReady;
-            tooltipSuffix = 'Deployed (Ready)';
+            tooltipSuffix = reasonDetail
+              ? `Deployed (Ready — ${reasonDetail})`
+              : 'Deployed (Ready)';
           } else if (status === 'Failed') {
             StatusIcon = ErrorIcon;
             iconClass = classes.statusIconError;
-            tooltipSuffix = `Deployed (${status})`;
+            tooltipSuffix = reasonDetail
+              ? `Deployed (Failed — ${reasonDetail})`
+              : 'Deployed (Failed)';
           } else if (status === 'NotReady') {
             StatusIcon = WarningIcon;
             iconClass = classes.statusIconWarning;
-            tooltipSuffix = `Deployed (${status})`;
+            tooltipSuffix = reasonDetail
+              ? `Deployed (NotReady — ${reasonDetail})`
+              : 'Deployed (NotReady)';
           } else {
             StatusIcon = StatusPending;
-            tooltipSuffix = status ? `Deployed (${status})` : 'Deployed';
+            const label = status ? `Deployed (${status})` : 'Deployed';
+            tooltipSuffix = reasonDetail ? `${label} — ${reasonDetail}` : label;
           }
         }
 

@@ -8,31 +8,52 @@ import { getName, getNamespace, getCreatedAt } from './common';
 
 type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
 
-const EXPECTED_CONDITION_TYPES = [
-  'ReleaseSynced',
-  'ResourcesReady',
-  'Ready',
+/** Reasons on the Ready condition that indicate transient progress, not an error. */
+const PROGRESSING_REASONS = [
+  'ResourcesProgressing',
+  'JobRunning',
+  'ConnectionsPending',
+  'ResourcesUnknown',
 ] as const;
 
+/** Reasons that represent an intentional non-deployed state, not an error. */
+const NON_ERROR_REASONS = ['ResourcesUndeployed'] as const;
+
+export interface DerivedBindingStatus {
+  status: 'Ready' | 'NotReady' | 'Failed';
+  reason?: string;
+  message?: string;
+}
+
 /**
- * Derives a binding status string from K8s conditions.
+ * Derives a binding status from the Ready condition on the ReleaseBinding.
  *
- * Improvements over Go-side determineReleaseBindingStatus:
- *   1. Missing observedGeneration is treated as a match (included in filter)
- *   2. All three expected condition types must be present with status "True" for Ready
- *   3. Any False condition → Failed (if ResourcesDegraded) or NotReady (otherwise)
+ * The Ready condition is now always present (fixed in openchoreo#2697) and is
+ * the single source of truth. Its reason distinguishes transient progress
+ * (→ NotReady) from actual errors (→ Failed).
  */
 export function deriveBindingStatus(
   binding: NewReleaseBinding,
 ): 'Ready' | 'NotReady' | 'Failed' | undefined {
+  return deriveBindingStatusDetailed(binding)?.status;
+}
+
+/**
+ * Like deriveBindingStatus but also returns the Ready condition's reason and
+ * message so callers can surface actionable details.
+ */
+export function deriveBindingStatusDetailed(
+  binding: NewReleaseBinding,
+): DerivedBindingStatus | undefined {
   const conditions = (binding.status?.conditions ?? []) as Array<{
     type: string;
     status: string;
     reason?: string;
+    message?: string;
     observedGeneration?: number;
   }>;
 
-  if (conditions.length === 0) return 'NotReady';
+  if (conditions.length === 0) return { status: 'NotReady' };
 
   const generation = (binding as any).metadata?.generation as
     | number
@@ -49,35 +70,50 @@ export function deriveBindingStatus(
       )
     : conditions;
 
-  // Need at least the 3 expected condition types for a conclusive status
-  if (conditionsForGeneration.length < EXPECTED_CONDITION_TYPES.length) {
-    return 'NotReady';
+  // Use the Ready condition as the single source of truth
+  const readyCond = conditionsForGeneration.find(c => c.type === 'Ready');
+  if (!readyCond) return { status: 'NotReady' }; // Not yet reconciled
+
+  if (readyCond.status === 'True') {
+    return {
+      status: 'Ready',
+      reason: readyCond.reason,
+      message: readyCond.message,
+    };
   }
 
-  // Any condition with a failure reason → Failed
-  const FAILURE_REASONS = ['ResourcesDegraded', 'ResourceApplyFailed'] as const;
+  // Ready=False: distinguish progressing from errors
   if (
-    conditionsForGeneration.some(
-      c =>
-        c.status === 'False' &&
-        FAILURE_REASONS.includes(c.reason as (typeof FAILURE_REASONS)[number]),
+    PROGRESSING_REASONS.includes(
+      readyCond.reason as (typeof PROGRESSING_REASONS)[number],
     )
   ) {
-    return 'Failed';
+    return {
+      status: 'NotReady',
+      reason: readyCond.reason,
+      message: readyCond.message,
+    };
   }
 
-  // Any other False condition → NotReady (don't rely on a hardcoded reason allowlist)
-  if (conditionsForGeneration.some(c => c.status === 'False')) {
-    return 'NotReady';
+  // Intentional undeploy — not an error
+  if (
+    NON_ERROR_REASONS.includes(
+      readyCond.reason as (typeof NON_ERROR_REASONS)[number],
+    )
+  ) {
+    return {
+      status: 'NotReady',
+      reason: readyCond.reason,
+      message: readyCond.message,
+    };
   }
 
-  // All three expected types must be present with status "True"
-  const allExpectedTrue = EXPECTED_CONDITION_TYPES.every(type => {
-    const cond = conditionsForGeneration.find(c => c.type === type);
-    return cond?.status === 'True';
-  });
-
-  return allExpectedTrue ? 'Ready' : 'NotReady';
+  // Everything else is a failure
+  return {
+    status: 'Failed',
+    reason: readyCond.reason,
+    message: readyCond.message,
+  };
 }
 
 /**
@@ -87,6 +123,8 @@ export function deriveBindingStatus(
 export function transformReleaseBinding(
   binding: NewReleaseBinding,
 ): ReleaseBindingResponse {
+  const derived = deriveBindingStatusDetailed(binding);
+
   return {
     name: getName(binding) ?? '',
     componentName: binding.spec?.owner?.componentName ?? '',
@@ -103,7 +141,9 @@ export function transformReleaseBinding(
     createdAt: getCreatedAt(binding) ?? '',
     lastSpecUpdateTime:
       (binding.status as any)?.lastSpecUpdateTime ?? undefined,
-    status: deriveBindingStatus(binding),
+    status: derived?.status,
+    statusReason: derived?.reason,
+    statusMessage: derived?.message,
     endpoints: (() => {
       const raw = (binding.status as any)?.endpoints;
       if (!Array.isArray(raw)) return undefined;

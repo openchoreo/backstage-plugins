@@ -22,6 +22,8 @@ import { IncidentsBanner } from './IncidentsBanner';
  */
 export const EnvironmentCardContent = ({
   status,
+  statusReason,
+  statusMessage,
   lastDeployed,
   image,
   releaseName,
@@ -58,17 +60,28 @@ export const EnvironmentCardContent = ({
           >
             Deployment Status:
           </Typography>
-          <StatusBadge
-            status={
-              status === 'Ready'
-                ? 'active'
-                : status === 'NotReady'
-                ? 'pending'
-                : status === 'Failed'
-                ? 'failed'
-                : 'not-deployed'
+          <Tooltip
+            title={
+              statusReason && statusMessage
+                ? `${statusReason}: ${statusMessage}`
+                : statusReason ?? statusMessage ?? ''
             }
-          />
+            disableHoverListener={!statusReason && !statusMessage}
+          >
+            <span>
+              <StatusBadge
+                status={
+                  status === 'Ready'
+                    ? 'active'
+                    : status === 'NotReady'
+                    ? 'pending'
+                    : status === 'Failed'
+                    ? 'failed'
+                    : 'not-deployed'
+                }
+              />
+            </span>
+          </Tooltip>
         </Box>
         {releaseName && (
           <Box mt={1.5}>

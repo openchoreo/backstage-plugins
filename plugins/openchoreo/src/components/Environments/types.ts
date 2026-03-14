@@ -87,6 +87,8 @@ export interface EnvironmentCardHeaderProps {
  */
 export interface EnvironmentCardContentProps {
   status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
   lastDeployed?: string;
   image?: string;
   releaseName?: string;
@@ -129,6 +131,8 @@ export interface EnvironmentCardProps {
   bindingsPermissionLoading?: boolean;
   deployment: {
     status?: 'Ready' | 'NotReady' | 'Failed';
+    statusReason?: string;
+    statusMessage?: string;
     lastDeployed?: string;
     image?: string;
     releaseName?: string;

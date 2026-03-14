@@ -9,6 +9,8 @@ import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 export interface EnvironmentDeploymentStatus {
   isDeployed: boolean;
   status?: string; // Actual status from ReleaseBinding: Ready, NotReady, Failed, etc.
+  statusReason?: string;
+  statusMessage?: string;
 }
 
 export type ComponentDeploymentStatus = Record<
@@ -94,6 +96,8 @@ export function useComponentsWithDeployment(
                     deploymentStatus[envName] = {
                       isDeployed: true,
                       status: binding.status,
+                      statusReason: binding.statusReason,
+                      statusMessage: binding.statusMessage,
                     };
                   }
                 });

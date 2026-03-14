@@ -28,6 +28,8 @@ export interface Environment {
   dataPlaneRef?: string;
   deployment: {
     status?: 'Ready' | 'NotReady' | 'Failed';
+    statusReason?: string;
+    statusMessage?: string;
     lastDeployed?: string;
     image?: string;
     releaseName?: string;

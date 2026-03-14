@@ -12,16 +12,19 @@ import type {
 
 function getOverallHealth(
   releaseBindingData?: Record<string, unknown> | null,
-): { label: string; status: HealthStatus; reason?: string } {
+): { label: string; status: HealthStatus; reason?: string; message?: string } {
   if (releaseBindingData) {
     if (typeof releaseBindingData.status === 'string') {
       const flatStatus = releaseBindingData.status;
+      const reason = releaseBindingData.statusReason as string | undefined;
+      const message = releaseBindingData.statusMessage as string | undefined;
+
       if (flatStatus === 'Ready')
-        return { label: 'Healthy', status: 'Healthy' };
+        return { label: 'Healthy', status: 'Healthy', reason, message };
       if (flatStatus === 'Failed')
-        return { label: 'Degraded', status: 'Degraded' };
+        return { label: 'Degraded', status: 'Degraded', reason, message };
       if (flatStatus === 'NotReady')
-        return { label: 'Progressing', status: 'Progressing' };
+        return { label: 'Progressing', status: 'Progressing', reason, message };
     } else {
       const bindingStatus = releaseBindingData.status as
         | Record<string, unknown>
@@ -35,11 +38,12 @@ function getOverallHealth(
       if (readyCondition) {
         const condStatus = (readyCondition as any).status;
         const reason = (readyCondition as any).reason as string | undefined;
+        const message = (readyCondition as any).message as string | undefined;
         if (condStatus === 'True')
-          return { label: 'Healthy', status: 'Healthy', reason };
+          return { label: 'Healthy', status: 'Healthy', reason, message };
         if (condStatus === 'False')
-          return { label: 'Degraded', status: 'Degraded', reason };
-        return { label: 'Progressing', status: 'Progressing', reason };
+          return { label: 'Degraded', status: 'Degraded', reason, message };
+        return { label: 'Progressing', status: 'Progressing', reason, message };
       }
     }
   }
@@ -163,6 +167,11 @@ export const ReleaseStatusBar: FC<ReleaseStatusBarProps> = ({
         {health.reason && (
           <Typography className={classes.statusBarDetail}>
             Reason: {health.reason}
+          </Typography>
+        )}
+        {health.message && (
+          <Typography className={classes.statusBarDetail}>
+            {health.message}
           </Typography>
         )}
       </div>

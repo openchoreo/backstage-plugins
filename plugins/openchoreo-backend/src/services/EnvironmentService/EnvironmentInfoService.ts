@@ -378,8 +378,6 @@ export class EnvironmentInfoService implements EnvironmentService {
     let releaseName: string | undefined;
 
     if (binding) {
-      // Use OpenChoreo status directly without mapping
-      // OpenChoreo returns: "Ready", "NotReady", or "Failed"
       deploymentStatus = binding.status as
         | 'Ready'
         | 'NotReady'
@@ -404,6 +402,8 @@ export class EnvironmentInfoService implements EnvironmentService {
       dataPlaneRef: envData.dataPlaneRef?.name,
       deployment: {
         status: deploymentStatus,
+        statusReason: binding?.statusReason,
+        statusMessage: binding?.statusMessage,
         lastDeployed,
         image,
         releaseName,

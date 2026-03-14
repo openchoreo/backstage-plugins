@@ -543,6 +543,10 @@ export interface ReleaseBindingResponse {
   /** Format: date-time – last time the spec was updated (from status.lastSpecUpdateTime) */
   lastSpecUpdateTime?: string;
   status?: string;
+  /** The Ready condition's reason (e.g. ResourcesDegraded, RenderingFailed) */
+  statusReason?: string;
+  /** The Ready condition's human-readable message with actionable details */
+  statusMessage?: string;
   endpoints?: ReleaseBindingEndpoint[];
   conditions?: ReleaseBindingCondition[];
 }
