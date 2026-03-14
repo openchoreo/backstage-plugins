@@ -290,11 +290,10 @@ export const GitSourceField = ({
         secretType,
       };
 
-      // Auto-populate workflow plane from the selected workflow's annotations
-      if (workflowPlaneRefKind) {
+      // Auto-populate workflow plane from the selected workflow's annotations.
+      // Both fields are required as a pair by CreateGitSecretRequest.
+      if (workflowPlaneRefKind && workflowPlaneRef) {
         requestBody.workflowPlaneKind = workflowPlaneRefKind;
-      }
-      if (workflowPlaneRef) {
         requestBody.workflowPlaneName = workflowPlaneRef;
       }
 
@@ -340,10 +339,8 @@ export const GitSourceField = ({
     workflowPlaneRef && workflowPlaneRefKind
       ? secrets.filter(
           s =>
-            // Show secrets that match the workflow's plane, or legacy secrets with no plane info
-            !s.workflowPlaneName ||
-            (s.workflowPlaneName === workflowPlaneRef &&
-              s.workflowPlaneKind === workflowPlaneRefKind),
+            s.workflowPlaneName === workflowPlaneRef &&
+            s.workflowPlaneKind === workflowPlaneRefKind,
         )
       : secrets;
 

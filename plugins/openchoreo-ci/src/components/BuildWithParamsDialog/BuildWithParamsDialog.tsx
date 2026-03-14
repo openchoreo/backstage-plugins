@@ -164,8 +164,12 @@ export const BuildWithParamsDialog = ({
 
   // Fetch available git secrets, filtered by the workflow's workflowPlaneRef
   const fetchGitSecrets = useCallback(async () => {
-    if (!namespace) return;
+    if (!namespace) {
+      setGitSecrets([]);
+      return;
+    }
     setSecretsLoading(true);
+    setGitSecrets([]);
     try {
       // 1. Fetch the workflow entity to get its plane annotations
       let planeRef: string | undefined;
@@ -213,16 +217,17 @@ export const BuildWithParamsDialog = ({
           planeRef && planeRefKind
             ? allSecrets.filter(
                 s =>
-                  !s.workflowPlaneName ||
-                  (s.workflowPlaneName === planeRef &&
-                    s.workflowPlaneKind === planeRefKind),
+                  s.workflowPlaneName === planeRef &&
+                  s.workflowPlaneKind === planeRefKind,
               )
             : allSecrets;
 
         setGitSecrets(filtered.map(s => s.name));
+      } else {
+        setGitSecrets([]);
       }
     } catch {
-      // Silently fail — dropdown will just be empty
+      setGitSecrets([]);
     } finally {
       setSecretsLoading(false);
     }

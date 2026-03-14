@@ -123,8 +123,12 @@ export const WorkflowConfigPage = ({
   // Fetch available git secrets for the component's namespace, filtered by
   // the workflow's workflowPlaneRef so only relevant secrets are shown.
   const fetchGitSecrets = useCallback(async () => {
-    if (!namespace) return;
+    if (!namespace) {
+      setGitSecrets([]);
+      return;
+    }
     setSecretsLoading(true);
+    setGitSecrets([]);
     try {
       // 1. Fetch the workflow entity to get its plane annotations
       let planeRef: string | undefined;
@@ -172,16 +176,17 @@ export const WorkflowConfigPage = ({
           planeRef && planeRefKind
             ? allSecrets.filter(
                 s =>
-                  !s.workflowPlaneName ||
-                  (s.workflowPlaneName === planeRef &&
-                    s.workflowPlaneKind === planeRefKind),
+                  s.workflowPlaneName === planeRef &&
+                  s.workflowPlaneKind === planeRefKind,
               )
             : allSecrets;
 
         setGitSecrets(filtered.map(s => s.name));
+      } else {
+        setGitSecrets([]);
       }
     } catch {
-      // Silently fail — dropdown will just be empty
+      setGitSecrets([]);
     } finally {
       setSecretsLoading(false);
     }
