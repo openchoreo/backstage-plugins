@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -141,6 +141,13 @@ export const GitSecretsContent = () => {
     if (!namespaces) return [];
     return [...namespaces].sort((a, b) => a.name.localeCompare(b.name));
   }, [namespaces]);
+
+  // Auto-select the first namespace once loaded
+  useEffect(() => {
+    if (!selectedNamespace && sortedNamespaces.length > 0) {
+      setSelectedNamespace(sortedNamespaces[0].name);
+    }
+  }, [sortedNamespaces, selectedNamespace]);
 
   return (
     <>
