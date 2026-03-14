@@ -234,6 +234,8 @@ export const useCardListStyles = makeStyles(theme => {
       textTransform: 'uppercase' as const,
       color: theme.palette.text.secondary,
       letterSpacing: '0.05em',
+      minWidth: 0,
+      overflow: 'hidden',
     },
 
     // Entity row
@@ -266,11 +268,13 @@ export const useCardListStyles = makeStyles(theme => {
     },
     nameCell: {
       minWidth: 0,
+      overflow: 'hidden',
     },
     actionsCell: {
       display: 'flex',
       alignItems: 'center',
       gap: theme.spacing(0.5),
+      minWidth: 0,
       '& > :first-child': {
         marginLeft: -8,
       },
@@ -281,12 +285,14 @@ export const useCardListStyles = makeStyles(theme => {
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap' as const,
+      minWidth: 0,
     },
     linkCell: {
       fontSize: '0.8rem',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap' as const,
+      minWidth: 0,
       '& a': {
         color: theme.palette.primary.main,
         textDecoration: 'none',
@@ -300,6 +306,7 @@ export const useCardListStyles = makeStyles(theme => {
       alignItems: 'center',
       gap: 4,
       overflow: 'hidden',
+      minWidth: 0,
       '& svg': {
         fontSize: '1rem',
         color: theme.palette.text.secondary,
@@ -349,6 +356,7 @@ export const useCardListStyles = makeStyles(theme => {
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap' as const,
+      minWidth: 0,
     },
     paginationContainer: {
       display: 'flex',
@@ -380,6 +388,8 @@ export const useCardListStyles = makeStyles(theme => {
       gap: 4,
       fontSize: '0.75rem',
       whiteSpace: 'nowrap' as const,
+      minWidth: 0,
+      overflow: 'hidden',
     },
     agentDot: {
       width: 8,
