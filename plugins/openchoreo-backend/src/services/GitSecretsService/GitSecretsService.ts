@@ -70,6 +70,8 @@ export class GitSecretsService {
     username?: string,
     sshKeyId?: string,
     userToken?: string,
+    workflowPlaneKind?: string,
+    workflowPlaneName?: string,
   ): Promise<GitSecretResponse> {
     this.logger.debug(
       `Creating git secret ${secretName} (${secretType}) in namespace: ${namespaceName}`,
@@ -91,6 +93,12 @@ export class GitSecretsService {
           body: {
             secretName,
             secretType,
+            workflowPlaneKind:
+              (workflowPlaneKind as
+                | 'WorkflowPlane'
+                | 'ClusterWorkflowPlane'
+                | undefined) ?? 'ClusterWorkflowPlane',
+            workflowPlaneName: workflowPlaneName ?? 'default',
             token: gitToken,
             sshKey,
             username,

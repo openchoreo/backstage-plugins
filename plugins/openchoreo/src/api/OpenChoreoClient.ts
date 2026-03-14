@@ -1259,11 +1259,20 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     tokenOrKey: string,
     username?: string,
     sshKeyId?: string,
+    workflowPlaneKind?: string,
+    workflowPlaneName?: string,
   ): Promise<GitSecret> {
     const requestBody: any = {
       secretName,
       secretType,
     };
+
+    if (workflowPlaneKind) {
+      requestBody.workflowPlaneKind = workflowPlaneKind;
+    }
+    if (workflowPlaneName) {
+      requestBody.workflowPlaneName = workflowPlaneName;
+    }
 
     if (secretType === 'basic-auth') {
       requestBody.token = tokenOrKey;

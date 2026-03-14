@@ -18,6 +18,8 @@ export interface UseGitSecretsResult {
     tokenOrKey: string,
     username?: string,
     sshKeyId?: string,
+    workflowPlaneKind?: string,
+    workflowPlaneName?: string,
   ) => Promise<GitSecret>;
   deleteSecret: (secretName: string) => Promise<void>;
 }
@@ -58,6 +60,8 @@ export function useGitSecrets(namespaceName: string): UseGitSecretsResult {
       tokenOrKey: string,
       username?: string,
       sshKeyId?: string,
+      workflowPlaneKind?: string,
+      workflowPlaneName?: string,
     ): Promise<GitSecret> => {
       const secret = await client.createGitSecret(
         namespaceName,
@@ -66,6 +70,8 @@ export function useGitSecrets(namespaceName: string): UseGitSecretsResult {
         tokenOrKey,
         username,
         sshKeyId,
+        workflowPlaneKind,
+        workflowPlaneName,
       );
       // Refresh the list
       await fetchSecrets();

@@ -797,6 +797,10 @@ export interface GitSecretResponse {
   name: string;
   /** @description Namespace the secret belongs to */
   namespace: string;
+  /** @description Kind of the workflow plane resource used */
+  workflowPlaneKind?: string;
+  /** @description Name of the workflow plane resource used */
+  workflowPlaneName?: string;
 }
 
 // ---------------------------------------------------------------------------

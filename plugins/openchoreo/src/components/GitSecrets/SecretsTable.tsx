@@ -69,9 +69,13 @@ export const SecretsTable = ({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const filteredSecrets = secrets.filter(secret =>
-    secret.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredSecrets = secrets.filter(secret => {
+    const query = searchQuery.toLowerCase();
+    return (
+      secret.name.toLowerCase().includes(query) ||
+      (secret.workflowPlaneName || '').toLowerCase().includes(query)
+    );
+  });
 
   const handleDeleteClick = (secretName: string) => {
     setSecretToDelete(secretName);
@@ -165,6 +169,7 @@ export const SecretsTable = ({
             <TableRow>
               <TableCell>Secret Name</TableCell>
               <TableCell>Namespace</TableCell>
+              <TableCell>Workflow Plane</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -173,6 +178,15 @@ export const SecretsTable = ({
               <TableRow key={secret.name}>
                 <TableCell>{secret.name}</TableCell>
                 <TableCell>{secret.namespace}</TableCell>
+                <TableCell>
+                  {secret.workflowPlaneName
+                    ? `${secret.workflowPlaneName}${
+                        secret.workflowPlaneKind === 'ClusterWorkflowPlane'
+                          ? ' (Cluster)'
+                          : ''
+                      }`
+                    : '-'}
+                </TableCell>
                 <TableCell align="right">
                   <Tooltip title="Delete secret">
                     <IconButton

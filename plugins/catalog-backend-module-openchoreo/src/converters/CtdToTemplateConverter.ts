@@ -144,18 +144,7 @@ export class CtdToTemplateConverter {
   ): any[] {
     const parameters: any[] = [];
 
-    // Section 1: Build & Deploy (deployment source selection + conditional fields)
-    parameters.push(
-      this.generateCISetupSection(componentType, namespaceName, ctdKind),
-    );
-
-    // Section 2: Workload Details (CTD params, endpoints, env vars, file mounts, traits)
-    parameters.push(
-      this.generateWorkloadDetailsSection(componentType, namespaceName),
-    );
-
-    // Section 3: Component Metadata (standard fields)
-    parameters.push({
+    const metadataSection = {
       title: 'Component Metadata',
       required: ['project_namespace', 'component_name'],
       properties: {
@@ -189,7 +178,31 @@ export class CtdToTemplateConverter {
           description: 'Brief description of what this component does',
         },
       },
-    });
+    };
+
+    // For ClusterComponentType, the namespace is not known at template
+    // generation time — the user selects it via ProjectNamespaceField.
+    // Place Component Metadata first so the namespace is available in
+    // formContext when Build & Deploy fields (GitSourceField, etc.) render.
+    if (!namespaceName) {
+      parameters.push(metadataSection);
+    }
+
+    // Build & Deploy (deployment source selection + conditional fields)
+    parameters.push(
+      this.generateCISetupSection(componentType, namespaceName, ctdKind),
+    );
+
+    // Workload Details (CTD params, endpoints, env vars, file mounts, traits)
+    parameters.push(
+      this.generateWorkloadDetailsSection(componentType, namespaceName),
+    );
+
+    // For namespace-scoped ComponentType the namespace is already baked into
+    // ui:options, so Component Metadata can stay at the end.
+    if (namespaceName) {
+      parameters.push(metadataSection);
+    }
 
     return parameters;
   }
