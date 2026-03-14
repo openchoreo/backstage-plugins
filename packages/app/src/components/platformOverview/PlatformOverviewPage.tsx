@@ -186,6 +186,7 @@ export function PlatformOverviewPage() {
     const scopeChanged = currentScope !== prevScopeRef.current;
     const systemDeselected = prevSystemKindRef.current && !systemKindSelected;
     const clusterTurnedOff = prevClusterRef.current && !clusterSelected;
+    const clusterTurnedOn = !prevClusterRef.current && clusterSelected;
     prevScopeRef.current = currentScope;
     prevSystemKindRef.current = systemKindSelected;
     prevClusterRef.current = clusterSelected;
@@ -201,6 +202,18 @@ export function PlatformOverviewPage() {
       );
       if (cleaned.length > 0 && cleaned.length < selectedKinds.length) {
         setParams({ kinds: cleaned.join(',') }, { replace: true });
+      }
+    }
+
+    // When cluster scope is turned on, re-add cluster-scoped kinds to the URL
+    if (clusterTurnedOn) {
+      const currentSet = new Set(selectedKinds);
+      const missing = CLUSTER_SCOPED_KINDS.filter(k => !currentSet.has(k));
+      if (missing.length > 0) {
+        setParams(
+          { kinds: [...selectedKinds, ...missing].join(',') },
+          { replace: true },
+        );
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
