@@ -118,7 +118,7 @@ describe('CtdToTemplateConverter', () => {
   });
 
   describe('generateParameters', () => {
-    it('should generate 3 sections: Build & Deploy, <DisplayName> Details, Component Metadata', () => {
+    it('should generate 3 sections: Component Metadata, Build & Deploy, <DisplayName> Details', () => {
       const ctd: ComponentType = {
         metadata: {
           workloadType: 'deployment',
@@ -139,30 +139,30 @@ describe('CtdToTemplateConverter', () => {
       // Always 3 sections
       expect(parameters).toHaveLength(3);
 
-      // Section 1: Build & Deploy
-      expect(parameters[0].title).toBe('Build & Deploy');
-
-      // Section 2: Dynamic title based on displayName/name
-      expect(parameters[1].title).toBe('Test Service Details');
-
-      // Section 3: Component Metadata
-      expect(parameters[2].title).toBe('Component Metadata');
-      expect(parameters[2].required).toEqual([
+      // Section 1: Component Metadata
+      expect(parameters[0].title).toBe('Component Metadata');
+      expect(parameters[0].required).toEqual([
         'project_namespace',
         'component_name',
       ]);
-      expect(parameters[2].properties.component_name).toBeDefined();
-      expect(parameters[2].properties.project_namespace).toBeDefined();
-      expect(parameters[2].properties.displayName).toBeDefined();
-      expect(parameters[2].properties.description).toBeDefined();
+      expect(parameters[0].properties.component_name).toBeDefined();
+      expect(parameters[0].properties.project_namespace).toBeDefined();
+      expect(parameters[0].properties.displayName).toBeDefined();
+      expect(parameters[0].properties.description).toBeDefined();
 
       // Check UI fields
-      expect(parameters[2].properties.component_name['ui:field']).toBe(
+      expect(parameters[0].properties.component_name['ui:field']).toBe(
         'ComponentNamePicker',
       );
-      expect(parameters[2].properties.project_namespace['ui:field']).toBe(
+      expect(parameters[0].properties.project_namespace['ui:field']).toBe(
         'ProjectNamespaceField',
       );
+
+      // Section 2: Build & Deploy
+      expect(parameters[1].title).toBe('Build & Deploy');
+
+      // Section 3: Dynamic title based on displayName/name
+      expect(parameters[2].title).toBe('Test Service Details');
     });
 
     it('should generate Workload Details section with WorkloadDetailsField', () => {
@@ -191,8 +191,8 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Section 2: Dynamic title based on displayName
-      const workloadSection = parameters[1];
+      // Section 3: Dynamic title based on displayName
+      const workloadSection = parameters[2];
       expect(workloadSection.title).toBe('Web Service Details');
 
       // Check it uses WorkloadDetailsField
@@ -249,7 +249,7 @@ describe('CtdToTemplateConverter', () => {
       );
       const deployParams = deployResult.spec?.parameters as any[];
       expect(
-        deployParams[1].properties.workloadDetails['ui:options'].workloadType,
+        deployParams[2].properties.workloadDetails['ui:options'].workloadType,
       ).toBe('deployment/service');
 
       const cronjobResult = converter.convertCtdToTemplateEntity(
@@ -258,7 +258,7 @@ describe('CtdToTemplateConverter', () => {
       );
       const cronjobParams = cronjobResult.spec?.parameters as any[];
       expect(
-        cronjobParams[1].properties.workloadDetails['ui:options'].workloadType,
+        cronjobParams[2].properties.workloadDetails['ui:options'].workloadType,
       ).toBe('cronjob');
     });
 
@@ -279,7 +279,7 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const options = parameters[1].properties.workloadDetails['ui:options'];
+      const options = parameters[2].properties.workloadDetails['ui:options'];
 
       expect(options.ctdDisplayName).toBe('Web Service');
     });
@@ -313,8 +313,8 @@ describe('CtdToTemplateConverter', () => {
       // Should have 3 sections
       expect(parameters).toHaveLength(3);
 
-      // Check Build & Deploy section (first section)
-      const buildDeploySection = parameters[0];
+      // Check Build & Deploy section (second section)
+      const buildDeploySection = parameters[1];
       expect(buildDeploySection.title).toBe('Build & Deploy');
       expect(buildDeploySection.required).toEqual(['deploymentSource']);
 
@@ -440,7 +440,7 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const buildDeploySection = parameters[0];
+      const buildDeploySection = parameters[1];
       const buildFromSourceBranch =
         buildDeploySection.dependencies.deploymentSource.oneOf[0];
 
@@ -479,13 +479,13 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have 3 sections: Build & Deploy, Workload Details, Component Metadata
+      // Should have 3 sections: Component Metadata, Build & Deploy, Workload Details
       expect(parameters).toHaveLength(3);
 
       // Verify section order
-      expect(parameters[0].title).toBe('Build & Deploy');
-      expect(parameters[1].title).toBe('Web Service Details');
-      expect(parameters[2].title).toBe('Component Metadata');
+      expect(parameters[0].title).toBe('Component Metadata');
+      expect(parameters[1].title).toBe('Build & Deploy');
+      expect(parameters[2].title).toBe('Web Service Details');
     });
 
     it('should pass empty/undefined CTD schema when no input parameters', () => {
@@ -510,7 +510,7 @@ describe('CtdToTemplateConverter', () => {
       expect(parameters).toHaveLength(3);
 
       // Workload Details section should have the CTD schema in ui:options
-      const options = parameters[1].properties.workloadDetails['ui:options'];
+      const options = parameters[2].properties.workloadDetails['ui:options'];
       expect(options.ctdSchema).toBeDefined();
       expect(options.ctdSchema.properties).toEqual({});
     });
@@ -617,7 +617,7 @@ describe('CtdToTemplateConverter', () => {
 
       // CTD schema is now embedded in ui:options.ctdSchema
       const ctdSchema =
-        parameters[1].properties.workloadDetails['ui:options'].ctdSchema;
+        parameters[2].properties.workloadDetails['ui:options'].ctdSchema;
       expect(ctdSchema.properties.config.additionalProperties.type).toBe(
         'string',
       );
