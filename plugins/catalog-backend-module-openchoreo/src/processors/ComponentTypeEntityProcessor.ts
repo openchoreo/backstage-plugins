@@ -78,9 +78,12 @@ export class ComponentTypeEntityProcessor implements CatalogProcessor {
             typeof workflow === 'string'
               ? 'workflow'
               : (workflow.kind || 'Workflow').toLowerCase();
+          const isClusterWorkflow = workflowKind === 'clusterworkflow';
           const cwRef = {
             kind: workflowKind,
-            namespace: entity.metadata.namespace || 'default',
+            namespace: isClusterWorkflow
+              ? 'openchoreo-cluster'
+              : entity.metadata.namespace || 'default',
             name: workflowName,
           };
           emit(
