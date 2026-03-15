@@ -147,6 +147,15 @@ export const EventsContent = ({ build }: EventsContentProps) => {
       return;
     }
 
+    // TODO: Remove this once the endpoint is implemented in observability plane
+    if (!statusState.hasLiveObservability) {
+      setIsObservabilityNotConfigured(true);
+      setEventsError(
+        'Events are not available for past workflow runs. This feature will be available soon.',
+      );
+      return;
+    }
+
     let cancelled = false;
     let intervalId: number | undefined;
 
