@@ -5,14 +5,16 @@ import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
 import { YamlViewer } from '@openchoreo/backstage-design-system';
 import { useStyles } from './styles';
 
+type StyleClasses = ReturnType<typeof useStyles>;
+
 // Render a nested object as formatted key-value pairs
-const NestedObjectRenderer = ({
+function NestedObjectRenderer({
   obj,
   classes,
 }: {
   obj: Record<string, any>;
-  classes: ReturnType<typeof useStyles>;
-}): JSX.Element => {
+  classes: StyleClasses;
+}): JSX.Element {
   return (
     <div className={classes.nestedContainer}>
       {Object.entries(obj).map(([key, value]) => {
@@ -27,7 +29,11 @@ const NestedObjectRenderer = ({
         } else if (typeof value === 'object' && !Array.isArray(value)) {
           displayValue = <NestedObjectRenderer obj={value} classes={classes} />;
         } else if (Array.isArray(value)) {
-          displayValue = value.join(', ');
+          if (value.some(item => item !== null && typeof item === 'object')) {
+            displayValue = <ArrayRenderer items={value} classes={classes} />;
+          } else {
+            displayValue = value.join(', ');
+          }
         } else {
           displayValue = String(value);
         }
@@ -53,18 +59,18 @@ const NestedObjectRenderer = ({
       })}
     </div>
   );
-};
+}
 
 // Render an array of objects (like traits)
-const ArrayRenderer = ({
+function ArrayRenderer({
   items,
   itemLabelKey,
   classes,
 }: {
   items: any[];
   itemLabelKey?: string;
-  classes: ReturnType<typeof useStyles>;
-}): JSX.Element => {
+  classes: StyleClasses;
+}): JSX.Element {
   return (
     <div className={classes.nestedContainer}>
       {items.map((item, index) => {
@@ -97,7 +103,7 @@ const ArrayRenderer = ({
       })}
     </div>
   );
-};
+}
 
 /**
  * Custom Review Step Component
@@ -140,6 +146,47 @@ export const CustomReviewStep = ({
     filteredFormData.workflow_parameters = rest.parameters || rest;
   }
 
+  // Render deploymentPipelineConfig as a clean summary under the original key
+  if (
+    filteredFormData.deploymentPipelineConfig &&
+    typeof filteredFormData.deploymentPipelineConfig === 'object'
+  ) {
+    const config = filteredFormData.deploymentPipelineConfig;
+    const summary: Record<string, string> = {};
+    if (config.pipeline_name) {
+      summary.pipeline_name = config.pipeline_name;
+    }
+    if (config.namespace_name) {
+      summary.namespace_name = config.namespace_name;
+    }
+    if (config.displayName) {
+      summary.display_name = config.displayName;
+    }
+    if (config.description) {
+      summary.description = config.description;
+    }
+    if (
+      Array.isArray(config.promotionPaths) &&
+      config.promotionPaths.length > 0
+    ) {
+      summary.promotion_paths = config.promotionPaths
+        .map(
+          (p: {
+            sourceEnvironmentRef?: { name?: string };
+            targetEnvironmentRefs?: Array<{ name?: string }>;
+          }) => {
+            const source = p.sourceEnvironmentRef?.name || 'unknown';
+            const targets = (p.targetEnvironmentRefs || [])
+              .map(t => t.name || 'unknown')
+              .join(', ');
+            return `${source} → ${targets}`;
+          },
+        )
+        .join(' | ');
+    }
+    filteredFormData.deploymentPipelineConfig = summary;
+  }
+
   // Transform nested objects and arrays into React components for proper display
   const formattedMetadata: Record<string, any> = {};
 
@@ -150,7 +197,7 @@ export const CustomReviewStep = ({
 
     if (Array.isArray(value) && value.length > 0) {
       // Handle arrays (like traits)
-      if (typeof value[0] === 'object') {
+      if (value.some(item => item !== null && typeof item === 'object')) {
         formattedMetadata[key] = (
           <ArrayRenderer items={value} itemLabelKey="name" classes={classes} />
         );
