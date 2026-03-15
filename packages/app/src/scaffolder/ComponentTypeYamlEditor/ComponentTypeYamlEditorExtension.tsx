@@ -18,10 +18,18 @@ const DEFAULT_COMPONENT_TYPE_TEMPLATE = {
   },
   spec: {
     workloadType: 'deployment',
-    schema: {
-      parameters: {},
-      environmentConfigs: {
-        replicas: 'integer | default=1',
+    parameters: {
+      openAPIV3Schema: {},
+    },
+    environmentConfigs: {
+      openAPIV3Schema: {
+        type: 'object',
+        properties: {
+          replicas: {
+            type: 'integer',
+            default: 1,
+          },
+        },
       },
     },
     resources: [
