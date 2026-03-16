@@ -319,6 +319,10 @@ export {
   type UseScopedProjectCreatePermissionResult,
 } from './hooks/useScopedProjectCreatePermission';
 export {
+  useProjectUpdatePermission,
+  type UseProjectUpdatePermissionResult,
+} from './hooks/useProjectUpdatePermission';
+export {
   useAsyncOperation,
   type AsyncStatus,
   type AsyncState,

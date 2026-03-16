@@ -525,6 +525,13 @@ export interface OpenChoreoClientApi {
     namespaceName: string,
   ): Promise<any>;
 
+  /** Update the deployment pipeline reference on a project */
+  updateProjectPipeline(
+    namespaceName: string,
+    projectName: string,
+    deploymentPipelineName: string,
+  ): Promise<void>;
+
   // === Traits Operations ===
 
   /** Fetch all traits attached to a component */

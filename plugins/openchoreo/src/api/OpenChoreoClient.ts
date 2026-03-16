@@ -671,6 +671,22 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     });
   }
 
+  async updateProjectPipeline(
+    namespaceName: string,
+    projectName: string,
+    deploymentPipelineName: string,
+  ): Promise<void> {
+    await this.apiFetch(
+      `/namespaces/${encodeURIComponent(
+        namespaceName,
+      )}/projects/${encodeURIComponent(projectName)}/deployment-pipeline`,
+      {
+        method: 'PUT',
+        body: { deploymentPipelineName },
+      },
+    );
+  }
+
   // ============================================
   // Traits Operations
   // ============================================

@@ -124,6 +124,80 @@ export class ProjectInfoService {
   }
 
   /**
+   * Updates the deployment pipeline reference on a project.
+   *
+   * @param namespaceName - Namespace name
+   * @param projectName - Project name
+   * @param deploymentPipelineName - Pipeline name to set
+   * @param token - Optional user token
+   */
+  async updateProjectPipeline(
+    namespaceName: string,
+    projectName: string,
+    deploymentPipelineName: string,
+    token?: string,
+  ): Promise<ModelsProject> {
+    this.logger.info(
+      `Updating deployment pipeline for project: ${projectName} in namespace: ${namespaceName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      // Fetch the existing project first
+      const {
+        data: existing,
+        error: getError,
+        response: getResponse,
+      } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
+        {
+          params: { path: { namespaceName, projectName } },
+        },
+      );
+
+      assertApiResponse(
+        { data: existing, error: getError, response: getResponse },
+        'fetch project for update',
+      );
+
+      // Update the deploymentPipelineRef
+      const updatedSpec = { ...existing!.spec };
+      updatedSpec.deploymentPipelineRef = {
+        kind: 'DeploymentPipeline' as const,
+        name: deploymentPipelineName,
+      };
+
+      const { data, error, response } = await client.PUT(
+        '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
+        {
+          params: { path: { namespaceName, projectName } },
+          body: {
+            metadata: existing!.metadata,
+            spec: updatedSpec,
+          },
+        },
+      );
+
+      assertApiResponse({ data, error, response }, 'update project pipeline');
+
+      this.logger.info(
+        `Successfully updated deployment pipeline for project: ${projectName}`,
+      );
+      return transformProject(data!);
+    } catch (error) {
+      this.logger.error(
+        `Failed to update deployment pipeline for ${projectName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Deletes a project in OpenChoreo API.
    *
    * @param namespaceName - Namespace name

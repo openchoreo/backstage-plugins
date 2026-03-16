@@ -36,7 +36,6 @@ export const createProjectAction = (
             .describe('The description of the project'),
           deploymentPipeline: zImpl
             .string()
-            .optional()
             .describe('The deployment pipeline for the project'),
         }),
       output: (zImpl: typeof z) =>
@@ -124,14 +123,10 @@ export const createProjectAction = (
                 },
               },
               spec: {
-                ...(ctx.input.deploymentPipeline
-                  ? {
-                      deploymentPipelineRef: {
-                        kind: 'DeploymentPipeline' as const,
-                        name: ctx.input.deploymentPipeline,
-                      },
-                    }
-                  : {}),
+                deploymentPipelineRef: {
+                  kind: 'DeploymentPipeline' as const,
+                  name: ctx.input.deploymentPipeline,
+                },
               },
             },
           },

@@ -115,7 +115,7 @@ export const DeploymentPipelinePicker = ({
           : fetchError ||
             (!namespaceName
               ? 'Select a namespace first'
-              : 'Select a deployment pipeline (optional)')
+              : 'Select a deployment pipeline')
       }
       InputProps={{
         endAdornment: loading ? (
@@ -125,9 +125,6 @@ export const DeploymentPipelinePicker = ({
         ) : undefined,
       }}
     >
-      <MenuItem value="">
-        <em>(None)</em>
-      </MenuItem>
       {pipelines.map(p => (
         <MenuItem key={p.name} value={p.name}>
           {p.displayName}

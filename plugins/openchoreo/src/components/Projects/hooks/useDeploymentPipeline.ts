@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import {
@@ -9,6 +9,7 @@ import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 interface DeploymentPipelineData {
   name: string;
+  resourceName: string;
   environments: string[];
   dataPlane?: string;
   pipelineEntityRef?: string;
@@ -21,6 +22,9 @@ export const useDeploymentPipeline = () => {
   const [data, setData] = useState<DeploymentPipelineData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refetch = useCallback(() => setRefreshKey(k => k + 1), []);
 
   useEffect(() => {
     const fetchPipelineData = async () => {
@@ -77,6 +81,7 @@ export const useDeploymentPipeline = () => {
 
         setData({
           name: pipelineData.displayName || pipelineData.name,
+          resourceName: pipelineData.name,
           environments:
             environments.length > 0
               ? environments
@@ -94,7 +99,7 @@ export const useDeploymentPipeline = () => {
     };
 
     fetchPipelineData();
-  }, [entity, client]);
+  }, [entity, client, refreshKey]);
 
-  return { data, loading, error };
+  return { data, loading, error, refetch };
 };

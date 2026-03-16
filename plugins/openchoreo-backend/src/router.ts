@@ -1448,6 +1448,35 @@ export async function createRouter({
     },
   );
 
+  // Update project deployment pipeline
+  router.put(
+    '/namespaces/:namespaceName/projects/:projectName/deployment-pipeline',
+    requireAuth,
+    async (req, res) => {
+      const { namespaceName, projectName } = req.params;
+      const { deploymentPipelineName } = req.body as {
+        deploymentPipelineName?: string;
+      };
+
+      if (
+        typeof deploymentPipelineName !== 'string' ||
+        deploymentPipelineName.trim().length === 0
+      ) {
+        throw new InputError('deploymentPipelineName is required');
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+      const result = await projectInfoService.updateProjectPipeline(
+        namespaceName,
+        projectName,
+        deploymentPipelineName,
+        userToken,
+      );
+
+      res.json(result);
+    },
+  );
+
   // Delete a project
   router.delete(
     '/namespaces/:namespaceName/projects/:projectName',
