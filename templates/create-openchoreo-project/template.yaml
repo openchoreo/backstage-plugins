@@ -38,6 +38,11 @@ spec:
           type: string
           description: Namespace where the project will be created
           ui:field: NamespaceEntityPicker
+        deployment_pipeline:
+          title: Deployment Pipeline
+          type: string
+          description: Deployment pipeline to associate with this project (optional)
+          ui:field: DeploymentPipelinePicker
         # owner:
         #   title: Owner
         #   type: string
@@ -56,6 +61,7 @@ spec:
         projectName: ${{ parameters.project_name }}
         displayName: ${{ parameters.displayName }}
         description: ${{ parameters.description }}
+        deploymentPipeline: ${{ parameters.deployment_pipeline }}
   output:
     links:
       - title: View Project
