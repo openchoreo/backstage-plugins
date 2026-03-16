@@ -158,16 +158,6 @@ describe('CtdToTemplateConverter', () => {
         'ProjectNamespaceField',
       );
 
-      // Check project_namespace sub-property titles for review display
-      expect(
-        parameters[0].properties.project_namespace.properties.project_name
-          .title,
-      ).toBe('Project');
-      expect(
-        parameters[0].properties.project_namespace.properties.namespace_name
-          .title,
-      ).toBe('Namespace');
-
       // Section 2: Build & Deploy
       expect(parameters[1].title).toBe('Build & Deploy');
 
@@ -223,34 +213,8 @@ describe('CtdToTemplateConverter', () => {
       expect(options.ctdSchema.properties.port.type).toBe('integer');
       expect(options.ctdSchema.required).toEqual(['port']);
 
-      // Check review annotations for sub-properties
-      expect(workloadDetails.properties).toBeDefined();
-      expect(workloadDetails.properties.ctdParameters.title).toBe(
-        'Configuration Parameters',
-      );
-      expect(workloadDetails.properties.envVars.title).toBe(
-        'Environment Variables',
-      );
-      expect(workloadDetails.properties.fileMounts.title).toBe('File Mounts');
-      expect(workloadDetails.properties.traits.title).toBe('Traits');
-      // Internal fields should be hidden from review
-      expect(
-        workloadDetails.properties.isEditing['ui:backstage'].review.show,
-      ).toBe(false);
-      expect(
-        workloadDetails.properties.traits.items.properties.id['ui:backstage']
-          .review.show,
-      ).toBe(false);
-      expect(
-        workloadDetails.properties.traits.items.properties.schema[
-          'ui:backstage'
-        ].review.show,
-      ).toBe(false);
-      expect(
-        workloadDetails.properties.traits.items.properties.uiSchema[
-          'ui:backstage'
-        ].review.show,
-      ).toBe(false);
+      // workloadDetails should not have properties (custom ComponentReview handles display)
+      expect(workloadDetails.properties).toBeUndefined();
     });
 
     it('should pass workloadType in ui:options for conditional endpoint rendering', () => {
@@ -400,9 +364,6 @@ describe('CtdToTemplateConverter', () => {
         buildFromSourceBranch.properties.git_source.properties.repo_url,
       ).toBeDefined();
       expect(
-        buildFromSourceBranch.properties.git_source.properties.repo_url.title,
-      ).toBe('Repository URL');
-      expect(
         buildFromSourceBranch.properties.git_source.properties.branch,
       ).toBeDefined();
       expect(
@@ -416,16 +377,6 @@ describe('CtdToTemplateConverter', () => {
       expect(
         buildFromSourceBranch.properties.workflow_parameters,
       ).toBeDefined();
-
-      // Check workflow_parameters review annotations - schema should be hidden
-      const workflowParams =
-        buildFromSourceBranch.properties.workflow_parameters;
-      expect(workflowParams.properties.schema['ui:backstage'].review.show).toBe(
-        false,
-      );
-      expect(workflowParams.properties.parameters.title).toBe(
-        'Build Parameters',
-      );
 
       // Check workflow_name passes allowedWorkflows via ui:options
       expect(

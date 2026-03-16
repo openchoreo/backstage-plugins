@@ -19,22 +19,6 @@ spec:
           title: ' '
           type: object
           ui:field: DeploymentPipelineFormWithYaml
-          properties:
-            pipeline_name:
-              title: Pipeline Name
-              type: string
-            namespace_name:
-              title: Namespace
-              type: string
-            displayName:
-              title: Display Name
-              type: string
-            description:
-              title: Description
-              type: string
-            promotionPaths:
-              title: Promotion Paths
-              type: array
   steps:
     - id: create-openchoreo-deploymentpipeline
       name: Create OpenChoreo Deployment Pipeline

@@ -156,8 +156,8 @@ export class CtdToTemplateConverter {
             defaultNamespace: namespaceName,
           },
           properties: {
-            project_name: { title: 'Project', type: 'string' },
-            namespace_name: { title: 'Namespace', type: 'string' },
+            project_name: { type: 'string' },
+            namespace_name: { type: 'string' },
           },
           required: ['project_name', 'namespace_name'],
         },
@@ -224,64 +224,6 @@ export class CtdToTemplateConverter {
               componentType.metadata.displayName ||
               this.formatTitle(componentType.metadata.name),
             allowedTraits: componentType.metadata.allowedTraits,
-          },
-          properties: {
-            ctdParameters: {
-              title: 'Configuration Parameters',
-              type: 'object',
-            },
-            endpoints: { title: 'Endpoints', type: 'object' },
-            envVars: {
-              title: 'Environment Variables',
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  key: { title: 'Key', type: 'string' },
-                  value: { title: 'Value', type: 'string' },
-                },
-              },
-            },
-            fileMounts: {
-              title: 'File Mounts',
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  key: { title: 'Key', type: 'string' },
-                  mountPath: { title: 'Mount Path', type: 'string' },
-                },
-              },
-            },
-            traits: {
-              title: 'Traits',
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  name: { title: 'Type', type: 'string' },
-                  instanceName: { title: 'Instance Name', type: 'string' },
-                  config: { title: 'Configuration', type: 'object' },
-                  kind: { title: 'Kind', type: 'string' },
-                  id: {
-                    type: 'string',
-                    'ui:backstage': { review: { show: false } },
-                  },
-                  schema: {
-                    type: 'object',
-                    'ui:backstage': { review: { show: false } },
-                  },
-                  uiSchema: {
-                    type: 'object',
-                    'ui:backstage': { review: { show: false } },
-                  },
-                },
-              },
-            },
-            isEditing: {
-              type: 'boolean',
-              'ui:backstage': { review: { show: false } },
-            },
           },
         },
       },
@@ -381,16 +323,10 @@ export class CtdToTemplateConverter {
                     namespaceName: namespaceName,
                   },
                   properties: {
-                    repo_url: { title: 'Repository URL', type: 'string' },
-                    branch: { title: 'Branch', type: 'string' },
-                    component_path: {
-                      title: 'Component Path',
-                      type: 'string',
-                    },
-                    git_secret_ref: {
-                      title: 'Git Secret',
-                      type: 'string',
-                    },
+                    repo_url: { type: 'string' },
+                    branch: { type: 'string' },
+                    component_path: { type: 'string' },
+                    git_secret_ref: { type: 'string' },
                   },
                 },
                 workflow_parameters: {
@@ -400,16 +336,6 @@ export class CtdToTemplateConverter {
                   'ui:options': {
                     namespaceName: namespaceName,
                     ctdKind: ctdKind,
-                  },
-                  properties: {
-                    schema: {
-                      type: 'object',
-                      'ui:backstage': { review: { show: false } },
-                    },
-                    parameters: {
-                      title: 'Build Parameters',
-                      type: 'object',
-                    },
                   },
                 },
               },
