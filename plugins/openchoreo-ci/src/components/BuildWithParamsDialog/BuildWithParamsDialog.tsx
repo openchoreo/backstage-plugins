@@ -12,12 +12,7 @@ import {
   Grid,
 } from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
-import Form from '@rjsf/material-ui';
-import {
-  ArrayFieldTemplate,
-  DescriptionFieldTemplate,
-  TitleFieldTemplate,
-} from '@openchoreo/backstage-design-system';
+import { RjsfForm } from '@openchoreo/backstage-design-system';
 import validator from '@rjsf/validator-ajv8';
 import { JSONSchema7 } from 'json-schema';
 import {
@@ -396,16 +391,10 @@ export const BuildWithParamsDialog = ({
         }
       }
 
-      // Validate merged payload against the full schema before triggering
+      // Block submission if form data is invalid
       if (schema) {
         const result = validator.validateFormData(mergedData, schema);
         if (result.errors.length > 0) {
-          setError(
-            result.errors
-              .map(e => e.message)
-              .filter(Boolean)
-              .join(', '),
-          );
           return;
         }
       }
@@ -538,22 +527,11 @@ export const BuildWithParamsDialog = ({
                   Workflow Parameters
                 </Typography>
                 <Box className={classes.formContainer}>
-                  <Form
+                  <RjsfForm
                     schema={filteredSchema!}
                     formData={formData}
                     onChange={e => setFormData(e.formData)}
-                    validator={validator}
-                    templates={{
-                      ArrayFieldTemplate,
-                      DescriptionFieldTemplate,
-                      TitleFieldTemplate,
-                    }}
-                    liveValidate={false}
-                    showErrorList={false}
-                    noHtml5Validate
-                  >
-                    <div />
-                  </Form>
+                  />
                 </Box>
               </Box>
             )}

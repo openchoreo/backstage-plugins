@@ -20,12 +20,7 @@ import {
   fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import Form from '@rjsf/material-ui';
-import {
-  ArrayFieldTemplate,
-  DescriptionFieldTemplate,
-  TitleFieldTemplate,
-} from '@openchoreo/backstage-design-system';
+import { RjsfForm } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
 import validator from '@rjsf/validator-ajv8';
 import { TraitConfigToggle } from '@openchoreo/backstage-plugin-react';
@@ -444,7 +439,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
                 onChange={setParameters}
                 onValidityChange={setYamlValid}
               >
-                <Form
+                <RjsfForm
                   schema={traitSchema}
                   uiSchema={uiSchema}
                   formData={parameters}
@@ -452,18 +447,9 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
                     setShowFormErrors(true);
                     setParameters(data.formData);
                   }}
-                  validator={validator}
-                  templates={{
-                    ArrayFieldTemplate,
-                    DescriptionFieldTemplate,
-                    TitleFieldTemplate,
-                  }}
                   liveValidate={showFormErrors}
-                  showErrorList={false}
-                  noHtml5Validate
                   omitExtraData
                   tagName="div"
-                  children={<div />}
                 />
               </TraitConfigToggle>
             </Box>

@@ -33,6 +33,8 @@ export {
   ArrayFieldTemplate,
   DescriptionFieldTemplate,
   TitleFieldTemplate,
+  RjsfForm,
+  useTouchedFields,
 } from './components/RjsfTemplates';
 export type {
   SplitButtonProps,

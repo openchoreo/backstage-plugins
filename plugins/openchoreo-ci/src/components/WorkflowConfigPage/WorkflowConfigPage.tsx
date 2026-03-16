@@ -11,7 +11,6 @@ import {
   TextField,
 } from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
-import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import { RJSFValidationError, WidgetProps } from '@rjsf/utils';
 import { JSONSchema7 } from 'json-schema';
@@ -31,9 +30,7 @@ import {
 import {
   VerticalTabNav,
   TabItemData,
-  ArrayFieldTemplate,
-  DescriptionFieldTemplate,
-  TitleFieldTemplate,
+  RjsfForm,
 } from '@openchoreo/backstage-design-system';
 import {
   UnsavedChangesDialog,
@@ -425,25 +422,14 @@ export const WorkflowConfigPage = ({
           </Box>
         )}
 
-        <Form
+        <RjsfForm
           schema={activePropertySchema}
           uiSchema={secretRefUiSchema}
           formData={{ [activeTab]: formData[activeTab] }}
           onChange={handleFormChange}
-          validator={validator}
           widgets={customWidgets}
           formContext={{ gitSecrets, secretsLoading }}
-          templates={{
-            ArrayFieldTemplate,
-            DescriptionFieldTemplate,
-            TitleFieldTemplate,
-          }}
-          liveValidate={false}
-          showErrorList={false}
-          noHtml5Validate
-        >
-          <div />
-        </Form>
+        />
       </Box>
     );
   };

@@ -1,13 +1,7 @@
 import type { FC } from 'react';
 import { Box, Typography, Button } from '@material-ui/core';
 import DeleteIcon from '@material-ui/icons/Delete';
-import Form from '@rjsf/material-ui';
-import {
-  ArrayFieldTemplate,
-  DescriptionFieldTemplate,
-  TitleFieldTemplate,
-} from '@openchoreo/backstage-design-system';
-import validator from '@rjsf/validator-ajv8';
+import { RjsfForm } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
 import { makeStyles } from '@material-ui/core/styles';
 import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
@@ -156,24 +150,14 @@ export const OverrideContent: FC<OverrideContentProps> = ({
           {contentTitle}
           <Box className={classes.formCard}>
             {sectionTitle}
-            <Form
+            <RjsfForm
               schema={schema}
               uiSchema={uiSchema}
               formData={formData}
               onChange={handleFormChange}
-              validator={validator}
-              templates={{
-                ArrayFieldTemplate,
-                DescriptionFieldTemplate,
-                TitleFieldTemplate,
-              }}
               liveValidate={showValidation}
-              showErrorList={false}
-              noHtml5Validate
               disabled={disabled}
-            >
-              <div />
-            </Form>
+            />
           </Box>
 
           <Button

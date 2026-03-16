@@ -13,12 +13,7 @@ import {
   parseWorkflowParametersAnnotation,
 } from '@openchoreo/backstage-plugin-common';
 import { JSONSchema7 } from 'json-schema';
-import Form from '@rjsf/material-ui';
-import {
-  ArrayFieldTemplate,
-  DescriptionFieldTemplate,
-  TitleFieldTemplate,
-} from '@openchoreo/backstage-design-system';
+import { RjsfForm } from '@openchoreo/backstage-design-system';
 import validator from '@rjsf/validator-ajv8';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 import createSchemaUtils from '@rjsf/utils/lib/createSchemaUtils';
@@ -359,31 +354,19 @@ export const BuildWorkflowParameters = ({
   return (
     workflowSchema && (
       <Box mt={2}>
-        <Form
+        <RjsfForm
           key={resetKey}
           schema={workflowSchema}
           uiSchema={rjsfUiSchema}
           formData={formData?.parameters || {}}
           onChange={handleFormChange}
-          validator={validator}
-          templates={{
-            ArrayFieldTemplate,
-            DescriptionFieldTemplate,
-            TitleFieldTemplate,
-          }}
-          liveValidate={false}
-          showErrorList={false}
-          noHtml5Validate
           tagName="div"
           fields={customFields}
           formContext={formContext}
           experimental_defaultFormStateBehavior={{
             emptyObjectFields: 'populateAllDefaults',
           }}
-        >
-          {/* Hide the default submit button - we're just using this for the form fields */}
-          <div style={{ display: 'none' }} />
-        </Form>
+        />
       </Box>
     )
   );

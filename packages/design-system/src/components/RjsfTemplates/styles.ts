@@ -17,16 +17,71 @@ export const useArrayStyles = makeStyles((theme: Theme) => ({
     color: theme.palette.text.secondary,
     marginBottom: theme.spacing(1.5),
   },
-  item: {
+
+  // ── Edit mode ──────────────────────────────────────────────────────────
+  editItem: {
     display: 'flex',
     alignItems: 'flex-start',
     gap: theme.spacing(1),
     padding: theme.spacing(2),
     marginBottom: theme.spacing(1),
+    border: `2px solid ${theme.palette.primary.main}`,
+    borderRadius: 8,
+    backgroundColor: theme.palette.background.paper,
+  },
+  editActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    paddingTop: theme.spacing(0.5),
+    flexShrink: 0,
+  },
+  confirmButton: {
+    padding: 4,
+    color: theme.palette.primary.main,
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
+  },
+
+  // ── Compact mode ───────────────────────────────────────────────────────
+  compactItem: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: theme.spacing(1.5, 2),
+    marginBottom: theme.spacing(1),
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: 8,
     backgroundColor: theme.palette.background.paper,
   },
+  compactSummary: {
+    flex: 1,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    color: theme.palette.text.primary,
+  },
+  emptyLabel: {
+    fontStyle: 'italic',
+    color: theme.palette.text.disabled,
+  },
+  compactActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    marginLeft: theme.spacing(1),
+    flexShrink: 0,
+  },
+  editButton: {
+    textTransform: 'none',
+    borderColor: theme.palette.divider,
+    color: theme.palette.text.primary,
+    '&:hover': {
+      borderColor: theme.palette.text.secondary,
+    },
+  },
+
+  // ── Shared ─────────────────────────────────────────────────────────────
   itemContent: {
     flex: 1,
     minWidth: 0,
@@ -50,12 +105,6 @@ export const useArrayStyles = makeStyles((theme: Theme) => ({
       border: 0,
     },
   },
-  itemActions: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-    paddingTop: theme.spacing(1),
-  },
   actionButton: {
     padding: 4,
     color: theme.palette.text.secondary,
@@ -63,24 +112,15 @@ export const useArrayStyles = makeStyles((theme: Theme) => ({
       color: theme.palette.text.primary,
     },
   },
-  addButton: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing(0.5),
-    width: '100%',
-    padding: theme.spacing(1),
-    border: `1px dashed ${theme.palette.divider}`,
-    borderRadius: 8,
-    color: theme.palette.text.secondary,
-    cursor: 'pointer',
-    backgroundColor: 'transparent',
-    fontSize: theme.typography.body2.fontSize,
-    fontFamily: theme.typography.fontFamily,
-    transition: 'border-color 0.15s, color 0.15s',
+  deleteButton: {
+    padding: 4,
+    color: theme.palette.text.disabled,
     '&:hover': {
-      borderColor: theme.palette.primary.main,
-      color: theme.palette.primary.main,
+      color: theme.palette.text.primary,
     },
+  },
+  addButton: {
+    textTransform: 'none',
+    marginTop: theme.spacing(0.5),
   },
 }));
