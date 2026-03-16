@@ -6,8 +6,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { Alert, AlertTitle } from '@material-ui/lab';
 import { Box, Button, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import Form from '@rjsf/material-ui';
-import validator from '@rjsf/validator-ajv8';
+import { RjsfForm } from '@openchoreo/backstage-design-system';
 import type { RJSFSchema, UiSchema } from '@rjsf/utils';
 import type { IChangeEvent } from '@rjsf/core';
 import { useWorkflowSchema } from '../../hooks/useWorkflowSchema';
@@ -111,11 +110,10 @@ export const WorkflowTriggerContent = () => {
 
         {hasSchema ? (
           <Box className={classes.formContainer}>
-            <Form
+            <RjsfForm
               schema={schema as RJSFSchema}
               uiSchema={uiSchema}
               formData={formData}
-              validator={validator}
               onChange={e => setFormData(e.formData || {})}
               onSubmit={handleSubmit}
             >
@@ -128,7 +126,7 @@ export const WorkflowTriggerContent = () => {
               >
                 {submitting ? 'Triggering...' : 'Trigger Workflow'}
               </Button>
-            </Form>
+            </RjsfForm>
           </Box>
         ) : (
           <Box>

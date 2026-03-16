@@ -10,8 +10,7 @@ import {
 } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import DeleteIcon from '@material-ui/icons/Delete';
-import Form from '@rjsf/material-ui';
-import validator from '@rjsf/validator-ajv8';
+import { RjsfForm } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
 import { makeStyles } from '@material-ui/core/styles';
 
@@ -100,17 +99,11 @@ export const OverrideSection: FC<OverrideSectionProps> = ({
     if (schema) {
       return (
         <>
-          <Form
+          <RjsfForm
             schema={schema}
             formData={formData}
             onChange={handleFormChange}
-            validator={validator}
-            liveValidate={false}
-            showErrorList={false}
-            noHtml5Validate
-          >
-            <div />
-          </Form>
+          />
 
           <Button
             onClick={onDelete}

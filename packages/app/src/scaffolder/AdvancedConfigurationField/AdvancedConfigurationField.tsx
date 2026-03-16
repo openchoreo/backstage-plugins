@@ -11,8 +11,7 @@ import {
 } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { JSONSchema7 } from 'json-schema';
-import Form from '@rjsf/material-ui';
-import validator from '@rjsf/validator-ajv8';
+import { RjsfForm } from '@openchoreo/backstage-design-system';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 
 const useStyles = makeStyles(theme => ({
@@ -176,19 +175,13 @@ export const AdvancedConfigurationField = ({
     <Box>
       {/* Essential fields - always visible */}
       {essentialFieldCount > 0 && (
-        <Form
+        <RjsfForm
           schema={essentialSchema}
           uiSchema={essentialUiSchema}
           formData={essentialFormData}
           onChange={handleEssentialChange}
-          validator={validator}
-          liveValidate={false}
-          showErrorList={false}
-          noHtml5Validate
           tagName="div"
-        >
-          <div style={{ display: 'none' }} />
-        </Form>
+        />
       )}
 
       {/* Advanced fields - collapsible */}
@@ -219,19 +212,13 @@ export const AdvancedConfigurationField = ({
             <Typography variant="body2" color="textSecondary" paragraph>
               These settings have sensible defaults. Modify only if needed.
             </Typography>
-            <Form
+            <RjsfForm
               schema={advancedSchema}
               uiSchema={advancedUiSchema}
               formData={advancedFormData}
               onChange={handleAdvancedChange}
-              validator={validator}
-              liveValidate={false}
-              showErrorList={false}
-              noHtml5Validate
               tagName="div"
-            >
-              <div style={{ display: 'none' }} />
-            </Form>
+            />
           </AccordionDetails>
         </Accordion>
       )}

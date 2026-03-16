@@ -23,9 +23,7 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import DeleteIcon from '@material-ui/icons/Delete';
 import { useApi } from '@backstage/core-plugin-api';
-import Form from '@rjsf/material-ui';
 import { JSONSchema7 } from 'json-schema';
-import validator from '@rjsf/validator-ajv8';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 import { TraitPicker } from '../TraitsField/TraitPicker';
 import { NoTraitsAvailableMessage } from '../TraitsField/NoTraitsAvailableMessage';
@@ -43,6 +41,7 @@ import {
   YamlEditor,
   TraitConfigToggle,
 } from '@openchoreo/backstage-plugin-react';
+import { RjsfForm } from '@openchoreo/backstage-design-system';
 import type { SecretOption } from '@openchoreo/backstage-design-system';
 import type {
   WorkloadEndpoint as CommonWorkloadEndpoint,
@@ -310,15 +309,12 @@ const TraitInstanceAccordion = ({
             formData={localConfig}
             onChange={handleLocalConfigChange}
           >
-            <Form
+            <RjsfForm
               schema={trait.schema}
               uiSchema={trait.uiSchema || {}}
               formData={localConfig}
               onChange={data => handleLocalConfigChange(data.formData)}
-              validator={validator}
-              showErrorList={false}
               tagName="div"
-              children={<div />}
             />
           </TraitConfigToggle>
         )}
@@ -1077,19 +1073,13 @@ export const WorkloadDetailsField = ({
         <>
           {/* Essential fields */}
           {essentialFieldCount > 0 && (
-            <Form
+            <RjsfForm
               schema={essentialSchema}
               uiSchema={essentialUiSchema}
               formData={essentialFormData}
               onChange={handleCtdEssentialChange}
-              validator={validator}
-              liveValidate={false}
-              showErrorList={false}
-              noHtml5Validate
               tagName="div"
-            >
-              <div style={{ display: 'none' }} />
-            </Form>
+            />
           )}
         </>
       )}
@@ -1289,19 +1279,13 @@ export const WorkloadDetailsField = ({
               <Typography variant="body2" color="textSecondary" paragraph>
                 These settings have sensible defaults. Modify only if needed.
               </Typography>
-              <Form
+              <RjsfForm
                 schema={advancedSchema}
                 uiSchema={advancedUiSchema}
                 formData={advancedFormData}
                 onChange={handleCtdAdvancedChange}
-                validator={validator}
-                liveValidate={false}
-                showErrorList={false}
-                noHtml5Validate
                 tagName="div"
-              >
-                <div style={{ display: 'none' }} />
-              </Form>
+              />
             </AccordionDetails>
           </Accordion>
         </>

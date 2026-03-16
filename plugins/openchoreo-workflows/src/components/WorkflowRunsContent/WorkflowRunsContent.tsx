@@ -35,13 +35,13 @@ import CloseIcon from '@material-ui/icons/Close';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import EventNoteOutlinedIcon from '@material-ui/icons/EventNoteOutlined';
-import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import type { RJSFSchema, UiSchema } from '@rjsf/utils';
 import type { IChangeEvent } from '@rjsf/core';
 import {
   VerticalTabNav,
   TabItemData,
+  RjsfForm,
 } from '@openchoreo/backstage-design-system';
 import {
   DetailPageLayout,
@@ -474,11 +474,10 @@ const TriggerForm = ({
       {mode === 'form' ? (
         hasSchema ? (
           <Box className={classes.triggerFormContainer}>
-            <Form
+            <RjsfForm
               schema={schema as RJSFSchema}
               uiSchema={uiSchema}
               formData={formData}
-              validator={validator}
               onChange={e => setFormData(e.formData || {})}
               onSubmit={handleSubmit}
             >
@@ -499,7 +498,7 @@ const TriggerForm = ({
                   Cancel
                 </Button>
               </Box>
-            </Form>
+            </RjsfForm>
           </Box>
         ) : (
           <Box>

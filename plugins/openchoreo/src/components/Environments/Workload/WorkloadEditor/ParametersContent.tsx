@@ -1,9 +1,8 @@
 import { useMemo } from 'react';
 import { Box, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import Form from '@rjsf/material-ui';
+import { RjsfForm } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
-import validator from '@rjsf/validator-ajv8';
 import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
 
 interface ParametersContentProps {
@@ -109,21 +108,16 @@ export const ParametersContent = ({
 
   return (
     <Box className={classes.formRoot}>
-      <Form
+      <RjsfForm
         schema={jsonSchema}
         uiSchema={uiSchema}
         formData={parameters}
         onChange={data => onChange(data.formData)}
-        validator={validator}
         liveValidate
-        showErrorList={false}
-        noHtml5Validate
         omitExtraData
         tagName="div"
         disabled={disabled}
-      >
-        <div />
-      </Form>
+      />
     </Box>
   );
 };
