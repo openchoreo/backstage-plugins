@@ -30,6 +30,7 @@ type ResourceKind =
   | 'traits'
   | 'workflows'
   | 'component-workflows'
+  | 'components'
   | 'environments'
   | 'dataplanes'
   | 'workflowplanes'
@@ -48,6 +49,7 @@ const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
   traits: 'Trait',
   workflows: 'Workflow',
   'component-workflows': 'ComponentWorkflow',
+  components: 'Component',
   environments: 'Environment',
   dataplanes: 'DataPlane',
   workflowplanes: 'WorkflowPlane',
@@ -70,6 +72,7 @@ const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
   'workflowplanes',
   'observabilityplanes',
   'workflows',
+  'components',
   'deploymentpipelines',
   'clustercomponenttypes',
   'clustertraits',
@@ -182,6 +185,9 @@ export class PlatformResourceService {
     resourceName: string,
     token?: string,
   ): Promise<ResourceCRUDResponse> {
+    if (kind === 'components') {
+      throw new Error('Delete is not supported for components');
+    }
     if (this.kindHasNewApi(kind)) {
       return this.deleteResourceDefinitionNew(
         kind,
@@ -336,6 +342,22 @@ export class PlatformResourceService {
             {
               params: {
                 path: { namespaceName, deploymentPipelineName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
+          resource = data as Record<string, unknown>;
+          break;
+        }
+        case 'components': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+            {
+              params: {
+                path: { namespaceName, componentName: resourceName },
               },
             },
           );
@@ -580,6 +602,22 @@ export class PlatformResourceService {
             {
               params: {
                 path: { namespaceName, deploymentPipelineName: resourceName },
+              },
+              body,
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
+          break;
+        }
+        case 'components': {
+          const { error, response } = await client.PUT(
+            '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+            {
+              params: {
+                path: { namespaceName, componentName: resourceName },
               },
               body,
             },

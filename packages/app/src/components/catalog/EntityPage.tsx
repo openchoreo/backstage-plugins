@@ -253,6 +253,10 @@ const serviceEntityPage = (
       <OverviewContent />
     </EntityLayout.Route>
 
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </EntityLayout.Route>
+
     <EntityLayout.Route path="/workflows" title="Build">
       <FeatureGatedContent feature="workflows">
         <Workflows />
@@ -346,6 +350,10 @@ const genericComponentEntityPage = (
   <EntityLayoutWithDelete>
     <EntityLayout.Route path="/" title="Overview">
       <OverviewContent />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/workflows" title="Build">

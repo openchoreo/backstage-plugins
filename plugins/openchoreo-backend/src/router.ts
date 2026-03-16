@@ -50,6 +50,7 @@ const VALID_PLATFORM_RESOURCE_KINDS = [
   'traits',
   'workflows',
   'component-workflows',
+  'components',
   'environments',
   'dataplanes',
   'workflowplanes',

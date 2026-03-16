@@ -121,6 +121,9 @@ export function useYamlEditor({
       await onSave(parsed);
       // Update original content to current content after successful save
       setOriginalContent(content);
+    } catch {
+      // Error is expected to be handled by the onSave callback (e.g. via snackbar).
+      // We catch here to prevent unhandled rejections from reaching React's error boundary.
     } finally {
       setIsSaving(false);
     }
