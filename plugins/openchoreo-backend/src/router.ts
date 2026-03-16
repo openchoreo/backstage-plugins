@@ -1458,7 +1458,10 @@ export async function createRouter({
         deploymentPipelineName?: string;
       };
 
-      if (!deploymentPipelineName) {
+      if (
+        typeof deploymentPipelineName !== 'string' ||
+        deploymentPipelineName.trim().length === 0
+      ) {
         throw new InputError('deploymentPipelineName is required');
       }
 
