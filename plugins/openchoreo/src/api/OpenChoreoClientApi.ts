@@ -289,6 +289,7 @@ export type PlatformResourceKind =
   | 'traits'
   | 'workflows'
   | 'component-workflows'
+  | 'components'
   | 'environments'
   | 'dataplanes'
   | 'workflowplanes'

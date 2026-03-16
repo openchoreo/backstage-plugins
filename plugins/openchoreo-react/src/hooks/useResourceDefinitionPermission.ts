@@ -6,6 +6,7 @@ import type {
   ResourcePermission,
 } from '@backstage/plugin-permission-common';
 import {
+  openchoreoComponentUpdatePermission,
   openchoreoComponentTypeUpdatePermission,
   openchoreoComponentTypeDeletePermission,
   openchoreoTraitUpdatePermission,
@@ -66,6 +67,11 @@ type PermissionEntry = {
  * Cluster-scoped kinds use BasicPermission (no resource context).
  */
 const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
+  component: {
+    update: openchoreoComponentUpdatePermission,
+    delete: openchoreoComponentUpdatePermission, // Components use update permission only; delete is not exposed in the UI
+    isResourceScoped: true,
+  },
   componenttype: {
     update: openchoreoComponentTypeUpdatePermission,
     delete: openchoreoComponentTypeDeletePermission,

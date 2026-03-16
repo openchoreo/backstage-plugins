@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useContext } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import { useApi, alertApiRef } from '@backstage/core-plugin-api';
 import {
   useNavigate,
   UNSAFE_NavigationContext as NavigationContext,
@@ -7,7 +8,6 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
-import Snackbar from '@material-ui/core/Snackbar';
 import Alert from '@material-ui/lab/Alert';
 import {
   YamlEditor,
@@ -71,13 +71,12 @@ export function ResourceDefinitionTab() {
   const { entity } = useEntity();
   const navigate = useNavigate();
   const navigation = useContext(NavigationContext);
+  const alertApi = useApi(alertApiRef);
   const { canUpdate, loading: permissionsLoading } =
     useResourceDefinitionPermission();
 
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>(
-    'success',
+  const [errorNotification, setErrorNotification] = useState<string | null>(
+    null,
   );
   const [unsavedChangesDialogOpen, setUnsavedChangesDialogOpen] =
     useState(false);
@@ -99,35 +98,26 @@ export function ResourceDefinitionTab() {
     refresh,
   } = useResourceDefinition({ entity });
 
-  // Show success/error snackbar
-  const showSnackbar = useCallback(
-    (message: string, severity: 'success' | 'error') => {
-      setSnackbarMessage(message);
-      setSnackbarSeverity(severity);
-      setSnackbarOpen(true);
-    },
-    [],
-  );
-
   // Handle save
   const handleSave = useCallback(
     async (content: Record<string, unknown>) => {
+      setErrorNotification(null);
       try {
         await save(content);
-        showSnackbar('Resource saved successfully', 'success');
+        alertApi.post({
+          message: 'Resource saved successfully',
+          severity: 'success',
+          display: 'transient',
+        });
       } catch (err) {
-        if (isForbiddenError(err)) {
-          showSnackbar(
-            'You do not have permission to save this resource. Contact your administrator.',
-            'error',
-          );
-        } else {
-          showSnackbar(getErrorMessage(err), 'error');
-        }
+        const message = isForbiddenError(err)
+          ? 'You do not have permission to save this resource. Contact your administrator.'
+          : getErrorMessage(err);
+        setErrorNotification(message);
         throw err; // Re-throw so useYamlEditor knows it failed
       }
     },
-    [save, showSnackbar],
+    [save, alertApi],
   );
 
   // YAML editor hook - only initialize when we have definition
@@ -242,7 +232,7 @@ export function ResourceDefinitionTab() {
           Definition editing is not supported for {entity.kind} entities.
         </Typography>
         <Typography variant="body2" color="textSecondary">
-          Supported kinds: ComponentType, TraitType, Workflow,
+          Supported kinds: Component, ComponentType, TraitType, Workflow,
           ComponentWorkflow, Environment, DataPlane, WorkflowPlane,
           ObservabilityPlane, DeploymentPipeline, ClusterComponentType,
           ClusterTraitType, ClusterWorkflow, ClusterDataPlane,
@@ -313,6 +303,17 @@ export function ResourceDefinitionTab() {
         />
       )}
 
+      {errorNotification && (
+        <Box mb={2}>
+          <Alert
+            severity="error"
+            onClose={() => setErrorNotification(null)}
+          >
+            {errorNotification}
+          </Alert>
+        </Box>
+      )}
+
       <Box className={classes.editorContainer}>
         <YamlEditor
           content={yamlEditor.content}
@@ -340,21 +341,6 @@ export function ResourceDefinitionTab() {
         onStay={handleStay}
         changeCount={1}
       />
-
-      {/* Snackbar for success/error messages */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity={snackbarSeverity}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

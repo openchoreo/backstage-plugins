@@ -12,6 +12,12 @@ export function isForbiddenError(error: unknown): boolean {
  */
 export function getErrorMessage(error: unknown): string {
   if (error instanceof ResponseError) {
+    // The cause is the deserialized error from the backend with the actual message
+    const cause = error.cause as Error | undefined;
+    if (cause?.message) {
+      return cause.message;
+    }
+    // Fallback to body fields
     const body = error.body as
       | { error?: { message?: string }; message?: string }
       | undefined;
