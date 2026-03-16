@@ -14,7 +14,7 @@ import { useNotification } from '../../../hooks';
 import { NotificationBanner } from '../../Environments/components';
 import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../constants';
 import { RoleDialog } from './RoleDialog';
-import { RolesTable, BindingSummary } from './RolesTable';
+import { RolesTable, type BindingSummary } from './RolesTable';
 import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
@@ -98,33 +98,6 @@ export const ClusterRolesContent = ({
     }
   };
 
-  const handleForceDelete = async (
-    name: string,
-    _bindings: BindingSummary[],
-  ) => {
-    try {
-      const result = await client.forceDeleteClusterRole(name);
-
-      if (result.roleDeleted) {
-        await fetchRoles();
-        notification.showSuccess(
-          `Cluster role "${name}" and its bindings deleted successfully`,
-        );
-      } else {
-        const failedNames = result.failedBindings.map(f => f.name).join(', ');
-        notification.showError(
-          `Role not deleted. Failed to remove binding(s): ${failedNames}`,
-        );
-      }
-    } catch (err) {
-      notification.showError(
-        `Failed to delete role: ${
-          err instanceof Error ? err.message : 'Unknown error'
-        }`,
-      );
-    }
-  };
-
   const handleSaveRole = async (role: ClusterRole) => {
     if (editingRole) {
       await updateRole(role.name, { actions: role.actions });
@@ -196,7 +169,6 @@ export const ClusterRolesContent = ({
         onEdit={handleEditRole}
         onDelete={handleDeleteRole}
         onCheckBindings={handleCheckBindings}
-        onForceDelete={handleForceDelete}
       />
 
       <RoleDialog

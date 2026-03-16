@@ -59,7 +59,6 @@ interface RolesTableProps {
   onEdit: (role: RoleRow) => void;
   onDelete: (name: string) => Promise<void>;
   onCheckBindings: (name: string) => Promise<BindingSummary[]>;
-  onForceDelete: (name: string, bindings: BindingSummary[]) => Promise<void>;
 }
 
 export const RolesTable = ({
@@ -73,7 +72,6 @@ export const RolesTable = ({
   onEdit,
   onDelete,
   onCheckBindings,
-  onForceDelete,
 }: RolesTableProps) => {
   const classes = useStyles();
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,12 +114,6 @@ export const RolesTable = ({
   const confirmDeleteRole = async () => {
     if (!roleToDelete) return;
     await onDelete(roleToDelete);
-    closeDeleteDialog();
-  };
-
-  const confirmForceDelete = async () => {
-    if (!roleToDelete) return;
-    await onForceDelete(roleToDelete, activeBindings);
     closeDeleteDialog();
   };
 
@@ -277,16 +269,15 @@ export const RolesTable = ({
               <Box className={classes.warningHeader}>
                 <WarningIcon className={classes.warningIcon} />
                 <Typography variant="h4" component="span">
-                  {scopeLabel} Has Active Bindings
+                  Cannot Delete {scopeLabel}
                 </Typography>
               </Box>
             </DialogTitle>
             <DialogContent>
               <DialogContentText>
-                The {scopeLabel.toLowerCase()} "{roleToDelete}" has{' '}
-                {activeBindings.length} active binding
-                {activeBindings.length > 1 ? 's' : ''}. Deleting it will also
-                remove the following bindings:
+                This role is referenced by the following binding
+                {activeBindings.length > 1 ? 's' : ''}. Remove the role from
+                these bindings to proceed with deletion.
               </DialogContentText>
               <List className={classes.mappingsList} dense>
                 {activeBindings.map((binding, index) => {
@@ -310,14 +301,7 @@ export const RolesTable = ({
             </DialogContent>
             <DialogActions>
               <Button onClick={closeDeleteDialog} variant="contained">
-                Cancel
-              </Button>
-              <Button
-                onClick={confirmForceDelete}
-                className={classes.deleteButton}
-                variant="outlined"
-              >
-                Force Delete
+                Close
               </Button>
             </DialogActions>
           </>

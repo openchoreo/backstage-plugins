@@ -32,7 +32,6 @@ import type {
   NamespaceRoleBindingRequest,
   ClusterRoleBindingFilters,
   NamespaceRoleBindingFilters,
-  ForceDeleteResult,
   RoleBindingsLookup,
   ResourceEventsResponse,
   PodLogsResponse,
@@ -1232,29 +1231,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
         namespace,
       )}/roles/${encodeURIComponent(name)}/bindings`,
-    );
-  }
-
-  async forceDeleteClusterRole(name: string): Promise<ForceDeleteResult> {
-    return this.apiFetch<ForceDeleteResult>(
-      `${API_ENDPOINTS.CLUSTER_ROLES}/${encodeURIComponent(name)}/force-delete`,
-      {
-        method: 'POST',
-      },
-    );
-  }
-
-  async forceDeleteNamespaceRole(
-    namespace: string,
-    name: string,
-  ): Promise<ForceDeleteResult> {
-    return this.apiFetch<ForceDeleteResult>(
-      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
-        namespace,
-      )}/roles/${encodeURIComponent(name)}/force-delete`,
-      {
-        method: 'POST',
-      },
     );
   }
 
