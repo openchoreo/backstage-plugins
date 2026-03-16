@@ -307,10 +307,7 @@ export function ResourceDefinitionTab() {
 
       {errorNotification && (
         <Box mb={2}>
-          <Alert
-            severity="error"
-            onClose={() => setErrorNotification(null)}
-          >
+          <Alert severity="error" onClose={() => setErrorNotification(null)}>
             {errorNotification}
           </Alert>
         </Box>
