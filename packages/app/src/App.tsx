@@ -39,6 +39,7 @@ import { EnvironmentFormWithYamlFieldExtension } from './scaffolder/EnvironmentF
 import { DeploymentPipelineFormWithYamlFieldExtension } from './scaffolder/DeploymentPipelineFormWithYaml';
 import { WorkloadDetailsFieldExtension } from './scaffolder/WorkloadDetailsField';
 import { CustomTemplateListPage } from './components/scaffolder/CustomTemplateListPage';
+import { CustomReviewStep } from './scaffolder/CustomReviewState';
 import { ScaffolderPreselectionProvider } from './scaffolder/ScaffolderPreselectionContext';
 import { ScaffolderLayout } from './scaffolder/ScaffolderLayout';
 import { orgPlugin } from '@backstage/plugin-org';
@@ -238,6 +239,7 @@ const routes = (
               }}
               components={{
                 EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
+                ReviewStepComponent: CustomReviewStep,
               }}
             />
           </ScaffolderPreselectionProvider>
