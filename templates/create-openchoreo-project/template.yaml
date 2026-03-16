@@ -15,6 +15,7 @@ spec:
       required:
         - namespace_name
         - project_name
+        - deployment_pipeline
       properties:
         project_name:
           title: Project Name
@@ -41,7 +42,7 @@ spec:
         deployment_pipeline:
           title: Deployment Pipeline
           type: string
-          description: Deployment pipeline to associate with this project (optional)
+          description: Deployment pipeline to associate with this project
           ui:field: DeploymentPipelinePicker
         # owner:
         #   title: Owner

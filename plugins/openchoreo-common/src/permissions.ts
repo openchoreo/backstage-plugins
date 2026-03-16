@@ -119,6 +119,16 @@ export const openchoreoProjectReadPermission = createPermission({
 });
 
 /**
+ * Permission to update a project.
+ * Resource-based: requires the specific project context.
+ */
+export const openchoreoProjectUpdatePermission = createPermission({
+  name: 'openchoreo.project.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_PROJECT,
+});
+
+/**
  * Permission to read/view namespace details.
  * Namespace-scoped permission.
  */
@@ -763,6 +773,7 @@ export const openchoreoPermissions = [
   openchoreoWorkloadUpdatePermission,
   openchoreoProjectCreatePermission,
   openchoreoProjectReadPermission,
+  openchoreoProjectUpdatePermission,
   openchoreoNamespaceReadPermission,
   openchoreoNamespaceCreatePermission,
   openchoreoEnvironmentCreatePermission,
@@ -853,6 +864,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.component.create.scoped': 'component:create',
   'openchoreo.project.create.scoped': 'project:create',
   'openchoreo.project.read': 'project:view',
+  'openchoreo.project.update': 'project:update',
   'openchoreo.namespace.read': 'namespace:view',
   'openchoreo.namespace.create': 'namespace:create',
   'openchoreo.environment.create': 'environment:create',
