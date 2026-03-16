@@ -296,11 +296,13 @@ export function ResourceDefinitionTab() {
       </Box>
 
       {!canUpdate && (
-        <NotificationBanner
-          variant="info"
-          showIcon
-          message="You have read-only access to this resource definition. Contact your administrator for edit permissions."
-        />
+        <Box mb={1}>
+          <NotificationBanner
+            variant="info"
+            showIcon
+            message="You have read-only access to this resource definition. Contact your administrator for edit permissions."
+          />
+        </Box>
       )}
 
       {errorNotification && (
