@@ -185,6 +185,9 @@ export class PlatformResourceService {
     resourceName: string,
     token?: string,
   ): Promise<ResourceCRUDResponse> {
+    if (kind === 'components') {
+      throw new Error('Delete is not supported for components');
+    }
     if (this.kindHasNewApi(kind)) {
       return this.deleteResourceDefinitionNew(
         kind,
