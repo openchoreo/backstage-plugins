@@ -11,6 +11,7 @@ import {
   Chip,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import { Alert } from '@material-ui/lab';
 import { useActions, ClusterRole, NamespaceRole } from '../hooks';
 import {
   SCOPE_CLUSTER,
@@ -54,28 +55,199 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const ROLE_TEMPLATES = {
+  admin: {
+    name: 'admin',
+    label: 'Admin',
+    actions: ['*'],
+  },
+  platformEngineer: {
+    name: 'platform-engineer',
+    label: 'Platform Engineer',
+    actions: [
+      'namespace:view',
+      'namespace:create',
+      'namespace:update',
+      'namespace:delete',
+      'project:view',
+      'project:create',
+      'project:update',
+      'project:delete',
+      'component:view',
+      'component:create',
+      'component:update',
+      'component:delete',
+      'componentrelease:view',
+      'componentrelease:create',
+      'releasebinding:view',
+      'releasebinding:create',
+      'releasebinding:update',
+      'releasebinding:delete',
+      'environment:view',
+      'environment:create',
+      'environment:update',
+      'environment:delete',
+      'dataplane:view',
+      'dataplane:create',
+      'dataplane:update',
+      'dataplane:delete',
+      'workflowplane:view',
+      'workflowplane:create',
+      'workflowplane:update',
+      'workflowplane:delete',
+      'observabilityplane:view',
+      'observabilityplane:create',
+      'observabilityplane:update',
+      'observabilityplane:delete',
+      'componenttype:view',
+      'componenttype:create',
+      'componenttype:update',
+      'componenttype:delete',
+      'trait:view',
+      'trait:create',
+      'trait:update',
+      'trait:delete',
+      'workflow:view',
+      'workflow:create',
+      'workflow:update',
+      'workflow:delete',
+      'workflowrun:view',
+      'workflowrun:create',
+      'deploymentpipeline:view',
+      'deploymentpipeline:create',
+      'deploymentpipeline:update',
+      'deploymentpipeline:delete',
+      'secretreference:view',
+      'secretreference:create',
+      'secretreference:update',
+      'secretreference:delete',
+      'workload:view',
+      'workload:create',
+      'workload:update',
+      'workload:delete',
+      'logs:view',
+      'metrics:view',
+      'traces:view',
+      'alerts:view',
+      'incidents:view',
+      'rcareport:view',
+      'rcareport:update',
+      'observabilityalertsnotificationchannel:view',
+      'observabilityalertsnotificationchannel:create',
+      'observabilityalertsnotificationchannel:update',
+      'observabilityalertsnotificationchannel:delete',
+      'clusterdataplane:view',
+      'clusterdataplane:create',
+      'clusterdataplane:update',
+      'clusterdataplane:delete',
+      'clusterworkflowplane:view',
+      'clusterworkflowplane:create',
+      'clusterworkflowplane:update',
+      'clusterworkflowplane:delete',
+      'clusterobservabilityplane:view',
+      'clusterobservabilityplane:create',
+      'clusterobservabilityplane:update',
+      'clusterobservabilityplane:delete',
+      'clustercomponenttype:view',
+      'clustercomponenttype:create',
+      'clustercomponenttype:update',
+      'clustercomponenttype:delete',
+      'clustertrait:view',
+      'clustertrait:create',
+      'clustertrait:update',
+      'clustertrait:delete',
+      'clusterworkflow:view',
+      'clusterworkflow:create',
+      'clusterworkflow:update',
+      'clusterworkflow:delete',
+    ],
+  },
   developer: {
     name: 'developer',
     label: 'Developer',
     actions: [
+      'clusterdataplane:view',
+      'clusterworkflowplane:view',
+      'clusterobservabilityplane:view',
+      'clustercomponenttype:view',
+      'clustertrait:view',
+      'clusterworkflow:view',
+      'namespace:view',
+      'environment:view',
+      'deploymentpipeline:view',
+      'dataplane:view',
+      'workflowplane:view',
+      'observabilityplane:view',
+      'componenttype:view',
+      'trait:view',
+      'workflow:view',
+      'project:view',
       'component:view',
       'component:create',
       'component:update',
+      'component:delete',
+      'componentrelease:view',
+      'componentrelease:create',
+      'releasebinding:view',
       'releasebinding:create',
-      'namespace:view',
-      'environment:view',
-      'project:view',
+      'releasebinding:update',
+      'workflowrun:view',
+      'workflowrun:create',
+      'secretreference:view',
+      'secretreference:create',
+      'secretreference:update',
+      'secretreference:delete',
+      'workload:view',
+      'workload:create',
+      'workload:update',
+      'workload:delete',
+      'logs:view',
+      'metrics:view',
+      'traces:view',
+      'alerts:view',
+      'rcareport:view',
     ],
   },
-  viewer: {
-    name: 'viewer',
-    label: 'Viewer',
-    actions: ['component:view', 'project:view', 'namespace:view'],
-  },
-  admin: {
-    name: 'admin',
-    label: 'Admin (All)',
-    actions: ['*'],
+  sre: {
+    name: 'sre',
+    label: 'SRE',
+    actions: [
+      'clusterdataplane:view',
+      'clusterworkflowplane:view',
+      'clusterobservabilityplane:view',
+      'clustercomponenttype:view',
+      'clustertrait:view',
+      'clusterworkflow:view',
+      'namespace:view',
+      'environment:view',
+      'deploymentpipeline:view',
+      'dataplane:view',
+      'workflowplane:view',
+      'observabilityplane:view',
+      'componenttype:view',
+      'trait:view',
+      'workflow:view',
+      'project:view',
+      'component:view',
+      'componentrelease:view',
+      'componentrelease:create',
+      'releasebinding:view',
+      'releasebinding:create',
+      'releasebinding:update',
+      'workflowrun:view',
+      'workflowrun:create',
+      'workload:view',
+      'workload:create',
+      'secretreference:view',
+      'secretreference:update',
+      'logs:view',
+      'metrics:view',
+      'traces:view',
+      'alerts:view',
+      'incidents:view',
+      'incidents:update',
+      'rcareport:view',
+      'rcareport:update',
+    ],
   },
 };
 
@@ -204,6 +376,15 @@ export const RoleDialog = ({
           </Typography>
         </DialogTitle>
         <DialogContent>
+          {error && (
+            <Alert
+              severity="error"
+              style={{ marginBottom: 16 }}
+              onClose={() => setError(null)}
+            >
+              {error}
+            </Alert>
+          )}
           <Box className={classes.templateSection}>
             <Typography variant="subtitle2" gutterBottom>
               Quick Start Templates
@@ -267,12 +448,6 @@ export const RoleDialog = ({
               </Typography>
             )}
           </Box>
-
-          {error && (
-            <Typography color="error" variant="body2">
-              {error}
-            </Typography>
-          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} disabled={saving}>
