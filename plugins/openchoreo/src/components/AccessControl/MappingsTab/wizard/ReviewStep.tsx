@@ -6,7 +6,8 @@ import { NotificationBanner } from '@openchoreo/backstage-plugin-react';
 import { WizardStepProps, WizardRoleMapping } from './types';
 import { getEntitlementClaim } from '../../hooks';
 import { BindingType } from '../MappingDialog';
-import { SCOPE_CLUSTER } from '../../constants';
+import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../../constants';
+import { useSharedStyles } from '../styles';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -160,6 +161,7 @@ export const ReviewStep = ({
   namespace,
 }: ReviewStepProps) => {
   const classes = useStyles();
+  const sharedClasses = useSharedStyles();
 
   const selectedUserTypeInfo = userTypes.find(
     ut => ut.type === state.subjectType,
@@ -245,7 +247,19 @@ export const ReviewStep = ({
             {state.roleMappings.map((rm, idx) => (
               <Box key={idx} className={classes.mappingRow}>
                 <Box className={classes.mappingRoleColumn}>
-                  <Typography variant="body2">{rm.role}</Typography>
+                  <Typography variant="body2">
+                    {rm.role}
+                    {bindingType === SCOPE_NAMESPACE &&
+                      !rm.roleNamespace &&
+                      rm.role && (
+                        <Chip
+                          label="Cluster"
+                          size="small"
+                          variant="outlined"
+                          className={sharedClasses.clusterRoleChip}
+                        />
+                      )}
+                  </Typography>
                 </Box>
                 <Box className={classes.mappingScopeColumn}>
                   {buildScopePath(rm, bindingType, namespace)}

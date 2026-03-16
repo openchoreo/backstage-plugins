@@ -14,6 +14,7 @@ import { makeStyles } from '@material-ui/core/styles';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import BlockIcon from '@material-ui/icons/Block';
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
+import { useSharedStyles } from './styles';
 
 const useStyles = makeStyles(theme => ({
   summaryCard: {
@@ -107,6 +108,7 @@ const useStyles = makeStyles(theme => ({
 export interface BindingDetailMapping {
   role: string;
   scope: string;
+  isClusterRole?: boolean;
 }
 
 export interface BindingDetail {
@@ -131,6 +133,7 @@ export const BindingDetailDialog = ({
   scopeLabel,
 }: BindingDetailDialogProps) => {
   const classes = useStyles();
+  const sharedClasses = useSharedStyles();
 
   if (!binding) return null;
 
@@ -220,7 +223,17 @@ export const BindingDetailDialog = ({
               {binding.roleMappings.map((rm, idx) => (
                 <Box key={idx} className={classes.mappingRow}>
                   <Box className={classes.mappingRoleColumn}>
-                    <Typography variant="body2">{rm.role}</Typography>
+                    <Typography variant="body2">
+                      {rm.role}
+                      {rm.isClusterRole && (
+                        <Chip
+                          label="Cluster"
+                          size="small"
+                          variant="outlined"
+                          className={sharedClasses.clusterRoleChip}
+                        />
+                      )}
+                    </Typography>
                   </Box>
                   <Box className={classes.mappingScopeColumn}>{rm.scope}</Box>
                 </Box>

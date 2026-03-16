@@ -238,6 +238,7 @@ export const NamespaceRoleBindingsContent = ({
       roleMappings: (binding.roleMappings || []).map(rm => ({
         role: rm.role?.name || '\u2014',
         scope: formatNsMappingScope(rm.scope, binding.namespace),
+        isClusterRole: !rm.role?.namespace,
       })),
     });
   };

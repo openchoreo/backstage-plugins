@@ -9,6 +9,7 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Chip,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
@@ -21,6 +22,7 @@ import { Tooltip } from '@material-ui/core';
 import { WizardStepProps, WizardRoleMapping } from './types';
 import { BindingType } from '../MappingDialog';
 import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../../constants';
+import { useSharedStyles } from '../styles';
 import { useNamespaces, useProjects, useComponents } from '../../hooks';
 
 const useStyles = makeStyles(theme => ({
@@ -328,6 +330,7 @@ export const RoleMappingsStep = ({
   namespace,
 }: RoleMappingsStepProps) => {
   const classes = useStyles();
+  const sharedClasses = useSharedStyles();
 
   const { namespaces, loading: namespacesLoading } = useNamespaces();
 
@@ -634,6 +637,16 @@ export const RoleMappingsStep = ({
               <Box className={classes.roleColumn}>
                 <Typography className={classes.confirmedText}>
                   {mapping.role || '\u2014'}
+                  {bindingType === SCOPE_NAMESPACE &&
+                    !mapping.roleNamespace &&
+                    mapping.role && (
+                      <Chip
+                        label="Cluster"
+                        size="small"
+                        variant="outlined"
+                        className={sharedClasses.clusterRoleChip}
+                      />
+                    )}
                 </Typography>
               </Box>
               <Box className={classes.scopeColumn}>
