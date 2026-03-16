@@ -44,6 +44,7 @@ export const DeploymentPipelinePicker = ({
       return undefined;
     }
 
+    setPipelines([]);
     setLoading(true);
     setFetchError(undefined);
 
@@ -68,6 +69,7 @@ export const DeploymentPipelinePicker = ({
         }
       } catch (err) {
         if (!ignore) {
+          setPipelines([]);
           setFetchError(err instanceof Error ? err.message : String(err));
         }
       } finally {
