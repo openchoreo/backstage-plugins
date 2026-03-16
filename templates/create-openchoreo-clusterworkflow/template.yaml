@@ -46,6 +46,9 @@ spec:
           type: string
           description: Edit the ClusterWorkflow YAML definition
           ui:field: ClusterWorkflowYamlEditor
+          ui:backstage:
+            review:
+              mask: '(YAML definition provided)'
   steps:
     - id: create-openchoreo-clusterworkflow
       name: Create OpenChoreo ClusterWorkflow

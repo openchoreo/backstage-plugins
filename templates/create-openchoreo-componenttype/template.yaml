@@ -52,6 +52,9 @@ spec:
           type: string
           description: Edit the ComponentType YAML definition
           ui:field: ComponentTypeYamlEditor
+          ui:backstage:
+            review:
+              mask: '(YAML definition provided)'
   steps:
     - id: create-openchoreo-componenttype
       name: Create OpenChoreo ComponentType

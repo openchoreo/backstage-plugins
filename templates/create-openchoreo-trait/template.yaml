@@ -47,6 +47,9 @@ spec:
           type: string
           description: Edit the Trait YAML definition
           ui:field: TraitYamlEditor
+          ui:backstage:
+            review:
+              mask: '(YAML definition provided)'
   steps:
     - id: create-openchoreo-trait
       name: Create OpenChoreo Trait

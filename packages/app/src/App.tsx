@@ -38,7 +38,6 @@ import { DeploymentPipelinePickerFieldExtension } from './scaffolder/DeploymentP
 import { EnvironmentFormWithYamlFieldExtension } from './scaffolder/EnvironmentFormWithYaml';
 import { DeploymentPipelineFormWithYamlFieldExtension } from './scaffolder/DeploymentPipelineFormWithYaml';
 import { WorkloadDetailsFieldExtension } from './scaffolder/WorkloadDetailsField';
-import { CustomReviewStep } from './scaffolder/CustomReviewState';
 import { CustomTemplateListPage } from './components/scaffolder/CustomTemplateListPage';
 import { ScaffolderPreselectionProvider } from './scaffolder/ScaffolderPreselectionContext';
 import { ScaffolderLayout } from './scaffolder/ScaffolderLayout';
@@ -238,7 +237,6 @@ const routes = (
                   'Create new resources using standard templates in your organization',
               }}
               components={{
-                ReviewStepComponent: CustomReviewStep,
                 EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
               }}
             />

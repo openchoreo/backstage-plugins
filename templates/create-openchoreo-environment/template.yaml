@@ -19,6 +19,25 @@ spec:
           title: ' '
           type: object
           ui:field: EnvironmentFormWithYaml
+          properties:
+            environment_name:
+              title: Environment Name
+              type: string
+            namespace_name:
+              title: Namespace
+              type: string
+            displayName:
+              title: Display Name
+              type: string
+            description:
+              title: Description
+              type: string
+            dataPlaneRef:
+              title: Data Plane
+              type: string
+            isProduction:
+              title: Production
+              type: boolean
   steps:
     - id: create-openchoreo-environment
       name: Create OpenChoreo Environment

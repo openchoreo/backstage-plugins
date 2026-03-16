@@ -40,6 +40,9 @@ spec:
           type: string
           description: Edit the ClusterComponentType YAML definition
           ui:field: ClusterComponentTypeYamlEditor
+          ui:backstage:
+            review:
+              mask: '(YAML definition provided)'
   steps:
     - id: create-openchoreo-clustercomponenttype
       name: Create OpenChoreo ClusterComponentType
