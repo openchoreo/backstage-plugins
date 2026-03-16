@@ -103,36 +103,6 @@ export const NamespaceRolesContent = ({
     }
   };
 
-  const handleForceDelete = async (
-    name: string,
-    _bindings: BindingSummary[],
-  ) => {
-    try {
-      const result = await client.forceDeleteNamespaceRole(
-        selectedNamespace,
-        name,
-      );
-
-      if (result.roleDeleted) {
-        await fetchRoles();
-        notification.showSuccess(
-          `Namespace role "${name}" and its bindings deleted successfully`,
-        );
-      } else {
-        const failedNames = result.failedBindings.map(f => f.name).join(', ');
-        notification.showError(
-          `Role not deleted. Failed to remove binding(s): ${failedNames}`,
-        );
-      }
-    } catch (err) {
-      notification.showError(
-        `Failed to delete role: ${
-          err instanceof Error ? err.message : 'Unknown error'
-        }`,
-      );
-    }
-  };
-
   const handleSaveRole = async (role: RoleInput) => {
     if (editingRole) {
       await updateRole(role.name, { actions: role.actions });
@@ -228,7 +198,6 @@ export const NamespaceRolesContent = ({
               onEdit={handleEditRole}
               onDelete={handleDeleteRole}
               onCheckBindings={handleCheckBindings}
-              onForceDelete={handleForceDelete}
             />
           )}
         </>

@@ -244,13 +244,6 @@ export interface UserTypeConfig {
   authMechanisms: AuthMechanismConfig[];
 }
 
-/** Result of a force-delete operation */
-export interface ForceDeleteResult {
-  deletedBindings: string[];
-  failedBindings: { name: string; error: string }[];
-  roleDeleted: boolean;
-}
-
 /** Bindings lookup result for a role */
 export interface RoleBindingsLookup {
   clusterRoleBindings: ClusterRoleBinding[];
@@ -793,15 +786,6 @@ export interface OpenChoreoClientApi {
     namespace: string,
     name: string,
   ): Promise<RoleBindingsLookup>;
-
-  /** Force-delete a cluster role (delete bindings first, then the role) */
-  forceDeleteClusterRole(name: string): Promise<ForceDeleteResult>;
-
-  /** Force-delete a namespace role (delete bindings first, then the role) */
-  forceDeleteNamespaceRole(
-    namespace: string,
-    name: string,
-  ): Promise<ForceDeleteResult>;
 }
 
 // ============================================

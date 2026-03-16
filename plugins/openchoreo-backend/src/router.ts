@@ -1363,32 +1363,6 @@ export async function createRouter({
     },
   );
 
-  // Force-delete a cluster role (delete bindings first, then the role)
-  router.post(
-    '/clusterroles/:name/force-delete',
-    requireAuth,
-    async (req, res) => {
-      const { name } = req.params;
-
-      const userToken = getUserTokenFromRequest(req);
-      res.json(await authzService.forceDeleteClusterRole(name, userToken));
-    },
-  );
-
-  // Force-delete a namespace role (delete bindings first, then the role)
-  router.post(
-    '/namespaces/:namespace/roles/:name/force-delete',
-    requireAuth,
-    async (req, res) => {
-      const { namespace, name } = req.params;
-
-      const userToken = getUserTokenFromRequest(req);
-      res.json(
-        await authzService.forceDeleteNamespaceRole(namespace, name, userToken),
-      );
-    },
-  );
-
   // =====================
   // Hierarchy Data Endpoints (for Access Control autocomplete)
   // =====================
