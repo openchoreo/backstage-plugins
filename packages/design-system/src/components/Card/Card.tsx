@@ -6,7 +6,7 @@ const useStyles = makeStyles(theme => ({
   card: {
     display: 'flex',
     flexDirection: 'column',
-    borderRadius: theme.shape.borderRadius,
+    borderRadius: 12,
   },
   interactive: {
     cursor: 'pointer',

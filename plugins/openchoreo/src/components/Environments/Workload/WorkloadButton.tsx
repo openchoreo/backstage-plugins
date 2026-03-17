@@ -148,14 +148,14 @@ export const WorkloadButton = ({
   return (
     <Box
       display="flex"
-      justifyContent="space-between"
+      alignItems="center"
       flexDirection="column"
       gridGap={16}
-      mt="auto"
+      mt={2}
     >
       {alertMessage && <Alert severity={alertSeverity}>{alertMessage}</Alert>}
       <Tooltip title={deniedTooltip}>
-        <span style={{ alignSelf: 'flex-end' }}>
+        <span>
           <Button
             onClick={onConfigureWorkload}
             disabled={
