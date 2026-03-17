@@ -19,7 +19,6 @@ import {
   DialogContent,
   DialogActions,
 } from '@material-ui/core';
-import Autocomplete from '@material-ui/lab/Autocomplete';
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
 import EditIcon from '@material-ui/icons/Edit';
@@ -112,8 +111,6 @@ const PROTOCOL_TYPES = [
   'GraphQL',
 ] as const;
 
-const SCHEMA_TYPE_OPTIONS = ['openapi', 'asyncapi', 'grpc', 'graphql'];
-
 const ENDPOINT_TYPE_TO_SCHEMA_TYPE: Record<string, string> = {
   HTTP: 'openapi',
   gRPC: 'grpc',
@@ -122,6 +119,13 @@ const ENDPOINT_TYPE_TO_SCHEMA_TYPE: Record<string, string> = {
 };
 
 const SCHEMA_REQUIRED_TYPES = new Set(['gRPC']);
+
+const SCHEMA_TYPE_DISPLAY_NAMES: Record<string, string> = {
+  openapi: 'OpenAPI',
+  asyncapi: 'AsyncAPI',
+  grpc: 'Protobuf',
+  graphql: 'GraphQL',
+};
 
 const SCHEMA_TYPE_LANGUAGE_MAP: Record<string, StreamParser<any>> = {
   openapi: yamlMode,
@@ -270,6 +274,17 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   const [schemaDialogOpen, setSchemaDialogOpen] = useState(false);
 
   const isSchemaRequired = SCHEMA_REQUIRED_TYPES.has(endpoint.type);
+  const schemaType = ENDPOINT_TYPE_TO_SCHEMA_TYPE[endpoint.type];
+  const schemaDisplayName = schemaType
+    ? SCHEMA_TYPE_DISPLAY_NAMES[schemaType]
+    : undefined;
+
+  let schemaHelperText = 'Optional';
+  if (isSchemaRequired) {
+    schemaHelperText = `Required - ${schemaDisplayName} schema`;
+  } else if (schemaDisplayName) {
+    schemaHelperText = `${schemaDisplayName} schema (optional)`;
+  }
 
   // Read-only display
   if (!isEditing) {
@@ -282,9 +297,6 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
             </Typography>
             <Typography className={classes.readOnlyDetails}>
               {endpoint.type} : {endpoint.port}
-              {endpoint.schema?.type && (
-                <> &middot; Schema: {endpoint.schema.type}</>
-              )}
               {(() => {
                 const vis = endpoint.visibility ?? [];
                 const displayVis = vis.includes('project')
@@ -428,35 +440,7 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
                 </FormGroup>
               </FormControl>
             </Grid>
-            <Grid item xs={6}>
-              <Autocomplete
-                freeSolo
-                options={SCHEMA_TYPE_OPTIONS}
-                value={endpoint.schema?.type || ''}
-                onInputChange={(_e, newValue) =>
-                  onChange('schema', {
-                    ...endpoint.schema,
-                    type: newValue,
-                  })
-                }
-                disabled={disabled}
-                renderInput={params => (
-                  <TextField
-                    {...params}
-                    label="Schema Type"
-                    variant="outlined"
-                    size="small"
-                    placeholder="e.g., openapi, grpc"
-                    helperText={
-                      isSchemaRequired
-                        ? 'Required for gRPC endpoints'
-                        : 'Optional'
-                    }
-                  />
-                )}
-              />
-            </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12}>
               <Box className={classes.schemaContentField}>
                 <TextField
                   label="Schema Content"
@@ -472,16 +456,12 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
                   size="small"
                   disabled
                   placeholder={
-                    isSchemaRequired
-                      ? 'Required - click to add'
+                    schemaDisplayName
+                      ? `Paste your ${schemaDisplayName} schema`
                       : 'Optional - click to add'
                   }
                   error={isSchemaRequired && !endpoint.schema?.content?.trim()}
-                  helperText={
-                    isSchemaRequired
-                      ? 'Required - paste your protobuf schema'
-                      : 'Optional'
-                  }
+                  helperText={schemaHelperText}
                   InputProps={{
                     readOnly: true,
                   }}
