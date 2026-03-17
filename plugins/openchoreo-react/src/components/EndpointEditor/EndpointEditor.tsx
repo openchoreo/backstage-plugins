@@ -1,4 +1,4 @@
-import { useState, type FC } from 'react';
+import { useEffect, useMemo, useState, type FC } from 'react';
 import {
   TextField,
   IconButton,
@@ -25,7 +25,12 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import EditIcon from '@material-ui/icons/Edit';
 import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
-import OpenInNewIcon from '@material-ui/icons/OpenInNew';
+import CodeMirror from '@uiw/react-codemirror';
+import { StreamLanguage } from '@codemirror/language';
+import type { StreamParser } from '@codemirror/language';
+import { yaml as yamlMode } from '@codemirror/legacy-modes/mode/yaml';
+import { protobuf as protobufMode } from '@codemirror/legacy-modes/mode/protobuf';
+import { graphql as graphqlMode } from 'codemirror-graphql/cm6-legacy/mode';
 import type { WorkloadEndpoint } from '@openchoreo/backstage-plugin-common';
 
 const useStyles = makeStyles((theme: Theme) => ({
@@ -82,6 +87,20 @@ const useStyles = makeStyles((theme: Theme) => ({
     alignItems: 'flex-start',
     gap: theme.spacing(0.5),
   },
+  schemaEditor: {
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 4,
+    overflow: 'hidden',
+    '& .cm-editor': { height: '400px' },
+    '& .cm-scroller': { overflow: 'auto' },
+  },
+  schemaEditorError: {
+    border: `1px solid ${theme.palette.error.main}`,
+    borderRadius: 4,
+    overflow: 'hidden',
+    '& .cm-editor': { height: '400px' },
+    '& .cm-scroller': { overflow: 'auto' },
+  },
 }));
 
 const PROTOCOL_TYPES = [
@@ -103,6 +122,13 @@ const ENDPOINT_TYPE_TO_SCHEMA_TYPE: Record<string, string> = {
 };
 
 const SCHEMA_REQUIRED_TYPES = new Set(['gRPC']);
+
+const SCHEMA_TYPE_LANGUAGE_MAP: Record<string, StreamParser<any>> = {
+  openapi: yamlMode,
+  asyncapi: yamlMode,
+  grpc: protobufMode,
+  graphql: graphqlMode,
+};
 
 const VISIBILITY_LABELS: Record<string, string> = {
   external: 'External',
@@ -128,34 +154,51 @@ const VISIBILITY_OPTIONS: ReadonlyArray<{
   { value: 'external', label: VISIBILITY_LABELS.external, disabled: false },
 ];
 
-/** Dialog for editing schema content in a larger text area */
+/** Dialog for editing schema content with syntax highlighting */
 const SchemaContentDialog: FC<{
   open: boolean;
   content: string;
+  schemaType?: string;
   onApply: (content: string) => void;
   onClose: () => void;
   required: boolean;
-}> = ({ open, content, onApply, onClose, required }) => {
+}> = ({ open, content, schemaType, onApply, onClose, required }) => {
+  const classes = useStyles();
   const [draft, setDraft] = useState(content);
+  const showError = required && !draft.trim();
+
+  // Reset draft when dialog opens
+  useEffect(() => {
+    if (open) setDraft(content);
+  }, [open, content]);
+
+  const languageExtension = useMemo(() => {
+    const mode =
+      SCHEMA_TYPE_LANGUAGE_MAP[schemaType?.toLowerCase() ?? ''] ?? yamlMode;
+    return StreamLanguage.define(mode);
+  }, [schemaType]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Schema Content</DialogTitle>
+      <DialogTitle>Edit Schema Content</DialogTitle>
       <DialogContent>
-        <TextField
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          multiline
-          minRows={12}
-          maxRows={30}
-          fullWidth
-          variant="outlined"
-          placeholder="Paste your schema definition here"
-          error={required && !draft.trim()}
-          helperText={
-            required && !draft.trim() ? 'Schema content is required' : ''
+        <div
+          className={
+            showError ? classes.schemaEditorError : classes.schemaEditor
           }
-        />
+        >
+          <CodeMirror
+            value={draft}
+            onChange={setDraft}
+            extensions={[languageExtension]}
+            theme="light"
+          />
+        </div>
+        {showError && (
+          <Typography variant="caption" color="error" style={{ marginTop: 4 }}>
+            Schema content is required for this endpoint type.
+          </Typography>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
@@ -163,6 +206,7 @@ const SchemaContentDialog: FC<{
           onClick={() => onApply(draft)}
           color="primary"
           variant="contained"
+          disabled={showError}
         >
           Apply
         </Button>
@@ -446,14 +490,15 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
                   size="small"
                   onClick={() => setSchemaDialogOpen(true)}
                   disabled={disabled}
-                  aria-label="Expand schema editor"
+                  aria-label="Edit schema"
                 >
-                  <OpenInNewIcon fontSize="small" />
+                  <EditIcon fontSize="small" />
                 </IconButton>
               </Box>
               <SchemaContentDialog
                 open={schemaDialogOpen}
                 content={endpoint.schema?.content || ''}
+                schemaType={endpoint.schema?.type}
                 required={isSchemaRequired}
                 onApply={content => {
                   onChange('schema', {
