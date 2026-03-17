@@ -63,12 +63,30 @@ interface WorkloadEndpoint {
   port: number;
   visibility?: string[];
   schema?: {
+    type?: string;
     content?: string;
   };
 }
 
-/** Endpoint types that represent actual APIs and should be cataloged as Endpoint entities */
-const API_ENDPOINT_TYPES = new Set(['REST', 'GraphQL', 'gRPC']);
+// Dependency connection from workload.spec.dependencies.endpoints
+interface WorkloadDependency {
+  project?: string;
+  component: string;
+  name: string;
+  visibility: string;
+}
+
+// Collected workload data for two-pass entity resolution
+interface ComponentWorkloadData {
+  component: NewComponent;
+  projectName: string;
+  /** Endpoints with schemas — used for API entities and providesApis */
+  schemaEndpoints: Record<string, WorkloadEndpoint>;
+  /** All endpoints — used for consumed API resolution */
+  allEndpoints: Record<string, WorkloadEndpoint>;
+  /** Dependency connections from workload spec */
+  dependencies: WorkloadDependency[];
+}
 import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
@@ -458,7 +476,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             );
           }
 
-          // Get components for each project
+          // Two-pass component processing:
+          // Pass 1: Collect workload data for all components in this namespace
+          // Pass 2: Create entities with cross-component dependency resolution
+
+          const componentWorkloadMap = new Map<string, ComponentWorkloadData>();
+
+          // Pass 1 — Collect workload data
           for (const project of projects) {
             const projectName = getName(project)!;
 
@@ -484,11 +508,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                 `Found ${components.length} components in project: ${projectName}`,
               );
 
-              // New API does not return deleted resources, no filtering needed
               for (const component of components) {
                 const componentName = getName(component)!;
 
-                // Fetch workload to check for endpoints
                 try {
                   const { data: workloadListData, error: workloadError } =
                     await client.GET(
@@ -501,64 +523,105 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                       },
                     );
 
-                  const workloadData = workloadListData?.items?.[0];
-                  const endpoints = workloadData
-                    ? this.extractWorkloadEndpoints(workloadData)
-                    : {};
-                  const hasEndpoints = Object.keys(endpoints).length > 0;
-
-                  if (!workloadError && hasEndpoints) {
-                    const providesApis = Object.keys(endpoints).map(
-                      epName => `${componentName}-${epName}`,
+                  if (workloadError) {
+                    this.logger.warn(
+                      `Workload fetch returned error for component ${componentName} in project ${projectName}, namespace ${nsName}: ${JSON.stringify(
+                        workloadError,
+                      )}`,
                     );
-
-                    const componentEntity = this.translateNewComponentToEntity(
-                      component,
-                      nsName,
-                      projectName,
-                      providesApis,
-                    );
-                    allEntities.push(componentEntity);
-
-                    // Create API entities from workload endpoints
-                    const apiEntities = this.createApiEntitiesFromNewWorkload(
-                      componentName,
-                      endpoints,
-                      nsName,
-                      projectName,
-                    );
-                    allEntities.push(...apiEntities);
-                  } else {
-                    if (workloadError) {
-                      this.logger.warn(
-                        `Workload fetch returned error for component ${componentName} in project ${projectName}, namespace ${nsName}: ${JSON.stringify(
-                          workloadError,
-                        )}`,
-                      );
-                    }
-                    const componentEntity = this.translateNewComponentToEntity(
-                      component,
-                      nsName,
-                      projectName,
-                    );
-                    allEntities.push(componentEntity);
                   }
+
+                  const workloadData = workloadListData?.items?.[0];
+                  const allEndpoints = workloadData
+                    ? this.extractAllWorkloadEndpoints(workloadData)
+                    : {};
+                  const schemaEndpoints =
+                    this.extractSchemaEndpoints(allEndpoints);
+                  const dependencies = workloadData
+                    ? this.extractWorkloadDependencies(workloadData)
+                    : [];
+
+                  componentWorkloadMap.set(componentName, {
+                    component,
+                    projectName,
+                    schemaEndpoints,
+                    allEndpoints,
+                    dependencies,
+                  });
                 } catch (error) {
                   this.logger.warn(
                     `Failed to fetch workload for component ${componentName}: ${error}`,
                   );
-                  const componentEntity = this.translateNewComponentToEntity(
+                  // Store component without workload data so it still gets an entity
+                  componentWorkloadMap.set(componentName, {
                     component,
-                    nsName,
                     projectName,
-                  );
-                  allEntities.push(componentEntity);
+                    schemaEndpoints: {},
+                    allEndpoints: {},
+                    dependencies: [],
+                  });
                 }
               }
             } catch (error) {
               this.logger.warn(
                 `Failed to fetch components for project ${projectName} in namespace ${nsName}: ${error}`,
               );
+            }
+          }
+
+          // Pass 2 — Create entities with dependency resolution
+          for (const [
+            componentName,
+            workloadData,
+          ] of componentWorkloadMap.entries()) {
+            const { component, projectName, schemaEndpoints, dependencies } =
+              workloadData;
+
+            // providesApis: schema endpoints on this component
+            const providesApis =
+              Object.keys(schemaEndpoints).length > 0
+                ? Object.keys(schemaEndpoints).map(
+                    epName => `${componentName}-${epName}`,
+                  )
+                : undefined;
+
+            // consumesApis: dependencies where target endpoint has a schema
+            const consumesApis: string[] = [];
+            for (const dep of dependencies) {
+              const targetData = componentWorkloadMap.get(dep.component);
+              if (!targetData) {
+                this.logger.debug(
+                  `Dependency target component "${dep.component}" not found in namespace "${nsName}" for component "${componentName}" — skipping consumesApi`,
+                );
+                continue;
+              }
+              const targetEndpoint = targetData.allEndpoints[dep.name];
+              if (
+                targetEndpoint?.schema?.content &&
+                targetEndpoint.schema.content.trim().length > 0
+              ) {
+                consumesApis.push(`${dep.component}-${dep.name}`);
+              }
+            }
+
+            const componentEntity = this.translateNewComponentToEntity(
+              component,
+              nsName,
+              projectName,
+              providesApis,
+              consumesApis.length > 0 ? consumesApis : undefined,
+            );
+            allEntities.push(componentEntity);
+
+            // Create API entities from schema endpoints
+            if (Object.keys(schemaEndpoints).length > 0) {
+              const apiEntities = this.createApiEntitiesFromNewWorkload(
+                componentName,
+                schemaEndpoints,
+                nsName,
+                projectName,
+              );
+              allEntities.push(...apiEntities);
             }
           }
 
@@ -1536,6 +1599,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     namespaceName: string,
     projectName: string,
     providesApis?: string[],
+    consumesApis?: string[],
   ): Entity {
     const componentName = getName(component)!;
     const componentTypeRef = component.spec?.componentType;
@@ -1574,6 +1638,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         locationKey: `provider:${this.getProviderName()}`,
       },
       providesApis,
+      consumesApis,
     );
   }
 
@@ -1952,21 +2017,41 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   }
 
   /**
-   * Extracts workload endpoints from new API Workload resource.
-   * Workload spec is Record<string, unknown>, endpoints live under spec.endpoints.
+   * Extracts all workload endpoints from new API Workload resource.
    */
-  private extractWorkloadEndpoints(
+  private extractAllWorkloadEndpoints(
     workload: NewWorkload,
   ): Record<string, WorkloadEndpoint> {
     const spec = workload.spec as
       | { endpoints?: Record<string, WorkloadEndpoint> }
       | undefined;
-    const allEndpoints = spec?.endpoints || {};
+    return spec?.endpoints || {};
+  }
+
+  /**
+   * Filters endpoints to only those with schema content attached.
+   * These are the endpoints that should produce Backstage API entities.
+   */
+  private extractSchemaEndpoints(
+    allEndpoints: Record<string, WorkloadEndpoint>,
+  ): Record<string, WorkloadEndpoint> {
     return Object.fromEntries(
-      Object.entries(allEndpoints).filter(([, ep]) =>
-        API_ENDPOINT_TYPES.has(ep.type),
+      Object.entries(allEndpoints).filter(
+        ([, ep]) => ep.schema?.content && ep.schema.content.trim().length > 0,
       ),
     );
+  }
+
+  /**
+   * Extracts dependency connections from a workload's spec.
+   */
+  private extractWorkloadDependencies(
+    workload: NewWorkload,
+  ): WorkloadDependency[] {
+    const spec = workload.spec as
+      | { dependencies?: { endpoints?: WorkloadDependency[] } }
+      | undefined;
+    return spec?.dependencies?.endpoints || [];
   }
 
   /**
@@ -1988,8 +2073,14 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           name: `${componentName}-${endpointName}`,
           namespace: namespaceName,
           title: `${componentName} ${endpointName} API`,
-          description: `${endpoint.type} endpoint for ${componentName} service on port ${endpoint.port}`,
-          tags: ['openchoreo', 'api', endpoint.type.toLowerCase()],
+          description: `${
+            endpoint.schema?.type || endpoint.type
+          } API for ${componentName} on port ${endpoint.port}`,
+          tags: [
+            'openchoreo',
+            'api',
+            (endpoint.schema?.type || endpoint.type).toLowerCase(),
+          ],
           annotations: {
             'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
             'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
@@ -2007,7 +2098,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           },
         },
         spec: {
-          type: this.mapWorkloadEndpointTypeToBackstageType(endpoint.type),
+          type: this.mapSchemaTypeToBackstageApiType(endpoint.schema?.type),
           lifecycle: 'production',
           owner: this.defaultOwner,
           system: projectName,
@@ -2039,22 +2130,22 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     return `${namespaceName}/${name}`;
   }
 
-  private mapWorkloadEndpointTypeToBackstageType(workloadType: string): string {
-    switch (workloadType) {
-      case 'REST':
-      case 'HTTP':
+  private mapSchemaTypeToBackstageApiType(
+    schemaType: string | undefined,
+  ): string {
+    if (!schemaType) return 'openapi';
+    const normalized = schemaType.toLowerCase();
+    switch (normalized) {
+      case 'openapi':
         return 'openapi';
-      case 'GraphQL':
+      case 'graphql':
         return 'graphql';
-      case 'gRPC':
+      case 'grpc':
         return 'grpc';
-      case 'Websocket':
+      case 'asyncapi':
         return 'asyncapi';
-      case 'TCP':
-      case 'UDP':
-        return 'openapi'; // Default to openapi for TCP/UDP
       default:
-        return 'openapi';
+        return normalized;
     }
   }
 

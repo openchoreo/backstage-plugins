@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import { useState, type FC } from 'react';
 import {
   TextField,
   IconButton,
@@ -14,12 +14,18 @@ import {
   FormControlLabel,
   Checkbox,
   InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
 import EditIcon from '@material-ui/icons/Edit';
 import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
+import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import type { WorkloadEndpoint } from '@openchoreo/backstage-plugin-common';
 
 const useStyles = makeStyles((theme: Theme) => ({
@@ -71,17 +77,32 @@ const useStyles = makeStyles((theme: Theme) => ({
     margin: 0,
     marginBottom: theme.spacing(0.5),
   },
+  schemaContentField: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: theme.spacing(0.5),
+  },
 }));
 
 const PROTOCOL_TYPES = [
   'TCP',
   'UDP',
   'HTTP',
-  'REST',
   'gRPC',
   'Websocket',
   'GraphQL',
 ] as const;
+
+const SCHEMA_TYPE_OPTIONS = ['openapi', 'asyncapi', 'grpc', 'graphql'];
+
+const ENDPOINT_TYPE_TO_SCHEMA_TYPE: Record<string, string> = {
+  HTTP: 'openapi',
+  gRPC: 'grpc',
+  GraphQL: 'graphql',
+  Websocket: 'asyncapi',
+};
+
+const SCHEMA_REQUIRED_TYPES = new Set(['gRPC']);
 
 const VISIBILITY_LABELS: Record<string, string> = {
   external: 'External',
@@ -106,6 +127,49 @@ const VISIBILITY_OPTIONS: ReadonlyArray<{
   { value: 'internal', label: VISIBILITY_LABELS.internal, disabled: false },
   { value: 'external', label: VISIBILITY_LABELS.external, disabled: false },
 ];
+
+/** Dialog for editing schema content in a larger text area */
+const SchemaContentDialog: FC<{
+  open: boolean;
+  content: string;
+  onApply: (content: string) => void;
+  onClose: () => void;
+  required: boolean;
+}> = ({ open, content, onApply, onClose, required }) => {
+  const [draft, setDraft] = useState(content);
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Schema Content</DialogTitle>
+      <DialogContent>
+        <TextField
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          multiline
+          minRows={12}
+          maxRows={30}
+          fullWidth
+          variant="outlined"
+          placeholder="Paste your schema definition here"
+          error={required && !draft.trim()}
+          helperText={
+            required && !draft.trim() ? 'Schema content is required' : ''
+          }
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button
+          onClick={() => onApply(draft)}
+          color="primary"
+          variant="contained"
+        >
+          Apply
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
 
 export interface EndpointEditorProps {
   /** The endpoint name */
@@ -159,6 +223,9 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   onRemove,
 }) => {
   const classes = useStyles();
+  const [schemaDialogOpen, setSchemaDialogOpen] = useState(false);
+
+  const isSchemaRequired = SCHEMA_REQUIRED_TYPES.has(endpoint.type);
 
   // Read-only display
   if (!isEditing) {
@@ -171,6 +238,9 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
             </Typography>
             <Typography className={classes.readOnlyDetails}>
               {endpoint.type} : {endpoint.port}
+              {endpoint.schema?.type && (
+                <> &middot; Schema: {endpoint.schema.type}</>
+              )}
               {(() => {
                 const vis = endpoint.visibility ?? [];
                 const displayVis = vis.includes('project')
@@ -232,7 +302,18 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
                 <InputLabel>Type</InputLabel>
                 <Select
                   value={endpoint.type || 'HTTP'}
-                  onChange={e => onChange('type', e.target.value)}
+                  onChange={e => {
+                    const newType = e.target.value as string;
+                    onChange('type', newType);
+                    const suggestedSchemaType =
+                      ENDPOINT_TYPE_TO_SCHEMA_TYPE[newType];
+                    if (suggestedSchemaType) {
+                      onChange('schema', {
+                        ...endpoint.schema,
+                        type: suggestedSchemaType,
+                      });
+                    }
+                  }}
                   label="Type"
                   disabled={disabled}
                 >
@@ -304,39 +385,84 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
               </FormControl>
             </Grid>
             <Grid item xs={6}>
-              <TextField
-                label="Schema Type"
+              <Autocomplete
+                freeSolo
+                options={SCHEMA_TYPE_OPTIONS}
                 value={endpoint.schema?.type || ''}
-                onChange={e =>
+                onInputChange={(_e, newValue) =>
                   onChange('schema', {
                     ...endpoint.schema,
-                    type: e.target.value,
+                    type: newValue,
                   })
                 }
-                fullWidth
-                variant="outlined"
-                size="small"
                 disabled={disabled}
-                placeholder="e.g., REST, GraphQL"
-                helperText="Optional"
+                renderInput={params => (
+                  <TextField
+                    {...params}
+                    label="Schema Type"
+                    variant="outlined"
+                    size="small"
+                    placeholder="e.g., openapi, grpc"
+                    helperText={
+                      isSchemaRequired
+                        ? 'Required for gRPC endpoints'
+                        : 'Optional'
+                    }
+                  />
+                )}
               />
             </Grid>
             <Grid item xs={6}>
-              <TextField
-                label="Schema Content"
-                value={endpoint.schema?.content || ''}
-                onChange={e =>
+              <Box className={classes.schemaContentField}>
+                <TextField
+                  label="Schema Content"
+                  value={
+                    endpoint.schema?.content
+                      ? `${endpoint.schema.content.substring(0, 60)}${
+                          endpoint.schema.content.length > 60 ? '...' : ''
+                        }`
+                      : ''
+                  }
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                  disabled
+                  placeholder={
+                    isSchemaRequired
+                      ? 'Required - click to add'
+                      : 'Optional - click to add'
+                  }
+                  error={isSchemaRequired && !endpoint.schema?.content?.trim()}
+                  helperText={
+                    isSchemaRequired
+                      ? 'Required - paste your protobuf schema'
+                      : 'Optional'
+                  }
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                />
+                <IconButton
+                  size="small"
+                  onClick={() => setSchemaDialogOpen(true)}
+                  disabled={disabled}
+                  aria-label="Expand schema editor"
+                >
+                  <OpenInNewIcon fontSize="small" />
+                </IconButton>
+              </Box>
+              <SchemaContentDialog
+                open={schemaDialogOpen}
+                content={endpoint.schema?.content || ''}
+                required={isSchemaRequired}
+                onApply={content => {
                   onChange('schema', {
                     ...endpoint.schema,
-                    content: e.target.value,
-                  })
-                }
-                fullWidth
-                variant="outlined"
-                size="small"
-                disabled={disabled}
-                placeholder="Schema definition"
-                helperText="Optional"
+                    content,
+                  });
+                  setSchemaDialogOpen(false);
+                }}
+                onClose={() => setSchemaDialogOpen(false)}
               />
             </Grid>
           </Grid>

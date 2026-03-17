@@ -166,6 +166,7 @@ export function translateComponentToEntity(
   projectName: string,
   config: ComponentEntityTranslationConfig,
   providesApis?: string[],
+  consumesApis?: string[],
 ): Entity {
   const componentEntity: Entity = {
     apiVersion: 'backstage.io/v1alpha1',
@@ -223,6 +224,7 @@ export function translateComponentToEntity(
       owner: config.defaultOwner,
       system: projectName, // Link to the parent system (project)
       ...(providesApis && providesApis.length > 0 && { providesApis }),
+      ...(consumesApis && consumesApis.length > 0 && { consumesApis }),
     },
   };
 
