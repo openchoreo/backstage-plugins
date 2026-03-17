@@ -40,6 +40,9 @@ spec:
           type: string
           description: Edit the ClusterTrait YAML definition
           ui:field: ClusterTraitYamlEditor
+          ui:backstage:
+            review:
+              mask: '(YAML definition provided)'
   steps:
     - id: create-openchoreo-clustertrait
       name: Create OpenChoreo ClusterTrait

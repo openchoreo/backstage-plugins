@@ -53,6 +53,9 @@ spec:
           type: string
           description: Edit the Workflow YAML definition
           ui:field: ComponentWorkflowYamlEditor
+          ui:backstage:
+            review:
+              mask: '(YAML definition provided)'
   steps:
     - id: create-openchoreo-componentworkflow
       name: Create OpenChoreo Workflow

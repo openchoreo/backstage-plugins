@@ -212,6 +212,9 @@ describe('CtdToTemplateConverter', () => {
       expect(options.ctdSchema.properties.port).toBeDefined();
       expect(options.ctdSchema.properties.port.type).toBe('integer');
       expect(options.ctdSchema.required).toEqual(['port']);
+
+      // workloadDetails should not have properties (custom ComponentReview handles display)
+      expect(workloadDetails.properties).toBeUndefined();
     });
 
     it('should pass workloadType in ui:options for conditional endpoint rendering', () => {

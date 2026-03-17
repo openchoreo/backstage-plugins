@@ -317,6 +317,13 @@ const theme = createUnifiedTheme({
         },
       },
     },
+    BackstageMetadataTableTitleCell: {
+      styleOverrides: {
+        root: {
+          width: '1%',
+        },
+      },
+    },
     MuiTableCell: {
       styleOverrides: {
         root: {
