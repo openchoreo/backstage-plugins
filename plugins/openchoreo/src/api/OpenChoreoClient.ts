@@ -9,6 +9,7 @@ import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
   OpenChoreoClientApi,
   ActionInfo,
+  ComponentReleaseResponse,
   CreateReleaseResponse,
   SchemaResponse,
   ReleaseBindingsResponse,
@@ -52,6 +53,7 @@ const API_ENDPOINTS = {
   DASHBOARD_BINDINGS_COUNT: '/dashboard/bindings-count',
   CREATE_RELEASE: '/create-release',
   DEPLOY_RELEASE: '/deploy-release',
+  COMPONENT_RELEASE: '/component-release',
   COMPONENT_RELEASE_SCHEMA: '/component-release-schema',
   RELEASE_BINDINGS: '/release-bindings',
   UPDATE_RELEASE_BINDING: '/update-release-binding',
@@ -305,6 +307,23 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       params: entityMetadataToParams(metadata),
       body: { releaseName },
     });
+  }
+
+  async fetchComponentRelease(
+    entity: Entity,
+    releaseName: string,
+  ): Promise<ComponentReleaseResponse> {
+    const metadata = extractEntityMetadata(entity);
+
+    return this.apiFetch<ComponentReleaseResponse>(
+      API_ENDPOINTS.COMPONENT_RELEASE,
+      {
+        params: {
+          namespaceName: metadata.namespace,
+          releaseName,
+        },
+      },
+    );
   }
 
   async fetchComponentReleaseSchema(

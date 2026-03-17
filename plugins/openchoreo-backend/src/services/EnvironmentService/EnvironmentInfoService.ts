@@ -1061,6 +1061,61 @@ export class EnvironmentInfoService implements EnvironmentService {
   }
 
   /**
+   * Fetches a specific component release by name.
+   *
+   * @param {Object} request - The request parameters
+   * @param {string} request.namespaceName - Name of the namespace
+   * @param {string} request.releaseName - Name of the component release
+   * @returns {Promise<any>} Component release details including frozen workload spec
+   */
+  async fetchComponentRelease(
+    request: {
+      namespaceName: string;
+      releaseName: string;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(`Fetching component release ${request.releaseName}`);
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/componentreleases/{componentReleaseName}',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              componentReleaseName: request.releaseName,
+            },
+          },
+        },
+      );
+
+      assertApiResponse({ data, error, response }, 'fetch component release');
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Component release fetched for ${request.releaseName}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching component release ${request.releaseName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Fetches all release bindings for a specific component.
    *
    * @param {Object} request - The request parameters

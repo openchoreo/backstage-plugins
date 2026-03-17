@@ -779,6 +779,30 @@ export async function createRouter({
     });
   });
 
+  router.get('/component-release', async (req, res) => {
+    const { namespaceName, releaseName } = req.query;
+
+    if (!namespaceName || !releaseName) {
+      throw new InputError(
+        'namespaceName and releaseName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    const release = await environmentInfoService.fetchComponentRelease(
+      {
+        namespaceName: namespaceName as string,
+        releaseName: releaseName as string,
+      },
+      userToken,
+    );
+    res.json({
+      success: true,
+      data: release,
+    });
+  });
+
   router.get('/release-bindings', async (req, res) => {
     const { componentName, projectName, namespaceName } = req.query;
 

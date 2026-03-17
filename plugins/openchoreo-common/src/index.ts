@@ -227,6 +227,9 @@ export type ModelsWorkload = WorkloadResponse;
 export type WorkloadResource = OpenChoreoComponents['schemas']['Workload'];
 /** Spec portion of a WorkloadResource */
 export type WorkloadSpec = NonNullable<WorkloadResource['spec']>;
+/** ComponentRelease resource type from the OpenAPI spec */
+export type ComponentRelease =
+  OpenChoreoComponents['schemas']['ComponentRelease'];
 export type ModelsCompleteComponent = ComponentResponse;
 export type WorkflowRunStatusResponse = ComponentWorkflowRunStatusResponse;
 
