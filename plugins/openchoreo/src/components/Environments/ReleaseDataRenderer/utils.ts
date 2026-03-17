@@ -29,6 +29,8 @@ export function getHealthStatusForTab(
       return 'error';
     case 'Suspended':
       return 'warning';
+    case 'Undeployed':
+      return 'default';
     default:
       return 'default';
   }
@@ -50,6 +52,8 @@ export function getHealthChipClass(
       return classes.degradedChip;
     case 'Suspended':
       return classes.suspendedChip;
+    case 'Undeployed':
+      return classes.unknownChip;
     default:
       return classes.unknownChip;
   }

@@ -58,9 +58,13 @@ export function buildTreeNodes(
   if (releaseBindingData) {
     if (typeof releaseBindingData.status === 'string') {
       const flatStatus = releaseBindingData.status;
+      const reason = releaseBindingData.statusReason as string | undefined;
       if (flatStatus === 'Ready') rootHealth = 'Healthy';
       else if (flatStatus === 'Failed') rootHealth = 'Degraded';
-      else if (flatStatus === 'NotReady') rootHealth = 'Progressing';
+      else if (flatStatus === 'NotReady') {
+        rootHealth =
+          reason === 'ResourcesUndeployed' ? 'Undeployed' : 'Progressing';
+      }
     } else {
       const bindingStatus = releaseBindingData.status as
         | Record<string, unknown>
@@ -73,9 +77,12 @@ export function buildTreeNodes(
       );
       if (readyCondition) {
         const condStatus = (readyCondition as any).status;
+        const reason = (readyCondition as any).reason as string | undefined;
         if (condStatus === 'True') rootHealth = 'Healthy';
-        else if (condStatus === 'False') rootHealth = 'Degraded';
-        else rootHealth = 'Progressing';
+        else if (condStatus === 'False') {
+          rootHealth =
+            reason === 'ResourcesUndeployed' ? 'Undeployed' : 'Degraded';
+        } else rootHealth = 'Progressing';
       }
     }
   }

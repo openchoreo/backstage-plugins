@@ -3,7 +3,8 @@ export type HealthStatus =
   | 'Progressing'
   | 'Healthy'
   | 'Suspended'
-  | 'Degraded';
+  | 'Degraded'
+  | 'Undeployed';
 
 export interface ResourceTreeParentRef {
   group?: string;

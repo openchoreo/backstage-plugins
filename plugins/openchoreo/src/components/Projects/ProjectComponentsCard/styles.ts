@@ -61,6 +61,9 @@ export const useProjectComponentsCardStyles = makeStyles(theme => ({
   statusIconError: {
     color: theme.palette.error.main,
   },
+  statusIconDefault: {
+    color: theme.palette.text.secondary,
+  },
   buildStatus: {
     display: 'flex',
     alignItems: 'center',

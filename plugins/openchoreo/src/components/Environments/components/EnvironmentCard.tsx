@@ -28,6 +28,7 @@ export const EnvironmentCard = ({
   onOpenReleaseDetails,
   onPromote,
   onSuspend,
+  onRedeploy,
   activeIncidentCount,
 }: EnvironmentCardProps) => {
   const classes = useEnvironmentCardStyles();
@@ -63,12 +64,14 @@ export const EnvironmentCard = ({
           environmentName={environmentName}
           bindingName={bindingName}
           deploymentStatus={deployment.status}
+          statusReason={deployment.statusReason}
           promotionTargets={promotionTargets}
           isAlreadyPromoted={isAlreadyPromoted}
           promotionTracker={actionTrackers.promotionTracker}
           suspendTracker={actionTrackers.suspendTracker}
           onPromote={onPromote}
           onSuspend={onSuspend}
+          onRedeploy={onRedeploy}
         />
       </>
     );

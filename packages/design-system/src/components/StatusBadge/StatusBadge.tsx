@@ -65,6 +65,7 @@ export type StatusType =
   | 'pending'
   | 'failed'
   | 'not-deployed'
+  | 'undeployed'
   | 'unknown';
 
 interface StatusBadgeProps {
@@ -90,6 +91,7 @@ const STATUS_CONFIG: Record<
   info: { variant: 'info', defaultLabel: 'Info' },
   default: { variant: 'default', defaultLabel: 'Default' },
   'not-deployed': { variant: 'default', defaultLabel: 'Not Deployed' },
+  undeployed: { variant: 'default', defaultLabel: 'Undeployed' },
 };
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({

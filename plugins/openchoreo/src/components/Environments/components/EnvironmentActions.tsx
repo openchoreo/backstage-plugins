@@ -1,21 +1,26 @@
 /* eslint-disable no-nested-ternary */
 import { Box, Button, Tooltip } from '@material-ui/core';
-import { useDeployPermission } from '@openchoreo/backstage-plugin-react';
+import {
+  useDeployPermission,
+  useUndeployPermission,
+} from '@openchoreo/backstage-plugin-react';
 import { EnvironmentActionsProps } from '../types';
 
 /**
- * Action buttons for promotion and suspension of environment deployments
+ * Action buttons for promotion, undeployment, and redeployment of environment deployments
  */
 export const EnvironmentActions = ({
   environmentName,
   bindingName,
   deploymentStatus,
+  statusReason,
   promotionTargets,
   isAlreadyPromoted,
   promotionTracker,
   suspendTracker,
   onPromote,
   onSuspend,
+  onRedeploy,
 }: EnvironmentActionsProps) => {
   // Check if user has permission to promote (uses deploy permission)
   const {
@@ -23,6 +28,15 @@ export const EnvironmentActions = ({
     loading: promotePermissionLoading,
     deniedTooltip,
   } = useDeployPermission();
+
+  // Check if user has permission to undeploy/redeploy (uses releasebinding update permission)
+  const {
+    canUndeploy,
+    loading: undeployPermissionLoading,
+    deniedTooltip: undeployDeniedTooltip,
+  } = useUndeployPermission();
+
+  const isUndeployed = statusReason === 'ResourcesUndeployed';
 
   const hasPromotionTargets =
     deploymentStatus === 'Ready' &&
@@ -78,7 +92,7 @@ export const EnvironmentActions = ({
           </Box>
         ))}
 
-      {/* Single promotion target and suspend button - show in same row */}
+      {/* Single promotion target and undeploy/redeploy button - show in same row */}
       {(hasSingleTarget || bindingName) && (
         <Box display="flex" flexWrap="wrap" justifyContent="flex-end">
           {/* Single promotion button */}
@@ -117,19 +131,45 @@ export const EnvironmentActions = ({
             </Tooltip>
           )}
 
-          {/* Suspend button - show whenever there's a binding */}
+          {/* Undeploy / Redeploy button - show whenever there's a binding */}
           {bindingName && (
-            <Button
-              variant="outlined"
-              color="secondary"
-              size="small"
-              disabled={suspendTracker.isActive(environmentName) || !canPromote}
-              onClick={onSuspend}
-            >
-              {suspendTracker.isActive(environmentName)
-                ? 'Suspending...'
-                : 'Suspend'}
-            </Button>
+            <Tooltip title={undeployDeniedTooltip}>
+              <span>
+                {isUndeployed ? (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="small"
+                    disabled={
+                      undeployPermissionLoading ||
+                      suspendTracker.isActive(environmentName) ||
+                      !canUndeploy
+                    }
+                    onClick={onRedeploy}
+                  >
+                    {suspendTracker.isActive(environmentName)
+                      ? 'Redeploying...'
+                      : 'Redeploy'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    size="small"
+                    disabled={
+                      undeployPermissionLoading ||
+                      suspendTracker.isActive(environmentName) ||
+                      !canUndeploy
+                    }
+                    onClick={onSuspend}
+                  >
+                    {suspendTracker.isActive(environmentName)
+                      ? 'Undeploying...'
+                      : 'Undeploy'}
+                  </Button>
+                )}
+              </span>
+            </Tooltip>
           )}
         </Box>
       )}
