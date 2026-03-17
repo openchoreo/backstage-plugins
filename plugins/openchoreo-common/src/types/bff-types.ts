@@ -720,7 +720,7 @@ export interface WorkloadEndpoint {
   /** @description Access scope for the endpoint. */
   visibility?: ('project' | 'namespace' | 'internal' | 'external')[];
   /** @enum {string} */
-  type: 'TCP' | 'UDP' | 'HTTP' | 'REST' | 'gRPC' | 'Websocket' | 'GraphQL';
+  type: 'TCP' | 'UDP' | 'HTTP' | 'gRPC' | 'Websocket' | 'GraphQL';
   port: number;
   schema?: Schema;
 }

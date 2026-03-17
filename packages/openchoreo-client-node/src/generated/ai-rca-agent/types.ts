@@ -17,7 +17,6 @@ export interface paths {
      * Trigger RCA analysis for an alert
      * @description Creates a pending RCA report and triggers background analysis for the given alert.
      *     The analysis runs asynchronously and the report status can be checked via the reports endpoints.
-     *
      */
     post: operations['analyze'];
     delete?: never;
@@ -44,7 +43,6 @@ export interface paths {
      *     **Streaming Response Format (NDJSON):**
      *     Each line is a JSON object with a `type` field indicating the event type.
      *     Events are streamed in order: `message_chunk`* -> `tool_call`* -> `actions`? -> `done`
-     *
      */
     post: operations['chat'];
     delete?: never;
@@ -83,7 +81,6 @@ export interface paths {
      * Update action statuses
      * @description Updates the status of specific remediation actions in the stored report.
      *     Accepts indices to mark as `applied` or `dismissed`.
-     *
      */
     put: operations['updateReport'];
     post?: never;
@@ -150,9 +147,10 @@ export interface components {
     ErrorResponse: {
       detail: string;
     };
-    /** @description A streaming event. Events are sent as newline-delimited JSON (NDJSON).
+    /**
+     * @description A streaming event. Events are sent as newline-delimited JSON (NDJSON).
      *     Use the `type` field to determine the event type.
-     *      */
+     */
     StreamEvent:
       | components['schemas']['MessageChunkEvent']
       | components['schemas']['ToolCallEvent']

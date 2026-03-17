@@ -8,8 +8,6 @@ import {
 } from '@backstage/plugin-api-docs';
 import {
   EntityAboutCard,
-  EntityDependsOnComponentsCard,
-  EntityDependsOnResourcesCard,
   EntityHasComponentsCard,
   EntityLayout,
   EntityLinksCard,
@@ -38,6 +36,8 @@ import {
   EntityCatalogGraphCard,
 } from '@backstage/plugin-catalog-graph';
 import {
+  ApiEntity,
+  ComponentEntity,
   Entity,
   RELATION_API_CONSUMED_BY,
   RELATION_API_PROVIDED_BY,
@@ -48,6 +48,8 @@ import {
   RELATION_PART_OF,
   RELATION_PROVIDES_API,
 } from '@backstage/catalog-model';
+import { TableColumn } from '@backstage/core-components';
+import { EntityTable } from '@backstage/plugin-catalog-react';
 import {
   RELATION_PROMOTES_TO,
   RELATION_PROMOTED_BY,
@@ -167,8 +169,41 @@ const hasGitlabAnnotation = (entity: Entity) =>
       entity.metadata.annotations?.['gitlab.com/project-id'],
   );
 
+const hasApis = (entity: Entity) =>
+  Boolean(
+    entity.relations?.some(
+      r => r.type === RELATION_PROVIDES_API || r.type === RELATION_CONSUMES_API,
+    ),
+  );
+
 const hasTechdocsAnnotation = (entity: Entity) =>
   Boolean(entity.metadata.annotations?.['backstage.io/techdocs-ref']);
+
+/** Custom columns for API cards: no Owner, System renamed to Project */
+const apiCardColumns: TableColumn<ApiEntity>[] = [
+  EntityTable.columns.createEntityRefColumn({ defaultKind: 'API' }),
+  EntityTable.columns.createEntityRelationColumn({
+    title: 'Project',
+    relation: RELATION_PART_OF,
+    defaultKind: 'system',
+    filter: { kind: 'system' },
+  }),
+  EntityTable.columns.createSpecTypeColumn(),
+  EntityTable.columns.createMetadataDescriptionColumn(),
+];
+
+/** Custom columns for component cards on API page: no Owner/Lifecycle, System renamed to Project */
+const componentCardColumns: TableColumn<ComponentEntity>[] = [
+  EntityTable.columns.createEntityRefColumn({ defaultKind: 'component' }),
+  EntityTable.columns.createEntityRelationColumn({
+    title: 'Project',
+    relation: RELATION_PART_OF,
+    defaultKind: 'system',
+    filter: { kind: 'system' },
+  }),
+  EntityTable.columns.createSpecTypeColumn(),
+  EntityTable.columns.createMetadataDescriptionColumn(),
+];
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -293,24 +328,13 @@ const serviceEntityPage = (
       <EntityKubernetesContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/api" title="API">
+    <EntityLayout.Route path="/api" title="API" if={hasApis}>
       <Grid container spacing={3} alignItems="stretch">
         <Grid item md={6}>
-          <EntityProvidedApisCard />
+          <EntityProvidedApisCard columns={apiCardColumns} />
         </Grid>
         <Grid item md={6}>
-          <EntityConsumedApisCard />
-        </Grid>
-      </Grid>
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/dependencies" title="Dependencies">
-      <Grid container spacing={3} alignItems="stretch">
-        <Grid item md={6}>
-          <EntityDependsOnComponentsCard variant="gridItem" />
-        </Grid>
-        <Grid item md={6}>
-          <EntityDependsOnResourcesCard variant="gridItem" />
+          <EntityConsumedApisCard columns={apiCardColumns} />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -392,13 +416,13 @@ const genericComponentEntityPage = (
       <EntityKubernetesContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/dependencies" title="Dependencies">
+    <EntityLayout.Route path="/api" title="API" if={hasApis}>
       <Grid container spacing={3} alignItems="stretch">
         <Grid item md={6}>
-          <EntityDependsOnComponentsCard variant="gridItem" />
+          <EntityProvidedApisCard columns={apiCardColumns} />
         </Grid>
         <Grid item md={6}>
-          <EntityDependsOnResourcesCard variant="gridItem" />
+          <EntityConsumedApisCard columns={apiCardColumns} />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -494,13 +518,11 @@ const apiPage = (
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3}>
         {entityWarningContent}
-        <Grid container item md={12}>
-          <Grid item md={6}>
-            <EntityProvidingComponentsCard />
-          </Grid>
-          <Grid item md={6}>
-            <EntityConsumingComponentsCard />
-          </Grid>
+        <Grid item md={6}>
+          <EntityProvidingComponentsCard columns={componentCardColumns} />
+        </Grid>
+        <Grid item md={6}>
+          <EntityConsumingComponentsCard columns={componentCardColumns} />
         </Grid>
         <Grid item md={6}>
           <EntityAboutCard />

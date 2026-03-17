@@ -69,7 +69,11 @@ function isEndpointValid(
   endpoint: WorkloadEndpoint | undefined | null,
 ): boolean {
   if (!endpoint) return false;
-  return !!(endpoint.type && endpoint.port !== undefined && endpoint.port > 0);
+  if (!endpoint.type || endpoint.port === undefined || endpoint.port <= 0)
+    return false;
+  if (endpoint.type === 'gRPC' && !endpoint.schema?.content?.trim())
+    return false;
+  return true;
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import { useEffect, useMemo, useState, type FC } from 'react';
 import {
   TextField,
   IconButton,
@@ -14,12 +14,22 @@ import {
   FormControlLabel,
   Checkbox,
   InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@material-ui/core';
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
 import EditIcon from '@material-ui/icons/Edit';
 import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
+import CodeMirror from '@uiw/react-codemirror';
+import { StreamLanguage } from '@codemirror/language';
+import type { StreamParser } from '@codemirror/language';
+import { yaml as yamlMode } from '@codemirror/legacy-modes/mode/yaml';
+import { protobuf as protobufMode } from '@codemirror/legacy-modes/mode/protobuf';
+import { graphql as graphqlMode } from 'codemirror-graphql/cm6-legacy/mode';
 import type { WorkloadEndpoint } from '@openchoreo/backstage-plugin-common';
 
 const useStyles = makeStyles((theme: Theme) => ({
@@ -71,17 +81,58 @@ const useStyles = makeStyles((theme: Theme) => ({
     margin: 0,
     marginBottom: theme.spacing(0.5),
   },
+  schemaContentField: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: theme.spacing(0.5),
+  },
+  schemaEditor: {
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 4,
+    overflow: 'hidden',
+    '& .cm-editor': { height: '400px' },
+    '& .cm-scroller': { overflow: 'auto' },
+  },
+  schemaEditorError: {
+    border: `1px solid ${theme.palette.error.main}`,
+    borderRadius: 4,
+    overflow: 'hidden',
+    '& .cm-editor': { height: '400px' },
+    '& .cm-scroller': { overflow: 'auto' },
+  },
 }));
 
 const PROTOCOL_TYPES = [
   'TCP',
   'UDP',
   'HTTP',
-  'REST',
   'gRPC',
   'Websocket',
   'GraphQL',
 ] as const;
+
+const ENDPOINT_TYPE_TO_SCHEMA_TYPE: Record<string, string> = {
+  HTTP: 'openapi',
+  gRPC: 'grpc',
+  GraphQL: 'graphql',
+  Websocket: 'asyncapi',
+};
+
+const SCHEMA_REQUIRED_TYPES = new Set(['gRPC']);
+
+const SCHEMA_TYPE_DISPLAY_NAMES: Record<string, string> = {
+  openapi: 'OpenAPI',
+  asyncapi: 'AsyncAPI',
+  grpc: 'Protobuf',
+  graphql: 'GraphQL',
+};
+
+const SCHEMA_TYPE_LANGUAGE_MAP: Record<string, StreamParser<any>> = {
+  openapi: yamlMode,
+  asyncapi: yamlMode,
+  grpc: protobufMode,
+  graphql: graphqlMode,
+};
 
 const VISIBILITY_LABELS: Record<string, string> = {
   external: 'External',
@@ -106,6 +157,67 @@ const VISIBILITY_OPTIONS: ReadonlyArray<{
   { value: 'internal', label: VISIBILITY_LABELS.internal, disabled: false },
   { value: 'external', label: VISIBILITY_LABELS.external, disabled: false },
 ];
+
+/** Dialog for editing schema content with syntax highlighting */
+const SchemaContentDialog: FC<{
+  open: boolean;
+  content: string;
+  schemaType?: string;
+  onApply: (content: string) => void;
+  onClose: () => void;
+  required: boolean;
+}> = ({ open, content, schemaType, onApply, onClose, required }) => {
+  const classes = useStyles();
+  const [draft, setDraft] = useState(content);
+  const showError = required && !draft.trim();
+
+  // Reset draft when dialog opens
+  useEffect(() => {
+    if (open) setDraft(content);
+  }, [open, content]);
+
+  const languageExtension = useMemo(() => {
+    const mode =
+      SCHEMA_TYPE_LANGUAGE_MAP[schemaType?.toLowerCase() ?? ''] ?? yamlMode;
+    return StreamLanguage.define(mode);
+  }, [schemaType]);
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Edit Schema Content</DialogTitle>
+      <DialogContent>
+        <div
+          className={
+            showError ? classes.schemaEditorError : classes.schemaEditor
+          }
+        >
+          <CodeMirror
+            value={draft}
+            onChange={setDraft}
+            extensions={[languageExtension]}
+            theme="light"
+          />
+        </div>
+        {showError && (
+          <Typography variant="caption" color="error" style={{ marginTop: 4 }}>
+            Schema content is required for this endpoint type.
+          </Typography>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button
+          onClick={() => onApply(draft)}
+          color="primary"
+          variant="contained"
+          disabled={showError}
+        >
+          Apply
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
 
 export interface EndpointEditorProps {
   /** The endpoint name */
@@ -159,6 +271,20 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   onRemove,
 }) => {
   const classes = useStyles();
+  const [schemaDialogOpen, setSchemaDialogOpen] = useState(false);
+
+  const isSchemaRequired = SCHEMA_REQUIRED_TYPES.has(endpoint.type);
+  const schemaType = ENDPOINT_TYPE_TO_SCHEMA_TYPE[endpoint.type];
+  const schemaDisplayName = schemaType
+    ? SCHEMA_TYPE_DISPLAY_NAMES[schemaType]
+    : undefined;
+
+  let schemaHelperText = 'Optional';
+  if (isSchemaRequired) {
+    schemaHelperText = `Required - ${schemaDisplayName} schema`;
+  } else if (schemaDisplayName) {
+    schemaHelperText = `${schemaDisplayName} schema (optional)`;
+  }
 
   // Read-only display
   if (!isEditing) {
@@ -232,7 +358,18 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
                 <InputLabel>Type</InputLabel>
                 <Select
                   value={endpoint.type || 'HTTP'}
-                  onChange={e => onChange('type', e.target.value)}
+                  onChange={e => {
+                    const newType = e.target.value as string;
+                    onChange('type', newType);
+                    const suggestedSchemaType =
+                      ENDPOINT_TYPE_TO_SCHEMA_TYPE[newType];
+                    if (suggestedSchemaType) {
+                      onChange('schema', {
+                        ...endpoint.schema,
+                        type: suggestedSchemaType,
+                      });
+                    }
+                  }}
                   label="Type"
                   disabled={disabled}
                 >
@@ -303,40 +440,54 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
                 </FormGroup>
               </FormControl>
             </Grid>
-            <Grid item xs={6}>
-              <TextField
-                label="Schema Type"
-                value={endpoint.schema?.type || ''}
-                onChange={e =>
+            <Grid item xs={12}>
+              <Box className={classes.schemaContentField}>
+                <TextField
+                  label="Schema Content"
+                  value={
+                    endpoint.schema?.content
+                      ? `${endpoint.schema.content.substring(0, 60)}${
+                          endpoint.schema.content.length > 60 ? '...' : ''
+                        }`
+                      : ''
+                  }
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                  disabled
+                  placeholder={
+                    schemaDisplayName
+                      ? `Paste your ${schemaDisplayName} schema`
+                      : 'Optional - click to add'
+                  }
+                  error={isSchemaRequired && !endpoint.schema?.content?.trim()}
+                  helperText={schemaHelperText}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                />
+                <IconButton
+                  size="small"
+                  onClick={() => setSchemaDialogOpen(true)}
+                  disabled={disabled}
+                  aria-label="Edit schema"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Box>
+              <SchemaContentDialog
+                open={schemaDialogOpen}
+                content={endpoint.schema?.content || ''}
+                schemaType={endpoint.schema?.type}
+                required={isSchemaRequired}
+                onApply={content => {
                   onChange('schema', {
                     ...endpoint.schema,
-                    type: e.target.value,
-                  })
-                }
-                fullWidth
-                variant="outlined"
-                size="small"
-                disabled={disabled}
-                placeholder="e.g., REST, GraphQL"
-                helperText="Optional"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                label="Schema Content"
-                value={endpoint.schema?.content || ''}
-                onChange={e =>
-                  onChange('schema', {
-                    ...endpoint.schema,
-                    content: e.target.value,
-                  })
-                }
-                fullWidth
-                variant="outlined"
-                size="small"
-                disabled={disabled}
-                placeholder="Schema definition"
-                helperText="Optional"
+                    content,
+                  });
+                  setSchemaDialogOpen(false);
+                }}
+                onClose={() => setSchemaDialogOpen(false)}
               />
             </Grid>
           </Grid>
