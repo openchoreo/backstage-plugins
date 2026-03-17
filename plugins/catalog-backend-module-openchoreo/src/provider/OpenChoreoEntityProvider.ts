@@ -541,7 +541,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     ? this.extractWorkloadDependencies(workloadData)
                     : [];
 
-                  componentWorkloadMap.set(componentName, {
+                  componentWorkloadMap.set(`${projectName}:${componentName}`, {
                     component,
                     projectName,
                     schemaEndpoints,
@@ -553,7 +553,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     `Failed to fetch workload for component ${componentName}: ${error}`,
                   );
                   // Store component without workload data so it still gets an entity
-                  componentWorkloadMap.set(componentName, {
+                  componentWorkloadMap.set(`${projectName}:${componentName}`, {
                     component,
                     projectName,
                     schemaEndpoints: {},
@@ -570,12 +570,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           }
 
           // Pass 2 — Create entities with dependency resolution
-          for (const [
-            componentName,
-            workloadData,
-          ] of componentWorkloadMap.entries()) {
+          for (const [, workloadData] of componentWorkloadMap.entries()) {
             const { component, projectName, schemaEndpoints, dependencies } =
               workloadData;
+            const componentName = getName(component)!;
 
             // providesApis: schema endpoints on this component
             const providesApis =
@@ -588,7 +586,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             // consumesApis: dependencies where target endpoint has a schema
             const consumesApis: string[] = [];
             for (const dep of dependencies) {
-              const targetData = componentWorkloadMap.get(dep.component);
+              const depKey = dep.project
+                ? `${dep.project}:${dep.component}`
+                : dep.component;
+              const targetData = componentWorkloadMap.get(depKey);
               if (!targetData) {
                 this.logger.debug(
                   `Dependency target component "${dep.component}" not found in namespace "${nsName}" for component "${componentName}" — skipping consumesApi`,

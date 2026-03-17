@@ -169,8 +169,12 @@ const hasGitlabAnnotation = (entity: Entity) =>
       entity.metadata.annotations?.['gitlab.com/project-id'],
   );
 
-const hasProvidedApis = (entity: Entity) =>
-  Boolean(entity.relations?.some(r => r.type === RELATION_PROVIDES_API));
+const hasApis = (entity: Entity) =>
+  Boolean(
+    entity.relations?.some(
+      r => r.type === RELATION_PROVIDES_API || r.type === RELATION_CONSUMES_API,
+    ),
+  );
 
 const hasTechdocsAnnotation = (entity: Entity) =>
   Boolean(entity.metadata.annotations?.['backstage.io/techdocs-ref']);
@@ -324,7 +328,7 @@ const serviceEntityPage = (
       <EntityKubernetesContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/api" title="API" if={hasProvidedApis}>
+    <EntityLayout.Route path="/api" title="API" if={hasApis}>
       <Grid container spacing={3} alignItems="stretch">
         <Grid item md={6}>
           <EntityProvidedApisCard columns={apiCardColumns} />
@@ -412,7 +416,7 @@ const genericComponentEntityPage = (
       <EntityKubernetesContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/api" title="API" if={hasProvidedApis}>
+    <EntityLayout.Route path="/api" title="API" if={hasApis}>
       <Grid container spacing={3} alignItems="stretch">
         <Grid item md={6}>
           <EntityProvidedApisCard columns={apiCardColumns} />
