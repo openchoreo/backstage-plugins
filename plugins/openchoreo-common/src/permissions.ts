@@ -791,6 +791,7 @@ export const openchoreoPermissions = [
   openchoreoReleaseCreatePermission,
   openchoreoReleaseReadPermission,
   openchoreoReleaseBindingReadPermission,
+  openchoreoReleaseBindingUpdatePermission,
   openchoreoRoleViewPermission,
   openchoreoRoleCreatePermission,
   openchoreoRoleUpdatePermission,
