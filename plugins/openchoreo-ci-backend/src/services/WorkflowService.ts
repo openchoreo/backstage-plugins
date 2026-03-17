@@ -85,6 +85,10 @@ function transformWorkflowRun(run: any): ModelsBuild {
     commit: annotations['openchoreo.dev/commit'],
     image: annotations['openchoreo.dev/image'],
     createdAt: run.metadata?.creationTimestamp,
+    workloadCr: annotations['openchoreo.dev/workload'],
+    workloadFromSource: annotations['openchoreo.dev/workload-from-source'],
+    startedAt: run.status?.startedAt,
+    completedAt: run.status?.completedAt,
     workflow: run.spec?.workflow
       ? {
           name: run.spec.workflow.name,

@@ -10,10 +10,11 @@ export const useStyles = makeStyles(theme => ({
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
+    overflow: 'hidden',
   },
   propertyRow: {
     display: 'flex',
-    alignItems: 'baseline',
+    alignItems: 'center',
     gap: theme.spacing(1),
     marginBottom: theme.spacing(1.5),
   },
@@ -30,16 +31,34 @@ export const useStyles = makeStyles(theme => ({
     fontSize: theme.typography.body2.fontSize,
     wordBreak: 'break-word',
   },
-  commitValue: {
+  monoValue: {
     fontFamily: 'monospace',
-    backgroundColor: alpha(
-      theme.palette.type === 'dark'
-        ? theme.palette.common.white
-        : theme.palette.common.black,
-      0.05,
-    ),
-    padding: theme.spacing(0.5, 1),
-    borderRadius: theme.spacing(0.5),
+    fontSize: theme.typography.caption.fontSize,
+    wordBreak: 'break-all' as const,
+  },
+  copyableRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    minWidth: 0,
+    overflow: 'hidden',
+  },
+  copyButton: {
+    padding: theme.spacing(0.5),
+  },
+  codeBlock: {
+    fontFamily: 'monospace',
+    fontSize: theme.typography.caption.fontSize,
+    whiteSpace: 'pre-wrap' as const,
+    wordBreak: 'break-word' as const,
+    margin: 0,
+    padding: theme.spacing(1.5),
+    borderRadius: theme.shape.borderRadius,
+    border: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
+    backgroundColor: alpha(theme.palette.background.default, 0.5),
+    color: theme.palette.text.primary,
+    overflow: 'auto',
+    maxHeight: '300px',
   },
   loadingContainer: {
     display: 'flex',
