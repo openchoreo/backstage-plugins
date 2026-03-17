@@ -9,12 +9,9 @@
 // Export factory functions
 export {
   createOpenChoreoApiClient,
-  createOpenChoreoLegacyApiClient,
   createOpenChoreoObservabilityApiClient,
   createOpenChoreoAIRCAAgentApiClient,
-  createOpenChoreoClientFromConfig,
   createObservabilityClientWithUrl,
-  OPENCHOREO_LEGACY_ROUTES_HEADER,
   type OpenChoreoClientConfig,
   type OpenChoreoObservabilityClientConfig,
   type OpenChoreoAIRCAAgentClientConfig,
@@ -58,13 +55,11 @@ export {
 export { fetchAllPages } from './pagination-utils';
 
 // Export generated types as namespaces
-export * as OpenChoreoLegacyAPI from './generated/openchoreo-legacy';
 export * as OpenChoreoAPI from './generated/openchoreo';
 export * as ObservabilityAPI from './generated/observability';
 export * as AIRCAAgentAPI from './generated/ai-rca-agent';
 
 // Re-export component types for convenience
-export type { components as OpenChoreoLegacyComponents } from './generated/openchoreo-legacy/types';
 export type { components as OpenChoreoComponents } from './generated/openchoreo/types';
 export type { components as ObservabilityComponents } from './generated/observability/types';
 export type { components as AIRCAAgentComponents } from './generated/ai-rca-agent/types';

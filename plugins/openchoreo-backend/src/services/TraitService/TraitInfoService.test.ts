@@ -14,10 +14,6 @@ jest.mock('@openchoreo/openchoreo-client-node', () => ({
     GET: mockGET,
     PUT: mockPUT,
   })),
-  createOpenChoreoLegacyApiClient: jest.fn(() => ({
-    GET: mockGET,
-    PUT: jest.fn(),
-  })),
   fetchAllPages: jest.fn((fetchPage: (cursor?: string) => Promise<any>) =>
     fetchPage(undefined).then((page: any) => page.items),
   ),

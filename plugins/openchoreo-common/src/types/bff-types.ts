@@ -1,9 +1,8 @@
 /*
  * Hand-written BFF response & request types.
  *
- * These interfaces were extracted from the auto-generated OpenChoreo legacy
- * OpenAPI types (`OpenChoreoLegacyComponents['schemas'][…]`) so that plugins
- * are decoupled from the generated client package.
+ * These interfaces were extracted from the OpenChoreo OpenAPI types so that
+ * plugins are decoupled from the generated client package.
  *
  * ⚠ Keep shapes in sync with the OpenChoreo API — do NOT edit field
  *   names / optionality without a matching backend change.

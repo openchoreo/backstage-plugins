@@ -12,9 +12,6 @@ jest.mock('@openchoreo/openchoreo-client-node', () => ({
   createOpenChoreoApiClient: jest.fn(() => ({
     GET: mockGET,
   })),
-  createOpenChoreoLegacyApiClient: jest.fn(() => ({
-    GET: mockGET,
-  })),
 }));
 
 // ---------------------------------------------------------------------------
