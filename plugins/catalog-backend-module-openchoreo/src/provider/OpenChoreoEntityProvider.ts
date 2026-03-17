@@ -579,7 +579,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             const providesApis =
               Object.keys(schemaEndpoints).length > 0
                 ? Object.keys(schemaEndpoints).map(
-                    epName => `${componentName}-${epName}`,
+                    epName => `${projectName}-${componentName}-${epName}`,
                   )
                 : undefined;
 
@@ -601,7 +601,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                 targetEndpoint?.schema?.content &&
                 targetEndpoint.schema.content.trim().length > 0
               ) {
-                consumesApis.push(`${dep.component}-${dep.name}`);
+                consumesApis.push(
+                  `${targetData.projectName}-${dep.component}-${dep.name}`,
+                );
               }
             }
 
@@ -2071,7 +2073,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         apiVersion: 'backstage.io/v1alpha1',
         kind: 'API',
         metadata: {
-          name: `${componentName}-${endpointName}`,
+          name: `${projectName}-${componentName}-${endpointName}`,
           namespace: namespaceName,
           title: `${componentName} ${endpointName} API`,
           description: `${
