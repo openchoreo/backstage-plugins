@@ -42,17 +42,39 @@ export const useSetupCardStyles = makeStyles(theme => ({
   setupCard: {
     backgroundColor: theme.palette.background.paper,
     color: theme.palette.text.primary,
-    padding: theme.spacing(2),
-    borderRadius: theme.shape.borderRadius,
+    padding: 24,
+    borderRadius: 12,
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
     boxSizing: 'border-box',
+    border: `1px dashed ${theme.palette.divider}`,
   },
   cardContent: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center' as const,
+  },
+  titleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing(1),
+    marginBottom: theme.spacing(1.5),
+  },
+  titleIcon: {
+    color: theme.palette.text.primary,
+    fontSize: '1.25rem',
+  },
+  title: {
+    fontWeight: 600,
+    // fontSize: '0.9rem',
+    color: theme.palette.text.primary,
+    // textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
   },
 }));
 
