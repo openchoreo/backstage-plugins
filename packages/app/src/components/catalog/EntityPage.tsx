@@ -8,8 +8,6 @@ import {
 } from '@backstage/plugin-api-docs';
 import {
   EntityAboutCard,
-  EntityDependsOnComponentsCard,
-  EntityDependsOnResourcesCard,
   EntityHasComponentsCard,
   EntityLayout,
   EntityLinksCard,
@@ -167,6 +165,9 @@ const hasGitlabAnnotation = (entity: Entity) =>
       entity.metadata.annotations?.['gitlab.com/project-id'],
   );
 
+const hasProvidedApis = (entity: Entity) =>
+  Boolean(entity.relations?.some(r => r.type === RELATION_PROVIDES_API));
+
 const hasTechdocsAnnotation = (entity: Entity) =>
   Boolean(entity.metadata.annotations?.['backstage.io/techdocs-ref']);
 
@@ -293,24 +294,13 @@ const serviceEntityPage = (
       <EntityKubernetesContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/api" title="API">
+    <EntityLayout.Route path="/api" title="API" if={hasProvidedApis}>
       <Grid container spacing={3} alignItems="stretch">
         <Grid item md={6}>
           <EntityProvidedApisCard />
         </Grid>
         <Grid item md={6}>
           <EntityConsumedApisCard />
-        </Grid>
-      </Grid>
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/dependencies" title="Dependencies">
-      <Grid container spacing={3} alignItems="stretch">
-        <Grid item md={6}>
-          <EntityDependsOnComponentsCard variant="gridItem" />
-        </Grid>
-        <Grid item md={6}>
-          <EntityDependsOnResourcesCard variant="gridItem" />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -392,13 +382,13 @@ const genericComponentEntityPage = (
       <EntityKubernetesContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/dependencies" title="Dependencies">
+    <EntityLayout.Route path="/api" title="API" if={hasProvidedApis}>
       <Grid container spacing={3} alignItems="stretch">
         <Grid item md={6}>
-          <EntityDependsOnComponentsCard variant="gridItem" />
+          <EntityProvidedApisCard />
         </Grid>
         <Grid item md={6}>
-          <EntityDependsOnResourcesCard variant="gridItem" />
+          <EntityConsumedApisCard />
         </Grid>
       </Grid>
     </EntityLayout.Route>
