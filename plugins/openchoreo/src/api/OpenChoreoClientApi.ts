@@ -1,6 +1,9 @@
 import { createApiRef } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
-import type { WorkloadResource } from '@openchoreo/backstage-plugin-common';
+import type {
+  WorkloadResource,
+  ComponentRelease,
+} from '@openchoreo/backstage-plugin-common';
 import type { Environment } from '../components/RuntimeLogs/types';
 
 // ============================================
@@ -70,6 +73,12 @@ export interface SchemaResponse {
   success: boolean;
   message: string;
   data?: ComponentSchemaResponse;
+}
+
+/** Component release response */
+export interface ComponentReleaseResponse {
+  success: boolean;
+  data?: ComponentRelease;
 }
 
 /** Workflow schema response */
@@ -389,6 +398,12 @@ export interface OpenChoreoClientApi {
 
   /** Deploy a release to its target environment */
   deployRelease(entity: Entity, releaseName: string): Promise<any>;
+
+  /** Fetch a specific component release (includes frozen workload spec) */
+  fetchComponentRelease(
+    entity: Entity,
+    releaseName: string,
+  ): Promise<ComponentReleaseResponse>;
 
   /** Fetch the schema for a component release (for overrides UI) */
   fetchComponentReleaseSchema(
