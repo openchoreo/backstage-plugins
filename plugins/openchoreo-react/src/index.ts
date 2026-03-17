@@ -275,6 +275,10 @@ export {
   type UseEnvironmentReadPermissionResult,
 } from './hooks/useEnvironmentReadPermission';
 export {
+  useUndeployPermission,
+  type UseUndeployPermissionResult,
+} from './hooks/useUndeployPermission';
+export {
   useReleaseBindingPermission,
   type UseReleaseBindingPermissionResult,
 } from './hooks/useReleaseBindingPermission';

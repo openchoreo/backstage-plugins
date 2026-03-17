@@ -19,6 +19,8 @@ function getHealthDotClass(
       return classes.healthProgressing;
     case 'Suspended':
       return classes.healthSuspended;
+    case 'Undeployed':
+      return classes.healthUnknown;
     default:
       return classes.healthUnknown;
   }

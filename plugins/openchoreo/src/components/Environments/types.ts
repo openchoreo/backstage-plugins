@@ -105,6 +105,7 @@ export interface EnvironmentActionsProps {
   environmentName: string;
   bindingName?: string;
   deploymentStatus?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
   releaseName?: string;
   promotionTargets?: Array<{
     name: string;
@@ -116,6 +117,7 @@ export interface EnvironmentActionsProps {
   suspendTracker: ItemActionTracker;
   onPromote: (targetEnvName: string) => Promise<void>;
   onSuspend: () => Promise<void>;
+  onRedeploy: () => Promise<void>;
 }
 
 /**
@@ -151,5 +153,6 @@ export interface EnvironmentCardProps {
   onOpenReleaseDetails: () => void;
   onPromote: (targetEnvName: string) => Promise<void>;
   onSuspend: () => Promise<void>;
+  onRedeploy: () => Promise<void>;
   activeIncidentCount?: number;
 }

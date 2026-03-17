@@ -23,8 +23,11 @@ function getOverallHealth(
         return { label: 'Healthy', status: 'Healthy', reason, message };
       if (flatStatus === 'Failed')
         return { label: 'Degraded', status: 'Degraded', reason, message };
-      if (flatStatus === 'NotReady')
+      if (flatStatus === 'NotReady') {
+        if (reason === 'ResourcesUndeployed')
+          return { label: 'Undeployed', status: 'Undeployed', reason, message };
         return { label: 'Progressing', status: 'Progressing', reason, message };
+      }
     } else {
       const bindingStatus = releaseBindingData.status as
         | Record<string, unknown>
@@ -41,8 +44,16 @@ function getOverallHealth(
         const message = (readyCondition as any).message as string | undefined;
         if (condStatus === 'True')
           return { label: 'Healthy', status: 'Healthy', reason, message };
-        if (condStatus === 'False')
+        if (condStatus === 'False') {
+          if (reason === 'ResourcesUndeployed')
+            return {
+              label: 'Undeployed',
+              status: 'Undeployed',
+              reason,
+              message,
+            };
           return { label: 'Degraded', status: 'Degraded', reason, message };
+        }
         return { label: 'Progressing', status: 'Progressing', reason, message };
       }
     }
@@ -68,6 +79,7 @@ function formatResourceBreakdown(
     'Progressing',
     'Suspended',
     'Degraded',
+    'Undeployed',
     'Unknown',
   ];
   return order

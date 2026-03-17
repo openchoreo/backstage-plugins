@@ -71,7 +71,9 @@ export const EnvironmentCardContent = ({
             <span>
               <StatusBadge
                 status={
-                  status === 'Ready'
+                  statusReason === 'ResourcesUndeployed'
+                    ? 'undeployed'
+                    : status === 'Ready'
                     ? 'active'
                     : status === 'NotReady'
                     ? 'pending'

@@ -61,12 +61,8 @@ export const EnvironmentsList = () => {
   const notification = useNotification();
 
   // Action handlers
-  const { handleRefreshEnvironment, handleSuspend } = useEnvironmentActions(
-    entity,
-    refetch,
-    notification,
-    refreshTracker,
-  );
+  const { handleRefreshEnvironment, handleUndeploy, handleRedeploy } =
+    useEnvironmentActions(entity, refetch, notification, refreshTracker);
 
   // Create isAlreadyPromoted checker for an environment
   const createPromotionChecker = useCallback(
@@ -198,13 +194,30 @@ export const EnvironmentsList = () => {
               onSuspend={() =>
                 suspendTracker
                   .withTracking(env.name, () =>
-                    handleSuspend(env.resourceName ?? env.name),
+                    handleUndeploy(
+                      env.bindingName ?? `${env.resourceName ?? env.name}`,
+                    ),
                   )
                   .catch(err =>
                     notification.showError(
                       isForbiddenError(err)
-                        ? 'You do not have permission to suspend. Contact your administrator.'
-                        : `Error suspending: ${getErrorMessage(err)}`,
+                        ? 'You do not have permission to undeploy. Contact your administrator.'
+                        : `Error undeploying: ${getErrorMessage(err)}`,
+                    ),
+                  )
+              }
+              onRedeploy={() =>
+                suspendTracker
+                  .withTracking(env.name, () =>
+                    handleRedeploy(
+                      env.bindingName ?? `${env.resourceName ?? env.name}`,
+                    ),
+                  )
+                  .catch(err =>
+                    notification.showError(
+                      isForbiddenError(err)
+                        ? 'You do not have permission to redeploy. Contact your administrator.'
+                        : `Error redeploying: ${getErrorMessage(err)}`,
                     ),
                   )
               }

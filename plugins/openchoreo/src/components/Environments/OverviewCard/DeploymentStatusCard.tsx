@@ -25,8 +25,19 @@ import type { Environment } from '../hooks/useEnvironmentData';
 
 function getStatusIcon(env: Environment) {
   const status = env.deployment?.status;
+  const statusReason = env.deployment?.statusReason;
+
   if (!status)
     return { Icon: null, iconClass: '', tooltipSuffix: 'Not deployed' };
+
+  // Intentional undeploy — show with a muted icon
+  if (statusReason === 'ResourcesUndeployed') {
+    return {
+      Icon: CloudOffIcon,
+      iconClass: 'statusIconDefault' as const,
+      tooltipSuffix: 'Undeployed',
+    };
+  }
 
   switch (status) {
     case 'Ready':

@@ -44,6 +44,9 @@ export const useOverviewCardStyles = makeStyles(theme => ({
   statusIconError: {
     color: theme.palette.error.main,
   },
+  statusIconDefault: {
+    color: theme.palette.text.secondary,
+  },
   actions: {
     marginTop: 'auto',
     paddingTop: theme.spacing(2),

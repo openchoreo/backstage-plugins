@@ -39,6 +39,7 @@ export {
   openchoreoEnvironmentReadPermission,
   openchoreoReleaseCreatePermission,
   openchoreoReleaseReadPermission,
+  openchoreoReleaseBindingUpdatePermission,
   openchoreoReleaseBindingReadPermission,
   openchoreoRoleViewPermission,
   openchoreoRoleCreatePermission,

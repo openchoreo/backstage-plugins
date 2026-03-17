@@ -43,13 +43,24 @@ export function useEnvironmentActions(
     [entity, client, refetch, notification],
   );
 
-  const handleSuspend = useCallback(
-    async (envName: string) => {
-      await client.deleteReleaseBinding(entity, envName);
+  const handleUndeploy = useCallback(
+    async (bindingName: string) => {
+      await client.updateComponentBinding(entity, bindingName, 'Undeploy');
+      // Small delay to allow the server to reconcile the state change
+      await new Promise(resolve => setTimeout(resolve, 1000));
       await refetch();
-      notification.showSuccess(
-        `Component suspended from ${envName} successfully`,
-      );
+      notification.showSuccess(`Component undeployed successfully`);
+    },
+    [entity, client, refetch, notification],
+  );
+
+  const handleRedeploy = useCallback(
+    async (bindingName: string) => {
+      await client.updateComponentBinding(entity, bindingName, 'Active');
+      // Small delay to allow the server to reconcile the state change
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await refetch();
+      notification.showSuccess(`Component redeployed successfully`);
     },
     [entity, client, refetch, notification],
   );
@@ -57,6 +68,7 @@ export function useEnvironmentActions(
   return {
     handleRefreshEnvironment,
     handlePromote,
-    handleSuspend,
+    handleUndeploy,
+    handleRedeploy,
   };
 }

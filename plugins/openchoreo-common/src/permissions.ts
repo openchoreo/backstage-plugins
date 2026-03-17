@@ -547,6 +547,16 @@ export const openchoreoReleaseReadPermission = createPermission({
 });
 
 /**
+ * Permission to update a release binding (e.g., undeploy a component from an environment).
+ * Resource-based: requires the specific component context.
+ */
+export const openchoreoReleaseBindingUpdatePermission = createPermission({
+  name: 'openchoreo.releasebinding.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
  * Permission to read/view release bindings.
  * Org-scoped permission.
  */
@@ -781,6 +791,7 @@ export const openchoreoPermissions = [
   openchoreoReleaseCreatePermission,
   openchoreoReleaseReadPermission,
   openchoreoReleaseBindingReadPermission,
+  openchoreoReleaseBindingUpdatePermission,
   openchoreoRoleViewPermission,
   openchoreoRoleCreatePermission,
   openchoreoRoleUpdatePermission,
@@ -871,6 +882,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.environment.read': 'environment:view',
   'openchoreo.release.create': 'componentrelease:create',
   'openchoreo.release.read': 'componentrelease:view',
+  'openchoreo.releasebinding.update': 'releasebinding:update',
   'openchoreo.releasebinding.read': 'releasebinding:view',
   'openchoreo.role.view': 'authzrole:view',
   'openchoreo.role.create': 'authzrole:create',
