@@ -18,6 +18,7 @@ import {
   getDescription,
   isReady,
   isCreated,
+  getAnnotation,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 import type {
@@ -161,6 +162,32 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
   getProviderName(): string {
     return 'OpenChoreoEntityProvider';
+  }
+
+  /**
+   * Resolves the owner for a Project (System) entity from the backstage.io/owner annotation.
+   * Falls back to this.defaultOwner if no annotation is present.
+   */
+  private resolveProjectOwner(project: NewProject): string {
+    return (
+      getAnnotation(project, CHOREO_ANNOTATIONS.BACKSTAGE_OWNER)?.trim() ||
+      this.defaultOwner
+    );
+  }
+
+  /**
+   * Resolves the owner for a Component entity.
+   * Priority: component annotation > project annotation > defaultOwner.
+   */
+  private resolveComponentOwner(
+    component: NewComponent,
+    project: NewProject,
+  ): string {
+    return (
+      getAnnotation(component, CHOREO_ANNOTATIONS.BACKSTAGE_OWNER)?.trim() ||
+      getAnnotation(project, CHOREO_ANNOTATIONS.BACKSTAGE_OWNER)?.trim() ||
+      this.defaultOwner
+    );
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
@@ -480,6 +507,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           // Pass 1: Collect workload data for all components in this namespace
           // Pass 2: Create entities with cross-component dependency resolution
 
+          // Build project lookup map for ownership resolution in pass 2
+          const projectMap = new Map(projects.map(p => [getName(p)!, p]));
+
           const componentWorkloadMap = new Map<string, ComponentWorkloadData>();
 
           // Pass 1 — Collect workload data
@@ -607,10 +637,18 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               }
             }
 
+            // Resolve ownership: component annotation > project annotation > defaultOwner
+            const project = projectMap.get(projectName)!;
+            const resolvedOwner = this.resolveComponentOwner(
+              component,
+              project,
+            );
+
             const componentEntity = this.translateNewComponentToEntity(
               component,
               nsName,
               projectName,
+              resolvedOwner,
               providesApis,
               consumesApis.length > 0 ? consumesApis : undefined,
             );
@@ -623,6 +661,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                 schemaEndpoints,
                 nsName,
                 projectName,
+                resolvedOwner,
               );
               allEntities.push(...apiEntities);
             }
@@ -1589,7 +1628,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       namespaceName,
       {
         locationKey: this.getProviderName(),
-        defaultOwner: this.defaultOwner,
+        defaultOwner: this.resolveProjectOwner(project),
       },
     );
   }
@@ -1601,6 +1640,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     component: NewComponent,
     namespaceName: string,
     projectName: string,
+    owner: string,
     providesApis?: string[],
     consumesApis?: string[],
   ): Entity {
@@ -1636,7 +1676,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       namespaceName,
       projectName,
       {
-        defaultOwner: this.defaultOwner,
+        defaultOwner: owner,
         componentTypeUtils: this.componentTypeUtils,
         locationKey: `provider:${this.getProviderName()}`,
       },
@@ -2065,6 +2105,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     endpoints: Record<string, WorkloadEndpoint>,
     namespaceName: string,
     projectName: string,
+    owner: string,
   ): Entity[] {
     const apiEntities: Entity[] = [];
 
@@ -2103,7 +2144,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         spec: {
           type: this.mapSchemaTypeToBackstageApiType(endpoint.schema?.type),
           lifecycle: 'production',
-          owner: this.defaultOwner,
+          owner,
           system: projectName,
           definition: this.createApiDefinitionFromWorkloadEndpoint(endpoint),
         },

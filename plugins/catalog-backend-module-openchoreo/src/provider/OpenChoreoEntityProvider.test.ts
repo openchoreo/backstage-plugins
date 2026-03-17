@@ -760,4 +760,142 @@ describe('OpenChoreoEntityProvider', () => {
       expect(findEntities(entities, 'API')).toHaveLength(0);
     });
   });
+
+  describe('ownership annotation resolution', () => {
+    function setupOwnershipMocks(opts: {
+      projectAnnotations?: Record<string, string>;
+      componentAnnotations?: Record<string, string>;
+    }) {
+      const project = {
+        metadata: {
+          ...k8sMeta('my-project'),
+          annotations: {
+            ...k8sMeta('my-project').annotations,
+            ...opts.projectAnnotations,
+          },
+        },
+        spec: {
+          deploymentPipelineRef: {
+            kind: 'DeploymentPipeline',
+            name: 'default-pipeline',
+          },
+        },
+        status: { conditions: [readyCondition] },
+      };
+
+      const component = {
+        metadata: {
+          ...k8sMeta('api-service'),
+          annotations: {
+            ...k8sMeta('api-service').annotations,
+            ...opts.componentAnnotations,
+          },
+        },
+        spec: {
+          componentType: { kind: 'ComponentType', name: 'Service' },
+          owner: { projectName: 'my-project' },
+        },
+        status: { conditions: [readyCondition] },
+      };
+
+      setupPathBasedMocks({
+        '/api/v1/namespaces/{namespaceName}/projects': okData({
+          items: [project],
+        }),
+        '/api/v1/namespaces/{namespaceName}/components': okData({
+          items: [component],
+        }),
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines': okData({
+          items: [k8sPipeline],
+        }),
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+      });
+    }
+
+    it('uses project backstage.io/owner annotation for System entity', async () => {
+      setupOwnershipMocks({
+        projectAnnotations: {
+          'backstage.io/owner': 'group:default/platform-team',
+        },
+      });
+
+      const entities = await runProvider();
+      const system = findEntities(entities, 'System')[0];
+      expect((system.spec as any).owner).toBe('group:default/platform-team');
+    });
+
+    it('falls back to defaultOwner when project has no ownership annotation', async () => {
+      setupOwnershipMocks({});
+
+      const entities = await runProvider();
+      const system = findEntities(entities, 'System')[0];
+      expect((system.spec as any).owner).toBe('group:default/test-owner');
+    });
+
+    it('uses component backstage.io/owner annotation for Component entity', async () => {
+      setupOwnershipMocks({
+        componentAnnotations: {
+          'backstage.io/owner': 'group:default/team-alpha',
+        },
+      });
+
+      const entities = await runProvider();
+      const comp = findEntities(entities, 'Component').find(
+        c => c.metadata.name === 'api-service',
+      );
+      expect((comp?.spec as any).owner).toBe('group:default/team-alpha');
+    });
+
+    it('inherits project owner when component has no annotation', async () => {
+      setupOwnershipMocks({
+        projectAnnotations: { 'backstage.io/owner': 'group:default/team-beta' },
+      });
+
+      const entities = await runProvider();
+      const comp = findEntities(entities, 'Component').find(
+        c => c.metadata.name === 'api-service',
+      );
+      expect((comp?.spec as any).owner).toBe('group:default/team-beta');
+    });
+
+    it('falls back to defaultOwner when neither component nor project has annotation', async () => {
+      setupOwnershipMocks({});
+
+      const entities = await runProvider();
+      const comp = findEntities(entities, 'Component').find(
+        c => c.metadata.name === 'api-service',
+      );
+      expect((comp?.spec as any).owner).toBe('group:default/test-owner');
+    });
+
+    it('component annotation takes precedence over project annotation', async () => {
+      setupOwnershipMocks({
+        projectAnnotations: {
+          'backstage.io/owner': 'group:default/project-team',
+        },
+        componentAnnotations: {
+          'backstage.io/owner': 'group:default/component-team',
+        },
+      });
+
+      const entities = await runProvider();
+      const comp = findEntities(entities, 'Component').find(
+        c => c.metadata.name === 'api-service',
+      );
+      expect((comp?.spec as any).owner).toBe('group:default/component-team');
+    });
+
+    it('ignores empty or whitespace-only annotation values', async () => {
+      setupOwnershipMocks({
+        projectAnnotations: { 'backstage.io/owner': '   ' },
+        componentAnnotations: { 'backstage.io/owner': '' },
+      });
+
+      const entities = await runProvider();
+      const comp = findEntities(entities, 'Component').find(
+        c => c.metadata.name === 'api-service',
+      );
+      expect((comp?.spec as any).owner).toBe('group:default/test-owner');
+    });
+  });
 });
