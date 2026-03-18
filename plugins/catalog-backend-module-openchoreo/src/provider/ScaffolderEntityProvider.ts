@@ -2,7 +2,7 @@ import {
   EntityProvider,
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { LoggerService } from '@backstage/backend-plugin-api';
 
 /**
@@ -18,6 +18,8 @@ export class ScaffolderEntityProvider implements EntityProvider {
   private connection?: EntityProviderConnection;
   private readonly logger: LoggerService;
   private readonly mainProviderName: string;
+  /** Tracks entity refs inserted by the scaffolder for stale entity cleanup. */
+  private readonly insertedRefs = new Set<string>();
 
   constructor(
     logger: LoggerService,
@@ -74,8 +76,11 @@ export class ScaffolderEntityProvider implements EntityProvider {
         removed: [],
       });
 
+      const entityRef = stringifyEntityRef(entity);
+      this.insertedRefs.add(entityRef);
+
       this.logger.info(
-        `Successfully inserted entity: ${entity.metadata.name} (locationKey: ${locationKey})`,
+        `Successfully inserted entity: ${entityRef} (locationKey: ${locationKey})`,
       );
     } catch (error) {
       this.logger.error(
@@ -121,6 +126,50 @@ export class ScaffolderEntityProvider implements EntityProvider {
     } catch (error) {
       this.logger.error(`Failed to remove entity ${entityRef}: ${error}`);
       throw error;
+    }
+  }
+
+  /**
+   * Removes scaffolder-inserted entities that are no longer in the current
+   * set of valid entity refs (i.e., entities that exist in the OpenChoreo API).
+   * Called by OpenChoreoEntityProvider after each full sync to clean up
+   * stale entities that were scaffolded but have since been deleted.
+   */
+  async removeStaleEntities(validEntityRefs: Set<string>): Promise<void> {
+    if (!this.connection || this.insertedRefs.size === 0) {
+      return;
+    }
+
+    const staleRefs = [...this.insertedRefs].filter(
+      ref => !validEntityRefs.has(ref),
+    );
+
+    if (staleRefs.length === 0) {
+      return;
+    }
+
+    this.logger.info(
+      `Cleaning up ${
+        staleRefs.length
+      } stale scaffolder entities: ${staleRefs.join(', ')}`,
+    );
+
+    const locationKey = `provider:${this.mainProviderName}`;
+
+    try {
+      await this.connection.applyMutation({
+        type: 'delta',
+        added: [],
+        removed: staleRefs.map(entityRef => ({ entityRef, locationKey })),
+      });
+
+      for (const ref of staleRefs) {
+        this.insertedRefs.delete(ref);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to clean up stale scaffolder entities: ${error}`,
+      );
     }
   }
 }

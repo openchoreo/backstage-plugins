@@ -2,7 +2,7 @@ import {
   EntityProvider,
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { SchedulerServiceTaskRunner } from '@backstage/backend-plugin-api';
 import { Config } from '@backstage/config';
 import { LoggerService } from '@backstage/backend-plugin-api';
@@ -188,6 +188,18 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       getAnnotation(project, CHOREO_ANNOTATIONS.BACKSTAGE_OWNER)?.trim() ||
       this.defaultOwner
     );
+  }
+
+  private scaffolderProvider?: import('./ScaffolderEntityProvider').ScaffolderEntityProvider;
+
+  /**
+   * Sets a reference to the ScaffolderEntityProvider so that the full sync
+   * can clean up stale scaffolder-inserted entities.
+   */
+  setScaffolderProvider(
+    provider: import('./ScaffolderEntityProvider').ScaffolderEntityProvider,
+  ): void {
+    this.scaffolderProvider = provider;
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
@@ -1213,6 +1225,14 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       });
 
       this.logEntityCounts(allEntities, domainEntities.length);
+
+      // Clean up stale scaffolder-inserted entities that no longer exist in the API
+      if (this.scaffolderProvider) {
+        const validEntityRefs = new Set(
+          allEntities.map(e => stringifyEntityRef(e)),
+        );
+        await this.scaffolderProvider.removeStaleEntities(validEntityRefs);
+      }
     } catch (error) {
       this.logger.error(`Failed to run OpenChoreoEntityProvider: ${error}`);
     }

@@ -41,8 +41,8 @@ import {
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { matchesCatalogEntityCapability } from '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy';
 
-// Singleton instance of the ScaffolderEntityProvider
-// This will be shared across the module and the service
+// Singleton instances shared between the catalog module and the ImmediateCatalogService factory
+let entityProviderInstance: OpenChoreoEntityProvider | undefined;
 let scaffolderProviderInstance: ScaffolderEntityProvider | undefined;
 
 // Singleton promise for the AnnotationStore
@@ -143,17 +143,15 @@ export const catalogModuleOpenchoreo = createBackendModule({
         catalog.addProcessor(new ClusterWorkflowEntityProcessor());
 
         // Register the scheduled OpenChoreo entity provider
-        catalog.addEntityProvider(
-          new OpenChoreoEntityProvider(
-            taskRunner,
-            logger,
-            config,
-            tokenService,
-          ),
+        entityProviderInstance = new OpenChoreoEntityProvider(
+          taskRunner,
+          logger,
+          config,
+          tokenService,
         );
+        catalog.addEntityProvider(entityProviderInstance);
 
-        // Create and register the ScaffolderEntityProvider for immediate insertions
-        // Pass 'OpenChoreoEntityProvider' so it uses the same location key bucket
+        // Register the ScaffolderEntityProvider for immediate entity insertions
         if (!scaffolderProviderInstance) {
           scaffolderProviderInstance = new ScaffolderEntityProvider(
             logger,
@@ -161,6 +159,11 @@ export const catalogModuleOpenchoreo = createBackendModule({
           );
         }
         catalog.addEntityProvider(scaffolderProviderInstance);
+
+        // Wire cross-provider reference so full sync can clean up stale scaffolder entities
+        entityProviderInstance.setScaffolderProvider(
+          scaffolderProviderInstance,
+        );
 
         // Register OpenChoreo permission rule for catalog entities
         // This allows catalog.entity.* permissions to be checked against OpenChoreo capabilities
@@ -172,7 +175,7 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
 /**
  * Factory for the ImmediateCatalogService.
- * This creates and provides the service instance that can be used by other modules.
+ * Delegates to ScaffolderEntityProvider for immediate delta mutations.
  */
 export const immediateCatalogServiceFactory = createServiceFactory({
   service: immediateCatalogServiceRef,
@@ -180,7 +183,6 @@ export const immediateCatalogServiceFactory = createServiceFactory({
     logger: coreServices.logger,
   },
   async factory({ logger }): Promise<ImmediateCatalogService> {
-    // Ensure singleton instance exists
     if (!scaffolderProviderInstance) {
       scaffolderProviderInstance = new ScaffolderEntityProvider(
         logger,
