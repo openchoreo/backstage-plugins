@@ -11,6 +11,10 @@
 # Note: app-config.local.yaml is gitignored and won't affect Docker builds.
 # Docker builds only use app-config.production.yaml.
 
+# Use redirect-based OAuth flow instead of a popup window
+# See https://backstage.io/docs/auth/#sign-in-configuration
+enableExperimentalRedirectFlow: true
+
 app:
   title: OpenChoreo Portal
   # Environment variable is injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)

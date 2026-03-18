@@ -129,6 +129,7 @@ export const apis: AnyApiFactory[] = [
       OAuth2.create({
         discoveryApi,
         oauthRequestApi,
+        configApi,
         provider: {
           id: 'openchoreo-auth',
           title: 'OpenChoreo',
