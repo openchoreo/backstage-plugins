@@ -1,7 +1,7 @@
 import { Box, Chip, Tooltip, Typography } from '@material-ui/core';
 import { StatusPending } from '@backstage/core-components';
 import CheckCircleIcon from '@material-ui/icons/CheckCircleOutlined';
-import ErrorIcon from '@material-ui/icons/ErrorOutlined';
+import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import WarningIcon from '@material-ui/icons/ReportProblemOutlined';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
 import { ComponentWithDeployment, type Environment } from '../hooks';

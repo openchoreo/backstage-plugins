@@ -173,7 +173,7 @@ export function translateComponentToEntity(
     kind: 'Component',
     metadata: {
       name: component.name,
-      title: component.name,
+      title: component.displayName || component.name,
       namespace: namespaceName,
       ...(component.description && { description: component.description }),
       tags: config.componentTypeUtils.generateTags(component.type || 'unknown'),

@@ -1655,6 +1655,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     return translateComponent(
       {
         name: componentName,
+        displayName: getDisplayName(component),
         uid: getUid(component),
         type: componentType,
         componentType:
