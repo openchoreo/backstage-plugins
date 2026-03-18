@@ -38,13 +38,24 @@ export const useStyles = makeStyles(theme => ({
   },
   copyableRow: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: theme.spacing(0.5),
     minWidth: 0,
     overflow: 'hidden',
   },
   copyButton: {
     padding: theme.spacing(0.5),
+    flexShrink: 0,
+  },
+  codeBlockWrapper: {
+    position: 'relative' as const,
+  },
+  codeBlockCopyButton: {
+    position: 'absolute' as const,
+    top: theme.spacing(0.5),
+    right: theme.spacing(0.5),
+    padding: theme.spacing(0.5),
+    zIndex: 1,
   },
   codeBlock: {
     fontFamily: 'monospace',
@@ -53,6 +64,7 @@ export const useStyles = makeStyles(theme => ({
     wordBreak: 'break-word' as const,
     margin: 0,
     padding: theme.spacing(1.5),
+    paddingRight: theme.spacing(4.5),
     borderRadius: theme.shape.borderRadius,
     border: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
     backgroundColor: alpha(theme.palette.background.default, 0.5),

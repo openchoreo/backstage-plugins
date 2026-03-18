@@ -63,7 +63,10 @@ function CopyButton({
   }, [copied]);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(text).then(() => setCopied(true));
+    navigator.clipboard.writeText(text).then(
+      () => setCopied(true),
+      () => setCopied(false),
+    );
   }, [text]);
 
   return (
@@ -257,45 +260,39 @@ export const RunMetadataContent = ({
                       Image:
                     </Typography>
                     <Box className={classes.copyableRow}>
-                      <CopyButton
-                        text={workloadImage}
-                        tooltip="Copy image"
-                        className={classes.copyButton}
-                      />
                       <Typography
                         className={`${classes.propertyValue} ${classes.monoValue}`}
                       >
                         {workloadImage}
                       </Typography>
+                      <CopyButton
+                        text={workloadImage}
+                        tooltip="Copy image"
+                        className={classes.copyButton}
+                      />
                     </Box>
                   </Box>
                 )}
 
-                <Box className={classes.propertyRow}>
-                  <Typography className={classes.propertyKey}>
-                    Workload CR:
-                  </Typography>
-                  <Box className={classes.copyableRow}>
-                    <CopyButton
-                      text={
-                        parsedWorkload
-                          ? yamlStringify(parsedWorkload, {
-                              lineWidth: 0,
-                            }).trimEnd()
-                          : workflowRunDetails.workloadCr
-                      }
-                      tooltip="Copy workload CR"
-                      className={classes.copyButton}
-                    />
-                  </Box>
-                </Box>
+                <Typography className={classes.propertyKey}>
+                  Workload CR
+                </Typography>
 
                 {parsedWorkload && (
-                  <pre className={classes.codeBlock}>
-                    {yamlStringify(parsedWorkload, {
-                      lineWidth: 0,
-                    }).trimEnd()}
-                  </pre>
+                  <Box className={classes.codeBlockWrapper}>
+                    <CopyButton
+                      text={yamlStringify(parsedWorkload, {
+                        lineWidth: 0,
+                      }).trimEnd()}
+                      tooltip="Copy workload CR"
+                      className={classes.codeBlockCopyButton}
+                    />
+                    <pre className={classes.codeBlock}>
+                      {yamlStringify(parsedWorkload, {
+                        lineWidth: 0,
+                      }).trimEnd()}
+                    </pre>
+                  </Box>
                 )}
               </>
             )}
@@ -307,24 +304,24 @@ export const RunMetadataContent = ({
           Object.keys(workflowRunDetails.workflow.parameters).length > 0 && (
             <Grid item xs={12} md={6}>
               <Box className={classes.metadataCard}>
-                <Box className={classes.copyableRow}>
-                  <Typography variant="h6" gutterBottom>
-                    Workflow Parameters
-                  </Typography>
+                <Typography variant="h6" gutterBottom>
+                  Workflow Parameters
+                </Typography>
+                <Box className={classes.codeBlockWrapper}>
                   <CopyButton
                     text={yamlStringify(
                       workflowRunDetails.workflow.parameters,
                       { lineWidth: 0 },
                     ).trimEnd()}
                     tooltip="Copy parameters"
-                    className={classes.copyButton}
+                    className={classes.codeBlockCopyButton}
                   />
+                  <pre className={classes.codeBlock}>
+                    {yamlStringify(workflowRunDetails.workflow.parameters, {
+                      lineWidth: 0,
+                    }).trimEnd()}
+                  </pre>
                 </Box>
-                <pre className={classes.codeBlock}>
-                  {yamlStringify(workflowRunDetails.workflow.parameters, {
-                    lineWidth: 0,
-                  }).trimEnd()}
-                </pre>
               </Box>
             </Grid>
           )}
