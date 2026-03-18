@@ -78,6 +78,11 @@ function matchesScope(
 
   const parsed = parseCapabilityPath(path);
 
+  // Invalid paths never match
+  if (!parsed) {
+    return false;
+  }
+
   // Check namespace
   if (
     parsed.namespace &&

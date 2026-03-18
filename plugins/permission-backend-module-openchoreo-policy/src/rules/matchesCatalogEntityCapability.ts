@@ -51,35 +51,46 @@ const paramsSchema = z.object({
 export type MatchesCatalogEntityCapabilityParams = z.infer<typeof paramsSchema>;
 
 /**
- * Parses capability path from backend format.
- *
- * Backend format: "ns/{nsName}/project/{projectName}/component/{componentName}"
- * or wildcards like "ns/*", "ns/{nsName}/project/*", etc.
+ * Parsed capability path with `ns` field (catalog rule convention).
  */
-function parseCapabilityPath(path: string): {
+interface CatalogParsedPath {
   ns?: string;
   project?: string;
   component?: string;
-} {
+}
+
+/**
+ * Regex that validates the full path grammar.
+ * Valid: "*", "ns/{name}", "ns/{name}/project/{name}", "ns/{name}/project/{name}/component/{name}"
+ */
+const CATALOG_PATH_REGEX =
+  /^ns\/([^/]+)(?:\/project\/([^/]+)(?:\/component\/([^/]+))?)?$/;
+
+/**
+ * Parses capability path from backend format.
+ *
+ * Only accepts fully valid paths:
+ * - "*" (global wildcard)
+ * - "ns/{name}" optionally followed by "/project/{name}" optionally followed by "/component/{name}"
+ *
+ * Returns null for invalid paths.
+ */
+function parseCapabilityPath(path: string): CatalogParsedPath | null {
   if (path === '*') {
     return { ns: '*', project: '*', component: '*' };
   }
 
-  const result: { ns?: string; project?: string; component?: string } = {};
-
-  const nsMatch = path.match(/^ns\/([^/]+)/);
-  if (nsMatch) {
-    result.ns = nsMatch[1];
+  const match = path.match(CATALOG_PATH_REGEX);
+  if (!match) {
+    return null;
   }
 
-  const projectMatch = path.match(/project\/([^/]+)/);
-  if (projectMatch) {
-    result.project = projectMatch[1];
+  const result: CatalogParsedPath = { ns: match[1] };
+  if (match[2] !== undefined) {
+    result.project = match[2];
   }
-
-  const componentMatch = path.match(/component\/([^/]+)/);
-  if (componentMatch) {
-    result.component = componentMatch[1];
+  if (match[3] !== undefined) {
+    result.component = match[3];
   }
 
   return result;
@@ -158,6 +169,11 @@ function matchesScope(
 
   const parsed = parseCapabilityPath(path);
 
+  // Invalid paths never match
+  if (!parsed) {
+    return false;
+  }
+
   // Check path specificity - reject paths more specific than entity level
   // Domain and namespace-scoped entities: path must NOT have project or component
   if (entityLevel === 'domain' || entityLevel === 'namespace-scoped') {
@@ -224,6 +240,11 @@ function isPathValidForLevel(path: string, entityLevel: EntityLevel): boolean {
   }
 
   const parsed = parseCapabilityPath(path);
+
+  // Invalid paths are not valid for any level
+  if (!parsed) {
+    return false;
+  }
 
   // Domain and namespace-scoped: reject project/component-specific paths
   if (entityLevel === 'domain' || entityLevel === 'namespace-scoped') {
@@ -440,7 +461,7 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
 
       // Check for wildcard access for this kind (only considering valid paths)
       const hasWildcardAccess = validPaths.some(
-        path => path === '*' || parseCapabilityPath(path).ns === '*',
+        path => path === '*' || parseCapabilityPath(path)?.ns === '*',
       );
 
       if (hasWildcardAccess) {
@@ -461,6 +482,9 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
       // Build path-based filters for this kind using appropriate annotations
       for (const path of validPaths) {
         const parsed = parseCapabilityPath(path);
+        if (!parsed) {
+          continue; // Skip invalid paths
+        }
         const conditions: PermissionCriteria<EntitiesSearchFilter>[] = [
           singleKindFilter,
         ];

@@ -12,34 +12,45 @@ export interface ParsedPath {
 }
 
 /**
+ * Regex that validates the full path grammar.
+ *
+ * Valid forms:
+ * - "*"
+ * - "ns/{name}" optionally followed by "/project/{name}" optionally followed by "/component/{name}"
+ *
+ * Each {name} is one or more non-slash characters (including "*" for wildcards).
+ */
+const PATH_REGEX =
+  /^ns\/([^/]+)(?:\/project\/([^/]+)(?:\/component\/([^/]+))?)?$/;
+
+/**
  * Parses a capability path from the backend format.
  *
- * Backend format: "ns/{nsName}/project/{projectName}/component/{componentName}"
- * or wildcards like "*", "ns/*", "ns/{nsName}/project/*", etc.
+ * Only accepts fully valid paths:
+ * - "*" (global wildcard)
+ * - "ns/{name}" (namespace level)
+ * - "ns/{name}/project/{name}" (project level)
+ * - "ns/{name}/project/{name}/component/{name}" (component level)
  *
- * Returns parsed { namespace, project, component } values.
- * Undefined fields mean that level was not specified in the path (i.e., wildcard below).
+ * Returns null for any input that does not match the grammar.
+ * Undefined fields mean that level was not specified in the path.
  */
-export function parseCapabilityPath(path: string): ParsedPath {
+export function parseCapabilityPath(path: string): ParsedPath | null {
   if (path === '*') {
     return { namespace: '*', project: '*', component: '*' };
   }
 
-  const result: ParsedPath = {};
-
-  const namespaceMatch = path.match(/^ns\/([^/]+)/);
-  if (namespaceMatch) {
-    result.namespace = namespaceMatch[1];
+  const match = path.match(PATH_REGEX);
+  if (!match) {
+    return null;
   }
 
-  const projectMatch = path.match(/project\/([^/]+)/);
-  if (projectMatch) {
-    result.project = projectMatch[1];
+  const result: ParsedPath = { namespace: match[1] };
+  if (match[2] !== undefined) {
+    result.project = match[2];
   }
-
-  const componentMatch = path.match(/component\/([^/]+)/);
-  if (componentMatch) {
-    result.component = componentMatch[1];
+  if (match[3] !== undefined) {
+    result.component = match[3];
   }
 
   return result;
@@ -70,6 +81,11 @@ export function isPathCoveredBy(allowPath: string, denyPath: string): boolean {
 
   const allow = parseCapabilityPath(allowPath);
   const deny = parseCapabilityPath(denyPath);
+
+  // Invalid paths cannot cover or be covered
+  if (!allow || !deny) {
+    return false;
+  }
 
   // Check each hierarchy level: namespace → project → component
   const levels: (keyof ParsedPath)[] = ['namespace', 'project', 'component'];

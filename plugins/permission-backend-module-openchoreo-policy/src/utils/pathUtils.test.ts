@@ -47,8 +47,19 @@ describe('parseCapabilityPath', () => {
     });
   });
 
-  it('returns empty object for unrecognized path', () => {
-    expect(parseCapabilityPath('unknown')).toEqual({});
+  it('returns null for unrecognized path', () => {
+    expect(parseCapabilityPath('unknown')).toBeNull();
+    expect(parseCapabilityPath('')).toBeNull();
+    expect(parseCapabilityPath('project/foo')).toBeNull();
+    expect(parseCapabilityPath('component/bar')).toBeNull();
+    expect(parseCapabilityPath('garbage/ns/acme')).toBeNull();
+    expect(parseCapabilityPath('ns/acme/notproject/foo')).toBeNull();
+  });
+
+  it('invalid paths do not cover and are not covered', () => {
+    expect(isPathCoveredBy('invalid', 'ns/acme')).toBe(false);
+    expect(isPathCoveredBy('ns/acme', 'invalid')).toBe(false);
+    expect(isPathCoveredBy('invalid', 'invalid')).toBe(false);
   });
 });
 
