@@ -16,9 +16,11 @@ import { SvgIconTypeMap } from '@material-ui/core/SvgIcon/SvgIcon';
 import { DEFAULT_NAMESPACE, Entity } from '@backstage/catalog-model';
 import { EntityNodeData } from '@backstage/plugin-catalog-graph';
 import {
+  DELETION_WARNING_COLOR,
   getNodeColor,
   getNodeKindLabel,
   getNodeTintFill,
+  isNodeMarkedForDeletion,
 } from '../../utils/graphUtils';
 
 // Inline EntityIcon component to avoid import issues
@@ -120,24 +122,54 @@ export function CustomGraphNode({
   const paddedWidth = Math.max(contentWidth, minWidthForBadge);
   const paddedHeight = height + padding * 2;
 
+  // Check if entity is marked for deletion
+  const isDeleting = isNodeMarkedForDeletion(entityObj);
+
   // Get the base display title and kind label
   const baseTitle = entityRefPresentationSnapshot.primaryTitle ?? id;
-  const kindLabel = getNodeKindLabel(entity.kind);
+  const kindLabel = isDeleting ? 'Deleting' : getNodeKindLabel(entity.kind);
 
   // Get kind-based color and tint fill
   const nodeColor = getNodeColor(entity.kind);
   const tintFill = getNodeTintFill(nodeColor, isDark);
-  const borderColor = `${nodeColor}B3`; // accent color at 70% opacity
+  const borderColor = isDeleting
+    ? `${DELETION_WARNING_COLOR}B3`
+    : `${nodeColor}B3`; // accent color at 70% opacity
 
-  // Sanitize entity ref for use as a unique clipPath ID
-  const clipId = `accent-clip-${id.replace(/[^a-zA-Z0-9]/g, '-')}`;
+  // Sanitize entity ref for use as a unique SVG ID
+  const sanitizedId = id.replace(/[^a-zA-Z0-9]/g, '-');
+  const clipId = `accent-clip-${sanitizedId}`;
+  const stripePatternId = `deletion-stripe-${sanitizedId}`;
 
   return (
-    <g onClick={onClick} className={clsx(onClick && classes.clickable)}>
+    <g
+      onClick={onClick}
+      className={clsx(onClick && classes.clickable)}
+      opacity={isDeleting ? 0.6 : undefined}
+    >
       <defs>
         <clipPath id={clipId}>
           <rect width={paddedWidth} height={paddedHeight} rx={10} />
         </clipPath>
+        {isDeleting && (
+          <pattern
+            id={stripePatternId}
+            width="6"
+            height="6"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <line
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="6"
+              stroke={DELETION_WARNING_COLOR}
+              strokeWidth="1.5"
+              strokeOpacity="0.15"
+            />
+          </pattern>
+        )}
       </defs>
       {/* Main body */}
       <rect
@@ -150,13 +182,24 @@ export function CustomGraphNode({
         height={paddedHeight}
         rx={10}
         strokeWidth={1.5}
+        strokeDasharray={isDeleting ? '6 3' : undefined}
         filter="url(#node-shadow)"
       />
+      {/* Diagonal stripe overlay for deletion-marked nodes */}
+      {isDeleting && (
+        <rect
+          width={paddedWidth}
+          height={paddedHeight}
+          rx={10}
+          fill={`url(#${stripePatternId})`}
+          pointerEvents="none"
+        />
+      )}
       {/* Left accent stripe — clipped to the node's rounded shape */}
       <rect
         width={accentWidth}
         height={paddedHeight}
-        fill={nodeColor}
+        fill={isDeleting ? DELETION_WARNING_COLOR : nodeColor}
         clipPath={`url(#${clipId})`}
       />
       {hasKindIcon && (
@@ -211,6 +254,9 @@ export function CustomGraphNode({
                 textAnchor="start"
                 dominantBaseline="central"
                 className={classes.kindBadgeText}
+                style={
+                  isDeleting ? { fill: DELETION_WARNING_COLOR } : undefined
+                }
               >
                 {kindLabel}
               </text>
@@ -227,7 +273,10 @@ export function CustomGraphNode({
       >
         {baseTitle}
       </text>
-      <title>{entityRefPresentationSnapshot.entityRef}</title>
+      <title>
+        {entityRefPresentationSnapshot.entityRef}
+        {isDeleting ? ' (Marked for Deletion)' : ''}
+      </title>
     </g>
   );
 }

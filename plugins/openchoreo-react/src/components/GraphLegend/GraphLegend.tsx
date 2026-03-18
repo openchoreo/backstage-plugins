@@ -2,6 +2,7 @@ import { makeStyles, useTheme } from '@material-ui/core/styles';
 import Box from '@material-ui/core/Box';
 import Chip from '@material-ui/core/Chip';
 import {
+  DELETION_WARNING_COLOR,
   ENTITY_KIND_COLORS,
   DEFAULT_NODE_COLOR,
   getNodeTintFill,
@@ -60,14 +61,19 @@ const KIND_LABELS: Record<string, string> = {
 
 export type GraphLegendProps = {
   kinds: string[];
+  showDeletionIndicator?: boolean;
 };
 
-export function GraphLegend({ kinds }: GraphLegendProps) {
+export function GraphLegend({
+  kinds,
+  showDeletionIndicator = true,
+}: GraphLegendProps) {
   return (
     <Box className={useStyles().root}>
       {kinds.map(kind => (
         <LegendChip key={kind} kind={kind} />
       ))}
+      {showDeletionIndicator && <DeletionLegendChip />}
     </Box>
   );
 }
@@ -88,6 +94,26 @@ function LegendChip({ kind }: { kind: string }) {
         backgroundColor: getNodeTintFill(color, isDark),
         border: `1px solid ${color}B3`,
         ['--dot-color' as string]: color,
+      }}
+    />
+  );
+}
+
+function DeletionLegendChip() {
+  const classes = useStyles();
+  const theme = useTheme();
+  const isDark = theme.palette.type === 'dark';
+
+  return (
+    <Chip
+      size="small"
+      label="Marked for Deletion"
+      className={classes.chip}
+      style={{
+        backgroundColor: getNodeTintFill(DELETION_WARNING_COLOR, isDark),
+        border: `1px dashed ${DELETION_WARNING_COLOR}B3`,
+        opacity: 0.6,
+        ['--dot-color' as string]: DELETION_WARNING_COLOR,
       }}
     />
   );
