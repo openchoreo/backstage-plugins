@@ -17,6 +17,10 @@ export interface WorkflowRunDetails {
     parameters?: Record<string, any>;
   };
   createdAt?: string;
+  workloadCr?: string;
+  workloadFromSource?: string;
+  startedAt?: string;
+  completedAt?: string;
 }
 
 interface UseWorkflowRunResult {

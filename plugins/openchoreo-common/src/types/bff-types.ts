@@ -267,6 +267,14 @@ export interface ComponentWorkflowRunResponse {
   createdAt?: string;
   image?: string;
   workflow?: ComponentWorkflowConfigResponse;
+  /** Compact JSON string of the full Workload CR, from annotation openchoreo.dev/workload */
+  workloadCr?: string;
+  /** "true" or "false" string, from annotation openchoreo.dev/workload-from-source */
+  workloadFromSource?: string;
+  /** Format: date-time — when the workflow run started execution */
+  startedAt?: string;
+  /** Format: date-time — when the workflow run finished execution */
+  completedAt?: string;
 }
 
 export interface ComponentWorkflowConfigResponse {
