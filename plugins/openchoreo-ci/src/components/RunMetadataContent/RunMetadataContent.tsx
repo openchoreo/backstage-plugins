@@ -57,7 +57,7 @@ function CopyButton({
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!copied) return;
+    if (!copied) return undefined;
     const timer = setTimeout(() => setCopied(false), 2000);
     return () => clearTimeout(timer);
   }, [copied]);
@@ -123,8 +123,7 @@ export const RunMetadataContent = ({
 
   const isTerminal = TERMINAL_STATUSES.includes(workflowData.status || '');
   const parsedWorkload = parseWorkloadCr(workflowRunDetails?.workloadCr);
-  const workloadImage =
-    parsedWorkload?.spec?.container?.image ?? null;
+  const workloadImage = parsedWorkload?.spec?.container?.image ?? null;
   const duration = calculateDuration(
     workflowRunDetails?.startedAt,
     workflowRunDetails?.completedAt,
@@ -226,16 +225,20 @@ export const RunMetadataContent = ({
               Workload
             </Typography>
 
-            {!isTerminal ? (
+            {!isTerminal && (
               <Typography variant="body2" color="textSecondary">
                 Workload details will be available once the workflow run
                 completes.
               </Typography>
-            ) : !workflowRunDetails?.workloadCr ? (
+            )}
+
+            {isTerminal && !workflowRunDetails?.workloadCr && (
               <Typography variant="body2" color="textSecondary">
                 Workload details are not found in the workflow run.
               </Typography>
-            ) : (
+            )}
+
+            {isTerminal && workflowRunDetails?.workloadCr && (
               <>
                 <Box className={classes.propertyRow}>
                   <Typography className={classes.propertyKey}>
@@ -318,10 +321,9 @@ export const RunMetadataContent = ({
                   />
                 </Box>
                 <pre className={classes.codeBlock}>
-                  {yamlStringify(
-                    workflowRunDetails.workflow.parameters,
-                    { lineWidth: 0 },
-                  ).trimEnd()}
+                  {yamlStringify(workflowRunDetails.workflow.parameters, {
+                    lineWidth: 0,
+                  }).trimEnd()}
                 </pre>
               </Box>
             </Grid>
