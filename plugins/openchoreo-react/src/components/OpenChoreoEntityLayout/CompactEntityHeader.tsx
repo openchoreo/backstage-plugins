@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import useAsync from 'react-use/esm/useAsync';
 import Box from '@material-ui/core/Box';
 import MaterialBreadcrumbs from '@material-ui/core/Breadcrumbs';
 import Chip from '@material-ui/core/Chip';
@@ -380,6 +381,19 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     isCurrent: boolean;
   };
 
+  // Fetch display titles for parent/ancestor entities (we only have refs)
+  const { value: ancestorTitle } = useAsync(async () => {
+    if (!ancestorEntity?.targetRef) return undefined;
+    const ent = await catalogApi.getEntityByRef(ancestorEntity.targetRef);
+    return ent?.metadata.title;
+  }, [ancestorEntity?.targetRef]);
+
+  const { value: parentTitle } = useAsync(async () => {
+    if (!parentEntity?.targetRef) return undefined;
+    const ent = await catalogApi.getEntityByRef(parentEntity.targetRef);
+    return ent?.metadata.title;
+  }, [parentEntity?.targetRef]);
+
   const breadcrumbNodes = useMemo<BreadcrumbNode[]>(() => {
     const nodes: BreadcrumbNode[] = [];
 
@@ -418,6 +432,7 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
         makeNode(
           `ancestor-${ancestorEntity.targetRef}`,
           ancestorEntity.targetRef,
+          { valueOverride: ancestorTitle ?? undefined },
         ),
       );
     }
@@ -426,6 +441,7 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
       nodes.push(
         makeNode(`parent-${parentEntity.targetRef}`, parentEntity.targetRef, {
           relationType: ancestorEntity?.type,
+          valueOverride: parentTitle ?? undefined,
         }),
       );
     }
@@ -440,7 +456,15 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     );
 
     return nodes;
-  }, [ancestorEntity, parentEntity, entity, entityName, kindDisplayNames]);
+  }, [
+    ancestorEntity,
+    parentEntity,
+    entity,
+    entityName,
+    kindDisplayNames,
+    ancestorTitle,
+    parentTitle,
+  ]);
 
   const getMenuTitleForNodeIndex = useCallback(
     (targetNodeIndex: number) => {
