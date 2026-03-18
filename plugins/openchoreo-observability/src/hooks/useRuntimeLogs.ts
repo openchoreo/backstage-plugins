@@ -199,7 +199,7 @@ export function useRuntimeLogs(
         if (!reset && logs.length > 0) {
           // For load more, use the timestamp of the last log as the new endTime or startTime based on the sort order
           const lastLog = logs[logs.length - 1];
-          const sortOrder = options.sortOrder || 'desc';
+          const sortOrder = options.sortOrder || 'asc';
           if (sortOrder === 'desc') {
             // For descending (newest first), use the timestamp of the last log as the new endTime
             endTime = lastLog.timestamp ?? endTime;
@@ -223,7 +223,7 @@ export function useRuntimeLogs(
             endTime,
             logLevels: options.logLevels,
             searchQuery: options.searchQuery,
-            sortOrder: options.sortOrder || 'desc',
+            sortOrder: options.sortOrder || 'asc',
           },
         );
 

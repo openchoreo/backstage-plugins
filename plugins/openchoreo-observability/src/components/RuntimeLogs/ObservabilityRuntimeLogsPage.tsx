@@ -79,7 +79,7 @@ const ObservabilityRuntimeLogsContent = () => {
     logLevels: filters.logLevel,
     limit: 50,
     searchQuery: filters.searchQuery,
-    sortOrder: filters.sortOrder || 'desc',
+    sortOrder: filters.sortOrder || 'asc',
     isLive: filters.isLive,
   });
 

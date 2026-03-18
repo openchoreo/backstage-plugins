@@ -45,7 +45,7 @@ export function useUrlFiltersForRuntimeLogs({
     const searchQuery = searchParams.get('search') || undefined;
     const rawSortOrder = searchParams.get('sort');
     const sortOrder: 'asc' | 'desc' =
-      rawSortOrder === 'asc' || rawSortOrder === 'desc' ? rawSortOrder : 'desc';
+      rawSortOrder === 'asc' || rawSortOrder === 'desc' ? rawSortOrder : 'asc';
 
     const isLive = searchParams.get('live') === 'true';
     const componentIdsParam = searchParams.get('components');
@@ -168,7 +168,7 @@ export function useUrlFiltersForRuntimeLogs({
       }
 
       if (newFilters.sortOrder !== undefined) {
-        if (newFilters.sortOrder === 'desc') {
+        if (newFilters.sortOrder === 'asc') {
           // Default value - remove from URL
           newParams.delete('sort');
         } else {
