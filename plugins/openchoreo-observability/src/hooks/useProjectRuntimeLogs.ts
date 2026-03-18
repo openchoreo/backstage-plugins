@@ -33,7 +33,7 @@ interface UseProjectRuntimeLogsResult {
 
 const sortByTimestamp = (
   logs: LogEntry[],
-  sortOrder: 'asc' | 'desc' = 'desc',
+  sortOrder: 'asc' | 'desc' = 'asc',
 ): LogEntry[] => {
   const sorted = [...logs].sort((a, b) => {
     const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
@@ -88,7 +88,7 @@ export function useProjectRuntimeLogs(
 
         let startTime = initialStartTime;
         let endTime = initialEndTime;
-        const sortOrder = filters.sortOrder || 'desc';
+        const sortOrder = filters.sortOrder || 'asc';
 
         if (!reset && logs.length > 0) {
           const lastLog = logs[logs.length - 1];
