@@ -44,6 +44,8 @@ export const CHOREO_ANNOTATIONS = {
   WORKFLOW_PLANE_REF_KIND: 'openchoreo.io/workflow-plane-ref-kind',
   // Workflow parameters schema
   WORKFLOW_PARAMETERS: 'openchoreo.dev/component-workflow-parameters',
+  // Backstage ownership annotation (read from OpenChoreo CR annotations during catalog sync)
+  BACKSTAGE_OWNER: 'backstage.io/owner',
 } as const;
 
 export const CHOREO_LABELS = {
