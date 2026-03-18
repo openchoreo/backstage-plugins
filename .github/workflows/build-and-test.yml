@@ -153,5 +153,5 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.GIT_SHA_SHORT }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-dev
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-dev
-          cache-to: type=inline
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
