@@ -13,6 +13,7 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import BlockIcon from '@material-ui/icons/Block';
+import EditIcon from '@material-ui/icons/EditOutlined';
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { useSharedStyles } from './styles';
 
@@ -122,15 +123,15 @@ export interface BindingDetail {
 interface BindingDetailDialogProps {
   open: boolean;
   onClose: () => void;
+  onEdit?: () => void;
   binding: BindingDetail | null;
-  scopeLabel: string;
 }
 
 export const BindingDetailDialog = ({
   open,
   onClose,
+  onEdit,
   binding,
-  scopeLabel,
 }: BindingDetailDialogProps) => {
   const classes = useStyles();
   const sharedClasses = useSharedStyles();
@@ -142,7 +143,7 @@ export const BindingDetailDialog = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle disableTypography>
-        <Typography variant="h4">{scopeLabel} Role Binding Details</Typography>
+        <Typography variant="h4">{binding.name}</Typography>
       </DialogTitle>
       <DialogContent>
         <Paper variant="outlined" className={classes.summaryCard}>
@@ -243,6 +244,16 @@ export const BindingDetailDialog = ({
         </Paper>
       </DialogContent>
       <DialogActions>
+        {onEdit && (
+          <Button
+            onClick={onEdit}
+            variant="outlined"
+            color="primary"
+            startIcon={<EditIcon />}
+          >
+            Edit
+          </Button>
+        )}
         <Button onClick={onClose} variant="contained" color="primary">
           Close
         </Button>

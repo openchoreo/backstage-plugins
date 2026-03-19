@@ -648,8 +648,20 @@ export const NamespaceRoleBindingsContent = ({
       <BindingDetailDialog
         open={!!detailBinding}
         onClose={() => setDetailBinding(null)}
+        onEdit={
+          canUpdate && detailBinding
+            ? () => {
+                const original = bindings.find(
+                  b => b.name === detailBinding.name,
+                );
+                setDetailBinding(null);
+                if (original) {
+                  handleEditBinding(original);
+                }
+              }
+            : undefined
+        }
         binding={detailBinding}
-        scopeLabel="Namespace"
       />
     </Box>
   );
