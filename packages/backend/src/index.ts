@@ -87,7 +87,6 @@ backend.add(import('@backstage/plugin-search-backend-module-pg'));
 
 // search collators
 backend.add(import('@backstage/plugin-search-backend-module-catalog'));
-backend.add(import('@backstage/plugin-search-backend-module-techdocs'));
 
 // user settings plugin - enables centralized storage for starred entities and user preferences
 backend.add(import('@backstage/plugin-user-settings-backend'));

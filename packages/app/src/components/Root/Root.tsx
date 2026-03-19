@@ -1,4 +1,4 @@
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useEffect } from 'react';
 import { makeStyles } from '@material-ui/core';
 import HomeIcon from '@material-ui/icons/Home';
 import ExtensionIcon from '@material-ui/icons/Extension';
@@ -10,7 +10,12 @@ import {
   Settings as SidebarSettings,
   UserSettingsSignInAvatar,
 } from '@backstage/plugin-user-settings';
-import { SidebarSearchModal } from '@backstage/plugin-search';
+import {
+  SidebarSearchModal,
+  SearchModalProvider,
+  useSearchModal,
+} from '@backstage/plugin-search';
+import { CustomSearchModal } from '../search/CustomSearchModal';
 import {
   Sidebar,
   sidebarConfig,
@@ -33,6 +38,15 @@ import GroupIcon from '@material-ui/icons/People';
 import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
+
+const useSearchModalStyles = makeStyles({
+  '@global': {
+    // Override the search modal Dialog max-width from lg to md
+    '.MuiDialog-root[aria-label="Search Modal"] .MuiDialog-paperWidthLg': {
+      maxWidth: 960,
+    },
+  },
+});
 
 const useSidebarLogoStyles = makeStyles({
   root: {
@@ -88,6 +102,21 @@ const SidebarLogo = () => {
   );
 };
 
+const KeyboardShortcutSearchToggler = () => {
+  const { setOpen } = useSearchModal();
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+        event.preventDefault();
+        setOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [setOpen]);
+  return null;
+};
+
 const SignOutButton = () => {
   const identityApi = useApi(identityApiRef);
 
@@ -103,12 +132,20 @@ const SignOutButton = () => {
 };
 
 export const Root = ({ children }: PropsWithChildren<{}>) => {
+  useSearchModalStyles();
   return (
     <SidebarPage>
       <Sidebar>
         <SidebarLogo />
         <SidebarGroup label="Search" icon={<SearchIcon />} to="/search">
-          <SidebarSearchModal />
+          <SearchModalProvider>
+            <KeyboardShortcutSearchToggler />
+            <SidebarSearchModal>
+              {({ toggleModal }) => (
+                <CustomSearchModal toggleModal={toggleModal} />
+              )}
+            </SidebarSearchModal>
+          </SearchModalProvider>
         </SidebarGroup>
         <SidebarDivider />
         <SidebarGroup label="Menu" icon={<MenuIcon />}>

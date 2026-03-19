@@ -1,4 +1,4 @@
-import { alertApiRef, useApi, useApp } from '@backstage/core-plugin-api';
+import { type ReactNode, useMemo } from 'react';
 import Box from '@material-ui/core/Box';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListSubheader from '@material-ui/core/ListSubheader';
@@ -6,13 +6,13 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
 import Typography from '@material-ui/core/Typography';
 import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import {
-  EntityKindFilter,
-  useEntityList,
-} from '@backstage/plugin-catalog-react';
+import { useApp } from '@backstage/core-plugin-api';
+import { CatalogIcon } from '@backstage/core-components';
+import { useSearch } from '@backstage/plugin-search-react';
 import { kindDisplayNames, kindCategories } from '../../utils/kindUtils';
 import { useAllKinds } from '../../hooks/useAllKinds';
+
+const ALL_KINDS = '__all__';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -59,124 +59,52 @@ const useStyles = makeStyles((theme: Theme) =>
   }),
 );
 
-function useEntityKindFilter(opts: { initialFilter: string }): {
-  loading: boolean;
-  error?: Error;
-  allKinds: Map<string, string>;
-  selectedKind: string;
-  setSelectedKind: (kind: string) => void;
-} {
-  const {
-    filters,
-    queryParameters: { kind: kindParameter },
-    updateFilters,
-  } = useEntityList();
-
-  const queryParamKind = useMemo(
-    () => [kindParameter].flat()[0],
-    [kindParameter],
-  );
-
-  const [selectedKind, setSelectedKind] = useState(
-    queryParamKind ?? filters.kind?.value ?? opts.initialFilter,
-  );
-
-  // Set selected kinds on query parameter updates
-  useEffect(() => {
-    if (queryParamKind) {
-      setSelectedKind(queryParamKind);
-    }
-  }, [queryParamKind]);
-
-  // Set selected kind from filters
-  useEffect(() => {
-    if (filters.kind?.value) {
-      setSelectedKind(filters.kind?.value);
-    }
-  }, [filters.kind]);
-
-  const { allKinds, loading, error } = useAllKinds();
-
-  // Override the label with our custom display name
-  const selectedKindLabel =
-    kindDisplayNames[selectedKind.toLowerCase()] ||
-    allKinds.get(selectedKind) ||
-    selectedKind;
-
-  useEffect(() => {
-    updateFilters({
-      kind: selectedKind
-        ? new EntityKindFilter(selectedKind, selectedKindLabel)
-        : undefined,
-    });
-  }, [selectedKind, selectedKindLabel, updateFilters]);
-
-  return {
-    loading,
-    error,
-    allKinds,
-    selectedKind,
-    setSelectedKind,
-  };
-}
-
-/**
- * Custom EntityKindPicker that displays OpenChoreo names for entity kinds
- * Maps: Domain -> Namespace, System -> Project
- */
-export interface ChoreoEntityKindPickerProps {
-  allowedKinds?: string[];
-  initialFilter?: string;
-  hidden?: boolean;
-}
-
-export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
-  const { allowedKinds, hidden, initialFilter = 'component' } = props;
+export const SearchKindDropdown = () => {
   const classes = useStyles();
   const app = useApp();
+  const { filters, setFilters } = useSearch();
+  const { allKinds } = useAllKinds();
+  const selectedKind = (filters.kind as string) || ALL_KINDS;
 
-  const alertApi = useApi(alertApiRef);
-
-  const { error, allKinds, selectedKind, setSelectedKind } =
-    useEntityKindFilter({
-      initialFilter: initialFilter,
-    });
-
-  useEffect(() => {
-    if (error) {
-      alertApi.post({
-        message: 'Failed to load entity kinds',
-        severity: 'error',
-      });
-    }
-  }, [error, alertApi]);
-
-  // Build a set of available kind keys (lowercased) for filtering
   const availableKinds = useMemo(() => {
     const available = new Set<string>();
     allKinds.forEach((_value, key) => {
-      const lowerKey = key.toLowerCase();
-      if (
-        !allowedKinds ||
-        allowedKinds.some(a => a.toLowerCase() === lowerKey)
-      ) {
-        available.add(lowerKey);
-      }
+      available.add(key.toLowerCase());
     });
     return available;
-  }, [allKinds, allowedKinds]);
+  }, [allKinds]);
 
-  // Build grouped menu items
+  const handleChange = (value: string) => {
+    if (value === ALL_KINDS) {
+      setFilters(prev => {
+        const next = { ...prev };
+        delete next.kind;
+        return next;
+      });
+    } else {
+      setFilters(prev => ({ ...prev, kind: value }));
+    }
+  };
+
+  // Build grouped menu items matching ChoreoEntityKindPicker pattern
   const menuItems = useMemo(() => {
-    if (error) return [];
-
     const items: ReactNode[] = [];
 
-    // Add Namespace (domain) as a standalone top-level item
+    // "All" option
+    items.push(
+      <MenuItem key={ALL_KINDS} value={ALL_KINDS}>
+        <ListItemIcon className={classes.listItemIcon}>
+          <CatalogIcon />
+        </ListItemIcon>
+        All
+      </MenuItem>,
+    );
+
+    // Namespace (domain) as standalone top-level item
     if (availableKinds.has('domain')) {
       const DomainIcon = app.getSystemIcon('kind:domain');
       items.push(
-        <MenuItem key="domain" value="domain">
+        <MenuItem key="domain" value="Domain">
           {DomainIcon && (
             <ListItemIcon className={classes.listItemIcon}>
               <DomainIcon />
@@ -188,10 +116,7 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
     }
 
     for (const category of kindCategories) {
-      // Filter to only kinds that exist in the catalog
       const visibleKinds = category.kinds.filter(k => availableKinds.has(k));
-
-      // Skip category if no kinds are available
       if (visibleKinds.length === 0) continue;
 
       items.push(
@@ -206,40 +131,56 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
 
       for (const kind of visibleKinds) {
         const KindIcon = app.getSystemIcon(`kind:${kind}`);
+        // The search filter expects PascalCase kind values matching the catalog collator
+        const filterValue =
+          allKinds.get(
+            Array.from(allKinds.keys()).find(k => k.toLowerCase() === kind) ||
+              '',
+          ) || kind.charAt(0).toUpperCase() + kind.slice(1);
+        const actualKey =
+          Array.from(allKinds.keys()).find(k => k.toLowerCase() === kind) ||
+          kind;
+
         items.push(
-          <MenuItem key={kind} value={kind}>
+          <MenuItem key={kind} value={actualKey}>
             {KindIcon && (
               <ListItemIcon className={classes.listItemIcon}>
                 <KindIcon />
               </ListItemIcon>
             )}
-            {kindDisplayNames[kind] || kind}
+            {kindDisplayNames[kind] || filterValue}
           </MenuItem>,
         );
       }
     }
 
     return items;
-  }, [availableKinds, error, classes, app]);
+  }, [availableKinds, allKinds, classes, app]);
 
-  if (error) return null;
-
-  return hidden ? null : (
-    <Box pb={1} pt={1} className={classes.container}>
+  return (
+    <Box className={classes.container}>
       <Typography className={classes.label}>Kind</Typography>
       <Select
         className={classes.select}
-        value={selectedKind.toLowerCase()}
-        onChange={e => setSelectedKind(e.target.value as string)}
+        value={selectedKind}
+        onChange={e => handleChange(e.target.value as string)}
         variant="outlined"
-        fullWidth
         renderValue={value => {
-          const kind = value as string;
+          const val = value as string;
+          if (val === ALL_KINDS) {
+            return (
+              <Box className={classes.renderValue}>
+                <CatalogIcon />
+                All
+              </Box>
+            );
+          }
+          const kind = val.toLowerCase();
           const KindIcon = app.getSystemIcon(`kind:${kind}`);
           return (
             <Box className={classes.renderValue}>
-              {KindIcon && <KindIcon />}
-              {kindDisplayNames[kind] || kind}
+              {KindIcon ? <KindIcon /> : <CatalogIcon />}
+              {kindDisplayNames[kind] || val}
             </Box>
           );
         }}
