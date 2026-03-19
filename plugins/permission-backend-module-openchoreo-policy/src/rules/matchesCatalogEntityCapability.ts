@@ -51,35 +51,46 @@ const paramsSchema = z.object({
 export type MatchesCatalogEntityCapabilityParams = z.infer<typeof paramsSchema>;
 
 /**
- * Parses capability path from backend format.
- *
- * Backend format: "ns/{nsName}/project/{projectName}/component/{componentName}"
- * or wildcards like "ns/*", "ns/{nsName}/project/*", etc.
+ * Parsed capability path with `ns` field (catalog rule convention).
  */
-function parseCapabilityPath(path: string): {
+interface CatalogParsedPath {
   ns?: string;
   project?: string;
   component?: string;
-} {
+}
+
+/**
+ * Regex that validates the full path grammar.
+ * Valid: "*", "ns/{name}", "ns/{name}/project/{name}", "ns/{name}/project/{name}/component/{name}"
+ */
+const CATALOG_PATH_REGEX =
+  /^ns\/([^/]+)(?:\/project\/([^/]+)(?:\/component\/([^/]+))?)?$/;
+
+/**
+ * Parses capability path from backend format.
+ *
+ * Only accepts fully valid paths:
+ * - "*" (global wildcard)
+ * - "ns/{name}" optionally followed by "/project/{name}" optionally followed by "/component/{name}"
+ *
+ * Returns null for invalid paths.
+ */
+function parseCapabilityPath(path: string): CatalogParsedPath | null {
   if (path === '*') {
     return { ns: '*', project: '*', component: '*' };
   }
 
-  const result: { ns?: string; project?: string; component?: string } = {};
-
-  const nsMatch = path.match(/^ns\/([^/]+)/);
-  if (nsMatch) {
-    result.ns = nsMatch[1];
+  const match = path.match(CATALOG_PATH_REGEX);
+  if (!match) {
+    return null;
   }
 
-  const projectMatch = path.match(/project\/([^/]+)/);
-  if (projectMatch) {
-    result.project = projectMatch[1];
+  const result: CatalogParsedPath = { ns: match[1] };
+  if (match[2] !== undefined) {
+    result.project = match[2];
   }
-
-  const componentMatch = path.match(/component\/([^/]+)/);
-  if (componentMatch) {
-    result.component = componentMatch[1];
+  if (match[3] !== undefined) {
+    result.component = match[3];
   }
 
   return result;
@@ -158,6 +169,11 @@ function matchesScope(
 
   const parsed = parseCapabilityPath(path);
 
+  // Invalid paths never match
+  if (!parsed) {
+    return false;
+  }
+
   // Check path specificity - reject paths more specific than entity level
   // Domain and namespace-scoped entities: path must NOT have project or component
   if (entityLevel === 'domain' || entityLevel === 'namespace-scoped') {
@@ -225,6 +241,11 @@ function isPathValidForLevel(path: string, entityLevel: EntityLevel): boolean {
 
   const parsed = parseCapabilityPath(path);
 
+  // Invalid paths are not valid for any level
+  if (!parsed) {
+    return false;
+  }
+
   // Domain and namespace-scoped: reject project/component-specific paths
   if (entityLevel === 'domain' || entityLevel === 'namespace-scoped') {
     return !parsed.project && !parsed.component;
@@ -235,6 +256,68 @@ function isPathValidForLevel(path: string, entityLevel: EntityLevel): boolean {
   }
 
   return true; // Component accepts any level
+}
+
+/**
+ * Builds an EntitiesSearchFilter condition matching entities at the given
+ * capability path scope for a specific entity kind.
+ *
+ * Returns null if the path is invalid or only contains the kind filter
+ * (i.e., no scope narrowing beyond kind).
+ */
+function buildScopeFilter(
+  path: string,
+  kindLower: string,
+  singleKindFilter: EntitiesSearchFilter,
+): PermissionCriteria<EntitiesSearchFilter> | null {
+  const parsed = parseCapabilityPath(path);
+  if (!parsed) {
+    return null;
+  }
+
+  const conditions: PermissionCriteria<EntitiesSearchFilter>[] = [
+    singleKindFilter,
+  ];
+
+  if (parsed.ns && parsed.ns !== '*') {
+    conditions.push({
+      key: `metadata.annotations.${CHOREO_ANNOTATIONS.NAMESPACE}`,
+      values: [parsed.ns],
+    });
+  }
+
+  if (parsed.project && parsed.project !== '*') {
+    if (kindLower === 'system') {
+      conditions.push({
+        key: `metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT_ID}`,
+        values: [parsed.project],
+      });
+    } else if (kindLower === 'component') {
+      conditions.push({
+        key: `metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT}`,
+        values: [parsed.project],
+      });
+    }
+  }
+
+  if (parsed.component && parsed.component !== '*') {
+    if (kindLower === 'component') {
+      conditions.push({
+        key: `metadata.annotations.${CHOREO_ANNOTATIONS.COMPONENT}`,
+        values: [parsed.component],
+      });
+    }
+  }
+
+  if (conditions.length === 1) {
+    return conditions[0];
+  }
+  return {
+    allOf: conditions as [
+      PermissionCriteria<EntitiesSearchFilter>,
+      ...PermissionCriteria<EntitiesSearchFilter>[],
+    ],
+  };
 }
 
 /**
@@ -411,7 +494,10 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
       // Handle cluster-scoped kinds
       if (CLUSTER_SCOPED_KINDS.has(kindLower)) {
         const hasWildcard = capability.allowedPaths.some(p => p === '*');
-        if (hasWildcard) {
+        const hasWildcardClusterDeny = capability.deniedPaths.some(
+          p => p === '*',
+        );
+        if (hasWildcard && !hasWildcardClusterDeny) {
           // Allow all entities of this cluster-scoped kind
           kindFilters.push(singleKindFilter);
         }
@@ -419,11 +505,14 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
         continue;
       }
 
-      const { allowedPaths } = capability;
+      const { allowedPaths, deniedPaths } = capability;
 
       // Filter paths to only those valid for this entity level
       // e.g., domain only accepts org-level paths, system excludes component-level paths
       const validPaths = allowedPaths.filter(path =>
+        isPathValidForLevel(path, entityLevel),
+      );
+      const validDeniedPaths = deniedPaths.filter(path =>
         isPathValidForLevel(path, entityLevel),
       );
 
@@ -438,14 +527,51 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
         continue;
       }
 
-      // Check for wildcard access for this kind (only considering valid paths)
+      // Check for wildcard access and wildcard deny for this kind
       const hasWildcardAccess = validPaths.some(
-        path => path === '*' || parseCapabilityPath(path).ns === '*',
+        path => path === '*' || parseCapabilityPath(path)?.ns === '*',
+      );
+      const hasWildcardDeny = validDeniedPaths.some(
+        path => path === '*' || parseCapabilityPath(path)?.ns === '*',
       );
 
+      // If wildcard deny covers wildcard access, only allow non-OpenChoreo entities
+      if (hasWildcardAccess && hasWildcardDeny) {
+        kindFilters.push({
+          allOf: [singleKindFilter, { not: noOrgAnnotationFilter }] as [
+            PermissionCriteria<EntitiesSearchFilter>,
+            ...PermissionCriteria<EntitiesSearchFilter>[],
+          ],
+        });
+        continue;
+      }
+
       if (hasWildcardAccess) {
-        // User has wildcard access for this kind - allow all entities of this kind
-        kindFilters.push(singleKindFilter);
+        // User has wildcard access for this kind - allow all, then apply deny exclusions
+        if (validDeniedPaths.length === 0) {
+          kindFilters.push(singleKindFilter);
+        } else {
+          // Wildcard allow with specific denies: allow kind BUT exclude denied scopes
+          const denyExclusions: PermissionCriteria<EntitiesSearchFilter>[] =
+            validDeniedPaths
+              .map(path => buildScopeFilter(path, kindLower, singleKindFilter))
+              .filter(
+                (f): f is PermissionCriteria<EntitiesSearchFilter> =>
+                  f !== null,
+              )
+              .map(f => ({ not: f }));
+
+          if (denyExclusions.length === 0) {
+            kindFilters.push(singleKindFilter);
+          } else {
+            kindFilters.push({
+              allOf: [singleKindFilter, ...denyExclusions] as [
+                PermissionCriteria<EntitiesSearchFilter>,
+                ...PermissionCriteria<EntitiesSearchFilter>[],
+              ],
+            });
+          }
+        }
         continue;
       }
 
@@ -458,55 +584,28 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
       };
       kindFilters.push(nonOpenchoreoOfKind);
 
+      // Build deny exclusion filters for this kind
+      const denyExclusions: PermissionCriteria<EntitiesSearchFilter>[] =
+        validDeniedPaths
+          .map(path => buildScopeFilter(path, kindLower, singleKindFilter))
+          .filter(
+            (f): f is PermissionCriteria<EntitiesSearchFilter> => f !== null,
+          )
+          .map(f => ({ not: f }));
+
       // Build path-based filters for this kind using appropriate annotations
       for (const path of validPaths) {
-        const parsed = parseCapabilityPath(path);
-        const conditions: PermissionCriteria<EntitiesSearchFilter>[] = [
-          singleKindFilter,
-        ];
-
-        // Add namespace filter if specific (not wildcard)
-        if (parsed.ns && parsed.ns !== '*') {
-          conditions.push({
-            key: `metadata.annotations.${CHOREO_ANNOTATIONS.NAMESPACE}`,
-            values: [parsed.ns],
-          });
+        const allowFilter = buildScopeFilter(path, kindLower, singleKindFilter);
+        if (!allowFilter) {
+          continue;
         }
 
-        // Add project filter based on entity kind
-        // - System uses PROJECT_ID annotation
-        // - Component uses PROJECT annotation
-        if (parsed.project && parsed.project !== '*') {
-          if (kindLower === 'system') {
-            conditions.push({
-              key: `metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT_ID}`,
-              values: [parsed.project],
-            });
-          } else if (kindLower === 'component') {
-            conditions.push({
-              key: `metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT}`,
-              values: [parsed.project],
-            });
-          }
-          // Domain entities don't have project scope
-        }
-
-        // Add component filter (only for Component entities)
-        if (parsed.component && parsed.component !== '*') {
-          if (kindLower === 'component') {
-            conditions.push({
-              key: `metadata.annotations.${CHOREO_ANNOTATIONS.COMPONENT}`,
-              values: [parsed.component],
-            });
-          }
-          // System and Domain don't have component scope
-        }
-
-        if (conditions.length === 1) {
-          kindFilters.push(conditions[0]);
+        // Combine allow filter with deny exclusions
+        if (denyExclusions.length === 0) {
+          kindFilters.push(allowFilter);
         } else {
           kindFilters.push({
-            allOf: conditions as [
+            allOf: [allowFilter, ...denyExclusions] as [
               PermissionCriteria<EntitiesSearchFilter>,
               ...PermissionCriteria<EntitiesSearchFilter>[],
             ],

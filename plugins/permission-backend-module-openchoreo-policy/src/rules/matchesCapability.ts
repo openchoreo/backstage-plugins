@@ -8,6 +8,7 @@ import {
   OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
   CHOREO_ANNOTATIONS,
 } from '@openchoreo/backstage-plugin-common';
+import { parseCapabilityPath } from '../utils/pathUtils';
 
 /**
  * Entity kinds that are namespace-scoped (not project or component level).
@@ -57,48 +58,6 @@ const paramsSchema = z.object({
 export type MatchesCapabilityParams = z.infer<typeof paramsSchema>;
 
 /**
- * Parses capability path from backend format.
- *
- * Backend format: "ns/{namespaceName}/project/{projectName}/component/{componentName}"
- * or wildcards like "ns/*", "ns/{namespaceName}/project/*", etc.
- *
- * Returns parsed { namespace, project, component } values.
- */
-function parseCapabilityPath(path: string): {
-  namespace?: string;
-  project?: string;
-  component?: string;
-} {
-  // Handle global wildcard
-  if (path === '*') {
-    return { namespace: '*', project: '*', component: '*' };
-  }
-
-  const result: { namespace?: string; project?: string; component?: string } =
-    {};
-
-  // Parse namespace/namespaceName pattern
-  const namespaceMatch = path.match(/^ns\/([^/]+)/);
-  if (namespaceMatch) {
-    result.namespace = namespaceMatch[1];
-  }
-
-  // Parse project/projectName pattern
-  const projectMatch = path.match(/project\/([^/]+)/);
-  if (projectMatch) {
-    result.project = projectMatch[1];
-  }
-
-  // Parse component/componentName pattern
-  const componentMatch = path.match(/component\/([^/]+)/);
-  if (componentMatch) {
-    result.component = componentMatch[1];
-  }
-
-  return result;
-}
-
-/**
  * Checks if a capability path matches the given scope.
  *
  * Paths from backend are in format:
@@ -118,6 +77,11 @@ function matchesScope(
   }
 
   const parsed = parseCapabilityPath(path);
+
+  // Invalid paths never match
+  if (!parsed) {
+    return false;
+  }
 
   // Check namespace
   if (

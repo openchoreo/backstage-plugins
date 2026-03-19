@@ -24,6 +24,7 @@ import {
   createOpenChoreoConditionalDecision,
   matchesCatalogEntityCapability,
 } from '../rules';
+import { hasUncoveredAllowedPath } from '../utils/pathUtils';
 
 /** Permission name prefix for OpenChoreo permissions */
 const PERMISSION_PREFIX = 'openchoreo.';
@@ -191,24 +192,10 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
           ?.map(d => d.path)
           .filter((p): p is string => !!p) ?? [];
 
-      let isAllowed = allowedPaths.length > 0;
-
-      // Safety net: if there are deny paths, check that at least one allowed path
-      // is not fully covered by a deny path. A deny of '*' covers everything.
-      if (isAllowed && deniedPaths.length > 0) {
-        const hasGlobalDeny = deniedPaths.includes('*');
-        if (hasGlobalDeny) {
-          isAllowed = false;
-        } else {
-          // Check if every allowed path is covered by a deny path
-          const allCovered = allowedPaths.every(ap =>
-            deniedPaths.some(dp => ap === dp || ap.startsWith(`${dp}/`)),
-          );
-          if (allCovered) {
-            isAllowed = false;
-          }
-        }
-      }
+      // Check if user has at least one allowed path not fully covered by deny paths.
+      // Uses semantic hierarchical path comparison so that a deny at a broader scope
+      // (e.g., ns/acme/*) correctly covers a narrower allow (e.g., ns/acme/project/foo/*).
+      const isAllowed = hasUncoveredAllowedPath(allowedPaths, deniedPaths);
 
       this.logger.debug(`${permission.name}: ${isAllowed ? 'ALLOW' : 'DENY'}`);
 
@@ -415,7 +402,11 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
 
       const hasAnyCreate = scaffolderCreateActions.some(action => {
         const cap = capabilities.capabilities?.[action] ?? wildcardCap;
-        return (cap?.allowed?.length ?? 0) > 0;
+        const allowed =
+          cap?.allowed?.map(a => a.path).filter((p): p is string => !!p) ?? [];
+        const denied =
+          cap?.denied?.map(d => d.path).filter((p): p is string => !!p) ?? [];
+        return hasUncoveredAllowedPath(allowed, denied);
       });
 
       this.logger.debug(
@@ -461,17 +452,21 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         userToken,
       );
 
-      // Check if user has any create capability (fall back to wildcard)
+      // Check if user has any create capability not fully covered by deny paths
       const wildcardCap = capabilities.capabilities?.['*'];
-      const hasComponentCreate =
-        ((capabilities.capabilities?.['component:create'] ?? wildcardCap)
-          ?.allowed?.length ?? 0) > 0;
-      const hasProjectCreate =
-        ((capabilities.capabilities?.['project:create'] ?? wildcardCap)?.allowed
-          ?.length ?? 0) > 0;
-      const hasNamespaceCreate =
-        ((capabilities.capabilities?.['namespace:create'] ?? wildcardCap)
-          ?.allowed?.length ?? 0) > 0;
+
+      const hasUncoveredCreate = (action: string): boolean => {
+        const cap = capabilities.capabilities?.[action] ?? wildcardCap;
+        const allowed =
+          cap?.allowed?.map(a => a.path).filter((p): p is string => !!p) ?? [];
+        const denied =
+          cap?.denied?.map(d => d.path).filter((p): p is string => !!p) ?? [];
+        return hasUncoveredAllowedPath(allowed, denied);
+      };
+
+      const hasComponentCreate = hasUncoveredCreate('component:create');
+      const hasProjectCreate = hasUncoveredCreate('project:create');
+      const hasNamespaceCreate = hasUncoveredCreate('namespace:create');
 
       const hasAnyCreate =
         hasComponentCreate || hasProjectCreate || hasNamespaceCreate;
