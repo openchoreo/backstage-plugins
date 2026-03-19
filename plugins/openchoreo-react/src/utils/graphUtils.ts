@@ -2,6 +2,7 @@
  * Graph utilities for custom entity node rendering in the catalog graph.
  * Provides kind-based coloring and label prefixes for better entity differentiation.
  */
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
 /**
  * Entity kind to color mapping using theme palette colors.
@@ -161,4 +162,17 @@ export function getNodeDisplayLabel(
   }
 
   return name;
+}
+
+/** Warning color used for deletion indicators on graph nodes. */
+export const DELETION_WARNING_COLOR = '#f59e0b';
+
+/**
+ * Checks whether an entity is marked for deletion by looking for
+ * the deletion-timestamp annotation.
+ */
+export function isNodeMarkedForDeletion(entity: {
+  metadata: { annotations?: Record<string, string> };
+}): boolean {
+  return !!entity.metadata.annotations?.[CHOREO_ANNOTATIONS.DELETION_TIMESTAMP];
 }
