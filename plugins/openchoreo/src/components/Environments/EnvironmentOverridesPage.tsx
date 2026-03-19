@@ -613,6 +613,10 @@ export const EnvironmentOverridesPage = ({
     schemas.componentTypeSchema ||
     Object.keys(schemas.traitSchemasMap).length > 0;
 
+  // Workload overrides are always available for deployed components,
+  // so we always have content to show even without schema overrides.
+  const hasAnyContent = hasSchemas || tabs.length > 0;
+
   // Handle back button click with unsaved changes warning
   const handleBackClick = () => {
     if (totalChanges > 0) {
@@ -654,8 +658,8 @@ export const EnvironmentOverridesPage = ({
     return `Please fill in the required fields below before promoting to ${pendingAction.targetEnvironment}.`;
   };
 
-  // Header actions - show when schemas exist OR when there's a pending action (for Skip & Deploy)
-  const showActions = !loading && !error && (hasSchemas || pendingAction);
+  // Header actions - show when content exists OR when there's a pending action (for Skip & Deploy)
+  const showActions = !loading && !error && (hasAnyContent || pendingAction);
   const headerActions = showActions ? (
     <>
       {!pendingAction && (
@@ -838,7 +842,7 @@ export const EnvironmentOverridesPage = ({
           </div>
         )}
 
-        {!loading && !error && !hasSchemas && pendingAction && (
+        {!loading && !error && !hasAnyContent && pendingAction && (
           <Box
             display="flex"
             flexDirection="column"
@@ -869,7 +873,7 @@ export const EnvironmentOverridesPage = ({
           </Box>
         )}
 
-        {!loading && !error && hasSchemas && (
+        {!loading && !error && hasAnyContent && (
           <>
             {missingRequiredFields.length > 0 && (
               <Box mb={2}>
