@@ -586,7 +586,7 @@ export function WorkloadEditor({
       WORKLOAD_SUB_TABS.has(activeTab) &&
       !workloadNavItems.some(item => item.id === activeTab)
     ) {
-      setActiveTab('container');
+      setActiveTab('container', true);
     }
   }, [activeTab, workloadNavItems, setActiveTab]);
 
@@ -598,7 +598,7 @@ export function WorkloadEditor({
       componentNavItems.length > 0 &&
       !componentNavItems.some(item => item.id === activeTab)
     ) {
-      setActiveTab(componentNavItems[0].id);
+      setActiveTab(componentNavItems[0].id, true);
     }
   }, [activeTab, componentNavItems, setActiveTab]);
 
