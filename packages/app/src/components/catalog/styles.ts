@@ -66,47 +66,8 @@ export const useStyles = makeStyles(theme => ({
       marginBottom: theme.spacing(0.5),
     },
   },
-  advancedFiltersGridItem: {
-    display: 'flex',
-    alignItems: 'flex-end',
-    paddingBottom: theme.spacing(1),
-    [theme.breakpoints.down('sm')]: {
-      display: 'none',
-    },
-  },
-  advancedFiltersToggle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(0.5),
-    padding: 0,
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: theme.palette.primary.main,
-    fontWeight: 400,
-    fontSize: '0.875rem',
-    '&:hover': {
-      textDecoration: 'underline',
-    },
-    [theme.breakpoints.down('sm')]: {
-      display: 'none', // Hide on mobile
-    },
-  },
-  advancedFiltersIcon: {
-    transition: theme.transitions.create('transform', {
-      duration: theme.transitions.duration.shortest,
-    }),
-  },
-  advancedFiltersExpanded: {
-    transform: 'rotate(180deg)',
-  },
   contentArea: {
     flex: 1,
-  },
-  hideWhenEmpty: {
-    '&:empty': {
-      display: 'none',
-    },
   },
 }));
 

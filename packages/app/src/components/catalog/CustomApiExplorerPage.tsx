@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Box, Button, Drawer, Grid } from '@material-ui/core';
+import { Box, Button, Drawer } from '@material-ui/core';
 import FilterListIcon from '@material-ui/icons/FilterList';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { useRouteRef } from '@backstage/core-plugin-api';
 import { catalogImportPlugin } from '@backstage/plugin-catalog-import';
 import { Link } from 'react-router-dom';
@@ -9,9 +8,6 @@ import { PageWithHeader, Content } from '@backstage/core-components';
 import {
   EntityKindPicker,
   EntityListProvider,
-  EntityLifecyclePicker,
-  EntityProcessingStatusPicker,
-  EntityTagPicker,
 } from '@backstage/plugin-catalog-react';
 import { StarredFilter } from './CustomPersonalFilters';
 import { CatalogCardList } from './CatalogCardList';
@@ -20,7 +16,6 @@ import { useStyles } from './styles';
 export const CustomApiExplorerPage = () => {
   const classes = useStyles();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const registerApiLink = useRouteRef(catalogImportPlugin.routes.importPage);
 
   return (
@@ -44,49 +39,6 @@ export const CustomApiExplorerPage = () => {
               </Box>
             </Box>
 
-            {/* Filters at the top (desktop) */}
-            <Box className={classes.filterSection}>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item className={classes.advancedFiltersGridItem}>
-                  <button
-                    className={classes.advancedFiltersToggle}
-                    onClick={() => setAdvancedFiltersOpen(!advancedFiltersOpen)}
-                  >
-                    Advanced Filters
-                    <ExpandMoreIcon
-                      fontSize="small"
-                      className={`${classes.advancedFiltersIcon} ${
-                        advancedFiltersOpen
-                          ? classes.advancedFiltersExpanded
-                          : ''
-                      }`}
-                    />
-                  </button>
-                </Grid>
-              </Grid>
-
-              {/* Advanced Filters Grid - Shown when expanded */}
-              {advancedFiltersOpen && (
-                <Grid container spacing={2}>
-                  <Grid item sm={12} md={4} lg={3}>
-                    <EntityTagPicker />
-                  </Grid>
-                  <Grid
-                    item
-                    sm={12}
-                    md={4}
-                    lg={3}
-                    className={classes.hideWhenEmpty}
-                  >
-                    <EntityLifecyclePicker />
-                  </Grid>
-                  <Grid item sm={12} md={4} lg={3}>
-                    <EntityProcessingStatusPicker />
-                  </Grid>
-                </Grid>
-              )}
-            </Box>
-
             {/* Filter drawer for mobile */}
             <Drawer
               anchor="left"
@@ -98,15 +50,6 @@ export const CustomApiExplorerPage = () => {
                 <Box className={classes.filterGrid}>
                   <Box className={classes.filterItem}>
                     <StarredFilter />
-                  </Box>
-                  <Box className={classes.filterItem}>
-                    <EntityLifecyclePicker />
-                  </Box>
-                  <Box className={classes.filterItem}>
-                    <EntityTagPicker />
-                  </Box>
-                  <Box className={classes.filterItem}>
-                    <EntityProcessingStatusPicker />
                   </Box>
                 </Box>
               </Box>

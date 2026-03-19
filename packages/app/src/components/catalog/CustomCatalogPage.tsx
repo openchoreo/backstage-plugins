@@ -1,14 +1,8 @@
 import { useState } from 'react';
 import { Box, Drawer, Grid } from '@material-ui/core';
 import FilterListIcon from '@material-ui/icons/FilterList';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { PageWithHeader, Content } from '@backstage/core-components';
-import {
-  EntityListProvider,
-  EntityLifecyclePicker,
-  EntityProcessingStatusPicker,
-  EntityTagPicker,
-} from '@backstage/plugin-catalog-react';
+import { EntityListProvider } from '@backstage/plugin-catalog-react';
 import { ChoreoEntityKindPicker } from './ChoreoEntityKindPicker';
 import { StarredFilter } from './CustomPersonalFilters';
 import { CatalogCardList } from './CatalogCardList';
@@ -24,7 +18,6 @@ export const CustomCatalogPage = ({
 }: CustomCatalogPageProps) => {
   const classes = useStyles();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
 
   return (
     <PageWithHeader title="OpenChoreo Catalog" themeId="home">
@@ -52,44 +45,7 @@ export const CustomCatalogPage = ({
                 <Grid item sm={12} md={4} lg={3}>
                   <ChoreoEntityKindPicker initialFilter={initialKind} />
                 </Grid>
-                <Grid item className={classes.advancedFiltersGridItem}>
-                  <button
-                    className={classes.advancedFiltersToggle}
-                    onClick={() => setAdvancedFiltersOpen(!advancedFiltersOpen)}
-                  >
-                    Advanced Filters
-                    <ExpandMoreIcon
-                      fontSize="small"
-                      className={`${classes.advancedFiltersIcon} ${
-                        advancedFiltersOpen
-                          ? classes.advancedFiltersExpanded
-                          : ''
-                      }`}
-                    />
-                  </button>
-                </Grid>
               </Grid>
-
-              {/* Advanced Filters Grid - Shown when expanded, inside same section */}
-              {advancedFiltersOpen && (
-                <Grid container spacing={2}>
-                  <Grid item sm={12} md={4} lg={3}>
-                    <EntityTagPicker />
-                  </Grid>
-                  <Grid
-                    item
-                    sm={12}
-                    md={4}
-                    lg={3}
-                    className={classes.hideWhenEmpty}
-                  >
-                    <EntityLifecyclePicker />
-                  </Grid>
-                  <Grid item sm={12} md={4} lg={3}>
-                    <EntityProcessingStatusPicker />
-                  </Grid>
-                </Grid>
-              )}
             </Box>
 
             {/* Filter drawer for mobile */}
@@ -106,15 +62,6 @@ export const CustomCatalogPage = ({
                   </Box>
                   <Box className={classes.filterItem}>
                     <StarredFilter />
-                  </Box>
-                  <Box className={classes.filterItem}>
-                    <EntityLifecyclePicker />
-                  </Box>
-                  <Box className={classes.filterItem}>
-                    <EntityTagPicker />
-                  </Box>
-                  <Box className={classes.filterItem}>
-                    <EntityProcessingStatusPicker />
                   </Box>
                 </Box>
               </Box>
