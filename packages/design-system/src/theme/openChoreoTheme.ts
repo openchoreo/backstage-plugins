@@ -13,6 +13,11 @@ const colors = {
     main: '#6b7280', // Darker gray for better contrast
     dark: '#374151', // Darker for better readability
   },
+  info: {
+    light: '#dbeafe',
+    main: '#3b82f6',
+    dark: '#1d4ed8',
+  },
   error: {
     light: '#fef2f2',
     main: '#ef4444',
