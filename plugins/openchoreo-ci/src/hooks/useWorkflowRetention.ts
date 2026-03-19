@@ -27,6 +27,7 @@ export function useWorkflowRetention(
           workflowKind === 'ClusterWorkflow' ? 'openchoreo-cluster' : namespace;
 
         if (!entityNamespace) {
+          if (!ignore) setTtl(undefined);
           return;
         }
 
@@ -34,13 +35,12 @@ export function useWorkflowRetention(
           `${workflowKind.toLowerCase()}:${entityNamespace}/${workflowName}`,
         );
 
-        if (!ignore && entity) {
-          const spec = entity.spec as Record<string, unknown> | undefined;
-          const value = spec?.ttlAfterCompletion as string | undefined;
-          setTtl(value);
+        if (!ignore) {
+          const spec = entity?.spec as Record<string, unknown> | undefined;
+          setTtl((spec?.ttlAfterCompletion as string) ?? undefined);
         }
       } catch {
-        // Entity may not exist in catalog yet — ignore
+        if (!ignore) setTtl(undefined);
       }
     };
 

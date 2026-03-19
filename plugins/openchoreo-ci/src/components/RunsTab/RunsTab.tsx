@@ -91,14 +91,18 @@ export const RunsTab = ({
                 placement="top"
                 arrow
               >
-                <InfoOutlinedIcon
-                  style={{
-                    fontSize: '16px',
-                    color: '#6b778c',
-                    marginLeft: '8px',
-                    cursor: 'pointer',
-                  }}
-                />
+                <IconButton
+                  size="small"
+                  aria-label="Retention period info"
+                  style={{ marginLeft: '4px', padding: '4px' }}
+                >
+                  <InfoOutlinedIcon
+                    style={{
+                      fontSize: '16px',
+                      color: '#6b778c',
+                    }}
+                  />
+                </IconButton>
               </Tooltip>
             )}
             <IconButton
