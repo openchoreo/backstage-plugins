@@ -1,8 +1,6 @@
 import { Content, Page, Header } from '@backstage/core-components';
-import {
-  HomePageRecentlyVisited,
-  HomePageStarredEntities,
-} from '@backstage/plugin-home';
+import { HomePageStarredEntities } from '@backstage/plugin-home';
+import { RecentlyVisitedCard } from './RecentlyVisitedCard';
 import { HomePageSearchBar } from '@backstage/plugin-search';
 import { SearchContextProvider } from '@backstage/plugin-search-react';
 import { Grid, Typography, Box } from '@material-ui/core';
@@ -59,7 +57,7 @@ export const HomePage = () => {
                 </Grid>
                 <Grid item xs={12} md={6} style={{ display: 'flex' }}>
                   <Box className={classes.starredEntitiesWrapper}>
-                    <HomePageRecentlyVisited />
+                    <RecentlyVisitedCard />
                   </Box>
                 </Grid>
               </Grid>
