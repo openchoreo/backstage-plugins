@@ -1,5 +1,6 @@
 import {
   ApiRef,
+  BackstageIdentityApi,
   createApiRef,
   OAuthApi,
   ProfileInfoApi,
@@ -12,7 +13,7 @@ import {
  * Separated to avoid circular dependencies with form decorators.
  */
 export const openChoreoAuthApiRef: ApiRef<
-  OAuthApi & ProfileInfoApi & SessionApi
+  OAuthApi & ProfileInfoApi & BackstageIdentityApi & SessionApi
 > = createApiRef({
   id: 'auth.openchoreo-auth',
 });

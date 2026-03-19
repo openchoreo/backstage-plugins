@@ -1,3 +1,8 @@
+# Use redirect-based OAuth flow instead of a popup window
+# See https://backstage.io/docs/auth/#sign-in-configuration
+# Environment variable: OPENCHOREO_FEATURES_AUTH_REDIRECT_FLOW_ENABLED
+enableExperimentalRedirectFlow: ${OPENCHOREO_FEATURES_AUTH_REDIRECT_FLOW_ENABLED}
+
 app:
   title: OpenChoreo Portal
   # Should be the same as backend.baseUrl when using the `app-backend` plugin.
