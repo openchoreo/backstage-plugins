@@ -25,7 +25,11 @@ import { WorkflowRunDetailsPage } from '../WorkflowRunDetailsPage';
 import { RunsTab } from '../RunsTab';
 import { OverviewTab } from '../OverviewTab';
 import { BuildWithParamsDialog } from '../BuildWithParamsDialog';
-import { useWorkflowData, useWorkflowRouting } from '../../hooks';
+import {
+  useWorkflowData,
+  useWorkflowRouting,
+  useWorkflowRetention,
+} from '../../hooks';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 import {
   CHOREO_LABELS,
@@ -104,6 +108,15 @@ export const Workflows = () => {
   // Fetch workflow schema and detect git field mapping from extensions
   const workflowName = workflowData.componentDetails?.componentWorkflow?.name;
   const workflowKind = workflowData.componentDetails?.componentWorkflow?.kind;
+  const entityNamespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+
+  // Fetch workflow retention TTL from catalog entity
+  const retentionTtl = useWorkflowRetention(
+    workflowName,
+    workflowKind,
+    entityNamespace,
+  );
   useEffect(() => {
     let ignore = false;
 
@@ -356,6 +369,7 @@ export const Workflows = () => {
             onRefresh={() => refreshOp.execute()}
             onRowClick={handleOpenRunDetails}
             gitFieldMapping={gitFieldMapping}
+            retentionTtl={retentionTtl}
           />
         );
       case 'configurations':

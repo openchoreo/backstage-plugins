@@ -13,3 +13,7 @@ export {
   type WorkflowRoutingState,
 } from './useWorkflowRouting';
 export { useWorkflowRun, type WorkflowRunDetails } from './useWorkflowRun';
+export {
+  useWorkflowRetention,
+  formatRetentionDuration,
+} from './useWorkflowRetention';

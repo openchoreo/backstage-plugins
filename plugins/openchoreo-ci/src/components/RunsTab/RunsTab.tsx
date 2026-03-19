@@ -1,11 +1,13 @@
 import { Table, TableColumn } from '@backstage/core-components';
-import { Typography, Box, IconButton } from '@material-ui/core';
+import { Typography, Box, IconButton, Tooltip } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { BuildStatusChip } from '../BuildStatusChip';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
 import { extractGitFieldValues } from '../../utils/schemaExtensions';
 import type { GitFieldMapping } from '../../utils/schemaExtensions';
+import { formatRetentionDuration } from '../../hooks';
 import { useStyles } from './styles';
 
 interface RunsTabProps {
@@ -15,6 +17,7 @@ interface RunsTabProps {
   onRefresh: () => void;
   onRowClick: (build: ModelsBuild) => void;
   gitFieldMapping?: GitFieldMapping;
+  retentionTtl?: string;
 }
 
 export const RunsTab = ({
@@ -24,6 +27,7 @@ export const RunsTab = ({
   onRefresh,
   onRowClick,
   gitFieldMapping,
+  retentionTtl,
 }: RunsTabProps) => {
   const classes = useStyles();
 
@@ -79,11 +83,29 @@ export const RunsTab = ({
             <Typography variant="h6" component="span">
               Workflow Runs
             </Typography>
+            {retentionTtl && (
+              <Tooltip
+                title={`Runs are retained for ${formatRetentionDuration(
+                  retentionTtl,
+                )}`}
+                placement="top"
+                arrow
+              >
+                <InfoOutlinedIcon
+                  style={{
+                    fontSize: '16px',
+                    color: '#6b778c',
+                    marginLeft: '8px',
+                    cursor: 'pointer',
+                  }}
+                />
+              </Tooltip>
+            )}
             <IconButton
               size="small"
               onClick={onRefresh}
               disabled={isRefreshing || loading}
-              style={{ marginLeft: '8px' }}
+              style={{ marginLeft: '4px' }}
               title={isRefreshing ? 'Refreshing...' : 'Refresh builds'}
             >
               <Refresh style={{ fontSize: '18px' }} />
@@ -114,6 +136,17 @@ export const RunsTab = ({
             <Typography variant="body2" color="textSecondary">
               Trigger a workflow to see runs appear here
             </Typography>
+            {retentionTtl && (
+              <Typography
+                variant="body2"
+                color="textSecondary"
+                style={{ marginTop: '8px' }}
+              >
+                {`Completed runs are automatically removed after ${formatRetentionDuration(
+                  retentionTtl,
+                )}`}
+              </Typography>
+            )}
           </Box>
         }
       />

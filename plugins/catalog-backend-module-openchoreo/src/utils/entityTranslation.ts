@@ -470,6 +470,7 @@ export function translateWorkflowToEntity(
     type?: string;
     deletionTimestamp?: string;
     workflowPlaneRef?: { kind?: string; name?: string };
+    ttlAfterCompletion?: string;
   },
   namespaceName: string,
   config: EntityTranslationConfig,
@@ -512,6 +513,9 @@ export function translateWorkflowToEntity(
       ...(wf.workflowPlaneRef?.name && {
         workflowPlaneRef: wf.workflowPlaneRef.name,
         workflowPlaneRefKind: wf.workflowPlaneRef.kind || 'WorkflowPlane',
+      }),
+      ...(wf.ttlAfterCompletion && {
+        ttlAfterCompletion: wf.ttlAfterCompletion,
       }),
     },
   };
@@ -822,6 +826,7 @@ export function translateClusterWorkflowToEntity(
     type?: string;
     deletionTimestamp?: string;
     workflowPlaneRef?: { kind?: string; name?: string };
+    ttlAfterCompletion?: string;
   },
   config: EntityTranslationConfig,
 ): ClusterWorkflowEntityV1alpha1 {
@@ -862,6 +867,9 @@ export function translateClusterWorkflowToEntity(
         workflowPlaneRef: wf.workflowPlaneRef.name,
         workflowPlaneRefKind:
           wf.workflowPlaneRef.kind || 'ClusterWorkflowPlane',
+      }),
+      ...(wf.ttlAfterCompletion && {
+        ttlAfterCompletion: wf.ttlAfterCompletion,
       }),
     },
   };

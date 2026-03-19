@@ -35,5 +35,9 @@ export interface WorkflowEntityV1alpha1 extends Entity {
      * Kind of the workflow plane reference (WorkflowPlane or ClusterWorkflowPlane)
      */
     workflowPlaneRefKind?: string;
+    /**
+     * Time-to-live for WorkflowRun instances after completion (duration string like "10d1h30m")
+     */
+    ttlAfterCompletion?: string;
   };
 }

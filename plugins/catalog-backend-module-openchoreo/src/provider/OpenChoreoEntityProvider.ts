@@ -1844,6 +1844,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     const isCI =
       cwf.metadata?.labels?.['openchoreo.dev/workflow-type'] === 'component';
     const wpRef = (cwf as any).spec?.workflowPlaneRef;
+    const ttl = (cwf as any).spec?.ttlAfterCompletion;
     return translateClusterWF(
       {
         name: getName(cwf)!,
@@ -1856,6 +1857,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         ...(wpRef && {
           workflowPlaneRef: { kind: wpRef.kind, name: wpRef.name },
         }),
+        ...(ttl && { ttlAfterCompletion: ttl }),
       },
       { locationKey: this.getProviderName() },
     );
@@ -2042,6 +2044,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     const isCI =
       wf.metadata?.labels?.['openchoreo.dev/workflow-type'] === 'component';
     const wpRef = (wf as any).spec?.workflowPlaneRef;
+    const ttl = (wf as any).spec?.ttlAfterCompletion;
     return translateWF(
       {
         name: getName(wf)!,
@@ -2054,6 +2057,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         ...(wpRef && {
           workflowPlaneRef: { kind: wpRef.kind, name: wpRef.name },
         }),
+        ...(ttl && { ttlAfterCompletion: ttl }),
       },
       namespaceName,
       { locationKey: this.getProviderName() },
