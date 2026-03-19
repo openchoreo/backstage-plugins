@@ -30,19 +30,10 @@ export const LogEntry: FC<LogEntryProps> = ({
 }) => {
   const classes = useLogEntryStyles();
   const [expanded, setExpanded] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
   const handleRowClick = () => {
     setExpanded(!expanded);
-  };
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
   };
 
   const handleCopyLog = async (event: MouseEvent<HTMLButtonElement>) => {
@@ -90,8 +81,6 @@ export const LogEntry: FC<LogEntryProps> = ({
       <TableRow
         className={`${classes.logRow} ${expanded ? classes.expandedRow : ''}`}
         onClick={handleRowClick}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
       >
         {selectedFields.map(field => {
           if (field === LogEntryField.Timestamp) {
@@ -126,15 +115,19 @@ export const LogEntry: FC<LogEntryProps> = ({
 
           return (
             <TableCell key={field} className={classes.logCell}>
-              <Box display="flex" alignItems="center">
-                <Typography
-                  className={`${classes.logMessage} ${
-                    expanded ? classes.expandedLogMessage : ''
-                  }`}
+              <Box className={classes.logCellContent}>
+                <Box className={classes.logTextContainer}>
+                  <Typography
+                    className={`${classes.logMessage} ${
+                      expanded ? classes.expandedLogMessage : ''
+                    }`}
+                  >
+                    {log.log}
+                  </Typography>
+                </Box>
+                <Box
+                  className={`${classes.logActionColumn} ${classes.hoverActionButton}`}
                 >
-                  {log.log}
-                </Typography>
-                {isHovered && (
                   <Tooltip title={copySuccess ? 'Copied!' : 'Copy log message'}>
                     <IconButton
                       className={classes.copyButton}
@@ -144,7 +137,7 @@ export const LogEntry: FC<LogEntryProps> = ({
                       <FileCopyOutlined fontSize="inherit" />
                     </IconButton>
                   </Tooltip>
-                )}
+                </Box>
               </Box>
             </TableCell>
           );

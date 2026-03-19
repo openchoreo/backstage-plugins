@@ -129,16 +129,41 @@ export const useLogEntryStyles = makeStyles(theme => ({
     wordBreak: 'break-word',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    whiteSpace: 'pre-wrap',
+    display: '-webkit-box',
+    WebkitLineClamp: 3,
+    WebkitBoxOrient: 'vertical',
     maxWidth: '100%',
   },
   expandedLogMessage: {
     whiteSpace: 'pre-wrap',
     overflow: 'visible',
+    display: 'block',
+    WebkitLineClamp: 'unset' as any,
+    WebkitBoxOrient: 'unset' as any,
   },
   logCell: {
     overflow: 'hidden',
-    textOverflow: 'ellipsis',
+    textOverflow: 'clip',
+    whiteSpace: 'normal',
+  },
+  logCellContent: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    width: '100%',
+  },
+  logTextContainer: {
+    flex: 1,
+    minWidth: 0,
+  },
+  logActionColumn: {
+    width: theme.spacing(3),
+    minWidth: theme.spacing(3),
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    flexShrink: 0,
+    marginLeft: theme.spacing(1),
   },
   containerCell: {
     fontSize: '0.75rem',
@@ -195,8 +220,7 @@ export const useLogEntryStyles = makeStyles(theme => ({
     color: theme.palette.text.secondary,
   },
   copyButton: {
-    padding: 0,
-    marginLeft: theme.spacing(1),
+    marginTop: theme.spacing(1),
   },
   fullLogMessage: {
     fontFamily: 'monospace',
