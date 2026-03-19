@@ -1,117 +1,72 @@
-import { makeStyles, Theme, Grid, Paper } from '@material-ui/core';
+import { useEffect } from 'react';
+import { makeStyles, Theme, Grid, Box, List } from '@material-ui/core';
 
-import { CatalogSearchResultListItem } from '@backstage/plugin-catalog';
-import {
-  catalogApiRef,
-  CATALOG_FILTER_EXISTS,
-} from '@backstage/plugin-catalog-react';
-import { TechDocsSearchResultListItem } from '@backstage/plugin-techdocs';
-
-import { SearchType } from '@backstage/plugin-search';
 import {
   SearchBar,
-  SearchFilter,
   SearchResult,
   SearchPagination,
   useSearch,
 } from '@backstage/plugin-search-react';
-import {
-  CatalogIcon,
-  Content,
-  DocsIcon,
-  Header,
-  Page,
-} from '@backstage/core-components';
-import { useApi } from '@backstage/core-plugin-api';
+import { Content, Header, Page } from '@backstage/core-components';
+import { SearchResultItem } from './SearchResultItem';
+import { SearchKindDropdown } from './SearchKindDropdown';
 
 const useStyles = makeStyles((theme: Theme) => ({
-  bar: {
+  container: {
+    width: '100%',
+    maxWidth: 1200,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+  toolbar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: theme.spacing(1, 0),
-  },
-  filters: {
-    padding: theme.spacing(2),
-    marginTop: theme.spacing(2),
-  },
-  filter: {
-    '& + &': {
-      marginTop: theme.spacing(2.5),
-    },
   },
 }));
 
 const SearchPage = () => {
   const classes = useStyles();
-  const { types } = useSearch();
-  const catalogApi = useApi(catalogApiRef);
+  const { setTypes } = useSearch();
+
+  // Lock to software-catalog type since we only have catalog search
+  useEffect(() => {
+    setTypes(['software-catalog']);
+  }, [setTypes]);
 
   return (
     <Page themeId="home">
       <Header title="Search" />
       <Content>
-        <Grid container direction="row">
+        <Grid
+          container
+          direction="column"
+          spacing={2}
+          className={classes.container}
+        >
           <Grid item xs={12}>
-            <Paper className={classes.bar}>
-              <SearchBar />
-            </Paper>
+            <SearchBar />
           </Grid>
-          <Grid item xs={3}>
-            <SearchType.Accordion
-              name="Result Type"
-              defaultValue="software-catalog"
-              types={[
-                {
-                  value: 'software-catalog',
-                  name: 'Software Catalog',
-                  icon: <CatalogIcon />,
-                },
-                {
-                  value: 'techdocs',
-                  name: 'Documentation',
-                  icon: <DocsIcon />,
-                },
-              ]}
-            />
-            <Paper className={classes.filters}>
-              {types.includes('techdocs') && (
-                <SearchFilter.Select
-                  className={classes.filter}
-                  label="Entity"
-                  name="name"
-                  values={async () => {
-                    // Return a list of entities which are documented.
-                    const { items } = await catalogApi.getEntities({
-                      fields: ['metadata.name'],
-                      filter: {
-                        'metadata.annotations.backstage.io/techdocs-ref':
-                          CATALOG_FILTER_EXISTS,
-                      },
-                    });
-
-                    const names = items.map(entity => entity.metadata.name);
-                    names.sort();
-                    return names;
-                  }}
-                />
-              )}
-              <SearchFilter.Select
-                className={classes.filter}
-                label="Kind"
-                name="kind"
-                values={['Component', 'Template']}
-              />
-              <SearchFilter.Checkbox
-                className={classes.filter}
-                label="Lifecycle"
-                name="lifecycle"
-                values={['experimental', 'production']}
-              />
-            </Paper>
+          <Grid item xs={12}>
+            <Box className={classes.toolbar}>
+              <SearchKindDropdown />
+              <SearchPagination />
+            </Box>
           </Grid>
-          <Grid item xs={9}>
-            <SearchPagination />
+          <Grid item xs={12}>
             <SearchResult>
-              <CatalogSearchResultListItem icon={<CatalogIcon />} />
-              <TechDocsSearchResultListItem icon={<DocsIcon />} />
+              {resultSet => (
+                <List>
+                  {resultSet.results.map(({ document, rank }) => (
+                    <SearchResultItem
+                      key={document.location}
+                      result={document}
+                      rank={rank}
+                    />
+                  ))}
+                </List>
+              )}
             </SearchResult>
           </Grid>
         </Grid>
