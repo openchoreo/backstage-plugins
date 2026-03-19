@@ -80,8 +80,9 @@ export const CustomSearchModal = ({ toggleModal }: CustomSearchModalProps) => {
 
   const handleViewAllResults = () => {
     toggleModal();
-    const searchPath = term
-      ? `/search?query=${encodeURIComponent(term)}`
+    const trimmedTerm = term?.trim();
+    const searchPath = trimmedTerm
+      ? `/search?query=${encodeURIComponent(trimmedTerm)}`
       : '/search';
     navigate(searchPath);
   };

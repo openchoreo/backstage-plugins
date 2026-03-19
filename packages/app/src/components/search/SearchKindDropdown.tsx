@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import Box from '@material-ui/core/Box';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListSubheader from '@material-ui/core/ListSubheader';
@@ -64,9 +64,7 @@ export const SearchKindDropdown = () => {
   const app = useApp();
   const { filters, setFilters } = useSearch();
   const { allKinds } = useAllKinds();
-  const [selectedKind, setSelectedKind] = useState<string>(
-    (filters.kind as string) || ALL_KINDS,
-  );
+  const selectedKind = (filters.kind as string) || ALL_KINDS;
 
   const availableKinds = useMemo(() => {
     const available = new Set<string>();
@@ -77,7 +75,6 @@ export const SearchKindDropdown = () => {
   }, [allKinds]);
 
   const handleChange = (value: string) => {
-    setSelectedKind(value);
     if (value === ALL_KINDS) {
       setFilters(prev => {
         const next = { ...prev };
