@@ -12,6 +12,7 @@ import type {
   WorkloadResource,
   WorkloadSpec,
 } from '@openchoreo/backstage-plugin-common';
+import { Alert } from '@material-ui/lab';
 import { ContainerContent } from './ContainerContent';
 import { EndpointContent } from './EndpointContent';
 import { DependencyContent } from './DependencyContent';
@@ -34,6 +35,7 @@ import type { TraitWithState } from '../../../Traits/types';
 import type { WorkloadChanges } from '../hooks/useWorkloadChanges';
 
 interface WorkloadEditorProps {
+  componentTypeName?: string;
   initialTab?: string;
   onTabChange?: (tab: string) => void;
   traitsState?: TraitWithState[];
@@ -176,6 +178,7 @@ function yamlToResource(yamlStr: string): WorkloadResource | null {
 }
 
 export function WorkloadEditor({
+  componentTypeName,
   initialTab,
   onTabChange,
   traitsState,
@@ -213,10 +216,18 @@ export function WorkloadEditor({
     }
   }, [spec]);
 
+  // Determine if endpoints should be hidden (batch workloads like cronjob/job)
+  const hideEndpoints = useMemo(() => {
+    if (!componentTypeName) return false;
+    const workloadType = componentTypeName.split('/')[0];
+    return workloadType === 'cronjob' || workloadType === 'job';
+  }, [componentTypeName]);
+
   // YAML mode state
   const [isYamlMode, setIsYamlMode] = useState(false);
   const [yamlContent, setYamlContent] = useState('');
   const [yamlError, setYamlError] = useState<string | undefined>();
+  const [yamlWarning, setYamlWarning] = useState<string | undefined>();
 
   // Track last active sub-tab per section for smooth outer tab switching
   const lastWorkloadTabRef = useRef('container');
@@ -422,19 +433,37 @@ export function WorkloadEditor({
       if (newMode === 'yaml' && !isYamlMode) {
         setYamlContent(resourceToYaml(workloadResource));
         setYamlError(undefined);
+        if (
+          hideEndpoints &&
+          workloadResource?.spec?.endpoints &&
+          Object.keys(workloadResource.spec.endpoints).length > 0
+        ) {
+          setYamlWarning(
+            'Endpoints are not supported for CronJob/Job workload types',
+          );
+        } else {
+          setYamlWarning(undefined);
+        }
         setIsYamlMode(true);
       } else if (newMode === 'form' && isYamlMode) {
         const parsed = yamlToResource(yamlContent);
         if (parsed) {
           setWorkloadResource(parsed);
           setYamlError(undefined);
+          setYamlWarning(undefined);
           setIsYamlMode(false);
         } else {
           setYamlError('Fix YAML errors before switching to Form view');
         }
       }
     },
-    [isYamlMode, yamlContent, workloadResource, setWorkloadResource],
+    [
+      isYamlMode,
+      yamlContent,
+      workloadResource,
+      setWorkloadResource,
+      hideEndpoints,
+    ],
   );
 
   const handleYamlChange = useCallback(
@@ -444,11 +473,24 @@ export function WorkloadEditor({
       if (parsed) {
         setYamlError(undefined);
         setWorkloadResource(parsed);
+        // Warn if endpoints are present for batch workload types
+        if (
+          hideEndpoints &&
+          parsed.spec?.endpoints &&
+          Object.keys(parsed.spec.endpoints).length > 0
+        ) {
+          setYamlWarning(
+            'Endpoints are not supported for CronJob/Job workload types',
+          );
+        } else {
+          setYamlWarning(undefined);
+        }
       } else {
         setYamlError('Invalid YAML');
+        setYamlWarning(undefined);
       }
     },
-    [setWorkloadResource],
+    [setWorkloadResource, hideEndpoints],
   );
 
   // --- Outer nav ---
@@ -468,12 +510,14 @@ export function WorkloadEditor({
 
   const workloadNavItems = useMemo(
     () =>
-      WORKLOAD_NAV_IDS.map(item => ({
+      WORKLOAD_NAV_IDS.filter(
+        item => !(item.id === 'endpoints' && hideEndpoints),
+      ).map(item => ({
         ...item,
         ...(item.id === 'endpoints' && { count: endpointCount }),
         ...(item.id === 'dependencies' && { count: dependencyCount }),
       })),
-    [endpointCount, dependencyCount],
+    [hideEndpoints, endpointCount, dependencyCount],
   );
 
   // Show Traits tab only if the CT has allowedTraits or there are already existing traits
@@ -536,6 +580,16 @@ export function WorkloadEditor({
     [setActiveTab, componentNavItems],
   );
 
+  // Guard: redirect to a valid workload sub-tab (e.g. ?tab=endpoints on a CronJob)
+  useEffect(() => {
+    if (
+      WORKLOAD_SUB_TABS.has(activeTab) &&
+      !workloadNavItems.some(item => item.id === activeTab)
+    ) {
+      setActiveTab('container', true);
+    }
+  }, [activeTab, workloadNavItems, setActiveTab]);
+
   // Guard: redirect to a valid component sub-tab when the current activeTab
   // is in the component section but doesn't match any available item.
   useEffect(() => {
@@ -544,7 +598,7 @@ export function WorkloadEditor({
       componentNavItems.length > 0 &&
       !componentNavItems.some(item => item.id === activeTab)
     ) {
-      setActiveTab(componentNavItems[0].id);
+      setActiveTab(componentNavItems[0].id, true);
     }
   }, [activeTab, componentNavItems, setActiveTab]);
 
@@ -664,6 +718,11 @@ export function WorkloadEditor({
                   <Typography className={classes.yamlError}>
                     {yamlError}
                   </Typography>
+                )}
+                {yamlWarning && (
+                  <Alert severity="warning" style={{ marginBottom: 8 }}>
+                    {yamlWarning}
+                  </Alert>
                 )}
                 <YamlEditor
                   content={yamlContent}

@@ -617,6 +617,9 @@ export const WorkloadConfigPage = ({
           onEditingChange={setIsEditing}
         >
           <WorkloadEditor
+            componentTypeName={
+              entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE]
+            }
             initialTab={initialTab}
             onTabChange={onTabChange}
             traitsState={traitsState}
