@@ -17,6 +17,15 @@ import {
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import CloseIcon from '@material-ui/icons/Close';
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
+import FolderOutlinedIcon from '@material-ui/icons/FolderOutlined';
+import WidgetsOutlinedIcon from '@material-ui/icons/WidgetsOutlined';
+import CloudOutlinedIcon from '@material-ui/icons/CloudOutlined';
+import ExtensionOutlinedIcon from '@material-ui/icons/ExtensionOutlined';
+import CategoryOutlinedIcon from '@material-ui/icons/CategoryOutlined';
+import SettingsApplicationsOutlinedIcon from '@material-ui/icons/SettingsApplicationsOutlined';
+import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
+import ApartmentOutlinedIcon from '@material-ui/icons/ApartmentOutlined';
+import AccountTreeOutlinedIcon from '@material-ui/icons/AccountTreeOutlined';
 import {
   SearchBar,
   SearchResult,
@@ -24,8 +33,23 @@ import {
 } from '@backstage/plugin-search-react';
 import { CatalogIcon } from '@backstage/core-components';
 import { useApp } from '@backstage/core-plugin-api';
+import type { CatalogEntityDocument } from '@backstage/plugin-catalog-common';
 import { catalogPageEntries } from '../../utils/kindUtils';
 import { SearchResultItem } from './SearchResultItem';
+
+const TEMPLATE_TYPE_ICONS: Record<string, React.ReactElement> = {
+  'System (Project)': <FolderOutlinedIcon />,
+  Component: <WidgetsOutlinedIcon />,
+  Environment: <CloudOutlinedIcon />,
+  Trait: <ExtensionOutlinedIcon />,
+  ClusterTrait: <ExtensionOutlinedIcon />,
+  ComponentType: <CategoryOutlinedIcon />,
+  ClusterComponentType: <CategoryOutlinedIcon />,
+  ComponentWorkflow: <SettingsApplicationsOutlinedIcon />,
+  Namespace: <ApartmentOutlinedIcon />,
+  DeploymentPipeline: <AccountTreeOutlinedIcon />,
+};
+const DEFAULT_TEMPLATE_ICON = <DescriptionOutlinedIcon />;
 
 const useStyles = makeStyles((theme: Theme) => ({
   dialogTitle: {
@@ -74,9 +98,9 @@ export const CustomSearchModal = ({ toggleModal }: CustomSearchModalProps) => {
   const matchingPages = useMemo(() => {
     if (!term || term.trim().length === 0) return [];
     const lowerTerm = term.toLowerCase();
-    return catalogPageEntries.filter(entry =>
-      entry.displayName.toLowerCase().includes(lowerTerm),
-    );
+    return catalogPageEntries
+      .filter(entry => entry.displayName.toLowerCase().includes(lowerTerm))
+      .slice(0, 2);
   }, [term]);
 
   const handleNavigateToCatalog = (path: string) => {
@@ -139,17 +163,67 @@ export const CustomSearchModal = ({ toggleModal }: CustomSearchModalProps) => {
           </Box>
         )}
         <SearchResult>
-          {resultSet => (
-            <List>
-              {resultSet.results.map(({ document, rank }) => (
-                <SearchResultItem
-                  key={document.location}
-                  result={document}
-                  rank={rank}
-                />
-              ))}
-            </List>
-          )}
+          {resultSet => {
+            const templates = resultSet.results
+              .filter(r => (r.document as any).kind === 'Template')
+              .slice(0, 2);
+            const others = resultSet.results.filter(
+              r => (r.document as any).kind !== 'Template',
+            );
+            return (
+              <>
+                {templates.length > 0 && (
+                  <Box className={classes.catalogPagesSection}>
+                    <Typography
+                      variant="overline"
+                      color="textSecondary"
+                      className={classes.sectionLabel}
+                    >
+                      Create
+                    </Typography>
+                    <List dense>
+                      {templates.map(({ document }) => {
+                        const doc = document as CatalogEntityDocument;
+                        const name = document.location.split('/').pop() || '';
+                        const templatePath = `/create/templates/${
+                          doc.namespace || 'default'
+                        }/${name}`;
+                        const icon =
+                          TEMPLATE_TYPE_ICONS[doc.type] ||
+                          DEFAULT_TEMPLATE_ICON;
+                        return (
+                          <ListItem
+                            key={document.location}
+                            button
+                            onClick={() =>
+                              handleNavigateToCatalog(templatePath)
+                            }
+                          >
+                            <ListItemIcon>{icon}</ListItemIcon>
+                            <ListItemText
+                              primary={document.title}
+                              secondary={document.text}
+                            />
+                          </ListItem>
+                        );
+                      })}
+                    </List>
+                  </Box>
+                )}
+                {others.length > 0 && (
+                  <List>
+                    {others.map(({ document, rank }) => (
+                      <SearchResultItem
+                        key={document.location}
+                        result={document}
+                        rank={rank}
+                      />
+                    ))}
+                  </List>
+                )}
+              </>
+            );
+          }}
         </SearchResult>
       </DialogContent>
       <DialogActions className={classes.dialogActions}>

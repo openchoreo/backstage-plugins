@@ -7,11 +7,20 @@ import {
   Typography,
 } from '@material-ui/core';
 import { makeStyles, Theme } from '@material-ui/core/styles';
+import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import { Link, CatalogIcon } from '@backstage/core-components';
 import { useApp } from '@backstage/core-plugin-api';
 import type { CatalogEntityDocument } from '@backstage/plugin-catalog-common';
 import type { SearchDocument } from '@backstage/plugin-search-common';
 import { getKindDisplayName } from '../../utils/kindUtils';
+
+function getResultLink(result: SearchDocument, doc: CatalogEntityDocument) {
+  if (doc.kind === 'Template') {
+    const name = result.location.split('/').pop() || '';
+    return `/create/templates/${doc.namespace || 'default'}/${name}`;
+  }
+  return result.location;
+}
 
 const useStyles = makeStyles((theme: Theme) => ({
   item: {
@@ -65,13 +74,15 @@ export const SearchResultItem = ({ result }: SearchResultItemProps) => {
   const kind = doc.kind?.toLowerCase();
   const KindIcon = kind ? app.getSystemIcon(`kind:${kind}`) : null;
   const kindLabel = doc.kind ? getKindDisplayName(doc.kind) : undefined;
+  const isTemplate = doc.kind === 'Template';
+  const linkTo = getResultLink(result, doc);
 
   return (
     <ListItem
       className={classes.item}
       button
       component={Link}
-      to={result.location}
+      to={linkTo}
       noTrack
       divider
     >
@@ -98,7 +109,17 @@ export const SearchResultItem = ({ result }: SearchResultItemProps) => {
         }
       />
       <Box className={classes.chips}>
-        {kindLabel && (
+        {isTemplate && (
+          <Chip
+            icon={<AddCircleOutlineIcon />}
+            label="Create"
+            size="small"
+            color="primary"
+            variant="outlined"
+            className={classes.chip}
+          />
+        )}
+        {!isTemplate && kindLabel && (
           <Chip
             label={kindLabel}
             size="small"
