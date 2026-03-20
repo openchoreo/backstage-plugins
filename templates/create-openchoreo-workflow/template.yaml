@@ -16,6 +16,11 @@ spec:
         - namespace_name
         - componentworkflow_name
       properties:
+        namespace_name:
+          title: Namespace Name
+          type: string
+          description: Namespace where the workflow will be created
+          ui:field: NamespaceEntityPicker
         componentworkflow_name:
           title: Workflow Name
           type: string
@@ -25,11 +30,6 @@ spec:
             catalogKind: Workflow
             resourceLabel: Workflow
             namespaceField: namespace_name
-        namespace_name:
-          title: Namespace Name
-          type: string
-          description: Namespace where the workflow will be created
-          ui:field: NamespaceEntityPicker
         is_component_workflow:
           title: Component Workflow
           type: boolean

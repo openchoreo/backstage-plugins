@@ -16,6 +16,11 @@ spec:
         - namespace_name
         - trait_name
       properties:
+        namespace_name:
+          title: Namespace Name
+          type: string
+          description: Namespace where the trait will be created
+          ui:field: NamespaceEntityPicker
         trait_name:
           title: Trait Name
           type: string
@@ -25,11 +30,6 @@ spec:
             catalogKind: TraitType
             resourceLabel: Trait
             namespaceField: namespace_name
-        namespace_name:
-          title: Namespace Name
-          type: string
-          description: Namespace where the trait will be created
-          ui:field: NamespaceEntityPicker
         displayName:
           title: Display Name
           type: string

@@ -83,16 +83,18 @@ export const DeploymentPipelinePicker = ({
     };
   }, [namespaceName, catalogApi]);
 
-  // Reset selection when namespace changes and current value is no longer valid
+  // Auto-select or reset selection when namespace/pipelines change
   useEffect(() => {
-    if (
-      formData &&
-      pipelines.length > 0 &&
-      !pipelines.some(p => p.name === formData)
-    ) {
-      onChange('');
-    } else if (formData && !namespaceName) {
-      onChange('');
+    if (!namespaceName) {
+      if (formData) onChange('');
+      return;
+    }
+    if (pipelines.length === 0) return;
+
+    const currentValid = formData && pipelines.some(p => p.name === formData);
+    if (!currentValid) {
+      // Select the first pipeline when current selection is empty or invalid
+      onChange(pipelines[0].name);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pipelines, namespaceName]);

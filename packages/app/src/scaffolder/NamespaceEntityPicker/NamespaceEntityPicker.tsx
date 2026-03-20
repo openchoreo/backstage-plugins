@@ -27,17 +27,22 @@ export const NamespaceEntityPicker = ({
 
   const handleNamespacesLoaded = useCallback(
     (namespaces: NamespaceOption[]) => {
-      if (
-        preselectedNamespace &&
-        !preselectionAppliedRef.current &&
-        !formData
-      ) {
+      if (preselectionAppliedRef.current || formData) return;
+
+      if (preselectedNamespace) {
         const match = namespaces.find(ns => ns.name === preselectedNamespace);
         if (match) {
           preselectionAppliedRef.current = true;
           clearPreselectedNamespace();
           onChange(match.entityRef);
+          return;
         }
+      }
+
+      // Fall back to the first namespace if no URL preselection matched
+      if (namespaces.length > 0) {
+        preselectionAppliedRef.current = true;
+        onChange(namespaces[0].entityRef);
       }
     },
     [preselectedNamespace, clearPreselectedNamespace, formData, onChange],
