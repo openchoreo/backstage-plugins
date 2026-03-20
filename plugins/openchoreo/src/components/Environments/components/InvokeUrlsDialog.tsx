@@ -12,6 +12,7 @@ import {
   Divider,
   Chip,
 } from '@material-ui/core';
+import { useTheme } from '@material-ui/core/styles';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import type {
   EndpointInfo,
@@ -35,6 +36,7 @@ interface URLRowProps {
 }
 
 const URLRow = ({ url, label }: URLRowProps) => {
+  const theme = useTheme();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -65,16 +67,27 @@ const URLRow = ({ url, label }: URLRowProps) => {
             padding: '6px 8px',
           }}
         >
-          <Typography
-            variant="body2"
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               fontFamily: 'monospace',
               fontSize: '0.8rem',
               wordBreak: 'break-all',
+              color: theme.palette.primary.main,
+              textDecoration: 'none',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.textDecoration =
+                'underline';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.textDecoration = 'none';
             }}
           >
             {url}
-          </Typography>
+          </a>
         </Box>
         <Tooltip
           title={copied ? 'Copied!' : 'Copy URL'}
@@ -108,7 +121,7 @@ export const InvokeUrlsDialog = ({
 }: InvokeUrlsDialogProps) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Invoke URLs</DialogTitle>
+      <DialogTitle>Endpoint URLs</DialogTitle>
       <DialogContent dividers>
         {endpoints.length === 0 ? (
           <Typography variant="body2" color="textSecondary">
