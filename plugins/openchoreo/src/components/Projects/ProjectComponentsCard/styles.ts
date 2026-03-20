@@ -2,6 +2,7 @@ import { makeStyles } from '@material-ui/core/styles';
 
 export const useProjectComponentsCardStyles = makeStyles(theme => ({
   cardWrapper: {
+    overflowX: 'hidden' as const,
     '& [class*="MuiPaper-root"][class*="MuiPaper-elevation"]': {
       borderRadius: '12px !important',
       border: '1px solid rgb(243, 244, 246) !important',
@@ -72,6 +73,13 @@ export const useProjectComponentsCardStyles = makeStyles(theme => ({
   tooltipBuildName: {
     fontWeight: 600,
     color: theme.palette.common.white,
+  },
+  moreChip: {
+    height: '24px',
+    fontWeight: 500,
+    cursor: 'default',
+    color: theme.palette.text.secondary,
+    borderColor: theme.palette.divider,
   },
   createComponentButton: {
     textTransform: 'none',

@@ -90,7 +90,7 @@ export const ProjectComponentsCard = () => {
     {
       title: 'Type',
       field: 'spec.type',
-      width: '10%',
+      width: '15%',
       render: (component: ComponentWithDeployment) => (
         <Typography variant="body2">
           {String(component.spec?.type || '-')}
@@ -101,6 +101,12 @@ export const ProjectComponentsCard = () => {
       title: 'Description',
       field: 'metadata.description',
       width: '15%',
+      cellStyle: {
+        maxWidth: '200px',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap' as const,
+      },
       render: (component: ComponentWithDeployment) => (
         <Typography
           variant="body2"
@@ -120,7 +126,7 @@ export const ProjectComponentsCard = () => {
     },
     {
       title: 'Deployment',
-      width: '40%',
+      width: '35%',
       render: (component: ComponentWithDeployment) => {
         if (isForbiddenError(pipelineError) || !canViewBindings) {
           return (
@@ -186,6 +192,7 @@ export const ProjectComponentsCard = () => {
           actionsColumnIndex: -1,
           padding: 'dense',
           draggable: false,
+          tableLayout: 'fixed',
         }}
         style={{ minWidth: 0, width: '100%', height: 'calc(100% - 10px)' }}
         actions={[
