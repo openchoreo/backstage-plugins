@@ -20,7 +20,7 @@ export const CustomCatalogPage = ({
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
-    <PageWithHeader title="OpenChoreo Catalog" themeId="home">
+    <PageWithHeader title="Catalog" themeId="home">
       <Content>
         <EntityListProvider pagination={{ mode: 'offset', limit: 25 }}>
           <Box className={classes.root}>
