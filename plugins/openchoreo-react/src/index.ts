@@ -235,6 +235,14 @@ export {
   type UseTraitsPermissionResult,
 } from './hooks/useTraitsPermission';
 export {
+  useAlertsPermission,
+  type UseAlertsPermissionResult,
+} from './hooks/useAlertsPermission';
+export {
+  useIncidentsPermission,
+  type UseIncidentsPermissionResult,
+} from './hooks/useIncidentsPermission';
+export {
   useRolePermissions,
   type UseRolePermissionsResult,
 } from './hooks/useRolePermissions';

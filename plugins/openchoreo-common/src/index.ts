@@ -58,6 +58,8 @@ export {
   openchoreoClusterRoleMappingUpdatePermission,
   openchoreoClusterRoleMappingDeletePermission,
   openchoreoLogsViewPermission,
+  openchoreoAlertsViewPermission,
+  openchoreoIncidentsViewPermission,
   openchoreoMetricsViewPermission,
   openchoreoTracesViewPermission,
   openchoreoRcaViewPermission,

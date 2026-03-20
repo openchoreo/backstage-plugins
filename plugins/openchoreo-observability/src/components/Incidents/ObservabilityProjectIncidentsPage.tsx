@@ -14,7 +14,7 @@ import {
   useUrlFiltersForIncidents,
   useUpdateIncident,
 } from '../../hooks';
-import { useLogsPermission } from '@openchoreo/backstage-plugin-react';
+import { useIncidentsPermission } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
 import type { Environment as RuntimeLogsEnvironment } from '../RuntimeLogs/types';
 import type { IncidentSummary } from '../../types';
@@ -308,14 +308,14 @@ const ObservabilityProjectIncidentsContent = () => {
 
 export const ObservabilityProjectIncidentsPage = () => {
   const {
-    canViewLogs,
+    canViewIncidents,
     loading: permissionLoading,
     deniedTooltip,
-  } = useLogsPermission();
+  } = useIncidentsPermission();
 
   if (permissionLoading) return <Progress />;
 
-  if (!canViewLogs) {
+  if (!canViewIncidents) {
     return (
       <EmptyState
         missing="data"
