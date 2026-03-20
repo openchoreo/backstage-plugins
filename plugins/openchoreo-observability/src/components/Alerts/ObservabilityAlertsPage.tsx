@@ -13,7 +13,7 @@ import {
   useGetEnvironmentsByNamespace,
   useUrlFiltersForAlerts,
 } from '../../hooks';
-import { useLogsPermission } from '@openchoreo/backstage-plugin-react';
+import { useAlertsPermission } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
 import type { Environment as RuntimeLogsEnvironment } from '../RuntimeLogs/types';
 import type { AlertSummary } from '../../types';
@@ -255,14 +255,14 @@ const ObservabilityAlertsContent = () => {
 
 export const ObservabilityAlertsPage = () => {
   const {
-    canViewLogs,
+    canViewAlerts,
     loading: permissionLoading,
     deniedTooltip,
-  } = useLogsPermission();
+  } = useAlertsPermission();
 
   if (permissionLoading) return <Progress />;
 
-  if (!canViewLogs) {
+  if (!canViewAlerts) {
     return (
       <EmptyState
         missing="data"

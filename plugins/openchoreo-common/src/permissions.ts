@@ -770,6 +770,26 @@ export const openchoreoTraitsViewPermission = createPermission({
 });
 
 /**
+ * Permission to view alerts for a component.
+ * Resource-based: requires the specific component context.
+ */
+export const openchoreoAlertsViewPermission = createPermission({
+  name: 'openchoreo.alerts.view',
+  attributes: { action: 'read' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to view incidents for a project.
+ * Resource-based: requires the specific project context.
+ */
+export const openchoreoIncidentsViewPermission = createPermission({
+  name: 'openchoreo.incidents.view',
+  attributes: { action: 'read' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
  * All OpenChoreo permissions exported as an array.
  * Useful for registering all permissions with the permission framework.
  */
@@ -814,6 +834,8 @@ export const openchoreoPermissions = [
   openchoreoRcaViewPermission,
   openchoreoRcaUpdatePermission,
   openchoreoTraitsViewPermission,
+  openchoreoAlertsViewPermission,
+  openchoreoIncidentsViewPermission,
   openchoreoTraitCreatePermission,
   openchoreoComponentTypeCreatePermission,
   openchoreoClusterComponentTypeCreatePermission,
@@ -901,6 +923,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.clusterrolemapping.update': 'clusterauthzrolebinding:update',
   'openchoreo.clusterrolemapping.delete': 'clusterauthzrolebinding:delete',
   'openchoreo.logs.view': 'logs:view',
+  'openchoreo.alerts.view': 'alerts:view',
+  'openchoreo.incidents.view': 'incidents:view',
   'openchoreo.metrics.view': 'metrics:view',
   'openchoreo.traces.view': 'traces:view',
   'openchoreo.rca.view': 'rcareport:view',
