@@ -139,7 +139,7 @@ export const EnvironmentCardContent = ({
               variant="body2"
               style={{ fontWeight: 500, marginRight: 6 }}
             >
-              Invoke URLs
+              Endpoint URLs
             </Typography>
             <Box
               style={{
@@ -156,11 +156,11 @@ export const EnvironmentCardContent = ({
               </Typography>
             </Box>
           </Box>
-          <Tooltip title="View invoke URLs">
+          <Tooltip title="View endpoint URLs">
             <IconButton
               size="small"
               onClick={() => setInvokeUrlsOpen(true)}
-              aria-label="Show invoke URLs"
+              aria-label="Show endpoint URLs"
             >
               <VisibilityOutlinedIcon fontSize="small" />
             </IconButton>
