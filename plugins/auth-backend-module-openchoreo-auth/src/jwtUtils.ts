@@ -6,7 +6,11 @@ import { LoggerService } from '@backstage/backend-plugin-api';
  */
 export interface OpenChoreoTokenPayload {
   sub: string;
-  username: string;
+  username?: string;
+  email?: string;
+  name?: string;
+  preferred_username?: string;
+  unique_name?: string;
   given_name?: string;
   family_name?: string;
   groups?: string[];
@@ -16,7 +20,7 @@ export interface OpenChoreoTokenPayload {
   userType?: string;
   client_id?: string;
   grant_type?: string;
-  aud: string;
+  aud: string | string[];
   exp: number;
   iat: number;
   iss: string;
