@@ -1,5 +1,5 @@
 import { PropsWithChildren, useEffect } from 'react';
-import { makeStyles } from '@material-ui/core';
+import { makeStyles, Tooltip } from '@material-ui/core';
 import HomeIcon from '@material-ui/icons/Home';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
@@ -38,6 +38,11 @@ import GroupIcon from '@material-ui/icons/People';
 import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
+
+const isMac =
+  typeof navigator !== 'undefined' &&
+  /Mac|iPhone|iPad/.test(navigator.userAgent);
+const searchShortcutLabel = `Search (${isMac ? '⌘K' : 'Ctrl+K'})`;
 
 const useSearchModalStyles = makeStyles({
   '@global': {
@@ -137,16 +142,20 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
     <SidebarPage>
       <Sidebar>
         <SidebarLogo />
-        <SidebarGroup label="Search" icon={<SearchIcon />} to="/search">
-          <SearchModalProvider>
-            <KeyboardShortcutSearchToggler />
-            <SidebarSearchModal>
-              {({ toggleModal }) => (
-                <CustomSearchModal toggleModal={toggleModal} />
-              )}
-            </SidebarSearchModal>
-          </SearchModalProvider>
-        </SidebarGroup>
+        <Tooltip title={searchShortcutLabel} placement="right" arrow>
+          <div>
+            <SidebarGroup label="Search" icon={<SearchIcon />} to="/search">
+              <SearchModalProvider>
+                <KeyboardShortcutSearchToggler />
+                <SidebarSearchModal>
+                  {({ toggleModal }) => (
+                    <CustomSearchModal toggleModal={toggleModal} />
+                  )}
+                </SidebarSearchModal>
+              </SearchModalProvider>
+            </SidebarGroup>
+          </div>
+        </Tooltip>
         <SidebarDivider />
         <SidebarGroup label="Menu" icon={<MenuIcon />}>
           {/* Global nav, not org-specific */}
