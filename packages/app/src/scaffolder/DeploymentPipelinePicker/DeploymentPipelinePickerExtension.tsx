@@ -89,7 +89,10 @@ export const DeploymentPipelinePicker = ({
       if (formData) onChange('');
       return;
     }
-    if (pipelines.length === 0) return;
+    if (pipelines.length === 0) {
+      if (formData) onChange('');
+      return;
+    }
 
     const currentValid = formData && pipelines.some(p => p.name === formData);
     if (!currentValid) {
@@ -101,6 +104,13 @@ export const DeploymentPipelinePicker = ({
   }, [pipelines, namespaceName]);
 
   const hasError = (rawErrors?.length ?? 0) > 0;
+  const noPipelines = !loading && !!namespaceName && pipelines.length === 0;
+
+  const placeholder = !namespaceName
+    ? 'Select a namespace first'
+    : noPipelines
+      ? 'No deployment pipelines in the selected namespace'
+      : '';
 
   return (
     <TextField
@@ -115,10 +125,7 @@ export const DeploymentPipelinePicker = ({
       helperText={
         hasError
           ? rawErrors?.[0]
-          : fetchError ||
-            (!namespaceName
-              ? 'Select a namespace first'
-              : 'Select a deployment pipeline')
+          : fetchError || undefined
       }
       InputProps={{
         endAdornment: loading ? (
@@ -128,6 +135,11 @@ export const DeploymentPipelinePicker = ({
         ) : undefined,
       }}
     >
+      {noPipelines && (
+        <MenuItem disabled value="">
+          No deployment pipelines in the selected namespace
+        </MenuItem>
+      )}
       {pipelines.map(p => (
         <MenuItem key={p.name} value={p.name}>
           {p.displayName}
