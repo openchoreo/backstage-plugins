@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   IconButton,
   Tooltip,
@@ -98,6 +98,13 @@ export const SecretsTable = ({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Clear search when the secrets list becomes empty (e.g. after deletion)
+  useEffect(() => {
+    if (secrets.length === 0) {
+      setSearchQuery('');
+    }
+  }, [secrets]);
+
   const filteredSecrets = useMemo(() => {
     if (!searchQuery) return secrets;
     const query = searchQuery.toLowerCase();
@@ -160,6 +167,7 @@ export const SecretsTable = ({
           size="small"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
+          inputProps={{ 'aria-label': 'Search secrets' }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
