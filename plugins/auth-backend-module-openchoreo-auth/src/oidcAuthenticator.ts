@@ -89,6 +89,7 @@ function extractProfileFromPayload(
     payload.email ??
     payload.preferred_username ??
     payload.username ??
+    payload.unique_name ??
     undefined;
 
   const displayName =
