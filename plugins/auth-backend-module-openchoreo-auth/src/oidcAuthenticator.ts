@@ -85,14 +85,20 @@ function fetchOIDCDiscoverySync(
 function extractProfileFromPayload(
   payload: OpenChoreoTokenPayload,
 ): ProfileInfo {
-  return {
-    email: payload.username,
-    displayName:
-      payload.given_name && payload.family_name
-        ? `${payload.given_name} ${payload.family_name}`
-        : payload.username,
-    picture: undefined,
-  };
+  const email =
+    payload.email ??
+    payload.preferred_username ??
+    payload.username ??
+    undefined;
+
+  const displayName =
+    payload.name ??
+    (payload.given_name && payload.family_name
+      ? `${payload.given_name} ${payload.family_name}`
+      : undefined) ??
+    email;
+
+  return { email, displayName, picture: undefined };
 }
 
 /**
@@ -282,17 +288,15 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
       }
 
       const timeUntilExpiry = getTimeUntilExpiry(payload);
+      const profile = extractProfileFromPayload(payload);
 
       // Token is still valid, return the same session
       const result: OAuthAuthenticatorResult<any> = {
         fullProfile: {
           provider: 'openchoreo-auth',
           id: payload.sub,
-          displayName:
-            payload.given_name && payload.family_name
-              ? `${payload.given_name} ${payload.family_name}`
-              : payload.username,
-          emails: [{ value: payload.username }],
+          displayName: profile.displayName,
+          emails: profile.email ? [{ value: profile.email }] : [],
         },
         session: {
           accessToken,
