@@ -79,7 +79,8 @@ const URLRow = ({ url, label }: URLRowProps) => {
               textDecoration: 'none',
             }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.textDecoration = 'underline';
+              (e.currentTarget as HTMLElement).style.textDecoration =
+                'underline';
             }}
             onMouseLeave={e => {
               (e.currentTarget as HTMLElement).style.textDecoration = 'none';
