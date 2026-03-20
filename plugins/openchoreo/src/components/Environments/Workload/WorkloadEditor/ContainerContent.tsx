@@ -252,6 +252,16 @@ export function ContainerContent({
         <Typography variant="h5" gutterBottom>
           Environment Variables
         </Typography>
+        {!showEnvVarStatus && (
+          <Typography
+            variant="body2"
+            color="textSecondary"
+            style={{ marginBottom: 12 }}
+          >
+            These variables will be applied to all environments. To override or
+            set environment-specific values, click <strong>Next</strong>.
+          </Typography>
+        )}
         {showEnvVarStatus && baseWorkloadData ? (
           <OverrideEnvVarList
             containerName={CONTAINER_KEY}
@@ -289,6 +299,16 @@ export function ContainerContent({
         <Typography variant="h5" gutterBottom>
           File Mounts
         </Typography>
+        {!showEnvVarStatus && (
+          <Typography
+            variant="body2"
+            color="textSecondary"
+            style={{ marginBottom: 12 }}
+          >
+            These file mounts will be applied to all environments. To override
+            or set environment-specific values, click <strong>Next</strong>.
+          </Typography>
+        )}
         {showEnvVarStatus && baseWorkloadData ? (
           <OverrideFileVarList
             containerName={CONTAINER_KEY}
