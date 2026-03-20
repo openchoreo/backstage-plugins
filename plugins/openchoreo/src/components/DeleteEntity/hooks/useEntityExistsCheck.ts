@@ -8,6 +8,7 @@ import {
   mapKindToApiKind,
 } from '../../ResourceDefinition/utils';
 import { EntityStatus, EntityExistsCheckResult } from '../types';
+import { getDeletionTimestamp } from '../utils';
 
 /** Human-friendly display names for entity kinds */
 const KIND_DISPLAY_NAMES: Record<string, string> = {
@@ -80,12 +81,12 @@ export function useEntityExistsCheck(entity: Entity): EntityExistsCheckResult {
           return;
         }
 
-        // Check if entity is marked for deletion
-        if (details?.deletionTimestamp) {
+        // Check if entity is marked for deletion (API response or catalog annotation)
+        const deletionTs =
+          details?.deletionTimestamp || getDeletionTimestamp(entity);
+        if (deletionTs) {
           setStatus('marked-for-deletion');
-          const formattedDate = new Date(
-            details.deletionTimestamp,
-          ).toLocaleString();
+          const formattedDate = new Date(deletionTs).toLocaleString();
           setMessage(
             `This ${entityTypeLabel} "${entityName}" is marked for deletion (since ${formattedDate}). It will be permanently removed soon.`,
           );
