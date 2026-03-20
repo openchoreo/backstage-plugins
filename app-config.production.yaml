@@ -89,7 +89,7 @@ auth:
         # Explicit OAuth2 endpoints
         authorizationUrl: ${OPENCHOREO_AUTH_AUTHORIZATION_URL}
         tokenUrl: ${OPENCHOREO_AUTH_TOKEN_URL}
-        scope: 'openid profile email'
+        scope: ${OPENCHOREO_AUTH_OIDC_SCOPE} # Defaults to 'openid profile email' if unset
 
     # Guest provider - used when openchoreo.features.auth.enabled is false
     # Allows users to access the portal without authentication (demo/development mode)
@@ -158,7 +158,7 @@ openchoreo:
     clientId: ${OPENCHOREO_AUTH_CLIENT_ID}
     clientSecret: ${OPENCHOREO_AUTH_CLIENT_SECRET}
     tokenUrl: ${OPENCHOREO_AUTH_TOKEN_URL}
-    # scopes: ['openid'] # Optional: uncomment to specify scopes
+    scope: ${OPENCHOREO_AUTH_SCOPE} # Optional: space-separated scopes (e.g. 'api://client-id/.default openid')
 
   # Default owner for built-in Backstage entity kinds (Domain, System, Component, API)
   # Required by Backstage schema validation. Custom OpenChoreo kinds don't use owner.

@@ -45,6 +45,7 @@ openchoreo:
     clientId: openchoreo-backstage-client
     clientSecret: backstage-portal-secret
     tokenUrl: http://thunder.openchoreo.localhost:8080/oauth2/token
+    # scope: 'openid'  # Optional: space-separated scopes for client credentials token (depends on your IDP)
 
   # Feature flags (optional overrides)
   # All features are enabled by default. Uncomment to disable specific features:
