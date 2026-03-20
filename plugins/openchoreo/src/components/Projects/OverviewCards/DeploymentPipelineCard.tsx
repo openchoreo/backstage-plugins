@@ -17,7 +17,7 @@ import {
   ForbiddenState,
   useProjectUpdatePermission,
 } from '@openchoreo/backstage-plugin-react';
-import { isForbiddenError } from '../../../utils/errorUtils';
+import { isForbiddenError, isNotFoundError } from '../../../utils/errorUtils';
 import { ChangePipelineDialog } from './ChangePipelineDialog';
 
 function pipelineEntityRefToUrl(
@@ -109,6 +109,26 @@ export const DeploymentPipelineCard = () => {
       return (
         <Card padding={24} className={classes.card}>
           <ForbiddenState message="You do not have permission to view the deployment pipeline." />
+        </Card>
+      );
+    }
+    // No pipeline attached to this project (404)
+    if (isNotFoundError(error)) {
+      return (
+        <Card padding={24} className={classes.card}>
+          <Box className={classes.cardHeader}>
+            <Typography className={classes.cardTitle}>
+              Deployment Pipeline
+            </Typography>
+            {changeButton}
+          </Box>
+          <Box className={classes.disabledState}>
+            <AccountTreeIcon className={classes.disabledIcon} />
+            <Typography variant="body2" color="textSecondary">
+              No deployment pipeline attached to this project
+            </Typography>
+          </Box>
+          {dialog}
         </Card>
       );
     }
