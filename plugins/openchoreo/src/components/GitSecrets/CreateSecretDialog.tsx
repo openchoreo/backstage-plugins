@@ -247,8 +247,7 @@ export const CreateSecretDialog = ({
         style: {
           borderRadius: 16,
           width: 600,
-          position: 'fixed',
-          top: '10%',
+          maxHeight: '80vh',
         },
       }}
     >
@@ -257,7 +256,7 @@ export const CreateSecretDialog = ({
           Create Git Secret
         </Typography>
       </DialogTitle>
-      <DialogContent style={{ minHeight: 300 }}>
+      <DialogContent style={{ height: 500, overflowY: 'auto' }}>
         <Typography variant="body2" color="textSecondary" gutterBottom>
           Create a new git secret in namespace <strong>{namespaceName}</strong>{' '}
           for accessing private repositories.
