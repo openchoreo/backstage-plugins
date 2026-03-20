@@ -232,8 +232,8 @@ export function ResourceDefinitionTab() {
           Definition editing is not supported for {entity.kind} entities.
         </Typography>
         <Typography variant="body2" color="textSecondary">
-          Supported kinds: Component, ComponentType, TraitType, Workflow,
-          ComponentWorkflow, Environment, DataPlane, WorkflowPlane,
+          Supported kinds: System, Component, ComponentType, TraitType,
+          Workflow, ComponentWorkflow, Environment, DataPlane, WorkflowPlane,
           ObservabilityPlane, DeploymentPipeline, ClusterComponentType,
           ClusterTraitType, ClusterWorkflow, ClusterDataPlane,
           ClusterObservabilityPlane, ClusterWorkflowPlane
@@ -291,7 +291,8 @@ export function ResourceDefinitionTab() {
     <Box className={classes.container}>
       <Box className={classes.header}>
         <Typography variant="h6">
-          {entity.kind} Definition: {entity.metadata.name}
+          {entity.kind === 'System' ? 'Project' : entity.kind} Definition:{' '}
+          {entity.metadata.name}
         </Typography>
       </Box>
 

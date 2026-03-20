@@ -37,6 +37,7 @@ import {
   openchoreoClusterObservabilityplaneDeletePermission,
   openchoreoClusterWorkflowUpdatePermission,
   openchoreoClusterWorkflowDeletePermission,
+  openchoreoProjectUpdatePermission,
 } from '@openchoreo/backstage-plugin-common';
 
 /**
@@ -67,6 +68,11 @@ type PermissionEntry = {
  * Cluster-scoped kinds use BasicPermission (no resource context).
  */
 const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
+  system: {
+    update: openchoreoProjectUpdatePermission,
+    delete: openchoreoProjectUpdatePermission, // Projects use update permission; delete is handled separately
+    isResourceScoped: true,
+  },
   component: {
     update: openchoreoComponentUpdatePermission,
     delete: openchoreoComponentUpdatePermission, // Components use update permission only; delete is not exposed in the UI
