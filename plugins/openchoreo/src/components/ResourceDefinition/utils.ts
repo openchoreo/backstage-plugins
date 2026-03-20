@@ -6,6 +6,8 @@ import type { PlatformResourceKind } from '../../api/OpenChoreoClientApi';
 export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
   const kindLower = backstageKind.toLowerCase();
   switch (kindLower) {
+    case 'system':
+      return 'projects';
     case 'component':
       return 'components';
     case 'componenttype':
@@ -50,6 +52,8 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
 export function mapKindToCrdKind(backstageKind: string): string {
   const kindLower = backstageKind.toLowerCase();
   switch (kindLower) {
+    case 'system':
+      return 'Project';
     case 'component':
       return 'Component';
     case 'componenttype':
@@ -133,6 +137,7 @@ export function cleanCrdForEditing(
 export function isSupportedKind(kind: string): boolean {
   const kindLower = kind.toLowerCase();
   return [
+    'system',
     'component',
     'componenttype',
     'traittype',

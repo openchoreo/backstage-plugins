@@ -287,6 +287,7 @@ export interface ComponentTrait {
 
 /** Platform resource kind for definition CRUD operations */
 export type PlatformResourceKind =
+  | 'projects'
   | 'componenttypes'
   | 'traits'
   | 'workflows'

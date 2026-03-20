@@ -26,6 +26,7 @@ type ResourceCRUDResponse = {
 
 // Supported resource kinds and their API path segments
 type ResourceKind =
+  | 'projects'
   | 'componenttypes'
   | 'traits'
   | 'workflows'
@@ -45,6 +46,7 @@ type ResourceKind =
 
 // Mapping from ResourceKind to CRD kind (PascalCase)
 const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
+  projects: 'Project',
   componenttypes: 'ComponentType',
   traits: 'Trait',
   workflows: 'Workflow',
@@ -65,6 +67,7 @@ const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
 
 // Resource kinds that have full CRUD in the new API
 const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
+  'projects',
   'componenttypes',
   'traits',
   'environments',
@@ -224,6 +227,22 @@ export class PlatformResourceService {
       let resource: Record<string, unknown>;
 
       switch (kind) {
+        case 'projects': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
+            {
+              params: {
+                path: { namespaceName, projectName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
+          resource = data as Record<string, unknown>;
+          break;
+        }
         case 'environments': {
           const { data, error, response } = await client.GET(
             '/api/v1/namespaces/{namespaceName}/environments/{envName}',
@@ -500,6 +519,22 @@ export class PlatformResourceService {
       const body = resource as any;
 
       switch (kind) {
+        case 'projects': {
+          const { error, response } = await client.PUT(
+            '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
+            {
+              params: {
+                path: { namespaceName, projectName: resourceName },
+              },
+              body,
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
+          break;
+        }
         case 'environments': {
           const { error, response } = await client.PUT(
             '/api/v1/namespaces/{namespaceName}/environments/{envName}',
@@ -781,6 +816,21 @@ export class PlatformResourceService {
       const client = this.createNewClient(token);
 
       switch (kind) {
+        case 'projects': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
+            {
+              params: {
+                path: { namespaceName, projectName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
+          break;
+        }
         case 'dataplanes': {
           const { error, response } = await client.DELETE(
             '/api/v1/namespaces/{namespaceName}/dataplanes/{dpName}',

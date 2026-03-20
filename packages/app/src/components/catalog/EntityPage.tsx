@@ -616,6 +616,9 @@ const systemPage = (
         </Grid>
       </Grid>
     </EntityLayout.Route>
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </EntityLayout.Route>
     <EntityLayout.Route path="/cell-diagram" title="Cell Diagram">
       <CellDiagram />
     </EntityLayout.Route>
