@@ -51,8 +51,8 @@ import {
 import { TableColumn } from '@backstage/core-components';
 import { EntityTable } from '@backstage/plugin-catalog-react';
 import {
-  RELATION_PROMOTES_TO,
-  RELATION_PROMOTED_BY,
+  RELATION_DEPLOYS_TO,
+  RELATION_DEPLOYED_BY,
   RELATION_USES_PIPELINE,
   RELATION_PIPELINE_USED_BY,
   RELATION_HOSTED_ON,
@@ -757,8 +757,8 @@ const environmentPage = (
             relations={[
               RELATION_PART_OF,
               RELATION_HAS_PART,
-              RELATION_PROMOTES_TO,
-              RELATION_PROMOTED_BY,
+              RELATION_DEPLOYS_TO,
+              RELATION_DEPLOYED_BY,
               RELATION_HOSTED_ON,
               RELATION_HOSTS,
             ]}
@@ -1030,8 +1030,8 @@ const deploymentPipelinePage = (
             relations={[
               RELATION_PART_OF,
               RELATION_HAS_PART,
-              RELATION_PROMOTES_TO,
-              RELATION_PROMOTED_BY,
+              RELATION_DEPLOYS_TO,
+              RELATION_DEPLOYED_BY,
               RELATION_USES_PIPELINE,
               RELATION_PIPELINE_USED_BY,
             ]}

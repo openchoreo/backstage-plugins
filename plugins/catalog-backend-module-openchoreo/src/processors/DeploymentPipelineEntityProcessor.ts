@@ -10,8 +10,8 @@ import {
   PromotionPath,
 } from '../kinds/DeploymentPipelineEntityV1alpha1';
 import {
-  RELATION_PROMOTES_TO,
-  RELATION_PROMOTED_BY,
+  RELATION_DEPLOYS_TO,
+  RELATION_DEPLOYED_BY,
   RELATION_USES_PIPELINE,
   RELATION_PIPELINE_USED_BY,
 } from '@openchoreo/backstage-plugin-common';
@@ -79,7 +79,7 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
       }
     }
 
-    // Emit promotesTo relationships to all referenced environments
+    // Emit deploysTo relationships to all referenced environments
     // We emit both directions so the inverse relation appears on the Environment entity
     if (entity.spec.promotionPaths) {
       const emittedEnvironments = new Set<string>();
@@ -96,20 +96,20 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
             namespace: entity.metadata.namespace || 'default',
             name: path.sourceEnvironment,
           };
-          // Pipeline promotesTo Environment
+          // Pipeline deploysTo Environment
           emit(
             processingResult.relation({
               source: sourceRef,
               target: envRef,
-              type: RELATION_PROMOTES_TO,
+              type: RELATION_DEPLOYS_TO,
             }),
           );
-          // Environment promotedBy Pipeline (inverse)
+          // Environment deployedBy Pipeline (inverse)
           emit(
             processingResult.relation({
               source: envRef,
               target: sourceRef,
-              type: RELATION_PROMOTED_BY,
+              type: RELATION_DEPLOYED_BY,
             }),
           );
           emittedEnvironments.add(path.sourceEnvironment);
@@ -123,20 +123,20 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
               namespace: entity.metadata.namespace || 'default',
               name: target.name,
             };
-            // Pipeline promotesTo Environment
+            // Pipeline deploysTo Environment
             emit(
               processingResult.relation({
                 source: sourceRef,
                 target: envRef,
-                type: RELATION_PROMOTES_TO,
+                type: RELATION_DEPLOYS_TO,
               }),
             );
-            // Environment promotedBy Pipeline (inverse)
+            // Environment deployedBy Pipeline (inverse)
             emit(
               processingResult.relation({
                 source: envRef,
                 target: sourceRef,
-                type: RELATION_PROMOTED_BY,
+                type: RELATION_DEPLOYED_BY,
               }),
             );
             emittedEnvironments.add(target.name);

@@ -40,6 +40,6 @@ export {
 } from './utils/entityTranslation';
 // Re-export relation constants from common package for convenience
 export {
-  RELATION_PROMOTES_TO,
-  RELATION_PROMOTED_BY,
+  RELATION_DEPLOYS_TO,
+  RELATION_DEPLOYED_BY,
 } from '@openchoreo/backstage-plugin-common';
