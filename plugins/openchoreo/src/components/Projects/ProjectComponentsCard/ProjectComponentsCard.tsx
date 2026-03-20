@@ -4,6 +4,7 @@ import { useApp } from '@backstage/core-plugin-api';
 import { Box, Button, Tooltip, Typography } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
 import LockIcon from '@material-ui/icons/LockOutlined';
+import { isMarkedForDeletion, DeletionBadge } from '../../DeleteEntity';
 import { isForbiddenError } from '../../../utils/errorUtils';
 import { useNavigate } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -73,16 +74,26 @@ export const ProjectComponentsCard = () => {
       highlight: true,
       render: (component: ComponentWithDeployment) => {
         const Icon = app.getSystemIcon('kind:component');
+        const name = component.metadata.title || component.metadata.name;
         return (
           <Box display="flex" alignItems="center" gridGap={6}>
             {Icon && <Icon fontSize="small" />}
-            <Link
-              to={`/catalog/${
-                component.metadata.namespace || 'default'
-              }/component/${component.metadata.name}`}
-            >
-              {component.metadata.title || component.metadata.name}
-            </Link>
+            {isMarkedForDeletion(component) ? (
+              <>
+                <Typography variant="body2" color="textSecondary">
+                  {name}
+                </Typography>
+                <DeletionBadge />
+              </>
+            ) : (
+              <Link
+                to={`/catalog/${
+                  component.metadata.namespace || 'default'
+                }/component/${component.metadata.name}`}
+              >
+                {name}
+              </Link>
+            )}
           </Box>
         );
       },
@@ -173,7 +184,12 @@ export const ProjectComponentsCard = () => {
         columns={columns}
         data={components}
         onRowClick={(event, rowData) => {
-          if (!rowData || !shouldNavigateOnRowClick(event)) return;
+          if (
+            !rowData ||
+            !shouldNavigateOnRowClick(event) ||
+            isMarkedForDeletion(rowData)
+          )
+            return;
           const ns = rowData.metadata.namespace || 'default';
           navigate(`/catalog/${ns}/component/${rowData.metadata.name}`);
         }}

@@ -5,6 +5,7 @@ import { useEntity, useRelatedEntities } from '@backstage/plugin-catalog-react';
 import { Box, Button, Tooltip, Typography } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
 import { useNavigate } from 'react-router-dom';
+import { isMarkedForDeletion, DeletionBadge } from '../../DeleteEntity';
 import { useScopedProjectCreatePermission } from '@openchoreo/backstage-plugin-react';
 import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import { useNamespaceProjectsCardStyles } from './styles';
@@ -30,18 +31,30 @@ export const NamespaceProjectsCard = () => {
       title: 'Name',
       field: 'metadata.name',
       highlight: true,
-      render: (row: Entity) => (
-        <Box display="flex" alignItems="center" gridGap={6}>
-          {Icon && <Icon fontSize="small" />}
-          <Link
-            to={`/catalog/${row.metadata.namespace || 'default'}/system/${
-              row.metadata.name
-            }`}
-          >
-            {row.metadata.title || row.metadata.name}
-          </Link>
-        </Box>
-      ),
+      render: (row: Entity) => {
+        const name = row.metadata.title || row.metadata.name;
+        return (
+          <Box display="flex" alignItems="center" gridGap={6}>
+            {Icon && <Icon fontSize="small" />}
+            {isMarkedForDeletion(row) ? (
+              <>
+                <Typography variant="body2" color="textSecondary">
+                  {name}
+                </Typography>
+                <DeletionBadge />
+              </>
+            ) : (
+              <Link
+                to={`/catalog/${row.metadata.namespace || 'default'}/system/${
+                  row.metadata.name
+                }`}
+              >
+                {name}
+              </Link>
+            )}
+          </Box>
+        );
+      },
     },
     {
       title: 'Description',
@@ -62,7 +75,12 @@ export const NamespaceProjectsCard = () => {
         data={systems || []}
         isLoading={loading}
         onRowClick={(event, rowData) => {
-          if (!rowData || !shouldNavigateOnRowClick(event)) return;
+          if (
+            !rowData ||
+            !shouldNavigateOnRowClick(event) ||
+            isMarkedForDeletion(rowData)
+          )
+            return;
           const ns = rowData.metadata.namespace || 'default';
           navigate(`/catalog/${ns}/system/${rowData.metadata.name}`);
         }}
