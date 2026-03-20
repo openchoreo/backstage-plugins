@@ -160,7 +160,10 @@ function readOpenChoreoAuthConfig(
     return undefined;
   }
 
-  const scopes = authConfig.getOptionalStringArray('scopes');
+  const scopeString = authConfig.getOptionalString('scope');
+  const scopes = scopeString
+    ? scopeString.split(/\s+/).filter(Boolean)
+    : undefined;
 
   return {
     clientId,

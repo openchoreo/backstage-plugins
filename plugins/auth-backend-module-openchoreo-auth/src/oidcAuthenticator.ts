@@ -161,7 +161,8 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
   initialize({ callbackUrl, config }) {
     const clientID = config.getString('clientId');
     const clientSecret = config.getString('clientSecret');
-    const scope = config.getOptionalString('scope') || 'openid profile email';
+    const scope =
+      config.getOptionalString('scope')?.trim() || 'openid profile email';
 
     // Support both OIDC discovery and explicit URLs
     const metadataUrl = config.getOptionalString('metadataUrl');
@@ -235,14 +236,14 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
       },
     );
 
-    return PassportOAuthAuthenticatorHelper.from(strategy);
+    return { helper: PassportOAuthAuthenticatorHelper.from(strategy), scope };
   },
 
-  async start(input, helper) {
-    return helper.start(input, {});
+  async start(input, { helper, scope }) {
+    return helper.start(input, { scope });
   },
 
-  async authenticate(input, helper) {
+  async authenticate(input, { helper }) {
     const { fullProfile, session } = await helper.authenticate(input);
 
     // Add pseudo-refresh token if no real refresh token was returned
@@ -254,7 +255,7 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
     return { fullProfile, session };
   },
 
-  async refresh(input, helper) {
+  async refresh(input, { helper }) {
     const { refreshToken } = input;
 
     // Check if this is our pseudo-refresh token
