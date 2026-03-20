@@ -820,8 +820,8 @@ export const EnvironmentOverridesPage = ({
       <DetailPageLayout
         title={
           pendingAction && missingRequiredFields.length > 0
-            ? 'Configure Required Overrides'
-            : 'Configure Overrides'
+            ? 'Configure Required Environment Overrides'
+            : 'Configure Environment Overrides'
         }
         subtitle={environment.name}
         onBack={handleBackClick}
