@@ -199,7 +199,7 @@ export const WaterfallView = ({
   // Color palette for different span types
   const getSpanColor = (spanName: string, depth: number): string => {
     const colors = [
-      theme.palette.info.light,
+      theme.palette.info.main,
       '#64748B',
       '#8B5CF6',
       '#10B981',
