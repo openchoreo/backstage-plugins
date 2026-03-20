@@ -65,6 +65,12 @@ export const CustomSearchModal = ({ toggleModal }: CustomSearchModalProps) => {
   const app = useApp();
   const { term } = useSearch();
 
+  const searchBarRef = (node: HTMLInputElement | null) => {
+    if (node) {
+      setTimeout(() => node.focus(), 0);
+    }
+  };
+
   const matchingPages = useMemo(() => {
     if (!term || term.trim().length === 0) return [];
     const lowerTerm = term.toLowerCase();
@@ -92,8 +98,7 @@ export const CustomSearchModal = ({ toggleModal }: CustomSearchModalProps) => {
       <DialogTitle disableTypography className={classes.dialogTitle}>
         <Box className={classes.titleBar}>
           <Box className={classes.searchBar}>
-            {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
-            <SearchBar autoFocus onSubmit={handleViewAllResults} />
+            <SearchBar ref={searchBarRef} onSubmit={handleViewAllResults} />
           </Box>
           <IconButton size="small" onClick={toggleModal}>
             <CloseIcon />
