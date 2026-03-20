@@ -47,8 +47,8 @@ import {
   ALL_RELATION_PAIRS,
 } from '@backstage/plugin-catalog-graph';
 import {
-  RELATION_PROMOTES_TO,
-  RELATION_PROMOTED_BY,
+  RELATION_DEPLOYS_TO,
+  RELATION_DEPLOYED_BY,
   RELATION_USES_PIPELINE,
   RELATION_PIPELINE_USED_BY,
   RELATION_HOSTED_ON,
@@ -183,7 +183,7 @@ export const apis: AnyApiFactory[] = [
   }),
 
   // Catalog graph API with custom OpenChoreo relations
-  // Without this, custom relations (promotesTo, hostedOn, instanceOf, etc.)
+  // Without this, custom relations (deploysTo, hostedOn, instanceOf, etc.)
   // won't appear in entity Relations cards or the catalog graph
   createApiFactory({
     api: catalogGraphApiRef,
@@ -192,8 +192,8 @@ export const apis: AnyApiFactory[] = [
       new DefaultCatalogGraphApi({
         knownRelations: [
           ...ALL_RELATIONS,
-          RELATION_PROMOTES_TO,
-          RELATION_PROMOTED_BY,
+          RELATION_DEPLOYS_TO,
+          RELATION_DEPLOYED_BY,
           RELATION_USES_PIPELINE,
           RELATION_PIPELINE_USED_BY,
           RELATION_HOSTED_ON,
@@ -209,7 +209,7 @@ export const apis: AnyApiFactory[] = [
         ],
         knownRelationPairs: [
           ...ALL_RELATION_PAIRS,
-          [RELATION_PROMOTES_TO, RELATION_PROMOTED_BY],
+          [RELATION_DEPLOYS_TO, RELATION_DEPLOYED_BY],
           [RELATION_USES_PIPELINE, RELATION_PIPELINE_USED_BY],
           [RELATION_HOSTED_ON, RELATION_HOSTS],
           [RELATION_OBSERVED_BY, RELATION_OBSERVES],

@@ -62,16 +62,16 @@ export const CHOREO_LABELS = {
  */
 
 /**
- * A relation indicating that a DeploymentPipeline promotes deployments to an Environment.
+ * A relation indicating that a DeploymentPipeline deploys to an Environment.
  * The source is the pipeline, the target is the environment.
  */
-export const RELATION_PROMOTES_TO = 'promotesTo';
+export const RELATION_DEPLOYS_TO = 'deploysTo';
 
 /**
- * A relation indicating that an Environment receives promotions from a DeploymentPipeline.
- * This is the inverse of RELATION_PROMOTES_TO.
+ * A relation indicating that an Environment receives deployments from a DeploymentPipeline.
+ * This is the inverse of RELATION_DEPLOYS_TO.
  */
-export const RELATION_PROMOTED_BY = 'promotedBy';
+export const RELATION_DEPLOYED_BY = 'deployedBy';
 
 /**
  * A relation indicating that a System (Project) uses a DeploymentPipeline.
