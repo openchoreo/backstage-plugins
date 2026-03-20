@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   IconButton,
   Tooltip,
@@ -12,43 +12,31 @@ import {
   DialogActions,
   CircularProgress,
   Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
+  InputAdornment,
 } from '@material-ui/core';
-import { Table, TableColumn } from '@backstage/core-components';
+import { Progress } from '@backstage/core-components';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
-import AddIcon from '@material-ui/icons/Add';
 import VpnKeyOutlinedIcon from '@material-ui/icons/VpnKeyOutlined';
+import SearchIcon from '@material-ui/icons/Search';
 import { makeStyles } from '@material-ui/core/styles';
 import { GitSecret } from '../../api/OpenChoreoClientApi';
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 
 const useStyles = makeStyles(theme => ({
-  tableWrapper: {
-    '& [class*="MuiPaper-root"][class*="MuiPaper-elevation"]': {
-      borderRadius: '12px !important',
-      border: `1px solid ${
-        theme.palette.type === 'dark'
-          ? 'rgba(255, 255, 255, 0.12)'
-          : 'rgb(243, 244, 246)'
-      } !important`,
-      boxShadow:
-        'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px !important',
-    },
-    '& [class*="MuiTableFooter-root"]': {
-      borderRadius: '0 0 12px 12px !important',
-    },
-    '& tfoot td': {
-      borderBottom: 'none !important',
-    },
-    '& [class*="MuiTablePagination-toolbar"]': {
-      borderBottomLeftRadius: '12px !important',
-      borderBottomRightRadius: '12px !important',
-    },
-    '& tbody tr': {
-      transition: 'background-color 0.2s ease',
-      '&:hover': {
-        backgroundColor: theme.palette.action.hover,
-      },
-    },
+  searchField: {
+    width: 300,
+    marginBottom: theme.spacing(2),
+  },
+  tableContainer: {
+    marginTop: theme.spacing(2),
   },
   nameCell: {
     display: 'flex',
@@ -71,23 +59,22 @@ const useStyles = makeStyles(theme => ({
       backgroundColor: 'rgba(244, 67, 54, 0.08)',
     },
   },
-  emptyStateContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
+  confirmDeleteButton: {
+    borderColor: theme.palette.error.main,
+    color: theme.palette.error.main,
+    '&:hover': {
+      borderColor: theme.palette.error.dark,
+      backgroundColor: 'rgba(211, 47, 47, 0.04)',
+    },
+  },
+  emptyState: {
+    textAlign: 'center',
     padding: theme.spacing(6, 2),
-    gap: theme.spacing(1),
   },
   emptyStateIcon: {
     fontSize: 48,
     color: theme.palette.text.disabled,
     marginBottom: theme.spacing(1),
-  },
-  createButton: {
-    textTransform: 'none',
-    marginRight: theme.spacing(2),
-    borderRadius: theme.spacing(1),
   },
 }));
 
@@ -95,7 +82,6 @@ interface SecretsTableProps {
   secrets: GitSecret[];
   loading: boolean;
   onDelete: (secretName: string) => Promise<void>;
-  onCreateClick: () => void;
   namespaceName: string;
 }
 
@@ -103,17 +89,27 @@ export const SecretsTable = ({
   secrets,
   loading,
   onDelete,
-  onCreateClick,
   namespaceName,
 }: SecretsTableProps) => {
   const classes = useStyles();
+  const [searchQuery, setSearchQuery] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [secretToDelete, setSecretToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const handleDeleteClick = (event: React.MouseEvent, secretName: string) => {
-    event.stopPropagation();
+  const filteredSecrets = useMemo(() => {
+    if (!searchQuery) return secrets;
+    const query = searchQuery.toLowerCase();
+    return secrets.filter(
+      secret =>
+        secret.name.toLowerCase().includes(query) ||
+        (secret.workflowPlaneName &&
+          secret.workflowPlaneName.toLowerCase().includes(query)),
+    );
+  }, [secrets, searchQuery]);
+
+  const handleDeleteClick = (secretName: string) => {
     setSecretToDelete(secretName);
     setDeleteDialogOpen(true);
     setDeleteError(null);
@@ -150,77 +146,38 @@ export const SecretsTable = ({
     }
   };
 
-  const columns: TableColumn<GitSecret>[] = [
-    {
-      title: 'Name',
-      field: 'name',
-      highlight: true,
-      render: (row: GitSecret) => (
-        <Box className={classes.nameCell}>
-          <VpnKeyOutlinedIcon className={classes.nameIcon} />
-          <Typography variant="body2" style={{ fontWeight: 500 }}>
-            {row.name}
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      title: 'Workflow Plane',
-      field: 'workflowPlaneName',
-      render: (row: GitSecret) => {
-        if (!row.workflowPlaneName) {
-          return (
-            <Typography variant="body2" color="textSecondary">
-              -
-            </Typography>
-          );
-        }
-        const isCluster = row.workflowPlaneKind === 'ClusterWorkflowPlane';
-        return (
-          <Box display="flex" alignItems="center" gridGap={8}>
-            <Typography variant="body2">{row.workflowPlaneName}</Typography>
-            {isCluster && (
-              <Chip
-                label="Cluster"
-                size="small"
-                variant="outlined"
-                className={classes.scopeChip}
-              />
-            )}
-          </Box>
-        );
-      },
-    },
-    {
-      title: '',
-      field: 'actions',
-      sorting: false,
-      searchable: false,
-      width: '60px',
-      render: (row: GitSecret) => (
-        <Tooltip title="Delete secret">
-          <IconButton
-            size="small"
-            className={classes.deleteButton}
-            onClick={e => handleDeleteClick(e, row.name)}
-          >
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      ),
-    },
-  ];
+  if (loading) {
+    return <Progress />;
+  }
 
   return (
     <>
-      <Box className={classes.tableWrapper}>
-        <Table
-          title=""
-          columns={columns}
-          data={secrets}
-          isLoading={loading}
-          emptyContent={
-            <Box className={classes.emptyStateContainer}>
+      {secrets.length > 0 && (
+        <TextField
+          className={classes.searchField}
+          placeholder="Search secrets..."
+          variant="outlined"
+          size="small"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+      )}
+
+      {filteredSecrets.length === 0 ? (
+        <Box className={classes.emptyState}>
+          {searchQuery ? (
+            <Typography variant="body1" color="textSecondary">
+              No secrets match your search
+            </Typography>
+          ) : (
+            <>
               <VpnKeyOutlinedIcon className={classes.emptyStateIcon} />
               <Typography variant="h6" color="textSecondary">
                 No git secrets in {namespaceName}
@@ -229,60 +186,80 @@ export const SecretsTable = ({
                 Create a git secret to access private repositories during
                 builds.
               </Typography>
-              <Button
-                variant="outlined"
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={onCreateClick}
-                style={{ marginTop: 8 }}
-              >
-                Create Secret
-              </Button>
-            </Box>
-          }
-          options={{
-            paging: secrets.length > 10,
-            pageSize: 10,
-            pageSizeOptions: [10, 20, 50],
-            search: secrets.length > 0,
-            padding: 'default',
-            draggable: false,
-            actionsColumnIndex: -1,
-          }}
-          actions={[
-            {
-              icon: () => <AddIcon />,
-              tooltip: 'Create Secret',
-              isFreeAction: true,
-              onClick: () => onCreateClick(),
-            },
-          ]}
-          components={{
-            Action: ({ action }: any) => (
-              <Button
-                variant="contained"
-                color="primary"
-                size="small"
-                startIcon={<AddIcon />}
-                className={classes.createButton}
-                onClick={(event: React.MouseEvent) =>
-                  action.onClick(event, undefined)
-                }
-              >
-                Create Secret
-              </Button>
-            ),
-          }}
-        />
-      </Box>
+            </>
+          )}
+        </Box>
+      ) : (
+        <TableContainer component={Paper} className={classes.tableContainer}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>Workflow Plane</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredSecrets.map(secret => (
+                <TableRow key={secret.name}>
+                  <TableCell>
+                    <Box className={classes.nameCell}>
+                      <VpnKeyOutlinedIcon className={classes.nameIcon} />
+                      <Typography variant="body2" style={{ fontWeight: 500 }}>
+                        {secret.name}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    {secret.workflowPlaneName ? (
+                      <Box display="flex" alignItems="center" gridGap={8}>
+                        <Typography variant="body2">
+                          {secret.workflowPlaneName}
+                        </Typography>
+                        {secret.workflowPlaneKind ===
+                          'ClusterWorkflowPlane' && (
+                          <Chip
+                            label="Cluster"
+                            size="small"
+                            variant="outlined"
+                            className={classes.scopeChip}
+                          />
+                        )}
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="textSecondary">
+                        -
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="right">
+                    <Tooltip title="Delete secret">
+                      <IconButton
+                        size="small"
+                        className={classes.deleteButton}
+                        onClick={() => handleDeleteClick(secret.name)}
+                      >
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
         onClose={handleDeleteCancel}
-        PaperProps={{ style: { borderRadius: 12 } }}
+        maxWidth="sm"
+        fullWidth
       >
-        <DialogTitle>Delete Git Secret</DialogTitle>
+        <DialogTitle disableTypography>
+          <Typography variant="h4">Delete Git Secret</Typography>
+        </DialogTitle>
         <DialogContent>
           <DialogContentText>
             Are you sure you want to delete the git secret{' '}
@@ -299,14 +276,18 @@ export const SecretsTable = ({
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteCancel} disabled={deleting}>
+          <Button
+            onClick={handleDeleteCancel}
+            disabled={deleting}
+            variant="contained"
+          >
             Cancel
           </Button>
           <Button
             onClick={handleDeleteConfirm}
-            color="secondary"
-            variant="contained"
+            variant="outlined"
             disabled={deleting}
+            className={classes.confirmDeleteButton}
             startIcon={deleting ? <CircularProgress size={20} /> : null}
           >
             {deleting ? 'Deleting...' : 'Delete'}
