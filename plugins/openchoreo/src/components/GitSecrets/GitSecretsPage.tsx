@@ -7,6 +7,8 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Button,
+  IconButton,
 } from '@material-ui/core';
 import {
   Page,
@@ -18,6 +20,8 @@ import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import AddIcon from '@material-ui/icons/Add';
+import RefreshIcon from '@material-ui/icons/Refresh';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { useGitSecrets } from './hooks/useGitSecrets';
 import { SecretsTable } from './SecretsTable';
@@ -31,14 +35,15 @@ const useStyles = makeStyles(theme => ({
   content: {
     padding: theme.spacing(3),
   },
+  root: {
+    width: '100%',
+    maxWidth: 1200,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    paddingTop: theme.spacing(3),
+  },
   namespaceSelector: {
     minWidth: 300,
-    marginBottom: theme.spacing(3),
-  },
-  loadingContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    padding: theme.spacing(4),
   },
 }));
 
@@ -148,34 +153,65 @@ export const GitSecretsContent = () => {
   }, [sortedNamespaces, selectedNamespace]);
 
   return (
-    <>
-      {/* Namespace Selector */}
-      <FormControl variant="outlined" className={classes.namespaceSelector}>
-        <InputLabel id="namespace-select-label">Namespace</InputLabel>
-        <Select
-          labelId="namespace-select-label"
-          label="Namespace"
-          value={selectedNamespace}
-          onChange={handleNamespaceChange}
-          disabled={namespacesLoading}
+    <Box className={classes.root}>
+      {/* Toolbar: Namespace Selector + Actions */}
+      <Box
+        display="flex"
+        alignItems="center"
+        style={{ gap: 16, marginBottom: 16 }}
+      >
+        <FormControl
+          variant="outlined"
+          size="small"
+          className={classes.namespaceSelector}
         >
-          {namespacesLoading && (
-            <MenuItem disabled>
-              <CircularProgress size={20} style={{ marginRight: 8 }} />
-              Loading namespaces...
-            </MenuItem>
-          )}
-          {!namespacesLoading && sortedNamespaces.length === 0 && (
-            <MenuItem disabled>No namespaces available</MenuItem>
-          )}
-          {!namespacesLoading &&
-            sortedNamespaces.map(ns => (
-              <MenuItem key={ns.name} value={ns.name}>
-                {ns.displayName || ns.name}
+          <InputLabel id="namespace-select-label">Namespace</InputLabel>
+          <Select
+            labelId="namespace-select-label"
+            label="Namespace"
+            value={selectedNamespace}
+            onChange={handleNamespaceChange}
+            disabled={namespacesLoading}
+          >
+            {namespacesLoading && (
+              <MenuItem disabled>
+                <CircularProgress size={20} style={{ marginRight: 8 }} />
+                Loading namespaces...
               </MenuItem>
-            ))}
-        </Select>
-      </FormControl>
+            )}
+            {!namespacesLoading && sortedNamespaces.length === 0 && (
+              <MenuItem disabled>No namespaces available</MenuItem>
+            )}
+            {!namespacesLoading &&
+              sortedNamespaces.map(ns => (
+                <MenuItem key={ns.name} value={ns.name}>
+                  {ns.displayName || ns.name}
+                </MenuItem>
+              ))}
+          </Select>
+        </FormControl>
+
+        <Box flexGrow={1} />
+
+        <IconButton
+          onClick={fetchSecrets}
+          size="small"
+          title="Refresh"
+          disabled={!selectedNamespace}
+        >
+          <RefreshIcon />
+        </IconButton>
+        <Button
+          variant="contained"
+          color="primary"
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={() => setCreateDialogOpen(true)}
+          disabled={!selectedNamespace}
+        >
+          Create Secret
+        </Button>
+      </Box>
 
       {/* Error Display */}
       {namespacesError && (
@@ -215,7 +251,6 @@ export const GitSecretsContent = () => {
             secrets={secrets}
             loading={secretsLoading}
             onDelete={handleDeleteSecret}
-            onCreateClick={() => setCreateDialogOpen(true)}
             namespaceName={selectedNamespace}
           />
         )
@@ -231,7 +266,7 @@ export const GitSecretsContent = () => {
         workflowPlanes={workflowPlanes || []}
         workflowPlanesLoading={workflowPlanesLoading}
       />
-    </>
+    </Box>
   );
 };
 

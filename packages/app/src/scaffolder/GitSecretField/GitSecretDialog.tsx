@@ -199,8 +199,7 @@ export const GitSecretDialog = ({
         style: {
           borderRadius: 16,
           width: 600,
-          position: 'fixed',
-          top: '10%',
+          maxHeight: '80vh',
         },
       }}
     >
@@ -209,7 +208,7 @@ export const GitSecretDialog = ({
           Create Git Secret
         </Typography>
       </DialogTitle>
-      <DialogContent style={{ minHeight: 300 }}>
+      <DialogContent style={{ height: 500, overflowY: 'auto' }}>
         <Box style={{ marginTop: 16 }}>
           <TextField
             margin="dense"

@@ -93,6 +93,13 @@ const useStyles = makeStyles(theme => ({
       backgroundColor: theme.palette.action.hover,
     },
   },
+  deleteIconButton: {
+    color: theme.palette.primary.main,
+    '&:hover': {
+      color: theme.palette.error.main,
+      backgroundColor: 'rgba(244, 67, 54, 0.08)',
+    },
+  },
   deleteButton: {
     borderColor: theme.palette.error.main,
     color: theme.palette.error.main,
@@ -559,12 +566,11 @@ export const NamespaceRoleBindingsContent = ({
                                 align="right"
                                 onClick={e => e.stopPropagation()}
                               >
-                                <Tooltip title={updateDeniedTooltip}>
+                                <Tooltip title={updateDeniedTooltip || 'Edit'}>
                                   <span>
                                     <IconButton
                                       size="small"
                                       onClick={() => handleEditBinding(binding)}
-                                      title="Edit"
                                       disabled={!canUpdate}
                                       color="primary"
                                     >
@@ -572,16 +578,17 @@ export const NamespaceRoleBindingsContent = ({
                                     </IconButton>
                                   </span>
                                 </Tooltip>
-                                <Tooltip title={deleteDeniedTooltip}>
+                                <Tooltip
+                                  title={deleteDeniedTooltip || 'Delete'}
+                                >
                                   <span>
                                     <IconButton
                                       size="small"
                                       onClick={() =>
                                         handleDeleteBinding(binding)
                                       }
-                                      title="Delete"
                                       disabled={!canDelete}
-                                      color="primary"
+                                      className={classes.deleteIconButton}
                                     >
                                       <DeleteIcon />
                                     </IconButton>
