@@ -194,9 +194,11 @@ export const SecretsTable = ({
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Workflow Plane</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell style={{ width: '45%' }}>Name</TableCell>
+                <TableCell style={{ width: '45%' }}>Workflow Plane</TableCell>
+                <TableCell align="center" style={{ width: '10%' }}>
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -232,14 +234,14 @@ export const SecretsTable = ({
                       </Typography>
                     )}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell align="center">
                     <Tooltip title="Delete secret">
                       <IconButton
                         size="small"
-                        className={classes.deleteButton}
                         onClick={() => handleDeleteClick(secret.name)}
+                        className={classes.deleteButton}
                       >
-                        <DeleteOutlineIcon fontSize="small" />
+                        <DeleteOutlineIcon />
                       </IconButton>
                     </Tooltip>
                   </TableCell>

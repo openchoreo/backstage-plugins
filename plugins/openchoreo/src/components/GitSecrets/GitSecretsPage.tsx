@@ -35,6 +35,13 @@ const useStyles = makeStyles(theme => ({
   content: {
     padding: theme.spacing(3),
   },
+  root: {
+    width: '100%',
+    maxWidth: 1200,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    paddingTop: theme.spacing(3),
+  },
   namespaceSelector: {
     minWidth: 300,
   },
@@ -146,7 +153,7 @@ export const GitSecretsContent = () => {
   }, [sortedNamespaces, selectedNamespace]);
 
   return (
-    <>
+    <Box className={classes.root}>
       {/* Toolbar: Namespace Selector + Actions */}
       <Box
         display="flex"
@@ -259,7 +266,7 @@ export const GitSecretsContent = () => {
         workflowPlanes={workflowPlanes || []}
         workflowPlanesLoading={workflowPlanesLoading}
       />
-    </>
+    </Box>
   );
 };
 
