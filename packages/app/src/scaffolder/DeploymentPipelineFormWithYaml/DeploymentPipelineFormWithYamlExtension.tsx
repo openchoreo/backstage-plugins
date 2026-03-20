@@ -218,6 +218,11 @@ function PromotionPathRow({
         size="small"
         helperText="Environment where promotion starts"
       >
+        {environments.length === 0 && (
+          <MenuItem disabled value="">
+            No environments in the selected namespace
+          </MenuItem>
+        )}
         {environments.map(env => (
           <MenuItem key={env.name} value={env.name}>
             {env.name}
@@ -241,6 +246,11 @@ function PromotionPathRow({
               size="small"
               style={{ flex: 1 }}
             >
+              {environments.length === 0 && (
+                <MenuItem disabled value="">
+                  No environments in the selected namespace
+                </MenuItem>
+              )}
               {environments.map(env => (
                 <MenuItem key={env.name} value={env.name}>
                   {env.name}
