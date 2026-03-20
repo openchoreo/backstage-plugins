@@ -19,6 +19,13 @@ export const useStyles = makeStyles(theme => ({
     textAlign: 'center',
     padding: theme.spacing(4),
   },
+  deleteIconButton: {
+    color: theme.palette.primary.main,
+    '&:hover': {
+      color: theme.palette.error.main,
+      backgroundColor: 'rgba(244, 67, 54, 0.08)',
+    },
+  },
   deleteButton: {
     borderColor: theme.palette.error.main,
     color: theme.palette.error.main,

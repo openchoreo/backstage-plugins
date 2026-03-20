@@ -205,12 +205,11 @@ export const RolesTable = ({
                     )}
                   </TableCell>
                   <TableCell align="right">
-                    <Tooltip title={updateDeniedTooltip}>
+                    <Tooltip title={updateDeniedTooltip || 'Edit'}>
                       <span>
                         <IconButton
                           size="small"
                           onClick={() => onEdit(role)}
-                          title="Edit"
                           disabled={!canUpdate}
                           color="primary"
                         >
@@ -218,14 +217,13 @@ export const RolesTable = ({
                         </IconButton>
                       </span>
                     </Tooltip>
-                    <Tooltip title={deleteDeniedTooltip}>
+                    <Tooltip title={deleteDeniedTooltip || 'Delete'}>
                       <span>
                         <IconButton
                           size="small"
                           onClick={() => handleDeleteRole(role.name)}
-                          title="Delete"
                           disabled={!canDelete}
-                          color="primary"
+                          className={classes.deleteIconButton}
                         >
                           <DeleteIcon />
                         </IconButton>

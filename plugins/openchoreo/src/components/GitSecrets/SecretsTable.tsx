@@ -53,7 +53,7 @@ const useStyles = makeStyles(theme => ({
     fontWeight: 500,
   },
   deleteButton: {
-    color: theme.palette.text.secondary,
+    color: theme.palette.primary.main,
     '&:hover': {
       color: theme.palette.error.main,
       backgroundColor: 'rgba(244, 67, 54, 0.08)',
@@ -235,7 +235,7 @@ export const SecretsTable = ({
                     )}
                   </TableCell>
                   <TableCell align="center">
-                    <Tooltip title="Delete secret">
+                    <Tooltip title="Delete">
                       <IconButton
                         size="small"
                         onClick={() => handleDeleteClick(secret.name)}
