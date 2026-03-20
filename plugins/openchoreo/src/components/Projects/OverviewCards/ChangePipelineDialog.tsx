@@ -112,6 +112,7 @@ export const ChangePipelineDialog = ({
   };
 
   const hasChanged = selected !== (currentPipelineName ?? '');
+  const noPipelines = !loading && pipelines.length === 0;
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -135,6 +136,11 @@ export const ChangePipelineDialog = ({
             ) : undefined,
           }}
         >
+          {noPipelines && (
+            <MenuItem disabled value="">
+              No deployment pipelines available in namespace "{namespaceName}"
+            </MenuItem>
+          )}
           {pipelines.map(p => (
             <MenuItem key={p.name} value={p.name}>
               {p.displayName}

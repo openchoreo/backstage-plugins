@@ -8,6 +8,13 @@ export function isForbiddenError(error: unknown): boolean {
 }
 
 /**
+ * Checks if an error is a 404 Not Found response from the backend.
+ */
+export function isNotFoundError(error: unknown): boolean {
+  return error instanceof ResponseError && error.statusCode === 404;
+}
+
+/**
  * Extracts a human-readable error message from an error object.
  */
 export function getErrorMessage(error: unknown): string {

@@ -83,21 +83,28 @@ export const DeploymentPipelinePicker = ({
     };
   }, [namespaceName, catalogApi]);
 
-  // Reset selection when namespace changes and current value is no longer valid
+  // Auto-select or reset selection when namespace/pipelines change
   useEffect(() => {
-    if (
-      formData &&
-      pipelines.length > 0 &&
-      !pipelines.some(p => p.name === formData)
-    ) {
-      onChange('');
-    } else if (formData && !namespaceName) {
-      onChange('');
+    if (!namespaceName) {
+      if (formData) onChange('');
+      return;
+    }
+    if (pipelines.length === 0) {
+      if (formData) onChange('');
+      return;
+    }
+
+    const currentValid = formData && pipelines.some(p => p.name === formData);
+    if (!currentValid) {
+      // Prefer 'default' pipeline if available, otherwise the first
+      const defaultPipeline = pipelines.find(p => p.name === 'default');
+      onChange((defaultPipeline ?? pipelines[0]).name);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pipelines, namespaceName]);
 
   const hasError = (rawErrors?.length ?? 0) > 0;
+  const noPipelines = !loading && !!namespaceName && pipelines.length === 0;
 
   return (
     <TextField
@@ -109,14 +116,7 @@ export const DeploymentPipelinePicker = ({
       fullWidth
       variant="outlined"
       error={hasError || !!fetchError}
-      helperText={
-        hasError
-          ? rawErrors?.[0]
-          : fetchError ||
-            (!namespaceName
-              ? 'Select a namespace first'
-              : 'Select a deployment pipeline')
-      }
+      helperText={hasError ? rawErrors?.[0] : fetchError || undefined}
       InputProps={{
         endAdornment: loading ? (
           <InputAdornment position="end">
@@ -125,6 +125,11 @@ export const DeploymentPipelinePicker = ({
         ) : undefined,
       }}
     >
+      {noPipelines && (
+        <MenuItem disabled value="">
+          No deployment pipelines in the selected namespace
+        </MenuItem>
+      )}
       {pipelines.map(p => (
         <MenuItem key={p.name} value={p.name}>
           {p.displayName}

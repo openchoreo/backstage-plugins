@@ -51,8 +51,12 @@ export const ProjectNamespaceField = ({
   rawErrors,
 }: FieldExtensionComponentProps<ProjectNamespaceData>) => {
   const catalogApi = useApi(catalogApiRef);
-  const { preselectedProject, clearPreselectedProject } =
-    useScaffolderPreselection();
+  const {
+    preselectedProject,
+    clearPreselectedProject,
+    preselectedNamespace,
+    clearPreselectedNamespace,
+  } = useScaffolderPreselection();
 
   const [namespaces, setNamespaces] = useState<
     Array<{ name: string; displayName?: string }>
@@ -113,11 +117,23 @@ export const ProjectNamespaceField = ({
         if (!ignore) {
           setNamespaces(nsList);
 
-          // Auto-select first namespace if none selected
+          // Auto-select namespace: URL preselection > 'default' > first
           if (nsList.length > 0 && !namespaceName) {
+            let selected = nsList[0];
+            if (preselectedNamespace) {
+              const match = nsList.find(ns => ns.name === preselectedNamespace);
+              if (match) {
+                selected = match;
+                clearPreselectedNamespace();
+              }
+            }
+            if (!preselectedNamespace) {
+              const defaultNs = nsList.find(ns => ns.name === 'default');
+              if (defaultNs) selected = defaultNs;
+            }
             onChange({
               project_name: '',
-              namespace_name: nsList[0].name,
+              namespace_name: selected.name,
             });
           }
         }
@@ -179,14 +195,22 @@ export const ProjectNamespaceField = ({
 
       setProjects(projectList);
 
+      // Clear stale selection when no projects exist
+      if (projectList.length === 0) {
+        if (formData?.project_name) {
+          onChange({ project_name: '', namespace_name: namespaceName });
+        }
+        return;
+      }
+
       // Check if current selection is still valid in the new project list
       const currentStillValid =
         formData?.project_name &&
         projectList.some(p => p.entityRef === formData.project_name);
 
-      // Auto-select project if no valid selection exists
-      if (projectList.length > 0 && !currentStillValid) {
-        let selectedProject = projectList[0].entityRef;
+      // Auto-select project: URL preselection > 'default' > first
+      if (!currentStillValid) {
+        let selectedProject: string | undefined;
 
         // Check if we have a preselected project from context
         if (preselectedProject && !preselectionAppliedRef.current) {
@@ -198,9 +222,14 @@ export const ProjectNamespaceField = ({
           if (matchingProject) {
             selectedProject = matchingProject.entityRef;
             preselectionAppliedRef.current = true;
-            // Clear the preselection after applying to avoid affecting future forms
             clearPreselectedProject();
           }
+        }
+
+        // Fall back to 'default' project if available, otherwise first
+        if (!selectedProject) {
+          const defaultProject = projectList.find(p => p.name === 'default');
+          selectedProject = (defaultProject ?? projectList[0]).entityRef;
         }
 
         onChange({
@@ -324,6 +353,11 @@ export const ProjectNamespaceField = ({
               ) : undefined,
             }}
           >
+            {!loading && projects.length === 0 && (
+              <MenuItem disabled value="">
+                No projects found in the selected namespace
+              </MenuItem>
+            )}
             {projects.map(project => (
               <MenuItem key={project.entityRef} value={project.entityRef}>
                 {project.name}

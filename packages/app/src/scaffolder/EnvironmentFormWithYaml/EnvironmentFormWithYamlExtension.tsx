@@ -179,6 +179,8 @@ export const EnvironmentFormWithYamlExtension = ({
   const [loadingDataplanes, setLoadingDataplanes] = useState(true);
 
   const initializedRef = useRef(false);
+  const nsPreselectedRef = useRef(false);
+  const formDataRef = useRef(formData);
 
   const [envNameDuplicateError, setEnvNameDuplicateError] = useState<
     string | null
@@ -190,6 +192,10 @@ export const EnvironmentFormWithYamlExtension = ({
     () => ({ ...DEFAULT_FORM_DATA, ...formData }),
     [formData],
   );
+
+  useEffect(() => {
+    formDataRef.current = formData;
+  });
 
   // Fetch Dataplane and ClusterDataplane entities filtered by selected namespace
   useEffect(() => {
@@ -370,6 +376,32 @@ export const EnvironmentFormWithYamlExtension = ({
       {mode === 'form' ? (
         <div className={classes.formContainer}>
           <Grid container spacing={2}>
+            {/* Namespace */}
+            <Grid item xs={12} sm={6}>
+              <NamespaceSelectField
+                value={data.namespace_name}
+                onChange={v => updateField('namespace_name', v)}
+                label="Namespace"
+                helperText="Namespace where the environment will be created"
+                required
+                onNamespacesLoaded={ns => {
+                  setNamespaces(ns);
+                  if (!nsPreselectedRef.current && ns.length > 0) {
+                    const current = formDataRef.current;
+                    if (!current?.namespace_name) {
+                      nsPreselectedRef.current = true;
+                      const defaultNs = ns.find(n => n.name === 'default');
+                      onChange({
+                        ...DEFAULT_FORM_DATA,
+                        ...current,
+                        namespace_name: (defaultNs ?? ns[0]).entityRef,
+                      });
+                    }
+                  }
+                }}
+              />
+            </Grid>
+
             {/* Environment Name */}
             <Grid item xs={12} sm={6}>
               <TextField
@@ -398,18 +430,6 @@ export const EnvironmentFormWithYamlExtension = ({
                     </InputAdornment>
                   ) : undefined,
                 }}
-              />
-            </Grid>
-
-            {/* Namespace */}
-            <Grid item xs={12} sm={6}>
-              <NamespaceSelectField
-                value={data.namespace_name}
-                onChange={v => updateField('namespace_name', v)}
-                label="Namespace"
-                helperText="Namespace where the environment will be created"
-                required
-                onNamespacesLoaded={setNamespaces}
               />
             </Grid>
 

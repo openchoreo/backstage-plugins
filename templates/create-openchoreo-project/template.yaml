@@ -17,6 +17,11 @@ spec:
         - project_name
         - deployment_pipeline
       properties:
+        namespace_name:
+          title: Namespace Name
+          type: string
+          description: Namespace where the project will be created
+          ui:field: NamespaceEntityPicker
         project_name:
           title: Project Name
           type: string
@@ -34,11 +39,6 @@ spec:
           title: Description
           type: string
           description: Help others understand what this project is for.
-        namespace_name:
-          title: Namespace Name
-          type: string
-          description: Namespace where the project will be created
-          ui:field: NamespaceEntityPicker
         deployment_pipeline:
           title: Deployment Pipeline
           type: string

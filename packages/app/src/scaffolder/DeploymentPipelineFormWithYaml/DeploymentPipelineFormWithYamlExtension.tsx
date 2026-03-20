@@ -218,6 +218,11 @@ function PromotionPathRow({
         size="small"
         helperText="Environment where promotion starts"
       >
+        {environments.length === 0 && (
+          <MenuItem disabled value="">
+            No environments in the selected namespace
+          </MenuItem>
+        )}
         {environments.map(env => (
           <MenuItem key={env.name} value={env.name}>
             {env.name}
@@ -241,6 +246,11 @@ function PromotionPathRow({
               size="small"
               style={{ flex: 1 }}
             >
+              {environments.length === 0 && (
+                <MenuItem disabled value="">
+                  No environments in the selected namespace
+                </MenuItem>
+              )}
               {environments.map(env => (
                 <MenuItem key={env.name} value={env.name}>
                   {env.name}
@@ -288,6 +298,8 @@ export const DeploymentPipelineFormWithYamlExtension = ({
   >([]);
 
   const initializedRef = useRef(false);
+  const nsPreselectedRef = useRef(false);
+  const formDataRef = useRef(formData);
 
   const [pipelineNameDuplicateError, setPipelineNameDuplicateError] = useState<
     string | null
@@ -298,6 +310,10 @@ export const DeploymentPipelineFormWithYamlExtension = ({
     () => ({ ...DEFAULT_FORM_DATA, ...formData }),
     [formData],
   );
+
+  useEffect(() => {
+    formDataRef.current = formData;
+  });
 
   // Fetch environments filtered by selected namespace
   useEffect(() => {
@@ -476,6 +492,32 @@ export const DeploymentPipelineFormWithYamlExtension = ({
       {mode === 'form' ? (
         <div className={classes.formContainer}>
           <Grid container spacing={2}>
+            {/* Namespace */}
+            <Grid item xs={12} sm={6}>
+              <NamespaceSelectField
+                value={data.namespace_name}
+                onChange={v => updateField('namespace_name', v)}
+                label="Namespace"
+                helperText="Namespace where the deployment pipeline will be created"
+                required
+                onNamespacesLoaded={ns => {
+                  setNamespaces(ns);
+                  if (!nsPreselectedRef.current && ns.length > 0) {
+                    const current = formDataRef.current;
+                    if (!current?.namespace_name) {
+                      nsPreselectedRef.current = true;
+                      const defaultNs = ns.find(n => n.name === 'default');
+                      onChange({
+                        ...DEFAULT_FORM_DATA,
+                        ...current,
+                        namespace_name: (defaultNs ?? ns[0]).entityRef,
+                      });
+                    }
+                  }
+                }}
+              />
+            </Grid>
+
             {/* Pipeline Name */}
             <Grid item xs={12} sm={6}>
               <TextField
@@ -503,18 +545,6 @@ export const DeploymentPipelineFormWithYamlExtension = ({
                     </InputAdornment>
                   ) : undefined,
                 }}
-              />
-            </Grid>
-
-            {/* Namespace */}
-            <Grid item xs={12} sm={6}>
-              <NamespaceSelectField
-                value={data.namespace_name}
-                onChange={v => updateField('namespace_name', v)}
-                label="Namespace"
-                helperText="Namespace where the deployment pipeline will be created"
-                required
-                onNamespacesLoaded={setNamespaces}
               />
             </Grid>
 

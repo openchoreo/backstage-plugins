@@ -27,17 +27,23 @@ export const NamespaceEntityPicker = ({
 
   const handleNamespacesLoaded = useCallback(
     (namespaces: NamespaceOption[]) => {
-      if (
-        preselectedNamespace &&
-        !preselectionAppliedRef.current &&
-        !formData
-      ) {
+      if (preselectionAppliedRef.current || formData) return;
+
+      if (preselectedNamespace) {
         const match = namespaces.find(ns => ns.name === preselectedNamespace);
         if (match) {
           preselectionAppliedRef.current = true;
           clearPreselectedNamespace();
           onChange(match.entityRef);
+          return;
         }
+      }
+
+      // Fall back to 'default' namespace if available, otherwise the first
+      if (namespaces.length > 0) {
+        preselectionAppliedRef.current = true;
+        const defaultNs = namespaces.find(ns => ns.name === 'default');
+        onChange((defaultNs ?? namespaces[0]).entityRef);
       }
     },
     [preselectedNamespace, clearPreselectedNamespace, formData, onChange],
