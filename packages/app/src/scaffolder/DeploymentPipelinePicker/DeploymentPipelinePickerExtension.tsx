@@ -106,12 +106,6 @@ export const DeploymentPipelinePicker = ({
   const hasError = (rawErrors?.length ?? 0) > 0;
   const noPipelines = !loading && !!namespaceName && pipelines.length === 0;
 
-  const placeholder = !namespaceName
-    ? 'Select a namespace first'
-    : noPipelines
-      ? 'No deployment pipelines in the selected namespace'
-      : '';
-
   return (
     <TextField
       select
@@ -122,11 +116,7 @@ export const DeploymentPipelinePicker = ({
       fullWidth
       variant="outlined"
       error={hasError || !!fetchError}
-      helperText={
-        hasError
-          ? rawErrors?.[0]
-          : fetchError || undefined
-      }
+      helperText={hasError ? rawErrors?.[0] : fetchError || undefined}
       InputProps={{
         endAdornment: loading ? (
           <InputAdornment position="end">
