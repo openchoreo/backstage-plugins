@@ -25,6 +25,7 @@ export {
   buildEnvironmentsBasePath,
   buildWorkflowsBasePath,
   buildRuntimeLogsBasePath,
+  buildRuntimeLogsPath,
   buildOverridesPath,
   buildReleaseDetailsPath,
   buildWorkloadConfigPath,

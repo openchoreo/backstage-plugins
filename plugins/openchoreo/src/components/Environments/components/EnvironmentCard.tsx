@@ -30,6 +30,7 @@ export const EnvironmentCard = ({
   onSuspend,
   onRedeploy,
   activeIncidentCount,
+  logsUrl,
 }: EnvironmentCardProps) => {
   const classes = useEnvironmentCardStyles();
 
@@ -58,6 +59,7 @@ export const EnvironmentCard = ({
           onOpenReleaseDetails={onOpenReleaseDetails}
           activeIncidentCount={activeIncidentCount}
           environmentName={environmentName}
+          logsUrl={logsUrl}
         />
 
         <EnvironmentActions

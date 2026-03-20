@@ -33,6 +33,17 @@ export function buildRuntimeLogsBasePath(entity: Entity): string {
   return `${buildEntityPath(entity)}/runtime-logs`;
 }
 
+/**
+ * Build path to runtime-logs page with environment filter pre-selected
+ */
+export function buildRuntimeLogsPath(
+  basePath: string,
+  envName: string,
+): string {
+  const params = new URLSearchParams({ env: envName.toLowerCase() });
+  return `${basePath}?${params.toString()}`;
+}
+
 // --- Environment Paths ---
 
 /**

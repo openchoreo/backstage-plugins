@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { Grid } from '@material-ui/core';
 import { useEntity } from '@backstage/plugin-catalog-react';
 
+import { useEntityLinks } from '@openchoreo/backstage-plugin-react';
 import { useItemActionTracker, useNotification } from '../../hooks';
 import {
   useEnvironmentActions,
@@ -44,6 +45,8 @@ export const EnvironmentsList = () => {
     navigateToOverrides,
     navigateToReleaseDetails,
   } = useEnvironmentRouting();
+
+  const links = useEntityLinks(entity);
 
   // Action trackers
   const refreshTracker = useItemActionTracker<string>();
@@ -224,6 +227,7 @@ export const EnvironmentsList = () => {
               activeIncidentCount={
                 incidentsSummaries.get(env.name)?.activeCount
               }
+              logsUrl={links.runtimeLogs(env.name)}
             />
           </Grid>
         ))}

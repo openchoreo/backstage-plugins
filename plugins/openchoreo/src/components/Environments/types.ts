@@ -96,6 +96,7 @@ export interface EnvironmentCardContentProps {
   onOpenReleaseDetails: () => void;
   activeIncidentCount?: number;
   environmentName?: string;
+  logsUrl?: string;
 }
 
 /**
@@ -155,4 +156,5 @@ export interface EnvironmentCardProps {
   onSuspend: () => Promise<void>;
   onRedeploy: () => Promise<void>;
   activeIncidentCount?: number;
+  logsUrl?: string;
 }

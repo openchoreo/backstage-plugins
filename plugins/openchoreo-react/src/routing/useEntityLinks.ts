@@ -5,6 +5,7 @@ import {
   buildEnvironmentsBasePath,
   buildWorkflowsBasePath,
   buildRuntimeLogsBasePath,
+  buildRuntimeLogsPath,
   buildOverridesPath,
   buildReleaseDetailsPath,
   buildWorkloadConfigPath,
@@ -30,6 +31,7 @@ export interface EntityLinks {
 
   // Other links
   runtimeLogsBase: string;
+  runtimeLogs: (envName: string) => string;
 }
 
 /**
@@ -72,6 +74,7 @@ export function useEntityLinks(entity: Entity): EntityLinks {
       workflowList: tab => buildWorkflowListPath(wfBase, tab),
 
       runtimeLogsBase: logsBase,
+      runtimeLogs: envName => buildRuntimeLogsPath(logsBase, envName),
     };
   }, [entity]);
 }

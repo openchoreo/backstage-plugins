@@ -1,4 +1,5 @@
 import { makeStyles } from '@material-ui/core/styles';
+import { alpha } from '@material-ui/core/styles/colorManipulator';
 
 /**
  * Main styles for the Environments component
@@ -115,6 +116,11 @@ export const useEnvironmentCardStyles = makeStyles(theme => ({
     color: theme.palette.text.secondary,
     marginLeft: theme.spacing(1),
     marginRight: theme.spacing(1),
+  },
+  viewLogsGroup: {
+    border: `1.5px solid ${alpha(theme.palette.primary.main, 0.5)}`,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
 }));
 

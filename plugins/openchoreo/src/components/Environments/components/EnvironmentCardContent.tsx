@@ -6,9 +6,12 @@ import {
   IconButton,
   Tooltip,
   Button,
+  useTheme,
 } from '@material-ui/core';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
+import OpenInNewIcon from '@material-ui/icons/OpenInNew';
+import SubjectIcon from '@material-ui/icons/Subject';
 import VisibilityOutlinedIcon from '@material-ui/icons/VisibilityOutlined';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
 import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
@@ -31,8 +34,10 @@ export const EnvironmentCardContent = ({
   onOpenReleaseDetails,
   activeIncidentCount,
   environmentName,
+  logsUrl,
 }: EnvironmentCardContentProps) => {
   const classes = useEnvironmentCardStyles();
+  const theme = useTheme();
 
   const [invokeUrlsOpen, setInvokeUrlsOpen] = useState(false);
 
@@ -85,18 +90,68 @@ export const EnvironmentCardContent = ({
             </span>
           </Tooltip>
         </Box>
-        {releaseName && (
-          <Box mt={1.5}>
-            <Button
-              variant="outlined"
-              color="primary"
-              size="small"
-              startIcon={<DescriptionOutlinedIcon />}
-              onClick={onOpenReleaseDetails}
-              style={{ textTransform: 'none' }}
-            >
-              View K8s Artifacts
-            </Button>
+        {(releaseName || (logsUrl && status)) && (
+          <Box
+            mt={1.5}
+            display="flex"
+            alignItems="stretch"
+            flexWrap="wrap"
+            gridGap={6}
+          >
+            {releaseName && (
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                startIcon={<DescriptionOutlinedIcon />}
+                onClick={onOpenReleaseDetails}
+                style={{ textTransform: 'none', fontSize: '0.75rem' }}
+              >
+                View K8s Artifacts
+              </Button>
+            )}
+            {logsUrl && status && (
+              <Box
+                display="flex"
+                alignItems="stretch"
+                className={classes.viewLogsGroup}
+              >
+                <Button
+                  color="primary"
+                  size="small"
+                  startIcon={<SubjectIcon />}
+                  href={logsUrl}
+                  style={{
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    border: 'none',
+                    borderRight: `1.5px solid ${theme.palette.divider}`,
+                    borderRadius: 0,
+                    padding: '3px 10px',
+                  }}
+                >
+                  View Logs
+                </Button>
+                <Tooltip title="Open in new tab">
+                  <IconButton
+                    size="small"
+                    component="a"
+                    href={logsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                    style={{ borderRadius: 0, padding: '3px 6px' }}
+                  >
+                    <OpenInNewIcon
+                      style={{
+                        fontSize: '0.875rem',
+                        color: theme.palette.primary.main,
+                      }}
+                    />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            )}
           </Box>
         )}
       </Box>
