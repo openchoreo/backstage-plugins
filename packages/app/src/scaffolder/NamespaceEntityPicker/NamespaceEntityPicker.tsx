@@ -39,10 +39,11 @@ export const NamespaceEntityPicker = ({
         }
       }
 
-      // Fall back to the first namespace if no URL preselection matched
+      // Fall back to 'default' namespace if available, otherwise the first
       if (namespaces.length > 0) {
         preselectionAppliedRef.current = true;
-        onChange(namespaces[0].entityRef);
+        const defaultNs = namespaces.find(ns => ns.name === 'default');
+        onChange((defaultNs ?? namespaces[0]).entityRef);
       }
     },
     [preselectedNamespace, clearPreselectedNamespace, formData, onChange],

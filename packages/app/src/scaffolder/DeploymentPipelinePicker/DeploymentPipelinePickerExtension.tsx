@@ -93,8 +93,9 @@ export const DeploymentPipelinePicker = ({
 
     const currentValid = formData && pipelines.some(p => p.name === formData);
     if (!currentValid) {
-      // Select the first pipeline when current selection is empty or invalid
-      onChange(pipelines[0].name);
+      // Prefer 'default' pipeline if available, otherwise the first
+      const defaultPipeline = pipelines.find(p => p.name === 'default');
+      onChange((defaultPipeline ?? pipelines[0]).name);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pipelines, namespaceName]);

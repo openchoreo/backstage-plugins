@@ -496,10 +496,11 @@ export const DeploymentPipelineFormWithYamlExtension = ({
                     const current = formDataRef.current;
                     if (!current?.namespace_name) {
                       nsPreselectedRef.current = true;
+                      const defaultNs = ns.find(n => n.name === 'default');
                       onChange({
                         ...DEFAULT_FORM_DATA,
                         ...current,
-                        namespace_name: ns[0].entityRef,
+                        namespace_name: (defaultNs ?? ns[0]).entityRef,
                       });
                     }
                   }
