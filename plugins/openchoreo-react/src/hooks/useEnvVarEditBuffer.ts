@@ -35,6 +35,8 @@ export interface UseEnvVarEditBufferResult {
   editBuffer: EnvVar | null;
   /** Whether any row is currently being edited */
   isAnyRowEditing: boolean;
+  /** Whether the current buffer is valid (all required fields filled) */
+  isBufferValid: boolean;
   /** Check if a specific row is being edited */
   isRowEditing: (containerName: string, index: number) => boolean;
   /** Start editing an existing env var row */
@@ -63,6 +65,21 @@ export interface UseEnvVarEditBufferResult {
 function isEnvVarEmpty(envVar: EnvVar | undefined | null): boolean {
   if (!envVar) return true;
   return !envVar.key && !envVar.value && !envVar.valueFrom?.secretKeyRef?.name;
+}
+
+/**
+ * Check if an env var is valid (all required fields filled)
+ */
+function isEnvVarValid(envVar: EnvVar | undefined | null): boolean {
+  if (!envVar) return false;
+  if (!envVar.key?.trim()) return false;
+  if (envVar.valueFrom?.secretKeyRef) {
+    if (!envVar.valueFrom.secretKeyRef.name?.trim()) return false;
+    if (!envVar.valueFrom.secretKeyRef.key?.trim()) return false;
+  } else {
+    if (!envVar.value?.trim()) return false;
+  }
+  return true;
 }
 
 /**
@@ -107,6 +124,7 @@ export function useEnvVarEditBuffer(
   const [editBuffer, setEditBuffer] = useState<EnvVar | null>(null);
 
   const isAnyRowEditing = editingRow !== null;
+  const isBufferValid = isEnvVarValid(editBuffer);
 
   const isRowEditing = useCallback(
     (containerName: string, index: number): boolean => {
@@ -219,6 +237,7 @@ export function useEnvVarEditBuffer(
     editingRow,
     editBuffer,
     isAnyRowEditing,
+    isBufferValid,
     isRowEditing,
     startEdit,
     startNew,

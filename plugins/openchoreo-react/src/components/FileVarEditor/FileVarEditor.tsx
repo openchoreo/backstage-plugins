@@ -218,6 +218,8 @@ export interface FileVarEditorProps {
   deleteDisabled?: boolean;
   /** Hide the Delete button entirely (for inherited items that can't be deleted) */
   hideDelete?: boolean;
+  /** Disable the Apply button (when validation fails) */
+  applyDisabled?: boolean;
   /** The base file var value (for overrides, to show inline diff) */
   baseValue?: FileVar;
   /** Callback when any field changes */
@@ -250,6 +252,7 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
   editDisabled = false,
   deleteDisabled = false,
   hideDelete = false,
+  applyDisabled = false,
   baseValue,
   onChange,
   onRemove,
@@ -510,7 +513,7 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
                 onClick={onApply}
                 color="primary"
                 size="small"
-                disabled={disabled}
+                disabled={disabled || applyDisabled}
                 className={classes.actionButton}
                 aria-label="Apply changes"
               >

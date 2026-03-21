@@ -135,6 +135,7 @@ export const StandardFileVarList: FC<StandardFileVarListProps> = ({
               onApply={editBuffer.applyEdit}
               onCancel={editBuffer.cancelEdit}
               editButtonLabel="Edit"
+              applyDisabled={isCurrentlyEditing && !editBuffer.isBufferValid}
               editDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
               deleteDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
               onChange={

@@ -178,6 +178,7 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
           editButtonLabel="Edit"
           lockMode={item.status === 'overridden'}
           lockKey={item.status === 'overridden'}
+          applyDisabled={isCurrentlyEditing && !editBuffer.isBufferValid}
           editDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
           deleteDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
           baseValue={item.baseValue}
