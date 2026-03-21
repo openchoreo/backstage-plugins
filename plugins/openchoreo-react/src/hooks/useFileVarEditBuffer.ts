@@ -35,6 +35,8 @@ export interface UseFileVarEditBufferResult {
   editBuffer: FileVar | null;
   /** Whether any row is currently being edited */
   isAnyRowEditing: boolean;
+  /** Whether the current buffer is valid (all required fields filled) */
+  isBufferValid: boolean;
   /** Check if a specific row is being edited */
   isRowEditing: (containerName: string, index: number) => boolean;
   /** Start editing an existing file var row */
@@ -68,6 +70,22 @@ function isFileVarEmpty(fileVar: FileVar | undefined | null): boolean {
     !fileVar.value &&
     !fileVar.valueFrom?.secretKeyRef?.name
   );
+}
+
+/**
+ * Check if a file var is valid (all required fields filled)
+ */
+function isFileVarValid(fileVar: FileVar | undefined | null): boolean {
+  if (!fileVar) return false;
+  if (!fileVar.key?.trim()) return false;
+  if (!fileVar.mountPath?.trim()) return false;
+  if (fileVar.valueFrom?.secretKeyRef) {
+    if (!fileVar.valueFrom.secretKeyRef.name?.trim()) return false;
+    if (!fileVar.valueFrom.secretKeyRef.key?.trim()) return false;
+  } else {
+    if (!fileVar.value?.trim()) return false;
+  }
+  return true;
 }
 
 /**
@@ -112,6 +130,7 @@ export function useFileVarEditBuffer(
   const [editBuffer, setEditBuffer] = useState<FileVar | null>(null);
 
   const isAnyRowEditing = editingRow !== null;
+  const isBufferValid = isFileVarValid(editBuffer);
 
   const isRowEditing = useCallback(
     (containerName: string, index: number): boolean => {
@@ -238,6 +257,7 @@ export function useFileVarEditBuffer(
     editingRow,
     editBuffer,
     isAnyRowEditing,
+    isBufferValid,
     isRowEditing,
     startEdit,
     startNew,
