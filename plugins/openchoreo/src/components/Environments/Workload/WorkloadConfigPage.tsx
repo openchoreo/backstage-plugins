@@ -26,6 +26,7 @@ import {
   UnsavedChangesDialog,
 } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import { getErrorMessage } from '../../../utils/errorUtils';
 import type { ComponentTrait } from '../../../api/OpenChoreoClientApi';
 import { WorkloadProvider } from './WorkloadContext';
 import { WorkloadEditor } from './WorkloadEditor';
@@ -475,9 +476,9 @@ export const WorkloadConfigPage = ({
       setIsProcessing(false);
       allowNavigationRef.current = true;
       onNext(releaseName, lowestEnvironment);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setIsProcessing(false);
-      setSaveError(e.message || 'Failed to save changes');
+      setSaveError(getErrorMessage(e));
     }
   };
 
