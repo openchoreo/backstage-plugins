@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import RefreshIcon from '@material-ui/icons/Refresh';
+import NavigateBeforeIcon from '@material-ui/icons/NavigateBefore';
+import NavigateNextIcon from '@material-ui/icons/NavigateNext';
 import CloudIcon from '@material-ui/icons/Cloud';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
 import clsx from 'clsx';
@@ -13,12 +16,30 @@ import { useDataplaneEnvironments } from './hooks';
 import { useDataplaneOverviewStyles } from './styles';
 import { shouldNavigateOnRowClick } from '../../utils/shouldNavigateOnRowClick';
 
+const PAGE_SIZE = 5;
+
 export const DataplaneEnvironmentsCard = () => {
   const classes = useDataplaneOverviewStyles();
   const { entity } = useEntity();
   const navigate = useNavigate();
   const { environments, loading, error, refresh } =
     useDataplaneEnvironments(entity);
+  const [page, setPage] = useState(0);
+
+  const totalPages = Math.ceil(environments.length / PAGE_SIZE);
+
+  useEffect(() => {
+    const maxPage = Math.max(0, totalPages - 1);
+    if (page > maxPage) {
+      setPage(maxPage);
+    }
+  }, [totalPages, page]);
+
+  const safePage = Math.min(page, Math.max(0, totalPages - 1));
+  const paginatedEnvs = environments.slice(
+    safePage * PAGE_SIZE,
+    (safePage + 1) * PAGE_SIZE,
+  );
 
   if (loading) {
     return (
@@ -85,7 +106,7 @@ export const DataplaneEnvironmentsCard = () => {
       </Box>
 
       <div className={classes.environmentList}>
-        {environments.map(env => {
+        {paginatedEnvs.map(env => {
           const parsedRef = parseEntityRef(env.entityRef, {
             defaultKind: 'environment',
             defaultNamespace: 'default',
@@ -93,7 +114,7 @@ export const DataplaneEnvironmentsCard = () => {
           const envLink = `/catalog/${parsedRef.namespace}/environment/${parsedRef.name}`;
           return (
             <div
-              key={env.name}
+              key={env.entityRef}
               className={classes.environmentItem}
               onClick={e => {
                 if (shouldNavigateOnRowClick(e)) {
@@ -130,6 +151,37 @@ export const DataplaneEnvironmentsCard = () => {
           );
         })}
       </div>
+
+      {totalPages > 1 && (
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="flex-end"
+          mt={1}
+        >
+          <Typography variant="caption" style={{ marginRight: 8 }}>
+            {safePage * PAGE_SIZE + 1}–
+            {Math.min((safePage + 1) * PAGE_SIZE, environments.length)} of{' '}
+            {environments.length}
+          </Typography>
+          <IconButton
+            size="small"
+            disabled={safePage === 0}
+            onClick={() => setPage(p => p - 1)}
+            aria-label="Previous page"
+          >
+            <NavigateBeforeIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            disabled={safePage >= totalPages - 1}
+            onClick={() => setPage(p => p + 1)}
+            aria-label="Next page"
+          >
+            <NavigateNextIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      )}
     </Card>
   );
 };
