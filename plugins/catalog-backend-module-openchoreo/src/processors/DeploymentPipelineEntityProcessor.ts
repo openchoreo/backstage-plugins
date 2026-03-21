@@ -4,7 +4,12 @@ import {
   processingResult,
 } from '@backstage/plugin-catalog-node';
 import { LocationSpec } from '@backstage/plugin-catalog-common';
-import { Entity } from '@backstage/catalog-model';
+import {
+  Entity,
+  RELATION_PART_OF,
+  RELATION_HAS_PART,
+  parseEntityRef,
+} from '@backstage/catalog-model';
 import {
   DeploymentPipelineEntityV1alpha1,
   PromotionPath,
@@ -51,6 +56,33 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
       namespace: entity.metadata.namespace || 'default',
       name: entity.metadata.name,
     };
+
+    // Emit partOf relationship to domain (namespace)
+    if (entity.spec.domain) {
+      const domainRef = parseEntityRef(entity.spec.domain as string, {
+        defaultKind: 'domain',
+        defaultNamespace: entity.metadata.namespace || 'default',
+      });
+      const domainTarget = {
+        kind: domainRef.kind,
+        namespace: domainRef.namespace,
+        name: domainRef.name,
+      };
+      emit(
+        processingResult.relation({
+          source: sourceRef,
+          target: domainTarget,
+          type: RELATION_PART_OF,
+        }),
+      );
+      emit(
+        processingResult.relation({
+          source: domainTarget,
+          target: sourceRef,
+          type: RELATION_HAS_PART,
+        }),
+      );
+    }
 
     // Emit usesPipeline/pipelineUsedBy relationship between each project and pipeline
     if (entity.spec.projectRefs) {

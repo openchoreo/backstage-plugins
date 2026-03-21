@@ -807,6 +807,7 @@ export function translateDeploymentPipelineToEntity(
     spec: {
       projectRefs: pipeline.projectRefs || [],
       namespaceName,
+      domain: `default/${namespaceName}`,
       promotionPaths: pipeline.promotionPaths || [],
     },
   };
