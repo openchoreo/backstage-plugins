@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { Grid } from '@material-ui/core';
+import { Box } from '@material-ui/core';
 import { useEntity } from '@backstage/plugin-catalog-react';
 
 import { useItemActionTracker, useNotification } from '../../hooks';
@@ -11,6 +11,7 @@ import {
 import type { Environment } from './hooks';
 import type { PendingAction } from './types';
 import { NotificationBanner, SetupCard, EnvironmentCard } from './components';
+import { useEnvironmentsListStyles } from './styles';
 import { useEnvironmentsContext } from './EnvironmentsContext';
 import { useIncidentsSummary } from './hooks/useIncidentsSummary';
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
@@ -22,6 +23,7 @@ import { Card } from '@openchoreo/backstage-design-system';
  * Displays Setup Card and Environment Cards in a grid layout.
  */
 export const EnvironmentsList = () => {
+  const classes = useEnvironmentsListStyles();
   const { entity } = useEntity();
 
   const {
@@ -116,9 +118,9 @@ export const EnvironmentsList = () => {
     <>
       <NotificationBanner notification={notification.notification} />
 
-      <Grid container spacing={3} alignItems="stretch">
+      <Box className={classes.cardGrid}>
         {/* Setup Card */}
-        <Grid item xs={12} md={3} style={{ display: 'flex' }}>
+        <Box className={classes.cardItem}>
           <SetupCard
             loading={loading}
             environmentsExist={environments.length > 0}
@@ -128,14 +130,14 @@ export const EnvironmentsList = () => {
             onAutoDeployChange={onAutoDeployChange}
             autoDeployUpdating={autoDeployUpdating}
           />
-        </Grid>
+        </Box>
 
         {/* No environments: show forbidden or empty state as a card */}
         {!loading &&
           !environmentReadPermissionLoading &&
           environments.length === 0 &&
           !canViewEnvironments && (
-            <Grid item xs={12} md={3} style={{ display: 'flex' }}>
+            <Box className={classes.cardItem}>
               <Card
                 style={{ height: '100%', minHeight: '300px', width: '100%' }}
               >
@@ -144,10 +146,10 @@ export const EnvironmentsList = () => {
                   onRetry={refetch}
                 />
               </Card>
-            </Grid>
+            </Box>
           )}
         {!loading && environments.length === 0 && canViewEnvironments && (
-          <Grid item xs={12} md={3} style={{ display: 'flex' }}>
+          <Box className={classes.cardItem}>
             <Card style={{ height: '100%', minHeight: '300px', width: '100%' }}>
               <EmptyState
                 title="No environments available"
@@ -155,12 +157,12 @@ export const EnvironmentsList = () => {
                 action={{ label: 'Retry', onClick: refetch }}
               />
             </Card>
-          </Grid>
+          </Box>
         )}
 
         {/* Environment Cards */}
         {displayEnvironments.map(env => (
-          <Grid key={env.name} item xs={12} md={3} style={{ display: 'flex' }}>
+          <Box key={env.name} className={classes.cardItem}>
             <EnvironmentCard
               environmentName={env.name}
               resourceName={env.resourceName}
@@ -225,9 +227,9 @@ export const EnvironmentsList = () => {
                 incidentsSummaries.get(env.name)?.activeCount
               }
             />
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
     </>
   );
 };
