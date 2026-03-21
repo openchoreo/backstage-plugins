@@ -93,7 +93,7 @@ export const ClusterDataplaneEnvironmentsCard = () => {
           const envLink = `/catalog/${parsedRef.namespace}/environment/${parsedRef.name}`;
           return (
             <div
-              key={env.name}
+              key={env.entityRef}
               className={classes.environmentItem}
               onClick={e => {
                 if (shouldNavigateOnRowClick(e)) {

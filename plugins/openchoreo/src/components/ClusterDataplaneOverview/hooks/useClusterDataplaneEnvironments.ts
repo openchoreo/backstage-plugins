@@ -52,19 +52,21 @@ export function useClusterDataplaneEnvironments(
       });
 
       // Map to our interface
-      const envList: DataplaneEnvironment[] = filteredEnvs.map(env => ({
-        name:
-          env.metadata.annotations?.[CHOREO_ANNOTATIONS.ENVIRONMENT] ||
-          env.metadata.name,
-        displayName: env.metadata.title || env.metadata.name,
-        entityRef: `environment:${env.metadata.namespace || 'default'}/${
-          env.metadata.name
-        }`,
-        isProduction:
-          env.metadata.annotations?.['openchoreo.io/is-production'] === 'true',
-        componentCount: 0,
-        healthStatus: 'unknown' as const,
-      }));
+      const envList: DataplaneEnvironment[] = filteredEnvs.map(env => {
+        const ns = env.metadata.namespace || 'default';
+        return {
+          name:
+            env.metadata.annotations?.[CHOREO_ANNOTATIONS.ENVIRONMENT] ||
+            env.metadata.name,
+          displayName: `${env.metadata.title || env.metadata.name} (${ns})`,
+          entityRef: `environment:${ns}/${env.metadata.name}`,
+          isProduction:
+            env.metadata.annotations?.['openchoreo.io/is-production'] ===
+            'true',
+          componentCount: 0,
+          healthStatus: 'unknown' as const,
+        };
+      });
 
       setEnvironments(envList);
     } catch (err) {
