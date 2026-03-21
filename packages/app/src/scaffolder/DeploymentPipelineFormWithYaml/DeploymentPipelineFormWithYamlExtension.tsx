@@ -164,9 +164,13 @@ function PromotionPathRow({
   classes,
 }: PromotionPathRowProps) {
   const updateSource = (name: string) => {
+    const cleanedTargets = path.targetEnvironmentRefs.map(t =>
+      t.name === name ? { name: '' } : t,
+    );
     onUpdate(index, {
       ...path,
       sourceEnvironmentRef: { name },
+      targetEnvironmentRefs: cleanedTargets,
     });
   };
 
@@ -246,16 +250,26 @@ function PromotionPathRow({
               size="small"
               style={{ flex: 1 }}
             >
-              {environments.length === 0 && (
+              {environments.filter(
+                env =>
+                  !path.sourceEnvironmentRef.name ||
+                  env.name !== path.sourceEnvironmentRef.name,
+              ).length === 0 && (
                 <MenuItem disabled value="">
-                  No environments in the selected namespace
+                  No environments available
                 </MenuItem>
               )}
-              {environments.map(env => (
-                <MenuItem key={env.name} value={env.name}>
-                  {env.name}
-                </MenuItem>
-              ))}
+              {environments
+                .filter(
+                  env =>
+                    !path.sourceEnvironmentRef.name ||
+                    env.name !== path.sourceEnvironmentRef.name,
+                )
+                .map(env => (
+                  <MenuItem key={env.name} value={env.name}>
+                    {env.name}
+                  </MenuItem>
+                ))}
             </TextField>
             <IconButton
               size="small"
