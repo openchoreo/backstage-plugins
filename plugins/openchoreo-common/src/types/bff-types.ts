@@ -729,6 +729,8 @@ export interface WorkloadEndpoint {
   /** @enum {string} */
   type: 'TCP' | 'UDP' | 'HTTP' | 'gRPC' | 'Websocket' | 'GraphQL';
   port: number;
+  /** @description Base path of the API exposed via the endpoint */
+  basePath?: string;
   schema?: Schema;
 }
 
