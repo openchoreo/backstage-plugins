@@ -119,6 +119,21 @@ export const useEnvironmentCardStyles = makeStyles(theme => ({
 }));
 
 /**
+ * Styles for the environments list grid layout
+ */
+export const useEnvironmentsListStyles = makeStyles(theme => ({
+  cardGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gap: theme.spacing(3),
+    alignItems: 'stretch',
+  },
+  cardItem: {
+    display: 'flex',
+  },
+}));
+
+/**
  * Styles for loading skeleton states
  */
 export const useLoadingSkeletonStyles = makeStyles(_theme => ({
