@@ -124,7 +124,7 @@ export const useEnvironmentCardStyles = makeStyles(theme => ({
 export const useEnvironmentsListStyles = makeStyles(theme => ({
   cardGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
     gap: theme.spacing(3),
     alignItems: 'stretch',
   },
