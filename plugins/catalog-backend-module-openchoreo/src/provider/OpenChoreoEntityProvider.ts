@@ -1748,6 +1748,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       spec: {
         projectRefs: projectName ? [projectName] : [],
         namespaceName: namespaceName,
+        domain: `default/${namespaceName}`,
         promotionPaths,
       },
     };

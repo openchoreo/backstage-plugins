@@ -73,6 +73,10 @@ export interface DeploymentPipelineEntityV1alpha1 extends Entity {
      */
     namespaceName?: string;
     /**
+     * Reference to the domain (namespace) this pipeline belongs to
+     */
+    domain?: string;
+    /**
      * Promotion paths defining how releases flow between environments
      */
     promotionPaths?: PromotionPath[];
