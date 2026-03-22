@@ -165,6 +165,26 @@ export const openchoreoNamespaceCreatePermission = createPermission({
 });
 
 /**
+ * Permission to update a namespace.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoNamespaceUpdatePermission = createPermission({
+  name: 'openchoreo.namespace.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete a namespace.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoNamespaceDeletePermission = createPermission({
+  name: 'openchoreo.namespace.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
  * Permission to create a new trait.
  * Requires organization context.
  */
@@ -806,6 +826,8 @@ export const openchoreoPermissions = [
   openchoreoProjectUpdatePermission,
   openchoreoNamespaceReadPermission,
   openchoreoNamespaceCreatePermission,
+  openchoreoNamespaceUpdatePermission,
+  openchoreoNamespaceDeletePermission,
   openchoreoEnvironmentCreatePermission,
   openchoreoEnvironmentReadPermission,
   openchoreoReleaseCreatePermission,
@@ -900,6 +922,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.project.update': 'project:update',
   'openchoreo.namespace.read': 'namespace:view',
   'openchoreo.namespace.create': 'namespace:create',
+  'openchoreo.namespace.update': 'namespace:update',
+  'openchoreo.namespace.delete': 'namespace:delete',
   'openchoreo.environment.create': 'environment:create',
   'openchoreo.environment.read': 'environment:view',
   'openchoreo.release.create': 'componentrelease:create',

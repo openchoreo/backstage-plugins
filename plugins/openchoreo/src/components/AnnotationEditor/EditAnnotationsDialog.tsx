@@ -19,6 +19,7 @@ import {
   Tooltip,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import { Alert } from '@material-ui/lab';
 import DeleteIcon from '@material-ui/icons/Delete';
 import AddIcon from '@material-ui/icons/Add';
 import { useApi, alertApiRef } from '@backstage/core-plugin-api';
@@ -355,6 +356,14 @@ export function EditAnnotationsDialog({
           </Box>
         ) : (
           <>
+            <Box mb={2}>
+              <Alert severity="info">
+                Annotations added here are stored in the Backstage database only
+                — they are not written to the underlying Custom Resource. Use
+                this to configure Backstage plugins such as TechDocs, Jenkins,
+                GitHub Actions, Grafana, PagerDuty, and others.
+              </Alert>
+            </Box>
             {rows.length === 0 ? (
               <Typography className={classes.emptyState}>
                 No custom annotations. Click "Add Annotation" to get started.

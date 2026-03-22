@@ -35,6 +35,8 @@ export {
   openchoreoProjectUpdatePermission,
   openchoreoNamespaceReadPermission,
   openchoreoNamespaceCreatePermission,
+  openchoreoNamespaceUpdatePermission,
+  openchoreoNamespaceDeletePermission,
   openchoreoEnvironmentCreatePermission,
   openchoreoEnvironmentReadPermission,
   openchoreoReleaseCreatePermission,
