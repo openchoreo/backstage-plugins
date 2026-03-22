@@ -1128,7 +1128,7 @@ export const WorkloadDetailsField = ({
                         <strong>Configure via your CI pipeline</strong> — Use
                         the{' '}
                         <a
-                          href="https://openchoreo.dev/docs/user-guide/ci/external-ci/#workload-api"
+                          href="https://openchoreo.dev/docs/platform-engineer-guide/workflows/external-ci/#workload-api"
                           target="_blank"
                           rel="noopener noreferrer"
                         >
@@ -1165,7 +1165,7 @@ export const WorkloadDetailsField = ({
               {isExternalCi && (
                 <Box mt={1}>
                   <Link
-                    href="https://openchoreo.dev/docs/user-guide/ci/external-ci/"
+                    href="https://openchoreo.dev/docs/platform-engineer-guide/workflows/external-ci/"
                     target="_blank"
                     rel="noopener noreferrer"
                     variant="body2"
