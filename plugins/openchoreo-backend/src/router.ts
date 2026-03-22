@@ -46,6 +46,7 @@ const CLUSTER_SCOPED_KINDS = [
 ] as const;
 
 const VALID_PLATFORM_RESOURCE_KINDS = [
+  'namespaces',
   'projects',
   'componenttypes',
   'traits',

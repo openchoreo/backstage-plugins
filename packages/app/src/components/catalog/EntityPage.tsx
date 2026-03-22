@@ -20,6 +20,7 @@ import {
   hasRelationWarnings,
 } from '@backstage/plugin-catalog';
 import { EntityRelationWarning } from './EntityRelationWarning';
+import { OpenChoreoAboutCard } from './OpenChoreoAboutCard';
 import {
   ComponentTypeUtils,
   type PageVariant,
@@ -264,9 +265,18 @@ function OverviewContent() {
           </FeatureGate>
         </EntitySwitch.Case>
       </EntitySwitch>
-      <Grid item md={6}>
-        <EntityAboutCard variant="gridItem" />
-      </Grid>
+      <EntitySwitch>
+        <EntitySwitch.Case if={isKind('component')}>
+          <Grid item md={6} xs={12}>
+            <OpenChoreoAboutCard variant="gridItem" showEditIcon />
+          </Grid>
+        </EntitySwitch.Case>
+        <EntitySwitch.Case>
+          <Grid item md={6} xs={12}>
+            <EntityAboutCard variant="gridItem" />
+          </Grid>
+        </EntitySwitch.Case>
+      </EntitySwitch>
       <Grid item md={6} xs={12}>
         <EntityCatalogGraphCard
           variant="gridItem"
@@ -605,7 +615,7 @@ const systemPage = (
 
         {/* Row 2: About + Catalog Relations */}
         <Grid item md={6} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -681,7 +691,7 @@ const domainPage = (
           <NamespaceResourcesCard />
         </Grid>
         <Grid item md={6}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -693,6 +703,9 @@ const domainPage = (
           />
         </Grid>
       </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
   </EntityLayoutWithDelete>
 );
@@ -748,7 +761,7 @@ const environmentPage = (
         </Grid>
         {/* Row 4: About + Catalog Graph */}
         <Grid item md={6} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -794,7 +807,7 @@ const dataplanePage = (
         </Grid>
         {/* Row 3: About + Catalog Graph */}
         <Grid item md={6} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -837,7 +850,7 @@ const clusterDataplanePage = (
         </Grid>
         {/* Row 3: About + Catalog Graph */}
         <Grid item md={6} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -889,7 +902,7 @@ const workflowPlanePage = (
         </Grid>
         {/* Row 2: About */}
         <Grid item md={12} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
@@ -921,7 +934,7 @@ const clusterWorkflowPlanePage = (
           />
         </Grid>
         <Grid item md={12} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
@@ -948,7 +961,7 @@ const observabilityPlanePage = (
         </Grid>
         {/* Row 2: About + Catalog Graph */}
         <Grid item md={6} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -986,7 +999,7 @@ const clusterObservabilityPlanePage = (
         </Grid>
         {/* Row 2: About + Catalog Graph */}
         <Grid item md={6} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -1021,7 +1034,7 @@ const deploymentPipelinePage = (
         </Grid>
         {/* Row 2: About + Catalog Graph */}
         <Grid item md={6} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -1065,7 +1078,7 @@ const componentTypePage = (
           />
         </Grid>
         <Grid item md={12} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
@@ -1094,7 +1107,7 @@ const traitTypePage = (
           />
         </Grid>
         <Grid item md={12} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
@@ -1120,7 +1133,7 @@ const clusterComponentTypePage = (
           />
         </Grid>
         <Grid item md={12} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
@@ -1146,7 +1159,7 @@ const clusterTraitTypePage = (
           />
         </Grid>
         <Grid item md={12} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
@@ -1175,7 +1188,7 @@ const workflowPage = (
           />
         </Grid>
         <Grid item md={12} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
@@ -1210,7 +1223,7 @@ const clusterWorkflowPage = (
           />
         </Grid>
         <Grid item md={12} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
@@ -1254,7 +1267,7 @@ const componentWorkflowPage = (
           />
         </Grid>
         <Grid item md={12} xs={12}>
-          <EntityAboutCard variant="gridItem" />
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>

@@ -20,6 +20,7 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
 
 /** Platform resource kinds that support upfront permission checking for delete */
 const PLATFORM_RESOURCE_KINDS = new Set([
+  'domain',
   'environment',
   'dataplane',
   'clusterdataplane',

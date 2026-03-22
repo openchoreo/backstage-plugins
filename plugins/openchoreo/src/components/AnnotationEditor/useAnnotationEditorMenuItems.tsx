@@ -19,7 +19,7 @@ interface UseAnnotationEditorMenuItemsResult {
 /**
  * Hook that provides annotation editor menu items for EntityLayout's UNSTABLE_extraContextMenuItems.
  *
- * Only enabled for managed OpenChoreo entities (Component and System kinds).
+ * Only enabled for managed OpenChoreo entities (entities with the openchoreo.io/managed label).
  *
  * Usage:
  * ```tsx
@@ -43,10 +43,8 @@ export function useAnnotationEditorMenuItems(
 ): UseAnnotationEditorMenuItemsResult {
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const entityKind = entity.kind.toLowerCase();
   const isManaged = entity.metadata.labels?.[CHOREO_LABELS.MANAGED] === 'true';
-  const canEdit =
-    isManaged && (entityKind === 'component' || entityKind === 'system');
+  const canEdit = isManaged;
 
   const handleOpenDialog = useCallback(() => {
     setDialogOpen(true);

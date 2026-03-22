@@ -8,6 +8,8 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
   switch (kindLower) {
     case 'system':
       return 'projects';
+    case 'domain':
+      return 'namespaces';
     case 'component':
       return 'components';
     case 'componenttype':
@@ -54,6 +56,8 @@ export function mapKindToCrdKind(backstageKind: string): string {
   switch (kindLower) {
     case 'system':
       return 'Project';
+    case 'domain':
+      return 'Namespace';
     case 'component':
       return 'Component';
     case 'componenttype':
@@ -138,6 +142,7 @@ export function isSupportedKind(kind: string): boolean {
   const kindLower = kind.toLowerCase();
   return [
     'system',
+    'domain',
     'component',
     'componenttype',
     'traittype',

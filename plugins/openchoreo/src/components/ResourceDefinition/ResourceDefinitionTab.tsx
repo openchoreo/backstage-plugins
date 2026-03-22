@@ -60,6 +60,15 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
+const KIND_DISPLAY_NAMES: Record<string, string> = {
+  System: 'Project',
+  Domain: 'Namespace',
+};
+
+function getKindDisplayName(kind: string): string {
+  return KIND_DISPLAY_NAMES[kind] ?? kind;
+}
+
 /**
  * Tab component for viewing and editing platform resource CRD definitions.
  *
@@ -291,8 +300,7 @@ export function ResourceDefinitionTab() {
     <Box className={classes.container}>
       <Box className={classes.header}>
         <Typography variant="h6">
-          {entity.kind === 'System' ? 'Project' : entity.kind} Definition:{' '}
-          {entity.metadata.name}
+          {getKindDisplayName(entity.kind)} Definition: {entity.metadata.name}
         </Typography>
       </Box>
 

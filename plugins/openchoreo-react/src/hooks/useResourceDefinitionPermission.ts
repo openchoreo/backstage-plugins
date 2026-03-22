@@ -38,6 +38,8 @@ import {
   openchoreoClusterWorkflowUpdatePermission,
   openchoreoClusterWorkflowDeletePermission,
   openchoreoProjectUpdatePermission,
+  openchoreoNamespaceUpdatePermission,
+  openchoreoNamespaceDeletePermission,
 } from '@openchoreo/backstage-plugin-common';
 
 /**
@@ -71,6 +73,11 @@ const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
   system: {
     update: openchoreoProjectUpdatePermission,
     delete: openchoreoProjectUpdatePermission, // Projects use update permission; delete is handled separately
+    isResourceScoped: true,
+  },
+  domain: {
+    update: openchoreoNamespaceUpdatePermission,
+    delete: openchoreoNamespaceDeletePermission,
     isResourceScoped: true,
   },
   component: {
