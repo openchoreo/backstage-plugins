@@ -267,12 +267,12 @@ function OverviewContent() {
       </EntitySwitch>
       <EntitySwitch>
         <EntitySwitch.Case if={isKind('component')}>
-          <Grid item md={6}>
+          <Grid item md={6} xs={12}>
             <OpenChoreoAboutCard variant="gridItem" showEditIcon />
           </Grid>
         </EntitySwitch.Case>
         <EntitySwitch.Case>
-          <Grid item md={6}>
+          <Grid item md={6} xs={12}>
             <EntityAboutCard variant="gridItem" />
           </Grid>
         </EntitySwitch.Case>
