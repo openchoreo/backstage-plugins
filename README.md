@@ -71,7 +71,7 @@ yarn install
 
 If you're running OpenChoreo locally and want to connect Backstage (running at localhost:3000/7007) to it:
 
-**Note:** The following steps are for the [single cluster setup](https://openchoreo.dev/docs/next/getting-started/try-it-out/on-self-hosted-kubernetes/).
+**Note:** The following steps are for the [single cluster setup](https://openchoreo.dev/docs/getting-started/try-it-out/on-your-environment/).
 
 ```bash
 helm upgrade openchoreo-control-plane oci://ghcr.io/openchoreo/helm-charts/openchoreo-control-plane \
@@ -410,7 +410,7 @@ When annotations are present, you'll see:
 - **Status cards** on the component Overview page (replaces the Workflows card when external CI is configured)
 - **Dedicated tabs** (Jenkins, GitHub Actions, or GitLab) with full build history
 
-For detailed setup instructions, see the [External CI Integration Guide](https://openchoreo.dev/docs/integrating-with-openchoreo/external-ci).
+For detailed setup instructions, see the [External CI Integration Guide](https://openchoreo.dev/docs/platform-engineer-guide/workflows/external-ci/).
 
 ## Documentation
 

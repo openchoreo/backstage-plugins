@@ -37,7 +37,7 @@ export const NoTraitsAvailableMessage = () => {
           Once created, they'll appear here for selection.
         </Typography>
         <Link
-          href="https://openchoreo.dev/docs/next/reference/api/platform/trait/"
+          href="https://openchoreo.dev/docs/reference/api/platform/trait/"
           target="_blank"
           rel="noopener noreferrer"
           variant="body2"
