@@ -10,7 +10,9 @@ import {
   CircularProgress,
   Box,
   Typography,
+  Link,
 } from '@material-ui/core';
+import { NotificationBanner } from '@openchoreo/backstage-plugin-react';
 import {
   useApi,
   discoveryApiRef,
@@ -230,13 +232,16 @@ export const BuildWorkflowPicker = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespaceName, isClusterComponentType]);
 
+  const hasAllowedWorkflows =
+    Array.isArray(allowedWorkflows) && allowedWorkflows.length > 0;
+
   // Separate filtering from fetching so that allowedWorkflows changes are
   // reflected without triggering a full re-fetch.
   const filteredOptions = useMemo(() => {
-    if (!allowedWorkflows || allowedWorkflows.length === 0) {
-      return workflowOptions;
+    if (!hasAllowedWorkflows) {
+      return [];
     }
-    const normalizedAllowed = allowedWorkflows.map(w => ({
+    const normalizedAllowed = allowedWorkflows!.map(w => ({
       kind: (w.kind as WorkflowKind | undefined) ?? defaultWorkflowKind,
       name: w.name,
     }));
@@ -245,7 +250,12 @@ export const BuildWorkflowPicker = ({
         aw => aw.name === opt.name && aw.kind === opt.kind,
       ),
     );
-  }, [workflowOptions, allowedWorkflows, defaultWorkflowKind]);
+  }, [
+    workflowOptions,
+    allowedWorkflows,
+    hasAllowedWorkflows,
+    defaultWorkflowKind,
+  ]);
 
   const handleDropdownChange = (event: ChangeEvent<{ value: unknown }>) => {
     const key = event.target.value as string;
@@ -260,54 +270,84 @@ export const BuildWorkflowPicker = ({
 
   // Standard dropdown for non-buildpack workflows
   return (
-    <FormControl
-      fullWidth
-      margin="normal"
-      variant="outlined"
-      error={!!rawErrors?.length || !!error}
-      required={required}
-    >
-      <InputLabel id={`${idSchema?.$id}-label`}>{label}</InputLabel>
-      <Select
-        labelId={`${idSchema?.$id}-label`}
-        label={label}
-        value={selectedKey || ''}
-        onChange={handleDropdownChange}
-        disabled={loading || filteredOptions.length === 0}
-      >
-        {loading && (
-          <MenuItem disabled>
-            <CircularProgress size={20} style={{ marginRight: 8 }} />
-            Loading workflows...
-          </MenuItem>
-        )}
-        {!loading && filteredOptions.length === 0 && (
-          <MenuItem disabled>No workflows available</MenuItem>
-        )}
-        {!loading &&
-          filteredOptions.map(workflow => (
-            <MenuItem key={workflowKey(workflow)} value={workflowKey(workflow)}>
-              <Box display="flex" flexDirection="column">
-                <Typography variant="body1">
-                  {getWorkflowDisplayName(workflow)}
-                </Typography>
-                {workflow.description && (
-                  <Typography variant="body2" color="textSecondary">
-                    {workflow.description}
-                  </Typography>
-                )}
-              </Box>
-            </MenuItem>
-          ))}
-      </Select>
-      {error && <FormHelperText error>{error}</FormHelperText>}
-      {rawErrors?.length ? (
-        <FormHelperText error>{rawErrors.join(', ')}</FormHelperText>
-      ) : null}
-      {schema.description && !rawErrors?.length && !error && (
-        <FormHelperText>{schema.description}</FormHelperText>
+    <>
+      {!hasAllowedWorkflows && !loading && (
+        <NotificationBanner
+          variant="warning"
+          showIcon
+          message={
+            <>
+              This component type does not have any build workflows configured.
+              To enable building from source, configure allowed workflows in the
+              component type definition.{' '}
+              <Link
+                href="https://openchoreo.dev/docs/reference/api/platform/componenttype/#workflowref"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Learn more
+              </Link>
+            </>
+          }
+        />
       )}
-    </FormControl>
+      <FormControl
+        fullWidth
+        margin="normal"
+        variant="outlined"
+        error={!!rawErrors?.length || !!error}
+        required={required}
+      >
+        <InputLabel id={`${idSchema?.$id}-label`}>{label}</InputLabel>
+        <Select
+          labelId={`${idSchema?.$id}-label`}
+          label={label}
+          value={selectedKey || ''}
+          onChange={handleDropdownChange}
+          disabled={loading}
+        >
+          {loading && (
+            <MenuItem disabled>
+              <CircularProgress size={20} style={{ marginRight: 8 }} />
+              Loading workflows...
+            </MenuItem>
+          )}
+          {!loading && !hasAllowedWorkflows && (
+            <MenuItem disabled>
+              No build workflows are allowed for this component type
+            </MenuItem>
+          )}
+          {!loading && hasAllowedWorkflows && filteredOptions.length === 0 && (
+            <MenuItem disabled>No workflows available</MenuItem>
+          )}
+          {!loading &&
+            filteredOptions.map(workflow => (
+              <MenuItem
+                key={workflowKey(workflow)}
+                value={workflowKey(workflow)}
+              >
+                <Box display="flex" flexDirection="column">
+                  <Typography variant="body1">
+                    {getWorkflowDisplayName(workflow)}
+                  </Typography>
+                  {workflow.description && (
+                    <Typography variant="body2" color="textSecondary">
+                      {workflow.description}
+                    </Typography>
+                  )}
+                </Box>
+              </MenuItem>
+            ))}
+        </Select>
+        {error && <FormHelperText error>{error}</FormHelperText>}
+        {rawErrors?.length ? (
+          <FormHelperText error>{rawErrors.join(', ')}</FormHelperText>
+        ) : null}
+        {schema.description && !rawErrors?.length && !error && (
+          <FormHelperText>{schema.description}</FormHelperText>
+        )}
+      </FormControl>
+    </>
   );
 };
 
