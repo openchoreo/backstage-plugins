@@ -8,7 +8,7 @@ export const useStyles = makeStyles(theme => ({
     borderLeft: `4px solid`,
     backgroundColor: theme.palette.background.paper,
     position: 'relative',
-    gap: theme.spacing(1),
+    gap: theme.spacing(1.5),
   },
   primary: {
     borderLeftColor: theme.palette.primary.main,
