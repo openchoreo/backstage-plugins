@@ -64,9 +64,7 @@ import { PlatformOverviewPage } from './components/platformOverview';
 import {
   AlertDisplay,
   OAuthRequestDialog,
-  Progress,
   SignInPage,
-  UserIdentity,
 } from '@backstage/core-components';
 import { createApp } from '@backstage/app-defaults';
 import { AppRouter, FlatRoutes } from '@backstage/core-app-api';
@@ -97,77 +95,8 @@ import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
-import { configApiRef, errorApiRef, useApi } from '@backstage/core-plugin-api';
-import { useEffect, useState } from 'react';
+import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { DependencyGraphZoomOverrides } from './components/graph/DependencyGraphZoomOverrides';
-
-/**
- * Sign-in component used when enableExperimentalRedirectFlow is true.
- * Skips the sign-in page entirely — immediately checks for an existing session
- * and triggers a full-page redirect to the IDP if none is found.
- */
-function AutoRedirectSignInPage(props: any) {
-  const { onSignInSuccess } = props;
-  const authApi = useApi(openChoreoAuthApiRef);
-  const errorApi = useApi(errorApiRef);
-  const [authError, setAuthError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    authApi
-      .getBackstageIdentity({ optional: true })
-      .then(async existingIdentity => {
-        if (existingIdentity) {
-          const profile = await authApi.getProfile();
-          onSignInSuccess(
-            UserIdentity.create({
-              identity: existingIdentity.identity,
-              authApi,
-              profile,
-            }),
-          );
-        } else {
-          // With enableExperimentalRedirectFlow: true this redirects the whole page.
-          // If the redirect doesn't occur, capture and handle the returned identity.
-          const identity = await authApi.getBackstageIdentity({
-            instantPopup: true,
-          });
-          if (identity) {
-            const profile = await authApi.getProfile();
-            onSignInSuccess(
-              UserIdentity.create({
-                identity: identity.identity,
-                authApi,
-                profile,
-              }),
-            );
-          }
-        }
-      })
-      .catch((err: Error) => {
-        errorApi.post(err);
-        setAuthError(err);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // On error, fall back to the standard sign-in page so the user can retry
-  if (authError) {
-    return (
-      <SignInPage
-        {...props}
-        auto
-        provider={{
-          id: 'openchoreo-auth',
-          title: 'OpenChoreo',
-          message: 'Sign in using OpenChoreo',
-          apiRef: openChoreoAuthApiRef,
-        }}
-      />
-    );
-  }
-
-  return <Progress />;
-}
 
 /**
  * Dynamic SignInPage that switches between OAuth and Guest mode
@@ -190,19 +119,12 @@ function DynamicSignInPage(props: any) {
     return <SignInPage {...props} auto providers={['guest']} />;
   }
 
-  // When redirect flow is enabled, skip the sign-in page entirely and redirect immediately
-  const enableExperimentalRedirectFlow =
-    configApi.getOptionalBoolean('enableExperimentalRedirectFlow') ?? false;
-
-  if (enableExperimentalRedirectFlow) {
-    return <AutoRedirectSignInPage {...props} />;
-  }
-
-  // Default: OpenChoreo Auth (works with any OIDC-compliant IDP)
+  // Default: OpenChoreo Auth (works with any OIDC-compliant IDP).
+  // The sign-in page is always shown with a login button. The OAuth2 provider
+  // handles popup vs. redirect based on the enableExperimentalRedirectFlow config.
   return (
     <SignInPage
       {...props}
-      auto
       provider={{
         id: 'openchoreo-auth',
         title: 'OpenChoreo',
