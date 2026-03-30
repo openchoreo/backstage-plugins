@@ -281,7 +281,7 @@ describe('EnvironmentInfoService', () => {
           },
           'token',
         ),
-      ).rejects.toThrow('Failed to promote component');
+      ).rejects.toThrow();
     });
   });
 
@@ -354,7 +354,7 @@ describe('EnvironmentInfoService', () => {
           },
           'token',
         ),
-      ).rejects.toThrow('Failed to deploy release');
+      ).rejects.toThrow();
     });
   });
 

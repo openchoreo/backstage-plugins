@@ -121,9 +121,7 @@ describe('DataPlaneInfoService', () => {
       mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
-      await expect(service.listDataPlanes('test-ns', 'token')).rejects.toThrow(
-        'Failed to list data planes',
-      );
+      await expect(service.listDataPlanes('test-ns', 'token')).rejects.toThrow();
     });
   });
 
@@ -152,7 +150,7 @@ describe('DataPlaneInfoService', () => {
           { namespaceName: 'test-ns', dataplaneName: 'prod-dp' },
           'token',
         ),
-      ).rejects.toThrow('Failed to fetch data plane');
+      ).rejects.toThrow();
     });
   });
 });

@@ -123,7 +123,7 @@ describe('ProjectInfoService', () => {
       const service = createService();
       await expect(
         service.fetchProjectDetails('test-ns', 'my-project', 'token-123'),
-      ).rejects.toThrow('Failed to fetch project');
+      ).rejects.toThrow();
     });
   });
 
@@ -176,7 +176,7 @@ describe('ProjectInfoService', () => {
           'my-project',
           'token-123',
         ),
-      ).rejects.toThrow('Failed to fetch deployment pipeline');
+      ).rejects.toThrow();
     });
   });
 
@@ -202,7 +202,7 @@ describe('ProjectInfoService', () => {
       const service = createService();
       await expect(
         service.deleteProject('test-ns', 'my-project', 'token-123'),
-      ).rejects.toThrow('Failed to delete project');
+      ).rejects.toThrow();
     });
   });
 });

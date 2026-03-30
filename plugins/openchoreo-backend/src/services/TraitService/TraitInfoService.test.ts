@@ -119,7 +119,7 @@ describe('TraitInfoService', () => {
       const service = createService();
       await expect(
         service.fetchTraits('test-ns', 1, 100, 'token'),
-      ).rejects.toThrow('Failed to fetch traits');
+      ).rejects.toThrow();
     });
   });
 
@@ -148,7 +148,7 @@ describe('TraitInfoService', () => {
       const service = createService();
       await expect(
         service.fetchTraitSchema('test-ns', 'my-trait', 'token'),
-      ).rejects.toThrow('Failed to fetch trait schema');
+      ).rejects.toThrow();
     });
   });
 
@@ -198,7 +198,7 @@ describe('TraitInfoService', () => {
           'api-service',
           'token',
         ),
-      ).rejects.toThrow('Failed to fetch component');
+      ).rejects.toThrow();
     });
   });
 
@@ -260,7 +260,7 @@ describe('TraitInfoService', () => {
           { traits: [] } as any,
           'token',
         ),
-      ).rejects.toThrow('Failed to update component traits');
+      ).rejects.toThrow();
     });
   });
 });

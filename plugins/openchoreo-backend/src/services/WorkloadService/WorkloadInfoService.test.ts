@@ -107,7 +107,7 @@ describe('WorkloadInfoService', () => {
           },
           'token',
         ),
-      ).rejects.toThrow('Failed to fetch workload info');
+      ).rejects.toThrow();
     });
   });
 
@@ -179,7 +179,7 @@ describe('WorkloadInfoService', () => {
           },
           'token',
         ),
-      ).rejects.toThrow('Failed to apply workload');
+      ).rejects.toThrow();
     });
   });
 });

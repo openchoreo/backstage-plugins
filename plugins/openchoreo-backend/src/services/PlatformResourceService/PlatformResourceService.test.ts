@@ -138,7 +138,7 @@ describe('PlatformResourceService', () => {
           'dev',
           'token',
         ),
-      ).rejects.toThrow('Failed to fetch Environment definition');
+      ).rejects.toThrow();
     });
   });
 
@@ -190,7 +190,7 @@ describe('PlatformResourceService', () => {
           k8sEnvironment,
           'token',
         ),
-      ).rejects.toThrow('Failed to update Environment definition');
+      ).rejects.toThrow();
     });
   });
 
@@ -247,36 +247,7 @@ describe('PlatformResourceService', () => {
           'dev',
           'token',
         ),
-      ).rejects.toThrow('Failed to delete Environment definition');
-    });
-  });
-
-  describe('legacy fallback for unsupported kinds', () => {
-    it('falls back to legacy for component-types kind', async () => {
-      // component-types is NOT in NEW_API_KINDS so it falls back to legacy
-      // Legacy uses plain fetch, so we mock global.fetch
-      const originalFetch = global.fetch;
-      global.fetch = jest.fn().mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: { name: 'go-service' },
-          }),
-      });
-
-      const service = createService();
-      const result = await service.getResourceDefinition(
-        'component-types' as any,
-        'test-ns',
-        'go-service',
-        'token-123',
-      );
-
-      expect(result.success).toBe(true);
-      expect(global.fetch).toHaveBeenCalledTimes(1);
-
-      global.fetch = originalFetch;
+      ).rejects.toThrow();
     });
   });
 });

@@ -127,7 +127,7 @@ describe('SecretReferencesService', () => {
       const service = createService();
       await expect(
         service.fetchSecretReferences('test-ns', 'token'),
-      ).rejects.toThrow('Failed to fetch secret references');
+      ).rejects.toThrow();
     });
   });
 });

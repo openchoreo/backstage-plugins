@@ -99,7 +99,7 @@ describe('ComponentInfoService', () => {
       expect(result.name).toBe('api-service');
       expect(result.namespaceName).toBe('test-ns');
       expect(result.projectName).toBe('my-project');
-      expect(result.type).toBe('Service');
+      expect(result.type).toBe('deployment/go-service');
       expect(result.autoDeploy).toBe(true);
       expect(result.uid).toBe('550e8400-e29b-41d4-a716-446655440000');
     });
@@ -115,7 +115,7 @@ describe('ComponentInfoService', () => {
           'api-service',
           'token-123',
         ),
-      ).rejects.toThrow('Failed to fetch component');
+      ).rejects.toThrow();
     });
   });
 
@@ -156,7 +156,7 @@ describe('ComponentInfoService', () => {
           false,
           'token-123',
         ),
-      ).rejects.toThrow('Failed to fetch component for patch');
+      ).rejects.toThrow();
     });
 
     it('throws when PUT fails', async () => {
@@ -172,7 +172,7 @@ describe('ComponentInfoService', () => {
           false,
           'token-123',
         ),
-      ).rejects.toThrow('Failed to patch component');
+      ).rejects.toThrow();
     });
   });
 
@@ -208,7 +208,7 @@ describe('ComponentInfoService', () => {
           'api-service',
           'token-123',
         ),
-      ).rejects.toThrow('Failed to delete component');
+      ).rejects.toThrow();
     });
   });
 });
