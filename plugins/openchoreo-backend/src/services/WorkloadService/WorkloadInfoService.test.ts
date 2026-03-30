@@ -1,4 +1,5 @@
 import { mockServices } from '@backstage/backend-test-utils';
+import { createOkResponse, createErrorResponse } from '@openchoreo/test-utils';
 import { WorkloadInfoService } from './WorkloadInfoService';
 
 // ---------------------------------------------------------------------------
@@ -51,18 +52,6 @@ function createService() {
   return new WorkloadInfoService(mockLogger, 'http://test:8080');
 }
 
-function okResponse(data: any) {
-  return { data, error: undefined, response: { ok: true, status: 200 } };
-}
-
-function errorResponse(status = 500) {
-  return {
-    data: undefined,
-    error: { message: 'fail' },
-    response: { ok: false, status, statusText: 'Internal Server Error' },
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -74,7 +63,7 @@ describe('WorkloadInfoService', () => {
 
   describe('fetchWorkloadInfo', () => {
     it('fetches workload and returns full resource', async () => {
-      mockGET.mockResolvedValueOnce(okResponse({ items: [k8sWorkload] }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [k8sWorkload] }));
 
       const service = createService();
       const result = await service.fetchWorkloadInfo(
@@ -90,7 +79,7 @@ describe('WorkloadInfoService', () => {
     });
 
     it('returns null when no workload found', async () => {
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
 
       const service = createService();
       const result = await service.fetchWorkloadInfo(
@@ -106,7 +95,7 @@ describe('WorkloadInfoService', () => {
     });
 
     it('throws on API error', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -128,7 +117,7 @@ describe('WorkloadInfoService', () => {
         ...k8sWorkload,
         spec: { ...workloadSpec, replicas: 3 },
       };
-      mockPUT.mockResolvedValueOnce(okResponse(updatedWorkload));
+      mockPUT.mockResolvedValueOnce(createOkResponse(updatedWorkload));
 
       const service = createService();
       const result = await service.applyWorkload(
@@ -156,7 +145,7 @@ describe('WorkloadInfoService', () => {
         metadata: { name: 'api-service-workload' },
         spec: workloadSpec,
       };
-      mockPOST.mockResolvedValueOnce(okResponse(createdWorkload));
+      mockPOST.mockResolvedValueOnce(createOkResponse(createdWorkload));
 
       const service = createService();
       const result = await service.applyWorkload(
@@ -176,7 +165,7 @@ describe('WorkloadInfoService', () => {
     });
 
     it('throws when PUT fails', async () => {
-      mockPUT.mockResolvedValueOnce(errorResponse());
+      mockPUT.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(

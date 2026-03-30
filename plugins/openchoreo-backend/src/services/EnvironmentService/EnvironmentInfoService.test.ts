@@ -1,5 +1,6 @@
 import { mockServices } from '@backstage/backend-test-utils';
 import { EnvironmentInfoService } from './EnvironmentInfoService';
+import { createOkResponse, createErrorResponse } from '@openchoreo/test-utils';
 
 // ---------------------------------------------------------------------------
 // Mock the client-node module
@@ -151,18 +152,6 @@ function createService() {
   return EnvironmentInfoService.create(mockLogger, 'http://test:8080');
 }
 
-function okResponse(data: any) {
-  return { data, error: undefined, response: { ok: true, status: 200 } };
-}
-
-function errorResponse(status = 500) {
-  return {
-    data: undefined,
-    error: { message: 'fail' },
-    response: { ok: false, status, statusText: 'Internal Server Error' },
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -176,14 +165,14 @@ describe('EnvironmentInfoService', () => {
     it('fetches environments, bindings, and pipeline then returns combined data', async () => {
       // 1. environments (via fetchAllPages)
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: [k8sEnvironment], pagination: {} }),
+        createOkResponse({ items: [k8sEnvironment], pagination: {} }),
       );
       // 2. release bindings
-      mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [k8sReleaseBinding] }));
       // 3. project (to get deploymentPipelineRef)
-      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
       // 4. deployment pipeline by name
-      mockGET.mockResolvedValueOnce(okResponse(k8sPipeline));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
@@ -205,14 +194,14 @@ describe('EnvironmentInfoService', () => {
 
     it('returns environments even when bindings fetch fails', async () => {
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: [k8sEnvironment], pagination: {} }),
+        createOkResponse({ items: [k8sEnvironment], pagination: {} }),
       );
       // bindings fail
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
       // project
-      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
       // pipeline by name
-      mockGET.mockResolvedValueOnce(okResponse(k8sPipeline));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
@@ -230,10 +219,10 @@ describe('EnvironmentInfoService', () => {
     });
 
     it('returns empty array when no environments found', async () => {
-      mockGET.mockResolvedValueOnce(okResponse({ items: [], pagination: {} }));
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
       // project with no pipeline ref
-      mockGET.mockResolvedValueOnce(okResponse(k8sProjectNoPipeline));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectNoPipeline));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
@@ -252,14 +241,14 @@ describe('EnvironmentInfoService', () => {
   describe('promoteComponent', () => {
     it('calls promote endpoint then refetches deployment info', async () => {
       // POST promote
-      mockPOST.mockResolvedValueOnce(okResponse({}));
+      mockPOST.mockResolvedValueOnce(createOkResponse({}));
       // Then fetchDeploymentInfo internally calls 4 GETs:
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: [k8sEnvironment], pagination: {} }),
+        createOkResponse({ items: [k8sEnvironment], pagination: {} }),
       );
-      mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
-      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
-      mockGET.mockResolvedValueOnce(okResponse(k8sPipeline));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [k8sReleaseBinding] }));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
 
       const service = createService();
       const result = await service.promoteComponent(
@@ -278,7 +267,7 @@ describe('EnvironmentInfoService', () => {
     });
 
     it('throws when promote API fails', async () => {
-      mockPOST.mockResolvedValueOnce(errorResponse());
+      mockPOST.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -304,11 +293,11 @@ describe('EnvironmentInfoService', () => {
       });
       // fetchDeploymentInfo calls
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: [k8sEnvironment], pagination: {} }),
+        createOkResponse({ items: [k8sEnvironment], pagination: {} }),
       );
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
       // project with no pipeline ref
-      mockGET.mockResolvedValueOnce(okResponse(k8sProjectNoPipeline));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectNoPipeline));
 
       const service = createService();
       const result = await service.deleteReleaseBinding(
@@ -328,13 +317,13 @@ describe('EnvironmentInfoService', () => {
 
   describe('deployRelease', () => {
     it('deploys release and refetches deployment info', async () => {
-      mockPOST.mockResolvedValueOnce(okResponse({}));
+      mockPOST.mockResolvedValueOnce(createOkResponse({}));
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: [k8sEnvironment], pagination: {} }),
+        createOkResponse({ items: [k8sEnvironment], pagination: {} }),
       );
-      mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
-      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
-      mockGET.mockResolvedValueOnce(okResponse(k8sPipeline));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [k8sReleaseBinding] }));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
 
       const service = createService();
       const result = await service.deployRelease(
@@ -352,7 +341,7 @@ describe('EnvironmentInfoService', () => {
     });
 
     it('throws when deploy fails', async () => {
-      mockPOST.mockResolvedValueOnce(errorResponse());
+      mockPOST.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -371,7 +360,7 @@ describe('EnvironmentInfoService', () => {
 
   describe('fetchReleaseBindings', () => {
     it('returns release bindings from new API', async () => {
-      mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [k8sReleaseBinding] }));
 
       const service = createService();
       const result = await service.fetchReleaseBindings(
@@ -390,7 +379,7 @@ describe('EnvironmentInfoService', () => {
   describe('fetchComponentReleaseSchema', () => {
     it('returns schema from new API', async () => {
       const schema = { type: 'object', properties: {} };
-      mockGET.mockResolvedValueOnce(okResponse(schema));
+      mockGET.mockResolvedValueOnce(createOkResponse(schema));
 
       const service = createService();
       const result = await service.fetchComponentReleaseSchema(
@@ -451,14 +440,14 @@ describe('EnvironmentInfoService', () => {
     it('only returns pipeline environments when pipeline exists', async () => {
       // environments (5 in namespace)
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: allEnvs, pagination: {} }),
+        createOkResponse({ items: allEnvs, pagination: {} }),
       );
       // bindings (none)
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
       // project
-      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
       // pipeline by name
-      mockGET.mockResolvedValueOnce(okResponse(pipelineDevStagingProd));
+      mockGET.mockResolvedValueOnce(createOkResponse(pipelineDevStagingProd));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
@@ -478,11 +467,11 @@ describe('EnvironmentInfoService', () => {
 
     it('returns environments in pipeline order', async () => {
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: allEnvs, pagination: {} }),
+        createOkResponse({ items: allEnvs, pagination: {} }),
       );
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
-      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
-      mockGET.mockResolvedValueOnce(okResponse(pipelineDevStagingProd));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(pipelineDevStagingProd));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
@@ -501,11 +490,11 @@ describe('EnvironmentInfoService', () => {
 
     it('returns all environments when no pipeline exists', async () => {
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: allEnvs, pagination: {} }),
+        createOkResponse({ items: allEnvs, pagination: {} }),
       );
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
       // project with no pipeline ref
-      mockGET.mockResolvedValueOnce(okResponse(k8sProjectNoPipeline));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectNoPipeline));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
@@ -526,11 +515,11 @@ describe('EnvironmentInfoService', () => {
         spec: { promotionPaths: [] },
       };
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: allEnvs, pagination: {} }),
+        createOkResponse({ items: allEnvs, pagination: {} }),
       );
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
-      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
-      mockGET.mockResolvedValueOnce(okResponse(emptyPipeline));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(emptyPipeline));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(

@@ -1,4 +1,5 @@
 import { mockServices } from '@backstage/backend-test-utils';
+import { createOkResponse, createErrorResponse } from '@openchoreo/test-utils';
 import { DashboardInfoService } from './DashboardInfoService';
 
 // ---------------------------------------------------------------------------
@@ -24,18 +25,6 @@ function createService() {
   return new DashboardInfoService(mockLogger, 'http://test:8080');
 }
 
-function okResponse(data: any) {
-  return { data, error: undefined, response: { ok: true, status: 200 } };
-}
-
-function errorResponse(status = 500) {
-  return {
-    data: undefined,
-    error: { message: 'fail' },
-    response: { ok: false, status, statusText: 'Internal Server Error' },
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -51,7 +40,7 @@ describe('DashboardInfoService', () => {
         { metadata: { name: 'comp-dev' } },
         { metadata: { name: 'comp-staging' } },
       ];
-      mockGET.mockResolvedValueOnce(okResponse({ items: bindings }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: bindings }));
 
       const service = createService();
       const result = await service.fetchDashboardMetrics(
@@ -65,7 +54,7 @@ describe('DashboardInfoService', () => {
     });
 
     it('returns 0 when no bindings exist', async () => {
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
 
       const service = createService();
       const result = await service.fetchDashboardMetrics(
@@ -79,7 +68,7 @@ describe('DashboardInfoService', () => {
     });
 
     it('returns 0 on API error (does not throw)', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       const result = await service.fetchDashboardMetrics(
@@ -97,10 +86,10 @@ describe('DashboardInfoService', () => {
     it('sums binding counts across multiple components', async () => {
       // First component: 2 bindings
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: [{ metadata: {} }, { metadata: {} }] }),
+        createOkResponse({ items: [{ metadata: {} }, { metadata: {} }] }),
       );
       // Second component: 1 binding
-      mockGET.mockResolvedValueOnce(okResponse({ items: [{ metadata: {} }] }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [{ metadata: {} }] }));
 
       const service = createService();
       const result = await service.fetchComponentsBindingsCount(

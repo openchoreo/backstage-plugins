@@ -1,4 +1,5 @@
 import { mockServices } from '@backstage/backend-test-utils';
+import { createOkResponse, createErrorResponse } from '@openchoreo/test-utils';
 import { TraitInfoService } from './TraitInfoService';
 
 // ---------------------------------------------------------------------------
@@ -86,18 +87,6 @@ function createService() {
   return new TraitInfoService(mockLogger, 'http://test:8080');
 }
 
-function okResponse(data: any) {
-  return { data, error: undefined, response: { ok: true, status: 200 } };
-}
-
-function errorResponse(status = 500) {
-  return {
-    data: undefined,
-    error: { message: 'fail' },
-    response: { ok: false, status, statusText: 'Internal Server Error' },
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -110,7 +99,7 @@ describe('TraitInfoService', () => {
   describe('fetchTraits', () => {
     it('fetches traits via new API and maps to legacy shape', async () => {
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: [k8sTrait], pagination: {} }),
+        createOkResponse({ items: [k8sTrait], pagination: {} }),
       );
 
       const service = createService();
@@ -125,7 +114,7 @@ describe('TraitInfoService', () => {
     });
 
     it('throws on API error', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -140,7 +129,7 @@ describe('TraitInfoService', () => {
         type: 'object',
         properties: { key: { type: 'string' } },
       };
-      mockGET.mockResolvedValueOnce(okResponse(schemaData));
+      mockGET.mockResolvedValueOnce(createOkResponse(schemaData));
 
       const service = createService();
       const result = await service.fetchTraitSchema(
@@ -154,7 +143,7 @@ describe('TraitInfoService', () => {
     });
 
     it('throws on API error', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -165,7 +154,7 @@ describe('TraitInfoService', () => {
 
   describe('fetchComponentTraits', () => {
     it('extracts traits from component spec', async () => {
-      mockGET.mockResolvedValueOnce(okResponse(k8sComponent));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sComponent));
 
       const service = createService();
       const result = await service.fetchComponentTraits(
@@ -185,7 +174,7 @@ describe('TraitInfoService', () => {
         ...k8sComponent,
         spec: { ...componentSpec, traits: undefined },
       };
-      mockGET.mockResolvedValueOnce(okResponse(noTraits));
+      mockGET.mockResolvedValueOnce(createOkResponse(noTraits));
 
       const service = createService();
       const result = await service.fetchComponentTraits(
@@ -199,7 +188,7 @@ describe('TraitInfoService', () => {
     });
 
     it('throws on API error', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -215,14 +204,14 @@ describe('TraitInfoService', () => {
 
   describe('updateComponentTraits', () => {
     it('GETs component then PUTs with updated traits', async () => {
-      mockGET.mockResolvedValueOnce(okResponse(k8sComponent));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sComponent));
 
       const updatedTraits = [{ name: 'ingress', values: { path: '/v2' } }];
       const updatedComponent = {
         ...k8sComponent,
         spec: { ...componentSpec, traits: updatedTraits },
       };
-      mockPUT.mockResolvedValueOnce(okResponse(updatedComponent));
+      mockPUT.mockResolvedValueOnce(createOkResponse(updatedComponent));
 
       const service = createService();
       const result = await service.updateComponentTraits(
@@ -244,7 +233,7 @@ describe('TraitInfoService', () => {
         ...k8sComponent,
         spec: { traits: [] },
       };
-      mockGET.mockResolvedValueOnce(okResponse(noOwner));
+      mockGET.mockResolvedValueOnce(createOkResponse(noOwner));
 
       const service = createService();
       await expect(
@@ -259,8 +248,8 @@ describe('TraitInfoService', () => {
     });
 
     it('throws when PUT fails', async () => {
-      mockGET.mockResolvedValueOnce(okResponse(k8sComponent));
-      mockPUT.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sComponent));
+      mockPUT.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(

@@ -1,4 +1,5 @@
 import { mockServices } from '@backstage/backend-test-utils';
+import { createOkResponse, createErrorResponse } from '@openchoreo/test-utils';
 import { ProjectInfoService } from './ProjectInfoService';
 
 // ---------------------------------------------------------------------------
@@ -86,18 +87,6 @@ function createService() {
   return new ProjectInfoService(mockLogger, 'http://test:8080');
 }
 
-function okResponse(data: any) {
-  return { data, error: undefined, response: { ok: true, status: 200 } };
-}
-
-function errorResponse(status = 500) {
-  return {
-    data: undefined,
-    error: { message: 'fail' },
-    response: { ok: false, status, statusText: 'Internal Server Error' },
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -109,7 +98,7 @@ describe('ProjectInfoService', () => {
 
   describe('fetchProjectDetails', () => {
     it('calls new API endpoint and transforms response', async () => {
-      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
 
       const service = createService();
       const result = await service.fetchProjectDetails(
@@ -129,7 +118,7 @@ describe('ProjectInfoService', () => {
     });
 
     it('throws on API error', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -141,9 +130,9 @@ describe('ProjectInfoService', () => {
   describe('fetchProjectDeploymentPipeline', () => {
     it('fetches project then pipeline and transforms', async () => {
       // First call: fetch project to get deploymentPipelineRef
-      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
       // Second call: fetch the pipeline by name
-      mockGET.mockResolvedValueOnce(okResponse(k8sPipeline));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
 
       const service = createService();
       const result = await service.fetchProjectDeploymentPipeline(
@@ -164,7 +153,7 @@ describe('ProjectInfoService', () => {
         ...k8sProject,
         spec: { deploymentPipelineRef: undefined },
       };
-      mockGET.mockResolvedValueOnce(okResponse(noPipeline));
+      mockGET.mockResolvedValueOnce(createOkResponse(noPipeline));
 
       const service = createService();
       await expect(
@@ -177,8 +166,8 @@ describe('ProjectInfoService', () => {
     });
 
     it('throws when pipeline fetch fails', async () => {
-      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(

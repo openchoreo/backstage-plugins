@@ -69,28 +69,27 @@ jobs:
       - name: Security audit
         run: yarn npm audit --environment production --severity high
 
-  # TODO: Add test job once test coverage is improved.
-  # test:
-  #   name: Tests
-  #   runs-on: ubuntu-24.04
-  #   strategy:
-  #     matrix:
-  #       node-version: [22]
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-  #
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-  #       with:
-  #         node-version: ${{ matrix.node-version }}
-  #         cache: "yarn"
-  #
-  #     - name: Install dependencies
-  #       run: yarn install --immutable
-  #
-  #     - name: Run tests
-  #       run: yarn test
+  test:
+    name: Tests
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        node-version: [22]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Run tests
+        run: yarn test
 
   build:
     name: Build
@@ -121,8 +120,7 @@ jobs:
     name: Publish
     runs-on: ubuntu-24.04
     if: github.event_name == 'push'
-    # TODO: Add test to needs once test job is enabled.
-    needs: [lint, audit, build]
+    needs: [lint, audit, test, build]
     permissions:
       packages: write
     steps:
