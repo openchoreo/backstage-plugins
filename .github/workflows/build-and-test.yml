@@ -91,6 +91,15 @@ jobs:
       - name: Run tests
         run: yarn test
 
+      - name: Check generated types freshness
+        run: |
+          yarn workspace @openchoreo/openchoreo-client-node generate:clients
+          if ! git diff --quiet --exit-code packages/openchoreo-client-node/src/generated/ packages/openchoreo-client-node/src/version.ts; then
+            echo "::error::Generated types are stale. Run 'yarn workspace @openchoreo/openchoreo-client-node generate:clients' and commit the changes."
+            git diff --stat packages/openchoreo-client-node/src/generated/ packages/openchoreo-client-node/src/version.ts
+            exit 1
+          fi
+
   build:
     name: Build
     runs-on: ubuntu-24.04
