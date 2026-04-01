@@ -100,9 +100,7 @@ const k8sClusterRoleBinding = {
 const k8sClusterRoleBinding2 = {
   metadata: { name: 'bind-2', labels: {} },
   spec: {
-    roleMappings: [
-      { roleRef: { kind: 'ClusterAuthzRole', name: 'viewer' } },
-    ],
+    roleMappings: [{ roleRef: { kind: 'ClusterAuthzRole', name: 'viewer' } }],
     entitlement: { claim: 'group', value: 'devs' },
     effect: 'deny',
   },
@@ -125,9 +123,7 @@ const k8sNsRoleBinding = {
 const k8sNsRoleBindingClusterRef = {
   metadata: { name: 'ns-bind-2', labels: {} },
   spec: {
-    roleMappings: [
-      { roleRef: { kind: 'ClusterAuthzRole', name: 'admin' } },
-    ],
+    roleMappings: [{ roleRef: { kind: 'ClusterAuthzRole', name: 'admin' } }],
     entitlement: { claim: 'group', value: 'admins' },
     effect: 'allow',
   },
@@ -243,9 +239,9 @@ describe('AuthzService', () => {
   describe('deleteNamespace', () => {
     it('deletes successfully', async () => {
       mockDELETE.mockResolvedValueOnce({
-          error: undefined,
-          response: { ok: true, status: 200 },
-        });
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
 
       await expect(
         createService().deleteNamespace('org-1'),
@@ -256,13 +252,11 @@ describe('AuthzService', () => {
 
     it('throws on API error', async () => {
       mockDELETE.mockResolvedValueOnce({
-          error: { message: 'fail' },
-          response: { ok: false, status: 404, statusText: 'Not Found' },
-        });
+        error: { message: 'fail' },
+        response: { ok: false, status: 404, statusText: 'Not Found' },
+      });
 
-      await expect(
-        createService().deleteNamespace('org-1'),
-      ).rejects.toThrow();
+      await expect(createService().deleteNamespace('org-1')).rejects.toThrow();
     });
   });
 
@@ -285,9 +279,7 @@ describe('AuthzService', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(createErrorResponse());
 
-      await expect(
-        createService().listProjects('org-1'),
-      ).rejects.toThrow();
+      await expect(createService().listProjects('org-1')).rejects.toThrow();
     });
   });
 
@@ -375,9 +367,7 @@ describe('AuthzService', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(createErrorResponse());
 
-      await expect(
-        createService().getClusterRole('admin'),
-      ).rejects.toThrow();
+      await expect(createService().getClusterRole('admin')).rejects.toThrow();
     });
   });
 
@@ -451,9 +441,9 @@ describe('AuthzService', () => {
   describe('deleteClusterRole', () => {
     it('deletes successfully', async () => {
       mockDELETE.mockResolvedValueOnce({
-          error: undefined,
-          response: { ok: true, status: 200 },
-        });
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
 
       await expect(
         createService().deleteClusterRole('admin'),
@@ -464,9 +454,9 @@ describe('AuthzService', () => {
 
     it('throws on API error', async () => {
       mockDELETE.mockResolvedValueOnce({
-          error: { message: 'fail' },
-          response: { ok: false, status: 404, statusText: 'Not Found' },
-        });
+        error: { message: 'fail' },
+        response: { ok: false, status: 404, statusText: 'Not Found' },
+      });
 
       await expect(
         createService().deleteClusterRole('admin'),
@@ -600,9 +590,9 @@ describe('AuthzService', () => {
   describe('deleteNamespaceRole', () => {
     it('deletes successfully', async () => {
       mockDELETE.mockResolvedValueOnce({
-          error: undefined,
-          response: { ok: true, status: 200 },
-        });
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
 
       await expect(
         createService().deleteNamespaceRole('org-1', 'ns-editor'),
@@ -613,9 +603,9 @@ describe('AuthzService', () => {
 
     it('throws on API error', async () => {
       mockDELETE.mockResolvedValueOnce({
-          error: { message: 'fail' },
-          response: { ok: false, status: 404, statusText: 'Not Found' },
-        });
+        error: { message: 'fail' },
+        response: { ok: false, status: 404, statusText: 'Not Found' },
+      });
 
       await expect(
         createService().deleteNamespaceRole('org-1', 'ns-editor'),
@@ -640,9 +630,7 @@ describe('AuthzService', () => {
       expect(result.data).toHaveLength(2);
       expect(result.data[0]).toEqual({
         name: 'bind-1',
-        roleMappings: [
-          { role: 'admin', scope: { project: 'proj-1' } },
-        ],
+        roleMappings: [{ role: 'admin', scope: { project: 'proj-1' } }],
         entitlement: { claim: 'email', value: 'user@org.com' },
         effect: 'allow',
         labels: {},
@@ -719,25 +707,19 @@ describe('AuthzService', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(createErrorResponse());
 
-      await expect(
-        createService().listClusterRoleBindings(),
-      ).rejects.toThrow();
+      await expect(createService().listClusterRoleBindings()).rejects.toThrow();
     });
   });
 
   describe('getClusterRoleBinding', () => {
     it('transforms single binding', async () => {
-      mockGET.mockResolvedValueOnce(
-        createOkResponse(k8sClusterRoleBinding),
-      );
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sClusterRoleBinding));
 
       const result = await createService().getClusterRoleBinding('bind-1');
 
       expect(result.data).toEqual({
         name: 'bind-1',
-        roleMappings: [
-          { role: 'admin', scope: { project: 'proj-1' } },
-        ],
+        roleMappings: [{ role: 'admin', scope: { project: 'proj-1' } }],
         entitlement: { claim: 'email', value: 'user@org.com' },
         effect: 'allow',
       });
@@ -769,15 +751,11 @@ describe('AuthzService', () => {
 
   describe('createClusterRoleBinding', () => {
     it('creates with ClusterAuthzRole roleRef kind', async () => {
-      mockPOST.mockResolvedValueOnce(
-        createOkResponse(k8sClusterRoleBinding),
-      );
+      mockPOST.mockResolvedValueOnce(createOkResponse(k8sClusterRoleBinding));
 
       const result = await createService().createClusterRoleBinding({
         name: 'bind-1',
-        roleMappings: [
-          { role: 'admin', scope: { project: 'proj-1' } },
-        ],
+        roleMappings: [{ role: 'admin', scope: { project: 'proj-1' } }],
         entitlement: { claim: 'email', value: 'user@org.com' },
         effect: 'allow',
       });
@@ -794,9 +772,7 @@ describe('AuthzService', () => {
     });
 
     it('omits scope when not provided', async () => {
-      mockPOST.mockResolvedValueOnce(
-        createOkResponse(k8sClusterRoleBinding2),
-      );
+      mockPOST.mockResolvedValueOnce(createOkResponse(k8sClusterRoleBinding2));
 
       await createService().createClusterRoleBinding({
         name: 'bind-2',
@@ -823,20 +799,13 @@ describe('AuthzService', () => {
 
   describe('updateClusterRoleBinding', () => {
     it('puts with path name and body', async () => {
-      mockPUT.mockResolvedValueOnce(
-        createOkResponse(k8sClusterRoleBinding),
-      );
+      mockPUT.mockResolvedValueOnce(createOkResponse(k8sClusterRoleBinding));
 
-      const result = await createService().updateClusterRoleBinding(
-        'bind-1',
-        {
-          roleMappings: [
-            { role: 'admin', scope: { project: 'proj-1' } },
-          ],
-          entitlement: { claim: 'email', value: 'user@org.com' },
-          effect: 'allow',
-        },
-      );
+      const result = await createService().updateClusterRoleBinding('bind-1', {
+        roleMappings: [{ role: 'admin', scope: { project: 'proj-1' } }],
+        entitlement: { claim: 'email', value: 'user@org.com' },
+        effect: 'allow',
+      });
 
       expect(result.data.name).toBe('bind-1');
       expect(mockPUT).toHaveBeenCalledTimes(1);
@@ -859,9 +828,9 @@ describe('AuthzService', () => {
   describe('deleteClusterRoleBinding', () => {
     it('deletes successfully', async () => {
       mockDELETE.mockResolvedValueOnce({
-          error: undefined,
-          response: { ok: true, status: 200 },
-        });
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
 
       await expect(
         createService().deleteClusterRoleBinding('bind-1'),
@@ -872,9 +841,9 @@ describe('AuthzService', () => {
 
     it('throws on API error', async () => {
       mockDELETE.mockResolvedValueOnce({
-          error: { message: 'fail' },
-          response: { ok: false, status: 404, statusText: 'Not Found' },
-        });
+        error: { message: 'fail' },
+        response: { ok: false, status: 404, statusText: 'Not Found' },
+      });
 
       await expect(
         createService().deleteClusterRoleBinding('bind-1'),
@@ -1134,9 +1103,7 @@ describe('AuthzService', () => {
       const call = mockPUT.mock.calls[0];
       expect(call[1].params.path.namespaceName).toBe('org-1');
       expect(call[1].params.path.name).toBe('ns-bind-1');
-      expect(call[1].body.spec.roleMappings[0].roleRef.kind).toBe(
-        'AuthzRole',
-      );
+      expect(call[1].body.spec.roleMappings[0].roleRef.kind).toBe('AuthzRole');
     });
 
     it('throws on API error', async () => {
@@ -1154,9 +1121,9 @@ describe('AuthzService', () => {
   describe('deleteNamespaceRoleBinding', () => {
     it('deletes successfully', async () => {
       mockDELETE.mockResolvedValueOnce({
-          error: undefined,
-          response: { ok: true, status: 200 },
-        });
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
 
       await expect(
         createService().deleteNamespaceRoleBinding('org-1', 'ns-bind-1'),
@@ -1167,9 +1134,9 @@ describe('AuthzService', () => {
 
     it('throws on API error', async () => {
       mockDELETE.mockResolvedValueOnce({
-          error: { message: 'fail' },
-          response: { ok: false, status: 404, statusText: 'Not Found' },
-        });
+        error: { message: 'fail' },
+        response: { ok: false, status: 404, statusText: 'Not Found' },
+      });
 
       await expect(
         createService().deleteNamespaceRoleBinding('org-1', 'ns-bind-1'),
@@ -1219,9 +1186,7 @@ describe('AuthzService', () => {
       });
 
       it('excludes namespace bindings that reference namespace-scoped roles', async () => {
-        mockGET.mockResolvedValueOnce(
-          createOkResponse({ items: [] }),
-        );
+        mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
         mockGET.mockResolvedValueOnce(
           createOkResponse({
             items: [k8sNamespace],

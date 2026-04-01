@@ -98,15 +98,15 @@ describe('formatEnvVarValue', () => {
   });
 
   it('masks sensitive keys containing "secret"', () => {
-    expect(
-      formatEnvVarValue({ key: 'MY_SECRET', value: 'supersecret' }),
-    ).toBe('••••••••');
+    expect(formatEnvVarValue({ key: 'MY_SECRET', value: 'supersecret' })).toBe(
+      '••••••••',
+    );
   });
 
   it('masks sensitive keys containing "password"', () => {
-    expect(
-      formatEnvVarValue({ key: 'DB_PASSWORD', value: 'pass123' }),
-    ).toBe('••••••••');
+    expect(formatEnvVarValue({ key: 'DB_PASSWORD', value: 'pass123' })).toBe(
+      '••••••••',
+    );
   });
 
   it('masks sensitive keys containing "token"', () => {

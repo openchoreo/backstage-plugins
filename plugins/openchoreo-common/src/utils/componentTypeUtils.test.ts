@@ -20,9 +20,7 @@ describe('ComponentTypeUtils', () => {
       expect(utils.getPageVariant('deployment/web-application')).toBe(
         'website',
       );
-      expect(utils.getPageVariant('deployment/react-frontend')).toBe(
-        'website',
-      );
+      expect(utils.getPageVariant('deployment/react-frontend')).toBe('website');
     });
 
     it('returns "scheduled-task" for cronjob and job types', () => {

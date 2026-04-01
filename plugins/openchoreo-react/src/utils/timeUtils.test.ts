@@ -38,9 +38,7 @@ describe('formatRelativeTime', () => {
   });
 
   it('formats 1 day ago (singular)', () => {
-    const date = new Date(
-      NOW.getTime() - 24 * 60 * 60 * 1000,
-    ).toISOString();
+    const date = new Date(NOW.getTime() - 24 * 60 * 60 * 1000).toISOString();
     expect(formatRelativeTime(date)).toBe('1 day ago');
   });
 

@@ -25,8 +25,8 @@ export function createErrorResponse(status = 500, message = 'fail') {
         status === 404
           ? 'Not Found'
           : status === 403
-            ? 'Forbidden'
-            : 'Internal Server Error',
+          ? 'Forbidden'
+          : 'Internal Server Error',
     },
   };
 }

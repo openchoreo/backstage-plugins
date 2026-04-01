@@ -160,12 +160,7 @@ describe('GitSecretsService', () => {
 
       const service = createService();
       await expect(
-        service.createGitSecret(
-          'test-ns',
-          'secret',
-          'basic-auth',
-          'token-val',
-        ),
+        service.createGitSecret('test-ns', 'secret', 'basic-auth', 'token-val'),
       ).rejects.toThrow();
     });
   });

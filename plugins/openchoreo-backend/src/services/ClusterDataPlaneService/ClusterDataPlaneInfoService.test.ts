@@ -93,9 +93,7 @@ describe('ClusterDataPlaneInfoService', () => {
       mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
-      await expect(
-        service.listClusterDataPlanes('token'),
-      ).rejects.toThrow();
+      await expect(service.listClusterDataPlanes('token')).rejects.toThrow();
     });
   });
 

@@ -39,8 +39,7 @@ export function buildReadyCondition(
   return {
     type: 'Ready',
     status: 'True',
-    lastTransitionTime:
-      overrides.lastTransitionTime ?? '2025-01-06T10:00:05Z',
+    lastTransitionTime: overrides.lastTransitionTime ?? '2025-01-06T10:00:05Z',
     reason: overrides.reason ?? 'Reconciled',
     message: overrides.message ?? 'Resource is ready',
   };
@@ -59,8 +58,7 @@ export function buildNotReadyCondition(
   return {
     type: 'Ready',
     status: 'False',
-    lastTransitionTime:
-      overrides.lastTransitionTime ?? '2025-01-06T10:00:05Z',
+    lastTransitionTime: overrides.lastTransitionTime ?? '2025-01-06T10:00:05Z',
     reason: overrides.reason ?? 'ReconciliationFailed',
     message: overrides.message ?? 'Resource is not ready',
   };

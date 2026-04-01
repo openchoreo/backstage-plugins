@@ -83,7 +83,10 @@ describe('ClusterComponentTypeInfoService', () => {
 
   describe('fetchClusterComponentTypeSchema', () => {
     it('fetches schema for a cluster component type', async () => {
-      const schema = { type: 'object', properties: { port: { type: 'integer' } } };
+      const schema = {
+        type: 'object',
+        properties: { port: { type: 'integer' } },
+      };
       mockGET.mockResolvedValueOnce(createOkResponse(schema));
 
       const service = createService();

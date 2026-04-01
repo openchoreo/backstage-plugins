@@ -40,8 +40,7 @@ export function createMockApiClient(): MockApiClient {
  * This matches the behavior used across all backend service tests.
  */
 export function createMockFetchAllPages() {
-  return jest.fn(
-    (fetchPage: (cursor?: string) => Promise<any>) =>
-      fetchPage(undefined).then((page: any) => page.items),
+  return jest.fn((fetchPage: (cursor?: string) => Promise<any>) =>
+    fetchPage(undefined).then((page: any) => page.items),
   );
 }

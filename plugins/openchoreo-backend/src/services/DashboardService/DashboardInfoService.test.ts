@@ -89,7 +89,9 @@ describe('DashboardInfoService', () => {
         createOkResponse({ items: [{ metadata: {} }, { metadata: {} }] }),
       );
       // Second component: 1 binding
-      mockGET.mockResolvedValueOnce(createOkResponse({ items: [{ metadata: {} }] }));
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [{ metadata: {} }] }),
+      );
 
       const service = createService();
       const result = await service.fetchComponentsBindingsCount(

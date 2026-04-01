@@ -74,9 +74,7 @@ describe('deepCompareObjects', () => {
 
   it('detects added fields', () => {
     const changes = deepCompareObjects({}, { name: 'test' });
-    expect(changes).toEqual([
-      { path: 'name', type: 'new', newValue: 'test' },
-    ]);
+    expect(changes).toEqual([{ path: 'name', type: 'new', newValue: 'test' }]);
   });
 
   it('detects removed fields', () => {

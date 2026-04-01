@@ -83,7 +83,9 @@ describe('SecretReferencesService', () => {
 
   describe('fetchSecretReferences', () => {
     it('fetches and transforms secret references via new API', async () => {
-      mockGET.mockResolvedValueOnce(createOkResponse({ items: [k8sSecretRef] }));
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [k8sSecretRef] }),
+      );
 
       const service = createService();
       const result = await service.fetchSecretReferences(

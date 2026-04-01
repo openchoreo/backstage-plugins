@@ -5,11 +5,13 @@ import { createRouter } from './router';
 import type { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
 jest.mock('@openchoreo/openchoreo-auth', () => ({
-  createUserTokenMiddleware:
-    jest.fn(() => (_req: any, _res: any, next: any) => next()),
+  createUserTokenMiddleware: jest.fn(
+    () => (_req: any, _res: any, next: any) => next(),
+  ),
   getUserTokenFromRequest: jest.fn().mockReturnValue('mock-user-token'),
-  createRequireAuthMiddleware:
-    jest.fn(() => (_req: any, _res: any, next: any) => next()),
+  createRequireAuthMiddleware: jest.fn(
+    () => (_req: any, _res: any, next: any) => next(),
+  ),
 }));
 
 function createMockServices() {
@@ -374,9 +376,7 @@ describe('createRouter', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual(mockResult);
-      expect(
-        services.componentInfoService.patchComponent,
-      ).toHaveBeenCalledWith(
+      expect(services.componentInfoService.patchComponent).toHaveBeenCalledWith(
         'my-namespace',
         'my-project',
         'my-component',
@@ -440,11 +440,7 @@ describe('createRouter', () => {
       expect(response.body).toEqual(mockProject);
       expect(
         services.projectInfoService.fetchProjectDetails,
-      ).toHaveBeenCalledWith(
-        'my-namespace',
-        'my-project',
-        'mock-user-token',
-      );
+      ).toHaveBeenCalledWith('my-namespace', 'my-project', 'mock-user-token');
     });
 
     it('should return 400 when required query parameters are missing', async () => {

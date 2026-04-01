@@ -10,9 +10,8 @@ jest.mock('@openchoreo/openchoreo-client-node', () => ({
   createOpenChoreoApiClient: jest.fn(() => ({
     GET: mockGET,
   })),
-  fetchAllPages: jest.fn(
-    (fetchPage: (cursor?: string) => Promise<any>) =>
-      fetchPage(undefined).then((page: any) => page.items),
+  fetchAllPages: jest.fn((fetchPage: (cursor?: string) => Promise<any>) =>
+    fetchPage(undefined).then((page: any) => page.items),
   ),
 }));
 
@@ -39,10 +38,13 @@ const k8sComponent = (name: string, componentType: string) => ({
   status: { conditions: [] },
 });
 
-const k8sWorkload = (componentName: string, opts?: {
-  endpoints?: Record<string, any>;
-  dependencies?: any;
-}) => ({
+const k8sWorkload = (
+  componentName: string,
+  opts?: {
+    endpoints?: Record<string, any>;
+    dependencies?: any;
+  },
+) => ({
   metadata: { name: `${componentName}-workload`, namespace: 'test-ns' },
   spec: {
     owner: { projectName: 'my-project', componentName },
@@ -143,13 +145,21 @@ describe('CellDiagramInfoService', () => {
       mockGET.mockResolvedValueOnce({
         data: undefined,
         error: { message: 'fail' },
-        response: { ok: false, status: 500, statusText: 'Internal Server Error' },
+        response: {
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+        },
       });
       // Second call for workloads (may or may not be reached due to Promise.all)
       mockGET.mockResolvedValueOnce({
         data: undefined,
         error: { message: 'fail' },
-        response: { ok: false, status: 500, statusText: 'Internal Server Error' },
+        response: {
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+        },
       });
 
       const service = createService();
@@ -230,12 +240,12 @@ describe('CellDiagramInfoService', () => {
       const api = result!.components.find(c => c.id === 'api');
       const httpService = (api!.services as any).http;
       expect(httpService.type).toBe('HTTP');
-      expect(
-        httpService.deploymentMetadata.gateways.internet.isExposed,
-      ).toBe(true);
-      expect(
-        httpService.deploymentMetadata.gateways.intranet.isExposed,
-      ).toBe(true);
+      expect(httpService.deploymentMetadata.gateways.internet.isExposed).toBe(
+        true,
+      );
+      expect(httpService.deploymentMetadata.gateways.intranet.isExposed).toBe(
+        true,
+      );
     });
   });
 });

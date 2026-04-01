@@ -121,7 +121,9 @@ describe('DataPlaneInfoService', () => {
       mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
-      await expect(service.listDataPlanes('test-ns', 'token')).rejects.toThrow();
+      await expect(
+        service.listDataPlanes('test-ns', 'token'),
+      ).rejects.toThrow();
     });
   });
 

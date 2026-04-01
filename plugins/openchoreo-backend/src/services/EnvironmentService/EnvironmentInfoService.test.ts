@@ -168,7 +168,9 @@ describe('EnvironmentInfoService', () => {
         createOkResponse({ items: [k8sEnvironment], pagination: {} }),
       );
       // 2. release bindings
-      mockGET.mockResolvedValueOnce(createOkResponse({ items: [k8sReleaseBinding] }));
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [k8sReleaseBinding] }),
+      );
       // 3. project (to get deploymentPipelineRef)
       mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
       // 4. deployment pipeline by name
@@ -219,7 +221,9 @@ describe('EnvironmentInfoService', () => {
     });
 
     it('returns empty array when no environments found', async () => {
-      mockGET.mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }));
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [], pagination: {} }),
+      );
       mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
       // project with no pipeline ref
       mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectNoPipeline));
@@ -246,7 +250,9 @@ describe('EnvironmentInfoService', () => {
       mockGET.mockResolvedValueOnce(
         createOkResponse({ items: [k8sEnvironment], pagination: {} }),
       );
-      mockGET.mockResolvedValueOnce(createOkResponse({ items: [k8sReleaseBinding] }));
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [k8sReleaseBinding] }),
+      );
       mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
       mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
 
@@ -321,7 +327,9 @@ describe('EnvironmentInfoService', () => {
       mockGET.mockResolvedValueOnce(
         createOkResponse({ items: [k8sEnvironment], pagination: {} }),
       );
-      mockGET.mockResolvedValueOnce(createOkResponse({ items: [k8sReleaseBinding] }));
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [k8sReleaseBinding] }),
+      );
       mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
       mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
 
@@ -360,7 +368,9 @@ describe('EnvironmentInfoService', () => {
 
   describe('fetchReleaseBindings', () => {
     it('returns release bindings from new API', async () => {
-      mockGET.mockResolvedValueOnce(createOkResponse({ items: [k8sReleaseBinding] }));
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [k8sReleaseBinding] }),
+      );
 
       const service = createService();
       const result = await service.fetchReleaseBindings(

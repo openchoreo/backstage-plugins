@@ -586,22 +586,22 @@ describe('transformSecretReference', () => {
 
 describe('deriveStatus', () => {
   it('returns "Ready" when Ready condition is True', () => {
-    expect(
-      deriveStatus({ status: { conditions: [readyCondition] } }),
-    ).toBe('Ready');
+    expect(deriveStatus({ status: { conditions: [readyCondition] } })).toBe(
+      'Ready',
+    );
   });
 
   it('returns "Error" when Ready condition is False', () => {
-    expect(
-      deriveStatus({ status: { conditions: [notReadyCondition] } }),
-    ).toBe('Error');
+    expect(deriveStatus({ status: { conditions: [notReadyCondition] } })).toBe(
+      'Error',
+    );
   });
 
   it('returns "Pending" when Ready condition is Unknown', () => {
     const unknownCondition = { ...readyCondition, status: 'Unknown' as const };
-    expect(
-      deriveStatus({ status: { conditions: [unknownCondition] } }),
-    ).toBe('Pending');
+    expect(deriveStatus({ status: { conditions: [unknownCondition] } })).toBe(
+      'Pending',
+    );
   });
 
   it('returns undefined when no conditions', () => {

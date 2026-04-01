@@ -182,9 +182,9 @@ describe('parseWorkflowParametersAnnotation', () => {
   });
 
   it('handles values containing colons', () => {
-    expect(parseWorkflowParametersAnnotation('url: http://example.com')).toEqual(
-      { url: 'http://example.com' },
-    );
+    expect(
+      parseWorkflowParametersAnnotation('url: http://example.com'),
+    ).toEqual({ url: 'http://example.com' });
   });
 });
 
