@@ -7,10 +7,9 @@
   "types": "src/index.ts",
   "private": true,
   "backstage": {
-    "role": "common-library"
+    "role": "node-library"
   },
   "scripts": {
-    "lint": "backstage-cli package lint",
     "test": "backstage-cli package test",
     "clean": "backstage-cli package clean"
   },
