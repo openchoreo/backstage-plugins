@@ -7,6 +7,7 @@ import {
   LogEntry,
   LogsResponse,
   RuntimeLogsFilters,
+  LOG_LEVELS,
 } from '../components/RuntimeLogs/types';
 
 export interface ProjectRuntimeLogsFilters extends RuntimeLogsFilters {
@@ -29,6 +30,7 @@ interface UseProjectRuntimeLogsResult {
   fetchLogs: (reset?: boolean) => Promise<void>;
   loadMore: () => void;
   refresh: () => void;
+  clearLogs: () => void;
 }
 
 const sortByTimestamp = (
@@ -57,6 +59,11 @@ export function useProjectRuntimeLogs(
   const [hasMore, setHasMore] = useState(true);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const inFlightRef = useRef<boolean>(false);
+  const logsRef = useRef<LogEntry[]>([]);
+
+  useEffect(() => {
+    logsRef.current = logs;
+  }, [logs]);
 
   const selectedComponents = useMemo(
     () => Array.from(new Set(filters.componentIds || [])),
@@ -90,8 +97,8 @@ export function useProjectRuntimeLogs(
         let endTime = initialEndTime;
         const sortOrder = filters.sortOrder || 'asc';
 
-        if (!reset && logs.length > 0) {
-          const lastLog = logs[logs.length - 1];
+        if (!reset && logsRef.current.length > 0) {
+          const lastLog = logsRef.current[logsRef.current.length - 1];
           if (sortOrder === 'desc') {
             endTime = lastLog.timestamp || endTime;
           } else {
@@ -101,11 +108,15 @@ export function useProjectRuntimeLogs(
 
         const limit = options.limit || 50;
 
+        // If all log levels are selected, pass an empty array to reduce search complexity on the backend
         const queryOptions = {
           limit,
           startTime,
           endTime,
-          logLevels: filters.logLevel,
+          logLevels:
+            filters.logLevel.length === LOG_LEVELS.length
+              ? []
+              : filters.logLevel,
           searchQuery: filters.searchQuery,
           sortOrder,
         } as const;
@@ -157,7 +168,7 @@ export function useProjectRuntimeLogs(
 
         const nextLogs = reset
           ? mergedLogs
-          : sortByTimestamp([...logs, ...mergedLogs], sortOrder);
+          : sortByTimestamp([...logsRef.current, ...mergedLogs], sortOrder);
 
         setLogs(nextLogs);
         if (reset) {
@@ -182,7 +193,6 @@ export function useProjectRuntimeLogs(
       filters.logLevel,
       filters.searchQuery,
       filters.sortOrder,
-      logs,
       observabilityApi,
       options.environmentName,
       options.namespaceName,
@@ -239,6 +249,12 @@ export function useProjectRuntimeLogs(
     fetchLogs(true);
   }, [fetchLogs]);
 
+  const clearLogs = useCallback(() => {
+    setLogs([]);
+    setTotalCount(0);
+    setHasMore(true);
+  }, []);
+
   return {
     logs,
     loading,
@@ -248,5 +264,6 @@ export function useProjectRuntimeLogs(
     fetchLogs,
     loadMore,
     refresh,
+    clearLogs,
   };
 }

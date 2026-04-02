@@ -106,6 +106,7 @@ export interface UseRuntimeLogsResult {
   fetchLogs: (reset?: boolean) => Promise<void>;
   loadMore: () => void;
   refresh: () => void;
+  clearLogs: () => void;
   componentId: string | null;
   projectId: string | null;
 }
@@ -308,6 +309,12 @@ export function useRuntimeLogs(
     fetchLogs(true);
   }, [fetchLogs]);
 
+  const clearLogs = useCallback(() => {
+    setLogs([]);
+    setTotalCount(0);
+    setHasMore(true);
+  }, []);
+
   return {
     logs,
     loading,
@@ -317,6 +324,7 @@ export function useRuntimeLogs(
     fetchLogs,
     loadMore,
     refresh,
+    clearLogs,
     componentId,
     projectId,
   };

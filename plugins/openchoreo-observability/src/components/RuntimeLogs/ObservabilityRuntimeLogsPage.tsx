@@ -19,7 +19,7 @@ import {
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from './styles';
-import { Environment as RuntimeLogsEnvironment } from './types';
+import { Environment as RuntimeLogsEnvironment, LOG_LEVELS } from './types';
 
 const ObservabilityRuntimeLogsContent = () => {
   const classes = useRuntimeLogsStyles();
@@ -70,13 +70,15 @@ const ObservabilityRuntimeLogsContent = () => {
     fetchLogs,
     loadMore,
     refresh,
+    clearLogs,
     componentId,
     projectId,
   } = useRuntimeLogs(entity, namespace || '', project || '', {
     environmentId: filters.environmentId,
     environmentName: selectedEnvironment?.resourceName || '',
     timeRange: filters.timeRange,
-    logLevels: filters.logLevel,
+    logLevels:
+      filters.logLevel.length === LOG_LEVELS.length ? [] : filters.logLevel,
     limit: 50,
     searchQuery: filters.searchQuery,
     sortOrder: filters.sortOrder || 'asc',
@@ -126,8 +128,12 @@ const ObservabilityRuntimeLogsContent = () => {
       projectId &&
       filtersChanged
     ) {
-      fetchLogs(true);
-      setLastUpdated(new Date());
+      if (filters.logLevel.length === 0) {
+        clearLogs();
+      } else {
+        fetchLogs(true);
+        setLastUpdated(new Date());
+      }
       previousFiltersRef.current = currentFilters;
     }
   }, [
@@ -139,6 +145,7 @@ const ObservabilityRuntimeLogsContent = () => {
     componentId,
     projectId,
     fetchLogs,
+    clearLogs,
     selectedEnvironment,
     namespace,
     project,

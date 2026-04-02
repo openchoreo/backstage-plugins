@@ -84,6 +84,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
     fetchLogs,
     loadMore,
     refresh,
+    clearLogs,
   } = useProjectRuntimeLogs(filters, entity, {
     environmentName: selectedEnvironment?.resourceName || '',
     namespaceName: namespace,
@@ -124,8 +125,12 @@ const ObservabilityProjectRuntimeLogsContent = () => {
       projectName &&
       filtersChanged
     ) {
-      fetchLogs(true);
-      setLastUpdated(new Date());
+      if (filters.logLevel.length === 0) {
+        clearLogs();
+      } else {
+        fetchLogs(true);
+        setLastUpdated(new Date());
+      }
       previousFiltersRef.current = currentFilters;
     }
   }, [
@@ -136,6 +141,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
     filters.sortOrder,
     filters.componentIds,
     fetchLogs,
+    clearLogs,
     selectedEnvironment,
     namespace,
     projectName,
