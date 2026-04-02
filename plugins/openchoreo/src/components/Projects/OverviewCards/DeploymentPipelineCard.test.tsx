@@ -1,0 +1,164 @@
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { DeploymentPipelineCard } from './DeploymentPipelineCard';
+
+// ---- Mocks ----
+
+// Mock useDeploymentPipeline hook
+const mockUseDeploymentPipeline = jest.fn();
+jest.mock('../hooks', () => ({
+  useDeploymentPipeline: () => mockUseDeploymentPipeline(),
+}));
+
+// Mock useEntity
+jest.mock('@backstage/plugin-catalog-react', () => ({
+  useEntity: () => ({
+    entity: {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'System',
+      metadata: {
+        name: 'test-project',
+        namespace: 'default',
+        annotations: {
+          'openchoreo.io/namespace': 'test-ns',
+        },
+      },
+      spec: {},
+    },
+  }),
+}));
+
+// Mock permission hook
+const mockUseProjectUpdatePermission = jest.fn();
+jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  useProjectUpdatePermission: () => mockUseProjectUpdatePermission(),
+  PipelineFlowVisualization: (props: any) => (
+    <div data-testid="pipeline-flow">{props.environments?.join(' -> ')}</div>
+  ),
+  ForbiddenState: (props: any) => (
+    <div data-testid="forbidden-state">{props.message}</div>
+  ),
+}));
+
+// Mock design system Card
+jest.mock('@openchoreo/backstage-design-system', () => ({
+  Card: ({ children, ...props }: any) => (
+    <div data-testid="ds-card" {...props}>
+      {children}
+    </div>
+  ),
+}));
+
+// Mock common annotations
+jest.mock('@openchoreo/backstage-plugin-common', () => ({
+  CHOREO_ANNOTATIONS: {
+    NAMESPACE: 'openchoreo.io/namespace',
+  },
+}));
+
+// Mock ChangePipelineDialog
+jest.mock('./ChangePipelineDialog', () => ({
+  ChangePipelineDialog: () => null,
+}));
+
+// Mock styles
+jest.mock('./styles', () => ({
+  useProjectOverviewCardStyles: () => ({
+    card: 'card',
+    cardHeader: 'cardHeader',
+    cardTitle: 'cardTitle',
+    content: 'content',
+    pipelineInfo: 'pipelineInfo',
+    infoRow: 'infoRow',
+    infoLabel: 'infoLabel',
+    infoValue: 'infoValue',
+    disabledState: 'disabledState',
+    disabledIcon: 'disabledIcon',
+  }),
+}));
+
+// Mock error utils
+jest.mock('../../../utils/errorUtils', () => ({
+  isForbiddenError: (err: any) =>
+    err?.message?.includes('403') || err?.name === 'ForbiddenError',
+  isNotFoundError: (err: any) =>
+    err?.message?.includes('404') || err?.name === 'NotFoundError',
+}));
+
+// ---- Helpers ----
+
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
+
+// ---- Tests ----
+
+describe('DeploymentPipelineCard', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseProjectUpdatePermission.mockReturnValue({
+      canUpdate: true,
+      loading: false,
+      updateDeniedTooltip: '',
+    });
+  });
+
+  it('shows loading state', () => {
+    mockUseDeploymentPipeline.mockReturnValue({
+      data: null,
+      loading: true,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    renderWithRouter(<DeploymentPipelineCard />);
+
+    // During loading, skeleton elements render instead of real content
+    expect(screen.getByTestId('ds-card')).toBeInTheDocument();
+    expect(screen.queryByText('Deployment Pipeline')).not.toBeInTheDocument();
+  });
+
+  it('renders pipeline info when loaded', () => {
+    mockUseDeploymentPipeline.mockReturnValue({
+      data: {
+        name: 'default-pipeline',
+        resourceName: 'default-pipeline',
+        environments: ['development', 'staging', 'production'],
+        pipelineEntityRef: 'deploymentpipeline:default/default-pipeline',
+      },
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    renderWithRouter(<DeploymentPipelineCard />);
+
+    expect(screen.getByText('Deployment Pipeline')).toBeInTheDocument();
+    expect(screen.getByText('default-pipeline')).toBeInTheDocument();
+    expect(screen.getByTestId('pipeline-flow')).toBeInTheDocument();
+    expect(
+      screen.getByText('development -> staging -> production'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows empty state when no environments in pipeline', () => {
+    mockUseDeploymentPipeline.mockReturnValue({
+      data: {
+        name: 'empty-pipeline',
+        resourceName: 'empty-pipeline',
+        environments: [],
+        pipelineEntityRef: undefined,
+      },
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    renderWithRouter(<DeploymentPipelineCard />);
+
+    expect(screen.getByText('Deployment Pipeline')).toBeInTheDocument();
+    expect(
+      screen.getByText('No deployment pipeline configured'),
+    ).toBeInTheDocument();
+  });
+});
