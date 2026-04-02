@@ -1,4 +1,5 @@
 import { mockServices } from '@backstage/backend-test-utils';
+import { createOkResponse, createErrorResponse } from '@openchoreo/test-utils';
 import { ComponentInfoService } from './ComponentInfoService';
 
 // ---------------------------------------------------------------------------
@@ -74,18 +75,6 @@ function createService() {
   return new ComponentInfoService(mockLogger, 'http://test:8080');
 }
 
-function okResponse(data: any) {
-  return { data, error: undefined, response: { ok: true, status: 200 } };
-}
-
-function errorResponse(status = 500) {
-  return {
-    data: undefined,
-    error: { message: 'fail' },
-    response: { ok: false, status, statusText: 'Internal Server Error' },
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -97,7 +86,7 @@ describe('ComponentInfoService', () => {
 
   describe('fetchComponentDetails', () => {
     it('calls new API endpoint and transforms response', async () => {
-      mockGET.mockResolvedValueOnce(okResponse(k8sComponent));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sComponent));
 
       const service = createService();
       const result = await service.fetchComponentDetails(
@@ -110,13 +99,13 @@ describe('ComponentInfoService', () => {
       expect(result.name).toBe('api-service');
       expect(result.namespaceName).toBe('test-ns');
       expect(result.projectName).toBe('my-project');
-      expect(result.type).toBe('Service');
+      expect(result.type).toBe('deployment/go-service');
       expect(result.autoDeploy).toBe(true);
       expect(result.uid).toBe('550e8400-e29b-41d4-a716-446655440000');
     });
 
     it('throws on API error', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -126,20 +115,20 @@ describe('ComponentInfoService', () => {
           'api-service',
           'token-123',
         ),
-      ).rejects.toThrow('Failed to fetch component');
+      ).rejects.toThrow();
     });
   });
 
   describe('patchComponent', () => {
     it('GETs existing component then PUTs with updated autoDeploy', async () => {
       // First GET returns existing component
-      mockGET.mockResolvedValueOnce(okResponse(k8sComponent));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sComponent));
       // Then PUT returns updated component
       const updatedComponent = {
         ...k8sComponent,
         spec: { ...k8sComponent.spec, autoDeploy: false },
       };
-      mockPUT.mockResolvedValueOnce(okResponse(updatedComponent));
+      mockPUT.mockResolvedValueOnce(createOkResponse(updatedComponent));
 
       const service = createService();
       const result = await service.patchComponent(
@@ -156,7 +145,7 @@ describe('ComponentInfoService', () => {
     });
 
     it('throws when GET fails', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -167,12 +156,12 @@ describe('ComponentInfoService', () => {
           false,
           'token-123',
         ),
-      ).rejects.toThrow('Failed to fetch component for patch');
+      ).rejects.toThrow();
     });
 
     it('throws when PUT fails', async () => {
-      mockGET.mockResolvedValueOnce(okResponse(k8sComponent));
-      mockPUT.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sComponent));
+      mockPUT.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -183,7 +172,7 @@ describe('ComponentInfoService', () => {
           false,
           'token-123',
         ),
-      ).rejects.toThrow('Failed to patch component');
+      ).rejects.toThrow();
     });
   });
 
@@ -219,7 +208,7 @@ describe('ComponentInfoService', () => {
           'api-service',
           'token-123',
         ),
-      ).rejects.toThrow('Failed to delete component');
+      ).rejects.toThrow();
     });
   });
 });

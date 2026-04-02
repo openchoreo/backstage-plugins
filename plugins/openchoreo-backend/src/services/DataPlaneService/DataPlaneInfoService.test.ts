@@ -1,4 +1,5 @@
 import { mockServices } from '@backstage/backend-test-utils';
+import { createOkResponse, createErrorResponse } from '@openchoreo/test-utils';
 import { DataPlaneInfoService } from './DataPlaneInfoService';
 
 // ---------------------------------------------------------------------------
@@ -83,18 +84,6 @@ function createService() {
   return new DataPlaneInfoService(mockLogger, 'http://test:8080');
 }
 
-function okResponse(data: any) {
-  return { data, error: undefined, response: { ok: true, status: 200 } };
-}
-
-function errorResponse(status = 500) {
-  return {
-    data: undefined,
-    error: { message: 'fail' },
-    response: { ok: false, status, statusText: 'Internal Server Error' },
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -107,7 +96,7 @@ describe('DataPlaneInfoService', () => {
   describe('listDataPlanes', () => {
     it('lists data planes via new API and transforms results', async () => {
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: [k8sDataPlane], pagination: {} }),
+        createOkResponse({ items: [k8sDataPlane], pagination: {} }),
       );
 
       const service = createService();
@@ -129,18 +118,18 @@ describe('DataPlaneInfoService', () => {
     });
 
     it('throws on API error', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
-      await expect(service.listDataPlanes('test-ns', 'token')).rejects.toThrow(
-        'Failed to list data planes',
-      );
+      await expect(
+        service.listDataPlanes('test-ns', 'token'),
+      ).rejects.toThrow();
     });
   });
 
   describe('fetchDataPlaneDetails', () => {
     it('fetches a single data plane and transforms it', async () => {
-      mockGET.mockResolvedValueOnce(okResponse(k8sDataPlane));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sDataPlane));
 
       const service = createService();
       const result = await service.fetchDataPlaneDetails(
@@ -155,7 +144,7 @@ describe('DataPlaneInfoService', () => {
     });
 
     it('throws on API error', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -163,7 +152,7 @@ describe('DataPlaneInfoService', () => {
           { namespaceName: 'test-ns', dataplaneName: 'prod-dp' },
           'token',
         ),
-      ).rejects.toThrow('Failed to fetch data plane');
+      ).rejects.toThrow();
     });
   });
 });

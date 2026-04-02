@@ -3,11 +3,13 @@ import { transformProject } from './project';
 import { transformComponent } from './component';
 import { transformEnvironment } from './environment';
 import { transformDataPlane } from './dataplane';
+import { transformClusterDataPlane } from './clusterDataplane';
 import { transformWorkflowPlane } from './workflowplane';
 import { transformObservabilityPlane } from './observabilityplane';
 import { transformComponentWorkflowRun } from './workflow-run';
 import { transformDeploymentPipeline } from './deployment-pipeline';
 import { transformSecretReference } from './secret-reference';
+import { deriveStatus } from './common';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -119,17 +121,8 @@ describe('transformComponent', () => {
     expect(result.namespaceName).toBe('test-ns');
   });
 
-  it('maps type from spec.type first', () => {
+  it('maps type from componentType ref name', () => {
     const result = transformComponent(component);
-    expect(result.type).toBe('Service');
-  });
-
-  it('falls back to componentType when type is absent', () => {
-    const noType = {
-      ...component,
-      spec: { ...component.spec!, type: undefined },
-    };
-    const result = transformComponent(noType);
     expect(result.type).toBe('deployment/go-service');
   });
 
@@ -584,5 +577,123 @@ describe('transformSecretReference', () => {
 
   it('maps status string', () => {
     expect(transformSecretReference(secret).status).toBe('Ready');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deriveStatus (common)
+// ---------------------------------------------------------------------------
+
+describe('deriveStatus', () => {
+  it('returns "Ready" when Ready condition is True', () => {
+    expect(deriveStatus({ status: { conditions: [readyCondition] } })).toBe(
+      'Ready',
+    );
+  });
+
+  it('returns "Error" when Ready condition is False', () => {
+    expect(deriveStatus({ status: { conditions: [notReadyCondition] } })).toBe(
+      'Error',
+    );
+  });
+
+  it('returns "Pending" when Ready condition is Unknown', () => {
+    const unknownCondition = { ...readyCondition, status: 'Unknown' as const };
+    expect(deriveStatus({ status: { conditions: [unknownCondition] } })).toBe(
+      'Pending',
+    );
+  });
+
+  it('returns undefined when no conditions', () => {
+    expect(deriveStatus({ status: { conditions: [] } })).toBeUndefined();
+    expect(deriveStatus({ status: {} })).toBeUndefined();
+    expect(deriveStatus({})).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ClusterDataPlane
+// ---------------------------------------------------------------------------
+
+describe('transformClusterDataPlane', () => {
+  const clusterDp: OpenChoreoComponents['schemas']['ClusterDataPlane'] = {
+    metadata: { ...baseMeta, name: 'cluster-dp-1' },
+    spec: {
+      clusterAgent: {},
+      gateway: {
+        ingress: {
+          external: {
+            name: 'ext-gw',
+            namespace: 'infra',
+            http: { host: 'apps.example.com', port: 80 },
+            https: { port: 443 },
+          },
+          internal: {
+            name: 'int-gw',
+            namespace: 'infra',
+            http: { host: 'internal.example.com' },
+          },
+        },
+      },
+      secretStoreRef: { name: 'vault-store' },
+      observabilityPlaneRef: {
+        kind: 'ClusterObservabilityPlane',
+        name: 'obs-plane',
+      },
+    },
+    status: {
+      conditions: [readyCondition],
+      agentConnection: {
+        connected: true,
+        connectedAgents: 3,
+        lastConnectedTime: '2025-01-06T12:00:00Z',
+      },
+    },
+  };
+
+  it('maps core fields', () => {
+    const result = transformClusterDataPlane(clusterDp);
+    expect(result.name).toBe('cluster-dp-1');
+    expect(result.displayName).toBe('Test Resource');
+    expect(result.description).toBe('A test description');
+    expect(result.status).toBe('Ready');
+  });
+
+  it('maps gateway ingress', () => {
+    const result = transformClusterDataPlane(clusterDp);
+    expect(result.gateway?.ingress?.external?.http?.host).toBe(
+      'apps.example.com',
+    );
+    expect(result.gateway?.ingress?.external?.http?.port).toBe(80);
+    expect(result.gateway?.ingress?.external?.https?.port).toBe(443);
+    expect(result.gateway?.ingress?.internal?.http?.host).toBe(
+      'internal.example.com',
+    );
+  });
+
+  it('maps secretStoreRef and observabilityPlaneRef', () => {
+    const result = transformClusterDataPlane(clusterDp);
+    expect(result.secretStoreRef).toBe('vault-store');
+    expect(result.observabilityPlaneRef).toBe('obs-plane');
+  });
+
+  it('maps agent connection', () => {
+    const result = transformClusterDataPlane(clusterDp);
+    expect(result.agentConnection?.connected).toBe(true);
+    expect(result.agentConnection?.connectedAgents).toBe(3);
+    expect(result.agentConnection?.lastConnectedTime).toBe(
+      '2025-01-06T12:00:00Z',
+    );
+  });
+
+  it('handles missing gateway', () => {
+    const minimal: OpenChoreoComponents['schemas']['ClusterDataPlane'] = {
+      metadata: baseMeta,
+      spec: { clusterAgent: {} },
+      status: { conditions: [] },
+    };
+    const result = transformClusterDataPlane(minimal);
+    expect(result.gateway).toBeUndefined();
+    expect(result.agentConnection).toBeUndefined();
   });
 });

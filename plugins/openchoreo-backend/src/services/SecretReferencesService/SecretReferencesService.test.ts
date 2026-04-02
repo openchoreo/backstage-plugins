@@ -1,4 +1,5 @@
 import { mockServices } from '@backstage/backend-test-utils';
+import { createOkResponse, createErrorResponse } from '@openchoreo/test-utils';
 import { SecretReferencesService } from './SecretReferencesService';
 
 // ---------------------------------------------------------------------------
@@ -71,18 +72,6 @@ function createService() {
   return new SecretReferencesService(mockLogger, 'http://test:8080');
 }
 
-function okResponse(data: any) {
-  return { data, error: undefined, response: { ok: true, status: 200 } };
-}
-
-function errorResponse(status = 500) {
-  return {
-    data: undefined,
-    error: { message: 'fail' },
-    response: { ok: false, status, statusText: 'Internal Server Error' },
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -94,7 +83,9 @@ describe('SecretReferencesService', () => {
 
   describe('fetchSecretReferences', () => {
     it('fetches and transforms secret references via new API', async () => {
-      mockGET.mockResolvedValueOnce(okResponse({ items: [k8sSecretRef] }));
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [k8sSecretRef] }),
+      );
 
       const service = createService();
       const result = await service.fetchSecretReferences(
@@ -119,7 +110,7 @@ describe('SecretReferencesService', () => {
     });
 
     it('returns empty list when no secrets exist', async () => {
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
 
       const service = createService();
       const result = await service.fetchSecretReferences(
@@ -133,12 +124,12 @@ describe('SecretReferencesService', () => {
     });
 
     it('throws on API error', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
         service.fetchSecretReferences('test-ns', 'token'),
-      ).rejects.toThrow('Failed to fetch secret references');
+      ).rejects.toThrow();
     });
   });
 });

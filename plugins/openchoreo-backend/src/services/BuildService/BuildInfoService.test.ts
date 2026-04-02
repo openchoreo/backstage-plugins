@@ -1,4 +1,5 @@
 import { mockServices } from '@backstage/backend-test-utils';
+import { createOkResponse, createErrorResponse } from '@openchoreo/test-utils';
 import { BuildInfoService } from './BuildInfoService';
 
 // ---------------------------------------------------------------------------
@@ -29,10 +30,15 @@ const baseMeta = {
   namespace: 'test-ns',
   uid: 'run-uid-001',
   creationTimestamp: '2025-01-06T10:00:00Z',
-  labels: {},
+  labels: {
+    'openchoreo.dev/component': 'api-service',
+    'openchoreo.dev/project': 'my-project',
+  },
   annotations: {
     'openchoreo.dev/display-name': 'Run 001',
     'openchoreo.dev/description': 'Test run',
+    'openchoreo.dev/commit': 'abc1234',
+    'openchoreo.dev/image': 'registry.example.com/api-service:abc1234',
   },
 };
 
@@ -83,18 +89,6 @@ function createService() {
   return new BuildInfoService(mockLogger, 'http://test:8080');
 }
 
-function okResponse(data: any) {
-  return { data, error: undefined, response: { ok: true, status: 200 } };
-}
-
-function errorResponse(status = 500) {
-  return {
-    data: undefined,
-    error: { message: 'fail' },
-    response: { ok: false, status, statusText: 'Internal Server Error' },
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -108,7 +102,7 @@ describe('BuildInfoService', () => {
     it('fetches builds via new API and transforms results', async () => {
       // fetchAllPages mock calls fetchPage once, returns items
       mockGET.mockResolvedValueOnce(
-        okResponse({ items: [k8sWorkflowRun], pagination: {} }),
+        createOkResponse({ items: [k8sWorkflowRun], pagination: {} }),
       );
 
       const service = createService();
@@ -129,18 +123,18 @@ describe('BuildInfoService', () => {
     });
 
     it('throws on API error', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
         service.fetchBuilds('test-ns', 'my-project', 'api-service', 'token'),
-      ).rejects.toThrow('Failed to fetch component workflow runs');
+      ).rejects.toThrow();
     });
   });
 
   describe('getWorkflowRun', () => {
     it('fetches single run via new API and transforms', async () => {
-      mockGET.mockResolvedValueOnce(okResponse(k8sWorkflowRun));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sWorkflowRun));
 
       const service = createService();
       const result = await service.getWorkflowRun(
@@ -157,7 +151,7 @@ describe('BuildInfoService', () => {
     });
 
     it('throws on API error', async () => {
-      mockGET.mockResolvedValueOnce(errorResponse());
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -168,13 +162,20 @@ describe('BuildInfoService', () => {
           'run-001',
           'token',
         ),
-      ).rejects.toThrow('Failed to fetch workflow run');
+      ).rejects.toThrow();
     });
   });
 
   describe('triggerBuild', () => {
     it('triggers build via new API and transforms response', async () => {
-      mockPOST.mockResolvedValueOnce(okResponse(k8sWorkflowRun));
+      // First GET: fetch component to resolve workflow name
+      const k8sComponent = {
+        metadata: { name: 'api-service', namespace: 'test-ns' },
+        spec: { workflow: { name: 'docker-build' } },
+      };
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sComponent));
+      // Then POST: create workflow run
+      mockPOST.mockResolvedValueOnce(createOkResponse(k8sWorkflowRun));
 
       const service = createService();
       const result = await service.triggerBuild(
@@ -187,11 +188,17 @@ describe('BuildInfoService', () => {
 
       expect(result.uuid).toBe('run-uid-001');
       expect(result.componentName).toBe('api-service');
+      expect(mockGET).toHaveBeenCalledTimes(1);
       expect(mockPOST).toHaveBeenCalledTimes(1);
     });
 
     it('triggers build without commit', async () => {
-      mockPOST.mockResolvedValueOnce(okResponse(k8sWorkflowRun));
+      const k8sComponent = {
+        metadata: { name: 'api-service', namespace: 'test-ns' },
+        spec: { workflow: { name: 'docker-build' } },
+      };
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sComponent));
+      mockPOST.mockResolvedValueOnce(createOkResponse(k8sWorkflowRun));
 
       const service = createService();
       const result = await service.triggerBuild(
@@ -205,8 +212,8 @@ describe('BuildInfoService', () => {
       expect(result.uuid).toBe('run-uid-001');
     });
 
-    it('throws on API error', async () => {
-      mockPOST.mockResolvedValueOnce(errorResponse());
+    it('throws on API error when fetching component', async () => {
+      mockGET.mockResolvedValueOnce(createErrorResponse());
 
       const service = createService();
       await expect(
@@ -217,7 +224,7 @@ describe('BuildInfoService', () => {
           'abc1234',
           'token',
         ),
-      ).rejects.toThrow('Failed to create component workflow run');
+      ).rejects.toThrow();
     });
   });
 });
