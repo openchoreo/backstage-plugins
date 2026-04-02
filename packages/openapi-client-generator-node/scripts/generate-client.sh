@@ -188,7 +188,7 @@ for ((i=0; i<$SPECS_COUNT; i++)); do
 
     # Format with Prettier
     echo -e "   Formatting with Prettier..."
-    npx prettier@2.3.2 --write "$SPEC_OUTPUT_DIR/types.ts" > /dev/null 2>&1
+    npx prettier --write "$SPEC_OUTPUT_DIR/types.ts" > /dev/null 2>&1
     if [ $? -eq 0 ]; then
       echo -e "${GREEN}✓ Types formatted with Prettier${NC}"
     else
