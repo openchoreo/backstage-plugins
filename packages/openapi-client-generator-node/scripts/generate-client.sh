@@ -181,7 +181,7 @@ for ((i=0; i<$SPECS_COUNT; i++)); do
 
   # Generate TypeScript types
   echo -e "   Generating types..."
-  npx openapi-typescript "$SPEC_INPUT" -o "$SPEC_OUTPUT_DIR/types.ts"
+  yarn openapi-typescript "$SPEC_INPUT" -o "$SPEC_OUTPUT_DIR/types.ts"
 
   if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Types generated successfully${NC}"
