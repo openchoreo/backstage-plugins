@@ -53,6 +53,7 @@
     "@backstage/core-app-api": "1.19.0",
     "@backstage/dev-utils": "1.1.14",
     "@backstage/test-utils": "1.7.11",
+    "@openchoreo/test-utils": "workspace:^",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "14.3.1",
     "@testing-library/user-event": "14.6.1",

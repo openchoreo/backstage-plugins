@@ -1,5 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { EntityProvider } from '@backstage/plugin-catalog-react';
+import { mockComponentEntity } from '@openchoreo/test-utils';
 import { Environments } from './Environments';
 
 // ---- Mocks ----
@@ -38,40 +40,6 @@ jest.mock('./hooks', () => ({
   }),
 }));
 
-// Mock useAutoDeployUpdate
-jest.mock('./hooks/useAutoDeployUpdate', () => ({
-  useAutoDeployUpdate: () => ({
-    updateAutoDeploy: jest.fn(),
-    isUpdating: false,
-    error: null,
-  }),
-}));
-
-// Mock @backstage/plugin-catalog-react
-jest.mock('@backstage/plugin-catalog-react', () => ({
-  useEntity: () => ({
-    entity: {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'Component',
-      metadata: {
-        name: 'test-component',
-        namespace: 'default',
-        annotations: {},
-        tags: ['service'],
-      },
-      spec: { type: 'service' },
-    },
-  }),
-}));
-
-// Mock @backstage/core-plugin-api
-jest.mock('@backstage/core-plugin-api', () => ({
-  useApi: () => ({
-    getComponentDetails: jest.fn().mockResolvedValue({}),
-    fetchEnvironmentInfo: jest.fn().mockResolvedValue([]),
-  }),
-}));
-
 // Mock @backstage/core-components
 jest.mock('@backstage/core-components', () => ({
   Progress: () => <div data-testid="progress">Loading...</div>,
@@ -107,15 +75,16 @@ jest.mock('./components', () => ({
   NotificationBanner: () => null,
 }));
 
-// Mock openChoreoClientApiRef
-jest.mock('../../api/OpenChoreoClientApi', () => ({
-  openChoreoClientApiRef: { id: 'mock' },
-}));
-
 // ---- Helpers ----
 
+const testEntity = mockComponentEntity();
+
 function renderWithRouter(ui: React.ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+  return render(
+    <MemoryRouter>
+      <EntityProvider entity={testEntity}>{ui}</EntityProvider>
+    </MemoryRouter>,
+  );
 }
 
 // ---- Tests ----

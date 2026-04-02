@@ -1,5 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { EntityProvider } from '@backstage/plugin-catalog-react';
+import { mockSystemEntity } from '@openchoreo/test-utils';
 import { DeploymentPipelineCard } from './DeploymentPipelineCard';
 
 // ---- Mocks ----
@@ -8,24 +10,6 @@ import { DeploymentPipelineCard } from './DeploymentPipelineCard';
 const mockUseDeploymentPipeline = jest.fn();
 jest.mock('../hooks', () => ({
   useDeploymentPipeline: () => mockUseDeploymentPipeline(),
-}));
-
-// Mock useEntity
-jest.mock('@backstage/plugin-catalog-react', () => ({
-  useEntity: () => ({
-    entity: {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'System',
-      metadata: {
-        name: 'test-project',
-        namespace: 'default',
-        annotations: {
-          'openchoreo.io/namespace': 'test-ns',
-        },
-      },
-      spec: {},
-    },
-  }),
 }));
 
 // Mock permission hook
@@ -87,8 +71,14 @@ jest.mock('../../../utils/errorUtils', () => ({
 
 // ---- Helpers ----
 
+const testEntity = mockSystemEntity({ name: 'test-project' });
+
 function renderWithRouter(ui: React.ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+  return render(
+    <MemoryRouter>
+      <EntityProvider entity={testEntity}>{ui}</EntityProvider>
+    </MemoryRouter>,
+  );
 }
 
 // ---- Tests ----
