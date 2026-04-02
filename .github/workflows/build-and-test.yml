@@ -99,24 +99,27 @@ jobs:
           name: coverage-report
           path: coverage/
           retention-days: 14
+          if-no-files-found: warn
 
-      - name: Coverage summary on PR
-        if: github.event_name == 'pull_request'
+      - name: Coverage summary
+        if: always() && github.event_name == 'pull_request'
         run: |
-          echo "## Test Coverage Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          # Parse lcov.info for summary
-          LINES_FOUND=$(grep -c "^DA:" coverage/lcov.info || echo 0)
-          LINES_HIT=$(grep "^DA:" coverage/lcov.info | grep -cv ",0$" || echo 0)
-          if [ "$LINES_FOUND" -gt 0 ]; then
-            COVERAGE=$(( LINES_HIT * 100 / LINES_FOUND ))
-            echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-            echo "| Lines found | $LINES_FOUND |" >> $GITHUB_STEP_SUMMARY
-            echo "| Lines hit | $LINES_HIT |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Line coverage** | **${COVERAGE}%** |" >> $GITHUB_STEP_SUMMARY
+          if [ -f coverage/lcov.info ] && [ -s coverage/lcov.info ]; then
+            LINES_FOUND=$(awk '/^DA:/{n++} END{print n+0}' coverage/lcov.info)
+            LINES_HIT=$(awk -F, '/^DA:/{if($2+0>0)n++} END{print n+0}' coverage/lcov.info)
+            if [ "$LINES_FOUND" -gt 0 ]; then
+              COVERAGE=$(( LINES_HIT * 100 / LINES_FOUND ))
+              echo "## Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+              echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+              echo "| Lines found | $LINES_FOUND |" >> $GITHUB_STEP_SUMMARY
+              echo "| Lines hit | $LINES_HIT |" >> $GITHUB_STEP_SUMMARY
+              echo "| **Line coverage** | **${COVERAGE}%** |" >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "No coverage data found." >> $GITHUB_STEP_SUMMARY
+            echo "## Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ No coverage data found." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Check generated types freshness
