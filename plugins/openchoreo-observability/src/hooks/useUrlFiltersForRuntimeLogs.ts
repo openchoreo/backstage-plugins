@@ -4,10 +4,11 @@ import {
   Environment,
   RuntimeLogsFilters,
   LogEntryField,
+  LOG_LEVELS,
   SELECTED_FIELDS,
 } from '../components/RuntimeLogs/types';
 
-const DEFAULT_TIME_RANGE = '1h';
+const DEFAULT_TIME_RANGE = '10m';
 
 interface UseUrlFiltersForRuntimeLogsOptions {
   /** Available environments to map IDs to objects */
@@ -19,8 +20,8 @@ interface UseUrlFiltersForRuntimeLogsOptions {
  *
  * Query parameters:
  * - `env`: Environment ID
- * - `timeRange`: Time range value (defaults to '1h')
- * - `logLevel`: Comma-separated log levels
+ * - `timeRange`: Time range value (defaults to '10m')
+ * - `logLevel`: Comma-separated log levels (empty value means none selected)
  *
  * @example
  * ```tsx
@@ -39,9 +40,17 @@ export function useUrlFiltersForRuntimeLogs({
     const envId = searchParams.get('env');
     const timeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
     const logLevelParam = searchParams.get('logLevel');
-    const logLevel = logLevelParam
-      ? logLevelParam.split(',').filter(Boolean)
-      : [];
+    const logLevel =
+      logLevelParam === null
+        ? [...LOG_LEVELS]
+        : LOG_LEVELS.filter(level =>
+            new Set(
+              logLevelParam
+                .split(',')
+                .map(v => v.trim())
+                .filter(Boolean),
+            ).has(level),
+          );
     const searchQuery = searchParams.get('search') || undefined;
     const rawSortOrder = searchParams.get('sort');
     const sortOrder: 'asc' | 'desc' =
@@ -126,10 +135,17 @@ export function useUrlFiltersForRuntimeLogs({
       }
 
       if (newFilters.logLevel !== undefined) {
-        if (newFilters.logLevel.length > 0) {
-          newParams.set('logLevel', newFilters.logLevel.join(','));
-        } else {
+        const isAllSelected =
+          newFilters.logLevel.length === LOG_LEVELS.length &&
+          LOG_LEVELS.every(l => newFilters.logLevel!.includes(l));
+        if (isAllSelected) {
+          // Default (all) - remove from URL
           newParams.delete('logLevel');
+        } else if (newFilters.logLevel.length === 0) {
+          // Explicitly represent none selected
+          newParams.set('logLevel', '');
+        } else {
+          newParams.set('logLevel', newFilters.logLevel.join(','));
         }
       }
 

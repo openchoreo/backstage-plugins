@@ -5,6 +5,7 @@ import {
   Select,
   MenuItem,
   Checkbox,
+  Divider,
   Grid,
   TextField,
 } from '@material-ui/core';
@@ -75,7 +76,19 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   const handleLogLevelSelectChange = (
     event: ChangeEvent<{ value: unknown }>,
   ) => {
-    onFiltersChange({ logLevel: event.target.value as string[] });
+    const value = event.target.value as string[];
+    // 'ALL' being present means the "All" item was clicked — already handled
+    // by onMouseDown on that MenuItem, so skip to avoid overwriting it
+    if (value.includes('ALL')) return;
+    onFiltersChange({ logLevel: value });
+  };
+
+  const handleAllLogLevelsToggle = () => {
+    if (filters.logLevel.length === LOG_LEVELS.length) {
+      onFiltersChange({ logLevel: [] });
+    } else {
+      onFiltersChange({ logLevel: [...LOG_LEVELS] });
+    }
   };
 
   const handleSelectedFieldsChange = (
@@ -188,8 +201,24 @@ export const LogsFilter: FC<LogsFilterProps> = ({
             onChange={handleLogLevelSelectChange}
             labelId="log-levels-label"
             label="Log Levels"
-            renderValue={selected => (selected as string[]).join(', ')}
+            renderValue={selected => {
+              const levels = selected as string[];
+              if (levels.length === 0) return 'None';
+              if (levels.length === LOG_LEVELS.length) return 'All';
+              return levels.join(', ');
+            }}
           >
+            <MenuItem value="ALL" onMouseDown={handleAllLogLevelsToggle}>
+              <Checkbox
+                checked={filters.logLevel.length === LOG_LEVELS.length}
+                indeterminate={
+                  filters.logLevel.length > 0 &&
+                  filters.logLevel.length < LOG_LEVELS.length
+                }
+              />
+              All
+            </MenuItem>
+            <Divider />
             {LOG_LEVELS.map(level => (
               <MenuItem key={level} value={level}>
                 <Checkbox checked={filters.logLevel.includes(level)} />

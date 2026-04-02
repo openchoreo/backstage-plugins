@@ -106,6 +106,7 @@ export interface UseRuntimeLogsResult {
   fetchLogs: (reset?: boolean) => Promise<void>;
   loadMore: () => void;
   refresh: () => void;
+  clearLogs: () => void;
   componentId: string | null;
   projectId: string | null;
 }
@@ -139,6 +140,7 @@ export function useRuntimeLogs(
   const [projectId, setProjectId] = useState<string | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const inFlightRef = useRef<boolean>(false);
+  const fetchGenerationRef = useRef<number>(0);
 
   // Fetch component and project IDs
   useEffect(() => {
@@ -173,10 +175,17 @@ export function useRuntimeLogs(
         return;
       }
 
+      // Skip fetch if logLevels is explicitly empty (none selected)
+      if (options.logLevels !== undefined && options.logLevels.length === 0) {
+        return;
+      }
+
       // Check if a fetch is already in progress
       if (inFlightRef.current) {
         return;
       }
+
+      const generation = fetchGenerationRef.current;
 
       try {
         inFlightRef.current = true;
@@ -227,6 +236,8 @@ export function useRuntimeLogs(
           },
         );
 
+        if (fetchGenerationRef.current !== generation) return;
+
         if (reset) {
           setLogs(response.logs);
           setTotalCount(response.total ?? 0);
@@ -236,7 +247,9 @@ export function useRuntimeLogs(
 
         setHasMore(response.logs.length === (options.limit || 50));
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch logs');
+        if (fetchGenerationRef.current === generation) {
+          setError(err instanceof Error ? err.message : 'Failed to fetch logs');
+        }
       } finally {
         setLoading(false);
         inFlightRef.current = false;
@@ -308,6 +321,13 @@ export function useRuntimeLogs(
     fetchLogs(true);
   }, [fetchLogs]);
 
+  const clearLogs = useCallback(() => {
+    fetchGenerationRef.current += 1;
+    setLogs([]);
+    setTotalCount(0);
+    setHasMore(true);
+  }, []);
+
   return {
     logs,
     loading,
@@ -317,6 +337,7 @@ export function useRuntimeLogs(
     fetchLogs,
     loadMore,
     refresh,
+    clearLogs,
     componentId,
     projectId,
   };

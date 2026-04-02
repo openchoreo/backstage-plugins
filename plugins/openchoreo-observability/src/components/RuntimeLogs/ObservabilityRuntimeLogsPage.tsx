@@ -19,7 +19,7 @@ import {
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from './styles';
-import { Environment as RuntimeLogsEnvironment } from './types';
+import { Environment as RuntimeLogsEnvironment, LOG_LEVELS } from './types';
 
 const ObservabilityRuntimeLogsContent = () => {
   const classes = useRuntimeLogsStyles();
@@ -61,6 +61,9 @@ const ObservabilityRuntimeLogsContent = () => {
   // Track last updated time
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
+  const allLogLevelsSelected = filters.logLevel.length === LOG_LEVELS.length;
+  const noLogLevelSelected = filters.logLevel.length === 0;
+
   const {
     logs,
     loading: logsLoading,
@@ -70,17 +73,18 @@ const ObservabilityRuntimeLogsContent = () => {
     fetchLogs,
     loadMore,
     refresh,
+    clearLogs,
     componentId,
     projectId,
   } = useRuntimeLogs(entity, namespace || '', project || '', {
     environmentId: filters.environmentId,
     environmentName: selectedEnvironment?.resourceName || '',
     timeRange: filters.timeRange,
-    logLevels: filters.logLevel,
+    logLevels: allLogLevelsSelected ? [] : filters.logLevel,
     limit: 50,
     searchQuery: filters.searchQuery,
     sortOrder: filters.sortOrder || 'asc',
-    isLive: filters.isLive,
+    isLive: filters.isLive && !noLogLevelSelected,
   });
 
   const { loadingRef } = useInfiniteScroll(loadMore, hasMore, logsLoading);
@@ -126,8 +130,12 @@ const ObservabilityRuntimeLogsContent = () => {
       projectId &&
       filtersChanged
     ) {
-      fetchLogs(true);
-      setLastUpdated(new Date());
+      if (filters.logLevel.length === 0) {
+        clearLogs();
+      } else {
+        fetchLogs(true);
+        setLastUpdated(new Date());
+      }
       previousFiltersRef.current = currentFilters;
     }
   }, [
@@ -139,6 +147,7 @@ const ObservabilityRuntimeLogsContent = () => {
     componentId,
     projectId,
     fetchLogs,
+    clearLogs,
     selectedEnvironment,
     namespace,
     project,
@@ -152,6 +161,10 @@ const ObservabilityRuntimeLogsContent = () => {
   }, [logsLoading]);
 
   const handleRefresh = () => {
+    if (noLogLevelSelected) {
+      clearLogs();
+      return;
+    }
     refresh();
     setLastUpdated(new Date());
   };
