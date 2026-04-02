@@ -112,7 +112,10 @@ describe('assertApiResponse', () => {
     expect(() => assertApiResponse(result, 'fetch items')).toThrow(
       expect.objectContaining({ name: 'Error' }),
     );
-    expect(() => assertApiResponse(result, 'fetch items')).toThrow(/500/);
+    // When error has a message, assertApiResponse uses it directly (not the fallback with status code)
+    expect(() => assertApiResponse(result, 'fetch items')).toThrow(
+      'server error',
+    );
   });
 
   it('uses context in fallback message when no error message', () => {

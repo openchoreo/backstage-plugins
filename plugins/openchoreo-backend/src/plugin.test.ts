@@ -1,17 +1,24 @@
 import { startTestBackend } from '@backstage/backend-test-utils';
+import { createServiceFactory } from '@backstage/backend-plugin-api';
 import { choreoPlugin } from './plugin';
 import { catalogServiceMock } from '@backstage/plugin-catalog-node/testUtils';
+import { annotationStoreRef } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
-// TEMPLATE NOTE:
-// Plugin tests are integration tests for your plugin, ensuring that all pieces
-// work together end-to-end. You can still mock injected backend services
-// however, just like anyone who installs your plugin might replace the
-// services with their own implementations.
-// Basic plugin startup tests - OpenChoreo functionality tests to be added
+// Mock AnnotationStore service factory for tests
+const mockAnnotationStore = createServiceFactory({
+  service: annotationStoreRef,
+  deps: {},
+  factory: () => ({
+    getAnnotations: jest.fn().mockResolvedValue({}),
+    setAnnotations: jest.fn().mockResolvedValue(undefined),
+    deleteAllAnnotations: jest.fn().mockResolvedValue(undefined),
+  }),
+});
+
 describe('plugin', () => {
   it('should start the plugin without config', async () => {
     const { server } = await startTestBackend({
-      features: [choreoPlugin],
+      features: [choreoPlugin, mockAnnotationStore],
     });
 
     expect(server).toBeDefined();
@@ -21,6 +28,7 @@ describe('plugin', () => {
     const { server } = await startTestBackend({
       features: [
         choreoPlugin,
+        mockAnnotationStore,
         catalogServiceMock.factory({
           entities: [
             {

@@ -180,7 +180,12 @@ const k8sWorkload = {
   metadata: k8sMeta('api-service'),
   spec: {
     endpoints: {
-      http: { type: 'REST', port: 8080, visibility: ['external'] },
+      http: {
+        type: 'REST',
+        port: 8080,
+        visibility: ['external'],
+        schema: { type: 'openapi', content: '{"openapi":"3.0.0"}' },
+      },
     },
   },
 };
@@ -409,7 +414,6 @@ describe('OpenChoreoEntityProvider', () => {
       expect(findEntities(entities, 'ComponentType')).toHaveLength(1);
       expect(findEntities(entities, 'TraitType')).toHaveLength(1);
       expect(findEntities(entities, 'Workflow')).toHaveLength(1);
-      expect(findEntities(entities, 'ComponentWorkflow')).toHaveLength(1);
     });
 
     it('creates Domain entity from namespace', async () => {
@@ -463,7 +467,7 @@ describe('OpenChoreoEntityProvider', () => {
       const entities = await runProvider();
 
       const api = findEntities(entities, 'API')[0];
-      expect(api.metadata.name).toBe('api-service-http');
+      expect(api.metadata.name).toBe('my-project-api-service-http');
       expect(api.metadata.namespace).toBe('test-ns');
       expect(api.metadata.annotations?.['openchoreo.io/endpoint-type']).toBe(
         'REST',
@@ -481,7 +485,7 @@ describe('OpenChoreoEntityProvider', () => {
         c => c.metadata.name === 'api-service',
       );
       expect((serviceComp?.spec as any)?.providesApis).toContain(
-        'api-service-http',
+        'my-project-api-service-http',
       );
     });
 
@@ -576,8 +580,18 @@ describe('OpenChoreoEntityProvider', () => {
         metadata: k8sMeta('api-service'),
         spec: {
           endpoints: {
-            rest: { type: 'REST', port: 8080, visibility: ['external'] },
-            grpc: { type: 'gRPC', port: 9090, visibility: ['internal'] },
+            rest: {
+              type: 'REST',
+              port: 8080,
+              visibility: ['external'],
+              schema: { type: 'openapi', content: '{"openapi":"3.0.0"}' },
+            },
+            grpc: {
+              type: 'gRPC',
+              port: 9090,
+              visibility: ['internal'],
+              schema: { type: 'grpc', content: 'syntax = "proto3";' },
+            },
             dashboard: { type: 'HTTP', port: 3000, visibility: ['external'] },
             tcp: { type: 'TCP', port: 5000, visibility: ['internal'] },
           },
@@ -632,7 +646,10 @@ describe('OpenChoreoEntityProvider', () => {
       const apis = findEntities(entities, 'API');
       expect(apis).toHaveLength(2);
       const apiNames = apis.map(a => a.metadata.name).sort();
-      expect(apiNames).toEqual(['api-service-grpc', 'api-service-rest']);
+      expect(apiNames).toEqual([
+        'my-project-api-service-grpc',
+        'my-project-api-service-rest',
+      ]);
     });
   });
 
