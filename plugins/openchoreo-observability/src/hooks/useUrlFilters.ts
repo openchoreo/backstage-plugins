@@ -14,7 +14,7 @@ interface UseUrlFiltersOptions {
  *
  * Query parameters:
  * - `env`: Environment name
- * - `timeRange`: Time range value (defaults to '1h')
+ * - `timeRange`: Time range value (defaults to '10m')
  * - `components`: Comma-separated component IDs
  * - `q`: Search query string
  *

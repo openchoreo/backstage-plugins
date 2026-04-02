@@ -20,7 +20,7 @@ interface UseUrlFiltersForRuntimeLogsOptions {
  *
  * Query parameters:
  * - `env`: Environment ID
- * - `timeRange`: Time range value (defaults to '1h')
+ * - `timeRange`: Time range value (defaults to '10m')
  * - `logLevel`: Comma-separated log levels (empty value means none selected)
  *
  * @example
@@ -43,10 +43,14 @@ export function useUrlFiltersForRuntimeLogs({
     const logLevel =
       logLevelParam === null
         ? [...LOG_LEVELS]
-        : logLevelParam
-            .split(',')
-            .map(level => level.trim())
-            .filter(Boolean);
+        : LOG_LEVELS.filter(level =>
+            new Set(
+              logLevelParam
+                .split(',')
+                .map(v => v.trim())
+                .filter(Boolean),
+            ).has(level),
+          );
     const searchQuery = searchParams.get('search') || undefined;
     const rawSortOrder = searchParams.get('sort');
     const sortOrder: 'asc' | 'desc' =

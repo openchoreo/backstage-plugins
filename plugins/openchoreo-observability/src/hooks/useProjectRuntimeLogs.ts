@@ -114,7 +114,8 @@ export function useProjectRuntimeLogs(
           startTime,
           endTime,
           logLevels:
-            filters.logLevel.length === LOG_LEVELS.length
+            filters.logLevel.length === LOG_LEVELS.length &&
+            LOG_LEVELS.every(l => filters.logLevel.includes(l))
               ? []
               : filters.logLevel,
           searchQuery: filters.searchQuery,

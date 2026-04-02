@@ -61,6 +61,9 @@ const ObservabilityRuntimeLogsContent = () => {
   // Track last updated time
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
+  const allLogLevelsSelected = filters.logLevel.length === LOG_LEVELS.length;
+  const noLogLevelSelected = filters.logLevel.length === 0;
+
   const {
     logs,
     loading: logsLoading,
@@ -77,12 +80,11 @@ const ObservabilityRuntimeLogsContent = () => {
     environmentId: filters.environmentId,
     environmentName: selectedEnvironment?.resourceName || '',
     timeRange: filters.timeRange,
-    logLevels:
-      filters.logLevel.length === LOG_LEVELS.length ? [] : filters.logLevel,
+    logLevels: allLogLevelsSelected ? [] : filters.logLevel,
     limit: 50,
     searchQuery: filters.searchQuery,
     sortOrder: filters.sortOrder || 'asc',
-    isLive: filters.isLive,
+    isLive: filters.isLive && !noLogLevelSelected,
   });
 
   const { loadingRef } = useInfiniteScroll(loadMore, hasMore, logsLoading);
@@ -159,6 +161,10 @@ const ObservabilityRuntimeLogsContent = () => {
   }, [logsLoading]);
 
   const handleRefresh = () => {
+    if (noLogLevelSelected) {
+      clearLogs();
+      return;
+    }
     refresh();
     setLastUpdated(new Date());
   };
