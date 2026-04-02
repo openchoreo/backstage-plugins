@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -9,11 +9,16 @@ import {
 } from '@material-ui/core';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
+import { useApi } from '@backstage/core-plugin-api';
+import { useEntity } from '@backstage/plugin-catalog-react';
 import { useSetupCardStyles } from '../styles';
 import { SetupCardProps } from '../types';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { WorkloadButton } from '../Workload/WorkloadButton';
 import { AutoDeployConfirmationDialog } from './AutoDeployConfirmationDialog';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import { useAutoDeployUpdate } from '../hooks/useAutoDeployUpdate';
+import { useNotification } from '../../../hooks';
 
 /**
  * Setup card showing workload deployment options and auto deploy toggle.
@@ -24,13 +29,48 @@ export const SetupCard = ({
   environmentsExist,
   isWorkloadEditorSupported,
   onConfigureWorkload,
-  autoDeploy,
-  onAutoDeployChange,
-  autoDeployUpdating,
 }: SetupCardProps) => {
   const classes = useSetupCardStyles();
+  const { entity } = useEntity();
+  const client = useApi(openChoreoClientApiRef);
+  const notification = useNotification();
+  const { updateAutoDeploy, isUpdating: autoDeployUpdating } =
+    useAutoDeployUpdate(entity);
+
+  const [autoDeploy, setAutoDeploy] = useState<boolean | undefined>(undefined);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingAutoDeployValue, setPendingAutoDeployValue] = useState(false);
+
+  // Fetch component details to get autoDeploy value
+  useEffect(() => {
+    const fetchComponentData = async () => {
+      try {
+        const componentData = await client.getComponentDetails(entity);
+        if (componentData && 'autoDeploy' in componentData) {
+          setAutoDeploy((componentData as any).autoDeploy);
+        }
+      } catch {
+        // Silently fail - autoDeploy will remain undefined
+      }
+    };
+
+    fetchComponentData();
+  }, [entity, client]);
+
+  const handleAutoDeployChange = useCallback(
+    async (newAutoDeploy: boolean) => {
+      const success = await updateAutoDeploy(newAutoDeploy);
+      if (success) {
+        setAutoDeploy(newAutoDeploy);
+        notification.showSuccess(
+          `Auto deploy ${newAutoDeploy ? 'enabled' : 'disabled'} successfully`,
+        );
+      } else {
+        notification.showError('Failed to update auto deploy setting');
+      }
+    },
+    [updateAutoDeploy, notification],
+  );
 
   const handleToggleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.checked;
@@ -39,7 +79,7 @@ export const SetupCard = ({
   };
 
   const handleConfirm = () => {
-    onAutoDeployChange(pendingAutoDeployValue);
+    handleAutoDeployChange(pendingAutoDeployValue);
     setShowConfirmDialog(false);
   };
 

@@ -15,12 +15,6 @@ interface EnvironmentsContextValue {
   lowestEnvironment: string;
   /** Whether workload editor is supported for this component */
   isWorkloadEditorSupported: boolean;
-  /** Auto deploy setting */
-  autoDeploy: boolean | undefined;
-  /** Whether auto deploy is being updated */
-  autoDeployUpdating: boolean;
-  /** Handler for auto deploy toggle */
-  onAutoDeployChange: (enabled: boolean) => Promise<void>;
   /** Handler for completing a pending action (deploy/promote) */
   onPendingActionComplete: (action: PendingAction) => Promise<void>;
   /** Whether the user has permission to view environments */

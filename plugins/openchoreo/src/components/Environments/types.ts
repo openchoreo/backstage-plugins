@@ -65,9 +65,6 @@ export interface SetupCardProps {
   environmentsExist: boolean;
   isWorkloadEditorSupported: boolean;
   onConfigureWorkload: () => void;
-  autoDeploy?: boolean;
-  onAutoDeployChange: (autoDeploy: boolean) => void;
-  autoDeployUpdating: boolean;
 }
 
 /**
