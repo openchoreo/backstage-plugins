@@ -7,7 +7,7 @@ import {
   ALERT_SEVERITIES,
 } from '../components/Alerts/types';
 
-const DEFAULT_TIME_RANGE = '1h';
+const DEFAULT_TIME_RANGE = '10m';
 const VALID_TIME_RANGES: readonly string[] = ALERTS_TIME_RANGE_OPTIONS.map(
   o => o.value,
 );

@@ -8,7 +8,7 @@ import {
   SELECTED_FIELDS,
 } from '../components/RuntimeLogs/types';
 
-const DEFAULT_TIME_RANGE = '1h';
+const DEFAULT_TIME_RANGE = '10m';
 
 interface UseUrlFiltersForRuntimeLogsOptions {
   /** Available environments to map IDs to objects */

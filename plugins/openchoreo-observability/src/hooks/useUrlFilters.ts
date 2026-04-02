@@ -2,7 +2,7 @@ import { useCallback, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Filters, Environment } from '../types';
 
-const DEFAULT_TIME_RANGE = '1h';
+const DEFAULT_TIME_RANGE = '10m';
 
 interface UseUrlFiltersOptions {
   /** Available environments to map names to objects */

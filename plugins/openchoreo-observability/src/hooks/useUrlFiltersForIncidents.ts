@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import type { Environment } from '../components/RuntimeLogs/types';
 import type { IncidentsFilters } from '../components/Incidents/types';
 
-const DEFAULT_TIME_RANGE = '1h';
+const DEFAULT_TIME_RANGE = '10m';
 
 interface UseUrlFiltersForIncidentsOptions {
   environments: Environment[];
