@@ -6,24 +6,6 @@ import { ProjectComponentsCard } from './ProjectComponentsCard';
 
 // ---- Mocks ----
 
-// Mock styles
-jest.mock('./styles', () => ({
-  useProjectComponentsCardStyles: () => ({
-    cardWrapper: 'cardWrapper',
-    deploymentStatus: 'deploymentStatus',
-    chipContainer: 'chipContainer',
-    environmentChip: 'environmentChip',
-    statusIconReady: 'statusIconReady',
-    statusIconWarning: 'statusIconWarning',
-    statusIconError: 'statusIconError',
-    statusIconDefault: 'statusIconDefault',
-    buildStatus: 'buildStatus',
-    tooltipBuildName: 'tooltipBuildName',
-    moreChip: 'moreChip',
-    createComponentButton: 'createComponentButton',
-  }),
-}));
-
 // Mock project hooks
 const mockUseComponentsWithDeployment = jest.fn();
 const mockUseEnvironments = jest.fn();

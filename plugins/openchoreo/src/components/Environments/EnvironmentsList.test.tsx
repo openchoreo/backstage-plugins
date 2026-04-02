@@ -11,13 +11,6 @@ import type { EnvironmentCardProps, SetupCardProps } from './types';
 let capturedEnvironmentCardProps: Map<string, EnvironmentCardProps>;
 let capturedSetupCardProps: SetupCardProps | undefined;
 
-// ---- Mock: styles ----
-jest.mock('./styles', () => ({
-  useEnvironmentsListStyles: () => ({
-    cardGrid: 'cardGrid',
-    cardItem: 'cardItem',
-  }),
-}));
 
 // ---- Mock: EnvironmentCard & SetupCard ----
 jest.mock('./components', () => ({

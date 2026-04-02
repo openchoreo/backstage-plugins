@@ -6,11 +6,6 @@ import { Environments } from './Environments';
 
 // ---- Mocks ----
 
-// Mock styles (no-op)
-jest.mock('./styles', () => ({
-  useEnvironmentsStyles: jest.fn(),
-}));
-
 // Mock useNotification
 jest.mock('../../hooks', () => ({
   useNotification: () => ({

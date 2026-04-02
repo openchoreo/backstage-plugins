@@ -45,22 +45,6 @@ jest.mock('./ChangePipelineDialog', () => ({
   ChangePipelineDialog: () => null,
 }));
 
-// Mock styles
-jest.mock('./styles', () => ({
-  useProjectOverviewCardStyles: () => ({
-    card: 'card',
-    cardHeader: 'cardHeader',
-    cardTitle: 'cardTitle',
-    content: 'content',
-    pipelineInfo: 'pipelineInfo',
-    infoRow: 'infoRow',
-    infoLabel: 'infoLabel',
-    infoValue: 'infoValue',
-    disabledState: 'disabledState',
-    disabledIcon: 'disabledIcon',
-  }),
-}));
-
 // Mock error utils
 jest.mock('../../../utils/errorUtils', () => ({
   isForbiddenError: (err: any) =>
