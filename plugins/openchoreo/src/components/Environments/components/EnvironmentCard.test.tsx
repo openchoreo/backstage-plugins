@@ -4,14 +4,6 @@ import type { EnvironmentCardProps, ItemActionTracker } from '../types';
 
 // ---- Mocks ----
 
-jest.mock('@openchoreo/backstage-design-system', () => ({
-  Card: ({ children, ...rest }: any) => (
-    <div data-testid="ds-card" {...rest}>
-      {children}
-    </div>
-  ),
-}));
-
 jest.mock('./LoadingSkeleton', () => ({
   LoadingSkeleton: ({ variant }: { variant: string }) => (
     <div data-testid={`loading-skeleton-${variant}`} />

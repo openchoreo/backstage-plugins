@@ -103,6 +103,9 @@ describe('useGitSecrets', () => {
       undefined,
       undefined,
     );
+
+    // Verify list was refreshed after create (initial load + refresh)
+    expect(mockClient.listGitSecrets).toHaveBeenCalledTimes(2);
   });
 
   it('deletes a secret and refreshes the list', async () => {
@@ -125,6 +128,9 @@ describe('useGitSecrets', () => {
       'test-ns',
       'to-delete',
     );
+
+    // Verify list was refreshed after delete (initial load + refresh)
+    expect(mockClient.listGitSecrets).toHaveBeenCalledTimes(2);
   });
 
   it('refetches secrets when namespace changes', async () => {

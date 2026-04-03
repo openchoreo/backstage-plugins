@@ -63,8 +63,10 @@ describe('MetricsFilters', () => {
   it('disables controls when disabled', () => {
     renderFilters({ disabled: true });
 
-    // The environment and time range selects should be disabled
-    const selects = document.querySelectorAll('.Mui-disabled');
-    expect(selects.length).toBeGreaterThan(0);
+    // Verify both selects are disabled via MUI's disabled class
+    const disabledSelects = document.querySelectorAll(
+      '.MuiInputBase-root.Mui-disabled',
+    );
+    expect(disabledSelects.length).toBeGreaterThanOrEqual(2);
   });
 });

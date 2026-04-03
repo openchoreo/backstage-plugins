@@ -126,7 +126,7 @@ describe('GitSecretsContent', () => {
     });
   });
 
-  it('renders namespace selector with sorted namespaces', async () => {
+  it('renders namespace selector', async () => {
     renderContent();
 
     await waitFor(() => {

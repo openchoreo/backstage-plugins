@@ -233,14 +233,14 @@ describe('useDeleteEntityMenuItems', () => {
 
     await waitFor(() => {
       expect(mockClient.deleteComponent).toHaveBeenCalled();
+      expect(mockAlertApi.post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Component "my-service" has been marked for deletion',
+          severity: 'success',
+        }),
+      );
+      expect(mockNavigate).toHaveBeenCalledWith('/catalog');
     });
-    expect(mockAlertApi.post).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: 'Component "my-service" has been marked for deletion',
-        severity: 'success',
-      }),
-    );
-    expect(mockNavigate).toHaveBeenCalledWith('/catalog');
   });
 
   it('calls deleteProject on confirm for System entity', async () => {

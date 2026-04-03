@@ -78,8 +78,8 @@ describe('AlertsTable', () => {
   it('shows loading skeletons when loading with no alerts', () => {
     renderTable({ alerts: [], loading: true });
 
-    // Should not show empty state
-    expect(screen.queryByText('No alerts found')).not.toBeInTheDocument();
+    const skeletons = document.querySelectorAll('.MuiSkeleton-root');
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it('shows spinner when loading with existing alerts', () => {

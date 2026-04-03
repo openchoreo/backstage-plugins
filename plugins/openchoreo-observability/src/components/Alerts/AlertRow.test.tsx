@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Table, TableBody } from '@material-ui/core';
 import { AlertRow } from './AlertRow';
@@ -192,10 +192,10 @@ describe('AlertRow', () => {
     // Expand the row first to get the outlined "View incident" button (not the hover one)
     await user.click(screen.getByText('High CPU Alert'));
 
-    // Click the expanded view's "View incident" button (outlined variant)
-    const viewIncidentButtons = screen.getAllByText('View incident');
-    // The expanded one is a visible outlined button
-    await user.click(viewIncidentButtons[viewIncidentButtons.length - 1]);
+    // Click the expanded view's "View incident" button (outlined variant in details)
+    const detailsSection = screen.getByText('Alert details').closest('tr')!;
+    const { getByRole } = within(detailsSection);
+    await user.click(getByRole('button', { name: /view incident/i }));
 
     expect(onViewIncident).toHaveBeenCalledWith(sampleAlert);
   });
