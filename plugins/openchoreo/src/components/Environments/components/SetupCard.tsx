@@ -38,23 +38,34 @@ export const SetupCard = ({
     useAutoDeployUpdate(entity);
 
   const [autoDeploy, setAutoDeploy] = useState<boolean | undefined>(undefined);
+  const [autoDeployLoaded, setAutoDeployLoaded] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingAutoDeployValue, setPendingAutoDeployValue] = useState(false);
 
   // Fetch component details to get autoDeploy value
   useEffect(() => {
+    let cancelled = false;
+    setAutoDeployLoaded(false);
+
     const fetchComponentData = async () => {
       try {
         const componentData = await client.getComponentDetails(entity);
-        if (componentData && 'autoDeploy' in componentData) {
+        if (!cancelled && componentData && 'autoDeploy' in componentData) {
           setAutoDeploy((componentData as any).autoDeploy);
         }
       } catch {
         // Silently fail - autoDeploy will remain undefined
+      } finally {
+        if (!cancelled) {
+          setAutoDeployLoaded(true);
+        }
       }
     };
 
     fetchComponentData();
+    return () => {
+      cancelled = true;
+    };
   }, [entity, client]);
 
   const handleAutoDeployChange = useCallback(
@@ -116,7 +127,7 @@ export const SetupCard = ({
                         onChange={handleToggleChange}
                         name="autoDeploy"
                         color="primary"
-                        disabled={autoDeployUpdating}
+                        disabled={!autoDeployLoaded || autoDeployUpdating}
                       />
                     }
                     label={<Typography variant="body2">Auto Deploy</Typography>}

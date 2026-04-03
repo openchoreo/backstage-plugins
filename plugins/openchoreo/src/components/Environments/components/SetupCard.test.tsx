@@ -199,6 +199,12 @@ describe('SetupCard', () => {
     const user = userEvent.setup();
     renderSetupCard();
 
+    await waitFor(() => {
+      expect(
+        screen.getByRole('checkbox', { name: /auto deploy/i }),
+      ).toBeEnabled();
+    });
+
     await user.click(screen.getByRole('checkbox', { name: /auto deploy/i }));
     expect(screen.getByText('Enable Auto Deploy?')).toBeInTheDocument();
 
