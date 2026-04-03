@@ -50,8 +50,8 @@ export const SetupCard = ({
     const fetchComponentData = async () => {
       try {
         const componentData = await client.getComponentDetails(entity);
-        if (!cancelled && componentData && 'autoDeploy' in componentData) {
-          setAutoDeploy((componentData as any).autoDeploy);
+        if (!cancelled && componentData?.autoDeploy !== undefined) {
+          setAutoDeploy(componentData.autoDeploy);
         }
       } catch {
         // Auto-deploy state will remain undefined and switch stays disabled

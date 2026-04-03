@@ -497,6 +497,7 @@ export interface OpenChoreoClientApi {
     uid?: string;
     deletionTimestamp?: string;
     parameters?: Record<string, unknown>;
+    autoDeploy?: boolean;
   }>;
 
   /** Get project details (including UID and deletionTimestamp) */

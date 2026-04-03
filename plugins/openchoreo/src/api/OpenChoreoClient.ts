@@ -550,6 +550,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     uid?: string;
     deletionTimestamp?: string;
     parameters?: Record<string, unknown>;
+    autoDeploy?: boolean;
   }> {
     const metadata = extractEntityMetadata(entity);
 
