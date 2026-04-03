@@ -41,42 +41,32 @@ describe('AlertsFilter', () => {
   it('renders search input', () => {
     renderFilter();
 
-    expect(
-      screen.getByPlaceholderText('Search alerts...'),
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search alerts...')).toBeInTheDocument();
   });
 
   it('renders severity selector', () => {
     renderFilter();
 
     // MUI outlined Select renders label text twice
-    expect(
-      screen.getAllByText('Severity').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Severity').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders environment selector', () => {
     renderFilter();
 
-    expect(
-      screen.getAllByText('Environment').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Environment').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders time range selector', () => {
     renderFilter();
 
-    expect(
-      screen.getAllByText('Time Range').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Time Range').length).toBeGreaterThanOrEqual(1);
   });
 
   it('disables controls when disabled', () => {
     renderFilter({ disabled: true });
 
-    expect(
-      screen.getByPlaceholderText('Search alerts...'),
-    ).toBeDisabled();
+    expect(screen.getByPlaceholderText('Search alerts...')).toBeDisabled();
   });
 
   it('allows typing in search field', async () => {

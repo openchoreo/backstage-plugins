@@ -80,8 +80,6 @@ describe('IncidentsActions', () => {
   it('disables buttons when disabled', () => {
     renderActions({ disabled: true });
 
-    expect(
-      screen.getByRole('button', { name: /refresh/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /refresh/i })).toBeDisabled();
   });
 });

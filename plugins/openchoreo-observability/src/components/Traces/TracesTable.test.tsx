@@ -106,9 +106,7 @@ describe('TracesTable', () => {
 
     await user.click(screen.getByText('GET /api/users'));
 
-    expect(mockTraceSpans.fetchSpans).toHaveBeenCalledWith(
-      'abc12345def67890',
-    );
+    expect(mockTraceSpans.fetchSpans).toHaveBeenCalledWith('abc12345def67890');
   });
 
   it('shows span error when expanded with error', async () => {

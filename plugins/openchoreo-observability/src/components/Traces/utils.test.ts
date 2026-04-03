@@ -11,13 +11,17 @@ import {
 
 describe('parseRfc3339NanoToNanoseconds', () => {
   it('converts RFC3339 timestamp to nanoseconds', () => {
-    const result = parseRfc3339NanoToNanoseconds('2024-06-01T10:00:00.000000000Z');
+    const result = parseRfc3339NanoToNanoseconds(
+      '2024-06-01T10:00:00.000000000Z',
+    );
     const expectedMs = new Date('2024-06-01T10:00:00Z').getTime();
     expect(result).toBe(expectedMs * 1_000_000);
   });
 
   it('handles fractional seconds', () => {
-    const result = parseRfc3339NanoToNanoseconds('2024-06-01T10:00:00.123456789Z');
+    const result = parseRfc3339NanoToNanoseconds(
+      '2024-06-01T10:00:00.123456789Z',
+    );
     const expectedMs = new Date('2024-06-01T10:00:00.123Z').getTime();
     expect(result).toBe(expectedMs * 1_000_000 + 456789);
   });
@@ -87,32 +91,28 @@ describe('calculateTimeRange', () => {
   it('returns start and end time for 10m', () => {
     const result = calculateTimeRange('10m');
     const diff =
-      new Date(result.endTime).getTime() -
-      new Date(result.startTime).getTime();
+      new Date(result.endTime).getTime() - new Date(result.startTime).getTime();
     expect(diff).toBe(10 * 60 * 1000);
   });
 
   it('returns start and end time for 1h', () => {
     const result = calculateTimeRange('1h');
     const diff =
-      new Date(result.endTime).getTime() -
-      new Date(result.startTime).getTime();
+      new Date(result.endTime).getTime() - new Date(result.startTime).getTime();
     expect(diff).toBe(60 * 60 * 1000);
   });
 
   it('returns start and end time for 7d', () => {
     const result = calculateTimeRange('7d');
     const diff =
-      new Date(result.endTime).getTime() -
-      new Date(result.startTime).getTime();
+      new Date(result.endTime).getTime() - new Date(result.startTime).getTime();
     expect(diff).toBe(7 * 24 * 60 * 60 * 1000);
   });
 
   it('defaults to 1h for unknown range', () => {
     const result = calculateTimeRange('unknown');
     const diff =
-      new Date(result.endTime).getTime() -
-      new Date(result.startTime).getTime();
+      new Date(result.endTime).getTime() - new Date(result.startTime).getTime();
     expect(diff).toBe(60 * 60 * 1000);
   });
 });

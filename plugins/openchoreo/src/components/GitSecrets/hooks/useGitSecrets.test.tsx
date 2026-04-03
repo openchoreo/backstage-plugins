@@ -130,10 +130,9 @@ describe('useGitSecrets', () => {
   it('refetches secrets when namespace changes', async () => {
     mockClient.listGitSecrets.mockResolvedValue({ items: [] });
 
-    const { rerender } = renderHook(
-      ({ ns }) => useGitSecrets(ns),
-      { initialProps: { ns: 'ns-a' } },
-    );
+    const { rerender } = renderHook(({ ns }) => useGitSecrets(ns), {
+      initialProps: { ns: 'ns-a' },
+    });
 
     await act(async () => {});
 

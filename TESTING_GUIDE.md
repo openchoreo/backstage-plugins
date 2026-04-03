@@ -7,6 +7,7 @@
 The **recommended default** for rendering components in tests. Provides full Backstage context: theme, routing, API registry, and error boundaries.
 
 Use for:
+
 - Page-level components that depend on routing or Backstage APIs
 - Components that use Backstage UI components (`Progress`, `Table`, `EmptyState`, etc.) which internally call hooks like `useTranslationRef()`
 
@@ -47,22 +48,24 @@ render(<MyButton onClick={fn} />);
 ## What to Mock
 
 **Do mock:**
+
 - Your own hooks (`../../hooks`)
 - Sibling/child components (to isolate the unit under test)
 - External service plugins (`@openchoreo/backstage-plugin-react`)
 
 **Do NOT mock:**
+
 - `@backstage/core-components` — use `renderInTestApp` instead, which provides the required context. Mocking these components is [documented as broken](https://github.com/backstage/backstage/issues/20713) and strips away real rendering behavior.
 - `@backstage/plugin-catalog-react` — use `EntityProvider` to supply entity context.
 - MUI components — they work without any special context.
 
 ## Quick Reference
 
-| Component type | Render with | Entity context |
-|---|---|---|
+| Component type                     | Render with       | Entity context                         |
+| ---------------------------------- | ----------------- | -------------------------------------- |
 | Page (uses routing + Backstage UI) | `renderInTestApp` | `EntityProvider` if uses `useEntity()` |
-| Component using Backstage UI only | `renderInTestApp` | No |
-| Pure component (MUI / HTML only) | `render` | No |
+| Component using Backstage UI only  | `renderInTestApp` | No                                     |
+| Pure component (MUI / HTML only)   | `render`          | No                                     |
 
 ## Test Structure
 

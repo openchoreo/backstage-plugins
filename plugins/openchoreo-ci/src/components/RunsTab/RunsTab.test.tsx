@@ -32,7 +32,7 @@ jest.mock('@backstage/core-components', () => ({
       ) : (
         <div data-testid="table-rows">
           {data.map((row: any, i: number) => (
-            <div
+            <div // eslint-disable-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
               key={i}
               data-testid={`row-${row.name}`}
               onClick={() => onRowClick?.(undefined, row)}
@@ -78,7 +78,9 @@ const builds: ModelsBuild[] = [
   },
 ];
 
-function renderTab(overrides: Partial<React.ComponentProps<typeof RunsTab>> = {}) {
+function renderTab(
+  overrides: Partial<React.ComponentProps<typeof RunsTab>> = {},
+) {
   const defaultProps = {
     builds,
     loading: false,
@@ -153,9 +155,7 @@ describe('RunsTab', () => {
   it('shows retention tooltip when retentionTtl is provided', () => {
     renderTab({ retentionTtl: '48h' });
 
-    expect(
-      screen.getByLabelText('Retention period info'),
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Retention period info')).toBeInTheDocument();
   });
 
   it('renders refresh button', () => {

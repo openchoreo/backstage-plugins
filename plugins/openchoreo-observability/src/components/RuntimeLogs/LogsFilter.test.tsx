@@ -52,9 +52,7 @@ describe('LogsFilter', () => {
   it('renders search input', () => {
     renderFilter();
 
-    expect(
-      screen.getByPlaceholderText('Search Logs...'),
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search Logs...')).toBeInTheDocument();
   });
 
   it('renders environment selector', () => {
@@ -91,7 +89,9 @@ describe('LogsFilter', () => {
   it('shows selected fields filter when no components (component-level)', () => {
     renderFilter({ components: [] });
 
-    expect(screen.getAllByText('Selected Fields').length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText('Selected Fields').length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('does not show selected fields when components are present (project-level)', () => {

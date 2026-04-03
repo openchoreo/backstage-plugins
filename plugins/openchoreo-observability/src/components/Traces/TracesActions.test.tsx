@@ -44,12 +44,8 @@ describe('TracesActions', () => {
   });
 
   it('disables Refresh button when disabled', () => {
-    render(
-      <TracesActions totalCount={0} disabled onRefresh={jest.fn()} />,
-    );
+    render(<TracesActions totalCount={0} disabled onRefresh={jest.fn()} />);
 
-    expect(
-      screen.getByRole('button', { name: /refresh/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /refresh/i })).toBeDisabled();
   });
 });

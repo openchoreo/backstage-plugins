@@ -52,9 +52,7 @@ describe('IncidentRow', () => {
     renderRow();
 
     expect(
-      screen.getByText(
-        new Date('2024-06-01T10:00:00.000Z').toLocaleString(),
-      ),
+      screen.getByText(new Date('2024-06-01T10:00:00.000Z').toLocaleString()),
     ).toBeInTheDocument();
   });
 
@@ -103,9 +101,7 @@ describe('IncidentRow', () => {
   it('shows View RCA button when incidentTriggerAiRca is true', () => {
     renderRow();
 
-    expect(
-      screen.getAllByText('View RCA').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('View RCA').length).toBeGreaterThanOrEqual(1);
   });
 
   it('does not show View RCA when incidentTriggerAiRca is false', () => {

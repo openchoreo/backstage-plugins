@@ -56,7 +56,9 @@ jest.mock('./IncidentsBanner', () => ({
 
 // ---- Helpers ----
 
-function createTracker(overrides: Partial<ItemActionTracker> = {}): ItemActionTracker {
+function createTracker(
+  overrides: Partial<ItemActionTracker> = {},
+): ItemActionTracker {
   return {
     isActive: jest.fn().mockReturnValue(false),
     withTracking: jest.fn((_item: string, fn: () => Promise<any>) => fn()),

@@ -54,9 +54,7 @@ describe('AlertRow', () => {
     renderRow();
 
     expect(
-      screen.getByText(
-        new Date('2024-06-01T10:00:00.000Z').toLocaleString(),
-      ),
+      screen.getByText(new Date('2024-06-01T10:00:00.000Z').toLocaleString()),
     ).toBeInTheDocument();
   });
 
@@ -160,9 +158,7 @@ describe('AlertRow', () => {
     await user.click(screen.getByText('High CPU Alert'));
 
     expect(screen.getByText('Notification Channels:')).toBeInTheDocument();
-    expect(
-      screen.getByText('slack-alerts, pagerduty'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('slack-alerts, pagerduty')).toBeInTheDocument();
   });
 
   it('shows rule description when expanded', async () => {

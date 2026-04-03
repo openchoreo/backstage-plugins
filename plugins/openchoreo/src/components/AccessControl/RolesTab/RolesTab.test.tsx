@@ -77,9 +77,7 @@ describe('RolesTab', () => {
   it('does not show namespace selector in cluster scope', () => {
     renderTab();
 
-    expect(
-      screen.queryByTestId('namespace-selector'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('namespace-selector')).not.toBeInTheDocument();
   });
 
   it('shows scope dropdown with correct labels', () => {

@@ -104,9 +104,7 @@ function setupDefaultMocks() {
   });
 
   mockUseGetEnvironmentsByNamespace.mockReturnValue({
-    environments: [
-      { name: 'development', displayName: 'Development' },
-    ],
+    environments: [{ name: 'development', displayName: 'Development' }],
     loading: false,
     error: null,
   });

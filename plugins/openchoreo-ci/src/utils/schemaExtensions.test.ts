@@ -29,15 +29,21 @@ describe('getNestedValue', () => {
   });
 
   it('throws on __proto__ path segment', () => {
-    expect(() => getNestedValue({}, '__proto__')).toThrow('Unsafe path segment');
+    expect(() => getNestedValue({}, '__proto__')).toThrow(
+      'Unsafe path segment',
+    );
   });
 
   it('throws on constructor path segment', () => {
-    expect(() => getNestedValue({}, 'a.constructor')).toThrow('Unsafe path segment');
+    expect(() => getNestedValue({}, 'a.constructor')).toThrow(
+      'Unsafe path segment',
+    );
   });
 
   it('throws on prototype path segment', () => {
-    expect(() => getNestedValue({}, 'prototype.x')).toThrow('Unsafe path segment');
+    expect(() => getNestedValue({}, 'prototype.x')).toThrow(
+      'Unsafe path segment',
+    );
   });
 });
 
@@ -179,7 +185,9 @@ describe('extractGitFieldValues', () => {
   });
 
   it('extracts values from nested parameters', () => {
-    const params = { repo: { url: 'http://example.com', rev: { commit: 'abc123' } } };
+    const params = {
+      repo: { url: 'http://example.com', rev: { commit: 'abc123' } },
+    };
     const mapping = { repoUrl: 'repo.url', commit: 'repo.rev.commit' };
     expect(extractGitFieldValues(params, mapping)).toEqual({
       repoUrl: 'http://example.com',

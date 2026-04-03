@@ -48,9 +48,7 @@ describe('LogsActions', () => {
   it('displays last updated time', () => {
     renderActions();
 
-    expect(
-      screen.getByText(/Last updated at:/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Last updated at:/)).toBeInTheDocument();
   });
 
   it('shows "Newest First" when sort order is desc', () => {
@@ -76,9 +74,7 @@ describe('LogsActions', () => {
     const onFiltersChange = jest.fn();
     renderActions({ onFiltersChange });
 
-    await user.click(
-      screen.getByRole('button', { name: /newest first/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /newest first/i }));
 
     expect(onFiltersChange).toHaveBeenCalledWith({ sortOrder: 'asc' });
   });
@@ -86,9 +82,7 @@ describe('LogsActions', () => {
   it('shows Live button', () => {
     renderActions();
 
-    expect(
-      screen.getByRole('button', { name: /live/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /live/i })).toBeInTheDocument();
   });
 
   it('toggles live mode on click', async () => {
@@ -125,11 +119,7 @@ describe('LogsActions', () => {
     expect(
       screen.getByRole('button', { name: /newest first/i }),
     ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: /live/i }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: /refresh/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /live/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /refresh/i })).toBeDisabled();
   });
 });

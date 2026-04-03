@@ -125,17 +125,13 @@ describe('LogsTable', () => {
   it('shows "Scroll to load more" when hasMore and not loading', () => {
     renderTable({ hasMore: true, loading: false });
 
-    expect(
-      screen.getByText('Scroll to load more logs'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Scroll to load more logs')).toBeInTheDocument();
   });
 
   it('does not show pagination indicator when hasMore is false', () => {
     renderTable({ hasMore: false });
 
-    expect(
-      screen.queryByText('Loading more logs...'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Loading more logs...')).not.toBeInTheDocument();
     expect(
       screen.queryByText('Scroll to load more logs'),
     ).not.toBeInTheDocument();

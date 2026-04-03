@@ -51,7 +51,9 @@ jest.mock('../../../hooks', () => ({
 const mockClient = createMockOpenChoreoClient();
 const testEntity = mockComponentEntity();
 
-function renderSetupCard(props: Partial<React.ComponentProps<typeof SetupCard>> = {}) {
+function renderSetupCard(
+  props: Partial<React.ComponentProps<typeof SetupCard>> = {},
+) {
   const defaultProps = {
     loading: false,
     environmentsExist: true,
@@ -89,7 +91,9 @@ describe('SetupCard', () => {
     renderSetupCard();
 
     expect(screen.getByText('Set up')).toBeInTheDocument();
-    expect(screen.getByText('Manage deployment configuration and settings')).toBeInTheDocument();
+    expect(
+      screen.getByText('Manage deployment configuration and settings'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Auto Deploy')).toBeInTheDocument();
   });
 
@@ -131,7 +135,9 @@ describe('SetupCard', () => {
     renderSetupCard();
 
     await waitFor(() => {
-      expect(screen.getByRole('checkbox', { name: /auto deploy/i })).not.toBeChecked();
+      expect(
+        screen.getByRole('checkbox', { name: /auto deploy/i }),
+      ).not.toBeChecked();
     });
 
     await user.click(screen.getByRole('checkbox', { name: /auto deploy/i }));
@@ -149,7 +155,9 @@ describe('SetupCard', () => {
     renderSetupCard();
 
     await waitFor(() => {
-      expect(screen.getByRole('checkbox', { name: /auto deploy/i })).not.toBeChecked();
+      expect(
+        screen.getByRole('checkbox', { name: /auto deploy/i }),
+      ).not.toBeChecked();
     });
 
     await user.click(screen.getByRole('checkbox', { name: /auto deploy/i }));
@@ -171,7 +179,9 @@ describe('SetupCard', () => {
     renderSetupCard();
 
     await waitFor(() => {
-      expect(screen.getByRole('checkbox', { name: /auto deploy/i })).toBeChecked();
+      expect(
+        screen.getByRole('checkbox', { name: /auto deploy/i }),
+      ).toBeChecked();
     });
 
     await user.click(screen.getByRole('checkbox', { name: /auto deploy/i }));
@@ -213,13 +223,17 @@ describe('SetupCard', () => {
   });
 
   it('silently handles getComponentDetails failure', async () => {
-    mockClient.getComponentDetails.mockRejectedValue(new Error('Network error'));
+    mockClient.getComponentDetails.mockRejectedValue(
+      new Error('Network error'),
+    );
 
     renderSetupCard();
 
     // Should render normally with switch unchecked (default)
     await waitFor(() => {
-      expect(screen.getByRole('checkbox', { name: /auto deploy/i })).not.toBeChecked();
+      expect(
+        screen.getByRole('checkbox', { name: /auto deploy/i }),
+      ).not.toBeChecked();
     });
   });
 });

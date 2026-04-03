@@ -52,9 +52,7 @@ describe('IncidentsTable', () => {
   it('renders incident rows', () => {
     renderTable();
 
-    expect(
-      screen.getByTestId('incident-row-inc-001'),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('incident-row-inc-001')).toBeInTheDocument();
   });
 
   it('shows empty state when no incidents', () => {
@@ -79,8 +77,6 @@ describe('IncidentsTable', () => {
   it('does not show empty state when loading', () => {
     renderTable({ loading: true, incidents: [] });
 
-    expect(
-      screen.queryByText('No incidents found'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('No incidents found')).not.toBeInTheDocument();
   });
 });

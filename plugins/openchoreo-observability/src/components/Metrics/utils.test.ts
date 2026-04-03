@@ -103,9 +103,7 @@ describe('transformMetricsData', () => {
         { timestamp: '2024-06-01T10:00:00Z', value: 0.5 },
         { timestamp: '2024-06-01T10:01:00Z', value: 0.6 },
       ],
-      cpuRequests: [
-        { timestamp: '2024-06-01T10:00:00Z', value: 0.25 },
-      ],
+      cpuRequests: [{ timestamp: '2024-06-01T10:00:00Z', value: 0.25 }],
       cpuLimits: [],
     };
 

@@ -14,7 +14,9 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
 
 // ---- Helpers ----
 
-function createTracker(overrides: Partial<ItemActionTracker> = {}): ItemActionTracker {
+function createTracker(
+  overrides: Partial<ItemActionTracker> = {},
+): ItemActionTracker {
   return {
     isActive: jest.fn().mockReturnValue(false),
     withTracking: jest.fn((_item: string, fn: () => Promise<any>) => fn()),
@@ -38,7 +40,10 @@ function renderActions(overrides: Partial<EnvironmentActionsProps> = {}) {
     ...overrides,
   };
 
-  return { ...render(<EnvironmentActions {...defaultProps} />), props: defaultProps };
+  return {
+    ...render(<EnvironmentActions {...defaultProps} />),
+    props: defaultProps,
+  };
 }
 
 const grantedDeploy = {
@@ -204,8 +209,12 @@ describe('EnvironmentActions', () => {
       ],
     });
 
-    expect(screen.getByRole('button', { name: /promote to staging/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /promote to production/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /promote to staging/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /promote to production/i }),
+    ).toBeInTheDocument();
   });
 
   it('calls onPromote with correct target for multi-target', async () => {
@@ -220,17 +229,19 @@ describe('EnvironmentActions', () => {
       onPromote,
     });
 
-    await user.click(screen.getByRole('button', { name: /promote to production/i }));
+    await user.click(
+      screen.getByRole('button', { name: /promote to production/i }),
+    );
     expect(onPromote).toHaveBeenCalledWith('prod-res');
   });
 
   it('shows approval required text for target requiring approval', () => {
     renderActions({
-      promotionTargets: [
-        { name: 'production', requiresApproval: true },
-      ],
+      promotionTargets: [{ name: 'production', requiresApproval: true }],
     });
 
-    expect(screen.getByRole('button')).toHaveTextContent('Promote (Approval Required)');
+    expect(screen.getByRole('button')).toHaveTextContent(
+      'Promote (Approval Required)',
+    );
   });
 });

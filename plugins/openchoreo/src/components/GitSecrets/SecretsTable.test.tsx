@@ -6,8 +6,18 @@ import { GitSecret } from '../../api/OpenChoreoClientApi';
 // ---- Helpers ----
 
 const secrets: GitSecret[] = [
-  { name: 'repo-token', namespace: 'test-ns', workflowPlaneName: 'default-plane', workflowPlaneKind: 'WorkflowPlane' },
-  { name: 'deploy-key', namespace: 'test-ns', workflowPlaneName: 'shared-plane', workflowPlaneKind: 'ClusterWorkflowPlane' },
+  {
+    name: 'repo-token',
+    namespace: 'test-ns',
+    workflowPlaneName: 'default-plane',
+    workflowPlaneKind: 'WorkflowPlane',
+  },
+  {
+    name: 'deploy-key',
+    namespace: 'test-ns',
+    workflowPlaneName: 'shared-plane',
+    workflowPlaneKind: 'ClusterWorkflowPlane',
+  },
 ];
 
 function renderTable(
@@ -69,17 +79,13 @@ describe('SecretsTable', () => {
   it('shows search field when secrets exist', () => {
     renderTable();
 
-    expect(
-      screen.getByLabelText('Search secrets'),
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Search secrets')).toBeInTheDocument();
   });
 
   it('does not show search field when no secrets', () => {
     renderTable({ secrets: [] });
 
-    expect(
-      screen.queryByLabelText('Search secrets'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Search secrets')).not.toBeInTheDocument();
   });
 
   it('filters secrets by search query', async () => {
@@ -133,9 +139,7 @@ describe('SecretsTable', () => {
     });
 
     await waitFor(() => {
-      expect(
-        screen.queryByText('Delete Git Secret'),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Delete Git Secret')).not.toBeInTheDocument();
     });
   });
 
@@ -166,9 +170,7 @@ describe('SecretsTable', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
     await waitFor(() => {
-      expect(
-        screen.queryByText('Delete Git Secret'),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Delete Git Secret')).not.toBeInTheDocument();
     });
   });
 
@@ -182,12 +184,8 @@ describe('SecretsTable', () => {
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(
-      screen.getByRole('button', { name: /deleting/i }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: /cancel/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /deleting/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
   });
 
   it('renders table headers', () => {

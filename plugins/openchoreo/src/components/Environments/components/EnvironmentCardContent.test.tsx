@@ -18,9 +18,7 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
 jest.mock('./InvokeUrlsDialog', () => ({
   InvokeUrlsDialog: ({ open, endpoints }: any) =>
     open ? (
-      <div data-testid="invoke-urls-dialog">
-        {endpoints.length} endpoint(s)
-      </div>
+      <div data-testid="invoke-urls-dialog">{endpoints.length} endpoint(s)</div>
     ) : null,
 }));
 
@@ -55,7 +53,9 @@ describe('EnvironmentCardContent', () => {
     renderContent({ lastDeployed: '2024-01-01T00:00:00Z' });
 
     expect(screen.getByText('Deployed')).toBeInTheDocument();
-    expect(screen.getByText('relative(2024-01-01T00:00:00Z)')).toBeInTheDocument();
+    expect(
+      screen.getByText('relative(2024-01-01T00:00:00Z)'),
+    ).toBeInTheDocument();
   });
 
   it('does not show deployed section when lastDeployed is absent', () => {
@@ -94,7 +94,9 @@ describe('EnvironmentCardContent', () => {
   it('shows View K8s Artifacts button when releaseName exists', () => {
     renderContent({ releaseName: 'release-1' });
 
-    expect(screen.getByRole('button', { name: /view k8s artifacts/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /view k8s artifacts/i }),
+    ).toBeInTheDocument();
   });
 
   it('calls onOpenReleaseDetails when View K8s Artifacts is clicked', async () => {
@@ -103,14 +105,18 @@ describe('EnvironmentCardContent', () => {
 
     renderContent({ releaseName: 'release-1', onOpenReleaseDetails });
 
-    await user.click(screen.getByRole('button', { name: /view k8s artifacts/i }));
+    await user.click(
+      screen.getByRole('button', { name: /view k8s artifacts/i }),
+    );
     expect(onOpenReleaseDetails).toHaveBeenCalled();
   });
 
   it('does not show artifacts button when releaseName is absent', () => {
     renderContent({ releaseName: undefined });
 
-    expect(screen.queryByRole('button', { name: /view k8s artifacts/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /view k8s artifacts/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows Endpoint URLs with count badge when Ready with endpoints', () => {
@@ -174,7 +180,9 @@ describe('EnvironmentCardContent', () => {
     renderContent({ image: 'registry.io/my-service:v1.0.0' });
 
     expect(screen.getByText('Image')).toBeInTheDocument();
-    expect(screen.getByText('registry.io/my-service:v1.0.0')).toBeInTheDocument();
+    expect(
+      screen.getByText('registry.io/my-service:v1.0.0'),
+    ).toBeInTheDocument();
   });
 
   it('does not show image section when image is absent', () => {

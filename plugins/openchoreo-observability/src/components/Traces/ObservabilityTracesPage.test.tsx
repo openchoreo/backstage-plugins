@@ -58,11 +58,7 @@ jest.mock('./TracesActions', () => ({
   TracesActions: ({ totalCount, onRefresh, disabled }: any) => (
     <div data-testid="traces-actions">
       <span data-testid="total-count">{totalCount}</span>
-      <button
-        data-testid="refresh-btn"
-        onClick={onRefresh}
-        disabled={disabled}
-      >
+      <button data-testid="refresh-btn" onClick={onRefresh} disabled={disabled}>
         Refresh
       </button>
     </div>
@@ -274,9 +270,7 @@ describe('ObservabilityTracesPage', () => {
 
     await renderPage();
 
-    expect(
-      screen.queryByTestId('traces-filters'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('traces-filters')).not.toBeInTheDocument();
   });
 
   it('renders nothing for components error', async () => {
@@ -288,8 +282,6 @@ describe('ObservabilityTracesPage', () => {
 
     await renderPage();
 
-    expect(
-      screen.queryByTestId('traces-filters'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('traces-filters')).not.toBeInTheDocument();
   });
 });

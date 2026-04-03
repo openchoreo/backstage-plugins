@@ -4,7 +4,9 @@ import { BuildWithCommitDialog } from './BuildWithCommitDialog';
 
 // ---- Helpers ----
 
-function renderDialog(overrides: Partial<React.ComponentProps<typeof BuildWithCommitDialog>> = {}) {
+function renderDialog(
+  overrides: Partial<React.ComponentProps<typeof BuildWithCommitDialog>> = {},
+) {
   const defaultProps = {
     open: true,
     onClose: jest.fn(),
@@ -70,14 +72,9 @@ describe('BuildWithCommitDialog', () => {
     const user = userEvent.setup();
     renderDialog();
 
-    await user.type(
-      screen.getByRole('textbox'),
-      'a'.repeat(41),
-    );
+    await user.type(screen.getByRole('textbox'), 'a'.repeat(41));
 
-    expect(
-      screen.getByText(/cannot exceed 40 characters/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/cannot exceed 40 characters/)).toBeInTheDocument();
   });
 
   it('enables trigger button for valid SHA', async () => {

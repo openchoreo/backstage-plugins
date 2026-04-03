@@ -52,9 +52,7 @@ describe('IncidentsFilter', () => {
   it('renders components selector when components exist', () => {
     renderFilters();
 
-    expect(
-      screen.getAllByText('Components').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Components').length).toBeGreaterThanOrEqual(1);
   });
 
   it('does not render components selector when no components', () => {
@@ -66,25 +64,19 @@ describe('IncidentsFilter', () => {
   it('renders status selector', () => {
     renderFilters();
 
-    expect(
-      screen.getAllByText('Status').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Status').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders environment selector', () => {
     renderFilters();
 
-    expect(
-      screen.getAllByText('Environment').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Environment').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders time range selector', () => {
     renderFilters();
 
-    expect(
-      screen.getAllByText('Time Range').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Time Range').length).toBeGreaterThanOrEqual(1);
   });
 
   it('disables controls when disabled', () => {

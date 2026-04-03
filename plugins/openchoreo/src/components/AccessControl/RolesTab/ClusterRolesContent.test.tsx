@@ -4,7 +4,6 @@ import { TestApiProvider } from '@backstage/test-utils';
 import { createMockOpenChoreoClient } from '@openchoreo/test-utils';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { ClusterRolesContent } from './ClusterRolesContent';
-import React from 'react';
 
 // ---- Mocks ----
 
@@ -81,9 +80,7 @@ jest.mock('./RoleDialog', () => ({
   RoleDialog: ({ open, onClose, onSave, editingRole }: any) =>
     open ? (
       <div data-testid="role-dialog">
-        <span data-testid="dialog-mode">
-          {editingRole ? 'edit' : 'create'}
-        </span>
+        <span data-testid="dialog-mode">{editingRole ? 'edit' : 'create'}</span>
         <button
           onClick={() =>
             onSave({ name: editingRole?.name ?? 'new-role', actions: [] })
@@ -120,9 +117,7 @@ function createActionsRef() {
   return { current: container };
 }
 
-function renderContent(
-  actionsRef?: React.RefObject<HTMLDivElement>,
-) {
+function renderContent(actionsRef?: React.RefObject<HTMLDivElement>) {
   const ref = actionsRef ?? createActionsRef();
   return render(
     <TestApiProvider apis={[[openChoreoClientApiRef, mockClient]]}>
@@ -255,9 +250,7 @@ describe('ClusterRolesContent', () => {
 
     renderContent();
 
-    await user.click(
-      screen.getByRole('button', { name: /new cluster role/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /new cluster role/i }));
 
     expect(screen.getByTestId('role-dialog')).toBeInTheDocument();
     expect(screen.getByTestId('dialog-mode')).toHaveTextContent('create');

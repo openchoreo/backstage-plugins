@@ -66,9 +66,7 @@ describe('RCATable', () => {
   it('shows "Generating RCA report..." for pending reports', async () => {
     await renderTable();
 
-    expect(
-      screen.getByText('Generating RCA report...'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Generating RCA report...')).toBeInTheDocument();
   });
 
   it('shows status badges', async () => {

@@ -48,12 +48,8 @@ describe('RCAActions', () => {
   });
 
   it('disables Refresh button when disabled', () => {
-    render(
-      <RCAActions totalCount={0} disabled onRefresh={jest.fn()} />,
-    );
+    render(<RCAActions totalCount={0} disabled onRefresh={jest.fn()} />);
 
-    expect(
-      screen.getByRole('button', { name: /refresh/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /refresh/i })).toBeDisabled();
   });
 });

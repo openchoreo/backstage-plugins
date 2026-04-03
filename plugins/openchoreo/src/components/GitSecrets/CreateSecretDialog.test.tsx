@@ -58,9 +58,7 @@ describe('CreateSecretDialog', () => {
       screen.getByText('Username for git authentication.'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        /Your git provider password or access token/,
-      ),
+      screen.getByText(/Your git provider password or access token/),
     ).toBeInTheDocument();
   });
 
@@ -81,9 +79,7 @@ describe('CreateSecretDialog', () => {
   it('disables Create button when secret name is empty', () => {
     renderDialog();
 
-    expect(
-      screen.getByRole('button', { name: 'Create' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
   });
 
   it('disables Create button when basic auth token is empty', async () => {
@@ -95,9 +91,7 @@ describe('CreateSecretDialog', () => {
     // First textbox is Secret Name
     await user.type(inputs[0], 'my-secret');
 
-    expect(
-      screen.getByRole('button', { name: 'Create' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
   });
 
   it('enables Create button when name and token are filled', async () => {
@@ -115,9 +109,7 @@ describe('CreateSecretDialog', () => {
     ) as HTMLInputElement;
     await user.type(passwordInput, 'my-token');
 
-    expect(
-      screen.getByRole('button', { name: 'Create' }),
-    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Create' })).toBeEnabled();
   });
 
   it('shows error for duplicate secret name on submit', async () => {
@@ -165,9 +157,7 @@ describe('CreateSecretDialog', () => {
     const inputs = screen.getAllByRole('textbox');
     await user.type(inputs[0], 'my-secret');
 
-    expect(
-      screen.getByRole('button', { name: 'Create' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
   });
 
   it('calls onSubmit with correct args and closes on success', async () => {
@@ -209,9 +199,7 @@ describe('CreateSecretDialog', () => {
 
   it('shows error when onSubmit rejects', async () => {
     const user = userEvent.setup();
-    const onSubmit = jest
-      .fn()
-      .mockRejectedValue(new Error('Create failed'));
+    const onSubmit = jest.fn().mockRejectedValue(new Error('Create failed'));
 
     renderDialog({ onSubmit });
 
@@ -246,12 +234,8 @@ describe('CreateSecretDialog', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create' }));
 
-    expect(
-      screen.getByRole('button', { name: /creating/i }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: /cancel/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /creating/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
   });
 
   it('calls onClose when Cancel is clicked', async () => {
@@ -280,9 +264,7 @@ describe('CreateSecretDialog', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create' }));
 
-    expect(
-      screen.getByText(/Invalid SSH key format/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Invalid SSH key format/)).toBeInTheDocument();
   });
 
   it('keeps Create button disabled when SSH auth selected but key is empty', async () => {
@@ -294,8 +276,6 @@ describe('CreateSecretDialog', () => {
     const inputs = screen.getAllByRole('textbox');
     await user.type(inputs[0], 'ssh-secret');
 
-    expect(
-      screen.getByRole('button', { name: 'Create' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
   });
 });

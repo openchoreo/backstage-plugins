@@ -37,11 +37,7 @@ jest.mock('./RCAActions', () => ({
   RCAActions: ({ totalCount, onRefresh, disabled }: any) => (
     <div data-testid="rca-actions">
       <span data-testid="total-count">{totalCount}</span>
-      <button
-        data-testid="refresh-btn"
-        onClick={onRefresh}
-        disabled={disabled}
-      >
+      <button data-testid="refresh-btn" onClick={onRefresh} disabled={disabled}>
         Refresh
       </button>
     </div>

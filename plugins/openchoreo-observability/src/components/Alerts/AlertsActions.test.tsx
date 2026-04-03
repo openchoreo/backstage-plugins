@@ -67,9 +67,7 @@ describe('AlertsActions', () => {
     const onFiltersChange = jest.fn();
     renderActions({ onFiltersChange });
 
-    await user.click(
-      screen.getByRole('button', { name: /newest first/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /newest first/i }));
 
     expect(onFiltersChange).toHaveBeenCalledWith({ sortOrder: 'asc' });
   });
@@ -90,8 +88,6 @@ describe('AlertsActions', () => {
     expect(
       screen.getByRole('button', { name: /newest first/i }),
     ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: /refresh/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /refresh/i })).toBeDisabled();
   });
 });

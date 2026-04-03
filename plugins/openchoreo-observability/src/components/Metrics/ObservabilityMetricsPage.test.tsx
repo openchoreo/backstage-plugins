@@ -45,11 +45,7 @@ jest.mock('./MetricGraphByComponent', () => ({
 jest.mock('./MetricsActions', () => ({
   MetricsActions: ({ onRefresh, disabled }: any) => (
     <div data-testid="metrics-actions">
-      <button
-        data-testid="refresh-btn"
-        onClick={onRefresh}
-        disabled={disabled}
-      >
+      <button data-testid="refresh-btn" onClick={onRefresh} disabled={disabled}>
         Refresh
       </button>
     </div>

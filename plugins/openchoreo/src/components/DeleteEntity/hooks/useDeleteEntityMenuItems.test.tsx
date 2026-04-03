@@ -65,8 +65,10 @@ function TestHarness({
   entity: Entity;
   deletePermission?: DeletePermissionInfo;
 }) {
-  const { extraMenuItems, DeleteConfirmationDialog } =
-    useDeleteEntityMenuItems(entity, deletePermission);
+  const { extraMenuItems, DeleteConfirmationDialog } = useDeleteEntityMenuItems(
+    entity,
+    deletePermission,
+  );
 
   return (
     <div>
@@ -120,7 +122,9 @@ describe('useDeleteEntityMenuItems', () => {
   it('returns "Delete Component" for Component entity', () => {
     renderHarness(makeEntity('Component', 'my-service'));
 
-    expect(screen.getByTestId('menu-item')).toHaveTextContent('Delete Component');
+    expect(screen.getByTestId('menu-item')).toHaveTextContent(
+      'Delete Component',
+    );
   });
 
   it('returns "Delete Project" for System entity', () => {
@@ -132,7 +136,9 @@ describe('useDeleteEntityMenuItems', () => {
   it('returns "Delete Namespace" for Domain entity', () => {
     renderHarness(makeEntity('Domain', 'my-ns'));
 
-    expect(screen.getByTestId('menu-item')).toHaveTextContent('Delete Namespace');
+    expect(screen.getByTestId('menu-item')).toHaveTextContent(
+      'Delete Namespace',
+    );
   });
 
   it('returns empty items for unsupported entity kind', () => {
@@ -180,9 +186,13 @@ describe('useDeleteEntityMenuItems', () => {
     await user.click(screen.getByTestId('menu-item'));
 
     // Dialog title is inside an h4
-    expect(screen.getByRole('heading', { name: /delete component/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /delete component/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/my-service/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^delete$/i }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
   });
 
@@ -194,7 +204,9 @@ describe('useDeleteEntityMenuItems', () => {
     await user.click(screen.getByTestId('menu-item'));
 
     expect(
-      screen.getByText(/All components within this project will also be deleted/),
+      screen.getByText(
+        /All components within this project will also be deleted/,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -281,12 +293,16 @@ describe('useDeleteEntityMenuItems', () => {
     renderHarness(makeEntity('Component', 'my-service'));
 
     await user.click(screen.getByTestId('menu-item'));
-    expect(screen.getByRole('heading', { name: /delete component/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /delete component/i }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /cancel/i }));
 
     await waitFor(() => {
-      expect(screen.queryByRole('heading', { name: /delete component/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: /delete component/i }),
+      ).not.toBeInTheDocument();
     });
     expect(mockClient.deleteComponent).not.toHaveBeenCalled();
   });

@@ -21,8 +21,7 @@ jest.mock('../../hooks', () => ({
     mockUseGetEnvironmentsByNamespace(...args),
   useGetComponentsByProject: (...args: any[]) =>
     mockUseGetComponentsByProject(...args),
-  useProjectIncidents: (...args: any[]) =>
-    mockUseProjectIncidents(...args),
+  useProjectIncidents: (...args: any[]) => mockUseProjectIncidents(...args),
   useUrlFiltersForIncidents: (...args: any[]) =>
     mockUseUrlFiltersForIncidents(...args),
   useUpdateIncident: () => mockUseUpdateIncident(),
@@ -41,11 +40,7 @@ jest.mock('./IncidentsActions', () => ({
   IncidentsActions: ({ totalCount, onRefresh, disabled }: any) => (
     <div data-testid="incidents-actions">
       <span data-testid="total-count">{totalCount}</span>
-      <button
-        data-testid="refresh-btn"
-        onClick={onRefresh}
-        disabled={disabled}
-      >
+      <button data-testid="refresh-btn" onClick={onRefresh} disabled={disabled}>
         Refresh
       </button>
     </div>
@@ -247,12 +242,8 @@ describe('ObservabilityProjectIncidentsPage', () => {
     await renderPage();
 
     expect(screen.getByTestId('incidents-filter')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('incidents-actions'),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId('incidents-table'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('incidents-actions')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('incidents-table')).not.toBeInTheDocument();
   });
 
   it('renders environments error as observability disabled info', async () => {
@@ -280,9 +271,7 @@ describe('ObservabilityProjectIncidentsPage', () => {
 
     await renderPage();
 
-    expect(
-      screen.getByText('Failed to fetch components'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Failed to fetch components')).toBeInTheDocument();
     expect(screen.getByText('Retry')).toBeInTheDocument();
   });
 });

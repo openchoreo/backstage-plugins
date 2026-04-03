@@ -24,8 +24,7 @@ jest.mock('../../hooks', () => ({
     mockUseGetEnvironmentsByNamespace(...args),
   useGetComponentsByProject: (...args: any[]) =>
     mockUseGetComponentsByProject(...args),
-  useProjectRuntimeLogs: (...args: any[]) =>
-    mockUseProjectRuntimeLogs(...args),
+  useProjectRuntimeLogs: (...args: any[]) => mockUseProjectRuntimeLogs(...args),
   useUrlFiltersForRuntimeLogs: (...args: any[]) =>
     mockUseUrlFiltersForRuntimeLogs(...args),
 }));
@@ -108,9 +107,7 @@ function setupDefaultMocks() {
   });
 
   mockUseGetEnvironmentsByNamespace.mockReturnValue({
-    environments: [
-      { name: 'development', displayName: 'Development' },
-    ],
+    environments: [{ name: 'development', displayName: 'Development' }],
     loading: false,
     error: null,
   });
@@ -186,9 +183,7 @@ describe('ObservabilityProjectRuntimeLogsPage', () => {
     await renderPage();
 
     expect(screen.getByTestId('forbidden-state')).toBeInTheDocument();
-    expect(
-      screen.getByText('No access to project logs'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('No access to project logs')).toBeInTheDocument();
   });
 
   it('renders filter, actions, and table when permitted', async () => {
@@ -234,9 +229,7 @@ describe('ObservabilityProjectRuntimeLogsPage', () => {
 
     await renderPage();
 
-    expect(
-      screen.getByText('Environment fetch failed'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Environment fetch failed')).toBeInTheDocument();
   });
 
   it('shows components error', async () => {
@@ -248,9 +241,7 @@ describe('ObservabilityProjectRuntimeLogsPage', () => {
 
     await renderPage();
 
-    expect(
-      screen.getByText('Components fetch failed'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Components fetch failed')).toBeInTheDocument();
   });
 
   it('shows logs error message', async () => {

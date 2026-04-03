@@ -23,9 +23,7 @@ describe('ChangesPreview', () => {
 
     render(<ChangesPreview changes={changes} />);
 
-    expect(
-      screen.getByText('Confirm Changes (2 changes)'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Confirm Changes (2 changes)')).toBeInTheDocument();
   });
 
   it('renders new change with [New] label and value', () => {
@@ -64,9 +62,7 @@ describe('ChangesPreview', () => {
   });
 
   it('formats null values as "null"', () => {
-    const changes: Change[] = [
-      { type: 'new', path: 'field', newValue: null },
-    ];
+    const changes: Change[] = [{ type: 'new', path: 'field', newValue: null }];
 
     render(<ChangesPreview changes={changes} />);
 

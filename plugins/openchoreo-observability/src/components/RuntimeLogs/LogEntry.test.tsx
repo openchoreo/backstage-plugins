@@ -1,9 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {
-  Table,
-  TableBody,
-} from '@material-ui/core';
+import { Table, TableBody } from '@material-ui/core';
 import { LogEntry } from './LogEntry';
 import { LogEntryField } from './types';
 import { LogEntry as LogEntryType } from './types';
@@ -62,9 +59,7 @@ describe('LogEntry', () => {
 
     // Renders formatted timestamp
     expect(
-      screen.getByText(
-        new Date('2024-06-01T10:00:00.000Z').toLocaleString(),
-      ),
+      screen.getByText(new Date('2024-06-01T10:00:00.000Z').toLocaleString()),
     ).toBeInTheDocument();
   });
 
@@ -77,9 +72,7 @@ describe('LogEntry', () => {
   it('renders log message', () => {
     renderLogEntry();
 
-    expect(
-      screen.getByText('Server started on port 8080'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Server started on port 8080')).toBeInTheDocument();
   });
 
   it('renders only selected fields', () => {
@@ -87,23 +80,16 @@ describe('LogEntry', () => {
       selectedFields: [LogEntryField.Log],
     });
 
-    expect(
-      screen.getByText('Server started on port 8080'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Server started on port 8080')).toBeInTheDocument();
     // Timestamp should not be rendered
     expect(
-      screen.queryByText(
-        new Date('2024-06-01T10:00:00.000Z').toLocaleString(),
-      ),
+      screen.queryByText(new Date('2024-06-01T10:00:00.000Z').toLocaleString()),
     ).not.toBeInTheDocument();
   });
 
   it('renders component name when ComponentName field is selected', () => {
     renderLogEntry({
-      selectedFields: [
-        ...allFields,
-        LogEntryField.ComponentName,
-      ],
+      selectedFields: [...allFields, LogEntryField.ComponentName],
     });
 
     expect(screen.getByText('api-service')).toBeInTheDocument();

@@ -35,7 +35,7 @@ describe('WorkflowDetailsRenderer', () => {
   });
 
   it('renders boolean value as text', () => {
-    render(<WorkflowDetailsRenderer data={true} />);
+    render(<WorkflowDetailsRenderer data />);
 
     expect(screen.getByText('true')).toBeInTheDocument();
   });

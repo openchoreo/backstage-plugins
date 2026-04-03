@@ -23,6 +23,8 @@ jest.mock('../BuildStatusChip', () => ({
   ),
 }));
 
+const mockUseBuildPermission = jest.fn();
+
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useBuildPermission: () => mockUseBuildPermission(),
   ForbiddenState: ({ message }: any) => (
@@ -35,8 +37,6 @@ const mockUseWorkflowsSummary = jest.fn();
 jest.mock('./useWorkflowsSummary', () => ({
   useWorkflowsSummary: () => mockUseWorkflowsSummary(),
 }));
-
-const mockUseBuildPermission = jest.fn();
 
 // ---- Helpers ----
 
@@ -84,7 +84,9 @@ describe('WorkflowsOverviewCard', () => {
     renderCard();
 
     expect(screen.getByTestId('forbidden-state')).toBeInTheDocument();
-    expect(screen.getByText('No permission to view builds')).toBeInTheDocument();
+    expect(
+      screen.getByText('No permission to view builds'),
+    ).toBeInTheDocument();
   });
 
   it('shows loading skeleton when loading', () => {
@@ -115,7 +117,9 @@ describe('WorkflowsOverviewCard', () => {
 
     renderCard();
 
-    expect(screen.getByText('Failed to load workflow data')).toBeInTheDocument();
+    expect(
+      screen.getByText('Failed to load workflow data'),
+    ).toBeInTheDocument();
   });
 
   it('shows workflows not enabled state', () => {
@@ -171,8 +175,12 @@ describe('WorkflowsOverviewCard', () => {
 
     expect(screen.getByText('Latest Build')).toBeInTheDocument();
     expect(screen.getByText('build-42')).toBeInTheDocument();
-    expect(screen.getByTestId('build-status-chip')).toHaveTextContent('Succeeded');
-    expect(screen.getByText('relative(2024-06-01T10:00:00Z)')).toBeInTheDocument();
+    expect(screen.getByTestId('build-status-chip')).toHaveTextContent(
+      'Succeeded',
+    );
+    expect(
+      screen.getByText('relative(2024-06-01T10:00:00Z)'),
+    ).toBeInTheDocument();
     expect(screen.getByText('abcdef12')).toBeInTheDocument(); // first 8 chars
   });
 
