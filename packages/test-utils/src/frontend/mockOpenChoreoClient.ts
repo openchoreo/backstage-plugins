@@ -1,91 +1,8 @@
 /**
- * All method names on the OpenChoreoClientApi interface.
- * Used to auto-generate a mock with every method stubbed as `jest.fn()`.
+ * A fully-mocked OpenChoreoClientApi backed by a Proxy.
+ * Any method accessed on this object is automatically a `jest.fn()`,
+ * so it never goes stale when new methods are added to the interface.
  *
- * Keep this list in sync with:
- *   plugins/openchoreo/src/api/OpenChoreoClientApi.ts
- */
-const methodNames = [
-  'fetchEnvironmentInfo',
-  'promoteToEnvironment',
-  'deleteReleaseBinding',
-  'updateComponentBinding',
-  'patchComponent',
-  'createComponentRelease',
-  'deployRelease',
-  'fetchComponentRelease',
-  'fetchComponentReleaseSchema',
-  'fetchReleaseBindings',
-  'updateReleaseBinding',
-  'patchReleaseBindingOverrides',
-  'fetchResourceTree',
-  'fetchResourceEvents',
-  'fetchPodLogs',
-  'fetchWorkloadInfo',
-  'applyWorkload',
-  'fetchWorkflowSchema',
-  'updateComponentWorkflowParameters',
-  'getComponentDetails',
-  'getProjectDetails',
-  'getEnvironments',
-  'fetchBuilds',
-  'getCellDiagramInfo',
-  'fetchTotalBindingsCount',
-  'fetchSecretReferences',
-  'fetchSecretReferencesByNamespace',
-  'fetchDeploymentPipeline',
-  'updateProjectPipeline',
-  'fetchComponentTraits',
-  'updateComponentTraits',
-  'fetchComponentTypeSchema',
-  'updateComponentConfig',
-  'fetchTraitsByNamespace',
-  'fetchTraitSchemaByNamespace',
-  'fetchClusterTraits',
-  'fetchClusterTraitSchema',
-  'listActions',
-  'listUserTypes',
-  'listNamespaces',
-  'listProjects',
-  'listComponents',
-  'fetchDataPlaneDetails',
-  'listGitSecrets',
-  'createGitSecret',
-  'deleteGitSecret',
-  'deleteComponent',
-  'deleteProject',
-  'deleteNamespace',
-  'fetchEntityAnnotations',
-  'updateEntityAnnotations',
-  'getResourceDefinition',
-  'updateResourceDefinition',
-  'deleteResourceDefinition',
-  'listClusterRoles',
-  'getClusterRole',
-  'createClusterRole',
-  'updateClusterRole',
-  'deleteClusterRole',
-  'listNamespaceRoles',
-  'getNamespaceRole',
-  'createNamespaceRole',
-  'updateNamespaceRole',
-  'deleteNamespaceRole',
-  'listClusterRoleBindings',
-  'getClusterRoleBinding',
-  'createClusterRoleBinding',
-  'updateClusterRoleBinding',
-  'deleteClusterRoleBinding',
-  'listNamespaceRoleBindings',
-  'getNamespaceRoleBinding',
-  'createNamespaceRoleBinding',
-  'updateNamespaceRoleBinding',
-  'deleteNamespaceRoleBinding',
-  'listBindingsForClusterRole',
-  'listBindingsForNamespaceRole',
-] as const;
-
-/**
- * A fully-mocked OpenChoreoClientApi where every method is a `jest.fn()`.
  * Use with `TestApiProvider` to inject into components under test.
  *
  * @example
@@ -104,17 +21,24 @@ const methodNames = [
  * );
  * ```
  */
-export type MockOpenChoreoClient = Record<
-  (typeof methodNames)[number],
-  jest.Mock
->;
+export type MockOpenChoreoClient = Record<string, jest.Mock>;
 
 export function createMockOpenChoreoClient(
   overrides: Partial<Record<string, jest.Mock>> = {},
 ): MockOpenChoreoClient {
-  const mock = {} as Record<string, jest.Mock>;
-  for (const name of methodNames) {
-    mock[name] = overrides[name] ?? jest.fn();
+  const mocks: Record<string, jest.Mock> = {};
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value) {
+      mocks[key] = value;
+    }
   }
-  return mock as MockOpenChoreoClient;
+
+  return new Proxy(mocks, {
+    get(target, prop: string) {
+      if (!(prop in target)) {
+        target[prop] = jest.fn();
+      }
+      return target[prop];
+    },
+  }) as MockOpenChoreoClient;
 }
