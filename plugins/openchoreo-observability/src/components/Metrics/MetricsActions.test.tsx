@@ -30,7 +30,7 @@ describe('MetricsActions', () => {
   });
 
   it('disables Refresh button when disabled', () => {
-    render(<MetricsActions disabled={true} onRefresh={jest.fn()} />);
+    render(<MetricsActions disabled onRefresh={jest.fn()} />);
 
     expect(
       screen.getByRole('button', { name: /refresh/i }),

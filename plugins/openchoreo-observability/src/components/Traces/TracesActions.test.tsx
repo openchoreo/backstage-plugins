@@ -45,7 +45,7 @@ describe('TracesActions', () => {
 
   it('disables Refresh button when disabled', () => {
     render(
-      <TracesActions totalCount={0} disabled={true} onRefresh={jest.fn()} />,
+      <TracesActions totalCount={0} disabled onRefresh={jest.fn()} />,
     );
 
     expect(

@@ -49,7 +49,7 @@ describe('RCAActions', () => {
 
   it('disables Refresh button when disabled', () => {
     render(
-      <RCAActions totalCount={0} disabled={true} onRefresh={jest.fn()} />,
+      <RCAActions totalCount={0} disabled onRefresh={jest.fn()} />,
     );
 
     expect(
