@@ -160,4 +160,20 @@ describe('useGitSecrets', () => {
 
     expect(result.current.isForbidden).toBe(false);
   });
+
+  it('sets isForbidden to true for 403 errors', async () => {
+    const { ResponseError } = jest.requireActual('@backstage/errors');
+    const forbiddenError = new ResponseError({
+      statusCode: 403,
+      statusText: 'Forbidden',
+      data: { error: { name: 'NotAllowedError', message: 'Forbidden' } },
+    });
+    mockClient.listGitSecrets.mockRejectedValue(forbiddenError);
+
+    const { result } = renderHook(() => useGitSecrets('test-ns'));
+
+    await act(async () => {});
+
+    expect(result.current.isForbidden).toBe(true);
+  });
 });

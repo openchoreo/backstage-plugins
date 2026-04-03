@@ -90,6 +90,7 @@ export function useWorkflowsSummary() {
         namespaceName: run.namespaceName,
         status: run.status,
         createdAt: run.createdAt,
+        commit: run.commit,
       }));
       const sortedBuilds = [...runs].sort(
         (a, b) =>
