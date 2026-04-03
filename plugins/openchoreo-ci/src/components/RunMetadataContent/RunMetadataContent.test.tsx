@@ -23,6 +23,10 @@ jest.mock('../../utils/schemaExtensions', () => ({
 
 const baseBuild: ModelsBuild = {
   name: 'build-42',
+  uuid: 'uuid-42',
+  componentName: 'api-service',
+  projectName: 'my-project',
+  namespaceName: 'dev-ns',
   status: 'Succeeded',
   createdAt: '2024-06-01T10:00:00Z',
   commit: 'abc1234567890',

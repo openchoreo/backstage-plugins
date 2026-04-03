@@ -23,7 +23,7 @@ describe('useGitSecrets', () => {
   });
 
   it('fetches secrets on mount', async () => {
-    const { result } = renderHook(() => useGitSecrets('test-ns'));
+    renderHook(() => useGitSecrets('test-ns'));
 
     await act(async () => {});
 

@@ -9,14 +9,10 @@ import type { EnvironmentCardProps, SetupCardProps } from './types';
 // ---- Captured props for child components ----
 
 let capturedEnvironmentCardProps: Map<string, EnvironmentCardProps>;
-let capturedSetupCardProps: SetupCardProps | undefined;
-
-
 // ---- Mock: EnvironmentCard & SetupCard ----
 jest.mock('./components', () => ({
   NotificationBanner: () => null,
-  SetupCard: (props: SetupCardProps) => {
-    capturedSetupCardProps = props;
+  SetupCard: (_props: SetupCardProps) => {
     return <div data-testid="setup-card" />;
   },
   EnvironmentCard: (props: EnvironmentCardProps) => {
@@ -175,7 +171,6 @@ describe('EnvironmentsList', () => {
     jest.clearAllMocks();
     mockContextValue = defaultMockContext();
     capturedEnvironmentCardProps = new Map();
-    capturedSetupCardProps = undefined;
   });
 
   // 1. Empty state when no environments + canViewEnvironments: true

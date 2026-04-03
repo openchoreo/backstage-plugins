@@ -58,12 +58,20 @@ jest.mock('@backstage/core-components', () => ({
 const builds: ModelsBuild[] = [
   {
     name: 'build-2',
+    uuid: 'uuid-2',
+    componentName: 'api-service',
+    projectName: 'my-project',
+    namespaceName: 'dev-ns',
     status: 'Succeeded',
     createdAt: '2024-06-02T10:00:00Z',
     commit: 'abc1234',
   },
   {
     name: 'build-1',
+    uuid: 'uuid-1',
+    componentName: 'api-service',
+    projectName: 'my-project',
+    namespaceName: 'dev-ns',
     status: 'Failed',
     createdAt: '2024-06-01T10:00:00Z',
     commit: 'def5678',

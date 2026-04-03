@@ -6,7 +6,7 @@ import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 // ---- Mocks ----
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
-  VerticalTabNav: ({ tabs, activeTabId, onChange, children }: any) => (
+  VerticalTabNav: ({ tabs, onChange, children }: any) => (
     <div data-testid="vertical-tab-nav">
       {tabs.map((t: any) => (
         <button
@@ -68,6 +68,10 @@ jest.mock('../RunMetadataContent', () => ({
 
 const defaultRun: ModelsBuild = {
   name: 'build-42',
+  uuid: 'uuid-42',
+  componentName: 'api-service',
+  projectName: 'my-project',
+  namespaceName: 'dev-ns',
   status: 'Succeeded',
   createdAt: '2024-06-01T10:00:00Z',
 };
