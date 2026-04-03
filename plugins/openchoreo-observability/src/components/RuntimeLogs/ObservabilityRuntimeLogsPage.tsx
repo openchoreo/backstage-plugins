@@ -80,7 +80,7 @@ const ObservabilityRuntimeLogsContent = () => {
     environmentId: filters.environmentId,
     environmentName: selectedEnvironment?.resourceName || '',
     timeRange: filters.timeRange,
-    logLevels: allLogLevelsSelected ? [] : filters.logLevel,
+    logLevels: allLogLevelsSelected ? undefined : filters.logLevel,
     limit: 50,
     searchQuery: filters.searchQuery,
     sortOrder: filters.sortOrder || 'asc',
