@@ -10711,6 +10711,7 @@ __metadata:
     "@openchoreo/backstage-design-system": "workspace:^"
     "@openchoreo/backstage-plugin-common": "workspace:^"
     "@openchoreo/backstage-plugin-react": "workspace:^"
+    "@openchoreo/test-utils": "workspace:^"
     "@rjsf/core": "npm:5.24.13"
     "@rjsf/material-ui": "npm:5.24.13"
     "@rjsf/utils": "npm:5.24.13"
@@ -11021,6 +11022,7 @@ __metadata:
     "@openchoreo/backstage-design-system": "workspace:^"
     "@openchoreo/backstage-plugin-common": "workspace:^"
     "@openchoreo/backstage-plugin-react": "workspace:^"
+    "@openchoreo/test-utils": "workspace:^"
     "@rjsf/core": "npm:5.24.13"
     "@rjsf/material-ui": "npm:5.24.13"
     "@rjsf/utils": "npm:5.24.13"
@@ -11093,6 +11095,7 @@ __metadata:
   resolution: "@openchoreo/test-utils@workspace:packages/test-utils"
   dependencies:
     "@backstage/backend-test-utils": "npm:1.9.0"
+    "@backstage/catalog-model": "npm:1.7.5"
     "@backstage/cli": "npm:0.34.3"
   languageName: unknown
   linkType: soft

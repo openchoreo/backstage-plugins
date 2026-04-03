@@ -1,5 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { EntityProvider } from '@backstage/plugin-catalog-react';
+import { mockComponentEntity } from '@openchoreo/test-utils';
 import { EnvironmentsList } from './EnvironmentsList';
 import type { Environment } from './hooks';
 import type { EnvironmentCardProps, SetupCardProps } from './types';
@@ -7,44 +9,16 @@ import type { EnvironmentCardProps, SetupCardProps } from './types';
 // ---- Captured props for child components ----
 
 let capturedEnvironmentCardProps: Map<string, EnvironmentCardProps>;
-let capturedSetupCardProps: SetupCardProps | undefined;
-
-// ---- Mock: styles ----
-jest.mock('./styles', () => ({
-  useEnvironmentsListStyles: () => ({
-    cardGrid: 'cardGrid',
-    cardItem: 'cardItem',
-  }),
-}));
-
 // ---- Mock: EnvironmentCard & SetupCard ----
 jest.mock('./components', () => ({
   NotificationBanner: () => null,
-  SetupCard: (props: SetupCardProps) => {
-    capturedSetupCardProps = props;
+  SetupCard: (_props: SetupCardProps) => {
     return <div data-testid="setup-card" />;
   },
   EnvironmentCard: (props: EnvironmentCardProps) => {
     capturedEnvironmentCardProps.set(props.environmentName, props);
     return <div data-testid={`env-card-${props.environmentName}`} />;
   },
-}));
-
-// ---- Mock: @backstage/plugin-catalog-react ----
-jest.mock('@backstage/plugin-catalog-react', () => ({
-  useEntity: () => ({
-    entity: {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'Component',
-      metadata: {
-        name: 'test-component',
-        namespace: 'default',
-        annotations: {},
-        tags: ['service'],
-      },
-      spec: { type: 'service' },
-    },
-  }),
 }));
 
 // ---- Mock: @openchoreo/backstage-plugin-react (EmptyState, ForbiddenState) ----
@@ -79,9 +53,6 @@ interface MockContextValue {
   refetch: jest.Mock;
   lowestEnvironment: string;
   isWorkloadEditorSupported: boolean;
-  autoDeploy: boolean | undefined;
-  autoDeployUpdating: boolean;
-  onAutoDeployChange: jest.Mock;
   onPendingActionComplete: jest.Mock;
   canViewEnvironments: boolean;
   environmentReadPermissionLoading: boolean;
@@ -98,9 +69,6 @@ const defaultMockContext = (): MockContextValue => ({
   refetch: jest.fn(),
   lowestEnvironment: 'development',
   isWorkloadEditorSupported: true,
-  autoDeploy: true,
-  autoDeployUpdating: false,
-  onAutoDeployChange: jest.fn(),
   onPendingActionComplete: jest.fn(),
   canViewEnvironments: true,
   environmentReadPermissionLoading: false,
@@ -171,8 +139,14 @@ jest.mock('../../utils/errorUtils', () => ({
 
 // ---- Helpers ----
 
+const testEntity = mockComponentEntity();
+
 function renderWithRouter(ui: React.ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+  return render(
+    <MemoryRouter>
+      <EntityProvider entity={testEntity}>{ui}</EntityProvider>
+    </MemoryRouter>,
+  );
 }
 
 function makeEnv(
@@ -197,7 +171,6 @@ describe('EnvironmentsList', () => {
     jest.clearAllMocks();
     mockContextValue = defaultMockContext();
     capturedEnvironmentCardProps = new Map();
-    capturedSetupCardProps = undefined;
   });
 
   // 1. Empty state when no environments + canViewEnvironments: true
@@ -377,22 +350,7 @@ describe('EnvironmentsList', () => {
     });
   });
 
-  // 10. SetupCard receives autoDeploy and onAutoDeployChange
-  it('passes autoDeploy and onAutoDeployChange to SetupCard', () => {
-    const mockOnAutoDeployChange = jest.fn();
-    mockContextValue.autoDeploy = true;
-    mockContextValue.onAutoDeployChange = mockOnAutoDeployChange;
-
-    renderWithRouter(<EnvironmentsList />);
-
-    expect(capturedSetupCardProps).toBeDefined();
-    expect(capturedSetupCardProps!.autoDeploy).toBe(true);
-    expect(capturedSetupCardProps!.onAutoDeployChange).toBe(
-      mockOnAutoDeployChange,
-    );
-  });
-
-  // 11. Settings gear: invoking onOpenOverrides calls navigateToOverrides
+  // 10. Settings gear: invoking onOpenOverrides calls navigateToOverrides
   it('calls navigateToOverrides with environment name when onOpenOverrides is invoked', () => {
     const envs = [
       makeEnv({

@@ -1,26 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { EntityProvider } from '@backstage/plugin-catalog-react';
+import { mockSystemEntity } from '@openchoreo/test-utils';
 import { ProjectComponentsCard } from './ProjectComponentsCard';
 
 // ---- Mocks ----
-
-// Mock styles
-jest.mock('./styles', () => ({
-  useProjectComponentsCardStyles: () => ({
-    cardWrapper: 'cardWrapper',
-    deploymentStatus: 'deploymentStatus',
-    chipContainer: 'chipContainer',
-    environmentChip: 'environmentChip',
-    statusIconReady: 'statusIconReady',
-    statusIconWarning: 'statusIconWarning',
-    statusIconError: 'statusIconError',
-    statusIconDefault: 'statusIconDefault',
-    buildStatus: 'buildStatus',
-    tooltipBuildName: 'tooltipBuildName',
-    moreChip: 'moreChip',
-    createComponentButton: 'createComponentButton',
-  }),
-}));
 
 // Mock project hooks
 const mockUseComponentsWithDeployment = jest.fn();
@@ -33,26 +17,9 @@ jest.mock('../hooks', () => ({
   useDeploymentPipeline: () => mockUseDeploymentPipeline(),
 }));
 
-// Mock @backstage/plugin-catalog-react
-jest.mock('@backstage/plugin-catalog-react', () => ({
-  useEntity: () => ({
-    entity: {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'System',
-      metadata: {
-        name: 'test-project',
-        namespace: 'default',
-        annotations: {
-          'openchoreo.io/namespace': 'test-ns',
-        },
-      },
-      spec: {},
-    },
-  }),
-}));
-
-// Mock @backstage/core-plugin-api
+// Mock @backstage/core-plugin-api (useApp is not provided by TestApiProvider)
 jest.mock('@backstage/core-plugin-api', () => ({
+  ...jest.requireActual('@backstage/core-plugin-api'),
   useApp: () => ({
     getSystemIcon: () => () => <span data-testid="system-icon" />,
   }),
@@ -136,8 +103,14 @@ jest.mock('./BuildStatusCell', () => ({
 
 // ---- Helpers ----
 
+const testEntity = mockSystemEntity({ name: 'test-project' });
+
 function renderWithRouter(ui: React.ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+  return render(
+    <MemoryRouter>
+      <EntityProvider entity={testEntity}>{ui}</EntityProvider>
+    </MemoryRouter>,
+  );
 }
 
 const defaultPermissions = () => {

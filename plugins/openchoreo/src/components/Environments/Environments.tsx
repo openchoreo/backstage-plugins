@@ -1,8 +1,7 @@
-import { useCallback, useState, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Progress } from '@backstage/core-components';
 import { Box } from '@material-ui/core';
-import { useApi } from '@backstage/core-plugin-api';
 
 import { useNotification } from '../../hooks';
 import {
@@ -11,13 +10,11 @@ import {
   useEnvironmentPolling,
   useEnvironmentRouting,
 } from './hooks';
-import { useAutoDeployUpdate } from './hooks/useAutoDeployUpdate';
 import type { PendingAction } from './types';
 import { useEnvironmentsStyles } from './styles';
 import { EnvironmentsRouter } from './EnvironmentsRouter';
 import { EnvironmentsProvider } from './EnvironmentsContext';
 import { NotificationBanner } from './components';
-import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import {
   ForbiddenState,
   useReleaseBindingPermission,
@@ -29,7 +26,6 @@ export const Environments = () => {
   useEnvironmentsStyles();
 
   const { entity } = useEntity();
-  const client = useApi(openChoreoClientApiRef);
 
   // Routing
   const { navigateToList } = useEnvironmentRouting();
@@ -45,29 +41,8 @@ export const Environments = () => {
   const { canViewBindings, loading: bindingsPermissionLoading } =
     useReleaseBindingPermission();
 
-  // Auto deploy state
-  const [autoDeploy, setAutoDeploy] = useState<boolean | undefined>(undefined);
-  const { updateAutoDeploy, isUpdating: autoDeployUpdating } =
-    useAutoDeployUpdate(entity);
-
   // Notifications
   const notification = useNotification();
-
-  // Fetch component details to get autoDeploy value
-  useEffect(() => {
-    const fetchComponentData = async () => {
-      try {
-        const componentData = await client.getComponentDetails(entity);
-        if (componentData && 'autoDeploy' in componentData) {
-          setAutoDeploy((componentData as any).autoDeploy);
-        }
-      } catch (err) {
-        // Silently fail - autoDeploy will remain undefined
-      }
-    };
-
-    fetchComponentData();
-  }, [entity, client]);
 
   // Polling for pending deployments
   useEnvironmentPolling(isPending, refetch);
@@ -82,22 +57,6 @@ export const Environments = () => {
         entity.metadata.annotations?.['openchoreo.io/component'] !== undefined
       ),
     [entity],
-  );
-
-  // Handler for auto deploy toggle change
-  const handleAutoDeployChange = useCallback(
-    async (newAutoDeploy: boolean) => {
-      const success = await updateAutoDeploy(newAutoDeploy);
-      if (success) {
-        setAutoDeploy(newAutoDeploy);
-        notification.showSuccess(
-          `Auto deploy ${newAutoDeploy ? 'enabled' : 'disabled'} successfully`,
-        );
-      } else {
-        notification.showError('Failed to update auto deploy setting');
-      }
-    },
-    [updateAutoDeploy, notification],
   );
 
   // Handler for when overrides are saved with a pending action
@@ -132,9 +91,6 @@ export const Environments = () => {
       refetch,
       lowestEnvironment: environments[0]?.name?.toLowerCase() || 'development',
       isWorkloadEditorSupported,
-      autoDeploy,
-      autoDeployUpdating,
-      onAutoDeployChange: handleAutoDeployChange,
       onPendingActionComplete: handlePendingActionComplete,
       canViewEnvironments,
       environmentReadPermissionLoading,
@@ -147,9 +103,6 @@ export const Environments = () => {
       loading,
       refetch,
       isWorkloadEditorSupported,
-      autoDeploy,
-      autoDeployUpdating,
-      handleAutoDeployChange,
       handlePendingActionComplete,
       canViewEnvironments,
       environmentReadPermissionLoading,

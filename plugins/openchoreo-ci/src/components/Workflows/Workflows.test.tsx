@@ -1,5 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { TestApiProvider } from '@backstage/test-utils';
+import { EntityProvider } from '@backstage/plugin-catalog-react';
+import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { mockComponentEntity } from '@openchoreo/test-utils';
+import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import { Workflows } from './Workflows';
 
 // ---- Mocks ----
@@ -24,26 +29,6 @@ jest.mock('../../hooks', () => ({
   useWorkflowRetention: () => undefined,
 }));
 
-// Stable entity reference so the useEffect dependency on `entity` does not
-// trigger infinite re-renders.
-const mockEntity = {
-  apiVersion: 'backstage.io/v1alpha1',
-  kind: 'Component',
-  metadata: {
-    name: 'test-component',
-    namespace: 'default',
-    annotations: {
-      'openchoreo.io/namespace': 'test-ns',
-    },
-  },
-  spec: { type: 'service' },
-};
-
-// Mock @backstage/plugin-catalog-react
-jest.mock('@backstage/plugin-catalog-react', () => ({
-  useEntity: () => ({ entity: mockEntity }),
-}));
-
 // Stable mock objects so useApi does not produce new references each call
 const mockCiClient = {
   fetchWorkflowSchema: jest.fn().mockResolvedValue({ success: true }),
@@ -54,18 +39,6 @@ const mockDiscoveryApi = {
 const mockFetchApi = {
   fetch: jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) }),
 };
-
-// Mock @backstage/core-plugin-api
-jest.mock('@backstage/core-plugin-api', () => ({
-  useApi: (ref: { id: string }) => {
-    if (ref.id === 'mock-ci-client') return mockCiClient;
-    if (ref.id === 'discovery') return mockDiscoveryApi;
-    if (ref.id === 'fetch') return mockFetchApi;
-    return {};
-  },
-  discoveryApiRef: { id: 'discovery' },
-  fetchApiRef: { id: 'fetch' },
-}));
 
 // Mock @backstage/core-components
 jest.mock('@backstage/core-components', () => ({
@@ -112,11 +85,6 @@ jest.mock('@openchoreo/backstage-plugin-common', () => ({
     NAMESPACE: 'openchoreo.io/namespace',
   },
   filterEmptyObjectProperties: (obj: any) => obj,
-}));
-
-// Mock openChoreoCiClientApiRef
-jest.mock('../../api/OpenChoreoCiClientApi', () => ({
-  openChoreoCiClientApiRef: { id: 'mock-ci-client' },
 }));
 
 // Mock schemaExtensions utils
@@ -169,8 +137,24 @@ jest.mock('../BuildWithParamsDialog', () => ({
 
 // ---- Helpers ----
 
+// Stable entity reference so the useEffect dependency on `entity` does not
+// trigger infinite re-renders.
+const testEntity = mockComponentEntity();
+
 function renderWithRouter(ui: React.ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+  return render(
+    <MemoryRouter>
+      <TestApiProvider
+        apis={[
+          [openChoreoCiClientApiRef, mockCiClient],
+          [discoveryApiRef, mockDiscoveryApi],
+          [fetchApiRef, mockFetchApi],
+        ]}
+      >
+        <EntityProvider entity={testEntity}>{ui}</EntityProvider>
+      </TestApiProvider>
+    </MemoryRouter>,
+  );
 }
 
 const defaultRoutingState = {

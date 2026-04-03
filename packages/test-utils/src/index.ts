@@ -9,3 +9,9 @@ export {
   buildReadyCondition,
   buildNotReadyCondition,
 } from './fixtures';
+export {
+  createMockOpenChoreoClient,
+  type MockOpenChoreoClient,
+  mockComponentEntity,
+  mockSystemEntity,
+} from './frontend';

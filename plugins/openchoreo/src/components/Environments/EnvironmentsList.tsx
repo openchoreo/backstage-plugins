@@ -32,9 +32,6 @@ export const EnvironmentsList = () => {
     loading,
     refetch,
     isWorkloadEditorSupported,
-    autoDeploy,
-    autoDeployUpdating,
-    onAutoDeployChange,
     canViewEnvironments,
     environmentReadPermissionLoading,
     canViewBindings,
@@ -126,9 +123,6 @@ export const EnvironmentsList = () => {
             environmentsExist={environments.length > 0}
             isWorkloadEditorSupported={isWorkloadEditorSupported}
             onConfigureWorkload={handleOpenWorkloadConfig}
-            autoDeploy={autoDeploy}
-            onAutoDeployChange={onAutoDeployChange}
-            autoDeployUpdating={autoDeployUpdating}
           />
         </Box>
 
