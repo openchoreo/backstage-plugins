@@ -54,11 +54,11 @@ export const SetupCard = ({
           setAutoDeploy((componentData as any).autoDeploy);
         }
       } catch {
-        // Silently fail - autoDeploy will remain undefined
-      } finally {
-        if (!cancelled) {
-          setAutoDeployLoaded(true);
-        }
+        // Auto-deploy state will remain undefined and switch stays disabled
+        return;
+      }
+      if (!cancelled) {
+        setAutoDeployLoaded(true);
       }
     };
 
