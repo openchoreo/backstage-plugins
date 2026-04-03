@@ -1,7 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { renderInTestApp } from '@backstage/test-utils';
+import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { ObservabilityRuntimeLogsPage } from './ObservabilityRuntimeLogsPage';
 
-// ---- Mocks ----
+// ---- Mocks (own hooks and child components only) ----
 
 const mockUseLogsPermission = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
@@ -10,15 +12,6 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden-state">{message}</div>
   ),
-}));
-
-jest.mock('@backstage/core-components', () => ({
-  Progress: () => <div data-testid="progress" />,
-}));
-
-const mockUseEntity = jest.fn();
-jest.mock('@backstage/plugin-catalog-react', () => ({
-  useEntity: () => mockUseEntity(),
 }));
 
 const mockUseGetNamespaceAndProjectByEntity = jest.fn();
@@ -95,6 +88,14 @@ const defaultFilters = {
   isLive: false,
 };
 
+function renderPage() {
+  return renderInTestApp(
+    <EntityProvider entity={defaultEntity}>
+      <ObservabilityRuntimeLogsPage />
+    </EntityProvider>,
+  );
+}
+
 function setupDefaultMocks() {
   mockUseLogsPermission.mockReturnValue({
     canViewLogs: true,
@@ -102,8 +103,6 @@ function setupDefaultMocks() {
     deniedTooltip: '',
     permissionName: '',
   });
-
-  mockUseEntity.mockReturnValue({ entity: defaultEntity });
 
   mockUseGetNamespaceAndProjectByEntity.mockReturnValue({
     namespace: 'dev-ns',
@@ -152,7 +151,7 @@ describe('ObservabilityRuntimeLogsPage', () => {
     setupDefaultMocks();
   });
 
-  it('shows progress while checking permissions', () => {
+  it('shows progress while checking permissions', async () => {
     mockUseLogsPermission.mockReturnValue({
       canViewLogs: false,
       loading: true,
@@ -160,12 +159,12 @@ describe('ObservabilityRuntimeLogsPage', () => {
       permissionName: '',
     });
 
-    render(<ObservabilityRuntimeLogsPage />);
+    await renderPage();
 
     expect(screen.getByTestId('progress')).toBeInTheDocument();
   });
 
-  it('shows forbidden state when user lacks permission', () => {
+  it('shows forbidden state when user lacks permission', async () => {
     mockUseLogsPermission.mockReturnValue({
       canViewLogs: false,
       loading: false,
@@ -173,54 +172,54 @@ describe('ObservabilityRuntimeLogsPage', () => {
       permissionName: 'openchoreo.logs.view',
     });
 
-    render(<ObservabilityRuntimeLogsPage />);
+    await renderPage();
 
     expect(screen.getByTestId('forbidden-state')).toBeInTheDocument();
     expect(screen.getByText('You cannot view logs')).toBeInTheDocument();
   });
 
-  it('renders logs filter and table when permitted', () => {
-    render(<ObservabilityRuntimeLogsPage />);
+  it('renders logs filter and table when permitted', async () => {
+    await renderPage();
 
     expect(screen.getByTestId('logs-filter')).toBeInTheDocument();
     expect(screen.getByTestId('logs-table')).toBeInTheDocument();
     expect(screen.getByTestId('logs-actions')).toBeInTheDocument();
   });
 
-  it('passes environments to LogsFilter', () => {
-    render(<ObservabilityRuntimeLogsPage />);
+  it('passes environments to LogsFilter', async () => {
+    await renderPage();
 
     expect(screen.getByTestId('env-count')).toHaveTextContent('2');
   });
 
-  it('renders log entries in the table', () => {
-    render(<ObservabilityRuntimeLogsPage />);
+  it('renders log entries in the table', async () => {
+    await renderPage();
 
     expect(screen.getByTestId('log-count')).toHaveTextContent('1');
     expect(screen.getByText('Server started')).toBeInTheDocument();
   });
 
-  it('shows total count in actions', () => {
-    render(<ObservabilityRuntimeLogsPage />);
+  it('shows total count in actions', async () => {
+    await renderPage();
 
     expect(screen.getByTestId('total-count')).toHaveTextContent('1');
   });
 
-  it('shows environment error when environments fail to load', () => {
+  it('shows environment error when environments fail to load', async () => {
     mockUseGetEnvironmentsByNamespace.mockReturnValue({
       environments: [],
       loading: false,
       error: 'Failed to fetch environments',
     });
 
-    render(<ObservabilityRuntimeLogsPage />);
+    await renderPage();
 
     expect(
       screen.getByText('Failed to fetch environments'),
     ).toBeInTheDocument();
   });
 
-  it('shows logs error message', () => {
+  it('shows logs error message', async () => {
     mockUseRuntimeLogs.mockReturnValue({
       logs: [],
       loading: false,
@@ -234,12 +233,12 @@ describe('ObservabilityRuntimeLogsPage', () => {
       projectId: 'proj-1',
     });
 
-    render(<ObservabilityRuntimeLogsPage />);
+    await renderPage();
 
     expect(screen.getByText('Connection timed out')).toBeInTheDocument();
   });
 
-  it('shows info alert when observability is not enabled', () => {
+  it('shows info alert when observability is not enabled', async () => {
     mockUseRuntimeLogs.mockReturnValue({
       logs: [],
       loading: false,
@@ -253,7 +252,7 @@ describe('ObservabilityRuntimeLogsPage', () => {
       projectId: 'proj-1',
     });
 
-    render(<ObservabilityRuntimeLogsPage />);
+    await renderPage();
 
     expect(
       screen.getByText(
@@ -262,7 +261,7 @@ describe('ObservabilityRuntimeLogsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows no environments alert when none found', () => {
+  it('shows no environments alert when none found', async () => {
     mockUseGetEnvironmentsByNamespace.mockReturnValue({
       environments: [],
       loading: false,
@@ -274,7 +273,7 @@ describe('ObservabilityRuntimeLogsPage', () => {
       updateFilters: jest.fn(),
     });
 
-    render(<ObservabilityRuntimeLogsPage />);
+    await renderPage();
 
     expect(
       screen.getByText(
@@ -283,19 +282,19 @@ describe('ObservabilityRuntimeLogsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not render actions/table when no environment selected', () => {
+  it('does not render actions/table when no environment selected', async () => {
     mockUseUrlFiltersForRuntimeLogs.mockReturnValue({
       filters: { ...defaultFilters, environmentId: '' },
       updateFilters: jest.fn(),
     });
 
-    render(<ObservabilityRuntimeLogsPage />);
+    await renderPage();
 
     expect(screen.queryByTestId('logs-actions')).not.toBeInTheDocument();
     expect(screen.queryByTestId('logs-table')).not.toBeInTheDocument();
   });
 
-  it('shows Retry button for non-observability errors', () => {
+  it('shows Retry button for non-observability errors', async () => {
     mockUseRuntimeLogs.mockReturnValue({
       logs: [],
       loading: false,
@@ -309,12 +308,12 @@ describe('ObservabilityRuntimeLogsPage', () => {
       projectId: 'proj-1',
     });
 
-    render(<ObservabilityRuntimeLogsPage />);
+    await renderPage();
 
     expect(screen.getByText('Retry')).toBeInTheDocument();
   });
 
-  it('does not show Retry button for observability disabled error', () => {
+  it('does not show Retry button for observability disabled error', async () => {
     mockUseRuntimeLogs.mockReturnValue({
       logs: [],
       loading: false,
@@ -328,7 +327,7 @@ describe('ObservabilityRuntimeLogsPage', () => {
       projectId: 'proj-1',
     });
 
-    render(<ObservabilityRuntimeLogsPage />);
+    await renderPage();
 
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
   });
