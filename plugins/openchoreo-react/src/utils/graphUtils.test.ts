@@ -18,15 +18,15 @@ describe('graphUtils', () => {
 
   describe('getNodeColor', () => {
     it('returns correct color for known kinds', () => {
-      expect(getNodeColor('component')).toBe('#64748b');
-      expect(getNodeColor('environment')).toBe('#10b981');
-      expect(getNodeColor('deploymentpipeline')).toBe('#f59e0b');
-      expect(getNodeColor('system')).toBe('#6c7fd8');
+      expect(getNodeColor('component')).toBe(ENTITY_KIND_COLORS.component);
+      expect(getNodeColor('environment')).toBe(ENTITY_KIND_COLORS.environment);
+      expect(getNodeColor('deploymentpipeline')).toBe(ENTITY_KIND_COLORS.deploymentpipeline);
+      expect(getNodeColor('system')).toBe(ENTITY_KIND_COLORS.system);
     });
 
     it('is case-insensitive', () => {
-      expect(getNodeColor('Component')).toBe('#64748b');
-      expect(getNodeColor('ENVIRONMENT')).toBe('#10b981');
+      expect(getNodeColor('Component')).toBe(ENTITY_KIND_COLORS.component);
+      expect(getNodeColor('ENVIRONMENT')).toBe(ENTITY_KIND_COLORS.environment);
     });
 
     it('returns default color for unknown kind', () => {
@@ -41,15 +41,18 @@ describe('graphUtils', () => {
   // ---- getNodeTintFill ----
 
   describe('getNodeTintFill', () => {
+    const environmentColor = ENTITY_KIND_COLORS.environment;
+
     it('returns light tint for known accent', () => {
-      expect(getNodeTintFill('#10b981', false)).toBe('#ecfdf5');
+      expect(getNodeTintFill(environmentColor, false)).toBe(ENTITY_KIND_TINTS[environmentColor].light);
     });
 
     it('returns dark tint for known accent', () => {
-      expect(getNodeTintFill('#10b981', true)).toBe('#162a22');
+      expect(getNodeTintFill(environmentColor, true)).toBe(ENTITY_KIND_TINTS[environmentColor].dark);
     });
 
     it('returns default tint for unknown accent', () => {
+      // DEFAULT_TINT is not exported, so we verify the fallback values directly
       expect(getNodeTintFill('#ff0000', false)).toBe('#f3f4f6');
       expect(getNodeTintFill('#ff0000', true)).toBe('#1f2128');
     });
