@@ -15,8 +15,8 @@ import { Environment } from '../types';
  * Error thrown when observability is not configured for a component
  */
 export class ObservabilityNotConfiguredError extends Error {
-  constructor(componentId: string) {
-    super(`Observability is not configured for component ${componentId}`);
+  constructor(componentName: string) {
+    super(`Observability is not configured for component ${componentName}`);
     this.name = 'ObservabilityNotConfiguredError';
   }
 }

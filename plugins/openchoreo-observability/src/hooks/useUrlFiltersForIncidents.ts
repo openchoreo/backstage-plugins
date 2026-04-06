@@ -24,9 +24,9 @@ export function useUrlFiltersForIncidents({
     const rawSortOrder = searchParams.get('sort');
     const sortOrder: 'asc' | 'desc' =
       rawSortOrder === 'asc' || rawSortOrder === 'desc' ? rawSortOrder : 'desc';
-    const componentIdsParam = searchParams.get('components');
-    const componentIds = componentIdsParam
-      ? componentIdsParam.split(',').filter(Boolean)
+    const componentsParam = searchParams.get('components');
+    const components = componentsParam
+      ? componentsParam.split(',').filter(Boolean)
       : [];
     const statusParam = searchParams.get('status');
     const status = statusParam ? statusParam.split(',').filter(Boolean) : [];
@@ -40,7 +40,7 @@ export function useUrlFiltersForIncidents({
       environmentId: environment?.id || '',
       timeRange,
       sortOrder,
-      componentIds: componentIds.length > 0 ? componentIds : undefined,
+      components: components.length > 0 ? components : undefined,
       status: status.length > 0 ? status : undefined,
       searchQuery,
     };
@@ -85,9 +85,9 @@ export function useUrlFiltersForIncidents({
         }
       }
 
-      if (newFilters.componentIds !== undefined) {
-        if (newFilters.componentIds && newFilters.componentIds.length > 0) {
-          newParams.set('components', newFilters.componentIds.join(','));
+      if (newFilters.components !== undefined) {
+        if (newFilters.components && newFilters.components.length > 0) {
+          newParams.set('components', newFilters.components.join(','));
         } else {
           newParams.delete('components');
         }

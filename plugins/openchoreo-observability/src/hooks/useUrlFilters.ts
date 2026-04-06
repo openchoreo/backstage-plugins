@@ -38,7 +38,7 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
   const filters = useMemo<Filters>(() => {
     const envName = searchParams.get('env');
     const timeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
-    const componentIds =
+    const components =
       searchParams.get('components')?.split(',').filter(Boolean) || [];
     const searchQuery = searchParams.get('q') || '';
 
@@ -55,7 +55,7 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
     return {
       environment,
       timeRange,
-      componentIds,
+      components,
       searchQuery,
     };
   }, [searchParams, environments]);
@@ -101,9 +101,9 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
         }
       }
 
-      if (newFilters.componentIds !== undefined) {
-        if (newFilters.componentIds.length > 0) {
-          newParams.set('components', newFilters.componentIds.join(','));
+      if (newFilters.components !== undefined) {
+        if (newFilters.components.length > 0) {
+          newParams.set('components', newFilters.components.join(','));
         } else {
           newParams.delete('components');
         }

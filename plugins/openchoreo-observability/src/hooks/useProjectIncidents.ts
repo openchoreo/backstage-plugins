@@ -10,7 +10,7 @@ export interface UseProjectIncidentsFilters {
   environmentId: string;
   environmentName: string;
   timeRange: string;
-  componentIds?: string[];
+  components?: string[];
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -39,8 +39,8 @@ export function useProjectIncidents(
   const projectName = entity.metadata.name || '';
 
   const selectedComponents = useMemo(
-    () => Array.from(new Set(filters.componentIds || [])),
-    [filters.componentIds],
+    () => Array.from(new Set(filters.components || [])),
+    [filters.components],
   );
 
   const fetchIncidents = useCallback(

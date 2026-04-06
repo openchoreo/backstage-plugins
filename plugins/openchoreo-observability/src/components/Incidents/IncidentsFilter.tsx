@@ -69,7 +69,7 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
 
   const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
     onFiltersChange({
-      componentIds: event.target.value as string[],
+      components: event.target.value as string[],
       searchQuery: '',
     });
   };
@@ -107,7 +107,7 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
             ) : (
               <Select
                 multiple
-                value={filters.componentIds || []}
+                value={filters.components || []}
                 onChange={handleComponentChange}
                 labelId="components-label"
                 label="Components"
@@ -120,7 +120,7 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
                   <MenuItem key={comp.name} value={comp.name}>
                     <Checkbox
                       checked={
-                        (filters.componentIds || []).indexOf(comp.name) > -1
+                        (filters.components || []).indexOf(comp.name) > -1
                       }
                     />
                     {comp.displayName || comp.name}

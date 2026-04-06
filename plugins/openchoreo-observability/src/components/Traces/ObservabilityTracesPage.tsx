@@ -53,7 +53,7 @@ const ObservabilityTracesContent = () => {
 
   // Determine which component name to pass for span queries
   // (mirrors what useTraces does — single selection passes the name)
-  const selectedComponents = filters.componentIds ?? [];
+  const selectedComponents = filters.components ?? [];
   const componentName =
     selectedComponents.length === 1 ? selectedComponents[0] : undefined;
 

@@ -24,7 +24,7 @@ export interface RuntimeLogsFilters {
   selectedFields: LogEntryField[];
   environmentId: string;
   timeRange: string;
-  componentIds?: string[];
+  components?: string[];
   searchQuery?: string;
   sortOrder?: 'asc' | 'desc';
   isLive?: boolean;

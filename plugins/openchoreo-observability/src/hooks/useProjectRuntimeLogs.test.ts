@@ -77,7 +77,7 @@ describe('useProjectRuntimeLogs', () => {
       useProjectRuntimeLogs(
         {
           ...baseFilters,
-          componentIds: ['component-a', 'component-b'],
+          components: ['component-a', 'component-b'],
         },
         entity as any,
         {
@@ -144,7 +144,7 @@ describe('useProjectRuntimeLogs', () => {
       useProjectRuntimeLogs(
         {
           ...baseFilters,
-          componentIds: [],
+          components: [],
         },
         entity as any,
         {

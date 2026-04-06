@@ -61,7 +61,7 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
 
   const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
     const value = event.target.value as string[];
-    onFiltersChange({ componentIds: value });
+    onFiltersChange({ components: value });
   };
 
   const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
@@ -94,7 +94,7 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
           ) : (
             <Select
               multiple
-              value={filters.componentIds || []}
+              value={filters.components || []}
               onChange={handleComponentChange}
               labelId="components-label"
               label="Component"
@@ -110,12 +110,11 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
               }}
             >
               {components.map(component => {
-                const componentId = component.name;
                 return (
-                  <MenuItem key={componentId} value={componentId}>
+                  <MenuItem key={component.name} value={component.name}>
                     <Checkbox
                       checked={
-                        (filters.componentIds || []).indexOf(componentId) > -1
+                        (filters.components || []).indexOf(component.name) > -1
                       }
                     />
                     {component.displayName || component.name}

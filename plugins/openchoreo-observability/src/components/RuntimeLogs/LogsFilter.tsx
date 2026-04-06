@@ -70,7 +70,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   };
 
   const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ componentIds: event.target.value as string[] });
+    onFiltersChange({ components: event.target.value as string[] });
   };
 
   const handleLogLevelSelectChange = (
@@ -135,7 +135,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
             ) : (
               <Select
                 multiple
-                value={filters.componentIds || []}
+                value={filters.components || []}
                 onChange={handleComponentChange}
                 labelId="components-label"
                 label="Components"
@@ -149,8 +149,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
                   <MenuItem key={component.name} value={component.name}>
                     <Checkbox
                       checked={
-                        (filters.componentIds || []).indexOf(component.name) >
-                        -1
+                        (filters.components || []).indexOf(component.name) > -1
                       }
                     />
                     {component.displayName || component.name}

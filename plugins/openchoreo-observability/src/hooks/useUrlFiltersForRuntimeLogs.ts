@@ -57,9 +57,9 @@ export function useUrlFiltersForRuntimeLogs({
       rawSortOrder === 'asc' || rawSortOrder === 'desc' ? rawSortOrder : 'asc';
 
     const isLive = searchParams.get('live') === 'true';
-    const componentIdsParam = searchParams.get('components');
-    const componentIds = componentIdsParam
-      ? componentIdsParam.split(',').filter(Boolean)
+    const componentsParam = searchParams.get('components');
+    const components = componentsParam
+      ? componentsParam.split(',').filter(Boolean)
       : [];
 
     // Parse selectedFields from URL
@@ -93,7 +93,7 @@ export function useUrlFiltersForRuntimeLogs({
       timeRange,
       logLevel,
       selectedFields,
-      componentIds,
+      components,
       searchQuery,
       sortOrder,
       isLive: isLive || false,
@@ -200,9 +200,9 @@ export function useUrlFiltersForRuntimeLogs({
         }
       }
 
-      if (newFilters.componentIds !== undefined) {
-        if (newFilters.componentIds.length > 0) {
-          newParams.set('components', newFilters.componentIds.join(','));
+      if (newFilters.components !== undefined) {
+        if (newFilters.components.length > 0) {
+          newParams.set('components', newFilters.components.join(','));
         } else {
           newParams.delete('components');
         }

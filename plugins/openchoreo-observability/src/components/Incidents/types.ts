@@ -7,7 +7,7 @@ export type { Environment };
 export interface IncidentsFilters {
   environmentId: string;
   timeRange: string;
-  componentIds?: string[];
+  components?: string[];
   sortOrder?: 'asc' | 'desc';
   status?: string[];
   searchQuery?: string;

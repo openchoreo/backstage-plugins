@@ -10,7 +10,7 @@ export function useFilters() {
   const [filters, setFilters] = useState<Filters>({
     environment: null as unknown as Environment,
     timeRange: DEFAULT_TIME_RANGE,
-    componentIds: [],
+    components: [],
     searchQuery: '',
   });
 
@@ -25,7 +25,7 @@ export function useFilters() {
     setFilters({
       environment: null as unknown as Environment,
       timeRange: DEFAULT_TIME_RANGE,
-      componentIds: [],
+      components: [],
       searchQuery: '',
     });
   }, []);

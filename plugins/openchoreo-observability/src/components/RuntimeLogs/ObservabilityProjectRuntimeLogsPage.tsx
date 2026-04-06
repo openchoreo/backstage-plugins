@@ -100,7 +100,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
     timeRange: string;
     searchQuery?: string;
     sortOrder?: 'asc' | 'desc';
-    componentIds: string[];
+    components: string[];
   } | null>(null);
 
   useEffect(() => {
@@ -110,7 +110,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
       timeRange: filters.timeRange,
       searchQuery: filters.searchQuery,
       sortOrder: filters.sortOrder,
-      componentIds: filters.componentIds || [],
+      components: filters.components || [],
     };
 
     const filtersChanged =
@@ -139,7 +139,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
     filters.timeRange,
     filters.searchQuery,
     filters.sortOrder,
-    filters.componentIds,
+    filters.components,
     fetchLogs,
     clearLogs,
     selectedEnvironment,

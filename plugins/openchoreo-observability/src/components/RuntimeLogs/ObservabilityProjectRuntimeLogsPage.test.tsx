@@ -87,7 +87,7 @@ const defaultFilters = {
   sortOrder: 'desc' as const,
   searchQuery: '',
   isLive: false,
-  componentIds: [],
+  components: [],
 };
 
 function renderPage() {

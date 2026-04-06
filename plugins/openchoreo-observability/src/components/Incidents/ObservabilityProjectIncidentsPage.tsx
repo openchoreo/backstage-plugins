@@ -73,14 +73,14 @@ const ObservabilityProjectIncidentsContent = () => {
     environmentId: filters.environmentId,
     environmentName: selectedEnvironment?.resourceName || '',
     timeRange: filters.timeRange,
-    componentIds: filters.componentIds,
+    components: filters.components,
     sortOrder: filters.sortOrder || 'desc',
   });
 
   const previousFiltersRef = useRef<{
     environmentId: string;
     timeRange: string;
-    componentIds: string[];
+    components: string[];
     sortOrder?: 'asc' | 'desc';
   } | null>(null);
 
@@ -88,7 +88,7 @@ const ObservabilityProjectIncidentsContent = () => {
     const currentFilters = {
       environmentId: filters.environmentId,
       timeRange: filters.timeRange,
-      componentIds: filters.componentIds || [],
+      components: filters.components || [],
       sortOrder: filters.sortOrder,
     };
     const filtersChanged =
@@ -110,7 +110,7 @@ const ObservabilityProjectIncidentsContent = () => {
   }, [
     filters.environmentId,
     filters.timeRange,
-    filters.componentIds,
+    filters.components,
     filters.sortOrder,
     fetchIncidents,
     selectedEnvironment,

@@ -83,7 +83,7 @@ export const TIME_RANGE_OPTIONS: TimeRangeOption[] = [
 export interface Filters {
   environment: Environment;
   timeRange: string;
-  componentIds?: string[];
+  components?: string[];
   searchQuery?: string;
   rcaStatus?: RCAStatus;
 }

@@ -23,10 +23,10 @@ export function useTraces(filters: Filters, entity: Entity) {
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
   const projectName = entity.metadata.name as string;
 
-  // Memoize componentIds string for dependency array
-  const componentIdsKey = useMemo(
-    () => filters.componentIds?.join(',') || '',
-    [filters.componentIds],
+  // Memoize components string for dependency array
+  const componentsKey = useMemo(
+    () => filters.components?.join(',') || '',
+    [filters.components],
   );
 
   // Memoize filtered traces based on searchQuery
@@ -51,7 +51,7 @@ export function useTraces(filters: Filters, entity: Entity) {
 
       const { startTime, endTime } = calculateTimeRange(filters.timeRange);
 
-      const selectedComponents = filters.componentIds ?? [];
+      const selectedComponents = filters.components ?? [];
 
       const responses =
         selectedComponents.length > 0
@@ -96,7 +96,7 @@ export function useTraces(filters: Filters, entity: Entity) {
     observabilityApi,
     filters.environment,
     filters.timeRange,
-    filters.componentIds,
+    filters.components,
     namespace,
     projectName,
   ]);
@@ -107,7 +107,7 @@ export function useTraces(filters: Filters, entity: Entity) {
       fetchTraces();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.environment, filters.timeRange, componentIdsKey]);
+  }, [filters.environment, filters.timeRange, componentsKey]);
 
   const refresh = useCallback(() => {
     setTraces([]);

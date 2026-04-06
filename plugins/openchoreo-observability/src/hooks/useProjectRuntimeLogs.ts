@@ -11,7 +11,7 @@ import {
 } from '../components/RuntimeLogs/types';
 
 export interface ProjectRuntimeLogsFilters extends RuntimeLogsFilters {
-  componentIds?: string[];
+  components?: string[];
 }
 
 interface UseProjectRuntimeLogsOptions {
@@ -66,8 +66,8 @@ export function useProjectRuntimeLogs(
   }, [logs]);
 
   const selectedComponents = useMemo(
-    () => Array.from(new Set(filters.componentIds || [])),
-    [filters.componentIds],
+    () => Array.from(new Set(filters.components || [])),
+    [filters.components],
   );
 
   const fetchLogs = useCallback(
