@@ -651,4 +651,129 @@ describe('CtdToTemplateConverter', () => {
       expect(result.metadata.namespace).toBe('test-org');
     });
   });
+
+  describe('external-ci and ciPlatform conditional fields', () => {
+    const baseCtd: ComponentType = {
+      metadata: {
+        workloadType: 'deployment',
+        createdAt: '2025-01-01T00:00:00Z',
+        name: 'web-service',
+        allowedWorkflows: ['docker-build'],
+      },
+      spec: {
+        inputParametersSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+    };
+
+    it('should include external-ci branch in oneOf', () => {
+      const result = converter.convertCtdToTemplateEntity(baseCtd, 'test-org');
+      const parameters = result.spec?.parameters as any[];
+      const buildSection = parameters[1];
+      const externalCIBranch =
+        buildSection.dependencies.deploymentSource.oneOf[2];
+
+      expect(externalCIBranch.properties.deploymentSource.const).toBe(
+        'external-ci',
+      );
+      expect(externalCIBranch.properties.ciPlatform).toBeDefined();
+      expect(externalCIBranch.properties.ciPlatform.enum).toEqual([
+        'none',
+        'jenkins',
+        'github-actions',
+        'gitlab-ci',
+      ]);
+    });
+
+    it('should include ciPlatform conditional dependencies for each platform', () => {
+      const result = converter.convertCtdToTemplateEntity(baseCtd, 'test-org');
+      const parameters = result.spec?.parameters as any[];
+      const buildSection = parameters[1];
+
+      const ciPlatformDeps = buildSection.dependencies.ciPlatform;
+      expect(ciPlatformDeps).toBeDefined();
+      expect(ciPlatformDeps.oneOf).toHaveLength(4);
+
+      // none, jenkins, github-actions, gitlab-ci
+      const platforms = ciPlatformDeps.oneOf.map(
+        (o: any) => o.properties.ciPlatform.const,
+      );
+      expect(platforms).toEqual([
+        'none',
+        'jenkins',
+        'github-actions',
+        'gitlab-ci',
+      ]);
+    });
+
+    it('should require ciIdentifier for jenkins but not for none', () => {
+      const result = converter.convertCtdToTemplateEntity(baseCtd, 'test-org');
+      const parameters = result.spec?.parameters as any[];
+      const ciPlatformDeps = parameters[1].dependencies.ciPlatform;
+
+      const noneBranch = ciPlatformDeps.oneOf[0];
+      const jenkinsBranch = ciPlatformDeps.oneOf[1];
+
+      expect(noneBranch.properties.ciIdentifier).toBeUndefined();
+      expect(jenkinsBranch.properties.ciIdentifier).toBeDefined();
+      expect(jenkinsBranch.properties.ciIdentifier.title).toBe(
+        'Jenkins Job Path',
+      );
+    });
+  });
+
+  describe('allowedTraits passthrough', () => {
+    it('should pass allowedTraits to WorkloadDetailsField ui:options', () => {
+      const ctd: ComponentType = {
+        metadata: {
+          workloadType: 'deployment',
+          createdAt: '2025-01-01T00:00:00Z',
+          name: 'web-service',
+          allowedTraits: [
+            { kind: 'Trait', name: 'ingress' },
+            { kind: 'Trait', name: 'hpa' },
+          ],
+        },
+        spec: {
+          inputParametersSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+      };
+
+      const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
+      const parameters = result.spec?.parameters as any[];
+      const options = parameters[2].properties.workloadDetails['ui:options'];
+
+      expect(options.allowedTraits).toEqual([
+        { kind: 'Trait', name: 'ingress' },
+        { kind: 'Trait', name: 'hpa' },
+      ]);
+    });
+
+    it('should pass undefined allowedTraits when not set', () => {
+      const ctd: ComponentType = {
+        metadata: {
+          workloadType: 'deployment',
+          createdAt: '2025-01-01T00:00:00Z',
+          name: 'web-service',
+        },
+        spec: {
+          inputParametersSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+      };
+
+      const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
+      const parameters = result.spec?.parameters as any[];
+      const options = parameters[2].properties.workloadDetails['ui:options'];
+
+      expect(options.allowedTraits).toBeUndefined();
+    });
+  });
 });
