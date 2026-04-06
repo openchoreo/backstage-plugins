@@ -79,6 +79,8 @@ describe('generateUiSchemaWithTitles', () => {
     };
     const result = generateUiSchemaWithTitles(schema);
 
+    // Parent object without title also gets ui:title
+    expect(result.docker['ui:title']).toBe('Docker');
     // Nested property without title gets ui:title
     expect(result.docker.build_context['ui:title']).toBe('Build Context');
     // Nested property with title is not overridden

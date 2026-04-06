@@ -86,10 +86,14 @@ describe('CtdToTemplateConverter – convertClusterCtdToTemplateEntity', () => {
 
     const noDisplayName: ComponentType = {
       ...baseCtd,
-      metadata: { ...baseCtd.metadata, displayName: undefined },
+      metadata: {
+        ...baseCtd.metadata,
+        name: 'my-custom-svc',
+        displayName: undefined,
+      },
     };
     const fallback = converter.convertClusterCtdToTemplateEntity(noDisplayName);
-    expect(fallback.metadata.title).toBe('Web Service'); // formatted from "web-service"
+    expect(fallback.metadata.title).toBe('My Custom Svc'); // formatted from "my-custom-svc"
   });
 
   it('generates default description when none provided', () => {
