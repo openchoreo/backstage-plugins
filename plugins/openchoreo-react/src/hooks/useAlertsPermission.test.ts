@@ -33,6 +33,7 @@ const systemEntity = {
 
 describe('useAlertsPermission', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     mockUseEntity.mockReturnValue(componentEntity);
   });
 

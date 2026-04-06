@@ -636,6 +636,21 @@ describe('ClusterWorkflowPlaneEntityProcessor', () => {
         type: RELATION_OBSERVED_BY,
       }),
     );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: {
+          kind: 'clusterobservabilityplane',
+          namespace: 'openchoreo-cluster',
+          name: 'cop',
+        },
+        target: {
+          kind: 'clusterworkflowplane',
+          namespace: 'openchoreo-cluster',
+          name: 'cwp',
+        },
+        type: RELATION_OBSERVES,
+      }),
+    );
   });
 });
 
@@ -960,6 +975,17 @@ describe('ObservabilityPlaneEntityProcessor', () => {
         },
         target: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
         type: RELATION_PART_OF,
+      }),
+    );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
+        target: {
+          kind: 'observabilityplane',
+          namespace: 'my-ns',
+          name: 'op',
+        },
+        type: RELATION_HAS_PART,
       }),
     );
   });

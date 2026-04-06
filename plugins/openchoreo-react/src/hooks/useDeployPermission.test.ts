@@ -21,6 +21,10 @@ jest.mock('@backstage/catalog-model', () => ({
 }));
 
 describe('useDeployPermission (Variant A: entity-scoped, single permission)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('returns canDeploy=true when allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
     const { result } = renderHook(() => useDeployPermission());

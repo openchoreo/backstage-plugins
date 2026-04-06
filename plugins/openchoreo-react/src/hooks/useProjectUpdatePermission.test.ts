@@ -21,6 +21,10 @@ jest.mock('@backstage/catalog-model', () => ({
 }));
 
 describe('useProjectUpdatePermission', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('returns canUpdate=true when allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
     const { result } = renderHook(() => useProjectUpdatePermission());

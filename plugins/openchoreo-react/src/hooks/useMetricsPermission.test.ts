@@ -21,6 +21,10 @@ jest.mock('@backstage/catalog-model', () => ({
 }));
 
 describe('useMetricsPermission', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('returns canViewMetrics=true when allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
     const { result } = renderHook(() => useMetricsPermission());

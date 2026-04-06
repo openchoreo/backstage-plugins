@@ -21,6 +21,10 @@ jest.mock('@backstage/catalog-model', () => ({
 }));
 
 describe('useRcaUpdatePermission', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('returns canUpdateRca=true when allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
     const { result } = renderHook(() => useRcaUpdatePermission());

@@ -33,6 +33,7 @@ const systemEntity = {
 
 describe('useLogsPermission', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     mockUseEntity.mockReturnValue(componentEntity);
   });
 

@@ -21,6 +21,10 @@ jest.mock('@backstage/catalog-model', () => ({
 }));
 
 describe('useTracesPermission', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('returns canViewTraces=true when allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
     const { result } = renderHook(() => useTracesPermission());

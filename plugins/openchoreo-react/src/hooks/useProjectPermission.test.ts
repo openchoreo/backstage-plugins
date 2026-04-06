@@ -7,6 +7,10 @@ jest.mock('@backstage/plugin-permission-react', () => ({
 }));
 
 describe('useProjectPermission', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('returns canCreate=true when allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
     const { result } = renderHook(() => useProjectPermission());

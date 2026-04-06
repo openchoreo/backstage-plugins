@@ -7,6 +7,10 @@ jest.mock('@backstage/plugin-permission-react', () => ({
 }));
 
 describe('useEnvironmentReadPermission', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('returns canViewEnvironments=true when allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
     const { result } = renderHook(() => useEnvironmentReadPermission());

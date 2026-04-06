@@ -7,6 +7,10 @@ jest.mock('@backstage/plugin-permission-react', () => ({
 }));
 
 describe('useEnvironmentPermission (Variant B: org-level, no resource)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('returns canCreate=true when allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
     const { result } = renderHook(() => useEnvironmentPermission());
