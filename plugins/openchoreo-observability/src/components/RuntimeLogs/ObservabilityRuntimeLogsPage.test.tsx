@@ -33,7 +33,7 @@ jest.mock('./LogsFilter', () => ({
   LogsFilter: ({ environments, filters }: any) => (
     <div data-testid="logs-filter">
       <span data-testid="env-count">{environments.length}</span>
-      <span data-testid="filter-env">{filters.environmentId}</span>
+      <span data-testid="filter-env">{filters.environment}</span>
     </div>
   ),
 }));
@@ -79,7 +79,7 @@ const defaultEntity = {
 };
 
 const defaultFilters = {
-  environmentId: 'env-dev',
+  environment: 'env-dev',
   logLevel: [],
   selectedFields: ['Timestamp', 'LogLevel', 'Log'],
   timeRange: '1h',
@@ -138,8 +138,6 @@ function setupDefaultMocks() {
     fetchLogs: jest.fn(),
     loadMore: jest.fn(),
     refresh: jest.fn(),
-    componentId: 'comp-1',
-    projectId: 'proj-1',
   });
 }
 
@@ -229,8 +227,6 @@ describe('ObservabilityRuntimeLogsPage', () => {
       fetchLogs: jest.fn(),
       loadMore: jest.fn(),
       refresh: jest.fn(),
-      componentId: 'comp-1',
-      projectId: 'proj-1',
     });
 
     await renderPage();
@@ -248,8 +244,6 @@ describe('ObservabilityRuntimeLogsPage', () => {
       fetchLogs: jest.fn(),
       loadMore: jest.fn(),
       refresh: jest.fn(),
-      componentId: 'comp-1',
-      projectId: 'proj-1',
     });
 
     await renderPage();
@@ -269,7 +263,7 @@ describe('ObservabilityRuntimeLogsPage', () => {
     });
 
     mockUseUrlFiltersForRuntimeLogs.mockReturnValue({
-      filters: { ...defaultFilters, environmentId: '' },
+      filters: { ...defaultFilters, environment: '' },
       updateFilters: jest.fn(),
     });
 
@@ -284,7 +278,7 @@ describe('ObservabilityRuntimeLogsPage', () => {
 
   it('does not render actions/table when no environment selected', async () => {
     mockUseUrlFiltersForRuntimeLogs.mockReturnValue({
-      filters: { ...defaultFilters, environmentId: '' },
+      filters: { ...defaultFilters, environment: '' },
       updateFilters: jest.fn(),
     });
 
@@ -304,8 +298,6 @@ describe('ObservabilityRuntimeLogsPage', () => {
       fetchLogs: jest.fn(),
       loadMore: jest.fn(),
       refresh: jest.fn(),
-      componentId: 'comp-1',
-      projectId: 'proj-1',
     });
 
     await renderPage();
@@ -323,8 +315,6 @@ describe('ObservabilityRuntimeLogsPage', () => {
       fetchLogs: jest.fn(),
       loadMore: jest.fn(),
       refresh: jest.fn(),
-      componentId: 'comp-1',
-      projectId: 'proj-1',
     });
 
     await renderPage();

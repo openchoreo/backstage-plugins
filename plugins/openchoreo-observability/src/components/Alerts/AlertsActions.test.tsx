@@ -6,7 +6,7 @@ import { AlertsFilters } from './types';
 // ---- Helpers ----
 
 const baseFilters: AlertsFilters = {
-  environmentId: 'env-1',
+  environment: 'env-1',
   timeRange: '1h',
   sortOrder: 'desc',
 };

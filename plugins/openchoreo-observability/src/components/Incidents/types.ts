@@ -1,11 +1,9 @@
 import type { IncidentSummary } from '../../types';
-import type { Environment } from '../RuntimeLogs/types';
 
 export type { IncidentSummary };
-export type { Environment };
 
 export interface IncidentsFilters {
-  environmentId: string;
+  environment: string;
   timeRange: string;
   components?: string[];
   sortOrder?: 'asc' | 'desc';

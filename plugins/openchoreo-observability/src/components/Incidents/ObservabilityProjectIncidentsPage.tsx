@@ -16,7 +16,6 @@ import {
 } from '../../hooks';
 import { useIncidentsPermission } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
-import type { Environment as RuntimeLogsEnvironment } from '../RuntimeLogs/types';
 import type { IncidentSummary } from '../../types';
 
 const ObservabilityProjectIncidentsContent = () => {
@@ -28,7 +27,7 @@ const ObservabilityProjectIncidentsContent = () => {
   const projectName = entity.metadata.name || '';
 
   const {
-    environments: observabilityEnvironments,
+    environments,
     loading: environmentsLoading,
     error: environmentsError,
   } = useGetEnvironmentsByNamespace(namespace);
@@ -39,20 +38,12 @@ const ObservabilityProjectIncidentsContent = () => {
     error: componentsError,
   } = useGetComponentsByProject(entity);
 
-  const environments = useMemo<RuntimeLogsEnvironment[]>(() => {
-    return observabilityEnvironments.map(env => ({
-      id: env.name,
-      name: env.displayName || env.name,
-      resourceName: env.name,
-    }));
-  }, [observabilityEnvironments]);
-
   const { filters, updateFilters } = useUrlFiltersForIncidents({
-    environments,
+    environments: environments,
   });
 
   const selectedEnvironment = environments.find(
-    env => env.id === filters.environmentId,
+    env => env.name === filters.environment,
   );
 
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -70,15 +61,14 @@ const ObservabilityProjectIncidentsContent = () => {
     fetchIncidents,
     refresh,
   } = useProjectIncidents(entity, {
-    environmentId: filters.environmentId,
-    environmentName: selectedEnvironment?.resourceName || '',
+    environment: filters.environment,
     timeRange: filters.timeRange,
     components: filters.components,
     sortOrder: filters.sortOrder || 'desc',
   });
 
   const previousFiltersRef = useRef<{
-    environmentId: string;
+    environment: string;
     timeRange: string;
     components: string[];
     sortOrder?: 'asc' | 'desc';
@@ -86,7 +76,7 @@ const ObservabilityProjectIncidentsContent = () => {
 
   useEffect(() => {
     const currentFilters = {
-      environmentId: filters.environmentId,
+      environment: filters.environment,
       timeRange: filters.timeRange,
       components: filters.components || [],
       sortOrder: filters.sortOrder,
@@ -97,7 +87,7 @@ const ObservabilityProjectIncidentsContent = () => {
         JSON.stringify(currentFilters);
 
     if (
-      filters.environmentId &&
+      filters.environment &&
       selectedEnvironment &&
       namespace &&
       projectName &&
@@ -108,7 +98,7 @@ const ObservabilityProjectIncidentsContent = () => {
       previousFiltersRef.current = currentFilters;
     }
   }, [
-    filters.environmentId,
+    filters.environment,
     filters.timeRange,
     filters.components,
     filters.sortOrder,
@@ -161,7 +151,7 @@ const ObservabilityProjectIncidentsContent = () => {
     (incident: IncidentSummary) => {
       const catalogNs = entity.metadata.namespace || 'default';
       const params = new URLSearchParams({
-        ...(filters.environmentId ? { env: filters.environmentId } : {}),
+        ...(filters.environment ? { env: filters.environment } : {}),
         ...(filters.timeRange ? { timeRange: filters.timeRange } : {}),
         ...(incident.alertId ? { q: incident.alertId } : {}),
       });
@@ -171,7 +161,7 @@ const ObservabilityProjectIncidentsContent = () => {
       }`;
       window.open(url, '_blank', 'noopener,noreferrer');
     },
-    [entity, projectName, filters.environmentId, filters.timeRange],
+    [entity, projectName, filters.environment, filters.timeRange],
   );
 
   const handleAcknowledge = useCallback(
@@ -257,7 +247,7 @@ const ObservabilityProjectIncidentsContent = () => {
 
       {incidentsError && renderError(incidentsError)}
 
-      {!filters.environmentId &&
+      {!filters.environment &&
         !environmentsLoading &&
         environments.length === 0 && (
           <Alert severity="info" className={classes.errorContainer}>
@@ -267,11 +257,11 @@ const ObservabilityProjectIncidentsContent = () => {
           </Alert>
         )}
 
-      {filters.environmentId && (
+      {filters.environment && (
         <>
           <IncidentsActions
             totalCount={filteredIncidents.length}
-            disabled={incidentsLoading || !filters.environmentId}
+            disabled={incidentsLoading || !filters.environment}
             onRefresh={handleRefresh}
             filters={filters}
             onFiltersChange={handleFiltersChange}
@@ -283,7 +273,9 @@ const ObservabilityProjectIncidentsContent = () => {
             loading={incidentsLoading}
             namespaceName={namespace}
             projectName={projectName}
-            environmentName={selectedEnvironment?.name}
+            environmentName={
+              selectedEnvironment?.displayName || selectedEnvironment?.name
+            }
             onViewRCA={handleViewRCA}
             onAcknowledge={handleAcknowledge}
             onResolve={handleResolve}

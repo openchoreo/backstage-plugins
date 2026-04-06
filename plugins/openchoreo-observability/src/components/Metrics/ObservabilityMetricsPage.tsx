@@ -65,14 +65,14 @@ const ObservabilityMetricsContent = () => {
 
   // Track previous filter values to detect changes
   const previousFiltersRef = useRef({
-    environmentId: filters.environment?.uid,
+    environment: filters.environment?.name,
     timeRange: filters.timeRange,
   });
 
   // Fetch metrics when filters change
   useEffect(() => {
     const currentFilters = {
-      environmentId: filters.environment?.uid,
+      environment: filters.environment?.name,
       timeRange: filters.timeRange,
     };
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Environment } from '../components/RuntimeLogs/types';
+import type { Environment } from '../types';
 import type { IncidentsFilters } from '../components/Incidents/types';
 
 const DEFAULT_TIME_RANGE = '10m';
@@ -33,11 +33,11 @@ export function useUrlFiltersForIncidents({
     const searchQuery = searchParams.get('search') || undefined;
 
     const environment = envId
-      ? environments.find(e => e.id === envId)
+      ? environments.find(e => e.name === envId)
       : undefined;
 
     return {
-      environmentId: environment?.id || '',
+      environment: environment?.name || '',
       timeRange,
       sortOrder,
       components: components.length > 0 ? components : undefined,
@@ -49,10 +49,10 @@ export function useUrlFiltersForIncidents({
   useEffect(() => {
     if (environments.length === 0) return;
     const envParam = searchParams.get('env');
-    const isValid = envParam && environments.some(e => e.id === envParam);
+    const isValid = envParam && environments.some(e => e.name === envParam);
     if (!isValid) {
       const newParams = new URLSearchParams(searchParams);
-      newParams.set('env', environments[0].id);
+      newParams.set('env', environments[0].name);
       setSearchParams(newParams, { replace: true });
     }
   }, [environments, searchParams, setSearchParams]);
@@ -61,9 +61,9 @@ export function useUrlFiltersForIncidents({
     (newFilters: Partial<IncidentsFilters>) => {
       const newParams = new URLSearchParams(searchParams);
 
-      if (newFilters.environmentId !== undefined) {
-        if (newFilters.environmentId) {
-          newParams.set('env', newFilters.environmentId);
+      if (newFilters.environment !== undefined) {
+        if (newFilters.environment) {
+          newParams.set('env', newFilters.environment);
         } else {
           newParams.delete('env');
         }
@@ -117,7 +117,7 @@ export function useUrlFiltersForIncidents({
   const resetFilters = useCallback(() => {
     const newParams = new URLSearchParams();
     if (environments.length > 0) {
-      newParams.set('env', environments[0].id);
+      newParams.set('env', environments[0].name);
     }
     setSearchParams(newParams, { replace: true });
   }, [environments, setSearchParams]);

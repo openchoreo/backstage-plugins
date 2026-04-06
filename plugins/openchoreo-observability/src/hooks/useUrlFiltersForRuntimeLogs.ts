@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Environment,
   RuntimeLogsFilters,
   LogEntryField,
   LOG_LEVELS,
   SELECTED_FIELDS,
 } from '../components/RuntimeLogs/types';
+import type { Environment } from '../types';
 
 const DEFAULT_TIME_RANGE = '10m';
 
@@ -83,13 +83,12 @@ export function useUrlFiltersForRuntimeLogs({
       selectedFields = [...SELECTED_FIELDS];
     }
 
-    // Find environment by ID
     const environment = envId
-      ? environments.find(e => e.id === envId)
+      ? environments.find(e => e.name === envId)
       : undefined;
 
     return {
-      environmentId: environment?.id || '',
+      environment: environment?.name || '',
       timeRange,
       logLevel,
       selectedFields,
@@ -104,10 +103,10 @@ export function useUrlFiltersForRuntimeLogs({
   useEffect(() => {
     if (environments.length === 0) return;
     const envParam = searchParams.get('env');
-    const isValid = envParam && environments.some(e => e.id === envParam);
+    const isValid = envParam && environments.some(e => e.name === envParam);
     if (!isValid) {
       const newParams = new URLSearchParams(searchParams);
-      newParams.set('env', environments[0].id);
+      newParams.set('env', environments[0].name);
       setSearchParams(newParams, { replace: true });
     }
   }, [environments, searchParams, setSearchParams]);
@@ -117,9 +116,9 @@ export function useUrlFiltersForRuntimeLogs({
     (newFilters: Partial<RuntimeLogsFilters>) => {
       const newParams = new URLSearchParams(searchParams);
 
-      if (newFilters.environmentId !== undefined) {
-        if (newFilters.environmentId) {
-          newParams.set('env', newFilters.environmentId);
+      if (newFilters.environment !== undefined) {
+        if (newFilters.environment) {
+          newParams.set('env', newFilters.environment);
         } else {
           newParams.delete('env');
         }
@@ -217,7 +216,7 @@ export function useUrlFiltersForRuntimeLogs({
   const resetFilters = useCallback(() => {
     const newParams = new URLSearchParams();
     if (environments.length > 0) {
-      newParams.set('env', environments[0].id);
+      newParams.set('env', environments[0].name);
     }
     setSearchParams(newParams, { replace: true });
   }, [environments, setSearchParams]);

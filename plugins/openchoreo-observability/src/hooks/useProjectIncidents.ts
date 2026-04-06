@@ -7,8 +7,7 @@ import { IncidentSummary } from '../types';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
 export interface UseProjectIncidentsFilters {
-  environmentId: string;
-  environmentName: string;
+  environment: string;
   timeRange: string;
   components?: string[];
   sortOrder?: 'asc' | 'desc';
@@ -45,12 +44,7 @@ export function useProjectIncidents(
 
   const fetchIncidents = useCallback(
     async (_reset = true) => {
-      if (
-        !filters.environmentId ||
-        !filters.environmentName ||
-        !namespace ||
-        !projectName
-      ) {
+      if (!filters.environment || !namespace || !projectName) {
         return;
       }
 
@@ -76,7 +70,7 @@ export function useProjectIncidents(
               observabilityApi.getIncidents(
                 namespace,
                 projectName,
-                filters.environmentName,
+                filters.environment,
                 componentName,
                 queryOptions,
               ),
@@ -99,7 +93,7 @@ export function useProjectIncidents(
           const response = await observabilityApi.getIncidents(
             namespace,
             projectName,
-            filters.environmentName,
+            filters.environment,
             undefined,
             queryOptions,
           );
@@ -122,8 +116,7 @@ export function useProjectIncidents(
     },
     [
       observabilityApi,
-      filters.environmentId,
-      filters.environmentName,
+      filters.environment,
       filters.timeRange,
       filters.sortOrder,
       namespace,

@@ -14,12 +14,12 @@ import { useDebounce } from 'react-use';
 import { Component } from '../../hooks/useGetComponentsByProject';
 import {
   RuntimeLogsFilters,
-  Environment,
   LOG_LEVELS,
   TIME_RANGE_OPTIONS,
   SELECTED_FIELDS,
   LogEntryField,
 } from './types';
+import type { Environment } from '../../types';
 
 interface LogsFilterProps {
   filters: RuntimeLogsFilters;
@@ -62,7 +62,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   };
 
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ environmentId: event.target.value as string });
+    onFiltersChange({ environment: event.target.value as string });
   };
 
   const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
@@ -239,14 +239,14 @@ export const LogsFilter: FC<LogsFilterProps> = ({
             <Skeleton variant="rect" height={56} />
           ) : (
             <Select
-              value={filters.environmentId}
+              value={filters.environment}
               onChange={handleEnvironmentChange}
               labelId="environment-label"
               label="Environment"
             >
               {environments.map(env => (
-                <MenuItem key={env.id} value={env.id}>
-                  {env.name}
+                <MenuItem key={env.name} value={env.name}>
+                  {env.displayName || env.name}
                 </MenuItem>
               ))}
             </Select>

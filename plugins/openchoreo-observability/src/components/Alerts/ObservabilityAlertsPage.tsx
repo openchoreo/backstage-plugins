@@ -15,7 +15,6 @@ import {
 } from '../../hooks';
 import { useAlertsPermission } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
-import type { Environment as RuntimeLogsEnvironment } from '../RuntimeLogs/types';
 import type { AlertSummary } from '../../types';
 
 const ObservabilityAlertsContent = () => {
@@ -25,25 +24,17 @@ const ObservabilityAlertsContent = () => {
   const { namespace, project } = useGetNamespaceAndProjectByEntity(entity);
 
   const {
-    environments: observabilityEnvironments,
+    environments,
     loading: environmentsLoading,
     error: environmentsError,
   } = useGetEnvironmentsByNamespace(namespace);
 
-  const environments = useMemo<RuntimeLogsEnvironment[]>(() => {
-    return observabilityEnvironments.map(env => ({
-      id: env.name,
-      name: env.displayName || env.name,
-      resourceName: env.name,
-    }));
-  }, [observabilityEnvironments]);
-
   const { filters, updateFilters } = useUrlFiltersForAlerts({
-    environments,
+    environments: environments,
   });
 
   const selectedEnvironment = environments.find(
-    env => env.id === filters.environmentId,
+    env => env.name === filters.environment,
   );
 
   const componentName =
@@ -58,22 +49,21 @@ const ObservabilityAlertsContent = () => {
     fetchAlerts,
     refresh,
   } = useComponentAlerts(entity, namespace || '', project || '', {
-    environmentId: filters.environmentId,
-    environmentName: selectedEnvironment?.resourceName || '',
+    environment: filters.environment,
     timeRange: filters.timeRange,
     limit: 100,
     sortOrder: filters.sortOrder || 'desc',
   });
 
   const previousFiltersRef = useRef<{
-    environmentId: string;
+    environment: string;
     timeRange: string;
     sortOrder?: 'asc' | 'desc';
   } | null>(null);
 
   useEffect(() => {
     const currentFilters = {
-      environmentId: filters.environmentId,
+      environment: filters.environment,
       timeRange: filters.timeRange,
       sortOrder: filters.sortOrder,
     };
@@ -83,7 +73,7 @@ const ObservabilityAlertsContent = () => {
         JSON.stringify(currentFilters);
 
     if (
-      filters.environmentId &&
+      filters.environment &&
       selectedEnvironment &&
       namespace &&
       project &&
@@ -95,7 +85,7 @@ const ObservabilityAlertsContent = () => {
       previousFiltersRef.current = currentFilters;
     }
   }, [
-    filters.environmentId,
+    filters.environment,
     filters.timeRange,
     filters.sortOrder,
     fetchAlerts,
@@ -169,12 +159,12 @@ const ObservabilityAlertsContent = () => {
       const params = new URLSearchParams({
         search: alert.alertId,
         timeRange,
-        ...(filters.environmentId ? { env: filters.environmentId } : {}),
+        ...(filters.environment ? { env: filters.environment } : {}),
       });
       const url = `/catalog/${catalogNs}/system/${parentProject}/incidents?${params.toString()}`;
       window.open(url, '_blank', 'noopener,noreferrer');
     },
-    [entity, project, filters.environmentId],
+    [entity, project, filters.environment],
   );
 
   const renderError = (error: string) => {
@@ -216,7 +206,7 @@ const ObservabilityAlertsContent = () => {
 
       {alertsError && renderError(alertsError)}
 
-      {!filters.environmentId &&
+      {!filters.environment &&
         !environmentsLoading &&
         environments.length === 0 && (
           <Alert severity="info" className={classes.errorContainer}>
@@ -227,11 +217,11 @@ const ObservabilityAlertsContent = () => {
           </Alert>
         )}
 
-      {filters.environmentId && (
+      {filters.environment && (
         <>
           <AlertsActions
             totalCount={filteredAlerts.length}
-            disabled={alertsLoading || !filters.environmentId}
+            disabled={alertsLoading || !filters.environment}
             onRefresh={handleRefresh}
             filters={filters}
             onFiltersChange={handleFiltersChange}
@@ -241,7 +231,9 @@ const ObservabilityAlertsContent = () => {
           <AlertsTable
             alerts={filteredAlerts}
             loading={alertsLoading}
-            environmentName={selectedEnvironment?.name}
+            environmentName={
+              selectedEnvironment?.displayName || selectedEnvironment?.name
+            }
             projectName={project}
             componentName={componentName}
             namespaceName={namespace}

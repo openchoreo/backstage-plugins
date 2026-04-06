@@ -15,7 +15,7 @@ describe('useProjectRuntimeLogs', () => {
   const getRuntimeLogs = jest.fn();
 
   const baseFilters = {
-    environmentId: 'env-1',
+    environment: 'env-1',
     timeRange: '1h',
     logLevel: [],
     selectedFields: [
@@ -96,9 +96,6 @@ describe('useProjectRuntimeLogs', () => {
     expect(getRuntimeLogs).toHaveBeenCalledTimes(2);
     expect(getRuntimeLogs).toHaveBeenNthCalledWith(
       1,
-      '',
-      '',
-      'env-1',
       'dev',
       'project-a',
       'development',
@@ -107,9 +104,6 @@ describe('useProjectRuntimeLogs', () => {
     );
     expect(getRuntimeLogs).toHaveBeenNthCalledWith(
       2,
-      '',
-      '',
-      'env-1',
       'dev',
       'project-a',
       'development',
@@ -162,9 +156,6 @@ describe('useProjectRuntimeLogs', () => {
 
     expect(getRuntimeLogs).toHaveBeenCalledTimes(1);
     expect(getRuntimeLogs).toHaveBeenCalledWith(
-      '',
-      '',
-      'env-1',
       'dev',
       'project-a',
       'development',

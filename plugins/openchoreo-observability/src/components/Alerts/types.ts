@@ -1,11 +1,9 @@
 import type { AlertSummary } from '../../types';
-import type { Environment } from '../RuntimeLogs/types';
 
 export type { AlertSummary };
-export type { Environment };
 
 export interface AlertsFilters {
-  environmentId: string;
+  environment: string;
   timeRange: string;
   sortOrder?: 'asc' | 'desc';
   severity?: string[];

@@ -6,12 +6,24 @@ import { AlertsFilters } from './types';
 // ---- Helpers ----
 
 const environments = [
-  { id: 'dev', name: 'Development', resourceName: 'development' },
-  { id: 'stg', name: 'Staging', resourceName: 'staging' },
+  {
+    name: 'development',
+    displayName: 'Development',
+    namespace: 'ns-dev',
+    isProduction: false,
+    createdAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    name: 'staging',
+    displayName: 'Staging',
+    namespace: 'ns-stg',
+    isProduction: false,
+    createdAt: '2024-01-01T00:00:00Z',
+  },
 ];
 
 const baseFilters: AlertsFilters = {
-  environmentId: 'dev',
+  environment: 'development',
   timeRange: '1h',
   sortOrder: 'desc',
   severity: [],

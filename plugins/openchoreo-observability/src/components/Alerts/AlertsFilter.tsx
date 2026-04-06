@@ -12,7 +12,7 @@ import { Skeleton } from '@material-ui/lab';
 import { useDebounce } from 'react-use';
 import type { AlertsFilters } from './types';
 import { ALERTS_TIME_RANGE_OPTIONS, ALERT_SEVERITIES } from './types';
-import type { Environment } from '../RuntimeLogs/types';
+import type { Environment } from '../../types';
 
 interface AlertsFilterProps {
   filters: AlertsFilters;
@@ -49,7 +49,7 @@ export const AlertsFilter: FC<AlertsFilterProps> = ({
   };
 
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ environmentId: event.target.value as string });
+    onFiltersChange({ environment: event.target.value as string });
   };
 
   const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
@@ -111,14 +111,14 @@ export const AlertsFilter: FC<AlertsFilterProps> = ({
             <Skeleton variant="rect" height={56} />
           ) : (
             <Select
-              value={filters.environmentId}
+              value={filters.environment}
               onChange={handleEnvironmentChange}
               labelId="environment-label"
               label="Environment"
             >
               {environments.map(env => (
-                <MenuItem key={env.id} value={env.id}>
-                  {env.name}
+                <MenuItem key={env.name} value={env.name}>
+                  {env.displayName || env.name}
                 </MenuItem>
               ))}
             </Select>
