@@ -78,9 +78,7 @@ describe('GraphKindFilter', () => {
     const user = userEvent.setup();
     renderFilter({ clusterScopeActive: false });
 
-    await user.click(
-      screen.getByRole('button', { name: /Kind:/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Kind:/i }));
 
     expect(screen.queryByText('Cluster Data Plane')).not.toBeInTheDocument();
     expect(
@@ -92,9 +90,7 @@ describe('GraphKindFilter', () => {
     const user = userEvent.setup();
     renderFilter({ clusterScopeActive: true });
 
-    await user.click(
-      screen.getByRole('button', { name: /Kind:/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Kind:/i }));
 
     expect(screen.getByText('Cluster Data Plane')).toBeInTheDocument();
     expect(screen.getByText('Cluster Workflow Plane')).toBeInTheDocument();
@@ -106,9 +102,7 @@ describe('GraphKindFilter', () => {
       selectedKinds: ['system'],
     });
 
-    await user.click(
-      screen.getByRole('button', { name: /Kind:/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Kind:/i }));
     await user.click(screen.getByText('Developer Resources'));
 
     expect(onKindsChange).toHaveBeenCalledWith(APPLICATION_VIEW.kinds);
@@ -135,9 +129,7 @@ describe('GraphKindFilter', () => {
       selectedKinds: ['system', 'component'],
     });
 
-    await user.click(
-      screen.getByRole('button', { name: /Kind:/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Kind:/i }));
     // Click "Pipeline" to add it
     await user.click(screen.getByText('Pipeline'));
 
@@ -154,9 +146,7 @@ describe('GraphKindFilter', () => {
       selectedKinds: ['system', 'component'],
     });
 
-    await user.click(
-      screen.getByRole('button', { name: /Kind:/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /Kind:/i }));
     await user.click(screen.getByText('Component'));
 
     expect(onKindsChange).toHaveBeenCalledWith(['system']);

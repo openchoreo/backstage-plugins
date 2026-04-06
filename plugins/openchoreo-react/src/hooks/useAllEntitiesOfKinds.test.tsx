@@ -60,9 +60,7 @@ describe('useAllEntitiesOfKinds', () => {
   });
 
   it('passes namespace filter when provided', async () => {
-    renderWithApi(() =>
-      useAllEntitiesOfKinds(['system'], ['ns-a', 'ns-b']),
-    );
+    renderWithApi(() => useAllEntitiesOfKinds(['system'], ['ns-a', 'ns-b']));
 
     await act(async () => {});
 

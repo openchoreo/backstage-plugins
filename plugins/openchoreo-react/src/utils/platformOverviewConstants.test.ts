@@ -86,9 +86,7 @@ describe('platformOverviewConstants', () => {
     });
 
     it('Developer Resources preset always matches APPLICATION_VIEW kinds', () => {
-      const devPreset = getFilterPresets(true).find(
-        p => p.id === 'developer',
-      )!;
+      const devPreset = getFilterPresets(true).find(p => p.id === 'developer')!;
       expect(devPreset.kinds).toEqual(APPLICATION_VIEW.kinds);
     });
 
@@ -141,7 +139,9 @@ describe('platformOverviewConstants', () => {
     });
 
     it('returns empty array when all kinds are cluster-scoped and cluster scope is off', () => {
-      expect(getEffectiveKinds(['clusterdataplane', 'clusterworkflow'], false)).toEqual([]);
+      expect(
+        getEffectiveKinds(['clusterdataplane', 'clusterworkflow'], false),
+      ).toEqual([]);
     });
   });
 

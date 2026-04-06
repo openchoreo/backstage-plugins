@@ -88,9 +88,7 @@ describe('PlatformOverviewPage', () => {
   it('displays scope and kind filter buttons', async () => {
     await renderPage();
 
-    expect(
-      screen.getByRole('button', { name: /Scope:/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Scope:/i })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Kind: Developer Resources/i }),
     ).toBeInTheDocument();

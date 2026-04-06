@@ -1,7 +1,11 @@
 import { renderHook, act } from '@testing-library/react';
 import { TestApiProvider } from '@backstage/test-utils';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
-import { Entity, RELATION_PART_OF, RELATION_HAS_PART } from '@backstage/catalog-model';
+import {
+  Entity,
+  RELATION_PART_OF,
+  RELATION_HAS_PART,
+} from '@backstage/catalog-model';
 import {
   RELATION_DEPLOYS_TO,
   RELATION_DEPLOYED_BY,
@@ -60,31 +64,66 @@ const envDevRef = ref('environment', 'default', 'development');
 const envProdRef = ref('environment', 'default', 'production');
 
 const projectEntity = makeEntity('system', 'my-project', 'default', [
-  { type: RELATION_HAS_PART, targetRef: refStr('component', 'default', 'nginx') },
-  { type: RELATION_USES_PIPELINE, targetRef: refStr('deploymentpipeline', 'default', 'default-pipeline') },
+  {
+    type: RELATION_HAS_PART,
+    targetRef: refStr('component', 'default', 'nginx'),
+  },
+  {
+    type: RELATION_USES_PIPELINE,
+    targetRef: refStr('deploymentpipeline', 'default', 'default-pipeline'),
+  },
 ]);
 
 const componentEntity = makeEntity('component', 'nginx', 'default', [
-  { type: RELATION_PART_OF, targetRef: refStr('system', 'default', 'my-project') },
+  {
+    type: RELATION_PART_OF,
+    targetRef: refStr('system', 'default', 'my-project'),
+  },
 ]);
 
-const pipelineEntity = makeEntity('deploymentpipeline', 'default-pipeline', 'default', [
-  { type: RELATION_PIPELINE_USED_BY, targetRef: refStr('system', 'default', 'my-project') },
-  { type: RELATION_DEPLOYS_TO, targetRef: refStr('environment', 'default', 'development') },
-  { type: RELATION_DEPLOYS_TO, targetRef: refStr('environment', 'default', 'production') },
-]);
+const pipelineEntity = makeEntity(
+  'deploymentpipeline',
+  'default-pipeline',
+  'default',
+  [
+    {
+      type: RELATION_PIPELINE_USED_BY,
+      targetRef: refStr('system', 'default', 'my-project'),
+    },
+    {
+      type: RELATION_DEPLOYS_TO,
+      targetRef: refStr('environment', 'default', 'development'),
+    },
+    {
+      type: RELATION_DEPLOYS_TO,
+      targetRef: refStr('environment', 'default', 'production'),
+    },
+  ],
+);
 
 const envDevEntity = makeEntity('environment', 'development', 'default', [
-  { type: RELATION_DEPLOYED_BY, targetRef: refStr('deploymentpipeline', 'default', 'default-pipeline') },
+  {
+    type: RELATION_DEPLOYED_BY,
+    targetRef: refStr('deploymentpipeline', 'default', 'default-pipeline'),
+  },
 ]);
 
 const envProdEntity = makeEntity('environment', 'production', 'default', [
-  { type: RELATION_DEPLOYED_BY, targetRef: refStr('deploymentpipeline', 'default', 'default-pipeline') },
+  {
+    type: RELATION_DEPLOYED_BY,
+    targetRef: refStr('deploymentpipeline', 'default', 'default-pipeline'),
+  },
 ]);
 
 function setupFullGraph() {
   mockCatalogApi.getEntitiesByRefs.mockResolvedValue({
-    items: [projectEntity, componentEntity, pipelineEntity, envDevEntity, envProdEntity],
+    items: [
+      projectEntity,
+      componentEntity,
+      pipelineEntity,
+      envDevEntity,
+      envProdEntity,
+    ],
   });
 }
 
@@ -192,9 +231,7 @@ describe('useEntityGraphData', () => {
     // Between pipeline and dev-env, both DEPLOYS_TO and DEPLOYED_BY exist
     // but should produce only one edge
     const pipelineToDevEdges = result.current.edges.filter(
-      e =>
-        e.from.includes('default-pipeline') &&
-        e.to.includes('development'),
+      e => e.from.includes('default-pipeline') && e.to.includes('development'),
     );
     expect(pipelineToDevEdges).toHaveLength(1);
   });
@@ -220,10 +257,7 @@ describe('useEntityGraphData', () => {
     });
 
     const { result } = renderWithApi(() =>
-      useEntityGraphData(
-        [projectRef, componentRef],
-        APPLICATION_VIEW,
-      ),
+      useEntityGraphData([projectRef, componentRef], APPLICATION_VIEW),
     );
 
     await act(async () => {});
@@ -241,25 +275,55 @@ describe('useEntityGraphData', () => {
     const sharedEnvRef = ref('environment', 'default', 'shared-env');
 
     const projectAEntity = makeEntity('system', 'project-a', 'default', [
-      { type: RELATION_HAS_PART, targetRef: refStr('component', 'default', 'comp-a') },
-      { type: RELATION_DEPLOYS_TO, targetRef: refStr('environment', 'default', 'shared-env') },
+      {
+        type: RELATION_HAS_PART,
+        targetRef: refStr('component', 'default', 'comp-a'),
+      },
+      {
+        type: RELATION_DEPLOYS_TO,
+        targetRef: refStr('environment', 'default', 'shared-env'),
+      },
     ]);
     const projectBEntity = makeEntity('system', 'project-b', 'default', [
-      { type: RELATION_HAS_PART, targetRef: refStr('component', 'default', 'comp-b') },
-      { type: RELATION_DEPLOYS_TO, targetRef: refStr('environment', 'default', 'shared-env') },
+      {
+        type: RELATION_HAS_PART,
+        targetRef: refStr('component', 'default', 'comp-b'),
+      },
+      {
+        type: RELATION_DEPLOYS_TO,
+        targetRef: refStr('environment', 'default', 'shared-env'),
+      },
     ]);
     const compAEntity = makeEntity('component', 'comp-a', 'default', [
-      { type: RELATION_PART_OF, targetRef: refStr('system', 'default', 'project-a') },
+      {
+        type: RELATION_PART_OF,
+        targetRef: refStr('system', 'default', 'project-a'),
+      },
     ]);
     const compBEntity = makeEntity('component', 'comp-b', 'default', [
-      { type: RELATION_PART_OF, targetRef: refStr('system', 'default', 'project-b') },
+      {
+        type: RELATION_PART_OF,
+        targetRef: refStr('system', 'default', 'project-b'),
+      },
     ]);
     const sharedEnvEntity = makeEntity('environment', 'shared-env', 'default', [
-      { type: RELATION_DEPLOYED_BY, targetRef: refStr('system', 'default', 'project-a') },
-      { type: RELATION_DEPLOYED_BY, targetRef: refStr('system', 'default', 'project-b') },
+      {
+        type: RELATION_DEPLOYED_BY,
+        targetRef: refStr('system', 'default', 'project-a'),
+      },
+      {
+        type: RELATION_DEPLOYED_BY,
+        targetRef: refStr('system', 'default', 'project-b'),
+      },
     ]);
 
-    const allRefs = [projectARef, projectBRef, compARef, compBRef, sharedEnvRef];
+    const allRefs = [
+      projectARef,
+      projectBRef,
+      compARef,
+      compBRef,
+      sharedEnvRef,
+    ];
     const allProjectRefStrs = [
       refStr('system', 'default', 'project-a'),
       refStr('system', 'default', 'project-b'),
@@ -267,7 +331,13 @@ describe('useEntityGraphData', () => {
 
     beforeEach(() => {
       mockCatalogApi.getEntitiesByRefs.mockResolvedValue({
-        items: [projectAEntity, projectBEntity, compAEntity, compBEntity, sharedEnvEntity],
+        items: [
+          projectAEntity,
+          projectBEntity,
+          compAEntity,
+          compBEntity,
+          sharedEnvEntity,
+        ],
       });
     });
 
