@@ -5,6 +5,13 @@ import { Filters, Trace } from '../types';
 import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
+const sortByStartTime = (traceList: Trace[]): Trace[] =>
+  [...traceList].sort((a, b) => {
+    const aTime = a.startTime ? new Date(a.startTime).getTime() : 0;
+    const bTime = b.startTime ? new Date(b.startTime).getTime() : 0;
+    return bTime - aTime;
+  });
+
 export function useTraces(filters: Filters, entity: Entity) {
   const observabilityApi = useApi(observabilityApiRef);
   const [traces, setTraces] = useState<Trace[]>([]);
@@ -44,27 +51,42 @@ export function useTraces(filters: Filters, entity: Entity) {
 
       const { startTime, endTime } = calculateTimeRange(filters.timeRange);
 
-      // When exactly one component is selected pass its name; otherwise omit
-      // to let the server return all components.
       const selectedComponents = filters.componentIds ?? [];
-      const componentName =
-        selectedComponents.length === 1 ? selectedComponents[0] : undefined;
 
-      const response = await observabilityApi.getTraces(
-        namespace,
-        projectName,
-        filters.environment.name,
-        componentName,
-        {
-          limit: 100,
-          startTime,
-          endTime,
-          sortOrder: 'desc',
-        },
-      );
+      const responses =
+        selectedComponents.length > 0
+          ? await Promise.all(
+              selectedComponents.map(name =>
+                observabilityApi.getTraces(
+                  namespace,
+                  projectName,
+                  filters.environment.name,
+                  name,
+                  { limit: 100, startTime, endTime, sortOrder: 'desc' },
+                ),
+              ),
+            )
+          : [
+              await observabilityApi.getTraces(
+                namespace,
+                projectName,
+                filters.environment.name,
+                undefined,
+                { limit: 100, startTime, endTime, sortOrder: 'desc' },
+              ),
+            ];
 
-      setTraces(response.traces);
-      setTotal(response.total);
+      // Merge and deduplicate by traceId (same trace can appear from multiple components)
+      const seenIds = new Map<string, Trace>();
+      responses
+        .flatMap(r => r.traces)
+        .forEach(trace => {
+          if (!seenIds.has(trace.traceId)) seenIds.set(trace.traceId, trace);
+        });
+      const merged = sortByStartTime(Array.from(seenIds.values()));
+
+      setTraces(merged);
+      setTotal(merged.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch traces');
     } finally {

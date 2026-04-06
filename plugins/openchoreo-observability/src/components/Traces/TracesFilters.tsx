@@ -103,14 +103,14 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
                 if (selectedArray.length === 0) return 'All';
                 return selectedArray
                   .map(id => {
-                    const comp = components.find(c => (c.uid || c.name) === id);
+                    const comp = components.find(c => c.name === id);
                     return comp?.displayName || comp?.name || id;
                   })
                   .join(', ');
               }}
             >
               {components.map(component => {
-                const componentId = component.uid || component.name;
+                const componentId = component.name;
                 return (
                   <MenuItem key={componentId} value={componentId}>
                     <Checkbox
