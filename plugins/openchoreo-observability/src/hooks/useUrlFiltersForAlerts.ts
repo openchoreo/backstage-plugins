@@ -27,7 +27,7 @@ export function useUrlFiltersForAlerts({
   const [searchParams, setSearchParams] = useSearchParams();
 
   const filters = useMemo<AlertsFilters>(() => {
-    const envId = searchParams.get('env');
+    const envName = searchParams.get('env');
     const rawTimeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
     const timeRange = VALID_TIME_RANGES.includes(rawTimeRange)
       ? rawTimeRange
@@ -43,8 +43,8 @@ export function useUrlFiltersForAlerts({
       : [];
     const searchQuery = searchParams.get('search') || undefined;
 
-    const environment = envId
-      ? environments.find(e => e.name === envId)
+    const environment = envName
+      ? environments.find(e => e.name === envName)
       : undefined;
 
     return {

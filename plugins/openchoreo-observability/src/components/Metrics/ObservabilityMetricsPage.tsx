@@ -22,7 +22,6 @@ import {
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   CpuUsageMetrics,
-  Environment,
   MemoryUsageMetrics,
   NetworkLatencyMetrics,
   NetworkThroughputMetrics,
@@ -51,7 +50,7 @@ const ObservabilityMetricsContent = () => {
 
   // URL-synced filters - must be after environments are available
   const { filters, updateFilters } = useUrlFilters({
-    environments: environments as Environment[],
+    environments,
   });
 
   // Fetch metrics using the custom hook
@@ -140,7 +139,7 @@ const ObservabilityMetricsContent = () => {
           <MetricsFilters
             filters={filters}
             onFiltersChange={handleFiltersChange}
-            environments={environments as Environment[]}
+            environments={environments}
             disabled={isLoading}
           />
           {metricsError && renderError(metricsError)}

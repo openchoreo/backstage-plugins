@@ -13,7 +13,6 @@ import {
 } from '../../hooks';
 import { useTraceSpans } from '../../hooks/useTraceSpans';
 import { useSpanDetails } from '../../hooks/useSpanDetails';
-import { Environment } from '../../types';
 import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import {
@@ -40,7 +39,7 @@ const ObservabilityTracesContent = () => {
   } = useGetComponentsByProject(entity);
 
   const { filters, updateFilters } = useUrlFilters({
-    environments: environments as Environment[],
+    environments,
   });
 
   const {

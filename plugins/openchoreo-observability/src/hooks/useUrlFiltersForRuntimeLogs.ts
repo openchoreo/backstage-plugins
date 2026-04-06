@@ -11,7 +11,7 @@ import type { Environment } from '../types';
 const DEFAULT_TIME_RANGE = '10m';
 
 interface UseUrlFiltersForRuntimeLogsOptions {
-  /** Available environments to map IDs to objects */
+  /** Available environments to map envName from URL */
   environments: Environment[];
 }
 
@@ -19,7 +19,7 @@ interface UseUrlFiltersForRuntimeLogsOptions {
  * Hook for managing runtime logs filters synced to URL query parameters.
  *
  * Query parameters:
- * - `env`: Environment ID
+ * - `env`: Environment name (auto-selected if not present or invalid)
  * - `timeRange`: Time range value (defaults to '10m')
  * - `logLevel`: Comma-separated log levels (empty value means none selected)
  *
@@ -37,7 +37,7 @@ export function useUrlFiltersForRuntimeLogs({
 
   // Parse filters from URL
   const filters = useMemo<RuntimeLogsFilters>(() => {
-    const envId = searchParams.get('env');
+    const envName = searchParams.get('env');
     const timeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
     const logLevelParam = searchParams.get('logLevel');
     const logLevel =
@@ -86,8 +86,8 @@ export function useUrlFiltersForRuntimeLogs({
       selectedFields = [...SELECTED_FIELDS];
     }
 
-    const environment = envId
-      ? environments.find(e => e.name === envId)
+    const environment = envName
+      ? environments.find(e => e.name === envName)
       : undefined;
 
     return {

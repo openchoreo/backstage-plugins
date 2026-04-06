@@ -42,7 +42,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
   } = useGetComponentsByProject(entity);
 
   const { filters, updateFilters } = useUrlFiltersForRuntimeLogs({
-    environments: environments,
+    environments,
   });
 
   const selectedEnvironment = environments.find(
@@ -78,7 +78,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
     refresh,
     clearLogs,
   } = useProjectRuntimeLogs(filters, entity, {
-    environmentName: selectedEnvironment?.name || '',
+    environmentName: filters.environment,
     namespaceName: namespace,
     projectName,
     limit: 50,
@@ -227,7 +227,9 @@ const ObservabilityProjectRuntimeLogsContent = () => {
             loading={logsLoading}
             hasMore={hasMore}
             loadingRef={loadingRef}
-            environmentName={selectedEnvironment?.name}
+            environmentName={
+              selectedEnvironment?.displayName || selectedEnvironment?.name
+            }
             projectName={projectName}
           />
         </>

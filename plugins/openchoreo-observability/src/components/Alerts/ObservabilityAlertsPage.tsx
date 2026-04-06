@@ -30,7 +30,7 @@ const ObservabilityAlertsContent = () => {
   } = useGetEnvironmentsByNamespace(namespace);
 
   const { filters, updateFilters } = useUrlFiltersForAlerts({
-    environments: environments,
+    environments,
   });
 
   const selectedEnvironment = environments.find(

@@ -19,7 +19,7 @@ export function useUrlFiltersForIncidents({
   const [searchParams, setSearchParams] = useSearchParams();
 
   const filters = useMemo<IncidentsFilters>(() => {
-    const envId = searchParams.get('env');
+    const envName = searchParams.get('env');
     const timeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
     const rawSortOrder = searchParams.get('sort');
     const sortOrder: 'asc' | 'desc' =
@@ -32,8 +32,8 @@ export function useUrlFiltersForIncidents({
     const status = statusParam ? statusParam.split(',').filter(Boolean) : [];
     const searchQuery = searchParams.get('search') || undefined;
 
-    const environment = envId
-      ? environments.find(e => e.name === envId)
+    const environment = envName
+      ? environments.find(e => e.name === envName)
       : undefined;
 
     return {

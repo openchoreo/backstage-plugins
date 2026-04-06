@@ -39,7 +39,7 @@ const ObservabilityProjectIncidentsContent = () => {
   } = useGetComponentsByProject(entity);
 
   const { filters, updateFilters } = useUrlFiltersForIncidents({
-    environments: environments,
+    environments,
   });
 
   const selectedEnvironment = environments.find(

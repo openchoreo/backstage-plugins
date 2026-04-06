@@ -36,7 +36,7 @@ const ObservabilityRuntimeLogsContent = () => {
   } = useGetEnvironmentsByNamespace(namespace);
 
   const { filters, updateFilters } = useUrlFiltersForRuntimeLogs({
-    environments: environments,
+    environments,
   });
 
   const selectedEnvironment = environments.find(
