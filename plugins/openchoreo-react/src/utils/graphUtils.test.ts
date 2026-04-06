@@ -139,11 +139,16 @@ describe('graphUtils', () => {
         'deploymentpipeline',
         'workflowplane',
         'observabilityplane',
+        'componenttype',
+        'traittype',
+        'clustercomponenttype',
+        'clustertraittype',
         'clusterdataplane',
         'clusterworkflowplane',
         'clusterobservabilityplane',
         'workflow',
         'clusterworkflow',
+        'componentworkflow',
       ];
       for (const kind of customKinds) {
         expect(ENTITY_KIND_COLORS[kind]).toBeDefined();
@@ -158,12 +163,9 @@ describe('graphUtils', () => {
     });
 
     it('KIND_LABEL_PREFIXES and KIND_FULL_LABELS cover the same keys', () => {
-      const prefixKeys = new Set(Object.keys(KIND_LABEL_PREFIXES));
-      const fullKeys = new Set(Object.keys(KIND_FULL_LABELS));
-      // Full labels should cover at least everything prefixes cover
-      for (const key of prefixKeys) {
-        expect(fullKeys.has(key)).toBe(true);
-      }
+      const prefixKeys = Object.keys(KIND_LABEL_PREFIXES).sort();
+      const fullKeys = Object.keys(KIND_FULL_LABELS).sort();
+      expect(prefixKeys).toEqual(fullKeys);
     });
 
     it('EDGE_COLOR and DELETION_WARNING_COLOR are valid hex strings', () => {

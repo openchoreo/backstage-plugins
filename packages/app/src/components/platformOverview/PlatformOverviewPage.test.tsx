@@ -19,7 +19,8 @@ jest.mock('@openchoreo/backstage-plugin-react', () => {
     },
     // GraphKindFilter renders for real — it's standard MUI, works in jsdom
     useProjects: (namespaces: string[] | undefined) => {
-      if (!namespaces || namespaces.length === 0) return [];
+      // Match real hook: undefined = fetch all, [] = no namespaces selected
+      if (namespaces !== undefined && namespaces.length === 0) return [];
       return [
         { name: 'project-a', namespace: 'default' },
         { name: 'project-b', namespace: 'default' },
