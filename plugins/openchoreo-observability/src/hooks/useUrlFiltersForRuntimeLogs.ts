@@ -59,7 +59,10 @@ export function useUrlFiltersForRuntimeLogs({
     const isLive = searchParams.get('live') === 'true';
     const componentsParam = searchParams.get('components');
     const components = componentsParam
-      ? componentsParam.split(',').filter(Boolean)
+      ? componentsParam
+          .split(',')
+          .map(v => v.trim())
+          .filter(Boolean)
       : [];
 
     // Parse selectedFields from URL
