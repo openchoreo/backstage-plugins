@@ -56,7 +56,7 @@ describe('useTraces', () => {
     });
 
     const { result } = renderHook(() =>
-      useTraces({ ...baseFilters, componentIds: [] }, entity as any),
+      useTraces({ ...baseFilters, components: [] }, entity as any),
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -88,7 +88,7 @@ describe('useTraces', () => {
 
     const { result } = renderHook(() =>
       useTraces(
-        { ...baseFilters, componentIds: ['component-a', 'component-b'] },
+        { ...baseFilters, components: ['component-a', 'component-b'] },
         entity as any,
       ),
     );
@@ -138,7 +138,7 @@ describe('useTraces', () => {
 
     const { result } = renderHook(() =>
       useTraces(
-        { ...baseFilters, componentIds: ['component-a', 'component-b'] },
+        { ...baseFilters, components: ['component-a', 'component-b'] },
         entity as any,
       ),
     );
@@ -169,7 +169,7 @@ describe('useTraces', () => {
 
     const { result } = renderHook(() =>
       useTraces(
-        { ...baseFilters, componentIds: ['component-a', 'component-b'] },
+        { ...baseFilters, components: ['component-a', 'component-b'] },
         entity as any,
       ),
     );

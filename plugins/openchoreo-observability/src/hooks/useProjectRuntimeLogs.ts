@@ -11,7 +11,7 @@ import {
 } from '../components/RuntimeLogs/types';
 
 export interface ProjectRuntimeLogsFilters extends RuntimeLogsFilters {
-  componentIds?: string[];
+  components?: string[];
 }
 
 interface UseProjectRuntimeLogsOptions {
@@ -66,14 +66,14 @@ export function useProjectRuntimeLogs(
   }, [logs]);
 
   const selectedComponents = useMemo(
-    () => Array.from(new Set(filters.componentIds || [])),
-    [filters.componentIds],
+    () => Array.from(new Set(filters.components || [])),
+    [filters.components],
   );
 
   const fetchLogs = useCallback(
     async (reset: boolean = false) => {
       if (
-        !filters.environmentId ||
+        !filters.environment ||
         !options.environmentName ||
         !options.namespaceName ||
         !options.projectName
@@ -127,9 +127,6 @@ export function useProjectRuntimeLogs(
             ? await Promise.all(
                 selectedComponents.map(componentName =>
                   observabilityApi.getRuntimeLogs(
-                    '',
-                    '',
-                    filters.environmentId,
                     options.namespaceName,
                     options.projectName,
                     options.environmentName,
@@ -140,9 +137,6 @@ export function useProjectRuntimeLogs(
               )
             : [
                 await observabilityApi.getRuntimeLogs(
-                  '',
-                  '',
-                  filters.environmentId,
                   options.namespaceName,
                   options.projectName,
                   options.environmentName,
@@ -189,7 +183,7 @@ export function useProjectRuntimeLogs(
       }
     },
     [
-      filters.environmentId,
+      filters.environment,
       filters.timeRange,
       filters.logLevel,
       filters.searchQuery,
@@ -211,7 +205,7 @@ export function useProjectRuntimeLogs(
 
     if (
       !filters.isLive ||
-      !filters.environmentId ||
+      !filters.environment ||
       !options.environmentName ||
       !options.namespaceName ||
       !options.projectName
@@ -232,7 +226,7 @@ export function useProjectRuntimeLogs(
     };
   }, [
     fetchLogs,
-    filters.environmentId,
+    filters.environment,
     filters.isLive,
     options.environmentName,
     options.namespaceName,

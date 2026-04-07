@@ -14,12 +14,12 @@ import { useDebounce } from 'react-use';
 import { Component } from '../../hooks/useGetComponentsByProject';
 import {
   RuntimeLogsFilters,
-  Environment,
   LOG_LEVELS,
   TIME_RANGE_OPTIONS,
   SELECTED_FIELDS,
   LogEntryField,
 } from './types';
+import type { Environment } from '../../types';
 
 interface LogsFilterProps {
   filters: RuntimeLogsFilters;
@@ -62,7 +62,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   };
 
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ environmentId: event.target.value as string });
+    onFiltersChange({ environment: event.target.value as string });
   };
 
   const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
@@ -70,7 +70,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   };
 
   const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ componentIds: event.target.value as string[] });
+    onFiltersChange({ components: event.target.value as string[] });
   };
 
   const handleLogLevelSelectChange = (
@@ -135,7 +135,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
             ) : (
               <Select
                 multiple
-                value={filters.componentIds || []}
+                value={filters.components || []}
                 onChange={handleComponentChange}
                 labelId="components-label"
                 label="Components"
@@ -149,8 +149,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
                   <MenuItem key={component.name} value={component.name}>
                     <Checkbox
                       checked={
-                        (filters.componentIds || []).indexOf(component.name) >
-                        -1
+                        (filters.components || []).indexOf(component.name) > -1
                       }
                     />
                     {component.displayName || component.name}
@@ -240,14 +239,14 @@ export const LogsFilter: FC<LogsFilterProps> = ({
             <Skeleton variant="rect" height={56} />
           ) : (
             <Select
-              value={filters.environmentId}
+              value={filters.environment}
               onChange={handleEnvironmentChange}
               labelId="environment-label"
               label="Environment"
             >
               {environments.map(env => (
-                <MenuItem key={env.id} value={env.id}>
-                  {env.name}
+                <MenuItem key={env.name} value={env.name}>
+                  {env.displayName || env.name}
                 </MenuItem>
               ))}
             </Select>

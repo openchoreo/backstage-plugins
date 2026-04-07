@@ -19,7 +19,7 @@ import {
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from './styles';
-import { Environment as RuntimeLogsEnvironment, LogEntryField } from './types';
+import { LogEntryField } from './types';
 
 const ObservabilityProjectRuntimeLogsContent = () => {
   const classes = useRuntimeLogsStyles();
@@ -30,7 +30,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
   const projectName = entity.metadata.name || '';
 
   const {
-    environments: observabilityEnvironments,
+    environments,
     loading: environmentsLoading,
     error: environmentsError,
   } = useGetEnvironmentsByNamespace(namespace);
@@ -41,20 +41,12 @@ const ObservabilityProjectRuntimeLogsContent = () => {
     error: componentsError,
   } = useGetComponentsByProject(entity);
 
-  const environments = useMemo<RuntimeLogsEnvironment[]>(() => {
-    return observabilityEnvironments.map(env => ({
-      id: env.name,
-      name: env.displayName || env.name,
-      resourceName: env.name,
-    }));
-  }, [observabilityEnvironments]);
-
   const { filters, updateFilters } = useUrlFiltersForRuntimeLogs({
     environments,
   });
 
   const selectedEnvironment = environments.find(
-    env => env.id === filters.environmentId,
+    env => env.name === filters.environment,
   );
   const tableSelectedFields = useMemo(() => {
     const withoutComponent = filters.selectedFields.filter(
@@ -86,7 +78,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
     refresh,
     clearLogs,
   } = useProjectRuntimeLogs(filters, entity, {
-    environmentName: selectedEnvironment?.resourceName || '',
+    environmentName: filters.environment,
     namespaceName: namespace,
     projectName,
     limit: 50,
@@ -95,22 +87,22 @@ const ObservabilityProjectRuntimeLogsContent = () => {
   const { loadingRef } = useInfiniteScroll(loadMore, hasMore, logsLoading);
 
   const previousFiltersRef = useRef<{
-    environmentId: string;
+    environment: string;
     logLevel: string[];
     timeRange: string;
     searchQuery?: string;
     sortOrder?: 'asc' | 'desc';
-    componentIds: string[];
+    components: string[];
   } | null>(null);
 
   useEffect(() => {
     const currentFilters = {
-      environmentId: filters.environmentId,
+      environment: filters.environment,
       logLevel: filters.logLevel,
       timeRange: filters.timeRange,
       searchQuery: filters.searchQuery,
       sortOrder: filters.sortOrder,
-      componentIds: filters.componentIds || [],
+      components: filters.components || [],
     };
 
     const filtersChanged =
@@ -119,7 +111,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
         JSON.stringify(currentFilters);
 
     if (
-      filters.environmentId &&
+      filters.environment &&
       selectedEnvironment &&
       namespace &&
       projectName &&
@@ -134,12 +126,12 @@ const ObservabilityProjectRuntimeLogsContent = () => {
       previousFiltersRef.current = currentFilters;
     }
   }, [
-    filters.environmentId,
+    filters.environment,
     filters.logLevel,
     filters.timeRange,
     filters.searchQuery,
     filters.sortOrder,
-    filters.componentIds,
+    filters.components,
     fetchLogs,
     clearLogs,
     selectedEnvironment,
@@ -208,7 +200,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
 
       {logsError && renderError(logsError)}
 
-      {!filters.environmentId &&
+      {!filters.environment &&
         !environmentsLoading &&
         environments.length === 0 && (
           <Alert severity="info" className={classes.errorContainer}>
@@ -218,11 +210,11 @@ const ObservabilityProjectRuntimeLogsContent = () => {
           </Alert>
         )}
 
-      {filters.environmentId && (
+      {filters.environment && (
         <>
           <LogsActions
             totalCount={totalCount}
-            disabled={logsLoading || !filters.environmentId}
+            disabled={logsLoading || !filters.environment}
             onRefresh={handleRefresh}
             filters={filters}
             onFiltersChange={handleFiltersChange}
@@ -235,7 +227,9 @@ const ObservabilityProjectRuntimeLogsContent = () => {
             loading={logsLoading}
             hasMore={hasMore}
             loadingRef={loadingRef}
-            environmentName={selectedEnvironment?.name}
+            environmentName={
+              selectedEnvironment?.displayName || selectedEnvironment?.name
+            }
             projectName={projectName}
           />
         </>

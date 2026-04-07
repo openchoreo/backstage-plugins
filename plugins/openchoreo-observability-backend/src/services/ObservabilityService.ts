@@ -15,8 +15,8 @@ import { Environment } from '../types';
  * Error thrown when observability is not configured for a component
  */
 export class ObservabilityNotConfiguredError extends Error {
-  constructor(componentId: string) {
-    super(`Observability is not configured for component ${componentId}`);
+  constructor(componentName: string) {
+    super(`Observability is not configured for component ${componentName}`);
     this.name = 'ObservabilityNotConfiguredError';
   }
 }
@@ -137,6 +137,8 @@ export class ObservabilityService {
         uid: item.metadata?.uid ?? '',
         name: item.metadata?.name ?? '',
         namespace: item.metadata?.namespace ?? '',
+        displayName:
+          item.metadata?.annotations?.['openchoreo.dev/display-name'],
         isProduction: item.spec?.isProduction ?? false,
         dataPlaneRef: item.spec?.dataPlaneRef,
         createdAt: item.metadata?.creationTimestamp ?? '',

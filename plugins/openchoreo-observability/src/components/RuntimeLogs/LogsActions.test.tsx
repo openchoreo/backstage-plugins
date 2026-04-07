@@ -12,7 +12,7 @@ const baseFilters: RuntimeLogsFilters = {
     LogEntryField.LogLevel,
     LogEntryField.Log,
   ],
-  environmentId: 'env-1',
+  environment: 'env-1',
   timeRange: '1h',
   sortOrder: 'desc',
   isLive: false,

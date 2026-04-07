@@ -29,7 +29,7 @@ jest.mock('./AlertsFilter', () => ({
   AlertsFilter: ({ environments, filters }: any) => (
     <div data-testid="alerts-filter">
       <span data-testid="env-count">{environments.length}</span>
-      <span data-testid="filter-env">{filters.environmentId}</span>
+      <span data-testid="filter-env">{filters.environment}</span>
     </div>
   ),
 }));
@@ -76,7 +76,7 @@ const defaultEntity = {
 };
 
 const defaultFilters = {
-  environmentId: 'env-dev',
+  environment: 'env-dev',
   timeRange: '1h',
   sortOrder: 'desc' as const,
   severity: [],
@@ -252,7 +252,7 @@ describe('ObservabilityAlertsPage', () => {
     });
 
     mockUseUrlFiltersForAlerts.mockReturnValue({
-      filters: { ...defaultFilters, environmentId: '' },
+      filters: { ...defaultFilters, environment: '' },
       updateFilters: jest.fn(),
     });
 
@@ -267,7 +267,7 @@ describe('ObservabilityAlertsPage', () => {
 
   it('does not render actions/table when no environment selected', async () => {
     mockUseUrlFiltersForAlerts.mockReturnValue({
-      filters: { ...defaultFilters, environmentId: '' },
+      filters: { ...defaultFilters, environment: '' },
       updateFilters: jest.fn(),
     });
 

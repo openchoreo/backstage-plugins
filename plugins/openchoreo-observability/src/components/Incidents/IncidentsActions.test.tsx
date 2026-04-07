@@ -6,7 +6,7 @@ import { IncidentsFilters } from './types';
 // ---- Helpers ----
 
 const baseFilters: IncidentsFilters = {
-  environmentId: 'dev',
+  environment: 'dev',
   timeRange: '1h',
 };
 

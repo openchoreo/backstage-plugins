@@ -18,9 +18,6 @@ import { ObserverUrlCache } from './ObserverUrlCache';
 
 export interface ObservabilityApi {
   getRuntimeLogs(
-    componentId: string,
-    projectId: string,
-    environmentId: string,
     namespaceName: string,
     projectName: string,
     environmentName: string,
@@ -707,9 +704,6 @@ export class ObservabilityClient implements ObservabilityApi {
   }
 
   async getRuntimeLogs(
-    _componentId: string,
-    _projectId: string,
-    _environmentId: string,
     namespaceName: string,
     projectName: string,
     environmentName: string,

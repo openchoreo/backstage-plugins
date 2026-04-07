@@ -7,8 +7,7 @@ import { AlertSummary } from '../types';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
 export interface UseComponentAlertsOptions {
-  environmentId: string;
-  environmentName: string;
+  environment: string;
   timeRange: string;
   limit?: number;
   sortOrder?: 'asc' | 'desc';
@@ -41,13 +40,7 @@ export function useComponentAlerts(
 
   const fetchAlerts = useCallback(
     async (_reset = true) => {
-      if (
-        !options.environmentId ||
-        !options.environmentName ||
-        !namespace ||
-        !project ||
-        !componentName
-      ) {
+      if (!options.environment || !namespace || !project || !componentName) {
         return;
       }
 
@@ -62,7 +55,7 @@ export function useComponentAlerts(
         const response = await observabilityApi.getAlerts(
           namespace,
           project,
-          options.environmentName,
+          options.environment,
           componentName,
           {
             limit: options.limit ?? 100,
@@ -88,8 +81,7 @@ export function useComponentAlerts(
     },
     [
       observabilityApi,
-      options.environmentId,
-      options.environmentName,
+      options.environment,
       options.timeRange,
       options.limit,
       options.sortOrder,

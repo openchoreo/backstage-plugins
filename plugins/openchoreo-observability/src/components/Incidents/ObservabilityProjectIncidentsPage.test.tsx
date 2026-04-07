@@ -101,7 +101,7 @@ function setupDefaultMocks() {
 
   mockUseUrlFiltersForIncidents.mockReturnValue({
     filters: {
-      environmentId: 'development',
+      environment: 'development',
       timeRange: '1h',
     },
     updateFilters: jest.fn(),
@@ -217,7 +217,7 @@ describe('ObservabilityProjectIncidentsPage', () => {
 
     mockUseUrlFiltersForIncidents.mockReturnValue({
       filters: {
-        environmentId: '',
+        environment: '',
         timeRange: '1h',
       },
       updateFilters: jest.fn(),
@@ -233,7 +233,7 @@ describe('ObservabilityProjectIncidentsPage', () => {
   it('does not render actions/table when no environment selected', async () => {
     mockUseUrlFiltersForIncidents.mockReturnValue({
       filters: {
-        environmentId: '',
+        environment: '',
         timeRange: '1h',
       },
       updateFilters: jest.fn(),

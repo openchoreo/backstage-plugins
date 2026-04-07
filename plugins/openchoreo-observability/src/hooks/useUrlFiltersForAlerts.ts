@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Environment } from '../components/RuntimeLogs/types';
+import type { Environment } from '../types';
 import type { AlertsFilters } from '../components/Alerts/types';
 import {
   ALERTS_TIME_RANGE_OPTIONS,
@@ -27,7 +27,7 @@ export function useUrlFiltersForAlerts({
   const [searchParams, setSearchParams] = useSearchParams();
 
   const filters = useMemo<AlertsFilters>(() => {
-    const envId = searchParams.get('env');
+    const envName = searchParams.get('env');
     const rawTimeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
     const timeRange = VALID_TIME_RANGES.includes(rawTimeRange)
       ? rawTimeRange
@@ -43,12 +43,12 @@ export function useUrlFiltersForAlerts({
       : [];
     const searchQuery = searchParams.get('search') || undefined;
 
-    const environment = envId
-      ? environments.find(e => e.id === envId)
+    const environment = envName
+      ? environments.find(e => e.name === envName)
       : undefined;
 
     return {
-      environmentId: environment?.id || '',
+      environment: environment?.name || '',
       timeRange,
       sortOrder,
       severity: severity.length > 0 ? severity : undefined,
@@ -59,10 +59,10 @@ export function useUrlFiltersForAlerts({
   useEffect(() => {
     if (environments.length === 0) return;
     const envParam = searchParams.get('env');
-    const isValid = envParam && environments.some(e => e.id === envParam);
+    const isValid = envParam && environments.some(e => e.name === envParam);
     if (!isValid) {
       const newParams = new URLSearchParams(searchParams);
-      newParams.set('env', environments[0].id);
+      newParams.set('env', environments[0].name);
       setSearchParams(newParams, { replace: true });
     }
   }, [environments, searchParams, setSearchParams]);
@@ -71,9 +71,9 @@ export function useUrlFiltersForAlerts({
     (newFilters: Partial<AlertsFilters>) => {
       const newParams = new URLSearchParams(searchParams);
 
-      if (newFilters.environmentId !== undefined) {
-        if (newFilters.environmentId) {
-          newParams.set('env', newFilters.environmentId);
+      if (newFilters.environment !== undefined) {
+        if (newFilters.environment) {
+          newParams.set('env', newFilters.environment);
         } else {
           newParams.delete('env');
         }
@@ -119,7 +119,7 @@ export function useUrlFiltersForAlerts({
   const resetFilters = useCallback(() => {
     const newParams = new URLSearchParams();
     if (environments.length > 0) {
-      newParams.set('env', environments[0].id);
+      newParams.set('env', environments[0].name);
     }
     setSearchParams(newParams, { replace: true });
   }, [environments, setSearchParams]);

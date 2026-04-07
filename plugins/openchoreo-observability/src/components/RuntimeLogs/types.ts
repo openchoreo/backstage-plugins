@@ -13,18 +13,12 @@ export interface LogsResponse {
   tookMs?: number;
 }
 
-export interface Environment {
-  id: string;
-  name: string;
-  resourceName: string;
-}
-
 export interface RuntimeLogsFilters {
   logLevel: string[];
   selectedFields: LogEntryField[];
-  environmentId: string;
+  environment: string;
   timeRange: string;
-  componentIds?: string[];
+  components?: string[];
   searchQuery?: string;
   sortOrder?: 'asc' | 'desc';
   isLive?: boolean;
@@ -45,9 +39,7 @@ export interface RuntimeLogsState {
 }
 
 export interface RuntimeLogsParams {
-  componentId: string;
   componentName: string;
-  environmentId: string;
   environmentName: string;
   logLevels: string[];
   startTime: string;

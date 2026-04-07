@@ -12,7 +12,7 @@ import { Skeleton } from '@material-ui/lab';
 import { useDebounce } from 'react-use';
 import type { IncidentsFilters } from './types';
 import { INCIDENTS_TIME_RANGE_OPTIONS, INCIDENT_STATUSES } from './types';
-import type { Environment } from '../RuntimeLogs/types';
+import type { Environment } from '../../types';
 import type { Component } from '../../hooks/useGetComponentsByProject';
 
 interface IncidentsFilterProps {
@@ -55,7 +55,7 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
 
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
     onFiltersChange({
-      environmentId: event.target.value as string,
+      environment: event.target.value as string,
       searchQuery: '',
     });
   };
@@ -69,7 +69,7 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
 
   const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
     onFiltersChange({
-      componentIds: event.target.value as string[],
+      components: event.target.value as string[],
       searchQuery: '',
     });
   };
@@ -107,7 +107,7 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
             ) : (
               <Select
                 multiple
-                value={filters.componentIds || []}
+                value={filters.components || []}
                 onChange={handleComponentChange}
                 labelId="components-label"
                 label="Components"
@@ -120,7 +120,7 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
                   <MenuItem key={comp.name} value={comp.name}>
                     <Checkbox
                       checked={
-                        (filters.componentIds || []).indexOf(comp.name) > -1
+                        (filters.components || []).indexOf(comp.name) > -1
                       }
                     />
                     {comp.displayName || comp.name}
@@ -167,14 +167,14 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
             <Skeleton variant="rect" height={56} />
           ) : (
             <Select
-              value={filters.environmentId}
+              value={filters.environment}
               onChange={handleEnvironmentChange}
               labelId="environment-label"
               label="Environment"
             >
               {environments.map(env => (
-                <MenuItem key={env.id} value={env.id}>
-                  {env.name}
+                <MenuItem key={env.name} value={env.name}>
+                  {env.displayName || env.name}
                 </MenuItem>
               ))}
             </Select>

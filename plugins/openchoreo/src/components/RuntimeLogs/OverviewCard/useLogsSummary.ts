@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import {
-  useApi,
-  createApiRef,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, createApiRef } from '@backstage/core-plugin-api';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { calculateTimeRange } from '../../../api/runtimeLogs';
@@ -19,9 +14,6 @@ import type { LogEntry, Environment, LogsResponse } from '../types';
  */
 interface ObservabilityLogsApi {
   getRuntimeLogs(
-    componentId: string,
-    projectId: string,
-    environmentId: string,
     namespaceName: string,
     projectName: string,
     environmentName: string,
@@ -58,8 +50,6 @@ interface LogsSummaryState {
 export function useLogsSummary() {
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
-  const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
   const observabilityApi = useApi(observabilityApiRef);
 
   const [state, setState] = useState<LogsSummaryState>({
@@ -74,39 +64,6 @@ export function useLogsSummary() {
 
   const fetchData = useCallback(async () => {
     try {
-      // Get component ID first
-      const componentDetails = await client.getComponentDetails(entity);
-      const componentId = componentDetails.uid;
-
-      if (!componentId) {
-        throw new Error('Component ID not found');
-      }
-
-      // Get project ID
-      const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-      const namespace =
-        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
-
-      if (!project || !namespace) {
-        throw new Error('Project or namespace not found in annotations');
-      }
-
-      // Fetch project UID
-      const projectUrl = new URL(
-        `${await discoveryApi.getBaseUrl('openchoreo')}/project`,
-      );
-      projectUrl.search = new URLSearchParams({
-        projectName: project,
-        namespaceName: namespace,
-      }).toString();
-
-      const projectResponse = await fetchApi.fetch(projectUrl.toString());
-      if (!projectResponse.ok) {
-        throw new Error('Failed to fetch project details');
-      }
-      const projectData = await projectResponse.json();
-      const projectId = projectData.uid ?? '';
-
       // Get environments
       const environments: Environment[] = await client.getEnvironments(entity);
 
@@ -138,9 +95,6 @@ export function useLogsSummary() {
 
       // Call observer API directly via the observability plugin API
       const data: LogsResponse = await observabilityApi.getRuntimeLogs(
-        componentId,
-        projectId,
-        selectedEnv.id,
         namespaceName,
         projectName,
         selectedEnv.resourceName,
@@ -191,7 +145,7 @@ export function useLogsSummary() {
         }));
       }
     }
-  }, [entity, client, observabilityApi, discoveryApi, fetchApi]);
+  }, [entity, client, observabilityApi]);
 
   const refresh = useCallback(async () => {
     setState(prev => ({ ...prev, refreshing: true }));

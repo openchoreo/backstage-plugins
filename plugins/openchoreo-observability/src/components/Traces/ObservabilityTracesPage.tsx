@@ -13,7 +13,6 @@ import {
 } from '../../hooks';
 import { useTraceSpans } from '../../hooks/useTraceSpans';
 import { useSpanDetails } from '../../hooks/useSpanDetails';
-import { Environment } from '../../types';
 import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import {
@@ -40,7 +39,7 @@ const ObservabilityTracesContent = () => {
   } = useGetComponentsByProject(entity);
 
   const { filters, updateFilters } = useUrlFilters({
-    environments: environments as Environment[],
+    environments,
   });
 
   const {
@@ -53,7 +52,7 @@ const ObservabilityTracesContent = () => {
 
   // Determine which component name to pass for span queries
   // (mirrors what useTraces does — single selection passes the name)
-  const selectedComponents = filters.componentIds ?? [];
+  const selectedComponents = filters.components ?? [];
   const componentName =
     selectedComponents.length === 1 ? selectedComponents[0] : undefined;
 

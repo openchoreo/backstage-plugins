@@ -34,7 +34,7 @@ jest.mock('./LogsFilter', () => ({
     <div data-testid="logs-filter">
       <span data-testid="env-count">{environments.length}</span>
       <span data-testid="component-count">{components?.length ?? 0}</span>
-      <span data-testid="filter-env">{filters.environmentId}</span>
+      <span data-testid="filter-env">{filters.environment}</span>
     </div>
   ),
 }));
@@ -80,14 +80,14 @@ const defaultEntity = {
 };
 
 const defaultFilters = {
-  environmentId: 'env-dev',
+  environment: 'env-dev',
   logLevel: [],
   selectedFields: ['Timestamp', 'LogLevel', 'Log'],
   timeRange: '1h',
   sortOrder: 'desc' as const,
   searchQuery: '',
   isLive: false,
-  componentIds: [],
+  components: [],
 };
 
 function renderPage() {
@@ -292,7 +292,7 @@ describe('ObservabilityProjectRuntimeLogsPage', () => {
     });
 
     mockUseUrlFiltersForRuntimeLogs.mockReturnValue({
-      filters: { ...defaultFilters, environmentId: '' },
+      filters: { ...defaultFilters, environment: '' },
       updateFilters: jest.fn(),
     });
 
@@ -305,7 +305,7 @@ describe('ObservabilityProjectRuntimeLogsPage', () => {
 
   it('does not render actions/table when no environment selected', async () => {
     mockUseUrlFiltersForRuntimeLogs.mockReturnValue({
-      filters: { ...defaultFilters, environmentId: '' },
+      filters: { ...defaultFilters, environment: '' },
       updateFilters: jest.fn(),
     });
 
