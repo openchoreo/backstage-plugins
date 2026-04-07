@@ -7,7 +7,6 @@ import { ALERT_SEVERITIES } from '../components/Alerts/types';
 import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
 
 const DEFAULT_TIME_RANGE = '10m';
-const VALID_SEVERITIES: readonly string[] = ALERT_SEVERITIES;
 
 interface UseUrlFiltersForAlertsOptions {
   environments: Environment[];
@@ -35,7 +34,10 @@ export function useUrlFiltersForAlerts({
     const severity = severityParam
       ? severityParam
           .split(',')
-          .filter(s => Boolean(s) && VALID_SEVERITIES.includes(s))
+          .filter(
+            s =>
+              Boolean(s) && (ALERT_SEVERITIES as readonly string[]).includes(s),
+          )
       : [];
     const searchQuery = searchParams.get('search') || undefined;
 

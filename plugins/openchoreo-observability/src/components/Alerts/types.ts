@@ -1,7 +1,3 @@
-import type { AlertSummary } from '../../types';
-
-export type { AlertSummary };
-
 export interface AlertsFilters {
   environment: string;
   timeRange: string;

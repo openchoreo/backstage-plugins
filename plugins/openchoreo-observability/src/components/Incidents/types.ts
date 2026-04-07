@@ -1,7 +1,3 @@
-import type { IncidentSummary } from '../../types';
-
-export type { IncidentSummary };
-
 export interface IncidentsFilters {
   environment: string;
   timeRange: string;
