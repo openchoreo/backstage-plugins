@@ -1,4 +1,4 @@
-import { FC, ChangeEvent, useState, useEffect } from 'react';
+import { FC, ChangeEvent } from 'react';
 import {
   FormControl,
   InputLabel,
@@ -10,8 +10,8 @@ import {
   TextField,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import { useDebounce } from 'react-use';
 import { Component } from '../../hooks/useGetComponentsByProject';
+import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 import {
   RuntimeLogsFilters,
   LOG_LEVELS,
@@ -40,26 +40,10 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   componentsLoading = false,
   disabled = false,
 }) => {
-  const [searchInput, setSearchInput] = useState(filters.searchQuery || '');
-
-  // Sync searchInput with filters.searchQuery when it changes externally
-  useEffect(() => {
-    setSearchInput(filters.searchQuery || '');
-  }, [filters.searchQuery]);
-
-  // Debounce the search query
-  const DEFAULT_DEBOUNCE_TIME_MS = 1000;
-  useDebounce(
-    () => {
-      onFiltersChange({ searchQuery: searchInput });
-    },
-    DEFAULT_DEBOUNCE_TIME_MS,
-    [searchInput, onFiltersChange],
+  const [searchInput, handleSearchChange] = useDebouncedSearch(
+    filters.searchQuery,
+    value => onFiltersChange({ searchQuery: value }),
   );
-
-  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setSearchInput(event.target.value);
-  };
 
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
     onFiltersChange({ environment: event.target.value as string });

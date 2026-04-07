@@ -1,4 +1,4 @@
-import { ChangeEvent, useState, useEffect } from 'react';
+import { ChangeEvent } from 'react';
 import {
   FormControl,
   InputLabel,
@@ -8,7 +8,7 @@ import {
   TextField,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import { useDebounce } from 'react-use';
+import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 import {
   Filters,
   TIME_RANGE_OPTIONS,
@@ -32,24 +32,10 @@ export const RCAFilters = ({
   environmentsLoading,
   disabled = false,
 }: RCAFiltersProps) => {
-  const [searchInput, setSearchInput] = useState(filters.searchQuery || '');
-
-  useEffect(() => {
-    setSearchInput(filters.searchQuery || '');
-  }, [filters.searchQuery]);
-
-  const DEFAULT_DEBOUNCE_MS = 1000;
-  useDebounce(
-    () => {
-      onFiltersChange({ searchQuery: searchInput });
-    },
-    DEFAULT_DEBOUNCE_MS,
-    [searchInput],
+  const [searchInput, handleSearchChange] = useDebouncedSearch(
+    filters.searchQuery,
+    value => onFiltersChange({ searchQuery: value }),
   );
-
-  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setSearchInput(event.target.value);
-  };
 
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
     const selectedEnvironment = environments.find(

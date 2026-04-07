@@ -1,4 +1,4 @@
-import { FC, ChangeEvent, useState, useEffect } from 'react';
+import { FC, ChangeEvent } from 'react';
 import {
   FormControl,
   InputLabel,
@@ -9,10 +9,10 @@ import {
   TextField,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import { useDebounce } from 'react-use';
 import type { AlertsFilters } from './types';
 import { ALERTS_TIME_RANGE_OPTIONS, ALERT_SEVERITIES } from './types';
 import type { Environment } from '../../types';
+import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 
 interface AlertsFilterProps {
   filters: AlertsFilters;
@@ -29,24 +29,10 @@ export const AlertsFilter: FC<AlertsFilterProps> = ({
   environmentsLoading,
   disabled = false,
 }) => {
-  const [searchInput, setSearchInput] = useState(filters.searchQuery || '');
-
-  useEffect(() => {
-    setSearchInput(filters.searchQuery || '');
-  }, [filters.searchQuery]);
-
-  const DEFAULT_DEBOUNCE_MS = 1000;
-  useDebounce(
-    () => {
-      onFiltersChange({ searchQuery: searchInput });
-    },
-    DEFAULT_DEBOUNCE_MS,
-    [searchInput, onFiltersChange],
+  const [searchInput, handleSearchChange] = useDebouncedSearch(
+    filters.searchQuery,
+    value => onFiltersChange({ searchQuery: value }),
   );
-
-  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setSearchInput(event.target.value);
-  };
 
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
     onFiltersChange({ environment: event.target.value as string });

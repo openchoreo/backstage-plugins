@@ -1,4 +1,4 @@
-import { FC, ChangeEvent, useState, useEffect, useCallback } from 'react';
+import { FC, ChangeEvent } from 'react';
 import {
   FormControl,
   InputLabel,
@@ -12,6 +12,7 @@ import { Skeleton } from '@material-ui/lab';
 import { Filters, TIME_RANGE_OPTIONS } from '../../types';
 import { Environment } from '../../types';
 import { Component } from '../../hooks/useGetComponentsByProject';
+import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 
 interface TracesFiltersProps {
   filters: Filters;
@@ -32,22 +33,10 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
   componentsLoading,
   disabled = false,
 }) => {
-  const [searchInput, setSearchInput] = useState(filters.searchQuery || '');
-
-  // Debounce the search query
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      onFiltersChange({ searchQuery: searchInput });
-    }, 500); // 500ms debounce
-
-    return () => clearTimeout(timeoutId);
-  }, [searchInput, onFiltersChange]);
-
-  const handleSearchChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      setSearchInput(event.target.value);
-    },
-    [],
+  const [searchInput, handleSearchChange] = useDebouncedSearch(
+    filters.searchQuery,
+    value => onFiltersChange({ searchQuery: value }),
+    500,
   );
 
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
