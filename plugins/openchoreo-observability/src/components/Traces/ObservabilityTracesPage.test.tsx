@@ -12,8 +12,8 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
     <div data-testid="forbidden-state">{message}</div>
   ),
   calculateTimeRange: (_timeRange: string) => ({
-    startTime: new Date().toISOString(),
-    endTime: new Date().toISOString(),
+    startTime: '2026-01-01T00:00:00.000Z',
+    endTime: '2026-01-01T01:00:00.000Z',
   }),
 }));
 
