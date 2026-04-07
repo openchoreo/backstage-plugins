@@ -46,9 +46,9 @@ describe('CtdToTemplateConverter – convertClusterCtdToTemplateEntity', () => {
   it('sets CTD_KIND annotation to ClusterComponentType', () => {
     const result = converter.convertClusterCtdToTemplateEntity(baseCtd);
 
-    expect(
-      result.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_KIND],
-    ).toBe('ClusterComponentType');
+    expect(result.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_KIND]).toBe(
+      'ClusterComponentType',
+    );
   });
 
   it('sets standard CTD annotations (name, generated, workload type)', () => {
@@ -103,9 +103,7 @@ describe('CtdToTemplateConverter – convertClusterCtdToTemplateEntity', () => {
     };
     const result = converter.convertClusterCtdToTemplateEntity(ctd);
 
-    expect(result.metadata.description).toBe(
-      'Create a Web Service component',
-    );
+    expect(result.metadata.description).toBe('Create a Web Service component');
   });
 
   it('generates 3 parameter sections', () => {
@@ -168,8 +166,7 @@ describe('CtdToTemplateConverter – convertClusterCtdToTemplateEntity', () => {
     };
     const result = converter.convertClusterCtdToTemplateEntity(ctd);
     const parameters = result.spec?.parameters as any[];
-    const buildBranch =
-      parameters[1].dependencies.deploymentSource.oneOf[0];
+    const buildBranch = parameters[1].dependencies.deploymentSource.oneOf[0];
 
     expect(
       buildBranch.properties.workflow_name['ui:options'].allowedWorkflows,

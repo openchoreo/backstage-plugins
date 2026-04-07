@@ -364,9 +364,7 @@ describe('buildWorkloadResource', () => {
       namespaceName: 'default',
       projectName: 'my-project',
       containerImage: 'nginx:latest',
-      fileMounts: [
-        { key: 'config', mountPath: '/etc/config', value: 'data' },
-      ],
+      fileMounts: [{ key: 'config', mountPath: '/etc/config', value: 'data' }],
     });
 
     expect(result.spec.container?.files).toEqual([
@@ -524,7 +522,7 @@ describe('buildComponentResource – additional cases', () => {
   });
 
   it('should protect against prototype pollution in annotation-mapped paths', () => {
-    const result = buildComponentResource({
+    buildComponentResource({
       ...minimalInput,
       deploymentSource: 'build-from-source',
       workflow: { name: 'test-build' },

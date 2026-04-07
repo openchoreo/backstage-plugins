@@ -20,7 +20,9 @@ describe('graphUtils', () => {
     it('returns correct color for known kinds', () => {
       expect(getNodeColor('component')).toBe(ENTITY_KIND_COLORS.component);
       expect(getNodeColor('environment')).toBe(ENTITY_KIND_COLORS.environment);
-      expect(getNodeColor('deploymentpipeline')).toBe(ENTITY_KIND_COLORS.deploymentpipeline);
+      expect(getNodeColor('deploymentpipeline')).toBe(
+        ENTITY_KIND_COLORS.deploymentpipeline,
+      );
       expect(getNodeColor('system')).toBe(ENTITY_KIND_COLORS.system);
     });
 
@@ -44,11 +46,15 @@ describe('graphUtils', () => {
     const environmentColor = ENTITY_KIND_COLORS.environment;
 
     it('returns light tint for known accent', () => {
-      expect(getNodeTintFill(environmentColor, false)).toBe(ENTITY_KIND_TINTS[environmentColor].light);
+      expect(getNodeTintFill(environmentColor, false)).toBe(
+        ENTITY_KIND_TINTS[environmentColor].light,
+      );
     });
 
     it('returns dark tint for known accent', () => {
-      expect(getNodeTintFill(environmentColor, true)).toBe(ENTITY_KIND_TINTS[environmentColor].dark);
+      expect(getNodeTintFill(environmentColor, true)).toBe(
+        ENTITY_KIND_TINTS[environmentColor].dark,
+      );
     });
 
     it('returns default tint for unknown accent', () => {
