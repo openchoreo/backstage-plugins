@@ -1,4 +1,4 @@
-import { FC, ChangeEvent, useState, useEffect } from 'react';
+import { FC, ChangeEvent } from 'react';
 import {
   FormControl,
   InputLabel,
@@ -9,10 +9,9 @@ import {
   TextField,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import { useDebounce } from 'react-use';
-import type { IncidentsFilters } from './types';
-import { INCIDENTS_TIME_RANGE_OPTIONS, INCIDENT_STATUSES } from './types';
-import type { Environment } from '../../types';
+import { type IncidentsFilters, INCIDENT_STATUSES } from './types';
+import { type Environment, TIME_RANGE_OPTIONS } from '../../types';
+import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 import type { Component } from '../../hooks/useGetComponentsByProject';
 
 interface IncidentsFilterProps {
@@ -34,24 +33,10 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
   componentsLoading = false,
   disabled = false,
 }) => {
-  const [searchInput, setSearchInput] = useState(filters.searchQuery || '');
-
-  useEffect(() => {
-    setSearchInput(filters.searchQuery || '');
-  }, [filters.searchQuery]);
-
-  const DEFAULT_DEBOUNCE_MS = 1000;
-  useDebounce(
-    () => {
-      onFiltersChange({ searchQuery: searchInput });
-    },
-    DEFAULT_DEBOUNCE_MS,
-    [searchInput, onFiltersChange],
+  const [searchInput, handleSearchChange] = useDebouncedSearch(
+    filters.searchQuery,
+    value => onFiltersChange({ searchQuery: value }),
   );
-
-  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setSearchInput(event.target.value);
-  };
 
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
     onFiltersChange({
@@ -191,7 +176,7 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
             labelId="time-range-label"
             label="Time Range"
           >
-            {INCIDENTS_TIME_RANGE_OPTIONS.map(opt => (
+            {TIME_RANGE_OPTIONS.map(opt => (
               <MenuItem key={opt.value} value={opt.value}>
                 {opt.label}
               </MenuItem>

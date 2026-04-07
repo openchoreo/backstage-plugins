@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Environment } from '../types';
 import type { IncidentsFilters } from '../components/Incidents/types';
+import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
 
 const DEFAULT_TIME_RANGE = '10m';
 
@@ -46,16 +47,7 @@ export function useUrlFiltersForIncidents({
     };
   }, [searchParams, environments]);
 
-  useEffect(() => {
-    if (environments.length === 0) return;
-    const envParam = searchParams.get('env');
-    const isValid = envParam && environments.some(e => e.name === envParam);
-    if (!isValid) {
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set('env', environments[0].name);
-      setSearchParams(newParams, { replace: true });
-    }
-  }, [environments, searchParams, setSearchParams]);
+  useAutoSelectFirstEnvironment(environments, searchParams, setSearchParams);
 
   const updateFilters = useCallback(
     (newFilters: Partial<IncidentsFilters>) => {

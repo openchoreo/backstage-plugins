@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { observabilityApiRef } from '../api/ObservabilityApi';
-import { calculateTimeRange } from '../components/RuntimeLogs/utils';
+import { calculateTimeRange } from '@openchoreo/backstage-plugin-react';
 import {
   LogEntry,
   LogsResponse,

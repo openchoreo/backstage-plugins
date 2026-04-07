@@ -11,6 +11,10 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden-state">{message}</div>
   ),
+  calculateTimeRange: (_timeRange: string) => ({
+    startTime: '2026-01-01T00:00:00.000Z',
+    endTime: '2026-01-01T01:00:00.000Z',
+  }),
 }));
 
 const mockUseGetEnvironmentsByNamespace = jest.fn();

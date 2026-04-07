@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useEffect } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Filters, Environment } from '../types';
+import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
 
 const DEFAULT_TIME_RANGE = '10m';
 
@@ -61,23 +62,7 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
   }, [searchParams, environments]);
 
   // Auto-select first environment if none selected or URL has a stale env name
-  useEffect(() => {
-    if (environments.length === 0) return;
-    const envParam = searchParams.get('env');
-    const isValid =
-      envParam &&
-      environments.some(
-        e =>
-          e.name === envParam ||
-          e.displayName === envParam ||
-          e.name.toLowerCase() === envParam.toLowerCase(),
-      );
-    if (!isValid) {
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set('env', environments[0].name);
-      setSearchParams(newParams, { replace: true });
-    }
-  }, [environments, searchParams, setSearchParams]);
+  useAutoSelectFirstEnvironment(environments, searchParams, setSearchParams);
 
   // Update URL when filters change
   const updateFilters = useCallback(

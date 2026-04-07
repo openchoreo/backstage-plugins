@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   RuntimeLogsFilters,
@@ -7,6 +7,7 @@ import {
   SELECTED_FIELDS,
 } from '../components/RuntimeLogs/types';
 import type { Environment } from '../types';
+import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
 
 const DEFAULT_TIME_RANGE = '10m';
 
@@ -103,16 +104,7 @@ export function useUrlFiltersForRuntimeLogs({
   }, [searchParams, environments]);
 
   // Auto-select first environment if none selected or URL has a stale env id
-  useEffect(() => {
-    if (environments.length === 0) return;
-    const envParam = searchParams.get('env');
-    const isValid = envParam && environments.some(e => e.name === envParam);
-    if (!isValid) {
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set('env', environments[0].name);
-      setSearchParams(newParams, { replace: true });
-    }
-  }, [environments, searchParams, setSearchParams]);
+  useAutoSelectFirstEnvironment(environments, searchParams, setSearchParams);
 
   // Update URL when filters change
   const updateFilters = useCallback(

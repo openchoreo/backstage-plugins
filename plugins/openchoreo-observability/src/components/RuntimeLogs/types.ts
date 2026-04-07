@@ -50,15 +50,6 @@ export interface RuntimeLogsParams {
 
 export type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
 
-export const TIME_RANGE_OPTIONS = [
-  { value: '10m', label: 'Last 10 minutes' },
-  { value: '30m', label: 'Last 30 minutes' },
-  { value: '1h', label: 'Last 1 hour' },
-  { value: '24h', label: 'Last 24 hours' },
-  { value: '7d', label: 'Last 7 days' },
-  { value: '14d', label: 'Last 14 days' },
-] as const;
-
 export const LOG_LEVELS: LogLevel[] = ['ERROR', 'WARN', 'INFO', 'DEBUG'];
 
 export enum LogEntryField {
