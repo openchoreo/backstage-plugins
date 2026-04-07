@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Environment } from '../types';
 import type { AlertsFilters } from '../components/Alerts/types';
@@ -6,6 +6,7 @@ import {
   ALERTS_TIME_RANGE_OPTIONS,
   ALERT_SEVERITIES,
 } from '../components/Alerts/types';
+import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
 
 const DEFAULT_TIME_RANGE = '10m';
 const VALID_TIME_RANGES: readonly string[] = ALERTS_TIME_RANGE_OPTIONS.map(
@@ -56,16 +57,7 @@ export function useUrlFiltersForAlerts({
     };
   }, [searchParams, environments]);
 
-  useEffect(() => {
-    if (environments.length === 0) return;
-    const envParam = searchParams.get('env');
-    const isValid = envParam && environments.some(e => e.name === envParam);
-    if (!isValid) {
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set('env', environments[0].name);
-      setSearchParams(newParams, { replace: true });
-    }
-  }, [environments, searchParams, setSearchParams]);
+  useAutoSelectFirstEnvironment(environments, searchParams, setSearchParams);
 
   const updateFilters = useCallback(
     (newFilters: Partial<AlertsFilters>) => {
