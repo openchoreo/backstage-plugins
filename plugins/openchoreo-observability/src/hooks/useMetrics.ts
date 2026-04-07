@@ -1,9 +1,8 @@
 import { useCallback, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { observabilityApiRef } from '../api/ObservabilityApi';
-import { Filters } from '../types';
+import { Filters, Metrics } from '../types';
 import { Entity } from '@backstage/catalog-model';
-import { Metrics } from '../types';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { calculateTimeRange } from '@openchoreo/backstage-plugin-react';
 

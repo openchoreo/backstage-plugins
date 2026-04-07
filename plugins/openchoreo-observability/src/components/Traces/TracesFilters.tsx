@@ -9,8 +9,7 @@ import {
   Checkbox,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import { Filters, TIME_RANGE_OPTIONS } from '../../types';
-import { Environment } from '../../types';
+import { type Environment, Filters, TIME_RANGE_OPTIONS } from '../../types';
 import { Component } from '../../hooks/useGetComponentsByProject';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 

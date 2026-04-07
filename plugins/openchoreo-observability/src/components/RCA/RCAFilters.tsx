@@ -10,12 +10,12 @@ import {
 import { Skeleton } from '@material-ui/lab';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 import {
+  type Environment,
   Filters,
   TIME_RANGE_OPTIONS,
   RCA_STATUS_OPTIONS,
   RCAStatus,
 } from '../../types';
-import { Environment } from '../../types';
 
 interface RCAFiltersProps {
   filters: Filters;

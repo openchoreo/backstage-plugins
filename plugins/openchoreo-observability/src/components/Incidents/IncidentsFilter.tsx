@@ -9,10 +9,8 @@ import {
   TextField,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import type { IncidentsFilters } from './types';
-import { TIME_RANGE_OPTIONS } from '../../types';
-import { INCIDENT_STATUSES } from './types';
-import type { Environment } from '../../types';
+import { type IncidentsFilters, INCIDENT_STATUSES } from './types';
+import { type Environment, TIME_RANGE_OPTIONS } from '../../types';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 import type { Component } from '../../hooks/useGetComponentsByProject';
 

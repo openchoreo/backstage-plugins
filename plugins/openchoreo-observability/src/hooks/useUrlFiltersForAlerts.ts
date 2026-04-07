@@ -1,9 +1,10 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { TIME_RANGE_OPTIONS } from '../types';
-import type { Environment } from '../types';
-import type { AlertsFilters } from '../components/Alerts/types';
-import { ALERT_SEVERITIES } from '../components/Alerts/types';
+import { type Environment, TIME_RANGE_OPTIONS } from '../types';
+import {
+  type AlertsFilters,
+  ALERT_SEVERITIES,
+} from '../components/Alerts/types';
 import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
 
 const DEFAULT_TIME_RANGE = '10m';

@@ -12,14 +12,13 @@ import {
 import { Skeleton } from '@material-ui/lab';
 import { Component } from '../../hooks/useGetComponentsByProject';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
-import { TIME_RANGE_OPTIONS } from '../../types';
+import { type Environment, TIME_RANGE_OPTIONS } from '../../types';
 import {
   RuntimeLogsFilters,
   LOG_LEVELS,
   SELECTED_FIELDS,
   LogEntryField,
 } from './types';
-import type { Environment } from '../../types';
 
 interface LogsFilterProps {
   filters: RuntimeLogsFilters;

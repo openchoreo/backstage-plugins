@@ -9,10 +9,8 @@ import {
   TextField,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import type { AlertsFilters } from './types';
-import { TIME_RANGE_OPTIONS } from '../../types';
-import { ALERT_SEVERITIES } from './types';
-import type { Environment } from '../../types';
+import { type AlertsFilters, ALERT_SEVERITIES } from './types';
+import { type Environment, TIME_RANGE_OPTIONS } from '../../types';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 
 interface AlertsFilterProps {
