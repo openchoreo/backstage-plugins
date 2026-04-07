@@ -4,8 +4,8 @@ import {
   formatDuration,
   formatTime,
   formatTimeFromString,
-  calculateTimeRange,
 } from './utils';
+import { calculateTimeRange } from '@openchoreo/backstage-plugin-react';
 
 // ---- Tests ----
 

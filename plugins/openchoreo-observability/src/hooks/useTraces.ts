@@ -4,6 +4,7 @@ import { observabilityApiRef } from '../api/ObservabilityApi';
 import { Filters, Trace } from '../types';
 import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { calculateTimeRange } from '@openchoreo/backstage-plugin-react';
 
 const sortByStartTime = (traceList: Trace[]): Trace[] =>
   [...traceList].sort((a, b) => {
@@ -121,43 +122,5 @@ export function useTraces(filters: Filters, entity: Entity) {
     loading,
     error,
     refresh,
-  };
-}
-
-function calculateTimeRange(timeRange: string): {
-  startTime: string;
-  endTime: string;
-} {
-  const now = new Date();
-  const endTime = now.toISOString();
-
-  let startTime: Date;
-
-  switch (timeRange) {
-    case '10m':
-      startTime = new Date(now.getTime() - 10 * 60 * 1000);
-      break;
-    case '30m':
-      startTime = new Date(now.getTime() - 30 * 60 * 1000);
-      break;
-    case '1h':
-      startTime = new Date(now.getTime() - 60 * 60 * 1000);
-      break;
-    case '24h':
-      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      break;
-    case '7d':
-      startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      break;
-    case '14d':
-      startTime = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-      break;
-    default:
-      startTime = new Date(now.getTime() - 60 * 60 * 1000);
-  }
-
-  return {
-    startTime: startTime.toISOString(),
-    endTime,
   };
 }

@@ -18,8 +18,8 @@ import { Alert } from '@material-ui/lab';
 import {
   useTracesPermission,
   ForbiddenState,
+  calculateTimeRange,
 } from '@openchoreo/backstage-plugin-react';
-import { calculateTimeRange } from './utils';
 
 const ObservabilityTracesContent = () => {
   const { entity } = useEntity();

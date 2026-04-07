@@ -4,7 +4,7 @@ import { observabilityApiRef } from '../api/ObservabilityApi';
 import { Entity } from '@backstage/catalog-model';
 import { LogEntry } from '../components/RuntimeLogs/types';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { calculateTimeRange } from '../components/RuntimeLogs/utils';
+import { calculateTimeRange } from '@openchoreo/backstage-plugin-react';
 
 export interface UseRuntimeLogsOptions {
   environment: string;
