@@ -12,10 +12,10 @@ import {
 import { Skeleton } from '@material-ui/lab';
 import { Component } from '../../hooks/useGetComponentsByProject';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
+import { TIME_RANGE_OPTIONS } from '../../types';
 import {
   RuntimeLogsFilters,
   LOG_LEVELS,
-  TIME_RANGE_OPTIONS,
   SELECTED_FIELDS,
   LogEntryField,
 } from './types';

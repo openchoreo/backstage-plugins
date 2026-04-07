@@ -10,7 +10,8 @@ import {
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import type { IncidentsFilters } from './types';
-import { INCIDENTS_TIME_RANGE_OPTIONS, INCIDENT_STATUSES } from './types';
+import { TIME_RANGE_OPTIONS } from '../../types';
+import { INCIDENT_STATUSES } from './types';
 import type { Environment } from '../../types';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 import type { Component } from '../../hooks/useGetComponentsByProject';
@@ -177,7 +178,7 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
             labelId="time-range-label"
             label="Time Range"
           >
-            {INCIDENTS_TIME_RANGE_OPTIONS.map(opt => (
+            {TIME_RANGE_OPTIONS.map(opt => (
               <MenuItem key={opt.value} value={opt.value}>
                 {opt.label}
               </MenuItem>

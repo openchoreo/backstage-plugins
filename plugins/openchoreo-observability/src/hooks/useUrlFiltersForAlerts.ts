@@ -1,17 +1,12 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { TIME_RANGE_OPTIONS } from '../types';
 import type { Environment } from '../types';
 import type { AlertsFilters } from '../components/Alerts/types';
-import {
-  ALERTS_TIME_RANGE_OPTIONS,
-  ALERT_SEVERITIES,
-} from '../components/Alerts/types';
+import { ALERT_SEVERITIES } from '../components/Alerts/types';
 import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
 
 const DEFAULT_TIME_RANGE = '10m';
-const VALID_TIME_RANGES: readonly string[] = ALERTS_TIME_RANGE_OPTIONS.map(
-  o => o.value,
-);
 const VALID_SEVERITIES: readonly string[] = ALERT_SEVERITIES;
 
 interface UseUrlFiltersForAlertsOptions {
@@ -30,7 +25,7 @@ export function useUrlFiltersForAlerts({
   const filters = useMemo<AlertsFilters>(() => {
     const envName = searchParams.get('env');
     const rawTimeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
-    const timeRange = VALID_TIME_RANGES.includes(rawTimeRange)
+    const timeRange = TIME_RANGE_OPTIONS.some(o => o.value === rawTimeRange)
       ? rawTimeRange
       : DEFAULT_TIME_RANGE;
     const rawSortOrder = searchParams.get('sort');

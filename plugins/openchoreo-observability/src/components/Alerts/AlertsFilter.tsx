@@ -10,7 +10,8 @@ import {
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import type { AlertsFilters } from './types';
-import { ALERTS_TIME_RANGE_OPTIONS, ALERT_SEVERITIES } from './types';
+import { TIME_RANGE_OPTIONS } from '../../types';
+import { ALERT_SEVERITIES } from './types';
 import type { Environment } from '../../types';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 
@@ -121,7 +122,7 @@ export const AlertsFilter: FC<AlertsFilterProps> = ({
             labelId="time-range-label"
             label="Time Range"
           >
-            {ALERTS_TIME_RANGE_OPTIONS.map(opt => (
+            {TIME_RANGE_OPTIONS.map(opt => (
               <MenuItem key={opt.value} value={opt.value}>
                 {opt.label}
               </MenuItem>
