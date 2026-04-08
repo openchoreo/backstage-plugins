@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { useDeployPermission } from './useDeployPermission';
+import { useWorkloadUpdatePermission } from './useWorkloadUpdatePermission';
 
 const mockUsePermission = jest.fn();
 jest.mock('@backstage/plugin-permission-react', () => ({
@@ -20,39 +20,36 @@ jest.mock('@backstage/catalog-model', () => ({
   stringifyEntityRef: () => 'component:default/test',
 }));
 
-describe('useDeployPermission (Variant A: entity-scoped, single permission)', () => {
+describe('useWorkloadUpdatePermission', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('returns canDeploy=true when allowed', () => {
+  it('returns canUpdateWorkload=true when allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
-    const { result } = renderHook(() => useDeployPermission());
+    const { result } = renderHook(() => useWorkloadUpdatePermission());
 
-    expect(result.current.canDeploy).toBe(true);
+    expect(result.current.canUpdateWorkload).toBe(true);
     expect(result.current.loading).toBe(false);
-    expect(result.current.deniedTooltip).toBe('');
   });
 
   it('returns loading=true during permission check', () => {
     mockUsePermission.mockReturnValue({ allowed: false, loading: true });
-    const { result } = renderHook(() => useDeployPermission());
+    const { result } = renderHook(() => useWorkloadUpdatePermission());
 
     expect(result.current.loading).toBe(true);
-    expect(result.current.deniedTooltip).toBe('');
   });
 
-  it('returns denied tooltip when not allowed', () => {
+  it('returns canUpdateWorkload=false when not allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: false, loading: false });
-    const { result } = renderHook(() => useDeployPermission());
+    const { result } = renderHook(() => useWorkloadUpdatePermission());
 
-    expect(result.current.canDeploy).toBe(false);
-    expect(result.current.deniedTooltip).toBeTruthy();
+    expect(result.current.canUpdateWorkload).toBe(false);
   });
 
   it('passes entity resource ref to usePermission', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
-    renderHook(() => useDeployPermission());
+    renderHook(() => useWorkloadUpdatePermission());
 
     expect(mockUsePermission).toHaveBeenCalledWith(
       expect.objectContaining({

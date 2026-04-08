@@ -1,44 +1,41 @@
 import { renderHook } from '@testing-library/react';
-import { useEnvironmentPermission } from './useEnvironmentPermission';
+import { useReleaseBindingPermission } from './useReleaseBindingPermission';
 
 const mockUsePermission = jest.fn();
 jest.mock('@backstage/plugin-permission-react', () => ({
   usePermission: (...args: any[]) => mockUsePermission(...args),
 }));
 
-describe('useEnvironmentPermission (Variant B: org-level, no resource)', () => {
+describe('useReleaseBindingPermission', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('returns canCreate=true when allowed', () => {
+  it('returns canViewBindings=true when allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
-    const { result } = renderHook(() => useEnvironmentPermission());
+    const { result } = renderHook(() => useReleaseBindingPermission());
 
-    expect(result.current.canCreate).toBe(true);
+    expect(result.current.canViewBindings).toBe(true);
     expect(result.current.loading).toBe(false);
-    expect(result.current.createDeniedTooltip).toBe('');
   });
 
   it('returns loading=true during permission check', () => {
     mockUsePermission.mockReturnValue({ allowed: false, loading: true });
-    const { result } = renderHook(() => useEnvironmentPermission());
+    const { result } = renderHook(() => useReleaseBindingPermission());
 
     expect(result.current.loading).toBe(true);
-    expect(result.current.createDeniedTooltip).toBe('');
   });
 
-  it('returns denied tooltip when not allowed', () => {
+  it('returns canViewBindings=false when not allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: false, loading: false });
-    const { result } = renderHook(() => useEnvironmentPermission());
+    const { result } = renderHook(() => useReleaseBindingPermission());
 
-    expect(result.current.canCreate).toBe(false);
-    expect(result.current.createDeniedTooltip).toBeTruthy();
+    expect(result.current.canViewBindings).toBe(false);
   });
 
   it('does not pass resourceRef to usePermission', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
-    renderHook(() => useEnvironmentPermission());
+    renderHook(() => useReleaseBindingPermission());
 
     expect(mockUsePermission).toHaveBeenCalledWith(
       expect.not.objectContaining({ resourceRef: expect.anything() }),

@@ -1,19 +1,33 @@
 import { renderHook } from '@testing-library/react';
-import { useEnvironmentPermission } from './useEnvironmentPermission';
+import { useScopedComponentCreatePermission } from './useScopedComponentCreatePermission';
 
 const mockUsePermission = jest.fn();
 jest.mock('@backstage/plugin-permission-react', () => ({
   usePermission: (...args: any[]) => mockUsePermission(...args),
 }));
 
-describe('useEnvironmentPermission (Variant B: org-level, no resource)', () => {
+jest.mock('@backstage/plugin-catalog-react', () => ({
+  useEntity: () => ({
+    entity: {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Component',
+      metadata: { name: 'test', namespace: 'default' },
+    },
+  }),
+}));
+
+jest.mock('@backstage/catalog-model', () => ({
+  stringifyEntityRef: () => 'component:default/test',
+}));
+
+describe('useScopedComponentCreatePermission', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('returns canCreate=true when allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
-    const { result } = renderHook(() => useEnvironmentPermission());
+    const { result } = renderHook(() => useScopedComponentCreatePermission());
 
     expect(result.current.canCreate).toBe(true);
     expect(result.current.loading).toBe(false);
@@ -22,7 +36,7 @@ describe('useEnvironmentPermission (Variant B: org-level, no resource)', () => {
 
   it('returns loading=true during permission check', () => {
     mockUsePermission.mockReturnValue({ allowed: false, loading: true });
-    const { result } = renderHook(() => useEnvironmentPermission());
+    const { result } = renderHook(() => useScopedComponentCreatePermission());
 
     expect(result.current.loading).toBe(true);
     expect(result.current.createDeniedTooltip).toBe('');
@@ -30,18 +44,20 @@ describe('useEnvironmentPermission (Variant B: org-level, no resource)', () => {
 
   it('returns denied tooltip when not allowed', () => {
     mockUsePermission.mockReturnValue({ allowed: false, loading: false });
-    const { result } = renderHook(() => useEnvironmentPermission());
+    const { result } = renderHook(() => useScopedComponentCreatePermission());
 
     expect(result.current.canCreate).toBe(false);
     expect(result.current.createDeniedTooltip).toBeTruthy();
   });
 
-  it('does not pass resourceRef to usePermission', () => {
+  it('passes entity resource ref to usePermission', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
-    renderHook(() => useEnvironmentPermission());
+    renderHook(() => useScopedComponentCreatePermission());
 
     expect(mockUsePermission).toHaveBeenCalledWith(
-      expect.not.objectContaining({ resourceRef: expect.anything() }),
+      expect.objectContaining({
+        resourceRef: 'component:default/test',
+      }),
     );
   });
 });
