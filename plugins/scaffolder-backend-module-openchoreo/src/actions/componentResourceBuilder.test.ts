@@ -333,4 +333,207 @@ describe('buildWorkloadResource', () => {
 
     expect(result.spec.endpoints).toBeUndefined();
   });
+
+  it('should include env vars when image is provided', () => {
+    const result = buildWorkloadResource({
+      componentName: 'my-service',
+      namespaceName: 'default',
+      projectName: 'my-project',
+      containerImage: 'nginx:latest',
+      envVars: [
+        { key: 'NODE_ENV', value: 'production' },
+        {
+          key: 'DB_PASSWORD',
+          valueFrom: { secretKeyRef: { name: 'db-secret', key: 'password' } },
+        },
+      ],
+    });
+
+    expect(result.spec.container?.env).toEqual([
+      { key: 'NODE_ENV', value: 'production' },
+      {
+        key: 'DB_PASSWORD',
+        valueFrom: { secretKeyRef: { name: 'db-secret', key: 'password' } },
+      },
+    ]);
+  });
+
+  it('should include file mounts when image is provided', () => {
+    const result = buildWorkloadResource({
+      componentName: 'my-service',
+      namespaceName: 'default',
+      projectName: 'my-project',
+      containerImage: 'nginx:latest',
+      fileMounts: [{ key: 'config', mountPath: '/etc/config', value: 'data' }],
+    });
+
+    expect(result.spec.container?.files).toEqual([
+      { key: 'config', mountPath: '/etc/config', value: 'data' },
+    ]);
+  });
+
+  it('should omit container entirely when no image is provided', () => {
+    const result = buildWorkloadResource({
+      componentName: 'my-service',
+      namespaceName: 'default',
+      projectName: 'my-project',
+      envVars: [{ key: 'FOO', value: 'bar' }],
+    });
+
+    expect(result.spec.container).toBeUndefined();
+  });
+
+  it('should use endpoints map over legacy port when both provided', () => {
+    const result = buildWorkloadResource({
+      componentName: 'my-service',
+      namespaceName: 'default',
+      projectName: 'my-project',
+      containerImage: 'nginx:latest',
+      port: 3000,
+      endpoints: {
+        grpc: { type: 'GRPC', port: 9090, visibility: ['internal'] } as any,
+      },
+    });
+
+    // Endpoints map takes precedence over port
+    expect(result.spec.endpoints).toEqual({
+      grpc: { type: 'GRPC', port: 9090, visibility: ['internal'] },
+    });
+  });
+
+  it('should not add empty endpoints map', () => {
+    const result = buildWorkloadResource({
+      componentName: 'my-service',
+      namespaceName: 'default',
+      projectName: 'my-project',
+      containerImage: 'nginx:latest',
+      endpoints: {},
+    });
+
+    expect(result.spec.endpoints).toBeUndefined();
+  });
+
+  it('should not include env vars or file mounts when empty arrays', () => {
+    const result = buildWorkloadResource({
+      componentName: 'my-service',
+      namespaceName: 'default',
+      projectName: 'my-project',
+      containerImage: 'nginx:latest',
+      envVars: [],
+      fileMounts: [],
+    });
+
+    expect(result.spec.container?.env).toBeUndefined();
+    expect(result.spec.container?.files).toBeUndefined();
+  });
+});
+
+describe('buildComponentResource – additional cases', () => {
+  const minimalInput: ComponentResourceInput = {
+    componentName: 'my-service',
+    namespaceName: 'default',
+    projectName: 'my-project',
+    componentType: 'service',
+    componentTypeWorkloadType: 'deployment',
+  };
+
+  it('should use ClusterComponentType kind when specified', () => {
+    const result = buildComponentResource({
+      ...minimalInput,
+      componentTypeKind: 'ClusterComponentType',
+    });
+
+    expect(result.spec.componentType.kind).toBe('ClusterComponentType');
+  });
+
+  it('should default componentType kind to ComponentType', () => {
+    const result = buildComponentResource(minimalInput);
+    expect(result.spec.componentType.kind).toBe('ComponentType');
+  });
+
+  it('should handle workflow with explicit kind', () => {
+    const result = buildComponentResource({
+      ...minimalInput,
+      deploymentSource: 'build-from-source',
+      workflow: { kind: 'ClusterWorkflow', name: 'docker-build' },
+      workflowParameters: {},
+    });
+
+    expect(result.spec.workflow!.kind).toBe('ClusterWorkflow');
+    expect(result.spec.workflow!.name).toBe('docker-build');
+  });
+
+  it('should handle traits with explicit kind', () => {
+    const result = buildComponentResource({
+      ...minimalInput,
+      traits: [
+        {
+          kind: 'ClusterTrait',
+          name: 'autoscaler',
+          instanceName: 'my-autoscaler',
+          config: { 'scaling.minReplicas': 2, 'scaling.maxReplicas': 10 },
+        },
+      ],
+    });
+
+    expect(result.spec.traits).toEqual([
+      {
+        kind: 'ClusterTrait',
+        name: 'autoscaler',
+        instanceName: 'my-autoscaler',
+        parameters: {
+          scaling: { minReplicas: 2, maxReplicas: 10 },
+        },
+      },
+    ]);
+  });
+
+  it('should omit trait kind when undefined', () => {
+    const result = buildComponentResource({
+      ...minimalInput,
+      traits: [
+        {
+          name: 'ingress',
+          instanceName: 'my-ingress',
+          config: { path: '/api' },
+        },
+      ],
+    });
+
+    expect(result.spec.traits![0]).not.toHaveProperty('kind');
+  });
+
+  it('should protect against prototype pollution in workflow parameters', () => {
+    const result = buildComponentResource({
+      ...minimalInput,
+      deploymentSource: 'build-from-source',
+      workflow: { name: 'test-build' },
+      workflowParameters: {
+        '__proto__.polluted': 'yes',
+        'constructor.polluted': 'yes',
+        'safe.key': 'value',
+      },
+    });
+
+    // Safe key should be set
+    expect(result.spec.workflow!.parameters!.safe.key).toBe('value');
+    // Prototype pollution should not occur
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
+  it('should protect against prototype pollution in annotation-mapped paths', () => {
+    buildComponentResource({
+      ...minimalInput,
+      deploymentSource: 'build-from-source',
+      workflow: { name: 'test-build' },
+      workflowParameters: {},
+      repoUrl: 'https://github.com/org/repo.git',
+      workflowParameterMapping: {
+        repoUrl: 'parameters.__proto__.polluted',
+      },
+    });
+
+    // Prototype pollution should not occur
+    expect(({} as any).polluted).toBeUndefined();
+  });
 });
