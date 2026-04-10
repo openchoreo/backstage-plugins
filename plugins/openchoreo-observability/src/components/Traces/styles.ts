@@ -76,6 +76,31 @@ export const useTracesTableStyles = makeStyles((theme: Theme) => ({
       fontSize: '1rem',
     },
   },
+  errorRow: {
+    '& > td:first-child, & > th:first-child': {
+      position: 'relative',
+      borderLeft: 'none !important',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        left: 0,
+        top: '5%',
+        bottom: '5%',
+        width: '3px',
+        backgroundColor: '#EF4444',
+        borderRadius: '2px',
+      },
+    },
+  },
+  errorStripe: {
+    position: 'absolute',
+    left: 0,
+    top: '5%',
+    bottom: '5%',
+    width: '8px',
+    cursor: 'default',
+    zIndex: 1,
+  },
 }));
 
 export const useWaterfallStyles = makeStyles((theme: Theme) => ({
@@ -133,7 +158,6 @@ export const useWaterfallStyles = makeStyles((theme: Theme) => ({
     paddingLeft: theme.spacing(1),
     paddingRight: theme.spacing(1),
     fontSize: '0.75rem',
-    color: '#fff',
     fontWeight: 500,
     '&:hover': {
       opacity: 0.8,
@@ -160,6 +184,11 @@ export const useWaterfallStyles = makeStyles((theme: Theme) => ({
     color: '#fff',
     fontSize: '0.75rem',
     minWidth: '85px',
+    flexShrink: 0,
+  },
+  spanErrorIcon: {
+    color: '#F87171',
+    fontSize: '0.875rem',
     flexShrink: 0,
   },
 }));

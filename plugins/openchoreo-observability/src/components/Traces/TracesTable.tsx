@@ -126,7 +126,7 @@ export const TracesTable: FC<TracesTableProps> = ({
                   <TableRow
                     className={`${classes.traceRow} ${
                       isExpanded ? classes.expandedRow : ''
-                    }`}
+                    } ${trace.hasErrors ? classes.errorRow : ''}`}
                     onClick={() => toggleRowExpansion(trace.traceId)}
                   >
                     <TableCell
@@ -135,6 +135,14 @@ export const TracesTable: FC<TracesTableProps> = ({
                       width="12%"
                       className={classes.traceIdCell}
                     >
+                      {trace.hasErrors && (
+                        <Tooltip title="This trace contains errors" arrow>
+                          <span
+                            className={classes.errorStripe}
+                            role="presentation"
+                          />
+                        </Tooltip>
+                      )}
                       <Tooltip title={trace.traceId}>
                         <span>
                           {trace.traceName || `${trace.traceId.slice(0, 8)}...`}
