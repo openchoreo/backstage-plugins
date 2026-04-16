@@ -782,6 +782,9 @@ components:
                 type: integer
                 format: int64
                 description: The duration of the trace in nanoseconds
+              hasErrors:
+                type: boolean
+                description: Whether any span in the trace has an error status.
         total:
           type: integer
           description: The total number of traces
@@ -822,6 +825,13 @@ components:
               parentSpanId:
                 type: string
                 description: The parent span ID
+              status:
+                type: string
+                enum:
+                  - ok
+                  - error
+                  - unset
+                description: The execution status of the span. One of "ok", "error", or "unset".
         total:
           type: integer
           description: The total number of spans
@@ -853,6 +863,13 @@ components:
         parentSpanId:
           type: string
           description: The parent span ID
+        status:
+          type: string
+          enum:
+            - ok
+            - error
+            - unset
+          description: The execution status of the span. One of "ok", "error", or "unset".
         attributes:
           type: array
           items:

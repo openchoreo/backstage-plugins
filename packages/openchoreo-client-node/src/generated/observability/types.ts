@@ -395,6 +395,8 @@ export interface components {
          * @description The duration of the trace in nanoseconds
          */
         durationNs?: number;
+        /** @description Whether any span in the trace has an error status. */
+        hasErrors?: boolean;
       }[];
       /** @description The total number of traces */
       total?: number;
@@ -427,6 +429,11 @@ export interface components {
         durationNs?: number;
         /** @description The parent span ID */
         parentSpanId?: string;
+        /**
+         * @description The execution status of the span. One of "ok", "error", or "unset".
+         * @enum {string}
+         */
+        status?: 'ok' | 'error' | 'unset';
       }[];
       /** @description The total number of spans */
       total?: number;
@@ -455,6 +462,11 @@ export interface components {
       durationNs?: number;
       /** @description The parent span ID */
       parentSpanId?: string;
+      /**
+       * @description The execution status of the span. One of "ok", "error", or "unset".
+       * @enum {string}
+       */
+      status?: 'ok' | 'error' | 'unset';
       attributes?: {
         /** @description The key of the attribute */
         key?: string;

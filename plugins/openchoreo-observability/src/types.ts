@@ -47,6 +47,7 @@ export interface Span {
   endTime: string;
   durationNs: number;
   parentSpanId?: string;
+  status?: 'ok' | 'error' | 'unset';
 }
 
 export interface SpanDetails extends Span {
@@ -64,6 +65,7 @@ export interface Trace {
   startTime: string;
   endTime: string;
   durationNs: number;
+  hasErrors?: boolean;
 }
 
 export interface TimeRangeOption {

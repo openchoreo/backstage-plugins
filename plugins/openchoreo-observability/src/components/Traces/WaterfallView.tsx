@@ -10,6 +10,7 @@ import {
 } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
+import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import { useWaterfallStyles } from './styles';
 import { Span, SpanDetails } from '../../types';
 import {
@@ -131,6 +132,13 @@ const SpanDetailsPanel = ({ details, traceId }: SpanDetailsPanelProps) => {
     { label: 'Duration', value: formatDuration(details.durationNs) },
   ];
 
+  let statusColor = '#94A3B8';
+  if (details.status === 'error') {
+    statusColor = '#EF4444';
+  } else if (details.status === 'ok') {
+    statusColor = '#10B981';
+  }
+
   return (
     <Box>
       {/* Core span fields */}
@@ -175,6 +183,33 @@ const SpanDetailsPanel = ({ details, traceId }: SpanDetailsPanelProps) => {
             </Typography>
           </Box>
         ))}
+        {details.status && (
+          <Box display="flex" style={{ gap: 8, marginBottom: 2 }}>
+            <Typography
+              variant="caption"
+              style={{
+                fontSize: '0.7rem',
+                fontFamily: 'monospace',
+                fontWeight: 600,
+                minWidth: 220,
+                flexShrink: 0,
+              }}
+            >
+              Status
+            </Typography>
+            <Typography
+              variant="caption"
+              style={{
+                fontSize: '0.7rem',
+                fontFamily: 'monospace',
+                fontWeight: 600,
+                color: statusColor,
+              }}
+            >
+              {details.status}
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       <AttributeSection label="Attributes" data={details.attributes} />
@@ -197,18 +232,23 @@ export const WaterfallView = ({
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
 
   // Color palette for different span types
-  const getSpanColor = (spanName: string, depth: number): string => {
+  const getSpanColor = (
+    spanName: string,
+    depth: number,
+    status?: string,
+  ): string => {
+    if (status === 'error') return '#FCA5A5'; // light red
+
     const colors = [
-      theme.palette.info.main,
-      '#64748B',
-      '#8B5CF6',
-      '#10B981',
-      '#06B6D4',
+      '#93C5FD', // blue-300
+      '#CBD5E1', // slate-300
+      '#C4B5FD', // violet-300
+      '#6EE7B7', // emerald-300
+      '#67E8F9', // cyan-300
     ];
 
     if (depth === 0) return colors[0];
     if (depth === 1) return colors[1];
-    if (depth >= 2) return colors[2];
 
     let hash = 0;
     for (let i = 0; i < spanName.length; i++) {
@@ -384,7 +424,7 @@ export const WaterfallView = ({
             calculateWidth(span.startTime, span.endTime),
             0.5,
           );
-          const color = getSpanColor(span.spanName, span.depth);
+          const color = getSpanColor(span.spanName, span.depth, span.status);
           const indent = span.depth * 20;
           const hasChildren = span.children.length > 0;
           const isCollapsed = collapsedSpans.has(span.spanId);
@@ -406,6 +446,11 @@ export const WaterfallView = ({
                   </IconButton>
                 )}
                 {!hasChildren && <Box style={{ width: '20px' }} />}
+                {span.status === 'error' && (
+                  <Tooltip title="Span error">
+                    <ErrorOutlineIcon className={classes.spanErrorIcon} />
+                  </Tooltip>
+                )}
                 <Box
                   style={{
                     overflow: 'hidden',
@@ -530,6 +575,20 @@ export const WaterfallView = ({
                           {formatDuration(span.durationNs)}
                         </Typography>
                       </Box>
+                      {span.status && (
+                        <Box className={classes.tooltipRow}>
+                          <Typography
+                            variant="caption"
+                            component="span"
+                            className={classes.tooltipLabel}
+                          >
+                            Status:
+                          </Typography>
+                          <Typography variant="caption">
+                            {span.status}
+                          </Typography>
+                        </Box>
+                      )}
                     </Box>
                   }
                   arrow
