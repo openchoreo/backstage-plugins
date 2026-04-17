@@ -73,6 +73,9 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write # Required for Codecov OIDC
     strategy:
       matrix:
         node-version: [22]
@@ -92,14 +95,12 @@ jobs:
       - name: Run tests with coverage
         run: yarn test:all
 
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
-          name: coverage-report
-          path: coverage/
-          retention-days: 14
-          if-no-files-found: warn
+          files: ./coverage/lcov.info
+          fail_ci_if_error: ${{ github.event_name == 'push' }}
+          use_oidc: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) }}
 
       - name: Coverage summary
         if: always() && github.event_name == 'pull_request'
