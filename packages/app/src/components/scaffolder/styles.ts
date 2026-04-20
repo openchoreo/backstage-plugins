@@ -1,4 +1,5 @@
 import { makeStyles } from '@material-ui/core/styles';
+import { lightTokens, darkTokens } from '@openchoreo/backstage-design-system';
 
 export const useStyles = makeStyles(theme => ({
   root: {
@@ -109,9 +110,13 @@ export const useStyles = makeStyles(theme => ({
     minHeight: 180,
     borderRadius: 12,
     backgroundColor: theme.palette.background.paper,
-    border: '1px solid #f3f4f6',
+    border: `1px solid ${
+      theme.palette.type === 'dark' ? darkTokens.border.subtle : lightTokens.grey[100]
+    }`,
     boxShadow:
-      'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px',
+      theme.palette.type === 'dark'
+        ? darkTokens.shadow.card
+        : lightTokens.shadow.card,
     cursor: 'pointer',
     transition: 'all 0.2s ease-in-out',
     padding: theme.spacing(3),
@@ -125,9 +130,12 @@ export const useStyles = makeStyles(theme => ({
   skeletonCard: {
     cursor: 'default',
     '&:hover': {
-      borderColor: '#f3f4f6',
+      borderColor:
+        theme.palette.type === 'dark' ? darkTokens.border.subtle : lightTokens.grey[100],
       boxShadow:
-        'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px',
+      theme.palette.type === 'dark'
+        ? darkTokens.shadow.card
+        : lightTokens.shadow.card,
       transform: 'none',
     },
   },
@@ -174,11 +182,11 @@ export const useStyles = makeStyles(theme => ({
     padding: theme.spacing(0.5),
     color: theme.palette.text.disabled,
     '&:hover': {
-      color: '#f3ba37',
+      color: (theme.palette as any).gold,
     },
   },
   starButtonActive: {
-    color: '#f3ba37',
+    color: (theme.palette as any).gold,
   },
   templateCardFooter: {
     display: 'flex',
@@ -204,7 +212,9 @@ export const useStyles = makeStyles(theme => ({
     '&:hover': {
       borderColor: 'inherit',
       boxShadow:
-        'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px',
+      theme.palette.type === 'dark'
+        ? darkTokens.shadow.card
+        : lightTokens.shadow.card,
       transform: 'none',
     },
   },

@@ -10836,7 +10836,7 @@ __metadata:
     "@openchoreo/test-utils": "workspace:^"
     "@types/express": "npm:4.17.23"
     "@types/supertest": "npm:2.0.16"
-    "@wso2/cell-diagram": "npm:0.2.0"
+    "@wso2/cell-diagram": "npm:^0.3.1"
     express: "npm:4.21.2"
     express-promise-router: "npm:4.1.1"
     supertest: "npm:6.3.4"
@@ -11257,7 +11257,7 @@ __metadata:
     "@types/dagre": "npm:^0.7.53"
     "@types/pathfinding": "npm:0.1.0"
     "@types/react": "npm:^18.0.0"
-    "@wso2/cell-diagram": "npm:0.2.0"
+    "@wso2/cell-diagram": "npm:^0.3.1"
     clsx: "npm:^2.1.1"
     json-schema: "npm:0.4.0"
     msw: "npm:1.3.5"
@@ -19521,9 +19521,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wso2/cell-diagram@npm:0.2.0":
-  version: 0.2.0
-  resolution: "@wso2/cell-diagram@npm:0.2.0"
+"@wso2/cell-diagram@npm:^0.3.1":
+  version: 0.3.1
+  resolution: "@wso2/cell-diagram@npm:0.3.1"
   dependencies:
     "@emotion/react": "npm:^11.9.3"
     "@emotion/styled": "npm:^11.10.5"
@@ -19544,7 +19544,7 @@ __metadata:
     react: "npm:^18.0.2"
     react-dom: "npm:^18.0.2"
     typescript: "npm:^4.9.4"
-  checksum: 10c0/c27e220cc276b8afc65ee3faba6730714c9183a4174bda15465272da466804207d99fc5c7346f38efbc1d71ca002d0f6bbd2dc1fd8d9c07aa8918d41e1f1a4cd
+  checksum: 10c0/4ece5085e2b859be39a8b31ef6cd2d6207e2f422eb860a6ed3428923682736013f797aa1e307aea23d78ec9b85dc648f6652ace6816e636219efd100543072f3
   languageName: node
   linkType: hard
 

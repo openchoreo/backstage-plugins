@@ -71,10 +71,7 @@ import { AppRouter, FlatRoutes } from '@backstage/core-app-api';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
-import {
-  OpenChoreoIcon,
-  openChoreoTheme,
-} from '@openchoreo/backstage-design-system';
+import { appThemes } from './themes';
 import CloudIcon from '@material-ui/icons/Cloud';
 import DnsIcon from '@material-ui/icons/Dns';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
@@ -93,7 +90,6 @@ import CategoryIcon from '@material-ui/icons/Category';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
-import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { DependencyGraphZoomOverrides } from './components/graph/DependencyGraphZoomOverrides';
@@ -190,17 +186,7 @@ const app = createApp({
   components: {
     SignInPage: DynamicSignInPage,
   },
-  themes: [
-    {
-      id: 'openchoreo-theme',
-      title: 'OpenChoreo Theme',
-      variant: 'dark',
-      icon: <OpenChoreoIcon />,
-      Provider: ({ children }) => (
-        <UnifiedThemeProvider theme={openChoreoTheme} children={children} />
-      ),
-    },
-  ],
+  themes: appThemes,
   __experimentalTranslations: {
     resources: [catalogImportTranslations],
   },

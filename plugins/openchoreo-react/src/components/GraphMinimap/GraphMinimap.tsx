@@ -6,6 +6,7 @@ import {
 } from 'react';
 import Box from '@material-ui/core/Box';
 import { makeStyles } from '@material-ui/core/styles';
+import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 import type {
   GraphTransform,
   GraphViewBox,
@@ -15,22 +16,18 @@ import type {
 const MINIMAP_WIDTH = 200;
 const MINIMAP_HEIGHT = 150;
 
+// Token-derived values flow in via CSS custom properties on the root element,
+// so makeStyles can stay static and still be fully theme-driven.
 const useStyles = makeStyles(theme => ({
   root: {
     width: MINIMAP_WIDTH,
     height: MINIMAP_HEIGHT,
-    backgroundColor:
-      theme.palette.type === 'dark'
-        ? 'rgba(30, 30, 30, 0.75)'
-        : 'rgba(255, 255, 255, 0.75)',
-    backgroundImage:
-      theme.palette.type === 'dark'
-        ? 'radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)'
-        : 'radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px)',
+    backgroundColor: 'var(--minimap-mask)',
+    backgroundImage: 'var(--minimap-dots)',
     backgroundSize: '12px 12px',
     backdropFilter: 'blur(8px)',
     border: `1px solid ${theme.palette.divider}`,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    boxShadow: 'var(--minimap-shadow)',
     borderRadius: theme.shape.borderRadius,
     overflow: 'hidden',
     cursor: 'crosshair',
@@ -42,20 +39,17 @@ const useStyles = makeStyles(theme => ({
     height: '100%',
   },
   dimOverlay: {
-    fill:
-      theme.palette.type === 'dark'
-        ? 'rgba(0, 0, 0, 0.45)'
-        : 'rgba(0, 0, 0, 0.25)',
+    fill: 'var(--minimap-dim)',
   },
   viewportRect: {
-    fill: 'rgba(108, 127, 216, 0.10)',
-    stroke: theme.palette.primary.main,
+    fill: 'var(--minimap-viewport-tint)',
+    stroke: 'var(--minimap-viewport-border)',
     strokeWidth: 2,
     cursor: 'grab',
   },
   viewportRectDragging: {
-    fill: 'rgba(108, 127, 216, 0.20)',
-    stroke: theme.palette.primary.main,
+    fill: 'var(--minimap-viewport-tint-active)',
+    stroke: 'var(--minimap-viewport-border)',
     strokeWidth: 2,
     cursor: 'grabbing',
   },
@@ -75,6 +69,7 @@ export function GraphMinimap({
   onPan,
 }: GraphMinimapProps) {
   const classes = useStyles();
+  const tokens = useChoreoTokens();
   const svgElRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
@@ -138,7 +133,19 @@ export function GraphMinimap({
   if (viewBox.width === 0 || viewBox.height === 0) return null;
 
   return (
-    <Box className={classes.root}>
+    <Box
+      className={classes.root}
+      style={{
+        ['--minimap-mask' as string]: tokens.graph.minimapMask,
+        ['--minimap-dots' as string]: tokens.graph.minimapDotPattern,
+        ['--minimap-shadow' as string]: tokens.shadow.md,
+        ['--minimap-dim' as string]: tokens.scrim.med,
+        ['--minimap-viewport-tint' as string]: tokens.graph.minimapViewportTint,
+        ['--minimap-viewport-tint-active' as string]: tokens.graph
+          .minimapViewportBorder,
+        ['--minimap-viewport-border' as string]: tokens.primary.main,
+      }}
+    >
       <svg
         ref={svgElRef}
         className={classes.svg}

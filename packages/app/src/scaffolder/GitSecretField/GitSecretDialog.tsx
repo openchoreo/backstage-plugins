@@ -299,12 +299,20 @@ export const GitSecretDialog = ({
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               style={{
-                border: isDragging ? '2px dashed #3f51b5' : '2px dashed #ccc',
+                // Preserved original literals — these match MUI's classic
+                // indigo (`#3f51b5`) and a neutral grey (`#ccc`), not our
+                // theme's primary, so they're kept as literals.
+                border: isDragging
+                  ? // eslint-disable-next-line no-restricted-syntax
+                    '2px dashed #3f51b5'
+                  : // eslint-disable-next-line no-restricted-syntax
+                    '2px dashed #ccc',
                 borderRadius: 8,
                 padding: 16,
                 marginTop: 16,
                 backgroundColor: isDragging
-                  ? 'rgba(63, 81, 181, 0.05)'
+                  ? // eslint-disable-next-line no-restricted-syntax
+                    'rgba(63, 81, 181, 0.05)'
                   : 'transparent',
                 transition: 'all 0.2s ease',
               }}

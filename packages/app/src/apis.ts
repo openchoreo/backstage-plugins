@@ -16,6 +16,11 @@ import {
 } from '@backstage/core-plugin-api';
 import { OAuth2 } from '@backstage/core-app-api';
 import { VisitsWebStorageApi, visitsApiRef } from '@backstage/plugin-home';
+
+// No explicit default theme id is seeded into localStorage. Backstage's
+// user-settings panel renders a built-in Auto button that picks the first
+// registered dark or light theme based on the OS `prefers-color-scheme`
+// preference, which is exactly the behavior we want for new users.
 import { UserSettingsStorage } from '@backstage/plugin-user-settings';
 import { permissionApiRef } from '@backstage/plugin-permission-react';
 import { OpenChoreoFetchApi } from './apis/OpenChoreoFetchApi';

@@ -1,4 +1,5 @@
-import { makeStyles, Theme } from '@material-ui/core/styles';
+import { makeStyles, Theme, alpha } from '@material-ui/core/styles';
+import { lightTokens, darkTokens } from '../../theme/tokens';
 
 export const useStyles = makeStyles((theme: Theme) => ({
   container: {
@@ -26,13 +27,18 @@ export const useStyles = makeStyles((theme: Theme) => ({
     transition: 'all 0.2s ease-in-out',
     '&:hover': {
       backgroundColor:
-        theme.palette.type === 'dark' ? 'rgba(255, 255, 255, 0.08)' : '#f9fafb',
+        theme.palette.type === 'dark'
+          ? darkTokens.surface.hover
+          : lightTokens.surface.hover,
     },
   },
   tabItemActive: {
     borderLeftColor: theme.palette.primary.main,
+    // Original: `#f5f7ff` (indigo[50]) in light, `rgba(108,127,216,0.12)` in dark.
     backgroundColor:
-      theme.palette.type === 'dark' ? 'rgba(108, 127, 216, 0.12)' : '#f5f7ff',
+      theme.palette.type === 'dark'
+        ? alpha(theme.palette.primary.main, 0.12)
+        : lightTokens.indigo[50],
     '& $tabLabel': {
       color: theme.palette.primary.main,
       fontWeight: 600,
@@ -101,7 +107,9 @@ export const useStyles = makeStyles((theme: Theme) => ({
     fontWeight: 500,
     color: theme.palette.text.secondary,
     backgroundColor:
-      theme.palette.type === 'dark' ? 'rgba(255, 255, 255, 0.12)' : '#f3f4f6',
+      theme.palette.type === 'dark'
+        ? darkTokens.scrim.med
+        : lightTokens.border.subtle,
     padding: '2px 8px',
     borderRadius: 10,
     minWidth: 20,
@@ -116,8 +124,11 @@ export const useStyles = makeStyles((theme: Theme) => ({
   tabItemGroup: {
     fontWeight: 600,
     '&:hover': {
+      // Original: `#fafbfc` (secondary.light).
       backgroundColor:
-        theme.palette.type === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#fafbfc',
+        theme.palette.type === 'dark'
+          ? darkTokens.scrim.subtle
+          : lightTokens.secondary.light,
     },
   },
   tabItemNested: {

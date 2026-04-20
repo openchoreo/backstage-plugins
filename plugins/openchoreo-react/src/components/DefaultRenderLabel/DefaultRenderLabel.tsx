@@ -2,11 +2,13 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { DependencyGraphTypes } from '@backstage/core-components';
 import { useTheme } from '@material-ui/core/styles';
 import { EntityEdgeData } from '@backstage/plugin-catalog-graph';
+import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 
 export function DefaultRenderLabel({
   edge: { relations },
 }: DependencyGraphTypes.RenderLabelProps<EntityEdgeData>) {
   const theme = useTheme();
+  const tokens = useChoreoTokens();
   const textRef = useRef<SVGTextElement>(null);
   const [box, setBox] = useState<{ width: number; height: number } | null>(
     null,
@@ -19,8 +21,7 @@ export function DefaultRenderLabel({
     }
   }, [relations]);
 
-  const isDark = theme.palette.type === 'dark';
-  const pillFill = isDark ? 'rgba(30,30,30,0.65)' : 'rgba(255,255,255,0.75)';
+  const pillFill = tokens.graph.labelPillFill;
   const padX = 6;
   const padY = 3;
 

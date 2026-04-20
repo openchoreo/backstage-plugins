@@ -31,6 +31,7 @@ import { yaml as yamlMode } from '@codemirror/legacy-modes/mode/yaml';
 import { protobuf as protobufMode } from '@codemirror/legacy-modes/mode/protobuf';
 import { graphql as graphqlMode } from 'codemirror-graphql/cm6-legacy/mode';
 import type { WorkloadEndpoint } from '@openchoreo/backstage-plugin-common';
+import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 
 const useStyles = makeStyles((theme: Theme) => ({
   container: {
@@ -71,11 +72,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     marginBottom: theme.spacing(1.5),
   },
   visibilityFieldset: {
-    border: `1px solid ${
-      theme.palette.type === 'light'
-        ? 'rgba(0, 0, 0, 0.12)'
-        : 'rgba(255, 255, 255, 0.12)'
-    }`,
+    border: `1px solid ${theme.palette.divider}`,
     borderRadius: 4,
     padding: theme.spacing(0.5, 1),
     margin: 0,
@@ -168,6 +165,7 @@ const SchemaContentDialog: FC<{
   required: boolean;
 }> = ({ open, content, schemaType, onApply, onClose, required }) => {
   const classes = useStyles();
+  const tokens = useChoreoTokens();
   const [draft, setDraft] = useState(content);
   const showError = required && !draft.trim();
 
@@ -195,7 +193,7 @@ const SchemaContentDialog: FC<{
             value={draft}
             onChange={setDraft}
             extensions={[languageExtension]}
-            theme="light"
+            theme={tokens.editor.codeMirrorTheme}
           />
         </div>
         {showError && (

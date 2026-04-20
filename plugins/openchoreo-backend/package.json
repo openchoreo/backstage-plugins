@@ -46,7 +46,7 @@
     "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy": "workspace:^",
     "@openchoreo/openchoreo-auth": "workspace:^",
     "@openchoreo/openchoreo-client-node": "workspace:^",
-    "@wso2/cell-diagram": "0.2.0",
+    "@wso2/cell-diagram": "^0.3.1",
     "express": "4.21.2",
     "express-promise-router": "4.1.1"
   },

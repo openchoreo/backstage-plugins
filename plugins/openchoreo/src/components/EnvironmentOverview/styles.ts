@@ -1,4 +1,5 @@
 import { makeStyles } from '@material-ui/core/styles';
+import { lightTokens, darkTokens } from '@openchoreo/backstage-design-system';
 
 export const useEnvironmentOverviewStyles = makeStyles(theme => ({
   card: {
@@ -6,9 +7,12 @@ export const useEnvironmentOverviewStyles = makeStyles(theme => ({
     display: 'flex',
     flexDirection: 'column',
     borderRadius: '12px !important',
-    border: '1px solid rgb(243, 244, 246) !important',
-    boxShadow:
-      'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px !important',
+    border: `1px solid ${
+      theme.palette.type === 'dark' ? darkTokens.border.subtle : lightTokens.grey[100]
+    } !important`,
+    boxShadow: `${
+      theme.palette.type === 'dark' ? darkTokens.shadow.card : lightTokens.shadow.card
+    } !important`,
   },
   cardHeader: {
     display: 'flex',

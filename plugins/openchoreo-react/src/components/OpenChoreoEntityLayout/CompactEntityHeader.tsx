@@ -149,7 +149,9 @@ const useStyles = makeStyles(
     favorite: {
       display: 'inline-flex',
       '& button:hover svg': {
-        color: '#f3ba37',
+        // Branded gold from the theme palette — surfaced via the Backstage
+        // palette extension defined in `buildOpenChoreoTheme`.
+        color: (theme.palette as any).gold,
       },
     },
     breadcrumbs: {
@@ -194,7 +196,12 @@ const useStyles = makeStyles(
       fontWeight: 500,
       fontStyle: 'normal',
       lineHeight: 1.3,
-      color: theme.palette.grey[200],
+      // Derive from the page font color so we stay legible on the gradient
+      // header in both themes. `grey[200]` used to be `#e5e7eb` in light
+      // (good), but the dark token set inverts the grey scale, making it a
+      // near-black and invisible on the dark-purple header.
+      color: theme.page.fontColor,
+      opacity: 0.75,
       textDecoration: 'none',
       textTransform: 'lowercase',
       padding: 0,
@@ -203,6 +210,7 @@ const useStyles = makeStyles(
       overflowWrap: 'normal',
       '&:hover': {
         color: theme.page.fontColor,
+        opacity: 1,
         textDecoration: 'underline',
       },
     },

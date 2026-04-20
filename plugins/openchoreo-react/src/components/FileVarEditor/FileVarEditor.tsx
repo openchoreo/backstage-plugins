@@ -25,6 +25,7 @@ import type { FileVar } from '@openchoreo/backstage-plugin-common';
 import {
   SecretSelector,
   type SecretOption,
+  darkTokens,
 } from '@openchoreo/backstage-design-system';
 
 const useStyles = makeStyles((theme: Theme) => ({
@@ -165,12 +166,22 @@ const useStyles = makeStyles((theme: Theme) => ({
     transition: 'all 0.2s ease',
     '&:hover': {
       borderColor: theme.palette.text.primary,
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      // Original: `0 2px 4px rgba(0,0,0,0.1)`.
+      boxShadow:
+        theme.palette.type === 'dark'
+          ? darkTokens.shadow.md
+          : // eslint-disable-next-line no-restricted-syntax
+            '0 2px 4px rgba(0,0,0,0.1)',
       transform: 'translateY(-1px)',
     },
     '&:active': {
       transform: 'translateY(0)',
-      boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+      // Original: `0 1px 2px rgba(0,0,0,0.1)`.
+      boxShadow:
+        theme.palette.type === 'dark'
+          ? darkTokens.shadow.sm
+          : // eslint-disable-next-line no-restricted-syntax
+            '0 1px 2px rgba(0,0,0,0.1)',
     },
     '&:focus-visible': {
       outline: `2px solid ${theme.palette.primary.main}`,

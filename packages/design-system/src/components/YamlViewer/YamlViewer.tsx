@@ -5,6 +5,7 @@ import oneDark from 'react-syntax-highlighter/dist/cjs/styles/prism/one-dark';
 import oneLight from 'react-syntax-highlighter/dist/cjs/styles/prism/one-light';
 import { useTheme } from '@material-ui/core/styles';
 import { Box } from '@material-ui/core';
+import { useChoreoTokens } from '../../theme/useChoreoTokens';
 
 SyntaxHighlighter.registerLanguage('yaml', yaml);
 
@@ -65,7 +66,8 @@ export const YamlViewer: React.FC<YamlViewerProps> = ({
   style,
 }) => {
   const theme = useTheme();
-  const isDarkMode = theme.palette.type === 'dark';
+  const tokens = useChoreoTokens();
+  const isDarkMode = tokens.mode === 'dark';
 
   // Select theme based on Material-UI palette type
   const syntaxTheme = isDarkMode ? oneDark : oneLight;
@@ -76,9 +78,7 @@ export const YamlViewer: React.FC<YamlViewerProps> = ({
     padding: theme.spacing(1.5),
     borderRadius: theme.shape.borderRadius,
     fontSize: '0.75rem',
-    backgroundColor: isDarkMode
-      ? 'rgba(255, 255, 255, 0.05)'
-      : 'rgba(0, 0, 0, 0.03)',
+    backgroundColor: tokens.scrim.subtle,
     ...(maxHeight !== 'auto' && {
       maxHeight,
       overflowY: 'auto',

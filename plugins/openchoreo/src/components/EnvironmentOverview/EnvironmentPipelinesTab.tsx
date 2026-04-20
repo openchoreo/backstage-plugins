@@ -4,7 +4,11 @@ import TimelineIcon from '@material-ui/icons/Timeline';
 import { Link, Content } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { parseEntityRef } from '@backstage/catalog-model';
-import { Card } from '@openchoreo/backstage-design-system';
+import {
+  Card,
+  lightTokens,
+  darkTokens,
+} from '@openchoreo/backstage-design-system';
 import { PipelineFlowVisualization } from '@openchoreo/backstage-plugin-react';
 import { useEnvironmentPipelines } from './useEnvironmentPipelines';
 import { makeStyles } from '@material-ui/core/styles';
@@ -14,9 +18,13 @@ const useStyles = makeStyles(theme => ({
     height: '100%',
     padding: theme.spacing(3),
     borderRadius: '12px',
-    border: '1px solid rgb(243, 244, 246)',
+    border: `1px solid ${
+      theme.palette.type === 'dark' ? darkTokens.border.subtle : lightTokens.grey[100]
+    }`,
     boxShadow:
-      'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px',
+      theme.palette.type === 'dark'
+        ? darkTokens.shadow.card
+        : lightTokens.shadow.card,
   },
   pipelineHeader: {
     display: 'flex',
@@ -50,7 +58,9 @@ const useStyles = makeStyles(theme => ({
   loadingCard: {
     padding: theme.spacing(3),
     borderRadius: '12px',
-    border: '1px solid rgb(243, 244, 246)',
+    border: `1px solid ${
+      theme.palette.type === 'dark' ? darkTokens.border.subtle : lightTokens.grey[100]
+    }`,
   },
 }));
 

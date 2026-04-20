@@ -1,4 +1,5 @@
 import { makeStyles } from '@material-ui/core/styles';
+import { lightTokens, darkTokens } from '@openchoreo/backstage-design-system';
 
 export const useStyles = makeStyles(theme => ({
   dataplaneDetailsSection: {},
@@ -8,13 +9,17 @@ export const useStyles = makeStyles(theme => ({
   },
   environmentHeader: {
     padding: theme.spacing(2),
-    borderBottom: '1px solid #f3f4f6',
+    borderBottom: `1px solid ${
+      theme.palette.type === 'dark' ? darkTokens.border.subtle : lightTokens.grey[100]
+    }`,
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
   environmentName: {
-    color: '#111827',
+    // Original: `#111827`.
+    color:
+      theme.palette.type === 'dark' ? darkTokens.text.primary : lightTokens.common.black,
     marginBottom: theme.spacing(0.5),
   },
   environmentChip: {
@@ -46,12 +51,16 @@ export const useStyles = makeStyles(theme => ({
   },
   environmentLabel: {
     fontSize: '0.875rem',
-    color: '#6b7280',
+    // Original: `#6b7280`.
+    color:
+      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.secondary.main,
     fontWeight: 500,
   },
   environmentValue: {
     fontSize: '0.875rem',
-    color: '#374151',
+    // Original: `#374151`.
+    color:
+      theme.palette.type === 'dark' ? darkTokens.text.primary : lightTokens.secondary.dark,
   },
   componentCount: {
     display: 'flex',
@@ -76,7 +85,9 @@ export const useStyles = makeStyles(theme => ({
   emptyState: {
     textAlign: 'center',
     padding: theme.spacing(4),
-    color: '#6b7280',
+    // Original: `#6b7280`.
+    color:
+      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.secondary.main,
     fontStyle: 'italic',
   },
   emptyStateIcon: {
@@ -96,12 +107,16 @@ export const useStyles = makeStyles(theme => ({
     gap: theme.spacing(1),
     fontSize: '1rem',
     fontWeight: 600,
-    color: '#6b7280',
+    // Original: `#6b7280`.
+    color:
+      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.secondary.main,
     marginBottom: theme.spacing(2),
   },
   planeSectionIcon: {
     fontSize: '1.1rem',
-    color: '#9ca3af',
+    // Original: `#9ca3af`.
+    color:
+      theme.palette.type === 'dark' ? darkTokens.text.verySubtle : lightTokens.grey[400],
   },
   planeColumnCards: {
     display: 'flex',
@@ -135,7 +150,9 @@ export const useStyles = makeStyles(theme => ({
   },
   planeIcon: {
     fontSize: '1.25rem',
-    color: '#6b7280',
+    // Original: `#6b7280`.
+    color:
+      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.secondary.main,
   },
   agentDot: {
     width: 8,
@@ -144,9 +161,9 @@ export const useStyles = makeStyles(theme => ({
     display: 'inline-block',
   },
   agentDotConnected: {
-    backgroundColor: '#10b981',
+    backgroundColor: theme.palette.success.main,
   },
   agentDotDisconnected: {
-    backgroundColor: '#ef4444',
+    backgroundColor: theme.palette.error.main,
   },
 }));
