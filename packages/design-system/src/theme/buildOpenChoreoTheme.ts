@@ -482,6 +482,41 @@ export function buildOpenChoreoTheme(t: ThemeTokens): UnifiedTheme {
           },
         },
       },
+      // `@material-ui/lab`'s `Alert` falls back to `darken(palette.X.main, 0.6)`
+      // for its standard-variant backgrounds in dark mode, which lands at a
+      // near-black that reads as a failed banner rather than a severity tint.
+      // Use the dedicated `X.light` container tones from the dark palette —
+      // they're M3-style "error-container / warning-container / ..." tints
+      // and give the banner real shape without being eye-searing.
+      //
+      // Light mode is intentionally untouched so the existing output stays
+      // byte-identical (lab's light defaults already look right).
+      MuiAlert: isDark
+        ? {
+            styleOverrides: {
+              standardError: {
+                backgroundColor: t.error.light,
+                color: t.error.main,
+                '& .MuiAlert-icon': { color: t.error.main },
+              },
+              standardWarning: {
+                backgroundColor: t.warning.light,
+                color: t.warning.main,
+                '& .MuiAlert-icon': { color: t.warning.main },
+              },
+              standardInfo: {
+                backgroundColor: t.info.light,
+                color: t.info.main,
+                '& .MuiAlert-icon': { color: t.info.main },
+              },
+              standardSuccess: {
+                backgroundColor: t.success.light,
+                color: t.success.main,
+                '& .MuiAlert-icon': { color: t.success.main },
+              },
+            },
+          }
+        : {},
       MuiIconButton: {
         styleOverrides: {
           root: {

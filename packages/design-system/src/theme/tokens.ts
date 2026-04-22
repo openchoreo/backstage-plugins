@@ -164,6 +164,8 @@ export type ThemeTokens = {
     minimapMask: string;
     /** Minimap viewport tint (primary-based). */
     minimapViewportTint: string;
+    /** Minimap viewport tint while the user is dragging the viewport. */
+    minimapViewportTintActive: string;
     /** Minimap viewport border. */
     minimapViewportBorder: string;
     /** Three rgba stops for skeleton loading shimmer. */
@@ -384,6 +386,7 @@ export const lightTokens: ThemeTokens = {
       'radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px)',
     minimapMask: 'rgba(255, 255, 255, 0.75)',
     minimapViewportTint: 'rgba(108, 127, 216, 0.10)',
+    minimapViewportTintActive: 'rgba(108, 127, 216, 0.22)',
     minimapViewportBorder: 'rgba(108, 127, 216, 0.45)',
     skeletonStops: [
       'rgba(0, 0, 0, 0.08)',
@@ -601,6 +604,7 @@ export const darkTokens: ThemeTokens = {
       'radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)',
     minimapMask: 'rgba(30, 30, 30, 0.75)',
     minimapViewportTint: 'rgba(143, 160, 234, 0.10)',
+    minimapViewportTintActive: 'rgba(143, 160, 234, 0.25)',
     minimapViewportBorder: 'rgba(143, 160, 234, 0.50)',
     skeletonStops: [
       'rgba(255, 255, 255, 0.14)',
