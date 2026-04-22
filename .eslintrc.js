@@ -4,12 +4,12 @@
 const colorLiteralRules = [
   {
     selector:
-      "Literal[value=/^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?(?:[0-9a-fA-F]{2})?$/]",
+      "Literal[value=/#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?(?:[0-9a-fA-F]{2})?(?!\\w)/]",
     message:
       'Use theme tokens (useChoreoTokens / theme.palette / lightTokens / darkTokens) instead of hardcoded hex colors. Add a token in packages/design-system/src/theme/tokens.ts if needed.',
   },
   {
-    selector: "Literal[value=/^rgba?\\s*\\(/]",
+    selector: "Literal[value=/\\brgba?\\s*\\(/]",
     message:
       'Use theme tokens for rgba() values — see tokens.scrim.*, tokens.shadow.*, or alpha() against a palette color.',
   },

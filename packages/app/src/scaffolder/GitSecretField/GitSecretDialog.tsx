@@ -16,6 +16,8 @@ import {
   FormHelperText,
   Box,
 } from '@material-ui/core';
+import { alpha, useTheme } from '@material-ui/core/styles';
+import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 
 type SecretType = 'basic-auth' | 'ssh-auth';
 
@@ -42,6 +44,8 @@ export const GitSecretDialog = ({
   onSubmit,
   existingSecretNames = [],
 }: GitSecretDialogProps) => {
+  const theme = useTheme();
+  const tokens = useChoreoTokens();
   const [secretName, setSecretName] = useState('');
   const [secretType, setSecretType] = useState<SecretType>('basic-auth');
   const [token, setToken] = useState('');
@@ -299,20 +303,14 @@ export const GitSecretDialog = ({
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               style={{
-                // Preserved original literals — these match MUI's classic
-                // indigo (`#3f51b5`) and a neutral grey (`#ccc`), not our
-                // theme's primary, so they're kept as literals.
-                border: isDragging
-                  ? // eslint-disable-next-line no-restricted-syntax
-                    '2px dashed #3f51b5'
-                  : // eslint-disable-next-line no-restricted-syntax
-                    '2px dashed #ccc',
+                border: `2px dashed ${
+                  isDragging ? theme.palette.primary.main : tokens.border.subtle
+                }`,
                 borderRadius: 8,
                 padding: 16,
                 marginTop: 16,
                 backgroundColor: isDragging
-                  ? // eslint-disable-next-line no-restricted-syntax
-                    'rgba(63, 81, 181, 0.05)'
+                  ? alpha(theme.palette.primary.main, 0.05)
                   : 'transparent',
                 transition: 'all 0.2s ease',
               }}

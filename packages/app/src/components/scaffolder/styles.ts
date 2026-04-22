@@ -182,11 +182,13 @@ export const useStyles = makeStyles(theme => ({
     padding: theme.spacing(0.5),
     color: theme.palette.text.disabled,
     '&:hover': {
-      color: (theme.palette as any).gold,
+      color: (theme.palette.type === 'dark' ? darkTokens : lightTokens).status
+        .gold,
     },
   },
   starButtonActive: {
-    color: (theme.palette as any).gold,
+    color: (theme.palette.type === 'dark' ? darkTokens : lightTokens).status
+      .gold,
   },
   templateCardFooter: {
     display: 'flex',

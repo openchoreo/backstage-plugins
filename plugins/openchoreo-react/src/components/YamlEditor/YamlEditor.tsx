@@ -41,10 +41,6 @@ const useStyles = makeStyles(theme => ({
     lineHeight: 2,
     margin: theme.spacing(0, 1),
     padding: theme.spacing(1),
-    backgroundColor:
-      theme.palette.type === 'dark'
-        ? darkTokens.editor.errorPanelBackground
-        : lightTokens.editor.errorPanelBackground,
     borderTop: `1px solid ${theme.palette.error.main}`,
     fontFamily: 'monospace',
     fontSize: '0.875rem',
@@ -144,9 +140,12 @@ export function YamlEditor({
 
     const dom = document.createElement('div');
     dom.classList.add(classes.errorPanel);
+    dom.style.backgroundColor = effectiveDark
+      ? darkTokens.editor.errorPanelBackground
+      : lightTokens.editor.errorPanelBackground;
     dom.textContent = errorText;
     return showPanel.of(() => ({ dom, bottom: true }));
-  }, [classes.errorPanel, errorText]);
+  }, [classes.errorPanel, effectiveDark, errorText]);
 
   // Keyboard shortcut for save (Ctrl/Cmd+S)
   useKeyboardEvent(

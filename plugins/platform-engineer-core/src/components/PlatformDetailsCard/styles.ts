@@ -53,14 +53,14 @@ export const useStyles = makeStyles(theme => ({
     fontSize: '0.875rem',
     // Original: `#6b7280`.
     color:
-      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.secondary.main,
+      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.text.subtle,
     fontWeight: 500,
   },
   environmentValue: {
     fontSize: '0.875rem',
     // Original: `#374151`.
     color:
-      theme.palette.type === 'dark' ? darkTokens.text.primary : lightTokens.secondary.dark,
+      theme.palette.type === 'dark' ? darkTokens.text.primary : lightTokens.grey[700],
   },
   componentCount: {
     display: 'flex',
@@ -87,7 +87,7 @@ export const useStyles = makeStyles(theme => ({
     padding: theme.spacing(4),
     // Original: `#6b7280`.
     color:
-      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.secondary.main,
+      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.text.subtle,
     fontStyle: 'italic',
   },
   emptyStateIcon: {
@@ -109,7 +109,7 @@ export const useStyles = makeStyles(theme => ({
     fontWeight: 600,
     // Original: `#6b7280`.
     color:
-      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.secondary.main,
+      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.text.subtle,
     marginBottom: theme.spacing(2),
   },
   planeSectionIcon: {
@@ -152,7 +152,7 @@ export const useStyles = makeStyles(theme => ({
     fontSize: '1.25rem',
     // Original: `#6b7280`.
     color:
-      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.secondary.main,
+      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.text.subtle,
   },
   agentDot: {
     width: 8,

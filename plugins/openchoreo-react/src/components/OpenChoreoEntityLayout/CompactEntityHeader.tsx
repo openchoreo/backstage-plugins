@@ -31,6 +31,10 @@ import {
   type EntityRelation,
 } from '@backstage/catalog-model';
 import { useNavigate } from 'react-router-dom';
+import {
+  lightTokens,
+  darkTokens,
+} from '@openchoreo/backstage-design-system';
 
 export interface CompactEntityHeaderProps {
   entity: Entity;
@@ -149,9 +153,8 @@ const useStyles = makeStyles(
     favorite: {
       display: 'inline-flex',
       '& button:hover svg': {
-        // Branded gold from the theme palette — surfaced via the Backstage
-        // palette extension defined in `buildOpenChoreoTheme`.
-        color: (theme.palette as any).gold,
+        color: (theme.palette.type === 'dark' ? darkTokens : lightTokens).status
+          .gold,
       },
     },
     breadcrumbs: {

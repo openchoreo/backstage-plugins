@@ -433,7 +433,7 @@ export const lightTokens: ThemeTokens = {
 // for readability against dark surfaces, but brand identity is preserved.
 
 const darkPrimary: ColorScale = {
-  light: '#8fa0ea',
+  light: '#a8b5ff',
   main: '#8fa0ea',
   dark: '#6c7fd8',
 };
