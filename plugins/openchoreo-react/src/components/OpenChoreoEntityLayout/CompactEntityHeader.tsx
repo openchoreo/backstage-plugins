@@ -31,10 +31,7 @@ import {
   type EntityRelation,
 } from '@backstage/catalog-model';
 import { useNavigate } from 'react-router-dom';
-import {
-  lightTokens,
-  darkTokens,
-} from '@openchoreo/backstage-design-system';
+import { lightTokens, darkTokens } from '@openchoreo/backstage-design-system';
 
 export interface CompactEntityHeaderProps {
   entity: Entity;

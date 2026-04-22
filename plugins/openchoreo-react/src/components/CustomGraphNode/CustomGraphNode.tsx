@@ -256,9 +256,7 @@ export function CustomGraphNode({
                 textAnchor="start"
                 dominantBaseline="central"
                 className={classes.kindBadgeText}
-                style={
-                  isDeleting ? { fill: deletionColor } : undefined
-                }
+                style={isDeleting ? { fill: deletionColor } : undefined}
               >
                 {kindLabel}
               </text>

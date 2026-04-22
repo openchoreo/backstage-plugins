@@ -19,7 +19,9 @@ const useStyles = makeStyles(theme => ({
     padding: theme.spacing(3),
     borderRadius: '12px',
     border: `1px solid ${
-      theme.palette.type === 'dark' ? darkTokens.border.subtle : lightTokens.grey[100]
+      theme.palette.type === 'dark'
+        ? darkTokens.border.subtle
+        : lightTokens.grey[100]
     }`,
     boxShadow:
       theme.palette.type === 'dark'
@@ -59,7 +61,9 @@ const useStyles = makeStyles(theme => ({
     padding: theme.spacing(3),
     borderRadius: '12px',
     border: `1px solid ${
-      theme.palette.type === 'dark' ? darkTokens.border.subtle : lightTokens.grey[100]
+      theme.palette.type === 'dark'
+        ? darkTokens.border.subtle
+        : lightTokens.grey[100]
     }`,
   },
 }));

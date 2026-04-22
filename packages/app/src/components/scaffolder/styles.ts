@@ -111,7 +111,9 @@ export const useStyles = makeStyles(theme => ({
     borderRadius: 12,
     backgroundColor: theme.palette.background.paper,
     border: `1px solid ${
-      theme.palette.type === 'dark' ? darkTokens.border.subtle : lightTokens.grey[100]
+      theme.palette.type === 'dark'
+        ? darkTokens.border.subtle
+        : lightTokens.grey[100]
     }`,
     boxShadow:
       theme.palette.type === 'dark'
@@ -131,11 +133,13 @@ export const useStyles = makeStyles(theme => ({
     cursor: 'default',
     '&:hover': {
       borderColor:
-        theme.palette.type === 'dark' ? darkTokens.border.subtle : lightTokens.grey[100],
+        theme.palette.type === 'dark'
+          ? darkTokens.border.subtle
+          : lightTokens.grey[100],
       boxShadow:
-      theme.palette.type === 'dark'
-        ? darkTokens.shadow.card
-        : lightTokens.shadow.card,
+        theme.palette.type === 'dark'
+          ? darkTokens.shadow.card
+          : lightTokens.shadow.card,
       transform: 'none',
     },
   },
@@ -214,9 +218,9 @@ export const useStyles = makeStyles(theme => ({
     '&:hover': {
       borderColor: 'inherit',
       boxShadow:
-      theme.palette.type === 'dark'
-        ? darkTokens.shadow.card
-        : lightTokens.shadow.card,
+        theme.palette.type === 'dark'
+          ? darkTokens.shadow.card
+          : lightTokens.shadow.card,
       transform: 'none',
     },
   },

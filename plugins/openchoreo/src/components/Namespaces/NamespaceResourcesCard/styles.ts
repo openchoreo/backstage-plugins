@@ -10,10 +10,14 @@ export const useNamespaceResourcesCardStyles = makeStyles(theme => ({
     '& [class*="MuiPaper-root"][class*="MuiPaper-elevation"]': {
       borderRadius: '12px !important',
       border: `1px solid ${
-        theme.palette.type === 'dark' ? darkTokens.border.subtle : lightTokens.grey[100]
+        theme.palette.type === 'dark'
+          ? darkTokens.border.subtle
+          : lightTokens.grey[100]
       } !important`,
       boxShadow: `${
-        theme.palette.type === 'dark' ? darkTokens.shadow.card : lightTokens.shadow.card
+        theme.palette.type === 'dark'
+          ? darkTokens.shadow.card
+          : lightTokens.shadow.card
       } !important`,
     },
     '& [class*="MuiTableFooter-root"]': {

@@ -10,7 +10,9 @@ export const useStyles = makeStyles(theme => ({
   environmentHeader: {
     padding: theme.spacing(2),
     borderBottom: `1px solid ${
-      theme.palette.type === 'dark' ? darkTokens.border.subtle : lightTokens.grey[100]
+      theme.palette.type === 'dark'
+        ? darkTokens.border.subtle
+        : lightTokens.grey[100]
     }`,
     display: 'flex',
     justifyContent: 'space-between',
@@ -19,7 +21,9 @@ export const useStyles = makeStyles(theme => ({
   environmentName: {
     // Original: `#111827`.
     color:
-      theme.palette.type === 'dark' ? darkTokens.text.primary : lightTokens.common.black,
+      theme.palette.type === 'dark'
+        ? darkTokens.text.primary
+        : lightTokens.common.black,
     marginBottom: theme.spacing(0.5),
   },
   environmentChip: {
@@ -53,14 +57,18 @@ export const useStyles = makeStyles(theme => ({
     fontSize: '0.875rem',
     // Original: `#6b7280`.
     color:
-      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.text.subtle,
+      theme.palette.type === 'dark'
+        ? darkTokens.text.secondary
+        : lightTokens.text.subtle,
     fontWeight: 500,
   },
   environmentValue: {
     fontSize: '0.875rem',
     // Original: `#374151`.
     color:
-      theme.palette.type === 'dark' ? darkTokens.text.primary : lightTokens.grey[700],
+      theme.palette.type === 'dark'
+        ? darkTokens.text.primary
+        : lightTokens.grey[700],
   },
   componentCount: {
     display: 'flex',
@@ -87,7 +95,9 @@ export const useStyles = makeStyles(theme => ({
     padding: theme.spacing(4),
     // Original: `#6b7280`.
     color:
-      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.text.subtle,
+      theme.palette.type === 'dark'
+        ? darkTokens.text.secondary
+        : lightTokens.text.subtle,
     fontStyle: 'italic',
   },
   emptyStateIcon: {
@@ -109,14 +119,18 @@ export const useStyles = makeStyles(theme => ({
     fontWeight: 600,
     // Original: `#6b7280`.
     color:
-      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.text.subtle,
+      theme.palette.type === 'dark'
+        ? darkTokens.text.secondary
+        : lightTokens.text.subtle,
     marginBottom: theme.spacing(2),
   },
   planeSectionIcon: {
     fontSize: '1.1rem',
     // Original: `#9ca3af`.
     color:
-      theme.palette.type === 'dark' ? darkTokens.text.verySubtle : lightTokens.grey[400],
+      theme.palette.type === 'dark'
+        ? darkTokens.text.verySubtle
+        : lightTokens.grey[400],
   },
   planeColumnCards: {
     display: 'flex',
@@ -152,7 +166,9 @@ export const useStyles = makeStyles(theme => ({
     fontSize: '1.25rem',
     // Original: `#6b7280`.
     color:
-      theme.palette.type === 'dark' ? darkTokens.text.secondary : lightTokens.text.subtle,
+      theme.palette.type === 'dark'
+        ? darkTokens.text.secondary
+        : lightTokens.text.subtle,
   },
   agentDot: {
     width: 8,

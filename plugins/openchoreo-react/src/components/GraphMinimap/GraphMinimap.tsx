@@ -141,8 +141,8 @@ export function GraphMinimap({
         ['--minimap-shadow' as string]: tokens.shadow.md,
         ['--minimap-dim' as string]: tokens.scrim.med,
         ['--minimap-viewport-tint' as string]: tokens.graph.minimapViewportTint,
-        ['--minimap-viewport-tint-active' as string]: tokens.graph
-          .minimapViewportBorder,
+        ['--minimap-viewport-tint-active' as string]:
+          tokens.graph.minimapViewportBorder,
         ['--minimap-viewport-border' as string]: tokens.primary.main,
       }}
     >
