@@ -517,6 +517,25 @@ export function buildOpenChoreoTheme(t: ThemeTokens): UnifiedTheme {
             },
           }
         : {},
+      // Backstage's default theme ships a light-grey `MuiTooltip` tooltip bg
+      // that renders white label text unreadable in dark mode. Pin the tooltip
+      // to a dark surface with high-contrast text in both modes — tooltips
+      // benefit from consistent dark styling regardless of page mode.
+      MuiTooltip: {
+        styleOverrides: {
+          tooltip: {
+            backgroundColor: isDark
+              ? t.surface.raised
+              : 'rgba(33, 37, 41, 0.92)',
+            color: t.common.white,
+            fontSize: 12,
+            border: isDark ? `1px solid ${t.border.default}` : 'none',
+          },
+          arrow: {
+            color: isDark ? t.surface.raised : 'rgba(33, 37, 41, 0.92)',
+          },
+        },
+      },
       MuiIconButton: {
         styleOverrides: {
           root: {
