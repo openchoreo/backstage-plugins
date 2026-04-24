@@ -7,9 +7,10 @@ import { parseEntityRef } from '@backstage/catalog-model';
 import { EntityRefLink } from '@backstage/plugin-catalog-react';
 import {
   getNodeColor,
+  getDefaultNodeColor,
   KIND_FULL_LABELS,
-  DEFAULT_NODE_COLOR,
 } from '@openchoreo/backstage-plugin-react';
+import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 import {
   List,
   ListItem,
@@ -22,6 +23,7 @@ import {
   Box,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import type { ThemeTokens } from '@openchoreo/backstage-design-system';
 import Skeleton from '@material-ui/lab/Skeleton';
 import HomeIcon from '@material-ui/icons/Home';
 import CategoryIcon from '@material-ui/icons/Category';
@@ -34,56 +36,30 @@ import SettingsIcon from '@material-ui/icons/Settings';
 const NUM_VISITS_OPEN = 3;
 const NUM_VISITS_TOTAL = 8;
 
-const PAGE_CHIP_COLOR = '#6b7280';
-
 type PageOverride = {
   label: string;
   chipLabel: string;
-  chipColor: string;
   Icon: ComponentType<{ fontSize?: 'inherit' | 'small' }>;
 };
 
 const PAGE_OVERRIDES: Record<string, PageOverride> = {
-  '/': {
-    label: 'Home',
-    chipLabel: 'home',
-    chipColor: PAGE_CHIP_COLOR,
-    Icon: HomeIcon,
-  },
-  '/catalog': {
-    label: 'Catalog',
-    chipLabel: 'catalog',
-    chipColor: PAGE_CHIP_COLOR,
-    Icon: CategoryIcon,
-  },
-  '/search': {
-    label: 'Search',
-    chipLabel: 'search',
-    chipColor: PAGE_CHIP_COLOR,
-    Icon: SearchIcon,
-  },
+  '/': { label: 'Home', chipLabel: 'home', Icon: HomeIcon },
+  '/catalog': { label: 'Catalog', chipLabel: 'catalog', Icon: CategoryIcon },
+  '/search': { label: 'Search', chipLabel: 'search', Icon: SearchIcon },
   '/platform-overview': {
     label: 'Platform Overview',
     chipLabel: 'platform',
-    chipColor: PAGE_CHIP_COLOR,
     Icon: BubbleChartIcon,
   },
-  '/api-docs': {
-    label: 'APIs',
-    chipLabel: 'apis',
-    chipColor: PAGE_CHIP_COLOR,
-    Icon: ExtensionIcon,
-  },
+  '/api-docs': { label: 'APIs', chipLabel: 'apis', Icon: ExtensionIcon },
   '/create': {
     label: 'Create',
     chipLabel: 'create',
-    chipColor: PAGE_CHIP_COLOR,
     Icon: AddCircleOutlineIcon,
   },
   '/settings': {
     label: 'Settings',
     chipLabel: 'settings',
-    chipColor: PAGE_CHIP_COLOR,
     Icon: SettingsIcon,
   },
 };
@@ -155,8 +131,11 @@ function getRelativeTime(timestamp: number): string {
 
 function resolveVisit(
   visit: Visit,
+  tokens: ThemeTokens,
   getSystemIcon: (key: string) => IconComponent | undefined,
 ) {
+  const pageChipColor = tokens.entityKindDefault.accent;
+
   // 1. Entity visit
   if (visit.entityRef) {
     try {
@@ -164,7 +143,7 @@ function resolveVisit(
       const KindIcon = getSystemIcon(`kind:${kind.toLowerCase()}`);
       return {
         chipLabel: getChipLabel(kind),
-        chipColor: getNodeColor(kind),
+        chipColor: getNodeColor(kind, tokens),
         Icon: KindIcon,
         name: null, // use EntityRefLink
       };
@@ -178,7 +157,7 @@ function resolveVisit(
   if (override) {
     return {
       chipLabel: override.chipLabel,
-      chipColor: override.chipColor,
+      chipColor: pageChipColor,
       Icon: override.Icon as IconComponent | undefined,
       name: override.label,
     };
@@ -187,7 +166,7 @@ function resolveVisit(
   // 3. Unknown non-entity visit
   return {
     chipLabel: 'other',
-    chipColor: DEFAULT_NODE_COLOR,
+    chipColor: getDefaultNodeColor(tokens),
     Icon: undefined,
     name: visit.name,
   };
@@ -196,8 +175,11 @@ function resolveVisit(
 const VisitItem = ({ visit }: { visit: Visit }) => {
   const classes = useStyles();
   const app = useApp();
-  const { chipLabel, chipColor, Icon, name } = resolveVisit(visit, key =>
-    app.getSystemIcon(key),
+  const tokens = useChoreoTokens();
+  const { chipLabel, chipColor, Icon, name } = resolveVisit(
+    visit,
+    tokens,
+    key => app.getSystemIcon(key),
   );
 
   return (

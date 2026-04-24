@@ -7,7 +7,7 @@
 import { DependencyGraphTypes } from '@backstage/core-components';
 import { IconComponent } from '@backstage/core-plugin-api';
 import { useEntityPresentation } from '@backstage/plugin-catalog-react';
-import { makeStyles, useTheme } from '@material-ui/core/styles';
+import { makeStyles } from '@material-ui/core/styles';
 import clsx from 'clsx';
 import { useLayoutEffect, useRef, useState } from 'react';
 import SvgIcon from '@material-ui/core/SvgIcon';
@@ -15,12 +15,14 @@ import { OverridableComponent } from '@material-ui/core/OverridableComponent';
 import { SvgIconTypeMap } from '@material-ui/core/SvgIcon/SvgIcon';
 import { DEFAULT_NAMESPACE, Entity } from '@backstage/catalog-model';
 import { EntityNodeData } from '@backstage/plugin-catalog-graph';
+import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 import {
-  DELETION_WARNING_COLOR,
+  getDeletionWarningColor,
   getNodeColor,
   getNodeKindLabel,
   getNodeTintFill,
   isNodeMarkedForDeletion,
+  withAlpha,
 } from '../../utils/graphUtils';
 
 // Inline EntityIcon component to avoid import issues
@@ -76,8 +78,7 @@ export function CustomGraphNode({
   // Cast entity to Entity type for useEntityPresentation
   const entityObj = entity as Entity;
   const classes = useStyles();
-  const theme = useTheme();
-  const isDark = theme.palette.type === 'dark';
+  const tokens = useChoreoTokens();
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(0);
   const [badgeWidth, setBadgeWidth] = useState(0);
@@ -130,11 +131,12 @@ export function CustomGraphNode({
   const kindLabel = isDeleting ? 'Deleting' : getNodeKindLabel(entity.kind);
 
   // Get kind-based color and tint fill
-  const nodeColor = getNodeColor(entity.kind);
-  const tintFill = getNodeTintFill(nodeColor, isDark);
+  const nodeColor = getNodeColor(entity.kind, tokens);
+  const tintFill = getNodeTintFill(entity.kind, tokens);
+  const deletionColor = getDeletionWarningColor(tokens);
   const borderColor = isDeleting
-    ? `${DELETION_WARNING_COLOR}B3`
-    : `${nodeColor}B3`; // accent color at 70% opacity
+    ? withAlpha(deletionColor, 0.7)
+    : withAlpha(nodeColor, 0.7);
 
   // Sanitize entity ref for use as a unique SVG ID
   const sanitizedId = id.replace(/[^a-zA-Z0-9]/g, '-');
@@ -164,7 +166,7 @@ export function CustomGraphNode({
               y1="0"
               x2="0"
               y2="6"
-              stroke={DELETION_WARNING_COLOR}
+              stroke={deletionColor}
               strokeWidth="1.5"
               strokeOpacity="0.15"
             />
@@ -199,7 +201,7 @@ export function CustomGraphNode({
       <rect
         width={accentWidth}
         height={paddedHeight}
-        fill={isDeleting ? DELETION_WARNING_COLOR : nodeColor}
+        fill={isDeleting ? deletionColor : nodeColor}
         clipPath={`url(#${clipId})`}
       />
       {hasKindIcon && (
@@ -254,9 +256,7 @@ export function CustomGraphNode({
                 textAnchor="start"
                 dominantBaseline="central"
                 className={classes.kindBadgeText}
-                style={
-                  isDeleting ? { fill: DELETION_WARNING_COLOR } : undefined
-                }
+                style={isDeleting ? { fill: deletionColor } : undefined}
               >
                 {kindLabel}
               </text>

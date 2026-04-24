@@ -106,7 +106,10 @@ export const useTracesTableStyles = makeStyles((theme: Theme) => ({
 export const useWaterfallStyles = makeStyles((theme: Theme) => ({
   container: {
     padding: theme.spacing(2),
-    backgroundColor: '#fafafa',
+    backgroundColor:
+      theme.palette.type === 'dark'
+        ? theme.palette.background.default
+        : '#fafafa',
     overflowX: 'auto',
   },
   timeline: {
@@ -159,6 +162,9 @@ export const useWaterfallStyles = makeStyles((theme: Theme) => ({
     paddingRight: theme.spacing(1),
     fontSize: '0.75rem',
     fontWeight: 500,
+    // Span bar background colors are pastel, designed for dark-on-light text
+    // in both modes. Force dark text regardless of theme mode.
+    color: 'rgba(0, 0, 0, 0.87)',
     '&:hover': {
       opacity: 0.8,
       zIndex: 10,

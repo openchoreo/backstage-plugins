@@ -383,13 +383,18 @@ export {
 
 // Graph utilities
 export {
-  ENTITY_KIND_COLORS,
-  DEFAULT_NODE_COLOR,
   KIND_LABEL_PREFIXES,
   KIND_FULL_LABELS,
+  getEntityKindPalette,
   getNodeColor,
+  getNodeTintFill,
+  getDefaultNodeColor,
+  getEdgeColor,
+  getDeletionWarningColor,
   getNodeDisplayLabel,
   getNodeKindLabel,
+  isNodeMarkedForDeletion,
+  withAlpha,
 } from './utils/graphUtils';
 export { DEPENDENCY_GRAPH_CUSTOM_ZOOM_ATTR } from './constants/graph';
 export {

@@ -3,6 +3,7 @@ import { IconButton, Box, Tooltip } from '@material-ui/core';
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import LockIcon from '@material-ui/icons/Lock';
 import LockOpenIcon from '@material-ui/icons/LockOpen';
+import { darkTokens } from '../../theme/tokens';
 
 const useStyles = makeStyles((theme: Theme) => ({
   container: {
@@ -20,12 +21,24 @@ const useStyles = makeStyles((theme: Theme) => ({
     transition: 'all 0.2s ease',
     '&:hover': {
       borderColor: theme.palette.text.primary,
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      // Original: `0 2px 4px rgba(0,0,0,0.1)` — preserved as a literal
+      // because our shadow.md uses an 8px blur, not 4px.
+      boxShadow:
+        theme.palette.type === 'dark'
+          ? darkTokens.shadow.md
+          : // eslint-disable-next-line no-restricted-syntax
+            '0 2px 4px rgba(0,0,0,0.1)',
       transform: 'translateY(-1px)',
     },
     '&:active': {
       transform: 'translateY(0)',
-      boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+      // Original: `0 1px 2px rgba(0,0,0,0.1)` — differs from shadow.sm in
+      // opacity (.1 vs .05), kept as a literal.
+      boxShadow:
+        theme.palette.type === 'dark'
+          ? darkTokens.shadow.sm
+          : // eslint-disable-next-line no-restricted-syntax
+            '0 1px 2px rgba(0,0,0,0.1)',
     },
     '&:focus-visible': {
       outline: `2px solid ${theme.palette.primary.main}`,

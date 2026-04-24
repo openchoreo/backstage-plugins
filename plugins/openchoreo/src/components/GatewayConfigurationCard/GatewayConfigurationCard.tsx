@@ -3,7 +3,11 @@ import { makeStyles } from '@material-ui/core/styles';
 import PublicIcon from '@material-ui/icons/Public';
 import VpnLockIcon from '@material-ui/icons/VpnLock';
 import DeviceHubIcon from '@material-ui/icons/DeviceHub';
-import { Card } from '@openchoreo/backstage-design-system';
+import {
+  Card,
+  lightTokens,
+  darkTokens,
+} from '@openchoreo/backstage-design-system';
 
 const useStyles = makeStyles(theme => ({
   card: {
@@ -11,9 +15,16 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     flexDirection: 'column',
     borderRadius: '12px !important',
-    border: '1px solid rgb(243, 244, 246) !important',
-    boxShadow:
-      'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px !important',
+    border: `1px solid ${
+      theme.palette.type === 'dark'
+        ? darkTokens.border.subtle
+        : lightTokens.grey[100]
+    } !important`,
+    boxShadow: `${
+      theme.palette.type === 'dark'
+        ? darkTokens.shadow.card
+        : lightTokens.shadow.card
+    } !important`,
   },
   cardHeader: {
     display: 'flex',

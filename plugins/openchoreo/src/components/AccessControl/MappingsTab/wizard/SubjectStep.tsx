@@ -7,7 +7,7 @@ import {
   RadioGroup,
   FormControlLabel,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { alpha, makeStyles } from '@material-ui/core/styles';
 import PersonIcon from '@material-ui/icons/Person';
 import SettingsIcon from '@material-ui/icons/Settings';
 import { NotificationBanner } from '@openchoreo/backstage-plugin-react';
@@ -41,13 +41,23 @@ const useStyles = makeStyles(theme => ({
     alignItems: 'center',
     gap: theme.spacing(2),
     '&:hover': {
-      backgroundColor: theme.palette.secondary.light,
+      backgroundColor: theme.palette.action.hover,
     },
   },
+  // Use a translucent primary tint so the selected surface reads correctly
+  // in both light and dark themes. The previous `palette.primary.light`
+  // resolved to a bright purple in dark mode, making the text vanish
+  // against the fill when unhovered.
   typeCardSelected: {
-    backgroundColor: theme.palette.primary.light,
+    backgroundColor: alpha(theme.palette.primary.main, 0.12),
     borderColor: theme.palette.primary.main,
     borderWidth: 2,
+    '&:hover': {
+      backgroundColor: alpha(theme.palette.primary.main, 0.18),
+    },
+    '& $typeIcon, & $typeName, & $typeDescription': {
+      color: theme.palette.primary.main,
+    },
   },
   typeIcon: {
     color: theme.palette.text.secondary,

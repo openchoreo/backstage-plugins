@@ -1,11 +1,12 @@
-import { makeStyles, useTheme } from '@material-ui/core/styles';
+import { makeStyles } from '@material-ui/core/styles';
 import Box from '@material-ui/core/Box';
 import Chip from '@material-ui/core/Chip';
+import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 import {
-  DELETION_WARNING_COLOR,
-  ENTITY_KIND_COLORS,
-  DEFAULT_NODE_COLOR,
+  getDeletionWarningColor,
+  getNodeColor,
   getNodeTintFill,
+  withAlpha,
 } from '../../utils/graphUtils';
 
 const useStyles = makeStyles(theme => ({
@@ -14,13 +15,8 @@ const useStyles = makeStyles(theme => ({
     flexWrap: 'wrap',
     gap: theme.spacing(0.5),
     padding: theme.spacing(1),
-    backgroundColor:
-      theme.palette.type === 'dark'
-        ? 'rgba(30, 30, 30, 0.75)'
-        : 'rgba(255, 255, 255, 0.75)',
     backdropFilter: 'blur(8px)',
     border: `1px solid ${theme.palette.divider}`,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
     borderRadius: theme.shape.borderRadius,
   },
   chip: {
@@ -68,8 +64,16 @@ export function GraphLegend({
   kinds,
   showDeletionIndicator = true,
 }: GraphLegendProps) {
+  const classes = useStyles();
+  const tokens = useChoreoTokens();
   return (
-    <Box className={useStyles().root}>
+    <Box
+      className={classes.root}
+      style={{
+        backgroundColor: tokens.graph.minimapMask,
+        boxShadow: tokens.shadow.md,
+      }}
+    >
       {kinds.map(kind => (
         <LegendChip key={kind} kind={kind} />
       ))}
@@ -80,10 +84,9 @@ export function GraphLegend({
 
 function LegendChip({ kind }: { kind: string }) {
   const classes = useStyles();
-  const theme = useTheme();
-  const color = ENTITY_KIND_COLORS[kind.toLowerCase()] ?? DEFAULT_NODE_COLOR;
+  const tokens = useChoreoTokens();
+  const color = getNodeColor(kind, tokens);
   const label = KIND_LABELS[kind.toLowerCase()] ?? kind;
-  const isDark = theme.palette.type === 'dark';
 
   return (
     <Chip
@@ -91,8 +94,8 @@ function LegendChip({ kind }: { kind: string }) {
       label={label}
       className={classes.chip}
       style={{
-        backgroundColor: getNodeTintFill(color, isDark),
-        border: `1px solid ${color}B3`,
+        backgroundColor: getNodeTintFill(kind, tokens),
+        border: `1px solid ${withAlpha(color, 0.7)}`,
         ['--dot-color' as string]: color,
       }}
     />
@@ -101,8 +104,8 @@ function LegendChip({ kind }: { kind: string }) {
 
 function DeletionLegendChip() {
   const classes = useStyles();
-  const theme = useTheme();
-  const isDark = theme.palette.type === 'dark';
+  const tokens = useChoreoTokens();
+  const deletionColor = getDeletionWarningColor(tokens);
 
   return (
     <Chip
@@ -110,10 +113,10 @@ function DeletionLegendChip() {
       label="Marked for Deletion"
       className={classes.chip}
       style={{
-        backgroundColor: getNodeTintFill(DELETION_WARNING_COLOR, isDark),
-        border: `1px dashed ${DELETION_WARNING_COLOR}B3`,
+        backgroundColor: withAlpha(deletionColor, 0.15),
+        border: `1px dashed ${withAlpha(deletionColor, 0.7)}`,
         opacity: 0.6,
-        ['--dot-color' as string]: DELETION_WARNING_COLOR,
+        ['--dot-color' as string]: deletionColor,
       }}
     />
   );

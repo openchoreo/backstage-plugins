@@ -14,7 +14,8 @@ import {
   getFilterPresets,
   ALL_FILTERABLE_KINDS,
 } from '../../utils/platformOverviewConstants';
-import { ENTITY_KIND_COLORS, DEFAULT_NODE_COLOR } from '../../utils/graphUtils';
+import { useChoreoTokens } from '@openchoreo/backstage-design-system';
+import { getNodeColor } from '../../utils/graphUtils';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -80,6 +81,7 @@ export function GraphKindFilter({
   trailing,
 }: GraphKindFilterProps) {
   const classes = useStyles();
+  const tokens = useChoreoTokens();
   const selectedSet = useMemo(() => new Set(selectedKinds), [selectedKinds]);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const open = Boolean(anchorEl);
@@ -195,8 +197,7 @@ export function GraphKindFilter({
         <MenuList dense>
           {visibleKinds.map((kind, index) => {
             const isSelected = selectedSet.has(kind.id);
-            const color =
-              ENTITY_KIND_COLORS[kind.id.toLowerCase()] ?? DEFAULT_NODE_COLOR;
+            const color = getNodeColor(kind.id, tokens);
             const showDivider =
               kind.clusterScoped &&
               index > 0 &&

@@ -1,16 +1,13 @@
 import Box from '@material-ui/core/Box';
-import { useTheme } from '@material-ui/core/styles';
+import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 
 export type GraphSkeletonProps = {
   className?: string;
 };
 
 export function GraphSkeleton({ className }: GraphSkeletonProps) {
-  const theme = useTheme();
-  const isDark = theme.palette.type === 'dark';
-  const fill = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.08)';
-  const stroke = isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.14)';
-  const accent = isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.18)';
+  const tokens = useChoreoTokens();
+  const [fill, stroke, accent] = tokens.graph.skeletonStops;
 
   // Node dimensions matching real nodes
   const nw = 130;

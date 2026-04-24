@@ -8,18 +8,16 @@ import CenterFocusStrongIcon from '@material-ui/icons/CenterFocusStrong';
 import FullscreenIcon from '@material-ui/icons/Fullscreen';
 import FullscreenExitIcon from '@material-ui/icons/FullscreenExit';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
+import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 
 const useStyles = makeStyles(theme => ({
   root: {
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor:
-      theme.palette.type === 'dark'
-        ? 'rgba(30, 30, 30, 0.75)'
-        : 'rgba(255, 255, 255, 0.75)',
+    backgroundColor: 'var(--controls-bg)',
     backdropFilter: 'blur(8px)',
     border: `1px solid ${theme.palette.divider}`,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    boxShadow: 'var(--controls-shadow)',
     borderRadius: theme.shape.borderRadius,
     padding: theme.spacing(0.5),
   },
@@ -53,9 +51,16 @@ export function GraphControls({
   showLegend,
 }: GraphControlsProps) {
   const classes = useStyles();
+  const tokens = useChoreoTokens();
 
   return (
-    <Box className={classes.root}>
+    <Box
+      className={classes.root}
+      style={{
+        ['--controls-bg' as string]: tokens.graph.minimapMask,
+        ['--controls-shadow' as string]: tokens.shadow.md,
+      }}
+    >
       {onToggleLegend && (
         <Tooltip
           title={showLegend ? 'Hide legend' : 'Show legend'}

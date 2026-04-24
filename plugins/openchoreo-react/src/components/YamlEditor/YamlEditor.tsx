@@ -14,6 +14,11 @@ import Brightness4Icon from '@material-ui/icons/Brightness4';
 import Brightness7Icon from '@material-ui/icons/Brightness7';
 import { useKeyboardEvent } from '@react-hookz/web';
 import CodeMirror from '@uiw/react-codemirror';
+import {
+  useChoreoTokens,
+  lightTokens,
+  darkTokens,
+} from '@openchoreo/backstage-design-system';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -36,7 +41,6 @@ const useStyles = makeStyles(theme => ({
     lineHeight: 2,
     margin: theme.spacing(0, 1),
     padding: theme.spacing(1),
-    backgroundColor: theme.palette.type === 'dark' ? '#2d2d2d' : '#f5f5f5',
     borderTop: `1px solid ${theme.palette.error.main}`,
     fontFamily: 'monospace',
     fontSize: '0.875rem',
@@ -92,6 +96,12 @@ export interface YamlEditorProps {
   isSaving?: boolean;
   /** Whether the editor is read-only */
   readOnly?: boolean;
+  /**
+   * Optional override for the CodeMirror color scheme. When omitted, the
+   * editor follows the global Backstage theme. The floating toggle button
+   * always sets a local override that persists until the component unmounts.
+   */
+  isDarkTheme?: boolean;
 }
 
 /**
@@ -114,9 +124,13 @@ export function YamlEditor({
   isDirty = false,
   isSaving = false,
   readOnly = false,
+  isDarkTheme: isDarkThemeProp,
 }: YamlEditorProps) {
   const classes = useStyles();
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const tokens = useChoreoTokens();
+  const globalIsDark = tokens.editor.codeMirrorTheme === 'dark';
+  const [override, setOverride] = useState<boolean | undefined>(undefined);
+  const effectiveDark = override ?? isDarkThemeProp ?? globalIsDark;
 
   // Error panel extension
   const panelExtension = useMemo(() => {
@@ -126,9 +140,12 @@ export function YamlEditor({
 
     const dom = document.createElement('div');
     dom.classList.add(classes.errorPanel);
+    dom.style.backgroundColor = effectiveDark
+      ? darkTokens.editor.errorPanelBackground
+      : lightTokens.editor.errorPanelBackground;
     dom.textContent = errorText;
     return showPanel.of(() => ({ dom, bottom: true }));
-  }, [classes.errorPanel, errorText]);
+  }, [classes.errorPanel, effectiveDark, errorText]);
 
   // Keyboard shortcut for save (Ctrl/Cmd+S)
   useKeyboardEvent(
@@ -145,7 +162,7 @@ export function YamlEditor({
     <div className={classes.container}>
       <CodeMirror
         className={classes.codeMirror}
-        theme={isDarkTheme ? 'dark' : 'light'}
+        theme={effectiveDark ? 'dark' : 'light'}
         height="100%"
         extensions={[StreamLanguage.define(yamlSupport), panelExtension]}
         value={content}
@@ -163,15 +180,17 @@ export function YamlEditor({
             <>
               <Tooltip
                 title={
-                  isDarkTheme ? 'Switch to light theme' : 'Switch to dark theme'
+                  effectiveDark
+                    ? 'Switch to light theme'
+                    : 'Switch to dark theme'
                 }
               >
                 <IconButton
                   className={`${classes.floatingButton} ${classes.themeToggleButton}`}
-                  onClick={() => setIsDarkTheme(!isDarkTheme)}
+                  onClick={() => setOverride(!effectiveDark)}
                   size="small"
                 >
-                  {isDarkTheme ? <Brightness7Icon /> : <Brightness4Icon />}
+                  {effectiveDark ? <Brightness7Icon /> : <Brightness4Icon />}
                 </IconButton>
               </Tooltip>
               {onSave && (

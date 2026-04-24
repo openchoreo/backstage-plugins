@@ -1,4 +1,5 @@
 import { Box, Card, CardActionArea, Typography, Grid } from '@material-ui/core';
+import { useTheme } from '@material-ui/core/styles';
 import StorageIcon from '@material-ui/icons/Storage';
 import BuildIcon from '@material-ui/icons/Build';
 import VisibilityIcon from '@material-ui/icons/Visibility';
@@ -37,6 +38,7 @@ export const PlatformDetailsCard = ({
   clusterObservabilityPlanes = [],
 }: PlatformDetailsCardProps) => {
   const classes = useStyles();
+  const theme = useTheme();
   const navigate = useNavigate();
 
   const hasAnyPlanes =
@@ -97,8 +99,8 @@ export const PlatformDetailsCard = ({
                               variant="body2"
                               style={{
                                 color: plane.agentConnected
-                                  ? '#10b981'
-                                  : '#ef4444',
+                                  ? theme.palette.success.main
+                                  : theme.palette.error.main,
                                 fontSize: '0.75rem',
                               }}
                             >

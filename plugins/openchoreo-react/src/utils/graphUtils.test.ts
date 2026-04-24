@@ -1,16 +1,16 @@
+import { lightTokens, darkTokens } from '@openchoreo/backstage-design-system';
 import {
-  ENTITY_KIND_COLORS,
-  DEFAULT_NODE_COLOR,
-  ENTITY_KIND_TINTS,
-  getNodeTintFill,
   getNodeColor,
-  KIND_LABEL_PREFIXES,
+  getNodeTintFill,
+  getEntityKindPalette,
+  getDefaultNodeColor,
+  getEdgeColor,
+  getDeletionWarningColor,
   getNodeDisplayLabel,
-  KIND_FULL_LABELS,
   getNodeKindLabel,
   isNodeMarkedForDeletion,
-  DELETION_WARNING_COLOR,
-  EDGE_COLOR,
+  KIND_LABEL_PREFIXES,
+  KIND_FULL_LABELS,
 } from './graphUtils';
 
 describe('graphUtils', () => {
@@ -18,49 +18,103 @@ describe('graphUtils', () => {
 
   describe('getNodeColor', () => {
     it('returns correct color for known kinds', () => {
-      expect(getNodeColor('component')).toBe(ENTITY_KIND_COLORS.component);
-      expect(getNodeColor('environment')).toBe(ENTITY_KIND_COLORS.environment);
-      expect(getNodeColor('deploymentpipeline')).toBe(
-        ENTITY_KIND_COLORS.deploymentpipeline,
+      expect(getNodeColor('component', lightTokens)).toBe(
+        lightTokens.entityKind.component.accent,
       );
-      expect(getNodeColor('system')).toBe(ENTITY_KIND_COLORS.system);
+      expect(getNodeColor('environment', lightTokens)).toBe(
+        lightTokens.entityKind.environment.accent,
+      );
+      expect(getNodeColor('deploymentpipeline', lightTokens)).toBe(
+        lightTokens.entityKind.deploymentpipeline.accent,
+      );
+      expect(getNodeColor('system', lightTokens)).toBe(
+        lightTokens.entityKind.system.accent,
+      );
     });
 
     it('is case-insensitive', () => {
-      expect(getNodeColor('Component')).toBe(ENTITY_KIND_COLORS.component);
-      expect(getNodeColor('ENVIRONMENT')).toBe(ENTITY_KIND_COLORS.environment);
+      expect(getNodeColor('Component', lightTokens)).toBe(
+        lightTokens.entityKind.component.accent,
+      );
+      expect(getNodeColor('ENVIRONMENT', lightTokens)).toBe(
+        lightTokens.entityKind.environment.accent,
+      );
     });
 
     it('returns default color for unknown kind', () => {
-      expect(getNodeColor('unknownkind')).toBe(DEFAULT_NODE_COLOR);
+      expect(getNodeColor('unknownkind', lightTokens)).toBe(
+        lightTokens.entityKindDefault.accent,
+      );
     });
 
     it('returns default color for undefined', () => {
-      expect(getNodeColor(undefined)).toBe(DEFAULT_NODE_COLOR);
+      expect(getNodeColor(undefined, lightTokens)).toBe(
+        lightTokens.entityKindDefault.accent,
+      );
+    });
+
+    it('returns different accents across light and dark tokens', () => {
+      // Tokens drive the palette — the same kind resolves to a different hex
+      // in dark mode by construction.
+      const lightAccent = getNodeColor('environment', lightTokens);
+      const darkAccent = getNodeColor('environment', darkTokens);
+      expect(lightAccent).not.toBe(darkAccent);
     });
   });
 
   // ---- getNodeTintFill ----
 
   describe('getNodeTintFill', () => {
-    const environmentColor = ENTITY_KIND_COLORS.environment;
-
-    it('returns light tint for known accent', () => {
-      expect(getNodeTintFill(environmentColor, false)).toBe(
-        ENTITY_KIND_TINTS[environmentColor].light,
+    it('returns light tint for light tokens', () => {
+      expect(getNodeTintFill('environment', lightTokens)).toBe(
+        lightTokens.entityKind.environment.tint,
       );
     });
 
-    it('returns dark tint for known accent', () => {
-      expect(getNodeTintFill(environmentColor, true)).toBe(
-        ENTITY_KIND_TINTS[environmentColor].dark,
+    it('returns dark tint for dark tokens', () => {
+      expect(getNodeTintFill('environment', darkTokens)).toBe(
+        darkTokens.entityKind.environment.tint,
       );
     });
 
-    it('returns default tint for unknown accent', () => {
-      // DEFAULT_TINT is not exported, so we verify the fallback values directly
-      expect(getNodeTintFill('#ff0000', false)).toBe('#f3f4f6');
-      expect(getNodeTintFill('#ff0000', true)).toBe('#1f2128');
+    it('falls back to entityKindDefault for unknown kind', () => {
+      expect(getNodeTintFill('unknownkind', lightTokens)).toBe(
+        lightTokens.entityKindDefault.tint,
+      );
+      expect(getNodeTintFill('unknownkind', darkTokens)).toBe(
+        darkTokens.entityKindDefault.tint,
+      );
+    });
+  });
+
+  // ---- getEntityKindPalette ----
+
+  describe('getEntityKindPalette', () => {
+    it('returns accent and tint together', () => {
+      const palette = getEntityKindPalette('environment', lightTokens);
+      expect(palette.accent).toBe(lightTokens.entityKind.environment.accent);
+      expect(palette.tint).toBe(lightTokens.entityKind.environment.tint);
+    });
+  });
+
+  // ---- defaults ----
+
+  describe('defaults', () => {
+    it('getDefaultNodeColor reads from tokens', () => {
+      expect(getDefaultNodeColor(lightTokens)).toBe(
+        lightTokens.entityKindDefault.accent,
+      );
+    });
+
+    it('getEdgeColor reads from tokens', () => {
+      expect(getEdgeColor(lightTokens)).toBe(lightTokens.graph.edge);
+      expect(getEdgeColor(darkTokens)).toBe(darkTokens.graph.edge);
+    });
+
+    it('getDeletionWarningColor reads from tokens', () => {
+      expect(getDeletionWarningColor(lightTokens)).toBe(
+        lightTokens.deletionWarning,
+      );
     });
   });
 
@@ -141,7 +195,7 @@ describe('graphUtils', () => {
   // ---- Constants sanity checks ----
 
   describe('constants', () => {
-    it('ENTITY_KIND_COLORS covers all OpenChoreo custom kinds', () => {
+    it('tokens define palette for all OpenChoreo custom kinds', () => {
       const customKinds = [
         'environment',
         'dataplane',
@@ -160,14 +214,8 @@ describe('graphUtils', () => {
         'componentworkflow',
       ];
       for (const kind of customKinds) {
-        expect(ENTITY_KIND_COLORS[kind]).toBeDefined();
-      }
-    });
-
-    it('ENTITY_KIND_TINTS has an entry for each unique color in ENTITY_KIND_COLORS', () => {
-      const uniqueColors = new Set(Object.values(ENTITY_KIND_COLORS));
-      for (const color of uniqueColors) {
-        expect(ENTITY_KIND_TINTS[color]).toBeDefined();
+        expect(lightTokens.entityKind[kind]).toBeDefined();
+        expect(darkTokens.entityKind[kind]).toBeDefined();
       }
     });
 
@@ -177,9 +225,12 @@ describe('graphUtils', () => {
       expect(prefixKeys).toEqual(fullKeys);
     });
 
-    it('EDGE_COLOR and DELETION_WARNING_COLOR are valid hex strings', () => {
-      expect(EDGE_COLOR).toMatch(/^#[0-9a-f]{6}$/i);
-      expect(DELETION_WARNING_COLOR).toMatch(/^#[0-9a-f]{6}$/i);
+    it('edge and deletion colors are valid hex strings in both themes', () => {
+      const hex = /^#[0-9a-f]{6}$/i;
+      expect(getEdgeColor(lightTokens)).toMatch(hex);
+      expect(getEdgeColor(darkTokens)).toMatch(hex);
+      expect(getDeletionWarningColor(lightTokens)).toMatch(hex);
+      expect(getDeletionWarningColor(darkTokens)).toMatch(hex);
     });
   });
 });

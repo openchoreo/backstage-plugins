@@ -21,7 +21,8 @@ import { useEntityGraphData } from '../../hooks/useEntityGraphData';
 import { useGraphZoom } from '../../hooks/useGraphZoom';
 import type { GraphViewDefinition } from '../../utils/platformOverviewConstants';
 import type { ProjectEntry } from '../../hooks/useProjects';
-import { EDGE_COLOR } from '../../utils/graphUtils';
+import { useChoreoTokens } from '@openchoreo/backstage-design-system';
+import { withAlpha } from '../../utils/graphUtils';
 
 const useStyles = makeStyles(theme => ({
   fullscreenWrapper: {
@@ -39,10 +40,6 @@ const useStyles = makeStyles(theme => ({
     position: 'absolute',
     inset: 0,
     overflow: 'hidden',
-    backgroundImage:
-      theme.palette.type === 'dark'
-        ? 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)'
-        : 'radial-gradient(circle, rgba(0,0,0,0.05) 1px, transparent 1px)',
     backgroundSize: '20px 20px',
     '& > div': {
       height: '100%',
@@ -59,10 +56,7 @@ const useStyles = makeStyles(theme => ({
     '& .BackstageDependencyGraphEdge-path': {
       transition: 'none !important',
       strokeWidth: '1.5 !important',
-      stroke:
-        theme.palette.type === 'dark'
-          ? `${EDGE_COLOR}4D !important` // 30% opacity
-          : `${EDGE_COLOR}59 !important`, // 35% opacity
+      stroke: 'var(--graph-edge-stroke) !important',
       strokeLinecap: 'round',
       markerEnd: 'url(#custom-arrow) !important',
     },
@@ -125,6 +119,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 function GraphDefs() {
+  const tokens = useChoreoTokens();
   return (
     <>
       <filter id="node-shadow">
@@ -132,7 +127,7 @@ function GraphDefs() {
           dx="0"
           dy="1"
           stdDeviation="2"
-          floodColor="rgba(0,0,0,0.10)"
+          floodColor={tokens.graph.nodeShadowInner}
         />
       </filter>
       <filter id="node-hover-glow">
@@ -140,7 +135,7 @@ function GraphDefs() {
           dx="0"
           dy="2"
           stdDeviation="4"
-          floodColor="rgba(0,0,0,0.18)"
+          floodColor={tokens.graph.nodeShadowOuter}
         />
       </filter>
       <marker
@@ -154,7 +149,7 @@ function GraphDefs() {
         markerUnits="strokeWidth"
       >
         <path
-          fill={`${EDGE_COLOR}80`}
+          fill={withAlpha(tokens.graph.edge, 0.5)}
           d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"
         />
       </marker>
@@ -184,6 +179,7 @@ export function PlatformOverviewGraphView({
   rankMargin = 100,
 }: PlatformOverviewGraphViewProps) {
   const classes = useStyles();
+  const tokens = useChoreoTokens();
   const fullscreenHandle = useFullScreenHandle();
   const [showLegend, setShowLegend] = useState(false);
 
@@ -276,7 +272,14 @@ export function PlatformOverviewGraphView({
           {!graphReady && <GraphSkeleton className={classes.graphSkeleton} />}
           <Box
             className={classes.graph}
-            style={{ opacity: graphReady ? 1 : 0 }}
+            style={{
+              opacity: graphReady ? 1 : 0,
+              backgroundImage: tokens.graph.canvasDotPattern,
+              ['--graph-edge-stroke' as string]: withAlpha(
+                tokens.graph.edge,
+                tokens.mode === 'dark' ? 0.3 : 0.35,
+              ),
+            }}
           >
             <DependencyGraph
               nodes={nodes}

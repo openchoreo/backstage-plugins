@@ -24,8 +24,10 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
   ),
 }));
 
-// Mock design system Card
+// Mock design system Card — keep real theme tokens so that styles.ts
+// (`lightTokens.shadow.card`) still resolves when the component mounts.
 jest.mock('@openchoreo/backstage-design-system', () => ({
+  ...jest.requireActual('@openchoreo/backstage-design-system'),
   Card: ({ children, ...props }: any) => (
     <div data-testid="ds-card" {...props}>
       {children}

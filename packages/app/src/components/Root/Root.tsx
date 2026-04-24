@@ -53,7 +53,7 @@ const useSearchModalStyles = makeStyles({
   },
 });
 
-const useSidebarLogoStyles = makeStyles({
+const useSidebarLogoStyles = makeStyles(theme => ({
   root: {
     width: sidebarConfig.drawerWidthClosed,
     height: 2.25 * sidebarConfig.logoHeight,
@@ -72,15 +72,15 @@ const useSidebarLogoStyles = makeStyles({
     right: -20,
     top: '50%',
     transform: 'translateY(-50%)',
-    backgroundColor: 'white',
-    border: '1px solid #e0e0e0',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    backgroundColor: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: theme.shadows[2],
     zIndex: 1000,
     '&:hover': {
-      backgroundColor: '#f5f5f5',
+      backgroundColor: theme.palette.action.hover,
     },
   },
-});
+}));
 
 const SidebarLogo = () => {
   const classes = useSidebarLogoStyles();

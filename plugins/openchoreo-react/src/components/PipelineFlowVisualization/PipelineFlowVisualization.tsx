@@ -1,4 +1,5 @@
 import { Box, Typography, Button, makeStyles } from '@material-ui/core';
+import { alpha } from '@material-ui/core/styles';
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
 import clsx from 'clsx';
 import { Link } from '@backstage/core-components';
@@ -26,14 +27,14 @@ const useStyles = makeStyles(theme => ({
     fontWeight: 500,
   },
   currentEnvironment: {
-    backgroundColor: '#10b981', // success.main - green to match graph labels
-    color: '#ffffff',
-    border: '2px solid #059669', // success.dark
+    backgroundColor: theme.palette.success.main,
+    color: theme.palette.common.white,
+    border: `2px solid ${theme.palette.success.dark}`,
   },
   otherEnvironment: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)', // transparent green
-    color: '#059669', // success.dark - green text
-    border: '1.5px solid #10b981', // success.main border
+    backgroundColor: alpha(theme.palette.success.main, 0.1),
+    color: theme.palette.success.dark,
+    border: `1.5px solid ${theme.palette.success.main}`,
   },
   arrow: {
     color: theme.palette.text.secondary,
