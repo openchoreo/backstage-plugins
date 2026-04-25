@@ -29,4 +29,5 @@ export { useProjectIncidents } from './useProjectIncidents';
 export { useUpdateIncident } from './useUpdateIncident';
 export { useTriggers } from './useTriggers';
 export { useRetries } from './useRetries';
+export { usePodLogs } from './usePodLogs';
 export { useUrlFiltersForTriggers } from './useUrlFiltersForTriggers';

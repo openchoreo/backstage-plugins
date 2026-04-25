@@ -210,6 +210,20 @@ export interface ObservabilityApi {
     environmentName: string,
     componentName: string,
   ): Promise<RetriesQueryResponse>;
+
+  getPodLogs(
+    podName: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<LogsResponse>;
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
@@ -1143,6 +1157,58 @@ export class ObservabilityClient implements ObservabilityApi {
       total: data.total ?? 0,
       tookMs: data.tookMs ?? 0,
     };
+  }
+
+  async getPodLogs(
+    podName: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<LogsResponse> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1/logs/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          startTime:
+            options?.startTime ??
+            new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+          endTime: options?.endTime ?? new Date().toISOString(),
+          limit: options?.limit ?? 500,
+          sortOrder: options?.sortOrder ?? 'asc',
+          searchScope: {
+            namespace: namespaceName,
+            project: projectName,
+            component: componentName,
+            environment: environmentName,
+            podName,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(
+        error || `Failed to fetch pod logs: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    return data;
   }
 
   private async parseError(response: Response): Promise<string> {

@@ -63,4 +63,58 @@ export const useTriggersStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(0.5),
     marginTop: theme.spacing(1),
   },
+  logsContainer: {
+    maxHeight: 320,
+    overflowY: 'auto',
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 4,
+    backgroundColor: theme.palette.background.default,
+    padding: theme.spacing(0.5, 1),
+  },
+  logLine: {
+    display: 'flex',
+    gap: theme.spacing(1),
+    fontSize: '11px',
+    fontFamily: 'monospace',
+    padding: '2px 0',
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    '&:last-child': {
+      borderBottom: 'none',
+    },
+  },
+  logTimestamp: {
+    color: theme.palette.text.secondary,
+    whiteSpace: 'nowrap',
+    minWidth: 160,
+  },
+  logLevel: {
+    fontWeight: 'bold',
+    minWidth: 50,
+    textTransform: 'uppercase',
+  },
+  logPod: {
+    color: theme.palette.text.secondary,
+    minWidth: 0,
+    maxWidth: 220,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  logMessage: {
+    flex: 1,
+    wordBreak: 'break-word',
+    whiteSpace: 'pre-wrap',
+  },
+  logLevelError: {
+    color: theme.palette.error.main,
+  },
+  logLevelWarn: {
+    color: theme.palette.warning.dark,
+  },
+  logLevelInfo: {
+    color: theme.palette.info.dark,
+  },
+  logLevelDebug: {
+    color: theme.palette.text.secondary,
+  },
 }));

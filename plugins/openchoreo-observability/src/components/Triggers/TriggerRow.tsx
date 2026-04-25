@@ -145,7 +145,16 @@ export const TriggerRow: FC<TriggerRowProps> = ({
                     </TableHead>
                     <TableBody>
                       {retries.map(retry => (
-                        <RetryRow key={retry.podName} retry={retry} />
+                        <RetryRow
+                          key={retry.podName}
+                          retry={retry}
+                          namespaceName={namespaceName}
+                          projectName={projectName}
+                          environmentName={environmentName}
+                          componentName={componentName}
+                          triggerStartTime={trigger.startTime}
+                          triggerCompletionTime={trigger.completionTime}
+                        />
                       ))}
                     </TableBody>
                   </Table>
