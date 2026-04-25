@@ -19,6 +19,10 @@ import {
 } from '../types';
 import { LogsResponse } from '../components/RuntimeLogs/types';
 import { EventsResponse } from '../components/RuntimeEvents/types';
+import type {
+  TriggersQueryResponse,
+  RetriesQueryResponse,
+} from '../components/Triggers/types';
 import { ObserverUrlCache } from './ObserverUrlCache';
 
 export interface ObservabilityApi {
@@ -184,6 +188,28 @@ export interface ObservabilityApi {
     environmentName: string,
     namespaceName: string,
   ): Promise<FinOpsReportDetailed>;
+
+  getTriggers(
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+      offset?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<TriggersQueryResponse>;
+
+  getRetries(
+    jobName: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+  ): Promise<RetriesQueryResponse>;
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
@@ -943,9 +969,6 @@ export class ObservabilityClient implements ObservabilityApi {
       if (error.includes('FinOps service is not configured')) {
         throw new Error('FinOps service is not configured');
       }
-      if (error.includes('Observability is not configured for component')) {
-        throw new Error('Observability is not enabled for this component');
-      }
       throw new Error(
         error || `Failed to fetch FinOps reports: ${response.statusText}`,
       );
@@ -1004,6 +1027,122 @@ export class ObservabilityClient implements ObservabilityApi {
 
     const data = await response.json();
     return data;
+  }
+
+  async getTriggers(
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+      offset?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<TriggersQueryResponse> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1/scheduled-tasks/triggers/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          startTime:
+            options?.startTime ?? new Date(Date.now() - 3600000).toISOString(),
+          endTime: options?.endTime ?? new Date().toISOString(),
+          limit: options?.limit ?? 20,
+          offset: options?.offset ?? 0,
+          sortOrder: options?.sortOrder ?? 'desc',
+          searchScope: {
+            namespace: namespaceName,
+            project: projectName,
+            component: componentName,
+            environment: environmentName,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      if (error.includes('Observability is not configured for component')) {
+        throw new Error('Observability is not enabled for this component');
+      }
+      throw new Error(
+        error || `Failed to fetch triggers: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    return {
+      triggers: (data.triggers ?? []).map((t: any) => ({
+        jobName: t.jobName ?? '',
+        status: t.status ?? 'unknown',
+        startTime: t.startTime ?? '',
+        completionTime: t.completionTime,
+        eventCount: t.eventCount ?? 0,
+        events: t.events,
+      })),
+      total: data.total ?? 0,
+      tookMs: data.tookMs ?? 0,
+    };
+  }
+
+  async getRetries(
+    jobName: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+  ): Promise<RetriesQueryResponse> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1/scheduled-tasks/triggers/${encodeURIComponent(
+        jobName,
+      )}/retries/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          searchScope: {
+            namespace: namespaceName,
+            project: projectName,
+            component: componentName,
+            environment: environmentName,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(
+        error || `Failed to fetch retries: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    return {
+      retries: (data.retries ?? []).map((r: any) => ({
+        podName: r.podName ?? '',
+        status: r.status ?? 'Unknown',
+        startTime: r.startTime ?? '',
+        eventCount: r.eventCount ?? 0,
+        events: r.events,
+      })),
+      total: data.total ?? 0,
+      tookMs: data.tookMs ?? 0,
+    };
   }
 
   private async parseError(response: Response): Promise<string> {

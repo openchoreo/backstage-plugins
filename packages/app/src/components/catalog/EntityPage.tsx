@@ -142,6 +142,7 @@ import {
   ObservabilityWirelogs,
   ObservabilityProjectIncidents,
   ObservabilityCostAnalysis,
+  ObservabilityTriggers,
   useComponentHasAnyCiliumEnabledEnvironment,
   type RenderLogRowAction,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
@@ -455,6 +456,84 @@ const ServiceEntityPage = () => {
 };
 
 /**
+ * Scheduled task entity page with delete menu support.
+ * Adds a Triggers tab that shows Job/Pod execution history.
+ * No API tab or Alerts tab (not relevant for CronJobs).
+ */
+const scheduledTaskEntityPage = (
+  <EntityLayoutWithDelete>
+    <EntityLayout.Route path="/" title="Overview">
+      <OverviewContent />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/workflows" title="Build">
+      <FeatureGatedContent feature="workflows">
+        <Workflows />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/environments" title="Deploy">
+      <Environments />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/triggers" title="Triggers">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityTriggers />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/runtime-logs" title="Logs">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityRuntimeLogs />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/metrics" title="Metrics">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityMetrics />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route
+      path="/kubernetes"
+      title="Kubernetes"
+      if={isKubernetesAvailable}
+    >
+      <EntityKubernetesContent />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/docs" title="Docs" if={hasTechdocsAnnotation}>
+      {techdocsContent}
+    </EntityLayout.Route>
+
+    {/* External CI Platform Tabs - only shown when annotation is present */}
+    <EntityLayout.Route
+      path="/jenkins"
+      title="Jenkins"
+      if={hasJenkinsAnnotation}
+    >
+      <EntityJenkinsContent />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route
+      path="/github-actions"
+      title="GitHub Actions"
+      if={hasGithubActionsAnnotation}
+    >
+      <EntityGithubActionsContent />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/gitlab" title="GitLab" if={hasGitlabAnnotation}>
+      <EntityGitlabContent />
+    </EntityLayout.Route>
+  </EntityLayoutWithDelete>
+);
+
+/**
  * Website entity page with delete menu support.
  * Routes are defined as static JSX children so routable extensions are discoverable.
  */
@@ -618,13 +697,22 @@ function getComponentPageVariant(entity: Entity): PageVariant {
 const isServiceComponent = (entity: Entity) =>
   getComponentPageVariant(entity) === 'service';
 
-const isGenericComponent = (entity: Entity) =>
-  getComponentPageVariant(entity) !== 'service';
+const isScheduledTaskComponent = (entity: Entity) =>
+  getComponentPageVariant(entity) === 'scheduled-task';
+
+const isGenericComponent = (entity: Entity) => {
+  const variant = getComponentPageVariant(entity);
+  return variant !== 'service' && variant !== 'scheduled-task';
+};
 
 const componentPage = (
   <EntitySwitch>
     <EntitySwitch.Case if={isServiceComponent}>
       <ServiceEntityPage />
+    </EntitySwitch.Case>
+
+    <EntitySwitch.Case if={isScheduledTaskComponent}>
+      {scheduledTaskEntityPage}
     </EntitySwitch.Case>
 
     <EntitySwitch.Case if={isGenericComponent}>

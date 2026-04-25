@@ -27,3 +27,6 @@ export { useComponentAlerts } from './useComponentAlerts';
 export { useUrlFiltersForIncidents } from './useUrlFiltersForIncidents';
 export { useProjectIncidents } from './useProjectIncidents';
 export { useUpdateIncident } from './useUpdateIncident';
+export { useTriggers } from './useTriggers';
+export { useRetries } from './useRetries';
+export { useUrlFiltersForTriggers } from './useUrlFiltersForTriggers';

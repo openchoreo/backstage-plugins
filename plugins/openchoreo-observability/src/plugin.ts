@@ -116,3 +116,9 @@ export const ObservabilityCostAnalysis = lazy(() =>
     default: m.CostAnalysisPage,
   })),
 );
+
+export const ObservabilityTriggers = lazy(() =>
+  import('./components/Triggers/ObservabilityTriggersPage').then(m => ({
+    default: m.ObservabilityTriggersPage,
+  })),
+);
