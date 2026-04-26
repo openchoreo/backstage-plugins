@@ -17,6 +17,7 @@ export interface Trigger {
   startTime: string;
   completionTime?: string;
   eventCount: number;
+  failureReason?: string;
   events?: TriggerEvent[];
 }
 

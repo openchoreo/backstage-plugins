@@ -11,6 +11,13 @@ export const useTriggersStyles = makeStyles(theme => ({
     color: theme.palette.info.dark,
     outline: `1px solid ${theme.palette.info.main}`,
   },
+  statusChipReason: {
+    marginLeft: 4,
+    fontSize: '0.55rem',
+    fontStyle: 'italic',
+    fontWeight: 'normal',
+    opacity: 0.85,
+  },
   retriesContainer: {
     padding: theme.spacing(1, 2),
   },
@@ -63,8 +70,32 @@ export const useTriggersStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(0.5),
     marginTop: theme.spacing(1),
   },
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(0.5),
+    cursor: 'pointer',
+    userSelect: 'none',
+  },
+  sectionHeaderTitle: {
+    fontSize: '11px',
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  sectionToggleIcon: {
+    fontSize: '16px',
+    color: theme.palette.text.secondary,
+  },
+  sectionRefreshButton: {
+    padding: 2,
+  },
+  sectionRefreshIcon: {
+    fontSize: '14px',
+  },
   logsContainer: {
-    maxHeight: 320,
+    maxHeight: 220,
     overflowY: 'auto',
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: 4,

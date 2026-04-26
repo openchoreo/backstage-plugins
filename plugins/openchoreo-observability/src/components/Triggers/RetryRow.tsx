@@ -1,4 +1,4 @@
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, MouseEvent, useEffect, useMemo, useState } from 'react';
 import {
   TableRow,
   TableCell,
@@ -7,7 +7,12 @@ import {
   Box,
   Typography,
   CircularProgress,
+  IconButton,
+  Tooltip,
 } from '@material-ui/core';
+import ExpandMore from '@material-ui/icons/ExpandMore';
+import ChevronRight from '@material-ui/icons/ChevronRight';
+import Refresh from '@material-ui/icons/Refresh';
 import type { Retry, RetryStatus } from './types';
 import { useLogEntryStyles } from '../RuntimeLogs/styles';
 import { useTriggersStyles } from './styles';
@@ -61,6 +66,8 @@ export const RetryRow: FC<RetryRowProps> = ({
   const logClasses = useLogEntryStyles();
   const triggerClasses = useTriggersStyles();
   const [expanded, setExpanded] = useState(false);
+  const [eventsOpen, setEventsOpen] = useState(false);
+  const [logsOpen, setLogsOpen] = useState(true);
 
   const { logsStartTime, logsEndTime } = useMemo(() => {
     const baseStart = retry.startTime || triggerStartTime;
@@ -143,78 +150,124 @@ export const RetryRow: FC<RetryRowProps> = ({
           <TableCell colSpan={4} style={{ paddingBottom: 0, paddingTop: 0 }}>
             <Collapse in={expanded} timeout="auto" unmountOnExit>
               <Box className={logClasses.expandedContent}>
-                {retry.events && retry.events.length > 0 && (
-                  <>
-                    <Typography className={triggerClasses.sectionTitle}>
-                      Events
+                <Box
+                  className={triggerClasses.sectionHeader}
+                  onClick={() => setLogsOpen(prev => !prev)}
+                >
+                  {logsOpen ? (
+                    <ExpandMore className={triggerClasses.sectionToggleIcon} />
+                  ) : (
+                    <ChevronRight
+                      className={triggerClasses.sectionToggleIcon}
+                    />
+                  )}
+                  <Typography className={triggerClasses.sectionHeaderTitle}>
+                    Logs ({logs.length})
+                  </Typography>
+                  <Tooltip title="Refresh logs">
+                    <IconButton
+                      size="small"
+                      className={triggerClasses.sectionRefreshButton}
+                      disabled={logsLoading}
+                      onClick={(e: MouseEvent) => {
+                        e.stopPropagation();
+                        if (!logsOpen) setLogsOpen(true);
+                        fetchLogs();
+                      }}
+                    >
+                      <Refresh className={triggerClasses.sectionRefreshIcon} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+
+                <Collapse in={logsOpen} timeout="auto" unmountOnExit>
+                  {logsLoading && (
+                    <Box display="flex" justifyContent="center" p={1}>
+                      <CircularProgress size={16} />
+                    </Box>
+                  )}
+
+                  {logsError && (
+                    <Typography variant="body2" color="error">
+                      {logsError}
                     </Typography>
-                    <Box className={logClasses.metadataBox}>
-                      {retry.events.map((event, idx) => (
-                        <Box key={idx} className={triggerClasses.eventItem}>
-                          <span className={triggerClasses.eventTimestamp}>
-                            {formatTimestamp(event.timestamp)}
+                  )}
+
+                  {!logsLoading && !logsError && logs.length === 0 && (
+                    <Typography
+                      variant="body2"
+                      color="textSecondary"
+                      style={{ padding: 8 }}
+                    >
+                      No logs found for this pod.
+                    </Typography>
+                  )}
+
+                  {!logsLoading && !logsError && logs.length > 0 && (
+                    <Box className={triggerClasses.logsContainer}>
+                      {logs.map((log, idx) => (
+                        <Box
+                          key={`${log.timestamp ?? ''}-${idx}`}
+                          className={triggerClasses.logLine}
+                        >
+                          <span className={triggerClasses.logTimestamp}>
+                            {formatTimestamp(log.timestamp)}
                           </span>
                           <span
-                            className={`${triggerClasses.eventReason} ${event.type === 'Warning' ? triggerClasses.warningEvent : ''}`}
+                            className={`${triggerClasses.logLevel} ${logLevelClass(log.level)}`}
                           >
-                            {event.reason}
+                            {log.level || '-'}
                           </span>
-                          <span className={triggerClasses.eventMessage}>
-                            {event.message}
+                          <span className={triggerClasses.logMessage}>
+                            {log.log}
                           </span>
                         </Box>
                       ))}
                     </Box>
-                  </>
-                )}
+                  )}
+                </Collapse>
 
-                <Typography className={triggerClasses.sectionTitle}>
-                  Logs ({logs.length})
-                </Typography>
-
-                {logsLoading && (
-                  <Box display="flex" justifyContent="center" p={1}>
-                    <CircularProgress size={16} />
-                  </Box>
-                )}
-
-                {logsError && (
-                  <Typography variant="body2" color="error">
-                    {logsError}
-                  </Typography>
-                )}
-
-                {!logsLoading && !logsError && logs.length === 0 && (
-                  <Typography
-                    variant="body2"
-                    color="textSecondary"
-                    style={{ padding: 8 }}
-                  >
-                    No logs found for this pod.
-                  </Typography>
-                )}
-
-                {!logsLoading && !logsError && logs.length > 0 && (
-                  <Box className={triggerClasses.logsContainer}>
-                    {logs.map((log, idx) => (
-                      <Box
-                        key={`${log.timestamp ?? ''}-${idx}`}
-                        className={triggerClasses.logLine}
+                {retry.events && retry.events.length > 0 && (
+                  <>
+                    <Box
+                      className={triggerClasses.sectionHeader}
+                      onClick={() => setEventsOpen(prev => !prev)}
+                    >
+                      {eventsOpen ? (
+                        <ExpandMore
+                          className={triggerClasses.sectionToggleIcon}
+                        />
+                      ) : (
+                        <ChevronRight
+                          className={triggerClasses.sectionToggleIcon}
+                        />
+                      )}
+                      <Typography
+                        className={triggerClasses.sectionHeaderTitle}
                       >
-                        <span className={triggerClasses.logTimestamp}>
-                          {formatTimestamp(log.timestamp)}
-                        </span>
-                        <span
-                          className={`${triggerClasses.logLevel} ${logLevelClass(log.level)}`}
-                        >
-                          {log.level || '-'}
-                        </span>
-                        <span className={triggerClasses.logMessage}>
-                          {log.log}
-                        </span>
+                        Events ({retry.events.length})
+                      </Typography>
+                    </Box>
+                    <Collapse in={eventsOpen} timeout="auto" unmountOnExit>
+                      <Box className={logClasses.metadataBox}>
+                        {retry.events.map((event, idx) => (
+                          <Box key={idx} className={triggerClasses.eventItem}>
+                            <span className={triggerClasses.eventTimestamp}>
+                              {formatTimestamp(event.timestamp)}
+                            </span>
+                            <span
+                              className={`${triggerClasses.eventReason} ${event.type === 'Warning' ? triggerClasses.warningEvent : ''}`}
+                            >
+                              {event.reason}
+                            </span>
+                            <span className={triggerClasses.eventMessage}>
+                              {event.message}
+                            </span>
+                          </Box>
+                        ))}
                       </Box>
-                    ))}
-                  </Box>
+                    </Collapse>
+                  </>
                 )}
               </Box>
             </Collapse>

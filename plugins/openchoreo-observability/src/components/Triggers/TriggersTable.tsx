@@ -52,12 +52,15 @@ export const TriggersTable: FC<TriggersTableProps> = ({
         <TableCell>
           <Skeleton variant="text" width="100%" />
         </TableCell>
+        <TableCell>
+          <Skeleton variant="text" width="100%" />
+        </TableCell>
       </TableRow>
     ));
 
   const renderEmptyState = () => (
     <TableRow>
-      <TableCell colSpan={5}>
+      <TableCell colSpan={6}>
         <Box className={classes.emptyState}>
           <Typography variant="h6" gutterBottom>
             No triggers found
@@ -77,7 +80,7 @@ export const TriggersTable: FC<TriggersTableProps> = ({
         <Table className={classes.table} size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell className={classes.headerCell} style={{ width: 100 }}>
+              <TableCell className={classes.headerCell} style={{ width: 220 }}>
                 Status
               </TableCell>
               <TableCell className={classes.headerCell}>Job Name</TableCell>
@@ -86,6 +89,9 @@ export const TriggersTable: FC<TriggersTableProps> = ({
               </TableCell>
               <TableCell className={classes.headerCell} style={{ width: 180 }}>
                 Completion Time
+              </TableCell>
+              <TableCell className={classes.headerCell} style={{ width: 110 }}>
+                Duration
               </TableCell>
               <TableCell className={classes.headerCell} style={{ width: 80 }}>
                 Events

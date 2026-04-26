@@ -1101,6 +1101,7 @@ export class ObservabilityClient implements ObservabilityApi {
         startTime: t.startTime ?? '',
         completionTime: t.completionTime,
         eventCount: t.eventCount ?? 0,
+        failureReason: t.failureReason,
         events: t.events,
       })),
       total: data.total ?? 0,

@@ -34,6 +34,28 @@ const formatTimestamp = (ts?: string) => {
   }
 };
 
+const formatDuration = (
+  startTime?: string,
+  completionTime?: string,
+  status?: TriggerStatus,
+): string => {
+  if (status !== 'succeeded' && status !== 'failed') return '—';
+  if (!startTime || !completionTime) return '—';
+  const startMs = new Date(startTime).getTime();
+  const endMs = new Date(completionTime).getTime();
+  if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs < startMs) {
+    return '—';
+  }
+  const totalSec = Math.round((endMs - startMs) / 1000);
+  if (totalSec < 60) return `${totalSec}s`;
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  if (m < 60) return s ? `${m}m ${s}s` : `${m}m`;
+  const h = Math.floor(m / 60);
+  const remM = m % 60;
+  return remM ? `${h}h ${remM}m` : `${h}h`;
+};
+
 const getStatusChipClass = (
   status: TriggerStatus,
   logClasses: ReturnType<typeof useLogEntryStyles>,
@@ -91,7 +113,18 @@ export const TriggerRow: FC<TriggerRowProps> = ({
         <TableCell>
           <Chip
             size="small"
-            label={trigger.status.toUpperCase()}
+            label={
+              trigger.status === 'failed' && trigger.failureReason ? (
+                <>
+                  {trigger.status.toUpperCase()}
+                  <span className={triggerClasses.statusChipReason}>
+                    ({trigger.failureReason})
+                  </span>
+                </>
+              ) : (
+                trigger.status.toUpperCase()
+              )
+            }
             className={`${logClasses.logLevelChip} ${getStatusChipClass(trigger.status, logClasses, triggerClasses)}`}
           />
         </TableCell>
@@ -105,13 +138,20 @@ export const TriggerRow: FC<TriggerRowProps> = ({
           {formatTimestamp(trigger.completionTime)}
         </TableCell>
         <TableCell style={{ fontSize: '0.75rem' }}>
+          {formatDuration(
+            trigger.startTime,
+            trigger.completionTime,
+            trigger.status,
+          )}
+        </TableCell>
+        <TableCell style={{ fontSize: '0.75rem' }}>
           {trigger.eventCount}
         </TableCell>
       </TableRow>
 
       {expanded && (
         <TableRow>
-          <TableCell colSpan={5} style={{ paddingBottom: 0, paddingTop: 0 }}>
+          <TableCell colSpan={6} style={{ paddingBottom: 0, paddingTop: 0 }}>
             <Collapse in={expanded} timeout="auto" unmountOnExit>
               <Box className={logClasses.expandedContent}>
                 <Typography className={triggerClasses.sectionTitle}>
@@ -170,30 +210,6 @@ export const TriggerRow: FC<TriggerRowProps> = ({
                   </Typography>
                 )}
 
-                {trigger.events && trigger.events.length > 0 && (
-                  <>
-                    <Typography className={triggerClasses.sectionTitle}>
-                      Trigger Events
-                    </Typography>
-                    <Box className={logClasses.metadataBox}>
-                      {trigger.events.map((event, idx) => (
-                        <Box key={idx} className={triggerClasses.eventItem}>
-                          <span className={triggerClasses.eventTimestamp}>
-                            {formatTimestamp(event.timestamp)}
-                          </span>
-                          <span
-                            className={`${triggerClasses.eventReason} ${event.type === 'Warning' ? triggerClasses.warningEvent : ''}`}
-                          >
-                            {event.reason}
-                          </span>
-                          <span className={triggerClasses.eventMessage}>
-                            {event.message}
-                          </span>
-                        </Box>
-                      ))}
-                    </Box>
-                  </>
-                )}
               </Box>
             </Collapse>
           </TableCell>
