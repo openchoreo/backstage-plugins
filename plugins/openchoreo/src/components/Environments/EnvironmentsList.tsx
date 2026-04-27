@@ -17,10 +17,12 @@ import { useIncidentsSummary } from './hooks/useIncidentsSummary';
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { EmptyState, ForbiddenState } from '@openchoreo/backstage-plugin-react';
 import { Card } from '@openchoreo/backstage-design-system';
+import { PipelineCanvas } from './PipelineDAG';
 
 /**
  * List view for the Environments page.
- * Displays Setup Card and Environment Cards in a grid layout.
+ * Renders as a DAG pipeline visualization when promotion targets exist,
+ * otherwise falls back to a flat grid layout.
  */
 export const EnvironmentsList = () => {
   const classes = useEnvironmentsListStyles();
@@ -43,6 +45,15 @@ export const EnvironmentsList = () => {
     navigateToOverrides,
     navigateToReleaseDetails,
   } = useEnvironmentRouting();
+
+  // Check if any environment has promotion targets (pipeline data exists)
+  const hasPipelineData = useMemo(
+    () =>
+      displayEnvironments.some(
+        env => env.promotionTargets && env.promotionTargets.length > 0,
+      ),
+    [displayEnvironments],
+  );
 
   // Action trackers
   const refreshTracker = useItemActionTracker<string>();
@@ -111,6 +122,12 @@ export const EnvironmentsList = () => {
     [navigateToOverrides],
   );
 
+  // Use DAG pipeline visualization when promotion targets exist
+  if (hasPipelineData) {
+    return <PipelineCanvas />;
+  }
+
+  // Fallback: flat grid layout (no pipeline data)
   return (
     <>
       <NotificationBanner notification={notification.notification} />
