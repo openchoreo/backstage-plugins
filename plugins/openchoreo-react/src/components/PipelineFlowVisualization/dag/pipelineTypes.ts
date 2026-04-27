@@ -1,5 +1,3 @@
-import type { Environment } from '../hooks/useEnvironmentData';
-
 /** A single line segment of an edge connector */
 export interface EdgeLine {
   x1: number;
@@ -8,20 +6,22 @@ export interface EdgeLine {
   y2: number;
 }
 
-/** A node in the pipeline DAG */
-export interface PipelineNode {
-  /** Unique identifier ('__setup__' for setup node, env name for environments) */
+/** A parent reference with optional edge metadata */
+export interface PipelineParent {
   id: string;
-  /** Whether this is the synthetic setup/configure node */
+  requiresApproval?: boolean;
+}
+
+/** A node in the pipeline DAG */
+export interface PipelineNode<T = unknown> {
+  id: string;
   isSetup: boolean;
-  /** IDs of parent nodes (environments that promote TO this one) */
-  parentIds: string[];
-  /** The environment data (undefined for the setup node) */
-  environment?: Environment;
+  parents: PipelineParent[];
+  data?: T;
 }
 
 /** A pipeline node with computed layout position */
-export interface LayoutPipelineNode extends PipelineNode {
+export interface LayoutPipelineNode<T = unknown> extends PipelineNode<T> {
   x: number;
   y: number;
   width: number;
@@ -37,8 +37,8 @@ export interface PipelineEdge {
 }
 
 /** The complete computed pipeline layout */
-export interface PipelineLayout {
-  nodes: LayoutPipelineNode[];
+export interface PipelineLayout<T = unknown> {
+  nodes: LayoutPipelineNode<T>[];
   edges: PipelineEdge[];
   width: number;
   height: number;

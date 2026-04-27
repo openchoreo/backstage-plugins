@@ -147,6 +147,7 @@ export const EnvironmentPipelinesTab = () => {
               </Box>
               <PipelineFlowVisualization
                 environments={pipeline.environments}
+                promotionPaths={pipeline.promotionPaths}
                 highlightedEnvironment={environmentName}
                 pipelineEntityRef={pipeline.pipelineEntityRef}
                 environmentNamespace={entity.metadata.namespace || 'default'}

@@ -10,7 +10,6 @@ interface PipelineEdgeProps {
 export const PipelineEdge: FC<PipelineEdgeProps> = ({ edge }) => {
   const classes = usePipelineStyles();
 
-  // Compute the midpoint of all line segments for the approval icon
   const approvalIconPosition = edge.requiresApproval
     ? (() => {
         const midIndex = Math.floor(edge.lines.length / 2);
@@ -22,7 +21,6 @@ export const PipelineEdge: FC<PipelineEdgeProps> = ({ edge }) => {
       })()
     : null;
 
-  // Arrow head position: end of last line segment
   const lastLine = edge.lines[edge.lines.length - 1];
 
   return (
@@ -53,7 +51,6 @@ export const PipelineEdge: FC<PipelineEdgeProps> = ({ edge }) => {
         );
       })}
 
-      {/* Arrow head at the end of the last segment */}
       {lastLine && (
         <div
           className={classes.arrowHead}
@@ -64,7 +61,6 @@ export const PipelineEdge: FC<PipelineEdgeProps> = ({ edge }) => {
         />
       )}
 
-      {/* Approval icon at midpoint */}
       {approvalIconPosition && (
         <div
           className={classes.approvalIcon}

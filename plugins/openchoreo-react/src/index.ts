@@ -104,7 +104,28 @@ export {
 export {
   PipelineFlowVisualization,
   type PipelineFlowVisualizationProps,
+  type PipelinePromotionPath,
 } from './components/PipelineFlowVisualization';
+export {
+  buildEnvPipelineNodes,
+  buildPathPipelineNodes,
+  computePipelineLayout,
+  PipelineEdge,
+  usePipelineStyles,
+  ENV_NODE_WIDTH,
+  ENV_NODE_HEIGHT,
+  SETUP_NODE_WIDTH,
+  SETUP_NODE_HEIGHT,
+  type EnvPipelineInput,
+  type PathPipelineInput,
+  type ComputeLayoutOptions,
+  type EdgeLine,
+  type PipelineNode,
+  type PipelineParent,
+  type LayoutPipelineNode,
+  type PipelineEdgeData,
+  type PipelineLayout,
+} from './components/PipelineFlowVisualization/dag';
 export {
   YamlEditor,
   useYamlEditor,

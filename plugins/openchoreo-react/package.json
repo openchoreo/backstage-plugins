@@ -40,6 +40,8 @@
     "@codemirror/language": "^6.0.0",
     "@codemirror/legacy-modes": "^6.1.0",
     "@codemirror/view": "^6.0.0",
+    "@dagrejs/dagre": "^2.0.4",
+    "@dagrejs/graphlib": "^3.0.4",
     "@material-ui/core": "4.12.4",
     "@material-ui/icons": "4.11.3",
     "@material-ui/lab": "4.0.0-alpha.61",
@@ -70,6 +72,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/d3-selection": "^3.0.1",
     "@types/d3-zoom": "^3.0.1",
+    "@types/dagre": "^0.7.53",
     "@types/react": "^18.0.0"
   },
   "files": [

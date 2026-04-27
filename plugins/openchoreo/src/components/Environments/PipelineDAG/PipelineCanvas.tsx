@@ -14,12 +14,19 @@ import { NotificationBanner, SetupCard, EnvironmentCard } from '../components';
 import { useEnvironmentsContext } from '../EnvironmentsContext';
 import { useIncidentsSummary } from '../hooks/useIncidentsSummary';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
-import { EmptyState, ForbiddenState } from '@openchoreo/backstage-plugin-react';
+import {
+  EmptyState,
+  ForbiddenState,
+  buildEnvPipelineNodes,
+  computePipelineLayout,
+  ENV_NODE_WIDTH,
+  ENV_NODE_HEIGHT,
+  SETUP_NODE_WIDTH,
+  SETUP_NODE_HEIGHT,
+  PipelineEdge,
+  usePipelineStyles,
+} from '@openchoreo/backstage-plugin-react';
 import { Card } from '@openchoreo/backstage-design-system';
-
-import { buildPipelineNodes, computePipelineLayout } from './pipelineLayoutUtils';
-import { PipelineEdge } from './PipelineEdge';
-import { usePipelineStyles } from './pipelineStyles';
 
 const SETUP_NODE_ID = '__setup__';
 const CANVAS_PADDING = 40;
@@ -122,8 +129,16 @@ export const PipelineCanvas: FC = () => {
     if (displayEnvironments.length === 0) {
       return null;
     }
-    const nodes = buildPipelineNodes(displayEnvironments);
-    return computePipelineLayout(nodes, displayEnvironments, direction);
+    const nodes = buildEnvPipelineNodes(displayEnvironments);
+    return computePipelineLayout(nodes, {
+      direction,
+      defaultWidth: ENV_NODE_WIDTH,
+      defaultHeight: ENV_NODE_HEIGHT,
+      nodeSize: node => ({
+        width: node.isSetup ? SETUP_NODE_WIDTH : ENV_NODE_WIDTH,
+        height: node.isSetup ? SETUP_NODE_HEIGHT : ENV_NODE_HEIGHT,
+      }),
+    });
   }, [displayEnvironments, direction]);
 
   // Separate setup and environment nodes from layout
@@ -178,10 +193,7 @@ export const PipelineCanvas: FC = () => {
             >
               {/* Edges (rendered first, behind nodes) */}
               {layout.edges.map(edge => (
-                <PipelineEdge
-                  key={`${edge.from}-${edge.to}`}
-                  edge={edge}
-                />
+                <PipelineEdge key={`${edge.from}-${edge.to}`} edge={edge} />
               ))}
 
               {/* Setup node - vertically centered within its allocated space */}

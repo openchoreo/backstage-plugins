@@ -5,12 +5,14 @@ import {
   CHOREO_ANNOTATIONS,
   type DeploymentPipelineResponse,
 } from '@openchoreo/backstage-plugin-common';
+import type { PipelinePromotionPath } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 interface DeploymentPipelineData {
   name: string;
   resourceName: string;
   environments: string[];
+  promotionPaths: PipelinePromotionPath[];
   dataPlane?: string;
   pipelineEntityRef?: string;
 }
@@ -45,18 +47,17 @@ export const useDeploymentPipeline = () => {
         const pipelineData: DeploymentPipelineResponse =
           await client.fetchDeploymentPipeline(projectName, namespace);
 
-        // Extract environments from promotion paths in order
-        // The promotion paths define the deployment flow: source -> targets
-        // We need to maintain this order
+        // Extract environments from promotion paths in order, and
+        // build the structured promotionPaths the visualization needs.
         const environments: string[] = [];
         const addedEnvs = new Set<string>();
+        const promotionPaths: PipelinePromotionPath[] = [];
 
         if (
           pipelineData.promotionPaths &&
           pipelineData.promotionPaths.length > 0
         ) {
           pipelineData.promotionPaths.forEach(path => {
-            // Add source environment first
             // sourceEnvironmentRef may be a string (old API) or object { name } (new API)
             const sourceEnvName =
               typeof path.sourceEnvironmentRef === 'string'
@@ -67,14 +68,23 @@ export const useDeploymentPipeline = () => {
               environments.push(sourceEnvName);
               addedEnvs.add(sourceEnvName);
             }
-            // Then add target environments in order
-            if (path.targetEnvironmentRefs) {
-              path.targetEnvironmentRefs.forEach(target => {
-                if (target.name && !addedEnvs.has(target.name)) {
-                  environments.push(target.name);
-                  addedEnvs.add(target.name);
-                }
-              });
+            const targets = (path.targetEnvironmentRefs ?? [])
+              .filter(t => !!t.name)
+              .map(t => ({
+                name: t.name,
+                requiresApproval:
+                  t.requiresApproval ??
+                  (t as { isManualApprovalRequired?: boolean })
+                    .isManualApprovalRequired,
+              }));
+            for (const target of targets) {
+              if (!addedEnvs.has(target.name)) {
+                environments.push(target.name);
+                addedEnvs.add(target.name);
+              }
+            }
+            if (sourceEnvName && targets.length > 0) {
+              promotionPaths.push({ source: sourceEnvName, targets });
             }
           });
         }
@@ -86,6 +96,7 @@ export const useDeploymentPipeline = () => {
             environments.length > 0
               ? environments
               : ['development', 'staging', 'production'],
+          promotionPaths,
           dataPlane: undefined, // Not included in the response schema
           pipelineEntityRef: `deploymentpipeline:${
             entity.metadata.namespace || 'default'
