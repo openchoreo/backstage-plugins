@@ -1,0 +1,286 @@
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { EntityProvider } from '@backstage/plugin-catalog-react';
+import { mockComponentEntity } from '@openchoreo/test-utils';
+import { PipelineCanvas } from './PipelineCanvas';
+import type { Environment } from '../hooks';
+import type { DeployFlowCanvasProps } from './DeployFlowCanvas';
+import type { EnvironmentDetailPanelProps } from '../components';
+
+// ---- Captured props from child components ----
+
+let capturedFlowCanvasProps: DeployFlowCanvasProps | undefined;
+let capturedDetailPanelProps: EnvironmentDetailPanelProps | undefined;
+
+jest.mock('./DeployFlowCanvas', () => ({
+  DeployFlowCanvas: (props: DeployFlowCanvasProps) => {
+    capturedFlowCanvasProps = props;
+    return <div data-testid="deploy-flow-canvas" />;
+  },
+}));
+
+jest.mock('../components', () => ({
+  NotificationBanner: () => null,
+  EnvironmentDetailPanel: (props: EnvironmentDetailPanelProps) => {
+    capturedDetailPanelProps = props;
+    return (
+      <div data-testid="env-detail-panel">
+        {props.environment ? `selected:${props.environment.name}` : 'empty'}
+      </div>
+    );
+  },
+}));
+
+// ---- Mock @openchoreo/backstage-plugin-react primitives ----
+jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  EmptyState: (props: { title: string; description: string }) => (
+    <div data-testid="empty-state">
+      <span>{props.title}</span>
+      <span>{props.description}</span>
+    </div>
+  ),
+  ForbiddenState: (props: { message: string; onRetry?: () => void }) => (
+    <div data-testid="forbidden-state">
+      <span>{props.message}</span>
+    </div>
+  ),
+}));
+
+jest.mock('@openchoreo/backstage-design-system', () => ({
+  Card: ({ children, ...rest }: any) => (
+    <div data-testid="design-card" {...rest}>
+      {children}
+    </div>
+  ),
+}));
+
+// ---- Context mock ----
+interface MockContextValue {
+  environments: Environment[];
+  displayEnvironments: Environment[];
+  loading: boolean;
+  refetch: jest.Mock;
+  lowestEnvironment: string;
+  isWorkloadEditorSupported: boolean;
+  onPendingActionComplete: jest.Mock;
+  canViewEnvironments: boolean;
+  environmentReadPermissionLoading: boolean;
+  canViewBindings: boolean;
+  bindingsPermissionLoading: boolean;
+}
+
+let mockContextValue: MockContextValue;
+
+const defaultMockContext = (): MockContextValue => ({
+  environments: [],
+  displayEnvironments: [],
+  loading: false,
+  refetch: jest.fn(),
+  lowestEnvironment: 'development',
+  isWorkloadEditorSupported: true,
+  onPendingActionComplete: jest.fn(),
+  canViewEnvironments: true,
+  environmentReadPermissionLoading: false,
+  canViewBindings: true,
+  bindingsPermissionLoading: false,
+});
+
+jest.mock('../EnvironmentsContext', () => ({
+  useEnvironmentsContext: () => mockContextValue,
+}));
+
+// ---- Action mocks ----
+const mockNavigateToWorkloadConfig = jest.fn();
+const mockNavigateToOverrides = jest.fn();
+const mockNavigateToReleaseDetails = jest.fn();
+const mockHandleRefreshEnvironment = jest.fn().mockResolvedValue(undefined);
+const mockHandleUndeploy = jest.fn().mockResolvedValue(undefined);
+const mockHandleRedeploy = jest.fn().mockResolvedValue(undefined);
+const mockShowError = jest.fn();
+
+jest.mock('../hooks', () => ({
+  useEnvironmentRouting: () => ({
+    state: { view: 'list' as const },
+    navigateToList: jest.fn(),
+    navigateToWorkloadConfig: mockNavigateToWorkloadConfig,
+    navigateToOverrides: mockNavigateToOverrides,
+    navigateToReleaseDetails: mockNavigateToReleaseDetails,
+    goBack: jest.fn(),
+  }),
+  useEnvironmentActions: () => ({
+    handleRefreshEnvironment: mockHandleRefreshEnvironment,
+    handlePromote: jest.fn(),
+    handleUndeploy: mockHandleUndeploy,
+    handleRedeploy: mockHandleRedeploy,
+  }),
+  isAlreadyPromoted: () => false,
+}));
+
+jest.mock('../hooks/useIncidentsSummary', () => ({
+  useIncidentsSummary: () => new Map(),
+}));
+
+jest.mock('../../../hooks', () => ({
+  useItemActionTracker: () => ({
+    isActive: () => false,
+    withTracking: (_item: string, fn: () => Promise<any>) => fn(),
+    activeItems: new Set(),
+    startAction: jest.fn(),
+    endAction: jest.fn(),
+  }),
+  useNotification: () => ({
+    notification: null,
+    showSuccess: jest.fn(),
+    showError: mockShowError,
+    hide: jest.fn(),
+  }),
+}));
+
+jest.mock('../../../utils/errorUtils', () => ({
+  isForbiddenError: () => false,
+  getErrorMessage: (err: unknown) =>
+    err instanceof Error ? err.message : String(err),
+}));
+
+const testEntity = mockComponentEntity();
+
+function renderWithRouter(ui: React.ReactElement) {
+  return render(
+    <MemoryRouter>
+      <EntityProvider entity={testEntity}>{ui}</EntityProvider>
+    </MemoryRouter>,
+  );
+}
+
+function makeEnv(
+  overrides: Partial<Environment> & { name: string },
+): Environment {
+  return {
+    name: overrides.name,
+    resourceName: overrides.resourceName,
+    bindingName: overrides.bindingName,
+    hasComponentTypeOverrides: overrides.hasComponentTypeOverrides,
+    dataPlaneRef: overrides.dataPlaneRef,
+    deployment: overrides.deployment ?? { status: 'Ready' },
+    endpoints: overrides.endpoints ?? [],
+    promotionTargets: overrides.promotionTargets,
+  };
+}
+
+describe('PipelineCanvas (deploy split view)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockContextValue = defaultMockContext();
+    capturedFlowCanvasProps = undefined;
+    capturedDetailPanelProps = undefined;
+  });
+
+  it('shows empty state when no environments and user has view permission', () => {
+    renderWithRouter(<PipelineCanvas />);
+    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    expect(screen.queryByTestId('deploy-flow-canvas')).not.toBeInTheDocument();
+  });
+
+  it('shows forbidden state when user does not have view permission', () => {
+    mockContextValue.canViewEnvironments = false;
+    renderWithRouter(<PipelineCanvas />);
+    expect(screen.getByTestId('forbidden-state')).toBeInTheDocument();
+  });
+
+  it('renders the split view with the canvas and detail panel when envs exist', () => {
+    const envs = [
+      makeEnv({ name: 'development' }),
+      makeEnv({ name: 'staging' }),
+    ];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    expect(screen.getByTestId('deploy-flow-canvas')).toBeInTheDocument();
+    expect(screen.getByTestId('env-detail-panel')).toBeInTheDocument();
+    expect(capturedFlowCanvasProps?.environments).toHaveLength(2);
+    expect(capturedFlowCanvasProps?.selectedEnvName).toBeNull();
+    expect(capturedDetailPanelProps?.environment).toBeNull();
+  });
+
+  it('passes a refresh callback that calls handleRefreshEnvironment', () => {
+    const envs = [makeEnv({ name: 'staging' })];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    capturedFlowCanvasProps?.onRefreshEnv('staging');
+    expect(mockHandleRefreshEnvironment).toHaveBeenCalledWith('staging');
+  });
+
+  it('passes an onSuspend callback that resolves the binding before undeploying', async () => {
+    const envs = [
+      makeEnv({
+        name: 'development',
+        bindingName: 'my-binding',
+        deployment: { status: 'Ready' },
+      }),
+    ];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    await capturedFlowCanvasProps?.onSuspend(envs[0]);
+    expect(mockHandleUndeploy).toHaveBeenCalledWith('my-binding');
+  });
+
+  it('passes an onRedeploy callback that resolves the binding before redeploying', async () => {
+    const envs = [
+      makeEnv({
+        name: 'development',
+        bindingName: 'redeploy-binding',
+        deployment: { status: 'Ready', statusReason: 'ResourcesUndeployed' },
+      }),
+    ];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    await capturedFlowCanvasProps?.onRedeploy(envs[0]);
+    expect(mockHandleRedeploy).toHaveBeenCalledWith('redeploy-binding');
+  });
+
+  it('navigates to overrides with a pending promote action when onPromote is invoked', async () => {
+    const envs = [
+      makeEnv({
+        name: 'development',
+        resourceName: 'dev-res',
+        deployment: { status: 'Ready', releaseName: 'release-1' },
+        promotionTargets: [{ name: 'staging' }],
+      }),
+    ];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    await capturedFlowCanvasProps?.onPromote(envs[0], 'staging');
+
+    expect(mockNavigateToOverrides).toHaveBeenCalledWith('staging', {
+      type: 'promote',
+      releaseName: 'release-1',
+      sourceEnvironment: 'dev-res',
+      targetEnvironment: 'staging',
+    });
+  });
+
+  it('routes onOpenOverrides through navigateToOverrides', () => {
+    const envs = [makeEnv({ name: 'production' })];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    capturedFlowCanvasProps?.onOpenOverrides(envs[0]);
+    expect(mockNavigateToOverrides).toHaveBeenCalledWith('production');
+  });
+});

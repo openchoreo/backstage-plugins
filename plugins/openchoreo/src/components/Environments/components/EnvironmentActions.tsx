@@ -1,9 +1,5 @@
-/* eslint-disable no-nested-ternary */
 import { Box, Button, Tooltip } from '@material-ui/core';
-import {
-  useDeployPermission,
-  useUndeployPermission,
-} from '@openchoreo/backstage-plugin-react';
+import { usePromotionAction } from '../hooks/usePromotionAction';
 import { EnvironmentActionsProps } from '../types';
 
 /**
@@ -22,152 +18,111 @@ export const EnvironmentActions = ({
   onSuspend,
   onRedeploy,
 }: EnvironmentActionsProps) => {
-  // Check if user has permission to promote (uses deploy permission)
-  const {
-    canDeploy: canPromote,
-    loading: promotePermissionLoading,
-    deniedTooltip,
-  } = useDeployPermission();
+  const { promotionActions, undeployAction } = usePromotionAction({
+    environmentName,
+    bindingName,
+    deploymentStatus,
+    statusReason,
+    promotionTargets,
+    isAlreadyPromoted,
+    promotionTracker,
+    suspendTracker,
+    onPromote,
+    onSuspend,
+    onRedeploy,
+  });
 
-  // Check if user has permission to undeploy/redeploy (uses releasebinding update permission)
-  const {
-    canUndeploy,
-    loading: undeployPermissionLoading,
-    deniedTooltip: undeployDeniedTooltip,
-  } = useUndeployPermission();
-
-  const isUndeployed = statusReason === 'ResourcesUndeployed';
-
-  const hasPromotionTargets =
-    deploymentStatus === 'Ready' &&
-    promotionTargets &&
-    promotionTargets.length > 0;
-  const hasMultipleTargets =
-    hasPromotionTargets && promotionTargets && promotionTargets.length > 1;
-  const hasSingleTarget =
-    hasPromotionTargets && promotionTargets && promotionTargets.length === 1;
-
-  // Don't render if there's nothing to show
-  if (!hasPromotionTargets && !bindingName) {
+  if (promotionActions.length === 0 && !undeployAction) {
     return null;
   }
+
+  const hasMultipleTargets = promotionActions.length > 1;
+  const hasSingleTarget = promotionActions.length === 1;
+  const single = hasSingleTarget ? promotionActions[0] : null;
+
+  let singleLabel: string | null = null;
+  if (single) {
+    if (single.isAlreadyPromoted) {
+      singleLabel = 'Promoted';
+    } else if (single.isPromoting) {
+      singleLabel = 'Promoting...';
+    } else {
+      singleLabel = `Promote${
+        single.target.requiresApproval ? ' (Approval Required)' : ''
+      }`;
+    }
+  }
+
+  const multiTargetMb = (index: number): number => {
+    if (index < promotionActions.length - 1) return 2;
+    return undeployAction ? 2 : 0;
+  };
 
   return (
     <Box mt="auto" mb={2}>
       {/* Multiple promotion targets - stack vertically */}
       {hasMultipleTargets &&
-        promotionTargets!.map((target, index) => (
+        promotionActions.map((action, index) => (
           <Box
-            key={target.name}
+            key={action.target.name}
             display="flex"
             justifyContent="flex-end"
-            mb={index < promotionTargets!.length - 1 ? 2 : bindingName ? 2 : 0}
+            mb={multiTargetMb(index)}
           >
-            <Tooltip title={deniedTooltip}>
+            <Tooltip title={action.deniedTooltip}>
               <span>
                 <Button
                   variant="contained"
                   color="primary"
                   size="small"
-                  disabled={
-                    promotePermissionLoading ||
-                    !canPromote ||
-                    promotionTracker.isActive(target.name) ||
-                    isAlreadyPromoted(target.name)
-                  }
-                  onClick={() => onPromote(target.resourceName ?? target.name)}
+                  disabled={action.disabled}
+                  onClick={action.onClick}
                 >
-                  {isAlreadyPromoted(target.name)
-                    ? `Promoted to ${target.name}`
-                    : promotionTracker.isActive(target.name)
-                    ? 'Promoting...'
-                    : `Promote to ${target.name}`}
-                  {!isAlreadyPromoted(target.name) &&
-                    target.requiresApproval &&
-                    !promotionTracker.isActive(target.name) &&
-                    ' (Approval Required)'}
+                  {action.label}
                 </Button>
               </span>
             </Tooltip>
           </Box>
         ))}
 
-      {/* Single promotion target and undeploy/redeploy button - show in same row */}
-      {(hasSingleTarget || bindingName) && (
+      {/* Single promotion target and/or undeploy/redeploy in same row */}
+      {(single || undeployAction) && (
         <Box display="flex" flexWrap="wrap" justifyContent="flex-end">
-          {/* Single promotion button */}
-          {hasSingleTarget && (
-            <Tooltip title={deniedTooltip}>
+          {single && (
+            <Tooltip title={single.deniedTooltip}>
               <span>
                 <Button
                   style={{ marginRight: '8px' }}
                   variant="contained"
                   color="primary"
                   size="small"
-                  disabled={
-                    promotePermissionLoading ||
-                    !canPromote ||
-                    promotionTracker.isActive(promotionTargets![0].name) ||
-                    isAlreadyPromoted(promotionTargets![0].name)
-                  }
-                  onClick={() =>
-                    onPromote(
-                      promotionTargets![0].resourceName ??
-                        promotionTargets![0].name,
-                    )
-                  }
+                  disabled={single.disabled}
+                  onClick={single.onClick}
                 >
-                  {isAlreadyPromoted(promotionTargets![0].name)
-                    ? 'Promoted'
-                    : promotionTracker.isActive(promotionTargets![0].name)
-                    ? 'Promoting...'
-                    : 'Promote'}
-                  {!isAlreadyPromoted(promotionTargets![0].name) &&
-                    promotionTargets![0].requiresApproval &&
-                    !promotionTracker.isActive(promotionTargets![0].name) &&
-                    ' (Approval Required)'}
+                  {singleLabel}
                 </Button>
               </span>
             </Tooltip>
           )}
 
-          {/* Undeploy / Redeploy button - show whenever there's a binding */}
-          {bindingName && (
-            <Tooltip title={undeployDeniedTooltip}>
+          {undeployAction && (
+            <Tooltip title={undeployAction.deniedTooltip}>
               <span>
-                {isUndeployed ? (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    disabled={
-                      undeployPermissionLoading ||
-                      suspendTracker.isActive(environmentName) ||
-                      !canUndeploy
-                    }
-                    onClick={onRedeploy}
-                  >
-                    {suspendTracker.isActive(environmentName)
-                      ? 'Redeploying...'
-                      : 'Redeploy'}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    size="small"
-                    disabled={
-                      undeployPermissionLoading ||
-                      suspendTracker.isActive(environmentName) ||
-                      !canUndeploy
-                    }
-                    onClick={onSuspend}
-                  >
-                    {suspendTracker.isActive(environmentName)
-                      ? 'Undeploying...'
-                      : 'Undeploy'}
-                  </Button>
-                )}
+                <Button
+                  variant={
+                    undeployAction.kind === 'redeploy'
+                      ? 'contained'
+                      : 'outlined'
+                  }
+                  color={
+                    undeployAction.kind === 'redeploy' ? 'primary' : 'secondary'
+                  }
+                  size="small"
+                  disabled={undeployAction.disabled}
+                  onClick={undeployAction.onClick}
+                >
+                  {undeployAction.label}
+                </Button>
               </span>
             </Tooltip>
           )}

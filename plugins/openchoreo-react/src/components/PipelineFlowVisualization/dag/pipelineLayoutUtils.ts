@@ -16,6 +16,14 @@ export const SETUP_NODE_WIDTH = 280;
 // the setup card content is shorter and centers within this space.
 export const SETUP_NODE_HEIGHT = ENV_NODE_HEIGHT;
 
+// Compact dims for the deploy-tab minimap canvas. Wider/taller variants
+// (above) remain in use by the legacy chip-strip and the full-card
+// rendering inside the detail panel.
+export const MINI_ENV_NODE_WIDTH = 240;
+export const MINI_ENV_NODE_HEIGHT = 140;
+export const MINI_SETUP_NODE_WIDTH = 240;
+export const MINI_SETUP_NODE_HEIGHT = 140;
+
 /** Minimal env shape used by buildEnvPipelineNodes */
 export interface EnvPipelineInput {
   name: string;

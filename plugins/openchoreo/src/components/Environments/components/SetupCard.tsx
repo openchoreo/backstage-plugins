@@ -11,7 +11,7 @@ import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { useSetupCardStyles } from '../styles';
+import { useSetupCardStyles, useSetupCardCompactStyles } from '../styles';
 import { SetupCardProps } from '../types';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { WorkloadButton } from '../Workload/WorkloadButton';
@@ -29,8 +29,10 @@ export const SetupCard = ({
   environmentsExist,
   isWorkloadEditorSupported,
   onConfigureWorkload,
+  compact = false,
 }: SetupCardProps) => {
-  const classes = useSetupCardStyles();
+  const fullStyles = useSetupCardStyles();
+  const compactStyles = useSetupCardCompactStyles();
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
   const notification = useNotification();
@@ -98,16 +100,80 @@ export const SetupCard = ({
     setShowConfirmDialog(false);
   };
 
+  const autoDeploySwitch = (
+    <FormControlLabel
+      control={
+        <Switch
+          checked={autoDeploy ?? false}
+          onChange={handleToggleChange}
+          name="autoDeploy"
+          color="primary"
+          disabled={!autoDeployLoaded || autoDeployUpdating}
+        />
+      }
+      label={<Typography variant="body2">Auto Deploy</Typography>}
+    />
+  );
+
+  const autoDeployTooltip = (
+    <Tooltip
+      title="Automatically deploy the component to the first target environment when component configurations change"
+      placement="bottom"
+      arrow
+    >
+      <IconButton size="small" style={{ padding: 4, marginLeft: -8 }}>
+        <InfoOutlinedIcon style={{ fontSize: 18 }} color="primary" />
+      </IconButton>
+    </Tooltip>
+  );
+
+  if (compact) {
+    return (
+      <>
+        <Box className={compactStyles.setupCard}>
+          <Box className={compactStyles.titleRow}>
+            <SettingsOutlinedIcon className={compactStyles.titleIcon} />
+            <Typography className={compactStyles.title}>Set up</Typography>
+          </Box>
+
+          {loading && !environmentsExist ? (
+            <LoadingSkeleton variant="setup" />
+          ) : (
+            <>
+              <Box className={compactStyles.toggleRow}>
+                {autoDeploySwitch}
+                {autoDeployTooltip}
+              </Box>
+              {isWorkloadEditorSupported && (
+                <Box className={compactStyles.workloadButtonWrapper}>
+                  <WorkloadButton onConfigureWorkload={onConfigureWorkload} />
+                </Box>
+              )}
+            </>
+          )}
+        </Box>
+
+        <AutoDeployConfirmationDialog
+          open={showConfirmDialog}
+          onCancel={handleCancel}
+          onConfirm={handleConfirm}
+          isEnabling={pendingAutoDeployValue}
+          isUpdating={autoDeployUpdating}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <Box
-        className={classes.setupCard}
+        className={fullStyles.setupCard}
         style={{ height: '100%', minHeight: '300px', width: '100%' }}
       >
-        <Box className={classes.cardContent}>
-          <Box className={classes.titleRow}>
-            <SettingsOutlinedIcon className={classes.titleIcon} />
-            <Typography className={classes.title}>Set up</Typography>
+        <Box className={fullStyles.cardContent}>
+          <Box className={fullStyles.titleRow}>
+            <SettingsOutlinedIcon className={fullStyles.titleIcon} />
+            <Typography className={fullStyles.title}>Set up</Typography>
           </Box>
 
           {loading && !environmentsExist ? (
@@ -120,33 +186,8 @@ export const SetupCard = ({
 
               <Box marginTop={2}>
                 <Box display="flex" alignItems="center" justifyContent="center">
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={autoDeploy ?? false}
-                        onChange={handleToggleChange}
-                        name="autoDeploy"
-                        color="primary"
-                        disabled={!autoDeployLoaded || autoDeployUpdating}
-                      />
-                    }
-                    label={<Typography variant="body2">Auto Deploy</Typography>}
-                  />
-                  <Tooltip
-                    title="Automatically deploy the component to the first target environment when component configurations change"
-                    placement="bottom"
-                    arrow
-                  >
-                    <IconButton
-                      size="small"
-                      style={{ padding: 4, marginLeft: -8 }}
-                    >
-                      <InfoOutlinedIcon
-                        style={{ fontSize: 18 }}
-                        color="primary"
-                      />
-                    </IconButton>
-                  </Tooltip>
+                  {autoDeploySwitch}
+                  {autoDeployTooltip}
                 </Box>
               </Box>
 

@@ -116,6 +116,10 @@ export {
   ENV_NODE_HEIGHT,
   SETUP_NODE_WIDTH,
   SETUP_NODE_HEIGHT,
+  MINI_ENV_NODE_WIDTH,
+  MINI_ENV_NODE_HEIGHT,
+  MINI_SETUP_NODE_WIDTH,
+  MINI_SETUP_NODE_HEIGHT,
   type EnvPipelineInput,
   type PathPipelineInput,
   type ComputeLayoutOptions,
@@ -445,6 +449,29 @@ export {
   PlatformOverviewGraphView,
   type PlatformOverviewGraphViewProps,
 } from './components/PlatformOverviewGraphView';
+export {
+  GraphMinimap,
+  type GraphMinimapProps,
+} from './components/GraphMinimap';
+export {
+  GraphControls,
+  type GraphControlsProps,
+} from './components/GraphControls';
+export {
+  HtmlGraphMinimap,
+  type HtmlGraphMinimapProps,
+  type HtmlGraphMinimapNode,
+} from './components/HtmlGraphMinimap';
+export {
+  useHtmlGraphZoom,
+  type UseHtmlGraphZoomOptions,
+  type UseHtmlGraphZoomResult,
+} from './hooks/useHtmlGraphZoom';
+export type {
+  GraphTransform,
+  GraphViewBox,
+  GraphViewport,
+} from './hooks/useGraphZoom';
 
 // Graph hooks
 export { useAllEntitiesOfKinds } from './hooks/useAllEntitiesOfKinds';

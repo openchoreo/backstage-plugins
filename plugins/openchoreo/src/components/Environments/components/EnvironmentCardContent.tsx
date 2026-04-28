@@ -1,4 +1,3 @@
-/* eslint-disable no-nested-ternary */
 import { useState } from 'react';
 import {
   Box,
@@ -13,6 +12,7 @@ import VisibilityOutlinedIcon from '@material-ui/icons/VisibilityOutlined';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
 import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
 import { useEnvironmentCardStyles } from '../styles';
+import { useEnvironmentStatusVariant } from '../hooks/useEnvironmentStatusVariant';
 import { EnvironmentCardContentProps } from '../types';
 import { InvokeUrlsDialog } from './InvokeUrlsDialog';
 import { IncidentsBanner } from './IncidentsBanner';
@@ -33,6 +33,10 @@ export const EnvironmentCardContent = ({
   environmentName,
 }: EnvironmentCardContentProps) => {
   const classes = useEnvironmentCardStyles();
+  const { variant: statusVariant } = useEnvironmentStatusVariant(
+    status,
+    statusReason,
+  );
 
   const [invokeUrlsOpen, setInvokeUrlsOpen] = useState(false);
 
@@ -69,19 +73,7 @@ export const EnvironmentCardContent = ({
             disableHoverListener={!statusReason && !statusMessage}
           >
             <span>
-              <StatusBadge
-                status={
-                  statusReason === 'ResourcesUndeployed'
-                    ? 'undeployed'
-                    : status === 'Ready'
-                    ? 'active'
-                    : status === 'NotReady'
-                    ? 'pending'
-                    : status === 'Failed'
-                    ? 'failed'
-                    : 'not-deployed'
-                }
-              />
+              <StatusBadge status={statusVariant} />
             </span>
           </Tooltip>
         </Box>

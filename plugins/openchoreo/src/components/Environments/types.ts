@@ -65,6 +65,8 @@ export interface SetupCardProps {
   environmentsExist: boolean;
   isWorkloadEditorSupported: boolean;
   onConfigureWorkload: () => void;
+  /** Compact rendering for the deploy minimap canvas. */
+  compact?: boolean;
 }
 
 /**
@@ -115,41 +117,4 @@ export interface EnvironmentActionsProps {
   onPromote: (targetEnvName: string) => Promise<void>;
   onSuspend: () => Promise<void>;
   onRedeploy: () => Promise<void>;
-}
-
-/**
- * Props for the EnvironmentCard component
- */
-export interface EnvironmentCardProps {
-  environmentName: string;
-  resourceName?: string;
-  bindingName?: string;
-  hasComponentTypeOverrides?: boolean;
-  dataPlaneRef?: string;
-  canViewBindings?: boolean;
-  bindingsPermissionLoading?: boolean;
-  deployment: {
-    status?: 'Ready' | 'NotReady' | 'Failed';
-    statusReason?: string;
-    statusMessage?: string;
-    lastDeployed?: string;
-    image?: string;
-    releaseName?: string;
-  };
-  endpoints: EndpointInfo[];
-  promotionTargets?: Array<{
-    name: string;
-    resourceName?: string;
-    requiresApproval?: boolean;
-  }>;
-  isRefreshing: boolean;
-  isAlreadyPromoted: (targetEnvName: string) => boolean;
-  actionTrackers: ActionTrackers;
-  onRefresh: () => void;
-  onOpenOverrides: () => void;
-  onOpenReleaseDetails: () => void;
-  onPromote: (targetEnvName: string) => Promise<void>;
-  onSuspend: () => Promise<void>;
-  onRedeploy: () => Promise<void>;
-  activeIncidentCount?: number;
 }

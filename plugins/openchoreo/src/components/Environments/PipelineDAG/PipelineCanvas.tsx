@@ -1,45 +1,31 @@
-import { useMemo, useCallback, type FC } from 'react';
-import { Box, useMediaQuery, useTheme } from '@material-ui/core';
+import { useCallback, useEffect, useMemo, useState, type FC } from 'react';
+import { Box } from '@material-ui/core';
 import { useEntity } from '@backstage/plugin-catalog-react';
 
 import { useItemActionTracker, useNotification } from '../../../hooks';
 import {
   useEnvironmentActions,
-  isAlreadyPromoted,
+  isAlreadyPromoted as isAlreadyPromotedUtil,
   useEnvironmentRouting,
 } from '../hooks';
 import type { Environment } from '../hooks';
 import type { PendingAction } from '../types';
-import { NotificationBanner, SetupCard, EnvironmentCard } from '../components';
+import { EnvironmentDetailPanel, NotificationBanner } from '../components';
 import { useEnvironmentsContext } from '../EnvironmentsContext';
 import { useIncidentsSummary } from '../hooks/useIncidentsSummary';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
-import {
-  EmptyState,
-  ForbiddenState,
-  buildEnvPipelineNodes,
-  computePipelineLayout,
-  ENV_NODE_WIDTH,
-  ENV_NODE_HEIGHT,
-  SETUP_NODE_WIDTH,
-  SETUP_NODE_HEIGHT,
-  PipelineEdge,
-  usePipelineStyles,
-} from '@openchoreo/backstage-plugin-react';
+import { EmptyState, ForbiddenState } from '@openchoreo/backstage-plugin-react';
 import { Card } from '@openchoreo/backstage-design-system';
-
-const SETUP_NODE_ID = '__setup__';
-const CANVAS_PADDING = 40;
+import { useDeployFlowCanvasStyles } from '../styles';
+import { DeployFlowCanvas } from './DeployFlowCanvas';
 
 /**
- * Pipeline DAG visualization for the Environments page.
- * Renders environment cards as positioned nodes in a dagre-computed DAG layout
- * with L-shaped CSS connectors showing promotion flow.
+ * Deploy tab orchestrator. Owns selection state and wires action
+ * callbacks; renders the minimap canvas (left) + detail panel (right)
+ * once at least one environment is loaded.
  */
 export const PipelineCanvas: FC = () => {
-  const classes = usePipelineStyles();
-  const theme = useTheme();
-  const isNarrow = useMediaQuery(theme.breakpoints.down('sm'));
+  const classes = useDeployFlowCanvasStyles();
   const { entity } = useEntity();
 
   const {
@@ -50,8 +36,6 @@ export const PipelineCanvas: FC = () => {
     isWorkloadEditorSupported,
     canViewEnvironments,
     environmentReadPermissionLoading,
-    canViewBindings,
-    bindingsPermissionLoading,
   } = useEnvironmentsContext();
 
   const {
@@ -64,6 +48,21 @@ export const PipelineCanvas: FC = () => {
   const refreshTracker = useItemActionTracker<string>();
   const promotionTracker = useItemActionTracker<string>();
   const suspendTracker = useItemActionTracker<string>();
+
+  // Selection state — survives refetch, auto-clears when the selected env disappears.
+  const [selectedEnvName, setSelectedEnvName] = useState<string | null>(null);
+
+  const envMap = useMemo(() => {
+    const map = new Map<string, Environment>();
+    for (const env of displayEnvironments) map.set(env.name, env);
+    return map;
+  }, [displayEnvironments]);
+
+  useEffect(() => {
+    if (selectedEnvName && !envMap.has(selectedEnvName)) {
+      setSelectedEnvName(null);
+    }
+  }, [selectedEnvName, envMap]);
 
   // Incidents summary per environment
   const deployedEnvironments = useMemo(
@@ -78,13 +77,6 @@ export const PipelineCanvas: FC = () => {
   // Action handlers
   const { handleRefreshEnvironment, handleUndeploy, handleRedeploy } =
     useEnvironmentActions(entity, refetch, notification, refreshTracker);
-
-  // Create isAlreadyPromoted checker for an environment
-  const createPromotionChecker = useCallback(
-    (env: Environment) => (targetEnvName: string) =>
-      isAlreadyPromoted(env, targetEnvName, displayEnvironments),
-    [displayEnvironments],
-  );
 
   const handleOpenWorkloadConfig = useCallback(() => {
     navigateToWorkloadConfig();
@@ -110,49 +102,80 @@ export const PipelineCanvas: FC = () => {
       if (!releaseName) {
         throw new Error('No release to promote');
       }
-
       const pendingAction: PendingAction = {
         type: 'promote',
         releaseName,
         sourceEnvironment: sourceEnv.resourceName ?? sourceEnv.name,
         targetEnvironment: targetEnvName,
       };
-
       navigateToOverrides(targetEnvName, pendingAction);
     },
     [navigateToOverrides],
   );
 
-  // Compute DAG layout
-  const direction = isNarrow ? 'TB' : 'LR';
-  const layout = useMemo(() => {
-    if (displayEnvironments.length === 0) {
-      return null;
-    }
-    const nodes = buildEnvPipelineNodes(displayEnvironments);
-    return computePipelineLayout(nodes, {
-      direction,
-      defaultWidth: ENV_NODE_WIDTH,
-      defaultHeight: ENV_NODE_HEIGHT,
-      nodeSize: node => ({
-        width: node.isSetup ? SETUP_NODE_WIDTH : ENV_NODE_WIDTH,
-        height: node.isSetup ? SETUP_NODE_HEIGHT : ENV_NODE_HEIGHT,
-      }),
-    });
-  }, [displayEnvironments, direction]);
+  const handlePromote = useCallback(
+    async (env: Environment, targetEnvName: string) => {
+      try {
+        await promotionTracker.withTracking(targetEnvName, () =>
+          handlePromoteWithOverridesCheck(env, targetEnvName),
+        );
+      } catch (err) {
+        notification.showError(
+          isForbiddenError(err)
+            ? 'You do not have permission to promote. Contact your administrator.'
+            : `Error promoting: ${getErrorMessage(err)}`,
+        );
+      }
+    },
+    [handlePromoteWithOverridesCheck, promotionTracker, notification],
+  );
 
-  // Separate setup and environment nodes from layout
-  const setupNode = layout?.nodes.find(n => n.id === SETUP_NODE_ID);
-  const envNodes = layout?.nodes.filter(n => !n.isSetup) ?? [];
+  const handleSuspend = useCallback(
+    async (env: Environment) => {
+      try {
+        await suspendTracker.withTracking(env.name, () =>
+          handleUndeploy(env.bindingName ?? `${env.resourceName ?? env.name}`),
+        );
+      } catch (err) {
+        notification.showError(
+          isForbiddenError(err)
+            ? 'You do not have permission to undeploy. Contact your administrator.'
+            : `Error undeploying: ${getErrorMessage(err)}`,
+        );
+      }
+    },
+    [handleUndeploy, suspendTracker, notification],
+  );
 
-  // Build env lookup for easy access
-  const envMap = useMemo(() => {
-    const map = new Map<string, Environment>();
-    for (const env of displayEnvironments) {
-      map.set(env.name, env);
-    }
-    return map;
-  }, [displayEnvironments]);
+  const handleRedeployEnv = useCallback(
+    async (env: Environment) => {
+      try {
+        await suspendTracker.withTracking(env.name, () =>
+          handleRedeploy(env.bindingName ?? `${env.resourceName ?? env.name}`),
+        );
+      } catch (err) {
+        notification.showError(
+          isForbiddenError(err)
+            ? 'You do not have permission to redeploy. Contact your administrator.'
+            : `Error redeploying: ${getErrorMessage(err)}`,
+        );
+      }
+    },
+    [handleRedeploy, suspendTracker, notification],
+  );
+
+  const isAlreadyPromoted = useCallback(
+    (env: Environment, target: string) =>
+      isAlreadyPromotedUtil(env, target, displayEnvironments),
+    [displayEnvironments],
+  );
+
+  const selectedEnv =
+    selectedEnvName !== null ? envMap.get(selectedEnvName) ?? null : null;
+
+  const actionTrackers = { promotionTracker, suspendTracker };
+
+  const showSplitLayout = !!displayEnvironments.length;
 
   return (
     <>
@@ -180,129 +203,61 @@ export const PipelineCanvas: FC = () => {
         </Card>
       )}
 
-      {/* Pipeline DAG */}
-      {layout && (
-        <Box className={classes.pipelineContainer}>
-          <div className={classes.scrollArea}>
-            <div
-              className={classes.canvas}
-              style={{
-                width: layout.width + CANVAS_PADDING,
-                height: layout.height + CANVAS_PADDING,
+      {showSplitLayout && (
+        <Box className={classes.splitContainer}>
+          <DeployFlowCanvas
+            environments={displayEnvironments}
+            loading={loading}
+            isWorkloadEditorSupported={isWorkloadEditorSupported}
+            selectedEnvName={selectedEnvName}
+            refreshingEnvName={envName => refreshTracker.isActive(envName)}
+            isAlreadyPromoted={isAlreadyPromoted}
+            actionTrackers={actionTrackers}
+            onSelectEnv={setSelectedEnvName}
+            onConfigureWorkload={handleOpenWorkloadConfig}
+            onRefreshEnv={handleRefreshEnvironment}
+            onOpenOverrides={handleOpenOverrides}
+            onOpenReleaseDetails={handleOpenReleaseDetails}
+            onPromote={handlePromote}
+            onSuspend={handleSuspend}
+            onRedeploy={handleRedeployEnv}
+          />
+          <Box className={classes.detailPanelFrame}>
+            <EnvironmentDetailPanel
+              environment={selectedEnv}
+              isAlreadyPromoted={target =>
+                selectedEnv ? isAlreadyPromoted(selectedEnv, target) : false
+              }
+              actionTrackers={actionTrackers}
+              activeIncidentCount={
+                selectedEnv
+                  ? incidentsSummaries.get(selectedEnv.name)?.activeCount
+                  : undefined
+              }
+              onClose={() => setSelectedEnvName(null)}
+              onRefresh={() =>
+                selectedEnv && handleRefreshEnvironment(selectedEnv.name)
+              }
+              onOpenOverrides={() =>
+                selectedEnv && handleOpenOverrides(selectedEnv)
+              }
+              onOpenReleaseDetails={() =>
+                selectedEnv && handleOpenReleaseDetails(selectedEnv)
+              }
+              onPromote={async target => {
+                if (!selectedEnv) return;
+                await handlePromote(selectedEnv, target);
               }}
-            >
-              {/* Edges (rendered first, behind nodes) */}
-              {layout.edges.map(edge => (
-                <PipelineEdge key={`${edge.from}-${edge.to}`} edge={edge} />
-              ))}
-
-              {/* Setup node - vertically centered within its allocated space */}
-              {setupNode && (
-                <div
-                  className={classes.setupNodeWrapper}
-                  style={{
-                    left: setupNode.x,
-                    top: setupNode.y,
-                    width: setupNode.width,
-                    height: setupNode.height,
-                  }}
-                >
-                  <SetupCard
-                    loading={loading}
-                    environmentsExist={environments.length > 0}
-                    isWorkloadEditorSupported={isWorkloadEditorSupported}
-                    onConfigureWorkload={handleOpenWorkloadConfig}
-                  />
-                </div>
-              )}
-
-              {/* Environment nodes */}
-              {envNodes.map(node => {
-                const env = envMap.get(node.id);
-                if (!env) return null;
-
-                return (
-                  <div
-                    key={node.id}
-                    className={classes.nodeWrapper}
-                    style={{
-                      left: node.x,
-                      top: node.y,
-                      width: node.width,
-                      height: node.height,
-                    }}
-                  >
-                    <EnvironmentCard
-                      environmentName={env.name}
-                      resourceName={env.resourceName}
-                      bindingName={env.bindingName}
-                      hasComponentTypeOverrides={env.hasComponentTypeOverrides}
-                      canViewBindings={canViewBindings}
-                      bindingsPermissionLoading={bindingsPermissionLoading}
-                      dataPlaneRef={env.dataPlaneRef}
-                      deployment={env.deployment}
-                      endpoints={env.endpoints}
-                      promotionTargets={env.promotionTargets}
-                      isRefreshing={refreshTracker.isActive(env.name)}
-                      isAlreadyPromoted={createPromotionChecker(env)}
-                      actionTrackers={{ promotionTracker, suspendTracker }}
-                      onRefresh={() => handleRefreshEnvironment(env.name)}
-                      onOpenOverrides={() => handleOpenOverrides(env)}
-                      onOpenReleaseDetails={() => handleOpenReleaseDetails(env)}
-                      onPromote={targetName =>
-                        promotionTracker
-                          .withTracking(targetName, () =>
-                            handlePromoteWithOverridesCheck(env, targetName),
-                          )
-                          .catch(err =>
-                            notification.showError(
-                              isForbiddenError(err)
-                                ? 'You do not have permission to promote. Contact your administrator.'
-                                : `Error promoting: ${getErrorMessage(err)}`,
-                            ),
-                          )
-                      }
-                      onSuspend={() =>
-                        suspendTracker
-                          .withTracking(env.name, () =>
-                            handleUndeploy(
-                              env.bindingName ??
-                                `${env.resourceName ?? env.name}`,
-                            ),
-                          )
-                          .catch(err =>
-                            notification.showError(
-                              isForbiddenError(err)
-                                ? 'You do not have permission to undeploy. Contact your administrator.'
-                                : `Error undeploying: ${getErrorMessage(err)}`,
-                            ),
-                          )
-                      }
-                      onRedeploy={() =>
-                        suspendTracker
-                          .withTracking(env.name, () =>
-                            handleRedeploy(
-                              env.bindingName ??
-                                `${env.resourceName ?? env.name}`,
-                            ),
-                          )
-                          .catch(err =>
-                            notification.showError(
-                              isForbiddenError(err)
-                                ? 'You do not have permission to redeploy. Contact your administrator.'
-                                : `Error redeploying: ${getErrorMessage(err)}`,
-                            ),
-                          )
-                      }
-                      activeIncidentCount={
-                        incidentsSummaries.get(env.name)?.activeCount
-                      }
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+              onSuspend={async () => {
+                if (!selectedEnv) return;
+                await handleSuspend(selectedEnv);
+              }}
+              onRedeploy={async () => {
+                if (!selectedEnv) return;
+                await handleRedeployEnv(selectedEnv);
+              }}
+            />
+          </Box>
         </Box>
       )}
     </>
