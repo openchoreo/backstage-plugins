@@ -527,7 +527,11 @@ export function buildOpenChoreoTheme(t: ThemeTokens): UnifiedTheme {
             backgroundColor: isDark
               ? t.surface.raised
               : 'rgba(33, 37, 41, 0.92)',
-            color: t.common.white,
+            // `t.common.white` is overloaded in dark tokens to a near-black
+            // inverted-surface value, which would render the label invisible.
+            // Pin to a literal #ffffff so the tooltip text stays readable in
+            // both modes.
+            color: '#ffffff',
             fontSize: 12,
             border: isDark ? `1px solid ${t.border.default}` : 'none',
           },

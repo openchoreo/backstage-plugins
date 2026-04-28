@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { StreamLanguage } from '@codemirror/language';
 import { yaml as yamlSupport } from '@codemirror/legacy-modes/mode/yaml';
 import { showPanel } from '@codemirror/view';
@@ -10,8 +10,6 @@ import { makeStyles } from '@material-ui/core/styles';
 import SaveIcon from '@material-ui/icons/Save';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import DeleteIcon from '@material-ui/icons/Delete';
-import Brightness4Icon from '@material-ui/icons/Brightness4';
-import Brightness7Icon from '@material-ui/icons/Brightness7';
 import { useKeyboardEvent } from '@react-hookz/web';
 import CodeMirror from '@uiw/react-codemirror';
 import {
@@ -64,9 +62,6 @@ const useStyles = makeStyles(theme => ({
   deleteButton: {
     color: theme.palette.error.main,
   },
-  themeToggleButton: {
-    color: theme.palette.text.secondary,
-  },
   disabledButton: {
     opacity: 0.5,
   },
@@ -98,8 +93,7 @@ export interface YamlEditorProps {
   readOnly?: boolean;
   /**
    * Optional override for the CodeMirror color scheme. When omitted, the
-   * editor follows the global Backstage theme. The floating toggle button
-   * always sets a local override that persists until the component unmounts.
+   * editor follows the global Backstage theme.
    */
   isDarkTheme?: boolean;
 }
@@ -129,8 +123,7 @@ export function YamlEditor({
   const classes = useStyles();
   const tokens = useChoreoTokens();
   const globalIsDark = tokens.editor.codeMirrorTheme === 'dark';
-  const [override, setOverride] = useState<boolean | undefined>(undefined);
-  const effectiveDark = override ?? isDarkThemeProp ?? globalIsDark;
+  const effectiveDark = isDarkThemeProp ?? globalIsDark;
 
   // Error panel extension
   const panelExtension = useMemo(() => {
@@ -178,21 +171,6 @@ export function YamlEditor({
             </div>
           ) : (
             <>
-              <Tooltip
-                title={
-                  effectiveDark
-                    ? 'Switch to light theme'
-                    : 'Switch to dark theme'
-                }
-              >
-                <IconButton
-                  className={`${classes.floatingButton} ${classes.themeToggleButton}`}
-                  onClick={() => setOverride(!effectiveDark)}
-                  size="small"
-                >
-                  {effectiveDark ? <Brightness7Icon /> : <Brightness4Icon />}
-                </IconButton>
-              </Tooltip>
               {onSave && (
                 <Tooltip
                   title={
