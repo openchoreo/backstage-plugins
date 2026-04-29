@@ -27,6 +27,7 @@ import {
   formatMetricName,
 } from './utils';
 import { useMetricGraphStyles } from './styles';
+import { ChartTooltip } from './ChartTooltip';
 
 export const MetricGraphByComponent = ({
   usageData,
@@ -98,8 +99,12 @@ export const MetricGraphByComponent = ({
           tickFormatter={v => formatMetricValue(v, usageType)}
         />
         <Tooltip
-          labelFormatter={formatTooltipTime}
-          formatter={(value: number) => formatMetricValue(value, usageType)}
+          content={
+            <ChartTooltip
+              labelFormatter={formatTooltipTime}
+              formatter={(value: number) => formatMetricValue(value, usageType)}
+            />
+          }
         />
         <Legend
           onMouseEnter={handleMouseEnter}
