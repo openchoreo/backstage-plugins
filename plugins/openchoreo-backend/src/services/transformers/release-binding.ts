@@ -144,6 +144,7 @@ export function transformReleaseBinding(
     status: derived?.status,
     statusReason: derived?.reason,
     statusMessage: derived?.message,
+    resource: binding as unknown as Record<string, unknown>,
     endpoints: (() => {
       const raw = (binding.status as any)?.endpoints;
       if (!Array.isArray(raw)) return undefined;

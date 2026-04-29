@@ -240,7 +240,9 @@ export const ReleaseBindingDetailTabs: FC<ReleaseBindingDetailTabsProps> = ({
           <>
             {releaseBindingData ? (
               <YamlViewer
-                value={YAML.stringify(releaseBindingData)}
+                value={YAML.stringify(
+                  (releaseBindingData as any).resource ?? releaseBindingData,
+                )}
                 maxHeight="auto"
               />
             ) : (
