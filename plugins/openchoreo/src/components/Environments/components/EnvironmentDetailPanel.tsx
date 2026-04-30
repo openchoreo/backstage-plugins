@@ -1,7 +1,6 @@
 import { Box, IconButton, Typography } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import AllInboxOutlinedIcon from '@material-ui/icons/AllInboxOutlined';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
 import { useEnvironmentDetailPanelStyles } from '../styles';
@@ -23,6 +22,7 @@ export interface EnvironmentDetailPanelProps {
   onPromote: (targetEnvName: string) => Promise<void>;
   onSuspend: () => Promise<void>;
   onRedeploy: () => Promise<void>;
+  onRolloutRestart?: () => Promise<void> | void;
 }
 
 /**
@@ -42,6 +42,7 @@ export const EnvironmentDetailPanel = ({
   onPromote,
   onSuspend,
   onRedeploy,
+  onRolloutRestart,
 }: EnvironmentDetailPanelProps) => {
   const classes = useEnvironmentDetailPanelStyles();
   const statusVariant = useEnvironmentStatusVariant(
@@ -78,13 +79,6 @@ export const EnvironmentDetailPanel = ({
               aria-label="Refresh environment"
             >
               <RefreshIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={onOpenOverrides}
-              aria-label="Configure overrides"
-            >
-              <SettingsOutlinedIcon fontSize="small" />
             </IconButton>
             <IconButton
               size="small"
@@ -128,9 +122,12 @@ export const EnvironmentDetailPanel = ({
           isAlreadyPromoted={isAlreadyPromoted}
           promotionTracker={actionTrackers.promotionTracker}
           suspendTracker={actionTrackers.suspendTracker}
+          rolloutRestartTracker={actionTrackers.rolloutRestartTracker}
           onPromote={onPromote}
           onSuspend={onSuspend}
           onRedeploy={onRedeploy}
+          onOpenOverrides={onOpenOverrides}
+          onRolloutRestart={onRolloutRestart}
         />
       </Box>
     </Box>

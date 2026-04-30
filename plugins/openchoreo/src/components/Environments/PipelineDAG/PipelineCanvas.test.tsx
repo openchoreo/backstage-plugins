@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { mockComponentEntity } from '@openchoreo/test-utils';
@@ -96,6 +96,7 @@ const mockNavigateToReleaseDetails = jest.fn();
 const mockHandleRefreshEnvironment = jest.fn().mockResolvedValue(undefined);
 const mockHandleUndeploy = jest.fn().mockResolvedValue(undefined);
 const mockHandleRedeploy = jest.fn().mockResolvedValue(undefined);
+const mockHandleRolloutRestart = jest.fn().mockResolvedValue(undefined);
 const mockShowError = jest.fn();
 
 jest.mock('../hooks', () => ({
@@ -112,6 +113,7 @@ jest.mock('../hooks', () => ({
     handlePromote: jest.fn(),
     handleUndeploy: mockHandleUndeploy,
     handleRedeploy: mockHandleRedeploy,
+    handleRolloutRestart: mockHandleRolloutRestart,
   }),
   isAlreadyPromoted: () => false,
 }));
@@ -271,6 +273,27 @@ describe('PipelineCanvas (deploy split view)', () => {
       sourceEnvironment: 'dev-res',
       targetEnvironment: 'staging',
     });
+  });
+
+  it('wires onRolloutRestart on the detail panel through to handleRolloutRestart', async () => {
+    const envs = [
+      makeEnv({
+        name: 'production',
+        bindingName: 'prod-binding',
+        deployment: { status: 'Ready' },
+      }),
+    ];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    act(() => {
+      capturedFlowCanvasProps?.onSelectEnv('production');
+    });
+    // re-render captures fresh detail-panel props once selection mounts
+    await capturedDetailPanelProps?.onRolloutRestart?.();
+    expect(mockHandleRolloutRestart).toHaveBeenCalledWith('prod-binding');
   });
 
   it('routes onOpenOverrides through navigateToOverrides', () => {

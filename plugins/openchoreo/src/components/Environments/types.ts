@@ -41,6 +41,7 @@ export type ItemActionTracker = ReturnType<typeof useItemActionTracker<string>>;
 export interface ActionTrackers {
   promotionTracker: ItemActionTracker;
   suspendTracker: ItemActionTracker;
+  rolloutRestartTracker?: ItemActionTracker;
 }
 
 /**
@@ -114,7 +115,10 @@ export interface EnvironmentActionsProps {
   isAlreadyPromoted: (targetEnvName: string) => boolean;
   promotionTracker: ItemActionTracker;
   suspendTracker: ItemActionTracker;
+  rolloutRestartTracker?: ItemActionTracker;
   onPromote: (targetEnvName: string) => Promise<void>;
   onSuspend: () => Promise<void>;
   onRedeploy: () => Promise<void>;
+  onOpenOverrides?: () => void;
+  onRolloutRestart?: () => void | Promise<void>;
 }

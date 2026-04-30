@@ -101,10 +101,12 @@ export const MiniEnvironmentNode = ({
   };
   const closeMenu = () => setMenuAnchor(null);
 
-  const renderPrimaryAction = () => {
+  const renderActions = () => {
+    const buttons: JSX.Element[] = [];
     if (primaryPromotion) {
-      return (
+      buttons.push(
         <Tooltip
+          key="promote"
           title={primaryPromotion.deniedTooltip}
           disableHoverListener={!primaryPromotion.deniedTooltip}
         >
@@ -125,12 +127,13 @@ export const MiniEnvironmentNode = ({
                 : `Promote → ${primaryPromotion.target.name}`}
             </Button>
           </span>
-        </Tooltip>
+        </Tooltip>,
       );
     }
-    if (undeployAction?.kind === 'redeploy') {
-      return (
+    if (undeployAction?.kind === 'redeploy' && !primaryPromotion) {
+      buttons.push(
         <Tooltip
+          key="redeploy"
           title={undeployAction.deniedTooltip}
           disableHoverListener={!undeployAction.deniedTooltip}
         >
@@ -149,14 +152,35 @@ export const MiniEnvironmentNode = ({
               {undeployAction.label}
             </Button>
           </span>
-        </Tooltip>
+        </Tooltip>,
       );
     }
-    return null;
+    if (undeployAction?.kind === 'undeploy') {
+      buttons.push(
+        <Tooltip
+          key="undeploy"
+          title={undeployAction.deniedTooltip}
+          disableHoverListener={!undeployAction.deniedTooltip}
+        >
+          <span>
+            <Button
+              size="small"
+              variant="outlined"
+              className={classes.primaryButton}
+              disabled={undeployAction.disabled}
+              onClick={e => {
+                stop(e);
+                undeployAction.onClick();
+              }}
+            >
+              {undeployAction.label}
+            </Button>
+          </span>
+        </Tooltip>,
+      );
+    }
+    return buttons;
   };
-
-  const showUndeployMenu =
-    !!environment.bindingName && undeployAction?.kind === 'undeploy';
 
   return (
     <Box
@@ -229,7 +253,7 @@ export const MiniEnvironmentNode = ({
               </Typography>
             )}
           </Box>
-          <Box className={classes.actionRow}>{renderPrimaryAction()}</Box>
+          <Box className={classes.actionRow}>{renderActions()}</Box>
         </Box>
       </Box>
 
@@ -276,18 +300,6 @@ export const MiniEnvironmentNode = ({
           <SettingsOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
           Configure overrides
         </MenuItem>
-        {showUndeployMenu && undeployAction && (
-          <MenuItem
-            onClick={e => {
-              stop(e);
-              closeMenu();
-              undeployAction.onClick();
-            }}
-            disabled={undeployAction.disabled}
-          >
-            {undeployAction.label}
-          </MenuItem>
-        )}
       </Menu>
     </Box>
   );

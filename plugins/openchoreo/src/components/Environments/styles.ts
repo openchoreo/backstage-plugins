@@ -1,4 +1,4 @@
-import { makeStyles } from '@material-ui/core/styles';
+import { makeStyles, alpha } from '@material-ui/core/styles';
 
 /**
  * Main styles for the Environments component
@@ -85,19 +85,22 @@ export const useSetupCardCompactStyles = makeStyles(theme => ({
   setupCard: {
     backgroundColor: theme.palette.background.paper,
     color: theme.palette.text.primary,
-    padding: theme.spacing(1.5),
+    padding: theme.spacing(2),
     borderRadius: 12,
     width: '100%',
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
     boxSizing: 'border-box',
     border: `1px dashed ${theme.palette.divider}`,
-    gap: theme.spacing(1),
+    gap: theme.spacing(1.5),
   },
   titleRow: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: theme.spacing(1),
   },
   titleIcon: {
@@ -111,12 +114,12 @@ export const useSetupCardCompactStyles = makeStyles(theme => ({
   toggleRow: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
     margin: 0,
   },
   workloadButtonWrapper: {
-    marginTop: 'auto',
     display: 'flex',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
   },
 }));
 
@@ -142,7 +145,15 @@ export const useMiniEnvironmentNodeStyles = makeStyles(theme => ({
     },
   },
   cardSelected: {
-    boxShadow: `inset 0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[3]}`,
+    borderColor: theme.palette.primary.main,
+    backgroundColor: alpha(
+      theme.palette.primary.main,
+      theme.palette.type === 'dark' ? 0.12 : 0.04,
+    ),
+    boxShadow: `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[4]}`,
+    '&:hover': {
+      boxShadow: `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[4]}`,
+    },
   },
   statusStripe: {
     width: 4,
@@ -218,6 +229,8 @@ export const useMiniEnvironmentNodeStyles = makeStyles(theme => ({
     marginTop: 'auto',
     display: 'flex',
     justifyContent: 'flex-end',
+    gap: theme.spacing(0.75),
+    flexWrap: 'wrap',
   },
   menuButton: {
     padding: theme.spacing(0.25),

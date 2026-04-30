@@ -108,6 +108,12 @@ describe('MiniEnvironmentNode', () => {
     expect(screen.getByText('Refresh')).toBeInTheDocument();
   });
 
+  it('marks the card as selected via class name when selected', () => {
+    renderNode({ selected: true });
+    const card = screen.getByLabelText('Select environment staging');
+    expect(card.className).toMatch(/cardSelected/);
+  });
+
   it('shows a Redeploy primary action when env is undeployed', () => {
     renderNode({
       environment: makeEnv({
@@ -117,5 +123,42 @@ describe('MiniEnvironmentNode', () => {
       }),
     });
     expect(screen.getByRole('button', { name: /redeploy/i })).toBeEnabled();
+  });
+
+  it('shows both Promote and Undeploy when env is Ready with binding + targets', async () => {
+    const user = userEvent.setup();
+    const onPromote = jest.fn();
+    const onSuspend = jest.fn();
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+        promotionTargets: [{ name: 'prod', resourceName: 'prod-res' }],
+      }),
+      onPromote,
+      onSuspend,
+    });
+    const promoteBtn = screen.getByRole('button', { name: /promote/i });
+    const undeployBtn = screen.getByRole('button', { name: /^undeploy$/i });
+    expect(promoteBtn).toBeEnabled();
+    expect(undeployBtn).toBeEnabled();
+
+    await user.click(undeployBtn);
+    expect(onSuspend).toHaveBeenCalled();
+    expect(onPromote).not.toHaveBeenCalled();
+  });
+
+  it('does not list Undeploy in the overflow menu (it lives on the action row now)', async () => {
+    const user = userEvent.setup();
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+      }),
+    });
+    await user.click(screen.getByLabelText('Actions for staging'));
+    expect(screen.queryByRole('menuitem', { name: /undeploy/i })).toBeNull();
   });
 });

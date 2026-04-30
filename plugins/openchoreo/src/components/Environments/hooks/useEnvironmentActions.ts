@@ -65,10 +65,21 @@ export function useEnvironmentActions(
     [entity, client, refetch, notification],
   );
 
+  // Stub: rollout-restart API + reconciliation lands in a follow-up. This
+  // handler is wired through the panel today so only the API call is left
+  // to swap in.
+  const handleRolloutRestart = useCallback(
+    async (_bindingName: string) => {
+      notification.showError('Rollout restart is not yet wired up');
+    },
+    [notification],
+  );
+
   return {
     handleRefreshEnvironment,
     handlePromote,
     handleUndeploy,
     handleRedeploy,
+    handleRolloutRestart,
   };
 }

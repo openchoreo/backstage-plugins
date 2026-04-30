@@ -48,6 +48,7 @@ export const PipelineCanvas: FC = () => {
   const refreshTracker = useItemActionTracker<string>();
   const promotionTracker = useItemActionTracker<string>();
   const suspendTracker = useItemActionTracker<string>();
+  const rolloutRestartTracker = useItemActionTracker<string>();
 
   // Selection state — survives refetch, auto-clears when the selected env disappears.
   const [selectedEnvName, setSelectedEnvName] = useState<string | null>(null);
@@ -75,8 +76,12 @@ export const PipelineCanvas: FC = () => {
   const notification = useNotification();
 
   // Action handlers
-  const { handleRefreshEnvironment, handleUndeploy, handleRedeploy } =
-    useEnvironmentActions(entity, refetch, notification, refreshTracker);
+  const {
+    handleRefreshEnvironment,
+    handleUndeploy,
+    handleRedeploy,
+    handleRolloutRestart,
+  } = useEnvironmentActions(entity, refetch, notification, refreshTracker);
 
   const handleOpenWorkloadConfig = useCallback(() => {
     navigateToWorkloadConfig();
@@ -164,6 +169,24 @@ export const PipelineCanvas: FC = () => {
     [handleRedeploy, suspendTracker, notification],
   );
 
+  const handleRolloutRestartEnv = useCallback(
+    async (env: Environment) => {
+      const targetId = env.bindingName ?? `${env.resourceName ?? env.name}`;
+      try {
+        await rolloutRestartTracker.withTracking(targetId, () =>
+          handleRolloutRestart(targetId),
+        );
+      } catch (err) {
+        notification.showError(
+          isForbiddenError(err)
+            ? 'You do not have permission to restart rollouts. Contact your administrator.'
+            : `Error restarting rollout: ${getErrorMessage(err)}`,
+        );
+      }
+    },
+    [handleRolloutRestart, rolloutRestartTracker, notification],
+  );
+
   const isAlreadyPromoted = useCallback(
     (env: Environment, target: string) =>
       isAlreadyPromotedUtil(env, target, displayEnvironments),
@@ -173,7 +196,11 @@ export const PipelineCanvas: FC = () => {
   const selectedEnv =
     selectedEnvName !== null ? envMap.get(selectedEnvName) ?? null : null;
 
-  const actionTrackers = { promotionTracker, suspendTracker };
+  const actionTrackers = {
+    promotionTracker,
+    suspendTracker,
+    rolloutRestartTracker,
+  };
 
   const showSplitLayout = !!displayEnvironments.length;
 
@@ -255,6 +282,10 @@ export const PipelineCanvas: FC = () => {
               onRedeploy={async () => {
                 if (!selectedEnv) return;
                 await handleRedeployEnv(selectedEnv);
+              }}
+              onRolloutRestart={async () => {
+                if (!selectedEnv) return;
+                await handleRolloutRestartEnv(selectedEnv);
               }}
             />
           </Box>

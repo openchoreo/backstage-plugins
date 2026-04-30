@@ -95,14 +95,89 @@ describe('EnvironmentDetailPanel', () => {
     expect(props.onClose).toHaveBeenCalled();
   });
 
-  it('fires onRefresh and onOpenOverrides via the panel chrome', async () => {
+  it('fires onRefresh from the panel chrome', async () => {
     const user = userEvent.setup();
     const { props } = renderPanel({
       environment: makeEnv({ name: 'staging' }),
     });
     await user.click(screen.getByLabelText('Refresh environment'));
-    await user.click(screen.getByLabelText('Configure overrides'));
     expect(props.onRefresh).toHaveBeenCalled();
+  });
+
+  it('fires onOpenOverrides from the prominent Configure overrides button', async () => {
+    const user = userEvent.setup();
+    const { props } = renderPanel({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+      }),
+    });
+    await user.click(
+      screen.getByRole('button', { name: /configure overrides/i }),
+    );
     expect(props.onOpenOverrides).toHaveBeenCalled();
+  });
+
+  it('shows the Rollout restart button when the env has an active deployment', () => {
+    renderPanel({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+      }),
+      onRolloutRestart: jest.fn().mockResolvedValue(undefined),
+    });
+    expect(
+      screen.getByRole('button', { name: /rollout restart/i }),
+    ).toBeEnabled();
+  });
+
+  it('hides Rollout restart when the env is undeployed', () => {
+    renderPanel({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready', statusReason: 'ResourcesUndeployed' },
+      }),
+      onRolloutRestart: jest.fn().mockResolvedValue(undefined),
+    });
+    expect(
+      screen.queryByRole('button', { name: /rollout restart/i }),
+    ).toBeNull();
+  });
+
+  it('hides Rollout restart when no bindingName exists', () => {
+    renderPanel({
+      environment: makeEnv({
+        name: 'staging',
+        deployment: { status: 'Ready' },
+      }),
+      onRolloutRestart: jest.fn().mockResolvedValue(undefined),
+    });
+    expect(
+      screen.queryByRole('button', { name: /rollout restart/i }),
+    ).toBeNull();
+  });
+
+  it('fires onRolloutRestart when the button is clicked', async () => {
+    const user = userEvent.setup();
+    const onRolloutRestart = jest.fn().mockResolvedValue(undefined);
+    renderPanel({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+      }),
+      onRolloutRestart,
+    });
+    await user.click(
+      screen.getByRole('button', { name: /rollout restart/i }),
+    );
+    expect(onRolloutRestart).toHaveBeenCalled();
+  });
+
+  it('does not render the cogwheel IconButton in the header anymore', () => {
+    renderPanel({ environment: makeEnv({ name: 'staging' }) });
+    expect(screen.queryByLabelText('Configure overrides')).toBeNull();
   });
 });

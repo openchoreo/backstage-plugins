@@ -108,11 +108,18 @@ export function useHtmlGraphZoom({
       .filter(event => {
         // Allow wheel + drag-to-pan on the container itself but ignore
         // events whose target is interactive (button, input, link, etc.)
-        // so node clicks don't start a pan gesture.
+        // so node clicks don't start a pan gesture. `[role="button"]`
+        // covers div-as-button click targets (e.g. the mini node itself)
+        // — without it, d3-zoom's mousedown can swallow the first click
+        // and the user has to click twice to register selection.
         if (event.type === 'wheel') return true;
         const target = event.target as HTMLElement | null;
         if (!target) return true;
-        if (target.closest('button, a, input, textarea, select, [role="menu"]'))
+        if (
+          target.closest(
+            'button, a, input, textarea, select, [role="button"], [role="menu"]',
+          )
+        )
           return false;
         return true;
       })
