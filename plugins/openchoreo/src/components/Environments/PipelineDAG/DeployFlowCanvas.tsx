@@ -1,4 +1,10 @@
-import { useMemo, useState, useCallback, type FC } from 'react';
+import {
+  useMemo,
+  useState,
+  useCallback,
+  type FC,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
 import { Box, useMediaQuery, useTheme } from '@material-ui/core';
 import {
   buildEnvPipelineNodes,
@@ -25,10 +31,13 @@ export interface DeployFlowCanvasProps {
   loading: boolean;
   isWorkloadEditorSupported: boolean;
   selectedEnvName: string | null;
+  selectedSetup: boolean;
   refreshingEnvName: (envName: string) => boolean;
   isAlreadyPromoted: (sourceEnv: Environment, targetEnvName: string) => boolean;
   actionTrackers: ActionTrackers;
   onSelectEnv: (envName: string | null) => void;
+  onSelectSetup: () => void;
+  onClearSelection: () => void;
   onConfigureWorkload: () => void;
   onRefreshEnv: (envName: string) => void;
   onOpenOverrides: (env: Environment) => void;
@@ -49,10 +58,13 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
   loading,
   isWorkloadEditorSupported,
   selectedEnvName,
+  selectedSetup,
   refreshingEnvName,
   isAlreadyPromoted,
   actionTrackers,
   onSelectEnv,
+  onSelectSetup,
+  onClearSelection,
   onConfigureWorkload,
   onRefreshEnv,
   onOpenOverrides,
@@ -117,9 +129,11 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
         y: node.y,
         width: node.width,
         height: node.height,
-        highlighted: node.id === selectedEnvName,
+        highlighted:
+          node.id === selectedEnvName ||
+          (node.id === SETUP_NODE_ID && selectedSetup),
       })),
-    [layout, selectedEnvName],
+    [layout, selectedEnvName, selectedSetup],
   );
 
   const toggleFullscreen = useCallback(() => {
@@ -130,13 +144,32 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
     return null;
   }
 
+  const handleBackgroundClick = (e: ReactMouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClearSelection();
+    }
+  };
+
   return (
     <Box className={classes.canvasFrame}>
-      <div className={classes.canvasContainer} ref={containerRef}>
+      {/*
+        The canvas container + content divs are the d3-zoom drag/wheel
+        surfaces and also handle a target-equality "click background to
+        deselect" gesture. Keyboard users navigate via the focusable node
+        tiles inside, so wiring keyboard listeners onto the surface
+        would be misleading.
+      */}
+      {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <div
+        className={classes.canvasContainer}
+        ref={containerRef}
+        onClick={handleBackgroundClick}
+      >
         <div
           className={classes.canvasContent}
           ref={contentRef}
           style={{ width: contentWidth, height: contentHeight }}
+          onClick={handleBackgroundClick}
         >
           {layout.edges.map(edge => (
             <PipelineEdge key={`${edge.from}-${edge.to}`} edge={edge} />
@@ -145,6 +178,17 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
           {setupNode && (
             <Box
               className={classes.setupNodeWrapper}
+              role="button"
+              tabIndex={0}
+              aria-pressed={selectedSetup}
+              aria-label="Select setup"
+              onClick={onSelectSetup}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectSetup();
+                }
+              }}
               style={{
                 left: setupNode.x,
                 top: setupNode.y,
@@ -158,6 +202,7 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
                 environmentsExist={environments.length > 0}
                 isWorkloadEditorSupported={isWorkloadEditorSupported}
                 onConfigureWorkload={onConfigureWorkload}
+                selected={selectedSetup}
               />
             </Box>
           )}
@@ -195,6 +240,7 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
           })}
         </div>
       </div>
+      {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
 
       <Box className={classes.minimapOverlay}>
         <HtmlGraphMinimap

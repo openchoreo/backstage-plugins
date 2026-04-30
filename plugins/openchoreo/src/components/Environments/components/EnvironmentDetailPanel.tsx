@@ -8,13 +8,25 @@ import { useEnvironmentStatusVariant } from '../hooks/useEnvironmentStatusVarian
 import { deriveVersionLabel } from '../utils/deriveVersionLabel';
 import { EnvironmentCardContent } from './EnvironmentCardContent';
 import { EnvironmentActions } from './EnvironmentActions';
+import { SetupDetailPane } from './SetupDetailPane';
 import type { ActionTrackers, Environment } from '../types';
 
+export type DetailPanelSelection =
+  | { kind: 'env'; environment: Environment }
+  | { kind: 'setup' }
+  | null;
+
 export interface EnvironmentDetailPanelProps {
-  environment: Environment | null;
+  selection: DetailPanelSelection;
   isAlreadyPromoted: (targetEnvName: string) => boolean;
   actionTrackers: ActionTrackers;
   activeIncidentCount?: number;
+  /** True when at least one env has a binding (anything deployed). */
+  hasAnyDeployedEnv: boolean;
+  isWorkloadEditorSupported: boolean;
+  environmentsExist: boolean;
+  loadingSetup: boolean;
+  onConfigureWorkload: () => void;
   onClose: () => void;
   onRefresh: () => void;
   onOpenOverrides: () => void;
@@ -26,15 +38,25 @@ export interface EnvironmentDetailPanelProps {
 }
 
 /**
- * Right-pane detail panel for the deploy split view. Reuses the existing
- * EnvironmentCardContent + EnvironmentActions presentation while wrapping
- * them in a panel chrome (status pill, close button, version label).
+ * Right-pane detail panel for the deploy split view. Renders one of:
+ *
+ *   - Setup actions (Auto Deploy + Configure & Deploy) when the canvas
+ *     Setup tile is selected.
+ *   - The full env detail (status, content, actions) when an env tile is
+ *     selected.
+ *   - A contextual empty state pointing the user at Set up when nothing
+ *     is selected.
  */
 export const EnvironmentDetailPanel = ({
-  environment,
+  selection,
   isAlreadyPromoted,
   actionTrackers,
   activeIncidentCount,
+  hasAnyDeployedEnv,
+  isWorkloadEditorSupported,
+  environmentsExist,
+  loadingSetup,
+  onConfigureWorkload,
   onClose,
   onRefresh,
   onOpenOverrides,
@@ -45,10 +67,23 @@ export const EnvironmentDetailPanel = ({
   onRolloutRestart,
 }: EnvironmentDetailPanelProps) => {
   const classes = useEnvironmentDetailPanelStyles();
+  const environment = selection?.kind === 'env' ? selection.environment : null;
   const statusVariant = useEnvironmentStatusVariant(
     environment?.deployment.status,
     environment?.deployment.statusReason,
   );
+
+  if (selection?.kind === 'setup') {
+    return (
+      <SetupDetailPane
+        environmentsExist={environmentsExist}
+        isWorkloadEditorSupported={isWorkloadEditorSupported}
+        loading={loadingSetup}
+        onConfigureWorkload={onConfigureWorkload}
+        onClose={onClose}
+      />
+    );
+  }
 
   if (!environment) {
     return (
@@ -56,7 +91,17 @@ export const EnvironmentDetailPanel = ({
         <Box className={classes.emptyState}>
           <AllInboxOutlinedIcon className={classes.emptyIcon} />
           <Typography variant="body2">
-            Click an environment on the graph to see its details.
+            {hasAnyDeployedEnv ? (
+              <>
+                Select an environment to view details, or click{' '}
+                <strong>Set up</strong> to update configuration.
+              </>
+            ) : (
+              <>
+                Click <strong>Set up</strong> to configure & deploy your
+                component to get started.
+              </>
+            )}
           </Typography>
         </Box>
       </Box>

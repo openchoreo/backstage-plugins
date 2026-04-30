@@ -68,6 +68,8 @@ export interface SetupCardProps {
   onConfigureWorkload: () => void;
   /** Compact rendering for the deploy minimap canvas. */
   compact?: boolean;
+  /** Selection chrome for compact mode (canvas tile selection). */
+  selected?: boolean;
 }
 
 /**

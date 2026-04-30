@@ -50,8 +50,12 @@ export const PipelineCanvas: FC = () => {
   const suspendTracker = useItemActionTracker<string>();
   const rolloutRestartTracker = useItemActionTracker<string>();
 
-  // Selection state — survives refetch, auto-clears when the selected env disappears.
-  const [selectedEnvName, setSelectedEnvName] = useState<string | null>(null);
+  // Selection state — survives refetch, auto-clears when a selected env
+  // disappears. Setup is a first-class selection target so the right pane
+  // can render Auto Deploy + Configure & Deploy when the user clicks the
+  // Setup tile on the canvas.
+  type Selection = { kind: 'env'; name: string } | { kind: 'setup' } | null;
+  const [selection, setSelection] = useState<Selection>(null);
 
   const envMap = useMemo(() => {
     const map = new Map<string, Environment>();
@@ -60,10 +64,18 @@ export const PipelineCanvas: FC = () => {
   }, [displayEnvironments]);
 
   useEffect(() => {
-    if (selectedEnvName && !envMap.has(selectedEnvName)) {
-      setSelectedEnvName(null);
+    if (selection?.kind === 'env' && !envMap.has(selection.name)) {
+      setSelection(null);
     }
-  }, [selectedEnvName, envMap]);
+  }, [selection, envMap]);
+
+  const selectedEnvName = selection?.kind === 'env' ? selection.name : null;
+  const selectedSetup = selection?.kind === 'setup';
+
+  const hasAnyDeployedEnv = useMemo(
+    () => displayEnvironments.some(env => !!env.bindingName),
+    [displayEnvironments],
+  );
 
   // Incidents summary per environment
   const deployedEnvironments = useMemo(
@@ -204,6 +216,16 @@ export const PipelineCanvas: FC = () => {
 
   const showSplitLayout = !!displayEnvironments.length;
 
+  let panelSelection:
+    | { kind: 'env'; environment: Environment }
+    | { kind: 'setup' }
+    | null = null;
+  if (selectedEnv) {
+    panelSelection = { kind: 'env', environment: selectedEnv };
+  } else if (selectedSetup) {
+    panelSelection = { kind: 'setup' };
+  }
+
   return (
     <>
       <NotificationBanner notification={notification.notification} />
@@ -237,10 +259,15 @@ export const PipelineCanvas: FC = () => {
             loading={loading}
             isWorkloadEditorSupported={isWorkloadEditorSupported}
             selectedEnvName={selectedEnvName}
+            selectedSetup={selectedSetup}
             refreshingEnvName={envName => refreshTracker.isActive(envName)}
             isAlreadyPromoted={isAlreadyPromoted}
             actionTrackers={actionTrackers}
-            onSelectEnv={setSelectedEnvName}
+            onSelectEnv={name =>
+              setSelection(name ? { kind: 'env', name } : null)
+            }
+            onSelectSetup={() => setSelection({ kind: 'setup' })}
+            onClearSelection={() => setSelection(null)}
             onConfigureWorkload={handleOpenWorkloadConfig}
             onRefreshEnv={handleRefreshEnvironment}
             onOpenOverrides={handleOpenOverrides}
@@ -251,7 +278,7 @@ export const PipelineCanvas: FC = () => {
           />
           <Box className={classes.detailPanelFrame}>
             <EnvironmentDetailPanel
-              environment={selectedEnv}
+              selection={panelSelection}
               isAlreadyPromoted={target =>
                 selectedEnv ? isAlreadyPromoted(selectedEnv, target) : false
               }
@@ -261,7 +288,12 @@ export const PipelineCanvas: FC = () => {
                   ? incidentsSummaries.get(selectedEnv.name)?.activeCount
                   : undefined
               }
-              onClose={() => setSelectedEnvName(null)}
+              hasAnyDeployedEnv={hasAnyDeployedEnv}
+              isWorkloadEditorSupported={isWorkloadEditorSupported}
+              environmentsExist={displayEnvironments.length > 0}
+              loadingSetup={loading}
+              onConfigureWorkload={handleOpenWorkloadConfig}
+              onClose={() => setSelection(null)}
               onRefresh={() =>
                 selectedEnv && handleRefreshEnvironment(selectedEnv.name)
               }

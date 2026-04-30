@@ -23,11 +23,13 @@ jest.mock('../components', () => ({
   NotificationBanner: () => null,
   EnvironmentDetailPanel: (props: EnvironmentDetailPanelProps) => {
     capturedDetailPanelProps = props;
-    return (
-      <div data-testid="env-detail-panel">
-        {props.environment ? `selected:${props.environment.name}` : 'empty'}
-      </div>
-    );
+    let label = 'empty';
+    if (props.selection?.kind === 'env') {
+      label = `selected:${props.selection.environment.name}`;
+    } else if (props.selection?.kind === 'setup') {
+      label = 'selected:setup';
+    }
+    return <div data-testid="env-detail-panel">{label}</div>;
   },
 }));
 
@@ -203,7 +205,63 @@ describe('PipelineCanvas (deploy split view)', () => {
     expect(screen.getByTestId('env-detail-panel')).toBeInTheDocument();
     expect(capturedFlowCanvasProps?.environments).toHaveLength(2);
     expect(capturedFlowCanvasProps?.selectedEnvName).toBeNull();
-    expect(capturedDetailPanelProps?.environment).toBeNull();
+    expect(capturedFlowCanvasProps?.selectedSetup).toBe(false);
+    expect(capturedDetailPanelProps?.selection).toBeNull();
+  });
+
+  it('passes selection.kind=setup to the panel when Setup is selected on the canvas', () => {
+    const envs = [makeEnv({ name: 'staging' })];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    act(() => {
+      capturedFlowCanvasProps?.onSelectSetup();
+    });
+    expect(capturedDetailPanelProps?.selection).toEqual({ kind: 'setup' });
+    expect(capturedFlowCanvasProps?.selectedSetup).toBe(true);
+  });
+
+  it('clears selection when onClearSelection fires from the canvas', () => {
+    const envs = [makeEnv({ name: 'staging' })];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    act(() => {
+      capturedFlowCanvasProps?.onSelectEnv('staging');
+    });
+    expect(capturedDetailPanelProps?.selection?.kind).toBe('env');
+
+    act(() => {
+      capturedFlowCanvasProps?.onClearSelection();
+    });
+    expect(capturedDetailPanelProps?.selection).toBeNull();
+  });
+
+  it('passes hasAnyDeployedEnv=true to the panel when at least one env has a binding', () => {
+    const envs = [
+      makeEnv({ name: 'dev', bindingName: 'dev-binding' }),
+      makeEnv({ name: 'staging' }),
+    ];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    expect(capturedDetailPanelProps?.hasAnyDeployedEnv).toBe(true);
+  });
+
+  it('passes hasAnyDeployedEnv=false when no env has a binding', () => {
+    const envs = [makeEnv({ name: 'dev' }), makeEnv({ name: 'staging' })];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    expect(capturedDetailPanelProps?.hasAnyDeployedEnv).toBe(false);
   });
 
   it('passes a refresh callback that calls handleRefreshEnvironment', () => {

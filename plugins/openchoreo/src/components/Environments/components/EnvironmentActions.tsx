@@ -66,8 +66,7 @@ export const EnvironmentActions = ({
   const showRolloutRestart =
     !!onRolloutRestart && !!bindingName && isActiveDeployment;
   const rolloutInFlight =
-    !!bindingName &&
-    !!rolloutRestartTracker?.isActive(bindingName);
+    !!bindingName && !!rolloutRestartTracker?.isActive(bindingName);
 
   const hasAnyAction =
     promotionActions.length > 0 ||
@@ -105,12 +104,7 @@ export const EnvironmentActions = ({
           </Box>
         ))}
 
-      <Box
-        display="flex"
-        flexWrap="wrap"
-        justifyContent="flex-end"
-        gridGap={8}
-      >
+      <Box display="flex" flexWrap="wrap" justifyContent="flex-end" gridGap={8}>
         {onOpenOverrides && (
           <Button
             variant="outlined"

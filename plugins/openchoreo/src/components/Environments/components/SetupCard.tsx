@@ -9,6 +9,7 @@ import {
 } from '@material-ui/core';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
+import clsx from 'clsx';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useSetupCardStyles, useSetupCardCompactStyles } from '../styles';
@@ -20,19 +21,40 @@ import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { useAutoDeployUpdate } from '../hooks/useAutoDeployUpdate';
 import { useNotification } from '../../../hooks';
 
-/**
- * Setup card showing workload deployment options and auto deploy toggle.
- * Visually distinct from environment cards — uses dashed border and muted background.
- */
-export const SetupCard = ({
+const CompactSetupTile = ({
+  loading,
+  environmentsExist,
+  selected,
+}: SetupCardProps) => {
+  const classes = useSetupCardCompactStyles();
+  return (
+    <Box
+      className={clsx(classes.setupCard, {
+        [classes.cardSelected]: selected,
+      })}
+    >
+      <Box className={classes.titleRow}>
+        <SettingsOutlinedIcon className={classes.titleIcon} />
+        <Typography className={classes.title}>Set up</Typography>
+      </Box>
+      {loading && !environmentsExist ? (
+        <LoadingSkeleton variant="setup" />
+      ) : (
+        <Typography className={classes.hint}>
+          Auto Deploy & component configuration
+        </Typography>
+      )}
+    </Box>
+  );
+};
+
+const FullSetupCard = ({
   loading,
   environmentsExist,
   isWorkloadEditorSupported,
   onConfigureWorkload,
-  compact = false,
 }: SetupCardProps) => {
   const fullStyles = useSetupCardStyles();
-  const compactStyles = useSetupCardCompactStyles();
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
   const notification = useNotification();
@@ -44,7 +66,6 @@ export const SetupCard = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingAutoDeployValue, setPendingAutoDeployValue] = useState(false);
 
-  // Fetch component details to get autoDeploy value
   useEffect(() => {
     let cancelled = false;
     setAutoDeployLoaded(false);
@@ -56,7 +77,6 @@ export const SetupCard = ({
           setAutoDeploy(componentData.autoDeploy);
         }
       } catch {
-        // Auto-deploy state will remain undefined and switch stays disabled
         return;
       }
       if (!cancelled) {
@@ -127,43 +147,6 @@ export const SetupCard = ({
     </Tooltip>
   );
 
-  if (compact) {
-    return (
-      <>
-        <Box className={compactStyles.setupCard}>
-          <Box className={compactStyles.titleRow}>
-            <SettingsOutlinedIcon className={compactStyles.titleIcon} />
-            <Typography className={compactStyles.title}>Set up</Typography>
-          </Box>
-
-          {loading && !environmentsExist ? (
-            <LoadingSkeleton variant="setup" />
-          ) : (
-            <>
-              <Box className={compactStyles.toggleRow}>
-                {autoDeploySwitch}
-                {autoDeployTooltip}
-              </Box>
-              {isWorkloadEditorSupported && (
-                <Box className={compactStyles.workloadButtonWrapper}>
-                  <WorkloadButton onConfigureWorkload={onConfigureWorkload} />
-                </Box>
-              )}
-            </>
-          )}
-        </Box>
-
-        <AutoDeployConfirmationDialog
-          open={showConfirmDialog}
-          onCancel={handleCancel}
-          onConfirm={handleConfirm}
-          isEnabling={pendingAutoDeployValue}
-          isUpdating={autoDeployUpdating}
-        />
-      </>
-    );
-  }
-
   return (
     <>
       <Box
@@ -208,4 +191,19 @@ export const SetupCard = ({
       />
     </>
   );
+};
+
+/**
+ * Setup card showing workload deployment options and auto deploy toggle.
+ *
+ * Compact mode renders a passive tile for the deploy minimap canvas — the
+ * Auto Deploy switch and Configure & Deploy button live in the right-pane
+ * SetupDetailPane when the user clicks the tile, so the canvas stays
+ * action-free.
+ */
+export const SetupCard = (props: SetupCardProps) => {
+  if (props.compact) {
+    return <CompactSetupTile {...props} />;
+  }
+  return <FullSetupCard {...props} />;
 };

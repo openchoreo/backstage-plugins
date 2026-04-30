@@ -95,7 +95,24 @@ export const useSetupCardCompactStyles = makeStyles(theme => ({
     justifyContent: 'center',
     boxSizing: 'border-box',
     border: `1px dashed ${theme.palette.divider}`,
-    gap: theme.spacing(1.5),
+    gap: theme.spacing(0.75),
+    cursor: 'pointer',
+    transition: 'box-shadow 120ms ease, border-color 120ms ease',
+    '&:hover': {
+      boxShadow: theme.shadows[3],
+    },
+  },
+  cardSelected: {
+    borderColor: theme.palette.primary.main,
+    borderStyle: 'solid',
+    backgroundColor: alpha(
+      theme.palette.primary.main,
+      theme.palette.type === 'dark' ? 0.12 : 0.04,
+    ),
+    boxShadow: `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[4]}`,
+    '&:hover': {
+      boxShadow: `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[4]}`,
+    },
   },
   titleRow: {
     display: 'flex',
@@ -110,6 +127,11 @@ export const useSetupCardCompactStyles = makeStyles(theme => ({
   title: {
     fontWeight: 600,
     color: theme.palette.text.primary,
+  },
+  hint: {
+    color: theme.palette.text.secondary,
+    fontSize: '0.78rem',
+    textAlign: 'center',
   },
   toggleRow: {
     display: 'flex',

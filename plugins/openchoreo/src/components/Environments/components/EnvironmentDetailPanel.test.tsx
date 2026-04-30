@@ -26,6 +26,16 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
   ),
 }));
 
+jest.mock('./SetupDetailPane', () => ({
+  SetupDetailPane: (props: { onClose: () => void }) => (
+    <div data-testid="setup-detail-pane">
+      <button type="button" onClick={props.onClose}>
+        close-setup
+      </button>
+    </div>
+  ),
+}));
+
 function tracker(): ItemActionTracker {
   return {
     isActive: () => false,
@@ -50,9 +60,14 @@ function makeEnv(
 
 function renderPanel(overrides: Partial<EnvironmentDetailPanelProps> = {}) {
   const props: EnvironmentDetailPanelProps = {
-    environment: null,
+    selection: null,
     isAlreadyPromoted: () => false,
     actionTrackers: { promotionTracker: tracker(), suspendTracker: tracker() },
+    hasAnyDeployedEnv: false,
+    isWorkloadEditorSupported: true,
+    environmentsExist: true,
+    loadingSetup: false,
+    onConfigureWorkload: jest.fn(),
     onClose: jest.fn(),
     onRefresh: jest.fn(),
     onOpenOverrides: jest.fn(),
@@ -66,39 +81,53 @@ function renderPanel(overrides: Partial<EnvironmentDetailPanelProps> = {}) {
 }
 
 describe('EnvironmentDetailPanel', () => {
-  it('shows the empty state when no environment is selected', () => {
-    renderPanel();
+  it('shows the "get started" empty state when nothing is deployed yet', () => {
+    renderPanel({ selection: null, hasAnyDeployedEnv: false });
     expect(
-      screen.getByText('Click an environment on the graph to see its details.'),
+      screen.getByText(/configure & deploy your component to get started/i),
     ).toBeInTheDocument();
   });
 
-  it('renders the env name and status badge for a selected env', () => {
+  it('shows the "select env or update setup" empty state when something is deployed', () => {
+    renderPanel({ selection: null, hasAnyDeployedEnv: true });
+    expect(
+      screen.getByText(/select an environment to view details/i),
+    ).toBeInTheDocument();
+  });
+
+  it('renders SetupDetailPane when selection is setup', () => {
+    renderPanel({ selection: { kind: 'setup' } });
+    expect(screen.getByTestId('setup-detail-pane')).toBeInTheDocument();
+  });
+
+  it('renders the env name and status badge for an env selection', () => {
     renderPanel({
-      environment: makeEnv({
-        name: 'production',
-        deployment: { status: 'Ready' },
-      }),
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'production',
+          deployment: { status: 'Ready' },
+        }),
+      },
     });
     expect(screen.getByText('production')).toBeInTheDocument();
-    // Both the panel header pill and the card content body render a badge.
     const badges = screen.getAllByTestId('status-badge');
     expect(badges[0]).toHaveTextContent('active');
   });
 
-  it('fires onClose when the close button is clicked', async () => {
+  it('fires onClose when the close button on the env panel is clicked', async () => {
     const user = userEvent.setup();
     const { props } = renderPanel({
-      environment: makeEnv({ name: 'staging' }),
+      selection: { kind: 'env', environment: makeEnv({ name: 'staging' }) },
     });
     await user.click(screen.getByLabelText('Close detail panel'));
     expect(props.onClose).toHaveBeenCalled();
   });
 
-  it('fires onRefresh from the panel chrome', async () => {
+  it('fires onRefresh from the env panel chrome', async () => {
     const user = userEvent.setup();
     const { props } = renderPanel({
-      environment: makeEnv({ name: 'staging' }),
+      selection: { kind: 'env', environment: makeEnv({ name: 'staging' }) },
     });
     await user.click(screen.getByLabelText('Refresh environment'));
     expect(props.onRefresh).toHaveBeenCalled();
@@ -107,10 +136,13 @@ describe('EnvironmentDetailPanel', () => {
   it('fires onOpenOverrides from the prominent Configure overrides button', async () => {
     const user = userEvent.setup();
     const { props } = renderPanel({
-      environment: makeEnv({
-        name: 'staging',
-        bindingName: 'staging-binding',
-      }),
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+        }),
+      },
     });
     await user.click(
       screen.getByRole('button', { name: /configure overrides/i }),
@@ -120,11 +152,14 @@ describe('EnvironmentDetailPanel', () => {
 
   it('shows the Rollout restart button when the env has an active deployment', () => {
     renderPanel({
-      environment: makeEnv({
-        name: 'staging',
-        bindingName: 'staging-binding',
-        deployment: { status: 'Ready' },
-      }),
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready' },
+        }),
+      },
       onRolloutRestart: jest.fn().mockResolvedValue(undefined),
     });
     expect(
@@ -134,11 +169,14 @@ describe('EnvironmentDetailPanel', () => {
 
   it('hides Rollout restart when the env is undeployed', () => {
     renderPanel({
-      environment: makeEnv({
-        name: 'staging',
-        bindingName: 'staging-binding',
-        deployment: { status: 'Ready', statusReason: 'ResourcesUndeployed' },
-      }),
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready', statusReason: 'ResourcesUndeployed' },
+        }),
+      },
       onRolloutRestart: jest.fn().mockResolvedValue(undefined),
     });
     expect(
@@ -148,10 +186,13 @@ describe('EnvironmentDetailPanel', () => {
 
   it('hides Rollout restart when no bindingName exists', () => {
     renderPanel({
-      environment: makeEnv({
-        name: 'staging',
-        deployment: { status: 'Ready' },
-      }),
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          deployment: { status: 'Ready' },
+        }),
+      },
       onRolloutRestart: jest.fn().mockResolvedValue(undefined),
     });
     expect(
@@ -163,21 +204,24 @@ describe('EnvironmentDetailPanel', () => {
     const user = userEvent.setup();
     const onRolloutRestart = jest.fn().mockResolvedValue(undefined);
     renderPanel({
-      environment: makeEnv({
-        name: 'staging',
-        bindingName: 'staging-binding',
-        deployment: { status: 'Ready' },
-      }),
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready' },
+        }),
+      },
       onRolloutRestart,
     });
-    await user.click(
-      screen.getByRole('button', { name: /rollout restart/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /rollout restart/i }));
     expect(onRolloutRestart).toHaveBeenCalled();
   });
 
   it('does not render the cogwheel IconButton in the header anymore', () => {
-    renderPanel({ environment: makeEnv({ name: 'staging' }) });
+    renderPanel({
+      selection: { kind: 'env', environment: makeEnv({ name: 'staging' }) },
+    });
     expect(screen.queryByLabelText('Configure overrides')).toBeNull();
   });
 });

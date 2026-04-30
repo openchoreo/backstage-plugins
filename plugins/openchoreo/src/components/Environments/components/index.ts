@@ -14,3 +14,4 @@ export {
   EnvironmentDetailPanel,
   type EnvironmentDetailPanelProps,
 } from './EnvironmentDetailPanel';
+export { SetupDetailPane, type SetupDetailPaneProps } from './SetupDetailPane';
