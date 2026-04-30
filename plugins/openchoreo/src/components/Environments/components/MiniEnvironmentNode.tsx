@@ -97,6 +97,10 @@ export const MiniEnvironmentNode = ({
 
   const openMenu = (e: ReactMouseEvent<HTMLElement>) => {
     e.stopPropagation();
+    // Selecting on menu-open keeps "the thing I'm working on" highlighted
+    // — picking any menu item that navigates to an intermediate page (e.g.
+    // Configure overrides) will then leave a tile selected to come back to.
+    onSelect();
     setMenuAnchor(e.currentTarget);
   };
   const closeMenu = () => setMenuAnchor(null);

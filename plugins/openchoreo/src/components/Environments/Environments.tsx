@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Progress } from '@backstage/core-components';
 import { Box } from '@material-ui/core';
@@ -13,7 +13,7 @@ import {
 import type { PendingAction } from './types';
 import { useEnvironmentsStyles } from './styles';
 import { EnvironmentsRouter } from './EnvironmentsRouter';
-import { EnvironmentsProvider } from './EnvironmentsContext';
+import { EnvironmentsProvider, type Selection } from './EnvironmentsContext';
 import { NotificationBanner } from './components';
 import {
   ForbiddenState,
@@ -43,6 +43,12 @@ export const Environments = () => {
 
   // Notifications
   const notification = useNotification();
+
+  // Canvas selection — lifted here so it survives navigation between the
+  // deploy list view and intermediate routes (workload-config / overrides /
+  // release-details). The provider mounts above EnvironmentsRouter, so
+  // these intermediate-route navigations don't unmount this state.
+  const [selection, setSelection] = useState<Selection>(null);
 
   // Polling for pending deployments
   useEnvironmentPolling(isPending, refetch);
@@ -96,6 +102,8 @@ export const Environments = () => {
       environmentReadPermissionLoading,
       canViewBindings,
       bindingsPermissionLoading,
+      selection,
+      setSelection,
     }),
     [
       environments,
@@ -108,6 +116,7 @@ export const Environments = () => {
       environmentReadPermissionLoading,
       canViewBindings,
       bindingsPermissionLoading,
+      selection,
     ],
   );
 

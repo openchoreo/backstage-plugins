@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FC } from 'react';
+import { useCallback, useEffect, useMemo, type FC } from 'react';
 import { Box } from '@material-ui/core';
 import { useEntity } from '@backstage/plugin-catalog-react';
 
@@ -50,12 +50,12 @@ export const PipelineCanvas: FC = () => {
   const suspendTracker = useItemActionTracker<string>();
   const rolloutRestartTracker = useItemActionTracker<string>();
 
-  // Selection state — survives refetch, auto-clears when a selected env
-  // disappears. Setup is a first-class selection target so the right pane
-  // can render Auto Deploy + Configure & Deploy when the user clicks the
-  // Setup tile on the canvas.
-  type Selection = { kind: 'env'; name: string } | { kind: 'setup' } | null;
-  const [selection, setSelection] = useState<Selection>(null);
+  // Selection lives on the EnvironmentsContext (lifted from local state)
+  // so it survives navigation to/from intermediate pages
+  // (workload-config / overrides / release-details). Auto-clear effect
+  // here drops the selection when the selected env disappears from the
+  // refetched list.
+  const { selection, setSelection } = useEnvironmentsContext();
 
   const envMap = useMemo(() => {
     const map = new Map<string, Environment>();
@@ -67,7 +67,7 @@ export const PipelineCanvas: FC = () => {
     if (selection?.kind === 'env' && !envMap.has(selection.name)) {
       setSelection(null);
     }
-  }, [selection, envMap]);
+  }, [selection, envMap, setSelection]);
 
   const selectedEnvName = selection?.kind === 'env' ? selection.name : null;
   const selectedSetup = selection?.kind === 'setup';

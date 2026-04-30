@@ -99,12 +99,15 @@ describe('MiniEnvironmentNode', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it('does not fire onSelect when opening the overflow menu', async () => {
+  it('selects the tile and opens the menu when the … overflow button is clicked', async () => {
     const user = userEvent.setup();
     const onSelect = jest.fn();
     renderNode({ onSelect });
     await user.click(screen.getByLabelText('Actions for staging'));
-    expect(onSelect).not.toHaveBeenCalled();
+    // Selecting on overflow open keeps "what I was working on" highlighted
+    // so navigation away to an intermediate page (e.g. Configure overrides
+    // via the menu) returns to the same selected tile.
+    expect(onSelect).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Refresh')).toBeInTheDocument();
   });
 

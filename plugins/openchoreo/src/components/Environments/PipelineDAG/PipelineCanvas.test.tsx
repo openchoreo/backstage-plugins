@@ -57,6 +57,15 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
 }));
 
 // ---- Context mock ----
+//
+// Selection now lives on EnvironmentsContext (lifted from PipelineCanvas
+// so it survives intermediate-page navigation). The mock therefore needs
+// to provide stateful `selection` + `setSelection`, otherwise calling
+// onSelectEnv / onSelectSetup / onClearSelection wouldn't trigger a
+// re-render and downstream prop assertions wouldn't see the updated
+// selection.
+type Selection = { kind: 'env'; name: string } | { kind: 'setup' } | null;
+
 interface MockContextValue {
   environments: Environment[];
   displayEnvironments: Environment[];
@@ -87,9 +96,17 @@ const defaultMockContext = (): MockContextValue => ({
   bindingsPermissionLoading: false,
 });
 
-jest.mock('../EnvironmentsContext', () => ({
-  useEnvironmentsContext: () => mockContextValue,
-}));
+jest.mock('../EnvironmentsContext', () => {
+  // Use require here so the mock factory can access React hooks at call time.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const ReactLib = require('react') as typeof import('react');
+  return {
+    useEnvironmentsContext: () => {
+      const [selection, setSelection] = ReactLib.useState<Selection>(null);
+      return { ...mockContextValue, selection, setSelection };
+    },
+  };
+});
 
 // ---- Action mocks ----
 const mockNavigateToWorkloadConfig = jest.fn();
