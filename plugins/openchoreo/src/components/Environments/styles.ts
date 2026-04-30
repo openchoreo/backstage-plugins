@@ -317,12 +317,6 @@ export const useDeployFlowCanvasStyles = makeStyles(theme => ({
     right: theme.spacing(2),
     zIndex: 2,
   },
-  minimapOverlay: {
-    position: 'absolute',
-    bottom: theme.spacing(2),
-    left: theme.spacing(2),
-    zIndex: 2,
-  },
   detailPanelFrame: {
     minHeight: 480,
     height: '100%',

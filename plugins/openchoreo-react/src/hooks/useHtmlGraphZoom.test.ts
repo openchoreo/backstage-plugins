@@ -25,9 +25,14 @@ describe('useHtmlGraphZoom', () => {
     expect(typeof result.current.zoomIn).toBe('function');
     expect(typeof result.current.zoomOut).toBe('function');
     expect(typeof result.current.fitToView).toBe('function');
+    expect(typeof result.current.resetZoom).toBe('function');
     expect(typeof result.current.panTo).toBe('function');
     expect(result.current.transform).toEqual({ x: 0, y: 0, k: 1 });
     expect(result.current.viewBox).toEqual({ width: 400, height: 300 });
+    // containerSize starts at zero — the ResizeObserver mock never fires
+    // a callback in jsdom, so consumers can rely on `{0,0}` as the
+    // "container not yet measured" signal.
+    expect(result.current.containerSize).toEqual({ width: 0, height: 0 });
   });
 
   it('applies the current transform to the content element', () => {

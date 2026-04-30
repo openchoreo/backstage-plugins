@@ -1,7 +1,7 @@
 import {
+  useEffect,
   useMemo,
-  useState,
-  useCallback,
+  useRef,
   type FC,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
@@ -10,14 +10,12 @@ import {
   buildEnvPipelineNodes,
   computePipelineLayout,
   GraphControls,
-  HtmlGraphMinimap,
   MINI_ENV_NODE_HEIGHT,
   MINI_ENV_NODE_WIDTH,
   MINI_SETUP_NODE_HEIGHT,
   MINI_SETUP_NODE_WIDTH,
   PipelineEdge,
   useHtmlGraphZoom,
-  type HtmlGraphMinimapNode,
 } from '@openchoreo/backstage-plugin-react';
 import { useDeployFlowCanvasStyles } from '../styles';
 import { MiniEnvironmentNode } from '../components/MiniEnvironmentNode';
@@ -76,7 +74,6 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
   const classes = useDeployFlowCanvasStyles();
   const theme = useTheme();
   const isNarrow = useMediaQuery(theme.breakpoints.down('sm'));
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const direction = isNarrow ? 'TB' : 'LR';
   const layout = useMemo(() => {
@@ -101,16 +98,41 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
   const {
     containerRef,
     contentRef,
-    viewBox,
-    viewport,
+    containerSize,
     zoomIn,
     zoomOut,
     fitToView,
-    panTo,
+    resetZoom,
   } = useHtmlGraphZoom({
     contentWidth,
     contentHeight,
   });
+
+  // Fit-to-view once after the container has been measured (containerSize
+  // is set by the hook's ResizeObserver effect on a follow-up commit) and
+  // the dagre layout has produced non-zero content dims. Subsequent
+  // zoom/pan are user-driven and shouldn't auto-fit again — the ref guard
+  // makes this a one-shot.
+  const didAutoFitRef = useRef(false);
+  useEffect(() => {
+    if (didAutoFitRef.current) return;
+    if (
+      contentWidth === 0 ||
+      contentHeight === 0 ||
+      containerSize.width === 0 ||
+      containerSize.height === 0
+    ) {
+      return;
+    }
+    didAutoFitRef.current = true;
+    fitToView();
+  }, [
+    contentWidth,
+    contentHeight,
+    containerSize.width,
+    containerSize.height,
+    fitToView,
+  ]);
 
   const setupNode = layout?.nodes.find(n => n.id === SETUP_NODE_ID);
   const envNodes = layout?.nodes.filter(n => !n.isSetup) ?? [];
@@ -120,25 +142,6 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
     for (const env of environments) map.set(env.name, env);
     return map;
   }, [environments]);
-
-  const minimapNodes: HtmlGraphMinimapNode[] = useMemo(
-    () =>
-      (layout?.nodes ?? []).map(node => ({
-        id: node.id,
-        x: node.x,
-        y: node.y,
-        width: node.width,
-        height: node.height,
-        highlighted:
-          node.id === selectedEnvName ||
-          (node.id === SETUP_NODE_ID && selectedSetup),
-      })),
-    [layout, selectedEnvName, selectedSetup],
-  );
-
-  const toggleFullscreen = useCallback(() => {
-    setIsFullscreen(prev => !prev);
-  }, []);
 
   if (!layout) {
     return null;
@@ -242,21 +245,12 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
       </div>
       {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
 
-      <Box className={classes.minimapOverlay}>
-        <HtmlGraphMinimap
-          viewBox={viewBox}
-          viewport={viewport}
-          nodes={minimapNodes}
-          onPan={panTo}
-        />
-      </Box>
       <Box className={classes.controlsOverlay}>
         <GraphControls
           onZoomIn={zoomIn}
           onZoomOut={zoomOut}
           onFitToView={fitToView}
-          onToggleFullscreen={toggleFullscreen}
-          isFullscreen={isFullscreen}
+          onResetZoom={resetZoom}
         />
       </Box>
     </Box>

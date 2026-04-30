@@ -24,11 +24,24 @@ export interface UseHtmlGraphZoomResult {
   /** Attach to the inner content element that should receive the CSS transform. */
   contentRef: (node: HTMLElement | null) => void;
   transform: GraphTransform;
+  /**
+   * Content coordinate space — `{ width: contentWidth, height: contentHeight }`.
+   * Consumed by minimap overlays that scale node thumbnails directly. For
+   * the *measured* container size (post-ResizeObserver), use `containerSize`.
+   */
   viewBox: GraphViewBox;
+  /**
+   * Live measured size of the container (via ResizeObserver). Starts at
+   * `{0, 0}` until the container has been laid out. Use this to gate
+   * effects like auto-fit-on-mount that need the container to exist.
+   */
+  containerSize: GraphViewBox;
   viewport: GraphViewport;
   zoomIn: () => void;
   zoomOut: () => void;
   fitToView: () => void;
+  /** Reset zoom to 1:1 with content centered in the container. */
+  resetZoom: () => void;
   panTo: (svgX: number, svgY: number) => void;
 }
 
@@ -59,7 +72,7 @@ export function useHtmlGraphZoom({
     y: 0,
     k: 1,
   });
-  const [viewBox, setViewBox] = useState<GraphViewBox>({
+  const [containerSize, setContainerSize] = useState<GraphViewBox>({
     width: 0,
     height: 0,
   });
@@ -76,14 +89,15 @@ export function useHtmlGraphZoom({
     setContent(node);
   }, []);
 
-  // Track the container's rendered size as the synthesized viewBox.
-  // The minimap math expects viewBox to represent the visible window in
-  // content coordinates, which equals containerWidth / k after scaling.
+  // Track the container's rendered size. Consumed by the viewport
+  // synthesis (so the minimap can highlight the visible window) and
+  // exposed as `containerSize` so consumers can gate effects like
+  // auto-fit-on-mount on a real measurement.
   useEffect(() => {
     if (!container) return undefined;
     const update = () => {
       const rect = container.getBoundingClientRect();
-      setViewBox({ width: rect.width, height: rect.height });
+      setContainerSize({ width: rect.width, height: rect.height });
     };
     update();
     const ro = new ResizeObserver(update);
@@ -184,6 +198,20 @@ export function useHtmlGraphZoom({
     );
   }, [container, contentWidth, contentHeight, minScale, maxScale]);
 
+  const resetZoom = useCallback(() => {
+    if (!container || !zoomBehaviorRef.current) return;
+    if (contentWidth === 0 || contentHeight === 0) return;
+    const rect = container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    const x = (rect.width - contentWidth) / 2;
+    const y = (rect.height - contentHeight) / 2;
+    const selection = d3Selection.select<HTMLElement, unknown>(container);
+    zoomBehaviorRef.current.transform(
+      selection,
+      d3Zoom.zoomIdentity.translate(x, y).scale(1),
+    );
+  }, [container, contentWidth, contentHeight]);
+
   const panTo = useCallback(
     (svgX: number, svgY: number) => {
       if (!container || !zoomBehaviorRef.current) return;
@@ -204,12 +232,12 @@ export function useHtmlGraphZoom({
   // Synthesize the viewport rectangle in content coordinates so a
   // GraphMinimap-style overlay can highlight the visible portion.
   const viewport: GraphViewport =
-    viewBox.width > 0 && viewBox.height > 0 && transform.k > 0
+    containerSize.width > 0 && containerSize.height > 0 && transform.k > 0
       ? {
           x: -transform.x / transform.k,
           y: -transform.y / transform.k,
-          width: viewBox.width / transform.k,
-          height: viewBox.height / transform.k,
+          width: containerSize.width / transform.k,
+          height: containerSize.height / transform.k,
         }
       : { x: 0, y: 0, width: 0, height: 0 };
 
@@ -226,10 +254,12 @@ export function useHtmlGraphZoom({
     contentRef,
     transform,
     viewBox: contentViewBox,
+    containerSize,
     viewport,
     zoomIn,
     zoomOut,
     fitToView,
+    resetZoom,
     panTo,
   };
 }
