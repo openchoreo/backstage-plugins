@@ -49,6 +49,7 @@ export const PipelineCanvas: FC = () => {
   const promotionTracker = useItemActionTracker<string>();
   const suspendTracker = useItemActionTracker<string>();
   const rolloutRestartTracker = useItemActionTracker<string>();
+  const removeDeploymentTracker = useItemActionTracker<string>();
 
   // Selection lives on the EnvironmentsContext (lifted from local state)
   // so it survives navigation to/from intermediate pages
@@ -93,6 +94,7 @@ export const PipelineCanvas: FC = () => {
     handleUndeploy,
     handleRedeploy,
     handleRolloutRestart,
+    handleRemoveDeployment,
   } = useEnvironmentActions(entity, refetch, notification, refreshTracker);
 
   const handleOpenWorkloadConfig = useCallback(() => {
@@ -199,6 +201,24 @@ export const PipelineCanvas: FC = () => {
     [handleRolloutRestart, rolloutRestartTracker, notification],
   );
 
+  const handleRemoveDeploymentEnv = useCallback(
+    async (env: Environment) => {
+      const targetId = env.bindingName ?? `${env.resourceName ?? env.name}`;
+      try {
+        await removeDeploymentTracker.withTracking(targetId, () =>
+          handleRemoveDeployment(targetId),
+        );
+      } catch (err) {
+        notification.showError(
+          isForbiddenError(err)
+            ? 'You do not have permission to remove deployments. Contact your administrator.'
+            : `Error removing deployment: ${getErrorMessage(err)}`,
+        );
+      }
+    },
+    [handleRemoveDeployment, removeDeploymentTracker, notification],
+  );
+
   const isAlreadyPromoted = useCallback(
     (env: Environment, target: string) =>
       isAlreadyPromotedUtil(env, target, displayEnvironments),
@@ -212,6 +232,7 @@ export const PipelineCanvas: FC = () => {
     promotionTracker,
     suspendTracker,
     rolloutRestartTracker,
+    removeDeploymentTracker,
   };
 
   const showSplitLayout = !!displayEnvironments.length;
@@ -318,6 +339,10 @@ export const PipelineCanvas: FC = () => {
               onRolloutRestart={async () => {
                 if (!selectedEnv) return;
                 await handleRolloutRestartEnv(selectedEnv);
+              }}
+              onRemoveDeployment={async () => {
+                if (!selectedEnv) return;
+                await handleRemoveDeploymentEnv(selectedEnv);
               }}
             />
           </Box>

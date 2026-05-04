@@ -15,3 +15,4 @@ export {
   type EnvironmentDetailPanelProps,
 } from './EnvironmentDetailPanel';
 export { SetupDetailPane, type SetupDetailPaneProps } from './SetupDetailPane';
+export { RemoveDeploymentConfirmationDialog } from './RemoveDeploymentConfirmationDialog';

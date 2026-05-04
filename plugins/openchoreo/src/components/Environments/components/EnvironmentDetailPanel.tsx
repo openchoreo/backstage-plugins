@@ -35,6 +35,7 @@ export interface EnvironmentDetailPanelProps {
   onSuspend: () => Promise<void>;
   onRedeploy: () => Promise<void>;
   onRolloutRestart?: () => Promise<void> | void;
+  onRemoveDeployment?: () => Promise<void> | void;
 }
 
 /**
@@ -65,6 +66,7 @@ export const EnvironmentDetailPanel = ({
   onSuspend,
   onRedeploy,
   onRolloutRestart,
+  onRemoveDeployment,
 }: EnvironmentDetailPanelProps) => {
   const classes = useEnvironmentDetailPanelStyles();
   const environment = selection?.kind === 'env' ? selection.environment : null;
@@ -168,11 +170,13 @@ export const EnvironmentDetailPanel = ({
           promotionTracker={actionTrackers.promotionTracker}
           suspendTracker={actionTrackers.suspendTracker}
           rolloutRestartTracker={actionTrackers.rolloutRestartTracker}
+          removeDeploymentTracker={actionTrackers.removeDeploymentTracker}
           onPromote={onPromote}
           onSuspend={onSuspend}
           onRedeploy={onRedeploy}
           onOpenOverrides={onOpenOverrides}
           onRolloutRestart={onRolloutRestart}
+          onRemoveDeployment={onRemoveDeployment}
         />
       </Box>
     </Box>

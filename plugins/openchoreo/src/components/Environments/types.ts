@@ -42,6 +42,7 @@ export interface ActionTrackers {
   promotionTracker: ItemActionTracker;
   suspendTracker: ItemActionTracker;
   rolloutRestartTracker?: ItemActionTracker;
+  removeDeploymentTracker?: ItemActionTracker;
 }
 
 /**
@@ -118,9 +119,11 @@ export interface EnvironmentActionsProps {
   promotionTracker: ItemActionTracker;
   suspendTracker: ItemActionTracker;
   rolloutRestartTracker?: ItemActionTracker;
+  removeDeploymentTracker?: ItemActionTracker;
   onPromote: (targetEnvName: string) => Promise<void>;
   onSuspend: () => Promise<void>;
   onRedeploy: () => Promise<void>;
   onOpenOverrides?: () => void;
   onRolloutRestart?: () => void | Promise<void>;
+  onRemoveDeployment?: () => void | Promise<void>;
 }

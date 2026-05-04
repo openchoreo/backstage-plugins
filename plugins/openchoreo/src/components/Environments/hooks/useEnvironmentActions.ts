@@ -75,11 +75,24 @@ export function useEnvironmentActions(
     [notification],
   );
 
+  // Stub: removing the deployment deletes the binding, configs, and
+  // overrides for the env (different from Undeploy, which keeps the
+  // binding). The destructive API call lands in a follow-up — this
+  // handler is wired through the panel today so only the API call is
+  // left to swap in.
+  const handleRemoveDeployment = useCallback(
+    async (_bindingName: string) => {
+      notification.showError('Remove deployment is not yet wired up');
+    },
+    [notification],
+  );
+
   return {
     handleRefreshEnvironment,
     handlePromote,
     handleUndeploy,
     handleRedeploy,
     handleRolloutRestart,
+    handleRemoveDeployment,
   };
 }

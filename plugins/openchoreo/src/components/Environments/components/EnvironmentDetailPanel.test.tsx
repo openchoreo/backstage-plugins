@@ -150,6 +150,79 @@ describe('EnvironmentDetailPanel', () => {
     expect(props.onOpenOverrides).toHaveBeenCalled();
   });
 
+  it('disables Configure overrides when the env has no binding (not deployed)', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          // no bindingName ⇒ never deployed
+        }),
+      },
+    });
+    expect(
+      screen.getByRole('button', { name: /configure overrides/i }),
+    ).toBeDisabled();
+  });
+
+  it('shows the Remove deployment button when binding exists and onRemoveDeployment is provided', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+        }),
+      },
+      onRemoveDeployment: jest.fn().mockResolvedValue(undefined),
+    });
+    expect(
+      screen.getByRole('button', { name: /remove deployment/i }),
+    ).toBeEnabled();
+  });
+
+  it('hides Remove deployment when the env has no binding', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({ name: 'staging' }),
+      },
+      onRemoveDeployment: jest.fn().mockResolvedValue(undefined),
+    });
+    expect(
+      screen.queryByRole('button', { name: /remove deployment/i }),
+    ).toBeNull();
+  });
+
+  it('opens a confirmation dialog before firing onRemoveDeployment', async () => {
+    const user = userEvent.setup();
+    const onRemoveDeployment = jest.fn().mockResolvedValue(undefined);
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+        }),
+      },
+      onRemoveDeployment,
+    });
+    await user.click(
+      screen.getByRole('button', { name: /^remove deployment$/i }),
+    );
+    // Dialog opens, callback NOT yet fired
+    expect(onRemoveDeployment).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/remove deployment from staging\?/i),
+    ).toBeInTheDocument();
+
+    // Confirm via the dialog's primary button
+    await user.click(
+      screen.getByRole('button', { name: /^remove deployment$/i }),
+    );
+    expect(onRemoveDeployment).toHaveBeenCalled();
+  });
+
   it('shows the Rollout restart button when the env has an active deployment', () => {
     renderPanel({
       selection: {
