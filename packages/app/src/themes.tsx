@@ -19,7 +19,7 @@ import {
 export const appThemes: AppTheme[] = [
   {
     id: 'openchoreo-dark',
-    title: 'OpenChoreo Dark',
+    title: 'Dark',
     variant: 'dark',
     icon: <OpenChoreoIcon />,
     Provider: ({ children }) => (
@@ -28,7 +28,7 @@ export const appThemes: AppTheme[] = [
   },
   {
     id: 'openchoreo-light',
-    title: 'OpenChoreo Light',
+    title: 'Light',
     variant: 'light',
     icon: <OpenChoreoIcon />,
     Provider: ({ children }) => (
