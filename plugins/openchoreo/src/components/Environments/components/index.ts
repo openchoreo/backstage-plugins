@@ -16,3 +16,7 @@ export {
 } from './EnvironmentDetailPanel';
 export { SetupDetailPane, type SetupDetailPaneProps } from './SetupDetailPane';
 export { RemoveDeploymentConfirmationDialog } from './RemoveDeploymentConfirmationDialog';
+export {
+  PromotePrimaryAction,
+  type PromotePrimaryActionProps,
+} from './PromotePrimaryAction';

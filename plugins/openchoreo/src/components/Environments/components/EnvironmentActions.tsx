@@ -5,6 +5,7 @@ import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import AutorenewIcon from '@material-ui/icons/Autorenew';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import { usePromotionAction } from '../hooks/usePromotionAction';
+import type { ItemActionTracker } from '../types';
 import { EnvironmentActionsProps } from '../types';
 import { RemoveDeploymentConfirmationDialog } from './RemoveDeploymentConfirmationDialog';
 
@@ -38,24 +39,32 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
+// `usePromotionAction` requires promote inputs even when we only consume
+// `undeployAction` here — feed it no-ops so the unused half is inert.
+const noopTracker: ItemActionTracker = {
+  isActive: () => false,
+  withTracking: async (_id: string, fn: () => Promise<unknown>) => fn(),
+} as unknown as ItemActionTracker;
+const noopPromote = async () => {};
+const isAlreadyPromotedNoop = () => false;
+
 /**
  * Action row for the environment detail panel. Buttons are grouped by
- * intent so the row reads as: configuration · deployment · lifecycle.
+ * intent so the row reads as: configuration · lifecycle.
  *
- *   [ Configure overrides ] | [ Promote · Rollout restart ] | [ Undeploy/Redeploy · Remove deployment ]
+ *   [ Configure overrides ] | [ Rollout restart ] | [ Undeploy/Redeploy · Remove deployment ]
+ *
+ * Promote is the panel's primary action and lives in a dedicated footer
+ * (PromotePrimaryAction) — not in this row.
  */
 export const EnvironmentActions = ({
   environmentName,
   bindingName,
   deploymentStatus,
   statusReason,
-  promotionTargets,
-  isAlreadyPromoted,
-  promotionTracker,
   suspendTracker,
   rolloutRestartTracker,
   removeDeploymentTracker,
-  onPromote,
   onSuspend,
   onRedeploy,
   onOpenOverrides,
@@ -65,41 +74,19 @@ export const EnvironmentActions = ({
   const classes = useStyles();
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
 
-  const { promotionActions, undeployAction } = usePromotionAction({
+  const { undeployAction } = usePromotionAction({
     environmentName,
     bindingName,
     deploymentStatus,
     statusReason,
-    promotionTargets,
-    isAlreadyPromoted,
-    promotionTracker,
+    promotionTargets: undefined,
+    isAlreadyPromoted: isAlreadyPromotedNoop,
+    promotionTracker: noopTracker,
     suspendTracker,
-    onPromote,
+    onPromote: noopPromote,
     onSuspend,
     onRedeploy,
   });
-
-  const hasMultipleTargets = promotionActions.length > 1;
-  const hasSingleTarget = promotionActions.length === 1;
-  const single = hasSingleTarget ? promotionActions[0] : null;
-
-  let singleLabel: string | null = null;
-  if (single) {
-    if (single.isAlreadyPromoted) {
-      singleLabel = 'Promoted';
-    } else if (single.isPromoting) {
-      singleLabel = 'Promoting...';
-    } else {
-      singleLabel = `Promote${
-        single.target.requiresApproval ? ' (Approval Required)' : ''
-      }`;
-    }
-  }
-
-  const multiTargetMb = (index: number): number => {
-    if (index < promotionActions.length - 1) return 2;
-    return undeployAction ? 2 : 0;
-  };
 
   const isActiveDeployment =
     deploymentStatus === 'Ready' && statusReason !== 'ResourcesUndeployed';
@@ -121,44 +108,16 @@ export const EnvironmentActions = ({
     !!bindingName && !!removeDeploymentTracker?.isActive(bindingName);
 
   const hasConfigGroup = !!onOpenOverrides;
-  const hasDeploymentGroup = !!single || showRolloutRestart;
+  const hasDeploymentGroup = showRolloutRestart;
   const hasLifecycleGroup = !!undeployAction || showRemoveDeployment;
   const hasAnyAction =
-    promotionActions.length > 0 ||
-    hasConfigGroup ||
-    hasDeploymentGroup ||
-    hasLifecycleGroup;
+    hasConfigGroup || hasDeploymentGroup || hasLifecycleGroup;
   if (!hasAnyAction) {
     return null;
   }
 
   return (
     <>
-      {/* Multiple promotion targets — stack vertically above the grouped row */}
-      {hasMultipleTargets &&
-        promotionActions.map((action, index) => (
-          <Box
-            key={action.target.name}
-            display="flex"
-            justifyContent="flex-end"
-            mb={multiTargetMb(index)}
-          >
-            <Tooltip title={action.deniedTooltip}>
-              <span>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  size="small"
-                  disabled={action.disabled}
-                  onClick={action.onClick}
-                >
-                  {action.label}
-                </Button>
-              </span>
-            </Tooltip>
-          </Box>
-        ))}
-
       <Box className={classes.row}>
         {/* Group 1 — configuration */}
         {hasConfigGroup && (
@@ -191,22 +150,6 @@ export const EnvironmentActions = ({
         {/* Group 2 — manage the running deployment */}
         {hasDeploymentGroup && (
           <Box className={classes.group}>
-            {single && (
-              <Tooltip title={single.deniedTooltip}>
-                <span>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    disabled={single.disabled}
-                    onClick={single.onClick}
-                  >
-                    {singleLabel}
-                  </Button>
-                </span>
-              </Tooltip>
-            )}
-
             {showRolloutRestart && (
               <Button
                 variant="outlined"

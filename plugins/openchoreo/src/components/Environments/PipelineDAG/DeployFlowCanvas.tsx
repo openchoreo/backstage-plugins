@@ -41,8 +41,6 @@ export interface DeployFlowCanvasProps {
   onOpenOverrides: (env: Environment) => void;
   onOpenReleaseDetails: (env: Environment) => void;
   onPromote: (env: Environment, targetEnvName: string) => Promise<void>;
-  onSuspend: (env: Environment) => Promise<void>;
-  onRedeploy: (env: Environment) => Promise<void>;
 }
 
 /**
@@ -68,8 +66,6 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
   onOpenOverrides,
   onOpenReleaseDetails,
   onPromote,
-  onSuspend,
-  onRedeploy,
 }) => {
   const classes = useDeployFlowCanvasStyles();
   const theme = useTheme();
@@ -235,8 +231,6 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
                   onOpenOverrides={() => onOpenOverrides(env)}
                   onOpenReleaseDetails={() => onOpenReleaseDetails(env)}
                   onPromote={target => onPromote(env, target)}
-                  onSuspend={() => onSuspend(env)}
-                  onRedeploy={() => onRedeploy(env)}
                 />
               </Box>
             );

@@ -8,6 +8,7 @@ import { useEnvironmentStatusVariant } from '../hooks/useEnvironmentStatusVarian
 import { deriveVersionLabel } from '../utils/deriveVersionLabel';
 import { EnvironmentCardContent } from './EnvironmentCardContent';
 import { EnvironmentActions } from './EnvironmentActions';
+import { PromotePrimaryAction } from './PromotePrimaryAction';
 import { SetupDetailPane } from './SetupDetailPane';
 import type { ActionTrackers, Environment } from '../types';
 
@@ -165,13 +166,9 @@ export const EnvironmentDetailPanel = ({
           bindingName={environment.bindingName}
           deploymentStatus={environment.deployment.status}
           statusReason={environment.deployment.statusReason}
-          promotionTargets={environment.promotionTargets}
-          isAlreadyPromoted={isAlreadyPromoted}
-          promotionTracker={actionTrackers.promotionTracker}
           suspendTracker={actionTrackers.suspendTracker}
           rolloutRestartTracker={actionTrackers.rolloutRestartTracker}
           removeDeploymentTracker={actionTrackers.removeDeploymentTracker}
-          onPromote={onPromote}
           onSuspend={onSuspend}
           onRedeploy={onRedeploy}
           onOpenOverrides={onOpenOverrides}
@@ -179,6 +176,26 @@ export const EnvironmentDetailPanel = ({
           onRemoveDeployment={onRemoveDeployment}
         />
       </Box>
+      {/* Dedicated bottom strip for the panel's primary action. The
+          component returns null when there's nothing to promote, in
+          which case we skip the footer entirely so the panel doesn't
+          end with an empty divider strip. */}
+      {!!environment.bindingName &&
+        environment.deployment.status === 'Ready' &&
+        (environment.promotionTargets?.length ?? 0) > 0 && (
+          <Box className={classes.footer}>
+            <PromotePrimaryAction
+              environmentName={environment.name}
+              bindingName={environment.bindingName}
+              deploymentStatus={environment.deployment.status}
+              statusReason={environment.deployment.statusReason}
+              promotionTargets={environment.promotionTargets}
+              isAlreadyPromoted={isAlreadyPromoted}
+              promotionTracker={actionTrackers.promotionTracker}
+              onPromote={onPromote}
+            />
+          </Box>
+        )}
     </Box>
   );
 };

@@ -294,8 +294,6 @@ export const PipelineCanvas: FC = () => {
             onOpenOverrides={handleOpenOverrides}
             onOpenReleaseDetails={handleOpenReleaseDetails}
             onPromote={handlePromote}
-            onSuspend={handleSuspend}
-            onRedeploy={handleRedeployEnv}
           />
           <Box className={classes.detailPanelFrame}>
             <EnvironmentDetailPanel

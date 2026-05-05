@@ -8,6 +8,8 @@ import {
   Tooltip,
   Typography,
 } from '@material-ui/core';
+import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import MoreVertIcon from '@material-ui/icons/MoreVert';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
@@ -31,8 +33,6 @@ export interface MiniEnvironmentNodeProps {
   onOpenOverrides: () => void;
   onOpenReleaseDetails: () => void;
   onPromote: (targetEnvName: string) => void | Promise<void>;
-  onSuspend: () => void | Promise<void>;
-  onRedeploy: () => void | Promise<void>;
 }
 
 /**
@@ -53,18 +53,24 @@ export const MiniEnvironmentNode = ({
   onOpenOverrides,
   onOpenReleaseDetails,
   onPromote,
-  onSuspend,
-  onRedeploy,
 }: MiniEnvironmentNodeProps) => {
   const classes = useMiniEnvironmentNodeStyles();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [promoteAnchor, setPromoteAnchor] = useState<HTMLElement | null>(null);
+  const [promoteToSubAnchor, setPromoteToSubAnchor] =
+    useState<HTMLElement | null>(null);
 
   const statusVariant = useEnvironmentStatusVariant(
     environment.deployment.status,
     environment.deployment.statusReason,
   );
 
-  const { primaryPromotion, undeployAction } = usePromotionAction({
+  // Lifecycle (suspend/redeploy) is owned by the RHS detail panel — the
+  // tile only surfaces promotion. Pass no-op stubs for the suspend/redeploy
+  // callbacks so the shared hook can return its full result, but only
+  // consume `promotionActions`.
+  const noop = () => {};
+  const { promotionActions } = usePromotionAction({
     environmentName: environment.name,
     bindingName: environment.bindingName,
     deploymentStatus: environment.deployment.status,
@@ -74,9 +80,21 @@ export const MiniEnvironmentNode = ({
     promotionTracker: actionTrackers.promotionTracker,
     suspendTracker: actionTrackers.suspendTracker,
     onPromote,
-    onSuspend,
-    onRedeploy,
+    onSuspend: noop,
+    onRedeploy: noop,
   });
+
+  // Only surface promote on the canvas tile when the env is actually
+  // deployed (has a binding). `usePromotionAction` already gates on
+  // `status === 'Ready'` and the presence of targets; the binding gate
+  // is the LHS-specific rule (RHS may want to surface state differently).
+  const promoteVisible = !!environment.bindingName;
+  const eligibleTargets = promoteVisible
+    ? promotionActions.filter(a => !a.isAlreadyPromoted)
+    : [];
+  const visibleActions = promoteVisible ? promotionActions : [];
+  const allPromoted = visibleActions.length > 0 && eligibleTargets.length === 0;
+  const isAnyPromoting = visibleActions.some(a => a.isPromoting);
 
   const versionLabel = deriveVersionLabel(environment.deployment.image);
   const relativeTime = environment.deployment.lastDeployed
@@ -106,13 +124,27 @@ export const MiniEnvironmentNode = ({
   const closeMenu = () => setMenuAnchor(null);
 
   const renderActions = () => {
-    const buttons: JSX.Element[] = [];
-    if (primaryPromotion) {
-      buttons.push(
+    if (visibleActions.length === 0) {
+      return null;
+    }
+    if (allPromoted) {
+      return (
+        <Button
+          size="small"
+          variant="contained"
+          disabled
+          className={classes.primaryButton}
+        >
+          Promoted
+        </Button>
+      );
+    }
+    if (visibleActions.length === 1) {
+      const only = visibleActions[0];
+      return (
         <Tooltip
-          key="promote"
-          title={primaryPromotion.deniedTooltip}
-          disableHoverListener={!primaryPromotion.deniedTooltip}
+          title={only.deniedTooltip}
+          disableHoverListener={!only.deniedTooltip}
         >
           <span>
             <Button
@@ -120,70 +152,37 @@ export const MiniEnvironmentNode = ({
               variant="contained"
               color="primary"
               className={classes.primaryButton}
-              disabled={primaryPromotion.disabled}
+              disabled={only.disabled}
               onClick={e => {
                 stop(e);
-                primaryPromotion.onClick();
+                only.onClick();
               }}
             >
-              {primaryPromotion.isPromoting
-                ? 'Promoting...'
-                : `Promote → ${primaryPromotion.target.name}`}
+              {only.isPromoting ? 'Promoting...' : 'Promote'}
             </Button>
           </span>
-        </Tooltip>,
+        </Tooltip>
       );
     }
-    if (undeployAction?.kind === 'redeploy' && !primaryPromotion) {
-      buttons.push(
-        <Tooltip
-          key="redeploy"
-          title={undeployAction.deniedTooltip}
-          disableHoverListener={!undeployAction.deniedTooltip}
-        >
-          <span>
-            <Button
-              size="small"
-              variant="contained"
-              color="primary"
-              className={classes.primaryButton}
-              disabled={undeployAction.disabled}
-              onClick={e => {
-                stop(e);
-                undeployAction.onClick();
-              }}
-            >
-              {undeployAction.label}
-            </Button>
-          </span>
-        </Tooltip>,
-      );
-    }
-    if (undeployAction?.kind === 'undeploy') {
-      buttons.push(
-        <Tooltip
-          key="undeploy"
-          title={undeployAction.deniedTooltip}
-          disableHoverListener={!undeployAction.deniedTooltip}
-        >
-          <span>
-            <Button
-              size="small"
-              variant="outlined"
-              className={classes.primaryButton}
-              disabled={undeployAction.disabled}
-              onClick={e => {
-                stop(e);
-                undeployAction.onClick();
-              }}
-            >
-              {undeployAction.label}
-            </Button>
-          </span>
-        </Tooltip>,
-      );
-    }
-    return buttons;
+    // Multi-target — render the trigger; the menus themselves live in the
+    // JSX tree below alongside the existing overflow menu.
+    return (
+      <Button
+        size="small"
+        variant="contained"
+        color="primary"
+        className={classes.primaryButton}
+        endIcon={<ArrowDropDownIcon fontSize="small" />}
+        disabled={eligibleTargets.every(a => a.disabled)}
+        aria-haspopup="true"
+        onClick={e => {
+          stop(e);
+          setPromoteAnchor(e.currentTarget);
+        }}
+      >
+        {isAnyPromoting ? 'Promoting...' : 'Promote'}
+      </Button>
+    );
   };
 
   return (
@@ -304,6 +303,68 @@ export const MiniEnvironmentNode = ({
           <SettingsOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
           Configure overrides
         </MenuItem>
+      </Menu>
+
+      {/* Top-level Promote menu (multi-target). Anchored to the
+          Promote ▾ button on the action row. */}
+      <Menu
+        anchorEl={promoteAnchor}
+        open={!!promoteAnchor}
+        onClose={() => {
+          setPromoteAnchor(null);
+          setPromoteToSubAnchor(null);
+        }}
+        onClick={stop}
+        keepMounted
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        <MenuItem
+          onClick={e => {
+            stop(e);
+            setPromoteToSubAnchor(e.currentTarget);
+          }}
+        >
+          Promote to…
+          <ChevronRightIcon fontSize="small" style={{ marginLeft: 'auto' }} />
+        </MenuItem>
+        {/* Bulk promote isn't wired yet — surface the affordance disabled
+            with a tooltip so users know it's coming. */}
+        <Tooltip title="Bulk promote is coming soon — pick targets one at a time for now.">
+          <span>
+            <MenuItem disabled>Promote to all</MenuItem>
+          </span>
+        </Tooltip>
+      </Menu>
+
+      {/* Nested per-target submenu, anchored to the "Promote to…" item. */}
+      <Menu
+        anchorEl={promoteToSubAnchor}
+        open={!!promoteToSubAnchor}
+        onClose={() => setPromoteToSubAnchor(null)}
+        onClick={stop}
+        keepMounted
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        {visibleActions.map(action => (
+          <MenuItem
+            key={action.target.name}
+            disabled={action.disabled}
+            onClick={e => {
+              stop(e);
+              setPromoteAnchor(null);
+              setPromoteToSubAnchor(null);
+              action.onClick();
+            }}
+          >
+            {action.isAlreadyPromoted
+              ? `${action.target.name} (promoted)`
+              : action.target.name}
+          </MenuItem>
+        ))}
       </Menu>
     </Box>
   );

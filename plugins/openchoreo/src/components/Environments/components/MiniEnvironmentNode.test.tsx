@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   MiniEnvironmentNode,
@@ -55,8 +55,6 @@ function renderNode(overrides: Partial<MiniEnvironmentNodeProps> = {}) {
     onOpenOverrides: jest.fn(),
     onOpenReleaseDetails: jest.fn(),
     onPromote: jest.fn(),
-    onSuspend: jest.fn(),
-    onRedeploy: jest.fn(),
     ...overrides,
   };
   return { ...render(<MiniEnvironmentNode {...props} />), props };
@@ -81,22 +79,199 @@ describe('MiniEnvironmentNode', () => {
     expect(props.onSelect).toHaveBeenCalled();
   });
 
-  it('does not fire onSelect when clicking the primary promote button', async () => {
+  it('shows simple Promote button when env has a single target', async () => {
     const user = userEvent.setup();
     const onPromote = jest.fn();
     const onSelect = jest.fn();
     renderNode({
       environment: makeEnv({
         name: 'staging',
+        bindingName: 'staging-binding',
         deployment: { status: 'Ready' },
         promotionTargets: [{ name: 'prod', resourceName: 'prod-res' }],
       }),
       onPromote,
       onSelect,
     });
-    await user.click(screen.getByRole('button', { name: /promote/i }));
+    const promoteBtn = screen.getByRole('button', { name: /^promote$/i });
+    expect(promoteBtn).toBeEnabled();
+    await user.click(promoteBtn);
     expect(onPromote).toHaveBeenCalledWith('prod-res');
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('does NOT show Undeploy or Redeploy on the canvas tile', () => {
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+        promotionTargets: [{ name: 'prod', resourceName: 'prod-res' }],
+      }),
+    });
+    expect(screen.queryByRole('button', { name: /undeploy/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /redeploy/i })).toBeNull();
+  });
+
+  it('renders no Promote button when env has no binding (never deployed)', () => {
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        deployment: { status: 'Ready' },
+        promotionTargets: [{ name: 'prod', resourceName: 'prod-res' }],
+      }),
+    });
+    expect(screen.queryByRole('button', { name: /promote/i })).toBeNull();
+  });
+
+  it('renders no Promote button when env has no targets', () => {
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+      }),
+    });
+    expect(screen.queryByRole('button', { name: /promote/i })).toBeNull();
+  });
+
+  it('renders no Promote button when env status is not Ready', () => {
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Failed' as any },
+        promotionTargets: [{ name: 'prod', resourceName: 'prod-res' }],
+      }),
+    });
+    expect(screen.queryByRole('button', { name: /promote/i })).toBeNull();
+  });
+
+  it('renders disabled "Promoted" pill when all targets are already promoted', () => {
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+        promotionTargets: [
+          { name: 'prod', resourceName: 'prod-res' },
+          { name: 'canary', resourceName: 'canary-res' },
+        ],
+      }),
+      isAlreadyPromoted: () => true,
+    });
+    const promoted = screen.getByRole('button', { name: /^promoted$/i });
+    expect(promoted).toBeDisabled();
+  });
+
+  it('renders Promote menu trigger when env has multiple targets', async () => {
+    const user = userEvent.setup();
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+        promotionTargets: [
+          { name: 'prod', resourceName: 'prod-res' },
+          { name: 'canary', resourceName: 'canary-res' },
+        ],
+      }),
+    });
+    const trigger = screen.getByRole('button', { name: /^promote$/i });
+    expect(trigger).toBeEnabled();
+    await user.click(trigger);
+    expect(
+      screen.getByRole('menuitem', { name: /promote to…/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /promote to all/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('opens nested submenu on "Promote to…" with one item per target', async () => {
+    const user = userEvent.setup();
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+        promotionTargets: [
+          { name: 'prod', resourceName: 'prod-res' },
+          { name: 'canary', resourceName: 'canary-res' },
+        ],
+      }),
+    });
+    await user.click(screen.getByRole('button', { name: /^promote$/i }));
+    await user.click(screen.getByRole('menuitem', { name: /promote to…/i }));
+    expect(
+      screen.getByRole('menuitem', { name: /^prod$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /^canary$/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('clicking a per-target submenu item fires onPromote with that target', async () => {
+    const user = userEvent.setup();
+    const onPromote = jest.fn();
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+        promotionTargets: [
+          { name: 'prod', resourceName: 'prod-res' },
+          { name: 'canary', resourceName: 'canary-res' },
+        ],
+      }),
+      onPromote,
+    });
+    await user.click(screen.getByRole('button', { name: /^promote$/i }));
+    await user.click(screen.getByRole('menuitem', { name: /promote to…/i }));
+    await user.click(screen.getByRole('menuitem', { name: /^canary$/i }));
+    expect(onPromote).toHaveBeenCalledWith('canary-res');
+  });
+
+  it('disables an already-promoted target in the submenu', async () => {
+    const user = userEvent.setup();
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+        promotionTargets: [
+          { name: 'prod', resourceName: 'prod-res' },
+          { name: 'canary', resourceName: 'canary-res' },
+        ],
+      }),
+      isAlreadyPromoted: target => target === 'canary',
+    });
+    await user.click(screen.getByRole('button', { name: /^promote$/i }));
+    await user.click(screen.getByRole('menuitem', { name: /promote to…/i }));
+    const canaryItem = screen.getByRole('menuitem', {
+      name: /canary \(promoted\)/i,
+    });
+    expect(canaryItem).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('renders "Promote to all" disabled in this PR (bulk promote not wired yet)', async () => {
+    const user = userEvent.setup();
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+        promotionTargets: [
+          { name: 'prod', resourceName: 'prod-res' },
+          { name: 'canary', resourceName: 'canary-res' },
+        ],
+      }),
+    });
+    await user.click(screen.getByRole('button', { name: /^promote$/i }));
+    const promoteAll = screen.getByRole('menuitem', {
+      name: /promote to all/i,
+    });
+    expect(promoteAll).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('selects the tile and opens the menu when the … overflow button is clicked', async () => {
@@ -104,9 +279,6 @@ describe('MiniEnvironmentNode', () => {
     const onSelect = jest.fn();
     renderNode({ onSelect });
     await user.click(screen.getByLabelText('Actions for staging'));
-    // Selecting on overflow open keeps "what I was working on" highlighted
-    // so navigation away to an intermediate page (e.g. Configure overrides
-    // via the menu) returns to the same selected tile.
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Refresh')).toBeInTheDocument();
   });
@@ -117,42 +289,7 @@ describe('MiniEnvironmentNode', () => {
     expect(card.className).toMatch(/cardSelected/);
   });
 
-  it('shows a Redeploy primary action when env is undeployed', () => {
-    renderNode({
-      environment: makeEnv({
-        name: 'staging',
-        bindingName: 'b1',
-        deployment: { status: 'Ready', statusReason: 'ResourcesUndeployed' },
-      }),
-    });
-    expect(screen.getByRole('button', { name: /redeploy/i })).toBeEnabled();
-  });
-
-  it('shows both Promote and Undeploy when env is Ready with binding + targets', async () => {
-    const user = userEvent.setup();
-    const onPromote = jest.fn();
-    const onSuspend = jest.fn();
-    renderNode({
-      environment: makeEnv({
-        name: 'staging',
-        bindingName: 'staging-binding',
-        deployment: { status: 'Ready' },
-        promotionTargets: [{ name: 'prod', resourceName: 'prod-res' }],
-      }),
-      onPromote,
-      onSuspend,
-    });
-    const promoteBtn = screen.getByRole('button', { name: /promote/i });
-    const undeployBtn = screen.getByRole('button', { name: /^undeploy$/i });
-    expect(promoteBtn).toBeEnabled();
-    expect(undeployBtn).toBeEnabled();
-
-    await user.click(undeployBtn);
-    expect(onSuspend).toHaveBeenCalled();
-    expect(onPromote).not.toHaveBeenCalled();
-  });
-
-  it('does not list Undeploy in the overflow menu (it lives on the action row now)', async () => {
+  it('does not list Undeploy in the overflow menu', async () => {
     const user = userEvent.setup();
     renderNode({
       environment: makeEnv({
@@ -162,6 +299,11 @@ describe('MiniEnvironmentNode', () => {
       }),
     });
     await user.click(screen.getByLabelText('Actions for staging'));
-    expect(screen.queryByRole('menuitem', { name: /undeploy/i })).toBeNull();
+    // The overflow menu sits in a portal; scope the assertion to the
+    // visible menu items rather than the whole document.
+    const menu = screen.getByRole('menu');
+    expect(
+      within(menu).queryByRole('menuitem', { name: /undeploy/i }),
+    ).toBeNull();
   });
 });

@@ -292,39 +292,9 @@ describe('PipelineCanvas (deploy split view)', () => {
     expect(mockHandleRefreshEnvironment).toHaveBeenCalledWith('staging');
   });
 
-  it('passes an onSuspend callback that resolves the binding before undeploying', async () => {
-    const envs = [
-      makeEnv({
-        name: 'development',
-        bindingName: 'my-binding',
-        deployment: { status: 'Ready' },
-      }),
-    ];
-    mockContextValue.environments = envs;
-    mockContextValue.displayEnvironments = envs;
-
-    renderWithRouter(<PipelineCanvas />);
-
-    await capturedFlowCanvasProps?.onSuspend(envs[0]);
-    expect(mockHandleUndeploy).toHaveBeenCalledWith('my-binding');
-  });
-
-  it('passes an onRedeploy callback that resolves the binding before redeploying', async () => {
-    const envs = [
-      makeEnv({
-        name: 'development',
-        bindingName: 'redeploy-binding',
-        deployment: { status: 'Ready', statusReason: 'ResourcesUndeployed' },
-      }),
-    ];
-    mockContextValue.environments = envs;
-    mockContextValue.displayEnvironments = envs;
-
-    renderWithRouter(<PipelineCanvas />);
-
-    await capturedFlowCanvasProps?.onRedeploy(envs[0]);
-    expect(mockHandleRedeploy).toHaveBeenCalledWith('redeploy-binding');
-  });
+  // Suspend / redeploy are now exclusive to the RHS detail panel; the
+  // canvas no longer exposes onSuspend / onRedeploy. Coverage moved to
+  // EnvironmentDetailPanel.test.tsx.
 
   it('navigates to overrides with a pending promote action when onPromote is invoked', async () => {
     const envs = [

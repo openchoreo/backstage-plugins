@@ -297,4 +297,49 @@ describe('EnvironmentDetailPanel', () => {
     });
     expect(screen.queryByLabelText('Configure overrides')).toBeNull();
   });
+
+  it('renders the Promote footer when env has Ready status, binding, and at least one target', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready' },
+          promotionTargets: [{ name: 'prod', resourceName: 'prod-res' }],
+        }),
+      },
+    });
+    expect(
+      screen.getByRole('button', { name: /^promote$/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides the Promote footer when env has no binding', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          deployment: { status: 'Ready' },
+          promotionTargets: [{ name: 'prod', resourceName: 'prod-res' }],
+        }),
+      },
+    });
+    expect(screen.queryByRole('button', { name: /^promote$/i })).toBeNull();
+  });
+
+  it('hides the Promote footer when env has no targets', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready' },
+        }),
+      },
+    });
+    expect(screen.queryByRole('button', { name: /^promote$/i })).toBeNull();
+  });
 });

@@ -391,6 +391,15 @@ export const useEnvironmentDetailPanelStyles = makeStyles(theme => ({
     display: 'flex',
     flexDirection: 'column',
   },
+  footer: {
+    padding: theme.spacing(1.5, 2.5),
+    borderTop: `1px solid ${theme.palette.divider}`,
+    display: 'flex',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    backgroundColor: theme.palette.background.default,
+  },
 }));
 
 /**

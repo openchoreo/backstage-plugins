@@ -110,17 +110,9 @@ export interface EnvironmentActionsProps {
   deploymentStatus?: 'Ready' | 'NotReady' | 'Failed';
   statusReason?: string;
   releaseName?: string;
-  promotionTargets?: Array<{
-    name: string;
-    resourceName?: string;
-    requiresApproval?: boolean;
-  }>;
-  isAlreadyPromoted: (targetEnvName: string) => boolean;
-  promotionTracker: ItemActionTracker;
   suspendTracker: ItemActionTracker;
   rolloutRestartTracker?: ItemActionTracker;
   removeDeploymentTracker?: ItemActionTracker;
-  onPromote: (targetEnvName: string) => Promise<void>;
   onSuspend: () => Promise<void>;
   onRedeploy: () => Promise<void>;
   onOpenOverrides?: () => void;
