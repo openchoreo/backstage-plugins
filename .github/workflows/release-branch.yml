@@ -1,0 +1,129 @@
+name: Release Branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      major:
+        description: 'Semver major component'
+        required: true
+        type: string
+      minor:
+        description: 'Semver minor component'
+        required: true
+        type: string
+      patch:
+        description: 'Semver patch component'
+        required: true
+        type: string
+      pre_release_id:
+        description: 'Prerelease identifier (e.g. rc.1, beta.2)'
+        required: false
+        type: string
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.event.inputs.major }}-${{ github.event.inputs.minor }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  MAJOR: ${{ github.event.inputs.major }}
+  MINOR: ${{ github.event.inputs.minor }}
+  PATCH: ${{ github.event.inputs.patch }}
+  PRE_RELEASE_ID: ${{ github.event.inputs.pre_release_id }}
+
+jobs:
+  branch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set git identity
+        run: |
+          git config user.name "openchoreo-bot"
+          git config user.email "openchoreo-bot@users.noreply.github.com"
+
+      - name: Check prerequisites
+        id: check
+        run: |
+          if [ -n "${PRE_RELEASE_ID}" ]; then
+            echo "::notice::Prerelease — no release branch needed. Skipping."
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          VER="${MAJOR}.${MINOR}"
+          if git ls-remote origin "refs/heads/release-v${VER}" | head -1 | grep -q .; then
+            echo "::notice::release-v${VER} already exists. Skipping."
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "Proceeding with release branch creation."
+          echo "skip=false" >> $GITHUB_OUTPUT
+
+      - name: Verify VERSION on main
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          CONTENT=$(cat VERSION | tr -d ' \n\t')
+          EXPECTED="${MAJOR}.${MINOR}.${PATCH}"
+          if [ "$CONTENT" != "$EXPECTED" ]; then
+            echo "ERROR: VERSION file contains '$CONTENT', expected '$EXPECTED'"
+            exit 1
+          fi
+
+      - name: Find version bump merge commit
+        if: steps.check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER="${MAJOR}.${MINOR}.${PATCH}"
+          MERGE_SHA=$(gh pr list --state merged \
+            --head "release-prep-v${VER}" \
+            --json mergeCommit --jq '.[0].mergeCommit.oid' 2>/dev/null || true)
+          if [ -z "$MERGE_SHA" ] || [ "$MERGE_SHA" = "null" ]; then
+            echo "ERROR: No merged prep PR found for release-prep-v${VER}."
+            exit 1
+          fi
+          echo "MERGE_SHA=${MERGE_SHA}" >> $GITHUB_ENV
+
+      - name: Create release branch and push
+        if: steps.check.outputs.skip != 'true'
+        env:
+          PAT: ${{ secrets.RELEASE_PAT }}
+        run: |
+          VER="${MAJOR}.${MINOR}"
+          git branch "release-v${VER}" "${MERGE_SHA}"
+          git push "https://x-access-token:${PAT}@github.com/${GITHUB_REPOSITORY}.git" "release-v${VER}"
+
+      - name: Delete stale prep branch
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          VER="${MAJOR}.${MINOR}.${PATCH}"
+          if [ -n "${PRE_RELEASE_ID}" ]; then
+            VER="${VER}-${PRE_RELEASE_ID}"
+          fi
+          git push origin --delete "release-prep-v${VER}" 2>/dev/null || true
+
+      - name: Create next-version PR
+        if: steps.check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          NEXT_MINOR=$(( MINOR + 1 ))
+          NEXT_VER="${MAJOR}.${NEXT_MINOR}.0"
+          BRANCH="release-next-v${NEXT_VER}"
+          git checkout -b "${BRANCH}" "origin/main"
+          echo "${NEXT_VER}" > VERSION
+          git add VERSION
+          git commit -s -m "chore: bump version to ${NEXT_VER}"
+          git push origin "${BRANCH}"
+          gh pr create \
+            --head "${BRANCH}" \
+            --base main \
+            --title "chore: bump version to ${NEXT_VER}" \
+            --body "Automated version bump after the \`release-v${MAJOR}.${MINOR}\` branch cut." \
+            --label "type/release"
