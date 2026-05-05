@@ -1,14 +1,20 @@
-import { Box, IconButton, Typography } from '@material-ui/core';
+import { useState } from 'react';
+import { Box, IconButton, Tooltip, Typography } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
+import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import AllInboxOutlinedIcon from '@material-ui/icons/AllInboxOutlined';
+import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
+import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
 import { useEnvironmentDetailPanelStyles } from '../styles';
 import { useEnvironmentStatusVariant } from '../hooks/useEnvironmentStatusVariant';
+import { NO_DRIFT, type ReleaseDriftInfo } from '../hooks/computeReleaseDrift';
 import { deriveVersionLabel } from '../utils/deriveVersionLabel';
 import { EnvironmentCardContent } from './EnvironmentCardContent';
 import { EnvironmentActions } from './EnvironmentActions';
 import { PromotePrimaryAction } from './PromotePrimaryAction';
+import { ReleaseManifestDialog } from './ReleaseManifestDialog';
 import { SetupDetailPane } from './SetupDetailPane';
 import type { ActionTrackers, Environment } from '../types';
 
@@ -27,6 +33,8 @@ export interface EnvironmentDetailPanelProps {
   isWorkloadEditorSupported: boolean;
   environmentsExist: boolean;
   loadingSetup: boolean;
+  /** Drift relative to direct upstreams; defaults to no drift. */
+  driftInfo?: ReleaseDriftInfo;
   onConfigureWorkload: () => void;
   onClose: () => void;
   onRefresh: () => void;
@@ -58,6 +66,7 @@ export const EnvironmentDetailPanel = ({
   isWorkloadEditorSupported,
   environmentsExist,
   loadingSetup,
+  driftInfo = NO_DRIFT,
   onConfigureWorkload,
   onClose,
   onRefresh,
@@ -71,6 +80,7 @@ export const EnvironmentDetailPanel = ({
 }: EnvironmentDetailPanelProps) => {
   const classes = useEnvironmentDetailPanelStyles();
   const environment = selection?.kind === 'env' ? selection.environment : null;
+  const [manifestOpen, setManifestOpen] = useState(false);
   const statusVariant = useEnvironmentStatusVariant(
     environment?.deployment.status,
     environment?.deployment.statusReason,
@@ -146,6 +156,62 @@ export const EnvironmentDetailPanel = ({
               {versionLabel}
             </Typography>
           )}
+          {environment.deployment.releaseName && (
+            <Box className={classes.releaseNameRow}>
+              <Typography
+                variant="caption"
+                className={classes.releaseNameLabel}
+              >
+                release
+              </Typography>
+              <Tooltip title={environment.deployment.releaseName}>
+                <Typography variant="caption" className={classes.releaseName}>
+                  {environment.deployment.releaseName}
+                </Typography>
+              </Tooltip>
+              <Tooltip title="Copy release name">
+                <IconButton
+                  size="small"
+                  aria-label="Copy release name"
+                  onClick={() =>
+                    navigator.clipboard?.writeText(
+                      environment.deployment.releaseName!,
+                    )
+                  }
+                >
+                  <FileCopyOutlinedIcon fontSize="inherit" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="View release">
+                <IconButton
+                  size="small"
+                  aria-label="View release"
+                  onClick={() => setManifestOpen(true)}
+                >
+                  <CodeOutlinedIcon fontSize="inherit" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          )}
+          {driftInfo.isBehind && (
+            <Tooltip
+              title={
+                <>
+                  {driftInfo.aheadUpstreams.map(u => (
+                    <div key={u.envName}>
+                      {u.envName}
+                      {u.releaseName ? ` on ${u.releaseName}` : ''}
+                    </div>
+                  ))}
+                </>
+              }
+            >
+              <Box className={classes.driftRow}>
+                <ReportProblemOutlinedIcon fontSize="small" />
+                <Typography variant="caption">Behind upstream</Typography>
+              </Box>
+            </Tooltip>
+          )}
         </Box>
       </Box>
       <Box className={classes.body}>
@@ -196,6 +262,13 @@ export const EnvironmentDetailPanel = ({
             />
           </Box>
         )}
+
+      <ReleaseManifestDialog
+        open={manifestOpen}
+        onClose={() => setManifestOpen(false)}
+        releaseName={environment.deployment.releaseName}
+        environmentName={environment.name}
+      />
     </Box>
   );
 };

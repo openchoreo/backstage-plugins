@@ -36,6 +36,12 @@ jest.mock('./SetupDetailPane', () => ({
   ),
 }));
 
+// ReleaseManifestDialog uses useApi/useEntity which need provider context
+// these tests don't supply. The dialog has its own focused test file.
+jest.mock('./ReleaseManifestDialog', () => ({
+  ReleaseManifestDialog: () => null,
+}));
+
 function tracker(): ItemActionTracker {
   return {
     isActive: () => false,
@@ -341,5 +347,69 @@ describe('EnvironmentDetailPanel', () => {
       },
     });
     expect(screen.queryByRole('button', { name: /^promote$/i })).toBeNull();
+  });
+
+  it('renders the release name in the header when present', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready', releaseName: 'my-comp-rel-7' },
+        }),
+      },
+    });
+    expect(screen.getByText('my-comp-rel-7')).toBeInTheDocument();
+    expect(screen.getByLabelText('Copy release name')).toBeInTheDocument();
+    expect(screen.getByLabelText('View release')).toBeInTheDocument();
+  });
+
+  it('omits the release name row when the env has no release', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready' },
+        }),
+      },
+    });
+    expect(screen.queryByLabelText('Copy release name')).toBeNull();
+  });
+
+  it('renders a short "Behind upstream" line when driftInfo.isBehind', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready', releaseName: 'rel-5' },
+        }),
+      },
+      driftInfo: {
+        isBehind: true,
+        aheadUpstreams: [{ envName: 'dev', releaseName: 'rel-7' }],
+      },
+    });
+    expect(screen.getByText(/^Behind upstream$/)).toBeInTheDocument();
+    // Full upstream details live on the tooltip, not inline.
+    expect(screen.queryByText(/rel-7/)).toBeNull();
+  });
+
+  it('omits the drift line when not behind', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready', releaseName: 'rel-7' },
+        }),
+      },
+    });
+    expect(screen.queryByText(/Behind/)).toBeNull();
   });
 });

@@ -20,6 +20,12 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
   formatRelativeTime: (s: string) => `relative-${s}`,
 }));
 
+// ReleaseManifestDialog uses useApi/useEntity which need provider context
+// these tests don't supply. The dialog has its own focused test file.
+jest.mock('./ReleaseManifestDialog', () => ({
+  ReleaseManifestDialog: () => null,
+}));
+
 function tracker(): ItemActionTracker {
   return {
     isActive: () => false,
@@ -304,6 +310,64 @@ describe('MiniEnvironmentNode', () => {
     const menu = screen.getByRole('menu');
     expect(
       within(menu).queryByRole('menuitem', { name: /undeploy/i }),
+    ).toBeNull();
+  });
+
+  it('renders the drift badge when driftInfo.isBehind is true', () => {
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready', releaseName: 'rel-5' },
+      }),
+      driftInfo: {
+        isBehind: true,
+        aheadUpstreams: [{ envName: 'dev', releaseName: 'rel-7' }],
+      },
+    });
+    expect(screen.getByLabelText('behind upstream')).toBeInTheDocument();
+  });
+
+  it('omits the drift badge when not behind', () => {
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+      }),
+    });
+    expect(screen.queryByLabelText('behind upstream')).toBeNull();
+  });
+
+  it('lists "View release manifest" in the overflow menu when releaseName exists', async () => {
+    const user = userEvent.setup();
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready', releaseName: 'rel-7' },
+      }),
+    });
+    await user.click(screen.getByLabelText('Actions for staging'));
+    const menu = screen.getByRole('menu');
+    expect(
+      within(menu).getByRole('menuitem', { name: /view release manifest/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides "View release manifest" when env has no releaseName', async () => {
+    const user = userEvent.setup();
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready' },
+      }),
+    });
+    await user.click(screen.getByLabelText('Actions for staging'));
+    const menu = screen.getByRole('menu');
+    expect(
+      within(menu).queryByRole('menuitem', { name: /view release manifest/i }),
     ).toBeNull();
   });
 });

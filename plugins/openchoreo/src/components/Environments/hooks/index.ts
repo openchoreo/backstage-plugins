@@ -10,6 +10,11 @@ export { useRequiredOverridesCheck } from './useRequiredOverridesCheck';
 export type { RequiredOverridesCheckResult } from './useRequiredOverridesCheck';
 export { isAlreadyPromoted } from './promotionUtils';
 export {
+  computeReleaseDrift,
+  NO_DRIFT,
+  type ReleaseDriftInfo,
+} from './computeReleaseDrift';
+export {
   useEnvironmentStatusVariant,
   type EnvironmentStatusVariant,
 } from './useEnvironmentStatusVariant';

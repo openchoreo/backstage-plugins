@@ -20,3 +20,7 @@ export {
   PromotePrimaryAction,
   type PromotePrimaryActionProps,
 } from './PromotePrimaryAction';
+export {
+  ReleaseManifestDialog,
+  type ReleaseManifestDialogProps,
+} from './ReleaseManifestDialog';

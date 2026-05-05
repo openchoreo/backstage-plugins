@@ -7,8 +7,10 @@ import {
   useEnvironmentActions,
   isAlreadyPromoted as isAlreadyPromotedUtil,
   useEnvironmentRouting,
+  computeReleaseDrift,
+  NO_DRIFT,
 } from '../hooks';
-import type { Environment } from '../hooks';
+import type { Environment, ReleaseDriftInfo } from '../hooks';
 import type { PendingAction } from '../types';
 import { EnvironmentDetailPanel, NotificationBanner } from '../components';
 import { useEnvironmentsContext } from '../EnvironmentsContext';
@@ -77,6 +79,14 @@ export const PipelineCanvas: FC = () => {
     () => displayEnvironments.some(env => !!env.bindingName),
     [displayEnvironments],
   );
+
+  const driftByEnv = useMemo(() => {
+    const map = new Map<string, ReleaseDriftInfo>();
+    for (const env of displayEnvironments) {
+      map.set(env.name, computeReleaseDrift(env, displayEnvironments));
+    }
+    return map;
+  }, [displayEnvironments]);
 
   // Incidents summary per environment
   const deployedEnvironments = useMemo(
@@ -284,6 +294,7 @@ export const PipelineCanvas: FC = () => {
             refreshingEnvName={envName => refreshTracker.isActive(envName)}
             isAlreadyPromoted={isAlreadyPromoted}
             actionTrackers={actionTrackers}
+            driftByEnv={driftByEnv}
             onSelectEnv={name =>
               setSelection(name ? { kind: 'env', name } : null)
             }
@@ -308,6 +319,11 @@ export const PipelineCanvas: FC = () => {
                   : undefined
               }
               hasAnyDeployedEnv={hasAnyDeployedEnv}
+              driftInfo={
+                selectedEnv
+                  ? driftByEnv.get(selectedEnv.name) ?? NO_DRIFT
+                  : NO_DRIFT
+              }
               isWorkloadEditorSupported={isWorkloadEditorSupported}
               environmentsExist={displayEnvironments.length > 0}
               loadingSetup={loading}

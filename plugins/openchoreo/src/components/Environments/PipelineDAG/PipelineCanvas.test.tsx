@@ -135,6 +135,8 @@ jest.mock('../hooks', () => ({
     handleRolloutRestart: mockHandleRolloutRestart,
   }),
   isAlreadyPromoted: () => false,
+  computeReleaseDrift: () => ({ isBehind: false, aheadUpstreams: [] }),
+  NO_DRIFT: { isBehind: false, aheadUpstreams: [] },
 }));
 
 jest.mock('../hooks/useIncidentsSummary', () => ({

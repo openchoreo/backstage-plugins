@@ -10,17 +10,21 @@ import {
 } from '@material-ui/core';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
 import MoreVertIcon from '@material-ui/icons/MoreVert';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
+import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import clsx from 'clsx';
 import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
 import { useMiniEnvironmentNodeStyles } from '../styles';
 import { useEnvironmentStatusVariant } from '../hooks/useEnvironmentStatusVariant';
 import { usePromotionAction } from '../hooks/usePromotionAction';
+import { NO_DRIFT, type ReleaseDriftInfo } from '../hooks/computeReleaseDrift';
 import { deriveVersionLabel } from '../utils/deriveVersionLabel';
 import type { ActionTrackers, Environment } from '../types';
+import { ReleaseManifestDialog } from './ReleaseManifestDialog';
 
 export interface MiniEnvironmentNodeProps {
   environment: Environment;
@@ -28,6 +32,8 @@ export interface MiniEnvironmentNodeProps {
   isRefreshing: boolean;
   isAlreadyPromoted: (targetEnvName: string) => boolean;
   actionTrackers: ActionTrackers;
+  /** Drift relative to direct upstreams; defaults to no drift. */
+  driftInfo?: ReleaseDriftInfo;
   onSelect: () => void;
   onRefresh: () => void;
   onOpenOverrides: () => void;
@@ -48,6 +54,7 @@ export const MiniEnvironmentNode = ({
   isRefreshing,
   isAlreadyPromoted,
   actionTrackers,
+  driftInfo = NO_DRIFT,
   onSelect,
   onRefresh,
   onOpenOverrides,
@@ -59,6 +66,7 @@ export const MiniEnvironmentNode = ({
   const [promoteAnchor, setPromoteAnchor] = useState<HTMLElement | null>(null);
   const [promoteToSubAnchor, setPromoteToSubAnchor] =
     useState<HTMLElement | null>(null);
+  const [manifestOpen, setManifestOpen] = useState(false);
 
   const statusVariant = useEnvironmentStatusVariant(
     environment.deployment.status,
@@ -237,14 +245,53 @@ export const MiniEnvironmentNode = ({
             <span className={dotClass} aria-hidden />
             {versionLabel ? (
               <Tooltip
-                title={environment.deployment.image ?? ''}
-                disableHoverListener={!environment.deployment.image}
+                title={
+                  <>
+                    {environment.deployment.releaseName && (
+                      <div>Release: {environment.deployment.releaseName}</div>
+                    )}
+                    {environment.deployment.image && (
+                      <div>Image: {environment.deployment.image}</div>
+                    )}
+                  </>
+                }
+                disableHoverListener={
+                  !environment.deployment.image &&
+                  !environment.deployment.releaseName
+                }
                 PopperProps={{ disablePortal: true }}
               >
                 <span className={classes.versionChip}>{versionLabel}</span>
               </Tooltip>
             ) : (
               <span className={classes.versionChip}>—</span>
+            )}
+            {driftInfo.isBehind && (
+              <Tooltip
+                title={
+                  <>
+                    <div>
+                      Behind{' '}
+                      {driftInfo.aheadUpstreams.map(u => u.envName).join(', ')}
+                    </div>
+                    {driftInfo.aheadUpstreams[0]?.releaseName && (
+                      <div>
+                        {driftInfo.aheadUpstreams[0].envName} on{' '}
+                        {driftInfo.aheadUpstreams[0].releaseName}
+                      </div>
+                    )}
+                  </>
+                }
+                PopperProps={{ disablePortal: true }}
+              >
+                <span
+                  className={classes.driftBadge}
+                  aria-label="behind upstream"
+                >
+                  <ReportProblemOutlinedIcon fontSize="inherit" />
+                  behind
+                </span>
+              </Tooltip>
             )}
             {relativeTime && (
               <Typography
@@ -291,6 +338,18 @@ export const MiniEnvironmentNode = ({
           >
             <OpenInNewIcon fontSize="small" style={{ marginRight: 8 }} />
             View K8s artifacts
+          </MenuItem>
+        )}
+        {environment.deployment.releaseName && (
+          <MenuItem
+            onClick={e => {
+              stop(e);
+              closeMenu();
+              setManifestOpen(true);
+            }}
+          >
+            <CodeOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
+            View release manifest
           </MenuItem>
         )}
         <MenuItem
@@ -366,6 +425,13 @@ export const MiniEnvironmentNode = ({
           </MenuItem>
         ))}
       </Menu>
+
+      <ReleaseManifestDialog
+        open={manifestOpen}
+        onClose={() => setManifestOpen(false)}
+        releaseName={environment.deployment.releaseName}
+        environmentName={environment.name}
+      />
     </Box>
   );
 };

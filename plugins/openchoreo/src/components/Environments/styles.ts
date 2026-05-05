@@ -224,6 +224,18 @@ export const useMiniEnvironmentNodeStyles = makeStyles(theme => ({
     padding: theme.spacing(0.25, 0.75),
     whiteSpace: 'nowrap',
   },
+  driftBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 2,
+    fontSize: '0.7rem',
+    fontWeight: 500,
+    color: theme.palette.warning.dark,
+    backgroundColor: alpha(theme.palette.warning.main, 0.16),
+    borderRadius: 4,
+    padding: theme.spacing(0.1, 0.5),
+    whiteSpace: 'nowrap',
+  },
   statusDot: {
     width: 8,
     height: 8,
@@ -382,6 +394,34 @@ export const useEnvironmentDetailPanelStyles = makeStyles(theme => ({
     color: theme.palette.text.secondary,
     fontFamily:
       'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+  },
+  releaseNameRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    marginTop: theme.spacing(0.5),
+  },
+  releaseNameLabel: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: theme.palette.text.secondary,
+    fontSize: '0.65rem',
+  },
+  releaseName: {
+    fontFamily:
+      'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+    color: theme.palette.text.primary,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    maxWidth: 280,
+  },
+  driftRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    color: theme.palette.warning.dark,
+    marginTop: theme.spacing(0.5),
   },
   body: {
     flex: 1,

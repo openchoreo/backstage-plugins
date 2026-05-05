@@ -21,6 +21,7 @@ import { useDeployFlowCanvasStyles } from '../styles';
 import { MiniEnvironmentNode } from '../components/MiniEnvironmentNode';
 import { SetupCard } from '../components/SetupCard';
 import type { ActionTrackers, Environment } from '../types';
+import type { ReleaseDriftInfo } from '../hooks/computeReleaseDrift';
 
 const SETUP_NODE_ID = '__setup__';
 
@@ -33,6 +34,8 @@ export interface DeployFlowCanvasProps {
   refreshingEnvName: (envName: string) => boolean;
   isAlreadyPromoted: (sourceEnv: Environment, targetEnvName: string) => boolean;
   actionTrackers: ActionTrackers;
+  /** Per-env drift info, keyed by env name. Missing entries default to no drift. */
+  driftByEnv?: Map<string, ReleaseDriftInfo>;
   onSelectEnv: (envName: string | null) => void;
   onSelectSetup: () => void;
   onClearSelection: () => void;
@@ -58,6 +61,7 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
   refreshingEnvName,
   isAlreadyPromoted,
   actionTrackers,
+  driftByEnv,
   onSelectEnv,
   onSelectSetup,
   onClearSelection,
@@ -226,6 +230,7 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
                   isRefreshing={refreshingEnvName(env.name)}
                   isAlreadyPromoted={target => isAlreadyPromoted(env, target)}
                   actionTrackers={actionTrackers}
+                  driftInfo={driftByEnv?.get(env.name)}
                   onSelect={() => onSelectEnv(env.name)}
                   onRefresh={() => onRefreshEnv(env.name)}
                   onOpenOverrides={() => onOpenOverrides(env)}
