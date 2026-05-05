@@ -1,0 +1,204 @@
+name: Release Orchestrator
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'full (branch+tag), branch, tag'
+        required: true
+        type: choice
+        options:
+          - full
+          - branch
+          - tag
+      major:
+        description: 'Semver major component'
+        required: true
+        type: number
+      minor:
+        description: 'Semver minor component'
+        required: true
+        type: number
+      patch:
+        description: 'Semver patch component'
+        required: true
+        type: number
+      pre_release_id:
+        description: 'Prerelease identifier (e.g. rc.1, beta.2)'
+        required: false
+        type: string
+      commit_sha:
+        description: 'Pin the tag to a specific commit SHA (overrides automatic resolution)'
+        required: false
+        type: string
+
+concurrency:
+  group: release-orchestrator-${{ github.event.inputs.major }}-${{ github.event.inputs.minor }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: openchoreo/openchoreo-ui
+
+jobs:
+  orchestrate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
+        with:
+          app-id: ${{ secrets.OC_RELEASE_APP_ID }}
+          private-key: ${{ secrets.OC_RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Set git identity
+        run: |
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+
+      - name: Resolve version and validate
+        env:
+          IN_MAJOR: ${{ github.event.inputs.major }}
+          IN_MINOR: ${{ github.event.inputs.minor }}
+          IN_PATCH: ${{ github.event.inputs.patch }}
+          IN_PRERELEASE: ${{ github.event.inputs.pre_release_id || '' }}
+        run: |
+          MAJOR="$IN_MAJOR"
+          MINOR="$IN_MINOR"
+          PATCH="$IN_PATCH"
+          PRERELEASE="$IN_PRERELEASE"
+
+          if [[ ! "$MAJOR" =~ ^[0-9]+$ ]] || [[ ! "$MINOR" =~ ^[0-9]+$ ]] || [[ ! "$PATCH" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: major, minor, patch must be numbers"
+            exit 1
+          fi
+
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          if [ -n "$PRERELEASE" ]; then
+            if [[ ! "$PRERELEASE" =~ ^[a-zA-Z0-9.-]+$ ]]; then
+              echo "ERROR: Invalid prerelease identifier: ${PRERELEASE}"
+              exit 1
+            fi
+            VERSION="${VERSION}-${PRERELEASE}"
+          fi
+
+          TAG="v${VERSION}"
+          echo "MAJOR=${MAJOR}" >> $GITHUB_ENV
+          echo "MINOR=${MINOR}" >> $GITHUB_ENV
+          echo "PATCH=${PATCH}" >> $GITHUB_ENV
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "RELEASE_TAG=${TAG}" >> $GITHUB_ENV
+          echo "PRERELEASE=${PRERELEASE}" >> $GITHUB_ENV
+
+      - name: Validate VERSION file
+        run: |
+          CONTENT=$(tr -d ' \n\r\t' < VERSION)
+          if [ "$CONTENT" != "${{ env.VERSION }}" ]; then
+            echo "ERROR: VERSION file contains '$CONTENT', expected '${{ env.VERSION }}'"
+            exit 1
+          fi
+
+      - name: Check for existing tag
+        if: ${{ github.event.inputs.action == 'full' || github.event.inputs.action == 'tag' }}
+        run: |
+          TAG="${{ env.RELEASE_TAG }}"
+          if git ls-remote origin "refs/tags/${TAG}" | head -1 | grep -q .; then
+            echo "ERROR: Tag ${TAG} already exists on remote. Remove it first if you want to retag."
+            exit 1
+          fi
+
+      # ----------------------------------------------------------------
+      # Branch step: create release-vX.Y or prerelease branch
+      # ----------------------------------------------------------------
+      - name: Check if release branch exists
+        if: ${{ github.event.inputs.action == 'full' || github.event.inputs.action == 'branch' }}
+        run: |
+          if git ls-remote origin "refs/heads/release-v${{ env.MAJOR }}.${{ env.MINOR }}" | head -1 | grep -q .; then
+            echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create release branch
+        if: ${{ env.BRANCH_EXISTS == 'false' && (github.event.inputs.action == 'full' || github.event.inputs.action == 'branch') && github.event.inputs.pre_release_id == '' }}
+        env:
+          PAT: ${{ steps.app-token.outputs.token }}
+        run: |
+          BRANCH="release-v${{ env.MAJOR }}.${{ env.MINOR }}"
+          git branch "${BRANCH}"
+          echo "RELEASE_BRANCH=${BRANCH}" >> $GITHUB_ENV
+          git push "https://x-access-token:${PAT}@github.com/${GITHUB_REPOSITORY}.git" "${BRANCH}"
+          echo "Pushed branch: ${BRANCH}"
+
+      # ----------------------------------------------------------------
+      # Tag step: pre-validate, then push the annotated tag
+      # ----------------------------------------------------------------
+      - name: Determine commit to tag
+        if: ${{ github.event.inputs.action == 'full' || github.event.inputs.action == 'tag' }}
+        env:
+          IN_COMMIT_SHA: ${{ github.event.inputs.commit_sha || '' }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          COMMIT_SHA="$IN_COMMIT_SHA"
+
+          if [ -n "$COMMIT_SHA" ]; then
+            RESOLVED_SHA="${COMMIT_SHA}"
+          elif [ -n "${{ env.RELEASE_BRANCH }}" ]; then
+            RESOLVED_SHA=$(git rev-parse HEAD)
+          elif git ls-remote origin "refs/heads/release-v${{ env.MAJOR }}.${{ env.MINOR }}" | head -1 | grep -q .; then
+            git fetch origin "refs/heads/release-v${{ env.MAJOR }}.${{ env.MINOR }}"
+            RESOLVED_SHA=$(git rev-parse "origin/release-v${{ env.MAJOR }}.${{ env.MINOR }}")
+          else
+            RESOLVED_SHA=$(git rev-parse HEAD)
+          fi
+
+          if ! git cat-file -e "${RESOLVED_SHA}" 2>/dev/null; then
+            echo "ERROR: Commit ${RESOLVED_SHA} does not exist in this repository."
+            exit 1
+          fi
+          echo "RESOLVED_SHA=${RESOLVED_SHA}" >> $GITHUB_ENV
+
+      - name: Pre-validate source image exists for target commit
+        if: ${{ github.event.inputs.action == 'full' || github.event.inputs.action == 'tag' }}
+        run: |
+          SHA=$(git rev-parse --short=8 "${{ env.RESOLVED_SHA }}")
+          echo "Checking ${REGISTRY}/${IMAGE_NAME}:${SHA}"
+
+          # Poll for up to 30 minutes (60s intervals) waiting for the image to appear
+          for i in $(seq 1 30); do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer ${{ github.token }}" \
+              -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+              "https://${REGISTRY}/v2/${IMAGE_NAME}/manifests/${SHA}")
+            if [ "${HTTP_CODE}" = "200" ]; then
+              echo "Image verified: ${REGISTRY}/${IMAGE_NAME}:${SHA} (after ${i} attempt(s))"
+              exit 0
+            fi
+            echo "Attempt ${i}/30 — image not found yet (HTTP ${HTTP_CODE}). Waiting 60 seconds..."
+            sleep 60
+          done
+
+          echo "ERROR: Image ${REGISTRY}/${IMAGE_NAME}:${SHA} not found after 30 minutes."
+          echo "build-and-test may still be running or may have failed."
+          echo "Check the build status and retry."
+          exit 1
+
+      - name: Create and push annotated tag
+        if: ${{ github.event.inputs.action == 'full' || github.event.inputs.action == 'tag' }}
+        env:
+          PAT: ${{ steps.app-token.outputs.token }}
+        run: |
+          TAG="${{ env.RELEASE_TAG }}"
+          git tag -a "${TAG}" -m "Release ${{ env.VERSION }}" "${{ env.RESOLVED_SHA }}"
+          git push "https://x-access-token:${PAT}@github.com/${GITHUB_REPOSITORY}.git" "${TAG}"
+          echo "Tag pushed: ${TAG} (commit: ${{ env.RESOLVED_SHA }})"
