@@ -1,7 +1,7 @@
 import type { PendingAction } from '@openchoreo/backstage-plugin-react';
 import { useItemActionTracker } from '../../hooks';
 import { Notification } from '../../hooks/useNotification';
-import type { Environment, EndpointInfo } from './hooks/useEnvironmentData';
+import type { Environment } from './hooks/useEnvironmentData';
 
 // Re-export Environment type from the data hook
 export type {
@@ -86,22 +86,6 @@ export interface EnvironmentCardHeaderProps {
 }
 
 /**
- * Props for the EnvironmentCardContent component
- */
-export interface EnvironmentCardContentProps {
-  status?: 'Ready' | 'NotReady' | 'Failed';
-  statusReason?: string;
-  statusMessage?: string;
-  lastDeployed?: string;
-  image?: string;
-  releaseName?: string;
-  endpoints: EndpointInfo[];
-  onOpenReleaseDetails: () => void;
-  activeIncidentCount?: number;
-  environmentName?: string;
-}
-
-/**
  * Props for the EnvironmentActions component
  */
 export interface EnvironmentActionsProps {
@@ -112,10 +96,7 @@ export interface EnvironmentActionsProps {
   releaseName?: string;
   suspendTracker: ItemActionTracker;
   rolloutRestartTracker?: ItemActionTracker;
-  removeDeploymentTracker?: ItemActionTracker;
   onSuspend: () => Promise<void>;
   onRedeploy: () => Promise<void>;
-  onOpenOverrides?: () => void;
   onRolloutRestart?: () => void | Promise<void>;
-  onRemoveDeployment?: () => void | Promise<void>;
 }

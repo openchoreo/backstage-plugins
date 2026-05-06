@@ -142,4 +142,32 @@ describe('EnvironmentActions', () => {
 
     expect(screen.getByRole('button', { name: /undeploy/i })).toBeDisabled();
   });
+
+  it('shows Rollout restart when an active deployment + onRolloutRestart are provided', () => {
+    renderActions({
+      bindingName: 'my-binding',
+      onRolloutRestart: jest.fn(),
+    });
+    expect(
+      screen.getByRole('button', { name: /rollout restart/i }),
+    ).toBeEnabled();
+  });
+
+  it('does not render Configure overrides — that lives next to the Deployed line now', () => {
+    renderActions({
+      bindingName: 'my-binding',
+    });
+    expect(
+      screen.queryByRole('button', { name: /configure overrides/i }),
+    ).toBeNull();
+  });
+
+  it('does not render Remove deployment — that lives in the danger zone now', () => {
+    renderActions({
+      bindingName: 'my-binding',
+    });
+    expect(
+      screen.queryByRole('button', { name: /remove deployment/i }),
+    ).toBeNull();
+  });
 });

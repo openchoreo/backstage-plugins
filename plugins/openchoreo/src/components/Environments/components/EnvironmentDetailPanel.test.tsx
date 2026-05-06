@@ -171,7 +171,7 @@ describe('EnvironmentDetailPanel', () => {
     ).toBeDisabled();
   });
 
-  it('shows the Remove deployment button when binding exists and onRemoveDeployment is provided', () => {
+  it('hides the danger zone (and Remove deployment) by default', () => {
     renderPanel({
       selection: {
         kind: 'env',
@@ -182,12 +182,34 @@ describe('EnvironmentDetailPanel', () => {
       },
       onRemoveDeployment: jest.fn().mockResolvedValue(undefined),
     });
+    // Accordion summary is visible …
+    expect(screen.getByLabelText('Danger zone')).toBeInTheDocument();
+    // … but the destructive button is hidden inside the collapsed
+    // accordion (rendered but role-hidden).
+    expect(
+      screen.queryByRole('button', { name: /remove deployment/i }),
+    ).toBeNull();
+  });
+
+  it('reveals Remove deployment when the danger zone is expanded', async () => {
+    const user = userEvent.setup();
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+        }),
+      },
+      onRemoveDeployment: jest.fn().mockResolvedValue(undefined),
+    });
+    await user.click(screen.getByLabelText('Danger zone'));
     expect(
       screen.getByRole('button', { name: /remove deployment/i }),
     ).toBeEnabled();
   });
 
-  it('hides Remove deployment when the env has no binding', () => {
+  it('does not render the danger zone when the env has no binding', () => {
     renderPanel({
       selection: {
         kind: 'env',
@@ -195,6 +217,7 @@ describe('EnvironmentDetailPanel', () => {
       },
       onRemoveDeployment: jest.fn().mockResolvedValue(undefined),
     });
+    expect(screen.queryByLabelText('Danger zone')).toBeNull();
     expect(
       screen.queryByRole('button', { name: /remove deployment/i }),
     ).toBeNull();
@@ -213,6 +236,8 @@ describe('EnvironmentDetailPanel', () => {
       },
       onRemoveDeployment,
     });
+    // Expand the danger zone first.
+    await user.click(screen.getByLabelText('Danger zone'));
     await user.click(
       screen.getByRole('button', { name: /^remove deployment$/i }),
     );
@@ -411,5 +436,135 @@ describe('EnvironmentDetailPanel', () => {
       },
     });
     expect(screen.queryByText(/Behind/)).toBeNull();
+  });
+
+  it('renders an Endpoints section with View All when env has endpoints', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready' },
+          endpoints: [
+            {
+              name: 'web',
+              externalURLs: {
+                https: {
+                  scheme: 'https',
+                  host: 'web.staging.example.com',
+                  port: 443,
+                  path: '/',
+                },
+              },
+            },
+          ],
+        }),
+      },
+    });
+    expect(screen.getByText('Endpoints')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /view all/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the first external URL inline with a copy button', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready' },
+          endpoints: [
+            {
+              name: 'web',
+              externalURLs: {
+                https: {
+                  scheme: 'https',
+                  host: 'web.staging.example.com',
+                  port: 443,
+                  path: '/',
+                },
+              },
+            },
+          ],
+        }),
+      },
+    });
+    expect(screen.getByText('External:')).toBeInTheDocument();
+    expect(
+      screen.getByText('https://web.staging.example.com:443/'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Copy URL')).toBeInTheDocument();
+  });
+
+  it('falls back to internal URL when no external URL exists', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready' },
+          endpoints: [
+            {
+              name: 'web',
+              internalURLs: {
+                http: {
+                  scheme: 'http',
+                  host: 'web.cluster.local',
+                  port: 8080,
+                  path: '/',
+                },
+              },
+            },
+          ],
+        }),
+      },
+    });
+    expect(screen.getByText('Internal:')).toBeInTheDocument();
+    expect(
+      screen.getByText('http://web.cluster.local:8080/'),
+    ).toBeInTheDocument();
+  });
+
+  it('omits the Endpoints section when env has no endpoints', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready' },
+          endpoints: [],
+        }),
+      },
+    });
+    expect(screen.queryByText('Endpoints')).toBeNull();
+    expect(screen.queryByRole('button', { name: /view all/i })).toBeNull();
+  });
+
+  it('renders Promote inside the Actions section, not in a bottom footer', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready', releaseName: 'rel-7' },
+          promotionTargets: [{ name: 'prod', resourceName: 'prod-res' }],
+        }),
+      },
+    });
+    const actionsHeading = screen.getByText('Actions');
+    const promoteBtn = screen.getByRole('button', { name: /^promote$/i });
+    // Walk up from the Promote button to the nearest section element.
+    // It should be the same ancestor that contains the Actions heading.
+    const sectionAncestor = promoteBtn.closest(
+      `[class*="section"]`,
+    ) as HTMLElement | null;
+    expect(sectionAncestor).not.toBeNull();
+    expect(sectionAncestor!.contains(actionsHeading)).toBe(true);
   });
 });

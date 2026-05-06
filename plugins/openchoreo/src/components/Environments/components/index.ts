@@ -2,7 +2,6 @@ export { LoadingSkeleton } from './LoadingSkeleton';
 export { NotificationBanner } from './NotificationBanner';
 export { SetupCard } from './SetupCard';
 export { EnvironmentCardHeader } from './EnvironmentCardHeader';
-export { EnvironmentCardContent } from './EnvironmentCardContent';
 export { EnvironmentActions } from './EnvironmentActions';
 export { InvokeUrlsDialog } from './InvokeUrlsDialog';
 export { IncidentsBanner } from './IncidentsBanner';

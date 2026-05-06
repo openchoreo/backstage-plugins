@@ -367,7 +367,6 @@ export const useEnvironmentDetailPanelStyles = makeStyles(theme => ({
   },
   header: {
     padding: theme.spacing(2, 2.5),
-    borderBottom: `1px solid ${theme.palette.divider}`,
     display: 'flex',
     flexDirection: 'column',
     gap: theme.spacing(1),
@@ -427,18 +426,104 @@ export const useEnvironmentDetailPanelStyles = makeStyles(theme => ({
     flex: 1,
     minHeight: 0,
     overflowY: 'auto',
+    padding: 0,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  setupBody: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
     padding: theme.spacing(2, 2.5),
     display: 'flex',
     flexDirection: 'column',
   },
-  footer: {
-    padding: theme.spacing(1.5, 2.5),
+  setupHeader: {
+    padding: theme.spacing(2, 2.5),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(1),
+  },
+  section: {
+    padding: theme.spacing(2, 2.5),
     borderTop: `1px solid ${theme.palette.divider}`,
     display: 'flex',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    flexDirection: 'column',
     gap: theme.spacing(1),
-    backgroundColor: theme.palette.background.default,
+  },
+  sectionTitleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing(1),
+  },
+  sectionTitle: {
+    fontWeight: 600,
+    color: theme.palette.text.primary,
+    fontSize: '0.78rem',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  inlineUrlRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    minWidth: 0,
+  },
+  inlineUrlLabel: {
+    fontWeight: 500,
+    color: theme.palette.text.secondary,
+    flexShrink: 0,
+  },
+  inlineUrl: {
+    fontFamily:
+      'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+    color: theme.palette.primary.main,
+    textDecoration: 'none',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    minWidth: 0,
+    flex: 1,
+  },
+  timeIcon: {
+    fontSize: '1rem',
+    color: theme.palette.text.secondary,
+    marginLeft: theme.spacing(1),
+    marginRight: theme.spacing(1),
+  },
+  dangerAccordion: {
+    marginTop: theme.spacing(2),
+    border: `1px solid ${alpha(theme.palette.error.main, 0.4)}`,
+    borderRadius: 4,
+    boxShadow: 'none',
+    backgroundColor: alpha(theme.palette.error.main, 0.04),
+    '&:before': { display: 'none' },
+  },
+  dangerAccordionSummary: {
+    minHeight: 40,
+    '&.Mui-expanded': { minHeight: 40 },
+  },
+  dangerAccordionIcon: {
+    color: theme.palette.error.dark,
+    marginRight: theme.spacing(1),
+  },
+  dangerAccordionTitle: {
+    fontWeight: 600,
+    color: theme.palette.error.dark,
+  },
+  dangerAccordionDetails: {
+    flexDirection: 'column',
+  },
+  dangerButton: {
+    color: theme.palette.error.main,
+    borderColor: theme.palette.error.main,
+    alignSelf: 'flex-start',
+    '&:hover': {
+      borderColor: theme.palette.error.dark,
+      backgroundColor: theme.palette.action.hover,
+    },
   },
 }));
 

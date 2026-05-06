@@ -14,21 +14,8 @@ import {
 } from '@material-ui/core';
 import { useTheme } from '@material-ui/core/styles';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
-import type {
-  EndpointInfo,
-  EndpointURLDetails,
-} from '../hooks/useEnvironmentData';
-
-function buildUrl(details: EndpointURLDetails): string {
-  const portPart = details.port ? `:${details.port}` : '';
-  const pathPart = details.path || '';
-  return `${details.scheme}://${details.host}${portPart}${pathPart}`;
-}
-
-function buildServiceUrl(details: EndpointURLDetails): string {
-  const portPart = details.port ? `:${details.port}` : '';
-  return `${details.scheme}://${details.host}${portPart}`;
-}
+import type { EndpointInfo } from '../hooks/useEnvironmentData';
+import { buildServiceUrl, buildUrl } from '../utils/invokeUrlUtils';
 
 interface URLRowProps {
   url: string;

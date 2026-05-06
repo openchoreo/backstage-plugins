@@ -108,7 +108,7 @@ export const SetupDetailPane = ({
 
   return (
     <Box className={classes.panel}>
-      <Box className={classes.header}>
+      <Box className={classes.setupHeader}>
         <Box className={classes.headerTopRow}>
           <Box className={classes.headerStatusRow}>
             <SettingsOutlinedIcon fontSize="small" />
@@ -126,7 +126,7 @@ export const SetupDetailPane = ({
         </Box>
       </Box>
 
-      <Box className={classes.body}>
+      <Box className={classes.setupBody}>
         {loading && !environmentsExist ? (
           <LoadingSkeleton variant="setup" />
         ) : (

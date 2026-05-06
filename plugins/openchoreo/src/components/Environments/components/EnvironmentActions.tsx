@@ -1,13 +1,11 @@
-import { useState } from 'react';
-import { Box, Button, Divider, Tooltip } from '@material-ui/core';
+import { Box, Button, Tooltip } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import AutorenewIcon from '@material-ui/icons/Autorenew';
-import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
+import PauseCircleOutlineIcon from '@material-ui/icons/PauseCircleOutline';
+import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import { usePromotionAction } from '../hooks/usePromotionAction';
 import type { ItemActionTracker } from '../types';
 import { EnvironmentActionsProps } from '../types';
-import { RemoveDeploymentConfirmationDialog } from './RemoveDeploymentConfirmationDialog';
 
 const useStyles = makeStyles(theme => ({
   row: {
@@ -18,24 +16,6 @@ const useStyles = makeStyles(theme => ({
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: theme.spacing(1),
-  },
-  group: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: theme.spacing(0.75),
-  },
-  groupDivider: {
-    height: 24,
-    margin: theme.spacing(0, 0.25),
-  },
-  dangerButton: {
-    color: theme.palette.error.main,
-    borderColor: theme.palette.error.main,
-    '&:hover': {
-      borderColor: theme.palette.error.dark,
-      backgroundColor: theme.palette.action.hover,
-    },
   },
 }));
 
@@ -48,14 +28,21 @@ const noopTracker: ItemActionTracker = {
 const noopPromote = async () => {};
 const isAlreadyPromotedNoop = () => false;
 
+const REDEPLOY_TOOLTIP =
+  "Re-create the Kubernetes resources for this environment using the existing release and overrides.";
+const UNDEPLOY_TOOLTIP =
+  "Tear down the running Kubernetes resources but keep the release binding and overrides — Redeploy will bring it back.";
+const ROLLOUT_RESTART_TOOLTIP =
+  'Restart the running pods without changing the release. Useful for picking up new secrets or recovering from a stuck rollout.';
+
 /**
- * Action row for the environment detail panel. Buttons are grouped by
- * intent so the row reads as: configuration · lifecycle.
+ * "Manage the running deployment" action row for the env detail panel.
  *
- *   [ Configure overrides ] | [ Rollout restart ] | [ Undeploy/Redeploy · Remove deployment ]
+ *   [ Undeploy / Redeploy ] [ Rollout restart ]
  *
- * Promote is the panel's primary action and lives in a dedicated footer
- * (PromotePrimaryAction) — not in this row.
+ * Configure overrides moved up next to the Deployed timestamp;
+ * Remove deployment moved down to the danger zone accordion at the
+ * panel bottom.
  */
 export const EnvironmentActions = ({
   environmentName,
@@ -64,15 +51,11 @@ export const EnvironmentActions = ({
   statusReason,
   suspendTracker,
   rolloutRestartTracker,
-  removeDeploymentTracker,
   onSuspend,
   onRedeploy,
-  onOpenOverrides,
   onRolloutRestart,
-  onRemoveDeployment,
 }: EnvironmentActionsProps) => {
   const classes = useStyles();
-  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
 
   const { undeployAction } = usePromotionAction({
     environmentName,
@@ -95,137 +78,62 @@ export const EnvironmentActions = ({
   const rolloutInFlight =
     !!bindingName && !!rolloutRestartTracker?.isActive(bindingName);
 
-  // Configure overrides is gated on the env having an existing release
-  // binding. Without a binding there's nothing to override yet — direct
-  // the user to deploy first.
-  const overridesDisabled = !bindingName;
-  const overridesTooltip = overridesDisabled
-    ? 'Deploy this environment first to configure overrides.'
-    : '';
-
-  const showRemoveDeployment = !!onRemoveDeployment && !!bindingName;
-  const removeInFlight =
-    !!bindingName && !!removeDeploymentTracker?.isActive(bindingName);
-
-  const hasConfigGroup = !!onOpenOverrides;
-  const hasDeploymentGroup = showRolloutRestart;
-  const hasLifecycleGroup = !!undeployAction || showRemoveDeployment;
-  const hasAnyAction =
-    hasConfigGroup || hasDeploymentGroup || hasLifecycleGroup;
-  if (!hasAnyAction) {
+  if (!undeployAction && !showRolloutRestart) {
     return null;
   }
 
   return (
-    <>
-      <Box className={classes.row}>
-        {/* Group 1 — configuration */}
-        {hasConfigGroup && (
-          <Box className={classes.group}>
-            <Tooltip title={overridesTooltip} placement="top">
-              <span>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  size="small"
-                  startIcon={<SettingsOutlinedIcon fontSize="small" />}
-                  disabled={overridesDisabled}
-                  onClick={onOpenOverrides}
-                >
-                  Configure overrides
-                </Button>
-              </span>
-            </Tooltip>
-          </Box>
-        )}
+    <Box className={classes.row}>
+      {undeployAction && (
+        <Tooltip
+          title={
+            undeployAction.deniedTooltip ||
+            (undeployAction.kind === 'redeploy'
+              ? REDEPLOY_TOOLTIP
+              : UNDEPLOY_TOOLTIP)
+          }
+        >
+          <span>
+            <Button
+              variant={
+                undeployAction.kind === 'redeploy' ? 'contained' : 'outlined'
+              }
+              color={
+                undeployAction.kind === 'redeploy' ? 'primary' : 'secondary'
+              }
+              size="small"
+              startIcon={
+                undeployAction.kind === 'redeploy' ? (
+                  <PlayCircleOutlineIcon fontSize="small" />
+                ) : (
+                  <PauseCircleOutlineIcon fontSize="small" />
+                )
+              }
+              disabled={undeployAction.disabled}
+              onClick={undeployAction.onClick}
+            >
+              {undeployAction.label}
+            </Button>
+          </span>
+        </Tooltip>
+      )}
 
-        {hasConfigGroup && hasDeploymentGroup && (
-          <Divider
-            orientation="vertical"
-            flexItem
-            className={classes.groupDivider}
-          />
-        )}
-
-        {/* Group 2 — manage the running deployment */}
-        {hasDeploymentGroup && (
-          <Box className={classes.group}>
-            {showRolloutRestart && (
-              <Button
-                variant="outlined"
-                color="primary"
-                size="small"
-                startIcon={<AutorenewIcon fontSize="small" />}
-                disabled={rolloutInFlight}
-                onClick={() => onRolloutRestart?.()}
-              >
-                {rolloutInFlight ? 'Restarting...' : 'Rollout restart'}
-              </Button>
-            )}
-          </Box>
-        )}
-
-        {hasLifecycleGroup && (hasConfigGroup || hasDeploymentGroup) && (
-          <Divider
-            orientation="vertical"
-            flexItem
-            className={classes.groupDivider}
-          />
-        )}
-
-        {/* Group 3 — lifecycle (undeploy/redeploy + remove) */}
-        {hasLifecycleGroup && (
-          <Box className={classes.group}>
-            {undeployAction && (
-              <Tooltip title={undeployAction.deniedTooltip}>
-                <span>
-                  <Button
-                    variant={
-                      undeployAction.kind === 'redeploy'
-                        ? 'contained'
-                        : 'outlined'
-                    }
-                    color={
-                      undeployAction.kind === 'redeploy'
-                        ? 'primary'
-                        : 'secondary'
-                    }
-                    size="small"
-                    disabled={undeployAction.disabled}
-                    onClick={undeployAction.onClick}
-                  >
-                    {undeployAction.label}
-                  </Button>
-                </span>
-              </Tooltip>
-            )}
-
-            {showRemoveDeployment && (
-              <Button
-                variant="outlined"
-                size="small"
-                className={classes.dangerButton}
-                startIcon={<DeleteOutlineIcon fontSize="small" />}
-                disabled={removeInFlight}
-                onClick={() => setShowRemoveDialog(true)}
-              >
-                {removeInFlight ? 'Removing...' : 'Remove deployment'}
-              </Button>
-            )}
-          </Box>
-        )}
-      </Box>
-
-      <RemoveDeploymentConfirmationDialog
-        open={showRemoveDialog}
-        environmentName={environmentName}
-        isRemoving={removeInFlight}
-        onCancel={() => setShowRemoveDialog(false)}
-        onConfirm={async () => {
-          setShowRemoveDialog(false);
-          await onRemoveDeployment?.();
-        }}
-      />
-    </>
+      {showRolloutRestart && (
+        <Tooltip title={ROLLOUT_RESTART_TOOLTIP}>
+          <span>
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              startIcon={<AutorenewIcon fontSize="small" />}
+              disabled={rolloutInFlight}
+              onClick={() => onRolloutRestart?.()}
+            >
+              {rolloutInFlight ? 'Restarting...' : 'Rollout restart'}
+            </Button>
+          </span>
+        </Tooltip>
+      )}
+    </Box>
   );
 };
