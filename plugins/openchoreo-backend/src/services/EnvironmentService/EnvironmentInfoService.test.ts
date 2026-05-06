@@ -190,6 +190,7 @@ describe('EnvironmentInfoService', () => {
       expect(result[0].name).toBe('dev');
       expect(result[0].resourceName).toBe('dev');
       expect(result[0].dataPlaneRef).toBe('default-dp');
+      expect(result[0].dataPlaneKind).toBe('DataPlane');
       expect(result[0].deployment.status).toBe('Ready');
       expect(result[0].deployment.releaseName).toBe('release-1');
     });

@@ -66,6 +66,7 @@ export interface Environment {
   bindingName?: string;
   hasComponentTypeOverrides?: boolean;
   dataPlaneRef?: string;
+  dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';
   deployment: {
     status?: 'Ready' | 'NotReady' | 'Failed' | undefined;
     statusReason?: string;
