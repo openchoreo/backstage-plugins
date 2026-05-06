@@ -413,16 +413,31 @@ export const MiniEnvironmentNode = ({
         <Divider />
 
         {/* Group 2 — mutating actions */}
-        <MenuItem
-          onClick={e => {
-            stop(e);
-            closeMenu();
-            onOpenOverrides();
-          }}
+        <Tooltip
+          title={
+            environment.bindingName
+              ? ''
+              : 'Deploy this environment first to configure overrides.'
+          }
+          placement="left"
         >
-          <SettingsOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
-          Configure overrides
-        </MenuItem>
+          <span>
+            <MenuItem
+              onClick={e => {
+                stop(e);
+                closeMenu();
+                onOpenOverrides();
+              }}
+              disabled={!environment.bindingName}
+            >
+              <SettingsOutlinedIcon
+                fontSize="small"
+                style={{ marginRight: 8 }}
+              />
+              Configure overrides
+            </MenuItem>
+          </span>
+        </Tooltip>
       </Menu>
 
       {/* Top-level Promote menu (multi-target). Anchored to the

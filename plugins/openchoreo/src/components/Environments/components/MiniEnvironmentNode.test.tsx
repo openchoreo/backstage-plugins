@@ -383,6 +383,23 @@ describe('MiniEnvironmentNode', () => {
     expect(artifactsItem).toHaveAttribute('aria-disabled', 'true');
   });
 
+  it('renders Configure overrides disabled (not hidden) when no bindingName', async () => {
+    const user = userEvent.setup();
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: undefined,
+        deployment: { status: 'Ready' },
+      }),
+    });
+    await user.click(screen.getByLabelText('Actions for staging'));
+    const menu = screen.getByRole('menu');
+    const overridesItem = within(menu).getByRole('menuitem', {
+      name: /configure overrides/i,
+    });
+    expect(overridesItem).toHaveAttribute('aria-disabled', 'true');
+  });
+
   it('groups overflow menu items with a divider', async () => {
     const user = userEvent.setup();
     renderNode({
