@@ -14,6 +14,7 @@ import {
   WorkloadService,
   SecretReferencesService,
   GitSecretsService,
+  SecretsService,
 } from './types';
 import { ComponentInfoService } from './services/ComponentService/ComponentInfoService';
 import { ProjectInfoService } from './services/ProjectService/ProjectInfoService';
@@ -77,6 +78,7 @@ export async function createRouter({
   clusterComponentTypeInfoService,
   secretReferencesInfoService,
   gitSecretsService,
+  secretsService,
   authzService,
   dataPlaneInfoService,
   clusterDataPlaneInfoService,
@@ -100,6 +102,7 @@ export async function createRouter({
   clusterComponentTypeInfoService: ClusterComponentTypeInfoService;
   secretReferencesInfoService: SecretReferencesService;
   gitSecretsService: GitSecretsService;
+  secretsService: SecretsService;
   authzService: AuthzService;
   dataPlaneInfoService: DataPlaneInfoService;
   clusterDataPlaneInfoService: ClusterDataPlaneInfoService;
@@ -1103,6 +1106,127 @@ export async function createRouter({
     const userToken = getUserTokenFromRequest(req);
 
     await gitSecretsService.deleteGitSecret(
+      namespaceName as string,
+      secretName,
+      userToken,
+    );
+
+    res.status(204).send();
+  });
+
+  // =====================
+  // Secrets Endpoints
+  // =====================
+
+  const SUPPORTED_SECRET_TYPES = [
+    'Opaque',
+    'kubernetes.io/basic-auth',
+    'kubernetes.io/ssh-auth',
+    'kubernetes.io/dockerconfigjson',
+    'kubernetes.io/tls',
+  ] as const;
+
+  const SUPPORTED_PLANE_KINDS = [
+    'WorkflowPlane',
+    'ClusterWorkflowPlane',
+    'DataPlane',
+    'ClusterDataPlane',
+  ] as const;
+
+  // List secrets in a namespace (filtered SecretReferences with spec.targetPlane set)
+  router.get('/secrets', async (req, res) => {
+    const { namespaceName } = req.query;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await secretsService.listSecrets(namespaceName as string, userToken),
+    );
+  });
+
+  // Get a single secret by name
+  router.get('/secrets/:secretName', async (req, res) => {
+    const { namespaceName } = req.query;
+    const { secretName } = req.params;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await secretsService.getSecret(
+        namespaceName as string,
+        secretName,
+        userToken,
+      ),
+    );
+  });
+
+  // Create a new secret
+  router.post('/secrets', requireAuth, async (req, res) => {
+    const { namespaceName } = req.query;
+    const { secretName, secretType, targetPlane, data } = req.body ?? {};
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
+    }
+    if (!secretName || !secretType || !targetPlane || !data) {
+      throw new InputError(
+        'secretName, secretType, targetPlane, and data are required in the request body',
+      );
+    }
+    if (!SUPPORTED_SECRET_TYPES.includes(secretType)) {
+      throw new InputError(
+        `secretType must be one of: ${SUPPORTED_SECRET_TYPES.join(', ')}`,
+      );
+    }
+    if (!targetPlane.kind || !targetPlane.name) {
+      throw new InputError(
+        'targetPlane.kind and targetPlane.name are required',
+      );
+    }
+    if (!SUPPORTED_PLANE_KINDS.includes(targetPlane.kind)) {
+      throw new InputError(
+        `targetPlane.kind must be one of: ${SUPPORTED_PLANE_KINDS.join(', ')}`,
+      );
+    }
+    if (typeof data !== 'object' || Array.isArray(data)) {
+      throw new InputError(
+        'data must be an object of string keys to string values',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res
+      .status(201)
+      .json(
+        await secretsService.createSecret(
+          namespaceName as string,
+          { secretName, secretType, targetPlane, data },
+          userToken,
+        ),
+      );
+  });
+
+  // Delete a secret
+  router.delete('/secrets/:secretName', requireAuth, async (req, res) => {
+    const { namespaceName } = req.query;
+    const { secretName } = req.params;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    await secretsService.deleteSecret(
       namespaceName as string,
       secretName,
       userToken,
