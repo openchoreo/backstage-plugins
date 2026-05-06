@@ -23,6 +23,9 @@ import type {
   ComponentSummary,
   GitSecret,
   GitSecretsListResponse,
+  Secret,
+  SecretsListResponse,
+  CreateSecretRequest,
   PlatformResourceKind,
   ResourceCRUDResponse,
   ClusterRole,
@@ -81,6 +84,8 @@ const API_ENDPOINTS = {
   USER_TYPES: '/user-types',
   // Git secrets endpoints
   GIT_SECRETS: '/git-secrets',
+  // Secrets endpoints
+  SECRETS: '/secrets',
   // Hierarchy data endpoints
   NAMESPACES: '/namespaces',
   PROJECTS: '/projects', // GET /namespaces/{namespaceName}/projects
@@ -1311,6 +1316,46 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   ): Promise<void> {
     await this.apiFetch<void>(
       `${API_ENDPOINTS.GIT_SECRETS}/${encodeURIComponent(secretName)}`,
+      {
+        method: 'DELETE',
+        params: { namespaceName },
+      },
+    );
+  }
+
+  // ============================================
+  // Secrets Operations
+  // ============================================
+
+  async listSecrets(namespaceName: string): Promise<SecretsListResponse> {
+    return this.apiFetch<SecretsListResponse>(API_ENDPOINTS.SECRETS, {
+      params: { namespaceName },
+    });
+  }
+
+  async getSecret(namespaceName: string, secretName: string): Promise<Secret> {
+    return this.apiFetch<Secret>(
+      `${API_ENDPOINTS.SECRETS}/${encodeURIComponent(secretName)}`,
+      {
+        params: { namespaceName },
+      },
+    );
+  }
+
+  async createSecret(
+    namespaceName: string,
+    request: CreateSecretRequest,
+  ): Promise<Secret> {
+    return this.apiFetch<Secret>(API_ENDPOINTS.SECRETS, {
+      method: 'POST',
+      params: { namespaceName },
+      body: request,
+    });
+  }
+
+  async deleteSecret(namespaceName: string, secretName: string): Promise<void> {
+    await this.apiFetch<void>(
+      `${API_ENDPOINTS.SECRETS}/${encodeURIComponent(secretName)}`,
       {
         method: 'DELETE',
         params: { namespaceName },

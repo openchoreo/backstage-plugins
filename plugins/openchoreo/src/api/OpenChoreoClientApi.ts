@@ -26,6 +26,54 @@ export interface GitSecretsListResponse {
   pageSize: number;
 }
 
+/** Kubernetes Secret type supported by the create/update API */
+export type SecretType =
+  | 'Opaque'
+  | 'kubernetes.io/basic-auth'
+  | 'kubernetes.io/ssh-auth'
+  | 'kubernetes.io/dockerconfigjson'
+  | 'kubernetes.io/tls';
+
+/** Kind of plane that hosts the secret data */
+export type TargetPlaneKind =
+  | 'WorkflowPlane'
+  | 'ClusterWorkflowPlane'
+  | 'DataPlane'
+  | 'ClusterDataPlane';
+
+/** Reference to the plane that hosts the secret data */
+export interface TargetPlaneRef {
+  kind: TargetPlaneKind;
+  name: string;
+}
+
+/** Secret resource. Values are never returned, only key names. */
+export interface Secret {
+  name: string;
+  namespace: string;
+  secretType?: SecretType;
+  targetPlane?: TargetPlaneRef;
+  /** Sorted list of keys present in the secret data */
+  keys: string[];
+}
+
+/** Secrets list response */
+export interface SecretsListResponse {
+  items: Secret[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+/** Body for creating a new secret */
+export interface CreateSecretRequest {
+  secretName: string;
+  secretType: SecretType;
+  targetPlane: TargetPlaneRef;
+  /** Required keys depend on secretType. */
+  data: Record<string, string>;
+}
+
 /** Schema response containing component-type and trait environment override schemas */
 export interface ComponentSchemaResponse {
   componentTypeEnvironmentConfigs?: {
@@ -635,6 +683,23 @@ export interface OpenChoreoClientApi {
 
   /** Delete a git secret */
   deleteGitSecret(namespaceName: string, secretName: string): Promise<void>;
+
+  // === Secrets Operations ===
+
+  /** List secrets for a namespace */
+  listSecrets(namespaceName: string): Promise<SecretsListResponse>;
+
+  /** Get a single secret by name */
+  getSecret(namespaceName: string, secretName: string): Promise<Secret>;
+
+  /** Create a new secret */
+  createSecret(
+    namespaceName: string,
+    request: CreateSecretRequest,
+  ): Promise<Secret>;
+
+  /** Delete a secret */
+  deleteSecret(namespaceName: string, secretName: string): Promise<void>;
 
   // === Entity Delete Operations ===
 
