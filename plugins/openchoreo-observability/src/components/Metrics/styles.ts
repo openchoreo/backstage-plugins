@@ -17,6 +17,7 @@ export const useMetricsActionsStyles = makeStyles((theme: Theme) => ({
 export const useMetricGraphStyles = makeStyles((theme: Theme) => ({
   chartContainer: {
     width: '100%',
+    position: 'relative',
   },
   lineChart: {
     width: '100%',
@@ -24,24 +25,18 @@ export const useMetricGraphStyles = makeStyles((theme: Theme) => ({
     maxHeight: '70vh',
     aspectRatio: 1.618,
   },
-  emptyChart: {
-    display: 'flex',
-    justifyContent: 'center',
+  emptyOverlay: {
     alignItems: 'center',
-    height: '100%',
-    fontSize: '1.2rem',
     color: theme.palette.text.secondary,
-  },
-  emptyChartText: {
-    alignItems: 'center',
-    justifyContent: 'center',
     display: 'flex',
-    flexDirection: 'column',
-    width: '100%',
-    textAlign: 'center',
-    fontSize: '0.875rem',
-    color: theme.palette.text.secondary,
-    marginTop: theme.spacing(1),
+    fontSize: '1rem',
+    justifyContent: 'center',
+    left: 0,
+    pointerEvents: 'none',
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
 }));
 

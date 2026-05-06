@@ -64,22 +64,11 @@ export const MetricGraphByComponent = ({
 
   const handleMouseLeave = () => setHoveringDataKey(undefined);
 
-  if (transformedData.length === 0) {
-    return (
-      <div className={classes.chartContainer}>
-        <div className={classes.emptyChart}>No data available</div>
-        {(usageType === 'networkThroughput' ||
-          usageType === 'networkLatency') && (
-          <p className={classes.emptyChartText}>
-            Network metrics are available in OpenChoreo Cilium Edition only.
-          </p>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className={classes.chartContainer}>
+      {transformedData.length === 0 && (
+        <div className={classes.emptyOverlay}>No data available</div>
+      )}
       <LineChart
         className={classes.lineChart}
         responsive
