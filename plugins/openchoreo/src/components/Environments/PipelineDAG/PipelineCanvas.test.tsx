@@ -54,6 +54,9 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
       {children}
     </div>
   ),
+  useChoreoTokens: () => ({
+    graph: { canvasDotPattern: 'none' },
+  }),
 }));
 
 // ---- Context mock ----
@@ -208,6 +211,36 @@ describe('PipelineCanvas (deploy split view)', () => {
     mockContextValue.canViewEnvironments = false;
     renderWithRouter(<PipelineCanvas />);
     expect(screen.getByTestId('forbidden-state')).toBeInTheDocument();
+  });
+
+  it('renders skeletons in both panels while loading and no envs are available yet', () => {
+    mockContextValue.loading = true;
+    mockContextValue.environments = [];
+    mockContextValue.displayEnvironments = [];
+
+    renderWithRouter(<PipelineCanvas />);
+
+    expect(screen.getByTestId('canvas-skeleton')).toBeInTheDocument();
+    expect(screen.getByTestId('detail-panel-skeleton')).toBeInTheDocument();
+    // Empty/forbidden state cards must not render simultaneously.
+    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('forbidden-state')).not.toBeInTheDocument();
+    // Real split view shouldn't render either.
+    expect(screen.queryByTestId('deploy-flow-canvas')).not.toBeInTheDocument();
+  });
+
+  it('does not render skeletons once envs are loaded', () => {
+    const envs = [makeEnv({ name: 'development' })];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    expect(screen.queryByTestId('canvas-skeleton')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('detail-panel-skeleton'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('deploy-flow-canvas')).toBeInTheDocument();
   });
 
   it('renders the split view with the canvas and detail panel when envs exist', () => {

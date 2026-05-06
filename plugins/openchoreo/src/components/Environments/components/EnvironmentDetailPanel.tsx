@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Accordion,
   AccordionDetails,
@@ -99,6 +99,32 @@ export const EnvironmentDetailPanel = ({
   const [manifestOpen, setManifestOpen] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [invokeUrlsOpen, setInvokeUrlsOpen] = useState(false);
+  const [dangerExpanded, setDangerExpanded] = useState(false);
+  const dangerAccordionRef = useRef<HTMLDivElement | null>(null);
+  // Reset the danger zone to collapsed every time the user picks a
+  // different env. We don't `key=` the Accordion (that would unmount /
+  // remount and animate the height visibly); controlling `expanded`
+  // gives the same UX without the glitch.
+  useEffect(() => {
+    setDangerExpanded(false);
+  }, [environment?.name]);
+  // When the user expands the danger zone, scroll it into view inside
+  // the panel body. The body has internal `overflow-y: auto`, so the
+  // scrollbar is there — the affordance just isn't always discoverable.
+  // We wait for the MUI Collapse expand animation (~300ms) to finish so
+  // the accordion has its full target height before we scroll.
+  // `scrollIntoView` isn't defined in jsdom test environments — guard
+  // so unit tests don't blow up.
+  useEffect(() => {
+    if (!dangerExpanded) return undefined;
+    const t = window.setTimeout(() => {
+      dangerAccordionRef.current?.scrollIntoView?.({
+        behavior: 'smooth',
+        block: 'end',
+      });
+    }, 320);
+    return () => window.clearTimeout(t);
+  }, [dangerExpanded]);
   const statusVariant = useEnvironmentStatusVariant(
     environment?.deployment.status,
     environment?.deployment.statusReason,
@@ -206,10 +232,7 @@ export const EnvironmentDetailPanel = ({
                   Release
                 </Typography>
                 <Tooltip title={environment.deployment.releaseName}>
-                  <Typography
-                    variant="caption"
-                    className={classes.releaseName}
-                  >
+                  <Typography variant="caption" className={classes.releaseName}>
                     {environment.deployment.releaseName}
                   </Typography>
                 </Tooltip>
@@ -267,13 +290,12 @@ export const EnvironmentDetailPanel = ({
                 </Box>
               </Tooltip>
             )}
-            {activeIncidentCount !== undefined &&
-              activeIncidentCount > 0 && (
-                <IncidentsBanner
-                  count={activeIncidentCount}
-                  environmentName={environment.name}
-                />
-              )}
+            {activeIncidentCount !== undefined && activeIncidentCount > 0 && (
+              <IncidentsBanner
+                count={activeIncidentCount}
+                environmentName={environment.name}
+              />
+            )}
             {environment.deployment.releaseName && (
               <Box>
                 <Tooltip title="View Kubernetes artifacts">
@@ -402,10 +424,10 @@ export const EnvironmentDetailPanel = ({
               onRolloutRestart={onRolloutRestart}
             />
             {showRemoveDeployment && (
-              // key on env name so collapsed-by-default state resets
-              // when the user switches between envs.
               <Accordion
-                key={environment.name}
+                ref={dangerAccordionRef}
+                expanded={dangerExpanded}
+                onChange={(_, val) => setDangerExpanded(val)}
                 className={classes.dangerAccordion}
               >
                 <AccordionSummary
@@ -431,9 +453,9 @@ export const EnvironmentDetailPanel = ({
                     style={{ marginBottom: 8 }}
                   >
                     Remove deployment deletes the release binding,
-                    environment-specific overrides, and the running
-                    Kubernetes resources. This cannot be undone — to
-                    redeploy you'll need to configure overrides again.
+                    environment-specific overrides, and the running Kubernetes
+                    resources. This cannot be undone — to redeploy you'll need
+                    to configure overrides again.
                   </Typography>
                   <Button
                     variant="outlined"

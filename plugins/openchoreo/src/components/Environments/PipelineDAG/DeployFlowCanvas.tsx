@@ -2,10 +2,12 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type FC,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import { Box, useMediaQuery, useTheme } from '@material-ui/core';
+import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 import {
   buildEnvPipelineNodes,
   computePipelineLayout,
@@ -72,6 +74,7 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
   onPromote,
 }) => {
   const classes = useDeployFlowCanvasStyles();
+  const tokens = useChoreoTokens();
   const theme = useTheme();
   const isNarrow = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -113,7 +116,13 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
   // the dagre layout has produced non-zero content dims. Subsequent
   // zoom/pan are user-driven and shouldn't auto-fit again — the ref guard
   // makes this a one-shot.
+  //
+  // `hasFitted` is the visibility gate for the content layer: until the
+  // initial fit lands the nodes sit at their pre-zoom origin, which
+  // shows up as a brief flash of un-positioned tiles. We render them
+  // hidden (opacity: 0) until fitToView runs, then fade in.
   const didAutoFitRef = useRef(false);
+  const [hasFitted, setHasFitted] = useState(false);
   useEffect(() => {
     if (didAutoFitRef.current) return;
     if (
@@ -126,6 +135,7 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
     }
     didAutoFitRef.current = true;
     fitToView();
+    setHasFitted(true);
   }, [
     contentWidth,
     contentHeight,
@@ -154,7 +164,12 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
   };
 
   return (
-    <Box className={classes.canvasFrame}>
+    <Box
+      className={classes.canvasFrame}
+      style={{
+        ['--canvas-dots' as string]: tokens.graph.canvasDotPattern,
+      }}
+    >
       {/*
         The canvas container + content divs are the d3-zoom drag/wheel
         surfaces and also handle a target-equality "click background to
@@ -171,7 +186,14 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
         <div
           className={classes.canvasContent}
           ref={contentRef}
-          style={{ width: contentWidth, height: contentHeight }}
+          style={{
+            width: contentWidth,
+            height: contentHeight,
+            // Hide until fitToView lands so users don't see the flash
+            // of un-positioned nodes at their pre-zoom origin.
+            opacity: hasFitted ? 1 : 0,
+            transition: hasFitted ? 'opacity 120ms ease-in' : undefined,
+          }}
           onClick={handleBackgroundClick}
         >
           {layout.edges.map(edge => (

@@ -1,7 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { Progress } from '@backstage/core-components';
-import { Box } from '@material-ui/core';
 
 import { useNotification } from '../../hooks';
 import {
@@ -131,20 +129,10 @@ export const Environments = () => {
     );
   }
 
-  // Loading state - only show initial loading spinner
-  if (loading && environments.length === 0) {
-    return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="400px"
-      >
-        <Progress />
-      </Box>
-    );
-  }
-
+  // Initial load is no longer gated by a generic <Progress /> spinner;
+  // PipelineCanvas renders proper LHS + RHS skeletons while
+  // `loading && environments.length === 0`, so we always mount the
+  // provider and let the router decide what to show.
   return (
     <EnvironmentsProvider value={contextValue}>
       <NotificationBanner notification={notification.notification} />

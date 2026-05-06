@@ -29,9 +29,9 @@ const noopPromote = async () => {};
 const isAlreadyPromotedNoop = () => false;
 
 const REDEPLOY_TOOLTIP =
-  "Re-create the Kubernetes resources for this environment using the existing release and overrides.";
+  'Re-create the Kubernetes resources for this environment using the existing release and overrides.';
 const UNDEPLOY_TOOLTIP =
-  "Tear down the running Kubernetes resources but keep the release binding and overrides — Redeploy will bring it back.";
+  'Tear down the running Kubernetes resources but keep the release binding and overrides — Redeploy will bring it back.';
 const ROLLOUT_RESTART_TOOLTIP =
   'Restart the running pods without changing the release. Useful for picking up new secrets or recovering from a stuck rollout.';
 

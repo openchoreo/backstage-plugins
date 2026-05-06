@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, type FC } from 'react';
 import { Box } from '@material-ui/core';
+import { Skeleton } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 
 import { useItemActionTracker, useNotification } from '../../../hooks';
@@ -17,9 +18,71 @@ import { useEnvironmentsContext } from '../EnvironmentsContext';
 import { useIncidentsSummary } from '../hooks/useIncidentsSummary';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { EmptyState, ForbiddenState } from '@openchoreo/backstage-plugin-react';
-import { Card } from '@openchoreo/backstage-design-system';
-import { useDeployFlowCanvasStyles } from '../styles';
+import { Card, useChoreoTokens } from '@openchoreo/backstage-design-system';
+import {
+  useDeployFlowCanvasStyles,
+  useEnvironmentDetailPanelStyles,
+} from '../styles';
 import { DeployFlowCanvas } from './DeployFlowCanvas';
+
+/** Placeholder canvas tiles while initial env data loads. */
+const CanvasSkeleton: FC = () => {
+  const classes = useDeployFlowCanvasStyles();
+  return (
+    <Box className={classes.skeletonCanvasInner} data-testid="canvas-skeleton">
+      {[0, 1, 2, 3].map(i => (
+        <Skeleton
+          key={i}
+          variant="rect"
+          width={160}
+          height={80}
+          style={{ borderRadius: 8 }}
+        />
+      ))}
+    </Box>
+  );
+};
+
+/** Placeholder right-pane chrome while initial env data loads. */
+const DetailPanelSkeleton: FC = () => {
+  const classes = useEnvironmentDetailPanelStyles();
+  return (
+    <Box className={classes.panel} data-testid="detail-panel-skeleton">
+      <Box className={classes.header}>
+        <Box className={classes.headerTopRow}>
+          <Skeleton
+            variant="rect"
+            width={64}
+            height={24}
+            style={{ borderRadius: 12 }}
+          />
+          <Box display="flex" style={{ gap: 8 }}>
+            <Skeleton variant="circle" width={28} height={28} />
+            <Skeleton variant="circle" width={28} height={28} />
+          </Box>
+        </Box>
+        <Skeleton variant="text" width="60%" height={28} />
+      </Box>
+      <Box className={classes.body} style={{ padding: 20 }}>
+        <Skeleton variant="text" width="40%" />
+        <Skeleton variant="text" width="80%" />
+        <Skeleton
+          variant="rect"
+          width="100%"
+          height={36}
+          style={{ marginTop: 12, borderRadius: 4 }}
+        />
+        <Skeleton variant="text" width="50%" style={{ marginTop: 24 }} />
+        <Skeleton
+          variant="rect"
+          width="100%"
+          height={28}
+          style={{ marginTop: 8 }}
+        />
+      </Box>
+    </Box>
+  );
+};
 
 /**
  * Deploy tab orchestrator. Owns selection state and wires action
@@ -246,6 +309,15 @@ export const PipelineCanvas: FC = () => {
   };
 
   const showSplitLayout = !!displayEnvironments.length;
+  // Show skeletons when we have nothing to render yet but expect data
+  // soon — i.e. an initial fetch / permission check is still in flight
+  // and we haven't already failed the forbidden-state gate.
+  const showSkeleton =
+    !showSplitLayout &&
+    environments.length === 0 &&
+    (loading || environmentReadPermissionLoading) &&
+    canViewEnvironments !== false;
+  const tokens = useChoreoTokens();
 
   let panelSelection:
     | { kind: 'env'; environment: Environment }
@@ -281,6 +353,22 @@ export const PipelineCanvas: FC = () => {
             action={{ label: 'Retry', onClick: refetch }}
           />
         </Card>
+      )}
+
+      {showSkeleton && (
+        <Box className={classes.splitContainer}>
+          <Box
+            className={classes.canvasFrame}
+            style={{
+              ['--canvas-dots' as string]: tokens.graph.canvasDotPattern,
+            }}
+          >
+            <CanvasSkeleton />
+          </Box>
+          <Box className={classes.detailPanelFrame}>
+            <DetailPanelSkeleton />
+          </Box>
+        </Box>
       )}
 
       {showSplitLayout && (

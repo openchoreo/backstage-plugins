@@ -168,10 +168,17 @@ export const useMiniEnvironmentNodeStyles = makeStyles(theme => ({
   },
   cardSelected: {
     borderColor: theme.palette.primary.main,
-    backgroundColor: alpha(
+    // Layer the primary-tinted overlay on top of the opaque paper
+    // background so the canvas's dotted background (radial-gradient)
+    // doesn't bleed through the selected tile.
+    backgroundColor: theme.palette.background.paper,
+    backgroundImage: `linear-gradient(${alpha(
       theme.palette.primary.main,
       theme.palette.type === 'dark' ? 0.12 : 0.04,
-    ),
+    )}, ${alpha(
+      theme.palette.primary.main,
+      theme.palette.type === 'dark' ? 0.12 : 0.04,
+    )})`,
     boxShadow: `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[4]}`,
     '&:hover': {
       boxShadow: `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[4]}`,
@@ -281,23 +288,51 @@ export const useDeployFlowCanvasStyles = makeStyles(theme => ({
   splitContainer: {
     display: 'grid',
     gridTemplateColumns: 'minmax(0, 1fr) 380px',
+    // Single row pinned to the container's full height. Without an
+    // explicit gridTemplateRows the implicit row size is `auto`, which
+    // would let either side push the row taller than the container
+    // (panels grow when the danger zone expands or when more sections
+    // appear). `minmax(0, 1fr)` lets the row track shrink to the
+    // container, which combined with `min-height: 0` on the grid items
+    // gives them genuine fixed height + internal scroll.
+    gridTemplateRows: 'minmax(0, 1fr)',
     gap: theme.spacing(2),
     width: '100%',
-    minHeight: 'calc(100vh - 260px)',
+    // Fixed height so neither side resizes when the user picks
+    // different env tiles. The RHS body scrolls internally on overflow.
+    // 200px ≈ catalog header (66px) + tab bar (~40px) + breadcrumb row
+    // (~50px) + a small bottom margin. minHeight is a safety floor for
+    // tiny viewports.
+    height: 'calc(100vh - 200px)',
+    minHeight: 480,
     [theme.breakpoints.down('sm')]: {
       gridTemplateColumns: '1fr',
+      gridTemplateRows: 'auto',
       gridAutoRows: 'min-content',
+      height: 'auto',
     },
   },
   canvasFrame: {
     position: 'relative',
     width: '100%',
     height: '100%',
-    minHeight: 480,
+    minHeight: 0,
     backgroundColor: theme.palette.background.default,
+    backgroundImage: 'var(--canvas-dots)',
+    backgroundSize: '16px 16px',
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: 12,
     overflow: 'hidden',
+  },
+  skeletonCanvasInner: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing(3),
+    padding: theme.spacing(4),
+    flexWrap: 'wrap',
   },
   canvasContainer: {
     width: '100%',
@@ -330,8 +365,9 @@ export const useDeployFlowCanvasStyles = makeStyles(theme => ({
     zIndex: 2,
   },
   detailPanelFrame: {
-    minHeight: 480,
     height: '100%',
+    minHeight: 0,
+    overflow: 'hidden',
   },
 }));
 
