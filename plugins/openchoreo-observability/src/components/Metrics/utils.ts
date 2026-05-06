@@ -141,6 +141,41 @@ export const calculateTimeDomain = (
   };
 };
 
+type RawPoint = { timestamp: string; value: number | null };
+type MetricDataPoint = { timestamp: number; [key: string]: any };
+
+const injectPerMetricGaps = (
+  usageData: Record<string, RawPoint[]>,
+): Record<string, RawPoint[]> => {
+  const result: Record<string, RawPoint[]> = {};
+
+  Object.entries(usageData).forEach(([metricName, points]) => {
+    if (points.length < 2) {
+      result[metricName] = points;
+      return;
+    }
+
+    const epochs = points.map(p => new Date(p.timestamp).getTime());
+    const intervals = epochs.slice(1).map((t, i) => t - epochs[i]);
+    const sorted = [...intervals].sort((a, b) => a - b);
+    const medianInterval = sorted[Math.floor(sorted.length / 2)];
+    const gapThreshold = medianInterval * 2;
+
+    const injected: RawPoint[] = [];
+    for (let i = 0; i < points.length; i++) {
+      injected.push(points[i]);
+      if (i < points.length - 1 && epochs[i + 1] - epochs[i] > gapThreshold) {
+        // Sentinel key: numeric ms string, distinct from ISO timestamp keys
+        const sentinelEpoch = epochs[i] + medianInterval;
+        injected.push({ timestamp: String(sentinelEpoch), value: null });
+      }
+    }
+    result[metricName] = injected;
+  });
+
+  return result;
+};
+
 /**
  * Transform metrics data structure to be compatible with Recharts
  */
@@ -151,18 +186,22 @@ export const transformMetricsData = (
     | NetworkThroughputMetrics
     | NetworkLatencyMetrics,
 ) => {
-  const timeMap = new Map<string, any>();
+  const gapped = injectPerMetricGaps(usageData as Record<string, RawPoint[]>);
+  const timeMap = new Map<string, MetricDataPoint>();
 
   // Collect all unique timestamps and merge metric values
-  Object.entries(usageData).forEach(([metricName, metricData]) => {
-    metricData.forEach((point: any) => {
+  Object.entries(gapped).forEach(([metricName, metricData]) => {
+    metricData.forEach(point => {
       if (!timeMap.has(point.timestamp)) {
+        const epochMs = isNaN(Number(point.timestamp))
+          ? new Date(point.timestamp).getTime()
+          : Number(point.timestamp);
         timeMap.set(point.timestamp, {
           time: point.timestamp,
-          timestamp: new Date(point.timestamp).getTime(),
+          timestamp: epochMs,
         });
       }
-      timeMap.get(point.timestamp)[metricName] = point.value;
+      timeMap.get(point.timestamp)![metricName] = point.value;
     });
   });
 

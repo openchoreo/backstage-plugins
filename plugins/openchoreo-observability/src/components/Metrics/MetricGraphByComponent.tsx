@@ -120,6 +120,7 @@ export const MetricGraphByComponent = ({
             stroke={color}
             dot={false}
             activeDot={{ r: 4 }}
+            connectNulls={false}
           />
         ))}
       </LineChart>
