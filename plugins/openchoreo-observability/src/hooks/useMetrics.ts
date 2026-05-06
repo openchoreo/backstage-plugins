@@ -11,6 +11,7 @@ export function useMetrics(
   entity: Entity,
   namespaceName: string,
   project: string,
+  ciliumEnabled: boolean = false,
 ) {
   const observabilityApi = useApi(observabilityApiRef);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
@@ -41,7 +42,7 @@ export function useMetrics(
           componentName,
           namespaceName,
           project,
-          { startTime, endTime, step },
+          { startTime, endTime, step, ciliumEnabled },
         );
 
         setMetrics(response);
@@ -60,6 +61,7 @@ export function useMetrics(
       namespaceName,
       project,
       entity,
+      ciliumEnabled,
     ],
   );
 

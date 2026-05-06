@@ -41,6 +41,7 @@ export interface ObservabilityApi {
       startTime?: string;
       endTime?: string;
       step?: string;
+      ciliumEnabled?: boolean;
     },
   ): Promise<Metrics>;
 
@@ -169,6 +170,7 @@ export class ObservabilityClient implements ObservabilityApi {
       startTime?: string;
       endTime?: string;
       step?: string;
+      ciliumEnabled?: boolean;
     },
   ): Promise<Metrics> {
     const { observerUrl } = await this.urlCache.resolveUrls(
@@ -196,15 +198,19 @@ export class ObservabilityClient implements ObservabilityApi {
       headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
     };
 
+    const ciliumEnabled = options?.ciliumEnabled ?? false;
+
     const [usageResponse, httpResponse] = await Promise.all([
       this.fetchApi.fetch(`${observerUrl}/api/v1/metrics/query`, {
         ...fetchOptions,
         body: JSON.stringify({ ...baseBody, metric: 'resource' }),
       }),
-      this.fetchApi.fetch(`${observerUrl}/api/v1/metrics/query`, {
-        ...fetchOptions,
-        body: JSON.stringify({ ...baseBody, metric: 'http' }),
-      }),
+      ciliumEnabled
+        ? this.fetchApi.fetch(`${observerUrl}/api/v1/metrics/query`, {
+            ...fetchOptions,
+            body: JSON.stringify({ ...baseBody, metric: 'http' }),
+          })
+        : Promise.resolve(null),
     ]);
 
     if (!usageResponse.ok) {
@@ -217,17 +223,15 @@ export class ObservabilityClient implements ObservabilityApi {
       );
     }
 
-    if (!httpResponse.ok) {
+    if (httpResponse !== null && !httpResponse.ok) {
       const error = await this.parseError(httpResponse);
       throw new Error(
         error || `Failed to fetch HTTP metrics: ${httpResponse.statusText}`,
       );
     }
 
-    const [usageData, httpData] = await Promise.all([
-      usageResponse.json(),
-      httpResponse.json(),
-    ]);
+    const usageData = await usageResponse.json();
+    const httpData = httpResponse !== null ? await httpResponse.json() : null;
 
     return {
       cpuUsage: {
@@ -241,15 +245,15 @@ export class ObservabilityClient implements ObservabilityApi {
         memoryLimits: usageData.memoryLimits ?? [],
       },
       networkThroughput: {
-        requestCount: httpData.requestCount ?? [],
-        successfulRequestCount: httpData.successfulRequestCount ?? [],
-        unsuccessfulRequestCount: httpData.unsuccessfulRequestCount ?? [],
+        requestCount: httpData?.requestCount ?? [],
+        successfulRequestCount: httpData?.successfulRequestCount ?? [],
+        unsuccessfulRequestCount: httpData?.unsuccessfulRequestCount ?? [],
       },
       networkLatency: {
-        meanLatency: httpData.meanLatency ?? [],
-        latencyP50: httpData.latencyP50 ?? [],
-        latencyP90: httpData.latencyP90 ?? [],
-        latencyP99: httpData.latencyP99 ?? [],
+        meanLatency: httpData?.meanLatency ?? [],
+        latencyP50: httpData?.latencyP50 ?? [],
+        latencyP90: httpData?.latencyP90 ?? [],
+        latencyP99: httpData?.latencyP99 ?? [],
       },
     };
   }

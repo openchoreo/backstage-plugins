@@ -31,11 +31,13 @@ import { Alert } from '@material-ui/lab';
 import {
   useMetricsPermission,
   ForbiddenState,
+  useCiliumEnabled,
 } from '@openchoreo/backstage-plugin-react';
 
 const ObservabilityMetricsContent = () => {
   const classes = useObservabilityMetricsPageStyles();
   const { entity } = useEntity();
+  const ciliumEnabled = useCiliumEnabled();
 
   const {
     namespace,
@@ -60,7 +62,7 @@ const ObservabilityMetricsContent = () => {
     error: metricsError,
     fetchMetrics,
     refresh,
-  } = useMetrics(filters, entity, namespace as string, project as string);
+  } = useMetrics(filters, entity, namespace as string, project as string, ciliumEnabled);
 
   // Track previous filter values to detect changes
   const previousFiltersRef = useRef({
@@ -173,37 +175,42 @@ const ObservabilityMetricsContent = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardHeader title="Network Throughput" />
-                <Divider />
-                <CardContent>
-                  <MetricGraphByComponent
-                    usageData={
-                      metrics?.networkThroughput ||
-                      ({} as NetworkThroughputMetrics)
-                    }
-                    usageType="networkThroughput"
-                    timeRange={filters.timeRange}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardHeader title="Network Latency" />
-                <Divider />
-                <CardContent>
-                  <MetricGraphByComponent
-                    usageData={
-                      metrics?.networkLatency || ({} as NetworkLatencyMetrics)
-                    }
-                    usageType="networkLatency"
-                    timeRange={filters.timeRange}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
+            {ciliumEnabled && (
+              <>
+                <Grid item xs={12} md={6}>
+                  <Card>
+                    <CardHeader title="Network Throughput" />
+                    <Divider />
+                    <CardContent>
+                      <MetricGraphByComponent
+                        usageData={
+                          metrics?.networkThroughput ||
+                          ({} as NetworkThroughputMetrics)
+                        }
+                        usageType="networkThroughput"
+                        timeRange={filters.timeRange}
+                      />
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Card>
+                    <CardHeader title="Network Latency" />
+                    <Divider />
+                    <CardContent>
+                      <MetricGraphByComponent
+                        usageData={
+                          metrics?.networkLatency ||
+                          ({} as NetworkLatencyMetrics)
+                        }
+                        usageType="networkLatency"
+                        timeRange={filters.timeRange}
+                      />
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </>
+            )}
           </Grid>
         </>
       )}

@@ -179,13 +179,15 @@ describe('transformMetricsData', () => {
     };
 
     const result = transformMetricsData(data as any);
+    const cpuLimitTimestamps = new Set(
+      data.cpuLimits.map(point => point.timestamp),
+    );
 
-    // Every cpuLimits entry in the result should have its value (1 or undefined, never null)
-    result.forEach(d => {
-      if (d.cpuLimits !== undefined) {
-        expect(d.cpuLimits).not.toBeNull();
-      }
-    });
+    const cpuLimitValues = result
+      .filter(d => cpuLimitTimestamps.has(d.time))
+      .map(d => d.cpuLimits);
+
+    expect(cpuLimitValues.every(value => value !== null)).toBe(true);
   });
 
   it('does not insert nulls when data is evenly spaced', () => {

@@ -11,6 +11,7 @@ const defaultFeatures: OpenChoreoFeatures = {
   observability: { enabled: true },
   auth: { enabled: true },
   authz: { enabled: true },
+  cilium: { enabled: false },
 };
 
 /**
@@ -53,6 +54,9 @@ export function useOpenChoreoFeatures(): OpenChoreoFeatures {
         authz: {
           enabled: featuresConfig.getOptionalBoolean('authz.enabled') ?? true,
         },
+        cilium: {
+          enabled: featuresConfig.getOptionalBoolean('cilium.enabled') ?? false,
+        },
       };
     } catch {
       // If config reading fails, use defaults to avoid breaking the app
@@ -91,4 +95,12 @@ export function useAuthEnabled(): boolean {
 export function useAuthzEnabled(): boolean {
   const features = useOpenChoreoFeatures();
   return features.authz.enabled;
+}
+
+/**
+ * Helper hook to check if Cilium (HTTP metrics) is enabled.
+ */
+export function useCiliumEnabled(): boolean {
+  const features = useOpenChoreoFeatures();
+  return features.cilium.enabled;
 }
