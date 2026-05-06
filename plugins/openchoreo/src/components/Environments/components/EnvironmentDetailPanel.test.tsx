@@ -42,6 +42,11 @@ jest.mock('./ReleaseManifestDialog', () => ({
   ReleaseManifestDialog: () => null,
 }));
 
+jest.mock('./ComponentReleaseDiffDialog', () => ({
+  ComponentReleaseDiffDialog: ({ open }: { open: boolean }) =>
+    open ? <div role="dialog" data-testid="diff-dialog" /> : null,
+}));
+
 function tracker(): ItemActionTracker {
   return {
     isActive: () => false,
@@ -422,6 +427,26 @@ describe('EnvironmentDetailPanel', () => {
     expect(screen.getByText(/^Behind upstream$/)).toBeInTheDocument();
     // Full upstream details live on the tooltip, not inline.
     expect(screen.queryByText(/rel-7/)).toBeNull();
+  });
+
+  it('opens the release diff dialog from the drift "View diff" button', async () => {
+    const user = userEvent.setup();
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'staging',
+          bindingName: 'staging-binding',
+          deployment: { status: 'Ready', releaseName: 'rel-5' },
+        }),
+      },
+      driftInfo: {
+        isBehind: true,
+        aheadUpstreams: [{ envName: 'dev', releaseName: 'rel-7' }],
+      },
+    });
+    await user.click(screen.getByRole('button', { name: /view diff/i }));
+    expect(await screen.findByTestId('diff-dialog')).toBeInTheDocument();
   });
 
   it('omits the drift line when not behind', () => {

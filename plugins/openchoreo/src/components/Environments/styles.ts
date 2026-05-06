@@ -508,9 +508,23 @@ export const useEnvironmentDetailPanelStyles = makeStyles(theme => ({
   driftRow: {
     display: 'flex',
     alignItems: 'center',
+    gap: theme.spacing(1),
+    marginTop: theme.spacing(0.5),
+  },
+  driftLabel: {
+    display: 'flex',
+    alignItems: 'center',
     gap: theme.spacing(0.5),
     color: theme.palette.warning.dark,
-    marginTop: theme.spacing(0.5),
+    flex: 1,
+    minWidth: 0,
+  },
+  driftDiffButton: {
+    textTransform: 'none',
+    fontSize: '0.7rem',
+    padding: theme.spacing(0, 0.75),
+    minWidth: 'auto',
+    height: 22,
   },
   body: {
     flex: 1,

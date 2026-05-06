@@ -138,6 +138,10 @@ export {
   type UseYamlEditorResult,
 } from './components/YamlEditor';
 export {
+  YamlDiffViewer,
+  type YamlDiffViewerProps,
+} from './components/YamlDiffViewer';
+export {
   TraitConfigToggle,
   type TraitConfigToggleProps,
 } from './components/TraitConfigToggle';

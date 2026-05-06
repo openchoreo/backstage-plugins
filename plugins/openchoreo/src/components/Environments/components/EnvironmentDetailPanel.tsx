@@ -12,6 +12,7 @@ import {
 import CloseIcon from '@material-ui/icons/Close';
 import CloudIcon from '@material-ui/icons/Cloud';
 import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
+import CompareArrowsIcon from '@material-ui/icons/CompareArrows';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
@@ -26,6 +27,7 @@ import { useEnvironmentDetailPanelStyles } from '../styles';
 import { useEnvironmentStatusVariant } from '../hooks/useEnvironmentStatusVariant';
 import { NO_DRIFT, type ReleaseDriftInfo } from '../hooks/computeReleaseDrift';
 import { derivePrimaryUrl } from '../utils/invokeUrlUtils';
+import { ComponentReleaseDiffDialog } from './ComponentReleaseDiffDialog';
 import { EnvironmentActions } from './EnvironmentActions';
 import { IncidentsBanner } from './IncidentsBanner';
 import { InvokeUrlsDialog } from './InvokeUrlsDialog';
@@ -97,6 +99,7 @@ export const EnvironmentDetailPanel = ({
   const classes = useEnvironmentDetailPanelStyles();
   const environment = selection?.kind === 'env' ? selection.environment : null;
   const [manifestOpen, setManifestOpen] = useState(false);
+  const [diffOpen, setDiffOpen] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [invokeUrlsOpen, setInvokeUrlsOpen] = useState(false);
   const [dangerExpanded, setDangerExpanded] = useState(false);
@@ -283,23 +286,38 @@ export const EnvironmentDetailPanel = ({
               </Box>
             )}
             {driftInfo.isBehind && (
-              <Tooltip
-                title={
-                  <>
-                    {driftInfo.aheadUpstreams.map(u => (
-                      <div key={u.envName}>
-                        {u.envName}
-                        {u.releaseName ? ` on ${u.releaseName}` : ''}
-                      </div>
-                    ))}
-                  </>
-                }
-              >
-                <Box className={classes.driftRow}>
-                  <ReportProblemOutlinedIcon fontSize="small" />
-                  <Typography variant="caption">Behind upstream</Typography>
-                </Box>
-              </Tooltip>
+              <Box className={classes.driftRow}>
+                <Tooltip
+                  title={
+                    <>
+                      {driftInfo.aheadUpstreams.map(u => (
+                        <div key={u.envName}>
+                          {u.envName}
+                          {u.releaseName ? ` on ${u.releaseName}` : ''}
+                        </div>
+                      ))}
+                    </>
+                  }
+                >
+                  <Box className={classes.driftLabel}>
+                    <ReportProblemOutlinedIcon fontSize="small" />
+                    <Typography variant="caption">Behind upstream</Typography>
+                  </Box>
+                </Tooltip>
+                {driftInfo.aheadUpstreams[0]?.releaseName &&
+                  environment.deployment.releaseName && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      color="primary"
+                      className={classes.driftDiffButton}
+                      startIcon={<CompareArrowsIcon fontSize="small" />}
+                      onClick={() => setDiffOpen(true)}
+                    >
+                      View diff
+                    </Button>
+                  )}
+              </Box>
             )}
             {activeIncidentCount !== undefined && activeIncidentCount > 0 && (
               <IncidentsBanner
@@ -496,6 +514,15 @@ export const EnvironmentDetailPanel = ({
         onClose={() => setManifestOpen(false)}
         releaseName={environment.deployment.releaseName}
         environmentName={environment.name}
+      />
+
+      <ComponentReleaseDiffDialog
+        open={diffOpen}
+        onClose={() => setDiffOpen(false)}
+        environmentName={environment.name}
+        releaseName={environment.deployment.releaseName}
+        upstreamEnvName={driftInfo.aheadUpstreams[0]?.envName ?? ''}
+        upstreamReleaseName={driftInfo.aheadUpstreams[0]?.releaseName}
       />
 
       <RemoveDeploymentConfirmationDialog
