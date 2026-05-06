@@ -9,8 +9,8 @@ import {
   Tooltip,
   Typography,
 } from '@material-ui/core';
-import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import CloseIcon from '@material-ui/icons/Close';
+import CloudIcon from '@material-ui/icons/Cloud';
 import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
@@ -197,8 +197,15 @@ export const EnvironmentDetailPanel = ({
     <Box className={classes.panel}>
       <Box className={classes.header}>
         <Box className={classes.headerTopRow}>
-          <Box className={classes.headerStatusRow}>
-            <StatusBadge status={statusVariant.variant} />
+          <Box className={classes.headerNameRow}>
+            <CloudIcon
+              className={classes.headerKindIcon}
+              fontSize="small"
+              aria-hidden
+            />
+            <Typography className={classes.envName}>
+              {environment.name}
+            </Typography>
           </Box>
           <Box>
             <IconButton
@@ -217,7 +224,9 @@ export const EnvironmentDetailPanel = ({
             </IconButton>
           </Box>
         </Box>
-        <Typography className={classes.envName}>{environment.name}</Typography>
+        <Box className={classes.headerStatusRow}>
+          <StatusBadge status={statusVariant.variant} />
+        </Box>
       </Box>
 
       <Box className={classes.body}>
@@ -261,11 +270,13 @@ export const EnvironmentDetailPanel = ({
               </Box>
             )}
             {environment.deployment.lastDeployed && (
-              <Box display="flex" alignItems="center">
-                <Typography variant="body2" style={{ fontWeight: 500 }}>
+              <Box className={classes.deployedRow}>
+                <Typography
+                  variant="caption"
+                  className={classes.releaseNameLabel}
+                >
                   Deployed
                 </Typography>
-                <AccessTimeIcon className={classes.timeIcon} />
                 <Typography variant="body2" color="textSecondary">
                   {formatRelativeTime(environment.deployment.lastDeployed)}
                 </Typography>

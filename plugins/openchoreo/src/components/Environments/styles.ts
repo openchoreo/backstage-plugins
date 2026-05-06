@@ -447,14 +447,30 @@ export const useEnvironmentDetailPanelStyles = makeStyles(theme => ({
   },
   headerTopRow: {
     display: 'flex',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: theme.spacing(1),
+  },
+  headerNameRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.75),
+    minWidth: 0,
+    flex: 1,
+  },
+  headerKindIcon: {
+    color: theme.palette.text.secondary,
+    flexShrink: 0,
   },
   headerStatusRow: {
     display: 'flex',
     alignItems: 'center',
     gap: theme.spacing(1),
+  },
+  deployedRow: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: theme.spacing(0.75),
   },
   envName: {
     fontWeight: 600,
