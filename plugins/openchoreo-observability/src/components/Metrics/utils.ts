@@ -150,21 +150,30 @@ const injectPerMetricGaps = (
   const result: Record<string, RawPoint[]> = {};
 
   Object.entries(usageData).forEach(([metricName, points]) => {
-    if (points.length < 2) {
-      result[metricName] = points;
+    const sortedPoints = [...points].sort((a, b) => {
+      const aEpoch = new Date(a.timestamp).getTime();
+      const bEpoch = new Date(b.timestamp).getTime();
+      return aEpoch - bEpoch;
+    });
+
+    if (sortedPoints.length < 2) {
+      result[metricName] = sortedPoints;
       return;
     }
 
-    const epochs = points.map(p => new Date(p.timestamp).getTime());
+    const epochs = sortedPoints.map(p => new Date(p.timestamp).getTime());
     const intervals = epochs.slice(1).map((t, i) => t - epochs[i]);
     const sorted = [...intervals].sort((a, b) => a - b);
     const medianInterval = sorted[Math.floor(sorted.length / 2)];
     const gapThreshold = medianInterval * 2;
 
     const injected: RawPoint[] = [];
-    for (let i = 0; i < points.length; i++) {
-      injected.push(points[i]);
-      if (i < points.length - 1 && epochs[i + 1] - epochs[i] > gapThreshold) {
+    for (let i = 0; i < sortedPoints.length; i++) {
+      injected.push(sortedPoints[i]);
+      if (
+        i < sortedPoints.length - 1 &&
+        epochs[i + 1] - epochs[i] > gapThreshold
+      ) {
         // Sentinel key: numeric ms string, distinct from ISO timestamp keys
         const sentinelEpoch = epochs[i] + medianInterval;
         injected.push({ timestamp: String(sentinelEpoch), value: null });
