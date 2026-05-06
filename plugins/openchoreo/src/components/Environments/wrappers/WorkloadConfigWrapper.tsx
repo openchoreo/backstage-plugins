@@ -11,7 +11,13 @@ import type { PendingAction } from '../types';
 export const WorkloadConfigWrapper = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { lowestEnvironment } = useEnvironmentsContext();
+  const { lowestEnvironment, environments } = useEnvironmentsContext();
+  const lowestEnv = environments.find(
+    env => env.name?.toLowerCase() === lowestEnvironment,
+  );
+  const envDataPlane = lowestEnv
+    ? { kind: lowestEnv.dataPlaneKind, name: lowestEnv.dataPlaneRef }
+    : undefined;
   const { navigateToList, navigateToOverrides } = useEnvironmentRouting();
 
   // Get active tab from URL (container, endpoints, dependencies)
@@ -48,6 +54,7 @@ export const WorkloadConfigWrapper = () => {
       onBack={handleBack}
       onNext={handleNext}
       lowestEnvironment={lowestEnvironment}
+      lowestEnvDataPlane={envDataPlane}
       initialTab={activeTab}
       onTabChange={handleTabChange}
     />

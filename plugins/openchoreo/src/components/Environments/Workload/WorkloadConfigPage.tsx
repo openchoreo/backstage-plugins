@@ -65,6 +65,10 @@ interface WorkloadConfigPageProps {
   onNext: (releaseName: string, targetEnvironment: string) => void;
   /** The lowest environment name (first in deployment pipeline) */
   lowestEnvironment: string;
+  /**
+   * Data plane of the lowest environment.
+   */
+  lowestEnvDataPlane?: { kind?: string; name?: string };
   /** Initial tab to display (from URL) */
   initialTab?: string;
   /** Callback when tab changes (to update URL) */
@@ -75,6 +79,7 @@ export const WorkloadConfigPage = ({
   onBack,
   onNext,
   lowestEnvironment,
+  lowestEnvDataPlane,
   initialTab,
   onTabChange,
 }: WorkloadConfigPageProps) => {
@@ -621,6 +626,7 @@ export const WorkloadConfigPage = ({
             componentTypeName={
               entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE]
             }
+            envDataPlane={lowestEnvDataPlane}
             initialTab={initialTab}
             onTabChange={onTabChange}
             traitsState={traitsState}

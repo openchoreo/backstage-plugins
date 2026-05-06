@@ -143,6 +143,7 @@ export {
 } from './hooks/useComponentEntityDetails';
 export {
   useSecretReferences,
+  filterSecretReferencesForEnvDataPlane,
   type UseSecretReferencesResult,
   type SecretReference,
   type SecretDataSourceInfo,
