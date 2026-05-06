@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { observabilityApiRef } from '../api/ObservabilityApi';
-import { Filters, Metrics } from '../types';
+import { Filters, HttpMetrics, MetricType, ResourceMetrics } from '../types';
 import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { calculateTimeRange } from '@openchoreo/backstage-plugin-react';
@@ -11,10 +11,12 @@ export function useMetrics(
   entity: Entity,
   namespaceName: string,
   project: string,
-  ciliumEnabled: boolean = false,
+  metricType: MetricType = 'resource',
 ) {
   const observabilityApi = useApi(observabilityApiRef);
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [metrics, setMetrics] = useState<ResourceMetrics | HttpMetrics | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +44,7 @@ export function useMetrics(
           componentName,
           namespaceName,
           project,
-          { startTime, endTime, step, ciliumEnabled },
+          { startTime, endTime, step, type: metricType },
         );
 
         setMetrics(response);
@@ -61,7 +63,7 @@ export function useMetrics(
       namespaceName,
       project,
       entity,
-      ciliumEnabled,
+      metricType,
     ],
   );
 

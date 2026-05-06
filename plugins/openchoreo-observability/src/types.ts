@@ -32,12 +32,17 @@ export type NetworkLatencyMetrics = {
   latencyP99: MetricsTimeSeriesItem[];
 };
 
-export type Metrics = {
+export type ResourceMetrics = {
   cpuUsage: CpuUsageMetrics;
   memoryUsage: MemoryUsageMetrics;
+};
+
+export type HttpMetrics = {
   networkThroughput: NetworkThroughputMetrics;
   networkLatency: NetworkLatencyMetrics;
 };
+
+export type MetricType = 'resource' | 'http';
 
 export interface Span {
   spanId: string;
