@@ -20,6 +20,12 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
   formatRelativeTime: (s: string) => `relative-${s}`,
 }));
 
+jest.mock('@openchoreo/backstage-design-system', () => ({
+  StatusBadge: (props: { status: string }) => (
+    <span data-testid="status-badge">{props.status}</span>
+  ),
+}));
+
 // ReleaseManifestDialog uses useApi/useEntity which need provider context
 // these tests don't supply. The dialog has its own focused test file.
 jest.mock('./ReleaseManifestDialog', () => ({
@@ -355,7 +361,7 @@ describe('MiniEnvironmentNode', () => {
     ).toBeInTheDocument();
   });
 
-  it('hides "View release manifest" when env has no releaseName', async () => {
+  it('renders release-gated overflow items disabled (not hidden) when no releaseName', async () => {
     const user = userEvent.setup();
     renderNode({
       environment: makeEnv({
@@ -366,8 +372,84 @@ describe('MiniEnvironmentNode', () => {
     });
     await user.click(screen.getByLabelText('Actions for staging'));
     const menu = screen.getByRole('menu');
-    expect(
-      within(menu).queryByRole('menuitem', { name: /view release manifest/i }),
-    ).toBeNull();
+    // Items still render — they're just disabled.
+    const manifestItem = within(menu).getByRole('menuitem', {
+      name: /view release manifest/i,
+    });
+    const artifactsItem = within(menu).getByRole('menuitem', {
+      name: /view k8s artifacts/i,
+    });
+    expect(manifestItem).toHaveAttribute('aria-disabled', 'true');
+    expect(artifactsItem).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('groups overflow menu items with a divider', async () => {
+    const user = userEvent.setup();
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        bindingName: 'staging-binding',
+        deployment: { status: 'Ready', releaseName: 'rel-7' },
+      }),
+    });
+    await user.click(screen.getByLabelText('Actions for staging'));
+    const menu = screen.getByRole('menu');
+    expect(within(menu).getAllByRole('separator').length).toBeGreaterThan(0);
+  });
+
+  it('shows the cloud kind icon next to the env name', () => {
+    renderNode({
+      environment: makeEnv({ name: 'staging' }),
+    });
+    // The icon is decorative (aria-hidden); the env name is the
+    // accessible label. Just confirm an SVG sits next to the name.
+    const card = screen.getByLabelText('Select environment staging');
+    expect(card.querySelectorAll('svg').length).toBeGreaterThan(0);
+  });
+
+  it('renders a StatusBadge with the env status variant', () => {
+    renderNode({
+      environment: makeEnv({
+        name: 'staging',
+        deployment: { status: 'Ready' },
+      }),
+    });
+    expect(screen.getByTestId('status-badge')).toHaveTextContent('active');
+  });
+
+  it('shows the active-incidents chip when activeIncidentCount > 0', () => {
+    renderNode({
+      environment: makeEnv({ name: 'staging' }),
+      activeIncidentCount: 3,
+    });
+    const chip = screen.getByLabelText('active incidents');
+    expect(chip).toHaveTextContent('3');
+  });
+
+  it('omits the active-incidents chip when activeIncidentCount is 0 or undefined', () => {
+    const { rerender } = renderNode({
+      environment: makeEnv({ name: 'staging' }),
+      activeIncidentCount: 0,
+    });
+    expect(screen.queryByLabelText('active incidents')).toBeNull();
+
+    rerender(
+      <MiniEnvironmentNode
+        environment={makeEnv({ name: 'staging' })}
+        selected={false}
+        isRefreshing={false}
+        isAlreadyPromoted={() => false}
+        actionTrackers={{
+          promotionTracker: tracker(),
+          suspendTracker: tracker(),
+        }}
+        onSelect={jest.fn()}
+        onRefresh={jest.fn()}
+        onOpenOverrides={jest.fn()}
+        onOpenReleaseDetails={jest.fn()}
+        onPromote={jest.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText('active incidents')).toBeNull();
   });
 });

@@ -383,6 +383,7 @@ export const PipelineCanvas: FC = () => {
             isAlreadyPromoted={isAlreadyPromoted}
             actionTrackers={actionTrackers}
             driftByEnv={driftByEnv}
+            incidentsSummaries={incidentsSummaries}
             onSelectEnv={name =>
               setSelection(name ? { kind: 'env', name } : null)
             }

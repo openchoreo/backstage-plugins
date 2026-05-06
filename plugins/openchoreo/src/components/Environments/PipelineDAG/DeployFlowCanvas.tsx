@@ -38,6 +38,8 @@ export interface DeployFlowCanvasProps {
   actionTrackers: ActionTrackers;
   /** Per-env drift info, keyed by env name. Missing entries default to no drift. */
   driftByEnv?: Map<string, ReleaseDriftInfo>;
+  /** Per-env active-incident summary, keyed by env name. */
+  incidentsSummaries?: Map<string, { activeCount: number; loading: boolean }>;
   onSelectEnv: (envName: string | null) => void;
   onSelectSetup: () => void;
   onClearSelection: () => void;
@@ -64,6 +66,7 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
   isAlreadyPromoted,
   actionTrackers,
   driftByEnv,
+  incidentsSummaries,
   onSelectEnv,
   onSelectSetup,
   onClearSelection,
@@ -253,6 +256,9 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
                   isAlreadyPromoted={target => isAlreadyPromoted(env, target)}
                   actionTrackers={actionTrackers}
                   driftInfo={driftByEnv?.get(env.name)}
+                  activeIncidentCount={
+                    incidentsSummaries?.get(env.name)?.activeCount
+                  }
                   onSelect={() => onSelectEnv(env.name)}
                   onRefresh={() => onRefreshEnv(env.name)}
                   onOpenOverrides={() => onOpenOverrides(env)}

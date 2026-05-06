@@ -2,6 +2,7 @@ import { useState, type MouseEvent as ReactMouseEvent } from 'react';
 import {
   Box,
   Button,
+  Divider,
   IconButton,
   Menu,
   MenuItem,
@@ -10,13 +11,15 @@ import {
 } from '@material-ui/core';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import CloudIcon from '@material-ui/icons/Cloud';
 import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
 import MoreVertIcon from '@material-ui/icons/MoreVert';
-import RefreshIcon from '@material-ui/icons/Refresh';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
+import RefreshIcon from '@material-ui/icons/Refresh';
 import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import clsx from 'clsx';
+import { StatusBadge } from '@openchoreo/backstage-design-system';
 import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
 import { useMiniEnvironmentNodeStyles } from '../styles';
 import { useEnvironmentStatusVariant } from '../hooks/useEnvironmentStatusVariant';
@@ -34,6 +37,11 @@ export interface MiniEnvironmentNodeProps {
   actionTrackers: ActionTrackers;
   /** Drift relative to direct upstreams; defaults to no drift. */
   driftInfo?: ReleaseDriftInfo;
+  /**
+   * Active-incident count from useIncidentsSummary. Undefined when
+   * observability isn't configured; rendered as a red chip when > 0.
+   */
+  activeIncidentCount?: number;
   onSelect: () => void;
   onRefresh: () => void;
   onOpenOverrides: () => void;
@@ -55,6 +63,7 @@ export const MiniEnvironmentNode = ({
   isAlreadyPromoted,
   actionTrackers,
   driftInfo = NO_DRIFT,
+  activeIncidentCount,
   onSelect,
   onRefresh,
   onOpenOverrides,
@@ -108,16 +117,6 @@ export const MiniEnvironmentNode = ({
   const relativeTime = environment.deployment.lastDeployed
     ? formatRelativeTime(environment.deployment.lastDeployed)
     : null;
-
-  const dotClass = clsx(classes.statusDot, {
-    [classes.statusDotActive]: statusVariant.variant === 'active',
-    [classes.statusDotPending]: statusVariant.variant === 'pending',
-    [classes.statusDotFailed]: statusVariant.variant === 'failed',
-    [classes.statusDotIdle]:
-      statusVariant.variant !== 'active' &&
-      statusVariant.variant !== 'pending' &&
-      statusVariant.variant !== 'failed',
-  });
 
   const stop = (e: ReactMouseEvent) => e.stopPropagation();
 
@@ -223,27 +222,38 @@ export const MiniEnvironmentNode = ({
         />
         <Box className={classes.body}>
           <Box className={classes.topRow}>
-            <Tooltip
-              title={environment.name}
-              disableHoverListener={environment.name.length < 20}
-              PopperProps={{ disablePortal: true }}
-            >
-              <Typography className={classes.name}>
-                {environment.name}
-              </Typography>
+            <Box className={classes.nameWrap}>
+              <CloudIcon
+                className={classes.kindIcon}
+                fontSize="small"
+                aria-hidden
+              />
+              <Tooltip
+                title={environment.name}
+                disableHoverListener={environment.name.length < 20}
+                PopperProps={{ disablePortal: true }}
+              >
+                <Typography className={classes.name}>
+                  {environment.name}
+                </Typography>
+              </Tooltip>
+            </Box>
+            <Tooltip title="More actions" PopperProps={{ disablePortal: true }}>
+              <IconButton
+                size="small"
+                className={classes.menuButton}
+                onClick={openMenu}
+                aria-label={`Actions for ${environment.name}`}
+              >
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
             </Tooltip>
-            <IconButton
-              size="small"
-              className={classes.menuButton}
-              onClick={openMenu}
-              aria-label={`Actions for ${environment.name}`}
-            >
-              <MoreVertIcon fontSize="small" />
-            </IconButton>
           </Box>
+          {/* Row 1 — primary identity: status + version + drift. */}
           <Box className={classes.metaRow}>
-            <span className={dotClass} aria-hidden />
-            {versionLabel ? (
+            <span className={classes.metaLabel}>status:</span>
+            <StatusBadge status={statusVariant.variant} />
+            {versionLabel && (
               <Tooltip
                 title={
                   <>
@@ -263,8 +273,6 @@ export const MiniEnvironmentNode = ({
               >
                 <span className={classes.versionChip}>{versionLabel}</span>
               </Tooltip>
-            ) : (
-              <span className={classes.versionChip}>—</span>
             )}
             {driftInfo.isBehind && (
               <Tooltip
@@ -293,16 +301,44 @@ export const MiniEnvironmentNode = ({
                 </span>
               </Tooltip>
             )}
-            {relativeTime && (
-              <Typography
-                variant="caption"
-                color="textSecondary"
-                className={classes.timeText}
-              >
-                {relativeTime}
-              </Typography>
-            )}
           </Box>
+
+          {/* Row 2 — supplementary: incidents + freshness. Skipped
+              entirely when nothing here applies so we don't render an
+              empty row. */}
+          {((!!activeIncidentCount && activeIncidentCount > 0) ||
+            relativeTime) && (
+            <Box className={classes.metaRow}>
+              {!!activeIncidentCount && activeIncidentCount > 0 && (
+                <Tooltip
+                  title={`${activeIncidentCount} active incident${
+                    activeIncidentCount === 1 ? '' : 's'
+                  }`}
+                  PopperProps={{ disablePortal: true }}
+                >
+                  <span
+                    className={clsx(classes.metaChip, classes.metaChipDanger)}
+                    aria-label="active incidents"
+                  >
+                    <ReportProblemOutlinedIcon fontSize="inherit" />
+                    {activeIncidentCount}
+                  </span>
+                </Tooltip>
+              )}
+              {relativeTime && (
+                <>
+                  <span className={classes.metaLabel}>deployed:</span>
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    className={classes.timeText}
+                  >
+                    {relativeTime}
+                  </Typography>
+                </>
+              )}
+            </Box>
+          )}
           <Box className={classes.actionRow}>{renderActions()}</Box>
         </Box>
       </Box>
@@ -317,6 +353,7 @@ export const MiniEnvironmentNode = ({
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
+        {/* Group 1 — read-only views */}
         <MenuItem
           onClick={e => {
             stop(e);
@@ -328,30 +365,54 @@ export const MiniEnvironmentNode = ({
           <RefreshIcon fontSize="small" style={{ marginRight: 8 }} />
           Refresh
         </MenuItem>
-        {environment.deployment.releaseName && (
-          <MenuItem
-            onClick={e => {
-              stop(e);
-              closeMenu();
-              onOpenReleaseDetails();
-            }}
-          >
-            <OpenInNewIcon fontSize="small" style={{ marginRight: 8 }} />
-            View K8s artifacts
-          </MenuItem>
-        )}
-        {environment.deployment.releaseName && (
-          <MenuItem
-            onClick={e => {
-              stop(e);
-              closeMenu();
-              setManifestOpen(true);
-            }}
-          >
-            <CodeOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
-            View release manifest
-          </MenuItem>
-        )}
+        <Tooltip
+          title={
+            environment.deployment.releaseName
+              ? ''
+              : 'No release on this environment yet.'
+          }
+          placement="left"
+        >
+          <span>
+            <MenuItem
+              onClick={e => {
+                stop(e);
+                closeMenu();
+                onOpenReleaseDetails();
+              }}
+              disabled={!environment.deployment.releaseName}
+            >
+              <OpenInNewIcon fontSize="small" style={{ marginRight: 8 }} />
+              View K8s artifacts
+            </MenuItem>
+          </span>
+        </Tooltip>
+        <Tooltip
+          title={
+            environment.deployment.releaseName
+              ? ''
+              : 'No release on this environment yet.'
+          }
+          placement="left"
+        >
+          <span>
+            <MenuItem
+              onClick={e => {
+                stop(e);
+                closeMenu();
+                setManifestOpen(true);
+              }}
+              disabled={!environment.deployment.releaseName}
+            >
+              <CodeOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
+              View release manifest
+            </MenuItem>
+          </span>
+        </Tooltip>
+
+        <Divider />
+
+        {/* Group 2 — mutating actions */}
         <MenuItem
           onClick={e => {
             stop(e);
