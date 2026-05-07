@@ -100,7 +100,7 @@ const SECRET_TYPES: {
   {
     value: SECRET_TYPE.OPAQUE,
     label: 'Opaque',
-    description: 'Free-form key/value pairs',
+    description: 'key/value pairs',
   },
   {
     value: SECRET_TYPE.BASIC_AUTH,
@@ -255,6 +255,22 @@ export const CreateSecretDialog = ({
         return { ok: false, error: 'Unsupported secret type' };
     }
   };
+
+  const dataValid = useMemo(() => {
+    return buildData().ok;
+    // buildData reads many state values; recompute on each render is fine here
+    // — this dialog is small and the work is trivial.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    secretType,
+    opaqueRows,
+    basicUsername,
+    basicPassword,
+    sshKey,
+    dockerConfig,
+    tlsCrt,
+    tlsKey,
+  ]);
 
   const nameError = useMemo(() => {
     const name = secretName.trim();
@@ -630,7 +646,8 @@ export const CreateSecretDialog = ({
             !!nameError ||
             Boolean(targetPlanesError) ||
             targetPlanes.length === 0 ||
-            effectivePlaneIndex === ''
+            effectivePlaneIndex === '' ||
+            !dataValid
           }
           startIcon={loading ? <CircularProgress size={20} /> : null}
         >
