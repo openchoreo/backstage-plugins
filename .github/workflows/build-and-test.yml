@@ -3,9 +3,11 @@ on:
   push:
     branches:
       - main
+      - 'release-v*'
   pull_request:
     branches:
       - main
+      - 'release-v*'
     paths-ignore:
       - '**/*.md'
       - 'LICENSE'
@@ -181,7 +183,13 @@ jobs:
       - name: Set image tag
         id: tag
         run: |
-          echo "GIT_SHA_SHORT=$(git rev-parse --short=8 HEAD)" >> $GITHUB_OUTPUT
+          SHA=$(git rev-parse --short=8 HEAD)
+          echo "GIT_SHA_SHORT=$SHA" >> $GITHUB_OUTPUT
+          TAGS="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$SHA"
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            TAGS="$TAGS,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-dev"
+          fi
+          echo "TAGS=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Build and push commit image
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
@@ -189,8 +197,6 @@ jobs:
           push: true
           file: ./packages/backend/Dockerfile
           platforms: linux/amd64,linux/arm64
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.GIT_SHA_SHORT }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-dev
+          tags: ${{ steps.tag.outputs.TAGS }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
