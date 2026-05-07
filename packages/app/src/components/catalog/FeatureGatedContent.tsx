@@ -31,6 +31,7 @@ export function FeatureGatedContent({
       auth: 'Authentication',
       authz: 'Authorization',
       cilium: 'Cilium',
+      assistant: 'Perch',
     };
 
     return (

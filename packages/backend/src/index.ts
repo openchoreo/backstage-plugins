@@ -121,4 +121,8 @@ backend.add(import('@backstage-community/plugin-jenkins-backend'));
 backend.add(
   import('@openchoreo/backstage-plugin-openchoreo-workflows-backend'),
 );
+// Perch backend — forwards Perch frontend traffic to the assistant-agent
+// service in the OpenChoreo control plane. Plugin self-disables when
+// neither perch.assistantAgentUrl nor openchoreo.assistantAgentUrl is set.
+backend.add(import('@openchoreo/backstage-plugin-openchoreo-perch-backend'));
 backend.start();

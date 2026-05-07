@@ -29,6 +29,12 @@ export interface OpenChoreoFeatures {
   authz: { enabled: boolean };
   /** Cilium feature — controls HTTP metrics graphs and queries */
   cilium: { enabled: boolean };
+  /**
+   * OpenChoreo Assistant chat agent (FAB, drawer, contextual launchers).
+   * Opt-in: defaults to false because the assistant requires the
+   * `assistant-agent` service and an LLM API key Secret to be deployed.
+   */
+  assistant: { enabled: boolean };
 }
 
 /**
@@ -39,4 +45,5 @@ export type FeatureName =
   | 'observability'
   | 'auth'
   | 'authz'
-  | 'cilium';
+  | 'cilium'
+  | 'assistant';

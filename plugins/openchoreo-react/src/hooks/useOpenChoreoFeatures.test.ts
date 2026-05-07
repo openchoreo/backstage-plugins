@@ -6,6 +6,7 @@ import {
   useAuthEnabled,
   useAuthzEnabled,
   useCiliumEnabled,
+  useAssistantEnabled,
 } from './useOpenChoreoFeatures';
 
 const mockGetOptionalConfig = jest.fn();
@@ -30,7 +31,7 @@ describe('useOpenChoreoFeatures', () => {
     jest.clearAllMocks();
   });
 
-  it('returns all features enabled by default when no config', () => {
+  it('returns defaults when no config (all on except assistant)', () => {
     mockGetOptionalConfig.mockReturnValue(undefined);
     const { result } = renderHook(() => useOpenChoreoFeatures());
     expect(result.current).toEqual({
@@ -39,6 +40,7 @@ describe('useOpenChoreoFeatures', () => {
       auth: { enabled: true },
       authz: { enabled: true },
       cilium: { enabled: false },
+      assistant: { enabled: false },
     });
   });
 
@@ -49,6 +51,7 @@ describe('useOpenChoreoFeatures', () => {
         'observability.enabled': true,
         'auth.enabled': false,
         'authz.enabled': true,
+        'assistant.enabled': true,
       }),
     );
     const { result } = renderHook(() => useOpenChoreoFeatures());
@@ -58,10 +61,11 @@ describe('useOpenChoreoFeatures', () => {
       auth: { enabled: false },
       authz: { enabled: true },
       cilium: { enabled: false },
+      assistant: { enabled: true },
     });
   });
 
-  it('defaults individual features to true when not set in config', () => {
+  it('defaults individual features when not set in config', () => {
     mockGetOptionalConfig.mockReturnValue(
       makeFeaturesConfig({ 'workflows.enabled': false }),
     );
@@ -70,6 +74,7 @@ describe('useOpenChoreoFeatures', () => {
     expect(result.current.observability.enabled).toBe(true);
     expect(result.current.auth.enabled).toBe(true);
     expect(result.current.authz.enabled).toBe(true);
+    expect(result.current.assistant.enabled).toBe(false);
   });
 
   it('returns defaults when config throws', () => {
@@ -83,6 +88,7 @@ describe('useOpenChoreoFeatures', () => {
       auth: { enabled: true },
       authz: { enabled: true },
       cilium: { enabled: false },
+      assistant: { enabled: false },
     });
   });
 });
@@ -97,6 +103,7 @@ describe('helper hooks', () => {
         'auth.enabled': true,
         'authz.enabled': false,
         'cilium.enabled': true,
+        'assistant.enabled': true,
       }),
     );
   });
@@ -123,6 +130,11 @@ describe('helper hooks', () => {
 
   it('useCiliumEnabled returns cilium flag', () => {
     const { result } = renderHook(() => useCiliumEnabled());
+    expect(result.current).toBe(true);
+  });
+
+  it('useAssistantEnabled returns assistant flag', () => {
+    const { result } = renderHook(() => useAssistantEnabled());
     expect(result.current).toBe(true);
   });
 });

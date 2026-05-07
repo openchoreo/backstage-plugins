@@ -165,6 +165,18 @@ openchoreo:
   # Required by Backstage schema validation. Custom OpenChoreo kinds don't use owner.
   defaultOwner: 'openchoreo-users'
 
+  # Upstream URL the openchoreo-perch-backend plugin forwards to (Perch
+  # AI assistant). Optional — leave commented to keep the plugin disabled
+  # by default. Uncomment AND set OPENCHOREO_ASSISTANT_AGENT_URL only
+  # when the assistant feature is enabled
+  # (openchoreo.features.assistant.enabled = true) and the assistant-agent
+  # service is deployed.
+  #
+  # For local k3d via port-forward: http://localhost:8088
+  # For in-cluster Backstage: http://assistant-agent.openchoreo-control-plane.svc.cluster.local:8080
+  # For external access: configure via OPENCHOREO_ASSISTANT_AGENT_URL env var.
+  # assistantAgentUrl: ${OPENCHOREO_ASSISTANT_AGENT_URL}
+
   schedule:
     frequency: 30 # seconds between runs (default: 30)
     timeout: 120 # seconds for timeout (default: 120)
@@ -193,6 +205,12 @@ openchoreo:
     # When disabled, HTTP metrics graphs are hidden and the HTTP query is not sent to the observer
     cilium:
       enabled: ${OPENCHOREO_FEATURES_CILIUM_ENABLED}
+    # OpenChoreo Assistant chat agent (FAB, drawer, contextual launchers)
+    # Opt-in: defaults to false. Requires the assistant-agent service and an
+    # LLM API key Secret to be deployed. When disabled, hides the chat tab,
+    # FailedBuildSnackbar, and the build / logs / component-create launchers.
+    assistant:
+      enabled: ${OPENCHOREO_FEATURES_ASSISTANT_ENABLED}
 
   # Component Type Mappings (optional - defaults provided)
   # Maps OpenChoreo component types to Backstage page variants

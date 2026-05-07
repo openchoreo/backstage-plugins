@@ -1,0 +1,56 @@
+{
+  "name": "@openchoreo/backstage-plugin-openchoreo-perch",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "//": "private+publishConfig is the canonical Backstage workspace pattern (see every sibling plugin). private:true blocks accidental yarn publish during day-to-day work; the Backstage CLI's prepack swaps private off and merges publishConfig.* to top-level fields at release time, where access:'public' is needed for scoped packages (npm defaults to 'restricted'). The pair is intentionally co-resident; do NOT remove either key in isolation.",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "publishConfig": {
+    "access": "public",
+    "main": "dist/index.esm.js",
+    "types": "dist/index.d.ts"
+  },
+  "backstage": {
+    "role": "frontend-plugin",
+    "pluginId": "openchoreo-perch"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "start": "backstage-cli package start",
+    "build": "backstage-cli package build",
+    "lint": "backstage-cli package lint",
+    "test": "backstage-cli package test",
+    "clean": "backstage-cli package clean",
+    "prepack": "backstage-cli package prepack",
+    "postpack": "backstage-cli package postpack"
+  },
+  "dependencies": {
+    "@backstage/catalog-model": "1.7.5",
+    "@backstage/core-components": "0.18.1",
+    "@backstage/core-plugin-api": "1.11.0",
+    "@backstage/plugin-catalog-react": "1.21.2",
+    "@material-ui/core": "4.12.4",
+    "@material-ui/icons": "4.11.3",
+    "@openchoreo/backstage-plugin-common": "workspace:^",
+    "@openchoreo/backstage-plugin-openchoreo-ci": "workspace:^",
+    "@openchoreo/backstage-plugin-react": "workspace:^",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.1"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-router-dom": "^6.0.0"
+  },
+  "devDependencies": {
+    "@backstage/cli": "0.34.1",
+    "@testing-library/jest-dom": "6.0.0",
+    "@testing-library/react": "15.0.0",
+    "@types/node": "20.19.13",
+    "@types/react": "18.0.0",
+    "msw": "1.3.2"
+  },
+  "files": [
+    "dist"
+  ]
+}

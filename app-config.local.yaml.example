@@ -39,6 +39,12 @@ openchoreo:
   baseUrl: http://api.openchoreo.localhost:8080/api/v1
   # token: ""  # Optional: uncomment if you need API authentication
 
+  # Upstream URL the openchoreo-perch-backend plugin forwards to (Perch
+  # AI assistant). The k3d gateway routes /api/v1alpha1/assistant-agent/*
+  # to the assistant-agent pod via HTTPRoute.
+  # Only needed if you've enabled the assistant feature below.
+  # assistantAgentUrl: http://openchoreo.localhost:8080
+
   # OAuth2 Client Credentials for background tasks (Catalog Entity Provider)
   # Required for the Catalog Provider to fetch organizations, projects, and components
   auth:
@@ -60,6 +66,8 @@ openchoreo:
       enabled: true    # Set to false to hide Access Control sidebar and pages
     cilium:
       enabled: false   # Set to true to show HTTP metrics and enable Cilium queries
+    assistant:
+      enabled: false   # Opt-in. Set to true after deploying assistant-agent and OPENCHOREO_ASSISTANT_AGENT_URL
 
 # Thunder IDP configuration (k3d cluster)
 thunder:

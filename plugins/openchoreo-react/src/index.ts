@@ -136,6 +136,7 @@ export {
   useAuthEnabled,
   useAuthzEnabled,
   useCiliumEnabled,
+  useAssistantEnabled,
 } from './hooks/useOpenChoreoFeatures';
 export {
   useComponentEntityDetails,

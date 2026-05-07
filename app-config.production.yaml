@@ -164,12 +164,20 @@ openchoreo:
   # Required by Backstage schema validation. Custom OpenChoreo kinds don't use owner.
   defaultOwner: 'openchoreo-users'
 
+  # Upstream URL the openchoreo-perch-backend plugin forwards to (Perch
+  # AI assistant). Optional — uncomment only when the assistant feature
+  # is enabled (openchoreo.features.assistant.enabled = true) and the
+  # assistant-agent service is deployed. The perch-backend plugin self-
+  # disables when this key is absent, matching the thunder.token pattern.
+  # OPENCHOREO_ASSISTANT_AGENT_URL: e.g. http://openchoreo-assistant-agent.openchoreo-control-plane.svc.cluster.local:8080
+  # assistantAgentUrl: ${OPENCHOREO_ASSISTANT_AGENT_URL}
+
   schedule:
     frequency: 30 # seconds between runs (default: 30)
     timeout: 120 # seconds for timeout (default: 120)
 
   # Feature flags for enabling/disabling OpenChoreo functionality
-  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_CILIUM_ENABLED
+  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_AUTHZ_ENABLED, OPENCHOREO_FEATURES_CILIUM_ENABLED, OPENCHOREO_FEATURES_ASSISTANT_ENABLED
   features:
     # Workflow plane / Workflows functionality
     # When disabled, hides Workflows tab and WorkflowsOverviewCard from entity pages
@@ -191,6 +199,11 @@ openchoreo:
     # When disabled, HTTP metrics graphs are hidden and the HTTP query is not sent to the observer
     cilium:
       enabled: ${OPENCHOREO_FEATURES_CILIUM_ENABLED}
+    # OpenChoreo Assistant chat agent (FAB, drawer, contextual launchers)
+    # Opt-in: defaults to false. Requires the assistant-agent service and an
+    # LLM API key Secret to be deployed.
+    assistant:
+      enabled: ${OPENCHOREO_FEATURES_ASSISTANT_ENABLED}
 
 thunder:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)

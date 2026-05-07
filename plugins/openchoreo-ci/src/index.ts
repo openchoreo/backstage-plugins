@@ -9,6 +9,11 @@ export { BuildStatusChip } from './components';
 
 // Hook exports
 export { useAsyncOperation } from './hooks';
+export {
+  useLatestFailedRun,
+  type LatestFailedRunResult,
+} from './hooks/useLatestFailedRun';
+export { useWorkflowData } from './hooks/useWorkflowData';
 
 // API exports
 export { openChoreoCiClientApiRef } from './api/OpenChoreoCiClientApi';
