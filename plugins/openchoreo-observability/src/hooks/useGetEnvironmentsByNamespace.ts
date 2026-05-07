@@ -12,11 +12,16 @@ export interface UseGetEnvironmentsByNamespaceResult {
 /**
  * Hook to fetch environments for a specific namespace from the observability backend.
  *
+ * When `projectName` is provided, the backend restricts the result to
+ * environments referenced by the project's deployment pipeline.
+ *
  * @param namespaceName - The name of the namespace to fetch environments for
+ * @param projectName - Optional project name; when provided, environments are filtered to those in the project's deployment pipeline
  * @returns Object containing environments array, loading state, and error
  */
 export const useGetEnvironmentsByNamespace = (
   namespaceName: string | undefined,
+  projectName?: string,
 ): UseGetEnvironmentsByNamespaceResult => {
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
@@ -40,10 +45,12 @@ export const useGetEnvironmentsByNamespace = (
         const baseUrl = await discoveryApi.getBaseUrl(
           'openchoreo-observability-backend',
         );
+        const params = new URLSearchParams({ namespace: namespaceName });
+        if (projectName) {
+          params.set('project', projectName);
+        }
         const response = await fetchApi.fetch(
-          `${baseUrl}/environments?namespace=${encodeURIComponent(
-            namespaceName,
-          )}`,
+          `${baseUrl}/environments?${params.toString()}`,
         );
 
         if (!response.ok) {
@@ -65,7 +72,7 @@ export const useGetEnvironmentsByNamespace = (
     };
 
     fetchEnvironments();
-  }, [namespaceName, discoveryApi, fetchApi]);
+  }, [namespaceName, projectName, discoveryApi, fetchApi]);
 
   return { environments, loading, error };
 };

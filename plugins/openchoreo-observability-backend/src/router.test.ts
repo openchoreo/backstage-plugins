@@ -129,6 +129,22 @@ describe('createRouter', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ environments: mockEnvironments });
+    expect(
+      observabilityService.fetchEnvironmentsByNamespace,
+    ).toHaveBeenCalledWith('org-1', undefined, undefined);
+  });
+
+  it('should forward project query parameter to the service', async () => {
+    observabilityService.fetchEnvironmentsByNamespace.mockResolvedValue([]);
+
+    const response = await request(app)
+      .get('/environments')
+      .query({ namespace: 'org-1', project: 'proj-1' });
+
+    expect(response.status).toBe(200);
+    expect(
+      observabilityService.fetchEnvironmentsByNamespace,
+    ).toHaveBeenCalledWith('org-1', 'proj-1', undefined);
   });
 
   it('should return 400 when namespace is missing for environments', async () => {
