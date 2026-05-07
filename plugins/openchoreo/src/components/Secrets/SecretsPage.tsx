@@ -69,61 +69,64 @@ export const SecretsContent = () => {
   }, [client]);
 
   // Fetch all four plane kinds for the target-plane dropdown
-  const { value: targetPlanes, loading: targetPlanesLoading } =
-    useAsync(async (): Promise<TargetPlaneOption[]> => {
-      if (!selectedNamespace) return [];
+  const {
+    value: targetPlanes,
+    loading: targetPlanesLoading,
+    error: targetPlanesError,
+  } = useAsync(async (): Promise<TargetPlaneOption[]> => {
+    if (!selectedNamespace) return [];
 
-      const [wpResult, cwpResult, dpResult, cdpResult] = await Promise.all([
-        catalogApi.getEntities({
-          filter: {
-            kind: 'WorkflowPlane',
-            'metadata.namespace': selectedNamespace,
-          },
-        }),
-        catalogApi.getEntities({
-          filter: { kind: 'ClusterWorkflowPlane' },
-        }),
-        catalogApi.getEntities({
-          filter: {
-            kind: 'DataPlane',
-            'metadata.namespace': selectedNamespace,
-          },
-        }),
-        catalogApi.getEntities({
-          filter: { kind: 'ClusterDataPlane' },
-        }),
-      ]);
+    const [wpResult, cwpResult, dpResult, cdpResult] = await Promise.all([
+      catalogApi.getEntities({
+        filter: {
+          kind: 'WorkflowPlane',
+          'metadata.namespace': selectedNamespace,
+        },
+      }),
+      catalogApi.getEntities({
+        filter: { kind: 'ClusterWorkflowPlane' },
+      }),
+      catalogApi.getEntities({
+        filter: {
+          kind: 'DataPlane',
+          'metadata.namespace': selectedNamespace,
+        },
+      }),
+      catalogApi.getEntities({
+        filter: { kind: 'ClusterDataPlane' },
+      }),
+    ]);
 
-      const planes: TargetPlaneOption[] = [];
+    const planes: TargetPlaneOption[] = [];
 
-      // Cluster-scoped first, then namespaced
-      cdpResult.items.forEach(e => {
-        planes.push({
-          name: e.metadata.name,
-          kind: 'ClusterDataPlane' as TargetPlaneKind,
-        });
+    // Cluster-scoped first, then namespaced
+    cdpResult.items.forEach(e => {
+      planes.push({
+        name: e.metadata.name,
+        kind: 'ClusterDataPlane' as TargetPlaneKind,
       });
-      cwpResult.items.forEach(e => {
-        planes.push({
-          name: e.metadata.name,
-          kind: 'ClusterWorkflowPlane' as TargetPlaneKind,
-        });
+    });
+    cwpResult.items.forEach(e => {
+      planes.push({
+        name: e.metadata.name,
+        kind: 'ClusterWorkflowPlane' as TargetPlaneKind,
       });
-      dpResult.items.forEach(e => {
-        planes.push({
-          name: e.metadata.name,
-          kind: 'DataPlane' as TargetPlaneKind,
-        });
+    });
+    dpResult.items.forEach(e => {
+      planes.push({
+        name: e.metadata.name,
+        kind: 'DataPlane' as TargetPlaneKind,
       });
-      wpResult.items.forEach(e => {
-        planes.push({
-          name: e.metadata.name,
-          kind: 'WorkflowPlane' as TargetPlaneKind,
-        });
+    });
+    wpResult.items.forEach(e => {
+      planes.push({
+        name: e.metadata.name,
+        kind: 'WorkflowPlane' as TargetPlaneKind,
       });
+    });
 
-      return planes;
-    }, [catalogApi, selectedNamespace]);
+    return planes;
+  }, [catalogApi, selectedNamespace]);
 
   const {
     secrets,
@@ -265,6 +268,7 @@ export const SecretsContent = () => {
         existingSecretNames={secrets.map(s => s.name)}
         targetPlanes={targetPlanes || []}
         targetPlanesLoading={targetPlanesLoading}
+        targetPlanesError={targetPlanesError}
       />
     </Box>
   );

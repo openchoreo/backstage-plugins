@@ -48,6 +48,7 @@ interface CreateSecretDialogProps {
   existingSecretNames?: string[];
   targetPlanes?: TargetPlaneOption[];
   targetPlanesLoading?: boolean;
+  targetPlanesError?: Error;
 }
 
 interface KeyValueRow {
@@ -123,7 +124,9 @@ const SECRET_TYPES: {
   },
 ];
 
-const KUBE_NAME_RE = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
+// DNS-1123 subdomain: lowercase alphanumerics, dashes and dots; must start
+// and end with an alphanumeric.
+const KUBE_NAME_RE = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/;
 
 export const CreateSecretDialog = ({
   open,
@@ -133,6 +136,7 @@ export const CreateSecretDialog = ({
   existingSecretNames = [],
   targetPlanes = [],
   targetPlanesLoading = false,
+  targetPlanesError,
 }: CreateSecretDialogProps) => {
   const classes = useStyles();
 
@@ -256,7 +260,7 @@ export const CreateSecretDialog = ({
     const name = secretName.trim();
     if (!name) return null;
     if (!KUBE_NAME_RE.test(name)) {
-      return 'Lowercase letters, numbers, and dashes only';
+      return 'Lowercase letters, numbers, dashes and dots only; must start and end with an alphanumeric';
     }
     if (existingSecretNames.includes(name)) {
       return 'A secret with this name already exists';
@@ -520,7 +524,9 @@ export const CreateSecretDialog = ({
           value={secretName}
           onChange={e => setSecretName(e.target.value)}
           error={!!nameError}
-          helperText={nameError ?? 'Lowercase letters, numbers, dashes.'}
+          helperText={
+            nameError ?? 'Lowercase letters, numbers, dashes and dots.'
+          }
         />
 
         <FormControl
@@ -528,6 +534,7 @@ export const CreateSecretDialog = ({
           size="small"
           fullWidth
           className={classes.field}
+          error={Boolean(targetPlanesError)}
         >
           <InputLabel id="target-plane-label">Target Plane</InputLabel>
           <Select
@@ -536,7 +543,10 @@ export const CreateSecretDialog = ({
             value={effectivePlaneIndex}
             onChange={e => setSelectedPlaneIndex(e.target.value as number)}
             disabled={
-              loading || targetPlanesLoading || targetPlanes.length === 0
+              loading ||
+              targetPlanesLoading ||
+              Boolean(targetPlanesError) ||
+              targetPlanes.length === 0
             }
           >
             {targetPlanesLoading && (
@@ -545,19 +555,33 @@ export const CreateSecretDialog = ({
                 Loading planes...
               </MenuItem>
             )}
-            {!targetPlanesLoading && targetPlanes.length === 0 && (
+            {!targetPlanesLoading && targetPlanesError && (
               <MenuItem disabled value="">
-                No target planes available
+                Failed to load target planes
               </MenuItem>
             )}
             {!targetPlanesLoading &&
+              !targetPlanesError &&
+              targetPlanes.length === 0 && (
+                <MenuItem disabled value="">
+                  No target planes available
+                </MenuItem>
+              )}
+            {!targetPlanesLoading &&
+              !targetPlanesError &&
               targetPlanes.map((plane, index) => (
                 <MenuItem key={`${plane.kind}/${plane.name}`} value={index}>
                   {plane.name} ({plane.kind})
                 </MenuItem>
               ))}
           </Select>
-          <FormHelperText>Where this secret will be delivered.</FormHelperText>
+          <FormHelperText>
+            {targetPlanesError
+              ? `Failed to load target planes: ${
+                  targetPlanesError.message || 'unknown error'
+                }`
+              : 'Where this secret will be delivered.'}
+          </FormHelperText>
         </FormControl>
 
         <FormControl component="fieldset" className={classes.field}>
@@ -604,7 +628,9 @@ export const CreateSecretDialog = ({
             loading ||
             !secretName.trim() ||
             !!nameError ||
-            (targetPlanes.length > 0 && effectivePlaneIndex === '')
+            Boolean(targetPlanesError) ||
+            targetPlanes.length === 0 ||
+            effectivePlaneIndex === ''
           }
           startIcon={loading ? <CircularProgress size={20} /> : null}
         >
