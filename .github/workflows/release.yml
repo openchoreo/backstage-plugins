@@ -54,6 +54,10 @@ jobs:
       - name: Retag existing image with release version
         run: |
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          if ! docker buildx imagetools inspect "${IMAGE}:${{ env.GIT_SHA_SHORT }}" > /dev/null 2>&1; then
+            echo "::error::Image ${IMAGE}:${{ env.GIT_SHA_SHORT }} not found. Ensure the commit was pushed to a release branch before tagging."
+            exit 1
+          fi
           echo "Retagging ${IMAGE}:${{ env.GIT_SHA_SHORT }} -> ${IMAGE}:${{ env.RELEASE_TAG }}"
           docker buildx imagetools create \
             --tag "${IMAGE}:${{ env.RELEASE_TAG }}" \
