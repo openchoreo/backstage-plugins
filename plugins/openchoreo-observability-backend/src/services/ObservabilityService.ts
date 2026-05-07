@@ -213,8 +213,7 @@ export class ObservabilityService {
       return null;
     }
 
-    const pipelineName =
-      projectResult.data.spec?.deploymentPipelineRef?.name;
+    const pipelineName = projectResult.data.spec?.deploymentPipelineRef?.name;
     if (!pipelineName) {
       this.logger.warn(
         `Project ${projectName} has no deploymentPipelineRef; returning unfiltered environment list`,
