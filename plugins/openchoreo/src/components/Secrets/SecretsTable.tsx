@@ -268,6 +268,7 @@ export const SecretsTable = ({
                         size="small"
                         onClick={() => handleDeleteClick(secret.name)}
                         className={classes.deleteButton}
+                        aria-label={`Delete secret ${secret.name}`}
                       >
                         <DeleteOutlineIcon />
                       </IconButton>
