@@ -91,6 +91,26 @@ describe('SecretsService', () => {
         createService().listSecrets('test-ns', 'token'),
       ).rejects.toThrow();
     });
+
+    it('returns secretType as undefined for unsupported template types', async () => {
+      const exoticRef = {
+        apiVersion: 'openchoreo.dev/v1alpha1',
+        kind: 'SecretReference',
+        metadata: { name: 'kubeadm-token', namespace: 'test-ns' },
+        spec: {
+          template: { type: 'bootstrap.kubernetes.io/token' },
+          targetPlane: { kind: 'DataPlane', name: 'dp-prod' },
+          data: [],
+        },
+      };
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [exoticRef] }));
+
+      const result = await createService().listSecrets('test-ns', 'token');
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].name).toBe('kubeadm-token');
+      expect(result.items[0].secretType).toBeUndefined();
+    });
   });
 
   describe('getSecret', () => {

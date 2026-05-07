@@ -190,22 +190,30 @@ export class SecretsService {
   }
 }
 
+const SUPPORTED_SECRET_TYPES: ReadonlySet<SecretType> = new Set([
+  'Opaque',
+  'kubernetes.io/basic-auth',
+  'kubernetes.io/ssh-auth',
+  'kubernetes.io/dockerconfigjson',
+  'kubernetes.io/tls',
+]);
+
+function toSecretType(raw: string | undefined): SecretType | undefined {
+  if (raw && SUPPORTED_SECRET_TYPES.has(raw as SecretType)) {
+    return raw as SecretType;
+  }
+  return undefined;
+}
+
 function toSecretResponse(ref: SecretReference): SecretResponse {
   const keys = (ref.spec?.data ?? [])
     .map(d => d.secretKey)
     .sort((a, b) => a.localeCompare(b));
 
-  // template.type maps 1:1 onto SecretResponse.secretType for the values used
-  // here (Opaque, kubernetes.io/basic-auth, kubernetes.io/ssh-auth,
-  // kubernetes.io/dockerconfigjson, kubernetes.io/tls). The wider SecretTemplate
-  // enum allows a few extras (e.g. dockercfg, bootstrap-token) that the
-  // SecretResponse enum doesn't, so we coerce through the shared `SecretType`.
-  const secretType = ref.spec?.template?.type as SecretType | undefined;
-
   return {
     name: ref.metadata?.name ?? '',
     namespace: ref.metadata?.namespace ?? '',
-    secretType,
+    secretType: toSecretType(ref.spec?.template?.type),
     targetPlane: ref.spec?.targetPlane,
     keys,
   };
