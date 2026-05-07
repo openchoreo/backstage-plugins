@@ -1,0 +1,149 @@
+name: Release Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      major:
+        description: 'Semver major component'
+        required: true
+        type: string
+      minor:
+        description: 'Semver minor component'
+        required: true
+        type: string
+      patch:
+        description: 'Semver patch component'
+        required: true
+        type: string
+      pre_release_id:
+        description: 'Prerelease identifier (e.g. rc.1, beta.2)'
+        required: false
+        type: string
+      commit_sha:
+        description: 'Pin the tag to a specific commit SHA (overrides default resolution)'
+        required: false
+        type: string
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.event.inputs.major }}-${{ github.event.inputs.minor }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: read
+
+env:
+  MAJOR: ${{ github.event.inputs.major }}
+  MINOR: ${{ github.event.inputs.minor }}
+  PATCH: ${{ github.event.inputs.patch }}
+  PRE_RELEASE_ID: ${{ github.event.inputs.pre_release_id }}
+  COMMIT_SHA: ${{ github.event.inputs.commit_sha }}
+  REGISTRY: ghcr.io
+  IMAGE_NAME: openchoreo/openchoreo-ui
+
+jobs:
+  tag:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set git identity
+        run: |
+          git config user.name "openchoreo-bot"
+          git config user.email "openchoreo-bot@users.noreply.github.com"
+
+      - name: Resolve base branch
+        run: |
+          VER="${MAJOR}.${MINOR}"
+          if git ls-remote origin "refs/heads/release-v${VER}" | head -1 | grep -q .; then
+            echo "BASE_BRANCH=release-v${VER}" >> $GITHUB_ENV
+          else
+            echo "BASE_BRANCH=main" >> $GITHUB_ENV
+          fi
+
+      - name: Determine commit to tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "${COMMIT_SHA}" ]; then
+            RESOLVED_SHA="${COMMIT_SHA}"
+            echo "Using user-provided commit SHA: ${RESOLVED_SHA}"
+          elif git ls-remote origin "refs/heads/release-v${MAJOR}.${MINOR}" | head -1 | grep -q .; then
+            git fetch origin "refs/heads/release-v${MAJOR}.${MINOR}"
+            RESOLVED_SHA=$(git rev-parse "origin/release-v${MAJOR}.${MINOR}")
+            echo "Using release branch HEAD: ${RESOLVED_SHA}"
+          else
+            PREP_VER="${MAJOR}.${MINOR}.${PATCH}"
+            if [ -n "${PRE_RELEASE_ID}" ]; then
+              PREP_VER="${PREP_VER}-${PRE_RELEASE_ID}"
+            fi
+            RESOLVED_SHA=$(gh pr list --state merged \
+              --head "release-prep-v${PREP_VER}" \
+              --json mergeCommit --jq '.[0].mergeCommit.oid' 2>/dev/null || true)
+            if [ -z "${RESOLVED_SHA}" ] || [ "${RESOLVED_SHA}" = "null" ]; then
+              echo "ERROR: No merged prep PR found for release-prep-v${PREP_VER}."
+              echo "Was the prep PR merged?"
+              exit 1
+            fi
+            echo "Using prep PR merge commit: ${RESOLVED_SHA}"
+          fi
+          echo "RESOLVED_SHA=${RESOLVED_SHA}" >> $GITHUB_ENV
+
+      - name: Validate resolved commit exists
+        run: |
+          if ! git cat-file -e "${RESOLVED_SHA}" 2>/dev/null; then
+            echo "ERROR: Commit ${RESOLVED_SHA} does not exist in this repository."
+            exit 1
+          fi
+
+      - name: Validate VERSION file
+        run: |
+          git checkout "${RESOLVED_SHA}"
+          CONTENT=$(cat VERSION | tr -d ' \n\t')
+          VER="${MAJOR}.${MINOR}.${PATCH}"
+          if [ -n "${PRE_RELEASE_ID}" ]; then
+            VER="${VER}-${PRE_RELEASE_ID}"
+          fi
+          if [ "$CONTENT" != "$VER" ]; then
+            echo "ERROR: VERSION at ${RESOLVED_SHA} contains '$CONTENT', expected '$VER'"
+            exit 1
+          fi
+
+      - name: Pre-validate source image exists in GHCR
+        run: |
+          GIT_SHA_SHORT=$(git rev-parse --short=8 "${RESOLVED_SHA}")
+          echo "Checking ${REGISTRY}/${IMAGE_NAME}:${GIT_SHA_SHORT}"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json" \
+            "https://${REGISTRY}/v2/${IMAGE_NAME}/manifests/${GIT_SHA_SHORT}")
+          if [ "${HTTP_CODE}" != "200" ]; then
+            echo "ERROR: Image ${REGISTRY}/${IMAGE_NAME}:${GIT_SHA_SHORT} not found (HTTP ${HTTP_CODE})."
+            echo ""
+            echo "build-and-test may still be running for commit ${GIT_SHA_SHORT}."
+            echo "Wait for build-and-test to complete, then retry."
+            exit 1
+          fi
+          echo "Image exists. Proceeding."
+
+      - name: Create and push annotated tag
+        env:
+          PAT: ${{ secrets.RELEASE_PAT }}
+        run: |
+          TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          if [ -n "${PRE_RELEASE_ID}" ]; then
+            TAG="${TAG}-${PRE_RELEASE_ID}"
+          fi
+          git tag -a "${TAG}" -m "Release ${TAG}" "${RESOLVED_SHA}"
+          git push "https://x-access-token:${PAT}@github.com/${GITHUB_REPOSITORY}.git" "${TAG}"
+
+      - name: Delete stale prep branch
+        run: |
+          VER="${MAJOR}.${MINOR}.${PATCH}"
+          if [ -n "${PRE_RELEASE_ID}" ]; then
+            VER="${VER}-${PRE_RELEASE_ID}"
+          fi
+          git push origin --delete "release-prep-v${VER}" 2>/dev/null || true
