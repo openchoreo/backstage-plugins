@@ -1201,6 +1201,15 @@ export async function createRouter({
         'data must be an object of string keys to string values',
       );
     }
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value !== 'string') {
+        throw new InputError(
+          `data.${key} must be a string (got ${
+            value === null ? 'null' : typeof value
+          })`,
+        );
+      }
+    }
 
     const userToken = getUserTokenFromRequest(req);
 

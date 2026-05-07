@@ -602,6 +602,28 @@ describe('createRouter', () => {
       expect(response.status).toBe(400);
       expect(response.body.error.message).toContain('data must be an object');
     });
+
+    it('rejects when a data value is not a string', async () => {
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send({ ...validBody, data: { good: 'v', bad: 42 } });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain(
+        'data.bad must be a string',
+      );
+    });
+
+    it('rejects when a data value is null', async () => {
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send({ ...validBody, data: { good: 'v', bad: null } });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain(
+        'data.bad must be a string',
+      );
+    });
   });
 
   describe('DELETE /secrets/:secretName', () => {
