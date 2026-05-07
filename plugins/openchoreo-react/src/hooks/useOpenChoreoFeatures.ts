@@ -4,7 +4,8 @@ import type { OpenChoreoFeatures } from '@openchoreo/backstage-plugin-common';
 
 /**
  * Default feature configuration when no config is provided.
- * All features are enabled by default.
+ * All features are enabled by default EXCEPT `assistant`, which is opt-in
+ * because it requires the `assistant-agent` service + LLM API key.
  */
 const defaultFeatures: OpenChoreoFeatures = {
   workflows: { enabled: true },
@@ -12,6 +13,7 @@ const defaultFeatures: OpenChoreoFeatures = {
   auth: { enabled: true },
   authz: { enabled: true },
   cilium: { enabled: false },
+  assistant: { enabled: false },
 };
 
 /**
@@ -56,6 +58,10 @@ export function useOpenChoreoFeatures(): OpenChoreoFeatures {
         },
         cilium: {
           enabled: featuresConfig.getOptionalBoolean('cilium.enabled') ?? false,
+        },
+        assistant: {
+          enabled:
+            featuresConfig.getOptionalBoolean('assistant.enabled') ?? false,
         },
       };
     } catch {
@@ -103,4 +109,13 @@ export function useAuthzEnabled(): boolean {
 export function useCiliumEnabled(): boolean {
   const features = useOpenChoreoFeatures();
   return features.cilium.enabled;
+}
+
+/*
+ * Helper hook to check if the OpenChoreo Assistant is enabled.
+ * Defaults to false (opt-in).
+ */
+export function useAssistantEnabled(): boolean {
+  const features = useOpenChoreoFeatures();
+  return features.assistant.enabled;
 }

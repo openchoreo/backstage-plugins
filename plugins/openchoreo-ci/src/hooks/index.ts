@@ -6,6 +6,10 @@ export {
 
 export { useWorkflowData } from './useWorkflowData';
 export {
+  useLatestFailedRun,
+  type LatestFailedRunResult,
+} from './useLatestFailedRun';
+export {
   useWorkflowRouting,
   type WorkflowView,
   type WorkflowTab,

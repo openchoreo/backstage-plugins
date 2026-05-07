@@ -111,6 +111,11 @@ import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
 
 import { Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
 import {
+  FailedBuildSnackbar,
+  BuildPagePromptLauncher,
+  LogsPageDebugPrompt,
+} from '@openchoreo/backstage-plugin-openchoreo-perch';
+import {
   WorkflowRunsContent,
   EntityNamespaceProvider,
 } from '@openchoreo/backstage-plugin-openchoreo-workflows';
@@ -253,6 +258,10 @@ function OverviewContent() {
       {entityWarningContent}
       <EntitySwitch>
         <EntitySwitch.Case if={isKind('component')}>
+          {/* Failed-build prompt — renders nothing unless the latest run is in
+              a failed state. Sits inside the EntitySwitch so it inherits the
+              entity context and only mounts on component pages. */}
+          <FailedBuildSnackbar />
           {/* CI Status Card - shows external CI card if annotation present, otherwise OpenChoreo WorkflowsOverviewCard */}
           <WorkflowsOrExternalCICard />
           <Grid item md={4} xs={12}>
@@ -304,6 +313,7 @@ const serviceEntityPage = (
 
     <EntityLayout.Route path="/workflows" title="Build">
       <FeatureGatedContent feature="workflows">
+        <BuildPagePromptLauncher />
         <Workflows />
       </FeatureGatedContent>
     </EntityLayout.Route>
@@ -315,6 +325,7 @@ const serviceEntityPage = (
     <EntityLayout.Route path="/runtime-logs" title="Logs">
       <FeatureGatedContent feature="observability">
         <ObservabilityRuntimeLogs />
+        <LogsPageDebugPrompt />
       </FeatureGatedContent>
     </EntityLayout.Route>
 
@@ -392,6 +403,7 @@ const genericComponentEntityPage = (
 
     <EntityLayout.Route path="/workflows" title="Build">
       <FeatureGatedContent feature="workflows">
+        <BuildPagePromptLauncher />
         <Workflows />
       </FeatureGatedContent>
     </EntityLayout.Route>
@@ -403,6 +415,7 @@ const genericComponentEntityPage = (
     <EntityLayout.Route path="/runtime-logs" title="Logs">
       <FeatureGatedContent feature="observability">
         <ObservabilityRuntimeLogs />
+        <LogsPageDebugPrompt />
       </FeatureGatedContent>
     </EntityLayout.Route>
 
@@ -655,6 +668,7 @@ const systemPage = (
     <EntityLayout.Route path="/logs" title="Logs">
       <FeatureGatedContent feature="observability">
         <ObservabilityProjectRuntimeLogs />
+        <LogsPageDebugPrompt />
       </FeatureGatedContent>
     </EntityLayout.Route>
     <EntityLayout.Route path="/traces" title="Traces">

@@ -41,6 +41,10 @@ import {
   GenericWorkflowsClient,
 } from '@openchoreo/backstage-plugin-openchoreo-workflows';
 import {
+  assistantAgentApiRef,
+  AssistantAgentClient,
+} from '@openchoreo/backstage-plugin-openchoreo-perch';
+import {
   catalogApiRef,
   entityPresentationApiRef,
 } from '@backstage/plugin-catalog-react';
@@ -235,6 +239,17 @@ export const apis: AnyApiFactory[] = [
     },
     factory: ({ discoveryApi, fetchApi }) =>
       new GenericWorkflowsClient(discoveryApi, fetchApi),
+  }),
+
+  // Assistant Agent client - streams chat with the assistant-agent service via the proxy
+  createApiFactory({
+    api: assistantAgentApiRef,
+    deps: {
+      discoveryApi: discoveryApiRef,
+      fetchApi: fetchApiRef,
+    },
+    factory: ({ discoveryApi, fetchApi }) =>
+      new AssistantAgentClient({ discoveryApi, fetchApi }),
   }),
 
   // Custom EntityPresentationApi with icons for custom entity kinds
