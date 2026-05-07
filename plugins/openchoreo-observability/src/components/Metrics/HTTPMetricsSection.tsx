@@ -1,11 +1,14 @@
 import { useEffect, useRef } from 'react';
 import {
+  Button,
   Card,
   CardContent,
   CardHeader,
   Divider,
   Grid,
+  Typography,
 } from '@material-ui/core';
+import { Alert } from '@material-ui/lab';
 import { MetricGraphByComponent } from './MetricGraphByComponent';
 import {
   Filters,
@@ -31,7 +34,7 @@ export const HTTPMetricsSection = ({
   project,
 }: HTTPMetricsSectionProps) => {
   const ciliumEnabled = useCiliumEnabled();
-  const { metrics, loading, error, fetchMetrics } = useMetrics(
+  const { metrics, error, fetchMetrics } = useMetrics(
     filters,
     entity,
     namespaceName,
@@ -46,7 +49,7 @@ export const HTTPMetricsSection = ({
   });
 
   useEffect(() => {
-    if (!ciliumEnabled || loading) {
+    if (!ciliumEnabled) {
       return;
     }
 
@@ -59,26 +62,41 @@ export const HTTPMetricsSection = ({
       JSON.stringify(previousFiltersRef.current) !==
       JSON.stringify(currentFilters);
 
-    if (
-      filters.environment &&
-      filters.timeRange &&
-      (filtersChanged || !metrics)
-    ) {
+    if (filters.environment && filters.timeRange && filtersChanged) {
       fetchMetrics(true);
     }
 
     previousFiltersRef.current = currentFilters;
-  }, [
-    ciliumEnabled,
-    loading,
-    filters.environment,
-    filters.timeRange,
-    metrics,
-    fetchMetrics,
-  ]);
+  }, [ciliumEnabled, filters.environment, filters.timeRange, fetchMetrics]);
 
-  if (!ciliumEnabled || error) {
+  if (!ciliumEnabled) {
     return null;
+  }
+
+  if (error) {
+    const isMetricsModuleError = error.toLowerCase().includes('metrics module');
+
+    return (
+      <Grid item xs={12}>
+        <Alert severity="error">
+          <Typography variant="body1">
+            {isMetricsModuleError
+              ? 'HTTP metrics are unavailable. Check the metrics module configuration.'
+              : 'Failed to load HTTP metrics.'}
+          </Typography>
+          <Typography variant="body2">{error}</Typography>
+          {!isMetricsModuleError && (
+            <Button
+              onClick={() => fetchMetrics(true)}
+              color="inherit"
+              size="small"
+            >
+              Retry
+            </Button>
+          )}
+        </Alert>
+      </Grid>
+    );
   }
 
   const throughputData =

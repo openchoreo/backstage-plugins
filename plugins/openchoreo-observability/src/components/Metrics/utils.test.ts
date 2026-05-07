@@ -169,7 +169,9 @@ describe('transformMetricsData', () => {
     const data = {
       cpuUsage: [
         { timestamp: '2024-06-01T10:00:00Z', value: 0.1 },
-        { timestamp: '2024-06-01T10:10:00Z', value: 0.2 }, // 10-min gap
+        { timestamp: '2024-06-01T10:01:00Z', value: 0.15 },
+        { timestamp: '2024-06-01T10:02:00Z', value: 0.18 },
+        { timestamp: '2024-06-01T10:12:00Z', value: 0.2 }, // 10-min gap
       ],
       cpuLimits: [
         { timestamp: '2024-06-01T10:00:00Z', value: 1 },
@@ -179,6 +181,7 @@ describe('transformMetricsData', () => {
     };
 
     const result = transformMetricsData(data as any);
+    expect(result.some(entry => entry.cpuUsage === null)).toBe(true);
     const cpuLimitTimestamps = new Set(
       data.cpuLimits.map(point => point.timestamp),
     );
