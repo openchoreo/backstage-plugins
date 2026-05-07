@@ -91,17 +91,26 @@ export class ObservabilityService {
   /**
    * Fetches environments for observability filtering purposes.
    *
+   * When `projectName` is provided, the result is restricted to environments
+   * that appear in the project's deployment pipeline (as either a source or
+   * target of any promotion path). Without it, all environments in the
+   * namespace are returned.
+   *
    * @param namespaceName - The namespace name
+   * @param projectName - Optional project name to filter environments by the project's deployment pipeline
    * @param userToken - Optional user token for authentication (takes precedence over default token)
    */
   async fetchEnvironmentsByNamespace(
     namespaceName: string,
+    projectName?: string,
     userToken?: string,
   ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
       this.logger.debug(
-        `Starting environment fetch for namespace: ${namespaceName}`,
+        `Starting environment fetch for namespace: ${namespaceName}${
+          projectName ? `, project: ${projectName}` : ''
+        }`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -109,6 +118,18 @@ export class ObservabilityService {
         logger: this.logger,
         token: userToken,
       });
+
+      // Resolve the set of environment names allowed by the project's
+      // deployment pipeline, if a project is specified. A null result means
+      // no filter should be applied (project/pipeline lookup failed or no
+      // project context was given).
+      const allowedEnvNames = projectName
+        ? await this.resolveDeploymentPipelineEnvironments(
+            client,
+            namespaceName,
+            projectName,
+          )
+        : null;
 
       const { data, error, response } = await client.GET(
         '/api/v1/namespaces/{namespaceName}/environments',
@@ -133,7 +154,7 @@ export class ObservabilityService {
         return [];
       }
 
-      const environments: Environment[] = data.items.map((item: any) => ({
+      let environments: Environment[] = data.items.map((item: any) => ({
         uid: item.metadata?.uid ?? '',
         name: item.metadata?.name ?? '',
         namespace: item.metadata?.namespace ?? '',
@@ -143,6 +164,12 @@ export class ObservabilityService {
         dataPlaneRef: item.spec?.dataPlaneRef,
         createdAt: item.metadata?.creationTimestamp ?? '',
       }));
+
+      if (allowedEnvNames) {
+        environments = environments.filter(env =>
+          allowedEnvNames.has(env.name),
+        );
+      }
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -158,6 +185,74 @@ export class ObservabilityService {
       );
       return [];
     }
+  }
+
+  /**
+   * Resolves the set of environment names referenced by the project's
+   * deployment pipeline. Returns null when the lookup cannot be completed
+   * (project not found, no pipeline ref, etc.) so the caller can decide
+   * whether to skip filtering.
+   */
+  private async resolveDeploymentPipelineEnvironments(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    namespaceName: string,
+    projectName: string,
+  ): Promise<Set<string> | null> {
+    const projectResult = await client.GET(
+      '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
+      { params: { path: { namespaceName, projectName } } },
+    );
+    if (
+      projectResult.error ||
+      !projectResult.response.ok ||
+      !projectResult.data
+    ) {
+      this.logger.warn(
+        `Failed to fetch project ${projectName} in namespace ${namespaceName} for environment filtering; returning unfiltered list`,
+      );
+      return null;
+    }
+
+    const pipelineName =
+      projectResult.data.spec?.deploymentPipelineRef?.name;
+    if (!pipelineName) {
+      this.logger.warn(
+        `Project ${projectName} has no deploymentPipelineRef; returning unfiltered environment list`,
+      );
+      return null;
+    }
+
+    const pipelineResult = await client.GET(
+      '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}',
+      {
+        params: {
+          path: { namespaceName, deploymentPipelineName: pipelineName },
+        },
+      },
+    );
+    if (
+      pipelineResult.error ||
+      !pipelineResult.response.ok ||
+      !pipelineResult.data
+    ) {
+      this.logger.warn(
+        `Failed to fetch deployment pipeline ${pipelineName} in namespace ${namespaceName}; returning unfiltered environment list`,
+      );
+      return null;
+    }
+
+    const allowed = new Set<string>();
+    for (const path of pipelineResult.data.spec?.promotionPaths ?? []) {
+      if (path.sourceEnvironmentRef?.name) {
+        allowed.add(path.sourceEnvironmentRef.name);
+      }
+      for (const target of path.targetEnvironmentRefs ?? []) {
+        if (target.name) {
+          allowed.add(target.name);
+        }
+      }
+    }
+    return allowed;
   }
 }
 
