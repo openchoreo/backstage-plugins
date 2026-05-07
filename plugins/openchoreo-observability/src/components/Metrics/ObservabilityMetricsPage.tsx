@@ -13,6 +13,7 @@ import { Progress } from '@backstage/core-components';
 import { MetricsFilters } from './MetricsFilters';
 import { MetricGraphByComponent } from './MetricGraphByComponent';
 import { MetricsActions } from './MetricsActions';
+import { HTTPMetricsSection } from './HTTPMetricsSection';
 import {
   useGetNamespaceAndProjectByEntity,
   useGetEnvironmentsByNamespace,
@@ -21,10 +22,9 @@ import {
 } from '../../hooks';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
+  ResourceMetrics,
   CpuUsageMetrics,
   MemoryUsageMetrics,
-  NetworkLatencyMetrics,
-  NetworkThroughputMetrics,
 } from '../../types';
 import { useObservabilityMetricsPageStyles } from './styles';
 import { Alert } from '@material-ui/lab';
@@ -61,6 +61,7 @@ const ObservabilityMetricsContent = () => {
     fetchMetrics,
     refresh,
   } = useMetrics(filters, entity, namespace as string, project as string);
+  const resourceMetrics = metrics as ResourceMetrics;
 
   // Track previous filter values to detect changes
   const previousFiltersRef = useRef({
@@ -151,7 +152,9 @@ const ObservabilityMetricsContent = () => {
                 <Divider />
                 <CardContent>
                   <MetricGraphByComponent
-                    usageData={metrics?.cpuUsage || ({} as CpuUsageMetrics)}
+                    usageData={
+                      resourceMetrics?.cpuUsage || ({} as CpuUsageMetrics)
+                    }
                     usageType="cpu"
                     timeRange={filters.timeRange}
                   />
@@ -165,7 +168,7 @@ const ObservabilityMetricsContent = () => {
                 <CardContent>
                   <MetricGraphByComponent
                     usageData={
-                      metrics?.memoryUsage || ({} as MemoryUsageMetrics)
+                      resourceMetrics?.memoryUsage || ({} as MemoryUsageMetrics)
                     }
                     usageType="memory"
                     timeRange={filters.timeRange}
@@ -173,37 +176,12 @@ const ObservabilityMetricsContent = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardHeader title="Network Throughput" />
-                <Divider />
-                <CardContent>
-                  <MetricGraphByComponent
-                    usageData={
-                      metrics?.networkThroughput ||
-                      ({} as NetworkThroughputMetrics)
-                    }
-                    usageType="networkThroughput"
-                    timeRange={filters.timeRange}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardHeader title="Network Latency" />
-                <Divider />
-                <CardContent>
-                  <MetricGraphByComponent
-                    usageData={
-                      metrics?.networkLatency || ({} as NetworkLatencyMetrics)
-                    }
-                    usageType="networkLatency"
-                    timeRange={filters.timeRange}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
+            <HTTPMetricsSection
+              filters={filters}
+              entity={entity}
+              namespaceName={namespace as string}
+              project={project as string}
+            />
           </Grid>
         </>
       )}

@@ -6,8 +6,10 @@ import { ObservabilityMetricsPage } from './ObservabilityMetricsPage';
 // ---- Mocks (own hooks and child components only) ----
 
 const mockUseMetricsPermission = jest.fn();
+const mockUseCiliumEnabled = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useMetricsPermission: () => mockUseMetricsPermission(),
+  useCiliumEnabled: () => mockUseCiliumEnabled(),
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden-state">{message}</div>
   ),
@@ -85,6 +87,7 @@ function renderPage() {
 }
 
 function setupDefaultMocks() {
+  mockUseCiliumEnabled.mockReturnValue(true);
   mockUseMetricsPermission.mockReturnValue({
     canViewMetrics: true,
     loading: false,
@@ -228,11 +231,14 @@ describe('ObservabilityMetricsPage', () => {
 
     await renderPage();
 
-    expect(screen.getByText('Metrics query failed')).toBeInTheDocument();
-    expect(screen.getByText('Retry')).toBeInTheDocument();
+    expect(screen.getAllByText('Metrics query failed').length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.getAllByText('Retry').length).toBeGreaterThan(0);
   });
 
   it('shows info message when observability is disabled', async () => {
+    mockUseCiliumEnabled.mockReturnValue(false);
     mockUseMetrics.mockReturnValue({
       metrics: null,
       loading: false,

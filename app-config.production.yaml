@@ -169,7 +169,7 @@ openchoreo:
     timeout: 120 # seconds for timeout (default: 120)
 
   # Feature flags for enabling/disabling OpenChoreo functionality
-  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED
+  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_CILIUM_ENABLED
   features:
     # Workflow plane / Workflows functionality
     # When disabled, hides Workflows tab and WorkflowsOverviewCard from entity pages
@@ -187,6 +187,10 @@ openchoreo:
     # When disabled, hides Access Control sidebar item and pages
     authz:
       enabled: ${OPENCHOREO_FEATURES_AUTHZ_ENABLED}
+    # Cilium feature — HTTP metrics (Network Throughput, Network Latency)
+    # When disabled, HTTP metrics graphs are hidden and the HTTP query is not sent to the observer
+    cilium:
+      enabled: ${OPENCHOREO_FEATURES_CILIUM_ENABLED}
 
 thunder:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)

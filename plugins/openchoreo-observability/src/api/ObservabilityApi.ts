@@ -4,7 +4,9 @@ import {
   FetchApi,
 } from '@backstage/core-plugin-api';
 import {
-  Metrics,
+  ResourceMetrics,
+  HttpMetrics,
+  MetricType,
   Trace,
   Span,
   SpanDetails,
@@ -41,8 +43,9 @@ export interface ObservabilityApi {
       startTime?: string;
       endTime?: string;
       step?: string;
+      type?: MetricType;
     },
-  ): Promise<Metrics>;
+  ): Promise<ResourceMetrics | HttpMetrics>;
 
   getTraces(
     namespaceName: string,
@@ -169,8 +172,9 @@ export class ObservabilityClient implements ObservabilityApi {
       startTime?: string;
       endTime?: string;
       step?: string;
+      type?: MetricType;
     },
-  ): Promise<Metrics> {
+  ): Promise<ResourceMetrics | HttpMetrics> {
     const { observerUrl } = await this.urlCache.resolveUrls(
       namespaceName,
       environmentName,
@@ -196,62 +200,59 @@ export class ObservabilityClient implements ObservabilityApi {
       headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
     };
 
-    const [usageResponse, httpResponse] = await Promise.all([
-      this.fetchApi.fetch(`${observerUrl}/api/v1/metrics/query`, {
-        ...fetchOptions,
-        body: JSON.stringify({ ...baseBody, metric: 'resource' }),
-      }),
-      this.fetchApi.fetch(`${observerUrl}/api/v1/metrics/query`, {
-        ...fetchOptions,
-        body: JSON.stringify({ ...baseBody, metric: 'http' }),
-      }),
-    ]);
+    const metricType = options?.type ?? 'resource';
 
-    if (!usageResponse.ok) {
-      const error = await this.parseError(usageResponse);
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1/metrics/query`,
+      {
+        ...fetchOptions,
+        body: JSON.stringify({ ...baseBody, metric: metricType }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
       if (error.includes('Observability is not configured for component')) {
         throw new Error('Observability is not enabled for this component');
       }
       throw new Error(
-        error || `Failed to fetch metrics: ${usageResponse.statusText}`,
+        error || `Failed to fetch metrics: ${response.statusText}`,
       );
     }
 
-    if (!httpResponse.ok) {
-      const error = await this.parseError(httpResponse);
-      throw new Error(
-        error || `Failed to fetch HTTP metrics: ${httpResponse.statusText}`,
-      );
+    const data = await response.json();
+
+    switch (metricType) {
+      case 'resource':
+        return {
+          cpuUsage: {
+            cpuUsage: data.cpuUsage ?? [],
+            cpuRequests: data.cpuRequests ?? [],
+            cpuLimits: data.cpuLimits ?? [],
+          },
+          memoryUsage: {
+            memoryUsage: data.memoryUsage ?? [],
+            memoryRequests: data.memoryRequests ?? [],
+            memoryLimits: data.memoryLimits ?? [],
+          },
+        };
+      case 'http':
+        return {
+          networkThroughput: {
+            requestCount: data.requestCount ?? [],
+            successfulRequestCount: data.successfulRequestCount ?? [],
+            unsuccessfulRequestCount: data.unsuccessfulRequestCount ?? [],
+          },
+          networkLatency: {
+            meanLatency: data.meanLatency ?? [],
+            latencyP50: data.latencyP50 ?? [],
+            latencyP90: data.latencyP90 ?? [],
+            latencyP99: data.latencyP99 ?? [],
+          },
+        };
+      default:
+        throw new Error(`Unsupported metric type: ${metricType}`);
     }
-
-    const [usageData, httpData] = await Promise.all([
-      usageResponse.json(),
-      httpResponse.json(),
-    ]);
-
-    return {
-      cpuUsage: {
-        cpuUsage: usageData.cpuUsage ?? [],
-        cpuRequests: usageData.cpuRequests ?? [],
-        cpuLimits: usageData.cpuLimits ?? [],
-      },
-      memoryUsage: {
-        memoryUsage: usageData.memoryUsage ?? [],
-        memoryRequests: usageData.memoryRequests ?? [],
-        memoryLimits: usageData.memoryLimits ?? [],
-      },
-      networkThroughput: {
-        requestCount: httpData.requestCount ?? [],
-        successfulRequestCount: httpData.successfulRequestCount ?? [],
-        unsuccessfulRequestCount: httpData.unsuccessfulRequestCount ?? [],
-      },
-      networkLatency: {
-        meanLatency: httpData.meanLatency ?? [],
-        latencyP50: httpData.latencyP50 ?? [],
-        latencyP90: httpData.latencyP90 ?? [],
-        latencyP99: httpData.latencyP99 ?? [],
-      },
-    };
   }
 
   async getTraces(

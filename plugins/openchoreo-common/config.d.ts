@@ -92,6 +92,21 @@ export interface Config {
          */
         enabled?: boolean;
       };
+
+      /**
+       * Cilium feature configuration.
+       * Controls HTTP metrics graphs and queries in the Observability plane.
+       * @deepVisibility frontend
+       */
+      cilium?: {
+        /**
+         * Enable or disable Cilium-powered HTTP metrics.
+         * When disabled, Network Throughput and Network Latency graphs are hidden
+         * and the HTTP metrics query is not sent to the observer.
+         * @visibility frontend
+         */
+        enabled?: boolean;
+      };
     };
 
     /**

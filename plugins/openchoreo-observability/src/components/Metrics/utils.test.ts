@@ -134,6 +134,79 @@ describe('transformMetricsData', () => {
     expect(result[0].cpuUsage).toBe(0.1);
     expect(result[1].cpuUsage).toBe(0.3);
   });
+
+  it('inserts a null entry for the metric that has a gap', () => {
+    // cpuUsage has a 12-min gap; cpuLimits is continuous
+    const data = {
+      cpuUsage: [
+        { timestamp: '2024-06-01T10:00:00Z', value: 0.1 },
+        { timestamp: '2024-06-01T10:01:00Z', value: 0.2 },
+        { timestamp: '2024-06-01T10:02:00Z', value: 0.3 },
+        { timestamp: '2024-06-01T10:14:00Z', value: 0.4 },
+        { timestamp: '2024-06-01T10:15:00Z', value: 0.5 },
+      ],
+      cpuLimits: [
+        { timestamp: '2024-06-01T10:00:00Z', value: 1 },
+        { timestamp: '2024-06-01T10:01:00Z', value: 1 },
+        { timestamp: '2024-06-01T10:02:00Z', value: 1 },
+        { timestamp: '2024-06-01T10:03:00Z', value: 1 },
+        { timestamp: '2024-06-01T10:14:00Z', value: 1 },
+        { timestamp: '2024-06-01T10:15:00Z', value: 1 },
+      ],
+    };
+
+    const result = transformMetricsData(data as any);
+
+    // A null sentinel for cpuUsage should exist
+    const nullForUsage = result.find(d => d.cpuUsage === null);
+    expect(nullForUsage).toBeDefined();
+
+    // cpuLimits should not be nulled at the cpuUsage-gap sentinel
+    expect(nullForUsage?.cpuLimits).toBeUndefined();
+  });
+
+  it('does not null a continuous metric when another metric has a gap', () => {
+    const data = {
+      cpuUsage: [
+        { timestamp: '2024-06-01T10:00:00Z', value: 0.1 },
+        { timestamp: '2024-06-01T10:01:00Z', value: 0.15 },
+        { timestamp: '2024-06-01T10:02:00Z', value: 0.18 },
+        { timestamp: '2024-06-01T10:12:00Z', value: 0.2 }, // 10-min gap
+      ],
+      cpuLimits: [
+        { timestamp: '2024-06-01T10:00:00Z', value: 1 },
+        { timestamp: '2024-06-01T10:01:00Z', value: 1 },
+        { timestamp: '2024-06-01T10:02:00Z', value: 1 },
+      ],
+    };
+
+    const result = transformMetricsData(data as any);
+    expect(result.some(entry => entry.cpuUsage === null)).toBe(true);
+    const cpuLimitTimestamps = new Set(
+      data.cpuLimits.map(point => point.timestamp),
+    );
+
+    const cpuLimitValues = result
+      .filter(d => cpuLimitTimestamps.has(d.time))
+      .map(d => d.cpuLimits);
+
+    expect(cpuLimitValues.every(value => value !== null)).toBe(true);
+  });
+
+  it('does not insert nulls when data is evenly spaced', () => {
+    const data = {
+      cpuUsage: [
+        { timestamp: '2024-06-01T10:00:00Z', value: 0.1 },
+        { timestamp: '2024-06-01T10:01:00Z', value: 0.2 },
+        { timestamp: '2024-06-01T10:02:00Z', value: 0.3 },
+      ],
+    };
+
+    const result = transformMetricsData(data as any);
+
+    expect(result).toHaveLength(3);
+    expect(result.every(d => d.cpuUsage !== null)).toBe(true);
+  });
 });
 
 describe('getMetricConfigs', () => {
