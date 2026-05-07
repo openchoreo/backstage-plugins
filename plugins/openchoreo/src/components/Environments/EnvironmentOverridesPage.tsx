@@ -1,5 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Tooltip,
+  Typography,
+} from '@material-ui/core';
+import CompareArrowsIcon from '@material-ui/icons/CompareArrows';
 import { Alert } from '@material-ui/lab';
 import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
@@ -9,6 +16,7 @@ import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { OverrideContent } from './OverrideContent';
 import { useOverrideChanges } from './hooks/useOverrideChanges';
 import { useOverridesData } from './hooks/useOverridesData';
+import { ComponentReleaseDiffDialog } from './components/ComponentReleaseDiffDialog';
 import { SaveConfirmationDialog } from './SaveConfirmationDialog';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import {
@@ -104,6 +112,7 @@ export const EnvironmentOverridesPage = ({
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
     useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [diffOpen, setDiffOpen] = useState(false);
 
   // Check deploy permission for the final Deploy/Promote button
   const { canDeploy, loading: deployPermissionLoading } = useDeployPermission();
@@ -671,6 +680,21 @@ export const EnvironmentOverridesPage = ({
           Delete All
         </Button>
       )}
+      {pendingAction?.type === 'promote' && pendingAction.releaseName && (
+        <Tooltip title="Compare the source release with this environment's current release">
+          <span>
+            <Button
+              onClick={() => setDiffOpen(true)}
+              variant="outlined"
+              startIcon={<CompareArrowsIcon fontSize="small" />}
+              disabled={saving || deleting}
+              style={{ marginRight: 8 }}
+            >
+              View diff
+            </Button>
+          </span>
+        </Tooltip>
+      )}
       {pendingAction && onPrevious && (
         <Button
           onClick={onPrevious}
@@ -957,6 +981,17 @@ export const EnvironmentOverridesPage = ({
         onStay={() => setShowUnsavedChangesDialog(false)}
         changeCount={totalChanges}
       />
+
+      {pendingAction?.type === 'promote' && (
+        <ComponentReleaseDiffDialog
+          open={diffOpen}
+          onClose={() => setDiffOpen(false)}
+          upstreamEnvName={pendingAction.sourceEnvironment}
+          upstreamReleaseName={pendingAction.releaseName}
+          environmentName={environment.name}
+          releaseName={environment.deployment.releaseName}
+        />
+      )}
     </>
   );
 };

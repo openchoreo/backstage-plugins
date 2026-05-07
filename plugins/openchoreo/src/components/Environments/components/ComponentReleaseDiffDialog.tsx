@@ -11,6 +11,7 @@ import {
 } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import { YamlViewer } from '@openchoreo/backstage-design-system';
 import { YamlDiffViewer } from '@openchoreo/backstage-plugin-react';
 import YAML from 'yaml';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
@@ -26,11 +27,13 @@ export interface ComponentReleaseDiffDialogProps {
   upstreamReleaseName?: string;
 }
 
+type PreviewMode = 'diff' | 'source-only' | 'target-only' | 'empty';
+
 /**
- * Modal that fetches both `ComponentRelease` manifests in parallel and
- * renders them in a side-by-side YAML diff. Used to surface what
- * actually differs between an env and its upstream when drift is
- * flagged.
+ * Modal that fetches both `ComponentRelease` manifests and renders a
+ * side-by-side YAML diff. When only one side has a release (e.g. a
+ * first-time promotion to a brand-new env), gracefully degrades to a
+ * single-manifest preview with explanatory copy.
  */
 export const ComponentReleaseDiffDialog = ({
   open,
@@ -47,8 +50,16 @@ export const ComponentReleaseDiffDialog = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const resolvePreviewMode = (): PreviewMode => {
+    if (releaseName && upstreamReleaseName) return 'diff';
+    if (upstreamReleaseName) return 'source-only';
+    if (releaseName) return 'target-only';
+    return 'empty';
+  };
+  const previewMode = resolvePreviewMode();
+
   useEffect(() => {
-    if (!open || !releaseName || !upstreamReleaseName) {
+    if (!open || previewMode === 'empty') {
       return undefined;
     }
     let cancelled = false;
@@ -56,23 +67,33 @@ export const ComponentReleaseDiffDialog = ({
     setError(null);
     setOriginal(null);
     setModified(null);
-    Promise.all([
-      api.fetchComponentRelease(entity, upstreamReleaseName),
-      api.fetchComponentRelease(entity, releaseName),
-    ])
-      .then(([upRes, dnRes]) => {
-        if (cancelled) return;
-        if (!upRes?.success || !upRes.data) {
-          setError(`Couldn't fetch ${upstreamEnvName}'s release manifest.`);
-          return;
-        }
-        if (!dnRes?.success || !dnRes.data) {
-          setError(`Couldn't fetch ${environmentName}'s release manifest.`);
-          return;
-        }
-        setOriginal(YAML.stringify(upRes.data));
-        setModified(YAML.stringify(dnRes.data));
-      })
+
+    const fetches: Array<Promise<unknown>> = [];
+    if (upstreamReleaseName) {
+      fetches.push(
+        api.fetchComponentRelease(entity, upstreamReleaseName).then(res => {
+          if (cancelled) return;
+          if (!res?.success || !res.data) {
+            setError(`Couldn't fetch ${upstreamEnvName}'s release manifest.`);
+            return;
+          }
+          setOriginal(YAML.stringify(res.data));
+        }),
+      );
+    }
+    if (releaseName) {
+      fetches.push(
+        api.fetchComponentRelease(entity, releaseName).then(res => {
+          if (cancelled) return;
+          if (!res?.success || !res.data) {
+            setError(`Couldn't fetch ${environmentName}'s release manifest.`);
+            return;
+          }
+          setModified(YAML.stringify(res.data));
+        }),
+      );
+    }
+    Promise.all(fetches)
       .catch(e => {
         if (cancelled) return;
         setError(e?.message ?? 'Failed to fetch release manifests');
@@ -87,6 +108,7 @@ export const ComponentReleaseDiffDialog = ({
     api,
     entity,
     open,
+    previewMode,
     releaseName,
     upstreamReleaseName,
     environmentName,
@@ -99,7 +121,7 @@ export const ComponentReleaseDiffDialog = ({
         Release diff — {upstreamEnvName} → {environmentName}
       </DialogTitle>
       <DialogContent dividers>
-        {(!releaseName || !upstreamReleaseName) && (
+        {previewMode === 'empty' && (
           <Typography variant="body2" color="textSecondary">
             Both environments need a release on them to compare.
           </Typography>
@@ -114,7 +136,7 @@ export const ComponentReleaseDiffDialog = ({
             {error}
           </Typography>
         )}
-        {original && modified && (
+        {previewMode === 'diff' && original && modified && (
           <YamlDiffViewer
             original={original}
             modified={modified}
@@ -122,6 +144,25 @@ export const ComponentReleaseDiffDialog = ({
             modifiedLabel={`${environmentName} (${releaseName})`}
             height="60vh"
           />
+        )}
+        {previewMode === 'source-only' && original && (
+          <>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+              <strong>{environmentName}</strong> has no release yet — this is
+              the manifest that will be created from{' '}
+              <strong>{upstreamEnvName}</strong>.
+            </Typography>
+            <YamlViewer value={original} maxHeight="60vh" showLineNumbers />
+          </>
+        )}
+        {previewMode === 'target-only' && modified && (
+          <>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+              <strong>{upstreamEnvName}</strong> has no release to compare;
+              showing <strong>{environmentName}</strong>'s current manifest.
+            </Typography>
+            <YamlViewer value={modified} maxHeight="60vh" showLineNumbers />
+          </>
         )}
       </DialogContent>
       <DialogActions>
