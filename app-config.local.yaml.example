@@ -58,6 +58,8 @@ openchoreo:
       enabled: true    # Set to false for guest mode (no OAuth login required)
     authz:
       enabled: true    # Set to false to hide Access Control sidebar and pages
+    cilium:
+      enabled: false   # Set to true to show HTTP metrics and enable Cilium queries
 
 # Thunder IDP configuration (k3d cluster)
 thunder:
