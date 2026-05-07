@@ -770,6 +770,17 @@ export interface Schema {
 // Secrets
 // ---------------------------------------------------------------------------
 
+export interface SecretReferenceTargetPlane {
+  /** @description Kind of the target plane resource. */
+  kind:
+    | 'WorkflowPlane'
+    | 'ClusterWorkflowPlane'
+    | 'DataPlane'
+    | 'ClusterDataPlane';
+  /** @description Name of the target plane resource. */
+  name: string;
+}
+
 export interface SecretReferenceResponse {
   name: string;
   namespace: string;
@@ -779,6 +790,11 @@ export interface SecretReferenceResponse {
   /** @description Duration string for refresh interval (e.g., "5m", "1h") */
   refreshInterval?: string;
   data?: SecretDataSourceInfo[];
+  /**
+   * @description Plane that hosts the secret value. Unset for legacy refs whose
+   * value may live in any external secret store reachable through spec.data.
+   */
+  targetPlane?: SecretReferenceTargetPlane;
   /** Format: date-time */
   createdAt: string;
   /** Format: date-time */

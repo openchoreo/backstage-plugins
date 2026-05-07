@@ -11,6 +11,7 @@ export {
 } from './plugin';
 export { AccessControlContent } from './components/AccessControl';
 export { GitSecretsContent } from './components/GitSecrets';
+export { SecretsContent } from './components/Secrets';
 export * from './components/HomePage/MyProjectsWidget';
 export * from './components/HomePage/QuickActionsSection';
 export { ProjectComponentsCard } from './components/Projects/ProjectComponentsCard';
@@ -62,6 +63,7 @@ export {
   PromotionPathsCard,
 } from './components/DeploymentPipelineOverview';
 export { GitSecretsPage } from './components/GitSecrets';
+export { SecretsPage } from './components/Secrets';
 export { ComponentTypeOverviewCard } from './components/ComponentTypeOverview';
 export { TraitTypeOverviewCard } from './components/TraitTypeOverview';
 export { WorkflowOverviewCard } from './components/WorkflowOverview';

@@ -21,8 +21,31 @@ export interface SecretReference {
   displayName?: string;
   description?: string;
   data?: SecretDataSourceInfo[];
+  /** Plane that hosts the secret value. Unset for legacy refs reachable via spec.data. */
+  targetPlane?: { kind?: string; name: string };
   createdAt: string;
   status: string;
+}
+
+/**
+ * Filter to references usable in a workload deployed to a given environment:
+ * either no `targetPlane` (unscoped / legacy) or `targetPlane` matches the
+ * env's data plane by **both** kind and name. Plane refs of any other kind
+ * (e.g. WorkflowPlane) are excluded — they cannot be mounted into a workload
+ * running on a different plane.
+ */
+export function filterSecretReferencesForEnvDataPlane(
+  refs: SecretReference[],
+  envDataPlane: { kind?: string; name?: string } | undefined,
+): SecretReference[] {
+  return refs.filter(ref => {
+    if (!ref.targetPlane) return true;
+    if (!envDataPlane?.name || !envDataPlane.kind) return false;
+    return (
+      ref.targetPlane.kind === envDataPlane.kind &&
+      ref.targetPlane.name === envDataPlane.name
+    );
+  });
 }
 
 interface SecretReferencesResponse {

@@ -77,6 +77,12 @@ function createMockServices() {
       createGitSecret: jest.fn(),
       deleteGitSecret: jest.fn(),
     },
+    secretsService: {
+      listSecrets: jest.fn(),
+      getSecret: jest.fn(),
+      createSecret: jest.fn(),
+      deleteSecret: jest.fn(),
+    },
     authzService: {
       checkAccess: jest.fn(),
     },
@@ -456,6 +462,190 @@ describe('createRouter', () => {
           ),
         }),
       });
+    });
+  });
+
+  describe('GET /secrets', () => {
+    it('returns secrets for the namespace', async () => {
+      const list = {
+        items: [{ name: 's1' }],
+        totalCount: 1,
+        page: 1,
+        pageSize: 100,
+      };
+      services.secretsService.listSecrets.mockResolvedValue(list);
+
+      const response = await request(app)
+        .get('/secrets')
+        .query({ namespaceName: 'ns' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(list);
+      expect(services.secretsService.listSecrets).toHaveBeenCalledWith(
+        'ns',
+        'mock-user-token',
+      );
+    });
+
+    it('returns 400 when namespaceName is missing', async () => {
+      const response = await request(app).get('/secrets');
+      expect(response.status).toBe(400);
+      expect(services.secretsService.listSecrets).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /secrets/:secretName', () => {
+    it('returns a single secret', async () => {
+      const secret = { name: 's1', namespace: 'ns', keys: ['k1'] };
+      services.secretsService.getSecret.mockResolvedValue(secret);
+
+      const response = await request(app)
+        .get('/secrets/s1')
+        .query({ namespaceName: 'ns' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(secret);
+      expect(services.secretsService.getSecret).toHaveBeenCalledWith(
+        'ns',
+        's1',
+        'mock-user-token',
+      );
+    });
+
+    it('returns 400 when namespaceName is missing', async () => {
+      const response = await request(app).get('/secrets/s1');
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe('POST /secrets', () => {
+    const validBody = {
+      secretName: 's1',
+      secretType: 'Opaque',
+      targetPlane: { kind: 'DataPlane', name: 'dp' },
+      data: { k: 'v' },
+    };
+
+    it('creates a secret on valid request', async () => {
+      const created = { name: 's1', namespace: 'ns', keys: ['k'] };
+      services.secretsService.createSecret.mockResolvedValue(created);
+
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send(validBody);
+
+      expect(response.status).toBe(201);
+      expect(response.body).toEqual(created);
+      expect(services.secretsService.createSecret).toHaveBeenCalledWith(
+        'ns',
+        validBody,
+        'mock-user-token',
+      );
+    });
+
+    it('rejects when namespaceName is missing', async () => {
+      const response = await request(app).post('/secrets').send(validBody);
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects when required body fields are missing', async () => {
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send({ secretName: 's1' });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain('are required');
+    });
+
+    it('rejects unsupported secretType', async () => {
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send({ ...validBody, secretType: 'NotARealType' });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain(
+        'secretType must be one of',
+      );
+    });
+
+    it('rejects when targetPlane.kind/name are missing', async () => {
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send({ ...validBody, targetPlane: { kind: 'DataPlane' } });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain(
+        'targetPlane.kind and targetPlane.name are required',
+      );
+    });
+
+    it('rejects unsupported targetPlane.kind', async () => {
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send({
+          ...validBody,
+          targetPlane: { kind: 'NotAPlane', name: 'dp' },
+        });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain(
+        'targetPlane.kind must be one of',
+      );
+    });
+
+    it('rejects when data is not an object', async () => {
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send({ ...validBody, data: ['k', 'v'] });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain('data must be an object');
+    });
+
+    it('rejects when a data value is not a string', async () => {
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send({ ...validBody, data: { good: 'v', bad: 42 } });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain(
+        'data.bad must be a string',
+      );
+    });
+
+    it('rejects when a data value is null', async () => {
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send({ ...validBody, data: { good: 'v', bad: null } });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain(
+        'data.bad must be a string',
+      );
+    });
+  });
+
+  describe('DELETE /secrets/:secretName', () => {
+    it('deletes a secret and returns 204', async () => {
+      services.secretsService.deleteSecret.mockResolvedValue(undefined);
+
+      const response = await request(app)
+        .delete('/secrets/s1')
+        .query({ namespaceName: 'ns' });
+
+      expect(response.status).toBe(204);
+      expect(services.secretsService.deleteSecret).toHaveBeenCalledWith(
+        'ns',
+        's1',
+        'mock-user-token',
+      );
+    });
+
+    it('returns 400 when namespaceName is missing', async () => {
+      const response = await request(app).delete('/secrets/s1');
+      expect(response.status).toBe(400);
+      expect(services.secretsService.deleteSecret).not.toHaveBeenCalled();
     });
   });
 });

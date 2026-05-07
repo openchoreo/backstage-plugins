@@ -400,6 +400,10 @@ export class EnvironmentInfoService implements EnvironmentService {
         binding?.componentTypeEnvironmentConfigs &&
         Object.keys(binding.componentTypeEnvironmentConfigs).length > 0,
       dataPlaneRef: envData.dataPlaneRef?.name,
+      dataPlaneKind: envData.dataPlaneRef?.kind as
+        | 'DataPlane'
+        | 'ClusterDataPlane'
+        | undefined,
       deployment: {
         status: deploymentStatus,
         statusReason: binding?.statusReason,

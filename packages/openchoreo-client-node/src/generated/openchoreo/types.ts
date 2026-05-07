@@ -1930,6 +1930,54 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1alpha1/namespaces/{namespaceName}/secrets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create a secret
+     * @description Creates a new secret. The secret data is provisioned in the target plane
+     *     as a Kubernetes Secret plus a PushSecret that syncs it to the configured
+     *     external secret store. A SecretReference is created in the control plane
+     *     so consumers can reference the secret by key.
+     */
+    post: operations['createSecret'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1alpha1/namespaces/{namespaceName}/secrets/{secretName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Update a secret
+     * @description Replaces the data of an existing secret. The secret type and target
+     *     plane cannot be changed; only the data keys and values.
+     */
+    put: operations['updateSecret'];
+    post?: never;
+    /**
+     * Delete a secret
+     * @description Deletes a secret by name from the control plane and target plane.
+     */
+    delete: operations['deleteSecret'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4960,6 +5008,13 @@ export interface components {
        * @example 1h
        */
       refreshInterval?: string;
+      /**
+       * @description Identifies the plane to whose external secret store the secret
+       *     value was pushed for this SecretReference. When unset, the secret
+       *     value may live in any external secret store reachable through the
+       *     references in spec.data.
+       */
+      targetPlane?: components['schemas']['TargetPlaneRef'];
     };
     /** @description Observed state of a SecretReference */
     SecretReferenceStatus: {
@@ -5464,6 +5519,91 @@ export interface components {
       /** @description Number of items per page */
       pageSize?: number;
     };
+    /** @description Reference to the plane that hosts the secret data. */
+    TargetPlaneRef: {
+      /**
+       * @description Kind of the target plane resource
+       * @example DataPlane
+       * @enum {string}
+       */
+      kind:
+        | 'WorkflowPlane'
+        | 'ClusterWorkflowPlane'
+        | 'DataPlane'
+        | 'ClusterDataPlane';
+      /**
+       * @description Name of the target plane resource
+       * @example default
+       */
+      name: string;
+    };
+    /**
+     * @description Kubernetes Secret type
+     * @example Opaque
+     * @enum {string}
+     */
+    SecretType:
+      | 'Opaque'
+      | 'kubernetes.io/basic-auth'
+      | 'kubernetes.io/ssh-auth'
+      | 'kubernetes.io/dockerconfigjson'
+      | 'kubernetes.io/tls';
+    /** @description Request body for creating a secret */
+    CreateSecretRequest: {
+      /**
+       * @description Name of the secret
+       * @example my-secret
+       */
+      secretName: string;
+      secretType: components['schemas']['SecretType'];
+      targetPlane: components['schemas']['TargetPlaneRef'];
+      /**
+       * @description Map of secret keys to plaintext values. Required keys depend on secretType.
+       * @example {
+       *       "username": "alice",
+       *       "password": "s3cret"
+       *     }
+       */
+      data: {
+        [key: string]: string;
+      };
+    };
+    /** @description Request body for updating a secret */
+    UpdateSecretRequest: {
+      /**
+       * @description New map of secret keys to plaintext values. Replaces all existing keys.
+       * @example {
+       *       "username": "alice",
+       *       "password": "r0tated"
+       *     }
+       */
+      data: {
+        [key: string]: string;
+      };
+    };
+    /** @description Secret resource. Values are never returned, only key names. */
+    SecretResponse: {
+      /**
+       * @description Name of the secret
+       * @example my-secret
+       */
+      name?: string;
+      /**
+       * @description Namespace of the secret
+       * @example my-namespace
+       */
+      namespace?: string;
+      secretType?: components['schemas']['SecretType'];
+      targetPlane?: components['schemas']['TargetPlaneRef'];
+      /**
+       * @description Sorted list of keys present in the secret data
+       * @example [
+       *       "password",
+       *       "username"
+       *     ]
+       */
+      keys?: string[];
+    };
   };
   responses: {
     /** @description Invalid request parameters */
@@ -5622,6 +5762,8 @@ export interface components {
     MappingIdParam: number;
     /** @description Git secret name */
     GitSecretNameParam: string;
+    /** @description Secret name */
+    SecretNameParam: string;
     /**
      * @description A label selector to filter resources using Kubernetes label selector syntax.
      *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
@@ -10656,6 +10798,100 @@ export interface operations {
         };
         content?: never;
       };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createSecret: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateSecretRequest'];
+      };
+    };
+    responses: {
+      /** @description Secret created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SecretResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateSecret: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Secret name */
+        secretName: components['parameters']['SecretNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateSecretRequest'];
+      };
+    };
+    responses: {
+      /** @description Secret updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SecretResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteSecret: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Secret name */
+        secretName: components['parameters']['SecretNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Secret deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];

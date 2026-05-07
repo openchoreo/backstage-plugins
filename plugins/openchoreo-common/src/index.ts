@@ -194,6 +194,7 @@ export type {
   WorkloadOwner,
   Schema,
   SecretReferenceResponse,
+  SecretReferenceTargetPlane,
   SecretStoreReference,
   SecretDataSourceInfo,
   RemoteReferenceInfo,

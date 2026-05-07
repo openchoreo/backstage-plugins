@@ -25,6 +25,13 @@ export function transformSecretReference(
       kind: store.kind,
     })),
     refreshInterval: secret.spec?.refreshInterval,
+    targetPlane:
+      secret.spec?.targetPlane?.kind && secret.spec?.targetPlane?.name
+        ? {
+            kind: secret.spec.targetPlane.kind,
+            name: secret.spec.targetPlane.name,
+          }
+        : undefined,
     data: secret.spec?.data?.map(d => ({
       secretKey: d.secretKey,
       remoteRef: {

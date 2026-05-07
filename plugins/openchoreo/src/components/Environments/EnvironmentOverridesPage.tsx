@@ -31,7 +31,10 @@ import MemoryIcon from '@material-ui/icons/Memory';
 import SettingsIcon from '@material-ui/icons/Settings';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import { ContainerContent } from './Workload/WorkloadEditor';
-import { useSecretReferences } from '@openchoreo/backstage-plugin-react';
+import {
+  useSecretReferences,
+  filterSecretReferencesForEnvDataPlane,
+} from '@openchoreo/backstage-plugin-react';
 import type { EnvVar } from '@openchoreo/backstage-plugin-common';
 import { TraitParameters } from './TraitParameters';
 
@@ -108,8 +111,17 @@ export const EnvironmentOverridesPage = ({
   // Check deploy permission for the final Deploy/Promote button
   const { canDeploy, loading: deployPermissionLoading } = useDeployPermission();
 
-  // Load secret references for workload overrides
-  const { secretReferences } = useSecretReferences();
+  // Load secret references for workload overrides — limited to refs whose
+  // value is reachable from this environment's data plane (or unscoped refs).
+  const { secretReferences: allSecretReferences } = useSecretReferences();
+  const secretReferences = useMemo(
+    () =>
+      filterSecretReferencesForEnvDataPlane(allSecretReferences, {
+        kind: environment.dataPlaneKind,
+        name: environment.dataPlaneRef,
+      }),
+    [allSecretReferences, environment.dataPlaneKind, environment.dataPlaneRef],
+  );
 
   // Fetch component traits to get trait type information
   useEffect(() => {

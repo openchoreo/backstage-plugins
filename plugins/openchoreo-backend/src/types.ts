@@ -6,6 +6,11 @@ import type {
   GitSecretResponse,
   GitSecretListResponse,
 } from './services/GitSecretsService/GitSecretsService';
+import type {
+  SecretResponse,
+  SecretsListResponse,
+  CreateSecretRequest,
+} from './services/SecretsService/SecretsService';
 
 // Log types from the unified /api/v1/logs/query endpoint
 export type LogEntry = ObservabilityComponents['schemas']['ComponentLogEntry'];
@@ -61,6 +66,7 @@ export interface Environment {
   bindingName?: string;
   hasComponentTypeOverrides?: boolean;
   dataPlaneRef?: string;
+  dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';
   deployment: {
     status?: 'Ready' | 'NotReady' | 'Failed' | undefined;
     statusReason?: string;
@@ -201,6 +207,28 @@ export interface GitSecretsService {
     workflowPlaneName?: string,
   ): Promise<GitSecretResponse>;
   deleteGitSecret(
+    namespaceName: string,
+    secretName: string,
+    userToken?: string,
+  ): Promise<void>;
+}
+
+export interface SecretsService {
+  listSecrets(
+    namespaceName: string,
+    token?: string,
+  ): Promise<SecretsListResponse>;
+  getSecret(
+    namespaceName: string,
+    secretName: string,
+    token?: string,
+  ): Promise<SecretResponse>;
+  createSecret(
+    namespaceName: string,
+    body: CreateSecretRequest,
+    userToken?: string,
+  ): Promise<SecretResponse>;
+  deleteSecret(
     namespaceName: string,
     secretName: string,
     userToken?: string,

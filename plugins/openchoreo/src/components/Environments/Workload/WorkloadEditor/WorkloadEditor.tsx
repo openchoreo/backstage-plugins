@@ -21,6 +21,7 @@ import { ParametersContent } from './ParametersContent';
 import { useWorkloadContext } from '../WorkloadContext';
 import {
   useSecretReferences,
+  filterSecretReferencesForEnvDataPlane,
   useUrlSyncedTab,
   YamlEditor,
 } from '@openchoreo/backstage-plugin-react';
@@ -36,6 +37,11 @@ import type { WorkloadChanges } from '../hooks/useWorkloadChanges';
 
 interface WorkloadEditorProps {
   componentTypeName?: string;
+  /**
+   * Data plane the workload will be deployed to. Used to filter the
+   * secret-reference picker to refs whose value is reachable from this plane.
+   */
+  envDataPlane?: { kind?: string; name?: string };
   initialTab?: string;
   onTabChange?: (tab: string) => void;
   traitsState?: TraitWithState[];
@@ -179,6 +185,7 @@ function yamlToResource(yamlStr: string): WorkloadResource | null {
 
 export function WorkloadEditor({
   componentTypeName,
+  envDataPlane,
   initialTab,
   onTabChange,
   traitsState,
@@ -201,7 +208,12 @@ export function WorkloadEditor({
   const classes = useStyles();
   const { workloadResource, setWorkloadResource, isDeploying } =
     useWorkloadContext();
-  const { secretReferences } = useSecretReferences();
+  const { secretReferences: allSecretReferences } = useSecretReferences();
+  const secretReferences = useMemo(
+    () =>
+      filterSecretReferencesForEnvDataPlane(allSecretReferences, envDataPlane),
+    [allSecretReferences, envDataPlane],
+  );
 
   // Derive spec from the resource for form use
   const spec = workloadResource?.spec;
