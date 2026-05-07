@@ -1,4 +1,4 @@
-import { FC, MouseEvent, useState } from 'react';
+import { FC, MouseEvent, ReactNode, useState } from 'react';
 import {
   TableRow,
   TableCell,
@@ -13,12 +13,32 @@ import FileCopyOutlined from '@material-ui/icons/FileCopyOutlined';
 import { LogEntry as LogEntryType, LogEntryField } from './types';
 import { useLogEntryStyles } from './styles';
 
+/**
+ * Render-prop slot for a per-row action button (assistant integration,
+ * "open in external tool", etc.). The host app supplies this from
+ * outside the plugin so observability stays free of cross-plugin
+ * coupling. When omitted, no action button is rendered.
+ */
+export type RenderLogRowAction = (
+  log: LogEntryType,
+  getLogsSnapshot?: () => LogEntryType[],
+) => ReactNode;
+
 interface LogEntryProps {
   log: LogEntryType;
   selectedFields: LogEntryField[];
   environmentName?: string;
   projectName?: string;
   componentName?: string;
+  /**
+   * Stable callback (typically backed by a ref) returning the table's
+   * current log rows. Forwarded to ``renderRowAction`` so an assistant
+   * integration can skip a first round-trip by prefetching what the
+   * user is staring at. The closure-via-ref shape keeps row re-renders
+   * cheap when new logs stream in — children see a stable reference.
+   */
+  getLogsSnapshot?: () => LogEntryType[];
+  renderRowAction?: RenderLogRowAction;
 }
 
 export const LogEntry: FC<LogEntryProps> = ({
@@ -27,6 +47,8 @@ export const LogEntry: FC<LogEntryProps> = ({
   environmentName,
   projectName,
   componentName,
+  getLogsSnapshot,
+  renderRowAction,
 }) => {
   const classes = useLogEntryStyles();
   const [expanded, setExpanded] = useState(false);
@@ -137,6 +159,12 @@ export const LogEntry: FC<LogEntryProps> = ({
                       <FileCopyOutlined fontSize="inherit" />
                     </IconButton>
                   </Tooltip>
+                  {/* Host-supplied per-row action (e.g. assistant
+                      "Investigate" button). Injected from outside this
+                      plugin so observability owns no cross-plugin
+                      dependency. Falsy renderRowAction → nothing
+                      mounts, identical to the slot being absent. */}
+                  {renderRowAction?.(log, getLogsSnapshot)}
                 </Box>
               </Box>
             </TableCell>

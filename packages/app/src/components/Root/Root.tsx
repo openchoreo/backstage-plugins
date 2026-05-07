@@ -38,6 +38,7 @@ import GroupIcon from '@material-ui/icons/People';
 import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
+import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-perch';
 
 const isMac =
   typeof navigator !== 'undefined' &&
@@ -139,64 +140,66 @@ const SignOutButton = () => {
 export const Root = ({ children }: PropsWithChildren<{}>) => {
   useSearchModalStyles();
   return (
-    <SidebarPage>
-      <Sidebar>
-        <SidebarLogo />
-        <Tooltip title={searchShortcutLabel} placement="right" arrow>
-          <div>
-            <SidebarGroup label="Search" icon={<SearchIcon />} to="/search">
-              <SearchModalProvider>
-                <KeyboardShortcutSearchToggler />
-                <SidebarSearchModal>
-                  {({ toggleModal }) => (
-                    <CustomSearchModal toggleModal={toggleModal} />
-                  )}
-                </SidebarSearchModal>
-              </SearchModalProvider>
-            </SidebarGroup>
-          </div>
-        </Tooltip>
-        <SidebarDivider />
-        <SidebarGroup label="Menu" icon={<MenuIcon />}>
-          {/* Global nav, not org-specific */}
-          <SidebarItem icon={HomeIcon} to="/" text="Home" />
-          <SidebarItem icon={CategoryIcon} to="catalog" text="Catalog" />
-          <SidebarItem
-            icon={BubbleChartIcon}
-            to="platform-overview"
-            text="Platform"
-          />
-          <MyGroupsSidebarItem
-            singularTitle="My Group"
-            pluralTitle="My Groups"
-            icon={GroupIcon}
-          />
-          <SidebarItem icon={ExtensionIcon} to="api-docs" text="APIs" />
-          {/* TechDocs disabled until proper production support is implemented */}
-          {/* <SidebarItem icon={LibraryBooks} to="docs" text="Docs" /> */}
-          <SidebarItem
-            icon={CreateComponentIcon}
-            to="create"
-            text="Create..."
-          />
-          {/* End global nav */}
-          <SidebarScrollWrapper>
-            {/* Items in this group will be scrollable if they run out of space */}
-          </SidebarScrollWrapper>
-        </SidebarGroup>
-        <SidebarSpace />
-        <SidebarDivider />
-        <SidebarGroup
-          label="Settings"
-          icon={<UserSettingsSignInAvatar />}
-          to="/settings"
-        >
-          <SidebarSettings />
-        </SidebarGroup>
-        <SidebarDivider />
-        <SignOutButton />
-      </Sidebar>
-      {children}
-    </SidebarPage>
+    <AssistantDrawerProvider>
+      <SidebarPage>
+        <Sidebar>
+          <SidebarLogo />
+          <Tooltip title={searchShortcutLabel} placement="right" arrow>
+            <div>
+              <SidebarGroup label="Search" icon={<SearchIcon />} to="/search">
+                <SearchModalProvider>
+                  <KeyboardShortcutSearchToggler />
+                  <SidebarSearchModal>
+                    {({ toggleModal }) => (
+                      <CustomSearchModal toggleModal={toggleModal} />
+                    )}
+                  </SidebarSearchModal>
+                </SearchModalProvider>
+              </SidebarGroup>
+            </div>
+          </Tooltip>
+          <SidebarDivider />
+          <SidebarGroup label="Menu" icon={<MenuIcon />}>
+            {/* Global nav, not org-specific */}
+            <SidebarItem icon={HomeIcon} to="/" text="Home" />
+            <SidebarItem icon={CategoryIcon} to="catalog" text="Catalog" />
+            <SidebarItem
+              icon={BubbleChartIcon}
+              to="platform-overview"
+              text="Platform"
+            />
+            <MyGroupsSidebarItem
+              singularTitle="My Group"
+              pluralTitle="My Groups"
+              icon={GroupIcon}
+            />
+            <SidebarItem icon={ExtensionIcon} to="api-docs" text="APIs" />
+            {/* TechDocs disabled until proper production support is implemented */}
+            {/* <SidebarItem icon={LibraryBooks} to="docs" text="Docs" /> */}
+            <SidebarItem
+              icon={CreateComponentIcon}
+              to="create"
+              text="Create..."
+            />
+            {/* End global nav */}
+            <SidebarScrollWrapper>
+              {/* Items in this group will be scrollable if they run out of space */}
+            </SidebarScrollWrapper>
+          </SidebarGroup>
+          <SidebarSpace />
+          <SidebarDivider />
+          <SidebarGroup
+            label="Settings"
+            icon={<UserSettingsSignInAvatar />}
+            to="/settings"
+          >
+            <SidebarSettings />
+          </SidebarGroup>
+          <SidebarDivider />
+          <SignOutButton />
+        </Sidebar>
+        {children}
+      </SidebarPage>
+    </AssistantDrawerProvider>
   );
 };

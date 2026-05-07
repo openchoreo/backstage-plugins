@@ -8,3 +8,4 @@ export {
   ObservabilityProjectIncidents,
   ObservabilityCostAnalysis,
 } from './plugin';
+export type { RenderLogRowAction } from './components/RuntimeLogs/LogEntry';

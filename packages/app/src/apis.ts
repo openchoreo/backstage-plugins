@@ -40,6 +40,18 @@ import {
   genericWorkflowsClientApiRef,
   GenericWorkflowsClient,
 } from '@openchoreo/backstage-plugin-openchoreo-workflows';
+// NOTE: ``perchAgentApiRef`` is also declared on
+// ``openchoreoPerchPlugin.apis`` in plugins/openchoreo-perch/src/plugin.ts.
+// That declaration is NOT picked up by the app at runtime because the perch
+// plugin exports plain React components — it never registers a routable or
+// component extension, so Backstage's plugin loader never visits its
+// ``apis`` array. The app-level factory below is the one actually wired in;
+// removing it causes ``NotImplementedError: No implementation available for
+// apiRef{plugin.openchoreo-perch.service}`` in AssistantDrawerProvider.
+import {
+  perchAgentApiRef,
+  PerchAgentClient,
+} from '@openchoreo/backstage-plugin-openchoreo-perch';
 import {
   catalogApiRef,
   entityPresentationApiRef,
@@ -235,6 +247,19 @@ export const apis: AnyApiFactory[] = [
     },
     factory: ({ discoveryApi, fetchApi }) =>
       new GenericWorkflowsClient(discoveryApi, fetchApi),
+  }),
+
+  // Assistant Agent client (Perch). Mirrors the registration on
+  // openchoreoPerchPlugin.apis — see the import-site comment for why
+  // both exist.
+  createApiFactory({
+    api: perchAgentApiRef,
+    deps: {
+      discoveryApi: discoveryApiRef,
+      fetchApi: fetchApiRef,
+    },
+    factory: ({ discoveryApi, fetchApi }) =>
+      new PerchAgentClient({ discoveryApi, fetchApi }),
   }),
 
   // Custom EntityPresentationApi with icons for custom entity kinds

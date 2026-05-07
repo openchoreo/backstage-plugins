@@ -20,8 +20,15 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from './styles';
 import { LOG_LEVELS } from './types';
+import type { RenderLogRowAction } from './LogEntry';
 
-const ObservabilityRuntimeLogsContent = () => {
+export interface ObservabilityRuntimeLogsPageProps {
+  renderRowAction?: RenderLogRowAction;
+}
+
+const ObservabilityRuntimeLogsContent = ({
+  renderRowAction,
+}: ObservabilityRuntimeLogsPageProps) => {
   const classes = useRuntimeLogsStyles();
   const { entity } = useEntity();
 
@@ -232,6 +239,7 @@ const ObservabilityRuntimeLogsContent = () => {
             }
             projectName={project}
             componentName={componentName}
+            renderRowAction={renderRowAction}
           />
         </>
       )}
@@ -239,7 +247,9 @@ const ObservabilityRuntimeLogsContent = () => {
   );
 };
 
-export const ObservabilityRuntimeLogsPage = () => {
+export const ObservabilityRuntimeLogsPage = ({
+  renderRowAction,
+}: ObservabilityRuntimeLogsPageProps) => {
   const {
     canViewLogs,
     loading: permissionLoading,
@@ -261,5 +271,5 @@ export const ObservabilityRuntimeLogsPage = () => {
     );
   }
 
-  return <ObservabilityRuntimeLogsContent />;
+  return <ObservabilityRuntimeLogsContent renderRowAction={renderRowAction} />;
 };

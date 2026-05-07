@@ -157,11 +157,16 @@ export const useLogEntryStyles = makeStyles(theme => ({
     minWidth: 0,
   },
   logActionColumn: {
-    width: theme.spacing(3),
-    minWidth: theme.spacing(3),
+    // Wide enough for the Copy + Investigate icons to sit side by
+    // side. The column used to be a 24 px single-icon slot, which
+    // forced the second icon to wrap below the first.
+    width: theme.spacing(8),
+    minWidth: theme.spacing(8),
     display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: theme.spacing(0.25),
     flexShrink: 0,
     marginLeft: theme.spacing(1),
   },
@@ -220,7 +225,12 @@ export const useLogEntryStyles = makeStyles(theme => ({
     color: theme.palette.text.secondary,
   },
   copyButton: {
-    marginTop: theme.spacing(1),
+    // Compact padding so the icon sits flush with the
+    // InvestigateLogButton next to it (both render in
+    // ``logActionColumn``). The expanded-detail copy button on the
+    // metadata section sets its own marginTop locally rather than
+    // relying on a class default.
+    padding: theme.spacing(0.5),
   },
   fullLogMessage: {
     fontFamily: 'monospace',

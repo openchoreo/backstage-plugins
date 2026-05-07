@@ -111,6 +111,10 @@ import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
 
 import { Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
 import {
+  FailedBuildSnackbar,
+  InvestigateLogButton,
+} from '@openchoreo/backstage-plugin-openchoreo-perch';
+import {
   WorkflowRunsContent,
   EntityNamespaceProvider,
 } from '@openchoreo/backstage-plugin-openchoreo-workflows';
@@ -124,6 +128,7 @@ import {
   ObservabilityAlerts,
   ObservabilityProjectIncidents,
   ObservabilityCostAnalysis,
+  type RenderLogRowAction,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 import {
@@ -138,6 +143,15 @@ import { WorkflowsOrExternalCICard } from './WorkflowsOrExternalCICard';
 import { EntityJenkinsContent } from '@backstage-community/plugin-jenkins';
 import { EntityGithubActionsContent } from '@backstage-community/plugin-github-actions';
 import { EntityGitlabContent } from '@immobiliarelabs/backstage-plugin-gitlab';
+
+// Wires perch's per-row assistant button into the observability log
+// tables via the plugin's render-prop slot. Lives here (not inside the
+// observability plugin) so observability owns no dependency on perch —
+// the shell composes the two.
+const renderInvestigateLogAction: RenderLogRowAction = (
+  log,
+  getLogsSnapshot,
+) => <InvestigateLogButton log={log} getLogsSnapshot={getLogsSnapshot} />;
 
 const PLATFORM_KIND_DISPLAY_NAMES: Record<string, string> = {
   domain: 'Namespace',
@@ -254,6 +268,10 @@ function OverviewContent() {
       {entityWarningContent}
       <EntitySwitch>
         <EntitySwitch.Case if={isKind('component')}>
+          {/* Failed-build prompt — renders nothing unless the latest run is in
+              a failed state. Sits inside the EntitySwitch so it inherits the
+              entity context and only mounts on component pages. */}
+          <FailedBuildSnackbar />
           {/* CI Status Card - shows external CI card if annotation present, otherwise OpenChoreo WorkflowsOverviewCard */}
           <WorkflowsOrExternalCICard />
           <Grid item md={4} xs={12}>
@@ -305,6 +323,11 @@ const serviceEntityPage = (
 
     <EntityLayout.Route path="/workflows" title="Build">
       <FeatureGatedContent feature="workflows">
+        {/* Auto-popping launcher — renders nothing unless the latest
+            run is in a failed state. The fixed pill on this tab was
+            intentionally removed; the snackbar still fires so a user
+            opening a failed build gets an "Investigate" prompt. */}
+        <FailedBuildSnackbar />
         <Workflows />
       </FeatureGatedContent>
     </EntityLayout.Route>
@@ -315,7 +338,9 @@ const serviceEntityPage = (
 
     <EntityLayout.Route path="/runtime-logs" title="Logs">
       <FeatureGatedContent feature="observability">
-        <ObservabilityRuntimeLogs />
+        <ObservabilityRuntimeLogs
+          renderRowAction={renderInvestigateLogAction}
+        />
       </FeatureGatedContent>
     </EntityLayout.Route>
 
@@ -393,6 +418,11 @@ const genericComponentEntityPage = (
 
     <EntityLayout.Route path="/workflows" title="Build">
       <FeatureGatedContent feature="workflows">
+        {/* Auto-popping launcher — renders nothing unless the latest
+            run is in a failed state. The fixed pill on this tab was
+            intentionally removed; the snackbar still fires so a user
+            opening a failed build gets an "Investigate" prompt. */}
+        <FailedBuildSnackbar />
         <Workflows />
       </FeatureGatedContent>
     </EntityLayout.Route>
@@ -403,7 +433,9 @@ const genericComponentEntityPage = (
 
     <EntityLayout.Route path="/runtime-logs" title="Logs">
       <FeatureGatedContent feature="observability">
-        <ObservabilityRuntimeLogs />
+        <ObservabilityRuntimeLogs
+          renderRowAction={renderInvestigateLogAction}
+        />
       </FeatureGatedContent>
     </EntityLayout.Route>
 
@@ -655,7 +687,9 @@ const systemPage = (
     </EntityLayout.Route>
     <EntityLayout.Route path="/logs" title="Logs">
       <FeatureGatedContent feature="observability">
-        <ObservabilityProjectRuntimeLogs />
+        <ObservabilityProjectRuntimeLogs
+          renderRowAction={renderInvestigateLogAction}
+        />
       </FeatureGatedContent>
     </EntityLayout.Route>
     <EntityLayout.Route path="/traces" title="Traces">

@@ -4,7 +4,8 @@ import type { OpenChoreoFeatures } from '@openchoreo/backstage-plugin-common';
 
 /**
  * Default feature configuration when no config is provided.
- * All features are enabled by default.
+ * All features are enabled by default EXCEPT `assistant`, which is opt-in
+ * because it requires the `perch-agent` service + LLM API key.
  */
 const defaultFeatures: OpenChoreoFeatures = {
   workflows: { enabled: true },
@@ -12,6 +13,7 @@ const defaultFeatures: OpenChoreoFeatures = {
   auth: { enabled: true },
   authz: { enabled: true },
   secretManagement: { enabled: false },
+  assistant: { enabled: false },
 };
 
 /**
@@ -59,6 +61,10 @@ export function useOpenChoreoFeatures(): OpenChoreoFeatures {
             featuresConfig.getOptionalBoolean('secretManagement.enabled') ??
             false,
         },
+        assistant: {
+          enabled:
+            featuresConfig.getOptionalBoolean('assistant.enabled') ?? false,
+        },
       };
     } catch {
       // If config reading fails, use defaults to avoid breaking the app
@@ -105,4 +111,13 @@ export function useAuthzEnabled(): boolean {
 export function useSecretManagementEnabled(): boolean {
   const features = useOpenChoreoFeatures();
   return features.secretManagement.enabled;
+}
+
+/*
+ * Helper hook to check if the OpenChoreo Assistant is enabled.
+ * Defaults to false (opt-in).
+ */
+export function useAssistantEnabled(): boolean {
+  const features = useOpenChoreoFeatures();
+  return features.assistant.enabled;
 }
