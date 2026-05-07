@@ -189,15 +189,15 @@ export class ObservabilityService {
 
   /**
    * Resolves the set of environment names referenced by the project's
-   * deployment pipeline. Returns null when the lookup cannot be completed
-   * (project not found, no pipeline ref, etc.) so the caller can decide
-   * whether to skip filtering.
+   * deployment pipeline. Returns an empty Set on any failure so the caller
+   * filters down to nothing — falling back to the full namespace list would
+   * silently reproduce the bug this scoping is meant to fix.
    */
   private async resolveDeploymentPipelineEnvironments(
     client: ReturnType<typeof createOpenChoreoApiClient>,
     namespaceName: string,
     projectName: string,
-  ): Promise<Set<string> | null> {
+  ): Promise<Set<string>> {
     const projectResult = await client.GET(
       '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
       { params: { path: { namespaceName, projectName } } },
@@ -208,17 +208,15 @@ export class ObservabilityService {
       !projectResult.data
     ) {
       this.logger.warn(
-        `Failed to fetch project ${projectName} in namespace ${namespaceName} for environment filtering; returning unfiltered list`,
+        `Failed to fetch project ${projectName} in namespace ${namespaceName} for environment filtering`,
       );
-      return null;
+      return new Set();
     }
 
     const pipelineName = projectResult.data.spec?.deploymentPipelineRef?.name;
     if (!pipelineName) {
-      this.logger.warn(
-        `Project ${projectName} has no deploymentPipelineRef; returning unfiltered environment list`,
-      );
-      return null;
+      this.logger.warn(`Project ${projectName} has no deploymentPipelineRef`);
+      return new Set();
     }
 
     const pipelineResult = await client.GET(
@@ -235,9 +233,9 @@ export class ObservabilityService {
       !pipelineResult.data
     ) {
       this.logger.warn(
-        `Failed to fetch deployment pipeline ${pipelineName} in namespace ${namespaceName}; returning unfiltered environment list`,
+        `Failed to fetch deployment pipeline ${pipelineName} in namespace ${namespaceName}`,
       );
-      return null;
+      return new Set();
     }
 
     const allowed = new Set<string>();
