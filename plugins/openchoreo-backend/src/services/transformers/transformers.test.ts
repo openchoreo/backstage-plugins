@@ -578,6 +578,46 @@ describe('transformSecretReference', () => {
   it('maps status string', () => {
     expect(transformSecretReference(secret).status).toBe('Ready');
   });
+
+  it('maps targetPlane when both kind and name are present', () => {
+    const refWithPlane: OpenChoreoComponents['schemas']['SecretReference'] = {
+      ...secret,
+      spec: {
+        ...secret.spec!,
+        targetPlane: { kind: 'DataPlane', name: 'dp-prod' },
+      },
+    };
+    expect(transformSecretReference(refWithPlane).targetPlane).toEqual({
+      kind: 'DataPlane',
+      name: 'dp-prod',
+    });
+  });
+
+  it('omits targetPlane when kind is missing', () => {
+    const refMissingKind: OpenChoreoComponents['schemas']['SecretReference'] = {
+      ...secret,
+      spec: {
+        ...secret.spec!,
+        targetPlane: { name: 'dp-prod' } as any,
+      },
+    };
+    expect(
+      transformSecretReference(refMissingKind).targetPlane,
+    ).toBeUndefined();
+  });
+
+  it('omits targetPlane when name is missing', () => {
+    const refMissingName: OpenChoreoComponents['schemas']['SecretReference'] = {
+      ...secret,
+      spec: {
+        ...secret.spec!,
+        targetPlane: { kind: 'DataPlane' } as any,
+      },
+    };
+    expect(
+      transformSecretReference(refMissingName).targetPlane,
+    ).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------
