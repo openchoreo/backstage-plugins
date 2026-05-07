@@ -175,6 +175,8 @@ export const CreateSecretDialog = ({
       setDockerConfig('');
       setTlsCrt('');
       setTlsKey('');
+      setShowBasicPassword(false);
+      setShowTlsKey(false);
       setError(null);
     }
   }, [open]);
@@ -366,6 +368,11 @@ export const CreateSecretDialog = ({
                           size="small"
                           onClick={() => updateRow(index, { show: !row.show })}
                           tabIndex={-1}
+                          aria-label={
+                            row.show
+                              ? `Hide value${row.key ? ` for ${row.key}` : ''}`
+                              : `Show value${row.key ? ` for ${row.key}` : ''}`
+                          }
                         >
                           {row.show ? (
                             <VisibilityOffIcon />
@@ -421,6 +428,9 @@ export const CreateSecretDialog = ({
                       size="small"
                       onClick={() => setShowBasicPassword(s => !s)}
                       tabIndex={-1}
+                      aria-label={
+                        showBasicPassword ? 'Hide password' : 'Show password'
+                      }
                     >
                       {showBasicPassword ? (
                         <VisibilityOffIcon />
@@ -502,6 +512,9 @@ export const CreateSecretDialog = ({
                       size="small"
                       onClick={() => setShowTlsKey(s => !s)}
                       tabIndex={-1}
+                      aria-label={
+                        showTlsKey ? 'Hide private key' : 'Show private key'
+                      }
                     >
                       {showTlsKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
                     </IconButton>
