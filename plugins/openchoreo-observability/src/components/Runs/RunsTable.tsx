@@ -11,12 +11,12 @@ import {
   CircularProgress,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import type { Trigger } from './types';
+import type { Run } from './types';
 import { useLogsTableStyles } from '../RuntimeLogs/styles';
-import { TriggerRow } from './TriggerRow';
+import { RunRow } from './RunRow';
 
-interface TriggersTableProps {
-  triggers: Trigger[];
+interface RunsTableProps {
+  runs: Run[];
   loading: boolean;
   namespaceName: string;
   projectName: string;
@@ -24,8 +24,8 @@ interface TriggersTableProps {
   componentName: string;
 }
 
-export const TriggersTable: FC<TriggersTableProps> = ({
-  triggers,
+export const RunsTable: FC<RunsTableProps> = ({
+  runs,
   loading,
   namespaceName,
   projectName,
@@ -63,10 +63,10 @@ export const TriggersTable: FC<TriggersTableProps> = ({
       <TableCell colSpan={6}>
         <Box className={classes.emptyState}>
           <Typography variant="h6" gutterBottom>
-            No triggers found
+            No runs found
           </Typography>
           <Typography variant="body2">
-            No scheduled task triggers match the current filters in the selected
+            No scheduled task runs match the current filters in the selected
             time range.
           </Typography>
         </Box>
@@ -99,12 +99,12 @@ export const TriggersTable: FC<TriggersTableProps> = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {loading && triggers.length === 0 && renderLoadingSkeletons()}
-            {!loading && triggers.length === 0 && renderEmptyState()}
-            {triggers.map(trigger => (
-              <TriggerRow
-                key={trigger.jobName}
-                trigger={trigger}
+            {loading && runs.length === 0 && renderLoadingSkeletons()}
+            {!loading && runs.length === 0 && renderEmptyState()}
+            {runs.map(run => (
+              <RunRow
+                key={run.jobName}
+                run={run}
                 namespaceName={namespaceName}
                 projectName={projectName}
                 environmentName={environmentName}
@@ -114,7 +114,7 @@ export const TriggersTable: FC<TriggersTableProps> = ({
           </TableBody>
         </Table>
       </Box>
-      {loading && triggers.length > 0 && (
+      {loading && runs.length > 0 && (
         <Box className={classes.loadingContainer}>
           <CircularProgress size={24} />
         </Box>

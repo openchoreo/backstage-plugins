@@ -4,21 +4,21 @@ import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { TriggersFilter } from './TriggersFilter';
-import { TriggersTable } from './TriggersTable';
-import { TriggersActions } from './TriggersActions';
+import { RunsFilter } from './RunsFilter';
+import { RunsTable } from './RunsTable';
+import { RunsActions } from './RunsActions';
 import {
-  useTriggers,
+  useRuns,
   useGetNamespaceAndProjectByEntity,
   useGetEnvironmentsByNamespace,
-  useUrlFiltersForTriggers,
+  useUrlFiltersForRuns,
 } from '../../hooks';
 import { useLogsPermission } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
 import type { Environment as RuntimeLogsEnvironment } from '../RuntimeLogs/types';
-import { TRIGGERS_PAGE_SIZE } from './types';
+import { RUNS_PAGE_SIZE } from './types';
 
-const ObservabilityTriggersContent = () => {
+const ObservabilityRunsContent = () => {
   const classes = useRuntimeLogsStyles();
   const { entity } = useEntity();
 
@@ -38,7 +38,7 @@ const ObservabilityTriggersContent = () => {
     }));
   }, [observabilityEnvironments]);
 
-  const { filters, updateFilters } = useUrlFiltersForTriggers({
+  const { filters, updateFilters } = useUrlFiltersForRuns({
     environments,
   });
 
@@ -52,18 +52,18 @@ const ObservabilityTriggersContent = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   const {
-    triggers,
-    loading: triggersLoading,
-    error: triggersError,
+    runs,
+    loading: runsLoading,
+    error: runsError,
     totalCount,
-    fetchTriggers,
+    fetchRuns,
     refresh,
-  } = useTriggers(entity, namespace || '', project || '', {
+  } = useRuns(entity, namespace || '', project || '', {
     environmentId: filters.environmentId,
     environmentName: selectedEnvironment?.resourceName || '',
     timeRange: filters.timeRange,
-    limit: TRIGGERS_PAGE_SIZE,
-    offset: filters.page * TRIGGERS_PAGE_SIZE,
+    limit: RUNS_PAGE_SIZE,
+    offset: filters.page * RUNS_PAGE_SIZE,
     sortOrder: filters.sortOrder,
   });
 
@@ -94,7 +94,7 @@ const ObservabilityTriggersContent = () => {
       componentName &&
       filtersChanged
     ) {
-      fetchTriggers(true);
+      fetchRuns(true);
       setLastUpdated(new Date());
       previousFiltersRef.current = currentFilters;
     }
@@ -103,7 +103,7 @@ const ObservabilityTriggersContent = () => {
     filters.timeRange,
     filters.sortOrder,
     filters.page,
-    fetchTriggers,
+    fetchRuns,
     selectedEnvironment,
     namespace,
     project,
@@ -111,8 +111,8 @@ const ObservabilityTriggersContent = () => {
   ]);
 
   useEffect(() => {
-    if (!triggersLoading) setLastUpdated(new Date());
-  }, [triggersLoading]);
+    if (!runsLoading) setLastUpdated(new Date());
+  }, [runsLoading]);
 
   const handleRefresh = () => {
     refresh();
@@ -134,7 +134,7 @@ const ObservabilityTriggersContent = () => {
       >
         <Typography variant="body1">
           {isObservabilityDisabled
-            ? 'Observability is not enabled for this component. Please enable observability to view triggers.'
+            ? 'Observability is not enabled for this component. Please enable observability to view runs.'
             : error}
         </Typography>
         {!isObservabilityDisabled && (
@@ -152,15 +152,15 @@ const ObservabilityTriggersContent = () => {
 
   return (
     <Box>
-      <TriggersFilter
+      <RunsFilter
         filters={filters}
         onFiltersChange={handleFiltersChange}
         environments={environments}
         environmentsLoading={environmentsLoading}
-        disabled={triggersLoading}
+        disabled={runsLoading}
       />
 
-      {triggersError && renderError(triggersError)}
+      {runsError && renderError(runsError)}
 
       {!filters.environmentId &&
         !environmentsLoading &&
@@ -175,18 +175,18 @@ const ObservabilityTriggersContent = () => {
 
       {filters.environmentId && selectedEnvironment && (
         <>
-          <TriggersActions
+          <RunsActions
             totalCount={totalCount}
-            disabled={triggersLoading || !filters.environmentId}
+            disabled={runsLoading || !filters.environmentId}
             onRefresh={handleRefresh}
             filters={filters}
             onFiltersChange={handleFiltersChange}
             lastUpdated={lastUpdated}
           />
 
-          <TriggersTable
-            triggers={triggers}
-            loading={triggersLoading}
+          <RunsTable
+            runs={runs}
+            loading={runsLoading}
             namespaceName={namespace || ''}
             projectName={project || ''}
             environmentName={selectedEnvironment.resourceName}
@@ -198,7 +198,7 @@ const ObservabilityTriggersContent = () => {
   );
 };
 
-export const ObservabilityTriggersPage = () => {
+export const ObservabilityRunsPage = () => {
   const {
     canViewLogs,
     loading: permissionLoading,
@@ -222,5 +222,5 @@ export const ObservabilityTriggersPage = () => {
     );
   }
 
-  return <ObservabilityTriggersContent />;
+  return <ObservabilityRunsContent />;
 };

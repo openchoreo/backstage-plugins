@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { observabilityApiRef } from '../api/ObservabilityApi';
-import { Retry } from '../components/Triggers/types';
+import { Retry } from '../components/Runs/types';
 
 export interface UseRetriesOptions {
   jobName: string;

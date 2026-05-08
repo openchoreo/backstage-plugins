@@ -3,10 +3,10 @@ import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { observabilityApiRef } from '../api/ObservabilityApi';
 import { calculateTimeRange } from '../components/RuntimeLogs/utils';
-import { Trigger } from '../components/Triggers/types';
+import { Run } from '../components/Runs/types';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
-export interface UseTriggersOptions {
+export interface UseRunsOptions {
   environmentId: string;
   environmentName: string;
   timeRange: string;
@@ -15,23 +15,23 @@ export interface UseTriggersOptions {
   sortOrder?: 'asc' | 'desc';
 }
 
-export interface UseTriggersResult {
-  triggers: Trigger[];
+export interface UseRunsResult {
+  runs: Run[];
   loading: boolean;
   error: string | null;
   totalCount: number;
-  fetchTriggers: (reset?: boolean) => Promise<void>;
+  fetchRuns: (reset?: boolean) => Promise<void>;
   refresh: () => void;
 }
 
-export function useTriggers(
+export function useRuns(
   entity: Entity,
   namespace: string,
   project: string,
-  options: UseTriggersOptions,
-): UseTriggersResult {
+  options: UseRunsOptions,
+): UseRunsResult {
   const observabilityApi = useApi(observabilityApiRef);
-  const [triggers, setTriggers] = useState<Trigger[]>([]);
+  const [runs, setRuns] = useState<Run[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -40,7 +40,7 @@ export function useTriggers(
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
 
-  const fetchTriggers = useCallback(
+  const fetchRuns = useCallback(
     async (_reset = true) => {
       if (
         !options.environmentId ||
@@ -60,7 +60,7 @@ export function useTriggers(
 
         const { startTime, endTime } = calculateTimeRange(options.timeRange);
 
-        const response = await observabilityApi.getTriggers(
+        const response = await observabilityApi.getRuns(
           namespace,
           project,
           options.environmentName,
@@ -76,12 +76,12 @@ export function useTriggers(
 
         if (version !== requestVersionRef.current) return;
 
-        setTriggers(response.triggers ?? []);
+        setRuns(response.runs ?? []);
         setTotalCount(response.total ?? 0);
       } catch (err) {
         if (version !== requestVersionRef.current) return;
         setError(
-          err instanceof Error ? err.message : 'Failed to fetch triggers',
+          err instanceof Error ? err.message : 'Failed to fetch runs',
         );
       } finally {
         if (version === requestVersionRef.current) {
@@ -104,16 +104,16 @@ export function useTriggers(
   );
 
   const refresh = useCallback(() => {
-    setTriggers([]);
-    fetchTriggers(true);
-  }, [fetchTriggers]);
+    setRuns([]);
+    fetchRuns(true);
+  }, [fetchRuns]);
 
   return {
-    triggers,
+    runs,
     loading,
     error,
     totalCount,
-    fetchTriggers,
+    fetchRuns,
     refresh,
   };
 }

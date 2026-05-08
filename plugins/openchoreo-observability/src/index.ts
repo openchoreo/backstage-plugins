@@ -10,7 +10,7 @@ export {
   ObservabilityWirelogs,
   ObservabilityProjectIncidents,
   ObservabilityCostAnalysis,
-  ObservabilityTriggers,
+  ObservabilityRuns,
 } from './plugin';
 export type { RenderLogRowAction } from './components/RuntimeLogs/LogEntry';
 export { useComponentHasAnyCiliumEnabledEnvironment } from './hooks';

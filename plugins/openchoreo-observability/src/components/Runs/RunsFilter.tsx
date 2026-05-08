@@ -7,18 +7,18 @@ import {
   Grid,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import type { TriggersFilters, Environment } from './types';
-import { TRIGGERS_TIME_RANGE_OPTIONS } from './types';
+import type { RunsFilters, Environment } from './types';
+import { RUNS_TIME_RANGE_OPTIONS } from './types';
 
-interface TriggersFilterProps {
-  filters: TriggersFilters;
-  onFiltersChange: (filters: Partial<TriggersFilters>) => void;
+interface RunsFilterProps {
+  filters: RunsFilters;
+  onFiltersChange: (filters: Partial<RunsFilters>) => void;
   environments: Environment[];
   environmentsLoading: boolean;
   disabled?: boolean;
 }
 
-export const TriggersFilter: FC<TriggersFilterProps> = ({
+export const RunsFilter: FC<RunsFilterProps> = ({
   filters,
   onFiltersChange,
   environments,
@@ -45,14 +45,14 @@ export const TriggersFilter: FC<TriggersFilterProps> = ({
           disabled={disabled || environmentsLoading}
           variant="outlined"
         >
-          <InputLabel id="triggers-environment-label">Environment</InputLabel>
+          <InputLabel id="runs-environment-label">Environment</InputLabel>
           {environmentsLoading ? (
             <Skeleton variant="rect" height={56} />
           ) : (
             <Select
               value={filters.environmentId}
               onChange={handleEnvironmentChange}
-              labelId="triggers-environment-label"
+              labelId="runs-environment-label"
               label="Environment"
             >
               {environments.map(env => (
@@ -67,14 +67,14 @@ export const TriggersFilter: FC<TriggersFilterProps> = ({
 
       <Grid item xs={12} md={3}>
         <FormControl fullWidth disabled={disabled} variant="outlined">
-          <InputLabel id="triggers-time-range-label">Time Range</InputLabel>
+          <InputLabel id="runs-time-range-label">Time Range</InputLabel>
           <Select
             value={filters.timeRange}
             onChange={handleTimeRangeChange}
-            labelId="triggers-time-range-label"
+            labelId="runs-time-range-label"
             label="Time Range"
           >
-            {TRIGGERS_TIME_RANGE_OPTIONS.map(opt => (
+            {RUNS_TIME_RANGE_OPTIONS.map(opt => (
               <MenuItem key={opt.value} value={opt.value}>
                 {opt.label}
               </MenuItem>
@@ -85,11 +85,11 @@ export const TriggersFilter: FC<TriggersFilterProps> = ({
 
       <Grid item xs={12} md={3}>
         <FormControl fullWidth disabled={disabled} variant="outlined">
-          <InputLabel id="triggers-sort-label">Sort Order</InputLabel>
+          <InputLabel id="runs-sort-label">Sort Order</InputLabel>
           <Select
             value={filters.sortOrder}
             onChange={handleSortOrderChange}
-            labelId="triggers-sort-label"
+            labelId="runs-sort-label"
             label="Sort Order"
           >
             <MenuItem value="desc">Newest First</MenuItem>

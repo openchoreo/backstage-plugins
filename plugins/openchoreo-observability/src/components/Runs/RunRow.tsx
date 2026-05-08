@@ -11,14 +11,14 @@ import {
   TableBody,
   CircularProgress,
 } from '@material-ui/core';
-import type { Trigger, TriggerStatus } from './types';
+import type { Run, RunStatus } from './types';
 import { useLogEntryStyles } from '../RuntimeLogs/styles';
-import { useTriggersStyles } from './styles';
+import { useRunsStyles } from './styles';
 import { useRetries } from '../../hooks/useRetries';
 import { RetryRow } from './RetryRow';
 
-interface TriggerRowProps {
-  trigger: Trigger;
+interface RunRowProps {
+  run: Run;
   namespaceName: string;
   projectName: string;
   environmentName: string;
@@ -37,7 +37,7 @@ const formatTimestamp = (ts?: string) => {
 const formatDuration = (
   startTime?: string,
   completionTime?: string,
-  status?: TriggerStatus,
+  status?: RunStatus,
 ): string => {
   if (status !== 'succeeded' && status !== 'failed') return '—';
   if (!startTime || !completionTime) return '—';
@@ -57,31 +57,31 @@ const formatDuration = (
 };
 
 const getStatusChipClass = (
-  status: TriggerStatus,
+  status: RunStatus,
   logClasses: ReturnType<typeof useLogEntryStyles>,
-  triggerClasses: ReturnType<typeof useTriggersStyles>,
+  runClasses: ReturnType<typeof useRunsStyles>,
 ): string => {
   switch (status) {
     case 'succeeded':
-      return triggerClasses.successChip;
+      return runClasses.successChip;
     case 'failed':
       return logClasses.errorChip;
     case 'running':
-      return triggerClasses.runningChip;
+      return runClasses.runningChip;
     default:
       return logClasses.undefinedChip;
   }
 };
 
-export const TriggerRow: FC<TriggerRowProps> = ({
-  trigger,
+export const RunRow: FC<RunRowProps> = ({
+  run,
   namespaceName,
   projectName,
   environmentName,
   componentName,
 }) => {
   const logClasses = useLogEntryStyles();
-  const triggerClasses = useTriggersStyles();
+  const runClasses = useRunsStyles();
   const [expanded, setExpanded] = useState(false);
 
   const {
@@ -90,7 +90,7 @@ export const TriggerRow: FC<TriggerRowProps> = ({
     error: retriesError,
     fetchRetries,
   } = useRetries({
-    jobName: expanded ? trigger.jobName : '',
+    jobName: expanded ? run.jobName : '',
     namespaceName,
     projectName,
     environmentName,
@@ -114,38 +114,38 @@ export const TriggerRow: FC<TriggerRowProps> = ({
           <Chip
             size="small"
             label={
-              trigger.status === 'failed' && trigger.failureReason ? (
+              run.status === 'failed' && run.failureReason ? (
                 <>
-                  {trigger.status.toUpperCase()}
-                  <span className={triggerClasses.statusChipReason}>
-                    ({trigger.failureReason})
+                  {run.status.toUpperCase()}
+                  <span className={runClasses.statusChipReason}>
+                    ({run.failureReason})
                   </span>
                 </>
               ) : (
-                trigger.status.toUpperCase()
+                run.status.toUpperCase()
               )
             }
-            className={`${logClasses.logLevelChip} ${getStatusChipClass(trigger.status, logClasses, triggerClasses)}`}
+            className={`${logClasses.logLevelChip} ${getStatusChipClass(run.status, logClasses, runClasses)}`}
           />
         </TableCell>
         <TableCell className={logClasses.monospaceCell}>
-          {trigger.jobName}
+          {run.jobName}
         </TableCell>
         <TableCell style={{ fontSize: '0.75rem' }}>
-          {formatTimestamp(trigger.startTime)}
+          {formatTimestamp(run.startTime)}
         </TableCell>
         <TableCell style={{ fontSize: '0.75rem' }}>
-          {formatTimestamp(trigger.completionTime)}
+          {formatTimestamp(run.completionTime)}
         </TableCell>
         <TableCell style={{ fontSize: '0.75rem' }}>
           {formatDuration(
-            trigger.startTime,
-            trigger.completionTime,
-            trigger.status,
+            run.startTime,
+            run.completionTime,
+            run.status,
           )}
         </TableCell>
         <TableCell style={{ fontSize: '0.75rem' }}>
-          {trigger.eventCount}
+          {run.eventCount}
         </TableCell>
       </TableRow>
 
@@ -154,7 +154,7 @@ export const TriggerRow: FC<TriggerRowProps> = ({
           <TableCell colSpan={6} style={{ paddingBottom: 0, paddingTop: 0 }}>
             <Collapse in={expanded} timeout="auto" unmountOnExit>
               <Box className={logClasses.expandedContent}>
-                <Typography className={triggerClasses.sectionTitle}>
+                <Typography className={runClasses.sectionTitle}>
                   Retries ({retries.length} pod{retries.length !== 1 ? 's' : ''})
                 </Typography>
 
@@ -173,7 +173,7 @@ export const TriggerRow: FC<TriggerRowProps> = ({
                 {!retriesLoading && !retriesError && retries.length > 0 && (
                   <Table
                     size="small"
-                    className={triggerClasses.retriesTable}
+                    className={runClasses.retriesTable}
                   >
                     <TableHead>
                       <TableRow>
@@ -192,8 +192,8 @@ export const TriggerRow: FC<TriggerRowProps> = ({
                           projectName={projectName}
                           environmentName={environmentName}
                           componentName={componentName}
-                          triggerStartTime={trigger.startTime}
-                          triggerCompletionTime={trigger.completionTime}
+                          runStartTime={run.startTime}
+                          runCompletionTime={run.completionTime}
                         />
                       ))}
                     </TableBody>
@@ -206,7 +206,7 @@ export const TriggerRow: FC<TriggerRowProps> = ({
                     color="textSecondary"
                     style={{ padding: 8 }}
                   >
-                    No retry pods found for this trigger.
+                    No retry pods found for this run.
                   </Typography>
                 )}
 

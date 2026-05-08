@@ -15,7 +15,7 @@ import ChevronRight from '@material-ui/icons/ChevronRight';
 import Refresh from '@material-ui/icons/Refresh';
 import type { Retry, RetryStatus } from './types';
 import { useLogEntryStyles } from '../RuntimeLogs/styles';
-import { useTriggersStyles } from './styles';
+import { useRunsStyles } from './styles';
 import { usePodLogs } from '../../hooks/usePodLogs';
 
 interface RetryRowProps {
@@ -24,8 +24,8 @@ interface RetryRowProps {
   projectName: string;
   environmentName: string;
   componentName: string;
-  triggerStartTime?: string;
-  triggerCompletionTime?: string;
+  runStartTime?: string;
+  runCompletionTime?: string;
 }
 
 const formatTimestamp = (ts?: string) => {
@@ -40,15 +40,15 @@ const formatTimestamp = (ts?: string) => {
 const getStatusChipClass = (
   status: RetryStatus,
   logClasses: ReturnType<typeof useLogEntryStyles>,
-  triggerClasses: ReturnType<typeof useTriggersStyles>,
+  runClasses: ReturnType<typeof useRunsStyles>,
 ): string => {
   switch (status) {
     case 'Succeeded':
-      return triggerClasses.successChip;
+      return runClasses.successChip;
     case 'Failed':
       return logClasses.errorChip;
     case 'Running':
-      return triggerClasses.runningChip;
+      return runClasses.runningChip;
     default:
       return logClasses.undefinedChip;
   }
@@ -60,28 +60,28 @@ export const RetryRow: FC<RetryRowProps> = ({
   projectName,
   environmentName,
   componentName,
-  triggerStartTime,
-  triggerCompletionTime,
+  runStartTime,
+  runCompletionTime,
 }) => {
   const logClasses = useLogEntryStyles();
-  const triggerClasses = useTriggersStyles();
+  const runClasses = useRunsStyles();
   const [expanded, setExpanded] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(true);
 
   const { logsStartTime, logsEndTime } = useMemo(() => {
-    const baseStart = retry.startTime || triggerStartTime;
+    const baseStart = retry.startTime || runStartTime;
     const startMs = baseStart
       ? new Date(baseStart).getTime() - 60 * 1000
       : Date.now() - 24 * 3600 * 1000;
-    const endMs = triggerCompletionTime
-      ? new Date(triggerCompletionTime).getTime() + 5 * 60 * 1000
+    const endMs = runCompletionTime
+      ? new Date(runCompletionTime).getTime() + 5 * 60 * 1000
       : Date.now();
     return {
       logsStartTime: new Date(startMs).toISOString(),
       logsEndTime: new Date(endMs).toISOString(),
     };
-  }, [retry.startTime, triggerStartTime, triggerCompletionTime]);
+  }, [retry.startTime, runStartTime, runCompletionTime]);
 
   const {
     logs,
@@ -107,14 +107,14 @@ export const RetryRow: FC<RetryRowProps> = ({
   const logLevelClass = (level?: string): string => {
     switch ((level || '').toUpperCase()) {
       case 'ERROR':
-        return triggerClasses.logLevelError;
+        return runClasses.logLevelError;
       case 'WARN':
       case 'WARNING':
-        return triggerClasses.logLevelWarn;
+        return runClasses.logLevelWarn;
       case 'INFO':
-        return triggerClasses.logLevelInfo;
+        return runClasses.logLevelInfo;
       case 'DEBUG':
-        return triggerClasses.logLevelDebug;
+        return runClasses.logLevelDebug;
       default:
         return '';
     }
@@ -131,7 +131,7 @@ export const RetryRow: FC<RetryRowProps> = ({
           <Chip
             size="small"
             label={retry.status}
-            className={`${logClasses.logLevelChip} ${getStatusChipClass(retry.status, logClasses, triggerClasses)}`}
+            className={`${logClasses.logLevelChip} ${getStatusChipClass(retry.status, logClasses, runClasses)}`}
           />
         </TableCell>
         <TableCell className={logClasses.monospaceCell}>
@@ -151,23 +151,23 @@ export const RetryRow: FC<RetryRowProps> = ({
             <Collapse in={expanded} timeout="auto" unmountOnExit>
               <Box className={logClasses.expandedContent}>
                 <Box
-                  className={triggerClasses.sectionHeader}
+                  className={runClasses.sectionHeader}
                   onClick={() => setLogsOpen(prev => !prev)}
                 >
                   {logsOpen ? (
-                    <ExpandMore className={triggerClasses.sectionToggleIcon} />
+                    <ExpandMore className={runClasses.sectionToggleIcon} />
                   ) : (
                     <ChevronRight
-                      className={triggerClasses.sectionToggleIcon}
+                      className={runClasses.sectionToggleIcon}
                     />
                   )}
-                  <Typography className={triggerClasses.sectionHeaderTitle}>
+                  <Typography className={runClasses.sectionHeaderTitle}>
                     Logs ({logs.length})
                   </Typography>
                   <Tooltip title="Refresh logs">
                     <IconButton
                       size="small"
-                      className={triggerClasses.sectionRefreshButton}
+                      className={runClasses.sectionRefreshButton}
                       disabled={logsLoading}
                       onClick={(e: MouseEvent) => {
                         e.stopPropagation();
@@ -175,7 +175,7 @@ export const RetryRow: FC<RetryRowProps> = ({
                         fetchLogs();
                       }}
                     >
-                      <Refresh className={triggerClasses.sectionRefreshIcon} />
+                      <Refresh className={runClasses.sectionRefreshIcon} />
                     </IconButton>
                   </Tooltip>
                 </Box>
@@ -204,21 +204,21 @@ export const RetryRow: FC<RetryRowProps> = ({
                   )}
 
                   {!logsLoading && !logsError && logs.length > 0 && (
-                    <Box className={triggerClasses.logsContainer}>
+                    <Box className={runClasses.logsContainer}>
                       {logs.map((log, idx) => (
                         <Box
                           key={`${log.timestamp ?? ''}-${idx}`}
-                          className={triggerClasses.logLine}
+                          className={runClasses.logLine}
                         >
-                          <span className={triggerClasses.logTimestamp}>
+                          <span className={runClasses.logTimestamp}>
                             {formatTimestamp(log.timestamp)}
                           </span>
                           <span
-                            className={`${triggerClasses.logLevel} ${logLevelClass(log.level)}`}
+                            className={`${runClasses.logLevel} ${logLevelClass(log.level)}`}
                           >
                             {log.level || '-'}
                           </span>
-                          <span className={triggerClasses.logMessage}>
+                          <span className={runClasses.logMessage}>
                             {log.log}
                           </span>
                         </Box>
@@ -230,20 +230,20 @@ export const RetryRow: FC<RetryRowProps> = ({
                 {retry.events && retry.events.length > 0 && (
                   <>
                     <Box
-                      className={triggerClasses.sectionHeader}
+                      className={runClasses.sectionHeader}
                       onClick={() => setEventsOpen(prev => !prev)}
                     >
                       {eventsOpen ? (
                         <ExpandMore
-                          className={triggerClasses.sectionToggleIcon}
+                          className={runClasses.sectionToggleIcon}
                         />
                       ) : (
                         <ChevronRight
-                          className={triggerClasses.sectionToggleIcon}
+                          className={runClasses.sectionToggleIcon}
                         />
                       )}
                       <Typography
-                        className={triggerClasses.sectionHeaderTitle}
+                        className={runClasses.sectionHeaderTitle}
                       >
                         Events ({retry.events.length})
                       </Typography>
@@ -251,16 +251,16 @@ export const RetryRow: FC<RetryRowProps> = ({
                     <Collapse in={eventsOpen} timeout="auto" unmountOnExit>
                       <Box className={logClasses.metadataBox}>
                         {retry.events.map((event, idx) => (
-                          <Box key={idx} className={triggerClasses.eventItem}>
-                            <span className={triggerClasses.eventTimestamp}>
+                          <Box key={idx} className={runClasses.eventItem}>
+                            <span className={runClasses.eventTimestamp}>
                               {formatTimestamp(event.timestamp)}
                             </span>
                             <span
-                              className={`${triggerClasses.eventReason} ${event.type === 'Warning' ? triggerClasses.warningEvent : ''}`}
+                              className={`${runClasses.eventReason} ${event.type === 'Warning' ? runClasses.warningEvent : ''}`}
                             >
                               {event.reason}
                             </span>
-                            <span className={triggerClasses.eventMessage}>
+                            <span className={runClasses.eventMessage}>
                               {event.message}
                             </span>
                           </Box>

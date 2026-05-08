@@ -142,7 +142,7 @@ import {
   ObservabilityWirelogs,
   ObservabilityProjectIncidents,
   ObservabilityCostAnalysis,
-  ObservabilityTriggers,
+  ObservabilityRuns,
   useComponentHasAnyCiliumEnabledEnvironment,
   type RenderLogRowAction,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
@@ -457,7 +457,7 @@ const ServiceEntityPage = () => {
 
 /**
  * Scheduled task entity page with delete menu support.
- * Adds a Triggers tab that shows Job/Pod execution history.
+ * Adds a Runs tab that shows Job/Pod execution history.
  * No API tab or Alerts tab (not relevant for CronJobs).
  */
 const scheduledTaskEntityPage = (
@@ -480,9 +480,9 @@ const scheduledTaskEntityPage = (
       <Environments />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/triggers" title="Triggers">
+    <EntityLayout.Route path="/runs" title="Runs">
       <FeatureGatedContent feature="observability">
-        <ObservabilityTriggers />
+        <ObservabilityRuns />
       </FeatureGatedContent>
     </EntityLayout.Route>
 

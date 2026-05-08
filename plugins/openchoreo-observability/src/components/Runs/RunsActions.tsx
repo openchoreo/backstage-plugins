@@ -3,15 +3,15 @@ import Refresh from '@material-ui/icons/Refresh';
 import NavigateBefore from '@material-ui/icons/NavigateBefore';
 import NavigateNext from '@material-ui/icons/NavigateNext';
 import { useLogsActionsStyles } from '../RuntimeLogs/styles';
-import type { TriggersFilters } from './types';
-import { TRIGGERS_PAGE_SIZE } from './types';
+import type { RunsFilters } from './types';
+import { RUNS_PAGE_SIZE } from './types';
 
-interface TriggersActionsProps {
+interface RunsActionsProps {
   totalCount: number;
   disabled: boolean;
   onRefresh: () => void;
-  filters: TriggersFilters;
-  onFiltersChange: (filters: Partial<TriggersFilters>) => void;
+  filters: RunsFilters;
+  onFiltersChange: (filters: Partial<RunsFilters>) => void;
   lastUpdated?: Date;
 }
 
@@ -25,19 +25,19 @@ const formatDate = (date: Date): string => {
   return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
 };
 
-export const TriggersActions = ({
+export const RunsActions = ({
   totalCount,
   disabled,
   onRefresh,
   filters,
   onFiltersChange,
   lastUpdated,
-}: TriggersActionsProps) => {
+}: RunsActionsProps) => {
   const classes = useLogsActionsStyles();
   const displayDate = lastUpdated || new Date();
 
   const page = filters.page;
-  const pageSize = TRIGGERS_PAGE_SIZE;
+  const pageSize = RUNS_PAGE_SIZE;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const startItem = totalCount === 0 ? 0 : page * pageSize + 1;
   const endItem = Math.min((page + 1) * pageSize, totalCount);
@@ -58,7 +58,7 @@ export const TriggersActions = ({
     <Box className={classes.statsContainer}>
       <Box>
         <Typography variant="body2" color="textSecondary">
-          Total triggers: {totalCount}
+          Total runs: {totalCount}
           {totalCount > 0 && (
             <> — showing {startItem}-{endItem}</>
           )}

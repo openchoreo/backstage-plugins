@@ -20,9 +20,9 @@ import {
 import { LogsResponse } from '../components/RuntimeLogs/types';
 import { EventsResponse } from '../components/RuntimeEvents/types';
 import type {
-  TriggersQueryResponse,
+  RunsQueryResponse,
   RetriesQueryResponse,
-} from '../components/Triggers/types';
+} from '../components/Runs/types';
 import { ObserverUrlCache } from './ObserverUrlCache';
 
 export interface ObservabilityApi {
@@ -189,7 +189,7 @@ export interface ObservabilityApi {
     namespaceName: string,
   ): Promise<FinOpsReportDetailed>;
 
-  getTriggers(
+  getRuns(
     namespaceName: string,
     projectName: string,
     environmentName: string,
@@ -201,7 +201,7 @@ export interface ObservabilityApi {
       offset?: number;
       sortOrder?: 'asc' | 'desc';
     },
-  ): Promise<TriggersQueryResponse>;
+  ): Promise<RunsQueryResponse>;
 
   getRetries(
     jobName: string,
@@ -1043,7 +1043,7 @@ export class ObservabilityClient implements ObservabilityApi {
     return data;
   }
 
-  async getTriggers(
+  async getRuns(
     namespaceName: string,
     projectName: string,
     environmentName: string,
@@ -1055,14 +1055,14 @@ export class ObservabilityClient implements ObservabilityApi {
       offset?: number;
       sortOrder?: 'asc' | 'desc';
     },
-  ): Promise<TriggersQueryResponse> {
+  ): Promise<RunsQueryResponse> {
     const { observerUrl } = await this.urlCache.resolveUrls(
       namespaceName,
       environmentName,
     );
 
     const response = await this.fetchApi.fetch(
-      `${observerUrl}/api/v1/scheduled-tasks/triggers/query`,
+      `${observerUrl}/api/v1/scheduled-tasks/runs/query`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
@@ -1089,20 +1089,20 @@ export class ObservabilityClient implements ObservabilityApi {
         throw new Error('Observability is not enabled for this component');
       }
       throw new Error(
-        error || `Failed to fetch triggers: ${response.statusText}`,
+        error || `Failed to fetch runs: ${response.statusText}`,
       );
     }
 
     const data = await response.json();
     return {
-      triggers: (data.triggers ?? []).map((t: any) => ({
-        jobName: t.jobName ?? '',
-        status: t.status ?? 'unknown',
-        startTime: t.startTime ?? '',
-        completionTime: t.completionTime,
-        eventCount: t.eventCount ?? 0,
-        failureReason: t.failureReason,
-        events: t.events,
+      runs: (data.runs ?? []).map((r: any) => ({
+        jobName: r.jobName ?? '',
+        status: r.status ?? 'unknown',
+        startTime: r.startTime ?? '',
+        completionTime: r.completionTime,
+        eventCount: r.eventCount ?? 0,
+        failureReason: r.failureReason,
+        events: r.events,
       })),
       total: data.total ?? 0,
       tookMs: data.tookMs ?? 0,
@@ -1122,7 +1122,7 @@ export class ObservabilityClient implements ObservabilityApi {
     );
 
     const response = await this.fetchApi.fetch(
-      `${observerUrl}/api/v1/scheduled-tasks/triggers/${encodeURIComponent(
+      `${observerUrl}/api/v1/scheduled-tasks/runs/${encodeURIComponent(
         jobName,
       )}/retries/query`,
       {

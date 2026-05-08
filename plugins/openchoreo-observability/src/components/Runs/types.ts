@@ -2,27 +2,27 @@ import type { Environment } from '../RuntimeLogs/types';
 
 export type { Environment };
 
-export type TriggerStatus = 'succeeded' | 'failed' | 'running' | 'unknown';
+export type RunStatus = 'succeeded' | 'failed' | 'running' | 'unknown';
 
-export interface TriggerEvent {
+export interface RunEvent {
   reason: string;
   message: string;
   timestamp: string;
   type: 'Normal' | 'Warning';
 }
 
-export interface Trigger {
+export interface Run {
   jobName: string;
-  status: TriggerStatus;
+  status: RunStatus;
   startTime: string;
   completionTime?: string;
   eventCount: number;
   failureReason?: string;
-  events?: TriggerEvent[];
+  events?: RunEvent[];
 }
 
-export interface TriggersQueryResponse {
-  triggers: Trigger[];
+export interface RunsQueryResponse {
+  runs: Run[];
   total: number;
   tookMs: number;
 }
@@ -50,18 +50,18 @@ export interface RetriesQueryResponse {
   tookMs: number;
 }
 
-export interface TriggersFilters {
+export interface RunsFilters {
   environmentId: string;
   timeRange: string;
   sortOrder: 'asc' | 'desc';
   page: number;
 }
 
-export const TRIGGERS_TIME_RANGE_OPTIONS = [
+export const RUNS_TIME_RANGE_OPTIONS = [
   { value: '1h', label: 'Last 1 hour' },
   { value: '24h', label: 'Last 24 hours' },
   { value: '7d', label: 'Last 7 days' },
   { value: '14d', label: 'Last 14 days' },
 ] as const;
 
-export const TRIGGERS_PAGE_SIZE = 20;
+export const RUNS_PAGE_SIZE = 20;

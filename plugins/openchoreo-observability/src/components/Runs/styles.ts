@@ -1,6 +1,6 @@
 import { makeStyles } from '@material-ui/core/styles';
 
-export const useTriggersStyles = makeStyles(theme => ({
+export const useRunsStyles = makeStyles(theme => ({
   successChip: {
     backgroundColor: '#c8e6c9',
     color: '#2e7d32',

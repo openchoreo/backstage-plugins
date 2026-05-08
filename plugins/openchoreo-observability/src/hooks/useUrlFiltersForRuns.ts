@@ -1,28 +1,28 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Environment } from '../components/RuntimeLogs/types';
-import type { TriggersFilters } from '../components/Triggers/types';
-import { TRIGGERS_TIME_RANGE_OPTIONS } from '../components/Triggers/types';
+import type { RunsFilters } from '../components/Runs/types';
+import { RUNS_TIME_RANGE_OPTIONS } from '../components/Runs/types';
 
 const DEFAULT_TIME_RANGE = '24h';
-const VALID_TIME_RANGES: readonly string[] = TRIGGERS_TIME_RANGE_OPTIONS.map(
+const VALID_TIME_RANGES: readonly string[] = RUNS_TIME_RANGE_OPTIONS.map(
   o => o.value,
 );
 
-interface UseUrlFiltersForTriggersOptions {
+interface UseUrlFiltersForRunsOptions {
   environments: Environment[];
 }
 
-export function useUrlFiltersForTriggers({
+export function useUrlFiltersForRuns({
   environments,
-}: UseUrlFiltersForTriggersOptions): {
-  filters: TriggersFilters;
-  updateFilters: (newFilters: Partial<TriggersFilters>) => void;
+}: UseUrlFiltersForRunsOptions): {
+  filters: RunsFilters;
+  updateFilters: (newFilters: Partial<RunsFilters>) => void;
   resetFilters: () => void;
 } {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const filters = useMemo<TriggersFilters>(() => {
+  const filters = useMemo<RunsFilters>(() => {
     const envId = searchParams.get('env');
     const rawTimeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
     const timeRange = VALID_TIME_RANGES.includes(rawTimeRange)
@@ -58,7 +58,7 @@ export function useUrlFiltersForTriggers({
   }, [environments, searchParams, setSearchParams]);
 
   const updateFilters = useCallback(
-    (newFilters: Partial<TriggersFilters>) => {
+    (newFilters: Partial<RunsFilters>) => {
       const newParams = new URLSearchParams(searchParams);
 
       if (newFilters.environmentId !== undefined) {
