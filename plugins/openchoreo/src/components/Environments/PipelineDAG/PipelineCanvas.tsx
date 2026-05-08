@@ -279,7 +279,7 @@ export const PipelineCanvas: FC = () => {
       const targetId = env.bindingName ?? `${env.resourceName ?? env.name}`;
       try {
         await removeDeploymentTracker.withTracking(targetId, () =>
-          handleRemoveDeployment(targetId),
+          handleRemoveDeployment(targetId, env.name),
         );
       } catch (err) {
         notification.showError(

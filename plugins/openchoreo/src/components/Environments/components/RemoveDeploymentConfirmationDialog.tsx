@@ -31,24 +31,18 @@ export const RemoveDeploymentConfirmationDialog: FC<
 
       <DialogContent dividers>
         <Typography variant="body2" color="textSecondary" paragraph>
-          This will remove the deployment from{' '}
-          <strong>{environmentName}</strong> entirely. The following will be
-          deleted:
+          This will delete the <strong>release binding</strong> for{' '}
+          <strong>{environmentName}</strong>. As a result:
         </Typography>
         <ul style={{ marginTop: 0, paddingLeft: 20 }}>
           <li>
             <Typography variant="body2" color="textSecondary">
-              Release binding
+              Environment-specific configuration overrides will be lost
             </Typography>
           </li>
           <li>
             <Typography variant="body2" color="textSecondary">
-              Environment-specific configuration overrides
-            </Typography>
-          </li>
-          <li>
-            <Typography variant="body2" color="textSecondary">
-              Deployed Kubernetes resources for this environment
+              Dataplane (Kubernetes) resources will be torn down
             </Typography>
           </li>
         </ul>

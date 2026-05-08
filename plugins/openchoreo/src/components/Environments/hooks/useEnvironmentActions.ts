@@ -75,16 +75,19 @@ export function useEnvironmentActions(
     [notification],
   );
 
-  // Stub: removing the deployment deletes the binding, configs, and
-  // overrides for the env (different from Undeploy, which keeps the
-  // binding). The destructive API call lands in a follow-up — this
-  // handler is wired through the panel today so only the API call is
-  // left to swap in.
+  // Removing the deployment deletes the release binding for the env;
+  // the controller cascades to env-specific overrides and dataplane
+  // resources. Different from Undeploy, which keeps the binding.
+  // bindingName is unused inside this handler — callers thread it in for
+  // the action-tracker key. The API only needs the env name.
   const handleRemoveDeployment = useCallback(
-    async (_bindingName: string) => {
-      notification.showError('Remove deployment is not yet wired up');
+    async (_bindingName: string, envName: string) => {
+      await client.deleteReleaseBinding(entity, envName);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await refetch();
+      notification.showSuccess(`Deployment removed from ${envName}`);
     },
-    [notification],
+    [entity, client, refetch, notification],
   );
 
   return {

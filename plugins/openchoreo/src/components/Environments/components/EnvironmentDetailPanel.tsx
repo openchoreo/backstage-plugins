@@ -481,10 +481,7 @@ export const EnvironmentDetailPanel = ({
                     color="textSecondary"
                     style={{ marginBottom: 8 }}
                   >
-                    Remove deployment deletes the release binding,
-                    environment-specific overrides, and the running Kubernetes
-                    resources. This cannot be undone — to redeploy you'll need
-                    to configure overrides again.
+                    Permanently delete this environment's deployment.
                   </Typography>
                   <Button
                     variant="outlined"
