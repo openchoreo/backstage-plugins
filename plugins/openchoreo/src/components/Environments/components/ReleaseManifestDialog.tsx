@@ -75,9 +75,13 @@ export const ReleaseManifestDialog = ({
     };
   }, [api, entity, open, releaseName]);
 
-  const handleCopy = () => {
-    if (yamlText) {
-      navigator.clipboard?.writeText(yamlText);
+  const handleCopy = async () => {
+    if (!yamlText) return;
+    try {
+      await navigator.clipboard.writeText(yamlText);
+    } catch {
+      // Clipboard API unavailable or permission denied — best-effort
+      // copy. Mirrors URLRow.handleCopy in InvokeUrlsDialog.
     }
   };
 

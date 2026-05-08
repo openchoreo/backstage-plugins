@@ -120,6 +120,7 @@ export function GraphControls({
             className={classes.button}
             onClick={onToggleFullscreen}
             size="small"
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           >
             {isFullscreen ? (
               <FullscreenExitIcon fontSize="small" />

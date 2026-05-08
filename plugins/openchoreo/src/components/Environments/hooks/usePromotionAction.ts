@@ -90,8 +90,12 @@ export function usePromotionAction({
   const promotionActions: PromotionTargetAction[] =
     deploymentStatus === 'Ready' && promotionTargets
       ? promotionTargets.map(target => {
+          // Tracker key must match what we pass to onPromote — both
+          // target the same in-flight promotion. PipelineCanvas keys
+          // its tracker on resourceName ?? name (PipelineCanvas.tsx).
+          const targetKey = target.resourceName ?? target.name;
           const promoted = isAlreadyPromoted(target.name);
-          const promoting = promotionTracker.isActive(target.name);
+          const promoting = promotionTracker.isActive(targetKey);
           let label: string;
           if (promoted) {
             label = `Promoted to ${target.name}`;
@@ -110,7 +114,7 @@ export function usePromotionAction({
             isAlreadyPromoted: promoted,
             isPromoting: promoting,
             deniedTooltip: promoteDeniedTooltip,
-            onClick: () => onPromote(target.resourceName ?? target.name),
+            onClick: () => onPromote(targetKey),
           };
         })
       : [];

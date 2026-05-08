@@ -327,10 +327,16 @@ describe('EnvironmentDetailPanel', () => {
     expect(onRolloutRestart).toHaveBeenCalled();
   });
 
-  it('does not render the cogwheel IconButton in the header anymore', () => {
+  it('renders Configure overrides as a text button (not as a header icon button)', () => {
     renderPanel({
       selection: { kind: 'env', environment: makeEnv({ name: 'staging' }) },
     });
+    // Text-label button is present in the Configuration section.
+    expect(
+      screen.getByRole('button', { name: /^configure overrides$/i }),
+    ).toBeInTheDocument();
+    // The legacy header cogwheel form (IconButton with aria-label) is gone —
+    // queryByLabelText only matches an explicit aria-label attribute.
     expect(screen.queryByLabelText('Configure overrides')).toBeNull();
   });
 

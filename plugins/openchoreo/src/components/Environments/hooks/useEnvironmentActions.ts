@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
@@ -20,6 +20,18 @@ export function useEnvironmentActions(
   refreshTracker: ItemActionTracker,
 ) {
   const client = useApi(openChoreoClientApiRef);
+
+  // Tracks whether the consumer component is still mounted. Long-running
+  // handlers (e.g. handleRemoveDeployment's poll loop) check this before
+  // firing post-completion side effects so we don't call refetch / show
+  // a toast on a torn-down component.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const handleRefreshEnvironment = useCallback(
     (envName: string) =>
@@ -95,8 +107,9 @@ export function useEnvironmentActions(
       const POLL_TIMEOUT_MS = 15_000;
       const deadline = Date.now() + POLL_TIMEOUT_MS;
       let confirmed = false;
-      while (Date.now() < deadline) {
+      while (Date.now() < deadline && mountedRef.current) {
         await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+        if (!mountedRef.current) break;
         try {
           const envs = (await client.fetchEnvironmentInfo(entity)) as Array<{
             name: string;
@@ -114,6 +127,7 @@ export function useEnvironmentActions(
         }
       }
 
+      if (!mountedRef.current) return;
       await refetch();
       if (confirmed) {
         notification.showSuccess(`Deployment removed from ${envName}`);

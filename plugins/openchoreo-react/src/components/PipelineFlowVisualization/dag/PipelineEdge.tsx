@@ -10,16 +10,17 @@ interface PipelineEdgeProps {
 export const PipelineEdge: FC<PipelineEdgeProps> = ({ edge }) => {
   const classes = usePipelineStyles();
 
-  const approvalIconPosition = edge.requiresApproval
-    ? (() => {
-        const midIndex = Math.floor(edge.lines.length / 2);
-        const midLine = edge.lines[midIndex];
-        return {
-          x: (midLine.x1 + midLine.x2) / 2,
-          y: (midLine.y1 + midLine.y2) / 2,
-        };
-      })()
-    : null;
+  const approvalIconPosition =
+    edge.requiresApproval && edge.lines.length > 0
+      ? (() => {
+          const midIndex = Math.floor(edge.lines.length / 2);
+          const midLine = edge.lines[midIndex];
+          return {
+            x: (midLine.x1 + midLine.x2) / 2,
+            y: (midLine.y1 + midLine.y2) / 2,
+          };
+        })()
+      : null;
 
   const lastLine = edge.lines[edge.lines.length - 1];
 

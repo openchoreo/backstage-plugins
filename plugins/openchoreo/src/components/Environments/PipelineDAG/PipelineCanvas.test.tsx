@@ -119,6 +119,7 @@ const mockHandleRefreshEnvironment = jest.fn().mockResolvedValue(undefined);
 const mockHandleUndeploy = jest.fn().mockResolvedValue(undefined);
 const mockHandleRedeploy = jest.fn().mockResolvedValue(undefined);
 const mockHandleRolloutRestart = jest.fn().mockResolvedValue(undefined);
+const mockHandleRemoveDeployment = jest.fn().mockResolvedValue(undefined);
 const mockShowError = jest.fn();
 
 jest.mock('../hooks', () => ({
@@ -136,6 +137,7 @@ jest.mock('../hooks', () => ({
     handleUndeploy: mockHandleUndeploy,
     handleRedeploy: mockHandleRedeploy,
     handleRolloutRestart: mockHandleRolloutRestart,
+    handleRemoveDeployment: mockHandleRemoveDeployment,
   }),
   isAlreadyPromoted: () => false,
   computeReleaseDrift: () => ({ isBehind: false, aheadUpstreams: [] }),

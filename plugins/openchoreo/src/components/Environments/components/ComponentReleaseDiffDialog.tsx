@@ -60,6 +60,12 @@ export const ComponentReleaseDiffDialog = ({
 
   useEffect(() => {
     if (!open || previewMode === 'empty') {
+      // Reset transient state so a stale error/loading from a prior
+      // session doesn't flash on next open.
+      setLoading(false);
+      setError(null);
+      setOriginal(null);
+      setModified(null);
       return undefined;
     }
     let cancelled = false;

@@ -26,7 +26,15 @@ export const RemoveDeploymentConfirmationDialog: FC<
   RemoveDeploymentConfirmationDialogProps
 > = ({ open, environmentName, onCancel, onConfirm, isRemoving }) => {
   return (
-    <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={() => {
+        if (!isRemoving) onCancel();
+      }}
+      disableEscapeKeyDown={isRemoving}
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogTitle>Remove deployment from {environmentName}?</DialogTitle>
 
       <DialogContent dividers>

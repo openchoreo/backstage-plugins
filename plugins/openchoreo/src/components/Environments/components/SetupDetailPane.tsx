@@ -63,10 +63,12 @@ export const SetupDetailPane = ({
           setAutoDeploy(componentData.autoDeploy);
         }
       } catch {
-        return;
-      }
-      if (!cancelled) {
-        setAutoDeployLoaded(true);
+        // Transient fetch failure — leave autoDeploy undefined and let
+        // the toggle render with the default. Don't block "loaded".
+      } finally {
+        if (!cancelled) {
+          setAutoDeployLoaded(true);
+        }
       }
     };
 

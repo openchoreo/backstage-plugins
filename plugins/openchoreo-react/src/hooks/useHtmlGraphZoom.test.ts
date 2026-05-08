@@ -7,11 +7,22 @@ class ResizeObserverMock {
   disconnect = jest.fn();
 }
 
+const originalResizeObserver = (
+  global as unknown as { ResizeObserver?: typeof ResizeObserverMock }
+).ResizeObserver;
+
 beforeAll(() => {
   // jsdom doesn't ship ResizeObserver
   (
     global as unknown as { ResizeObserver: typeof ResizeObserverMock }
   ).ResizeObserver = ResizeObserverMock;
+});
+
+afterAll(() => {
+  // Restore so the mock doesn't leak across Jest worker test files.
+  (
+    global as unknown as { ResizeObserver?: typeof ResizeObserverMock }
+  ).ResizeObserver = originalResizeObserver;
 });
 
 describe('useHtmlGraphZoom', () => {

@@ -345,15 +345,18 @@ export const PipelineCanvas: FC = () => {
             />
           </Card>
         )}
-      {!loading && environments.length === 0 && canViewEnvironments && (
-        <Card style={{ minHeight: '300px', width: '100%' }}>
-          <EmptyState
-            title="No environments available"
-            description="No deployment environments were found for this component."
-            action={{ label: 'Retry', onClick: refetch }}
-          />
-        </Card>
-      )}
+      {!loading &&
+        !environmentReadPermissionLoading &&
+        environments.length === 0 &&
+        canViewEnvironments && (
+          <Card style={{ minHeight: '300px', width: '100%' }}>
+            <EmptyState
+              title="No environments available"
+              description="No deployment environments were found for this component."
+              action={{ label: 'Retry', onClick: refetch }}
+            />
+          </Card>
+        )}
 
       {showSkeleton && (
         <Box className={classes.splitContainer}>

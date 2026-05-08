@@ -1,5 +1,7 @@
 import {
   useCallback,
+  useEffect,
+  useId,
   useRef,
   useState,
   MouseEvent as ReactMouseEvent,
@@ -91,6 +93,27 @@ export function HtmlGraphMinimap({
   const svgElRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
+  // Per-instance SVG mask id so multiple minimaps on the same page
+  // don't share (and dim each other through) the same `<mask>` element.
+  const maskId = useId();
+  // Refs to the most recently registered window listeners. Cleared by
+  // the listeners themselves when a drag completes; cleaned up by the
+  // unmount effect below if the component tears down mid-drag.
+  const moveHandlerRef = useRef<((e: globalThis.MouseEvent) => void) | null>(
+    null,
+  );
+  const upHandlerRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (moveHandlerRef.current) {
+        window.removeEventListener('mousemove', moveHandlerRef.current);
+      }
+      if (upHandlerRef.current) {
+        window.removeEventListener('mouseup', upHandlerRef.current);
+      }
+    };
+  }, []);
 
   const toSvgCoords = useCallback(
     (clientX: number, clientY: number) => {
@@ -140,8 +163,12 @@ export function HtmlGraphMinimap({
         setDragging(false);
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
+        moveHandlerRef.current = null;
+        upHandlerRef.current = null;
       };
 
+      moveHandlerRef.current = handleMouseMove;
+      upHandlerRef.current = handleMouseUp;
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     },
@@ -186,7 +213,7 @@ export function HtmlGraphMinimap({
         ))}
 
         <defs>
-          <mask id="html-minimap-viewport-mask">
+          <mask id={maskId}>
             <rect width="100%" height="100%" fill="white" />
             <rect
               x={viewport.x}
@@ -201,7 +228,7 @@ export function HtmlGraphMinimap({
           width="100%"
           height="100%"
           className={classes.dimOverlay}
-          mask="url(#html-minimap-viewport-mask)"
+          mask={`url(#${maskId})`}
         />
 
         <rect

@@ -982,7 +982,7 @@ export const EnvironmentOverridesPage = ({
         changeCount={totalChanges}
       />
 
-      {pendingAction?.type === 'promote' && (
+      {pendingAction?.type === 'promote' && pendingAction.releaseName && (
         <ComponentReleaseDiffDialog
           open={diffOpen}
           onClose={() => setDiffOpen(false)}
