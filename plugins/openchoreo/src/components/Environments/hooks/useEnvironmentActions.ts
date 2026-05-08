@@ -80,12 +80,48 @@ export function useEnvironmentActions(
   // resources. Different from Undeploy, which keeps the binding.
   // bindingName is unused inside this handler — callers thread it in for
   // the action-tracker key. The API only needs the env name.
+  //
+  // After DELETE, the binding is gone but dataplane teardown is async —
+  // /deploy may still report the env as Ready for several seconds. Poll
+  // fetchEnvironmentInfo until the env's binding is gone (or it drops
+  // out of the list), then refetch so the page re-renders. Bound the
+  // wait so a stuck controller surfaces a softer message instead of
+  // hanging forever.
   const handleRemoveDeployment = useCallback(
     async (_bindingName: string, envName: string) => {
       await client.deleteReleaseBinding(entity, envName);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const POLL_INTERVAL_MS = 1500;
+      const POLL_TIMEOUT_MS = 15_000;
+      const deadline = Date.now() + POLL_TIMEOUT_MS;
+      let confirmed = false;
+      while (Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+        try {
+          const envs = (await client.fetchEnvironmentInfo(entity)) as Array<{
+            name: string;
+            resourceName?: string;
+            bindingName?: string;
+          }>;
+          const match = envs.find(e => (e.resourceName ?? e.name) === envName);
+          if (!match || !match.bindingName) {
+            confirmed = true;
+            break;
+          }
+        } catch {
+          // Transient fetch failure during reconcile — keep polling
+          // until the deadline.
+        }
+      }
+
       await refetch();
-      notification.showSuccess(`Deployment removed from ${envName}`);
+      if (confirmed) {
+        notification.showSuccess(`Deployment removed from ${envName}`);
+      } else {
+        notification.showSuccess(
+          `Removal of ${envName} accepted — UI may take a moment to catch up`,
+        );
+      }
     },
     [entity, client, refetch, notification],
   );

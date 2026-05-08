@@ -5,6 +5,7 @@ import type { ItemActionTracker } from '../types';
 
 const mockClient = {
   deleteReleaseBinding: jest.fn(),
+  fetchEnvironmentInfo: jest.fn(),
 };
 
 jest.mock('@backstage/core-plugin-api', () => ({
@@ -22,6 +23,21 @@ function tracker(): ItemActionTracker {
   } as unknown as ItemActionTracker;
 }
 
+// Run all pending timers and microtasks repeatedly until the queue is
+// drained. handleRemoveDeployment alternates `setTimeout` (poll wait)
+// and `await fetchEnvironmentInfo` (microtask) — a single
+// runAllTimers() call resolves only the first; we need to flush the
+// promise chain in between.
+async function flushPolling() {
+  for (let i = 0; i < 20; i++) {
+    jest.runOnlyPendingTimers();
+    // eslint-disable-next-line no-await-in-loop
+    await Promise.resolve();
+    // eslint-disable-next-line no-await-in-loop
+    await Promise.resolve();
+  }
+}
+
 describe('useEnvironmentActions.handleRemoveDeployment', () => {
   const entity = mockComponentEntity();
   const refetch = jest.fn();
@@ -29,8 +45,17 @@ describe('useEnvironmentActions.handleRemoveDeployment', () => {
   const showError = jest.fn();
 
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.clearAllMocks();
     mockClient.deleteReleaseBinding.mockResolvedValue({});
+    // Default: env's binding is gone on the first poll (happy path).
+    mockClient.fetchEnvironmentInfo.mockResolvedValue([
+      { name: 'staging', resourceName: 'staging' },
+    ]);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('calls deleteReleaseBinding with the env name (not the binding name)', async () => {
@@ -43,8 +68,16 @@ describe('useEnvironmentActions.handleRemoveDeployment', () => {
       ),
     );
 
+    let pending: Promise<unknown>;
+    act(() => {
+      pending = result.current.handleRemoveDeployment(
+        'staging-binding',
+        'staging',
+      );
+    });
     await act(async () => {
-      await result.current.handleRemoveDeployment('staging-binding', 'staging');
+      await flushPolling();
+      await pending;
     });
 
     expect(mockClient.deleteReleaseBinding).toHaveBeenCalledWith(
@@ -63,8 +96,16 @@ describe('useEnvironmentActions.handleRemoveDeployment', () => {
       ),
     );
 
+    let pending: Promise<unknown>;
+    act(() => {
+      pending = result.current.handleRemoveDeployment(
+        'staging-binding',
+        'staging',
+      );
+    });
     await act(async () => {
-      await result.current.handleRemoveDeployment('staging-binding', 'staging');
+      await flushPolling();
+      await pending;
     });
 
     expect(refetch).toHaveBeenCalled();
@@ -72,6 +113,43 @@ describe('useEnvironmentActions.handleRemoveDeployment', () => {
       expect.stringContaining('staging'),
     );
     expect(showError).not.toHaveBeenCalled();
+  });
+
+  it('shows a softer success message when polling times out', async () => {
+    // Binding is still there on every poll — simulate a stuck controller.
+    mockClient.fetchEnvironmentInfo.mockResolvedValue([
+      {
+        name: 'staging',
+        resourceName: 'staging',
+        bindingName: 'staging-binding',
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useEnvironmentActions(
+        entity,
+        refetch,
+        { showSuccess, showError },
+        tracker(),
+      ),
+    );
+
+    let pending: Promise<unknown>;
+    act(() => {
+      pending = result.current.handleRemoveDeployment(
+        'staging-binding',
+        'staging',
+      );
+    });
+    await act(async () => {
+      await flushPolling();
+      await pending;
+    });
+
+    expect(refetch).toHaveBeenCalled();
+    expect(showSuccess).toHaveBeenCalledWith(
+      expect.stringContaining('UI may take a moment'),
+    );
   });
 
   it('propagates API errors and does not show a success toast', async () => {
