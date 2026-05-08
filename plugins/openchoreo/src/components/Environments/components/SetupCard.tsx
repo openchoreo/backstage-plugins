@@ -9,9 +9,10 @@ import {
 } from '@material-ui/core';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
+import clsx from 'clsx';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { useSetupCardStyles } from '../styles';
+import { useSetupCardStyles, useSetupCardCompactStyles } from '../styles';
 import { SetupCardProps } from '../types';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { WorkloadButton } from '../Workload/WorkloadButton';
@@ -20,17 +21,40 @@ import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { useAutoDeployUpdate } from '../hooks/useAutoDeployUpdate';
 import { useNotification } from '../../../hooks';
 
-/**
- * Setup card showing workload deployment options and auto deploy toggle.
- * Visually distinct from environment cards — uses dashed border and muted background.
- */
-export const SetupCard = ({
+const CompactSetupTile = ({
+  loading,
+  environmentsExist,
+  selected,
+}: SetupCardProps) => {
+  const classes = useSetupCardCompactStyles();
+  return (
+    <Box
+      className={clsx(classes.setupCard, {
+        [classes.cardSelected]: selected,
+      })}
+    >
+      <Box className={classes.titleRow}>
+        <SettingsOutlinedIcon className={classes.titleIcon} />
+        <Typography className={classes.title}>Set up</Typography>
+      </Box>
+      {loading && !environmentsExist ? (
+        <LoadingSkeleton variant="setup" />
+      ) : (
+        <Typography className={classes.hint}>
+          Auto Deploy & component configuration
+        </Typography>
+      )}
+    </Box>
+  );
+};
+
+const FullSetupCard = ({
   loading,
   environmentsExist,
   isWorkloadEditorSupported,
   onConfigureWorkload,
 }: SetupCardProps) => {
-  const classes = useSetupCardStyles();
+  const fullStyles = useSetupCardStyles();
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
   const notification = useNotification();
@@ -42,7 +66,6 @@ export const SetupCard = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingAutoDeployValue, setPendingAutoDeployValue] = useState(false);
 
-  // Fetch component details to get autoDeploy value
   useEffect(() => {
     let cancelled = false;
     setAutoDeployLoaded(false);
@@ -54,7 +77,6 @@ export const SetupCard = ({
           setAutoDeploy(componentData.autoDeploy);
         }
       } catch {
-        // Auto-deploy state will remain undefined and switch stays disabled
         return;
       }
       if (!cancelled) {
@@ -98,16 +120,43 @@ export const SetupCard = ({
     setShowConfirmDialog(false);
   };
 
+  const autoDeploySwitch = (
+    <FormControlLabel
+      control={
+        <Switch
+          checked={autoDeploy ?? false}
+          onChange={handleToggleChange}
+          name="autoDeploy"
+          color="primary"
+          disabled={!autoDeployLoaded || autoDeployUpdating}
+        />
+      }
+      label={<Typography variant="body2">Auto Deploy</Typography>}
+    />
+  );
+
+  const autoDeployTooltip = (
+    <Tooltip
+      title="Automatically deploy the component to the first target environment when component configurations change"
+      placement="bottom"
+      arrow
+    >
+      <IconButton size="small" style={{ padding: 4, marginLeft: -8 }}>
+        <InfoOutlinedIcon style={{ fontSize: 18 }} color="primary" />
+      </IconButton>
+    </Tooltip>
+  );
+
   return (
     <>
       <Box
-        className={classes.setupCard}
+        className={fullStyles.setupCard}
         style={{ height: '100%', minHeight: '300px', width: '100%' }}
       >
-        <Box className={classes.cardContent}>
-          <Box className={classes.titleRow}>
-            <SettingsOutlinedIcon className={classes.titleIcon} />
-            <Typography className={classes.title}>Set up</Typography>
+        <Box className={fullStyles.cardContent}>
+          <Box className={fullStyles.titleRow}>
+            <SettingsOutlinedIcon className={fullStyles.titleIcon} />
+            <Typography className={fullStyles.title}>Set up</Typography>
           </Box>
 
           {loading && !environmentsExist ? (
@@ -120,33 +169,8 @@ export const SetupCard = ({
 
               <Box marginTop={2}>
                 <Box display="flex" alignItems="center" justifyContent="center">
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={autoDeploy ?? false}
-                        onChange={handleToggleChange}
-                        name="autoDeploy"
-                        color="primary"
-                        disabled={!autoDeployLoaded || autoDeployUpdating}
-                      />
-                    }
-                    label={<Typography variant="body2">Auto Deploy</Typography>}
-                  />
-                  <Tooltip
-                    title="Automatically deploy the component to the first target environment when component configurations change"
-                    placement="bottom"
-                    arrow
-                  >
-                    <IconButton
-                      size="small"
-                      style={{ padding: 4, marginLeft: -8 }}
-                    >
-                      <InfoOutlinedIcon
-                        style={{ fontSize: 18 }}
-                        color="primary"
-                      />
-                    </IconButton>
-                  </Tooltip>
+                  {autoDeploySwitch}
+                  {autoDeployTooltip}
                 </Box>
               </Box>
 
@@ -167,4 +191,19 @@ export const SetupCard = ({
       />
     </>
   );
+};
+
+/**
+ * Setup card showing workload deployment options and auto deploy toggle.
+ *
+ * Compact mode renders a passive tile for the deploy minimap canvas — the
+ * Auto Deploy switch and Configure & Deploy button live in the right-pane
+ * SetupDetailPane when the user clicks the tile, so the canvas stays
+ * action-free.
+ */
+export const SetupCard = (props: SetupCardProps) => {
+  if (props.compact) {
+    return <CompactSetupTile {...props} />;
+  }
+  return <FullSetupCard {...props} />;
 };

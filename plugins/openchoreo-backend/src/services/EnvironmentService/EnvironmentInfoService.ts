@@ -319,6 +319,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     }
 
     // Build promotion map from pipeline data (normalized to actual env names)
+    // Multiple promotion paths from the same source are merged into a single targets array
     const promotionMap = new Map<string, any[]>();
     for (const path of deploymentPipeline.promotionPaths) {
       const sourceRef = getSourceEnvName(path.sourceEnvironmentRef);
@@ -328,7 +329,12 @@ export class EnvironmentInfoService implements EnvironmentService {
         name: envNameMap.get(ref.name.toLowerCase()) || ref.name,
         resourceName: ref.name,
       }));
-      promotionMap.set(sourceEnv, targets);
+      const existing = promotionMap.get(sourceEnv);
+      if (existing) {
+        existing.push(...targets);
+      } else {
+        promotionMap.set(sourceEnv, targets);
+      }
     }
 
     // Determine environment order based on pipeline

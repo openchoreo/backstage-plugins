@@ -3,11 +3,13 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import type { PipelinePromotionPath } from '@openchoreo/backstage-plugin-react';
 
 export interface PipelinePosition {
   pipelineName: string;
   pipelineEntityRef: string;
   environments: string[];
+  promotionPaths: PipelinePromotionPath[];
   currentIndex: number;
 }
 
@@ -58,68 +60,92 @@ export function useEnvironmentPipelines(): UseEnvironmentPipelinesResult {
 
       // Find all pipelines that include this environment
       for (const pipeline of pipelineEntities) {
-        const spec = pipeline.spec as {
+        const rawSpec = pipeline.spec as {
           promotionPaths?: Array<{
+            // Catalog entity may use either the old (string) or new (object) shape:
             sourceEnvironment?: string;
-            targetEnvironments?: Array<{ name: string }>;
+            sourceEnvironmentRef?: string | { name?: string };
+            targetEnvironments?: Array<{
+              name: string;
+              requiresApproval?: boolean;
+              isManualApprovalRequired?: boolean;
+            }>;
+            targetEnvironmentRefs?: Array<{
+              name: string;
+              requiresApproval?: boolean;
+              isManualApprovalRequired?: boolean;
+            }>;
           }>;
         };
-        if (!spec?.promotionPaths) continue;
+        if (!rawSpec?.promotionPaths) continue;
+
+        // Normalize to a single shape:
+        // { source: string, targets: { name, requiresApproval? }[] }[]
+        const normalized = rawSpec.promotionPaths.map(path => {
+          const source =
+            path.sourceEnvironment ??
+            (typeof path.sourceEnvironmentRef === 'string'
+              ? path.sourceEnvironmentRef
+              : path.sourceEnvironmentRef?.name) ??
+            '';
+          const rawTargets =
+            path.targetEnvironments ?? path.targetEnvironmentRefs ?? [];
+          const targets = rawTargets
+            .filter(t => !!t.name)
+            .map(t => ({
+              name: t.name,
+              requiresApproval:
+                t.requiresApproval ?? t.isManualApprovalRequired,
+            }));
+          return { source, targets };
+        });
 
         const allEnvironments = new Set<string>();
-        for (const path of spec.promotionPaths) {
-          if (path.sourceEnvironment) {
-            allEnvironments.add(path.sourceEnvironment);
-          }
-          for (const target of path.targetEnvironments || []) {
-            if (target.name) {
-              allEnvironments.add(target.name);
-            }
-          }
+        for (const path of normalized) {
+          if (path.source) allEnvironments.add(path.source);
+          for (const target of path.targets) allEnvironments.add(target.name);
         }
 
         // Check if this environment is in the pipeline
         if (allEnvironments.has(environmentName)) {
-          // Build ordered environment list from promotion paths
+          // Build ordered environment list (used by the chip-strip fallback)
           const envOrder: string[] = [];
           const visited = new Set<string>();
 
-          // Find the starting environment (one that's only a source, not a target)
-          const targets = new Set<string>();
-          for (const path of spec.promotionPaths) {
-            for (const target of path.targetEnvironments || []) {
-              targets.add(target.name);
+          const allTargets = new Set<string>();
+          for (const path of normalized) {
+            for (const target of path.targets) allTargets.add(target.name);
+          }
+
+          // Sources that aren't targets first (root environments)
+          for (const path of normalized) {
+            if (
+              path.source &&
+              !allTargets.has(path.source) &&
+              !visited.has(path.source)
+            ) {
+              envOrder.push(path.source);
+              visited.add(path.source);
             }
           }
 
-          // Start with environments that are sources but not targets
-          for (const path of spec.promotionPaths) {
-            if (
-              path.sourceEnvironment &&
-              !targets.has(path.sourceEnvironment) &&
-              !visited.has(path.sourceEnvironment)
-            ) {
-              envOrder.push(path.sourceEnvironment);
-              visited.add(path.sourceEnvironment);
+          // Then remaining environments in promotion order
+          for (const path of normalized) {
+            if (path.source && !visited.has(path.source)) {
+              envOrder.push(path.source);
+              visited.add(path.source);
             }
-          }
-
-          // Add remaining environments in order
-          for (const path of spec.promotionPaths) {
-            if (
-              path.sourceEnvironment &&
-              !visited.has(path.sourceEnvironment)
-            ) {
-              envOrder.push(path.sourceEnvironment);
-              visited.add(path.sourceEnvironment);
-            }
-            for (const target of path.targetEnvironments || []) {
+            for (const target of path.targets) {
               if (!visited.has(target.name)) {
                 envOrder.push(target.name);
                 visited.add(target.name);
               }
             }
           }
+
+          const promotionPaths: PipelinePromotionPath[] = normalized
+            .filter(p => p.source && p.targets.length > 0)
+            .map(p => ({ source: p.source, targets: p.targets }));
 
           const currentIndex = envOrder.findIndex(
             e => e.toLowerCase() === environmentName.toLowerCase(),
@@ -131,6 +157,7 @@ export function useEnvironmentPipelines(): UseEnvironmentPipelinesResult {
               pipeline.metadata.namespace || 'default'
             }/${pipeline.metadata.name}`,
             environments: envOrder,
+            promotionPaths,
             currentIndex,
           });
         }

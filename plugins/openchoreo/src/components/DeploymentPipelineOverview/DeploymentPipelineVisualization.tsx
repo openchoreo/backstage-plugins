@@ -1,82 +1,95 @@
+import { useMemo } from 'react';
 import { Box, Typography } from '@material-ui/core';
-import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
 import TimelineIcon from '@material-ui/icons/Timeline';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { Link } from '@backstage/core-components';
 import { Card } from '@openchoreo/backstage-design-system';
+import {
+  PipelineFlowVisualization,
+  type PipelinePromotionPath,
+} from '@openchoreo/backstage-plugin-react';
 import { useDeploymentPipelineOverviewStyles } from './styles';
+
+interface RawPromotionPath {
+  sourceEnvironment?: string;
+  sourceEnvironmentRef?: string | { name?: string };
+  targetEnvironments?: Array<{
+    name: string;
+    requiresApproval?: boolean;
+    isManualApprovalRequired?: boolean;
+  }>;
+  targetEnvironmentRefs?: Array<{
+    name: string;
+    requiresApproval?: boolean;
+    isManualApprovalRequired?: boolean;
+  }>;
+}
 
 export const DeploymentPipelineVisualization = () => {
   const classes = useDeploymentPipelineOverviewStyles();
   const { entity } = useEntity();
 
-  const spec = entity.spec as any;
-  const promotionPaths = spec?.promotionPaths || [];
+  const spec = entity.spec as
+    | { promotionPaths?: RawPromotionPath[] }
+    | undefined;
+  const namespace = entity.metadata.namespace || 'default';
 
-  // Build ordered list of environments from promotion paths
-  const buildEnvironmentOrder = (): string[] => {
-    if (!promotionPaths || promotionPaths.length === 0) {
-      return [];
-    }
+  const { environments, promotionPaths } = useMemo(() => {
+    const rawPaths = spec?.promotionPaths ?? [];
 
-    const envSet = new Set<string>();
-    const edges: [string, string][] = [];
+    const normalized = rawPaths.map(path => {
+      const source =
+        path.sourceEnvironment ??
+        (typeof path.sourceEnvironmentRef === 'string'
+          ? path.sourceEnvironmentRef
+          : path.sourceEnvironmentRef?.name) ??
+        '';
+      const rawTargets =
+        path.targetEnvironments ?? path.targetEnvironmentRefs ?? [];
+      const targets = rawTargets
+        .filter(t => !!t.name)
+        .map(t => ({
+          name: t.name,
+          requiresApproval: t.requiresApproval ?? t.isManualApprovalRequired,
+        }));
+      return { source, targets };
+    });
 
-    // Collect all edges and environments
-    for (const path of promotionPaths) {
-      const source = path.sourceEnvironment;
-      if (source) {
-        envSet.add(source);
-      }
-
-      for (const target of path.targetEnvironments || []) {
-        if (target.name) {
-          envSet.add(target.name);
-          if (source) {
-            edges.push([source, target.name]);
-          }
-        }
-      }
-    }
-
-    // Find root nodes (sources that are not targets)
-    const targets = new Set(edges.map(e => e[1]));
-    const roots = [...envSet].filter(e => !targets.has(e));
-
-    // BFS to order environments
-    const ordered: string[] = [];
+    // Build ordered env list for the chip-strip fallback (linear pipelines).
+    const envOrder: string[] = [];
     const visited = new Set<string>();
-    const queue = roots.length > 0 ? [...roots] : [...envSet].slice(0, 1);
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      if (visited.has(current)) continue;
-      visited.add(current);
-      ordered.push(current);
-
-      // Find targets of this environment
-      for (const [src, tgt] of edges) {
-        if (src === current && !visited.has(tgt)) {
-          queue.push(tgt);
+    const allTargets = new Set<string>();
+    for (const path of normalized) {
+      for (const target of path.targets) allTargets.add(target.name);
+    }
+    for (const path of normalized) {
+      if (
+        path.source &&
+        !allTargets.has(path.source) &&
+        !visited.has(path.source)
+      ) {
+        envOrder.push(path.source);
+        visited.add(path.source);
+      }
+    }
+    for (const path of normalized) {
+      if (path.source && !visited.has(path.source)) {
+        envOrder.push(path.source);
+        visited.add(path.source);
+      }
+      for (const target of path.targets) {
+        if (!visited.has(target.name)) {
+          envOrder.push(target.name);
+          visited.add(target.name);
         }
       }
     }
 
-    // Add any remaining environments not yet visited
-    for (const env of envSet) {
-      if (!visited.has(env)) {
-        ordered.push(env);
-      }
-    }
+    const paths: PipelinePromotionPath[] = normalized
+      .filter(p => p.source && p.targets.length > 0)
+      .map(p => ({ source: p.source, targets: p.targets }));
 
-    return ordered;
-  };
-
-  const environments = buildEnvironmentOrder();
-
-  const capitalizeFirst = (str: string) => {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  };
+    return { environments: envOrder, promotionPaths: paths };
+  }, [spec]);
 
   if (environments.length === 0) {
     return (
@@ -99,34 +112,11 @@ export const DeploymentPipelineVisualization = () => {
       <Box className={classes.cardHeader}>
         <Typography variant="h5">Pipeline Visualization</Typography>
       </Box>
-
-      <Box className={classes.pipelineVisualization}>
-        {environments.map((env, index) => (
-          <Box
-            key={env}
-            style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
-          >
-            <Box className={classes.environmentNode}>
-              <Link
-                to={`/catalog/${
-                  entity.metadata.namespace || 'default'
-                }/environment/${env}`}
-                style={{ textDecoration: 'none' }}
-              >
-                <Typography
-                  className={`${classes.environmentChip} ${classes.environmentChipDefault}`}
-                >
-                  {capitalizeFirst(env)}
-                </Typography>
-              </Link>
-            </Box>
-
-            {index < environments.length - 1 && (
-              <ArrowForwardIcon className={classes.arrow} />
-            )}
-          </Box>
-        ))}
-      </Box>
+      <PipelineFlowVisualization
+        environments={environments}
+        promotionPaths={promotionPaths}
+        environmentNamespace={namespace}
+      />
     </Card>
   );
 };

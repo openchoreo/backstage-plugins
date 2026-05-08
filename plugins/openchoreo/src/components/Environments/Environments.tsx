@@ -1,7 +1,5 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { Progress } from '@backstage/core-components';
-import { Box } from '@material-ui/core';
 
 import { useNotification } from '../../hooks';
 import {
@@ -13,7 +11,7 @@ import {
 import type { PendingAction } from './types';
 import { useEnvironmentsStyles } from './styles';
 import { EnvironmentsRouter } from './EnvironmentsRouter';
-import { EnvironmentsProvider } from './EnvironmentsContext';
+import { EnvironmentsProvider, type Selection } from './EnvironmentsContext';
 import { NotificationBanner } from './components';
 import {
   ForbiddenState,
@@ -43,6 +41,12 @@ export const Environments = () => {
 
   // Notifications
   const notification = useNotification();
+
+  // Canvas selection — lifted here so it survives navigation between the
+  // deploy list view and intermediate routes (workload-config / overrides /
+  // release-details). The provider mounts above EnvironmentsRouter, so
+  // these intermediate-route navigations don't unmount this state.
+  const [selection, setSelection] = useState<Selection>(null);
 
   // Polling for pending deployments
   useEnvironmentPolling(isPending, refetch);
@@ -96,6 +100,8 @@ export const Environments = () => {
       environmentReadPermissionLoading,
       canViewBindings,
       bindingsPermissionLoading,
+      selection,
+      setSelection,
     }),
     [
       environments,
@@ -108,6 +114,7 @@ export const Environments = () => {
       environmentReadPermissionLoading,
       canViewBindings,
       bindingsPermissionLoading,
+      selection,
     ],
   );
 
@@ -122,20 +129,10 @@ export const Environments = () => {
     );
   }
 
-  // Loading state - only show initial loading spinner
-  if (loading && environments.length === 0) {
-    return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="400px"
-      >
-        <Progress />
-      </Box>
-    );
-  }
-
+  // Initial load is no longer gated by a generic <Progress /> spinner;
+  // PipelineCanvas renders proper LHS + RHS skeletons while
+  // `loading && environments.length === 0`, so we always mount the
+  // provider and let the router decide what to show.
   return (
     <EnvironmentsProvider value={contextValue}>
       <NotificationBanner notification={notification.notification} />

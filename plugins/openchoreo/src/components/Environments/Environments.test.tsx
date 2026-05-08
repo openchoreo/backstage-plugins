@@ -99,7 +99,7 @@ describe('Environments', () => {
     });
   });
 
-  it('shows loading progress when data is loading', () => {
+  it('mounts the router during initial load instead of a generic spinner', () => {
     mockUseEnvironmentData.mockReturnValue({
       environments: [],
       loading: true,
@@ -109,7 +109,12 @@ describe('Environments', () => {
 
     renderWithRouter(<Environments />);
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    // The old code returned a <Progress /> spinner here, hiding the
+    // router entirely. We now let the provider + router mount so
+    // PipelineCanvas can render its own LHS/RHS skeletons (covered in
+    // PipelineCanvas.test.tsx).
+    expect(screen.queryByTestId('progress')).not.toBeInTheDocument();
+    expect(screen.getByTestId('environments-router')).toBeInTheDocument();
   });
 
   it('renders environments content when data loads', async () => {

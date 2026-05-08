@@ -31,11 +31,8 @@ function renderActions(overrides: Partial<EnvironmentActionsProps> = {}) {
   const defaultProps: EnvironmentActionsProps = {
     environmentName: 'development',
     deploymentStatus: 'Ready',
-    onPromote: jest.fn(),
     onSuspend: jest.fn(),
     onRedeploy: jest.fn(),
-    isAlreadyPromoted: jest.fn().mockReturnValue(false),
-    promotionTracker: createTracker(),
     suspendTracker: createTracker(),
     ...overrides,
   };
@@ -50,12 +47,6 @@ const grantedDeploy = {
   canDeploy: true,
   loading: false,
   deniedTooltip: '',
-};
-
-const deniedDeploy = {
-  canDeploy: false,
-  loading: false,
-  deniedTooltip: 'You do not have permission to deploy',
 };
 
 const grantedUndeploy = {
@@ -79,69 +70,20 @@ describe('EnvironmentActions', () => {
     mockUseUndeployPermission.mockReturnValue(grantedUndeploy);
   });
 
-  it('renders nothing when no promotion targets and no binding', () => {
+  it('renders nothing when there are no actions to show', () => {
     const { container } = renderActions({
-      promotionTargets: undefined,
       bindingName: undefined,
     });
 
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders promote button for single target with permission', () => {
+  it('does not render Promote — that lives in the panel footer now', () => {
     renderActions({
-      promotionTargets: [{ name: 'staging' }],
+      bindingName: 'my-binding',
     });
 
-    const btn = screen.getByRole('button', { name: /promote/i });
-    expect(btn).toBeEnabled();
-    expect(btn).toHaveTextContent('Promote');
-  });
-
-  it('calls onPromote with correct target on click', async () => {
-    const user = userEvent.setup();
-    const onPromote = jest.fn();
-
-    renderActions({
-      promotionTargets: [{ name: 'staging', resourceName: 'staging-res' }],
-      onPromote,
-    });
-
-    await user.click(screen.getByRole('button', { name: /promote/i }));
-    expect(onPromote).toHaveBeenCalledWith('staging-res');
-  });
-
-  it('shows "Promoted" and disables button when already promoted', () => {
-    renderActions({
-      promotionTargets: [{ name: 'staging' }],
-      isAlreadyPromoted: jest.fn().mockReturnValue(true),
-    });
-
-    const btn = screen.getByRole('button', { name: /promoted/i });
-    expect(btn).toBeDisabled();
-    expect(btn).toHaveTextContent('Promoted');
-  });
-
-  it('shows "Promoting..." when promotion is in progress', () => {
-    renderActions({
-      promotionTargets: [{ name: 'staging' }],
-      promotionTracker: createTracker({
-        isActive: jest.fn().mockReturnValue(true),
-      }),
-    });
-
-    const btn = screen.getByRole('button', { name: /promoting/i });
-    expect(btn).toBeDisabled();
-  });
-
-  it('disables promote button when user lacks deploy permission', () => {
-    mockUseDeployPermission.mockReturnValue(deniedDeploy);
-
-    renderActions({
-      promotionTargets: [{ name: 'staging' }],
-    });
-
-    expect(screen.getByRole('button', { name: /promote/i })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /^promote/i })).toBeNull();
   });
 
   it('shows Undeploy button when has binding and not undeployed', () => {
@@ -201,47 +143,31 @@ describe('EnvironmentActions', () => {
     expect(screen.getByRole('button', { name: /undeploy/i })).toBeDisabled();
   });
 
-  it('renders stacked buttons for multiple promotion targets', () => {
+  it('shows Rollout restart when an active deployment + onRolloutRestart are provided', () => {
     renderActions({
-      promotionTargets: [
-        { name: 'staging', resourceName: 'staging-res' },
-        { name: 'production', resourceName: 'production-res' },
-      ],
+      bindingName: 'my-binding',
+      onRolloutRestart: jest.fn(),
     });
-
     expect(
-      screen.getByRole('button', { name: /promote to staging/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /promote to production/i }),
-    ).toBeInTheDocument();
+      screen.getByRole('button', { name: /rollout restart/i }),
+    ).toBeEnabled();
   });
 
-  it('calls onPromote with correct target for multi-target', async () => {
-    const user = userEvent.setup();
-    const onPromote = jest.fn();
-
+  it('does not render Configure overrides — that lives next to the Deployed line now', () => {
     renderActions({
-      promotionTargets: [
-        { name: 'staging', resourceName: 'staging-res' },
-        { name: 'production', resourceName: 'prod-res' },
-      ],
-      onPromote,
+      bindingName: 'my-binding',
     });
-
-    await user.click(
-      screen.getByRole('button', { name: /promote to production/i }),
-    );
-    expect(onPromote).toHaveBeenCalledWith('prod-res');
+    expect(
+      screen.queryByRole('button', { name: /configure overrides/i }),
+    ).toBeNull();
   });
 
-  it('shows approval required text for target requiring approval', () => {
+  it('does not render Remove deployment — that lives in the danger zone now', () => {
     renderActions({
-      promotionTargets: [{ name: 'production', requiresApproval: true }],
+      bindingName: 'my-binding',
     });
-
-    expect(screen.getByRole('button')).toHaveTextContent(
-      'Promote (Approval Required)',
-    );
+    expect(
+      screen.queryByRole('button', { name: /remove deployment/i }),
+    ).toBeNull();
   });
 });

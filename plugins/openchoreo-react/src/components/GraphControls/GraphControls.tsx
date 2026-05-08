@@ -5,6 +5,7 @@ import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import RemoveIcon from '@material-ui/icons/Remove';
 import CenterFocusStrongIcon from '@material-ui/icons/CenterFocusStrong';
+import CropFreeOutlinedIcon from '@material-ui/icons/CropFreeOutlined';
 import FullscreenIcon from '@material-ui/icons/Fullscreen';
 import FullscreenExitIcon from '@material-ui/icons/FullscreenExit';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
@@ -35,8 +36,11 @@ export type GraphControlsProps = {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onFitToView: () => void;
-  onToggleFullscreen: () => void;
-  isFullscreen: boolean;
+  /** Optional reset-to-100% (1:1) action. Hidden when omitted. */
+  onResetZoom?: () => void;
+  /** Optional fullscreen toggle. When omitted, the fullscreen button is hidden. */
+  onToggleFullscreen?: () => void;
+  isFullscreen?: boolean;
   onToggleLegend?: () => void;
   showLegend?: boolean;
 };
@@ -45,6 +49,7 @@ export function GraphControls({
   onZoomIn,
   onZoomOut,
   onFitToView,
+  onResetZoom,
   onToggleFullscreen,
   isFullscreen,
   onToggleLegend,
@@ -85,7 +90,7 @@ export function GraphControls({
           <RemoveIcon fontSize="small" />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Fit to view" placement="left">
+      <Tooltip title="Zoom to fit" placement="left">
         <IconButton
           className={classes.button}
           onClick={onFitToView}
@@ -94,22 +99,37 @@ export function GraphControls({
           <CenterFocusStrongIcon fontSize="small" />
         </IconButton>
       </Tooltip>
-      <Tooltip
-        title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-        placement="left"
-      >
-        <IconButton
-          className={classes.button}
-          onClick={onToggleFullscreen}
-          size="small"
+      {onResetZoom && (
+        <Tooltip title="Zoom to actual size" placement="left">
+          <IconButton
+            className={classes.button}
+            onClick={onResetZoom}
+            size="small"
+            aria-label="Zoom to actual size"
+          >
+            <CropFreeOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+      {onToggleFullscreen && (
+        <Tooltip
+          title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          placement="left"
         >
-          {isFullscreen ? (
-            <FullscreenExitIcon fontSize="small" />
-          ) : (
-            <FullscreenIcon fontSize="small" />
-          )}
-        </IconButton>
-      </Tooltip>
+          <IconButton
+            className={classes.button}
+            onClick={onToggleFullscreen}
+            size="small"
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          >
+            {isFullscreen ? (
+              <FullscreenExitIcon fontSize="small" />
+            ) : (
+              <FullscreenIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
+      )}
     </Box>
   );
 }

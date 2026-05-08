@@ -1,7 +1,7 @@
 import type { PendingAction } from '@openchoreo/backstage-plugin-react';
 import { useItemActionTracker } from '../../hooks';
 import { Notification } from '../../hooks/useNotification';
-import type { Environment, EndpointInfo } from './hooks/useEnvironmentData';
+import type { Environment } from './hooks/useEnvironmentData';
 
 // Re-export Environment type from the data hook
 export type {
@@ -41,6 +41,8 @@ export type ItemActionTracker = ReturnType<typeof useItemActionTracker<string>>;
 export interface ActionTrackers {
   promotionTracker: ItemActionTracker;
   suspendTracker: ItemActionTracker;
+  rolloutRestartTracker?: ItemActionTracker;
+  removeDeploymentTracker?: ItemActionTracker;
 }
 
 /**
@@ -65,6 +67,10 @@ export interface SetupCardProps {
   environmentsExist: boolean;
   isWorkloadEditorSupported: boolean;
   onConfigureWorkload: () => void;
+  /** Compact rendering for the deploy minimap canvas. */
+  compact?: boolean;
+  /** Selection chrome for compact mode (canvas tile selection). */
+  selected?: boolean;
 }
 
 /**
@@ -80,22 +86,6 @@ export interface EnvironmentCardHeaderProps {
 }
 
 /**
- * Props for the EnvironmentCardContent component
- */
-export interface EnvironmentCardContentProps {
-  status?: 'Ready' | 'NotReady' | 'Failed';
-  statusReason?: string;
-  statusMessage?: string;
-  lastDeployed?: string;
-  image?: string;
-  releaseName?: string;
-  endpoints: EndpointInfo[];
-  onOpenReleaseDetails: () => void;
-  activeIncidentCount?: number;
-  environmentName?: string;
-}
-
-/**
  * Props for the EnvironmentActions component
  */
 export interface EnvironmentActionsProps {
@@ -104,52 +94,9 @@ export interface EnvironmentActionsProps {
   deploymentStatus?: 'Ready' | 'NotReady' | 'Failed';
   statusReason?: string;
   releaseName?: string;
-  promotionTargets?: Array<{
-    name: string;
-    resourceName?: string;
-    requiresApproval?: boolean;
-  }>;
-  isAlreadyPromoted: (targetEnvName: string) => boolean;
-  promotionTracker: ItemActionTracker;
   suspendTracker: ItemActionTracker;
-  onPromote: (targetEnvName: string) => Promise<void>;
+  rolloutRestartTracker?: ItemActionTracker;
   onSuspend: () => Promise<void>;
   onRedeploy: () => Promise<void>;
-}
-
-/**
- * Props for the EnvironmentCard component
- */
-export interface EnvironmentCardProps {
-  environmentName: string;
-  resourceName?: string;
-  bindingName?: string;
-  hasComponentTypeOverrides?: boolean;
-  dataPlaneRef?: string;
-  canViewBindings?: boolean;
-  bindingsPermissionLoading?: boolean;
-  deployment: {
-    status?: 'Ready' | 'NotReady' | 'Failed';
-    statusReason?: string;
-    statusMessage?: string;
-    lastDeployed?: string;
-    image?: string;
-    releaseName?: string;
-  };
-  endpoints: EndpointInfo[];
-  promotionTargets?: Array<{
-    name: string;
-    resourceName?: string;
-    requiresApproval?: boolean;
-  }>;
-  isRefreshing: boolean;
-  isAlreadyPromoted: (targetEnvName: string) => boolean;
-  actionTrackers: ActionTrackers;
-  onRefresh: () => void;
-  onOpenOverrides: () => void;
-  onOpenReleaseDetails: () => void;
-  onPromote: (targetEnvName: string) => Promise<void>;
-  onSuspend: () => Promise<void>;
-  onRedeploy: () => Promise<void>;
-  activeIncidentCount?: number;
+  onRolloutRestart?: () => void | Promise<void>;
 }

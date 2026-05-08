@@ -9,6 +9,22 @@ export { useOverridesData } from './useOverridesData';
 export { useRequiredOverridesCheck } from './useRequiredOverridesCheck';
 export type { RequiredOverridesCheckResult } from './useRequiredOverridesCheck';
 export { isAlreadyPromoted } from './promotionUtils';
+export {
+  computeReleaseDrift,
+  NO_DRIFT,
+  type ReleaseDriftInfo,
+} from './computeReleaseDrift';
+export {
+  useEnvironmentStatusVariant,
+  type EnvironmentStatusVariant,
+} from './useEnvironmentStatusVariant';
+export {
+  usePromotionAction,
+  type PromotionTargetAction,
+  type UndeployRedeployAction,
+  type UsePromotionActionInput,
+  type UsePromotionActionResult,
+} from './usePromotionAction';
 export { useInvokeUrl } from './useInvokeUrl';
 export {
   useEnvironmentRouting,
