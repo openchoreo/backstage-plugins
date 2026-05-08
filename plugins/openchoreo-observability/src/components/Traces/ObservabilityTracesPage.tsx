@@ -31,7 +31,7 @@ const ObservabilityTracesContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace);
+  } = useGetEnvironmentsByNamespace(namespace, projectName);
   const {
     components,
     loading: componentsLoading,

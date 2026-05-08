@@ -46,7 +46,7 @@ const ObservabilityMetricsContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace);
+  } = useGetEnvironmentsByNamespace(namespace, project);
 
   // URL-synced filters - must be after environments are available
   const { filters, updateFilters } = useUrlFilters({

@@ -24,6 +24,7 @@ import { EntityLinkContext } from './RCAReport/EntityLinkContext';
 const RCAListContent = () => {
   const { entity } = useEntity();
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const projectName = entity.metadata.name;
   const namespaceValue = useMemo(
     () => ({ namespace: namespace || 'default' }),
     [namespace],
@@ -32,7 +33,7 @@ const RCAListContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace);
+  } = useGetEnvironmentsByNamespace(namespace, projectName);
   const { filters, updateFilters } = useUrlFilters({ environments });
 
   const {

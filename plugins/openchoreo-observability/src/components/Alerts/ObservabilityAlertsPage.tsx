@@ -27,7 +27,7 @@ const ObservabilityAlertsContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace);
+  } = useGetEnvironmentsByNamespace(namespace, project);
 
   const { filters, updateFilters } = useUrlFiltersForAlerts({
     environments,

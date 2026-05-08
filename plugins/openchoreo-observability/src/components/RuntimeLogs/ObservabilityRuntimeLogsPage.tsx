@@ -33,7 +33,7 @@ const ObservabilityRuntimeLogsContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace);
+  } = useGetEnvironmentsByNamespace(namespace, project);
 
   const { filters, updateFilters } = useUrlFiltersForRuntimeLogs({
     environments,

@@ -30,7 +30,7 @@ const ObservabilityProjectIncidentsContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace);
+  } = useGetEnvironmentsByNamespace(namespace, projectName);
 
   const {
     components,

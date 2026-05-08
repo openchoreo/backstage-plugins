@@ -26,9 +26,13 @@ const RCAReportContent = () => {
   const rcaAgentApi = useApi(rcaAgentApiRef);
   const discoveryApi = useApi(discoveryApiRef);
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const projectName = entity.metadata.name as string;
 
   // Get environments to ensure we have environment data
-  const { environments } = useGetEnvironmentsByNamespace(namespace);
+  const { environments } = useGetEnvironmentsByNamespace(
+    namespace,
+    projectName,
+  );
   const environment = filters.environment || environments[0];
 
   const {
@@ -48,7 +52,7 @@ const RCAReportContent = () => {
   const chatContext = {
     namespaceName: namespace || '',
     environmentName: environment?.name || '',
-    projectName: entity.metadata.name as string,
+    projectName,
     rcaAgentApi,
     backendBaseUrl,
   };
