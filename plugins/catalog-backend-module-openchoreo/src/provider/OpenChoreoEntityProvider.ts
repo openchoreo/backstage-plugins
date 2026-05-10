@@ -202,13 +202,29 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       return;
     }
 
-    const payload = params.eventPayload as {
+    // Guard against non-object payloads (null, string, number, …) before
+    // destructuring. Without this the destructure would throw, surfacing
+    // as an unhandled rejection in the EventsService subscriber callback
+    // rather than being absorbed by the per-event try/catch below.
+    const rawPayload = params.eventPayload;
+    if (
+      rawPayload === null ||
+      rawPayload === undefined ||
+      typeof rawPayload !== 'object' ||
+      Array.isArray(rawPayload)
+    ) {
+      this.logger.warn(
+        `Ignoring OpenChoreo event with non-object payload: ${typeof rawPayload}`,
+      );
+      return;
+    }
+
+    const payload = rawPayload as {
       kind?: string;
       name?: string;
       namespace?: string;
       action?: string;
     };
-
     const { kind, name, namespace, action } = payload;
 
     if (!kind || !name || !action) {

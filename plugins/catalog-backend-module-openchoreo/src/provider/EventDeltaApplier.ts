@@ -80,10 +80,13 @@ type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];
  *
  * Cross-entity wiring (relations like `usesPipeline`, `consumesApi`,
  * `instanceOf`, etc.) is emitted by the existing `CatalogProcessor`
- * implementations and the built-in `BuiltinKindsEntityProcessor` from the
- * entity content itself — there is no fan-out from this class except for
- * the Project↔DeploymentPipeline relation, which keeps its foreign key
- * (`spec.projectRefs`) on the DP entity.
+ * implementations and the built-in `BuiltinKindsEntityProcessor` from
+ * the entity content itself. The Project↔DeploymentPipeline relation in
+ * particular is owned by `SystemEntityProcessor`, which reads
+ * `System.spec.deploymentPipelineRef` (the foreign key now lives on the
+ * Project side, not the pipeline). So re-processing a Project after an
+ * event-driven update naturally produces relations against the new
+ * pipeline and discards relations to the previous one.
  */
 export class EventDeltaApplier {
   private readonly logger: LoggerService;

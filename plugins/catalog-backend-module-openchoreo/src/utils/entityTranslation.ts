@@ -34,7 +34,7 @@ import type {
   ClusterWorkflowPlaneEntityV1alpha1,
   DeploymentPipelineEntityV1alpha1,
 } from '../kinds';
-import { resolveProjectOwner } from './helpers';
+import { normalizeObservabilityPlaneRef, resolveProjectOwner } from './helpers';
 
 type ModelsComponent = ComponentResponse;
 
@@ -944,26 +944,8 @@ function mapAgentConnectionAnnotations(
   return annotations;
 }
 
-/**
- * Normalizes an observability-plane reference into a `<namespace>/<name>`
- * string. Accepts either a plain string or an object with a `name` field.
- */
-function normalizeObservabilityPlaneRef(
-  ref: unknown,
-  namespaceName: string,
-): string {
-  if (!ref) return '';
-  let name: string;
-  if (typeof ref === 'string') {
-    name = ref;
-  } else if (typeof ref === 'object' && ref !== null && 'name' in ref) {
-    name = (ref as { name: string }).name;
-  } else {
-    return '';
-  }
-  if (name.includes('/')) return name;
-  return `${namespaceName}/${name}`;
-}
+// `normalizeObservabilityPlaneRef` is shared with helpers.ts — see
+// `../utils/helpers.ts` for the canonical implementation.
 
 /**
  * Translates a new API Namespace into a Backstage Domain entity.
