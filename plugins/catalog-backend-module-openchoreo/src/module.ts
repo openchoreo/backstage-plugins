@@ -7,6 +7,7 @@ import {
   catalogProcessingExtensionPoint,
   catalogPermissionExtensionPoint,
 } from '@backstage/plugin-catalog-node/alpha';
+import { catalogServiceRef } from '@backstage/plugin-catalog-node';
 import { OpenChoreoEntityProvider } from './provider/OpenChoreoEntityProvider';
 import { ScaffolderEntityProvider } from './provider/ScaffolderEntityProvider';
 import {
@@ -19,7 +20,6 @@ import {
   ComponentTypeEntityProcessor,
   TraitTypeEntityProcessor,
   WorkflowEntityProcessor,
-  ComponentWorkflowEntityProcessor,
   CustomAnnotationProcessor,
   ClusterComponentTypeEntityProcessor,
   ClusterTraitTypeEntityProcessor,
@@ -27,6 +27,7 @@ import {
   ClusterObservabilityPlaneEntityProcessor,
   ClusterWorkflowPlaneEntityProcessor,
   ClusterWorkflowEntityProcessor,
+  SystemEntityProcessor,
 } from './processors';
 import {
   immediateCatalogServiceRef,
@@ -40,6 +41,8 @@ import {
 } from './service/AnnotationStore';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { matchesCatalogEntityCapability } from '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy';
+import { eventsServiceRef } from '@backstage/plugin-events-node';
+import { OpenChoreoEventRouter } from './events/OpenChoreoEventRouter';
 
 // Singleton instance of the ScaffolderEntityProvider
 // This will be shared across the module and the service
@@ -64,26 +67,41 @@ export const catalogModuleOpenchoreo = createBackendModule({
       deps: {
         catalog: catalogProcessingExtensionPoint,
         catalogPermissions: catalogPermissionExtensionPoint,
+        catalogService: catalogServiceRef,
         config: coreServices.rootConfig,
         logger: coreServices.logger,
         scheduler: coreServices.scheduler,
+        auth: coreServices.auth,
         tokenService: openChoreoTokenServiceRef,
         annotationStore: annotationStoreRef,
+        events: eventsServiceRef,
       },
       async init({
         catalog,
         catalogPermissions,
+        catalogService,
         config,
         logger,
         scheduler,
+        auth,
         tokenService,
         annotationStore,
+        events,
       }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
         const frequency =
-          openchoreoConfig?.getOptionalNumber('schedule.frequency') ?? 30;
+          openchoreoConfig?.getOptionalNumber('schedule.frequency') ?? 300;
         const timeout =
           openchoreoConfig?.getOptionalNumber('schedule.timeout') ?? 120;
+        // Whether to wire up the event-driven sync. Defaults to true so
+        // local development still gets event-driven behaviour out of
+        // the box. In production the Helm chart sets
+        // `openchoreo.events.enabled` to mirror `eventForwarder.enabled`
+        // so disabling the event-forwarder cleanly also disables the
+        // Backstage event subscriptions (no router, no entity-provider
+        // topic subscription, no HTTP topic in use).
+        const eventsEnabled =
+          openchoreoConfig?.getOptionalBoolean('events.enabled') ?? true;
 
         const taskRunner = scheduler.createScheduledTaskRunner({
           frequency: { seconds: frequency },
@@ -121,9 +139,6 @@ export const catalogModuleOpenchoreo = createBackendModule({
         // Register the Workflow entity processor
         catalog.addProcessor(new WorkflowEntityProcessor());
 
-        // Register the ComponentWorkflow entity processor
-        catalog.addProcessor(new ComponentWorkflowEntityProcessor());
-
         // Register the ClusterComponentType entity processor
         catalog.addProcessor(new ClusterComponentTypeEntityProcessor());
 
@@ -142,13 +157,36 @@ export const catalogModuleOpenchoreo = createBackendModule({
         // Register the ClusterWorkflow entity processor
         catalog.addProcessor(new ClusterWorkflowEntityProcessor());
 
-        // Register the scheduled OpenChoreo entity provider
+        // Register the System (Project) entity processor.
+        // Emits the usesPipeline / pipelineUsedBy relation pair from the
+        // Project side using `System.spec.deploymentPipelineRef`.
+        catalog.addProcessor(new SystemEntityProcessor());
+
+        // Wire the OpenChoreo event-driven flow only when enabled. When
+        // disabled the entity provider falls back to poll-only mode
+        // driven by `schedule.frequency` (operators may want to lower
+        // that frequency in this case).
+        if (eventsEnabled) {
+          const eventRouter = new OpenChoreoEventRouter({ events });
+          await eventRouter.subscribe();
+        } else {
+          logger.info(
+            'OpenChoreo event-driven sync disabled (openchoreo.events.enabled=false); running in poll-only mode',
+          );
+        }
+
+        // Register the scheduled OpenChoreo entity provider. When
+        // events are disabled we pass `undefined` so the provider's
+        // `connect()` skips its event subscriptions.
         catalog.addEntityProvider(
           new OpenChoreoEntityProvider(
             taskRunner,
             logger,
             config,
             tokenService,
+            eventsEnabled ? events : undefined,
+            catalogService,
+            auth,
           ),
         );
 

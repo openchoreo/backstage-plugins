@@ -25,12 +25,12 @@ import { ClusterWorkflowEntityProcessor } from './ClusterWorkflowEntityProcessor
 import { ClusterWorkflowPlaneEntityProcessor } from './ClusterWorkflowPlaneEntityProcessor';
 import { ComponentEntityProcessor } from './ComponentEntityProcessor';
 import { ComponentTypeEntityProcessor } from './ComponentTypeEntityProcessor';
-import { ComponentWorkflowEntityProcessor } from './ComponentWorkflowEntityProcessor';
 import { CustomAnnotationProcessor } from './CustomAnnotationProcessor';
 import { DataplaneEntityProcessor } from './DataplaneEntityProcessor';
 import { DeploymentPipelineEntityProcessor } from './DeploymentPipelineEntityProcessor';
 import { EnvironmentEntityProcessor } from './EnvironmentEntityProcessor';
 import { ObservabilityPlaneEntityProcessor } from './ObservabilityPlaneEntityProcessor';
+import { SystemEntityProcessor } from './SystemEntityProcessor';
 import { TraitTypeEntityProcessor } from './TraitTypeEntityProcessor';
 import { WorkflowEntityProcessor } from './WorkflowEntityProcessor';
 import { WorkflowPlaneEntityProcessor } from './WorkflowPlaneEntityProcessor';
@@ -655,56 +655,6 @@ describe('ClusterWorkflowPlaneEntityProcessor', () => {
 });
 
 // ---------------------------------------------------------------------------
-// ComponentWorkflowEntityProcessor
-// ---------------------------------------------------------------------------
-describe('ComponentWorkflowEntityProcessor', () => {
-  const processor = new ComponentWorkflowEntityProcessor();
-
-  it('validateEntityKind returns true for ComponentWorkflow', async () => {
-    expect(
-      await processor.validateEntityKind({
-        kind: 'ComponentWorkflow',
-      } as any),
-    ).toBe(true);
-    expect(
-      await processor.validateEntityKind({ kind: 'Workflow' } as any),
-    ).toBe(false);
-  });
-
-  it('emits partOf/hasPart to domain', async () => {
-    const emit = jest.fn();
-    const entity = {
-      kind: 'ComponentWorkflow',
-      metadata: { name: 'cwf', namespace: 'my-ns' },
-      spec: { domain: 'my-ns' },
-    } as any;
-    await processor.postProcessEntity(entity, mockLocation, emit);
-    expect(emit).toHaveBeenCalledWith(
-      processingResult.relation({
-        source: {
-          kind: 'componentworkflow',
-          namespace: 'my-ns',
-          name: 'cwf',
-        },
-        target: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
-        type: RELATION_PART_OF,
-      }),
-    );
-    expect(emit).toHaveBeenCalledWith(
-      processingResult.relation({
-        source: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
-        target: {
-          kind: 'componentworkflow',
-          namespace: 'my-ns',
-          name: 'cwf',
-        },
-        type: RELATION_HAS_PART,
-      }),
-    );
-  });
-});
-
-// ---------------------------------------------------------------------------
 // CustomAnnotationProcessor
 // ---------------------------------------------------------------------------
 describe('CustomAnnotationProcessor', () => {
@@ -854,7 +804,13 @@ describe('DeploymentPipelineEntityProcessor', () => {
     ).toBe(false);
   });
 
-  it('emits usesPipeline/pipelineUsedBy for projectRefs', async () => {
+  it('does not emit usesPipeline/pipelineUsedBy from projectRefs', async () => {
+    // The Project↔Pipeline relation is now emitted by SystemEntityProcessor
+    // from `System.spec.deploymentPipelineRef`. Emitting it from the DP side
+    // caused stale relations on event-driven updates: when a Project's
+    // pipeline ref changed, the *old* pipeline kept claiming the project
+    // until the next periodic poll. Keeping `projectRefs` here as input but
+    // asserting the relation is absent locks in the regression fence.
     const emit = jest.fn();
     const entity = {
       kind: 'DeploymentPipeline',
@@ -865,28 +821,15 @@ describe('DeploymentPipelineEntityProcessor', () => {
       },
     } as any;
     await processor.postProcessEntity(entity, mockLocation, emit);
-    expect(emit).toHaveBeenCalledWith(
-      processingResult.relation({
-        source: { kind: 'system', namespace: 'my-ns', name: 'proj-1' },
-        target: {
-          kind: 'deploymentpipeline',
-          namespace: 'my-ns',
-          name: 'pipe',
-        },
-        type: RELATION_USES_PIPELINE,
-      }),
-    );
-    expect(emit).toHaveBeenCalledWith(
-      processingResult.relation({
-        source: {
-          kind: 'deploymentpipeline',
-          namespace: 'my-ns',
-          name: 'pipe',
-        },
-        target: { kind: 'system', namespace: 'my-ns', name: 'proj-1' },
-        type: RELATION_PIPELINE_USED_BY,
-      }),
-    );
+    const emitted = emit.mock.calls.map(([res]) => res);
+    expect(
+      emitted.some(
+        r =>
+          r?.type === 'relation' &&
+          (r.relation.type === RELATION_USES_PIPELINE ||
+            r.relation.type === RELATION_PIPELINE_USED_BY),
+      ),
+    ).toBe(false);
   });
 
   it('emits deploysTo/deployedBy for environments in promotionPaths', async () => {
@@ -1141,5 +1084,87 @@ describe('WorkflowPlaneEntityProcessor', () => {
         type: RELATION_OBSERVED_BY,
       }),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SystemEntityProcessor
+// ---------------------------------------------------------------------------
+describe('SystemEntityProcessor', () => {
+  const processor = new SystemEntityProcessor();
+
+  it('emits usesPipeline/pipelineUsedBy from System.spec.deploymentPipelineRef', async () => {
+    // This is the side that owns the foreign key. Emitting from the System
+    // (Project) side ensures that re-processing the Project after an event
+    // naturally produces the new relation set and discards the old one,
+    // because Backstage scopes relation emission to the source entity.
+    const emit = jest.fn();
+    const entity = {
+      kind: 'System',
+      metadata: { name: 'proj-1', namespace: 'my-ns' },
+      spec: { deploymentPipelineRef: 'pipe' },
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'system', namespace: 'my-ns', name: 'proj-1' },
+        target: {
+          kind: 'deploymentpipeline',
+          namespace: 'my-ns',
+          name: 'pipe',
+        },
+        type: RELATION_USES_PIPELINE,
+      }),
+    );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: {
+          kind: 'deploymentpipeline',
+          namespace: 'my-ns',
+          name: 'pipe',
+        },
+        target: { kind: 'system', namespace: 'my-ns', name: 'proj-1' },
+        type: RELATION_PIPELINE_USED_BY,
+      }),
+    );
+    expect(emit).toHaveBeenCalledTimes(2);
+  });
+
+  it('does nothing when System has no deploymentPipelineRef', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'System',
+      metadata: { name: 'proj-1', namespace: 'my-ns' },
+      spec: {},
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('skips entities of other kinds', async () => {
+    const emit = jest.fn();
+    await processor.postProcessEntity(
+      {
+        kind: 'Component',
+        metadata: { name: 'c', namespace: 'my-ns' },
+        spec: { deploymentPipelineRef: 'pipe' },
+      } as any,
+      mockLocation,
+      emit,
+    );
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('falls back to namespace "default" when metadata.namespace is missing', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'System',
+      metadata: { name: 'proj-1' },
+      spec: { deploymentPipelineRef: 'pipe' },
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    const call = emit.mock.calls[0][0];
+    expect(call.relation.source.namespace).toBe('default');
+    expect(call.relation.target.namespace).toBe('default');
   });
 });

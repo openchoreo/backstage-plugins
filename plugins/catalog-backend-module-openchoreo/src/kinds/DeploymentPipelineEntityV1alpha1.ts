@@ -65,10 +65,6 @@ export interface DeploymentPipelineEntityV1alpha1 extends Entity {
    */
   spec: {
     /**
-     * References to the parent projects/systems that use this pipeline
-     */
-    projectRefs?: string[];
-    /**
      * The namespace this pipeline belongs to
      */
     namespaceName?: string;

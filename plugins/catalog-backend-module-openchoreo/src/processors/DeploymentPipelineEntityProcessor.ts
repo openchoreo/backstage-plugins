@@ -17,8 +17,6 @@ import {
 import {
   RELATION_DEPLOYS_TO,
   RELATION_DEPLOYED_BY,
-  RELATION_USES_PIPELINE,
-  RELATION_PIPELINE_USED_BY,
 } from '@openchoreo/backstage-plugin-common';
 
 /**
@@ -82,33 +80,6 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
           type: RELATION_HAS_PART,
         }),
       );
-    }
-
-    // Emit usesPipeline/pipelineUsedBy relationship between each project and pipeline
-    if (entity.spec.projectRefs) {
-      for (const projectRef of entity.spec.projectRefs as string[]) {
-        const systemRef = {
-          kind: 'system',
-          namespace: entity.spec.namespaceName || 'default',
-          name: projectRef,
-        };
-        // System (Project) usesPipeline DeploymentPipeline
-        emit(
-          processingResult.relation({
-            source: systemRef,
-            target: sourceRef,
-            type: RELATION_USES_PIPELINE,
-          }),
-        );
-        // DeploymentPipeline pipelineUsedBy System (inverse)
-        emit(
-          processingResult.relation({
-            source: sourceRef,
-            target: systemRef,
-            type: RELATION_PIPELINE_USED_BY,
-          }),
-        );
-      }
     }
 
     // Emit deploysTo relationships to all referenced environments

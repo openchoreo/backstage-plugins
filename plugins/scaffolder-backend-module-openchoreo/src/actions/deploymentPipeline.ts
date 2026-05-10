@@ -188,7 +188,6 @@ export const createDeploymentPipelineAction = (
               description: ctx.input.description,
               uid: data?.metadata?.uid,
               promotionPaths,
-              projectRefs: [],
               createdAt:
                 data?.metadata?.creationTimestamp || new Date().toISOString(),
             },

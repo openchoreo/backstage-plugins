@@ -166,7 +166,7 @@ openchoreo:
   defaultOwner: 'openchoreo-users'
 
   schedule:
-    frequency: 30 # seconds between runs (default: 30)
+    frequency: 300 # seconds between runs (default: 300, the periodic full sync acts as a safety net behind the event-forwarder's real-time deltas)
     timeout: 120 # seconds for timeout (default: 120)
 
   # Feature flags for enabling/disabling OpenChoreo functionality
@@ -306,6 +306,12 @@ catalog:
 
 kubernetes:
   # see https://backstage.io/docs/features/kubernetes/configuration for kubernetes configuration options
+
+# Event-driven catalog sync — accepts webhook POSTs from the OpenChoreo CRD event-forwarder
+events:
+  http:
+    topics:
+      - openchoreo
 
 # see https://backstage.io/docs/permissions/getting-started for more on the permission framework
 permission:

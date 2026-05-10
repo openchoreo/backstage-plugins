@@ -164,9 +164,21 @@ openchoreo:
   # Required by Backstage schema validation. Custom OpenChoreo kinds don't use owner.
   defaultOwner: 'openchoreo-users'
 
+  # Periodic full-sync schedule. Acts as a safety net behind the
+  # event-driven path; with the event-forwarder disabled, it is the
+  # only sync mechanism so you may want a much smaller frequency.
+  # Environment variable: OPENCHOREO_CATALOG_SYNC_FREQUENCY (seconds)
   schedule:
-    frequency: 30 # seconds between runs (default: 30)
+    frequency: ${OPENCHOREO_CATALOG_SYNC_FREQUENCY}
     timeout: 120 # seconds for timeout (default: 120)
+
+  # Whether to wire the OpenChoreo event-driven catalog sync. Mirrors
+  # the event-forwarder's enabled state — when false, the event
+  # router and entity-provider subscriptions are skipped and the
+  # system runs in poll-only mode driven by `schedule.frequency`.
+  # Environment variable: OPENCHOREO_EVENTS_ENABLED
+  events:
+    enabled: ${OPENCHOREO_EVENTS_ENABLED}
 
   # Feature flags for enabling/disabling OpenChoreo functionality
   # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_CILIUM_ENABLED

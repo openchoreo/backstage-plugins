@@ -7,7 +7,6 @@ export { ComponentEntityProcessor } from './ComponentEntityProcessor';
 export { ComponentTypeEntityProcessor } from './ComponentTypeEntityProcessor';
 export { TraitTypeEntityProcessor } from './TraitTypeEntityProcessor';
 export { WorkflowEntityProcessor } from './WorkflowEntityProcessor';
-export { ComponentWorkflowEntityProcessor } from './ComponentWorkflowEntityProcessor';
 export { CustomAnnotationProcessor } from './CustomAnnotationProcessor';
 export { ClusterComponentTypeEntityProcessor } from './ClusterComponentTypeEntityProcessor';
 export { ClusterTraitTypeEntityProcessor } from './ClusterTraitTypeEntityProcessor';
@@ -15,3 +14,4 @@ export { ClusterDataplaneEntityProcessor } from './ClusterDataplaneEntityProcess
 export { ClusterObservabilityPlaneEntityProcessor } from './ClusterObservabilityPlaneEntityProcessor';
 export { ClusterWorkflowPlaneEntityProcessor } from './ClusterWorkflowPlaneEntityProcessor';
 export { ClusterWorkflowEntityProcessor } from './ClusterWorkflowEntityProcessor';
+export { SystemEntityProcessor } from './SystemEntityProcessor';
