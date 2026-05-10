@@ -665,10 +665,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             // API entities when there's a Workload (the schemas live on
             // workload endpoints), so workloadName is guaranteed to be
             // defined inside this branch.
-            if (
-              workloadName &&
-              Object.keys(schemaEndpoints).length > 0
-            ) {
+            if (workloadName && Object.keys(schemaEndpoints).length > 0) {
               const apiEntities = createApiEntitiesFromNewWorkload({
                 componentName,
                 endpoints: schemaEndpoints,

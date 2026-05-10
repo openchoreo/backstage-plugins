@@ -231,10 +231,9 @@ export class EventDeltaApplier {
 
   private fetchProject(client: OpenChoreoApiClient, ns: string, name: string) {
     return this.fetchOne<NewProject>(
-      client.GET(
-        '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
-        { params: { path: { namespaceName: ns, projectName: name } } },
-      ) as any,
+      client.GET('/api/v1/namespaces/{namespaceName}/projects/{projectName}', {
+        params: { path: { namespaceName: ns, projectName: name } },
+      }) as any,
       'project',
       `${ns}/${name}`,
     );
@@ -317,10 +316,9 @@ export class EventDeltaApplier {
     name: string,
   ) {
     return this.fetchOne<NewEnvironment>(
-      client.GET(
-        '/api/v1/namespaces/{namespaceName}/environments/{envName}',
-        { params: { path: { namespaceName: ns, envName: name } } },
-      ) as any,
+      client.GET('/api/v1/namespaces/{namespaceName}/environments/{envName}', {
+        params: { path: { namespaceName: ns, envName: name } },
+      }) as any,
       'environment',
       `${ns}/${name}`,
     );
@@ -380,10 +378,9 @@ export class EventDeltaApplier {
     name: string,
   ) {
     return this.fetchOne<NewComponentType>(
-      client.GET(
-        '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}',
-        { params: { path: { namespaceName: ns, ctName: name } } },
-      ) as any,
+      client.GET('/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}', {
+        params: { path: { namespaceName: ns, ctName: name } },
+      }) as any,
       'componenttype',
       `${ns}/${name}`,
     );
@@ -399,11 +396,7 @@ export class EventDeltaApplier {
     );
   }
 
-  private fetchWorkflow(
-    client: OpenChoreoApiClient,
-    ns: string,
-    name: string,
-  ) {
+  private fetchWorkflow(client: OpenChoreoApiClient, ns: string, name: string) {
     return this.fetchOne<NewWorkflow>(
       client.GET(
         '/api/v1/namespaces/{namespaceName}/workflows/{workflowName}',
@@ -433,10 +426,7 @@ export class EventDeltaApplier {
     );
   }
 
-  private fetchClusterComponentType(
-    client: OpenChoreoApiClient,
-    name: string,
-  ) {
+  private fetchClusterComponentType(client: OpenChoreoApiClient, name: string) {
     return this.fetchOne<NewClusterComponentType>(
       client.GET('/api/v1/clustercomponenttypes/{cctName}', {
         params: { path: { cctName: name } },
@@ -490,15 +480,11 @@ export class EventDeltaApplier {
     );
   }
 
-  private fetchClusterWorkflowPlane(
-    client: OpenChoreoApiClient,
-    name: string,
-  ) {
+  private fetchClusterWorkflowPlane(client: OpenChoreoApiClient, name: string) {
     return this.fetchOne<NewClusterWorkflowPlane>(
-      client.GET(
-        '/api/v1/clusterworkflowplanes/{clusterWorkflowPlaneName}',
-        { params: { path: { clusterWorkflowPlaneName: name } } },
-      ) as any,
+      client.GET('/api/v1/clusterworkflowplanes/{clusterWorkflowPlaneName}', {
+        params: { path: { clusterWorkflowPlaneName: name } },
+      }) as any,
       'clusterworkflowplane',
       name,
     );
@@ -1225,9 +1211,13 @@ export class EventDeltaApplier {
     }
 
     this.logger.info(
-      `Workload ${ns}/${workloadName} deleted; removed ${apiRefs.length} API entity(ies)${
+      `Workload ${ns}/${workloadName} deleted; removed ${
+        apiRefs.length
+      } API entity(ies)${
         component
-          ? ` and refreshed parent component ${component.metadata.namespace ?? 'default'}/${component.metadata.name}`
+          ? ` and refreshed parent component ${
+              component.metadata.namespace ?? 'default'
+            }/${component.metadata.name}`
           : ''
       }`,
     );

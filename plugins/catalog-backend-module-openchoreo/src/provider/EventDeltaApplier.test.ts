@@ -475,11 +475,8 @@ describe('EventDeltaApplier.handleEvent', () => {
 
     // Catalog was queried with the workload-name annotation filter.
     expect(catalogService.getEntities).toHaveBeenCalledTimes(1);
-    expect(
-      catalogService.getEntities.mock.calls[0][0].filter,
-    ).toMatchObject({
-      'metadata.annotations.openchoreo.io/workload':
-        'order-service-workload',
+    expect(catalogService.getEntities.mock.calls[0][0].filter).toMatchObject({
+      'metadata.annotations.openchoreo.io/workload': 'order-service-workload',
     });
 
     // Two mutations applied:
@@ -528,12 +525,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       auth: makeAuth(),
     });
 
-    await applier.handleEvent(
-      'Workload',
-      'unannotated',
-      'test-ns',
-      'deleted',
-    );
+    await applier.handleEvent('Workload', 'unannotated', 'test-ns', 'deleted');
 
     expect(applyMutation).not.toHaveBeenCalled();
     expect(logger.info).toHaveBeenCalledWith(
