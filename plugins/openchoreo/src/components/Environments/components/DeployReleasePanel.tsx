@@ -1,21 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Tooltip,
-  Typography,
-} from '@material-ui/core';
+import { useEffect } from 'react';
+import { Box, Button, Tooltip, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { Alert } from '@material-ui/lab';
-import TuneOutlinedIcon from '@material-ui/icons/TuneOutlined';
-import { useApi } from '@backstage/core-plugin-api';
-import { useEntity } from '@backstage/plugin-catalog-react';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
-import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
-import { useNotification } from '../../../hooks';
-import { getErrorMessage } from '../../../utils/errorUtils';
-import { useEnvironmentsContext } from '../EnvironmentsContext';
 import { useEnvironmentRouting } from '../hooks/useEnvironmentRouting';
 import { ReleasePicker, type ReleaseDeployments } from './ReleasePicker';
 
@@ -43,8 +30,6 @@ export interface DeployReleasePanelProps {
   onSelectedReleaseChange: (releaseName: string | null) => void;
   /** Display name of the first env (e.g. "development"). */
   firstEnvironmentName: string;
-  /** Refetch releases + bindings after a successful deploy. */
-  onDeployed: () => void;
   disabled?: boolean;
   disabledReason?: string;
 }
@@ -52,11 +37,10 @@ export interface DeployReleasePanelProps {
 /**
  * Story 2: pick an existing release and deploy it to the first environment.
  *
- * Deploy now    → calls updateReleaseBinding directly with no override payload
- *                 (release defaults apply).
- * Configure overrides → deep-links to the existing /overrides/<env> page with
- *                 a 'deploy' pendingAction. That page already saves overrides
- *                 and triggers updateReleaseBinding on save.
+ * The Deploy button always navigates to the existing /overrides/<env> page
+ * with a 'deploy' pendingAction; that page reviews overrides and triggers
+ * updateReleaseBinding on save. There is no "deploy without reviewing
+ * overrides" shortcut — going through overrides is the canonical path.
  */
 export const DeployReleasePanel = ({
   releases,
@@ -66,23 +50,15 @@ export const DeployReleasePanel = ({
   selectedReleaseName,
   onSelectedReleaseChange,
   firstEnvironmentName,
-  onDeployed,
   disabled,
   disabledReason,
 }: DeployReleasePanelProps) => {
   const classes = useStyles();
-  const client = useApi(openChoreoClientApiRef);
-  const { entity } = useEntity();
-  const notification = useNotification();
-  const { refetch } = useEnvironmentsContext();
   const { navigateToOverrides } = useEnvironmentRouting();
 
-  const [deploying, setDeploying] = useState(false);
-  const [deployError, setDeployError] = useState<string | null>(null);
-
-  // Preselect the most recent release when one is available and nothing is
-  // selected yet. Only run when the list of names actually changes, so the
-  // user's explicit selection survives refetches.
+  // Preselect the most recent release when nothing is selected yet. Only
+  // react to the newest name changing so the user's explicit selection
+  // survives refetches.
   const newestName = releases[0]?.metadata?.name ?? null;
   useEffect(() => {
     if (!selectedReleaseName && newestName) {
@@ -90,7 +66,7 @@ export const DeployReleasePanel = ({
     }
   }, [newestName, selectedReleaseName, onSelectedReleaseChange]);
 
-  const handleConfigureOverrides = () => {
+  const handleDeploy = () => {
     if (!selectedReleaseName) return;
     navigateToOverrides(firstEnvironmentName, {
       type: 'deploy',
@@ -99,33 +75,14 @@ export const DeployReleasePanel = ({
     });
   };
 
-  const handleDeployNow = async () => {
-    if (!selectedReleaseName) return;
-    setDeploying(true);
-    setDeployError(null);
-    try {
-      await client.updateReleaseBinding(
-        entity,
-        firstEnvironmentName,
-        selectedReleaseName,
-      );
-      notification.showSuccess(
-        `Deployed ${selectedReleaseName} to ${firstEnvironmentName}`,
-      );
-      refetch();
-      onDeployed();
-    } catch (e: unknown) {
-      setDeployError(getErrorMessage(e));
-    } finally {
-      setDeploying(false);
-    }
-  };
-
   const noReleases = !releasesLoading && releases.length === 0;
-  const deployDisabled = useMemo(
-    () => disabled || deploying || !selectedReleaseName || noReleases,
-    [disabled, deploying, selectedReleaseName, noReleases],
-  );
+  const deployDisabled = disabled || !selectedReleaseName || noReleases;
+
+  const getTooltip = () => {
+    if (deployDisabled && disabledReason) return disabledReason;
+    if (!selectedReleaseName) return 'Pick a release first';
+    return '';
+  };
 
   return (
     <Box className={classes.panel}>
@@ -151,47 +108,17 @@ export const DeployReleasePanel = ({
         disabled={disabled || noReleases}
       />
 
-      {deployError && (
-        <Alert severity="error" onClose={() => setDeployError(null)}>
-          {deployError}
-        </Alert>
-      )}
-
       <Box className={classes.actionsRow}>
-        <Tooltip
-          title={
-            !selectedReleaseName
-              ? 'Pick a release first'
-              : 'Edit per-environment overrides before deploying'
-          }
-        >
-          <span>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<TuneOutlinedIcon />}
-              onClick={handleConfigureOverrides}
-              disabled={!selectedReleaseName || deploying || disabled}
-            >
-              Configure overrides
-            </Button>
-          </span>
-        </Tooltip>
-        <Tooltip title={deployDisabled && disabledReason ? disabledReason : ''}>
+        <Tooltip title={getTooltip()}>
           <span>
             <Button
               variant="contained"
               color="primary"
               size="small"
-              onClick={handleDeployNow}
+              onClick={handleDeploy}
               disabled={deployDisabled}
-              startIcon={
-                deploying ? (
-                  <CircularProgress size={16} color="inherit" />
-                ) : undefined
-              }
             >
-              {deploying ? 'Deploying...' : 'Deploy now'}
+              Deploy
             </Button>
           </span>
         </Tooltip>

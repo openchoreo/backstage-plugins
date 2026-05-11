@@ -18,24 +18,6 @@ jest.mock('./LoadingSkeleton', () => ({
   ),
 }));
 
-// Heavy child components — replace with thin doubles so we can assert on
-// the SetupDetailPane wiring without dragging in their dependencies.
-jest.mock('./CreateReleaseDialog', () => ({
-  CreateReleaseDialog: ({ open, onCreated, autoDeployEnabled }: any) =>
-    open ? (
-      <div data-testid="create-release-dialog">
-        <span data-testid="auto-deploy-flag">{String(autoDeployEnabled)}</span>
-        <button
-          type="button"
-          data-testid="create-release-confirm"
-          onClick={() => onCreated('rel-from-dialog')}
-        >
-          Confirm create
-        </button>
-      </div>
-    ) : null,
-}));
-
 jest.mock('./DeployReleasePanel', () => ({
   DeployReleasePanel: ({ disabled }: any) => (
     <div
@@ -159,9 +141,18 @@ describe('SetupDetailPane', () => {
       await screen.findByRole('button', { name: /create release/i }),
     ).toBeEnabled();
     expect(screen.getByTestId('deploy-release-panel')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /edit workload/i }),
-    ).toBeInTheDocument();
+  });
+
+  it('Create release navigates to the workload page (onConfigureWorkload)', async () => {
+    const onConfigureWorkload = jest.fn();
+    const user = userEvent.setup();
+    renderPane({ onConfigureWorkload });
+
+    await user.click(
+      await screen.findByRole('button', { name: /create release/i }),
+    );
+
+    expect(onConfigureWorkload).toHaveBeenCalledTimes(1);
   });
 
   it('disables Create release when readiness blocks it and surfaces the reason', async () => {
@@ -186,22 +177,6 @@ describe('SetupDetailPane', () => {
         'Build your application first to generate a container image.',
       ),
     ).toBeInTheDocument();
-  });
-
-  it('passes the auto-deploy flag into the create-release dialog', async () => {
-    mockClient.getComponentDetails.mockResolvedValue({ autoDeploy: true });
-    const user = userEvent.setup();
-    renderPane();
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole('checkbox', { name: /auto deploy/i }),
-      ).toBeChecked();
-    });
-
-    await user.click(screen.getByRole('button', { name: /create release/i }));
-
-    expect(screen.getByTestId('auto-deploy-flag')).toHaveTextContent('true');
   });
 
   it('confirms auto-deploy changes through the confirmation dialog', async () => {
@@ -239,9 +214,6 @@ describe('SetupDetailPane', () => {
 
     expect(
       await screen.findByRole('button', { name: /create release/i }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: /edit workload/i }),
     ).toBeDisabled();
     expect(screen.getByTestId('deploy-release-panel')).toHaveAttribute(
       'data-disabled',

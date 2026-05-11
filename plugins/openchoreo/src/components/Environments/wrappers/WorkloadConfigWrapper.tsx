@@ -7,8 +7,9 @@ import { WorkloadConfigPage } from '../Workload/WorkloadConfigPage';
 /**
  * Wrapper component for WorkloadConfigPage that handles URL-based navigation.
  *
- * Saving workload + traits/parameters returns the user to the deploy list
- * view; release creation is owned by the Set up panel there.
+ * The page hosts the full Create release flow: review workload + traits +
+ * parameters, save, then snapshot as a named release. On success, we
+ * return the user to the deploy list view.
  */
 export const WorkloadConfigWrapper = () => {
   const [searchParams] = useSearchParams();
@@ -36,7 +37,7 @@ export const WorkloadConfigWrapper = () => {
   return (
     <WorkloadConfigPage
       onBack={navigateToList}
-      onSaved={navigateToList}
+      onReleaseCreated={navigateToList}
       lowestEnvDataPlane={envDataPlane}
       initialTab={activeTab}
       onTabChange={handleTabChange}

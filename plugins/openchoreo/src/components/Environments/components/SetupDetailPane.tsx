@@ -12,7 +12,6 @@ import {
 import { Alert } from '@material-ui/lab';
 import AddIcon from '@material-ui/icons/Add';
 import CloseIcon from '@material-ui/icons/Close';
-import EditOutlinedIcon from '@material-ui/icons/EditOutlined';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import { useApi } from '@backstage/core-plugin-api';
@@ -20,7 +19,6 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { useEnvironmentDetailPanelStyles } from '../styles';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { AutoDeployConfirmationDialog } from './AutoDeployConfirmationDialog';
-import { CreateReleaseDialog } from './CreateReleaseDialog';
 import { DeployReleasePanel } from './DeployReleasePanel';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { useAutoDeployUpdate } from '../hooks/useAutoDeployUpdate';
@@ -73,14 +71,12 @@ export const SetupDetailPane = ({
     releases,
     loading: releasesLoading,
     error: releasesError,
-    refetch: refetchReleases,
   } = useReleases(entity);
 
   const [autoDeploy, setAutoDeploy] = useState<boolean | undefined>(undefined);
   const [autoDeployLoaded, setAutoDeployLoaded] = useState(false);
   const [showAutoDeployConfirm, setShowAutoDeployConfirm] = useState(false);
   const [pendingAutoDeployValue, setPendingAutoDeployValue] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedReleaseName, setSelectedReleaseName] = useState<string | null>(
     null,
   );
@@ -143,13 +139,6 @@ export const SetupDetailPane = ({
     }
     return map;
   }, [environments]);
-
-  const handleReleaseCreated = (releaseName: string) => {
-    setCreateDialogOpen(false);
-    notification.showSuccess(`Created release ${releaseName}`);
-    setSelectedReleaseName(releaseName);
-    refetchReleases();
-  };
 
   const createDisabledReason = (() => {
     if (!canConfigureAndDeploy) return deniedTooltip;
@@ -215,7 +204,7 @@ export const SetupDetailPane = ({
 
             <Divider style={{ margin: '12px 0' }} />
 
-            {/* Story 1 — Release */}
+            {/* Story 1 — Create release (routes to workload page) */}
             <Box display="flex" flexDirection="column" gridGap={8}>
               <Typography variant="subtitle2">Release</Typography>
               {readiness.alertMessage && (
@@ -223,37 +212,24 @@ export const SetupDetailPane = ({
                   {readiness.alertMessage}
                 </Alert>
               )}
-              <Box display="flex" gridGap={8} flexWrap="wrap">
-                <Tooltip title={createDisabledReason}>
-                  <span>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="small"
-                      startIcon={<AddIcon />}
-                      onClick={() => setCreateDialogOpen(true)}
-                      disabled={!canCreate || readiness.loading}
-                    >
-                      Create release
-                    </Button>
-                  </span>
-                </Tooltip>
-                {isWorkloadEditorSupported && (
-                  <Tooltip title={deniedTooltip}>
+              {isWorkloadEditorSupported && (
+                <Box display="flex">
+                  <Tooltip title={createDisabledReason}>
                     <span>
                       <Button
-                        variant="outlined"
+                        variant="contained"
+                        color="primary"
                         size="small"
-                        startIcon={<EditOutlinedIcon />}
+                        startIcon={<AddIcon />}
                         onClick={onConfigureWorkload}
-                        disabled={permissionLoading || !canConfigureAndDeploy}
+                        disabled={!canCreate || readiness.loading}
                       >
-                        Edit workload
+                        Create release
                       </Button>
                     </span>
                   </Tooltip>
-                )}
-              </Box>
+                </Box>
+              )}
             </Box>
 
             <Divider style={{ margin: '12px 0' }} />
@@ -267,22 +243,12 @@ export const SetupDetailPane = ({
               selectedReleaseName={selectedReleaseName}
               onSelectedReleaseChange={setSelectedReleaseName}
               firstEnvironmentName={lowestEnvironment}
-              onDeployed={refetchReleases}
               disabled={permissionLoading || !canConfigureAndDeploy}
               disabledReason={deniedTooltip}
             />
           </>
         )}
       </Box>
-
-      <CreateReleaseDialog
-        open={createDialogOpen}
-        onClose={() => setCreateDialogOpen(false)}
-        onCreated={handleReleaseCreated}
-        existingReleases={releases}
-        autoDeployEnabled={autoDeploy ?? false}
-        firstEnvironmentName={lowestEnvironment}
-      />
 
       <AutoDeployConfirmationDialog
         open={showAutoDeployConfirm}

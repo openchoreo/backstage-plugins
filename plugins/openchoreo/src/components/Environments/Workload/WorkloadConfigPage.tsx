@@ -35,6 +35,10 @@ import { useWorkloadChanges } from './hooks/useWorkloadChanges';
 import { WorkloadSaveConfirmationDialog } from './WorkloadSaveConfirmationDialog';
 import { usePendingChanges } from '../../Traits/hooks/usePendingChanges';
 import { deepCompareObjects } from '@openchoreo/backstage-plugin-react';
+import { CreateReleaseDialog } from '../components/CreateReleaseDialog';
+import { useReleases } from '../hooks/useReleases';
+import { useEnvironmentsContext } from '../EnvironmentsContext';
+import { useNotification } from '../../../hooks';
 
 /** Stable empty array to avoid unnecessary rerenders in WorkloadProvider */
 const EMPTY_BUILDS: never[] = [];
@@ -61,8 +65,8 @@ const useStyles = makeStyles(theme => ({
 
 interface WorkloadConfigPageProps {
   onBack: () => void;
-  /** Called after workload + traits/parameters are saved successfully */
-  onSaved: () => void;
+  /** Called after the release is successfully created. */
+  onReleaseCreated: () => void;
   /**
    * Data plane of the lowest environment, used by the workload editor for
    * endpoint previews.
@@ -76,7 +80,7 @@ interface WorkloadConfigPageProps {
 
 export const WorkloadConfigPage = ({
   onBack,
-  onSaved,
+  onReleaseCreated,
   lowestEnvDataPlane,
   initialTab,
   onTabChange,
@@ -85,6 +89,30 @@ export const WorkloadConfigPage = ({
   const client = useApi(openChoreoClientApiRef);
   const catalogApi = useApi(catalogApiRef);
   const { entity } = useEntity();
+  const { lowestEnvironment } = useEnvironmentsContext();
+  const { releases, refetch: refetchReleases } = useReleases(entity);
+  const notification = useNotification();
+  const [showCreateReleaseDialog, setShowCreateReleaseDialog] = useState(false);
+  const [autoDeployEnabled, setAutoDeployEnabled] = useState<boolean>(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const componentData = await client.getComponentDetails(entity);
+        if (!cancelled && componentData?.autoDeploy !== undefined) {
+          setAutoDeployEnabled(componentData.autoDeploy);
+        }
+      } catch {
+        // Leave autoDeployEnabled at its default (false) — the dialog will
+        // simply skip its auto-deploy notice if we can't determine it.
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [entity, client]);
 
   // Single source of truth: the full K8s workload resource
   const [workloadResource, setWorkloadResource] =
@@ -464,11 +492,18 @@ export const WorkloadConfigPage = ({
 
       setIsProcessing(false);
       allowNavigationRef.current = true;
-      onSaved();
+      setShowCreateReleaseDialog(true);
     } catch (e: unknown) {
       setIsProcessing(false);
       setSaveError(getErrorMessage(e));
     }
+  };
+
+  const handleReleaseCreated = (releaseName: string) => {
+    setShowCreateReleaseDialog(false);
+    notification.showSuccess(`Created release ${releaseName}`);
+    refetchReleases();
+    onReleaseCreated();
   };
 
   const enableNext = isFromSource
@@ -479,14 +514,16 @@ export const WorkloadConfigPage = ({
     if (isFromSource && !hasImage) {
       return 'Build your application first to generate a container image.';
     }
-    return 'Configure your workload, then return to the Set up panel to create a release.';
+    return 'Configure your workload, then save to create a release snapshot.';
   };
 
   const handleButtonClick = () => {
     if (hasAnyChanges) {
       setShowConfirmDialog(true);
     } else {
-      onBack();
+      // No changes — workload is already up-to-date; jump straight to
+      // naming and creating the release snapshot.
+      setShowCreateReleaseDialog(true);
     }
   };
 
@@ -505,8 +542,8 @@ export const WorkloadConfigPage = ({
 
   const getButtonText = () => {
     if (isProcessing) return 'Saving...';
-    if (hasAnyChanges) return 'Save workload';
-    return 'Done';
+    if (hasAnyChanges) return 'Save & continue';
+    return 'Continue';
   };
 
   const totalChanges =
@@ -554,8 +591,8 @@ export const WorkloadConfigPage = ({
 
   return (
     <DetailPageLayout
-      title="Configure Component"
-      subtitle="Review and update your component's runtime configuration"
+      title="Create release"
+      subtitle="Review and update your component's configuration, then snapshot it as a release."
       onBack={handleBackClick}
       actions={headerActions}
     >
@@ -670,6 +707,15 @@ export const WorkloadConfigPage = ({
           pendingNavigationRef.current = null;
         }}
         changeCount={totalChanges}
+      />
+
+      <CreateReleaseDialog
+        open={showCreateReleaseDialog}
+        onClose={() => setShowCreateReleaseDialog(false)}
+        onCreated={handleReleaseCreated}
+        existingReleases={releases}
+        autoDeployEnabled={autoDeployEnabled}
+        firstEnvironmentName={lowestEnvironment}
       />
     </DetailPageLayout>
   );
