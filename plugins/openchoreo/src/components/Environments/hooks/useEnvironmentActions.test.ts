@@ -6,6 +6,7 @@ import type { ItemActionTracker } from '../types';
 const mockClient = {
   deleteReleaseBinding: jest.fn(),
   fetchEnvironmentInfo: jest.fn(),
+  rolloutRestartReleaseBinding: jest.fn(),
 };
 
 jest.mock('@backstage/core-plugin-api', () => ({
@@ -170,6 +171,83 @@ describe('useEnvironmentActions.handleRemoveDeployment', () => {
           'staging-binding',
           'staging',
         );
+      }),
+    ).rejects.toThrow('forbidden');
+
+    expect(showSuccess).not.toHaveBeenCalled();
+    expect(refetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('useEnvironmentActions.handleRolloutRestart', () => {
+  const entity = mockComponentEntity();
+  const refetch = jest.fn();
+  const showSuccess = jest.fn();
+  const showError = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockClient.rolloutRestartReleaseBinding.mockResolvedValue({});
+  });
+
+  it('calls rolloutRestartReleaseBinding with the binding name', async () => {
+    const { result } = renderHook(() =>
+      useEnvironmentActions(
+        entity,
+        refetch,
+        { showSuccess, showError },
+        tracker(),
+      ),
+    );
+
+    await act(async () => {
+      await result.current.handleRolloutRestart('beta-web-staging');
+    });
+
+    expect(mockClient.rolloutRestartReleaseBinding).toHaveBeenCalledWith(
+      entity,
+      'beta-web-staging',
+    );
+  });
+
+  it('refetches and shows a success toast naming the binding', async () => {
+    const { result } = renderHook(() =>
+      useEnvironmentActions(
+        entity,
+        refetch,
+        { showSuccess, showError },
+        tracker(),
+      ),
+    );
+
+    await act(async () => {
+      await result.current.handleRolloutRestart('beta-web-staging');
+    });
+
+    expect(refetch).toHaveBeenCalled();
+    expect(showSuccess).toHaveBeenCalledWith(
+      expect.stringContaining('beta-web-staging'),
+    );
+    expect(showError).not.toHaveBeenCalled();
+  });
+
+  it('propagates API errors and does not show a success toast', async () => {
+    mockClient.rolloutRestartReleaseBinding.mockRejectedValue(
+      new Error('forbidden'),
+    );
+
+    const { result } = renderHook(() =>
+      useEnvironmentActions(
+        entity,
+        refetch,
+        { showSuccess, showError },
+        tracker(),
+      ),
+    );
+
+    await expect(
+      act(async () => {
+        await result.current.handleRolloutRestart('beta-web-staging');
       }),
     ).rejects.toThrow('forbidden');
 

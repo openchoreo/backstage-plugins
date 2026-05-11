@@ -53,6 +53,7 @@ const API_ENDPOINTS = {
   CELL_DIAGRAM: '/cell-diagram',
   DEPLOYEMNT_WORKLOAD: '/workload',
   UPDATE_BINDING: '/update-binding',
+  ROLLOUT_RESTART_BINDING: '/rollout-restart-binding',
   DASHBOARD_BINDINGS_COUNT: '/dashboard/bindings-count',
   CREATE_RELEASE: '/create-release',
   DEPLOY_RELEASE: '/deploy-release',
@@ -273,6 +274,23 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         componentName: component,
         bindingName,
         releaseState,
+      },
+    });
+  }
+
+  async rolloutRestartReleaseBinding(
+    entity: Entity,
+    bindingName: string,
+  ): Promise<any> {
+    const { component, project, namespace } = extractEntityMetadata(entity);
+
+    return this.apiFetch(API_ENDPOINTS.ROLLOUT_RESTART_BINDING, {
+      method: 'POST',
+      body: {
+        namespaceName: namespace,
+        projectName: project,
+        componentName: component,
+        bindingName,
       },
     });
   }

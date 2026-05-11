@@ -246,6 +246,30 @@ export async function createRouter({
     );
   });
 
+  router.post('/rollout-restart-binding', requireAuth, async (req, res) => {
+    const { componentName, projectName, namespaceName, bindingName } = req.body;
+
+    if (!componentName || !projectName || !namespaceName || !bindingName) {
+      throw new InputError(
+        'componentName, projectName, namespaceName and bindingName are required in request body',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await environmentInfoService.rolloutRestartReleaseBinding(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+          bindingName: bindingName as string,
+        },
+        userToken,
+      ),
+    );
+  });
+
   router.get(
     '/cell-diagram',
     async (req: express.Request, res: express.Response) => {
