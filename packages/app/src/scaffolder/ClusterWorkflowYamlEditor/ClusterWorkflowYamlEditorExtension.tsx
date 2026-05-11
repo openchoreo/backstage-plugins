@@ -26,7 +26,6 @@ const DEFAULT_CLUSTER_WORKFLOW_TEMPLATE = {
         namespace: '${metadata.namespace}',
       },
       spec: {
-        serviceAccountName: 'workflow-sa',
         entrypoint: 'main',
         templates: [
           {
