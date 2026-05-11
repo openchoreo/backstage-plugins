@@ -698,8 +698,14 @@ export const EnvironmentOverridesPage = ({
           Delete All
         </Button>
       )}
-      {pendingAction?.type === 'promote' && pendingAction.releaseName && (
-        <Tooltip title="Compare the source release with this environment's current release">
+      {pendingAction?.releaseName && environment.deployment.releaseName && (
+        <Tooltip
+          title={
+            pendingAction.type === 'promote'
+              ? "Compare the source release with this environment's current release"
+              : "Compare the selected release with this environment's current release"
+          }
+        >
           <span>
             <Button
               onClick={() => setDiffOpen(true)}
@@ -1000,11 +1006,15 @@ export const EnvironmentOverridesPage = ({
         changeCount={totalChanges}
       />
 
-      {pendingAction?.type === 'promote' && pendingAction.releaseName && (
+      {pendingAction?.releaseName && (
         <ComponentReleaseDiffDialog
           open={diffOpen}
           onClose={() => setDiffOpen(false)}
-          upstreamEnvName={pendingAction.sourceEnvironment}
+          upstreamEnvName={
+            pendingAction.type === 'promote'
+              ? pendingAction.sourceEnvironment
+              : 'Selected release'
+          }
           upstreamReleaseName={pendingAction.releaseName}
           environmentName={environment.name}
           releaseName={environment.deployment.releaseName}
