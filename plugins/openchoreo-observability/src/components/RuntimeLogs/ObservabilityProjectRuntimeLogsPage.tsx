@@ -90,6 +90,8 @@ const ObservabilityProjectRuntimeLogsContent = () => {
     environment: string;
     logLevel: string[];
     timeRange: string;
+    customStartTime?: string;
+    customEndTime?: string;
     searchQuery?: string;
     sortOrder?: 'asc' | 'desc';
     components: string[];
@@ -100,6 +102,8 @@ const ObservabilityProjectRuntimeLogsContent = () => {
       environment: filters.environment,
       logLevel: filters.logLevel,
       timeRange: filters.timeRange,
+      customStartTime: filters.customStartTime,
+      customEndTime: filters.customEndTime,
       searchQuery: filters.searchQuery,
       sortOrder: filters.sortOrder,
       components: filters.components || [],
@@ -129,6 +133,8 @@ const ObservabilityProjectRuntimeLogsContent = () => {
     filters.environment,
     filters.logLevel,
     filters.timeRange,
+    filters.customStartTime,
+    filters.customEndTime,
     filters.searchQuery,
     filters.sortOrder,
     filters.components,

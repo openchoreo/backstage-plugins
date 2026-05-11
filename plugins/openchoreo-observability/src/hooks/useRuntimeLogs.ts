@@ -9,6 +9,10 @@ import { calculateTimeRange } from '@openchoreo/backstage-plugin-react';
 export interface UseRuntimeLogsOptions {
   environment: string;
   timeRange: string;
+  /** ISO start time, used when `timeRange === 'custom'` */
+  customStartTime?: string;
+  /** ISO end time, used when `timeRange === 'custom'` */
+  customEndTime?: string;
   logLevels?: string[];
   limit?: number;
   searchQuery?: string;
@@ -84,7 +88,10 @@ export function useRuntimeLogs(
 
         // Calculate the start and end times based on the time range
         const { startTime: initialStartTime, endTime: initialEndTime } =
-          calculateTimeRange(options.timeRange);
+          calculateTimeRange(options.timeRange, {
+            startTime: options.customStartTime,
+            endTime: options.customEndTime,
+          });
 
         // Use timestamp-based pagination instead of offset
         let endTime = initialEndTime;
@@ -140,6 +147,8 @@ export function useRuntimeLogs(
       observabilityApi,
       options.environment,
       options.timeRange,
+      options.customStartTime,
+      options.customEndTime,
       options.logLevels,
       options.limit,
       options.searchQuery,

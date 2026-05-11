@@ -9,6 +9,10 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 export interface UseComponentAlertsOptions {
   environment: string;
   timeRange: string;
+  /** ISO start time, used when `timeRange === 'custom'` */
+  customStartTime?: string;
+  /** ISO end time, used when `timeRange === 'custom'` */
+  customEndTime?: string;
   limit?: number;
   sortOrder?: 'asc' | 'desc';
 }
@@ -50,7 +54,10 @@ export function useComponentAlerts(
         setLoading(true);
         setError(null);
 
-        const { startTime, endTime } = calculateTimeRange(options.timeRange);
+        const { startTime, endTime } = calculateTimeRange(options.timeRange, {
+          startTime: options.customStartTime,
+          endTime: options.customEndTime,
+        });
 
         const response = await observabilityApi.getAlerts(
           namespace,
@@ -83,6 +90,8 @@ export function useComponentAlerts(
       observabilityApi,
       options.environment,
       options.timeRange,
+      options.customStartTime,
+      options.customEndTime,
       options.limit,
       options.sortOrder,
       namespace,

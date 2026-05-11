@@ -157,6 +157,8 @@ const ObservabilityMetricsContent = () => {
                     }
                     usageType="cpu"
                     timeRange={filters.timeRange}
+                    customStartTime={filters.customStartTime}
+                    customEndTime={filters.customEndTime}
                   />
                 </CardContent>
               </Card>
@@ -172,6 +174,8 @@ const ObservabilityMetricsContent = () => {
                     }
                     usageType="memory"
                     timeRange={filters.timeRange}
+                    customStartTime={filters.customStartTime}
+                    customEndTime={filters.customEndTime}
                   />
                 </CardContent>
               </Card>

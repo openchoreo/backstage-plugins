@@ -9,7 +9,8 @@ import {
   Checkbox,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import { type Environment, Filters, TIME_RANGE_OPTIONS } from '../../types';
+import { type Environment, Filters } from '../../types';
+import { TimeRangeFilter } from '../TimeRangeFilter';
 import { Component } from '../../hooks/useGetComponentsByProject';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 
@@ -50,10 +51,6 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
   const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
     const value = event.target.value as string[];
     onFiltersChange({ components: value });
-  };
-
-  const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ timeRange: event.target.value as string });
   };
 
   return (
@@ -141,21 +138,13 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled} variant="outlined">
-          <InputLabel id="time-range-label">Time Range</InputLabel>
-          <Select
-            value={filters.timeRange}
-            onChange={handleTimeRangeChange}
-            labelId="time-range-label"
-            label="Time Range"
-          >
-            {TIME_RANGE_OPTIONS.map(option => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <TimeRangeFilter
+          value={filters.timeRange}
+          customStartTime={filters.customStartTime}
+          customEndTime={filters.customEndTime}
+          onChange={onFiltersChange}
+          disabled={disabled}
+        />
       </Grid>
     </Grid>
   );

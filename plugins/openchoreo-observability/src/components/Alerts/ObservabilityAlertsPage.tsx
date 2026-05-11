@@ -51,6 +51,8 @@ const ObservabilityAlertsContent = () => {
   } = useComponentAlerts(entity, namespace || '', project || '', {
     environment: filters.environment,
     timeRange: filters.timeRange,
+    customStartTime: filters.customStartTime,
+    customEndTime: filters.customEndTime,
     limit: 100,
     sortOrder: filters.sortOrder || 'desc',
   });
@@ -58,6 +60,8 @@ const ObservabilityAlertsContent = () => {
   const previousFiltersRef = useRef<{
     environment: string;
     timeRange: string;
+    customStartTime?: string;
+    customEndTime?: string;
     sortOrder?: 'asc' | 'desc';
   } | null>(null);
 
@@ -65,6 +69,8 @@ const ObservabilityAlertsContent = () => {
     const currentFilters = {
       environment: filters.environment,
       timeRange: filters.timeRange,
+      customStartTime: filters.customStartTime,
+      customEndTime: filters.customEndTime,
       sortOrder: filters.sortOrder,
     };
     const filtersChanged =
@@ -87,6 +93,8 @@ const ObservabilityAlertsContent = () => {
   }, [
     filters.environment,
     filters.timeRange,
+    filters.customStartTime,
+    filters.customEndTime,
     filters.sortOrder,
     fetchAlerts,
     selectedEnvironment,

@@ -91,7 +91,10 @@ export function useProjectRuntimeLogs(
         setError(null);
 
         const { startTime: initialStartTime, endTime: initialEndTime } =
-          calculateTimeRange(filters.timeRange);
+          calculateTimeRange(filters.timeRange, {
+            startTime: filters.customStartTime,
+            endTime: filters.customEndTime,
+          });
 
         let startTime = initialStartTime;
         let endTime = initialEndTime;
@@ -185,6 +188,8 @@ export function useProjectRuntimeLogs(
     [
       filters.environment,
       filters.timeRange,
+      filters.customStartTime,
+      filters.customEndTime,
       filters.logLevel,
       filters.searchQuery,
       filters.sortOrder,

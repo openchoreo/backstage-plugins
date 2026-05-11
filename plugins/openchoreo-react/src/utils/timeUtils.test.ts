@@ -97,6 +97,7 @@ describe('calculateTimeRange', () => {
     ['24h', 24 * 60 * 60 * 1000],
     ['7d', 7 * 24 * 60 * 60 * 1000],
     ['14d', 14 * 24 * 60 * 60 * 1000],
+    ['30d', 30 * 24 * 60 * 60 * 1000],
   ])('calculates correct range for %s', (range, expectedMs) => {
     const result = calculateTimeRange(range);
     const startMs = new Date(result.startTime).getTime();
@@ -112,5 +113,25 @@ describe('calculateTimeRange', () => {
     const endMs = new Date(result.endTime).getTime();
 
     expect(endMs - startMs).toBe(60 * 60 * 1000);
+  });
+
+  describe('custom range', () => {
+    it('uses provided start and end times', () => {
+      const startTime = '2025-06-14T08:00:00.000Z';
+      const endTime = '2025-06-15T11:30:00.000Z';
+      const result = calculateTimeRange('custom', { startTime, endTime });
+
+      expect(result.startTime).toBe(startTime);
+      expect(result.endTime).toBe(endTime);
+    });
+
+    it('falls back to last hour when start/end are missing', () => {
+      const result = calculateTimeRange('custom');
+      const startMs = new Date(result.startTime).getTime();
+      const endMs = new Date(result.endTime).getTime();
+
+      expect(endMs - startMs).toBe(60 * 60 * 1000);
+      expect(result.endTime).toBe(NOW.toISOString());
+    });
   });
 });

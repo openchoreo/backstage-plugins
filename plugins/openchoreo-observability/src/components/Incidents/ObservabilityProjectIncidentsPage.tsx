@@ -63,6 +63,8 @@ const ObservabilityProjectIncidentsContent = () => {
   } = useProjectIncidents(entity, {
     environment: filters.environment,
     timeRange: filters.timeRange,
+    customStartTime: filters.customStartTime,
+    customEndTime: filters.customEndTime,
     components: filters.components,
     sortOrder: filters.sortOrder || 'desc',
   });
@@ -70,6 +72,8 @@ const ObservabilityProjectIncidentsContent = () => {
   const previousFiltersRef = useRef<{
     environment: string;
     timeRange: string;
+    customStartTime?: string;
+    customEndTime?: string;
     components: string[];
     sortOrder?: 'asc' | 'desc';
   } | null>(null);
@@ -78,6 +82,8 @@ const ObservabilityProjectIncidentsContent = () => {
     const currentFilters = {
       environment: filters.environment,
       timeRange: filters.timeRange,
+      customStartTime: filters.customStartTime,
+      customEndTime: filters.customEndTime,
       components: filters.components || [],
       sortOrder: filters.sortOrder,
     };
@@ -100,6 +106,8 @@ const ObservabilityProjectIncidentsContent = () => {
   }, [
     filters.environment,
     filters.timeRange,
+    filters.customStartTime,
+    filters.customEndTime,
     filters.components,
     filters.sortOrder,
     fetchIncidents,

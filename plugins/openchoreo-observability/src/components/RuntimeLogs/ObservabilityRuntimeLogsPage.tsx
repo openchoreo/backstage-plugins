@@ -66,6 +66,8 @@ const ObservabilityRuntimeLogsContent = () => {
   } = useRuntimeLogs(entity, namespace || '', project || '', {
     environment: filters.environment,
     timeRange: filters.timeRange,
+    customStartTime: filters.customStartTime,
+    customEndTime: filters.customEndTime,
     logLevels: allLogLevelsSelected ? undefined : filters.logLevel,
     limit: 50,
     searchQuery: filters.searchQuery,
@@ -81,6 +83,8 @@ const ObservabilityRuntimeLogsContent = () => {
     environment: string;
     logLevel: string[];
     timeRange: string;
+    customStartTime?: string;
+    customEndTime?: string;
     searchQuery?: string;
     sortOrder?: 'asc' | 'desc';
   } | null>(null);
@@ -93,6 +97,8 @@ const ObservabilityRuntimeLogsContent = () => {
       environment: filters.environment,
       logLevel: filters.logLevel,
       timeRange: filters.timeRange,
+      customStartTime: filters.customStartTime,
+      customEndTime: filters.customEndTime,
       searchQuery: filters.searchQuery,
       sortOrder: filters.sortOrder,
     };
@@ -122,6 +128,8 @@ const ObservabilityRuntimeLogsContent = () => {
     filters.environment,
     filters.logLevel,
     filters.timeRange,
+    filters.customStartTime,
+    filters.customEndTime,
     filters.searchQuery,
     filters.sortOrder,
     fetchLogs,

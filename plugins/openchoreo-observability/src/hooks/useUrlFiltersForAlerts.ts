@@ -1,13 +1,12 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { type Environment, TIME_RANGE_OPTIONS } from '../types';
+import { type Environment } from '../types';
 import {
   type AlertsFilters,
   ALERT_SEVERITIES,
 } from '../components/Alerts/types';
 import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
-
-const DEFAULT_TIME_RANGE = '10m';
+import { parseUrlTimeRange, writeUrlTimeRange } from '../utils/urlTimeRange';
 
 interface UseUrlFiltersForAlertsOptions {
   environments: Environment[];
@@ -24,10 +23,8 @@ export function useUrlFiltersForAlerts({
 
   const filters = useMemo<AlertsFilters>(() => {
     const envName = searchParams.get('env');
-    const rawTimeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
-    const timeRange = TIME_RANGE_OPTIONS.some(o => o.value === rawTimeRange)
-      ? rawTimeRange
-      : DEFAULT_TIME_RANGE;
+    const { timeRange, customStartTime, customEndTime } =
+      parseUrlTimeRange(searchParams);
     const rawSortOrder = searchParams.get('sort');
     const sortOrder: 'asc' | 'desc' =
       rawSortOrder === 'asc' || rawSortOrder === 'desc' ? rawSortOrder : 'desc';
@@ -49,6 +46,8 @@ export function useUrlFiltersForAlerts({
     return {
       environment: environment?.name || '',
       timeRange,
+      customStartTime,
+      customEndTime,
       sortOrder,
       severity: severity.length > 0 ? severity : undefined,
       searchQuery,
@@ -69,13 +68,7 @@ export function useUrlFiltersForAlerts({
         }
       }
 
-      if (newFilters.timeRange !== undefined) {
-        if (newFilters.timeRange === DEFAULT_TIME_RANGE) {
-          newParams.delete('timeRange');
-        } else {
-          newParams.set('timeRange', newFilters.timeRange);
-        }
-      }
+      writeUrlTimeRange(newParams, newFilters);
 
       if (newFilters.sortOrder !== undefined) {
         if (newFilters.sortOrder === 'desc') {

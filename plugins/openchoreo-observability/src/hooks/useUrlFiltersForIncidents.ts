@@ -3,8 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import type { Environment } from '../types';
 import type { IncidentsFilters } from '../components/Incidents/types';
 import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
-
-const DEFAULT_TIME_RANGE = '10m';
+import { parseUrlTimeRange, writeUrlTimeRange } from '../utils/urlTimeRange';
 
 interface UseUrlFiltersForIncidentsOptions {
   environments: Environment[];
@@ -21,7 +20,8 @@ export function useUrlFiltersForIncidents({
 
   const filters = useMemo<IncidentsFilters>(() => {
     const envName = searchParams.get('env');
-    const timeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
+    const { timeRange, customStartTime, customEndTime } =
+      parseUrlTimeRange(searchParams);
     const rawSortOrder = searchParams.get('sort');
     const sortOrder: 'asc' | 'desc' =
       rawSortOrder === 'asc' || rawSortOrder === 'desc' ? rawSortOrder : 'desc';
@@ -40,6 +40,8 @@ export function useUrlFiltersForIncidents({
     return {
       environment: environment?.name || '',
       timeRange,
+      customStartTime,
+      customEndTime,
       sortOrder,
       components: components.length > 0 ? components : undefined,
       status: status.length > 0 ? status : undefined,
@@ -61,13 +63,7 @@ export function useUrlFiltersForIncidents({
         }
       }
 
-      if (newFilters.timeRange !== undefined) {
-        if (newFilters.timeRange === DEFAULT_TIME_RANGE) {
-          newParams.delete('timeRange');
-        } else {
-          newParams.set('timeRange', newFilters.timeRange);
-        }
-      }
+      writeUrlTimeRange(newParams, newFilters);
 
       if (newFilters.sortOrder !== undefined) {
         if (newFilters.sortOrder === 'desc') {

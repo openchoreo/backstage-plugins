@@ -29,7 +29,10 @@ export function useRCAReports(filters: Filters, entity: Entity) {
       setLoading(true);
       setError(null);
 
-      const { startTime, endTime } = calculateTimeRange(filters.timeRange);
+      const { startTime, endTime } = calculateTimeRange(filters.timeRange, {
+        startTime: filters.customStartTime,
+        endTime: filters.customEndTime,
+      });
 
       const response = await observabilityApi.getRCAReports(
         namespace,
@@ -56,6 +59,8 @@ export function useRCAReports(filters: Filters, entity: Entity) {
     observabilityApi,
     filters.environment,
     filters.timeRange,
+    filters.customStartTime,
+    filters.customEndTime,
     filters.rcaStatus,
     namespace,
     projectName,

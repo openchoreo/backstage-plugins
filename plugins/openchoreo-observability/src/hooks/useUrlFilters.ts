@@ -2,8 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Filters, Environment } from '../types';
 import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
-
-const DEFAULT_TIME_RANGE = '10m';
+import { parseUrlTimeRange, writeUrlTimeRange } from '../utils/urlTimeRange';
 
 interface UseUrlFiltersOptions {
   /** Available environments to map names to objects */
@@ -38,7 +37,6 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
   // Parse filters from URL
   const filters = useMemo<Filters>(() => {
     const envName = searchParams.get('env');
-    const timeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
     const components =
       searchParams.get('components')?.split(',').filter(Boolean) || [];
     const searchQuery = searchParams.get('q') || '';
@@ -55,7 +53,7 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
 
     return {
       environment,
-      timeRange,
+      ...parseUrlTimeRange(searchParams),
       components,
       searchQuery,
     };
@@ -77,14 +75,7 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
         }
       }
 
-      if (newFilters.timeRange !== undefined) {
-        if (newFilters.timeRange === DEFAULT_TIME_RANGE) {
-          // Default value - remove from URL
-          newParams.delete('timeRange');
-        } else {
-          newParams.set('timeRange', newFilters.timeRange);
-        }
-      }
+      writeUrlTimeRange(newParams, newFilters);
 
       if (newFilters.components !== undefined) {
         if (newFilters.components.length > 0) {

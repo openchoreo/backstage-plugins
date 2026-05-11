@@ -9,6 +9,10 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 export interface UseProjectIncidentsFilters {
   environment: string;
   timeRange: string;
+  /** ISO start time, used when `timeRange === 'custom'` */
+  customStartTime?: string;
+  /** ISO end time, used when `timeRange === 'custom'` */
+  customEndTime?: string;
   components?: string[];
   sortOrder?: 'asc' | 'desc';
 }
@@ -54,7 +58,10 @@ export function useProjectIncidents(
         setLoading(true);
         setError(null);
 
-        const { startTime, endTime } = calculateTimeRange(filters.timeRange);
+        const { startTime, endTime } = calculateTimeRange(filters.timeRange, {
+          startTime: filters.customStartTime,
+          endTime: filters.customEndTime,
+        });
         const sortOrder = filters.sortOrder ?? 'desc';
 
         const queryOptions = {
@@ -118,6 +125,8 @@ export function useProjectIncidents(
       observabilityApi,
       filters.environment,
       filters.timeRange,
+      filters.customStartTime,
+      filters.customEndTime,
       filters.sortOrder,
       namespace,
       projectName,

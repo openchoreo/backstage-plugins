@@ -115,6 +115,8 @@ export const HTTPMetricsSection = ({
               usageData={throughputData}
               usageType="networkThroughput"
               timeRange={filters.timeRange}
+              customStartTime={filters.customStartTime}
+              customEndTime={filters.customEndTime}
             />
           </CardContent>
         </Card>
@@ -128,6 +130,8 @@ export const HTTPMetricsSection = ({
               usageData={latencyData}
               usageType="networkLatency"
               timeRange={filters.timeRange}
+              customStartTime={filters.customStartTime}
+              customEndTime={filters.customEndTime}
             />
           </CardContent>
         </Card>

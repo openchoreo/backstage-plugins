@@ -5,12 +5,8 @@ import {
   MenuItem,
   Grid,
 } from '@material-ui/core';
-import {
-  TIME_RANGE_OPTIONS,
-  TimeRangeOption,
-  Filters,
-  Environment,
-} from '../../types';
+import { Filters, Environment } from '../../types';
+import { TimeRangeFilter } from '../TimeRangeFilter';
 
 interface MetricsFiltersProps {
   filters: Filters;
@@ -34,12 +30,6 @@ export const MetricsFilters = ({
     if (selectedEnvironment) {
       onFiltersChange({ environment: selectedEnvironment });
     }
-  };
-
-  const handleTimeRangeChange = (
-    event: React.ChangeEvent<{ value: unknown }>,
-  ) => {
-    onFiltersChange({ timeRange: event.target.value as string });
   };
 
   return (
@@ -71,21 +61,13 @@ export const MetricsFilters = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled} variant="outlined">
-          <InputLabel id="time-range-label">Time Range</InputLabel>
-          <Select
-            value={filters.timeRange}
-            onChange={handleTimeRangeChange}
-            labelId="time-range-label"
-            label="Time Range"
-          >
-            {TIME_RANGE_OPTIONS.map((option: TimeRangeOption) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <TimeRangeFilter
+          value={filters.timeRange}
+          customStartTime={filters.customStartTime}
+          customEndTime={filters.customEndTime}
+          onChange={onFiltersChange}
+          disabled={disabled}
+        />
       </Grid>
     </Grid>
   );
