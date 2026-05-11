@@ -313,6 +313,106 @@ describe('EventDeltaApplier.handleEvent', () => {
     expect(refs).toEqual(['component:test-ns/real-component']);
   });
 
+  it('filters consumesApis down to deps whose target endpoints expose a schema', async () => {
+    // Component "consumer" has a Workload with two dependencies:
+    //   - producer/http   → target endpoint exposes a schema → keep
+    //   - producer/metrics → schemaless target endpoint     → drop
+    // The dispatcher should fetch the producer's workload exactly once
+    // (cache) and only include the schemaful dep in consumesApis. This
+    // is the regression guard for the "Some related entities could not
+    // be found" UI warning that fired when refs pointed at API entities
+    // that don't exist.
+    const consumerWorkload = {
+      metadata: { name: 'consumer-workload', namespace: 'test-ns' },
+      spec: {
+        owner: { componentName: 'consumer', projectName: 'p' },
+        dependencies: {
+          endpoints: [
+            // Same-project (no `project` set on the dep)
+            { component: 'producer', name: 'http' },
+            { component: 'producer', name: 'metrics' },
+          ],
+        },
+      },
+    };
+    const consumerComponent = {
+      metadata: {
+        name: 'consumer',
+        namespace: 'test-ns',
+        // Explicit owner annotation skips the project-fetch path that
+        // would otherwise complicate this test.
+        annotations: { 'backstage.io/owner': 'group:default/owner' },
+      },
+      spec: { owner: { projectName: 'p' } },
+    };
+    const producerWorkload = {
+      metadata: { name: 'producer-workload', namespace: 'test-ns' },
+      spec: {
+        owner: { componentName: 'producer', projectName: 'p' },
+        endpoints: {
+          http: {
+            type: 'REST',
+            port: 8080,
+            schema: { type: 'openapi', content: 'openapi: 3.0.0\n...' },
+          },
+          metrics: { type: 'HTTP', port: 9100 }, // no schema
+        },
+      },
+    };
+
+    let producerWorkloadFetches = 0;
+    mockGET.mockImplementation((path: string, options?: any) => {
+      // 1. Workload-by-name fetch resolves the consumer.
+      if (
+        path === '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}'
+      ) {
+        return Promise.resolve(okData(consumerWorkload));
+      }
+      // 2. Component fetch for the resolved consumer.
+      if (
+        path === '/api/v1/namespaces/{namespaceName}/components/{componentName}'
+      ) {
+        return Promise.resolve(okData(consumerComponent));
+      }
+      // 3. List-workloads-by-component, filtered by ?component=...
+      if (path === '/api/v1/namespaces/{namespaceName}/workloads') {
+        const target = options?.params?.query?.component;
+        if (target === 'consumer') {
+          return Promise.resolve(okData({ items: [consumerWorkload] }));
+        }
+        if (target === 'producer') {
+          producerWorkloadFetches += 1;
+          return Promise.resolve(okData({ items: [producerWorkload] }));
+        }
+        return Promise.resolve(okData({ items: [] }));
+      }
+      return Promise.resolve(notFound());
+    });
+
+    const applier = newApplier(connection);
+    await applier.handleEvent(
+      'Workload',
+      'consumer-workload',
+      'test-ns',
+      'created',
+    );
+
+    // Cache check: two deps to the same target component → one fetch.
+    expect(producerWorkloadFetches).toBe(1);
+
+    // Exactly one upsert mutation for the consumer + its API entities.
+    expect(applyMutation).toHaveBeenCalledTimes(1);
+    const added = applyMutation.mock.calls[0][0].added.map(
+      (a: any) => a.entity,
+    );
+    const component = added.find((e: any) => e.kind === 'Component');
+    expect(component).toBeDefined();
+
+    // The schemaful dep is preserved; the schemaless one is dropped.
+    expect(component.spec.consumesApis).toEqual(['p-producer-http']);
+    expect(component.spec.consumesApis).not.toContain('p-producer-metrics');
+  });
+
   it('falls back to the openchoreo.dev/component label when spec.owner.componentName is missing', async () => {
     mockGET.mockImplementation((path: string) => {
       if (path.endsWith('/workloads/{workloadName}')) {
