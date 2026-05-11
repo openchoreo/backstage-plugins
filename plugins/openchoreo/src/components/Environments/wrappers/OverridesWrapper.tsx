@@ -46,15 +46,16 @@ export const OverridesWrapper = () => {
     [searchParams, navigate],
   );
 
-  // Find the environment by name
+  // Find the environment by display name or resource name.
   const environment = useMemo<Environment | undefined>(() => {
     if (!envName) return undefined;
 
     const decodedName = decodeURIComponent(envName);
 
-    // First try to find by exact name match
     let env = environments.find(
-      e => e.name.toLowerCase() === decodedName.toLowerCase(),
+      e =>
+        e.name.toLowerCase() === decodedName.toLowerCase() ||
+        e.resourceName?.toLowerCase() === decodedName.toLowerCase(),
     );
 
     // If not found and we have a pending action, create a minimal environment object
