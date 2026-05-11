@@ -23,17 +23,19 @@ const DEFAULT_WORKFLOW_TEMPLATE = {
       kind: 'Workflow',
       metadata: {
         name: '${metadata.workflowRunName}',
-        namespace: 'openchoreo-ci-${metadata.namespaceName}',
+        namespace: '${metadata.namespace}',
       },
       spec: {
-        arguments: {
-          parameters: [] as Array<{ name: string; value: string }>,
-        },
-        serviceAccountName: 'workflow-sa',
-        workflowTemplateRef: {
-          clusterScope: true,
-          name: '',
-        },
+        entrypoint: 'main',
+        templates: [
+          {
+            name: 'main',
+            container: {
+              image: 'alpine',
+              command: ['echo', 'hello'],
+            },
+          },
+        ],
       },
     },
   },
