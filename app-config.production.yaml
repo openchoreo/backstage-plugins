@@ -231,6 +231,16 @@ thunder:
 #   - GitLab:         gitlab.com/project-slug or gitlab.com/project-id
 # =====================================================================
 
+# Event-driven catalog sync — accepts webhook POSTs from the OpenChoreo
+# event-forwarder at /api/events/http/openchoreo. The Dockerfile copies
+# this file over the base app-config.yaml during image build, so this
+# section needs to live here (not just in the source app-config.yaml)
+# for the in-cluster Backstage to register the ingress route.
+events:
+  http:
+    topics:
+      - openchoreo
+
 # see https://backstage.io/docs/permissions/getting-started for more on the permission framework
 permission:
   # setting this to `false` will disable permissions
