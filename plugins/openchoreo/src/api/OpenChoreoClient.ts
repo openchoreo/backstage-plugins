@@ -10,6 +10,7 @@ import type {
   OpenChoreoClientApi,
   ActionInfo,
   ComponentReleaseResponse,
+  ComponentReleasesResponse,
   CreateReleaseResponse,
   SchemaResponse,
   ReleaseBindingsResponse,
@@ -68,6 +69,7 @@ const API_ENDPOINTS = {
   RESOURCE_ENVIRONMENT_INFO: '/resource-environment-info',
   UPDATE_RESOURCE_RELEASE_BINDING: '/update-resource-release-binding',
   DELETE_RESOURCE_RELEASE_BINDING: '/delete-resource-release-binding',
+  COMPONENT_RELEASES: '/component-releases',
   UPDATE_RELEASE_BINDING: '/update-release-binding',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
   RESOURCE_TREE: '/resourcetree',
@@ -502,6 +504,22 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         environment,
       },
     });
+  }
+
+  async listComponentReleases(
+    entity: Entity,
+  ): Promise<ComponentReleasesResponse> {
+    const metadata = extractEntityMetadata(entity);
+
+    return this.apiFetch<ComponentReleasesResponse>(
+      API_ENDPOINTS.COMPONENT_RELEASES,
+      {
+        params: {
+          componentName: metadata.component,
+          namespaceName: metadata.namespace,
+        },
+      },
+    );
   }
 
   async updateReleaseBinding(

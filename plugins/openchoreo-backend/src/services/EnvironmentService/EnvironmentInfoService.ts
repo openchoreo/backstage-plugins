@@ -2029,6 +2029,60 @@ export class EnvironmentInfoService implements EnvironmentService {
   }
 
   /**
+   * Lists component releases for a specific component within a namespace.
+   *
+   * @param request.componentName - Name of the component to filter releases by
+   * @param request.namespaceName - Name of the namespace
+   * @returns Paginated list of component releases (frozen workload snapshots)
+   */
+  async listComponentReleases(
+    request: {
+      componentName: string;
+      namespaceName: string;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Listing component releases for ${request.componentName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/componentreleases',
+        {
+          params: {
+            path: { namespaceName: request.namespaceName },
+            query: { component: request.componentName },
+          },
+        },
+      );
+
+      assertApiResponse({ data, error, response }, 'list component releases');
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Component releases listed for ${request.componentName}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error listing component releases for ${request.componentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Fetches the (Cluster)ResourceType referenced by `resource.spec.type`
    * and returns its `spec.retainPolicy`, or `undefined` if neither the
    * type is set nor the field is populated. Errors are swallowed and
