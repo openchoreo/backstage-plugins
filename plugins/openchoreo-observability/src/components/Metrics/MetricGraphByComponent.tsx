@@ -33,6 +33,8 @@ export const MetricGraphByComponent = ({
   usageData,
   usageType,
   timeRange,
+  customStartTime,
+  customEndTime,
 }: {
   usageData:
     | CpuUsageMetrics
@@ -41,6 +43,8 @@ export const MetricGraphByComponent = ({
     | NetworkLatencyMetrics;
   usageType: 'cpu' | 'memory' | 'networkThroughput' | 'networkLatency';
   timeRange?: string;
+  customStartTime?: string;
+  customEndTime?: string;
 }) => {
   const classes = useMetricGraphStyles();
   const [hoveringDataKey, setHoveringDataKey] = useState<
@@ -53,8 +57,12 @@ export const MetricGraphByComponent = ({
   );
 
   const { ticks, daysRange, domain } = useMemo(
-    () => calculateTimeDomain(transformedData, timeRange),
-    [transformedData, timeRange],
+    () =>
+      calculateTimeDomain(transformedData, timeRange, 5, {
+        startTime: customStartTime,
+        endTime: customEndTime,
+      }),
+    [transformedData, timeRange, customStartTime, customEndTime],
   );
 
   const metrics = useMemo(() => getMetricConfigs(usageType), [usageType]);

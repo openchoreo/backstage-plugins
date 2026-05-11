@@ -10,7 +10,8 @@ import {
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { type IncidentsFilters, INCIDENT_STATUSES } from './types';
-import { type Environment, TIME_RANGE_OPTIONS } from '../../types';
+import { type Environment } from '../../types';
+import { TimeRangeFilter } from '../TimeRangeFilter';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 import type { Component } from '../../hooks/useGetComponentsByProject';
 
@@ -45,11 +46,12 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
     });
   };
 
-  const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({
-      timeRange: event.target.value as string,
-      searchQuery: '',
-    });
+  const handleTimeRangeChange = (next: {
+    timeRange: string;
+    customStartTime?: string;
+    customEndTime?: string;
+  }) => {
+    onFiltersChange({ ...next, searchQuery: '' });
   };
 
   const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
@@ -168,21 +170,13 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
       </Grid>
 
       <Grid item xs={12} md={2}>
-        <FormControl fullWidth disabled={disabled} variant="outlined">
-          <InputLabel id="time-range-label">Time Range</InputLabel>
-          <Select
-            value={filters.timeRange}
-            onChange={handleTimeRangeChange}
-            labelId="time-range-label"
-            label="Time Range"
-          >
-            {TIME_RANGE_OPTIONS.map(opt => (
-              <MenuItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <TimeRangeFilter
+          value={filters.timeRange}
+          customStartTime={filters.customStartTime}
+          customEndTime={filters.customEndTime}
+          onChange={handleTimeRangeChange}
+          disabled={disabled}
+        />
       </Grid>
     </Grid>
   );

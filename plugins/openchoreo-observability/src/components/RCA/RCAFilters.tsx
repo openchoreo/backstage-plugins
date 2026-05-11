@@ -12,10 +12,10 @@ import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 import {
   type Environment,
   Filters,
-  TIME_RANGE_OPTIONS,
   RCA_STATUS_OPTIONS,
   RCAStatus,
 } from '../../types';
+import { TimeRangeFilter } from '../TimeRangeFilter';
 
 interface RCAFiltersProps {
   filters: Filters;
@@ -46,11 +46,12 @@ export const RCAFilters = ({
     }
   };
 
-  const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({
-      timeRange: event.target.value as string,
-      searchQuery: '',
-    });
+  const handleTimeRangeChange = (next: {
+    timeRange: string;
+    customStartTime?: string;
+    customEndTime?: string;
+  }) => {
+    onFiltersChange({ ...next, searchQuery: '' });
   };
 
   const handleStatusChange = (event: ChangeEvent<{ value: unknown }>) => {
@@ -120,21 +121,13 @@ export const RCAFilters = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled} variant="outlined">
-          <InputLabel id="time-range-label">Time Range</InputLabel>
-          <Select
-            value={filters.timeRange}
-            onChange={handleTimeRangeChange}
-            labelId="time-range-label"
-            label="Time Range"
-          >
-            {TIME_RANGE_OPTIONS.map(option => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <TimeRangeFilter
+          value={filters.timeRange}
+          customStartTime={filters.customStartTime}
+          customEndTime={filters.customEndTime}
+          onChange={handleTimeRangeChange}
+          disabled={disabled}
+        />
       </Grid>
     </Grid>
   );

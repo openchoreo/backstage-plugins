@@ -18,6 +18,10 @@ export interface RuntimeLogsFilters {
   selectedFields: LogEntryField[];
   environment: string;
   timeRange: string;
+  /** ISO start time, used when `timeRange === 'custom'` */
+  customStartTime?: string;
+  /** ISO end time, used when `timeRange === 'custom'` */
+  customEndTime?: string;
   components?: string[];
   searchQuery?: string;
   sortOrder?: 'asc' | 'desc';

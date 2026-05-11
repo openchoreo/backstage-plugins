@@ -37,16 +37,27 @@ export const formatRelativeTime = (dateString: string): string => {
 };
 
 /**
- * Calculates start and end time ISO strings based on a time range string
- * @param timeRange - Time range string (e.g., '10m', '1h', '24h', '7d')
- * @returns Object with startTime and endTime as ISO strings
+ * Calculates start and end time ISO strings for a preset range (e.g. '10m',
+ * '7d', '30d') or a user-picked `'custom'` window passed via `custom`.
  */
-export function calculateTimeRange(timeRange: string): {
+export function calculateTimeRange(
+  timeRange: string,
+  custom?: { startTime?: string; endTime?: string },
+): {
   startTime: string;
   endTime: string;
 } {
   const now = new Date();
   const endTime = now.toISOString();
+
+  if (timeRange === 'custom') {
+    return {
+      startTime:
+        custom?.startTime ??
+        new Date(now.getTime() - 60 * 60 * 1000).toISOString(),
+      endTime: custom?.endTime ?? endTime,
+    };
+  }
 
   let startTime: Date;
 
@@ -68,6 +79,9 @@ export function calculateTimeRange(timeRange: string): {
       break;
     case '14d':
       startTime = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      break;
+    case '30d':
+      startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       break;
     default:
       startTime = new Date(now.getTime() - 60 * 60 * 1000); // Default to 1 hour

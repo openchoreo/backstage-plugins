@@ -10,7 +10,8 @@ import {
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { type AlertsFilters, ALERT_SEVERITIES } from './types';
-import { type Environment, TIME_RANGE_OPTIONS } from '../../types';
+import { type Environment } from '../../types';
+import { TimeRangeFilter } from '../TimeRangeFilter';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 
 interface AlertsFilterProps {
@@ -35,10 +36,6 @@ export const AlertsFilter: FC<AlertsFilterProps> = ({
 
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
     onFiltersChange({ environment: event.target.value as string });
-  };
-
-  const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ timeRange: event.target.value as string });
   };
 
   const handleSeverityChange = (event: ChangeEvent<{ value: unknown }>) => {
@@ -112,21 +109,13 @@ export const AlertsFilter: FC<AlertsFilterProps> = ({
       </Grid>
 
       <Grid item xs={12} md={2}>
-        <FormControl fullWidth disabled={disabled} variant="outlined">
-          <InputLabel id="time-range-label">Time Range</InputLabel>
-          <Select
-            value={filters.timeRange}
-            onChange={handleTimeRangeChange}
-            labelId="time-range-label"
-            label="Time Range"
-          >
-            {TIME_RANGE_OPTIONS.map(opt => (
-              <MenuItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <TimeRangeFilter
+          value={filters.timeRange}
+          customStartTime={filters.customStartTime}
+          customEndTime={filters.customEndTime}
+          onChange={onFiltersChange}
+          disabled={disabled}
+        />
       </Grid>
     </Grid>
   );

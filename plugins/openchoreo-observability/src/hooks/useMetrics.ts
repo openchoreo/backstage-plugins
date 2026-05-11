@@ -36,8 +36,11 @@ export function useMetrics(
           throw new Error('Component name not found in entity annotations');
         }
 
-        const { startTime, endTime } = calculateTimeRange(filters.timeRange);
-        const step = calculateStep(filters.timeRange);
+        const { startTime, endTime } = calculateTimeRange(filters.timeRange, {
+          startTime: filters.customStartTime,
+          endTime: filters.customEndTime,
+        });
+        const step = calculateStep(filters.timeRange, startTime, endTime);
 
         const response = await observabilityApi.getMetrics(
           filters.environment.name,
@@ -60,6 +63,8 @@ export function useMetrics(
       observabilityApi,
       filters.environment,
       filters.timeRange,
+      filters.customStartTime,
+      filters.customEndTime,
       namespaceName,
       project,
       entity,
@@ -81,7 +86,11 @@ export function useMetrics(
   };
 }
 
-function calculateStep(timeRange: string): string {
+function calculateStep(
+  timeRange: string,
+  startTime?: string,
+  endTime?: string,
+): string {
   switch (timeRange) {
     case '10m':
       return '15s';
@@ -95,7 +104,26 @@ function calculateStep(timeRange: string): string {
       return '30m';
     case '14d':
       return '1h';
+    case '30d':
+      return '2h';
+    case 'custom':
+      return stepForCustomRange(startTime, endTime);
     default:
       return '1m';
   }
+}
+
+/** Pick a step that yields ~120-720 data points for the chosen window. */
+function stepForCustomRange(startTime?: string, endTime?: string): string {
+  if (!startTime || !endTime) return '1m';
+  const durationMs =
+    new Date(endTime).getTime() - new Date(startTime).getTime();
+  if (!Number.isFinite(durationMs) || durationMs <= 0) return '1m';
+  const minutes = durationMs / (60 * 1000);
+  if (minutes <= 30) return '15s';
+  if (minutes <= 120) return '30s';
+  if (minutes <= 24 * 60) return '5m';
+  if (minutes <= 7 * 24 * 60) return '30m';
+  if (minutes <= 14 * 24 * 60) return '1h';
+  return '2h';
 }

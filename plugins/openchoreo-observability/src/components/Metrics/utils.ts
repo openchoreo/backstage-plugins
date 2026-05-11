@@ -100,19 +100,37 @@ export const parseTimeRange = (range?: string): number | null => {
 };
 
 /**
- * Calculate time domain and ticks for the chart
+ * Calculate time domain and ticks for the chart.
+ * If `customRange` is provided (used for `timeRange === 'custom'`), it takes
+ * precedence over the preset duration so the axis matches the user's window.
  */
 export const calculateTimeDomain = (
   transformedData: Array<{ timestamp: number }>,
   timeRange?: string,
   tickCount: number = 5,
+  customRange?: { startTime?: string; endTime?: string },
 ) => {
-  const duration = parseTimeRange(timeRange);
-
   let minTimestamp: number;
   let maxTimestamp: number;
 
-  if (duration) {
+  const customStartMs = customRange?.startTime
+    ? new Date(customRange.startTime).getTime()
+    : NaN;
+  const customEndMs = customRange?.endTime
+    ? new Date(customRange.endTime).getTime()
+    : NaN;
+  const hasCustomRange =
+    timeRange === 'custom' &&
+    Number.isFinite(customStartMs) &&
+    Number.isFinite(customEndMs) &&
+    customEndMs > customStartMs;
+
+  const duration = parseTimeRange(timeRange);
+
+  if (hasCustomRange) {
+    minTimestamp = customStartMs;
+    maxTimestamp = customEndMs;
+  } else if (duration) {
     // Use selected range
     const now = Date.now();
     minTimestamp = now - duration;

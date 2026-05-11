@@ -6,6 +6,7 @@ import {
   getMetricConfigs,
   getLineOpacity,
   formatMetricName,
+  calculateTimeDomain,
 } from './utils';
 
 // ---- Tests ----
@@ -255,6 +256,87 @@ describe('getLineOpacity', () => {
 
   it('returns 0.5 when a different key is hovered', () => {
     expect(getLineOpacity('cpuUsage', 'cpuRequests')).toBe(0.5);
+  });
+});
+
+describe('calculateTimeDomain', () => {
+  const NOW = new Date('2026-05-11T12:00:00Z').getTime();
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('returns 5 evenly spaced ticks for a preset range', () => {
+    const { ticks, domain, daysRange } = calculateTimeDomain([], '1h');
+
+    expect(ticks).toHaveLength(5);
+    expect(domain).toEqual([NOW - 60 * 60 * 1000, NOW]);
+    expect(daysRange).toBeCloseTo(1 / 24);
+    // ticks evenly spaced
+    expect(ticks[1] - ticks[0]).toBe(ticks[2] - ticks[1]);
+  });
+
+  it('honors customRange when timeRange is custom', () => {
+    const startTime = '2026-05-04T08:00:00.000Z';
+    const endTime = '2026-05-06T08:00:00.000Z';
+
+    const { domain, daysRange } = calculateTimeDomain([], 'custom', 5, {
+      startTime,
+      endTime,
+    });
+
+    expect(domain).toEqual([
+      new Date(startTime).getTime(),
+      new Date(endTime).getTime(),
+    ]);
+    expect(daysRange).toBe(2);
+  });
+
+  it('falls back to the preset when customRange is incomplete', () => {
+    const { domain } = calculateTimeDomain([], 'custom', 5, {
+      startTime: '2026-05-04T08:00:00.000Z',
+    });
+
+    // Falls through to the parseTimeRange path; 'custom' is not parseable so
+    // the empty-data branch returns the [0, 1] fallback domain.
+    expect(domain).toEqual([0, 1]);
+  });
+
+  it('falls back to the preset when customRange end is before start', () => {
+    const { domain } = calculateTimeDomain([], 'custom', 5, {
+      startTime: '2026-05-06T08:00:00.000Z',
+      endTime: '2026-05-04T08:00:00.000Z',
+    });
+
+    expect(domain).toEqual([0, 1]);
+  });
+
+  it('falls back to data range when timeRange is missing and data is present', () => {
+    const data = [
+      { timestamp: 1_000 },
+      { timestamp: 2_000 },
+      { timestamp: 3_000 },
+    ];
+    const { domain } = calculateTimeDomain(data);
+    expect(domain).toEqual([1_000, 3_000]);
+  });
+
+  it('returns the empty fallback when no range and no data are available', () => {
+    expect(calculateTimeDomain([])).toEqual({
+      ticks: [],
+      daysRange: 0,
+      domain: [0, 1],
+    });
+  });
+
+  it('respects the tickCount argument', () => {
+    const { ticks } = calculateTimeDomain([], '1h', 3);
+    expect(ticks).toHaveLength(3);
   });
 });
 

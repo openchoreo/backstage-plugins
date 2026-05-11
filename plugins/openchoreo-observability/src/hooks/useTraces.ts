@@ -50,7 +50,10 @@ export function useTraces(filters: Filters, entity: Entity) {
       setLoading(true);
       setError(null);
 
-      const { startTime, endTime } = calculateTimeRange(filters.timeRange);
+      const { startTime, endTime } = calculateTimeRange(filters.timeRange, {
+        startTime: filters.customStartTime,
+        endTime: filters.customEndTime,
+      });
 
       const selectedComponents = filters.components ?? [];
 
@@ -97,6 +100,8 @@ export function useTraces(filters: Filters, entity: Entity) {
     observabilityApi,
     filters.environment,
     filters.timeRange,
+    filters.customStartTime,
+    filters.customEndTime,
     filters.components,
     namespace,
     projectName,
@@ -108,7 +113,13 @@ export function useTraces(filters: Filters, entity: Entity) {
       fetchTraces();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.environment, filters.timeRange, componentsKey]);
+  }, [
+    filters.environment,
+    filters.timeRange,
+    filters.customStartTime,
+    filters.customEndTime,
+    componentsKey,
+  ]);
 
   const refresh = useCallback(() => {
     setTraces([]);

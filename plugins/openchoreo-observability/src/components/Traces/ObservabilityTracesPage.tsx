@@ -57,7 +57,10 @@ const ObservabilityTracesContent = () => {
     selectedComponents.length === 1 ? selectedComponents[0] : undefined;
 
   const { startTime, endTime } = filters.timeRange
-    ? calculateTimeRange(filters.timeRange)
+    ? calculateTimeRange(filters.timeRange, {
+        startTime: filters.customStartTime,
+        endTime: filters.customEndTime,
+      })
     : { startTime: undefined, endTime: undefined };
 
   const traceSpans = useTraceSpans({

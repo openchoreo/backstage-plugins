@@ -8,8 +8,7 @@ import {
 } from '../components/RuntimeLogs/types';
 import type { Environment } from '../types';
 import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
-
-const DEFAULT_TIME_RANGE = '10m';
+import { parseUrlTimeRange, writeUrlTimeRange } from '../utils/urlTimeRange';
 
 interface UseUrlFiltersForRuntimeLogsOptions {
   /** Available environments to map envName from URL */
@@ -39,7 +38,8 @@ export function useUrlFiltersForRuntimeLogs({
   // Parse filters from URL
   const filters = useMemo<RuntimeLogsFilters>(() => {
     const envName = searchParams.get('env');
-    const timeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
+    const { timeRange, customStartTime, customEndTime } =
+      parseUrlTimeRange(searchParams);
     const logLevelParam = searchParams.get('logLevel');
     const logLevel =
       logLevelParam === null
@@ -94,6 +94,8 @@ export function useUrlFiltersForRuntimeLogs({
     return {
       environment: environment?.name || '',
       timeRange,
+      customStartTime,
+      customEndTime,
       logLevel,
       selectedFields,
       components,
@@ -119,14 +121,7 @@ export function useUrlFiltersForRuntimeLogs({
         }
       }
 
-      if (newFilters.timeRange !== undefined) {
-        if (newFilters.timeRange === DEFAULT_TIME_RANGE) {
-          // Default value - remove from URL
-          newParams.delete('timeRange');
-        } else {
-          newParams.set('timeRange', newFilters.timeRange);
-        }
-      }
+      writeUrlTimeRange(newParams, newFilters);
 
       if (newFilters.logLevel !== undefined) {
         const isAllSelected =
