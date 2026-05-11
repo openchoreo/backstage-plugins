@@ -489,13 +489,24 @@ describe('OpenChoreoEntityProvider', () => {
       );
     });
 
-    it('creates DeploymentPipeline with projectRefs', async () => {
+    it('creates DeploymentPipeline and links it from the Project (System) side', async () => {
+      // The DP entity is now a faithful translation of the DP CR with no
+      // inverted-index `projectRefs`. The Project↔Pipeline relation is
+      // owned by `System.spec.deploymentPipelineRef` and emitted by
+      // SystemEntityProcessor — checked via processor unit tests.
       const entities = await runProvider();
 
       const pipeline = findEntities(entities, 'DeploymentPipeline')[0];
       expect(pipeline.metadata.name).toBe('default-pipeline');
-      expect((pipeline.spec as any).projectRefs).toContain('my-project');
+      expect((pipeline.spec as any).projectRefs).toBeUndefined();
       expect((pipeline.spec as any).promotionPaths).toHaveLength(1);
+
+      const project = findEntities(entities, 'System').find(
+        e => e.metadata.name === 'my-project',
+      );
+      expect((project?.spec as any)?.deploymentPipelineRef).toBe(
+        'default-pipeline',
+      );
     });
 
     it('applies full mutation with correct locationKey', async () => {
@@ -694,9 +705,21 @@ describe('OpenChoreoEntityProvider', () => {
       const entities = await runProvider();
 
       const pipelines = findEntities(entities, 'DeploymentPipeline');
+      // Two projects sharing the same pipeline name produce a single DP
+      // entity (deduplication is keyed on entityRef in the catalog).
       expect(pipelines).toHaveLength(1);
-      expect((pipelines[0].spec as any).projectRefs).toEqual(
-        expect.arrayContaining(['project-a', 'project-b']),
+      expect(pipelines[0].metadata.name).toBe('shared-pipeline');
+
+      // The relation lives on the Project side now: each project's System
+      // entity points to the shared pipeline by name.
+      const systems = findEntities(entities, 'System');
+      const projectA = systems.find(e => e.metadata.name === 'project-a');
+      const projectB = systems.find(e => e.metadata.name === 'project-b');
+      expect((projectA?.spec as any)?.deploymentPipelineRef).toBe(
+        'shared-pipeline',
+      );
+      expect((projectB?.spec as any)?.deploymentPipelineRef).toBe(
+        'shared-pipeline',
       );
     });
   });

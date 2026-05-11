@@ -1,36 +1,62 @@
 import {
+  CatalogService,
   EntityProvider,
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
 import { Entity } from '@backstage/catalog-model';
-import { SchedulerServiceTaskRunner } from '@backstage/backend-plugin-api';
-import { Config } from '@backstage/config';
-import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
+  AuthService,
+  LoggerService,
+  SchedulerServiceTaskRunner,
+} from '@backstage/backend-plugin-api';
+import { Config } from '@backstage/config';
+import type { EventsService, EventParams } from '@backstage/plugin-events-node';
+import {
   fetchAllPages,
-  getName,
-  getNamespace,
-  getUid,
   getCreatedAt,
-  getDeletionTimestamp,
-  getDisplayName,
   getDescription,
-  isReady,
-  isCreated,
-  getAnnotation,
+  getDisplayName,
+  getName,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
-import type {
-  NamespaceResponse,
-  ComponentResponse,
-} from '@openchoreo/backstage-plugin-common';
 import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
+import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
+import { DeploymentPipelineEntityV1alpha1 } from '../kinds';
+import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
+import { ComponentWorkloadData } from '../utils/types';
+import {
+  createApiEntitiesFromNewWorkload,
+  extractAllWorkloadEndpoints,
+  extractSchemaEndpoints,
+  extractWorkloadDependencies,
+  resolveComponentOwner,
+  resolveProvidesAndConsumes,
+} from '../utils/helpers';
+import {
+  NewApiTranslatorContext,
+  translateNewClusterComponentTypeToEntity,
+  translateNewClusterDataplaneToEntity,
+  translateNewClusterObservabilityPlaneToEntity,
+  translateNewClusterTraitToEntity,
+  translateNewClusterWorkflowPlaneToEntity,
+  translateNewClusterWorkflowToEntity,
+  translateNewComponentToEntity,
+  translateNewComponentTypeToEntity,
+  translateNewDataplaneToEntity,
+  translateNewDeploymentPipelineToEntity,
+  translateNewEnvironmentToEntity,
+  translateNewNamespaceToDomainEntity,
+  translateNewObservabilityPlaneToEntity,
+  translateNewProjectToEntity,
+  translateNewTraitToEntity,
+  translateNewWorkflowPlaneToEntity,
+  translateNewWorkflowToEntity,
+} from '../utils/entityTranslation';
+import { createAuthenticatedOpenChoreoApiClient } from '../utils/openChoreoApiClient';
+import { EventDeltaApplier } from './EventDeltaApplier';
 
-type ModelsNamespace = NamespaceResponse;
-type ModelsComponent = ComponentResponse;
-
-// New API types
+// Lightweight aliases used inside runNew. The full new-API type set lives
+// in utils/types.ts and utils/entityTranslation.ts.
 type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];
 type NewProject = OpenChoreoComponents['schemas']['Project'];
 type NewComponent = OpenChoreoComponents['schemas']['Component'];
@@ -53,75 +79,6 @@ type NewClusterWorkflowPlane =
   OpenChoreoComponents['schemas']['ClusterWorkflowPlane'];
 type NewClusterWorkflow = OpenChoreoComponents['schemas']['ClusterWorkflow'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
-type NewWorkload = OpenChoreoComponents['schemas']['Workload'];
-type NewAgentConnectionStatus =
-  OpenChoreoComponents['schemas']['AgentConnectionStatus'];
-
-// WorkloadEndpoint is part of the workload.endpoints structure
-// Since Workload uses additionalProperties, we define this locally
-interface WorkloadEndpoint {
-  type: string;
-  port: number;
-  visibility?: string[];
-  schema?: {
-    type?: string;
-    content?: string;
-  };
-}
-
-// Dependency connection from workload.spec.dependencies.endpoints
-interface WorkloadDependency {
-  project?: string;
-  component: string;
-  name: string;
-  visibility: string;
-}
-
-// Collected workload data for two-pass entity resolution
-interface ComponentWorkloadData {
-  component: NewComponent;
-  projectName: string;
-  /** Endpoints with schemas — used for API entities and providesApis */
-  schemaEndpoints: Record<string, WorkloadEndpoint>;
-  /** All endpoints — used for consumed API resolution */
-  allEndpoints: Record<string, WorkloadEndpoint>;
-  /** Dependency connections from workload spec */
-  dependencies: WorkloadDependency[];
-}
-import {
-  CHOREO_ANNOTATIONS,
-  CHOREO_LABELS,
-  ComponentTypeUtils,
-} from '@openchoreo/backstage-plugin-common';
-import {
-  EnvironmentEntityV1alpha1,
-  DataplaneEntityV1alpha1,
-  WorkflowPlaneEntityV1alpha1,
-  ObservabilityPlaneEntityV1alpha1,
-  DeploymentPipelineEntityV1alpha1,
-  ComponentTypeEntityV1alpha1,
-  TraitTypeEntityV1alpha1,
-  WorkflowEntityV1alpha1,
-  ClusterComponentTypeEntityV1alpha1,
-  ClusterTraitTypeEntityV1alpha1,
-  ClusterDataplaneEntityV1alpha1,
-  ClusterObservabilityPlaneEntityV1alpha1,
-  ClusterWorkflowPlaneEntityV1alpha1,
-  ClusterWorkflowEntityV1alpha1,
-} from '../kinds';
-import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
-import {
-  translateComponentToEntity as translateComponent,
-  translateProjectToEntity as translateProject,
-  translateEnvironmentToEntity as translateEnvironment,
-  translateComponentTypeToEntity as translateCT,
-  translateTraitToEntity as translateTrait,
-  translateClusterComponentTypeToEntity as translateClusterCT,
-  translateClusterTraitToEntity as translateClusterTrait,
-  translateClusterWorkflowToEntity as translateClusterWF,
-  translateWorkflowToEntity as translateWF,
-  extractWorkflowParameters,
-} from '../utils/entityTranslation';
 
 /**
  * Provides entities from OpenChoreo API
@@ -135,17 +92,26 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly ctdConverter: CtdToTemplateConverter;
   private readonly componentTypeUtils: ComponentTypeUtils;
   private readonly tokenService?: OpenChoreoTokenService;
+  private readonly events?: EventsService;
+  /** Context shared with the New-API translator functions. Built once. */
+  private readonly translatorContext: NewApiTranslatorContext;
+  /** Subsystem that handles per-event delta updates. Built once. */
+  private readonly eventApplier: EventDeltaApplier;
 
   constructor(
     taskRunner: SchedulerServiceTaskRunner,
     logger: LoggerService,
     config: Config,
     tokenService?: OpenChoreoTokenService,
+    events?: EventsService,
+    catalogService?: CatalogService,
+    auth?: AuthService,
   ) {
     this.taskRunner = taskRunner;
     this.logger = logger;
     this.baseUrl = config.getString('openchoreo.baseUrl');
     this.tokenService = tokenService;
+    this.events = events;
     // Default owner for built-in Backstage entities (Domain, System, Component, API)
     // These kinds require owner field per Backstage schema validation
     const ownerName =
@@ -158,46 +124,137 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     });
     // Initialize component type utilities from config
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
+
+    this.translatorContext = {
+      providerName: this.getProviderName(),
+      defaultOwner: this.defaultOwner,
+      componentTypeUtils: this.componentTypeUtils,
+    };
+
+    this.eventApplier = new EventDeltaApplier({
+      logger: this.logger,
+      baseUrl: this.baseUrl,
+      tokenService: this.tokenService,
+      defaultOwner: this.defaultOwner,
+      translatorContext: this.translatorContext,
+      getConnection: () => this.connection,
+      ctdConverter: this.ctdConverter,
+      catalogService,
+      auth,
+    });
   }
 
   getProviderName(): string {
     return 'OpenChoreoEntityProvider';
   }
 
-  /**
-   * Resolves the owner for a Project (System) entity from the backstage.io/owner annotation.
-   * Falls back to this.defaultOwner if no annotation is present.
-   */
-  private resolveProjectOwner(project: NewProject): string {
-    return (
-      getAnnotation(project, CHOREO_ANNOTATIONS.BACKSTAGE_OWNER)?.trim() ||
-      this.defaultOwner
-    );
-  }
-
-  /**
-   * Resolves the owner for a Component entity.
-   * Priority: component annotation > project annotation > defaultOwner.
-   */
-  private resolveComponentOwner(
-    component: NewComponent,
-    project: NewProject,
-  ): string {
-    return (
-      getAnnotation(component, CHOREO_ANNOTATIONS.BACKSTAGE_OWNER)?.trim() ||
-      getAnnotation(project, CHOREO_ANNOTATIONS.BACKSTAGE_OWNER)?.trim() ||
-      this.defaultOwner
-    );
-  }
-
   async connect(connection: EntityProviderConnection): Promise<void> {
     this.connection = connection;
+
+    // Subscribe to OpenChoreo events for delta updates
+    if (this.events) {
+      await this.events.subscribe({
+        id: 'OpenChoreoEntityProvider',
+        topics: [
+          'openchoreo.namespace',
+          'openchoreo.project',
+          'openchoreo.component',
+          'openchoreo.environment',
+          'openchoreo.dataplane',
+          'openchoreo.workflowplane',
+          'openchoreo.observabilityplane',
+          'openchoreo.deploymentpipeline',
+          'openchoreo.componenttype',
+          'openchoreo.trait',
+          'openchoreo.workflow',
+          'openchoreo.workload',
+          'openchoreo.clustercomponenttype',
+          'openchoreo.clustertrait',
+          'openchoreo.clusterworkflow',
+          'openchoreo.clusterdataplane',
+          'openchoreo.clusterobservabilityplane',
+          'openchoreo.clusterworkflowplane',
+        ],
+        onEvent: params => this.onEvent(params),
+      });
+      this.logger.info(
+        'Subscribed to OpenChoreo events for delta catalog updates',
+      );
+    }
+
     await this.taskRunner.run({
       id: this.getProviderName(),
       fn: async () => {
         await this.run();
       },
     });
+  }
+
+  /**
+   * Handles an incoming OpenChoreo event and applies a delta mutation.
+   * For `deleted` events, the entity is removed from the catalog.
+   * For `created`/`updated` events, the resource is re-fetched from the
+   * OpenChoreo REST API and upserted into the catalog.
+   */
+  private async onEvent(params: EventParams): Promise<void> {
+    if (!this.connection) {
+      this.logger.warn('Event received before connection was initialized');
+      return;
+    }
+
+    // Guard against non-object payloads (null, string, number, …) before
+    // destructuring. Without this the destructure would throw, surfacing
+    // as an unhandled rejection in the EventsService subscriber callback
+    // rather than being absorbed by the per-event try/catch below.
+    const rawPayload = params.eventPayload;
+    if (
+      rawPayload === null ||
+      rawPayload === undefined ||
+      typeof rawPayload !== 'object' ||
+      Array.isArray(rawPayload)
+    ) {
+      this.logger.warn(
+        `Ignoring OpenChoreo event with non-object payload: ${typeof rawPayload}`,
+      );
+      return;
+    }
+
+    const payload = rawPayload as {
+      kind?: string;
+      name?: string;
+      namespace?: string;
+      action?: string;
+    };
+    const { kind, name, namespace, action } = payload;
+
+    if (!kind || !name || !action) {
+      this.logger.warn(
+        `Ignoring malformed OpenChoreo event: ${JSON.stringify(payload)}`,
+      );
+      return;
+    }
+
+    // Per-event chatter — debug only. The corresponding mutation
+    // outcome is logged at info from EventDeltaApplier when a state
+    // change actually lands.
+    this.logger.debug(
+      `Received OpenChoreo event: ${action} ${kind} ${
+        namespace ? `${namespace}/` : ''
+      }${name}`,
+    );
+
+    try {
+      // Per-event delta path: fetch only the affected resource(s) and
+      // apply a delta mutation. The same translators and processors are
+      // used as the periodic full sync, so both paths converge to the
+      // same catalog state. The 15-min poll is the safety net for any
+      // missed events.
+      await this.eventApplier.handleEvent(kind, name, namespace, action);
+    } catch (error) {
+      this.logger.error(
+        `Failed to handle OpenChoreo event for ${kind}/${name}: ${error}`,
+      );
+    }
   }
 
   async run(): Promise<void> {
@@ -214,24 +271,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         'Fetching namespaces and projects from OpenChoreo API (new API)',
       );
 
-      // Get service token for background task (client credentials flow)
-      let token: string | undefined;
-      if (this.tokenService?.hasServiceCredentials()) {
-        try {
-          token = await this.tokenService.getServiceToken();
-          this.logger.debug('Using service token for OpenChoreo API requests');
-        } catch (error) {
-          this.logger.warn(
-            `Failed to get service token, continuing without auth: ${error}`,
-          );
-        }
-      }
-
-      // Create new API client
-      const client = createOpenChoreoApiClient({
+      // Token-aware client; same factory used by EventDeltaApplier so the
+      // periodic and event-driven paths talk to the API identically.
+      const client = await createAuthenticatedOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token,
         logger: this.logger,
+        tokenService: this.tokenService,
       });
 
       // Fetch all namespaces
@@ -264,7 +309,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
       // Create Domain entities for each namespace
       const domainEntities: Entity[] = namespaces.map(ns =>
-        this.translateNamespaceToDomain(ns),
+        translateNewNamespaceToDomainEntity(
+          ns as NewNamespace,
+          this.translatorContext,
+        ),
       );
       allEntities.push(...domainEntities);
 
@@ -288,7 +336,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           );
 
           const environmentEntities: Entity[] = environments.map(env =>
-            this.translateNewEnvironmentToEntity(env, nsName),
+            translateNewEnvironmentToEntity(
+              env,
+              nsName,
+              this.translatorContext,
+            ),
           );
           allEntities.push(...environmentEntities);
         } catch (error) {
@@ -322,7 +374,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           );
 
           const dataplaneEntities: Entity[] = dataplanes.map(dp =>
-            this.translateNewDataplaneToEntity(dp, nsName),
+            translateNewDataplaneToEntity(dp, nsName, this.translatorContext),
           );
           allEntities.push(...dataplaneEntities);
         } catch (error) {
@@ -357,7 +409,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           );
 
           const workflowplaneEntities: Entity[] = workflowplanes.map(bp =>
-            this.translateNewWorkflowPlaneToEntity(bp, nsName),
+            translateNewWorkflowPlaneToEntity(
+              bp,
+              nsName,
+              this.translatorContext,
+            ),
           );
           allEntities.push(...workflowplaneEntities);
         } catch (error) {
@@ -393,7 +449,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           );
 
           const observabilityplaneEntities: Entity[] = observabilityplanes.map(
-            op => this.translateNewObservabilityPlaneToEntity(op, nsName),
+            op =>
+              translateNewObservabilityPlaneToEntity(
+                op,
+                nsName,
+                this.translatorContext,
+              ),
           );
           allEntities.push(...observabilityplaneEntities);
         } catch (error) {
@@ -428,7 +489,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
           // New API does not return deleted resources, no filtering needed
           const systemEntities: Entity[] = projects.map(project =>
-            this.translateNewProjectToEntity(project, nsName),
+            translateNewProjectToEntity(
+              project,
+              nsName,
+              this.translatorContext,
+            ),
           );
           allEntities.push(...systemEntities);
 
@@ -455,47 +520,20 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                 }),
             );
 
-            // Match pipelines to projects via project.spec.deploymentPipelineRef
+            // The DP↔Project relation pair is emitted by
+            // SystemEntityProcessor from each Project entity, so the DP
+            // entity is now a faithful translation of the DP CR — no
+            // need to compute a synthetic projectRefs array.
             for (const pipeline of pipelines) {
               const pipelineName = getName(pipeline)!;
               const pipelineKey = `${nsName}/${pipelineName}`;
 
-              // Find all projects that reference this pipeline
-              const referencingProjects = projects.filter(
-                p => p.spec?.deploymentPipelineRef?.name === pipelineName,
+              const pipelineEntity = translateNewDeploymentPipelineToEntity(
+                pipeline,
+                nsName,
+                this.translatorContext,
               );
-
-              if (referencingProjects.length > 0) {
-                const firstProjectName = getName(referencingProjects[0])!;
-                const pipelineEntity =
-                  this.translateNewDeploymentPipelineToEntity(
-                    pipeline,
-                    nsName,
-                    firstProjectName,
-                  );
-
-                // Add all additional project refs
-                for (let i = 1; i < referencingProjects.length; i++) {
-                  const projName = getName(referencingProjects[i])!;
-                  if (!pipelineEntity.spec.projectRefs?.includes(projName)) {
-                    pipelineEntity.spec.projectRefs = [
-                      ...(pipelineEntity.spec.projectRefs || []),
-                      projName,
-                    ];
-                  }
-                }
-
-                pipelineMap.set(pipelineKey, pipelineEntity);
-              } else {
-                // Pipeline exists but no project references it — still create entity
-                const pipelineEntity =
-                  this.translateNewDeploymentPipelineToEntity(
-                    pipeline,
-                    nsName,
-                    '',
-                  );
-                pipelineMap.set(pipelineKey, pipelineEntity);
-              }
+              pipelineMap.set(pipelineKey, pipelineEntity);
             }
           } catch (error) {
             this.logger.warn(
@@ -563,12 +601,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
                   const workloadData = workloadListData?.items?.[0];
                   const allEndpoints = workloadData
-                    ? this.extractAllWorkloadEndpoints(workloadData)
+                    ? extractAllWorkloadEndpoints(workloadData)
                     : {};
-                  const schemaEndpoints =
-                    this.extractSchemaEndpoints(allEndpoints);
+                  const schemaEndpoints = extractSchemaEndpoints(allEndpoints);
                   const dependencies = workloadData
-                    ? this.extractWorkloadDependencies(workloadData)
+                    ? extractWorkloadDependencies(workloadData)
                     : [];
 
                   componentWorkloadMap.set(`${projectName}:${componentName}`, {
@@ -577,6 +614,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     schemaEndpoints,
                     allEndpoints,
                     dependencies,
+                    workloadName: workloadData?.metadata?.name,
                   });
                 } catch (error) {
                   this.logger.warn(
@@ -599,70 +637,60 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             }
           }
 
-          // Pass 2 — Create entities with dependency resolution
+          // Pass 2 — Create entities. Cross-resource resolution uses the
+          // shared helper so the periodic and event-driven paths emit
+          // identical providesApis/consumesApis content.
           for (const [, workloadData] of componentWorkloadMap.entries()) {
-            const { component, projectName, schemaEndpoints, dependencies } =
-              workloadData;
+            const {
+              component,
+              projectName,
+              schemaEndpoints,
+              dependencies,
+              workloadName,
+            } = workloadData;
             const componentName = getName(component)!;
 
-            // providesApis: schema endpoints on this component
-            const providesApis =
-              Object.keys(schemaEndpoints).length > 0
-                ? Object.keys(schemaEndpoints).map(
-                    epName => `${projectName}-${componentName}-${epName}`,
-                  )
-                : undefined;
-
-            // consumesApis: dependencies where target endpoint has a schema
-            const consumesApis: string[] = [];
-            for (const dep of dependencies) {
-              const depKey = dep.project
-                ? `${dep.project}:${dep.component}`
-                : dep.component;
-              const targetData = componentWorkloadMap.get(depKey);
-              if (!targetData) {
-                this.logger.debug(
-                  `Dependency target component "${dep.component}" not found in namespace "${nsName}" for component "${componentName}" — skipping consumesApi`,
-                );
-                continue;
-              }
-              const targetEndpoint = targetData.allEndpoints[dep.name];
-              if (
-                targetEndpoint?.schema?.content &&
-                targetEndpoint.schema.content.trim().length > 0
-              ) {
-                consumesApis.push(
-                  `${targetData.projectName}-${dep.component}-${dep.name}`,
-                );
-              }
-            }
+            const { providesApis, consumesApis } = resolveProvidesAndConsumes(
+              schemaEndpoints,
+              dependencies,
+              projectName,
+              componentName,
+            );
 
             // Resolve ownership: component annotation > project annotation > defaultOwner
             const project = projectMap.get(projectName)!;
-            const resolvedOwner = this.resolveComponentOwner(
+            const resolvedOwner = resolveComponentOwner(
               component,
               project,
+              this.defaultOwner,
             );
 
-            const componentEntity = this.translateNewComponentToEntity(
+            const componentEntity = translateNewComponentToEntity(
               component,
               nsName,
               projectName,
               resolvedOwner,
+              this.translatorContext,
               providesApis,
-              consumesApis.length > 0 ? consumesApis : undefined,
+              consumesApis,
+              workloadName,
             );
             allEntities.push(componentEntity);
 
-            // Create API entities from schema endpoints
-            if (Object.keys(schemaEndpoints).length > 0) {
-              const apiEntities = this.createApiEntitiesFromNewWorkload(
+            // Create API entities from schema endpoints. We only emit
+            // API entities when there's a Workload (the schemas live on
+            // workload endpoints), so workloadName is guaranteed to be
+            // defined inside this branch.
+            if (workloadName && Object.keys(schemaEndpoints).length > 0) {
+              const apiEntities = createApiEntitiesFromNewWorkload({
                 componentName,
-                schemaEndpoints,
-                nsName,
+                endpoints: schemaEndpoints,
+                namespaceName: nsName,
                 projectName,
-                resolvedOwner,
-              );
+                owner: resolvedOwner,
+                locationKey: `provider:${this.getProviderName()}`,
+                workloadName,
+              });
               allEntities.push(...apiEntities);
             }
           }
@@ -793,9 +821,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           const componentTypeEntities = componentTypes
             .map(ct => {
               try {
-                return this.translateNewComponentTypeToEntity(
+                return translateNewComponentTypeToEntity(
                   ct,
                   nsName,
+                  this.translatorContext,
                 ) as Entity;
               } catch (error) {
                 this.logger.warn(
@@ -841,7 +870,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           );
 
           const traitEntities: Entity[] = traits.map(trait =>
-            this.translateNewTraitToEntity(trait, nsName),
+            translateNewTraitToEntity(trait, nsName, this.translatorContext),
           );
           allEntities.push(...traitEntities);
         } catch (error) {
@@ -875,7 +904,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           );
 
           const workflowEntities: Entity[] = workflows.map(wf =>
-            this.translateNewWorkflowToEntity(wf, nsName),
+            translateNewWorkflowToEntity(wf, nsName, this.translatorContext),
           );
           allEntities.push(...workflowEntities);
         } catch (error) {
@@ -907,8 +936,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         const cctEntities = clusterComponentTypes
           .map(cct => {
             try {
-              return this.translateNewClusterComponentTypeToEntity(
+              return translateNewClusterComponentTypeToEntity(
                 cct,
+                this.translatorContext,
               ) as Entity;
             } catch (err) {
               this.logger.warn(
@@ -1026,7 +1056,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         const ctEntities: Entity[] = clusterTraits
           .map(ct => {
             try {
-              return this.translateNewClusterTraitToEntity(ct) as Entity;
+              return translateNewClusterTraitToEntity(
+                ct,
+                this.translatorContext,
+              ) as Entity;
             } catch (err) {
               this.logger.warn(
                 `Failed to translate ClusterTrait ${getName(ct)}: ${err}`,
@@ -1069,7 +1102,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         const cwfEntities: Entity[] = clusterWorkflows
           .map(cwf => {
             try {
-              return this.translateNewClusterWorkflowToEntity(cwf) as Entity;
+              return translateNewClusterWorkflowToEntity(
+                cwf,
+                this.translatorContext,
+              ) as Entity;
             } catch (err) {
               this.logger.warn(
                 `Failed to translate ClusterWorkflow ${getName(cwf)}: ${err}`,
@@ -1105,7 +1141,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         const cdpEntities: Entity[] = clusterDataplanes
           .map(cdp => {
             try {
-              return this.translateNewClusterDataplaneToEntity(cdp) as Entity;
+              return translateNewClusterDataplaneToEntity(
+                cdp,
+                this.translatorContext,
+              ) as Entity;
             } catch (err) {
               this.logger.warn(
                 `Failed to translate ClusterDataPlane ${getName(cdp)}: ${err}`,
@@ -1143,8 +1182,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         const copEntities: Entity[] = clusterObservabilityPlanes
           .map(cop => {
             try {
-              return this.translateNewClusterObservabilityPlaneToEntity(
+              return translateNewClusterObservabilityPlaneToEntity(
                 cop,
+                this.translatorContext,
               ) as Entity;
             } catch (err) {
               this.logger.warn(
@@ -1185,8 +1225,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         const cbpEntities: Entity[] = clusterWorkflowPlanes
           .map(cbp => {
             try {
-              return this.translateNewClusterWorkflowPlaneToEntity(
+              return translateNewClusterWorkflowPlaneToEntity(
                 cbp,
+                this.translatorContext,
               ) as Entity;
             } catch (err) {
               this.logger.warn(
@@ -1267,944 +1308,5 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     this.logger.info(
       `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${clusterComponentTypeCount} cluster component types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
     );
-  }
-
-  /**
-   * Translates a ModelsNamespace from OpenChoreo API to a Backstage Domain entity
-   */
-  private translateNamespaceToDomain(
-    namespace: ModelsNamespace | NewNamespace,
-  ): Entity {
-    const isNew = 'metadata' in namespace;
-    const name = isNew
-      ? getName(namespace as NewNamespace)
-      : (namespace as ModelsNamespace).name;
-    const displayName = isNew
-      ? getDisplayName(namespace as NewNamespace)
-      : (namespace as ModelsNamespace).displayName;
-    const description = isNew
-      ? getDescription(namespace as NewNamespace)
-      : (namespace as ModelsNamespace).description;
-    const createdAt = isNew
-      ? getCreatedAt(namespace as NewNamespace)
-      : (namespace as ModelsNamespace).createdAt;
-    const status = isNew
-      ? (namespace as NewNamespace).status?.phase
-      : (namespace as ModelsNamespace).status;
-
-    const domainEntity: Entity = {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'Domain',
-      metadata: {
-        name: name!,
-        title: displayName || name!,
-        description: description || name!,
-        // namespace: 'default',
-        tags: ['openchoreo', 'namespace', 'domain'],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.NAMESPACE]: name!,
-          ...(createdAt && {
-            [CHOREO_ANNOTATIONS.CREATED_AT]: createdAt,
-          }),
-          ...(status && {
-            [CHOREO_ANNOTATIONS.STATUS]: status,
-          }),
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-        },
-      },
-      spec: {
-        owner: this.defaultOwner,
-      },
-    };
-
-    return domainEntity;
-  }
-
-  // ───────────────────────────────────────────────────────────
-  // New API translation methods
-  // ───────────────────────────────────────────────────────────
-
-  /**
-   * Translates a new API Environment to a Backstage Environment entity.
-   * Adapts K8s-style fields to the shared translation function's input shape.
-   */
-  private translateNewEnvironmentToEntity(
-    env: NewEnvironment,
-    namespaceName: string,
-  ): EnvironmentEntityV1alpha1 {
-    const ingress = env.spec?.gateway?.ingress;
-    const entity = translateEnvironment(
-      {
-        name: getName(env)!,
-        displayName: getDisplayName(env),
-        description: getDescription(env),
-        uid: getUid(env),
-        isProduction: env.spec?.isProduction,
-        dataPlaneRef: env.spec?.dataPlaneRef
-          ? {
-              kind: env.spec.dataPlaneRef.kind,
-              name: env.spec.dataPlaneRef.name,
-            }
-          : undefined,
-        dnsPrefix: ingress?.external?.http?.host,
-        gateway: ingress
-          ? {
-              ingress: {
-                external: ingress.external
-                  ? {
-                      name: ingress.external.name,
-                      namespace: ingress.external.namespace,
-                      http: ingress.external.http
-                        ? {
-                            host: ingress.external.http.host,
-                            port: ingress.external.http.port,
-                          }
-                        : undefined,
-                      https: ingress.external.https
-                        ? {
-                            host: ingress.external.https.host,
-                            port: ingress.external.https.port,
-                          }
-                        : undefined,
-                    }
-                  : undefined,
-                internal: ingress.internal
-                  ? {
-                      name: ingress.internal.name,
-                      namespace: ingress.internal.namespace,
-                      http: ingress.internal.http
-                        ? {
-                            host: ingress.internal.http.host,
-                            port: ingress.internal.http.port,
-                          }
-                        : undefined,
-                      https: ingress.internal.https
-                        ? {
-                            host: ingress.internal.https.host,
-                            port: ingress.internal.https.port,
-                          }
-                        : undefined,
-                    }
-                  : undefined,
-              },
-            }
-          : undefined,
-        createdAt: getCreatedAt(env),
-        status: isReady(env) ? 'Ready' : 'Not Ready',
-        deletionTimestamp: getDeletionTimestamp(env),
-      },
-      namespaceName,
-      { locationKey: this.getProviderName() },
-    );
-    return entity;
-  }
-
-  /**
-   * Translates a new API DataPlane to a Backstage Dataplane entity.
-   */
-  private translateNewDataplaneToEntity(
-    dp: NewDataPlane,
-    namespaceName: string,
-  ): DataplaneEntityV1alpha1 {
-    const dpName = getName(dp)!;
-    const ingress = dp.spec?.gateway?.ingress;
-    const obsPlaneRef = dp.spec?.observabilityPlaneRef;
-    const normalizedObsRef = this.normalizeObservabilityPlaneRef(
-      obsPlaneRef?.name,
-      namespaceName,
-    );
-
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'Dataplane',
-      metadata: {
-        name: dpName,
-        namespace: namespaceName,
-        title: getDisplayName(dp) || dpName,
-        description: getDescription(dp) || `${dpName} dataplane`,
-        tags: ['openchoreo', 'dataplane', 'infrastructure'],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(dp) || '',
-          [CHOREO_ANNOTATIONS.STATUS]: isCreated(dp) ? 'Ready' : 'Not Ready',
-          [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
-          ...this.mapNewAgentConnectionAnnotations(dp.status?.agentConnection),
-          ...(getDeletionTimestamp(dp) && {
-            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(dp)!,
-          }),
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-          'openchoreo.io/dataplane': 'true',
-        },
-      },
-      spec: {
-        domain: `default/${namespaceName}`,
-        gateway: ingress
-          ? {
-              ingress: {
-                external: ingress.external
-                  ? {
-                      name: ingress.external.name,
-                      namespace: ingress.external.namespace,
-                      http: ingress.external.http
-                        ? {
-                            host: ingress.external.http.host,
-                            port: ingress.external.http.port,
-                          }
-                        : undefined,
-                      https: ingress.external.https
-                        ? {
-                            host: ingress.external.https.host,
-                            port: ingress.external.https.port,
-                          }
-                        : undefined,
-                    }
-                  : undefined,
-                internal: ingress.internal
-                  ? {
-                      name: ingress.internal.name,
-                      namespace: ingress.internal.namespace,
-                      http: ingress.internal.http
-                        ? {
-                            host: ingress.internal.http.host,
-                            port: ingress.internal.http.port,
-                          }
-                        : undefined,
-                      https: ingress.internal.https
-                        ? {
-                            host: ingress.internal.https.host,
-                            port: ingress.internal.https.port,
-                          }
-                        : undefined,
-                    }
-                  : undefined,
-              },
-            }
-          : undefined,
-        observabilityPlaneRef: normalizedObsRef,
-      },
-    };
-  }
-
-  /**
-   * Translates a new API WorkflowPlane to a Backstage WorkflowPlane entity.
-   */
-  private translateNewWorkflowPlaneToEntity(
-    bp: NewWorkflowPlane,
-    namespaceName: string,
-  ): WorkflowPlaneEntityV1alpha1 {
-    const bpName = getName(bp)!;
-    const obsPlaneRef = bp.spec?.observabilityPlaneRef;
-    const normalizedObsRef = this.normalizeObservabilityPlaneRef(
-      obsPlaneRef?.name,
-      namespaceName,
-    );
-
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'WorkflowPlane',
-      metadata: {
-        name: bpName,
-        namespace: namespaceName,
-        title: getDisplayName(bp) || bpName,
-        description: getDescription(bp) || `${bpName} workflow plane`,
-        tags: ['openchoreo', 'workflowplane', 'infrastructure'],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(bp) || '',
-          [CHOREO_ANNOTATIONS.STATUS]: isCreated(bp) ? 'Ready' : 'Not Ready',
-          [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
-          ...this.mapNewAgentConnectionAnnotations(bp.status?.agentConnection),
-          ...(getDeletionTimestamp(bp) && {
-            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(bp)!,
-          }),
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-          'openchoreo.io/workflowplane': 'true',
-        },
-      },
-      spec: {
-        domain: `default/${namespaceName}`,
-        observabilityPlaneRef: normalizedObsRef,
-      },
-    };
-  }
-
-  /**
-   * Translates a new API ObservabilityPlane to a Backstage ObservabilityPlane entity.
-   */
-  private translateNewObservabilityPlaneToEntity(
-    op: NewObservabilityPlane,
-    namespaceName: string,
-  ): ObservabilityPlaneEntityV1alpha1 {
-    const opName = getName(op)!;
-
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'ObservabilityPlane',
-      metadata: {
-        name: opName,
-        namespace: namespaceName,
-        title: getDisplayName(op) || opName,
-        description: getDescription(op) || `${opName} observability plane`,
-        tags: ['openchoreo', 'observabilityplane', 'infrastructure'],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(op) || '',
-          [CHOREO_ANNOTATIONS.STATUS]: isCreated(op) ? 'Ready' : 'Not Ready',
-          ...(op.spec?.observerURL && {
-            [CHOREO_ANNOTATIONS.OBSERVER_URL]: op.spec.observerURL,
-          }),
-          ...this.mapNewAgentConnectionAnnotations(op.status?.agentConnection),
-          ...(getDeletionTimestamp(op) && {
-            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(op)!,
-          }),
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-          'openchoreo.io/observabilityplane': 'true',
-        },
-      },
-      spec: {
-        domain: `default/${namespaceName}`,
-        observerURL: op.spec?.observerURL,
-      },
-    };
-  }
-
-  /**
-   * Maps new API agent connection status to Backstage entity annotations.
-   */
-  private mapNewAgentConnectionAnnotations(
-    agentConnection?: NewAgentConnectionStatus,
-  ): Record<string, string> {
-    if (!agentConnection) {
-      return {};
-    }
-
-    const annotations: Record<string, string> = {
-      [CHOREO_ANNOTATIONS.AGENT_CONNECTED]:
-        agentConnection.connected?.toString() || 'false',
-      [CHOREO_ANNOTATIONS.AGENT_CONNECTED_COUNT]:
-        agentConnection.connectedAgents?.toString() || '0',
-    };
-
-    if (agentConnection.lastConnectedTime) {
-      annotations[CHOREO_ANNOTATIONS.AGENT_LAST_CONNECTED] =
-        agentConnection.lastConnectedTime;
-    }
-
-    return annotations;
-  }
-
-  /**
-   * Translates a new API Project to a Backstage System entity.
-   */
-  private translateNewProjectToEntity(
-    project: NewProject,
-    namespaceName: string,
-  ): Entity {
-    return translateProject(
-      {
-        name: getName(project)!,
-        displayName: getDisplayName(project),
-        description: getDescription(project),
-        namespaceName: getNamespace(project) ?? namespaceName,
-        uid: getUid(project),
-        deletionTimestamp: getDeletionTimestamp(project),
-      },
-      namespaceName,
-      {
-        locationKey: this.getProviderName(),
-        defaultOwner: this.resolveProjectOwner(project),
-      },
-    );
-  }
-
-  /**
-   * Translates a new API Component to a Backstage Component entity.
-   */
-  private translateNewComponentToEntity(
-    component: NewComponent,
-    namespaceName: string,
-    projectName: string,
-    owner: string,
-    providesApis?: string[],
-    consumesApis?: string[],
-  ): Entity {
-    const componentName = getName(component)!;
-    const componentTypeRef = component.spec?.componentType;
-    const componentType =
-      typeof componentTypeRef === 'string'
-        ? componentTypeRef
-        : componentTypeRef?.name ?? '';
-
-    // Adapt to the legacy-shaped ModelsComponent for the shared translation function
-    return translateComponent(
-      {
-        name: componentName,
-        displayName: getDisplayName(component),
-        uid: getUid(component),
-        type: componentType,
-        componentType:
-          typeof componentTypeRef === 'object' && componentTypeRef
-            ? { kind: componentTypeRef.kind, name: componentTypeRef.name }
-            : undefined,
-        status: isReady(component) ? 'Ready' : 'Not Ready',
-        createdAt: getCreatedAt(component),
-        description: getDescription(component),
-        deletionTimestamp: getDeletionTimestamp(component),
-        // Pass componentWorkflow for repository info extraction
-        componentWorkflow: component.spec?.workflow
-          ? {
-              name: component.spec.workflow.name ?? '',
-              parameters: component.spec.workflow.parameters,
-            }
-          : undefined,
-      } as ModelsComponent,
-      namespaceName,
-      projectName,
-      {
-        defaultOwner: owner,
-        componentTypeUtils: this.componentTypeUtils,
-        locationKey: `provider:${this.getProviderName()}`,
-      },
-      providesApis,
-      consumesApis,
-    );
-  }
-
-  /**
-   * Translates a new API DeploymentPipeline to a Backstage DeploymentPipeline entity.
-   */
-  private translateNewDeploymentPipelineToEntity(
-    pipeline: NewDeploymentPipeline,
-    namespaceName: string,
-    projectName: string,
-  ): DeploymentPipelineEntityV1alpha1 {
-    const pipelineName = getName(pipeline)!;
-
-    const promotionPaths =
-      pipeline.spec?.promotionPaths?.map(path => ({
-        sourceEnvironment:
-          typeof path.sourceEnvironmentRef === 'string'
-            ? path.sourceEnvironmentRef
-            : (path.sourceEnvironmentRef as unknown as { name: string })
-                ?.name ?? '',
-        targetEnvironments:
-          path.targetEnvironmentRefs?.map(target => ({
-            name: target.name,
-            requiresApproval: target.requiresApproval,
-            isManualApprovalRequired: target.isManualApprovalRequired,
-          })) || [],
-      })) || [];
-
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'DeploymentPipeline',
-      metadata: {
-        name: pipelineName,
-        namespace: namespaceName,
-        title: getDisplayName(pipeline) || pipelineName,
-        description:
-          getDescription(pipeline) ||
-          `Deployment pipeline${projectName ? ` for ${projectName}` : ''}`,
-        tags: ['openchoreo', 'deployment-pipeline', 'platform-engineering'],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-          ...(projectName && {
-            [CHOREO_ANNOTATIONS.PROJECT]: projectName,
-          }),
-          ...(getCreatedAt(pipeline) && {
-            [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(pipeline)!,
-          }),
-          [CHOREO_ANNOTATIONS.STATUS]: isReady(pipeline)
-            ? 'Ready'
-            : 'Not Ready',
-          ...(getDeletionTimestamp(pipeline) && {
-            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]:
-              getDeletionTimestamp(pipeline)!,
-          }),
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-          'openchoreo.io/deployment-pipeline': 'true',
-        },
-      },
-      spec: {
-        projectRefs: projectName ? [projectName] : [],
-        namespaceName: namespaceName,
-        domain: `default/${namespaceName}`,
-        promotionPaths,
-      },
-    };
-  }
-
-  /**
-   * Translates a new API ComponentType to a Backstage ComponentType entity.
-   */
-  private translateNewComponentTypeToEntity(
-    ct: NewComponentType,
-    namespaceName: string,
-  ): ComponentTypeEntityV1alpha1 {
-    return translateCT(
-      {
-        name: getName(ct)!,
-        displayName: getDisplayName(ct),
-        description: getDescription(ct),
-        workloadType: ct.spec?.workloadType,
-        allowedWorkflows: ct.spec?.allowedWorkflows,
-        allowedTraits: ct.spec?.allowedTraits,
-        createdAt: getCreatedAt(ct),
-        deletionTimestamp: getDeletionTimestamp(ct),
-      },
-      namespaceName,
-      { locationKey: this.getProviderName() },
-    );
-  }
-
-  /**
-   * Translates a new API Trait to a Backstage TraitType entity.
-   */
-  private translateNewTraitToEntity(
-    trait: NewTrait,
-    namespaceName: string,
-  ): TraitTypeEntityV1alpha1 {
-    return translateTrait(
-      {
-        name: getName(trait)!,
-        displayName: getDisplayName(trait),
-        description: getDescription(trait),
-        createdAt: getCreatedAt(trait),
-        deletionTimestamp: getDeletionTimestamp(trait),
-      },
-      namespaceName,
-      { locationKey: this.getProviderName() },
-    );
-  }
-
-  /**
-   * Translates a new API ClusterComponentType to a Backstage ClusterComponentType entity.
-   */
-  private translateNewClusterComponentTypeToEntity(
-    cct: NewClusterComponentType,
-  ): ClusterComponentTypeEntityV1alpha1 {
-    return translateClusterCT(
-      {
-        name: getName(cct)!,
-        displayName: getDisplayName(cct),
-        description: getDescription(cct),
-        workloadType: cct.spec?.workloadType,
-        allowedWorkflows: cct.spec?.allowedWorkflows,
-        allowedTraits: cct.spec?.allowedTraits,
-        createdAt: getCreatedAt(cct),
-        deletionTimestamp: getDeletionTimestamp(cct),
-      },
-      { locationKey: this.getProviderName() },
-    );
-  }
-
-  /**
-   * Translates a new API ClusterTrait to a Backstage ClusterTraitType entity.
-   */
-  private translateNewClusterTraitToEntity(
-    ct: NewClusterTrait,
-  ): ClusterTraitTypeEntityV1alpha1 {
-    return translateClusterTrait(
-      {
-        name: getName(ct)!,
-        displayName: getDisplayName(ct),
-        description: getDescription(ct),
-        createdAt: getCreatedAt(ct),
-        deletionTimestamp: getDeletionTimestamp(ct),
-      },
-      { locationKey: this.getProviderName() },
-    );
-  }
-
-  /**
-   * Translates a new API ClusterWorkflow to a Backstage ClusterWorkflow entity.
-   */
-  private translateNewClusterWorkflowToEntity(
-    cwf: NewClusterWorkflow,
-  ): ClusterWorkflowEntityV1alpha1 {
-    const isCI =
-      cwf.metadata?.labels?.['openchoreo.dev/workflow-type'] === 'component';
-    const wpRef = (cwf as any).spec?.workflowPlaneRef;
-    const ttl = (cwf as any).spec?.ttlAfterCompletion;
-    return translateClusterWF(
-      {
-        name: getName(cwf)!,
-        displayName: getDisplayName(cwf),
-        description: getDescription(cwf),
-        createdAt: getCreatedAt(cwf),
-        parameters: extractWorkflowParameters((cwf as any).spec),
-        type: isCI ? 'CI' : 'Generic',
-        deletionTimestamp: getDeletionTimestamp(cwf),
-        ...(wpRef && {
-          workflowPlaneRef: { kind: wpRef.kind, name: wpRef.name },
-        }),
-        ...(ttl && { ttlAfterCompletion: ttl }),
-      },
-      { locationKey: this.getProviderName() },
-    );
-  }
-
-  /**
-   * Translates a new API ClusterDataPlane to a Backstage ClusterDataplane entity.
-   */
-  private translateNewClusterDataplaneToEntity(
-    cdp: NewClusterDataPlane,
-  ): ClusterDataplaneEntityV1alpha1 {
-    const cdpName = getName(cdp)!;
-    const ingress = cdp.spec?.gateway?.ingress;
-    const obsPlaneRef = cdp.spec?.observabilityPlaneRef;
-    const obsRefName = obsPlaneRef?.name;
-
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'ClusterDataplane',
-      metadata: {
-        name: cdpName,
-        namespace: 'openchoreo-cluster',
-        title: getDisplayName(cdp) || cdpName,
-        description: getDescription(cdp) || `${cdpName} cluster data plane`,
-        tags: ['openchoreo', 'cluster-dataplane', 'infrastructure'],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cdp) || '',
-          [CHOREO_ANNOTATIONS.STATUS]: isCreated(cdp) ? 'Ready' : 'Not Ready',
-          ...(obsRefName && {
-            [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
-          }),
-          ...this.mapNewAgentConnectionAnnotations(cdp.status?.agentConnection),
-          ...(getDeletionTimestamp(cdp) && {
-            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cdp)!,
-          }),
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-          'openchoreo.io/cluster-dataplane': 'true',
-        },
-      },
-      spec: {
-        gateway: ingress
-          ? {
-              ingress: {
-                external: ingress.external
-                  ? {
-                      name: ingress.external.name,
-                      namespace: ingress.external.namespace,
-                      http: ingress.external.http
-                        ? {
-                            host: ingress.external.http.host,
-                            port: ingress.external.http.port,
-                          }
-                        : undefined,
-                      https: ingress.external.https
-                        ? {
-                            host: ingress.external.https.host,
-                            port: ingress.external.https.port,
-                          }
-                        : undefined,
-                    }
-                  : undefined,
-                internal: ingress.internal
-                  ? {
-                      name: ingress.internal.name,
-                      namespace: ingress.internal.namespace,
-                      http: ingress.internal.http
-                        ? {
-                            host: ingress.internal.http.host,
-                            port: ingress.internal.http.port,
-                          }
-                        : undefined,
-                      https: ingress.internal.https
-                        ? {
-                            host: ingress.internal.https.host,
-                            port: ingress.internal.https.port,
-                          }
-                        : undefined,
-                    }
-                  : undefined,
-              },
-            }
-          : undefined,
-        observabilityPlaneRef: obsRefName,
-      },
-    };
-  }
-
-  /**
-   * Translates a new API ClusterObservabilityPlane to a Backstage ClusterObservabilityPlane entity.
-   */
-  private translateNewClusterObservabilityPlaneToEntity(
-    cop: NewClusterObservabilityPlane,
-  ): ClusterObservabilityPlaneEntityV1alpha1 {
-    const copName = getName(cop)!;
-
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'ClusterObservabilityPlane',
-      metadata: {
-        name: copName,
-        namespace: 'openchoreo-cluster',
-        title: getDisplayName(cop) || copName,
-        description:
-          getDescription(cop) || `${copName} cluster observability plane`,
-        tags: ['openchoreo', 'cluster-observabilityplane', 'infrastructure'],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cop) || '',
-          [CHOREO_ANNOTATIONS.STATUS]: isCreated(cop) ? 'Ready' : 'Not Ready',
-          ...(cop.spec?.observerURL && {
-            [CHOREO_ANNOTATIONS.OBSERVER_URL]: cop.spec.observerURL,
-          }),
-          ...this.mapNewAgentConnectionAnnotations(cop.status?.agentConnection),
-          ...(getDeletionTimestamp(cop) && {
-            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cop)!,
-          }),
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-          'openchoreo.io/cluster-observabilityplane': 'true',
-        },
-      },
-      spec: {
-        observerURL: cop.spec?.observerURL,
-      },
-    };
-  }
-
-  /**
-   * Translates a new API ClusterWorkflowPlane to a Backstage ClusterWorkflowPlane entity.
-   */
-  private translateNewClusterWorkflowPlaneToEntity(
-    cbp: NewClusterWorkflowPlane,
-  ): ClusterWorkflowPlaneEntityV1alpha1 {
-    const cbpName = getName(cbp)!;
-    const obsPlaneRef = cbp.spec?.observabilityPlaneRef;
-    const obsRefName = obsPlaneRef?.name;
-
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'ClusterWorkflowPlane',
-      metadata: {
-        name: cbpName,
-        namespace: 'openchoreo-cluster',
-        title: getDisplayName(cbp) || cbpName,
-        description: getDescription(cbp) || `${cbpName} cluster workflow plane`,
-        tags: ['openchoreo', 'cluster-workflowplane', 'infrastructure'],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cbp) || '',
-          [CHOREO_ANNOTATIONS.STATUS]: isCreated(cbp) ? 'Ready' : 'Not Ready',
-          ...(obsRefName && {
-            [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
-          }),
-          ...this.mapNewAgentConnectionAnnotations(cbp.status?.agentConnection),
-          ...(getDeletionTimestamp(cbp) && {
-            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cbp)!,
-          }),
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-          'openchoreo.io/cluster-workflowplane': 'true',
-        },
-      },
-      spec: {
-        observabilityPlaneRef: obsRefName,
-      },
-    };
-  }
-
-  /**
-   * Translates a new API Workflow to a Backstage Workflow entity.
-   */
-  private translateNewWorkflowToEntity(
-    wf: NewWorkflow,
-    namespaceName: string,
-  ): WorkflowEntityV1alpha1 {
-    const isCI =
-      wf.metadata?.labels?.['openchoreo.dev/workflow-type'] === 'component';
-    const wpRef = (wf as any).spec?.workflowPlaneRef;
-    const ttl = (wf as any).spec?.ttlAfterCompletion;
-    return translateWF(
-      {
-        name: getName(wf)!,
-        displayName: getDisplayName(wf),
-        description: getDescription(wf),
-        createdAt: getCreatedAt(wf),
-        parameters: extractWorkflowParameters((wf as any).spec),
-        type: isCI ? 'CI' : 'Generic',
-        deletionTimestamp: getDeletionTimestamp(wf),
-        ...(wpRef && {
-          workflowPlaneRef: { kind: wpRef.kind, name: wpRef.name },
-        }),
-        ...(ttl && { ttlAfterCompletion: ttl }),
-      },
-      namespaceName,
-      { locationKey: this.getProviderName() },
-    );
-  }
-
-  /**
-   * Extracts all workload endpoints from new API Workload resource.
-   */
-  private extractAllWorkloadEndpoints(
-    workload: NewWorkload,
-  ): Record<string, WorkloadEndpoint> {
-    const spec = workload.spec as
-      | { endpoints?: Record<string, WorkloadEndpoint> }
-      | undefined;
-    return spec?.endpoints || {};
-  }
-
-  /**
-   * Filters endpoints to only those with schema content attached.
-   * These are the endpoints that should produce Backstage API entities.
-   */
-  private extractSchemaEndpoints(
-    allEndpoints: Record<string, WorkloadEndpoint>,
-  ): Record<string, WorkloadEndpoint> {
-    return Object.fromEntries(
-      Object.entries(allEndpoints).filter(
-        ([, ep]) => ep.schema?.content && ep.schema.content.trim().length > 0,
-      ),
-    );
-  }
-
-  /**
-   * Extracts dependency connections from a workload's spec.
-   */
-  private extractWorkloadDependencies(
-    workload: NewWorkload,
-  ): WorkloadDependency[] {
-    const spec = workload.spec as
-      | { dependencies?: { endpoints?: WorkloadDependency[] } }
-      | undefined;
-    return spec?.dependencies?.endpoints || [];
-  }
-
-  /**
-   * Creates API entities from a new API Workload's endpoints.
-   */
-  private createApiEntitiesFromNewWorkload(
-    componentName: string,
-    endpoints: Record<string, WorkloadEndpoint>,
-    namespaceName: string,
-    projectName: string,
-    owner: string,
-  ): Entity[] {
-    const apiEntities: Entity[] = [];
-
-    Object.entries(endpoints).forEach(([endpointName, endpoint]) => {
-      const apiEntity: Entity = {
-        apiVersion: 'backstage.io/v1alpha1',
-        kind: 'API',
-        metadata: {
-          name: `${projectName}-${componentName}-${endpointName}`,
-          namespace: namespaceName,
-          title: `${componentName} ${endpointName} API`,
-          description: `${
-            endpoint.schema?.type || endpoint.type
-          } API for ${componentName} on port ${endpoint.port}`,
-          tags: [
-            'openchoreo',
-            'api',
-            (endpoint.schema?.type || endpoint.type).toLowerCase(),
-          ],
-          annotations: {
-            'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-            'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-            [CHOREO_ANNOTATIONS.COMPONENT]: componentName,
-            [CHOREO_ANNOTATIONS.ENDPOINT_NAME]: endpointName,
-            [CHOREO_ANNOTATIONS.ENDPOINT_TYPE]: endpoint.type,
-            [CHOREO_ANNOTATIONS.ENDPOINT_PORT]: endpoint.port.toString(),
-            [CHOREO_ANNOTATIONS.ENDPOINT_VISIBILITY]:
-              endpoint.visibility?.join(',') ?? '',
-            [CHOREO_ANNOTATIONS.PROJECT]: projectName,
-            [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-          },
-          labels: {
-            'openchoreo.io/managed': 'true',
-          },
-        },
-        spec: {
-          type: this.mapSchemaTypeToBackstageApiType(endpoint.schema?.type),
-          lifecycle: 'production',
-          owner,
-          system: projectName,
-          definition: this.createApiDefinitionFromWorkloadEndpoint(endpoint),
-        },
-      };
-
-      apiEntities.push(apiEntity);
-    });
-
-    return apiEntities;
-  }
-
-  private normalizeObservabilityPlaneRef(
-    ref: unknown,
-    namespaceName: string,
-  ): string {
-    if (!ref) return '';
-    let name: string;
-    if (typeof ref === 'string') {
-      name = ref;
-    } else if (typeof ref === 'object' && ref !== null && 'name' in ref) {
-      name = (ref as { name: string }).name;
-    } else {
-      return '';
-    }
-    // If the name already contains a namespace qualifier, return as-is
-    if (name.includes('/')) return name;
-    return `${namespaceName}/${name}`;
-  }
-
-  private mapSchemaTypeToBackstageApiType(
-    schemaType: string | undefined,
-  ): string {
-    if (!schemaType) return 'openapi';
-    const normalized = schemaType.toLowerCase();
-    switch (normalized) {
-      case 'openapi':
-        return 'openapi';
-      case 'graphql':
-        return 'graphql';
-      case 'grpc':
-        return 'grpc';
-      case 'asyncapi':
-        return 'asyncapi';
-      default:
-        return normalized;
-    }
-  }
-
-  private createApiDefinitionFromWorkloadEndpoint(
-    endpoint: WorkloadEndpoint,
-  ): string {
-    if (endpoint.schema?.content) {
-      return endpoint.schema.content;
-    }
-    return 'No schema available';
   }
 }

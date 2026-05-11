@@ -28,7 +28,6 @@ backend.add(
       app.use(middleware.helmet());
       app.use(middleware.cors());
       app.use(middleware.compression());
-      app.use(middleware.logging());
 
       // IDP token middleware - reads token from header and establishes
       // AsyncLocalStorage context so getUserTokenFromContext() works everywhere
@@ -59,6 +58,9 @@ backend.add(OpenChoreoAuthModule);
 backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
 // Github provider
 backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
+// events plugin — receives webhook POSTs and publishes to EventsService
+backend.add(import('@backstage/plugin-events-backend'));
+
 // catalog plugin
 backend.add(import('@backstage/plugin-catalog-backend'));
 backend.add(

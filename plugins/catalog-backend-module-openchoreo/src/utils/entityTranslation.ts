@@ -6,19 +6,63 @@ import {
   ComponentTypeUtils,
   type ComponentResponse,
 } from '@openchoreo/backstage-plugin-common';
+import {
+  getName,
+  getNamespace,
+  getUid,
+  getCreatedAt,
+  getDeletionTimestamp,
+  getDisplayName,
+  getDescription,
+  isReady,
+  isCreated,
+  type OpenChoreoComponents,
+} from '@openchoreo/openchoreo-client-node';
 import type {
   EnvironmentEntityV1alpha1,
+  DataplaneEntityV1alpha1,
+  WorkflowPlaneEntityV1alpha1,
+  ObservabilityPlaneEntityV1alpha1,
   ComponentTypeEntityV1alpha1,
   TraitTypeEntityV1alpha1,
   WorkflowEntityV1alpha1,
-  ComponentWorkflowEntityV1alpha1,
   ClusterComponentTypeEntityV1alpha1,
   ClusterTraitTypeEntityV1alpha1,
   ClusterWorkflowEntityV1alpha1,
+  ClusterDataplaneEntityV1alpha1,
+  ClusterObservabilityPlaneEntityV1alpha1,
+  ClusterWorkflowPlaneEntityV1alpha1,
   DeploymentPipelineEntityV1alpha1,
 } from '../kinds';
+import { normalizeObservabilityPlaneRef, resolveProjectOwner } from './helpers';
 
 type ModelsComponent = ComponentResponse;
+
+// New-API resource shapes used by the adapter functions below
+type NewProject = OpenChoreoComponents['schemas']['Project'];
+type NewComponent = OpenChoreoComponents['schemas']['Component'];
+type NewEnvironment = OpenChoreoComponents['schemas']['Environment'];
+type NewDataPlane = OpenChoreoComponents['schemas']['DataPlane'];
+type NewWorkflowPlane = OpenChoreoComponents['schemas']['WorkflowPlane'];
+type NewObservabilityPlane =
+  OpenChoreoComponents['schemas']['ObservabilityPlane'];
+type NewDeploymentPipeline =
+  OpenChoreoComponents['schemas']['DeploymentPipeline'];
+type NewComponentType = OpenChoreoComponents['schemas']['ComponentType'];
+type NewTrait = OpenChoreoComponents['schemas']['Trait'];
+type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
+type NewClusterComponentType =
+  OpenChoreoComponents['schemas']['ClusterComponentType'];
+type NewClusterTrait = OpenChoreoComponents['schemas']['ClusterTrait'];
+type NewClusterWorkflow = OpenChoreoComponents['schemas']['ClusterWorkflow'];
+type NewClusterDataPlane = OpenChoreoComponents['schemas']['ClusterDataPlane'];
+type NewClusterObservabilityPlane =
+  OpenChoreoComponents['schemas']['ClusterObservabilityPlane'];
+type NewClusterWorkflowPlane =
+  OpenChoreoComponents['schemas']['ClusterWorkflowPlane'];
+type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];
+type NewAgentConnectionStatus =
+  OpenChoreoComponents['schemas']['AgentConnectionStatus'];
 type AllowedTraitRef = { kind?: string; name: string };
 type AllowedWorkflowRef = { kind?: string; name: string };
 
@@ -258,6 +302,15 @@ export function translateProjectToEntity(
     namespaceName?: string;
     uid?: string;
     deletionTimestamp?: string;
+    /**
+     * Name of the DeploymentPipeline this project references
+     * (mirrors `Project.spec.deploymentPipelineRef.name` on the OC CR).
+     * Surfaced on the System entity so the System processor can emit the
+     * `usesPipeline` / `pipelineUsedBy` relation pair from this side —
+     * removing the need for the DP entity to carry an inverted-index
+     * `projectRefs` array.
+     */
+    deploymentPipelineRef?: string;
   },
   namespaceName: string,
   config: ProjectEntityTranslationConfig,
@@ -290,6 +343,9 @@ export function translateProjectToEntity(
     spec: {
       owner: config.defaultOwner,
       domain: `default/${namespaceName}`,
+      ...(project.deploymentPipelineRef && {
+        deploymentPipelineRef: project.deploymentPipelineRef,
+      }),
     },
   };
 
@@ -565,49 +621,6 @@ export function translateTraitToEntity(
 }
 
 /**
- * Translates an OpenChoreo ComponentWorkflow to a Backstage ComponentWorkflow entity.
- * Shared utility used by both scheduled sync and immediate insertion.
- */
-export function translateComponentWorkflowToEntity(
-  cw: {
-    name: string;
-    displayName?: string;
-    description?: string;
-    createdAt?: string;
-    deletionTimestamp?: string;
-  },
-  namespaceName: string,
-  config: EntityTranslationConfig,
-): ComponentWorkflowEntityV1alpha1 {
-  return {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'ComponentWorkflow',
-    metadata: {
-      name: cw.name,
-      namespace: namespaceName,
-      title: cw.displayName || cw.name,
-      description: cw.description || `${cw.name} component workflow`,
-      tags: ['openchoreo', 'component-workflow', 'platform-engineering'],
-      annotations: {
-        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
-        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
-        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-        [CHOREO_ANNOTATIONS.CREATED_AT]: cw.createdAt || '',
-        ...(cw.deletionTimestamp && {
-          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: cw.deletionTimestamp,
-        }),
-      },
-      labels: {
-        [CHOREO_LABELS.MANAGED]: 'true',
-      },
-    },
-    spec: {
-      domain: `default/${namespaceName}`,
-    },
-  };
-}
-
-/**
  * Configuration for namespace entity translation
  */
 export interface NamespaceEntityTranslationConfig
@@ -772,7 +785,6 @@ export function translateDeploymentPipelineToEntity(
         isManualApprovalRequired?: boolean;
       }>;
     }>;
-    projectRefs?: string[];
   },
   namespaceName: string,
   config: EntityTranslationConfig,
@@ -805,7 +817,6 @@ export function translateDeploymentPipelineToEntity(
       },
     },
     spec: {
-      projectRefs: pipeline.projectRefs || [],
       namespaceName,
       domain: `default/${namespaceName}`,
       promotionPaths: pipeline.promotionPaths || [],
@@ -872,6 +883,844 @@ export function translateClusterWorkflowToEntity(
       ...(wf.ttlAfterCompletion && {
         ttlAfterCompletion: wf.ttlAfterCompletion,
       }),
+    },
+  };
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// New-API adapter functions
+//
+// These take an OpenChoreo CR (the "new" API shape) and return a Backstage
+// Entity. They wrap the lower-level translateXxxToEntity functions above
+// and own the small amount of shape-adapting needed (converting CR
+// fields to the legacy-shaped translator inputs). Both the periodic
+// full sync and the per-event delta path call these so the two paths
+// always emit identical entity content.
+// ───────────────────────────────────────────────────────────────────────
+
+/**
+ * Context shared by every New-API adapter that needs the provider's
+ * identity, default owner, or the runtime ComponentType utilities.
+ */
+export interface NewApiTranslatorContext {
+  /** Output of `provider.getProviderName()` (e.g. `OpenChoreoEntityProvider`). */
+  providerName: string;
+  /** Default owner ref (`group:default/openchoreo-users` etc.) used when no annotation is present. */
+  defaultOwner: string;
+  /** Runtime utilities for resolving componentType references (built from config). */
+  componentTypeUtils: ComponentTypeUtils;
+}
+
+function managedAnnotations(providerName: string): {
+  'backstage.io/managed-by-location': string;
+  'backstage.io/managed-by-origin-location': string;
+} {
+  return {
+    'backstage.io/managed-by-location': `provider:${providerName}`,
+    'backstage.io/managed-by-origin-location': `provider:${providerName}`,
+  };
+}
+
+/**
+ * Maps new-API agent connection status to Backstage entity annotations.
+ */
+function mapAgentConnectionAnnotations(
+  agentConnection?: NewAgentConnectionStatus,
+): Record<string, string> {
+  if (!agentConnection) return {};
+
+  const annotations: Record<string, string> = {
+    [CHOREO_ANNOTATIONS.AGENT_CONNECTED]:
+      agentConnection.connected?.toString() || 'false',
+    [CHOREO_ANNOTATIONS.AGENT_CONNECTED_COUNT]:
+      agentConnection.connectedAgents?.toString() || '0',
+  };
+
+  if (agentConnection.lastConnectedTime) {
+    annotations[CHOREO_ANNOTATIONS.AGENT_LAST_CONNECTED] =
+      agentConnection.lastConnectedTime;
+  }
+
+  return annotations;
+}
+
+// `normalizeObservabilityPlaneRef` is shared with helpers.ts — see
+// `../utils/helpers.ts` for the canonical implementation.
+
+/**
+ * Translates a new API Namespace into a Backstage Domain entity.
+ */
+export function translateNewNamespaceToDomainEntity(
+  namespace: NewNamespace,
+  ctx: NewApiTranslatorContext,
+): Entity {
+  const name = getName(namespace);
+  const displayName = getDisplayName(namespace);
+  const description = getDescription(namespace);
+  const createdAt = getCreatedAt(namespace);
+  const status = namespace.status?.phase;
+
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'Domain',
+    metadata: {
+      name: name!,
+      title: displayName || name!,
+      description: description || name!,
+      tags: ['openchoreo', 'namespace', 'domain'],
+      annotations: {
+        ...managedAnnotations(ctx.providerName),
+        [CHOREO_ANNOTATIONS.NAMESPACE]: name!,
+        ...(createdAt && { [CHOREO_ANNOTATIONS.CREATED_AT]: createdAt }),
+        ...(status && { [CHOREO_ANNOTATIONS.STATUS]: status }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      owner: ctx.defaultOwner,
+    },
+  };
+}
+
+/**
+ * Translates a new-API Project into a Backstage System entity.
+ */
+export function translateNewProjectToEntity(
+  project: NewProject,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): Entity {
+  return translateProjectToEntity(
+    {
+      name: getName(project)!,
+      displayName: getDisplayName(project),
+      description: getDescription(project),
+      namespaceName: getNamespace(project) ?? namespaceName,
+      uid: getUid(project),
+      deletionTimestamp: getDeletionTimestamp(project),
+      deploymentPipelineRef: project.spec?.deploymentPipelineRef?.name,
+    },
+    namespaceName,
+    {
+      locationKey: ctx.providerName,
+      defaultOwner: resolveProjectOwner(project, ctx.defaultOwner),
+    },
+  );
+}
+
+/**
+ * Translates a new-API Component into a Backstage Component entity.
+ *
+ * `providesApis` and `consumesApis` are computed by the caller (using
+ * `helpers.resolveProvidesAndConsumes`) and passed in here unchanged.
+ */
+export function translateNewComponentToEntity(
+  component: NewComponent,
+  namespaceName: string,
+  projectName: string,
+  owner: string,
+  ctx: NewApiTranslatorContext,
+  providesApis?: string[],
+  consumesApis?: string[],
+  /**
+   * The current owning Workload's `metadata.name`, if a Workload is
+   * paired with this Component at translation time. Stamped onto the
+   * resulting Component entity as `openchoreo.io/workload` so the
+   * workload-deletion handler can locate the parent Component via a
+   * catalog annotation query. Omit if no Workload exists yet for this
+   * Component (the annotation simply isn't set, and the next refresh
+   * after a Workload is created will add it).
+   */
+  workloadName?: string,
+): Entity {
+  const componentName = getName(component)!;
+  const componentTypeRef = component.spec?.componentType;
+  const componentType =
+    typeof componentTypeRef === 'string'
+      ? componentTypeRef
+      : componentTypeRef?.name ?? '';
+
+  const entity = translateComponentToEntity(
+    {
+      name: componentName,
+      displayName: getDisplayName(component),
+      uid: getUid(component),
+      type: componentType,
+      componentType:
+        typeof componentTypeRef === 'object' && componentTypeRef
+          ? { kind: componentTypeRef.kind, name: componentTypeRef.name }
+          : undefined,
+      status: isReady(component) ? 'Ready' : 'Not Ready',
+      createdAt: getCreatedAt(component),
+      description: getDescription(component),
+      deletionTimestamp: getDeletionTimestamp(component),
+      componentWorkflow: component.spec?.workflow
+        ? {
+            name: component.spec.workflow.name ?? '',
+            parameters: component.spec.workflow.parameters,
+          }
+        : undefined,
+    } as ModelsComponent,
+    namespaceName,
+    projectName,
+    {
+      defaultOwner: owner,
+      componentTypeUtils: ctx.componentTypeUtils,
+      locationKey: `provider:${ctx.providerName}`,
+    },
+    providesApis,
+    consumesApis,
+  );
+
+  if (workloadName) {
+    entity.metadata.annotations = {
+      ...(entity.metadata.annotations ?? {}),
+      [CHOREO_ANNOTATIONS.WORKLOAD]: workloadName,
+    };
+  }
+  return entity;
+}
+
+/**
+ * Translates a new-API Environment into a Backstage Environment entity.
+ */
+export function translateNewEnvironmentToEntity(
+  env: NewEnvironment,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): EnvironmentEntityV1alpha1 {
+  const ingress = env.spec?.gateway?.ingress;
+  return translateEnvironmentToEntity(
+    {
+      name: getName(env)!,
+      displayName: getDisplayName(env),
+      description: getDescription(env),
+      uid: getUid(env),
+      isProduction: env.spec?.isProduction,
+      dataPlaneRef: env.spec?.dataPlaneRef
+        ? {
+            kind: env.spec.dataPlaneRef.kind,
+            name: env.spec.dataPlaneRef.name,
+          }
+        : undefined,
+      dnsPrefix: ingress?.external?.http?.host,
+      gateway: ingress
+        ? {
+            ingress: {
+              external: ingress.external
+                ? {
+                    name: ingress.external.name,
+                    namespace: ingress.external.namespace,
+                    http: ingress.external.http
+                      ? {
+                          host: ingress.external.http.host,
+                          port: ingress.external.http.port,
+                        }
+                      : undefined,
+                    https: ingress.external.https
+                      ? {
+                          host: ingress.external.https.host,
+                          port: ingress.external.https.port,
+                        }
+                      : undefined,
+                  }
+                : undefined,
+              internal: ingress.internal
+                ? {
+                    name: ingress.internal.name,
+                    namespace: ingress.internal.namespace,
+                    http: ingress.internal.http
+                      ? {
+                          host: ingress.internal.http.host,
+                          port: ingress.internal.http.port,
+                        }
+                      : undefined,
+                    https: ingress.internal.https
+                      ? {
+                          host: ingress.internal.https.host,
+                          port: ingress.internal.https.port,
+                        }
+                      : undefined,
+                  }
+                : undefined,
+            },
+          }
+        : undefined,
+      createdAt: getCreatedAt(env),
+      status: isReady(env) ? 'Ready' : 'Not Ready',
+      deletionTimestamp: getDeletionTimestamp(env),
+    },
+    namespaceName,
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API DataPlane into a Backstage Dataplane entity.
+ */
+export function translateNewDataplaneToEntity(
+  dp: NewDataPlane,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): DataplaneEntityV1alpha1 {
+  const dpName = getName(dp)!;
+  const ingress = dp.spec?.gateway?.ingress;
+  const obsPlaneRef = dp.spec?.observabilityPlaneRef;
+  const normalizedObsRef = normalizeObservabilityPlaneRef(
+    obsPlaneRef?.name,
+    namespaceName,
+  );
+
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'Dataplane',
+    metadata: {
+      name: dpName,
+      namespace: namespaceName,
+      title: getDisplayName(dp) || dpName,
+      description: getDescription(dp) || `${dpName} dataplane`,
+      tags: ['openchoreo', 'dataplane', 'infrastructure'],
+      annotations: {
+        ...managedAnnotations(ctx.providerName),
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(dp) || '',
+        [CHOREO_ANNOTATIONS.STATUS]: isCreated(dp) ? 'Ready' : 'Not Ready',
+        [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
+        ...mapAgentConnectionAnnotations(dp.status?.agentConnection),
+        ...(getDeletionTimestamp(dp) && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(dp)!,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+        'openchoreo.io/dataplane': 'true',
+      },
+    },
+    spec: {
+      domain: `default/${namespaceName}`,
+      gateway: ingress
+        ? {
+            ingress: {
+              external: ingress.external
+                ? {
+                    name: ingress.external.name,
+                    namespace: ingress.external.namespace,
+                    http: ingress.external.http
+                      ? {
+                          host: ingress.external.http.host,
+                          port: ingress.external.http.port,
+                        }
+                      : undefined,
+                    https: ingress.external.https
+                      ? {
+                          host: ingress.external.https.host,
+                          port: ingress.external.https.port,
+                        }
+                      : undefined,
+                  }
+                : undefined,
+              internal: ingress.internal
+                ? {
+                    name: ingress.internal.name,
+                    namespace: ingress.internal.namespace,
+                    http: ingress.internal.http
+                      ? {
+                          host: ingress.internal.http.host,
+                          port: ingress.internal.http.port,
+                        }
+                      : undefined,
+                    https: ingress.internal.https
+                      ? {
+                          host: ingress.internal.https.host,
+                          port: ingress.internal.https.port,
+                        }
+                      : undefined,
+                  }
+                : undefined,
+            },
+          }
+        : undefined,
+      observabilityPlaneRef: normalizedObsRef,
+    },
+  };
+}
+
+/**
+ * Translates a new-API WorkflowPlane into a Backstage WorkflowPlane entity.
+ */
+export function translateNewWorkflowPlaneToEntity(
+  bp: NewWorkflowPlane,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): WorkflowPlaneEntityV1alpha1 {
+  const bpName = getName(bp)!;
+  const obsPlaneRef = bp.spec?.observabilityPlaneRef;
+  const normalizedObsRef = normalizeObservabilityPlaneRef(
+    obsPlaneRef?.name,
+    namespaceName,
+  );
+
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'WorkflowPlane',
+    metadata: {
+      name: bpName,
+      namespace: namespaceName,
+      title: getDisplayName(bp) || bpName,
+      description: getDescription(bp) || `${bpName} workflow plane`,
+      tags: ['openchoreo', 'workflowplane', 'infrastructure'],
+      annotations: {
+        ...managedAnnotations(ctx.providerName),
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(bp) || '',
+        [CHOREO_ANNOTATIONS.STATUS]: isCreated(bp) ? 'Ready' : 'Not Ready',
+        [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
+        ...mapAgentConnectionAnnotations(bp.status?.agentConnection),
+        ...(getDeletionTimestamp(bp) && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(bp)!,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+        'openchoreo.io/workflowplane': 'true',
+      },
+    },
+    spec: {
+      domain: `default/${namespaceName}`,
+      observabilityPlaneRef: normalizedObsRef,
+    },
+  };
+}
+
+/**
+ * Translates a new-API ObservabilityPlane into a Backstage
+ * ObservabilityPlane entity.
+ */
+export function translateNewObservabilityPlaneToEntity(
+  op: NewObservabilityPlane,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): ObservabilityPlaneEntityV1alpha1 {
+  const opName = getName(op)!;
+
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ObservabilityPlane',
+    metadata: {
+      name: opName,
+      namespace: namespaceName,
+      title: getDisplayName(op) || opName,
+      description: getDescription(op) || `${opName} observability plane`,
+      tags: ['openchoreo', 'observabilityplane', 'infrastructure'],
+      annotations: {
+        ...managedAnnotations(ctx.providerName),
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(op) || '',
+        [CHOREO_ANNOTATIONS.STATUS]: isCreated(op) ? 'Ready' : 'Not Ready',
+        ...(op.spec?.observerURL && {
+          [CHOREO_ANNOTATIONS.OBSERVER_URL]: op.spec.observerURL,
+        }),
+        ...mapAgentConnectionAnnotations(op.status?.agentConnection),
+        ...(getDeletionTimestamp(op) && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(op)!,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+        'openchoreo.io/observabilityplane': 'true',
+      },
+    },
+    spec: {
+      domain: `default/${namespaceName}`,
+      observerURL: op.spec?.observerURL,
+    },
+  };
+}
+
+/**
+ * Translates a new-API DeploymentPipeline into a Backstage
+ * DeploymentPipeline entity.
+ *
+ * The Project↔DeploymentPipeline relation pair is now emitted by
+ * `SystemEntityProcessor` from each Project entity that references this
+ * pipeline. The DP entity therefore no longer carries a `projectRefs`
+ * field — it is a faithful translation of the DP CR.
+ */
+export function translateNewDeploymentPipelineToEntity(
+  pipeline: NewDeploymentPipeline,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): DeploymentPipelineEntityV1alpha1 {
+  const pipelineName = getName(pipeline)!;
+
+  const promotionPaths =
+    pipeline.spec?.promotionPaths?.map(path => ({
+      sourceEnvironment:
+        typeof path.sourceEnvironmentRef === 'string'
+          ? path.sourceEnvironmentRef
+          : (path.sourceEnvironmentRef as unknown as { name: string })?.name ??
+            '',
+      targetEnvironments:
+        path.targetEnvironmentRefs?.map(target => ({
+          name: target.name,
+          requiresApproval: target.requiresApproval,
+          isManualApprovalRequired: target.isManualApprovalRequired,
+        })) || [],
+    })) || [];
+
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'DeploymentPipeline',
+    metadata: {
+      name: pipelineName,
+      namespace: namespaceName,
+      title: getDisplayName(pipeline) || pipelineName,
+      description:
+        getDescription(pipeline) || `Deployment pipeline ${pipelineName}`,
+      tags: ['openchoreo', 'deployment-pipeline', 'platform-engineering'],
+      annotations: {
+        ...managedAnnotations(ctx.providerName),
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        ...(getCreatedAt(pipeline) && {
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(pipeline)!,
+        }),
+        [CHOREO_ANNOTATIONS.STATUS]: isReady(pipeline) ? 'Ready' : 'Not Ready',
+        ...(getDeletionTimestamp(pipeline) && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]:
+            getDeletionTimestamp(pipeline)!,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+        'openchoreo.io/deployment-pipeline': 'true',
+      },
+    },
+    spec: {
+      namespaceName: namespaceName,
+      domain: `default/${namespaceName}`,
+      promotionPaths,
+    },
+  };
+}
+
+/**
+ * Translates a new-API ComponentType into a Backstage ComponentType entity.
+ */
+export function translateNewComponentTypeToEntity(
+  ct: NewComponentType,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): ComponentTypeEntityV1alpha1 {
+  return translateComponentTypeToEntity(
+    {
+      name: getName(ct)!,
+      displayName: getDisplayName(ct),
+      description: getDescription(ct),
+      workloadType: ct.spec?.workloadType,
+      allowedWorkflows: ct.spec?.allowedWorkflows,
+      allowedTraits: ct.spec?.allowedTraits,
+      createdAt: getCreatedAt(ct),
+      deletionTimestamp: getDeletionTimestamp(ct),
+    },
+    namespaceName,
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API Trait into a Backstage TraitType entity.
+ */
+export function translateNewTraitToEntity(
+  trait: NewTrait,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): TraitTypeEntityV1alpha1 {
+  return translateTraitToEntity(
+    {
+      name: getName(trait)!,
+      displayName: getDisplayName(trait),
+      description: getDescription(trait),
+      createdAt: getCreatedAt(trait),
+      deletionTimestamp: getDeletionTimestamp(trait),
+    },
+    namespaceName,
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API Workflow into a Backstage Workflow entity.
+ */
+export function translateNewWorkflowToEntity(
+  wf: NewWorkflow,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): WorkflowEntityV1alpha1 {
+  const isCI =
+    wf.metadata?.labels?.['openchoreo.dev/workflow-type'] === 'component';
+  const wpRef = (wf as any).spec?.workflowPlaneRef;
+  const ttl = (wf as any).spec?.ttlAfterCompletion;
+  return translateWorkflowToEntity(
+    {
+      name: getName(wf)!,
+      displayName: getDisplayName(wf),
+      description: getDescription(wf),
+      createdAt: getCreatedAt(wf),
+      parameters: extractWorkflowParameters((wf as any).spec),
+      type: isCI ? 'CI' : 'Generic',
+      deletionTimestamp: getDeletionTimestamp(wf),
+      ...(wpRef && {
+        workflowPlaneRef: { kind: wpRef.kind, name: wpRef.name },
+      }),
+      ...(ttl && { ttlAfterCompletion: ttl }),
+    },
+    namespaceName,
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API ClusterComponentType into a Backstage
+ * ClusterComponentType entity.
+ */
+export function translateNewClusterComponentTypeToEntity(
+  cct: NewClusterComponentType,
+  ctx: NewApiTranslatorContext,
+): ClusterComponentTypeEntityV1alpha1 {
+  return translateClusterComponentTypeToEntity(
+    {
+      name: getName(cct)!,
+      displayName: getDisplayName(cct),
+      description: getDescription(cct),
+      workloadType: cct.spec?.workloadType,
+      allowedWorkflows: cct.spec?.allowedWorkflows,
+      allowedTraits: cct.spec?.allowedTraits,
+      createdAt: getCreatedAt(cct),
+      deletionTimestamp: getDeletionTimestamp(cct),
+    },
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API ClusterTrait into a Backstage ClusterTraitType entity.
+ */
+export function translateNewClusterTraitToEntity(
+  ct: NewClusterTrait,
+  ctx: NewApiTranslatorContext,
+): ClusterTraitTypeEntityV1alpha1 {
+  return translateClusterTraitToEntity(
+    {
+      name: getName(ct)!,
+      displayName: getDisplayName(ct),
+      description: getDescription(ct),
+      createdAt: getCreatedAt(ct),
+      deletionTimestamp: getDeletionTimestamp(ct),
+    },
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API ClusterWorkflow into a Backstage ClusterWorkflow entity.
+ */
+export function translateNewClusterWorkflowToEntity(
+  cwf: NewClusterWorkflow,
+  ctx: NewApiTranslatorContext,
+): ClusterWorkflowEntityV1alpha1 {
+  const isCI =
+    cwf.metadata?.labels?.['openchoreo.dev/workflow-type'] === 'component';
+  const wpRef = (cwf as any).spec?.workflowPlaneRef;
+  const ttl = (cwf as any).spec?.ttlAfterCompletion;
+  return translateClusterWorkflowToEntity(
+    {
+      name: getName(cwf)!,
+      displayName: getDisplayName(cwf),
+      description: getDescription(cwf),
+      createdAt: getCreatedAt(cwf),
+      parameters: extractWorkflowParameters((cwf as any).spec),
+      type: isCI ? 'CI' : 'Generic',
+      deletionTimestamp: getDeletionTimestamp(cwf),
+      ...(wpRef && {
+        workflowPlaneRef: { kind: wpRef.kind, name: wpRef.name },
+      }),
+      ...(ttl && { ttlAfterCompletion: ttl }),
+    },
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API ClusterDataPlane into a Backstage ClusterDataplane entity.
+ */
+export function translateNewClusterDataplaneToEntity(
+  cdp: NewClusterDataPlane,
+  ctx: NewApiTranslatorContext,
+): ClusterDataplaneEntityV1alpha1 {
+  const cdpName = getName(cdp)!;
+  const ingress = cdp.spec?.gateway?.ingress;
+  const obsPlaneRef = cdp.spec?.observabilityPlaneRef;
+  const obsRefName = obsPlaneRef?.name;
+
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ClusterDataplane',
+    metadata: {
+      name: cdpName,
+      namespace: 'openchoreo-cluster',
+      title: getDisplayName(cdp) || cdpName,
+      description: getDescription(cdp) || `${cdpName} cluster data plane`,
+      tags: ['openchoreo', 'cluster-dataplane', 'infrastructure'],
+      annotations: {
+        ...managedAnnotations(ctx.providerName),
+        [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cdp) || '',
+        [CHOREO_ANNOTATIONS.STATUS]: isCreated(cdp) ? 'Ready' : 'Not Ready',
+        ...(obsRefName && {
+          [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
+        }),
+        ...mapAgentConnectionAnnotations(cdp.status?.agentConnection),
+        ...(getDeletionTimestamp(cdp) && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cdp)!,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+        'openchoreo.io/cluster-dataplane': 'true',
+      },
+    },
+    spec: {
+      gateway: ingress
+        ? {
+            ingress: {
+              external: ingress.external
+                ? {
+                    name: ingress.external.name,
+                    namespace: ingress.external.namespace,
+                    http: ingress.external.http
+                      ? {
+                          host: ingress.external.http.host,
+                          port: ingress.external.http.port,
+                        }
+                      : undefined,
+                    https: ingress.external.https
+                      ? {
+                          host: ingress.external.https.host,
+                          port: ingress.external.https.port,
+                        }
+                      : undefined,
+                  }
+                : undefined,
+              internal: ingress.internal
+                ? {
+                    name: ingress.internal.name,
+                    namespace: ingress.internal.namespace,
+                    http: ingress.internal.http
+                      ? {
+                          host: ingress.internal.http.host,
+                          port: ingress.internal.http.port,
+                        }
+                      : undefined,
+                    https: ingress.internal.https
+                      ? {
+                          host: ingress.internal.https.host,
+                          port: ingress.internal.https.port,
+                        }
+                      : undefined,
+                  }
+                : undefined,
+            },
+          }
+        : undefined,
+      observabilityPlaneRef: obsRefName,
+    },
+  };
+}
+
+/**
+ * Translates a new-API ClusterObservabilityPlane into a Backstage
+ * ClusterObservabilityPlane entity.
+ */
+export function translateNewClusterObservabilityPlaneToEntity(
+  cop: NewClusterObservabilityPlane,
+  ctx: NewApiTranslatorContext,
+): ClusterObservabilityPlaneEntityV1alpha1 {
+  const copName = getName(cop)!;
+
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ClusterObservabilityPlane',
+    metadata: {
+      name: copName,
+      namespace: 'openchoreo-cluster',
+      title: getDisplayName(cop) || copName,
+      description:
+        getDescription(cop) || `${copName} cluster observability plane`,
+      tags: ['openchoreo', 'cluster-observabilityplane', 'infrastructure'],
+      annotations: {
+        ...managedAnnotations(ctx.providerName),
+        [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cop) || '',
+        [CHOREO_ANNOTATIONS.STATUS]: isCreated(cop) ? 'Ready' : 'Not Ready',
+        ...(cop.spec?.observerURL && {
+          [CHOREO_ANNOTATIONS.OBSERVER_URL]: cop.spec.observerURL,
+        }),
+        ...mapAgentConnectionAnnotations(cop.status?.agentConnection),
+        ...(getDeletionTimestamp(cop) && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cop)!,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+        'openchoreo.io/cluster-observabilityplane': 'true',
+      },
+    },
+    spec: {
+      observerURL: cop.spec?.observerURL,
+    },
+  };
+}
+
+/**
+ * Translates a new-API ClusterWorkflowPlane into a Backstage
+ * ClusterWorkflowPlane entity.
+ */
+export function translateNewClusterWorkflowPlaneToEntity(
+  cbp: NewClusterWorkflowPlane,
+  ctx: NewApiTranslatorContext,
+): ClusterWorkflowPlaneEntityV1alpha1 {
+  const cbpName = getName(cbp)!;
+  const obsPlaneRef = cbp.spec?.observabilityPlaneRef;
+  const obsRefName = obsPlaneRef?.name;
+
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ClusterWorkflowPlane',
+    metadata: {
+      name: cbpName,
+      namespace: 'openchoreo-cluster',
+      title: getDisplayName(cbp) || cbpName,
+      description: getDescription(cbp) || `${cbpName} cluster workflow plane`,
+      tags: ['openchoreo', 'cluster-workflowplane', 'infrastructure'],
+      annotations: {
+        ...managedAnnotations(ctx.providerName),
+        [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cbp) || '',
+        [CHOREO_ANNOTATIONS.STATUS]: isCreated(cbp) ? 'Ready' : 'Not Ready',
+        ...(obsRefName && {
+          [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
+        }),
+        ...mapAgentConnectionAnnotations(cbp.status?.agentConnection),
+        ...(getDeletionTimestamp(cbp) && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cbp)!,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+        'openchoreo.io/cluster-workflowplane': 'true',
+      },
+    },
+    spec: {
+      observabilityPlaneRef: obsRefName,
     },
   };
 }
