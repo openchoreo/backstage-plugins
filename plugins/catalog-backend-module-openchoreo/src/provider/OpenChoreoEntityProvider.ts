@@ -29,6 +29,7 @@ import {
   extractAllWorkloadEndpoints,
   extractSchemaEndpoints,
   extractWorkloadDependencies,
+  filterDependenciesWithSchema,
   resolveComponentOwner,
   resolveProvidesAndConsumes,
 } from '../utils/helpers';
@@ -638,7 +639,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           }
 
           // Pass 2 — Create entities. Cross-resource resolution uses the
-          // shared helper so the periodic and event-driven paths emit
+          // shared helpers so the periodic and event-driven paths emit
           // identical providesApis/consumesApis content.
           for (const [, workloadData] of componentWorkloadMap.entries()) {
             const {
@@ -650,9 +651,24 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             } = workloadData;
             const componentName = getName(component)!;
 
+            // Filter dependencies to those whose target endpoint actually
+            // exposes a schema (only schemaful endpoints produce API
+            // entities). Cheap O(1) lookup against the in-memory
+            // componentWorkloadMap populated in pass 1 — no extra I/O.
+            const filteredDependencies = await filterDependenciesWithSchema(
+              dependencies,
+              projectName,
+              (targetProject, targetComponent, endpointName) => {
+                const target = componentWorkloadMap.get(
+                  `${targetProject}:${targetComponent}`,
+                );
+                return Boolean(target?.schemaEndpoints[endpointName]);
+              },
+            );
+
             const { providesApis, consumesApis } = resolveProvidesAndConsumes(
               schemaEndpoints,
-              dependencies,
+              filteredDependencies,
               projectName,
               componentName,
             );

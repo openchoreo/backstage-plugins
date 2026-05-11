@@ -16,9 +16,11 @@ import {
   extractAllWorkloadEndpoints,
   extractSchemaEndpoints,
   extractWorkloadDependencies,
+  filterDependenciesWithSchema,
   resolveComponentOwner,
   resolveProvidesAndConsumes,
 } from '../utils/helpers';
+import { WorkloadEndpoint } from '../utils/types';
 import {
   NewApiTranslatorContext,
   translateNewClusterComponentTypeToEntity,
@@ -588,9 +590,64 @@ export class EventDeltaApplier {
     const schemaEndpoints = extractSchemaEndpoints(allEndpoints);
     const dependencies = workload ? extractWorkloadDependencies(workload) : [];
 
+    // Filter `consumesApis` down to deps whose target endpoint actually
+    // exposes a schema. Without this, refs in `spec.consumesApis` point
+    // at API entities that don't exist (schema-less endpoints don't
+    // produce API entities), surfacing in the UI as "Some related
+    // entities could not be found".
+    //
+    // Dependencies are assumed intra-namespace: a workload's
+    // `dep.project` is the *owning OC Project* (a CR label), not a
+    // separate K8s namespace, and component names are unique within a
+    // namespace anyway. The periodic full sync makes the same
+    // assumption (its componentWorkloadMap is populated per-namespace
+    // and keyed by `<project>:<component>`), so both paths resolve
+    // dependencies the same way. Cross-namespace dependencies aren't
+    // currently part of the OC data model.
+    //
+    // Cache by `<ns>/<targetComponent>` since multiple deps may point
+    // at the same workload — one fetch each.
+    const targetWorkloadCache = new Map<string, NewWorkload | undefined>();
+    const fetchTargetWorkload = async (
+      targetComponent: string,
+    ): Promise<NewWorkload | undefined> => {
+      const key = `${ns}/${targetComponent}`;
+      if (targetWorkloadCache.has(key)) {
+        return targetWorkloadCache.get(key);
+      }
+      let target: NewWorkload | undefined;
+      try {
+        target = await this.fetchWorkloadForComponent(
+          client,
+          ns,
+          targetComponent,
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Failed to fetch workload for ${ns}/${targetComponent} while resolving consumesApis: ${err}`,
+        );
+        target = undefined;
+      }
+      targetWorkloadCache.set(key, target);
+      return target;
+    };
+    const filteredDependencies = await filterDependenciesWithSchema(
+      dependencies,
+      projectName,
+      async (_targetProject, targetComponent, endpointName) => {
+        const targetWorkload = await fetchTargetWorkload(targetComponent);
+        const endpoint = (
+          targetWorkload?.spec as
+            | { endpoints?: Record<string, WorkloadEndpoint> }
+            | undefined
+        )?.endpoints?.[endpointName];
+        return Boolean(endpoint?.schema?.content?.trim());
+      },
+    );
+
     const { providesApis, consumesApis } = resolveProvidesAndConsumes(
       schemaEndpoints,
-      dependencies,
+      filteredDependencies,
       projectName,
       name,
     );

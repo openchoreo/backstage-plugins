@@ -95,8 +95,53 @@ export function extractWorkloadDependencies(
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// API ref derivation (Option A — no schema-presence filter)
+// API ref derivation
 // ────────────────────────────────────────────────────────────────────────
+
+/**
+ * Predicate that answers "does the target component's named endpoint
+ * expose a schema?". Returned values may be sync or async — callers
+ * provide whichever shape matches their data source:
+ *
+ * - Full-sync path: synchronous lookup against the in-memory
+ *   `componentWorkloadMap` populated in pass 1.
+ * - Event-driven path: async lookup that fetches the target workload
+ *   via the OpenChoreo REST API.
+ *
+ * `defaultProject` is the caller-side project namespace used when a
+ * dependency's own `project` field is unset (intra-project deps).
+ */
+export type EndpointSchemaLookup = (
+  targetProject: string,
+  targetComponent: string,
+  endpointName: string,
+) => boolean | Promise<boolean>;
+
+/**
+ * Filters a workload's declared dependencies to the subset whose target
+ * endpoints actually expose a schema — i.e. the subset for which a
+ * Backstage API entity exists in the catalog. Used to keep
+ * `consumesApis` refs from pointing at nonexistent entities (which
+ * surfaces in the UI as "Some related entities could not be found").
+ *
+ * Cross-component dependency schema changes don't fan out on the event
+ * path; the periodic full sync remains the safety net for that case.
+ */
+export async function filterDependenciesWithSchema(
+  dependencies: WorkloadDependency[],
+  defaultProject: string,
+  hasSchema: EndpointSchemaLookup,
+): Promise<WorkloadDependency[]> {
+  const filtered: WorkloadDependency[] = [];
+  for (const dep of dependencies) {
+    const project = dep.project ?? defaultProject;
+    const result = await hasSchema(project, dep.component, dep.name);
+    if (result) {
+      filtered.push(dep);
+    }
+  }
+  return filtered;
+}
 
 /**
  * Computes a Component entity's `providesApis` and `consumesApis` ref
@@ -104,13 +149,12 @@ export function extractWorkloadDependencies(
  *
  * - `providesApis` is derived purely from this workload's schemaful
  *   endpoints, named `<project>-<component>-<endpoint>`.
- * - `consumesApis` is the literal list of declared dependencies in
- *   `workload.spec.dependencies.endpoints`. We do **not** peek at the
- *   target workload to confirm the target endpoint has a schema (Option
- *   A). Backstage's built-in processor will emit `consumesApi` /
- *   `apiConsumedBy` relations from these strings; if the target API
- *   entity exists the graph completes, otherwise the edge dangles
- *   harmlessly until the target's schema is added.
+ * - `consumesApis` is built from the supplied `dependencies` list. The
+ *   caller is responsible for pre-filtering this list down to the
+ *   dependencies whose target endpoints actually expose a schema — see
+ *   `filterDependenciesWithSchema`. Without that filter, the catalog
+ *   ends up with refs to API entities that don't exist and the UI
+ *   surfaces a "Some related entities could not be found" warning.
  *
  * Used by both the periodic full sync and the per-event delta path so
  * both produce identical `providesApis` / `consumesApis` content.
