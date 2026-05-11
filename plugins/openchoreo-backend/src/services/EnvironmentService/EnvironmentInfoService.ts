@@ -847,6 +847,126 @@ export class EnvironmentInfoService implements EnvironmentService {
   }
 
   /**
+   * Triggers a rolling restart of the workloads owned by a ReleaseBinding
+   * by stamping `openchoreo.dev/restartedAt` on the binding's metadata.
+   * The controller (openchoreo#3301) propagates the annotation into the
+   * dataplane Deployment's pod template, which rolls the pods the same
+   * way `kubectl rollout restart deployment` would.
+   *
+   * Implementation: GET the binding, set the annotation to the current
+   * ISO timestamp (always overwrite — any change in value, or the first
+   * appearance, is enough to trigger a fresh rollout), PUT it back.
+   *
+   * @param {Object} request - The rollout-restart request parameters
+   * @param {string} request.componentName - Name of the component
+   * @param {string} request.projectName - Name of the project containing the component
+   * @param {string} request.namespaceName - Name of the namespace owning the project
+   * @param {string} request.bindingName - Name of the binding to restart
+   * @returns {Promise<Environment[]>} Array of environments with updated deployment information
+   * @throws {Error} When the binding cannot be fetched or updated
+   */
+  async rolloutRestartReleaseBinding(
+    request: {
+      componentName: string;
+      projectName: string;
+      namespaceName: string;
+      bindingName: string;
+    },
+    token?: string,
+  ): Promise<Environment[]> {
+    const startTime = Date.now();
+    try {
+      this.logger.info(
+        `Triggering rollout restart for component: ${request.componentName}, binding: ${request.bindingName}`,
+      );
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const {
+        data: existing,
+        error: getError,
+        response: getResponse,
+      } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              releaseBindingName: request.bindingName,
+            },
+          },
+        },
+      );
+
+      assertApiResponse(
+        { data: existing, error: getError, response: getResponse },
+        'fetch binding for rollout restart',
+      );
+
+      const restartedAt = new Date().toISOString();
+      const updated = {
+        ...existing!,
+        metadata: {
+          ...existing!.metadata,
+          annotations: {
+            ...(existing!.metadata.annotations ?? {}),
+            'openchoreo.dev/restartedAt': restartedAt,
+          },
+        },
+      };
+
+      const { error, response } = await client.PUT(
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              releaseBindingName: request.bindingName,
+            },
+          },
+          body: updated,
+        },
+      );
+
+      assertApiResponse(
+        { data: undefined, error, response },
+        'rollout restart binding',
+      );
+
+      this.logger.debug(
+        `Rollout restart triggered successfully for ${request.bindingName} at ${restartedAt}.`,
+      );
+
+      const refreshedEnvironments = await this.fetchDeploymentInfo(
+        {
+          componentName: request.componentName,
+          projectName: request.projectName,
+          namespaceName: request.namespaceName,
+        },
+        token,
+      );
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Rollout restart completed for ${request.componentName}: Total: ${totalTime}ms`,
+      );
+
+      return refreshedEnvironments;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error triggering rollout restart for binding ${request.bindingName} on component ${request.componentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Creates a ComponentRelease with an optional release name.
    * If no release name is provided, the backend auto-generates one.
    *

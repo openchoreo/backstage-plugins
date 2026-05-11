@@ -77,14 +77,19 @@ export function useEnvironmentActions(
     [entity, client, refetch, notification],
   );
 
-  // Stub: rollout-restart API + reconciliation lands in a follow-up. This
-  // handler is wired through the panel today so only the API call is left
-  // to swap in.
+  // Rollout restart is declarative on the platform side: we stamp
+  // openchoreo.dev/restartedAt on the ReleaseBinding and the controller
+  // (openchoreo#3301) propagates it into the data-plane Deployment's
+  // pod template, which rolls the pods like `kubectl rollout restart`.
+  // Fire-and-forget — no polling here; the new pods come up async and
+  // the user can watch the pod-status panel.
   const handleRolloutRestart = useCallback(
-    async (_bindingName: string) => {
-      notification.showError('Rollout restart is not yet wired up');
+    async (bindingName: string) => {
+      await client.rolloutRestartReleaseBinding(entity, bindingName);
+      await refetch();
+      notification.showSuccess(`Rollout restart triggered for ${bindingName}`);
     },
-    [notification],
+    [entity, client, refetch, notification],
   );
 
   // Removing the deployment deletes the release binding for the env;

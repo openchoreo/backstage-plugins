@@ -437,6 +437,12 @@ export interface OpenChoreoClientApi {
     releaseState: 'Active' | 'Suspend' | 'Undeploy',
   ): Promise<any>;
 
+  /** Trigger a rolling restart of the binding's workloads via the openchoreo.dev/restartedAt annotation */
+  rolloutRestartReleaseBinding(
+    entity: Entity,
+    bindingName: string,
+  ): Promise<any>;
+
   /** Patch component settings (e.g., autoDeploy) */
   patchComponent(entity: Entity, autoDeploy: boolean): Promise<any>;
 
