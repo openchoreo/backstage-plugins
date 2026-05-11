@@ -16,9 +16,11 @@ import {
   extractAllWorkloadEndpoints,
   extractSchemaEndpoints,
   extractWorkloadDependencies,
+  filterDependenciesWithSchema,
   resolveComponentOwner,
   resolveProvidesAndConsumes,
 } from '../utils/helpers';
+import { WorkloadEndpoint } from '../utils/types';
 import {
   NewApiTranslatorContext,
   translateNewClusterComponentTypeToEntity,
@@ -588,9 +590,57 @@ export class EventDeltaApplier {
     const schemaEndpoints = extractSchemaEndpoints(allEndpoints);
     const dependencies = workload ? extractWorkloadDependencies(workload) : [];
 
+    // Filter `consumesApis` down to deps whose target endpoint actually
+    // exposes a schema. Without this, refs in `spec.consumesApis` point
+    // at API entities that don't exist (schema-less endpoints don't
+    // produce API entities), surfacing in the UI as "Some related
+    // entities could not be found". Cache by target component since
+    // multiple deps may point at the same workload — one fetch each.
+    const targetWorkloadCache = new Map<string, NewWorkload | undefined>();
+    const fetchTargetWorkload = async (
+      targetProject: string,
+      targetComponent: string,
+    ): Promise<NewWorkload | undefined> => {
+      const key = `${targetProject}/${targetComponent}`;
+      if (targetWorkloadCache.has(key)) {
+        return targetWorkloadCache.get(key);
+      }
+      let target: NewWorkload | undefined;
+      try {
+        target = await this.fetchWorkloadForComponent(
+          client,
+          targetProject,
+          targetComponent,
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Failed to fetch workload for ${targetProject}/${targetComponent} while resolving consumesApis: ${err}`,
+        );
+        target = undefined;
+      }
+      targetWorkloadCache.set(key, target);
+      return target;
+    };
+    const filteredDependencies = await filterDependenciesWithSchema(
+      dependencies,
+      projectName,
+      async (targetProject, targetComponent, endpointName) => {
+        const targetWorkload = await fetchTargetWorkload(
+          targetProject,
+          targetComponent,
+        );
+        const endpoint = (
+          targetWorkload?.spec as
+            | { endpoints?: Record<string, WorkloadEndpoint> }
+            | undefined
+        )?.endpoints?.[endpointName];
+        return Boolean(endpoint?.schema?.content?.trim());
+      },
+    );
+
     const { providesApis, consumesApis } = resolveProvidesAndConsumes(
       schemaEndpoints,
-      dependencies,
+      filteredDependencies,
       projectName,
       name,
     );
