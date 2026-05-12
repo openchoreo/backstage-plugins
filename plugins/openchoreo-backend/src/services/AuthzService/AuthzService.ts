@@ -615,6 +615,7 @@ export class AuthzService {
         roleMappings: (b.spec?.roleMappings || []).map((rm: any) => ({
           role: rm.roleRef?.name ?? '',
           scope: rm.scope || undefined,
+          ...(rm.conditions && { conditions: rm.conditions }),
         })),
         entitlement: {
           claim: b.spec?.entitlement?.claim ?? '',
@@ -672,6 +673,7 @@ export class AuthzService {
             (rm: any) => ({
               role: rm.roleRef?.name ?? '',
               scope: rm.scope || undefined,
+              ...(rm.conditions && { conditions: rm.conditions }),
             }),
           ),
           entitlement: {
@@ -698,6 +700,10 @@ export class AuthzService {
       const roleMappings = (binding.roleMappings || []).map((rm: any) => ({
         roleRef: { kind: 'ClusterAuthzRole', name: rm.role },
         ...(rm.scope && { scope: rm.scope }),
+        ...(rm.conditions &&
+          rm.conditions.length > 0 && {
+            conditions: rm.conditions,
+          }),
       }));
 
       const { data, error, response } = await client.POST(
@@ -729,6 +735,7 @@ export class AuthzService {
             (rm: any) => ({
               role: rm.roleRef?.name ?? '',
               scope: rm.scope || undefined,
+              ...(rm.conditions && { conditions: rm.conditions }),
             }),
           ),
           entitlement: {
@@ -756,6 +763,10 @@ export class AuthzService {
       const roleMappings = (binding.roleMappings || []).map((rm: any) => ({
         roleRef: { kind: 'ClusterAuthzRole', name: rm.role },
         ...(rm.scope && { scope: rm.scope }),
+        ...(rm.conditions &&
+          rm.conditions.length > 0 && {
+            conditions: rm.conditions,
+          }),
       }));
 
       const { data, error, response } = await client.PUT(
@@ -786,6 +797,7 @@ export class AuthzService {
             (rm: any) => ({
               role: rm.roleRef?.name ?? '',
               scope: rm.scope || undefined,
+              ...(rm.conditions && { conditions: rm.conditions }),
             }),
           ),
           entitlement: {
@@ -880,6 +892,7 @@ export class AuthzService {
             namespace: rm.roleRef?.kind === 'AuthzRole' ? namespace : undefined,
           },
           scope: rm.scope || undefined,
+          ...(rm.conditions && { conditions: rm.conditions }),
         })),
         entitlement: {
           claim: b.spec?.entitlement?.claim ?? '',
@@ -952,6 +965,7 @@ export class AuthzService {
                   rm.roleRef?.kind === 'AuthzRole' ? namespace : undefined,
               },
               scope: rm.scope || undefined,
+              ...(rm.conditions && { conditions: rm.conditions }),
             }),
           ),
           entitlement: {
@@ -985,6 +999,10 @@ export class AuthzService {
           name: rm.role?.name ?? rm.role,
         },
         ...(rm.scope && { scope: rm.scope }),
+        ...(rm.conditions &&
+          rm.conditions.length > 0 && {
+            conditions: rm.conditions,
+          }),
       }));
 
       const { data, error, response } = await client.POST(
@@ -1024,6 +1042,7 @@ export class AuthzService {
                     : undefined,
               },
               scope: rm.scope || undefined,
+              ...(rm.conditions && { conditions: rm.conditions }),
             }),
           ),
           entitlement: {
@@ -1055,6 +1074,10 @@ export class AuthzService {
           name: rm.role?.name ?? rm.role,
         },
         ...(rm.scope && { scope: rm.scope }),
+        ...(rm.conditions &&
+          rm.conditions.length > 0 && {
+            conditions: rm.conditions,
+          }),
       }));
 
       const { data, error, response } = await client.PUT(
@@ -1092,6 +1115,7 @@ export class AuthzService {
                   rm.roleRef?.kind === 'AuthzRole' ? namespace : undefined,
               },
               scope: rm.scope || undefined,
+              ...(rm.conditions && { conditions: rm.conditions }),
             }),
           ),
           entitlement: {

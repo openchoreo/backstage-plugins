@@ -23,6 +23,7 @@ interface ScopeDropdownProps {
   onChange: (scope: BindingScope) => void;
   clusterLabel?: string;
   namespaceLabel?: string;
+  disabled?: boolean;
 }
 
 export const ScopeDropdown = ({
@@ -30,6 +31,7 @@ export const ScopeDropdown = ({
   onChange,
   clusterLabel = 'Cluster',
   namespaceLabel = 'Namespace',
+  disabled = false,
 }: ScopeDropdownProps) => {
   const classes = useStyles();
 
@@ -38,6 +40,7 @@ export const ScopeDropdown = ({
       variant="outlined"
       size="small"
       className={classes.formControl}
+      disabled={disabled}
     >
       <Select
         value={value}

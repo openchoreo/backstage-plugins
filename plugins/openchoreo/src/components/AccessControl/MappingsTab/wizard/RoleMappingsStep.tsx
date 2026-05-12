@@ -1,29 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Typography,
   Button,
   IconButton,
   Paper,
-  FormControl,
-  Select,
-  MenuItem,
-  CircularProgress,
   Chip,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import DeleteIcon from '@material-ui/icons/DeleteOutlined';
 import EditIcon from '@material-ui/icons/EditOutlined';
-import CheckIcon from '@material-ui/icons/Check';
-import CloseIcon from '@material-ui/icons/Close';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { Tooltip } from '@material-ui/core';
 import { WizardStepProps, WizardRoleMapping } from './types';
-import { BindingType } from '../MappingDialog';
-import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../../constants';
+import { RoleMappingDialog } from './RoleMappingDialog';
+import { BindingScope, SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../../constants';
 import { useSharedStyles } from '../styles';
-import { useNamespaces, useProjects, useComponents } from '../../hooks';
+import { buildScopePath } from './utils';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -62,13 +56,20 @@ const useStyles = makeStyles(theme => ({
     letterSpacing: '0.05em',
   },
   roleColumn: {
-    flex: '0 0 45%',
+    flex: '0 0 35%',
+    minWidth: 0,
   },
   scopeColumn: {
-    flex: '0 0 45%',
+    flex: '0 0 40%',
+    minWidth: 0,
+  },
+  conditionsColumn: {
+    flex: '0 0 15%',
+    minWidth: 0,
   },
   actionsColumn: {
     flex: '0 0 10%',
+    minWidth: 0,
     display: 'flex',
     justifyContent: 'flex-end',
     alignItems: 'center',
@@ -82,11 +83,7 @@ const useStyles = makeStyles(theme => ({
       borderBottom: 'none',
     },
   },
-  editingRow: {
-    padding: theme.spacing(2),
-    backgroundColor: theme.palette.background.default,
-  },
-  confirmedText: {
+  roleText: {
     fontWeight: 500,
     fontSize: '0.95rem',
   },
@@ -94,234 +91,33 @@ const useStyles = makeStyles(theme => ({
     fontFamily: 'monospace',
     fontSize: '0.875rem',
     color: theme.palette.text.secondary,
-  },
-  editingFields: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(1),
-  },
-  fieldSelect: {
-    width: '100%',
-  },
-  actionButtons: {
-    display: 'flex',
-    gap: theme.spacing(0.5),
-    alignItems: 'center',
-  },
-  confirmButton: {
-    color: theme.palette.primary.main,
-  },
-  cancelButton: {
-    color: theme.palette.text.secondary,
-  },
-  editButton: {
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: theme.shape.borderRadius,
-    padding: theme.spacing(0.5, 1.5),
-    fontSize: '0.8rem',
-    textTransform: 'none',
-  },
-  duplicateWarning: {
-    color: theme.palette.error.main,
-    fontSize: '0.75rem',
-    marginTop: theme.spacing(0.5),
+    overflowWrap: 'anywhere',
   },
   emptyState: {
     textAlign: 'center',
     padding: theme.spacing(4),
     color: theme.palette.text.secondary,
   },
+  conditionsChip: {
+    fontSize: '0.7rem',
+    height: 22,
+  },
+  actionButtons: {
+    display: 'flex',
+    gap: theme.spacing(0.5),
+    alignItems: 'center',
+  },
 }));
 
 interface RoleMappingsStepProps extends WizardStepProps {
-  bindingType?: BindingType;
+  bindingType?: BindingScope;
   namespace?: string;
 }
 
-/** Build scope path string like `ns:default/proj:myproj/*` */
-function buildScopePath(
-  rm: WizardRoleMapping,
-  bindingType?: BindingType,
-  namespace?: string,
-): string {
-  if (bindingType === SCOPE_CLUSTER) {
-    if (!rm.namespace && !rm.project && !rm.component) return 'cluster:*';
-    const parts: string[] = [];
-    if (rm.namespace) {
-      parts.push(`ns:${rm.namespace}`);
-      if (rm.project) {
-        parts.push(`proj:${rm.project}`);
-        if (rm.component) {
-          parts.push(`comp:${rm.component}`);
-        } else {
-          parts.push('*');
-        }
-      } else {
-        parts.push('*');
-      }
-    }
-    return parts.join('/');
-  }
-  // namespace binding
-  const ns = namespace || '*';
-  if (!rm.project && !rm.component) return `ns:${ns}/*`;
-  const parts: string[] = [`ns:${ns}`];
-  if (rm.project) {
-    parts.push(`proj:${rm.project}`);
-    if (rm.component) {
-      parts.push(`comp:${rm.component}`);
-    } else {
-      parts.push('*');
-    }
-  }
-  return parts.join('/');
-}
-
-/** Check if a mapping duplicates another in the list (same role + scope) */
-function isDuplicateMapping(
-  mapping: WizardRoleMapping,
-  index: number,
-  allMappings: WizardRoleMapping[],
-  bindingType?: BindingType,
-): boolean {
-  if (!mapping.role) return false;
-  return allMappings.some(
-    (other, i) =>
-      i !== index &&
-      other.role === mapping.role &&
-      other.namespace === mapping.namespace &&
-      other.project === mapping.project &&
-      other.component === mapping.component &&
-      (bindingType === SCOPE_CLUSTER ||
-        other.roleNamespace === mapping.roleNamespace),
-  );
-}
-
-/** Inline scope editor for a single mapping row */
-const ScopeEditor = ({
-  mapping,
-  bindingType,
-  namespace,
-  availableNamespaces,
-  namespacesLoading,
-  onUpdate,
-}: {
-  mapping: WizardRoleMapping;
-  bindingType?: BindingType;
-  namespace?: string;
-  availableNamespaces: Array<{ name: string }>;
-  namespacesLoading: boolean;
-  onUpdate: (updates: Partial<WizardRoleMapping>) => void;
-}) => {
-  const classes = useStyles();
-
-  const effectiveNamespace =
-    bindingType === SCOPE_NAMESPACE ? namespace : mapping.namespace;
-
-  const { projects, loading: projectsLoading } = useProjects(
-    effectiveNamespace || undefined,
-  );
-  const { components, loading: componentsLoading } = useComponents(
-    effectiveNamespace || undefined,
-    mapping.project || undefined,
-  );
-
-  return (
-    <Box className={classes.editingFields}>
-      {bindingType === SCOPE_CLUSTER && (
-        <FormControl
-          size="small"
-          variant="outlined"
-          className={classes.fieldSelect}
-        >
-          <Select
-            value={mapping.namespace || '_all'}
-            onChange={e => {
-              const val = e.target.value as string;
-              onUpdate({
-                namespace: val === '_all' ? '' : val,
-                project: '',
-                component: '',
-              });
-            }}
-          >
-            <MenuItem value="_all">All Namespaces</MenuItem>
-            {namespacesLoading && (
-              <MenuItem disabled>
-                <CircularProgress size={16} />
-              </MenuItem>
-            )}
-            {availableNamespaces.map(ns => (
-              <MenuItem key={ns.name} value={ns.name}>
-                {ns.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      )}
-
-      {effectiveNamespace && (
-        <FormControl
-          size="small"
-          variant="outlined"
-          className={classes.fieldSelect}
-        >
-          <Select
-            value={mapping.project || '_all'}
-            onChange={e => {
-              const val = e.target.value as string;
-              onUpdate({
-                project: val === '_all' ? '' : val,
-                component: '',
-              });
-            }}
-          >
-            <MenuItem value="_all">All Projects</MenuItem>
-            {projectsLoading && (
-              <MenuItem disabled>
-                <CircularProgress size={16} />
-              </MenuItem>
-            )}
-            {projects.map(p => (
-              <MenuItem key={p.name} value={p.name}>
-                {p.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      )}
-
-      {mapping.project && (
-        <FormControl
-          size="small"
-          variant="outlined"
-          className={classes.fieldSelect}
-        >
-          <Select
-            value={mapping.component || '_all'}
-            onChange={e => {
-              const val = e.target.value as string;
-              onUpdate({ component: val === '_all' ? '' : val });
-            }}
-          >
-            <MenuItem value="_all">All Components</MenuItem>
-            {componentsLoading && (
-              <MenuItem disabled>
-                <CircularProgress size={16} />
-              </MenuItem>
-            )}
-            {components.map(c => (
-              <MenuItem key={c.name} value={c.name}>
-                {c.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      )}
-    </Box>
-  );
-};
-
+/**
+ * Step 2: define one or more role mappings.
+ * editing happens in a modal so role + scope + conditions can be set together.
+ */
 export const RoleMappingsStep = ({
   state,
   onChange,
@@ -332,192 +128,40 @@ export const RoleMappingsStep = ({
   const classes = useStyles();
   const sharedClasses = useSharedStyles();
 
-  const { namespaces, loading: namespacesLoading } = useNamespaces();
-
-  // Track which row is being edited and a draft copy for cancel
+  /**
+   * Dialog state. `editingIndex === -1` means we're creating a brand-new
+   * mapping; non-negative means editing the row at that index. `null` means
+   * the dialog is closed.
+   */
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [draft, setDraft] = useState<WizardRoleMapping | null>(null);
 
-  // For namespace bindings, split roles into groups
-  const clusterRoles = availableRoles.filter(r => !r.namespace);
-  const namespaceRoles = availableRoles.filter(r => !!r.namespace);
+  const handleOpenAdd = () => setEditingIndex(-1);
+  const handleOpenEdit = (index: number) => setEditingIndex(index);
+  const handleCancel = () => setEditingIndex(null);
 
-  const handleAddMapping = () => {
-    const newMapping: WizardRoleMapping = {
-      role: '',
-      roleNamespace: '',
-      namespace: '',
-      project: '',
-      component: '',
-      confirmed: false,
-    };
-    const updated = [...state.roleMappings, newMapping];
+  const handleSave = (mapping: WizardRoleMapping) => {
+    const updated = [...state.roleMappings];
+    if (editingIndex === -1 || editingIndex === null) {
+      updated.push(mapping);
+    } else {
+      updated[editingIndex] = mapping;
+    }
     onChange({ roleMappings: updated });
-    // Auto-enter editing for the new row
-    setEditingIndex(updated.length - 1);
-    setDraft({ ...newMapping });
+    setEditingIndex(null);
   };
 
-  const handleRemoveMapping = (index: number) => {
-    if (editingIndex === index) {
-      setEditingIndex(null);
-      setDraft(null);
-    }
+  const handleDelete = (index: number) => {
     const updated = state.roleMappings.filter((_, i) => i !== index);
-    onChange({
-      roleMappings:
-        updated.length > 0
-          ? updated
-          : [
-              {
-                role: '',
-                roleNamespace: '',
-                namespace: '',
-                project: '',
-                component: '',
-                confirmed: false,
-              },
-            ],
-    });
-    // Adjust editingIndex if needed
-    if (editingIndex !== null && editingIndex > index) {
-      setEditingIndex(editingIndex - 1);
-    }
-  };
-
-  const handleStartEdit = (index: number) => {
-    setEditingIndex(index);
-    setDraft({ ...state.roleMappings[index] });
-  };
-
-  const handleConfirm = (index: number) => {
-    const updated = [...state.roleMappings];
-    updated[index] = { ...updated[index], confirmed: true };
-    onChange({ roleMappings: updated });
-    setEditingIndex(null);
-    setDraft(null);
-  };
-
-  const handleCancel = (index: number) => {
-    if (draft) {
-      // If this was a new empty row that was never confirmed, remove it
-      if (!draft.confirmed && !draft.role) {
-        const updated = state.roleMappings.filter((_, i) => i !== index);
-        if (updated.length > 0) {
-          onChange({ roleMappings: updated });
-        }
-      } else {
-        // Restore draft
-        const updated = [...state.roleMappings];
-        updated[index] = draft;
-        onChange({ roleMappings: updated });
-      }
-    }
-    setEditingIndex(null);
-    setDraft(null);
-  };
-
-  const getRoleKey = (role: { name: string; namespace?: string }) =>
-    `${role.name}|${role.namespace || ''}`;
-
-  const getMappingRoleKey = (rm: WizardRoleMapping) =>
-    `${rm.role}|${rm.roleNamespace || ''}`;
-
-  const handleRoleChange = (index: number, compositeKey: string) => {
-    const [roleName, roleNamespace] = compositeKey.split('|');
-    const updated = [...state.roleMappings];
-    updated[index] = {
-      ...updated[index],
-      role: roleName,
-      roleNamespace: roleNamespace || '',
-    };
     onChange({ roleMappings: updated });
   };
 
-  const handleScopeUpdate = (
-    index: number,
-    updates: Partial<WizardRoleMapping>,
-  ) => {
-    const updated = [...state.roleMappings];
-    updated[index] = { ...updated[index], ...updates };
-    onChange({ roleMappings: updated });
-  };
+  const dialogOpen = editingIndex !== null;
+  const dialogInitial =
+    editingIndex !== null && editingIndex >= 0
+      ? state.roleMappings[editingIndex]
+      : undefined;
 
-  const renderRoleSelect = (mapping: WizardRoleMapping, index: number) => (
-    <FormControl
-      size="small"
-      variant="outlined"
-      className={classes.fieldSelect}
-    >
-      <Select
-        value={mapping.role ? getMappingRoleKey(mapping) : ''}
-        onChange={e => handleRoleChange(index, e.target.value as string)}
-        displayEmpty
-        renderValue={selected =>
-          selected ? (
-            String(selected).split('|')[0]
-          ) : (
-            <span style={{ color: '#9e9e9e' }}>Select a role...</span>
-          )
-        }
-      >
-        <MenuItem value="" disabled>
-          Select a role...
-        </MenuItem>
-        {bindingType === SCOPE_NAMESPACE
-          ? [
-              namespaceRoles.length > 0 && (
-                <MenuItem disabled key="__ns_header">
-                  <Typography variant="caption" color="textSecondary">
-                    Namespace Roles
-                  </Typography>
-                </MenuItem>
-              ),
-              ...namespaceRoles.map(role => (
-                <MenuItem
-                  key={`ns-${getRoleKey(role)}`}
-                  value={getRoleKey(role)}
-                >
-                  {role.name}
-                </MenuItem>
-              )),
-              clusterRoles.length > 0 && (
-                <MenuItem disabled key="__cr_header">
-                  <Typography variant="caption" color="textSecondary">
-                    Cluster Roles
-                  </Typography>
-                </MenuItem>
-              ),
-              ...clusterRoles.map(role => (
-                <MenuItem
-                  key={`cr-${getRoleKey(role)}`}
-                  value={getRoleKey(role)}
-                >
-                  {role.name}
-                </MenuItem>
-              )),
-            ]
-          : availableRoles.map(role => (
-              <MenuItem key={getRoleKey(role)} value={getRoleKey(role)}>
-                {role.name}
-              </MenuItem>
-            ))}
-      </Select>
-    </FormControl>
-  );
-
-  // Auto-open first row for editing if it's the initial empty state
-  useEffect(() => {
-    if (
-      editingIndex === null &&
-      state.roleMappings.length === 1 &&
-      !state.roleMappings[0].role &&
-      !state.roleMappings[0].confirmed
-    ) {
-      setEditingIndex(0);
-      setDraft({ ...state.roleMappings[0] });
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const visibleRows = state.roleMappings.filter(rm => rm.confirmed);
 
   return (
     <Box className={classes.root}>
@@ -529,155 +173,133 @@ export const RoleMappingsStep = ({
           variant="outlined"
           color="primary"
           startIcon={<AddIcon />}
-          onClick={handleAddMapping}
+          onClick={handleOpenAdd}
           className={classes.addButton}
-          disabled={editingIndex !== null}
         >
-          Add
+          Add Mapping
         </Button>
       </Box>
 
-      <Paper variant="outlined" className={classes.tableContainer}>
-        <Box className={classes.tableHeader}>
-          <Box className={classes.roleColumn}>
-            <Typography className={classes.headerLabel}>Roles</Typography>
-          </Box>
-          <Box
-            className={classes.scopeColumn}
-            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-          >
-            <Typography className={classes.headerLabel}>Scope</Typography>
-            <Tooltip
-              title="Scope defines the boundary where the role applies. It can be at cluster, namespace, project, or component level. A wildcard (*) means the role applies to all resources at that level and below."
-              arrow
-              placement="top"
+      {visibleRows.length === 0 ? (
+        <Paper variant="outlined" className={classes.emptyState}>
+          <Typography variant="body1">
+            No role mappings yet — click <strong>Add Mapping</strong> to grant a
+            role.
+          </Typography>
+        </Paper>
+      ) : (
+        <Paper variant="outlined" className={classes.tableContainer}>
+          <Box className={classes.tableHeader}>
+            <Box className={classes.roleColumn}>
+              <Typography className={classes.headerLabel}>Role</Typography>
+            </Box>
+            <Box
+              className={classes.scopeColumn}
+              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
             >
-              <InfoOutlinedIcon
-                style={{
-                  fontSize: 16,
-                  color: 'inherit',
-                  opacity: 0.6,
-                  cursor: 'help',
-                }}
-              />
-            </Tooltip>
+              <Typography className={classes.headerLabel}>Scope</Typography>
+              <Tooltip
+                title="Scope defines the boundary where the role applies. A wildcard (*) means the role applies to all resources at that level and below."
+                arrow
+                placement="top"
+              >
+                <InfoOutlinedIcon
+                  style={{
+                    fontSize: 16,
+                    opacity: 0.6,
+                    cursor: 'help',
+                  }}
+                />
+              </Tooltip>
+            </Box>
+            <Box className={classes.conditionsColumn}>
+              <Typography className={classes.headerLabel}>
+                Conditions
+              </Typography>
+            </Box>
+            <Box className={classes.actionsColumn} />
           </Box>
-          <Box className={classes.actionsColumn} />
-        </Box>
 
-        {state.roleMappings.map((mapping, index) => {
-          const isEditing = editingIndex === index;
-          const scopePath = buildScopePath(mapping, bindingType, namespace);
-
-          if (isEditing) {
-            const isDuplicate = isDuplicateMapping(
-              mapping,
-              index,
-              state.roleMappings,
-              bindingType,
-            );
+          {state.roleMappings.map((mapping, index) => {
+            if (!mapping.confirmed) return null;
+            const scopePath = buildScopePath(mapping, bindingType, namespace);
+            const conditionCount = mapping.conditions.length;
 
             return (
-              <Box
-                key={index}
-                className={`${classes.row} ${classes.editingRow}`}
-              >
-                <Box
-                  className={classes.roleColumn}
-                  style={{ paddingRight: 16 }}
-                >
-                  {renderRoleSelect(mapping, index)}
-                  {isDuplicate && (
-                    <Typography className={classes.duplicateWarning}>
-                      Duplicate role and scope combination
-                    </Typography>
-                  )}
+              <Box key={index} className={classes.row}>
+                <Box className={classes.roleColumn}>
+                  <Typography className={classes.roleText}>
+                    {mapping.role}
+                    {bindingType === SCOPE_NAMESPACE &&
+                      !mapping.roleNamespace &&
+                      mapping.role && (
+                        <Chip
+                          label="Cluster"
+                          size="small"
+                          variant="outlined"
+                          className={sharedClasses.clusterRoleChip}
+                        />
+                      )}
+                  </Typography>
                 </Box>
-                <Box
-                  className={classes.scopeColumn}
-                  style={{ paddingRight: 16 }}
-                >
-                  <ScopeEditor
-                    mapping={mapping}
-                    bindingType={bindingType}
-                    namespace={namespace}
-                    availableNamespaces={namespaces}
-                    namespacesLoading={namespacesLoading}
-                    onUpdate={updates => handleScopeUpdate(index, updates)}
-                  />
+                <Box className={classes.scopeColumn}>
+                  <Typography className={classes.scopePath}>
+                    {scopePath}
+                  </Typography>
+                </Box>
+                <Box className={classes.conditionsColumn}>
+                  {conditionCount === 0 ? (
+                    <Typography variant="body2" color="textSecondary">
+                      —
+                    </Typography>
+                  ) : (
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={`${conditionCount} condition${
+                        conditionCount === 1 ? '' : 's'
+                      }`}
+                      className={classes.conditionsChip}
+                    />
+                  )}
                 </Box>
                 <Box className={classes.actionsColumn}>
                   <Box className={classes.actionButtons}>
                     <IconButton
                       size="small"
-                      className={classes.confirmButton}
-                      onClick={() => handleConfirm(index)}
-                      disabled={!mapping.role || isDuplicate}
-                      title="Confirm"
+                      onClick={() => handleOpenEdit(index)}
+                      title="Edit"
                     >
-                      <CheckIcon fontSize="small" />
+                      <EditIcon fontSize="small" />
                     </IconButton>
                     <IconButton
                       size="small"
-                      className={classes.cancelButton}
-                      onClick={() => handleCancel(index)}
-                      title="Cancel"
+                      onClick={() => handleDelete(index)}
+                      title="Delete"
                     >
-                      <CloseIcon fontSize="small" />
+                      <DeleteIcon fontSize="small" />
                     </IconButton>
                   </Box>
                 </Box>
               </Box>
             );
-          }
+          })}
+        </Paper>
+      )}
 
-          // Confirmed / read-only row
-          return (
-            <Box key={index} className={classes.row}>
-              <Box className={classes.roleColumn}>
-                <Typography className={classes.confirmedText}>
-                  {mapping.role || '\u2014'}
-                  {bindingType === SCOPE_NAMESPACE &&
-                    !mapping.roleNamespace &&
-                    mapping.role && (
-                      <Chip
-                        label="Cluster"
-                        size="small"
-                        variant="outlined"
-                        className={sharedClasses.clusterRoleChip}
-                      />
-                    )}
-                </Typography>
-              </Box>
-              <Box className={classes.scopeColumn}>
-                <Typography className={classes.scopePath}>
-                  {scopePath}
-                </Typography>
-              </Box>
-              <Box className={classes.actionsColumn}>
-                <Box className={classes.actionButtons}>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleStartEdit(index)}
-                    disabled={editingIndex !== null}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleRemoveMapping(index)}
-                    disabled={
-                      state.roleMappings.length <= 1 || editingIndex !== null
-                    }
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </Box>
-            </Box>
-          );
-        })}
-      </Paper>
+      <RoleMappingDialog
+        open={dialogOpen}
+        initial={dialogInitial}
+        bindingType={bindingType ?? SCOPE_CLUSTER}
+        namespace={namespace}
+        availableRoles={availableRoles}
+        existingMappings={state.roleMappings}
+        editingIndex={
+          editingIndex !== null && editingIndex >= 0 ? editingIndex : undefined
+        }
+        onSave={handleSave}
+        onCancel={handleCancel}
+      />
     </Box>
   );
 };

@@ -95,9 +95,14 @@ export const AccessControlContent = () => {
   const defaultTab = tabs[0]?.id ?? TAB_ACTIONS;
   const [params, setParams] = useQueryParams({
     tab: { defaultValue: defaultTab },
+    action: { defaultValue: '' },
   });
   const activeTab = (params.tab as string) ?? defaultTab;
   const setActiveTab = (tab: string) => setParams({ tab });
+  const wizardAction = (params.action as string) || '';
+  const mappingsWizardActive =
+    activeTab === TAB_MAPPINGS &&
+    (wizardAction === 'create' || wizardAction === 'edit');
 
   if (permissionsLoading) {
     return <Progress />;
@@ -132,6 +137,10 @@ export const AccessControlContent = () => {
         </Box>
       </WarningPanel>
     );
+  }
+
+  if (mappingsWizardActive) {
+    return <MappingsTab />;
   }
 
   return (

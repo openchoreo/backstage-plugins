@@ -1,2 +1,2 @@
 export { MappingsTab } from './MappingsTab';
-export { MappingDialog } from './MappingDialog';
+export { BindingWizardPage } from './BindingWizardPage';

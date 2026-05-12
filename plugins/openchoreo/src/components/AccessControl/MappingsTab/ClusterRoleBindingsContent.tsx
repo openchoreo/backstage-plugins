@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, RefObject } from 'react';
+import { useMemo, useCallback, useState, RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Typography,
@@ -44,12 +44,16 @@ import {
   useClusterRoles,
   ClusterRoleBinding,
 } from '../hooks';
-import { ClusterRoleBindingRequest } from '../../../api/OpenChoreoClientApi';
+import {
+  ClusterRoleBindingRequest,
+  NamespaceRoleBindingRequest,
+} from '../../../api/OpenChoreoClientApi';
 import { useNotification } from '../../../hooks';
+import { useQueryParams } from '../../../hooks/useQueryParams';
 import { NotificationBanner } from '../../Environments/components';
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { SCOPE_CLUSTER } from '../constants';
-import { MappingDialog } from './MappingDialog';
+import { BindingWizardPage } from './BindingWizardPage';
 import { BindingDetailDialog, BindingDetail } from './BindingDetailDialog';
 
 /** Format scope for a single cluster role mapping */
@@ -137,10 +141,14 @@ const useStyles = makeStyles(theme => ({
 
 interface ClusterRoleBindingsContentProps {
   actionsContainerRef: RefObject<HTMLDivElement>;
+  wizardAction: '' | 'create' | 'edit';
+  wizardBindingName: string;
 }
 
 export const ClusterRoleBindingsContent = ({
   actionsContainerRef,
+  wizardAction,
+  wizardBindingName,
 }: ClusterRoleBindingsContentProps) => {
   const classes = useStyles();
   const notification = useNotification();
@@ -167,18 +175,24 @@ export const ClusterRoleBindingsContent = ({
   } = useClusterRoleBindings();
   const { roles } = useClusterRoles();
 
+  const [, setParams] = useQueryParams({
+    action: { defaultValue: '' },
+    bindingName: { defaultValue: '' },
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [effectFilter, setEffectFilter] = useState<string>('all');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingBinding, setEditingBinding] = useState<
-    ClusterRoleBinding | undefined
-  >(undefined);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [bindingToDelete, setBindingToDelete] =
     useState<ClusterRoleBinding | null>(null);
   const [detailBinding, setDetailBinding] = useState<BindingDetail | null>(
     null,
   );
+
+  const editingBinding = useMemo(() => {
+    if (wizardAction !== 'edit' || !wizardBindingName) return undefined;
+    return bindings.find(b => b.name === wizardBindingName);
+  }, [wizardAction, wizardBindingName, bindings]);
 
   // Server-side role filter
   const handleRoleFilterChange = useCallback(
@@ -238,18 +252,17 @@ export const ClusterRoleBindingsContent = ({
       roleMappings: (binding.roleMappings || []).map(rm => ({
         role: rm.role,
         scope: formatClusterMappingScope(rm.scope),
+        conditions: rm.conditions,
       })),
     });
   };
 
   const handleCreateBinding = () => {
-    setEditingBinding(undefined);
-    setDialogOpen(true);
+    setParams({ action: 'create', bindingName: '' });
   };
 
   const handleEditBinding = (binding: ClusterRoleBinding) => {
-    setEditingBinding(binding);
-    setDialogOpen(true);
+    setParams({ action: 'edit', bindingName: binding.name });
   };
 
   const handleDeleteBinding = (binding: ClusterRoleBinding) => {
@@ -276,19 +289,26 @@ export const ClusterRoleBindingsContent = ({
     }
   };
 
-  const handleSaveBinding = async (binding: ClusterRoleBindingRequest) => {
+  const handleSaveBinding = async (
+    binding: ClusterRoleBindingRequest | NamespaceRoleBindingRequest,
+  ) => {
+    const cb = binding as ClusterRoleBindingRequest;
     if (editingBinding) {
-      await updateBinding(editingBinding.name, binding);
+      await updateBinding(editingBinding.name, cb);
+      notification.showSuccess(
+        `Cluster role binding "${editingBinding.name}" updated successfully`,
+      );
     } else {
-      await addBinding(binding);
+      await addBinding(cb);
+      notification.showSuccess(
+        `Cluster role binding "${cb.name}" created successfully`,
+      );
     }
-    setDialogOpen(false);
-    setEditingBinding(undefined);
+    setParams({ action: '', bindingName: '' });
   };
 
-  const handleDialogClose = () => {
-    setDialogOpen(false);
-    setEditingBinding(undefined);
+  const handleWizardCancel = () => {
+    setParams({ action: '', bindingName: '' });
   };
 
   const hasActiveFilters =
@@ -296,6 +316,23 @@ export const ClusterRoleBindingsContent = ({
 
   if (loading || permissionsLoading) {
     return <Progress />;
+  }
+  if (
+    wizardAction === 'create' ||
+    (wizardAction === 'edit' && editingBinding)
+  ) {
+    return (
+      <Box>
+        <NotificationBanner notification={notification.notification} />
+        <BindingWizardPage
+          bindingType={SCOPE_CLUSTER}
+          editingBinding={editingBinding}
+          availableRoles={roles}
+          onSave={handleSaveBinding}
+          onCancel={handleWizardCancel}
+        />
+      </Box>
+    );
   }
 
   if (error) {
@@ -535,15 +572,6 @@ export const ClusterRoleBindingsContent = ({
           </Table>
         </TableContainer>
       )}
-
-      <MappingDialog
-        open={dialogOpen}
-        onClose={handleDialogClose}
-        onSave={handleSaveBinding}
-        availableRoles={roles}
-        editingBinding={editingBinding}
-        bindingType={SCOPE_CLUSTER}
-      />
 
       <Dialog
         open={deleteConfirmOpen}

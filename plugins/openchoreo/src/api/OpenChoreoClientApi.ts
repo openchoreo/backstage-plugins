@@ -131,10 +131,32 @@ export type PolicyEffect = 'allow' | 'deny';
 // Cluster & Namespace Scoped Authorization Types
 // ============================================
 
+/** ABAC attribute available for CEL condition expressions on an action. */
+export interface ConditionAttribute {
+  /** Full dotted path of the attribute (e.g. "resource.environment"). */
+  key: string;
+  /** Human-readable description of the attribute. */
+  description: string;
+}
+
 /** Authorization action with its scope in the resource hierarchy */
 export interface ActionInfo {
   name: string;
   lowestScope: 'cluster' | 'namespace' | 'project' | 'component';
+  /**
+   * ABAC attributes available for CEL condition expressions on this action.
+   * Empty / omitted means no conditions are supported.
+   */
+  conditions?: ConditionAttribute[];
+}
+
+/**
+ * Action-scoped condition on a role mapping. Constrains only the listed
+ * actions; multiple entries on the same mapping are OR-combined.
+ */
+export interface AuthzCondition {
+  actions: string[];
+  expression: string;
 }
 
 /** Cluster Role - cluster-wide role definition */
@@ -166,6 +188,11 @@ export interface ClusterRoleMappingScope {
 export interface ClusterRoleMappingEntry {
   role: string;
   scope?: ClusterRoleMappingScope;
+  /**
+   * Per-mapping conditions that restrict specific actions granted by this role.
+   * Multiple entries are OR-combined; only the listed actions are constrained.
+   */
+  conditions?: AuthzCondition[];
 }
 
 /** Cluster Role Binding - binds cluster roles to an entitlement */
@@ -198,6 +225,11 @@ export interface NamespaceRoleMappingScope {
 export interface NamespaceRoleMappingEntry {
   role: { name: string; namespace?: string };
   scope?: NamespaceRoleMappingScope;
+  /**
+   * Per-mapping conditions that restrict specific actions granted by this role.
+   * Multiple entries are OR-combined; only the listed actions are constrained.
+   */
+  conditions?: AuthzCondition[];
 }
 
 /** Namespace Role Binding - response shape from the API */

@@ -6,6 +6,7 @@ import {
   Radio,
   RadioGroup,
   FormControlLabel,
+  Grid,
 } from '@material-ui/core';
 import { alpha, makeStyles } from '@material-ui/core/styles';
 import PersonIcon from '@material-ui/icons/Person';
@@ -72,9 +73,7 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.text.secondary,
     fontSize: '0.875rem',
   },
-  valueSection: {
-    marginTop: theme.spacing(3),
-  },
+  valueSection: {},
   valueLabel: {
     marginBottom: theme.spacing(1),
   },
@@ -160,70 +159,76 @@ export const SubjectStep = ({
         Select the type of subject and provide their identifier
       </Typography>
 
-      <Typography variant="subtitle2" gutterBottom>
-        Subject Type
-      </Typography>
-
-      <RadioGroup
-        value={state.subjectType}
-        onChange={e => handleTypeChange(e.target.value)}
-      >
-        <Box className={classes.typeCards}>
-          {userTypes.map(userType => (
-            <Paper
-              key={userType.type}
-              variant="outlined"
-              className={`${classes.typeCard} ${
-                state.subjectType === userType.type
-                  ? classes.typeCardSelected
-                  : ''
-              }`}
-              onClick={() => handleTypeChange(userType.type)}
-            >
-              <Box className={classes.typeIcon}>
-                {getTypeIcon(userType.type)}
-              </Box>
-              <Box className={classes.typeContent}>
-                <FormControlLabel
-                  value={userType.type}
-                  control={<Radio color="primary" size="small" />}
-                  label={
-                    <Box>
-                      <Typography className={classes.typeName}>
-                        {userType.displayName}
-                      </Typography>
-                      <Typography className={classes.typeDescription}>
-                        {getTypeDescription(userType.type)}
-                      </Typography>
-                    </Box>
-                  }
-                />
-              </Box>
-            </Paper>
-          ))}
-        </Box>
-      </RadioGroup>
-
-      <Box className={classes.valueSection}>
-        <Typography variant="subtitle2" className={classes.valueLabel}>
-          {getValueLabel()}
-        </Typography>
-
-        <TextField
-          fullWidth
-          variant="outlined"
-          size="small"
-          value={state.entitlementValue}
-          onChange={e => handleValueChange(e.target.value)}
-          placeholder={getPlaceholder()}
-        />
-
-        {entitlementClaim && (
-          <Typography className={classes.claimHint}>
-            JWT claim: <code>{entitlementClaim}</code>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Typography variant="subtitle2" gutterBottom>
+            Subject Type
           </Typography>
-        )}
-      </Box>
+
+          <RadioGroup
+            value={state.subjectType}
+            onChange={e => handleTypeChange(e.target.value)}
+          >
+            <Box className={classes.typeCards}>
+              {userTypes.map(userType => (
+                <Paper
+                  key={userType.type}
+                  variant="outlined"
+                  className={`${classes.typeCard} ${
+                    state.subjectType === userType.type
+                      ? classes.typeCardSelected
+                      : ''
+                  }`}
+                  onClick={() => handleTypeChange(userType.type)}
+                >
+                  <Box className={classes.typeIcon}>
+                    {getTypeIcon(userType.type)}
+                  </Box>
+                  <Box className={classes.typeContent}>
+                    <FormControlLabel
+                      value={userType.type}
+                      control={<Radio color="primary" size="small" />}
+                      label={
+                        <Box>
+                          <Typography className={classes.typeName}>
+                            {userType.displayName}
+                          </Typography>
+                          <Typography className={classes.typeDescription}>
+                            {getTypeDescription(userType.type)}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </Box>
+                </Paper>
+              ))}
+            </Box>
+          </RadioGroup>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Box className={classes.valueSection}>
+            <Typography variant="subtitle2" className={classes.valueLabel}>
+              {getValueLabel()}
+            </Typography>
+
+            <TextField
+              fullWidth
+              variant="outlined"
+              size="small"
+              value={state.entitlementValue}
+              onChange={e => handleValueChange(e.target.value)}
+              placeholder={getPlaceholder()}
+            />
+
+            {entitlementClaim && (
+              <Typography className={classes.claimHint}>
+                JWT claim: <code>{entitlementClaim}</code>
+              </Typography>
+            )}
+          </Box>
+        </Grid>
+      </Grid>
 
       {state.subjectType && state.entitlementValue && (
         <Box mt={3}>
