@@ -44,33 +44,10 @@ jobs:
             echo "LATEST=false" >> $GITHUB_ENV
           fi
 
-      - name: Login to GitHub container registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Retag existing image with release version
-        run: |
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          if ! docker buildx imagetools inspect "${IMAGE}:${{ env.GIT_SHA_SHORT }}" > /dev/null 2>&1; then
-            echo "::error::Image ${IMAGE}:${{ env.GIT_SHA_SHORT }} not found. Ensure the commit was pushed to a release branch before tagging."
-            exit 1
-          fi
-          echo "Retagging ${IMAGE}:${{ env.GIT_SHA_SHORT }} -> ${IMAGE}:${{ env.RELEASE_TAG }}"
-          docker buildx imagetools create \
-            --tag "${IMAGE}:${{ env.RELEASE_TAG }}" \
-            "${IMAGE}:${{ env.GIT_SHA_SHORT }}"
-
-      - name: Tag latest if highest stable version
-        if: env.LATEST == 'true' && env.IS_PRERELEASE == 'false'
-        run: |
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          echo "Retagging ${IMAGE}:${{ env.RELEASE_TAG }} -> ${IMAGE}:latest"
-          docker buildx imagetools create \
-            --tag "${IMAGE}:latest" \
-            "${IMAGE}:${{ env.RELEASE_TAG }}"
+      # npm publish runs before any Docker retag so a publish failure aborts
+      # the release before GHCR is mutated. The reverse ordering would leave
+      # the image retagged to vX.Y.Z (and possibly `latest`) without the
+      # corresponding @openchoreo/* packages on the npm registry.
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -98,3 +75,31 @@ jobs:
           else
             yarn release:publish
           fi
+
+      - name: Login to GitHub container registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retag existing image with release version
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          if ! docker buildx imagetools inspect "${IMAGE}:${{ env.GIT_SHA_SHORT }}" > /dev/null 2>&1; then
+            echo "::error::Image ${IMAGE}:${{ env.GIT_SHA_SHORT }} not found. Ensure the commit was pushed to a release branch before tagging."
+            exit 1
+          fi
+          echo "Retagging ${IMAGE}:${{ env.GIT_SHA_SHORT }} -> ${IMAGE}:${{ env.RELEASE_TAG }}"
+          docker buildx imagetools create \
+            --tag "${IMAGE}:${{ env.RELEASE_TAG }}" \
+            "${IMAGE}:${{ env.GIT_SHA_SHORT }}"
+
+      - name: Tag latest if highest stable version
+        if: env.LATEST == 'true' && env.IS_PRERELEASE == 'false'
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo "Retagging ${IMAGE}:${{ env.RELEASE_TAG }} -> ${IMAGE}:latest"
+          docker buildx imagetools create \
+            --tag "${IMAGE}:latest" \
+            "${IMAGE}:${{ env.RELEASE_TAG }}"
