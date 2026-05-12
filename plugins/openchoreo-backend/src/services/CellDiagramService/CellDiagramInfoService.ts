@@ -9,7 +9,10 @@ import {
 import { CellDiagramService } from '../../types';
 import {
   createOpenChoreoApiClient,
+  createObservabilityClientWithUrl,
+  ObservabilityUrlResolver,
   fetchAllPages,
+  type ObservabilityComponents,
 } from '@openchoreo/openchoreo-client-node';
 import {
   ComponentTypeUtils,
@@ -18,6 +21,90 @@ import {
   type WorkloadEndpoint,
   type WorkloadResponse,
 } from '@openchoreo/backstage-plugin-common';
+
+type HttpMetrics = ObservabilityComponents['schemas']['HttpMetricsTimeSeries'];
+type RuntimeTopologyMetrics =
+  ObservabilityComponents['schemas']['RuntimeTopologyMetrics'];
+type RuntimeTopologyEdge =
+  ObservabilityComponents['schemas']['RuntimeTopologyEdge'];
+type RuntimeTopologyNodeRef =
+  ObservabilityComponents['schemas']['RuntimeTopologyNodeRef'];
+
+interface ObservationEntry {
+  sourceNodeId: number;
+  destinationNodeId: number;
+  requestCount: number;
+  errorCount: number;
+  avgLatency: number;
+  p50Latency: number;
+  p90Latency: number;
+  p99Latency: number;
+}
+
+function avgSeries(series?: { value?: number }[]): number {
+  const points = (series ?? []).filter(p => typeof p.value === 'number');
+  if (points.length === 0) return 0;
+  return points.reduce((s, p) => s + (p.value ?? 0), 0) / points.length;
+}
+
+// Cell diagram lib (v1 model) interprets latency as nanoseconds (lib divides by 1e6 for ms).
+// Observer returns latency in seconds, so convert.
+const NS_PER_SEC = 1_000_000_000;
+
+function aggregateHttpMetrics(
+  http: HttpMetrics,
+  durationSec: number,
+): ObservationEntry | undefined {
+  // Observer returns rates (req/s) at each timestamp.
+  // Total = mean(rate) * window duration in seconds.
+  const requestCount = Math.round(avgSeries(http.requestCount) * durationSec);
+  if (requestCount === 0) return undefined;
+  const errorCount = Math.round(
+    avgSeries(http.unsuccessfulRequestCount) * durationSec,
+  );
+  return {
+    sourceNodeId: 0,
+    destinationNodeId: 0,
+    requestCount,
+    errorCount,
+    avgLatency: avgSeries(http.meanLatency) * NS_PER_SEC,
+    p50Latency: avgSeries(http.latencyP50) * NS_PER_SEC,
+    p90Latency: avgSeries(http.latencyP90) * NS_PER_SEC,
+    p99Latency: avgSeries(http.latencyP99) * NS_PER_SEC,
+  };
+}
+
+// Convert a RuntimeTopologyMetrics (already-aggregated scalars in seconds)
+// into the cell-diagram lib's Observation shape (latency in nanoseconds).
+function adaptRuntimeTopologyMetrics(
+  metrics?: RuntimeTopologyMetrics,
+): ObservationEntry | undefined {
+  if (!metrics) return undefined;
+  const requestCount = Math.round(metrics.requestCount ?? 0);
+  if (requestCount <= 0) return undefined;
+  return {
+    sourceNodeId: 0,
+    destinationNodeId: 0,
+    requestCount,
+    errorCount: Math.round(metrics.errorCount ?? 0),
+    avgLatency: (metrics.avgLatency ?? 0) * NS_PER_SEC,
+    p50Latency: (metrics.p50Latency ?? 0) * NS_PER_SEC,
+    p90Latency: (metrics.p90Latency ?? 0) * NS_PER_SEC,
+    p99Latency: (metrics.p99Latency ?? 0) * NS_PER_SEC,
+  };
+}
+
+// Resolve a node reference's component name. The observer fills in `component`
+// (name) when it can; otherwise the caller-supplied UID -> name map provides
+// the fallback. Returns undefined if neither is known.
+function resolveComponentName(
+  ref: RuntimeTopologyNodeRef,
+  uidToName: Map<string, string>,
+): string | undefined {
+  if (ref.component) return ref.component;
+  if (ref.componentUid) return uidToName.get(ref.componentUid);
+  return undefined;
+}
 
 type ModelsCompleteComponent = ComponentResponse;
 
@@ -50,19 +137,30 @@ export class CellDiagramInfoService implements CellDiagramService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
   private readonly componentTypeUtils: ComponentTypeUtils;
+  private readonly resolver: ObservabilityUrlResolver;
+
   public constructor(logger: LoggerService, baseUrl: string, config: Config) {
     this.baseUrl = baseUrl;
     this.logger = logger;
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
+    this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
   }
 
   async fetchProjectInfo(
     {
       projectName,
       namespaceName,
+      environmentName,
+      startTime,
+      endTime,
+      step,
     }: {
       projectName: string;
       namespaceName: string;
+      environmentName?: string;
+      startTime?: string;
+      endTime?: string;
+      step?: string;
     },
     token?: string,
   ): Promise<Project | undefined> {
@@ -129,10 +227,17 @@ export class CellDiagramInfoService implements CellDiagramService {
       }
 
       // Convert new API components to the legacy ModelsCompleteComponent shape
-      // so we can reuse the existing buildProject logic
+      // so we can reuse the existing buildProject logic. Build the UID -> name
+      // map at the same pass so Phase 2 (runtime cell graph) can translate
+      // edge UIDs back to component names.
+      const componentUidToName = new Map<string, string>();
       const completeComponents: ModelsCompleteComponent[] = componentItems
         .map(comp => {
           const name = comp.metadata?.name ?? '';
+          const uid = (comp.metadata as { uid?: string } | undefined)?.uid;
+          if (name && uid) {
+            componentUidToName.set(uid, name);
+          }
           const componentTypeRef = comp.spec?.componentType;
           const componentType =
             typeof componentTypeRef === 'string'
@@ -148,12 +253,431 @@ export class CellDiagramInfoService implements CellDiagramService {
         })
         .filter(comp => comp.name);
 
-      return this.buildProject(projectName, namespaceName, completeComponents);
+      const project = this.buildProject(
+        projectName,
+        namespaceName,
+        completeComponents,
+      );
+
+      // Resolve environment (auto-discover if not provided) then enrich with HTTP metrics
+      const resolvedEnv =
+        environmentName ??
+        (await this.resolveFirstEnvironment(namespaceName, client));
+
+      if (resolvedEnv) {
+        await this.enrichWithObservations(project, componentUidToName, {
+          namespaceName,
+          projectName,
+          environmentName: resolvedEnv,
+          startTime,
+          endTime,
+          step,
+          token,
+        });
+      }
+
+      return project;
     } catch (error: unknown) {
       this.logger.error(
         `Error fetching project info for ${projectName}: ${error}`,
       );
       return undefined;
+    }
+  }
+
+  private async resolveFirstEnvironment(
+    namespaceName: string,
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+  ): Promise<string | undefined> {
+    try {
+      const envs = await this.listEnvironmentsWithClient(namespaceName, client);
+      return envs[0];
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async listEnvironmentsWithClient(
+    namespaceName: string,
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+  ): Promise<string[]> {
+    const { data, error, response } = await client.GET(
+      '/api/v1/namespaces/{namespaceName}/environments',
+      { params: { path: { namespaceName }, query: { limit: 50 } } },
+    );
+    if (error || !response.ok) return [];
+    const items = (data as any)?.items ?? [];
+    return items
+      .map((env: any) => env?.metadata?.name as string | undefined)
+      .filter((n: string | undefined): n is string => !!n);
+  }
+
+  async listEnvironments(
+    namespaceName: string,
+    token?: string,
+  ): Promise<string[]> {
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+      return await this.listEnvironmentsWithClient(namespaceName, client);
+    } catch (error) {
+      this.logger.warn(`Failed to list environments: ${error}`);
+      return [];
+    }
+  }
+
+  /**
+   * Top-level enrichment: resolves the observer URL once, then runs the two
+   * observation phases in parallel:
+   *   - Phase 1: per-component HTTP metrics from /api/v1/metrics/query.
+   *     Populates gateway observations on services with exposed gateways.
+   *     Slightly inflates gateway counts when there's mixed gateway+internal
+   *     traffic — kept for backwards compatibility until the metrics-adapter
+   *     emits real gateway -> component edges.
+   *   - Phase 2: per-edge HTTP metrics from /api/v1alpha1/metrics/runtime-topology.
+   *     Populates component-to-component connection observations with clean
+   *     source/destination breakdown. Component name back-resolution uses the
+   *     componentUidToName map (built from the project's components — the
+   *     observer doesn't currently fill component names in the response).
+   */
+  private async enrichWithObservations(
+    project: Project,
+    componentUidToName: Map<string, string>,
+    params: {
+      namespaceName: string;
+      projectName: string;
+      environmentName: string;
+      startTime?: string;
+      endTime?: string;
+      step?: string;
+      token?: string;
+    },
+  ): Promise<void> {
+    const { namespaceName, environmentName, token } = params;
+    try {
+      const { observerUrl } = await this.resolver.resolveForEnvironment(
+        namespaceName,
+        environmentName,
+        token,
+      );
+      if (!observerUrl) {
+        this.logger.info(
+          `No observer URL for environment '${environmentName}', skipping runtime observations`,
+        );
+        return;
+      }
+      this.logger.info(
+        `Using observer URL '${observerUrl}' for environment '${environmentName}'`,
+      );
+
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        token,
+        this.logger,
+      );
+
+      const startTime =
+        params.startTime ?? new Date(Date.now() - 3_600_000).toISOString();
+      const endTime = params.endTime ?? new Date().toISOString();
+      const step = params.step ?? '1m';
+
+      await Promise.all([
+        this.enrichGatewaysFromHttpMetrics(project, obsClient, {
+          ...params,
+          startTime,
+          endTime,
+          step,
+        }),
+        this.enrichConnectionsFromRuntimeTopology(
+          project,
+          componentUidToName,
+          obsClient,
+          { ...params, startTime, endTime, step },
+        ),
+      ]);
+    } catch (error) {
+      // observability errors must not break the cell diagram
+      this.logger.warn(
+        `Failed to enrich cell diagram with observations: ${error}`,
+      );
+    }
+  }
+
+  /**
+   * Phase 1: per-component HTTP metrics → gateway observations.
+   * Existing behaviour (preserved from before the runtime-topology endpoint
+   * existed). Sums per-component request rates and attaches the result to any
+   * exposed gateway.
+   */
+  private async enrichGatewaysFromHttpMetrics(
+    project: Project,
+    obsClient: ReturnType<typeof createObservabilityClientWithUrl>,
+    params: {
+      namespaceName: string;
+      projectName: string;
+      environmentName: string;
+      startTime: string;
+      endTime: string;
+      step: string;
+    },
+  ): Promise<void> {
+    const {
+      namespaceName,
+      projectName,
+      environmentName,
+      startTime,
+      endTime,
+      step,
+    } = params;
+    const durationSec = Math.max(
+      1,
+      (Date.parse(endTime) - Date.parse(startTime)) / 1000,
+    );
+
+    let attachedCount = 0;
+    let zeroTrafficCount = 0;
+    let noGatewayCount = 0;
+
+    await Promise.all(
+      project.components.map(async component => {
+        try {
+          const { data, error, response } = await obsClient.POST(
+            '/api/v1/metrics/query',
+            {
+              body: {
+                metric: 'http',
+                startTime,
+                endTime,
+                step,
+                searchScope: {
+                  namespace: namespaceName,
+                  project: projectName,
+                  component: component.id,
+                  environment: environmentName,
+                },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            this.logger.warn(
+              `HTTP metrics query failed for component '${component.id}': ${response.status} ${response.statusText}`,
+            );
+            return;
+          }
+          if (!data) return;
+
+          const observation = aggregateHttpMetrics(
+            data as HttpMetrics,
+            durationSec,
+          );
+          if (!observation) {
+            zeroTrafficCount += 1;
+            return;
+          }
+
+          let attached = false;
+          for (const service of Object.values(component.services ?? {})) {
+            const gateways = (service as any)?.deploymentMetadata?.gateways;
+            if (!gateways) continue;
+            if (gateways.internet?.isExposed) {
+              gateways.internet.observations = [observation];
+              attached = true;
+            }
+            if (gateways.intranet?.isExposed) {
+              gateways.intranet.observations = [observation];
+              attached = true;
+            }
+          }
+          if (attached) {
+            attachedCount += 1;
+          } else {
+            noGatewayCount += 1;
+          }
+        } catch (err) {
+          this.logger.warn(
+            `Failed to enrich component '${component.id}': ${err}`,
+          );
+        }
+      }),
+    );
+
+    this.logger.info(
+      `Phase 1 (gateway observations) for '${projectName}/${environmentName}': ${attachedCount} attached, ${zeroTrafficCount} zero-traffic, ${noGatewayCount} no-exposed-gateway`,
+    );
+  }
+
+  /**
+   * Phase 2: per-edge HTTP metrics → connection observations.
+   * Calls /api/v1alpha1/metrics/runtime-topology and merges the resulting edges
+   * onto Project.components[].connections. Connection IDs use the format
+   *   ${ns}:${project}:${dstComponent}:${endpoint}
+   * but the runtime endpoint only knows components (not endpoints), so we
+   * match by prefix and attach to all connections from src -> dst.
+   *
+   * If a runtime edge has no matching static connection, a runtime-only
+   * connection is added with observationOnly=true so the diff layer can
+   * highlight drift. Adapter currently only emits component->component edges;
+   * gateway and external edges are skipped (TODO at the adapter side).
+   */
+  private async enrichConnectionsFromRuntimeTopology(
+    project: Project,
+    componentUidToName: Map<string, string>,
+    obsClient: ReturnType<typeof createObservabilityClientWithUrl>,
+    params: {
+      namespaceName: string;
+      projectName: string;
+      environmentName: string;
+      startTime: string;
+      endTime: string;
+      step: string;
+    },
+  ): Promise<void> {
+    const {
+      namespaceName,
+      projectName,
+      environmentName,
+      startTime,
+      endTime,
+      step,
+    } = params;
+    let attached = 0;
+    let runtimeOnly = 0;
+    let skipped = 0;
+
+    try {
+      const { data, error, response } = await obsClient.POST(
+        '/api/v1alpha1/metrics/runtime-topology',
+        {
+          body: {
+            searchScope: {
+              namespace: namespaceName,
+              project: projectName,
+              environment: environmentName,
+            },
+            startTime,
+            endTime,
+            step,
+            includeGateways: true,
+            includeExternal: true,
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        // 404 likely means an older observer without the endpoint — log info,
+        // not warn, so this isn't noisy during the rollout.
+        if (response.status === 404) {
+          this.logger.info(
+            `runtime-topology endpoint not available (HTTP 404); skipping Phase 2`,
+          );
+          return;
+        }
+        this.logger.warn(
+          `runtime-topology query failed: ${response.status} ${response.statusText}`,
+        );
+        return;
+      }
+      const edges = (data?.edges ?? []) as RuntimeTopologyEdge[];
+      if (edges.length === 0) {
+        this.logger.info(
+          `Phase 2 (runtime topology): no edges returned for '${projectName}/${environmentName}'`,
+        );
+        return;
+      }
+
+      for (const edge of edges) {
+        this.logger.debug(
+          `Phase 2 edge: src={kind=${edge.source.kind}, component=${
+            edge.source.component ?? '-'
+          }, uid=${edge.source.componentUid ?? '-'}} ` +
+            `dst={kind=${edge.target.kind}, component=${
+              edge.target.component ?? '-'
+            }, uid=${edge.target.componentUid ?? '-'}} ` +
+            `requestCount=${edge.metrics?.requestCount ?? 0}`,
+        );
+
+        // Adapter currently only emits component->component. Gateway and
+        // external edges land here too once the adapter implements them; for
+        // now, count them as skipped so logs reflect what was ignored.
+        if (
+          edge.source.kind !== 'component' ||
+          edge.target.kind !== 'component'
+        ) {
+          skipped += 1;
+          continue;
+        }
+
+        const srcName = resolveComponentName(edge.source, componentUidToName);
+        const dstName = resolveComponentName(edge.target, componentUidToName);
+        if (!srcName || !dstName) {
+          skipped += 1;
+          continue;
+        }
+
+        const observation = adaptRuntimeTopologyMetrics(edge.metrics);
+        if (!observation) {
+          skipped += 1;
+          continue;
+        }
+
+        const srcComponent = project.components.find(c => c.id === srcName);
+        if (!srcComponent) {
+          skipped += 1;
+          continue;
+        }
+
+        const connectionPrefix = `${namespaceName}:${projectName}:${dstName}:`;
+        const matching = (srcComponent.connections ?? []).filter(c =>
+          (c.id ?? '').startsWith(connectionPrefix),
+        );
+
+        if (matching.length > 0) {
+          for (const conn of matching) {
+            const c = conn as CellDiagramConnection;
+            c.observations = [observation];
+            // The cell-diagram lib renders ObservationLabel only when !link.tooltip.
+            // Clear the static text tooltip so the rich metrics panel takes over.
+            c.tooltip = undefined;
+          }
+          attached += 1;
+          this.logger.info(
+            `Attached runtime observations to ${matching.length} connection(s) ` +
+              `${srcName} -> ${dstName} (requestCount=${observation.requestCount})`,
+          );
+        } else {
+          // Runtime-only edge — declared dependency missing in workload spec
+          // but traffic was observed. Surfaced as observationOnly so the diff
+          // layer can highlight drift.
+          const conn: CellDiagramConnection = {
+            id: `${namespaceName}:${projectName}:${dstName}:runtime`,
+            label: `${dstName} (runtime)`,
+            type: ConnectionType.HTTP,
+            onPlatform: true,
+            observationOnly: true,
+            observations: [observation],
+          };
+          srcComponent.connections = [
+            ...(srcComponent.connections ?? []),
+            conn,
+          ];
+          runtimeOnly += 1;
+          this.logger.info(
+            `Added runtime-only connection ${srcName} -> ${dstName} ` +
+              `(requestCount=${observation.requestCount})`,
+          );
+        }
+      }
+
+      this.logger.info(
+        `Phase 2 (runtime cell graph) for '${projectName}/${environmentName}': ${attached} attached, ${runtimeOnly} runtime-only, ${skipped} skipped (of ${edges.length} edges)`,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Failed to enrich connections from runtime cell graph: ${err}`,
+      );
     }
   }
 

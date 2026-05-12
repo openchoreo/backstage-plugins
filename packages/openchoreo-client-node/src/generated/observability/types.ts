@@ -124,6 +124,82 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1alpha1/alerts/sources/{sourceType}/rules': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The source type of the alert rule (log, metric, or budget) */
+        sourceType: 'log' | 'metric' | 'budget';
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create alert rule
+     * @description Create an alert rule in the observer service
+     */
+    post: operations['createAlertRule'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1alpha1/alerts/sources/{sourceType}/rules/{ruleName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The source type of the alert rule (log, metric, or budget) */
+        sourceType: 'log' | 'metric' | 'budget';
+        /** @description The name of the alert rule */
+        ruleName: string;
+      };
+      cookie?: never;
+    };
+    /**
+     * Get alert rule
+     * @description Get an alert rule in the observer service
+     */
+    get: operations['getAlertRule'];
+    /**
+     * Update alert rule
+     * @description Update an alert rule in the observer service
+     */
+    put: operations['updateAlertRule'];
+    post?: never;
+    /**
+     * Delete alert rule
+     * @description Delete an alert rule in the observer service
+     */
+    delete: operations['deleteAlertRule'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1alpha1/alerts/webhook': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Handles triggered alerts from the alerting backend
+     * @description Handles triggered alerts from the alerting backend
+     */
+    post: operations['handleAlertWebhook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1alpha1/incidents/query': {
     parameters: {
       query?: never;
@@ -181,6 +257,30 @@ export interface paths {
      * @description Query alerts from the observer service
      */
     post: operations['queryAlerts'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1alpha1/metrics/runtime-topology': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Query runtime topology
+     * @description Returns the live HTTP traffic topology for a project in a given environment:
+     *     a list of nodes (components, gateways, external endpoints) and a list of edges
+     *     (observed source -> target traffic flows), each with aggregated metrics
+     *     (request count, error count, latency percentiles) computed over the requested
+     *     time window.
+     */
+    post: operations['queryRuntimeTopology'];
     delete?: never;
     options?: never;
     head?: never;
@@ -287,7 +387,7 @@ export interface components {
       logs?:
         | components['schemas']['ComponentLogEntry'][]
         | components['schemas']['WorkflowLogEntry'][];
-      /** @description The total number of logs queried */
+      /** @description The total number of matching log entries, capped at 1000 */
       total?: number;
       /** @description The time taken to query the logs in milliseconds */
       tookMs?: number;
@@ -344,6 +444,169 @@ export interface components {
     MetricsQueryResponse:
       | components['schemas']['ResourceMetricsTimeSeries']
       | components['schemas']['HttpMetricsTimeSeries'];
+    /**
+     * @description Request body for POST /api/v1alpha1/metrics/runtime-topology.
+     *     searchScope must include namespace, project, and environment — runtime
+     *     topology is project- and environment-scoped. The optional component
+     *     field, if set, restricts results to edges that touch that component.
+     */
+    RuntimeTopologyRequest: {
+      searchScope: components['schemas']['ComponentSearchScope'];
+      /**
+       * Format: date-time
+       * @description The start time of the query window
+       */
+      startTime: string;
+      /**
+       * Format: date-time
+       * @description The end time of the query window
+       */
+      endTime: string;
+      /**
+       * @description Step hint used for sub-queries when computing aggregates.
+       *     Same format as /api/v1/metrics/query (e.g. 1m, 5m, 1h).
+       */
+      step?: string;
+      /**
+       * @description Whether to include gateway -> component edges. Defaults to true.
+       * @default true
+       */
+      includeGateways: boolean;
+      /**
+       * @description Whether to include edges to/from components outside the requested
+       *     project (cross-project or off-platform). Defaults to true.
+       * @default true
+       */
+      includeExternal: boolean;
+    };
+    /**
+     * @description Aggregate HTTP metrics over the requested time window.
+     *     Latency values are in seconds (consistent with /api/v1/metrics/query).
+     */
+    RuntimeTopologyMetrics: {
+      /**
+       * Format: double
+       * @description Total number of HTTP requests observed in the window.
+       */
+      requestCount?: number;
+      /**
+       * Format: double
+       * @description Number of unsuccessful (non-2xx) HTTP requests in the window.
+       */
+      errorCount?: number;
+      /**
+       * Format: double
+       * @description Mean request latency, in seconds.
+       */
+      avgLatency?: number;
+      /**
+       * Format: double
+       * @description 50th percentile request latency, in seconds.
+       */
+      p50Latency?: number;
+      /**
+       * Format: double
+       * @description 90th percentile request latency, in seconds.
+       */
+      p90Latency?: number;
+      /**
+       * Format: double
+       * @description 99th percentile request latency, in seconds.
+       */
+      p99Latency?: number;
+    };
+    /**
+     * @description Reference to a node in the runtime topology. The shape depends on `kind`:
+     *     - kind=component: `componentUid` is always populated when the data
+     *       comes from an HTTP-metrics backend; `component` (name) is filled
+     *       when the observer can resolve it.
+     *     - kind=gateway:   `name` is required (e.g. "internet", "intranet").
+     *     - kind=external:  at least one of `host` or `component`/`componentUid`
+     *       should be set; `project`/`projectUid` is included when the source
+     *       is in a different project.
+     */
+    RuntimeTopologyNodeRef: {
+      /** @enum {string} */
+      kind: 'component' | 'gateway' | 'external';
+      /** @description Component name (when kind=component, or for external cross-project sources). */
+      component?: string;
+      /**
+       * Format: uuid
+       * @description OpenChoreo component UID. Populated from the metrics backend; useful
+       *     for stable matching when the human-readable name is unavailable.
+       */
+      componentUid?: string;
+      /** @description Workload endpoint name (when kind=component). */
+      service?: string;
+      /** @description Gateway name (when kind=gateway). */
+      name?: string;
+      /** @description Host (when kind=external). */
+      host?: string;
+      /** @description Project name (when kind=external and the source is in a different project). */
+      project?: string;
+      /**
+       * Format: uuid
+       * @description OpenChoreo project UID.
+       */
+      projectUid?: string;
+      /** @description Namespace the node lives in. */
+      namespace?: string;
+    };
+    /** @description A node observed in the runtime topology, with its aggregated metrics. */
+    RuntimeTopologyNode: {
+      /** @enum {string} */
+      kind: 'component' | 'gateway' | 'external';
+      component?: string;
+      /** Format: uuid */
+      componentUid?: string;
+      service?: string;
+      name?: string;
+      host?: string;
+      project?: string;
+      /** Format: uuid */
+      projectUid?: string;
+      namespace?: string;
+      metrics?: components['schemas']['RuntimeTopologyMetrics'];
+    };
+    /** @description An observed traffic flow from a source node to a target node. */
+    RuntimeTopologyEdge: {
+      /**
+       * @description Stable identifier for the edge. Convention:
+       *     - component->component: `${srcComponent}:${srcService}->${dstComponent}:${dstService}`
+       *     - gateway->component:   `gateway:${gatewayName}->${dstComponent}:${dstService}`
+       *     - component->external:  `${srcComponent}:${srcService}->external:${host}`
+       */
+      id: string;
+      source: components['schemas']['RuntimeTopologyNodeRef'];
+      target: components['schemas']['RuntimeTopologyNodeRef'];
+      /**
+       * @description Wire protocol of the observed traffic.
+       * @enum {string}
+       */
+      protocol?: 'http';
+      metrics?: components['schemas']['RuntimeTopologyMetrics'];
+    };
+    /** @description Metadata describing the query window the response was computed for. */
+    RuntimeTopologySummary: {
+      /** Format: date-time */
+      startTime: string;
+      /** Format: date-time */
+      endTime: string;
+      /** @description Step actually used for sub-queries (may be defaulted from the request). */
+      step?: string;
+      /** Format: date-time */
+      generatedAt: string;
+    };
+    /**
+     * @description The runtime topology response. Nodes and edges only include entities for
+     *     which traffic was observed in the requested window — static topology
+     *     is queried from OpenChoreo API, and it is generated using workload dependencies.
+     */
+    RuntimeTopologyResponse: {
+      nodes?: components['schemas']['RuntimeTopologyNode'][];
+      edges?: components['schemas']['RuntimeTopologyEdge'][];
+      summary: components['schemas']['RuntimeTopologySummary'];
+    };
     TracesQueryRequest: {
       /**
        * Format: date-time
@@ -367,6 +630,11 @@ export interface components {
        */
       sortOrder: 'asc' | 'desc';
       searchScope: components['schemas']['ComponentSearchScope'];
+      /**
+       * @description Whether to include span attributes in the response. Defaults to false.
+       * @default false
+       */
+      includeAttributes: boolean;
     };
     TracesQueryResponse: {
       /** @description The list of traces */
@@ -398,7 +666,7 @@ export interface components {
         /** @description Whether any span in the trace has an error status. */
         hasErrors?: boolean;
       }[];
-      /** @description The total number of traces */
+      /** @description The total number of matching traces, capped at 1000 */
       total?: number;
       /** @description The time taken to query the traces in milliseconds */
       tookMs?: number;
@@ -434,8 +702,16 @@ export interface components {
          * @enum {string}
          */
         status?: 'ok' | 'error' | 'unset';
+        /** @description The span attributes */
+        attributes?: {
+          [key: string]: unknown;
+        };
+        /** @description The resource attributes */
+        resourceAttributes?: {
+          [key: string]: unknown;
+        };
       }[];
-      /** @description The total number of spans */
+      /** @description The total number of matching spans, capped at 1000 */
       total?: number;
       /** @description The time taken to query the spans in milliseconds */
       tookMs?: number;
@@ -445,6 +721,8 @@ export interface components {
       spanId?: string;
       /** @description The name of the span */
       spanName?: string;
+      /** @description The kind of the span */
+      spanKind?: string;
       /**
        * Format: date-time
        * @description The start time of the span
@@ -473,6 +751,150 @@ export interface components {
         /** @description The value of the attribute */
         value?: string;
       }[];
+    };
+    AlertRuleRequest: {
+      metadata: {
+        /** @description The name of the alert rule */
+        name: string;
+        /** @description The namespace of the alert rule CR */
+        namespace: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo project UID to query
+         */
+        projectUid: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo environment UID to query
+         */
+        environmentUid: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo component UID to query
+         */
+        componentUid: string;
+      };
+      source: {
+        /**
+         * @description The type of the source
+         * @enum {string}
+         */
+        type: 'log' | 'metric' | 'budget';
+        /** @description The query to execute for log based alerts */
+        query?: string;
+        /**
+         * @description The metric to query for metric based alerts
+         * @enum {string}
+         */
+        metric?: 'cpu_usage' | 'memory_usage';
+      };
+      condition: {
+        /** @description Whether the alert rule is enabled */
+        enabled: boolean;
+        /** @description The window of time to query for the alert rule */
+        window: string;
+        /** @description The interval of time to query for the alert rule */
+        interval: string;
+        /**
+         * @description The operator to use for the alert rule
+         * @enum {string}
+         */
+        operator: 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'neq';
+        /** @description The threshold value to use for the alert rule */
+        threshold: number;
+      };
+    };
+    AlertRuleResponse: {
+      metadata?: {
+        /** @description The name of the alert rule */
+        name?: string;
+        /** @description The namespace of the alert rule CR */
+        namespace?: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo project UID to query
+         */
+        projectUid?: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo environment UID to query
+         */
+        environmentUid?: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo component UID to query
+         */
+        componentUid?: string;
+      };
+      source?: {
+        /**
+         * @description The type of the source
+         * @enum {string}
+         */
+        type?: 'log' | 'metric' | 'budget';
+        /** @description The query to execute for log based alerts */
+        query?: string;
+        /**
+         * @description The metric to query for metric based alerts
+         * @enum {string}
+         */
+        metric?: 'cpu_usage' | 'memory_usage';
+      };
+      condition?: {
+        /** @description Whether the alert rule is enabled */
+        enabled?: boolean;
+        /** @description The window of time to query for the alert rule */
+        window?: string;
+        /** @description The interval of time to query for the alert rule */
+        interval?: string;
+        /**
+         * @description The operator to use for the alert rule
+         * @enum {string}
+         */
+        operator?: 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'neq';
+        /** @description The threshold value to use for the alert rule */
+        threshold?: number;
+      };
+    };
+    AlertingRuleSyncResponse: {
+      /**
+       * @description The action taken on the alert rule
+       * @enum {string}
+       */
+      action?: 'created' | 'updated' | 'unchanged' | 'deleted';
+      /** @description The timestamp of the last sync */
+      lastSyncedAt?: string;
+      /**
+       * @description The status of the alert rule
+       * @enum {string}
+       */
+      status?: 'synced' | 'failed';
+      /** @description The logical ID (name) of the alert rule */
+      ruleLogicalId?: string;
+      /** @description The backend ID (UID from observability backend) of the alert rule */
+      ruleBackendId?: string;
+    };
+    AlertWebhookRequest: {
+      /** @description The name of the alert rule */
+      ruleName?: string;
+      /** @description The namespace of the alert rule */
+      ruleNamespace?: string;
+      /** @description The value of the alert */
+      alertValue?: number;
+      /**
+       * Format: date-time
+       * @description The timestamp of the alert
+       */
+      alertTimestamp?: string;
+    };
+    AlertWebhookResponse: {
+      /** @description The message of the alert webhook */
+      message?: string;
+      /**
+       * @description The status of the alert webhook
+       * @enum {string}
+       */
+      status?: 'success' | 'error';
     };
     AlertsQueryRequest: {
       /**
@@ -531,7 +953,7 @@ export interface components {
                * @description The type of the alert source
                * @enum {string}
                */
-              type?: 'log' | 'metric';
+              type?: 'log' | 'metric' | 'budget';
               /** @description The query used for log-based alerts */
               query?: string;
               /** @description The metric used for metric-based alerts */
@@ -1146,6 +1568,253 @@ export interface operations {
       };
     };
   };
+  createAlertRule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The source type of the alert rule (log, metric, or budget) */
+        sourceType: 'log' | 'metric' | 'budget';
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AlertRuleRequest'];
+      };
+    };
+    responses: {
+      /** @description Alert rule created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AlertingRuleSyncResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Alert rule already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  getAlertRule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The source type of the alert rule (log, metric, or budget) */
+        sourceType: 'log' | 'metric' | 'budget';
+        /** @description The name of the alert rule */
+        ruleName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Alert rule retrieved successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AlertRuleResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Alert rule not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  updateAlertRule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The source type of the alert rule (log, metric, or budget) */
+        sourceType: 'log' | 'metric' | 'budget';
+        /** @description The name of the alert rule */
+        ruleName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AlertRuleRequest'];
+      };
+    };
+    responses: {
+      /** @description Alert rule updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AlertingRuleSyncResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  deleteAlertRule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The source type of the alert rule (log, metric, or budget) */
+        sourceType: 'log' | 'metric' | 'budget';
+        /** @description The name of the alert rule */
+        ruleName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Alert rule deleted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AlertingRuleSyncResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Alert rule not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  handleAlertWebhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AlertWebhookRequest'];
+      };
+    };
+    responses: {
+      /** @description Alert webhook handled successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AlertWebhookResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
   queryIncidents: {
     parameters: {
       query?: never;
@@ -1298,6 +1967,66 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['AlertsQueryResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  queryRuntimeTopology: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RuntimeTopologyRequest'];
+      };
+    };
+    responses: {
+      /** @description Runtime topology queried successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RuntimeTopologyResponse'];
         };
       };
       /** @description Invalid request */

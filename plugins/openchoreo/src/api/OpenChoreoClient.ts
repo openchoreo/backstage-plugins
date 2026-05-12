@@ -51,6 +51,7 @@ const API_ENDPOINTS = {
   PROMOTE_DEPLOYMENT: '/promote-deployment',
   DELETE_RELEASE_BINDING: '/delete-release-binding',
   CELL_DIAGRAM: '/cell-diagram',
+  CELL_DIAGRAM_ENVIRONMENTS: '/cell-diagram/environments',
   DEPLOYEMNT_WORKLOAD: '/workload',
   UPDATE_BINDING: '/update-binding',
   ROLLOUT_RESTART_BINDING: '/rollout-restart-binding',
@@ -648,7 +649,15 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // Other
   // ============================================
 
-  async getCellDiagramInfo(entity: Entity): Promise<any> {
+  async getCellDiagramInfo(
+    entity: Entity,
+    options?: {
+      environmentName?: string;
+      startTime?: string;
+      endTime?: string;
+      step?: string;
+    },
+  ): Promise<any> {
     const project = entity.metadata.name;
     const namespace =
       entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
@@ -661,8 +670,28 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       params: {
         projectName: project,
         namespaceName: namespace,
+        ...(options?.environmentName && {
+          environmentName: options.environmentName,
+        }),
+        ...(options?.startTime && { startTime: options.startTime }),
+        ...(options?.endTime && { endTime: options.endTime }),
+        ...(options?.step && { step: options.step }),
       },
     });
+  }
+
+  async getCellDiagramEnvironments(entity: Entity): Promise<string[]> {
+    const namespace =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+    if (!namespace) return [];
+    try {
+      return await this.apiFetch<string[]>(
+        API_ENDPOINTS.CELL_DIAGRAM_ENVIRONMENTS,
+        { params: { namespaceName: namespace } },
+      );
+    } catch {
+      return [];
+    }
   }
 
   async fetchTotalBindingsCount(components: ComponentInfo[]): Promise<number> {

@@ -271,9 +271,33 @@ export async function createRouter({
   });
 
   router.get(
+    '/cell-diagram/environments',
+    async (req: express.Request, res: express.Response) => {
+      const { namespaceName } = req.query;
+      if (!namespaceName) {
+        throw new InputError('namespaceName is a required query parameter');
+      }
+      const userToken = getUserTokenFromRequest(req);
+      res.json(
+        await cellDiagramInfoService.listEnvironments(
+          namespaceName as string,
+          userToken,
+        ),
+      );
+    },
+  );
+
+  router.get(
     '/cell-diagram',
     async (req: express.Request, res: express.Response) => {
-      const { projectName, namespaceName } = req.query;
+      const {
+        projectName,
+        namespaceName,
+        environmentName,
+        startTime,
+        endTime,
+        step,
+      } = req.query;
 
       if (!projectName || !namespaceName) {
         throw new InputError(
@@ -288,6 +312,10 @@ export async function createRouter({
           {
             projectName: projectName as string,
             namespaceName: namespaceName as string,
+            environmentName: environmentName as string | undefined,
+            startTime: startTime as string | undefined,
+            endTime: endTime as string | undefined,
+            step: step as string | undefined,
           },
           userToken,
         ),

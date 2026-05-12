@@ -138,9 +138,15 @@ export interface CellDiagramService {
     request: {
       projectName: string;
       namespaceName: string;
+      environmentName?: string;
+      startTime?: string;
+      endTime?: string;
+      step?: string;
     },
     token?: string,
   ): Promise<Project | undefined>;
+
+  listEnvironments(namespaceName: string, token?: string): Promise<string[]>;
 }
 
 export interface WorkloadService {
