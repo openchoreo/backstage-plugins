@@ -30,7 +30,7 @@ describe('mergeEnvVarsWithStatus', () => {
     expect(result[0].actualIndex).toBe(0);
   });
 
-  it('marks new override vars', () => {
+  it('marks not-in-base vars as new when no initial snapshot is provided (legacy)', () => {
     const base: EnvVar[] = [];
     const override: EnvVar[] = [{ key: 'NEW_VAR', value: 'hello' }];
     const result = mergeEnvVarsWithStatus(base, override);
@@ -39,6 +39,39 @@ describe('mergeEnvVarsWithStatus', () => {
     expect(result[0].status).toBe('new');
     expect(result[0].envVar.key).toBe('NEW_VAR');
     expect(result[0].actualIndex).toBe(0);
+  });
+
+  it('marks vars present in initial-but-not-in-base as extra', () => {
+    const base: EnvVar[] = [];
+    const initial: EnvVar[] = [{ key: 'STALE', value: 'old' }];
+    const override: EnvVar[] = [{ key: 'STALE', value: 'old' }];
+    const result = mergeEnvVarsWithStatus(base, override, initial);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe('extra');
+    expect(result[0].envVar.key).toBe('STALE');
+  });
+
+  it('marks vars absent from initial as new when initial is provided', () => {
+    const base: EnvVar[] = [];
+    const initial: EnvVar[] = [];
+    const override: EnvVar[] = [{ key: 'JUST_ADDED', value: '1' }];
+    const result = mergeEnvVarsWithStatus(base, override, initial);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe('new');
+  });
+
+  it('mixes extra and new in the same merge when initial is partial', () => {
+    const base: EnvVar[] = [];
+    const initial: EnvVar[] = [{ key: 'STALE', value: 'old' }];
+    const override: EnvVar[] = [
+      { key: 'STALE', value: 'old' },
+      { key: 'JUST_ADDED', value: '1' },
+    ];
+    const result = mergeEnvVarsWithStatus(base, override, initial);
+
+    expect(result.map(r => r.status)).toEqual(['extra', 'new']);
   });
 
   it('handles mixed inherited, overridden, and new', () => {

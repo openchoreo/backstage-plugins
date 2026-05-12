@@ -850,6 +850,11 @@ export const EnvironmentOverridesPage = ({
               hideContainerFields
               secretReferences={secretReferences}
               baseWorkloadData={formState.baseWorkloadData}
+              initialWorkloadData={
+                formState.initialWorkloadFormData as
+                  | typeof formState.baseWorkloadData
+                  | null
+              }
               showEnvVarStatus
               onStartOverride={handleStartOverride}
               onStartFileOverride={handleStartFileOverride}

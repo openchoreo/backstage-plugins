@@ -7,9 +7,11 @@ import type {
  * Status of an environment variable in the override context.
  * - 'inherited': From base workload, not overridden
  * - 'overridden': Has a base value that is being overridden
- * - 'new': New env var added in override, not in base workload
+ * - 'extra': In the persisted overrides but not in the base workload (e.g. a
+ *   stale entry left over after the bound release changed)
+ * - 'new': Added by the user in the current form session and not in base
  */
-export type EnvVarStatus = 'inherited' | 'overridden' | 'new';
+export type EnvVarStatus = 'inherited' | 'overridden' | 'extra' | 'new';
 
 /**
  * Environment variable with its override status metadata.
@@ -27,18 +29,28 @@ export interface EnvVarWithStatus {
 
 /**
  * Merges base workload env vars with override env vars into a unified list.
- * Returns status for each: inherited, overridden, or new.
+ * Returns status for each: inherited, overridden, extra, or new.
+ *
+ * When `initialOverrideEnvVars` is provided, an override key not in `base` is
+ * tagged `'extra'` if it was already in `initial` (i.e. loaded from the
+ * binding) and `'new'` otherwise (i.e. added in the current form session).
+ * When omitted, everything not-in-base falls back to `'new'` for backwards
+ * compatibility with legacy callers.
  *
  * @param baseEnvVars - Environment variables from the base workload
  * @param overrideEnvVars - Environment variables from the override form
- * @returns Unified list with status metadata for each env var
+ * @param initialOverrideEnvVars - Snapshot of overrides as initially loaded
  */
 export function mergeEnvVarsWithStatus(
   baseEnvVars: EnvVar[],
   overrideEnvVars: EnvVar[],
+  initialOverrideEnvVars?: EnvVar[],
 ): EnvVarWithStatus[] {
   const result: EnvVarWithStatus[] = [];
   const baseMap = new Map(baseEnvVars.map(e => [e.key, e]));
+  const initialKeys = initialOverrideEnvVars
+    ? new Set(initialOverrideEnvVars.map(e => e.key))
+    : undefined;
 
   // Create a map of override keys to their actual indices in the array
   const overrideIndexMap = new Map(
@@ -63,13 +75,17 @@ export function mergeEnvVarsWithStatus(
     }
   }
 
-  // Add new override env vars (not in base)
+  // Add override env vars not present in base.
+  // Without an `initial` snapshot, mark every such entry 'new' (legacy).
+  // With it, persisted-but-not-in-base entries become 'extra'.
   for (let i = 0; i < overrideEnvVars.length; i++) {
     const overrideEnv = overrideEnvVars[i];
     if (!baseMap.has(overrideEnv.key)) {
+      const status: EnvVarStatus =
+        initialKeys && initialKeys.has(overrideEnv.key) ? 'extra' : 'new';
       result.push({
         envVar: overrideEnv,
-        status: 'new',
+        status,
         actualIndex: i,
       });
     }

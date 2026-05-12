@@ -34,7 +34,7 @@ describe('mergeFileVarsWithStatus', () => {
     expect(result[0].actualIndex).toBe(0);
   });
 
-  it('marks new files in override', () => {
+  it('marks not-in-base files as new when no initial snapshot is provided (legacy)', () => {
     const result = mergeFileVarsWithStatus(
       [],
       [{ key: 'new.txt', mountPath: '/tmp', value: 'data' }],
@@ -43,6 +43,30 @@ describe('mergeFileVarsWithStatus', () => {
     expect(result).toHaveLength(1);
     expect(result[0].status).toBe('new');
     expect(result[0].actualIndex).toBe(0);
+  });
+
+  it('marks files present in initial-but-not-in-base as extra', () => {
+    const initial: FileVar[] = [
+      { key: 'stale.yaml', mountPath: '/etc', value: 'old' },
+    ];
+    const override: FileVar[] = [
+      { key: 'stale.yaml', mountPath: '/etc', value: 'old' },
+    ];
+    const result = mergeFileVarsWithStatus([], override, initial);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe('extra');
+  });
+
+  it('marks files absent from initial as new when initial is provided', () => {
+    const result = mergeFileVarsWithStatus(
+      [],
+      [{ key: 'fresh.txt', mountPath: '/x', value: 'y' }],
+      [],
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe('new');
   });
 
   it('handles mixed statuses', () => {

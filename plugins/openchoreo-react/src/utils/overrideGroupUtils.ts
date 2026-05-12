@@ -7,6 +7,7 @@ import type { FileVarStatus, FileVarWithStatus } from './fileVarUtils';
 export interface StatusCounts {
   overridden: number;
   new: number;
+  extra: number;
   inherited: number;
 }
 
@@ -16,6 +17,7 @@ export interface StatusCounts {
 export interface GroupedItems<T> {
   overridden: T[];
   new: T[];
+  extra: T[];
   inherited: T[];
 }
 
@@ -23,7 +25,7 @@ type ItemWithStatus = EnvVarWithStatus | FileVarWithStatus;
 type StatusType = EnvVarStatus | FileVarStatus;
 
 /**
- * Groups items by their status (overridden, new, inherited).
+ * Groups items by their status (overridden, new, extra, inherited).
  * Maintains the original actualIndex for each item.
  *
  * @param items - Array of items with status metadata
@@ -35,6 +37,7 @@ export function groupByStatus<T extends ItemWithStatus>(
   const result: GroupedItems<T> = {
     overridden: [],
     new: [],
+    extra: [],
     inherited: [],
   };
 
@@ -44,6 +47,8 @@ export function groupByStatus<T extends ItemWithStatus>(
       result.overridden.push(item);
     } else if (status === 'new') {
       result.new.push(item);
+    } else if (status === 'extra') {
+      result.extra.push(item);
     } else {
       result.inherited.push(item);
     }
@@ -64,6 +69,7 @@ export function getStatusCounts<T extends ItemWithStatus>(
   const counts: StatusCounts = {
     overridden: 0,
     new: 0,
+    extra: 0,
     inherited: 0,
   };
 
@@ -73,6 +79,8 @@ export function getStatusCounts<T extends ItemWithStatus>(
       counts.overridden++;
     } else if (status === 'new') {
       counts.new++;
+    } else if (status === 'extra') {
+      counts.extra++;
     } else {
       counts.inherited++;
     }
@@ -88,7 +96,12 @@ export function getStatusCounts<T extends ItemWithStatus>(
  * @returns True if any category has items
  */
 export function hasAnyItems(counts: StatusCounts): boolean {
-  return counts.overridden > 0 || counts.new > 0 || counts.inherited > 0;
+  return (
+    counts.overridden > 0 ||
+    counts.new > 0 ||
+    counts.extra > 0 ||
+    counts.inherited > 0
+  );
 }
 
 /**
@@ -98,5 +111,5 @@ export function hasAnyItems(counts: StatusCounts): boolean {
  * @returns Total count
  */
 export function getTotalCount(counts: StatusCounts): number {
-  return counts.overridden + counts.new + counts.inherited;
+  return counts.overridden + counts.new + counts.extra + counts.inherited;
 }
