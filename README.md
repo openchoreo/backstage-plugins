@@ -412,6 +412,68 @@ When annotations are present, you'll see:
 
 For detailed setup instructions, see the [External CI Integration Guide](https://openchoreo.dev/docs/platform-engineer-guide/workflows/external-ci/).
 
+## Releasing
+
+Releases are tag-driven. Pushing a `v*.*.*` tag triggers the [release workflow](.github/workflows/release.yml), which retags the Docker image in GHCR **and** publishes every public `@openchoreo/*` package to GitHub Packages (`https://npm.pkg.github.com`). Authentication uses the auto-issued `GITHUB_TOKEN` — no extra secrets needed.
+
+### Cutting a release
+
+1. **Accumulate changesets** as PRs land on `main`. Run `yarn changeset` whenever a PR introduces a user-visible change; commit the generated `.changeset/*.md` file.
+
+2. **Open a "Version Packages" PR** when ready to release:
+
+   ```bash
+   git checkout -b release/version-bump
+   yarn release:version   # consumes .changeset/*.md, bumps versions, regenerates CHANGELOGs
+   git add -A && git commit -m "chore: version packages"
+   git push -u origin release/version-bump
+   ```
+
+   The 13 packages in the `linked` group in `.changeset/config.json` bump together. Review the PR carefully — version bumps are inferred from the changeset bump types (`patch` / `minor` / `major`).
+
+3. **Merge** the version PR to `main`.
+
+4. **Tag the merge commit and push**:
+
+   ```bash
+   git checkout main && git pull
+   git tag v0.4.0           # stable release
+   # or: git tag v0.4.0-rc.1  # prerelease
+   git push origin v0.4.0
+   ```
+
+5. **CI publishes**. The release workflow:
+   - Retags the existing Docker image (built earlier on the `main` push) to `vX.Y.Z` in GHCR.
+   - Runs `yarn install --immutable && yarn build:all && yarn release:publish` to publish npm packages to GitHub Packages.
+   - On **stable** tags (`vX.Y.Z`) publishes under the `latest` npm dist-tag.
+   - On **prerelease** tags (`vX.Y.Z-rc.N`, `vX.Y.Z-test.N`, etc. — any tag containing a hyphen) publishes under the `next` dist-tag, leaving `latest` untouched.
+
+### Verifying a release
+
+```bash
+yarn npm info @openchoreo/backstage-plugin --registry=https://npm.pkg.github.com
+yarn npm info @openchoreo/backstage-design-system --registry=https://npm.pkg.github.com
+```
+
+Both should show the new version. Confirm under `dist-tags` that stable releases moved `latest` and prereleases moved `next`.
+
+### Re-running a tag
+
+`changeset publish` is idempotent — re-running the workflow on an already-published tag skips packages whose versions already exist on the registry and exits cleanly. Useful when a transient failure leaves some packages published and others not.
+
+### One-time local dry run
+
+Before the first real release, validate the publish path locally:
+
+```bash
+export YARN_NPM_AUTH_TOKEN=<a classic PAT with write:packages on the openchoreo org>
+yarn install --immutable
+yarn build:all
+yarn changeset publish --dry-run
+```
+
+Output should list exactly the 13 public `@openchoreo/*` packages targeting `https://npm.pkg.github.com`. No `"private": true` package should appear.
+
 ## Documentation
 
 - Check individual plugin README files in `plugins/` directory

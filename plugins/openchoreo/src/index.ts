@@ -1,5 +1,10 @@
 export { choreoPlugin } from './plugin';
 export { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
+// Exported so external Backstage hosts can register the API factory in
+// their packages/app/src/apis.ts. Without this, hosts that do not include
+// the plugin in their auto-discovered routes tree get a NotImplementedError
+// at runtime when entity tabs (Environments, CellDiagram) try to useApi.
+export { OpenChoreoClient } from './api/OpenChoreoClient';
 export { Environments } from './components/Environments/Environments';
 export { CellDiagram } from './components/CellDiagram/CellDiagram';
 export {
