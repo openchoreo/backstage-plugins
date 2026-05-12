@@ -19,7 +19,7 @@ export const OverridesWrapper = () => {
   const { entity } = useEntity();
   const { environments, refetch, onPendingActionComplete } =
     useEnvironmentsContext();
-  const { navigateToList, navigateToWorkloadConfig } = useEnvironmentRouting();
+  const { navigateToList } = useEnvironmentRouting();
 
   // Parse pending action from URL
   const pendingAction = useMemo(
@@ -81,10 +81,10 @@ export const OverridesWrapper = () => {
     refetch();
   };
 
-  const handlePrevious =
-    pendingAction?.type === 'deploy'
-      ? () => navigateToWorkloadConfig()
-      : undefined;
+  // Deploy and promote flows have no "previous step" in the Setup-card-driven
+  // UX — both are launched from the deploy list. Leaving onPrevious undefined
+  // hides the Previous button; users use Back/Cancel to return to the list.
+  const handlePrevious = undefined;
 
   // Error state: environment not found
   if (!environment) {

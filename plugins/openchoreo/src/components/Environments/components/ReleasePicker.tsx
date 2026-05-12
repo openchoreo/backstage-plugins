@@ -1,45 +1,56 @@
 import { useMemo, useState } from 'react';
-import {
-  Box,
-  Chip,
-  IconButton,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@material-ui/core';
+import { Box, Button, Chip, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { Autocomplete } from '@material-ui/lab';
-import VisibilityOutlinedIcon from '@material-ui/icons/VisibilityOutlined';
+import { Skeleton } from '@material-ui/lab';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
-import { ReleaseManifestDialog } from './ReleaseManifestDialog';
+import { ReleaseBrowserDialog } from './ReleaseBrowserDialog';
 
 const useStyles = makeStyles(theme => ({
-  optionRow: {
+  wrapper: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(0.5),
+  },
+  label: {
+    color: theme.palette.text.secondary,
+    fontWeight: 600,
+    fontSize: 11,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    marginBottom: theme.spacing(0.5),
+  },
+  summaryRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: theme.spacing(1),
-    width: '100%',
+    gap: theme.spacing(1.5),
   },
-  optionMain: {
+  summary: {
     flexGrow: 1,
     minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
   },
-  optionName: {
+  name: {
     fontWeight: 500,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-  optionMeta: {
+  meta: {
     color: theme.palette.text.secondary,
     fontSize: 12,
     display: 'flex',
     flexWrap: 'wrap',
-    gap: theme.spacing(1),
+    alignItems: 'center',
+    gap: theme.spacing(0.75),
   },
-  currentChip: {
+  chip: {
     height: 20,
     fontSize: 11,
+  },
+  empty: {
+    color: theme.palette.text.secondary,
+    fontStyle: 'italic',
   },
 }));
 
@@ -52,7 +63,7 @@ export interface ReleasePickerProps {
   onChange: (releaseName: string | null) => void;
   /** Environments where each release is currently deployed. Used for badges. */
   deployments?: ReleaseDeployments;
-  /** Env name passed to the YAML preview dialog. */
+  /** Env name passed to the browser dialog for context. */
   environmentName: string;
   disabled?: boolean;
   loading?: boolean;
@@ -74,7 +85,6 @@ const formatRelativeTime = (iso?: string): string => {
   return new Date(iso).toLocaleDateString();
 };
 
-/** Pull `spec.workload.spec.container.image` (or any reasonable fallback) for display. */
 const extractImage = (release: ComponentRelease): string | undefined => {
   const workload = release.spec?.workload as
     | { spec?: { container?: { image?: string } } }
@@ -95,51 +105,42 @@ export const ReleasePicker = ({
   environmentName,
   disabled,
   loading,
-  label = 'Release',
+  label = 'Selected release',
 }: ReleasePickerProps) => {
   const classes = useStyles();
-  const [yamlReleaseName, setYamlReleaseName] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const selected = useMemo(
     () => releases.find(r => r.metadata?.name === selectedReleaseName) ?? null,
     [releases, selectedReleaseName],
   );
 
+  const noReleases = !loading && releases.length === 0;
+  const created = selected
+    ? formatRelativeTime(selected.metadata?.creationTimestamp)
+    : '';
+  const image = selected ? extractImage(selected) : undefined;
+  const deployedIn = selected
+    ? deployments[selected.metadata?.name ?? ''] ?? []
+    : [];
+
   return (
-    <>
-      <Autocomplete
-        options={releases}
-        value={selected}
-        onChange={(_, next) => onChange(next?.metadata?.name ?? null)}
-        getOptionLabel={r => r.metadata?.name ?? ''}
-        getOptionSelected={(opt, val) =>
-          opt.metadata?.name === val.metadata?.name
-        }
-        disabled={disabled}
-        loading={loading}
-        renderInput={params => (
-          <TextField
-            {...params}
-            label={label}
-            variant="outlined"
-            size="small"
-            placeholder={loading ? 'Loading releases...' : 'Search releases'}
-          />
-        )}
-        renderOption={release => {
-          const name = release.metadata?.name ?? '(unnamed)';
-          const created = formatRelativeTime(
-            release.metadata?.creationTimestamp,
-          );
-          const image = extractImage(release);
-          const deployedIn = deployments[name] ?? [];
-          return (
-            <Box className={classes.optionRow}>
-              <Box className={classes.optionMain}>
-                <Typography className={classes.optionName} variant="body2">
-                  {name}
+    <Box className={classes.wrapper}>
+      <Typography variant="caption" className={classes.label}>
+        {label}
+      </Typography>
+
+      {loading ? (
+        <Skeleton variant="rect" height={36} />
+      ) : (
+        <Box className={classes.summaryRow}>
+          <Box className={classes.summary}>
+            {selected ? (
+              <>
+                <Typography variant="body2" className={classes.name}>
+                  {selected.metadata?.name}
                 </Typography>
-                <Box className={classes.optionMeta}>
+                <Box className={classes.meta}>
                   {created && <span>{created}</span>}
                   {image && <span>img: {shortenImage(image)}</span>}
                   {deployedIn.map(env => (
@@ -148,38 +149,38 @@ export const ReleasePicker = ({
                       label={`current in ${env}`}
                       size="small"
                       color="primary"
-                      className={classes.currentChip}
+                      className={classes.chip}
                     />
                   ))}
                 </Box>
-              </Box>
-              <Tooltip title="View release YAML">
-                <IconButton
-                  size="small"
-                  onMouseDown={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                  }}
-                  onClick={e => {
-                    e.stopPropagation();
-                    setYamlReleaseName(name);
-                  }}
-                  aria-label="View release YAML"
-                >
-                  <VisibilityOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          );
-        }}
-      />
+              </>
+            ) : (
+              <Typography variant="body2" className={classes.empty}>
+                {noReleases ? 'No releases yet' : 'No release selected'}
+              </Typography>
+            )}
+          </Box>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => setDialogOpen(true)}
+            disabled={disabled || noReleases}
+          >
+            {selected ? 'Change' : 'Select release'}
+          </Button>
+        </Box>
+      )}
 
-      <ReleaseManifestDialog
-        open={!!yamlReleaseName}
-        onClose={() => setYamlReleaseName(null)}
-        releaseName={yamlReleaseName ?? undefined}
+      <ReleaseBrowserDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        releases={releases}
+        deployments={deployments}
+        selectedReleaseName={selectedReleaseName}
+        onConfirm={name => onChange(name)}
         environmentName={environmentName}
+        loading={loading}
       />
-    </>
+    </Box>
   );
 };
