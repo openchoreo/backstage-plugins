@@ -20,6 +20,7 @@ interface AlertRowProps {
   componentName?: string;
   namespaceName?: string;
   onViewIncident: (alert: AlertSummary) => void;
+  onViewCostAnalysis?: (alert: AlertSummary) => void;
 }
 
 const formatTimestamp = (ts?: string) => {
@@ -55,6 +56,7 @@ export const AlertRow: FC<AlertRowProps> = ({
   componentName,
   namespaceName,
   onViewIncident,
+  onViewCostAnalysis,
 }) => {
   const classes = useLogEntryStyles();
   const [expanded, setExpanded] = useState(false);
@@ -66,6 +68,13 @@ export const AlertRow: FC<AlertRowProps> = ({
   const handleViewIncidentClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     onViewIncident(alert);
+  };
+
+  const handleViewCostAnalysisClick = (
+    event: MouseEvent<HTMLButtonElement>,
+  ) => {
+    event.stopPropagation();
+    onViewCostAnalysis?.(alert);
   };
 
   const effectiveProject = alert.projectName || projectName || '—';
@@ -108,20 +117,38 @@ export const AlertRow: FC<AlertRowProps> = ({
             justifyContent="space-between"
           >
             <span>{alert.alertValue ?? '—'}</span>
-            {alert.incidentEnabled && (
-              <Tooltip title="View associated incident in project Incidents tab">
-                <span className={classes.hoverActionButton}>
-                  <Button
-                    size="small"
-                    startIcon={<OpenInNewIcon fontSize="small" />}
-                    onClick={handleViewIncidentClick}
-                    style={{ whiteSpace: 'nowrap', marginLeft: 8 }}
-                  >
-                    View incident
-                  </Button>
-                </span>
-              </Tooltip>
-            )}
+            <Box display="flex" style={{ gap: 8 }}>
+              {alert.incidentEnabled && (
+                <Tooltip title="View associated incident in project Incidents tab">
+                  <span className={classes.hoverActionButton}>
+                    <Button
+                      size="small"
+                      startIcon={<OpenInNewIcon fontSize="small" />}
+                      onClick={handleViewIncidentClick}
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      View incident
+                    </Button>
+                  </span>
+                </Tooltip>
+              )}
+              {alert.sourceType === 'metric' &&
+                alert.sourceMetric === 'budget' &&
+                onViewCostAnalysis && (
+                  <Tooltip title="View cost analysis for this budget alert">
+                    <span className={classes.hoverActionButton}>
+                      <Button
+                        size="small"
+                        startIcon={<OpenInNewIcon fontSize="small" />}
+                        onClick={handleViewCostAnalysisClick}
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        View cost analysis
+                      </Button>
+                    </span>
+                  </Tooltip>
+                )}
+            </Box>
           </Box>
         </TableCell>
       </TableRow>
@@ -140,18 +167,34 @@ export const AlertRow: FC<AlertRowProps> = ({
                   <Typography className={classes.expandedSectionTitle}>
                     Alert details
                   </Typography>
-                  {alert.incidentEnabled && (
-                    <Tooltip title="View associated incident in project Incidents tab">
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        startIcon={<OpenInNewIcon fontSize="small" />}
-                        onClick={handleViewIncidentClick}
-                      >
-                        View incident
-                      </Button>
-                    </Tooltip>
-                  )}
+                  <Box display="flex" style={{ gap: 8 }}>
+                    {alert.incidentEnabled && (
+                      <Tooltip title="View associated incident in project Incidents tab">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<OpenInNewIcon fontSize="small" />}
+                          onClick={handleViewIncidentClick}
+                        >
+                          View incident
+                        </Button>
+                      </Tooltip>
+                    )}
+                    {alert.sourceType === 'metric' &&
+                      alert.sourceMetric === 'budget' &&
+                      onViewCostAnalysis && (
+                        <Tooltip title="View cost analysis for this budget alert">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<OpenInNewIcon fontSize="small" />}
+                            onClick={handleViewCostAnalysisClick}
+                          >
+                            View cost analysis
+                          </Button>
+                        </Tooltip>
+                      )}
+                  </Box>
                 </Box>
 
                 <Box className={classes.metadataBox}>

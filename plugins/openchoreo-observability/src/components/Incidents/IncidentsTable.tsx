@@ -22,6 +22,7 @@ interface IncidentsTableProps {
   projectName: string;
   environmentName?: string;
   onViewRCA?: (incident: IncidentSummary) => void;
+  onViewCostAnalysis?: (incident: IncidentSummary) => void;
   onAcknowledge?: (incident: IncidentSummary) => void;
   onResolve?: (incident: IncidentSummary) => void;
   updatingIncidentId?: string | null;
@@ -34,6 +35,7 @@ export const IncidentsTable: FC<IncidentsTableProps> = ({
   projectName,
   environmentName = '',
   onViewRCA,
+  onViewCostAnalysis,
   onAcknowledge,
   onResolve,
   updatingIncidentId,
@@ -115,6 +117,7 @@ export const IncidentsTable: FC<IncidentsTableProps> = ({
                   projectName={projectName}
                   environmentName={environmentName}
                   onViewRCA={onViewRCA ?? (() => {})}
+                  onViewCostAnalysis={onViewCostAnalysis}
                   onAcknowledge={onAcknowledge}
                   onResolve={onResolve}
                   updating={updatingIncidentId === incident.incidentId}

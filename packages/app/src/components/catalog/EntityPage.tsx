@@ -123,6 +123,7 @@ import {
   ObservabilityProjectRuntimeLogs,
   ObservabilityAlerts,
   ObservabilityProjectIncidents,
+  ObservabilityCostAnalysis,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 import {
@@ -670,6 +671,11 @@ const systemPage = (
     <EntityLayout.Route path="/rca-reports" title="RCA Reports">
       <FeatureGatedContent feature="observability">
         <ObservabilityRCA />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/cost-analysis" title="Cost Analysis">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityCostAnalysis />
       </FeatureGatedContent>
     </EntityLayout.Route>
   </EntityLayoutWithDelete>

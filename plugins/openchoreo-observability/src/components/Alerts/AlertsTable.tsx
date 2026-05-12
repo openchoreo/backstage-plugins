@@ -23,6 +23,7 @@ interface AlertsTableProps {
   componentName?: string;
   namespaceName?: string;
   onViewIncident?: (alert: AlertSummary) => void;
+  onViewCostAnalysis?: (alert: AlertSummary) => void;
 }
 
 export const AlertsTable: FC<AlertsTableProps> = ({
@@ -33,6 +34,7 @@ export const AlertsTable: FC<AlertsTableProps> = ({
   componentName = '',
   namespaceName = 'default',
   onViewIncident,
+  onViewCostAnalysis,
 }) => {
   const classes = useLogsTableStyles();
 
@@ -100,6 +102,7 @@ export const AlertsTable: FC<AlertsTableProps> = ({
                   componentName={componentName}
                   namespaceName={namespaceName}
                   onViewIncident={onViewIncident ?? (() => {})}
+                  onViewCostAnalysis={onViewCostAnalysis}
                 />
               ))}
           </TableBody>

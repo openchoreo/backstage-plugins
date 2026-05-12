@@ -8,6 +8,7 @@ import {
 export interface ObservabilityUrlsResult {
   observerUrl?: string;
   rcaAgentUrl?: string;
+  finopsAgentUrl?: string;
 }
 
 /** Options for constructing an ObservabilityUrlResolver. */
@@ -283,6 +284,7 @@ export class ObservabilityUrlResolver {
       return {
         observerUrl: (op as any)?.spec?.observerURL,
         rcaAgentUrl: (op as any)?.spec?.rcaAgentURL,
+        finopsAgentUrl: (op as any)?.spec?.finOpsAgentURL,
       };
     }
 
@@ -313,6 +315,7 @@ export class ObservabilityUrlResolver {
       return {
         observerUrl: (cop as any)?.spec?.observerURL,
         rcaAgentUrl: (cop as any)?.spec?.rcaAgentURL,
+        finopsAgentUrl: (cop as any)?.spec?.finOpsAgentURL,
       };
     }
 
@@ -333,7 +336,7 @@ export class ObservabilityUrlResolver {
 
   private putInCache(key: string, result: ObservabilityUrlsResult): void {
     // Don't cache empty results (e.g. from 404s) so they are re-checked on the next request
-    if (!result.observerUrl && !result.rcaAgentUrl) {
+    if (!result.observerUrl && !result.rcaAgentUrl && !result.finopsAgentUrl) {
       return;
     }
     this.cache.set(key, {
