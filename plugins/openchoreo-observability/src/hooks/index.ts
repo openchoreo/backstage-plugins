@@ -1,4 +1,5 @@
 export { useGetNamespaceAndProjectByEntity } from './useGetNamespaceAndProjectByEntity';
+export { useDataPlaneNetPolProvider } from './useDataPlaneNetPolProvider';
 export { useGetEnvironmentsByNamespace } from './useGetEnvironmentsByNamespace';
 export { useFilters } from './useFilters';
 export { useUrlFilters } from './useUrlFilters';

@@ -24,6 +24,7 @@ describe('createRouter', () => {
       getReleaseBinding: jest.fn(),
       updateReleaseBinding: jest.fn(),
       fetchEnvironmentsByNamespace: jest.fn(),
+      fetchDataPlaneNetPolProvider: jest.fn(),
     };
     tokenService = {
       getUserToken: jest.fn().mockReturnValue(undefined),
@@ -154,5 +155,61 @@ describe('createRouter', () => {
     expect(response.body).toMatchObject({
       error: 'Namespace is required',
     });
+  });
+
+  it('should return the network policy provider for a dataplane', async () => {
+    observabilityService.fetchDataPlaneNetPolProvider.mockResolvedValue(
+      'cilium',
+    );
+
+    const response = await request(app)
+      .get('/dataplane-netpol-provider')
+      .query({ namespaceName: 'ns-1', dpName: 'dp-1', dpKind: 'DataPlane' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ networkPolicyProvider: 'cilium' });
+    expect(
+      observabilityService.fetchDataPlaneNetPolProvider,
+    ).toHaveBeenCalledWith('ns-1', 'DataPlane', 'dp-1', undefined);
+  });
+
+  it('should default dpKind to DataPlane when omitted', async () => {
+    observabilityService.fetchDataPlaneNetPolProvider.mockResolvedValue(
+      undefined,
+    );
+
+    const response = await request(app)
+      .get('/dataplane-netpol-provider')
+      .query({ namespaceName: 'ns-1', dpName: 'dp-1' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ networkPolicyProvider: undefined });
+    expect(
+      observabilityService.fetchDataPlaneNetPolProvider,
+    ).toHaveBeenCalledWith('ns-1', 'DataPlane', 'dp-1', undefined);
+  });
+
+  it('should return 400 when namespaceName or dpName is missing for dataplane-netpol-provider', async () => {
+    const response = await request(app)
+      .get('/dataplane-netpol-provider')
+      .query({ namespaceName: 'ns-1' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      error: 'namespaceName and dpName are required',
+    });
+  });
+
+  it('should return 500 on service error for dataplane-netpol-provider', async () => {
+    observabilityService.fetchDataPlaneNetPolProvider.mockRejectedValue(
+      new Error('upstream failure'),
+    );
+
+    const response = await request(app)
+      .get('/dataplane-netpol-provider')
+      .query({ namespaceName: 'ns-1', dpName: 'dp-1' });
+
+    expect(response.status).toBe(500);
+    expect(response.body).toMatchObject({ error: 'upstream failure' });
   });
 });

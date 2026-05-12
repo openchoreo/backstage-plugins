@@ -164,3 +164,78 @@ describe('ObservabilityService.fetchEnvironmentsByNamespace', () => {
     expect(result).toEqual([]);
   });
 });
+
+describe('ObservabilityService.fetchDataPlaneNetPolProvider', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const service = ObservabilityService.create(logger, 'http://test:8080');
+
+  const makeDataPlane = (provider?: string) => ({
+    metadata: {
+      name: 'dp-1',
+      namespace: 'ns-1',
+      annotations: provider
+        ? { 'openchoreo.dev/networkpolicyprovider': provider }
+        : {},
+    },
+    spec: {},
+  });
+
+  it('returns the annotation value for a DataPlane', async () => {
+    mockGET.mockResolvedValueOnce(createOkResponse(makeDataPlane('cilium')));
+
+    const result = await service.fetchDataPlaneNetPolProvider(
+      'ns-1',
+      'DataPlane',
+      'dp-1',
+    );
+
+    expect(result).toBe('cilium');
+    expect(mockGET).toHaveBeenCalledWith(
+      '/api/v1/namespaces/{namespaceName}/dataplanes/{dpName}',
+      { params: { path: { namespaceName: 'ns-1', dpName: 'dp-1' } } },
+    );
+  });
+
+  it('returns the annotation value for a ClusterDataPlane', async () => {
+    mockGET.mockResolvedValueOnce(createOkResponse(makeDataPlane('cilium')));
+
+    const result = await service.fetchDataPlaneNetPolProvider(
+      'ns-1',
+      'ClusterDataPlane',
+      'cdp-1',
+    );
+
+    expect(result).toBe('cilium');
+    expect(mockGET).toHaveBeenCalledWith(
+      '/api/v1/clusterdataplanes/{cdpName}',
+      { params: { path: { cdpName: 'cdp-1' } } },
+    );
+  });
+
+  it('returns undefined when annotation is absent', async () => {
+    mockGET.mockResolvedValueOnce(createOkResponse(makeDataPlane()));
+
+    const result = await service.fetchDataPlaneNetPolProvider(
+      'ns-1',
+      'DataPlane',
+      'dp-1',
+    );
+
+    expect(result).toBeUndefined();
+  });
+
+  it('returns undefined when the API call throws', async () => {
+    mockGET.mockRejectedValueOnce(new Error('network error'));
+
+    const result = await service.fetchDataPlaneNetPolProvider(
+      'ns-1',
+      'DataPlane',
+      'dp-1',
+    );
+
+    expect(result).toBeUndefined();
+  });
+});

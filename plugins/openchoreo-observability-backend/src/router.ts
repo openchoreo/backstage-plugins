@@ -92,6 +92,36 @@ export async function createRouter({
     }
   });
 
+  router.get('/dataplane-netpol-provider', async (req, res) => {
+    if (authEnabled) {
+      await httpAuth.credentials(req, { allow: ['user'] });
+    }
+    const { namespaceName, dpKind, dpName } = req.query;
+    if (!namespaceName || !dpName) {
+      return res
+        .status(400)
+        .json({ error: 'namespaceName and dpName are required' });
+    }
+    const userToken = getUserTokenFromRequest(req);
+    try {
+      const networkPolicyProvider =
+        await observabilityService.fetchDataPlaneNetPolProvider(
+          namespaceName as string,
+          (dpKind as string) ?? 'DataPlane',
+          dpName as string,
+          userToken,
+        );
+      return res.status(200).json({ networkPolicyProvider });
+    } catch (error) {
+      return res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch dataplane network policy provider',
+      });
+    }
+  });
+
   router.get('/release-binding', async (req, res) => {
     if (authEnabled) {
       await httpAuth.credentials(req, { allow: ['user'] });

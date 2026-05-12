@@ -5,7 +5,6 @@ import {
   useObservabilityEnabled,
   useAuthEnabled,
   useAuthzEnabled,
-  useCiliumEnabled,
 } from './useOpenChoreoFeatures';
 
 const mockGetOptionalConfig = jest.fn();
@@ -38,7 +37,6 @@ describe('useOpenChoreoFeatures', () => {
       observability: { enabled: true },
       auth: { enabled: true },
       authz: { enabled: true },
-      cilium: { enabled: false },
     });
   });
 
@@ -57,7 +55,6 @@ describe('useOpenChoreoFeatures', () => {
       observability: { enabled: true },
       auth: { enabled: false },
       authz: { enabled: true },
-      cilium: { enabled: false },
     });
   });
 
@@ -82,7 +79,6 @@ describe('useOpenChoreoFeatures', () => {
       observability: { enabled: true },
       auth: { enabled: true },
       authz: { enabled: true },
-      cilium: { enabled: false },
     });
   });
 });
@@ -96,7 +92,6 @@ describe('helper hooks', () => {
         'observability.enabled': false,
         'auth.enabled': true,
         'authz.enabled': false,
-        'cilium.enabled': true,
       }),
     );
   });
@@ -119,10 +114,5 @@ describe('helper hooks', () => {
   it('useAuthzEnabled returns authz flag', () => {
     const { result } = renderHook(() => useAuthzEnabled());
     expect(result.current).toBe(false);
-  });
-
-  it('useCiliumEnabled returns cilium flag', () => {
-    const { result } = renderHook(() => useCiliumEnabled());
-    expect(result.current).toBe(true);
   });
 });
