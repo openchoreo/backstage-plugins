@@ -36,6 +36,12 @@ interface EnvironmentsContextValue {
   canViewBindings: boolean;
   /** Whether the release binding permission check is still loading */
   bindingsPermissionLoading: boolean;
+  /** Component-level auto-deploy flag (shared across SetupDetailPane and WorkloadConfigPage). */
+  autoDeploy: boolean;
+  /** Whether the auto-deploy value is still being fetched. */
+  autoDeployLoading: boolean;
+  /** Re-read the auto-deploy value from the server (e.g. after toggling it). */
+  refetchAutoDeploy: () => void;
   /** Currently selected canvas tile (env or setup). Null = nothing selected. */
   selection: Selection;
   /** Setter for the canvas selection. */

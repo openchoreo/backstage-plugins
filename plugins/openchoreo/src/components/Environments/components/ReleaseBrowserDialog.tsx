@@ -188,6 +188,11 @@ export interface ReleaseBrowserDialogProps {
   environmentName: string;
   /** Suppress the list while parent is fetching. */
   loading?: boolean;
+  /**
+   * When true, render as an inspector — no Select button. Used under
+   * auto-deploy where the user cannot pick a release.
+   */
+  readOnly?: boolean;
 }
 
 interface ManifestState {
@@ -204,6 +209,7 @@ export const ReleaseBrowserDialog = ({
   onConfirm,
   environmentName,
   loading,
+  readOnly,
 }: ReleaseBrowserDialogProps) => {
   const classes = useStyles();
   const api = useApi(openChoreoClientApiRef);
@@ -308,7 +314,7 @@ export const ReleaseBrowserDialog = ({
       <DialogTitle disableTypography>
         <Box className={classes.titleBar}>
           <Typography variant="h6" className={classes.titleText}>
-            Select release
+            {readOnly ? 'Releases' : 'Select release'}
           </Typography>
           <TextField
             className={classes.searchField}
@@ -366,6 +372,10 @@ export const ReleaseBrowserDialog = ({
                       selected={highlightedName === name}
                       onClick={() => setHighlightedName(name)}
                       onDoubleClick={() => {
+                        if (readOnly) {
+                          setHighlightedName(name);
+                          return;
+                        }
                         setHighlightedName(name);
                         onConfirm(name);
                         onClose();
@@ -501,15 +511,17 @@ export const ReleaseBrowserDialog = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleConfirm}
-          disabled={!highlightedName || noReleases}
-        >
-          Select
-        </Button>
+        <Button onClick={onClose}>{readOnly ? 'Close' : 'Cancel'}</Button>
+        {!readOnly && (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleConfirm}
+            disabled={!highlightedName || noReleases}
+          >
+            Select
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );

@@ -27,6 +27,7 @@ export {
 } from './usePromotionAction';
 export { useInvokeUrl } from './useInvokeUrl';
 export { useReleases, type UseReleasesResult } from './useReleases';
+export { useAutoDeploy } from './useAutoDeploy';
 export {
   useReleaseReadiness,
   type UseReleaseReadinessResult,

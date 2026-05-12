@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -11,16 +11,17 @@ import {
 } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import AddIcon from '@material-ui/icons/Add';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import CloseIcon from '@material-ui/icons/Close';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
-import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useEnvironmentDetailPanelStyles } from '../styles';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { AutoDeployConfirmationDialog } from './AutoDeployConfirmationDialog';
 import { DeployReleasePanel } from './DeployReleasePanel';
-import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import { ReleaseBrowserDialog } from './ReleaseBrowserDialog';
+import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
 import { useAutoDeployUpdate } from '../hooks/useAutoDeployUpdate';
 import { useReleases } from '../hooks/useReleases';
 import { useReleaseReadiness } from '../hooks/useReleaseReadiness';
@@ -28,6 +29,84 @@ import { useEnvironmentsContext } from '../EnvironmentsContext';
 import { useConfigureAndDeployPermission } from '@openchoreo/backstage-plugin-react';
 import { useNotification } from '../../../hooks';
 import type { ReleaseDeployments } from './ReleasePicker';
+
+interface LatestReleaseRowProps {
+  releases: ComponentRelease[];
+  releasesLoading: boolean;
+  deployments: ReleaseDeployments;
+  firstEnvironmentName: string;
+}
+
+/** Read-only "Latest release" row used when auto-deploy is on. Clicking opens
+ *  the release browser in read-only mode so the user can inspect YAML without
+ *  being able to pick a release (the controller controls that under auto-deploy). */
+const LatestReleaseRow = ({
+  releases,
+  releasesLoading,
+  deployments,
+  firstEnvironmentName,
+}: LatestReleaseRowProps) => {
+  const [browserOpen, setBrowserOpen] = useState(false);
+  // 'Latest' under auto-deploy = release currently bound to the first env.
+  // Falls back to the first release in the list (sorted newest-first) when
+  // no binding exists yet.
+  const latest =
+    releases.find(r =>
+      (deployments[r.metadata?.name ?? ''] ?? []).includes(
+        firstEnvironmentName,
+      ),
+    ) ??
+    releases[0] ??
+    null;
+
+  return (
+    <Box display="flex" flexDirection="column" gridGap={4}>
+      <Typography variant="subtitle2">Latest release</Typography>
+      {releasesLoading && !latest && (
+        <Typography variant="body2" color="textSecondary">
+          Loading…
+        </Typography>
+      )}
+      {!releasesLoading && !latest && (
+        <Typography variant="body2" color="textSecondary">
+          No release yet. Auto-deploy will create one after you save the
+          workload.
+        </Typography>
+      )}
+      {latest && (
+        <Box
+          onClick={() => setBrowserOpen(true)}
+          display="flex"
+          alignItems="center"
+          style={{ cursor: 'pointer', gap: 8 }}
+        >
+          <Typography variant="body2" style={{ fontWeight: 500 }}>
+            {latest.metadata?.name}
+          </Typography>
+          {(deployments[latest.metadata?.name ?? ''] ?? []).includes(
+            firstEnvironmentName,
+          ) && (
+            <Typography variant="caption" color="primary">
+              current in {firstEnvironmentName}
+            </Typography>
+          )}
+          <ChevronRightIcon fontSize="small" color="action" />
+        </Box>
+      )}
+      <ReleaseBrowserDialog
+        open={browserOpen}
+        onClose={() => setBrowserOpen(false)}
+        releases={releases}
+        deployments={deployments}
+        selectedReleaseName={latest?.metadata?.name ?? null}
+        onConfirm={() => {}}
+        environmentName={firstEnvironmentName}
+        loading={releasesLoading}
+        readOnly
+      />
+    </Box>
+  );
+};
 
 export interface SetupDetailPaneProps {
   environmentsExist: boolean;
@@ -55,9 +134,14 @@ export const SetupDetailPane = ({
 }: SetupDetailPaneProps) => {
   const classes = useEnvironmentDetailPanelStyles();
   const { entity } = useEntity();
-  const client = useApi(openChoreoClientApiRef);
   const notification = useNotification();
-  const { environments, lowestEnvironment } = useEnvironmentsContext();
+  const {
+    environments,
+    lowestEnvironment,
+    autoDeploy,
+    autoDeployLoading,
+    refetchAutoDeploy,
+  } = useEnvironmentsContext();
   const { updateAutoDeploy, isUpdating: autoDeployUpdating } =
     useAutoDeployUpdate(entity);
   const {
@@ -73,41 +157,17 @@ export const SetupDetailPane = ({
     error: releasesError,
   } = useReleases(entity);
 
-  const [autoDeploy, setAutoDeploy] = useState<boolean | undefined>(undefined);
-  const [autoDeployLoaded, setAutoDeployLoaded] = useState(false);
   const [showAutoDeployConfirm, setShowAutoDeployConfirm] = useState(false);
   const [pendingAutoDeployValue, setPendingAutoDeployValue] = useState(false);
   const [selectedReleaseName, setSelectedReleaseName] = useState<string | null>(
     null,
   );
 
-  // Fetch auto-deploy from component details (same pattern as before).
-  useEffect(() => {
-    let cancelled = false;
-    setAutoDeployLoaded(false);
-    const load = async () => {
-      try {
-        const componentData = await client.getComponentDetails(entity);
-        if (!cancelled && componentData?.autoDeploy !== undefined) {
-          setAutoDeploy(componentData.autoDeploy);
-        }
-      } catch {
-        // Leave undefined; toggle renders unchecked.
-      } finally {
-        if (!cancelled) setAutoDeployLoaded(true);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [entity, client]);
-
   const handleAutoDeployChange = useCallback(
     async (next: boolean) => {
       const ok = await updateAutoDeploy(next);
       if (ok) {
-        setAutoDeploy(next);
+        refetchAutoDeploy();
         notification.showSuccess(
           `Auto deploy ${next ? 'enabled' : 'disabled'} successfully`,
         );
@@ -115,7 +175,7 @@ export const SetupDetailPane = ({
         notification.showError('Failed to update auto deploy setting');
       }
     },
-    [updateAutoDeploy, notification],
+    [updateAutoDeploy, refetchAutoDeploy, notification],
   );
 
   const handleToggleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,7 +229,7 @@ export const SetupDetailPane = ({
       </Box>
 
       <Box className={classes.setupBody}>
-        {loading && !environmentsExist ? (
+        {(loading && !environmentsExist) || autoDeployLoading ? (
           <LoadingSkeleton variant="setup" />
         ) : (
           <>
@@ -186,7 +246,7 @@ export const SetupDetailPane = ({
                     onChange={handleToggleChange}
                     name="autoDeploy"
                     color="primary"
-                    disabled={!autoDeployLoaded || autoDeployUpdating}
+                    disabled={autoDeployLoading || autoDeployUpdating}
                   />
                 }
                 label={<Typography variant="body2">Auto Deploy</Typography>}
@@ -204,48 +264,96 @@ export const SetupDetailPane = ({
 
             <Divider style={{ margin: '12px 0' }} />
 
-            {/* Story 1 — Create release (routes to workload page) */}
-            <Box display="flex" flexDirection="column" gridGap={8}>
-              <Typography variant="subtitle2">Release</Typography>
-              {readiness.alertMessage && (
-                <Alert severity={readiness.alertSeverity}>
-                  {readiness.alertMessage}
-                </Alert>
-              )}
-              {isWorkloadEditorSupported && (
-                <Box display="flex">
-                  <Tooltip title={createDisabledReason}>
-                    <span>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="small"
-                        startIcon={<AddIcon />}
-                        onClick={onConfigureWorkload}
-                        disabled={!canCreate || readiness.loading}
-                      >
-                        Create release
-                      </Button>
-                    </span>
-                  </Tooltip>
+            {autoDeploy ? (
+              /* Auto-deploy ON: configure component + read-only latest release */
+              <>
+                <Box display="flex" flexDirection="column" gridGap={8}>
+                  <Typography variant="subtitle2">Component</Typography>
+                  {readiness.alertMessage && (
+                    <Alert severity={readiness.alertSeverity}>
+                      {readiness.alertMessage}
+                    </Alert>
+                  )}
+                  {isWorkloadEditorSupported && (
+                    <Box display="flex">
+                      <Tooltip title={createDisabledReason}>
+                        <span>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            startIcon={<SettingsOutlinedIcon />}
+                            onClick={onConfigureWorkload}
+                            disabled={!canCreate || readiness.loading}
+                          >
+                            Configure component
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    </Box>
+                  )}
+                  <Typography variant="caption" color="textSecondary">
+                    Auto-deploy is on. Saving any configuration change creates a
+                    release automatically and rolls it out to{' '}
+                    {lowestEnvironment}.
+                  </Typography>
                 </Box>
-              )}
-            </Box>
 
-            <Divider style={{ margin: '12px 0' }} />
+                <Divider style={{ margin: '12px 0' }} />
 
-            {/* Story 2 — Deploy */}
-            <DeployReleasePanel
-              releases={releases}
-              releasesLoading={releasesLoading}
-              releasesError={releasesError}
-              deployments={deployments}
-              selectedReleaseName={selectedReleaseName}
-              onSelectedReleaseChange={setSelectedReleaseName}
-              firstEnvironmentName={lowestEnvironment}
-              disabled={permissionLoading || !canConfigureAndDeploy}
-              disabledReason={deniedTooltip}
-            />
+                <LatestReleaseRow
+                  releases={releases}
+                  releasesLoading={releasesLoading}
+                  deployments={deployments}
+                  firstEnvironmentName={lowestEnvironment}
+                />
+              </>
+            ) : (
+              <>
+                {/* Story 1 — Create release (routes to workload page) */}
+                <Box display="flex" flexDirection="column" gridGap={8}>
+                  <Typography variant="subtitle2">Release</Typography>
+                  {readiness.alertMessage && (
+                    <Alert severity={readiness.alertSeverity}>
+                      {readiness.alertMessage}
+                    </Alert>
+                  )}
+                  {isWorkloadEditorSupported && (
+                    <Box display="flex">
+                      <Tooltip title={createDisabledReason}>
+                        <span>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            startIcon={<AddIcon />}
+                            onClick={onConfigureWorkload}
+                            disabled={!canCreate || readiness.loading}
+                          >
+                            Create release
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    </Box>
+                  )}
+                </Box>
+
+                <Divider style={{ margin: '12px 0' }} />
+
+                {/* Story 2 — Deploy */}
+                <DeployReleasePanel
+                  releases={releases}
+                  releasesLoading={releasesLoading}
+                  releasesError={releasesError}
+                  deployments={deployments}
+                  selectedReleaseName={selectedReleaseName}
+                  onSelectedReleaseChange={setSelectedReleaseName}
+                  firstEnvironmentName={lowestEnvironment}
+                  disabled={permissionLoading || !canConfigureAndDeploy}
+                  disabledReason={deniedTooltip}
+                />
+              </>
+            )}
           </>
         )}
       </Box>

@@ -27,6 +27,16 @@ jest.mock('./DeployReleasePanel', () => ({
   ),
 }));
 
+jest.mock('./ReleaseBrowserDialog', () => ({
+  ReleaseBrowserDialog: ({ open, readOnly }: any) =>
+    open ? (
+      <div
+        data-testid="release-browser-dialog"
+        data-readonly={String(!!readOnly)}
+      />
+    ) : null,
+}));
+
 const mockUpdateAutoDeploy = jest.fn();
 jest.mock('../hooks/useAutoDeployUpdate', () => ({
   useAutoDeployUpdate: () => ({
@@ -83,6 +93,11 @@ jest.mock('../../../hooks', () => ({
   }),
 }));
 
+const mockRefetchAutoDeploy = jest.fn();
+let contextOverride: Partial<{
+  autoDeploy: boolean;
+  autoDeployLoading: boolean;
+}> = {};
 jest.mock('../EnvironmentsContext', () => ({
   useEnvironmentsContext: () => ({
     environments: [{ name: 'development', deployment: {}, endpoints: [] }],
@@ -96,8 +111,12 @@ jest.mock('../EnvironmentsContext', () => ({
     environmentReadPermissionLoading: false,
     canViewBindings: true,
     bindingsPermissionLoading: false,
+    autoDeploy: false,
+    autoDeployLoading: false,
+    refetchAutoDeploy: mockRefetchAutoDeploy,
     selection: null,
     setSelection: jest.fn(),
+    ...contextOverride,
   }),
 }));
 
@@ -130,6 +149,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   readinessOverride = null;
   permissionOverride = null;
+  contextOverride = {};
   mockClient.getComponentDetails.mockResolvedValue({ autoDeploy: false });
 });
 
@@ -201,6 +221,32 @@ describe('SetupDetailPane', () => {
         'Auto deploy enabled successfully',
       );
     });
+  });
+
+  it('hides the deploy panel and shows Configure component when auto-deploy is on', async () => {
+    contextOverride = { autoDeploy: true };
+    renderPane();
+
+    expect(
+      await screen.findByRole('button', { name: /configure component/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /create release/i }),
+    ).toBeNull();
+    expect(screen.queryByTestId('deploy-release-panel')).toBeNull();
+  });
+
+  it('renders the setup skeleton while auto-deploy is loading', () => {
+    contextOverride = { autoDeployLoading: true };
+    renderPane();
+
+    expect(screen.getByTestId('loading-skeleton-setup')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /create release/i }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /configure component/i }),
+    ).toBeNull();
   });
 
   it('disables actions when the user lacks the deploy permission', async () => {

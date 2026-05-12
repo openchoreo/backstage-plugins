@@ -56,7 +56,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 export interface DetailPageLayoutProps {
-  title: string;
+  title: ReactNode;
   subtitle?: ReactNode;
   onBack: () => void;
   actions?: ReactNode;

@@ -89,30 +89,14 @@ export const WorkloadConfigPage = ({
   const client = useApi(openChoreoClientApiRef);
   const catalogApi = useApi(catalogApiRef);
   const { entity } = useEntity();
-  const { lowestEnvironment } = useEnvironmentsContext();
+  const {
+    lowestEnvironment,
+    autoDeploy: autoDeployEnabled,
+    autoDeployLoading,
+  } = useEnvironmentsContext();
   const { releases, refetch: refetchReleases } = useReleases(entity);
   const notification = useNotification();
   const [showCreateReleaseDialog, setShowCreateReleaseDialog] = useState(false);
-  const [autoDeployEnabled, setAutoDeployEnabled] = useState<boolean>(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const componentData = await client.getComponentDetails(entity);
-        if (!cancelled && componentData?.autoDeploy !== undefined) {
-          setAutoDeployEnabled(componentData.autoDeploy);
-        }
-      } catch {
-        // Leave autoDeployEnabled at its default (false) — the dialog will
-        // simply skip its auto-deploy notice if we can't determine it.
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [entity, client]);
 
   // Single source of truth: the full K8s workload resource
   const [workloadResource, setWorkloadResource] =
@@ -492,7 +476,17 @@ export const WorkloadConfigPage = ({
 
       setIsProcessing(false);
       allowNavigationRef.current = true;
-      setShowCreateReleaseDialog(true);
+      if (autoDeployEnabled) {
+        // Auto-deploy controller will create a ComponentRelease itself; manual
+        // creation here would be a redundant sibling release that's never bound.
+        notification.showSuccess(
+          `Component saved. Auto-deploy will create a release and roll it out to ${lowestEnvironment} shortly.`,
+        );
+        refetchReleases();
+        onReleaseCreated();
+      } else {
+        setShowCreateReleaseDialog(true);
+      }
     } catch (e: unknown) {
       setIsProcessing(false);
       setSaveError(getErrorMessage(e));
@@ -520,11 +514,17 @@ export const WorkloadConfigPage = ({
   const handleButtonClick = () => {
     if (hasAnyChanges) {
       setShowConfirmDialog(true);
-    } else {
-      // No changes — workload is already up-to-date; jump straight to
-      // naming and creating the release snapshot.
-      setShowCreateReleaseDialog(true);
+      return;
     }
+    if (autoDeployEnabled) {
+      // No changes + auto-deploy on: nothing to do here. The controller already
+      // owns the release lifecycle — just hand control back to the caller.
+      onReleaseCreated();
+      return;
+    }
+    // No changes — workload is already up-to-date; jump straight to
+    // naming and creating the release snapshot.
+    setShowCreateReleaseDialog(true);
   };
 
   const handleConfirmSave = () => {
@@ -542,8 +542,8 @@ export const WorkloadConfigPage = ({
 
   const getButtonText = () => {
     if (isProcessing) return 'Saving...';
-    if (hasAnyChanges) return 'Save & continue';
-    return 'Continue';
+    if (hasAnyChanges) return autoDeployEnabled ? 'Save' : 'Save & continue';
+    return autoDeployEnabled ? 'Done' : 'Continue';
   };
 
   const totalChanges =
@@ -589,10 +589,26 @@ export const WorkloadConfigPage = ({
     [undoDelete],
   );
 
+  const getTitle = () => {
+    if (autoDeployLoading) {
+      return <Skeleton variant="text" width={220} height={36} />;
+    }
+    return autoDeployEnabled ? 'Configure component' : 'Create release';
+  };
+
+  const getSubtitle = () => {
+    if (autoDeployLoading) {
+      return <Skeleton variant="text" width={420} />;
+    }
+    return autoDeployEnabled
+      ? "Review and update your component's configuration. Auto-deploy will create a release automatically on save."
+      : "Review and update your component's configuration, then snapshot it as a release.";
+  };
+
   return (
     <DetailPageLayout
-      title="Create release"
-      subtitle="Review and update your component's configuration, then snapshot it as a release."
+      title={getTitle()}
+      subtitle={getSubtitle()}
       onBack={handleBackClick}
       actions={headerActions}
     >
