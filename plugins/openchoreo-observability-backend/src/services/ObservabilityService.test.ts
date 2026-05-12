@@ -227,7 +227,7 @@ describe('ObservabilityService.fetchDataPlaneNetPolProvider', () => {
     expect(result).toBeUndefined();
   });
 
-  it('returns undefined when the API call throws', async () => {
+  it('returns undefined and logs when the API call throws', async () => {
     mockGET.mockRejectedValueOnce(new Error('network error'));
 
     const result = await service.fetchDataPlaneNetPolProvider(
@@ -237,5 +237,18 @@ describe('ObservabilityService.fetchDataPlaneNetPolProvider', () => {
     );
 
     expect(result).toBeUndefined();
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('returns undefined and warns for an invalid dpKind', async () => {
+    const result = await service.fetchDataPlaneNetPolProvider(
+      'ns-1',
+      'InvalidKind',
+      'dp-1',
+    );
+
+    expect(result).toBeUndefined();
+    expect(mockGET).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalled();
   });
 });

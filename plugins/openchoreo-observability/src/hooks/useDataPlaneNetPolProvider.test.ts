@@ -142,4 +142,19 @@ describe('useDataPlaneNetPolProvider', () => {
 
     expect(result.current.networkPolicyProvider).toBeUndefined();
   });
+
+  it('normalizes null from the API to undefined', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ networkPolicyProvider: null }),
+    });
+
+    const { result } = renderHook(() =>
+      useDataPlaneNetPolProvider('ns-1', { kind: 'DataPlane', name: 'dp-1' }),
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.networkPolicyProvider).toBeUndefined();
+  });
 });

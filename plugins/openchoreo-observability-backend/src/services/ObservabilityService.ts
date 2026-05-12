@@ -262,6 +262,13 @@ export class ObservabilityService {
     dpName: string,
     userToken?: string,
   ): Promise<string | undefined> {
+    if (dpKind !== 'DataPlane' && dpKind !== 'ClusterDataPlane') {
+      this.logger.warn(
+        `fetchDataPlaneNetPolProvider: invalid dpKind '${dpKind}', expected 'DataPlane' or 'ClusterDataPlane'`,
+      );
+      return undefined;
+    }
+
     const client = createOpenChoreoApiClient({
       baseUrl: this.baseUrl,
       logger: this.logger,
@@ -284,7 +291,11 @@ export class ObservabilityService {
         annotations = data?.metadata?.annotations;
       }
       return annotations?.['openchoreo.dev/networkpolicyprovider'];
-    } catch {
+    } catch (err) {
+      this.logger.error(
+        `fetchDataPlaneNetPolProvider: failed to fetch annotation for ${dpKind}/${dpName} in namespace ${namespaceName}`,
+        err as Error,
+      );
       return undefined;
     }
   }

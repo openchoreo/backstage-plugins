@@ -37,15 +37,19 @@ export const useDataPlaneNetPolProvider = (
   const dpKind = dataPlaneRef?.kind ?? 'DataPlane';
 
   useEffect(() => {
+    let active = true;
+
     const fetchDataPlaneNetPolProvider = async () => {
       if (!namespaceName || !dpName) {
-        setNetworkPolicyProvider(undefined);
-        setLoading(false);
+        if (active) {
+          setNetworkPolicyProvider(undefined);
+          setLoading(false);
+        }
         return;
       }
 
+      if (active) setLoading(true);
       try {
-        setLoading(true);
         const baseUrl = await discoveryApi.getBaseUrl(
           'openchoreo-observability-backend',
         );
@@ -58,17 +62,25 @@ export const useDataPlaneNetPolProvider = (
             `Failed to fetch network policy provider: ${response.status} ${response.statusText}`,
           );
         }
-
         const data = await response.json();
-        setNetworkPolicyProvider(data.networkPolicyProvider);
+        if (active) {
+          const provider =
+            typeof data?.networkPolicyProvider === 'string'
+              ? data.networkPolicyProvider
+              : undefined;
+          setNetworkPolicyProvider(provider);
+        }
       } catch (error) {
-        setNetworkPolicyProvider(undefined);
+        if (active) setNetworkPolicyProvider(undefined);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     fetchDataPlaneNetPolProvider();
+    return () => {
+      active = false;
+    };
   }, [namespaceName, dpName, dpKind, discoveryApi, fetchApi]);
 
   return { networkPolicyProvider, loading };
