@@ -16,9 +16,8 @@ import {
   NetworkLatencyMetrics,
   NetworkThroughputMetrics,
 } from '../../types';
-import { useCiliumEnabled } from '@openchoreo/backstage-plugin-react';
 import { Entity } from '@backstage/catalog-model';
-import { useMetrics } from '../../hooks';
+import { useMetrics, useDataPlaneNetPolProvider } from '../../hooks';
 
 type HTTPMetricsSectionProps = {
   filters: Filters;
@@ -33,7 +32,12 @@ export const HTTPMetricsSection = ({
   namespaceName,
   project,
 }: HTTPMetricsSectionProps) => {
-  const ciliumEnabled = useCiliumEnabled();
+  const { networkPolicyProvider, loading: netPolLoading } =
+    useDataPlaneNetPolProvider(
+      namespaceName,
+      filters.environment?.dataPlaneRef,
+    );
+  const httpEnabled = networkPolicyProvider === 'cilium';
   const { metrics, error, fetchMetrics } = useMetrics(
     filters,
     entity,
@@ -49,7 +53,7 @@ export const HTTPMetricsSection = ({
   });
 
   useEffect(() => {
-    if (!ciliumEnabled) {
+    if (!httpEnabled) {
       return;
     }
 
@@ -67,9 +71,9 @@ export const HTTPMetricsSection = ({
     }
 
     previousFiltersRef.current = currentFilters;
-  }, [ciliumEnabled, filters.environment, filters.timeRange, fetchMetrics]);
+  }, [httpEnabled, filters.environment, filters.timeRange, fetchMetrics]);
 
-  if (!ciliumEnabled) {
+  if (netPolLoading || !httpEnabled) {
     return null;
   }
 

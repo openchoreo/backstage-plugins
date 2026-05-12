@@ -27,16 +27,9 @@ export interface OpenChoreoFeatures {
   auth: { enabled: boolean };
   /** Authorization feature (Access Control UI) */
   authz: { enabled: boolean };
-  /** Cilium feature — controls HTTP metrics graphs and queries */
-  cilium: { enabled: boolean };
 }
 
 /**
  * Feature names that can be toggled.
  */
-export type FeatureName =
-  | 'workflows'
-  | 'observability'
-  | 'auth'
-  | 'authz'
-  | 'cilium';
+export type FeatureName = 'workflows' | 'observability' | 'auth' | 'authz';

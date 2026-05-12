@@ -105,7 +105,7 @@ const ObservabilityMetricsContent = () => {
     return <></>;
   }
 
-  const isLoading = environmentsLoading || metricsLoading;
+  const isLoading = environmentsLoading;
 
   const renderError = (error: string) => {
     const isObservabilityDisabled = error.includes(
@@ -133,7 +133,7 @@ const ObservabilityMetricsContent = () => {
 
   return (
     <Box>
-      {isLoading && <Progress />}
+      {(isLoading || metricsLoading) && <Progress />}
 
       {!isLoading && (
         <>

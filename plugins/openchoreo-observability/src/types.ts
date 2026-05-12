@@ -108,7 +108,7 @@ export interface Environment {
   displayName?: string;
   description?: string;
   organization?: string;
-  dataPlaneRef?: string;
+  dataPlaneRef?: { kind?: string; name?: string };
   isProduction: boolean;
   dnsPrefix?: string;
   createdAt: string;
