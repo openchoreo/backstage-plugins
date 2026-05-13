@@ -27,7 +27,11 @@ import { useTheme } from '@material-ui/core/styles';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { DiagramLayer, Project } from '@wso2/cell-diagram';
 import { useChoreoTokens } from '@openchoreo/backstage-design-system';
-import { EmptyState } from '@openchoreo/backstage-plugin-react';
+import {
+  EmptyState,
+  TimeRangeFilter,
+  calculateTimeRange,
+} from '@openchoreo/backstage-plugin-react';
 import { useCellEnvironments } from './useCellEnvironments';
 
 const CellView = lazy(() =>
@@ -42,27 +46,6 @@ const CellView = lazy(() =>
 // loading/refresh state flip in our parent causes a center/zoom race
 // and the diagram lands in a random corner.
 const MemoCellView = memo(CellView);
-
-const TIME_RANGES: {
-  label: string;
-  value: string;
-  ms: number;
-}[] = [
-  { label: 'Last 10 minutes', value: '10m', ms: 10 * 60 * 1000 },
-  { label: 'Last 30 minutes', value: '30m', ms: 30 * 60 * 1000 },
-  { label: 'Last 1 hour', value: '1h', ms: 60 * 60 * 1000 },
-  { label: 'Last 24 hours', value: '24h', ms: 24 * 60 * 60 * 1000 },
-  {
-    label: 'Last 7 days',
-    value: '7d',
-    ms: 7 * 24 * 60 * 60 * 1000,
-  },
-  {
-    label: 'Last 14 days',
-    value: '14d',
-    ms: 14 * 24 * 60 * 60 * 1000,
-  },
-];
 
 function hasObservations(project: Project | undefined): boolean {
   if (!project?.components) return false;
@@ -114,14 +97,7 @@ export const CellDiagram = () => {
   // Compute startTime/endTime/step from selected range. Recomputes when refreshNonce changes
   // so the refresh button advances "now" in the window.
   const range = useMemo(() => {
-    const preset = TIME_RANGES.find(r => r.value === timeRange);
-    if (!preset) return undefined;
-    const endTime = new Date();
-    const startTime = new Date(endTime.getTime() - preset.ms);
-    return {
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-    };
+    return calculateTimeRange(timeRange);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange, refreshNonce]);
 
@@ -283,31 +259,20 @@ export const CellDiagram = () => {
                 </Select>
               </FormControl>
 
-              <FormControl
-                variant="outlined"
-                size="small"
+              <Box
                 style={{
                   minWidth: 180,
                   backgroundColor: controlBg,
                   borderRadius: 4,
                 }}
               >
-                <InputLabel id="cell-diagram-range-label">
-                  Time range
-                </InputLabel>
-                <Select
-                  labelId="cell-diagram-range-label"
+                <TimeRangeFilter
                   value={timeRange}
-                  label="Time range"
-                  onChange={e => setTimeRange(e.target.value as string)}
-                >
-                  {TIME_RANGES.map(r => (
-                    <MenuItem key={r.value} value={r.value}>
-                      {r.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                  allowCustomRange={false}
+                  size="small"
+                  onChange={({ timeRange: next }) => setTimeRange(next)}
+                />
+              </Box>
 
               <Tooltip title="Refresh">
                 <span>

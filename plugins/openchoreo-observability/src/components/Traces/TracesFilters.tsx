@@ -10,7 +10,7 @@ import {
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { type Environment, Filters } from '../../types';
-import { TimeRangeFilter } from '../TimeRangeFilter';
+import { TimeRangeFilter } from '@openchoreo/backstage-plugin-react';
 import { Component } from '../../hooks/useGetComponentsByProject';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 

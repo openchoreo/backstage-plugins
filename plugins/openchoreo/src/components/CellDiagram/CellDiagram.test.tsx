@@ -37,19 +37,43 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
   useChoreoTokens: () => ({ mode: 'light' }),
 }));
 
-jest.mock('@openchoreo/backstage-plugin-react', () => ({
-  EmptyState: ({ title, description, action }: any) => (
-    <div data-testid="empty-state">
-      <div>{title}</div>
-      {description && <div>{description}</div>}
-      {action && (
-        <button onClick={action.onClick} aria-label={action.label}>
-          {action.label}
-        </button>
-      )}
-    </div>
-  ),
-}));
+jest.mock('@openchoreo/backstage-plugin-react', () => {
+  // Each recompute advances "now" (mirroring the real calculateTimeRange,
+  // which uses `new Date()`), so the Refresh button produces a new fetch key
+  // and triggers a refetch.
+  let rangeCall = 0;
+  return {
+    EmptyState: ({ title, description, action }: any) => (
+      <div data-testid="empty-state">
+        <div>{title}</div>
+        {description && <div>{description}</div>}
+        {action && (
+          <button onClick={action.onClick} aria-label={action.label}>
+            {action.label}
+          </button>
+        )}
+      </div>
+    ),
+    TimeRangeFilter: ({ value, onChange }: any) => (
+      <select
+        data-testid="time-range-filter"
+        value={value}
+        onChange={e => onChange?.({ timeRange: e.target.value })}
+      >
+        <option value="10m">Last 10 minutes</option>
+        <option value="1h">Last 1 hour</option>
+        <option value="24h">Last 24 hours</option>
+      </select>
+    ),
+    calculateTimeRange: () => {
+      rangeCall += 1;
+      return {
+        startTime: '2024-01-01T00:00:00.000Z',
+        endTime: new Date(Date.UTC(2024, 0, 1, 1, 0, rangeCall)).toISOString(),
+      };
+    },
+  };
+});
 
 jest.mock('@material-ui/core/styles', () => ({
   useTheme: () => ({

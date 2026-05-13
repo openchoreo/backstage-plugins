@@ -444,7 +444,11 @@ export {
 } from './components/ChangesList';
 
 // Utilities
-export { formatRelativeTime, calculateTimeRange } from './utils/timeUtils';
+export {
+  formatRelativeTime,
+  calculateTimeRange,
+  pickRangeForAge,
+} from './utils/timeUtils';
 export {
   deepCompareObjects,
   formatChangeValue,
@@ -564,3 +568,4 @@ export { type EntityNode } from '@backstage/plugin-catalog-graph';
 
 // Routing utilities
 export * from './routing';
+export * from './components/TimeRangeFilter';

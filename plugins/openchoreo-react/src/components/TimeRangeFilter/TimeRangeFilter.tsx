@@ -18,7 +18,7 @@ import {
   MuiPickersUtilsProvider,
 } from '@material-ui/pickers';
 import DateFnsUtils from '@date-io/date-fns';
-import { TIME_RANGE_OPTIONS } from '../../types';
+import { TIME_RANGE_OPTIONS } from './types';
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -107,6 +107,10 @@ export interface TimeRangeFilterProps {
   }) => void;
   disabled?: boolean;
   fullWidth?: boolean;
+  /** Show the "Custom range" option and its date/time picker panel. Default true. */
+  allowCustomRange?: boolean;
+  /** Size of the trigger field, e.g. 'small' to fit a compact toolbar. Default 'medium'. */
+  size?: 'small' | 'medium';
 }
 
 export const TimeRangeFilter: FC<TimeRangeFilterProps> = ({
@@ -116,6 +120,8 @@ export const TimeRangeFilter: FC<TimeRangeFilterProps> = ({
   onChange,
   disabled = false,
   fullWidth = true,
+  allowCustomRange = true,
+  size = 'medium',
 }) => {
   const classes = useStyles();
   const anchorRef = useRef<HTMLDivElement | null>(null);
@@ -183,11 +189,16 @@ export const TimeRangeFilter: FC<TimeRangeFilterProps> = ({
       ? formatCustomLabel(customStartTime, customEndTime)
       : TIME_RANGE_OPTIONS.find(o => o.value === value)?.label ?? '';
 
+  const options = allowCustomRange
+    ? TIME_RANGE_OPTIONS
+    : TIME_RANGE_OPTIONS.filter(o => o.value !== 'custom');
+
   return (
     <>
       <div ref={anchorRef}>
         <TextField
           fullWidth={fullWidth}
+          size={size}
           disabled={disabled}
           variant="outlined"
           label="Time Range"
@@ -304,7 +315,7 @@ export const TimeRangeFilter: FC<TimeRangeFilterProps> = ({
           </Box>
         )}
         <MenuList className={classes.presetList} disablePadding>
-          {TIME_RANGE_OPTIONS.map(option => {
+          {options.map(option => {
             const isCustomActive = option.value === 'custom' && showCustomPanel;
             return (
               <MenuItem

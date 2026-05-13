@@ -15,7 +15,7 @@ import {
   RCA_STATUS_OPTIONS,
   RCAStatus,
 } from '../../types';
-import { TimeRangeFilter } from '../TimeRangeFilter';
+import { TimeRangeFilter } from '@openchoreo/backstage-plugin-react';
 
 interface RCAFiltersProps {
   filters: Filters;

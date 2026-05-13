@@ -1,4 +1,4 @@
-import { TIME_RANGE_OPTIONS } from '../types';
+import { TIME_RANGE_OPTIONS } from '@openchoreo/backstage-plugin-react';
 
 const DEFAULT_TIME_RANGE = '10m';
 const VALID_TIME_RANGES = new Set(TIME_RANGE_OPTIONS.map(o => o.value));
