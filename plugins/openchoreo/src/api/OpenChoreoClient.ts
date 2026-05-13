@@ -655,7 +655,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       environmentName?: string;
       startTime?: string;
       endTime?: string;
-      step?: string;
     },
   ): Promise<any> {
     const project = entity.metadata.name;
@@ -675,7 +674,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         }),
         ...(options?.startTime && { startTime: options.startTime }),
         ...(options?.endTime && { endTime: options.endTime }),
-        ...(options?.step && { step: options.step }),
       },
     });
   }

@@ -64,6 +64,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1alpha1/metrics/runtime-topology': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Query runtime topology
+     * @description Returns the live HTTP traffic topology for a project in a given environment:
+     *     a list of nodes (components, gateways, external endpoints) and a list of edges
+     *     (observed source -> target traffic flows), each with aggregated metrics
+     *     (request count, error count, latency percentiles) computed over the requested
+     *     time window.
+     */
+    post: operations['queryRuntimeTopology'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1alpha1/traces/query': {
     parameters: {
       query?: never;
@@ -263,30 +287,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1alpha1/metrics/runtime-topology': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Query runtime topology
-     * @description Returns the live HTTP traffic topology for a project in a given environment:
-     *     a list of nodes (components, gateways, external endpoints) and a list of edges
-     *     (observed source -> target traffic flows), each with aggregated metrics
-     *     (request count, error count, latency percentiles) computed over the requested
-     *     time window.
-     */
-    post: operations['queryRuntimeTopology'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -463,11 +463,6 @@ export interface components {
        */
       endTime: string;
       /**
-       * @description Step hint used for sub-queries when computing aggregates.
-       *     Same format as /api/v1/metrics/query (e.g. 1m, 5m, 1h).
-       */
-      step?: string;
-      /**
        * @description Whether to include gateway -> component edges. Defaults to true.
        * @default true
        */
@@ -592,8 +587,6 @@ export interface components {
       startTime: string;
       /** Format: date-time */
       endTime: string;
-      /** @description Step actually used for sub-queries (may be defaulted from the request). */
-      step?: string;
       /** Format: date-time */
       generatedAt: string;
     };
@@ -1042,7 +1035,6 @@ export interface components {
         alertId?: string;
         /** @description The ID of the incident */
         incidentId?: string;
-        /** @description Whether AI RCA was triggered for the incident */
         incidentTriggerAiRca?: boolean;
         /**
          * @description The status of the incident
@@ -1344,6 +1336,66 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['MetricsQueryResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  queryRuntimeTopology: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RuntimeTopologyRequest'];
+      };
+    };
+    responses: {
+      /** @description Runtime topology queried successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RuntimeTopologyResponse'];
         };
       };
       /** @description Invalid request */
@@ -1967,66 +2019,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['AlertsQueryResponse'];
-        };
-      };
-      /** @description Invalid request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Unauthorized */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Forbidden */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Internal Server Error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-    };
-  };
-  queryRuntimeTopology: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['RuntimeTopologyRequest'];
-      };
-    };
-    responses: {
-      /** @description Runtime topology queried successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['RuntimeTopologyResponse'];
         };
       };
       /** @description Invalid request */

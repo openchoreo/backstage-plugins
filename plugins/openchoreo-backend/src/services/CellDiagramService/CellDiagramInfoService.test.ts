@@ -332,7 +332,6 @@ describe('CellDiagramInfoService', () => {
           namespaceName: 'test-ns',
           startTime: new Date(Date.now() - 3600_000).toISOString(),
           endTime: new Date().toISOString(),
-          step: '1m',
         },
         'token',
       );

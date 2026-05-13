@@ -85,14 +85,12 @@ describe('OpenChoreoClient — cell diagram', () => {
         environmentName: 'dev',
         startTime: '2024-01-01T00:00:00Z',
         endTime: '2024-01-01T01:00:00Z',
-        step: '1m',
       });
 
       const [calledUrl] = fetchMock.mock.calls[0];
       expect(calledUrl).toContain('environmentName=dev');
       expect(calledUrl).toContain('startTime=');
       expect(calledUrl).toContain('endTime=');
-      expect(calledUrl).toContain('step=1m');
     });
 
     it('omits optional params when not provided', async () => {

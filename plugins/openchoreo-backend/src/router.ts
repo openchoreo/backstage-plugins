@@ -296,7 +296,6 @@ export async function createRouter({
         environmentName,
         startTime,
         endTime,
-        step,
       } = req.query;
 
       if (!projectName || !namespaceName) {
@@ -315,7 +314,6 @@ export async function createRouter({
             environmentName: environmentName as string | undefined,
             startTime: startTime as string | undefined,
             endTime: endTime as string | undefined,
-            step: step as string | undefined,
           },
           userToken,
         ),

@@ -153,14 +153,12 @@ export class CellDiagramInfoService implements CellDiagramService {
       environmentName,
       startTime,
       endTime,
-      step,
     }: {
       projectName: string;
       namespaceName: string;
       environmentName?: string;
       startTime?: string;
       endTime?: string;
-      step?: string;
     },
     token?: string,
   ): Promise<Project | undefined> {
@@ -271,7 +269,6 @@ export class CellDiagramInfoService implements CellDiagramService {
           environmentName: resolvedEnv,
           startTime,
           endTime,
-          step,
           token,
         });
       }
@@ -352,7 +349,6 @@ export class CellDiagramInfoService implements CellDiagramService {
       environmentName: string;
       startTime?: string;
       endTime?: string;
-      step?: string;
       token?: string;
     },
   ): Promise<void> {
@@ -382,20 +378,18 @@ export class CellDiagramInfoService implements CellDiagramService {
       const startTime =
         params.startTime ?? new Date(Date.now() - 3_600_000).toISOString();
       const endTime = params.endTime ?? new Date().toISOString();
-      const step = params.step ?? '1m';
 
       await Promise.all([
         this.enrichGatewaysFromHttpMetrics(project, obsClient, {
           ...params,
           startTime,
           endTime,
-          step,
         }),
         this.enrichConnectionsFromRuntimeTopology(
           project,
           componentUidToName,
           obsClient,
-          { ...params, startTime, endTime, step },
+          { ...params, startTime, endTime },
         ),
       ]);
     } catch (error) {
@@ -421,17 +415,11 @@ export class CellDiagramInfoService implements CellDiagramService {
       environmentName: string;
       startTime: string;
       endTime: string;
-      step: string;
     },
   ): Promise<void> {
-    const {
-      namespaceName,
-      projectName,
-      environmentName,
-      startTime,
-      endTime,
-      step,
-    } = params;
+    const { namespaceName, projectName, environmentName, startTime, endTime } =
+      params;
+    const step = '5m';
     const durationSec = Math.max(
       1,
       (Date.parse(endTime) - Date.parse(startTime)) / 1000,
@@ -532,17 +520,10 @@ export class CellDiagramInfoService implements CellDiagramService {
       environmentName: string;
       startTime: string;
       endTime: string;
-      step: string;
     },
   ): Promise<void> {
-    const {
-      namespaceName,
-      projectName,
-      environmentName,
-      startTime,
-      endTime,
-      step,
-    } = params;
+    const { namespaceName, projectName, environmentName, startTime, endTime } =
+      params;
     let attached = 0;
     let runtimeOnly = 0;
     let skipped = 0;
@@ -559,7 +540,6 @@ export class CellDiagramInfoService implements CellDiagramService {
             },
             startTime,
             endTime,
-            step,
             includeGateways: true,
             includeExternal: true,
           },

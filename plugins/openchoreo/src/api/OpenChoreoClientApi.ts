@@ -610,7 +610,6 @@ export interface OpenChoreoClientApi {
       environmentName?: string;
       startTime?: string;
       endTime?: string;
-      step?: string;
     },
   ): Promise<any>;
 

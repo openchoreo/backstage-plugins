@@ -141,7 +141,6 @@ export interface CellDiagramService {
       environmentName?: string;
       startTime?: string;
       endTime?: string;
-      step?: string;
     },
     token?: string,
   ): Promise<Project | undefined>;

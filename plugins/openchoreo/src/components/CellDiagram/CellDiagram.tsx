@@ -34,23 +34,20 @@ const TIME_RANGES: {
   label: string;
   value: string;
   ms: number;
-  step: string;
 }[] = [
-  { label: 'Last 10 minutes', value: '10m', ms: 10 * 60 * 1000, step: '15s' },
-  { label: 'Last 30 minutes', value: '30m', ms: 30 * 60 * 1000, step: '30s' },
-  { label: 'Last 1 hour', value: '1h', ms: 60 * 60 * 1000, step: '1m' },
-  { label: 'Last 24 hours', value: '24h', ms: 24 * 60 * 60 * 1000, step: '5m' },
+  { label: 'Last 10 minutes', value: '10m', ms: 10 * 60 * 1000 },
+  { label: 'Last 30 minutes', value: '30m', ms: 30 * 60 * 1000 },
+  { label: 'Last 1 hour', value: '1h', ms: 60 * 60 * 1000 },
+  { label: 'Last 24 hours', value: '24h', ms: 24 * 60 * 60 * 1000 },
   {
     label: 'Last 7 days',
     value: '7d',
     ms: 7 * 24 * 60 * 60 * 1000,
-    step: '30m',
   },
   {
     label: 'Last 14 days',
     value: '14d',
     ms: 14 * 24 * 60 * 60 * 1000,
-    step: '1h',
   },
 ];
 
@@ -106,7 +103,6 @@ export const CellDiagram = () => {
     return {
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
-      step: preset.step,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange, refreshNonce]);
@@ -121,7 +117,6 @@ export const CellDiagram = () => {
           environmentName: environment || undefined,
           startTime: range?.startTime,
           endTime: range?.endTime,
-          step: range?.step,
         });
         if (cancelled) return;
         setCellDiagramData(data as Project);
