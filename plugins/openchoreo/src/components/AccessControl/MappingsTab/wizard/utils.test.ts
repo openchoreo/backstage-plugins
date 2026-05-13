@@ -132,6 +132,24 @@ describe('buildScopePath', () => {
         ),
       ).toBe('ns:default/proj:myproj/comp:api');
     });
+
+    it('returns empty when project is set without a namespace', () => {
+      expect(
+        buildScopePath(
+          { namespace: '', project: 'myproj', component: '' },
+          SCOPE_CLUSTER,
+        ),
+      ).toBe('');
+    });
+
+    it('returns empty when component is set without a project', () => {
+      expect(
+        buildScopePath(
+          { namespace: 'default', project: '', component: 'api' },
+          SCOPE_CLUSTER,
+        ),
+      ).toBe('');
+    });
   });
 
   describe('namespace bindings', () => {
@@ -172,6 +190,25 @@ describe('buildScopePath', () => {
           'team-a',
         ),
       ).toBe('ns:team-a/proj:myproj/comp:api');
+    });
+
+    it('returns empty when component is set without a project', () => {
+      expect(
+        buildScopePath(
+          { namespace: '', project: '', component: 'api' },
+          SCOPE_NAMESPACE,
+          'team-a',
+        ),
+      ).toBe('');
+    });
+
+    it('returns empty when project is set but no namespace is provided', () => {
+      expect(
+        buildScopePath(
+          { namespace: '', project: 'myproj', component: '' },
+          SCOPE_NAMESPACE,
+        ),
+      ).toBe('');
     });
   });
 });

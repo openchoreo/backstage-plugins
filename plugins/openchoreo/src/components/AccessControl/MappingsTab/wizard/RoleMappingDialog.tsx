@@ -44,10 +44,14 @@ const useStyles = makeStyles(theme => ({
   closeButton: {
     marginRight: -theme.spacing(1),
   },
+  dialogPaper: {
+    height: '85vh',
+  },
   dialogContent: {
     display: 'flex',
     flexDirection: 'column',
     gap: theme.spacing(2),
+    overflowY: 'auto',
   },
   scopeRow: {
     display: 'flex',
@@ -267,7 +271,7 @@ export const RoleMappingDialog = ({
       onClose={onCancel}
       maxWidth="md"
       fullWidth
-      PaperProps={{ style: { minHeight: '60vh' } }}
+      classes={{ paper: classes.dialogPaper }}
     >
       <DialogTitle disableTypography className={classes.dialogTitle}>
         <Typography variant="h4">

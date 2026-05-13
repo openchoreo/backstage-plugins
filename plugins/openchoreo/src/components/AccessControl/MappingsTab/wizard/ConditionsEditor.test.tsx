@@ -259,11 +259,12 @@ describe('ConditionsEditor', () => {
       expect(screen.getByText('Actions *')).toBeInTheDocument();
       expect(screen.getByText('Expression *')).toBeInTheDocument();
       expect(
-        screen.getByText('Select at least one action'),
-      ).toBeInTheDocument();
+        screen.queryByText('Select at least one action'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Confirm' })).toBeDisabled();
     });
 
-    it('shows the expression-required error while editing an empty expression', () => {
+    it('keeps Confirm disabled while the expression is empty', () => {
       render(
         <ConditionsEditor
           conditions={[
@@ -280,7 +281,10 @@ describe('ConditionsEditor', () => {
         />,
       );
 
-      expect(screen.getByText('Expression is required')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Expression is required'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Confirm' })).toBeDisabled();
     });
 
     it('disables Confirm while errors exist', () => {
@@ -300,7 +304,7 @@ describe('ConditionsEditor', () => {
         />,
       );
 
-      expect(screen.getByTitle('Confirm')).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Confirm' })).toBeDisabled();
     });
 
     it('enables Confirm when actions and expression are set', () => {
@@ -320,7 +324,7 @@ describe('ConditionsEditor', () => {
         />,
       );
 
-      expect(screen.getByTitle('Confirm')).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Confirm' })).toBeEnabled();
     });
 
     it('marks the row as confirmed when Confirm is clicked', async () => {
@@ -343,7 +347,7 @@ describe('ConditionsEditor', () => {
         />,
       );
 
-      await user.click(screen.getByTitle('Confirm'));
+      await user.click(screen.getByRole('button', { name: 'Confirm' }));
 
       expect(onChange).toHaveBeenCalledWith([
         expect.objectContaining({ id: 'c1', confirmed: true }),
@@ -532,7 +536,9 @@ describe('ConditionsEditor', () => {
 
       await user.click(screen.getByTitle('Edit'));
 
-      expect(screen.getByTitle('Confirm')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Confirm' }),
+      ).toBeInTheDocument();
       expect(screen.getByTitle('Cancel')).toBeInTheDocument();
     });
   });

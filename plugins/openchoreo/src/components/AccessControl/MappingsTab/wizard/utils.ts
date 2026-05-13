@@ -46,34 +46,24 @@ export function buildScopePath(
   namespace?: string,
 ): string {
   if (bindingType === SCOPE_CLUSTER) {
-    if (!rm.namespace && !rm.project && !rm.component) return 'cluster:*';
-    const parts: string[] = [];
-    if (rm.namespace) {
-      parts.push(`ns:${rm.namespace}`);
-      if (rm.project) {
-        parts.push(`proj:${rm.project}`);
-        if (rm.component) {
-          parts.push(`comp:${rm.component}`);
-        } else {
-          parts.push('*');
-        }
-      } else {
-        parts.push('*');
-      }
-    }
-    return parts.join('/');
-  }
-  const ns = namespace || '*';
-  if (!rm.project && !rm.component) return `ns:${ns}/*`;
-  const parts: string[] = [`ns:${ns}`];
-  if (rm.project) {
-    parts.push(`proj:${rm.project}`);
-    if (rm.component) {
-      parts.push(`comp:${rm.component}`);
+    if (!rm.namespace && (rm.project || rm.component)) return '';
+    if (!rm.project && rm.component) return '';
+    if (!rm.namespace) return 'cluster:*';
+    const parts: string[] = [`ns:${rm.namespace}`];
+    if (rm.project) {
+      parts.push(`proj:${rm.project}`);
+      parts.push(rm.component ? `comp:${rm.component}` : '*');
     } else {
       parts.push('*');
     }
+    return parts.join('/');
   }
+  if (!namespace && (rm.project || rm.component)) return '';
+  if (!rm.project && rm.component) return '';
+  const ns = namespace || '*';
+  if (!rm.project) return `ns:${ns}/*`;
+  const parts: string[] = [`ns:${ns}`, `proj:${rm.project}`];
+  parts.push(rm.component ? `comp:${rm.component}` : '*');
   return parts.join('/');
 }
 

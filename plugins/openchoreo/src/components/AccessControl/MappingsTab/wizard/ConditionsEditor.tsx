@@ -332,8 +332,17 @@ const ConditionEditingCard = ({
   const expressionRef = useRef<HTMLTextAreaElement | null>(null);
   const attrs = attributesForActions(cond.actions, actionCatalog);
   const noSharedAttrs = cond.actions.length > 0 && attrs.length === 0;
-  const hasErrors =
-    cond.actions.length === 0 || !cond.expression.trim() || noSharedAttrs;
+  const missingActions = cond.actions.length === 0;
+  const missingExpression = !cond.expression.trim();
+  const hasErrors = missingActions || missingExpression || noSharedAttrs;
+  const confirmTooltip = (() => {
+    const reasons: string[] = [];
+    if (missingActions) reasons.push('Select at least one action');
+    if (noSharedAttrs)
+      reasons.push('No attributes available for the selected action(s)');
+    else if (missingExpression) reasons.push('Expression is required');
+    return reasons.join('; ');
+  })();
   const options =
     cond.actions.length === 0 || attrs.length === 0
       ? allRoleActions
@@ -349,15 +358,19 @@ const ConditionEditingCard = ({
           Condition #{index + 1}
         </Typography>
         <Box className={classes.headerSpacer} />
-        <IconButton
-          size="small"
-          color="primary"
-          onClick={onConfirm}
-          disabled={hasErrors}
-          title="Confirm"
-        >
-          <CheckIcon fontSize="small" />
-        </IconButton>
+        <Tooltip title={hasErrors ? confirmTooltip : 'Confirm'}>
+          <span>
+            <IconButton
+              size="small"
+              color="primary"
+              onClick={onConfirm}
+              disabled={hasErrors}
+              aria-label="Confirm"
+            >
+              <CheckIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
         <IconButton size="small" onClick={onCancel} title="Cancel">
           <CloseIcon fontSize="small" />
         </IconButton>
@@ -392,11 +405,6 @@ const ConditionEditingCard = ({
             />
           )}
         />
-        {cond.actions.length === 0 && (
-          <Typography className={classes.errorText}>
-            Select at least one action
-          </Typography>
-        )}
       </Box>
 
       <Box>
@@ -424,11 +432,6 @@ const ConditionEditingCard = ({
         {noSharedAttrs && (
           <Typography className={classes.errorText}>
             No attributes available for the selected action(s)
-          </Typography>
-        )}
-        {!noSharedAttrs && !cond.expression.trim() && (
-          <Typography className={classes.errorText}>
-            Expression is required
           </Typography>
         )}
       </Box>
