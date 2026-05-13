@@ -2,6 +2,21 @@ import { ClusterRole, PolicyEffect, UserTypeConfig } from '../../hooks';
 import { getK8sNameError } from './utils';
 
 /**
+ * A single condition attached to a role mapping in the wizard.
+ * Mirrors the CRD `AuthzCondition` plus a local-only `id` and `confirmed`
+ */
+export interface WizardCondition {
+  /** Local-only stable key */
+  id: string;
+  /** Action names this condition applies to (exact or wildcard) */
+  actions: string[];
+  /** CEL expression that must evaluate to true */
+  expression: string;
+  /** Whether this row has been confirmed by the user */
+  confirmed: boolean;
+}
+
+/**
  * A single role mapping entry in the wizard (role + optional scope)
  */
 export interface WizardRoleMapping {
@@ -17,6 +32,8 @@ export interface WizardRoleMapping {
   component: string;
   /** Whether this row has been confirmed by the user */
   confirmed: boolean;
+  /** Per-mapping conditions (action-scoped CEL constraints) */
+  conditions: WizardCondition[];
 }
 
 /**
@@ -76,16 +93,7 @@ export function createInitialWizardState(
   return {
     subjectType: userTypes[0]?.type || '',
     entitlementValue: '',
-    roleMappings: [
-      {
-        role: '',
-        roleNamespace: '',
-        namespace: '',
-        project: '',
-        component: '',
-        confirmed: false,
-      },
-    ],
+    roleMappings: [],
     effect: 'allow',
     name: '',
   };
@@ -101,7 +109,17 @@ export function isStepValid(stepId: WizardStepId, state: WizardState): boolean {
     case 'roleMappings':
       return (
         state.roleMappings.length > 0 &&
-        state.roleMappings.every(rm => !!rm.role && rm.confirmed)
+        state.roleMappings.every(
+          rm =>
+            !!rm.role &&
+            rm.confirmed &&
+            rm.conditions.every(
+              c =>
+                c.confirmed &&
+                c.actions.length > 0 &&
+                c.expression.trim().length > 0,
+            ),
+        )
       );
     case 'effect':
       return (

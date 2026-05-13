@@ -52,6 +52,15 @@ jest.mock('../RolesTab/NamespaceSelector', () => ({
   ),
 }));
 
+jest.mock('../hooks', () => ({
+  useNamespaces: () => ({
+    namespaces: [{ name: 'ns-1' }],
+    loading: false,
+    error: null,
+    refresh: jest.fn(),
+  }),
+}));
+
 // ---- Helpers ----
 
 function renderTab() {

@@ -15,6 +15,7 @@ import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import BlockIcon from '@material-ui/icons/Block';
 import EditIcon from '@material-ui/icons/EditOutlined';
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
+import { AuthzCondition } from '../hooks';
 import { useSharedStyles } from './styles';
 
 const useStyles = makeStyles(theme => ({
@@ -80,6 +81,9 @@ const useStyles = makeStyles(theme => ({
       borderBottom: 'none',
     },
   },
+  mappingRowWithConditions: {
+    display: 'block',
+  },
   mappingRoleColumn: {
     flex: '0 0 40%',
     fontWeight: 500,
@@ -89,6 +93,40 @@ const useStyles = makeStyles(theme => ({
     fontFamily: 'monospace',
     fontSize: '0.875rem',
     color: theme.palette.text.secondary,
+  },
+  mappingMainLine: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  conditionsBlock: {
+    marginTop: theme.spacing(1),
+    paddingTop: theme.spacing(1),
+    borderTop: `1px dashed ${theme.palette.divider}`,
+  },
+  conditionsLabel: {
+    fontSize: '0.7rem',
+    fontWeight: 600,
+    color: theme.palette.text.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    marginBottom: theme.spacing(0.5),
+  },
+  conditionEntry: {
+    marginBottom: theme.spacing(0.75),
+    fontSize: '0.8rem',
+    '&:last-child': { marginBottom: 0 },
+  },
+  conditionActions: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: theme.spacing(0.5),
+    marginBottom: theme.spacing(0.25),
+  },
+  conditionExpression: {
+    fontFamily: 'monospace',
+    fontSize: '0.8rem',
+    color: theme.palette.text.secondary,
+    wordBreak: 'break-all',
   },
   effectChip: {
     fontWeight: 600,
@@ -110,6 +148,7 @@ export interface BindingDetailMapping {
   role: string;
   scope: string;
   isClusterRole?: boolean;
+  conditions?: AuthzCondition[];
 }
 
 export interface BindingDetail {
@@ -221,24 +260,60 @@ export const BindingDetailDialog = ({
                   </Typography>
                 </Box>
               </Box>
-              {binding.roleMappings.map((rm, idx) => (
-                <Box key={idx} className={classes.mappingRow}>
-                  <Box className={classes.mappingRoleColumn}>
-                    <Typography variant="body2">
-                      {rm.role}
-                      {rm.isClusterRole && (
-                        <Chip
-                          label="Cluster"
-                          size="small"
-                          variant="outlined"
-                          className={sharedClasses.clusterRoleChip}
-                        />
-                      )}
-                    </Typography>
+              {binding.roleMappings.map((rm, idx) => {
+                const hasConditions = (rm.conditions?.length ?? 0) > 0;
+                return (
+                  <Box
+                    key={idx}
+                    className={`${classes.mappingRow} ${
+                      hasConditions ? classes.mappingRowWithConditions : ''
+                    }`}
+                  >
+                    <Box className={classes.mappingMainLine}>
+                      <Box className={classes.mappingRoleColumn}>
+                        <Typography variant="body2">
+                          {rm.role}
+                          {rm.isClusterRole && (
+                            <Chip
+                              label="Cluster"
+                              size="small"
+                              variant="outlined"
+                              className={sharedClasses.clusterRoleChip}
+                            />
+                          )}
+                        </Typography>
+                      </Box>
+                      <Box className={classes.mappingScopeColumn}>
+                        {rm.scope}
+                      </Box>
+                    </Box>
+                    {hasConditions && (
+                      <Box className={classes.conditionsBlock}>
+                        <Typography className={classes.conditionsLabel}>
+                          Conditions ({rm.conditions!.length})
+                        </Typography>
+                        {rm.conditions!.map((c, ci) => (
+                          <Box key={ci} className={classes.conditionEntry}>
+                            <Box className={classes.conditionActions}>
+                              {c.actions.map(a => (
+                                <Chip
+                                  key={a}
+                                  size="small"
+                                  variant="outlined"
+                                  label={a}
+                                />
+                              ))}
+                            </Box>
+                            <Typography className={classes.conditionExpression}>
+                              {c.expression}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
                   </Box>
-                  <Box className={classes.mappingScopeColumn}>{rm.scope}</Box>
-                </Box>
-              ))}
+                );
+              })}
             </Box>
           </Box>
         </Paper>
