@@ -104,9 +104,15 @@ function decodeBase64Utf8(b64: string): string {
   if (!b64) return '';
   try {
     const binary = atob(b64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+    if (typeof TextDecoder !== 'undefined') {
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+    }
+    // Fallback for environments without TextDecoder (e.g. older jsdom).
+    // decodeURIComponent(escape(...)) is the canonical pre-TextDecoder
+    // pattern for converting a binary-string atob result to UTF-8 text.
+    return decodeURIComponent(escape(binary));
   } catch {
     return '';
   }
