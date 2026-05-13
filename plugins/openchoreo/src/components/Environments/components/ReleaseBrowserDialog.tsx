@@ -165,9 +165,9 @@ const formatAbsoluteTime = (iso?: string): string => {
 
 const extractImage = (release: ComponentRelease): string | undefined => {
   const workload = release.spec?.workload as
-    | { spec?: { container?: { image?: string } } }
+    | { container?: { image?: string } }
     | undefined;
-  return workload?.spec?.container?.image;
+  return workload?.container?.image;
 };
 
 const shortenImage = (image: string): string => {
