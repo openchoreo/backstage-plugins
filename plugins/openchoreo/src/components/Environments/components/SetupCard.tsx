@@ -23,6 +23,7 @@ export const SetupCard = ({
         [classes.cardSelected]: selected,
       })}
     >
+      <span className={classes.startBadge}>Start</span>
       <Box className={classes.titleRow}>
         <SettingsOutlinedIcon className={classes.titleIcon} />
         <Typography className={classes.title}>Set up</Typography>
