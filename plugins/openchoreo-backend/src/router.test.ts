@@ -21,6 +21,7 @@ function createMockServices() {
       promoteComponent: jest.fn(),
       deleteReleaseBinding: jest.fn(),
       updateComponentBinding: jest.fn(),
+      rolloutRestartReleaseBinding: jest.fn(),
       createComponentRelease: jest.fn(),
       deployRelease: jest.fn(),
       fetchComponentReleaseSchema: jest.fn(),
@@ -30,6 +31,7 @@ function createMockServices() {
     },
     cellDiagramInfoService: {
       fetchProjectInfo: jest.fn(),
+      listEnvironments: jest.fn(),
     },
     buildInfoService: {
       fetchBuilds: jest.fn(),
@@ -646,6 +648,75 @@ describe('createRouter', () => {
       const response = await request(app).delete('/secrets/s1');
       expect(response.status).toBe(400);
       expect(services.secretsService.deleteSecret).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /cell-diagram/environments', () => {
+    it('returns environments for the namespace', async () => {
+      const envs = ['dev', 'prod'];
+      services.cellDiagramInfoService.listEnvironments.mockResolvedValue(envs);
+
+      const response = await request(app)
+        .get('/cell-diagram/environments')
+        .query({ namespaceName: 'ns' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(envs);
+      expect(
+        services.cellDiagramInfoService.listEnvironments,
+      ).toHaveBeenCalledWith('ns', 'mock-user-token');
+    });
+
+    it('returns 400 when namespaceName is missing', async () => {
+      const response = await request(app).get('/cell-diagram/environments');
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe('POST /rollout-restart-binding', () => {
+    it('restarts a binding and returns the result', async () => {
+      const mockResult = { status: 'restarted' };
+      services.environmentInfoService.rolloutRestartReleaseBinding.mockResolvedValue(
+        mockResult,
+      );
+
+      const response = await request(app)
+        .post('/rollout-restart-binding')
+        .send({
+          componentName: 'my-component',
+          projectName: 'my-project',
+          namespaceName: 'my-namespace',
+          bindingName: 'my-binding',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(mockResult);
+      expect(
+        services.environmentInfoService.rolloutRestartReleaseBinding,
+      ).toHaveBeenCalledWith(
+        {
+          componentName: 'my-component',
+          projectName: 'my-project',
+          namespaceName: 'my-namespace',
+          bindingName: 'my-binding',
+        },
+        'mock-user-token',
+      );
+    });
+
+    it('returns 400 when required body fields are missing', async () => {
+      const response = await request(app)
+        .post('/rollout-restart-binding')
+        .send({ componentName: 'my-component' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          message: expect.stringContaining(
+            'componentName, projectName, namespaceName and bindingName are required',
+          ),
+        }),
+      });
     });
   });
 });

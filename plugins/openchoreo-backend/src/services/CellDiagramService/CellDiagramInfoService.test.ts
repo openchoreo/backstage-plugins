@@ -4,11 +4,19 @@ import { createOkResponse } from '@openchoreo/test-utils';
 import { CellDiagramInfoService } from './CellDiagramInfoService';
 
 const mockGET = jest.fn();
+const mockObsPOST = jest.fn();
+const mockResolveForEnvironment = jest.fn();
 
 jest.mock('@openchoreo/openchoreo-client-node', () => ({
   ...jest.requireActual('@openchoreo/openchoreo-client-node'),
   createOpenChoreoApiClient: jest.fn(() => ({
     GET: mockGET,
+  })),
+  createObservabilityClientWithUrl: jest.fn(() => ({
+    POST: mockObsPOST,
+  })),
+  ObservabilityUrlResolver: jest.fn().mockImplementation(() => ({
+    resolveForEnvironment: mockResolveForEnvironment,
   })),
   fetchAllPages: jest.fn((fetchPage: (cursor?: string) => Promise<any>) =>
     fetchPage(undefined).then((page: any) => page.items),
@@ -246,6 +254,400 @@ describe('CellDiagramInfoService', () => {
       expect(httpService.deploymentMetadata.gateways.intranet.isExposed).toBe(
         true,
       );
+    });
+
+    it('renders proxy/* components as api-proxy type', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [k8sComponent('my-proxy', 'proxy/http')],
+          pagination: {},
+        }),
+      );
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [], pagination: {} }),
+      );
+
+      const service = createService();
+      const result = await service.fetchProjectInfo(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token',
+      );
+
+      expect(result!.components).toHaveLength(1);
+      expect(result!.components[0].type).toBe('api-proxy');
+    });
+
+    it('attaches gateway observations when observability is available (Phase 1)', async () => {
+      mockGET
+        // components
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [k8sComponent('api', 'deployment/service')],
+            pagination: {},
+          }),
+        )
+        // workloads
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [
+              k8sWorkload('api', {
+                endpoints: {
+                  http: { type: 'HTTP', visibility: ['external'] },
+                },
+              }),
+            ],
+            pagination: {},
+          }),
+        )
+        // environments
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [{ metadata: { name: 'dev' } }],
+            pagination: {},
+          }),
+        );
+
+      mockResolveForEnvironment.mockResolvedValueOnce({
+        observerUrl: 'http://observer:8080',
+      });
+
+      // Phase 1: HTTP metrics query returns traffic
+      mockObsPOST.mockResolvedValueOnce(
+        createOkResponse({
+          requestCount: [{ timestamp: 1, value: 5 }],
+          unsuccessfulRequestCount: [{ timestamp: 1, value: 1 }],
+          meanLatency: [{ timestamp: 1, value: 0.01 }],
+          latencyP50: [{ timestamp: 1, value: 0.005 }],
+          latencyP90: [{ timestamp: 1, value: 0.02 }],
+          latencyP99: [{ timestamp: 1, value: 0.05 }],
+        }),
+      );
+      // Phase 2: runtime topology returns no edges
+      mockObsPOST.mockResolvedValueOnce(createOkResponse({ edges: [] }));
+
+      const service = createService();
+      const result = await service.fetchProjectInfo(
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          startTime: new Date(Date.now() - 3600_000).toISOString(),
+          endTime: new Date().toISOString(),
+          step: '1m',
+        },
+        'token',
+      );
+
+      expect(result).toBeDefined();
+      const api = result!.components.find(c => c.id === 'api');
+      const httpSvc = (api!.services as any).http;
+      expect(
+        httpSvc.deploymentMetadata.gateways.internet.observations,
+      ).toBeDefined();
+      expect(
+        httpSvc.deploymentMetadata.gateways.internet.observations[0]
+          .requestCount,
+      ).toBeGreaterThan(0);
+    });
+
+    it('attaches connection observations from runtime topology (Phase 2)', async () => {
+      mockGET
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [
+              k8sComponent('frontend', 'deployment/web-app'),
+              k8sComponent('backend', 'deployment/service'),
+            ],
+            pagination: {},
+          }),
+        )
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [
+              k8sWorkload('frontend', {
+                dependencies: {
+                  endpoints: [
+                    {
+                      name: 'api',
+                      component: 'backend',
+                      project: 'my-project',
+                    },
+                  ],
+                },
+              }),
+            ],
+            pagination: {},
+          }),
+        )
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [{ metadata: { name: 'dev' } }],
+            pagination: {},
+          }),
+        );
+
+      mockResolveForEnvironment.mockResolvedValueOnce({
+        observerUrl: 'http://observer:8080',
+      });
+
+      // Phase 1: no traffic for either component
+      mockObsPOST
+        .mockResolvedValueOnce(createOkResponse({ requestCount: [] }))
+        .mockResolvedValueOnce(createOkResponse({ requestCount: [] }));
+
+      // Phase 2: runtime topology returns a component->component edge
+      mockObsPOST.mockResolvedValueOnce(
+        createOkResponse({
+          edges: [
+            {
+              source: {
+                kind: 'component',
+                component: 'frontend',
+                componentUid: 'uid-frontend',
+              },
+              target: {
+                kind: 'component',
+                component: 'backend',
+                componentUid: 'uid-backend',
+              },
+              metrics: {
+                requestCount: 42,
+                errorCount: 2,
+                avgLatency: 0.01,
+                p50Latency: 0.005,
+                p90Latency: 0.02,
+                p99Latency: 0.05,
+              },
+            },
+          ],
+        }),
+      );
+
+      const service = createService();
+      const result = await service.fetchProjectInfo(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token',
+      );
+
+      const frontend = result!.components.find(c => c.id === 'frontend');
+      const conn = frontend!.connections?.find(c =>
+        (c.id ?? '').includes('backend'),
+      );
+      expect(conn).toBeDefined();
+      expect((conn as any).observations?.[0].requestCount).toBe(42);
+    });
+
+    it('adds runtime-only connection when no static connection matches', async () => {
+      mockGET
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [
+              k8sComponent('svc-a', 'deployment/service'),
+              k8sComponent('svc-b', 'deployment/service'),
+            ],
+            pagination: {},
+          }),
+        )
+        // no workload dependencies
+        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }))
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [{ metadata: { name: 'dev' } }],
+            pagination: {},
+          }),
+        );
+
+      mockResolveForEnvironment.mockResolvedValueOnce({
+        observerUrl: 'http://observer:8080',
+      });
+
+      // Phase 1: no traffic
+      mockObsPOST
+        .mockResolvedValueOnce(createOkResponse({ requestCount: [] }))
+        .mockResolvedValueOnce(createOkResponse({ requestCount: [] }));
+
+      // Phase 2: runtime topology has an edge with no static match
+      mockObsPOST.mockResolvedValueOnce(
+        createOkResponse({
+          edges: [
+            {
+              source: { kind: 'component', component: 'svc-a' },
+              target: { kind: 'component', component: 'svc-b' },
+              metrics: { requestCount: 10, errorCount: 0, avgLatency: 0.001 },
+            },
+          ],
+        }),
+      );
+
+      const service = createService();
+      const result = await service.fetchProjectInfo(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token',
+      );
+
+      const svcA = result!.components.find(c => c.id === 'svc-a');
+      const runtimeConn = svcA!.connections?.find(
+        c => (c as any).observationOnly === true,
+      );
+      expect(runtimeConn).toBeDefined();
+      expect((runtimeConn as any).observations?.[0].requestCount).toBe(10);
+    });
+
+    it('skips Phase 2 gracefully when runtime-topology returns 404', async () => {
+      mockGET
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [k8sComponent('api', 'deployment/service')],
+            pagination: {},
+          }),
+        )
+        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }))
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [{ metadata: { name: 'dev' } }],
+            pagination: {},
+          }),
+        );
+
+      mockResolveForEnvironment.mockResolvedValueOnce({
+        observerUrl: 'http://observer:8080',
+      });
+
+      // Phase 1: no traffic
+      mockObsPOST.mockResolvedValueOnce(createOkResponse({ requestCount: [] }));
+
+      // Phase 2: 404 from older observer
+      mockObsPOST.mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'not found' },
+        response: { ok: false, status: 404, statusText: 'Not Found' },
+      });
+
+      const service = createService();
+      const result = await service.fetchProjectInfo(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token',
+      );
+
+      expect(result).toBeDefined();
+      expect(result!.components).toHaveLength(1);
+    });
+
+    it('skips enrichment when observer URL is not available', async () => {
+      mockGET
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [k8sComponent('api', 'deployment/service')],
+            pagination: {},
+          }),
+        )
+        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }))
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [{ metadata: { name: 'dev' } }],
+            pagination: {},
+          }),
+        );
+
+      mockResolveForEnvironment.mockResolvedValueOnce({ observerUrl: null });
+
+      const service = createService();
+      const result = await service.fetchProjectInfo(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token',
+      );
+
+      expect(result).toBeDefined();
+      expect(mockObsPOST).not.toHaveBeenCalled();
+    });
+
+    it('skips non-component edges in runtime topology', async () => {
+      mockGET
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [k8sComponent('api', 'deployment/service')],
+            pagination: {},
+          }),
+        )
+        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }))
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [{ metadata: { name: 'dev' } }],
+            pagination: {},
+          }),
+        );
+
+      mockResolveForEnvironment.mockResolvedValueOnce({
+        observerUrl: 'http://observer:8080',
+      });
+
+      // Phase 1
+      mockObsPOST.mockResolvedValueOnce(createOkResponse({ requestCount: [] }));
+
+      // Phase 2: edge with gateway kind (should be skipped)
+      mockObsPOST.mockResolvedValueOnce(
+        createOkResponse({
+          edges: [
+            {
+              source: { kind: 'gateway', component: 'gw' },
+              target: { kind: 'component', component: 'api' },
+              metrics: { requestCount: 5 },
+            },
+          ],
+        }),
+      );
+
+      const service = createService();
+      const result = await service.fetchProjectInfo(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token',
+      );
+
+      expect(result).toBeDefined();
+      const api = result!.components.find(c => c.id === 'api');
+      expect(api!.connections).toHaveLength(0);
+    });
+  });
+
+  describe('listEnvironments', () => {
+    it('returns environment names from the API', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [
+            { metadata: { name: 'development' } },
+            { metadata: { name: 'production' } },
+          ],
+          pagination: {},
+        }),
+      );
+
+      const service = createService();
+      const result = await service.listEnvironments('test-ns', 'token');
+
+      expect(result).toEqual(['development', 'production']);
+    });
+
+    it('returns empty array when API call fails', async () => {
+      mockGET.mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'error' },
+        response: { ok: false, status: 500, statusText: 'Error' },
+      });
+
+      const service = createService();
+      const result = await service.listEnvironments('test-ns', 'token');
+
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array when no environments in response', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [], pagination: {} }),
+      );
+
+      const service = createService();
+      const result = await service.listEnvironments('test-ns');
+
+      expect(result).toEqual([]);
     });
   });
 });

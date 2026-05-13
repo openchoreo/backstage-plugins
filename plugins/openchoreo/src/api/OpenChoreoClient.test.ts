@@ -14,6 +14,121 @@ function makeNoContentResponse(): Response {
   return new Response(null, { status: 204 });
 }
 
+const BASE_ENTITY = {
+  apiVersion: 'backstage.io/v1alpha1',
+  kind: 'Component',
+  metadata: {
+    name: 'test-project',
+    namespace: 'default',
+    annotations: {
+      'openchoreo.io/namespace': 'test-ns',
+      'openchoreo.io/component': 'test-component',
+      'openchoreo.io/project': 'test-project',
+    },
+  },
+  spec: { type: 'service' },
+};
+
+describe('OpenChoreoClient — cell diagram', () => {
+  const fetchMock = jest.fn();
+  const discovery = { getBaseUrl: jest.fn().mockResolvedValue(BASE_URL) };
+  const fetchApi = { fetch: fetchMock };
+  let client: OpenChoreoClient;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    discovery.getBaseUrl.mockResolvedValue(BASE_URL);
+    client = new OpenChoreoClient(discovery as any, fetchApi as any);
+  });
+
+  describe('getCellDiagramEnvironments', () => {
+    it('GETs /cell-diagram/environments with namespaceName', async () => {
+      const envs = ['dev', 'prod'];
+      fetchMock.mockResolvedValueOnce(makeJsonResponse(envs));
+
+      const result = await client.getCellDiagramEnvironments(
+        BASE_ENTITY as any,
+      );
+
+      expect(result).toEqual(envs);
+      const [calledUrl] = fetchMock.mock.calls[0];
+      expect(calledUrl).toContain('/cell-diagram/environments');
+      expect(calledUrl).toContain('namespaceName=test-ns');
+    });
+
+    it('returns empty array when namespace annotation is missing', async () => {
+      const entityNoNs = {
+        ...BASE_ENTITY,
+        metadata: { ...BASE_ENTITY.metadata, annotations: {} },
+      };
+      const result = await client.getCellDiagramEnvironments(entityNoNs as any);
+      expect(result).toEqual([]);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('returns empty array when fetch fails', async () => {
+      fetchMock.mockResolvedValueOnce(
+        makeJsonResponse({ error: { message: 'error' } }, 500),
+      );
+      const result = await client.getCellDiagramEnvironments(
+        BASE_ENTITY as any,
+      );
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getCellDiagramInfo', () => {
+    it('includes optional params when provided', async () => {
+      fetchMock.mockResolvedValueOnce(makeJsonResponse({}));
+
+      await client.getCellDiagramInfo(BASE_ENTITY as any, {
+        environmentName: 'dev',
+        startTime: '2024-01-01T00:00:00Z',
+        endTime: '2024-01-01T01:00:00Z',
+        step: '1m',
+      });
+
+      const [calledUrl] = fetchMock.mock.calls[0];
+      expect(calledUrl).toContain('environmentName=dev');
+      expect(calledUrl).toContain('startTime=');
+      expect(calledUrl).toContain('endTime=');
+      expect(calledUrl).toContain('step=1m');
+    });
+
+    it('omits optional params when not provided', async () => {
+      fetchMock.mockResolvedValueOnce(makeJsonResponse({}));
+
+      await client.getCellDiagramInfo(BASE_ENTITY as any);
+
+      const [calledUrl] = fetchMock.mock.calls[0];
+      expect(calledUrl).not.toContain('environmentName');
+      expect(calledUrl).not.toContain('startTime');
+    });
+  });
+
+  describe('rolloutRestartReleaseBinding', () => {
+    it('POSTs to /rollout-restart-binding with entity metadata and bindingName', async () => {
+      const result = { status: 'restarted' };
+      fetchMock.mockResolvedValueOnce(makeJsonResponse(result));
+
+      const response = await client.rolloutRestartReleaseBinding(
+        BASE_ENTITY as any,
+        'my-binding',
+      );
+
+      expect(response).toEqual(result);
+      const [calledUrl, opts] = fetchMock.mock.calls[0];
+      expect(calledUrl).toContain('/rollout-restart-binding');
+      expect(opts.method).toBe('POST');
+      const body = JSON.parse(opts.body);
+      expect(body.bindingName).toBe('my-binding');
+      expect(body.componentName).toBe('test-component');
+      expect(body.projectName).toBe('test-project');
+      expect(body.namespaceName).toBe('test-ns');
+    });
+  });
+});
+
 describe('OpenChoreoClient — secrets', () => {
   const fetchMock = jest.fn();
   const discovery = { getBaseUrl: jest.fn().mockResolvedValue(BASE_URL) };
