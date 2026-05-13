@@ -371,9 +371,6 @@ export const BindingWizardPage = ({
 
   const headerActions = (
     <Box className={classes.headerActions}>
-      <Button onClick={onCancel} disabled={saving}>
-        Cancel
-      </Button>
       <Button onClick={handleBack} disabled={isFirstStep || saving}>
         Back
       </Button>
