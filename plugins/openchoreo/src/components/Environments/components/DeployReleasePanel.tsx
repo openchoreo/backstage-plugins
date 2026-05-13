@@ -76,18 +76,31 @@ export const DeployReleasePanel = ({
   };
 
   const noReleases = !releasesLoading && releases.length === 0;
-  const deployDisabled = disabled || !selectedReleaseName || noReleases;
+  // `deployments` keeps env names in their original casing (e.g. "Development")
+  // while `firstEnvironmentName` is lowercased upstream, so compare loosely.
+  const targetEnv = firstEnvironmentName.toLowerCase();
+  const alreadyDeployed =
+    !!selectedReleaseName &&
+    (deployments[selectedReleaseName] ?? []).some(
+      e => e.toLowerCase() === targetEnv,
+    );
+  const deployDisabled =
+    disabled || !selectedReleaseName || noReleases || alreadyDeployed;
 
   const getTooltip = () => {
-    if (deployDisabled && disabledReason) return disabledReason;
+    if (disabled && disabledReason) return disabledReason;
     if (!selectedReleaseName) return 'Pick a release first';
+    if (alreadyDeployed) {
+      return `This release is already deployed to ${firstEnvironmentName}.`;
+    }
     return '';
   };
 
   return (
     <Box className={classes.panel}>
-      <Typography variant="subtitle2">
-        Deploy to {firstEnvironmentName}
+      <Typography variant="subtitle2">Deploy</Typography>
+      <Typography variant="caption" color="textSecondary">
+        Pick a release and deploy it to {firstEnvironmentName}.
       </Typography>
 
       {releasesError && <Alert severity="error">{releasesError}</Alert>}

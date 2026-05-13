@@ -269,6 +269,11 @@ export const SetupDetailPane = ({
               <>
                 <Box display="flex" flexDirection="column" gridGap={8}>
                   <Typography variant="subtitle2">Component</Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    Auto-deploy is on. Saving any configuration change creates a
+                    release automatically and rolls it out to{' '}
+                    {lowestEnvironment}.
+                  </Typography>
                   {readiness.alertMessage && (
                     <Alert severity={readiness.alertSeverity}>
                       {readiness.alertMessage}
@@ -292,11 +297,6 @@ export const SetupDetailPane = ({
                       </Tooltip>
                     </Box>
                   )}
-                  <Typography variant="caption" color="textSecondary">
-                    Auto-deploy is on. Saving any configuration change creates a
-                    release automatically and rolls it out to{' '}
-                    {lowestEnvironment}.
-                  </Typography>
                 </Box>
 
                 <Divider style={{ margin: '12px 0' }} />
@@ -313,6 +313,10 @@ export const SetupDetailPane = ({
                 {/* Story 1 — Create release (routes to workload page) */}
                 <Box display="flex" flexDirection="column" gridGap={8}>
                   <Typography variant="subtitle2">Release</Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    Update your component's configuration and snapshot it as a
+                    release.
+                  </Typography>
                   {readiness.alertMessage && (
                     <Alert severity={readiness.alertSeverity}>
                       {readiness.alertMessage}

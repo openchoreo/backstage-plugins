@@ -21,20 +21,25 @@ const useStyles = makeStyles(theme => ({
   },
   summaryRow: {
     display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1.5),
-  },
-  summary: {
-    flexGrow: 1,
-    minWidth: 0,
-    display: 'flex',
     flexDirection: 'column',
+    gap: theme.spacing(0.75),
+    padding: theme.spacing(1.25, 1.5),
+    backgroundColor: theme.palette.action.hover,
+    borderRadius: 6,
+  },
+  topLine: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing(1.5),
   },
   name: {
     fontWeight: 500,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+    flexGrow: 1,
+    minWidth: 0,
   },
   meta: {
     color: theme.palette.text.secondary,
@@ -134,40 +139,40 @@ export const ReleasePicker = ({
         <Skeleton variant="rect" height={36} />
       ) : (
         <Box className={classes.summaryRow}>
-          <Box className={classes.summary}>
+          <Box className={classes.topLine}>
             {selected ? (
-              <>
-                <Typography variant="body2" className={classes.name}>
-                  {selected.metadata?.name}
-                </Typography>
-                <Box className={classes.meta}>
-                  {created && <span>{created}</span>}
-                  {image && <span>img: {shortenImage(image)}</span>}
-                  {deployedIn.map(env => (
-                    <Chip
-                      key={env}
-                      label={`current in ${env}`}
-                      size="small"
-                      color="primary"
-                      className={classes.chip}
-                    />
-                  ))}
-                </Box>
-              </>
+              <Typography variant="body2" className={classes.name}>
+                {selected.metadata?.name}
+              </Typography>
             ) : (
               <Typography variant="body2" className={classes.empty}>
                 {noReleases ? 'No releases yet' : 'No release selected'}
               </Typography>
             )}
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setDialogOpen(true)}
+              disabled={disabled || noReleases}
+            >
+              {selected ? 'Change' : 'Select release'}
+            </Button>
           </Box>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => setDialogOpen(true)}
-            disabled={disabled || noReleases}
-          >
-            {selected ? 'Change' : 'Select release'}
-          </Button>
+          {selected && (
+            <Box className={classes.meta}>
+              {created && <span>{created}</span>}
+              {image && <span>img: {shortenImage(image)}</span>}
+              {deployedIn.map(env => (
+                <Chip
+                  key={env}
+                  label={`current in ${env}`}
+                  size="small"
+                  color="primary"
+                  className={classes.chip}
+                />
+              ))}
+            </Box>
+          )}
         </Box>
       )}
 
