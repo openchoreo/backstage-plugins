@@ -11,6 +11,7 @@ const defaultFeatures: OpenChoreoFeatures = {
   observability: { enabled: true },
   auth: { enabled: true },
   authz: { enabled: true },
+  secretManagement: { enabled: false },
 };
 
 /**
@@ -53,6 +54,11 @@ export function useOpenChoreoFeatures(): OpenChoreoFeatures {
         authz: {
           enabled: featuresConfig.getOptionalBoolean('authz.enabled') ?? true,
         },
+        secretManagement: {
+          enabled:
+            featuresConfig.getOptionalBoolean('secretManagement.enabled') ??
+            false,
+        },
       };
     } catch {
       // If config reading fails, use defaults to avoid breaking the app
@@ -91,4 +97,12 @@ export function useAuthEnabled(): boolean {
 export function useAuthzEnabled(): boolean {
   const features = useOpenChoreoFeatures();
   return features.authz.enabled;
+}
+
+/**
+ * Helper hook to check if Secret Management is enabled.
+ */
+export function useSecretManagementEnabled(): boolean {
+  const features = useOpenChoreoFeatures();
+  return features.secretManagement.enabled;
 }

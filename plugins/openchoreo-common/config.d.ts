@@ -92,6 +92,21 @@ export interface Config {
          */
         enabled?: boolean;
       };
+
+      /**
+       * Secret Management configuration.
+       * Controls the Secrets settings tab and related secret-management APIs.
+       * @deepVisibility frontend
+       */
+      secretManagement?: {
+        /**
+         * Enable or disable secret management features.
+         * When disabled, the Secrets settings tab is hidden and the page
+         * renders a "feature disabled" notice if reached directly.
+         * @visibility frontend
+         */
+        enabled?: boolean;
+      };
     };
 
     /**

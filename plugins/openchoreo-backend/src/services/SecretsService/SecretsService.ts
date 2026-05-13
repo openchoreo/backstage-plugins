@@ -11,13 +11,28 @@ export type TargetPlaneRef = OpenChoreoComponents['schemas']['TargetPlaneRef'];
 export type SecretResponse = OpenChoreoComponents['schemas']['SecretResponse'];
 export type CreateSecretRequest =
   OpenChoreoComponents['schemas']['CreateSecretRequest'];
+export type UpdateSecretRequest =
+  OpenChoreoComponents['schemas']['UpdateSecretRequest'];
 type SecretReference = OpenChoreoComponents['schemas']['SecretReference'];
+type ListSecretsResponse =
+  OpenChoreoComponents['schemas']['ListSecretsResponse'];
+type SecretObject = OpenChoreoComponents['schemas']['Secret'];
 
 export interface SecretsListResponse {
   items: SecretResponse[];
   totalCount: number;
   page: number;
   pageSize: number;
+}
+
+/**
+ * Secret detail returned by getSecret. `data` carries base64-encoded values
+ * exactly as Kubernetes returns them; the frontend decodes when populating
+ * the edit dialog. Treat as sensitive — never log this object's `data`.
+ */
+export interface SecretDetail extends SecretResponse {
+  /** Base64-encoded value map (K8s Secret wire format). */
+  data: Record<string, string>;
 }
 
 export class SecretsService {
@@ -42,20 +57,45 @@ export class SecretsService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/secretreferences',
-        {
-          params: {
-            path: { namespaceName },
-          },
-        },
-      );
+      // Fetch secrets (new API) and secretreferences (for targetPlane) in parallel.
+      // The new /secrets endpoint returns plain corev1.Secret objects without
+      // the targetPlane field, so we join with SecretReferences by name to
+      // surface targetPlane info in the table.
+      const [secretsRes, refsRes] = await Promise.all([
+        client.GET('/api/v1alpha1/namespaces/{namespaceName}/secrets', {
+          params: { path: { namespaceName } },
+        }),
+        client.GET('/api/v1/namespaces/{namespaceName}/secretreferences', {
+          params: { path: { namespaceName } },
+        }),
+      ]);
 
-      assertApiResponse({ data, error, response }, 'list secrets');
+      assertApiResponse(secretsRes, 'list secrets');
+      assertApiResponse(refsRes, 'list secret references');
 
-      const items = (data!.items ?? [])
-        .filter(ref => ref.spec?.targetPlane)
-        .map(toSecretResponse);
+      const secrets = (secretsRes.data as ListSecretsResponse).items ?? [];
+      const refs = refsRes.data!.items ?? [];
+
+      const refByName = new Map<string, SecretReference>();
+      for (const ref of refs) {
+        const name = ref.metadata?.name;
+        if (name) refByName.set(name, ref);
+      }
+
+      const items: SecretResponse[] = secrets.map(secret => {
+        const name = secret.metadata?.name ?? '';
+        const ref = refByName.get(name);
+        const keys = Object.keys(secret.data ?? {}).sort((a, b) =>
+          a.localeCompare(b),
+        );
+        return {
+          name,
+          namespace: secret.metadata?.namespace ?? namespaceName,
+          secretType: toSecretType(secret.type),
+          targetPlane: ref?.spec?.targetPlane,
+          keys,
+        };
+      });
 
       this.logger.debug(
         `Successfully listed ${items.length} secrets for namespace: ${namespaceName}`,
@@ -77,7 +117,7 @@ export class SecretsService {
     namespaceName: string,
     secretName: string,
     token?: string,
-  ): Promise<SecretResponse> {
+  ): Promise<SecretDetail> {
     this.logger.debug(
       `Fetching secret ${secretName} from namespace: ${namespaceName}`,
     );
@@ -89,24 +129,46 @@ export class SecretsService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/secretreferences/{secretReferenceName}',
-        {
-          params: {
-            path: { namespaceName, secretReferenceName: secretName },
+      // Fetch the K8s Secret (with base64 data) and the SecretReference
+      // (for targetPlane info) in parallel.
+      const [secretRes, refRes] = await Promise.all([
+        client.GET(
+          '/api/v1alpha1/namespaces/{namespaceName}/secrets/{secretName}',
+          { params: { path: { namespaceName, secretName } } },
+        ),
+        client.GET(
+          '/api/v1/namespaces/{namespaceName}/secretreferences/{secretReferenceName}',
+          {
+            params: {
+              path: { namespaceName, secretReferenceName: secretName },
+            },
           },
-        },
-      );
+        ),
+      ]);
 
-      assertApiResponse({ data, error, response }, 'get secret');
+      assertApiResponse(secretRes, 'get secret');
+      assertApiResponse(refRes, 'get secret reference');
 
-      if (!data!.spec?.targetPlane) {
+      const secret = secretRes.data as SecretObject;
+      const ref = refRes.data!;
+
+      if (!ref.spec?.targetPlane) {
         throw new NotFoundError(
           `secret '${secretName}' not found in namespace '${namespaceName}'`,
         );
       }
 
-      return toSecretResponse(data!);
+      const data = (secret.data ?? {}) as Record<string, string>;
+      const keys = Object.keys(data).sort((a, b) => a.localeCompare(b));
+
+      return {
+        name: secret.metadata?.name ?? secretName,
+        namespace: secret.metadata?.namespace ?? namespaceName,
+        secretType: toSecretType(secret.type),
+        targetPlane: ref.spec?.targetPlane,
+        keys,
+        data,
+      };
     } catch (err) {
       this.logger.error(
         `Failed to get secret ${secretName} from ${namespaceName}: ${err}`,
@@ -148,6 +210,45 @@ export class SecretsService {
     } catch (err) {
       this.logger.error(
         `Failed to create secret ${body.secretName} in ${namespaceName}: ${err}`,
+      );
+      throw err;
+    }
+  }
+
+  async updateSecret(
+    namespaceName: string,
+    secretName: string,
+    body: UpdateSecretRequest,
+    userToken?: string,
+  ): Promise<SecretResponse> {
+    this.logger.debug(
+      `Updating secret ${secretName} in namespace: ${namespaceName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: userToken,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.PUT(
+        '/api/v1alpha1/namespaces/{namespaceName}/secrets/{secretName}',
+        {
+          params: { path: { namespaceName, secretName } },
+          body,
+        },
+      );
+
+      assertApiResponse({ data, error, response }, 'update secret');
+
+      this.logger.debug(
+        `Successfully updated secret ${secretName} in namespace: ${namespaceName}`,
+      );
+      return data as SecretResponse;
+    } catch (err) {
+      this.logger.error(
+        `Failed to update secret ${secretName} in ${namespaceName}: ${err}`,
       );
       throw err;
     }
@@ -203,18 +304,4 @@ function toSecretType(raw: string | undefined): SecretType | undefined {
     return raw as SecretType;
   }
   return undefined;
-}
-
-function toSecretResponse(ref: SecretReference): SecretResponse {
-  const keys = (ref.spec?.data ?? [])
-    .map(d => d.secretKey)
-    .sort((a, b) => a.localeCompare(b));
-
-  return {
-    name: ref.metadata?.name ?? '',
-    namespace: ref.metadata?.namespace ?? '',
-    secretType: toSecretType(ref.spec?.template?.type),
-    targetPlane: ref.spec?.targetPlane,
-    keys,
-  };
 }

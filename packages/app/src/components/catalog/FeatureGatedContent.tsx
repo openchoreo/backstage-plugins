@@ -30,6 +30,7 @@ export function FeatureGatedContent({
       observability: 'Observability',
       auth: 'Authentication',
       authz: 'Authorization',
+      secretManagement: 'Secret Management',
     };
 
     return (

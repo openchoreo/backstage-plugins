@@ -164,6 +164,7 @@ export {
   useObservabilityEnabled,
   useAuthEnabled,
   useAuthzEnabled,
+  useSecretManagementEnabled,
 } from './hooks/useOpenChoreoFeatures';
 export {
   useComponentEntityDetails,

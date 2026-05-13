@@ -27,9 +27,16 @@ export interface OpenChoreoFeatures {
   auth: { enabled: boolean };
   /** Authorization feature (Access Control UI) */
   authz: { enabled: boolean };
+  /** Secret Management UI (Secrets settings tab + APIs) */
+  secretManagement: { enabled: boolean };
 }
 
 /**
  * Feature names that can be toggled.
  */
-export type FeatureName = 'workflows' | 'observability' | 'auth' | 'authz';
+export type FeatureName =
+  | 'workflows'
+  | 'observability'
+  | 'auth'
+  | 'authz'
+  | 'secretManagement';
