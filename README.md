@@ -91,6 +91,24 @@ kubectl patch observabilityplane default --type='merge' -p '{"spec":{"observerUR
 kubectl port-forward -n openchoreo-observability-plane svc/observer 9097:8080
 ```
 
+#### Receiving live catalog-sync events locally
+
+When running Backstage locally with `yarn start`, the OpenChoreo event-forwarder still posts webhooks to the in-cluster Backstage Service by default. Your local backend on `localhost:7007` will not receive them, and the catalog falls back to the periodic full sync only.
+
+To point the event-forwarder at your local Backstage:
+
+```bash
+helm upgrade openchoreo-control-plane oci://ghcr.io/openchoreo/helm-charts/openchoreo-control-plane \
+  --version 0.0.0-latest-dev \
+  --namespace openchoreo-control-plane \
+  --reuse-values \
+  --set-json 'eventForwarder.config.webhooks.endpoints=[{"url":"http://host.docker.internal:7007/api/events/http/openchoreo"}]'
+
+kubectl rollout restart deploy/event-forwarder -n openchoreo-control-plane
+```
+
+`host.docker.internal` resolves from inside the k3d node back to the host's loopback. To switch back to the in-cluster Backstage Service, repeat the command with `http://backstage:7007/api/events/http/openchoreo` as the URL.
+
 ```bash
 # Copy the pre-configured local development template
 cp app-config.local.yaml.example app-config.local.yaml
@@ -315,6 +333,38 @@ When a feature is disabled:
 - **Tabs remain visible** but show an informative empty state explaining that the feature is disabled
 - **Overview cards** for the feature are hidden from the Overview tab
 - This approach ensures consistent navigation while clearly communicating feature availability
+
+## Catalog Sync
+
+OpenChoreo entities are synced to the Backstage catalog through two mechanisms:
+
+- **Event-driven sync**: The OpenChoreo event-forwarder watches Kubernetes resources in the control plane and posts change notifications to Backstage's events HTTP topic (`/api/events/http/openchoreo`). Backstage applies a delta update to the catalog within seconds.
+- **Periodic full sync**: A scheduled task re-fetches all OpenChoreo state and applies a full update. This catches anything missed by the event path.
+
+Both are enabled by default. If the event-driven sync is disabled, the periodic full sync becomes the only sync mechanism.
+
+### Configuration
+
+| Setting                         | Environment Variable                | Default | Description                                                                                                                       |
+| ------------------------------- | ----------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `openchoreo.events.enabled`     | `OPENCHOREO_EVENTS_ENABLED`         | `true`  | Enables event-driven catalog sync. When `false`, the entity provider runs in poll-only mode. Should match `eventForwarder.enabled`. |
+| `openchoreo.schedule.frequency` | `OPENCHOREO_CATALOG_SYNC_FREQUENCY` | `300`   | Seconds between periodic full syncs. Lower the value when `eventForwarder.enabled` is `false`.                                    |
+
+The events HTTP topic is registered in `app-config.yaml` (`events.http.topics: [openchoreo]`). When running Backstage locally, see [Receiving live catalog-sync events locally](#receiving-live-catalog-sync-events-locally) for pointing the event-forwarder at your local backend.
+
+**Production (Helm):**
+
+The Helm chart automatically injects these environment variables. You can configure them via Helm values:
+
+```yaml
+backstage:
+  catalogSync:
+    frequency: 300
+  events:
+    enabled: true
+eventForwarder:
+  enabled: true
+```
 
 ## External CI Platform Integration
 
