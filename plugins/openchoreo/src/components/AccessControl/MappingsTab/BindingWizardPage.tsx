@@ -8,6 +8,7 @@ import {
   CardContent,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import { Alert, AlertTitle } from '@material-ui/lab';
 import { DetailPageLayout } from '@openchoreo/backstage-plugin-react';
 import {
   useUserTypes,
@@ -54,9 +55,12 @@ const useStyles = makeStyles(theme => ({
   stepContent: {
     minHeight: 350,
   },
-  errorText: {
-    color: theme.palette.error.main,
-    marginTop: theme.spacing(1),
+  errorAlert: {
+    marginBottom: theme.spacing(2),
+  },
+  errorList: {
+    margin: 0,
+    paddingLeft: theme.spacing(2.5),
   },
   headerActions: {
     display: 'flex',
@@ -88,6 +92,12 @@ function conditionsFromCrd(
     expression: c.expression,
     confirmed: true,
   }));
+}
+
+function splitServerViolations(message: string): string[] {
+  const body = message.replace(/^Request failed with \d+:\s*/, '');
+  const parts = body.split(/;\s+(?=spec\.)/);
+  return parts.map(p => p.trim()).filter(Boolean);
 }
 
 function conditionsToCrd(
@@ -385,6 +395,29 @@ export const BindingWizardPage = ({
       onBack={onCancel}
       actions={headerActions}
     >
+      {error &&
+        (() => {
+          const violations = splitServerViolations(error);
+          return (
+            <Alert severity="error" className={classes.errorAlert}>
+              <AlertTitle>Failed to save role binding</AlertTitle>
+              {violations.length > 1 ? (
+                <ul className={classes.errorList}>
+                  {violations.map((v, i) => (
+                    <li key={i}>
+                      <Typography variant="body2">{v}</Typography>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <Typography variant="body2">
+                  {violations[0] ?? error}
+                </Typography>
+              )}
+            </Alert>
+          );
+        })()}
+
       <WizardStepper
         steps={activeSteps}
         currentStep={currentStep}
@@ -398,12 +431,6 @@ export const BindingWizardPage = ({
           {renderStepContent()}
         </CardContent>
       </Card>
-
-      {error && (
-        <Typography variant="body2" className={classes.errorText}>
-          {error}
-        </Typography>
-      )}
     </DetailPageLayout>
   );
 };
