@@ -685,6 +685,35 @@ export const EnvironmentOverridesPage = ({
     return `Fill in the required fields below before promoting to ${pendingAction.targetEnvironment}.`;
   };
 
+  // Title reflects the user's intent (deploy / promote) so they don't lose
+  // context on the overrides page. Falls back to today's "Configure overrides"
+  // wording when there's no pending action (editing an existing binding).
+  const getPageTitle = () => {
+    if (!pendingAction) return 'Configure overrides';
+    const blocking = missingRequiredFields.length > 0;
+    if (blocking)
+      return `Required overrides for ${pendingAction.targetEnvironment}`;
+    return pendingAction.type === 'deploy'
+      ? `Deploy to ${pendingAction.targetEnvironment}`
+      : `Promote to ${pendingAction.targetEnvironment}`;
+  };
+
+  const getPageSubtitle = () => {
+    if (!pendingAction) return environment.name;
+    const blocking = missingRequiredFields.length > 0;
+    if (blocking) {
+      return pendingAction.type === 'deploy'
+        ? 'Fill in the required fields below before deploying.'
+        : 'Fill in the required fields below before promoting.';
+    }
+    if (pendingAction.type === 'promote' && pendingAction.sourceEnvironment) {
+      return `Review environment overrides in ${pendingAction.targetEnvironment} before promoting from ${pendingAction.sourceEnvironment}.`;
+    }
+    return pendingAction.type === 'deploy'
+      ? `Review environment overrides in ${pendingAction.targetEnvironment} before deploying.`
+      : `Review environment overrides in ${pendingAction.targetEnvironment} before promoting.`;
+  };
+
   // Header actions - show when content exists OR when there's a pending action (for Skip & Deploy)
   const showActions = !loading && !error && (hasAnyContent || pendingAction);
   const headerActions = showActions ? (
@@ -871,12 +900,8 @@ export const EnvironmentOverridesPage = ({
   return (
     <>
       <DetailPageLayout
-        title={
-          pendingAction && missingRequiredFields.length > 0
-            ? 'Configure Required Environment Overrides'
-            : 'Configure Environment Overrides'
-        }
-        subtitle={environment.name}
+        title={getPageTitle()}
+        subtitle={getPageSubtitle()}
         onBack={handleBackClick}
         actions={headerActions}
       >
