@@ -613,9 +613,6 @@ export interface OpenChoreoClientApi {
     },
   ): Promise<any>;
 
-  /** List environment names available for the project's namespace */
-  getCellDiagramEnvironments(entity: Entity): Promise<string[]>;
-
   /** Fetch total bindings count for dashboard */
   fetchTotalBindingsCount(components: ComponentInfo[]): Promise<number>;
 

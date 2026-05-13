@@ -271,23 +271,6 @@ export async function createRouter({
   });
 
   router.get(
-    '/cell-diagram/environments',
-    async (req: express.Request, res: express.Response) => {
-      const { namespaceName } = req.query;
-      if (!namespaceName) {
-        throw new InputError('namespaceName is a required query parameter');
-      }
-      const userToken = getUserTokenFromRequest(req);
-      res.json(
-        await cellDiagramInfoService.listEnvironments(
-          namespaceName as string,
-          userToken,
-        ),
-      );
-    },
-  );
-
-  router.get(
     '/cell-diagram',
     async (req: express.Request, res: express.Response) => {
       const {

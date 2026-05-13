@@ -257,16 +257,11 @@ export class CellDiagramInfoService implements CellDiagramService {
         completeComponents,
       );
 
-      // Resolve environment (auto-discover if not provided) then enrich with HTTP metrics
-      const resolvedEnv =
-        environmentName ??
-        (await this.resolveFirstEnvironment(namespaceName, client));
-
-      if (resolvedEnv) {
+      if (environmentName) {
         await this.enrichWithObservations(project, componentUidToName, {
           namespaceName,
           projectName,
-          environmentName: resolvedEnv,
+          environmentName,
           startTime,
           endTime,
           token,
@@ -279,50 +274,6 @@ export class CellDiagramInfoService implements CellDiagramService {
         `Error fetching project info for ${projectName}: ${error}`,
       );
       return undefined;
-    }
-  }
-
-  private async resolveFirstEnvironment(
-    namespaceName: string,
-    client: ReturnType<typeof createOpenChoreoApiClient>,
-  ): Promise<string | undefined> {
-    try {
-      const envs = await this.listEnvironmentsWithClient(namespaceName, client);
-      return envs[0];
-    } catch {
-      return undefined;
-    }
-  }
-
-  private async listEnvironmentsWithClient(
-    namespaceName: string,
-    client: ReturnType<typeof createOpenChoreoApiClient>,
-  ): Promise<string[]> {
-    const { data, error, response } = await client.GET(
-      '/api/v1/namespaces/{namespaceName}/environments',
-      { params: { path: { namespaceName }, query: { limit: 50 } } },
-    );
-    if (error || !response.ok) return [];
-    const items = (data as any)?.items ?? [];
-    return items
-      .map((env: any) => env?.metadata?.name as string | undefined)
-      .filter((n: string | undefined): n is string => !!n);
-  }
-
-  async listEnvironments(
-    namespaceName: string,
-    token?: string,
-  ): Promise<string[]> {
-    try {
-      const client = createOpenChoreoApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-      return await this.listEnvironmentsWithClient(namespaceName, client);
-    } catch (error) {
-      this.logger.warn(`Failed to list environments: ${error}`);
-      return [];
     }
   }
 

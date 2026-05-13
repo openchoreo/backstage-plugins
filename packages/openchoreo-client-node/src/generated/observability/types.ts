@@ -444,6 +444,10 @@ export interface components {
     MetricsQueryResponse:
       | components['schemas']['ResourceMetricsTimeSeries']
       | components['schemas']['HttpMetricsTimeSeries'];
+    RuntimeTopologySearchScope: WithRequired<
+      components['schemas']['ComponentSearchScope'],
+      'namespace' | 'project' | 'environment'
+    >;
     /**
      * @description Request body for POST /api/v1alpha1/metrics/runtime-topology.
      *     searchScope must include namespace, project, and environment — runtime
@@ -451,7 +455,7 @@ export interface components {
      *     field, if set, restricts results to edges that touch that component.
      */
     RuntimeTopologyRequest: {
-      searchScope: components['schemas']['ComponentSearchScope'];
+      searchScope: components['schemas']['RuntimeTopologySearchScope'];
       /**
        * Format: date-time
        * @description The start time of the query window
@@ -591,9 +595,10 @@ export interface components {
       generatedAt: string;
     };
     /**
-     * @description The runtime topology response. Nodes and edges only include entities for
-     *     which traffic was observed in the requested window — static topology
-     *     is queried from OpenChoreo API, and it is generated using workload dependencies.
+     * @description The runtime topology response. Nodes and edges contain only entities for
+     *     which traffic was observed during the requested time window. Static topology
+     *     (workload dependency graph) is NOT included in this response; it must be
+     *     fetched separately from the OpenChoreo API.
      */
     RuntimeTopologyResponse: {
       nodes?: components['schemas']['RuntimeTopologyNode'][];
@@ -2060,3 +2065,6 @@ export interface operations {
     };
   };
 }
+type WithRequired<T, K extends keyof T> = T & {
+  [P in K]-?: T[P];
+};

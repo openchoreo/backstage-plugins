@@ -6,6 +6,7 @@ import { CellDiagram } from './CellDiagram';
 
 jest.mock('@backstage/plugin-catalog-react', () => ({
   useEntity: jest.fn(),
+  catalogApiRef: { id: 'catalog' },
 }));
 
 jest.mock('@backstage/core-plugin-api', () => ({
@@ -101,14 +102,18 @@ const mockEntity = {
   spec: {},
 };
 
+const mockCatalogApi = {
+  getEntities: jest.fn().mockResolvedValue({
+    items: [{ metadata: { name: 'dev' } }, { metadata: { name: 'prod' } }],
+  }),
+};
+
 function setupMockClient(
   overrides: Partial<{
-    getCellDiagramEnvironments: jest.Mock;
     getCellDiagramInfo: jest.Mock;
   }> = {},
 ) {
   const mockClient = {
-    getCellDiagramEnvironments: jest.fn().mockResolvedValue(['dev', 'prod']),
     getCellDiagramInfo: jest.fn().mockResolvedValue({
       id: 'my-project',
       components: [],
@@ -116,13 +121,19 @@ function setupMockClient(
     }),
     ...overrides,
   };
-  useApi.mockReturnValue(mockClient);
+  useApi.mockImplementation((ref: { id: string }) => {
+    if (ref.id === 'catalog') return mockCatalogApi;
+    return mockClient;
+  });
   return mockClient;
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
   useEntity.mockReturnValue({ entity: mockEntity });
+  mockCatalogApi.getEntities.mockResolvedValue({
+    items: [{ metadata: { name: 'dev' } }, { metadata: { name: 'prod' } }],
+  });
 });
 
 describe('CellDiagram', () => {
@@ -134,8 +145,10 @@ describe('CellDiagram', () => {
     });
 
     await waitFor(() => {
-      expect(mockClient.getCellDiagramEnvironments).toHaveBeenCalledWith(
-        mockEntity,
+      expect(mockCatalogApi.getEntities).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filter: { kind: 'Environment', 'metadata.namespace': 'test-ns' },
+        }),
       );
       expect(mockClient.getCellDiagramInfo).toHaveBeenCalled();
     });
@@ -148,7 +161,6 @@ describe('CellDiagram', () => {
   it('shows Progress while data loads', async () => {
     // make getCellDiagramInfo never resolve so we stay in loading state
     setupMockClient({
-      getCellDiagramEnvironments: jest.fn().mockResolvedValue([]),
       getCellDiagramInfo: jest.fn(() => new Promise(() => {})),
     });
 

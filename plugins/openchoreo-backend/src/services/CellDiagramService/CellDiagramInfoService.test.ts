@@ -298,13 +298,6 @@ describe('CellDiagramInfoService', () => {
             ],
             pagination: {},
           }),
-        )
-        // environments
-        .mockResolvedValueOnce(
-          createOkResponse({
-            items: [{ metadata: { name: 'dev' } }],
-            pagination: {},
-          }),
         );
 
       mockResolveForEnvironment.mockResolvedValueOnce({
@@ -330,6 +323,7 @@ describe('CellDiagramInfoService', () => {
         {
           projectName: 'my-project',
           namespaceName: 'test-ns',
+          environmentName: 'dev',
           startTime: new Date(Date.now() - 3600_000).toISOString(),
           endTime: new Date().toISOString(),
         },
@@ -376,12 +370,6 @@ describe('CellDiagramInfoService', () => {
             ],
             pagination: {},
           }),
-        )
-        .mockResolvedValueOnce(
-          createOkResponse({
-            items: [{ metadata: { name: 'dev' } }],
-            pagination: {},
-          }),
         );
 
       mockResolveForEnvironment.mockResolvedValueOnce({
@@ -423,7 +411,11 @@ describe('CellDiagramInfoService', () => {
 
       const service = createService();
       const result = await service.fetchProjectInfo(
-        { projectName: 'my-project', namespaceName: 'test-ns' },
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environmentName: 'dev',
+        },
         'token',
       );
 
@@ -447,13 +439,7 @@ describe('CellDiagramInfoService', () => {
           }),
         )
         // no workload dependencies
-        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }))
-        .mockResolvedValueOnce(
-          createOkResponse({
-            items: [{ metadata: { name: 'dev' } }],
-            pagination: {},
-          }),
-        );
+        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }));
 
       mockResolveForEnvironment.mockResolvedValueOnce({
         observerUrl: 'http://observer:8080',
@@ -479,7 +465,11 @@ describe('CellDiagramInfoService', () => {
 
       const service = createService();
       const result = await service.fetchProjectInfo(
-        { projectName: 'my-project', namespaceName: 'test-ns' },
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environmentName: 'dev',
+        },
         'token',
       );
 
@@ -499,13 +489,7 @@ describe('CellDiagramInfoService', () => {
             pagination: {},
           }),
         )
-        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }))
-        .mockResolvedValueOnce(
-          createOkResponse({
-            items: [{ metadata: { name: 'dev' } }],
-            pagination: {},
-          }),
-        );
+        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }));
 
       mockResolveForEnvironment.mockResolvedValueOnce({
         observerUrl: 'http://observer:8080',
@@ -523,7 +507,11 @@ describe('CellDiagramInfoService', () => {
 
       const service = createService();
       const result = await service.fetchProjectInfo(
-        { projectName: 'my-project', namespaceName: 'test-ns' },
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environmentName: 'dev',
+        },
         'token',
       );
 
@@ -539,19 +527,17 @@ describe('CellDiagramInfoService', () => {
             pagination: {},
           }),
         )
-        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }))
-        .mockResolvedValueOnce(
-          createOkResponse({
-            items: [{ metadata: { name: 'dev' } }],
-            pagination: {},
-          }),
-        );
+        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }));
 
       mockResolveForEnvironment.mockResolvedValueOnce({ observerUrl: null });
 
       const service = createService();
       const result = await service.fetchProjectInfo(
-        { projectName: 'my-project', namespaceName: 'test-ns' },
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environmentName: 'dev',
+        },
         'token',
       );
 
@@ -567,13 +553,7 @@ describe('CellDiagramInfoService', () => {
             pagination: {},
           }),
         )
-        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }))
-        .mockResolvedValueOnce(
-          createOkResponse({
-            items: [{ metadata: { name: 'dev' } }],
-            pagination: {},
-          }),
-        );
+        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }));
 
       mockResolveForEnvironment.mockResolvedValueOnce({
         observerUrl: 'http://observer:8080',
@@ -597,56 +577,17 @@ describe('CellDiagramInfoService', () => {
 
       const service = createService();
       const result = await service.fetchProjectInfo(
-        { projectName: 'my-project', namespaceName: 'test-ns' },
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environmentName: 'dev',
+        },
         'token',
       );
 
       expect(result).toBeDefined();
       const api = result!.components.find(c => c.id === 'api');
       expect(api!.connections).toHaveLength(0);
-    });
-  });
-
-  describe('listEnvironments', () => {
-    it('returns environment names from the API', async () => {
-      mockGET.mockResolvedValueOnce(
-        createOkResponse({
-          items: [
-            { metadata: { name: 'development' } },
-            { metadata: { name: 'production' } },
-          ],
-          pagination: {},
-        }),
-      );
-
-      const service = createService();
-      const result = await service.listEnvironments('test-ns', 'token');
-
-      expect(result).toEqual(['development', 'production']);
-    });
-
-    it('returns empty array when API call fails', async () => {
-      mockGET.mockResolvedValueOnce({
-        data: undefined,
-        error: { message: 'error' },
-        response: { ok: false, status: 500, statusText: 'Error' },
-      });
-
-      const service = createService();
-      const result = await service.listEnvironments('test-ns', 'token');
-
-      expect(result).toEqual([]);
-    });
-
-    it('returns empty array when no environments in response', async () => {
-      mockGET.mockResolvedValueOnce(
-        createOkResponse({ items: [], pagination: {} }),
-      );
-
-      const service = createService();
-      const result = await service.listEnvironments('test-ns');
-
-      expect(result).toEqual([]);
     });
   });
 });

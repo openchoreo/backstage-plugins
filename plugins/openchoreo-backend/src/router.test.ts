@@ -31,7 +31,6 @@ function createMockServices() {
     },
     cellDiagramInfoService: {
       fetchProjectInfo: jest.fn(),
-      listEnvironments: jest.fn(),
     },
     buildInfoService: {
       fetchBuilds: jest.fn(),
@@ -648,28 +647,6 @@ describe('createRouter', () => {
       const response = await request(app).delete('/secrets/s1');
       expect(response.status).toBe(400);
       expect(services.secretsService.deleteSecret).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('GET /cell-diagram/environments', () => {
-    it('returns environments for the namespace', async () => {
-      const envs = ['dev', 'prod'];
-      services.cellDiagramInfoService.listEnvironments.mockResolvedValue(envs);
-
-      const response = await request(app)
-        .get('/cell-diagram/environments')
-        .query({ namespaceName: 'ns' });
-
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual(envs);
-      expect(
-        services.cellDiagramInfoService.listEnvironments,
-      ).toHaveBeenCalledWith('ns', 'mock-user-token');
-    });
-
-    it('returns 400 when namespaceName is missing', async () => {
-      const response = await request(app).get('/cell-diagram/environments');
-      expect(response.status).toBe(400);
     });
   });
 

@@ -41,42 +41,6 @@ describe('OpenChoreoClient — cell diagram', () => {
     client = new OpenChoreoClient(discovery as any, fetchApi as any);
   });
 
-  describe('getCellDiagramEnvironments', () => {
-    it('GETs /cell-diagram/environments with namespaceName', async () => {
-      const envs = ['dev', 'prod'];
-      fetchMock.mockResolvedValueOnce(makeJsonResponse(envs));
-
-      const result = await client.getCellDiagramEnvironments(
-        BASE_ENTITY as any,
-      );
-
-      expect(result).toEqual(envs);
-      const [calledUrl] = fetchMock.mock.calls[0];
-      expect(calledUrl).toContain('/cell-diagram/environments');
-      expect(calledUrl).toContain('namespaceName=test-ns');
-    });
-
-    it('returns empty array when namespace annotation is missing', async () => {
-      const entityNoNs = {
-        ...BASE_ENTITY,
-        metadata: { ...BASE_ENTITY.metadata, annotations: {} },
-      };
-      const result = await client.getCellDiagramEnvironments(entityNoNs as any);
-      expect(result).toEqual([]);
-      expect(fetchMock).not.toHaveBeenCalled();
-    });
-
-    it('returns empty array when fetch fails', async () => {
-      fetchMock.mockResolvedValueOnce(
-        makeJsonResponse({ error: { message: 'error' } }, 500),
-      );
-      const result = await client.getCellDiagramEnvironments(
-        BASE_ENTITY as any,
-      );
-      expect(result).toEqual([]);
-    });
-  });
-
   describe('getCellDiagramInfo', () => {
     it('includes optional params when provided', async () => {
       fetchMock.mockResolvedValueOnce(makeJsonResponse({}));

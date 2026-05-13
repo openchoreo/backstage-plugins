@@ -144,8 +144,6 @@ export interface CellDiagramService {
     },
     token?: string,
   ): Promise<Project | undefined>;
-
-  listEnvironments(namespaceName: string, token?: string): Promise<string[]>;
 }
 
 export interface WorkloadService {

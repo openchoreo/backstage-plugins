@@ -10,8 +10,9 @@ import Select from '@material-ui/core/Select';
 import Tooltip from '@material-ui/core/Tooltip';
 import Typography from '@material-ui/core/Typography';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import { useEntity } from '@backstage/plugin-catalog-react';
+import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useTheme } from '@material-ui/core/styles';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { Project } from '@wso2/cell-diagram';
@@ -75,23 +76,39 @@ export const CellDiagram = () => {
   const [loading, setLoading] = useState(false);
   const [hasFetchedOnce, setHasFetchedOnce] = useState(false);
   const client = useApi(openChoreoClientApiRef);
+  const catalogApi = useApi(catalogApiRef);
   const { mode } = useChoreoTokens();
   const theme = useTheme();
   const controlBg = theme.palette.background.paper;
 
-  // Load environments once per entity
+  // Load environments once per entity from the Backstage catalog
   useEffect(() => {
     let cancelled = false;
-    client.getCellDiagramEnvironments(entity).then(envs => {
-      if (cancelled) return;
-      setEnvironments(envs);
-      setEnvironment(envs[0] ?? '');
+    const namespace =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+    if (!namespace) {
       setEnvironmentsLoaded(true);
-    });
+      return undefined;
+    }
+    catalogApi
+      .getEntities({
+        filter: { kind: 'Environment', 'metadata.namespace': namespace },
+        fields: ['metadata.name'],
+      })
+      .then(({ items }) => {
+        if (cancelled) return;
+        const names = items.map(e => e.metadata.name);
+        setEnvironments(names);
+        setEnvironment(names[0] ?? '');
+        setEnvironmentsLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setEnvironmentsLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
-  }, [entity, client]);
+  }, [entity, catalogApi]);
 
   // Compute startTime/endTime/step from selected range. Recomputes when refreshNonce changes
   // so the refresh button advances "now" in the window.
