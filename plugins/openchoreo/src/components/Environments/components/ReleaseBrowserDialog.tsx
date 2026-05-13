@@ -18,12 +18,18 @@ import {
   Typography,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import {
+  Autocomplete,
+  ToggleButton,
+  ToggleButtonGroup,
+} from '@material-ui/lab';
 import CloseIcon from '@material-ui/icons/Close';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import SearchIcon from '@material-ui/icons/Search';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { YamlViewer } from '@openchoreo/backstage-design-system';
+import { YamlDiffViewer } from '@openchoreo/backstage-plugin-react';
 import YAML from 'yaml';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
@@ -100,9 +106,40 @@ const useStyles = makeStyles(theme => ({
   },
   detailHeader: {
     display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing(1),
+    flexWrap: 'wrap',
+  },
+  detailHeaderTitle: {
+    display: 'flex',
     alignItems: 'baseline',
     gap: theme.spacing(1),
     flexWrap: 'wrap',
+    minWidth: 0,
+  },
+  modeToggle: {
+    flexShrink: 0,
+  },
+  modeButton: {
+    padding: theme.spacing(0.25, 1.25),
+    fontSize: 12,
+    lineHeight: 1.4,
+    textTransform: 'none',
+  },
+  compareBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+  },
+  compareLabel: {
+    color: theme.palette.text.secondary,
+    fontSize: 12,
+    flexShrink: 0,
+  },
+  compareSelector: {
+    flexGrow: 1,
+    minWidth: 0,
   },
   metaGrid: {
     display: 'grid',
@@ -217,6 +254,10 @@ export const ReleaseBrowserDialog = ({
 
   const [query, setQuery] = useState('');
   const [highlightedName, setHighlightedName] = useState<string | null>(null);
+  const [mode, setMode] = useState<'view' | 'compare'>('view');
+  const [compareTargetName, setCompareTargetName] = useState<string | null>(
+    null,
+  );
   const [manifestCache, setManifestCache] = useState<
     Record<string, ManifestState>
   >({});
@@ -229,7 +270,44 @@ export const ReleaseBrowserDialog = ({
     setQuery('');
     const fallback = selectedReleaseName ?? releases[0]?.metadata?.name ?? null;
     setHighlightedName(fallback);
+    setMode('view');
+    setCompareTargetName(null);
   }, [open, selectedReleaseName, releases]);
+
+  // Build env → releaseName map (inverse of `deployments`) so we can offer
+  // "Current in {env}" entries in the compare selector without an extra
+  // fetch. Same map also fuels the pre-selection default below. Keys use
+  // the original casing from `deployments` (e.g. "Development") so the
+  // option labels read naturally.
+  const envToRelease = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const [relName, envs] of Object.entries(deployments)) {
+      for (const env of envs) {
+        // First binding wins if a release somehow appears in multiple envs —
+        // doesn't actually happen with current semantics but defensive.
+        if (!map[env]) map[env] = relName;
+      }
+    }
+    return map;
+  }, [deployments]);
+
+  // When entering Compare mode for the first time, default the compare
+  // target to the release currently in `environmentName` (the dialog's
+  // contextual env), provided it isn't the highlighted release itself.
+  // `deployments` may key envs with their original casing (e.g.
+  // "Development") while `environmentName` is lowercased upstream — match
+  // loosely.
+  useEffect(() => {
+    if (mode !== 'compare' || compareTargetName) return;
+    const target = environmentName.toLowerCase();
+    const entry = Object.entries(envToRelease).find(
+      ([env]) => env.toLowerCase() === target,
+    );
+    const candidate = entry?.[1];
+    if (candidate && candidate !== highlightedName) {
+      setCompareTargetName(candidate);
+    }
+  }, [mode, compareTargetName, envToRelease, environmentName, highlightedName]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -288,6 +366,45 @@ export const ReleaseBrowserDialog = ({
     };
   }, [api, entity, open, highlightedName, manifestCache]);
 
+  // Mirror fetch for the compare target. Reuses the same manifestCache so
+  // switching back and forth between view and compare is free, and so the
+  // compare target's YAML is also available for inline display if needed.
+  useEffect(() => {
+    if (!open || mode !== 'compare' || !compareTargetName) return undefined;
+    if (manifestCache[compareTargetName]) return undefined;
+    let cancelled = false;
+    api
+      .fetchComponentRelease(entity, compareTargetName)
+      .then(response => {
+        if (cancelled) return;
+        if (!response?.success || !response.data) {
+          setManifestCache(prev => ({
+            ...prev,
+            [compareTargetName]: {
+              error: 'Release manifest is not available.',
+            },
+          }));
+          return;
+        }
+        setManifestCache(prev => ({
+          ...prev,
+          [compareTargetName]: { yaml: YAML.stringify(response.data) },
+        }));
+      })
+      .catch(e => {
+        if (cancelled) return;
+        setManifestCache(prev => ({
+          ...prev,
+          [compareTargetName]: {
+            error: e?.message ?? 'Failed to fetch release manifest',
+          },
+        }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api, entity, open, mode, compareTargetName, manifestCache]);
+
   const handleConfirm = () => {
     if (!highlightedName) return;
     onConfirm(highlightedName);
@@ -308,6 +425,49 @@ export const ReleaseBrowserDialog = ({
   const currentManifest = highlightedName
     ? manifestCache[highlightedName]
     : undefined;
+  const compareManifest = compareTargetName
+    ? manifestCache[compareTargetName]
+    : undefined;
+
+  // Options for the compare-with selector. Grouped by section: env current
+  // bindings first, then individual releases. The highlighted release is
+  // filtered out everywhere — diffing a release against itself is useless.
+  type CompareOption = {
+    releaseName: string;
+    group: 'Currently deployed' | 'Other releases';
+    label: string;
+    sublabel?: string;
+  };
+  const compareOptions = useMemo<CompareOption[]>(() => {
+    const opts: CompareOption[] = [];
+    const seenInEnvGroup = new Set<string>();
+    for (const [env, relName] of Object.entries(envToRelease)) {
+      if (relName === highlightedName) continue;
+      opts.push({
+        releaseName: relName,
+        group: 'Currently deployed',
+        label: `Current in ${env}`,
+        sublabel: relName,
+      });
+      seenInEnvGroup.add(relName);
+    }
+    for (const r of releases) {
+      const name = r.metadata?.name;
+      if (!name || name === highlightedName) continue;
+      // Avoid duplicating a release that already appears in the env group —
+      // the env entry is more informative.
+      if (seenInEnvGroup.has(name)) continue;
+      opts.push({
+        releaseName: name,
+        group: 'Other releases',
+        label: name,
+        sublabel: formatRelativeTime(r.metadata?.creationTimestamp),
+      });
+    }
+    return opts;
+  }, [envToRelease, releases, highlightedName]);
+  const selectedCompareOption =
+    compareOptions.find(o => o.releaseName === compareTargetName) ?? null;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
@@ -425,11 +585,13 @@ export const ReleaseBrowserDialog = ({
               {highlighted ? (
                 <>
                   <Box className={classes.detailHeader}>
-                    <Typography variant="h6">
-                      {highlighted.metadata?.name}
-                    </Typography>
-                    {(deployments[highlighted.metadata?.name ?? ''] ?? []).map(
-                      env => (
+                    <Box className={classes.detailHeaderTitle}>
+                      <Typography variant="h6">
+                        {highlighted.metadata?.name}
+                      </Typography>
+                      {(
+                        deployments[highlighted.metadata?.name ?? ''] ?? []
+                      ).map(env => (
                         <Chip
                           key={env}
                           label={`current in ${env}`}
@@ -437,8 +599,34 @@ export const ReleaseBrowserDialog = ({
                           color="primary"
                           className={classes.chip}
                         />
-                      ),
-                    )}
+                      ))}
+                    </Box>
+                    <ToggleButtonGroup
+                      size="small"
+                      exclusive
+                      value={mode}
+                      onChange={(_, next) => {
+                        if (next === 'view' || next === 'compare')
+                          setMode(next);
+                      }}
+                      className={classes.modeToggle}
+                      aria-label="Detail pane mode"
+                    >
+                      <ToggleButton
+                        value="view"
+                        className={classes.modeButton}
+                        aria-label="View manifest"
+                      >
+                        View
+                      </ToggleButton>
+                      <ToggleButton
+                        value="compare"
+                        className={classes.modeButton}
+                        aria-label="Compare with another release"
+                      >
+                        Compare
+                      </ToggleButton>
+                    </ToggleButtonGroup>
                   </Box>
 
                   <Box className={classes.metaGrid}>
@@ -461,41 +649,133 @@ export const ReleaseBrowserDialog = ({
                     )}
                   </Box>
 
-                  <Box className={classes.yamlHeader}>
-                    <Typography variant="subtitle2">Manifest</Typography>
-                    <Tooltip title="Copy YAML">
-                      <span>
-                        <Button
-                          size="small"
-                          startIcon={<FileCopyOutlinedIcon />}
-                          onClick={handleCopy}
-                          disabled={!currentManifest?.yaml}
+                  {mode === 'view' ? (
+                    <>
+                      <Box className={classes.yamlHeader}>
+                        <Typography variant="subtitle2">Manifest</Typography>
+                        <Tooltip title="Copy YAML">
+                          <span>
+                            <Button
+                              size="small"
+                              startIcon={<FileCopyOutlinedIcon />}
+                              onClick={handleCopy}
+                              disabled={!currentManifest?.yaml}
+                            >
+                              Copy
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      </Box>
+                      {yamlLoading && !currentManifest && (
+                        <Box className={classes.yamlLoading}>
+                          <CircularProgress size={24} />
+                        </Box>
+                      )}
+                      {currentManifest?.error && (
+                        <Typography
+                          variant="body2"
+                          className={classes.yamlError}
+                          data-testid="yaml-error"
                         >
-                          Copy
-                        </Button>
-                      </span>
-                    </Tooltip>
-                  </Box>
-                  {yamlLoading && !currentManifest && (
-                    <Box className={classes.yamlLoading}>
-                      <CircularProgress size={24} />
-                    </Box>
-                  )}
-                  {currentManifest?.error && (
-                    <Typography
-                      variant="body2"
-                      className={classes.yamlError}
-                      data-testid="yaml-error"
-                    >
-                      {currentManifest.error}
-                    </Typography>
-                  )}
-                  {currentManifest?.yaml && (
-                    <YamlViewer
-                      value={currentManifest.yaml}
-                      maxHeight="40vh"
-                      showLineNumbers
-                    />
+                          {currentManifest.error}
+                        </Typography>
+                      )}
+                      {currentManifest?.yaml && (
+                        <YamlViewer
+                          value={currentManifest.yaml}
+                          maxHeight="40vh"
+                          showLineNumbers
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Box className={classes.compareBar}>
+                        <Typography
+                          variant="body2"
+                          className={classes.compareLabel}
+                        >
+                          Compare with
+                        </Typography>
+                        <Autocomplete<CompareOption, false, false, false>
+                          className={classes.compareSelector}
+                          size="small"
+                          options={compareOptions}
+                          value={selectedCompareOption}
+                          getOptionLabel={o => o.label}
+                          groupBy={o => o.group}
+                          renderOption={o => (
+                            <Box
+                              display="flex"
+                              flexDirection="column"
+                              minWidth={0}
+                            >
+                              <Typography variant="body2">{o.label}</Typography>
+                              {o.sublabel && (
+                                <Typography
+                                  variant="caption"
+                                  color="textSecondary"
+                                >
+                                  {o.sublabel}
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
+                          onChange={(_, next) =>
+                            setCompareTargetName(next?.releaseName ?? null)
+                          }
+                          renderInput={params => (
+                            <TextField
+                              {...params}
+                              variant="outlined"
+                              placeholder="Pick a release or environment…"
+                            />
+                          )}
+                        />
+                      </Box>
+                      {!compareTargetName && (
+                        <Box className={classes.empty}>
+                          <Typography variant="body2">
+                            Pick a release or environment to compare against.
+                          </Typography>
+                        </Box>
+                      )}
+                      {compareTargetName &&
+                        (!currentManifest?.yaml || !compareManifest?.yaml) &&
+                        !currentManifest?.error &&
+                        !compareManifest?.error && (
+                          <Box className={classes.yamlLoading}>
+                            <CircularProgress size={24} />
+                          </Box>
+                        )}
+                      {(currentManifest?.error || compareManifest?.error) && (
+                        <Typography
+                          variant="body2"
+                          className={classes.yamlError}
+                        >
+                          {currentManifest?.error ?? compareManifest?.error}
+                        </Typography>
+                      )}
+                      {compareTargetName &&
+                        currentManifest?.yaml &&
+                        compareManifest?.yaml && (
+                          <YamlDiffViewer
+                            original={compareManifest.yaml}
+                            modified={currentManifest.yaml}
+                            originalLabel={`${
+                              selectedCompareOption?.label ?? compareTargetName
+                            }${
+                              selectedCompareOption?.sublabel &&
+                              selectedCompareOption.sublabel !==
+                                selectedCompareOption.label
+                                ? ` (${selectedCompareOption.sublabel})`
+                                : ''
+                            }`}
+                            modifiedLabel={highlightedName ?? ''}
+                            height="50vh"
+                          />
+                        )}
+                    </>
                   )}
                 </>
               ) : (
