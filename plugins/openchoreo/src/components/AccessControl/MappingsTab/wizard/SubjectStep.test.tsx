@@ -136,8 +136,6 @@ describe('SubjectStep', () => {
   it('hides the summary banner when entitlement value is empty', () => {
     renderStep(baseState({ subjectType: 'user' }), jest.fn());
 
-    expect(
-      screen.queryByTestId('notification-banner'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('notification-banner')).not.toBeInTheDocument();
   });
 });

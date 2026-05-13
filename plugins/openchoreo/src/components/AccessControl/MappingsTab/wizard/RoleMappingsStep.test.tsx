@@ -269,8 +269,6 @@ describe('RoleMappingsStep', () => {
 
     await user.click(screen.getByTestId('dialog-cancel'));
 
-    expect(
-      screen.queryByTestId('role-mapping-dialog'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('role-mapping-dialog')).not.toBeInTheDocument();
   });
 });

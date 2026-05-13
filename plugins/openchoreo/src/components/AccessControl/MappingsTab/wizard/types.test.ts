@@ -69,9 +69,9 @@ describe('isStepValid', () => {
     });
 
     it('is invalid when subjectType is missing', () => {
-      expect(
-        isStepValid('subject', baseState({ subjectType: '' })),
-      ).toBe(false);
+      expect(isStepValid('subject', baseState({ subjectType: '' }))).toBe(
+        false,
+      );
     });
 
     it('is invalid when entitlementValue is only whitespace', () => {
@@ -83,9 +83,9 @@ describe('isStepValid', () => {
 
   describe('roleMappings step', () => {
     it('is invalid when there are no mappings', () => {
-      expect(
-        isStepValid('roleMappings', baseState({ roleMappings: [] })),
-      ).toBe(false);
+      expect(isStepValid('roleMappings', baseState({ roleMappings: [] }))).toBe(
+        false,
+      );
     });
 
     it('is invalid when a mapping is unconfirmed', () => {

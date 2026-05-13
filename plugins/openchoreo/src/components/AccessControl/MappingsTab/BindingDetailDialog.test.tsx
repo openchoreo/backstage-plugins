@@ -1,9 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {
-  BindingDetail,
-  BindingDetailDialog,
-} from './BindingDetailDialog';
+import { BindingDetail, BindingDetailDialog } from './BindingDetailDialog';
 
 // ---- Fixtures ----
 
@@ -27,11 +24,7 @@ function makeBinding(overrides: Partial<BindingDetail> = {}): BindingDetail {
 describe('BindingDetailDialog', () => {
   it('renders nothing when no binding is provided', () => {
     const { container } = render(
-      <BindingDetailDialog
-        open
-        binding={null}
-        onClose={jest.fn()}
-      />,
+      <BindingDetailDialog open binding={null} onClose={jest.fn()} />,
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -51,11 +44,7 @@ describe('BindingDetailDialog', () => {
 
   it('renders the binding name, subject, and effect', () => {
     render(
-      <BindingDetailDialog
-        open
-        binding={makeBinding()}
-        onClose={jest.fn()}
-      />,
+      <BindingDetailDialog open binding={makeBinding()} onClose={jest.fn()} />,
     );
 
     expect(screen.getAllByText('admin-binding').length).toBeGreaterThan(0);
@@ -157,11 +146,7 @@ describe('BindingDetailDialog', () => {
 
   it('omits the System chip when the label is missing', () => {
     render(
-      <BindingDetailDialog
-        open
-        binding={makeBinding()}
-        onClose={jest.fn()}
-      />,
+      <BindingDetailDialog open binding={makeBinding()} onClose={jest.fn()} />,
     );
 
     expect(screen.queryByText('System')).not.toBeInTheDocument();
@@ -172,11 +157,7 @@ describe('BindingDetailDialog', () => {
     const onClose = jest.fn();
 
     render(
-      <BindingDetailDialog
-        open
-        binding={makeBinding()}
-        onClose={onClose}
-      />,
+      <BindingDetailDialog open binding={makeBinding()} onClose={onClose} />,
     );
 
     await user.click(screen.getByRole('button', { name: 'Close' }));
@@ -205,11 +186,7 @@ describe('BindingDetailDialog', () => {
 
   it('hides the Edit button when no onEdit handler is provided', () => {
     render(
-      <BindingDetailDialog
-        open
-        binding={makeBinding()}
-        onClose={jest.fn()}
-      />,
+      <BindingDetailDialog open binding={makeBinding()} onClose={jest.fn()} />,
     );
 
     expect(

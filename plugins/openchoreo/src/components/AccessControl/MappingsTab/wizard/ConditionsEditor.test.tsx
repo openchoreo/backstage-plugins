@@ -26,7 +26,11 @@ const actionCatalog: ActionInfo[] = [
   },
 ] as unknown as ActionInfo[];
 
-const roleActions = ['releasebindings:create', 'releasebindings:delete', 'releasebindings:view'];
+const roleActions = [
+  'releasebindings:create',
+  'releasebindings:delete',
+  'releasebindings:view',
+];
 
 function makeCondition(
   overrides: Partial<WizardCondition> = {},
@@ -254,7 +258,9 @@ describe('ConditionsEditor', () => {
       expect(screen.getByText('Condition #1')).toBeInTheDocument();
       expect(screen.getByText('Actions *')).toBeInTheDocument();
       expect(screen.getByText('Expression *')).toBeInTheDocument();
-      expect(screen.getByText('Select at least one action')).toBeInTheDocument();
+      expect(
+        screen.getByText('Select at least one action'),
+      ).toBeInTheDocument();
     });
 
     it('shows the expression-required error while editing an empty expression', () => {

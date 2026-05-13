@@ -219,7 +219,9 @@ describe('getK8sNameError', () => {
   });
 
   it('returns an error when longer than 63 characters', () => {
-    expect(getK8sNameError('a'.repeat(64))).toBe('Must be 63 characters or less');
+    expect(getK8sNameError('a'.repeat(64))).toBe(
+      'Must be 63 characters or less',
+    );
   });
 
   it('returns an error when starting with a hyphen', () => {
