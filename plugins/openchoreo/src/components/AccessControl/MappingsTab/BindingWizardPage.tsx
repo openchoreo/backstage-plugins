@@ -418,15 +418,14 @@ export const BindingWizardPage = ({
           );
         })()}
 
-      <WizardStepper
-        steps={activeSteps}
-        currentStep={currentStep}
-        currentIndex={currentIndex}
-        state={wizardState}
-        onStepClick={handleStepClick}
-      />
-
       <Card className={classes.stepCard}>
+        <WizardStepper
+          steps={activeSteps}
+          currentStep={currentStep}
+          currentIndex={currentIndex}
+          state={wizardState}
+          onStepClick={handleStepClick}
+        />
         <CardContent className={classes.stepContent}>
           {renderStepContent()}
         </CardContent>
