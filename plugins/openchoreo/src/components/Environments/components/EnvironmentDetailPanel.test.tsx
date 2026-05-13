@@ -460,7 +460,7 @@ describe('EnvironmentDetailPanel', () => {
     expect(screen.queryByText(/rel-7/)).toBeNull();
   });
 
-  it('opens the release diff dialog from the drift "View diff" button', async () => {
+  it('opens the release diff dialog from the drift "View release diff" button', async () => {
     const user = userEvent.setup();
     renderPanel({
       selection: {
@@ -476,7 +476,9 @@ describe('EnvironmentDetailPanel', () => {
         aheadUpstreams: [{ envName: 'dev', releaseName: 'rel-7' }],
       },
     });
-    await user.click(screen.getByRole('button', { name: /view diff/i }));
+    await user.click(
+      screen.getByRole('button', { name: /view release diff/i }),
+    );
     expect(await screen.findByTestId('diff-dialog')).toBeInTheDocument();
   });
 

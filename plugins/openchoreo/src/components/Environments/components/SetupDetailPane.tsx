@@ -252,7 +252,7 @@ export const SetupDetailPane = ({
                 label={<Typography variant="body2">Auto Deploy</Typography>}
               />
               <Tooltip
-                title={`When on, newly created releases automatically deploy to ${lowestEnvironment}.`}
+                title="Enabling auto deploy will automatically deploy the component to the lowest environment when component configurations change."
                 placement="bottom"
                 arrow
               >
