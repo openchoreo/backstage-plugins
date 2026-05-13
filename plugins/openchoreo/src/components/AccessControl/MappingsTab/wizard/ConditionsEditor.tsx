@@ -21,6 +21,7 @@ import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { ActionInfo, ConditionAttribute } from '../../hooks';
 import { WizardCondition } from './types';
+import { expandWildcardRoleActions, getConditionableActions } from './utils';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -142,7 +143,7 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const NO_CONDITIONABLE_ACTIONS_MSG =
+export const NO_CONDITIONABLE_ACTIONS_MSG =
   'None of this role’s actions support attribute-based conditions';
 
 interface ConditionsEditorProps {
@@ -212,24 +213,6 @@ const attributesForActions = (
     rest.every(a => (a.conditions ?? []).some(c => c.key === attr.key)),
   );
 };
-
-// Expand `role:*` wildcards into concrete action names from the catalog.
-// ex: `["releasebindings:*"]` => `["releasebindings:create", "releasebindings:delete", ...]`
-const expandWildcardRoleActions = (
-  roleActions: string[],
-  actionCatalog: ActionInfo[],
-): string[] =>
-  Array.from(
-    new Set(
-      roleActions.flatMap(a => {
-        if (!a.endsWith(':*')) return [a];
-        const prefix = a.slice(0, -1);
-        return actionCatalog
-          .map(ac => ac.name)
-          .filter(name => name.startsWith(prefix));
-      }),
-    ),
-  );
 
 type Classes = ReturnType<typeof useStyles>;
 
@@ -503,7 +486,14 @@ const ConditionCollapsedRow = ({
     <Box
       className={classes.collapsedToggle}
       onClick={onExpand}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onExpand();
+        }
+      }}
       role="button"
+      tabIndex={0}
       aria-expanded={false}
     >
       <ExpandMoreIcon fontSize="small" />
@@ -549,7 +539,14 @@ const ConditionExpandedCard = ({
       <Box
         className={classes.collapsedToggle}
         onClick={onCollapse}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onCollapse();
+          }
+        }}
         role="button"
+        tabIndex={0}
         aria-expanded
       >
         <ExpandLessIcon fontSize="small" />
@@ -634,10 +631,10 @@ export const ConditionsEditor = ({
   }, [conditions, editingRowId]);
 
   const allRoleActions = expandWildcardRoleActions(roleActions, actionCatalog);
-  const conditionableActions = allRoleActions.filter(name => {
-    const info = actionCatalog.find(ac => ac.name === name);
-    return (info?.conditions?.length ?? 0) > 0;
-  });
+  const conditionableActions = getConditionableActions(
+    roleActions,
+    actionCatalog,
+  );
   const hasConditionableActions = conditionableActions.length > 0;
 
   const toggleExpanded = (id: string) => {
@@ -687,15 +684,10 @@ export const ConditionsEditor = ({
       setBackupBeforeEdit(null);
       return;
     }
-    if (
-      !current.confirmed &&
-      current.actions.length === 0 &&
-      !current.expression
-    ) {
-      // Brand-new empty row → drop it
-      onChange(conditions.filter(c => c.id !== id));
-    } else if (backupBeforeEdit) {
+    if (backupBeforeEdit) {
       onChange(conditions.map(c => (c.id === id ? backupBeforeEdit : c)));
+    } else {
+      onChange(conditions.filter(c => c.id !== id));
     }
     setEditingRowId(null);
     setBackupBeforeEdit(null);

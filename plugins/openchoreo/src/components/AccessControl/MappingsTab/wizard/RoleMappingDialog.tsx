@@ -21,9 +21,12 @@ import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import AddIcon from '@material-ui/icons/Add';
 import { ClusterRole } from '../../hooks';
 import { WizardRoleMapping } from './types';
-import { ConditionsEditor } from './ConditionsEditor';
+import {
+  ConditionsEditor,
+  NO_CONDITIONABLE_ACTIONS_MSG,
+} from './ConditionsEditor';
 import { BindingScope, SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../../constants';
-import { buildScopePath } from './utils';
+import { buildScopePath, getConditionableActions } from './utils';
 import {
   useNamespaces,
   useProjects,
@@ -237,6 +240,9 @@ export const RoleMappingDialog = ({
     );
     return role?.actions ?? [];
   })();
+
+  const hasConditionableActions =
+    getConditionableActions(roleActions, actionCatalog).length > 0;
 
   const duplicate = isDuplicate(
     draft,
@@ -501,6 +507,8 @@ export const RoleMappingDialog = ({
                 if (!draft.role) return 'Select a role first to add conditions';
                 if (conditionEditing)
                   return 'Finish editing the current condition first';
+                if (!hasConditionableActions)
+                  return NO_CONDITIONABLE_ACTIONS_MSG;
                 return '';
               })()}
             >
@@ -509,7 +517,9 @@ export const RoleMappingDialog = ({
                   size="small"
                   variant="outlined"
                   startIcon={<AddIcon />}
-                  disabled={!draft.role || conditionEditing}
+                  disabled={
+                    !draft.role || conditionEditing || !hasConditionableActions
+                  }
                   onClick={() =>
                     handleConditionsChange([
                       ...draft.conditions,

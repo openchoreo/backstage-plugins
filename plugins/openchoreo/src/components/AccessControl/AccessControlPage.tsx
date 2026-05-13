@@ -102,7 +102,8 @@ export const AccessControlContent = () => {
   const wizardAction = (params.action as string) || '';
   const mappingsWizardActive =
     activeTab === TAB_MAPPINGS &&
-    (wizardAction === 'create' || wizardAction === 'edit');
+    (wizardAction === 'create' || wizardAction === 'edit') &&
+    canViewMappings;
 
   if (permissionsLoading) {
     return <Progress />;

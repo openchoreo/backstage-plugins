@@ -30,7 +30,9 @@ export const MappingsTab = () => {
   };
   const setSelectedNamespace = (value: string) =>
     setParams({ namespace: value });
-  const action = (params.action as string) || '';
+  const rawAction = (params.action as string) || '';
+  const action: '' | 'create' | 'edit' =
+    rawAction === 'create' || rawAction === 'edit' ? rawAction : '';
   const bindingName = (params.bindingName as string) || '';
   const wizardActive = action === 'create' || action === 'edit';
 
@@ -68,7 +70,7 @@ export const MappingsTab = () => {
       {scope === SCOPE_CLUSTER && (
         <ClusterRoleBindingsContent
           actionsContainerRef={actionsRef}
-          wizardAction={action as '' | 'create' | 'edit'}
+          wizardAction={action}
           wizardBindingName={bindingName}
         />
       )}
@@ -76,7 +78,7 @@ export const MappingsTab = () => {
         <NamespaceRoleBindingsContent
           selectedNamespace={selectedNamespace}
           actionsContainerRef={actionsRef}
-          wizardAction={action as '' | 'create' | 'edit'}
+          wizardAction={action}
           wizardBindingName={bindingName}
         />
       )}

@@ -1,5 +1,41 @@
 import { BindingScope, SCOPE_CLUSTER } from '../../constants';
+import { ActionInfo } from '../../hooks';
 import { WizardRoleMapping } from './types';
+
+/**
+ * Expand `role:*` wildcards into concrete action names from the catalog.
+ * ex: `["releasebindings:*"]` => `["releasebindings:create", "releasebindings:delete", ...]`
+ */
+export function expandWildcardRoleActions(
+  roleActions: string[],
+  actionCatalog: ActionInfo[],
+): string[] {
+  return Array.from(
+    new Set(
+      roleActions.flatMap(a => {
+        if (!a.endsWith(':*')) return [a];
+        const prefix = a.slice(0, -1);
+        return actionCatalog
+          .map(ac => ac.name)
+          .filter(name => name.startsWith(prefix));
+      }),
+    ),
+  );
+}
+
+/**
+ * Return the subset of a role's actions (with wildcards expanded) that the
+ * catalog marks as having condition predicates.
+ */
+export function getConditionableActions(
+  roleActions: string[],
+  actionCatalog: ActionInfo[],
+): string[] {
+  return expandWildcardRoleActions(roleActions, actionCatalog).filter(name => {
+    const info = actionCatalog.find(ac => ac.name === name);
+    return (info?.conditions?.length ?? 0) > 0;
+  });
+}
 
 /**
  * Build a human-readable scope path like `ns:default/proj:myproj/*` from a wizard role mapping.
