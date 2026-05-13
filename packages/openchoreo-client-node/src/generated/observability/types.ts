@@ -492,27 +492,27 @@ export interface components {
        * Format: double
        * @description Number of unsuccessful (non-2xx) HTTP requests in the window.
        */
-      errorCount?: number;
+      unsuccessfulRequestCount?: number;
       /**
        * Format: double
        * @description Mean request latency, in seconds.
        */
-      avgLatency?: number;
+      meanLatency?: number;
       /**
        * Format: double
        * @description 50th percentile request latency, in seconds.
        */
-      p50Latency?: number;
+      latencyP50?: number;
       /**
        * Format: double
        * @description 90th percentile request latency, in seconds.
        */
-      p90Latency?: number;
+      latencyP90?: number;
       /**
        * Format: double
        * @description 99th percentile request latency, in seconds.
        */
-      p99Latency?: number;
+      latencyP99?: number;
     };
     /**
      * @description Reference to a node in the runtime topology. The shape depends on `kind`:
@@ -784,7 +784,7 @@ export interface components {
          * @description The metric to query for metric based alerts
          * @enum {string}
          */
-        metric?: 'cpu_usage' | 'memory_usage';
+        metric?: 'cpu_usage' | 'memory_usage' | 'budget';
       };
       condition: {
         /** @description Whether the alert rule is enabled */
@@ -836,7 +836,7 @@ export interface components {
          * @description The metric to query for metric based alerts
          * @enum {string}
          */
-        metric?: 'cpu_usage' | 'memory_usage';
+        metric?: 'cpu_usage' | 'memory_usage' | 'budget';
       };
       condition?: {
         /** @description Whether the alert rule is enabled */
@@ -1040,7 +1040,10 @@ export interface components {
         alertId?: string;
         /** @description The ID of the incident */
         incidentId?: string;
+        /** @description Whether AI RCA was triggered for the incident */
         incidentTriggerAiRca?: boolean;
+        /** @description Whether AI cost analysis was triggered for the incident */
+        incidentTriggerAiCostAnalysis?: boolean;
         /**
          * @description The status of the incident
          * @enum {string}
@@ -1138,6 +1141,8 @@ export interface components {
       description?: string;
       /** @description Whether AI RCA was triggered for the incident */
       incidentTriggerAiRca?: boolean;
+      /** @description Whether AI cost analysis was triggered for the incident */
+      incidentTriggerAiCostAnalysis?: boolean;
       labels?: {
         /** @description The name of the component */
         componentName?: string;

@@ -86,11 +86,11 @@ function adaptRuntimeTopologyMetrics(
     sourceNodeId: 0,
     destinationNodeId: 0,
     requestCount,
-    errorCount: Math.round(metrics.errorCount ?? 0),
-    avgLatency: (metrics.avgLatency ?? 0) * NS_PER_SEC,
-    p50Latency: (metrics.p50Latency ?? 0) * NS_PER_SEC,
-    p90Latency: (metrics.p90Latency ?? 0) * NS_PER_SEC,
-    p99Latency: (metrics.p99Latency ?? 0) * NS_PER_SEC,
+    errorCount: Math.round(metrics.unsuccessfulRequestCount ?? 0),
+    avgLatency: (metrics.meanLatency ?? 0) * NS_PER_SEC,
+    p50Latency: (metrics.latencyP50 ?? 0) * NS_PER_SEC,
+    p90Latency: (metrics.latencyP90 ?? 0) * NS_PER_SEC,
+    p99Latency: (metrics.latencyP99 ?? 0) * NS_PER_SEC,
   };
 }
 
