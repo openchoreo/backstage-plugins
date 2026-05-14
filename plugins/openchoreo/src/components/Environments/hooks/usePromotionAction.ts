@@ -1,7 +1,4 @@
-import {
-  useDeployPermission,
-  useUndeployPermission,
-} from '@openchoreo/backstage-plugin-react';
+import { useReleaseBindingUpdatePermission } from '@openchoreo/backstage-plugin-react';
 import type { ItemActionTracker } from '../types';
 
 export interface PromotionTargetInfo {
@@ -12,10 +9,15 @@ export interface PromotionTargetInfo {
 export interface PromotionTargetAction {
   target: PromotionTargetInfo;
   label: string;
+  /**
+   * True when the action is disabled for non-permission reasons
+   * (already promoted, in-flight). Permission-driven disabling is layered
+   * on top by the consumer via `usePromoteToEnvPermission(target)` — hooks
+   * cannot be called in a loop here.
+   */
   disabled: boolean;
   isAlreadyPromoted: boolean;
   isPromoting: boolean;
-  deniedTooltip: string;
   onClick: () => void;
 }
 
@@ -30,6 +32,13 @@ export interface UndeployRedeployAction {
 
 export interface UsePromotionActionInput {
   environmentName: string;
+  /**
+   * Kubernetes resource name of the environment (e.g. "production"). Falls
+   * back to `environmentName` if omitted. Used as the value for the ABAC
+   * `resource.environment` attribute, which the cluster's CEL expressions
+   * match against the lowercase resource name — not the display name.
+   */
+  environmentResourceName?: string;
   bindingName?: string;
   deploymentStatus?: 'Ready' | 'NotReady' | 'Failed';
   statusReason?: string;
@@ -61,6 +70,7 @@ export interface UsePromotionActionResult {
  */
 export function usePromotionAction({
   environmentName,
+  environmentResourceName,
   bindingName,
   deploymentStatus,
   statusReason,
@@ -72,20 +82,23 @@ export function usePromotionAction({
   onSuspend,
   onRedeploy,
 }: UsePromotionActionInput): UsePromotionActionResult {
-  const {
-    canDeploy: canPromote,
-    loading: promotePermissionLoading,
-    deniedTooltip: promoteDeniedTooltip,
-  } = useDeployPermission();
+  const permissionEnvName = environmentResourceName ?? environmentName;
 
+  // Undeploy/redeploy acts on the current environment, so its permission
+  // honors ABAC `resource.environment` for this env (releasebinding:update).
   const {
-    canUndeploy,
-    loading: undeployPermissionLoading,
-    deniedTooltip: undeployDeniedTooltip,
-  } = useUndeployPermission();
+    canUpdate: canUpdateThisEnv,
+    loading: updatePermissionLoading,
+    deniedTooltip: updateDeniedTooltip,
+  } = useReleaseBindingUpdatePermission(permissionEnvName);
 
   const isUndeployed = statusReason === 'ResourcesUndeployed';
 
+  // Per-target promote permission requires both create AND update on the
+  // *target* env — see usePromoteToEnvPermission. We cannot call that
+  // hook in a loop, so consumers call it per-rendered-button. Here we
+  // surface only the non-permission state (label / promoted / in-flight /
+  // onClick); the consumer ANDs in its own permission result.
   const promotionActions: PromotionTargetAction[] =
     deploymentStatus === 'Ready' && promotionTargets
       ? promotionTargets.map(target => {
@@ -106,11 +119,9 @@ export function usePromotionAction({
           return {
             target,
             label,
-            disabled:
-              promotePermissionLoading || !canPromote || promoting || promoted,
+            disabled: promoting || promoted,
             isAlreadyPromoted: promoted,
             isPromoting: promoting,
-            deniedTooltip: promoteDeniedTooltip,
             onClick: () => onPromote(targetKey),
           };
         })
@@ -129,18 +140,18 @@ export function usePromotionAction({
       undeployAction = {
         kind: 'redeploy',
         label: inFlight ? 'Redeploying...' : 'Redeploy',
-        disabled: undeployPermissionLoading || inFlight || !canUndeploy,
+        disabled: updatePermissionLoading || inFlight || !canUpdateThisEnv,
         isInFlight: inFlight,
-        deniedTooltip: undeployDeniedTooltip,
+        deniedTooltip: updateDeniedTooltip,
         onClick: () => onRedeploy(),
       };
     } else {
       undeployAction = {
         kind: 'undeploy',
         label: inFlight ? 'Undeploying...' : 'Undeploy',
-        disabled: undeployPermissionLoading || inFlight || !canUndeploy,
+        disabled: updatePermissionLoading || inFlight || !canUpdateThisEnv,
         isInFlight: inFlight,
-        deniedTooltip: undeployDeniedTooltip,
+        deniedTooltip: updateDeniedTooltip,
         onClick: () => onSuspend(),
       };
     }

@@ -53,6 +53,15 @@ const ObservabilityMetricsContent = () => {
     environments,
   });
 
+  // Per-environment permission (ABAC `resource.environment`) — gates the
+  // metrics content and the fetch once an env is selected. See openchoreo#3408.
+  const {
+    canViewMetrics: canViewMetricsForEnv,
+    loading: envPermissionLoading,
+    deniedTooltip: envPermissionDenied,
+    permissionName: envPermissionName,
+  } = useMetricsPermission(filters.environment?.name);
+
   // Fetch metrics using the custom hook
   const {
     metrics,
@@ -80,12 +89,24 @@ const ObservabilityMetricsContent = () => {
       JSON.stringify(previousFiltersRef.current) !==
       JSON.stringify(currentFilters);
 
-    if (filters.environment && filters.timeRange && filtersChanged) {
+    if (
+      filters.environment &&
+      filters.timeRange &&
+      canViewMetricsForEnv &&
+      filtersChanged
+    ) {
       fetchMetrics(true);
     }
 
     previousFiltersRef.current = currentFilters;
-  }, [filters.environment, filters.timeRange, fetchMetrics]);
+  }, [
+    filters.environment,
+    filters.timeRange,
+    fetchMetrics,
+    canViewMetricsForEnv,
+    envPermissionLoading,
+    envPermissionDenied,
+  ]);
 
   const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
     updateFilters(newFilters);
@@ -143,50 +164,71 @@ const ObservabilityMetricsContent = () => {
             environments={environments}
             disabled={isLoading}
           />
-          {metricsError && renderError(metricsError)}
-          <MetricsActions onRefresh={handleRefresh} disabled={metricsLoading} />
-          <Grid container spacing={4} className={classes.metricsGridContainer}>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardHeader title="CPU Usage" />
-                <Divider />
-                <CardContent>
-                  <MetricGraphByComponent
-                    usageData={
-                      resourceMetrics?.cpuUsage || ({} as CpuUsageMetrics)
-                    }
-                    usageType="cpu"
-                    timeRange={filters.timeRange}
-                    customStartTime={filters.customStartTime}
-                    customEndTime={filters.customEndTime}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardHeader title="Memory Usage" />
-                <Divider />
-                <CardContent>
-                  <MetricGraphByComponent
-                    usageData={
-                      resourceMetrics?.memoryUsage || ({} as MemoryUsageMetrics)
-                    }
-                    usageType="memory"
-                    timeRange={filters.timeRange}
-                    customStartTime={filters.customStartTime}
-                    customEndTime={filters.customEndTime}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
-            <HTTPMetricsSection
-              filters={filters}
-              entity={entity}
-              namespaceName={namespace as string}
-              project={project as string}
+          {filters.environment &&
+            !envPermissionLoading &&
+            !canViewMetricsForEnv && (
+              <ForbiddenState
+                message={envPermissionDenied}
+                permissionName={envPermissionName}
+                variant="compact"
+              />
+            )}
+          {canViewMetricsForEnv && metricsError && renderError(metricsError)}
+          {canViewMetricsForEnv && (
+            <MetricsActions
+              onRefresh={handleRefresh}
+              disabled={metricsLoading}
             />
-          </Grid>
+          )}
+          {canViewMetricsForEnv && (
+            <Grid
+              container
+              spacing={4}
+              className={classes.metricsGridContainer}
+            >
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardHeader title="CPU Usage" />
+                  <Divider />
+                  <CardContent>
+                    <MetricGraphByComponent
+                      usageData={
+                        resourceMetrics?.cpuUsage || ({} as CpuUsageMetrics)
+                      }
+                      usageType="cpu"
+                      timeRange={filters.timeRange}
+                      customStartTime={filters.customStartTime}
+                      customEndTime={filters.customEndTime}
+                    />
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardHeader title="Memory Usage" />
+                  <Divider />
+                  <CardContent>
+                    <MetricGraphByComponent
+                      usageData={
+                        resourceMetrics?.memoryUsage ||
+                        ({} as MemoryUsageMetrics)
+                      }
+                      usageType="memory"
+                      timeRange={filters.timeRange}
+                      customStartTime={filters.customStartTime}
+                      customEndTime={filters.customEndTime}
+                    />
+                  </CardContent>
+                </Card>
+              </Grid>
+              <HTTPMetricsSection
+                filters={filters}
+                entity={entity}
+                namespaceName={namespace as string}
+                project={project as string}
+              />
+            </Grid>
+          )}
         </>
       )}
     </Box>

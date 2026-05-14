@@ -13,6 +13,7 @@ import {
 } from '../../hooks';
 import { useTraceSpans } from '../../hooks/useTraceSpans';
 import { useSpanDetails } from '../../hooks/useSpanDetails';
+import type { Filters } from '../../types';
 import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import {
@@ -42,13 +43,30 @@ const ObservabilityTracesContent = () => {
     environments,
   });
 
+  // Per-environment permission (ABAC `resource.environment`) — gates the
+  // traces content once an environment is selected. See openchoreo#3408.
+  const {
+    canViewTraces: canViewTracesForEnv,
+    loading: envPermissionLoading,
+    deniedTooltip: envPermissionDenied,
+    permissionName: envPermissionName,
+  } = useTracesPermission(filters.environment?.name);
+
+  // Don't fire the backend query until the per-env permission resolves to
+  // allow — otherwise a denied user produces a 403 we'd have to suppress.
+  // useTraces guards on filters.environment internally, so clearing it
+  // turns the hook into a no-op while keeping the same hook-call order.
+  const tracesFilters: Filters =
+    canViewTracesForEnv && !envPermissionLoading
+      ? filters
+      : ({ ...filters, environment: undefined } as unknown as Filters);
   const {
     traces,
     total,
     loading: tracesLoading,
     error: tracesError,
     refresh,
-  } = useTraces(filters, entity);
+  } = useTraces(tracesFilters, entity);
 
   // Determine which component name to pass for span queries
   // (mirrors what useTraces does — single selection passes the name)
@@ -134,20 +152,36 @@ const ObservabilityTracesContent = () => {
             componentsLoading={componentsLoading}
           />
 
-          {tracesError && renderError(tracesError)}
+          {filters.environment &&
+            !envPermissionLoading &&
+            !canViewTracesForEnv && (
+              <ForbiddenState
+                message={envPermissionDenied}
+                permissionName={envPermissionName}
+                variant="compact"
+              />
+            )}
 
-          <TracesActions
-            totalCount={total}
-            disabled={tracesLoading}
-            onRefresh={handleRefresh}
-          />
+          {(canViewTracesForEnv || envPermissionLoading) &&
+            tracesError &&
+            renderError(tracesError)}
 
-          <TracesTable
-            traces={traces}
-            traceSpans={traceSpans}
-            spanDetails={spanDetails}
-            loading={tracesLoading}
-          />
+          {(canViewTracesForEnv || envPermissionLoading) && (
+            <TracesActions
+              totalCount={total}
+              disabled={tracesLoading}
+              onRefresh={handleRefresh}
+            />
+          )}
+
+          {(canViewTracesForEnv || envPermissionLoading) && (
+            <TracesTable
+              traces={traces}
+              traceSpans={traceSpans}
+              spanDetails={spanDetails}
+              loading={tracesLoading || envPermissionLoading}
+            />
+          )}
         </>
       )}
     </Box>

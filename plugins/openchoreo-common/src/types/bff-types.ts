@@ -846,7 +846,17 @@ export type ActionCapability = {
 
 export type CapabilityResource = {
   path: string;
-  constraints?: Record<string, never>;
+  constraints?: CapabilityConstraints;
+};
+
+/**
+ * ABAC constraints that gate access to a capability entry. Multiple
+ * expressions are OR'd — access is granted when any one of them evaluates to
+ * true. Backstage cannot evaluate CEL locally; when expressions are present,
+ * the policy must delegate to POST /api/v1/authz/evaluates.
+ */
+export type CapabilityConstraints = {
+  expressions?: string[];
 };
 
 // ---------------------------------------------------------------------------

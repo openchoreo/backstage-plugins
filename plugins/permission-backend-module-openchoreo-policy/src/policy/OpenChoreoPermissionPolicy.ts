@@ -25,6 +25,28 @@ import {
   matchesCatalogEntityCapability,
 } from '../rules';
 import { hasUncoveredAllowedPath } from '../utils/pathUtils';
+import { isConstrained, resolveCapability } from '../utils/capabilityLookup';
+import type { CapabilityResource } from '@openchoreo/backstage-plugin-common';
+
+/**
+ * Drops capability entries that carry ABAC CEL expressions. Used by the
+ * basic-permission decision path where there is no entity/environment in
+ * scope to satisfy `resource.environment`-style CEL predicates — those
+ * entries cannot grant a basic-permission allow.
+ *
+ * Returns just the paths from unconstrained entries (which is what the
+ * existing `hasUncoveredAllowedPath` helper expects).
+ */
+function unconstrainedPaths(
+  entries: CapabilityResource[] | undefined,
+): string[] {
+  return (
+    entries
+      ?.filter(e => !isConstrained(e))
+      .map(e => e.path)
+      .filter((p): p is string => !!p) ?? []
+  );
+}
 
 /** Permission name prefix for OpenChoreo permissions */
 const PERMISSION_PREFIX = 'openchoreo.';
@@ -146,6 +168,12 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         userToken,
       );
 
+      // Resolve capability with wildcard fallback (exact → resource:* → *).
+      const actionCapability = resolveCapability(
+        capabilities.capabilities,
+        action,
+      );
+
       // For resource-based permissions (component-level), return CONDITIONAL
       // The apply-conditions handler will check capabilities against entity scope
       if (
@@ -154,47 +182,30 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
           OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
         )
       ) {
-        // Look up the specific action first, then fall back to wildcard "*"
-        const actionCapability =
-          capabilities.capabilities?.[action] ??
-          capabilities.capabilities?.['*'];
-
-        // Extract paths from capability (Backstage rule params only support primitives)
-        const allowedPaths =
-          actionCapability?.allowed
-            ?.map(a => a.path)
-            .filter((p): p is string => !!p) ?? [];
-        const deniedPaths =
-          actionCapability?.denied
-            ?.map(d => d.path)
-            .filter((p): p is string => !!p) ?? [];
-
+        // Pass full capability entries (including ABAC constraints) into the
+        // rule so apply-time evaluation can defer to /authz/evaluates when a
+        // matched entry carries CEL expressions. Backstage rule params only
+        // support primitives, so we JSON-serialize — mirroring the
+        // kindCapabilitiesJson pattern used in handleCatalogPermission below.
         return createOpenChoreoConditionalDecision(
           permission,
           openchoreoConditions.matchesCapability({
             action,
-            allowedPaths,
-            deniedPaths,
+            allowedJson: JSON.stringify(actionCapability?.allowed ?? []),
+            deniedJson: JSON.stringify(actionCapability?.denied ?? []),
           }),
         );
       }
 
-      // For basic permissions (non-resource), check if action has any allowed paths
-      // Also verify that not every allowed path is covered by a deny path
-      const actionCapability =
-        capabilities.capabilities?.[action] ?? capabilities.capabilities?.['*'];
-      const allowedPaths =
-        actionCapability?.allowed
-          ?.map(a => a.path)
-          .filter((p): p is string => !!p) ?? [];
-      const deniedPaths =
-        actionCapability?.denied
-          ?.map(d => d.path)
-          .filter((p): p is string => !!p) ?? [];
+      // For basic permissions (non-resource), check if action has any allowed
+      // paths not fully covered by a deny. Constrained entries cannot satisfy a
+      // basic permission — there is no resource/environment in scope to feed
+      // their CEL expressions, so we deliberately drop them here. Per-resource
+      // env-aware enforcement happens via the matchesCapability rule and the
+      // /evaluate-with-context route for frontend hooks.
+      const allowedPaths = unconstrainedPaths(actionCapability?.allowed);
+      const deniedPaths = unconstrainedPaths(actionCapability?.denied);
 
-      // Check if user has at least one allowed path not fully covered by deny paths.
-      // Uses semantic hierarchical path comparison so that a deny at a broader scope
-      // (e.g., ns/acme/*) correctly covers a narrower allow (e.g., ns/acme/project/foo/*).
       const isAllowed = hasUncoveredAllowedPath(allowedPaths, deniedPaths);
 
       this.logger.debug(`${permission.name}: ${isAllowed ? 'ALLOW' : 'DENY'}`);
@@ -294,19 +305,17 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
           continue;
         }
 
-        // Look up the specific action first, then fall back to wildcard "*"
-        const actionCapability =
-          capabilities.capabilities?.[action] ??
-          capabilities.capabilities?.['*'];
+        // Resolve with wildcard fallback (exact → resource:* → *).
+        const actionCapability = resolveCapability(
+          capabilities.capabilities,
+          action,
+        );
 
-        const allowedPaths =
-          actionCapability?.allowed
-            ?.map(a => a.path)
-            .filter((p): p is string => !!p) ?? [];
-        const deniedPaths =
-          actionCapability?.denied
-            ?.map(d => d.path)
-            .filter((p): p is string => !!p) ?? [];
+        // Catalog visibility has no environment context, so we cannot satisfy
+        // ABAC CEL expressions here. Drop constrained entries — entity-level
+        // actions are gated separately by matchesCapability + env-aware hooks.
+        const allowedPaths = unconstrainedPaths(actionCapability?.allowed);
+        const deniedPaths = unconstrainedPaths(actionCapability?.denied);
 
         kindCapabilities[kindLower] = {
           action,
@@ -386,8 +395,6 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         userToken,
       );
 
-      const wildcardCap = capabilities.capabilities?.['*'];
-
       // Check if user has any create capability for scaffolder resource types
       const scaffolderCreateActions = [
         'component:create',
@@ -401,11 +408,10 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
       ];
 
       const hasAnyCreate = scaffolderCreateActions.some(action => {
-        const cap = capabilities.capabilities?.[action] ?? wildcardCap;
-        const allowed =
-          cap?.allowed?.map(a => a.path).filter((p): p is string => !!p) ?? [];
-        const denied =
-          cap?.denied?.map(d => d.path).filter((p): p is string => !!p) ?? [];
+        const cap = resolveCapability(capabilities.capabilities, action);
+        // Constrained entries are dropped — no env context for CEL here.
+        const allowed = unconstrainedPaths(cap?.allowed);
+        const denied = unconstrainedPaths(cap?.denied);
         return hasUncoveredAllowedPath(allowed, denied);
       });
 
@@ -453,14 +459,11 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
       );
 
       // Check if user has any create capability not fully covered by deny paths
-      const wildcardCap = capabilities.capabilities?.['*'];
-
       const hasUncoveredCreate = (action: string): boolean => {
-        const cap = capabilities.capabilities?.[action] ?? wildcardCap;
-        const allowed =
-          cap?.allowed?.map(a => a.path).filter((p): p is string => !!p) ?? [];
-        const denied =
-          cap?.denied?.map(d => d.path).filter((p): p is string => !!p) ?? [];
+        const cap = resolveCapability(capabilities.capabilities, action);
+        // Constrained entries are dropped — no env context for CEL here.
+        const allowed = unconstrainedPaths(cap?.allowed);
+        const denied = unconstrainedPaths(cap?.denied);
         return hasUncoveredAllowedPath(allowed, denied);
       };
 

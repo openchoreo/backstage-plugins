@@ -20,6 +20,15 @@ jest.mock('@backstage/catalog-model', () => ({
   stringifyEntityRef: () => 'component:default/test',
 }));
 
+// useEnvScopedPermission pulls discovery + fetch APIs from the core-plugin-api
+// registry. Stub them so renderHook doesn't fail when no environment arg is
+// passed (the env-aware branch never runs in these tests).
+jest.mock('@backstage/core-plugin-api', () => ({
+  useApi: () => ({}),
+  discoveryApiRef: {},
+  fetchApiRef: {},
+}));
+
 describe('useDeployPermission (Variant A: entity-scoped, single permission)', () => {
   beforeEach(() => {
     jest.clearAllMocks();

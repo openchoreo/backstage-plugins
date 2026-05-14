@@ -2,12 +2,22 @@ import { useState } from 'react';
 import { Button, Menu, MenuItem, Tooltip } from '@material-ui/core';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
-import { usePromotionAction } from '../hooks/usePromotionAction';
-import type { PromotionTargetInfo } from '../hooks/usePromotionAction';
+import { usePromoteToEnvPermission } from '@openchoreo/backstage-plugin-react';
+import {
+  usePromotionAction,
+  type PromotionTargetAction,
+  type PromotionTargetInfo,
+} from '../hooks/usePromotionAction';
 import type { ItemActionTracker } from '../types';
 
 export interface PromotePrimaryActionProps {
   environmentName: string;
+  /**
+   * Kubernetes resource name of the environment. Forwarded to
+   * `usePromotionAction` so the ABAC permission check uses the value that
+   * matches the cluster's CEL expressions.
+   */
+  environmentResourceName?: string;
   bindingName?: string;
   deploymentStatus?: 'Ready' | 'NotReady' | 'Failed';
   statusReason?: string;
@@ -40,6 +50,7 @@ const noop = () => {};
  */
 export const PromotePrimaryAction = ({
   environmentName,
+  environmentResourceName,
   bindingName,
   deploymentStatus,
   statusReason,
@@ -50,6 +61,7 @@ export const PromotePrimaryAction = ({
 }: PromotePrimaryActionProps) => {
   const { promotionActions } = usePromotionAction({
     environmentName,
+    environmentResourceName,
     bindingName,
     deploymentStatus,
     statusReason,
@@ -85,25 +97,7 @@ export const PromotePrimaryAction = ({
   }
 
   if (promotionActions.length === 1) {
-    const only = promotionActions[0];
-    return (
-      <Tooltip
-        title={only.deniedTooltip}
-        disableHoverListener={!only.deniedTooltip}
-      >
-        <span>
-          <Button
-            size="small"
-            variant="contained"
-            color="primary"
-            disabled={only.disabled}
-            onClick={only.onClick}
-          >
-            {only.isPromoting ? 'Promoting...' : 'Promote'}
-          </Button>
-        </span>
-      </Tooltip>
-    );
+    return <PromotePrimaryButton action={promotionActions[0]} />;
   }
 
   return (
@@ -155,21 +149,79 @@ export const PromotePrimaryAction = ({
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
       >
         {promotionActions.map(action => (
-          <MenuItem
+          <PromoteSubMenuItem
             key={action.target.name}
-            disabled={action.disabled}
-            onClick={() => {
+            action={action}
+            onAfterClick={() => {
               setPromoteAnchor(null);
               setPromoteToSubAnchor(null);
-              action.onClick();
             }}
-          >
-            {action.isAlreadyPromoted
-              ? `${action.target.name} (promoted)`
-              : action.target.name}
-          </MenuItem>
+          />
         ))}
       </Menu>
     </>
   );
 };
+
+/**
+ * Single-target Promote button. Calls `usePromoteToEnvPermission(target)`
+ * so disabled state honors both `releasebinding:create` and
+ * `releasebinding:update` ABAC on the target env.
+ */
+function PromotePrimaryButton({ action }: { action: PromotionTargetAction }) {
+  const targetEnvName = action.target.resourceName ?? action.target.name;
+  const { canPromote, loading, deniedTooltip } =
+    usePromoteToEnvPermission(targetEnvName);
+  const disabled = action.disabled || loading || !canPromote;
+  const tooltip = !canPromote && !loading ? deniedTooltip : '';
+  return (
+    <Tooltip title={tooltip} disableHoverListener={!tooltip}>
+      <span>
+        <Button
+          size="small"
+          variant="contained"
+          color="primary"
+          disabled={disabled}
+          onClick={action.onClick}
+        >
+          {action.isPromoting ? 'Promoting...' : 'Promote'}
+        </Button>
+      </span>
+    </Tooltip>
+  );
+}
+
+/**
+ * Sub-menu item for the multi-target promote dropdown. Same ABAC story as
+ * `PromotePrimaryButton`.
+ */
+function PromoteSubMenuItem({
+  action,
+  onAfterClick,
+}: {
+  action: PromotionTargetAction;
+  onAfterClick: () => void;
+}) {
+  const targetEnvName = action.target.resourceName ?? action.target.name;
+  const { canPromote, loading, deniedTooltip } =
+    usePromoteToEnvPermission(targetEnvName);
+  const disabled = action.disabled || loading || !canPromote;
+  const tooltip = !canPromote && !loading ? deniedTooltip : '';
+  return (
+    <Tooltip title={tooltip} disableHoverListener={!tooltip} placement="left">
+      <span>
+        <MenuItem
+          disabled={disabled}
+          onClick={() => {
+            onAfterClick();
+            action.onClick();
+          }}
+        >
+          {action.isAlreadyPromoted
+            ? `${action.target.name} (promoted)`
+            : action.target.name}
+        </MenuItem>
+      </span>
+    </Tooltip>
+  );
+}

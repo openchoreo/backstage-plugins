@@ -46,11 +46,14 @@ const ROLLOUT_RESTART_TOOLTIP =
  */
 export const EnvironmentActions = ({
   environmentName,
+  environmentResourceName,
   bindingName,
   deploymentStatus,
   statusReason,
   suspendTracker,
   rolloutRestartTracker,
+  canRolloutRestart = true,
+  rolloutRestartDeniedTooltip = '',
   onSuspend,
   onRedeploy,
   onRolloutRestart,
@@ -59,6 +62,7 @@ export const EnvironmentActions = ({
 
   const { undeployAction } = usePromotionAction({
     environmentName,
+    environmentResourceName,
     bindingName,
     deploymentStatus,
     statusReason,
@@ -119,14 +123,20 @@ export const EnvironmentActions = ({
       )}
 
       {showRolloutRestart && (
-        <Tooltip title={ROLLOUT_RESTART_TOOLTIP}>
+        <Tooltip
+          title={
+            !canRolloutRestart && rolloutRestartDeniedTooltip
+              ? rolloutRestartDeniedTooltip
+              : ROLLOUT_RESTART_TOOLTIP
+          }
+        >
           <span>
             <Button
               variant="outlined"
               color="primary"
               size="small"
               startIcon={<AutorenewIcon fontSize="small" />}
-              disabled={rolloutInFlight}
+              disabled={rolloutInFlight || !canRolloutRestart}
               onClick={() => onRolloutRestart?.()}
             >
               {rolloutInFlight ? 'Restarting...' : 'Rollout restart'}

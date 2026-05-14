@@ -1,7 +1,7 @@
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
-import { usePermission } from '@backstage/plugin-permission-react';
 import { openchoreoReleaseBindingUpdatePermission } from '@openchoreo/backstage-plugin-common';
+import { useEnvScopedPermission } from './useEnvScopedPermission';
 
 /**
  * Result of the useUndeployPermission hook.
@@ -20,16 +20,27 @@ export interface UseUndeployPermissionResult {
  * (update release binding) for the current entity.
  *
  * Must be used within an EntityProvider context.
+ *
+ * @param environment - Optional environment name. When supplied, the check
+ *   also honors ABAC `resource.environment` CEL constraints. See openchoreo
+ *   issue #3408.
  */
-export const useUndeployPermission = (): UseUndeployPermissionResult => {
+export const useUndeployPermission = (
+  environment?: string,
+): UseUndeployPermissionResult => {
   const { entity } = useEntity();
-  const { allowed, loading } = usePermission({
+  const { allowed, loading } = useEnvScopedPermission({
     permission: openchoreoReleaseBindingUpdatePermission,
     resourceRef: stringifyEntityRef(entity),
+    environment,
   });
 
-  const deniedTooltip =
-    !allowed && !loading ? 'You do not have permission to undeploy' : '';
+  let deniedTooltip = '';
+  if (!allowed && !loading) {
+    deniedTooltip = environment
+      ? `You do not have permission to undeploy from ${environment}`
+      : 'You do not have permission to undeploy';
+  }
 
   return {
     canUndeploy: allowed,

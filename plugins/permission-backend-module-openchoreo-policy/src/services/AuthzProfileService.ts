@@ -2,9 +2,26 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
   assertApiResponse,
+  OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { AuthzProfileCache } from './AuthzProfileCache';
 import type { UserCapabilitiesResponse, OpenChoreoScope } from './types';
+import { parseCapabilityPath } from '../utils/pathUtils';
+
+type EvaluateRequest = OpenChoreoComponents['schemas']['EvaluateRequest'];
+type SubjectContext = OpenChoreoComponents['schemas']['SubjectContext'];
+
+/**
+ * Inputs the policy needs to evaluate one capability entry at runtime.
+ * `resourcePath` is the capability path matched by the user's profile
+ * (e.g., "ns/acme/project/payments/component/api"). `environment` is the
+ * runtime attribute used by ABAC CEL expressions like `resource.environment`.
+ */
+export interface EvaluateInput {
+  action: string;
+  resourcePath: string;
+  environment?: string;
+}
 
 /** Default TTL in milliseconds when token expiration cannot be determined */
 const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -250,6 +267,180 @@ export class AuthzProfileService {
     }
 
     return capabilities;
+  }
+
+  /**
+   * Evaluates one or more ABAC-gated capability entries via
+   * POST /api/v1/authz/evaluates.
+   *
+   * Returns a boolean for each input in the same order. Results are cached
+   * per `(userEntityRef, action, resourcePath, environment)` for the lifetime
+   * of the user's JWT (token-derived TTL, 5min fallback) so that a UI rendering
+   * the same constrained button repeatedly does not round-trip the backend.
+   *
+   * The subject context required by the evaluate API is read from the
+   * cached profile (`profile.user`) — that is the only authenticated
+   * representation of the user available to the policy. When the profile
+   * has not been pre-cached and no `userToken` is supplied, evaluation
+   * fails closed (returns `false`).
+   */
+  async evaluate(
+    userToken: string | undefined,
+    userEntityRef: string,
+    inputs: EvaluateInput[],
+  ): Promise<boolean[]> {
+    if (inputs.length === 0) return [];
+
+    // 1. Cache lookup for every input. Track which need a backend call.
+    const results: (boolean | undefined)[] = new Array(inputs.length);
+    const missingIdx: number[] = [];
+    if (this.cache) {
+      for (let i = 0; i < inputs.length; i++) {
+        const { action, resourcePath, environment } = inputs[i];
+        results[i] = await this.cache.getEvaluation(
+          userEntityRef,
+          action,
+          resourcePath,
+          environment,
+        );
+        if (results[i] === undefined) missingIdx.push(i);
+      }
+    } else {
+      for (let i = 0; i < inputs.length; i++) missingIdx.push(i);
+    }
+
+    if (missingIdx.length === 0) {
+      return results as boolean[];
+    }
+
+    // 2. Need to call the backend for the cache misses.
+    if (!userToken) {
+      this.logger.warn(
+        `No token available for ABAC evaluation of ${userEntityRef} — failing closed`,
+      );
+      for (const i of missingIdx) results[i] = false;
+      return results as boolean[];
+    }
+
+    const subject = await this.getSubjectContextForUser(
+      userEntityRef,
+      userToken,
+    );
+    if (!subject) {
+      this.logger.warn(
+        `No subject context available for ${userEntityRef} — failing closed`,
+      );
+      for (const i of missingIdx) results[i] = false;
+      return results as boolean[];
+    }
+
+    const requests: EvaluateRequest[] = missingIdx.map(i => {
+      const { action, resourcePath, environment } = inputs[i];
+      const parsed = parseCapabilityPath(resourcePath);
+      const hierarchy = {
+        namespace:
+          parsed?.namespace && parsed.namespace !== '*'
+            ? parsed.namespace
+            : undefined,
+        project:
+          parsed?.project && parsed.project !== '*'
+            ? parsed.project
+            : undefined,
+        component:
+          parsed?.component && parsed.component !== '*'
+            ? parsed.component
+            : undefined,
+      };
+      // Resource type is derived from the most specific hierarchy level present
+      // — this matches how the OpenChoreo authz core scopes evaluations.
+      let resourceType: string;
+      if (hierarchy.component) {
+        resourceType = 'component';
+      } else if (hierarchy.project) {
+        resourceType = 'project';
+      } else if (hierarchy.namespace) {
+        resourceType = 'namespace';
+      } else {
+        resourceType = 'cluster';
+      }
+
+      const req: EvaluateRequest = {
+        subject_context: subject,
+        resource: { type: resourceType, hierarchy },
+        action,
+      };
+      if (environment) {
+        req.context = { resource: { environment } };
+      }
+      return req;
+    });
+
+    try {
+      const client = this.createClient(userToken);
+      const { data, error, response } = await client.POST(
+        '/api/v1/authz/evaluates',
+        { body: requests },
+      );
+      assertApiResponse({ data, error, response }, 'evaluate capabilities');
+
+      const decisions = (data ?? []) as Array<{ decision: boolean }>;
+      const ttlMs = getTtlFromToken(userToken);
+
+      for (let j = 0; j < missingIdx.length; j++) {
+        const i = missingIdx[j];
+        const allowed = decisions[j]?.decision === true;
+        results[i] = allowed;
+        if (this.cache) {
+          const { action, resourcePath, environment } = inputs[i];
+          await this.cache.setEvaluation(
+            userEntityRef,
+            action,
+            resourcePath,
+            environment,
+            allowed,
+            ttlMs,
+          );
+        }
+      }
+    } catch (err) {
+      this.logger.error(`ABAC evaluate failed for ${userEntityRef}: ${err}`);
+      // Fail closed
+      for (const i of missingIdx) {
+        if (results[i] === undefined) results[i] = false;
+      }
+    }
+
+    return results as boolean[];
+  }
+
+  /**
+   * Returns the subject context for a user, reusing the cached profile when
+   * possible. Falls back to fetching the profile when not cached.
+   */
+  private async getSubjectContextForUser(
+    userEntityRef: string,
+    userToken: string,
+  ): Promise<SubjectContext | undefined> {
+    let profile = this.cache
+      ? await this.cache.getByUser(userEntityRef, 'global')
+      : undefined;
+    if (!profile) {
+      profile = await this.getCapabilities(userToken);
+    }
+    const user = profile?.user as Partial<SubjectContext> | undefined;
+    if (
+      !user ||
+      !user.type ||
+      !user.entitlement_claim ||
+      !user.entitlement_values
+    ) {
+      return undefined;
+    }
+    return {
+      type: user.type,
+      entitlement_claim: user.entitlement_claim,
+      entitlement_values: user.entitlement_values,
+    };
   }
 
   /**

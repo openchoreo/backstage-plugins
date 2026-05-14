@@ -319,6 +319,22 @@ export {
   type UseUndeployPermissionResult,
 } from './hooks/useUndeployPermission';
 export {
+  useReleaseBindingUpdatePermission,
+  type UseReleaseBindingUpdatePermissionResult,
+} from './hooks/useReleaseBindingUpdatePermission';
+export {
+  useRemoveDeploymentPermission,
+  type UseRemoveDeploymentPermissionResult,
+} from './hooks/useRemoveDeploymentPermission';
+export {
+  useReleaseBindingViewPermission,
+  type UseReleaseBindingViewPermissionResult,
+} from './hooks/useReleaseBindingViewPermission';
+export {
+  usePromoteToEnvPermission,
+  type UsePromoteToEnvPermissionResult,
+} from './hooks/usePromoteToEnvPermission';
+export {
   useReleaseBindingPermission,
   type UseReleaseBindingPermissionResult,
 } from './hooks/useReleaseBindingPermission';
