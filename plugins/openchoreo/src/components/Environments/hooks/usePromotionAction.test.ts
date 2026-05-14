@@ -58,10 +58,7 @@ describe('usePromotionAction', () => {
       usePromotionAction({
         environmentName: 'dev',
         deploymentStatus: 'Ready',
-        promotionTargets: [
-          { name: 'staging' },
-          { name: 'prod', requiresApproval: true },
-        ],
+        promotionTargets: [{ name: 'staging' }, { name: 'prod' }],
         isAlreadyPromoted: () => false,
         promotionTracker: tracker(),
         suspendTracker: tracker(),
@@ -72,9 +69,7 @@ describe('usePromotionAction', () => {
     );
     expect(result.current.promotionActions).toHaveLength(2);
     expect(result.current.promotionActions[0].label).toBe('Promote to staging');
-    expect(result.current.promotionActions[1].label).toBe(
-      'Promote to prod (Approval Required)',
-    );
+    expect(result.current.promotionActions[1].label).toBe('Promote to prod');
     expect(result.current.primaryPromotion?.target.name).toBe('staging');
   });
 

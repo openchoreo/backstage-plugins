@@ -60,7 +60,7 @@ const k8sPipeline = {
     promotionPaths: [
       {
         sourceEnvironmentRef: 'dev',
-        targetEnvironmentRefs: [{ name: 'staging', requiresApproval: true }],
+        targetEnvironmentRefs: [{ name: 'staging' }],
       },
     ],
   },

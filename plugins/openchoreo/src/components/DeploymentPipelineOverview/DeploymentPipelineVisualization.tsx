@@ -12,16 +12,8 @@ import { useDeploymentPipelineOverviewStyles } from './styles';
 interface RawPromotionPath {
   sourceEnvironment?: string;
   sourceEnvironmentRef?: string | { name?: string };
-  targetEnvironments?: Array<{
-    name: string;
-    requiresApproval?: boolean;
-    isManualApprovalRequired?: boolean;
-  }>;
-  targetEnvironmentRefs?: Array<{
-    name: string;
-    requiresApproval?: boolean;
-    isManualApprovalRequired?: boolean;
-  }>;
+  targetEnvironments?: Array<{ name: string }>;
+  targetEnvironmentRefs?: Array<{ name: string }>;
 }
 
 export const DeploymentPipelineVisualization = () => {
@@ -47,10 +39,7 @@ export const DeploymentPipelineVisualization = () => {
         path.targetEnvironments ?? path.targetEnvironmentRefs ?? [];
       const targets = rawTargets
         .filter(t => !!t.name)
-        .map(t => ({
-          name: t.name,
-          requiresApproval: t.requiresApproval ?? t.isManualApprovalRequired,
-        }));
+        .map(t => ({ name: t.name }));
       return { source, targets };
     });
 

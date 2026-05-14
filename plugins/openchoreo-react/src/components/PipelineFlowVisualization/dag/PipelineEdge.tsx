@@ -1,5 +1,4 @@
 import type { FC } from 'react';
-import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
 import { usePipelineStyles } from './pipelineStyles';
 import type { PipelineEdge as PipelineEdgeType } from './pipelineTypes';
 
@@ -9,18 +8,6 @@ interface PipelineEdgeProps {
 
 export const PipelineEdge: FC<PipelineEdgeProps> = ({ edge }) => {
   const classes = usePipelineStyles();
-
-  const approvalIconPosition =
-    edge.requiresApproval && edge.lines.length > 0
-      ? (() => {
-          const midIndex = Math.floor(edge.lines.length / 2);
-          const midLine = edge.lines[midIndex];
-          return {
-            x: (midLine.x1 + midLine.x2) / 2,
-            y: (midLine.y1 + midLine.y2) / 2,
-          };
-        })()
-      : null;
 
   const lastLine = edge.lines[edge.lines.length - 1];
 
@@ -37,11 +24,7 @@ export const PipelineEdge: FC<PipelineEdgeProps> = ({ edge }) => {
         return (
           <div
             key={i}
-            className={
-              edge.requiresApproval
-                ? classes.edgeLineApproval
-                : classes.edgeLine
-            }
+            className={classes.edgeLine}
             style={{
               width: length,
               left: midX - length / 2,
@@ -60,18 +43,6 @@ export const PipelineEdge: FC<PipelineEdgeProps> = ({ edge }) => {
             top: lastLine.y2 - 4,
           }}
         />
-      )}
-
-      {approvalIconPosition && (
-        <div
-          className={classes.approvalIcon}
-          style={{
-            left: approvalIconPosition.x - 8,
-            top: approvalIconPosition.y - 8,
-          }}
-        >
-          <LockOutlinedIcon style={{ fontSize: 12 }} />
-        </div>
       )}
     </>
   );

@@ -135,7 +135,7 @@ const k8sPipeline = {
     promotionPaths: [
       {
         sourceEnvironmentRef: 'dev',
-        targetEnvironmentRefs: [{ name: 'staging', requiresApproval: true }],
+        targetEnvironmentRefs: [{ name: 'staging' }],
       },
     ],
   },
@@ -435,13 +435,11 @@ describe('EnvironmentInfoService', () => {
         promotionPaths: [
           {
             sourceEnvironmentRef: 'dev',
-            targetEnvironmentRefs: [
-              { name: 'staging', requiresApproval: false },
-            ],
+            targetEnvironmentRefs: [{ name: 'staging' }],
           },
           {
             sourceEnvironmentRef: 'staging',
-            targetEnvironmentRefs: [{ name: 'prod', requiresApproval: true }],
+            targetEnvironmentRefs: [{ name: 'prod' }],
           },
         ],
       },

@@ -1365,8 +1365,6 @@ export function translateNewDeploymentPipelineToEntity(
       targetEnvironments:
         path.targetEnvironmentRefs?.map(target => ({
           name: target.name,
-          requiresApproval: target.requiresApproval,
-          isManualApprovalRequired: target.isManualApprovalRequired,
         })) || [],
     })) || [];
 

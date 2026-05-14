@@ -426,8 +426,6 @@ export class EnvironmentInfoService implements EnvironmentService {
       transformedEnv.promotionTargets = promotionTargets.map((ref: any) => ({
         name: ref.name,
         resourceName: ref.resourceName,
-        requiresApproval: ref.requiresApproval,
-        isManualApprovalRequired: ref.isManualApprovalRequired,
       }));
     }
 

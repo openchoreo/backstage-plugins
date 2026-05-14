@@ -81,8 +81,6 @@ export interface Environment {
   promotionTargets?: {
     name: string;
     resourceName?: string;
-    requiresApproval?: boolean;
-    isManualApprovalRequired?: boolean;
   }[];
 }
 

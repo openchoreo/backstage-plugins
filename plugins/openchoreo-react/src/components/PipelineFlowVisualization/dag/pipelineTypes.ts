@@ -9,7 +9,6 @@ export interface EdgeLine {
 /** A parent reference with optional edge metadata */
 export interface PipelineParent {
   id: string;
-  requiresApproval?: boolean;
 }
 
 /** A node in the pipeline DAG */
@@ -33,7 +32,6 @@ export interface PipelineEdge {
   from: string;
   to: string;
   lines: EdgeLine[];
-  requiresApproval?: boolean;
 }
 
 /** The complete computed pipeline layout */

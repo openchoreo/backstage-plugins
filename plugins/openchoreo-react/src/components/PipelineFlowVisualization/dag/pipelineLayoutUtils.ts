@@ -27,13 +27,13 @@ export const MINI_SETUP_NODE_HEIGHT = 140;
 /** Minimal env shape used by buildEnvPipelineNodes */
 export interface EnvPipelineInput {
   name: string;
-  promotionTargets?: { name: string; requiresApproval?: boolean }[];
+  promotionTargets?: { name: string }[];
 }
 
-/** A promotion path in canonical form (source name + target {name, requiresApproval?}) */
+/** A promotion path in canonical form (source name + target names) */
 export interface PathPipelineInput {
   source: string;
-  targets: { name: string; requiresApproval?: boolean }[];
+  targets: { name: string }[];
 }
 
 /**
@@ -44,10 +44,7 @@ export interface PathPipelineInput {
 export function buildEnvPipelineNodes<T extends EnvPipelineInput>(
   environments: T[],
 ): PipelineNode<T>[] {
-  const incomingMap = new Map<
-    string,
-    { from: string; requiresApproval?: boolean }[]
-  >();
+  const incomingMap = new Map<string, string[]>();
   for (const env of environments) {
     incomingMap.set(env.name, []);
   }
@@ -57,10 +54,7 @@ export function buildEnvPipelineNodes<T extends EnvPipelineInput>(
     for (const target of env.promotionTargets) {
       const incoming = incomingMap.get(target.name);
       if (incoming) {
-        incoming.push({
-          from: env.name,
-          requiresApproval: target.requiresApproval,
-        });
+        incoming.push(env.name);
       }
     }
   }
@@ -73,10 +67,7 @@ export function buildEnvPipelineNodes<T extends EnvPipelineInput>(
     const incoming = incomingMap.get(env.name) ?? [];
     const parents =
       incoming.length > 0
-        ? incoming.map(i => ({
-            id: i.from,
-            requiresApproval: i.requiresApproval,
-          }))
+        ? incoming.map(from => ({ id: from }))
         : [{ id: SETUP_NODE_ID }];
     nodes.push({ id: env.name, isSetup: false, parents, data: env });
   }
@@ -89,15 +80,13 @@ export function buildEnvPipelineNodes<T extends EnvPipelineInput>(
  * used by the chip-strip mini-DAG inside PipelineFlowVisualization.
  *
  * Multiple paths sharing a source are merged. Multiple paths with the
- * same (source, target) pair de-duplicate to a single edge; if any
- * declares requiresApproval, the merged edge inherits that flag.
+ * same (source, target) pair de-duplicate to a single edge.
  */
 export function buildPathPipelineNodes(
   paths: PathPipelineInput[],
 ): PipelineNode<{ name: string }>[] {
   const allEnvs = new Set<string>();
-  // edgeKey -> requiresApproval (sticky-true)
-  const incomingByTarget = new Map<string, Map<string, boolean | undefined>>();
+  const incomingByTarget = new Map<string, Set<string>>();
 
   for (const path of paths) {
     if (!path.source) continue;
@@ -105,10 +94,8 @@ export function buildPathPipelineNodes(
     for (const target of path.targets) {
       if (!target.name) continue;
       allEnvs.add(target.name);
-      const incoming = incomingByTarget.get(target.name) ?? new Map();
-      const prior = incoming.get(path.source);
-      const merged = prior || target.requiresApproval;
-      incoming.set(path.source, merged);
+      const incoming = incomingByTarget.get(target.name) ?? new Set();
+      incoming.add(path.source);
       incomingByTarget.set(target.name, incoming);
     }
   }
@@ -117,10 +104,7 @@ export function buildPathPipelineNodes(
   for (const name of allEnvs) {
     const incoming = incomingByTarget.get(name);
     const parents = incoming
-      ? Array.from(incoming.entries()).map(([from, requiresApproval]) => ({
-          id: from,
-          requiresApproval,
-        }))
+      ? Array.from(incoming).map(from => ({ id: from }))
       : [];
     nodes.push({ id: name, isSetup: false, parents, data: { name } });
   }
@@ -191,7 +175,6 @@ export interface ComputeLayoutOptions {
 
 /**
  * Run dagre layout to compute positions for all pipeline nodes and edges.
- * `requiresApproval` flows from the node's parent metadata onto each edge.
  */
 export function computePipelineLayout<T>(
   pipelineNodes: PipelineNode<T>[],
@@ -227,14 +210,9 @@ export function computePipelineLayout<T>(
     graph.setNode(node.id, { width, height });
   }
 
-  // Track requiresApproval per edge from node parent metadata.
-  const approvalByEdge = new Map<string, boolean | undefined>();
-  const edgeKey = (from: string, to: string) => `${from}->${to}`;
-
   for (const node of pipelineNodes) {
     for (const parent of node.parents) {
       graph.setEdge(parent.id, node.id);
-      approvalByEdge.set(edgeKey(parent.id, node.id), parent.requiresApproval);
     }
   }
 
@@ -275,7 +253,6 @@ export function computePipelineLayout<T>(
       from: edgeInfo.v,
       to: edgeInfo.w,
       lines: computeLines(fromNode, toNode),
-      requiresApproval: approvalByEdge.get(edgeKey(edgeInfo.v, edgeInfo.w)),
     });
   }
 

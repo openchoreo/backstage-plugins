@@ -7,7 +7,6 @@ import type { ItemActionTracker } from '../types';
 export interface PromotionTargetInfo {
   name: string;
   resourceName?: string;
-  requiresApproval?: boolean;
 }
 
 export interface PromotionTargetAction {
@@ -56,9 +55,9 @@ export interface UsePromotionActionResult {
 
 /**
  * Centralizes the per-target promotion + undeploy/redeploy decision tree
- * (label / disabled / approval-required / "already promoted" / in-flight)
- * so the full-card EnvironmentActions row, the mini node primary action,
- * and the detail panel can all derive identical button state.
+ * (label / disabled / "already promoted" / in-flight) so the full-card
+ * EnvironmentActions row, the mini node primary action, and the detail
+ * panel can all derive identical button state.
  */
 export function usePromotionAction({
   environmentName,
@@ -102,9 +101,7 @@ export function usePromotionAction({
           } else if (promoting) {
             label = 'Promoting...';
           } else {
-            label = `Promote to ${target.name}${
-              target.requiresApproval ? ' (Approval Required)' : ''
-            }`;
+            label = `Promote to ${target.name}`;
           }
           return {
             target,
