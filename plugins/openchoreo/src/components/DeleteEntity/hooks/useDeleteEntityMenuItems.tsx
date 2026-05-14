@@ -61,6 +61,7 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
   deploymentpipeline: 'Deployment Pipeline',
   componenttype: 'Component Type',
   clustercomponenttype: 'Cluster Component Type',
+  clusterresourcetype: 'Cluster Resource Type',
   traittype: 'Trait Type',
   clustertraittype: 'Cluster Trait Type',
   workflow: 'Workflow',

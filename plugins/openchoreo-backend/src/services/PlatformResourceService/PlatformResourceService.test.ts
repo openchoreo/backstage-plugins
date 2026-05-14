@@ -127,6 +127,22 @@ describe('PlatformResourceService', () => {
       expect(result.success).toBe(true);
     });
 
+    it('fetches clusterresourcetype via new API', async () => {
+      const crt = { metadata: { name: 'mysql' }, spec: { retainPolicy: 'Retain' } };
+      mockGET.mockResolvedValueOnce(createOkResponse(crt));
+
+      const service = createService();
+      const result = await service.getResourceDefinition(
+        'clusterresourcetypes' as any,
+        '',
+        'mysql',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(crt);
+    });
+
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(createErrorResponse());
 
@@ -176,6 +192,24 @@ describe('PlatformResourceService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.kind).toBe('Workflow');
+    });
+
+    it('updates clusterresourcetype via new API PUT', async () => {
+      const crt = { metadata: { name: 'mysql' }, spec: { retainPolicy: 'Retain' } };
+      mockPUT.mockResolvedValueOnce(createOkResponse(crt));
+
+      const service = createService();
+      const result = await service.updateResourceDefinition(
+        'clusterresourcetypes' as any,
+        '',
+        'mysql',
+        crt,
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ClusterResourceType');
+      expect(mockPUT).toHaveBeenCalledTimes(1);
     });
 
     it('throws on API error', async () => {
@@ -231,6 +265,24 @@ describe('PlatformResourceService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.kind).toBe('WorkflowPlane');
+    });
+
+    it('deletes clusterresourcetype via new API', async () => {
+      mockDELETE.mockResolvedValueOnce({
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
+
+      const service = createService();
+      const result = await service.deleteResourceDefinition(
+        'clusterresourcetypes' as any,
+        '',
+        'mysql',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ClusterResourceType');
     });
 
     it('throws on API error', async () => {

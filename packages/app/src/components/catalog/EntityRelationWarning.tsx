@@ -18,6 +18,7 @@ const PLATFORM_KINDS = new Set([
   'clusterworkflowplane',
   'componenttype',
   'clustercomponenttype',
+  'clusterresourcetype',
   'traittype',
   'clustertraittype',
   'workflow',

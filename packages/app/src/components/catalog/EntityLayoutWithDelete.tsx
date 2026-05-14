@@ -31,6 +31,7 @@ const PLATFORM_RESOURCE_KINDS = new Set([
   'deploymentpipeline',
   'componenttype',
   'clustercomponenttype',
+  'clusterresourcetype',
   'traittype',
   'clustertraittype',
   'workflow',

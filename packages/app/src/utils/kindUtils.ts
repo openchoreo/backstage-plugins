@@ -19,6 +19,7 @@ export const kindDisplayNames: Record<string, string> = {
   deploymentpipeline: 'Deployment Pipeline',
   componenttype: 'Component Type',
   clustercomponenttype: 'Cluster Component Type',
+  clusterresourcetype: 'Cluster Resource Type',
   traittype: 'Trait Type',
   clustertraittype: 'Cluster Trait Type',
   workflow: 'Workflow',
@@ -53,6 +54,7 @@ export const kindCategories: KindCategory[] = [
     label: 'Platform Configuration',
     kinds: [
       'clustercomponenttype',
+      'clusterresourcetype',
       'componenttype',
       'clustertraittype',
       'traittype',
@@ -114,6 +116,7 @@ export const allSearchFilterKinds: string[] = [
   'DeploymentPipeline',
   'ComponentType',
   'ClusterComponentType',
+  'ClusterResourceType',
   'TraitType',
   'ClusterTraitType',
   'Workflow',

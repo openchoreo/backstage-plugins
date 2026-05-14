@@ -136,6 +136,10 @@ describe('EventDeltaApplier.handleEvent', () => {
       ],
     },
     {
+      kind: 'ClusterResourceType',
+      expectedRefs: ['clusterresourcetype:openchoreo-cluster/global'],
+    },
+    {
       kind: 'ClusterTrait',
       expectedRefs: ['clustertraittype:openchoreo-cluster/global'],
     },

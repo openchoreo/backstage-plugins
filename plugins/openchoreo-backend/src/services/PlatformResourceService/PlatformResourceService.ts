@@ -39,6 +39,7 @@ type ResourceKind =
   | 'observabilityplanes'
   | 'deploymentpipelines'
   | 'clustercomponenttypes'
+  | 'clusterresourcetypes'
   | 'clustertraits'
   | 'clusterdataplanes'
   | 'clusterworkflows'
@@ -60,6 +61,7 @@ const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
   observabilityplanes: 'ObservabilityPlane',
   deploymentpipelines: 'DeploymentPipeline',
   clustercomponenttypes: 'ClusterComponentType',
+  clusterresourcetypes: 'ClusterResourceType',
   clustertraits: 'ClusterTrait',
   clusterworkflows: 'ClusterWorkflow',
   clusterdataplanes: 'ClusterDataPlane',
@@ -81,6 +83,7 @@ const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
   'components',
   'deploymentpipelines',
   'clustercomponenttypes',
+  'clusterresourcetypes',
   'clustertraits',
   'clusterworkflows',
   'clusterdataplanes',
@@ -422,6 +425,22 @@ export class PlatformResourceService {
           resource = data as Record<string, unknown>;
           break;
         }
+        case 'clusterresourcetypes': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/clusterresourcetypes/{crtName}',
+            {
+              params: {
+                path: { crtName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
+          resource = data as Record<string, unknown>;
+          break;
+        }
         case 'clustertraits': {
           const { data, error, response } = await client.GET(
             '/api/v1/clustertraits/{clusterTraitName}',
@@ -730,6 +749,22 @@ export class PlatformResourceService {
           );
           break;
         }
+        case 'clusterresourcetypes': {
+          const { error, response } = await client.PUT(
+            '/api/v1/clusterresourcetypes/{crtName}',
+            {
+              params: {
+                path: { crtName: resourceName },
+              },
+              body,
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
+          break;
+        }
         case 'clustertraits': {
           const { error, response } = await client.PUT(
             '/api/v1/clustertraits/{clusterTraitName}',
@@ -1007,6 +1042,21 @@ export class PlatformResourceService {
             {
               params: {
                 path: { cctName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
+          break;
+        }
+        case 'clusterresourcetypes': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/clusterresourcetypes/{crtName}',
+            {
+              params: {
+                path: { crtName: resourceName },
               },
             },
           );

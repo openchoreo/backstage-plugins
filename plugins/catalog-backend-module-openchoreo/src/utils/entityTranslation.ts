@@ -32,6 +32,7 @@ import type {
   ClusterDataplaneEntityV1alpha1,
   ClusterObservabilityPlaneEntityV1alpha1,
   ClusterWorkflowPlaneEntityV1alpha1,
+  ClusterResourceTypeEntityV1alpha1,
   DeploymentPipelineEntityV1alpha1,
 } from '../kinds';
 import { normalizeObservabilityPlaneRef, resolveProjectOwner } from './helpers';
@@ -60,6 +61,8 @@ type NewClusterObservabilityPlane =
   OpenChoreoComponents['schemas']['ClusterObservabilityPlane'];
 type NewClusterWorkflowPlane =
   OpenChoreoComponents['schemas']['ClusterWorkflowPlane'];
+type NewClusterResourceType =
+  OpenChoreoComponents['schemas']['ClusterResourceType'];
 type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];
 type NewAgentConnectionStatus =
   OpenChoreoComponents['schemas']['AgentConnectionStatus'];
@@ -723,6 +726,53 @@ export function translateClusterComponentTypeToEntity(
       allowedTraits: normalizeAllowedTraits(ct.allowedTraits, 'ClusterTrait'),
     },
   } as ClusterComponentTypeEntityV1alpha1;
+}
+
+/**
+ * Translates an OpenChoreo ClusterResourceType to a Backstage ClusterResourceType entity.
+ * Cluster-scoped: no namespace param, entity namespace is 'openchoreo-cluster', no domain.
+ */
+export function translateClusterResourceTypeToEntity(
+  crt: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    retainPolicy?: string;
+    createdAt?: string;
+    deletionTimestamp?: string;
+  },
+  config: EntityTranslationConfig,
+): ClusterResourceTypeEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ClusterResourceType',
+    metadata: {
+      name: crt.name,
+      namespace: 'openchoreo-cluster',
+      title: crt.displayName || crt.name,
+      description: crt.description || `${crt.name} cluster resource type`,
+      tags: [
+        'openchoreo',
+        'cluster-resource-type',
+        'platform-engineering',
+      ],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: crt.createdAt || '',
+        ...(crt.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: crt.deletionTimestamp,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      retainPolicy:
+        (crt.retainPolicy as 'Delete' | 'Retain' | undefined) ?? 'Delete',
+    },
+  } as ClusterResourceTypeEntityV1alpha1;
 }
 
 /**
@@ -1497,6 +1547,27 @@ export function translateNewClusterComponentTypeToEntity(
       allowedTraits: cct.spec?.allowedTraits,
       createdAt: getCreatedAt(cct),
       deletionTimestamp: getDeletionTimestamp(cct),
+    },
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API ClusterResourceType into a Backstage
+ * ClusterResourceType entity.
+ */
+export function translateNewClusterResourceTypeToEntity(
+  crt: NewClusterResourceType,
+  ctx: NewApiTranslatorContext,
+): ClusterResourceTypeEntityV1alpha1 {
+  return translateClusterResourceTypeToEntity(
+    {
+      name: getName(crt)!,
+      displayName: getDisplayName(crt),
+      description: getDescription(crt),
+      retainPolicy: crt.spec?.retainPolicy,
+      createdAt: getCreatedAt(crt),
+      deletionTimestamp: getDeletionTimestamp(crt),
     },
     { locationKey: ctx.providerName },
   );

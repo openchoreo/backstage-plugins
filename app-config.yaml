@@ -297,6 +297,10 @@ catalog:
       rules:
         - allow: [Template]
     - type: file
+      target: ../../templates/create-openchoreo-clusterresourcetype/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
       target: ../../templates/create-openchoreo-clustertrait/template.yaml
       rules:
         - allow: [Template]

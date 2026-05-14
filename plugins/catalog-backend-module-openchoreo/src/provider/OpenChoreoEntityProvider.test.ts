@@ -199,6 +199,15 @@ const k8sComponentType = {
   status: { conditions: [readyCondition] },
 };
 
+const k8sClusterResourceType = {
+  metadata: k8sMeta('mysql'),
+  spec: {
+    retainPolicy: 'Retain',
+    resources: [],
+  },
+  status: { conditions: [readyCondition] },
+};
+
 const k8sTrait = {
   metadata: k8sMeta('ingress'),
   spec: { schema: { type: 'object' } },
@@ -395,6 +404,9 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/namespaces/{namespaceName}/component-workflows': okData({
           items: [k8sComponentWorkflow],
         }),
+        '/api/v1/clusterresourcetypes': okData({
+          items: [k8sClusterResourceType],
+        }),
         '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
       });
     });
@@ -414,6 +426,25 @@ describe('OpenChoreoEntityProvider', () => {
       expect(findEntities(entities, 'ComponentType')).toHaveLength(1);
       expect(findEntities(entities, 'TraitType')).toHaveLength(1);
       expect(findEntities(entities, 'Workflow')).toHaveLength(1);
+      expect(findEntities(entities, 'ClusterResourceType')).toHaveLength(1);
+    });
+
+    it('creates ClusterResourceType entity in the openchoreo-cluster namespace', async () => {
+      const entities = await runProvider();
+      const crts = findEntities(entities, 'ClusterResourceType');
+      expect(crts).toHaveLength(1);
+      const crt = crts[0];
+      expect(crt.metadata.name).toBe('mysql');
+      expect(crt.metadata.namespace).toBe('openchoreo-cluster');
+      expect(crt.metadata.title).toBe('mysql');
+      expect((crt.spec as any).retainPolicy).toBe('Retain');
+      expect(crt.metadata.tags).toEqual(
+        expect.arrayContaining([
+          'openchoreo',
+          'cluster-resource-type',
+          'platform-engineering',
+        ]),
+      );
     });
 
     it('creates Domain entity from namespace', async () => {

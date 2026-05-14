@@ -371,6 +371,10 @@ export {
   type UseClusterComponentTypePermissionResult,
 } from './hooks/useClusterComponentTypePermission';
 export {
+  useClusterResourceTypePermission,
+  type UseClusterResourceTypePermissionResult,
+} from './hooks/useClusterResourceTypePermission';
+export {
   useResourceDefinitionPermission,
   type UseResourceDefinitionPermissionResult,
 } from './hooks/useResourceDefinitionPermission';

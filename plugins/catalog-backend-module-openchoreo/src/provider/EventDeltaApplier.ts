@@ -24,6 +24,7 @@ import { WorkloadEndpoint } from '../utils/types';
 import {
   NewApiTranslatorContext,
   translateNewClusterComponentTypeToEntity,
+  translateNewClusterResourceTypeToEntity,
   translateNewClusterDataplaneToEntity,
   translateNewClusterObservabilityPlaneToEntity,
   translateNewClusterTraitToEntity,
@@ -64,6 +65,8 @@ type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 type NewClusterComponentType =
   OpenChoreoComponents['schemas']['ClusterComponentType'];
+type NewClusterResourceType =
+  OpenChoreoComponents['schemas']['ClusterResourceType'];
 type NewClusterTrait = OpenChoreoComponents['schemas']['ClusterTrait'];
 type NewClusterWorkflow = OpenChoreoComponents['schemas']['ClusterWorkflow'];
 type NewClusterDataPlane = OpenChoreoComponents['schemas']['ClusterDataPlane'];
@@ -437,6 +440,16 @@ export class EventDeltaApplier {
         params: { path: { cctName: name } },
       }) as any,
       'clustercomponenttype',
+      name,
+    );
+  }
+
+  private fetchClusterResourceType(client: OpenChoreoApiClient, name: string) {
+    return this.fetchOne<NewClusterResourceType>(
+      client.GET('/api/v1/clusterresourcetypes/{crtName}', {
+        params: { path: { crtName: name } },
+      }) as any,
+      'clusterresourcetype',
       name,
     );
   }
@@ -976,6 +989,22 @@ export class EventDeltaApplier {
     await this.upsertEntities(entities);
   }
 
+  private async refreshClusterResourceType(name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const crt = await this.fetchClusterResourceType(client, name);
+    if (!crt) {
+      await this.removeEntityRefs([
+        this.buildEntityRef('clusterresourcetype', 'openchoreo-cluster', name),
+      ]);
+      return;
+    }
+    const crtEntity = translateNewClusterResourceTypeToEntity(
+      crt,
+      this.translatorContext,
+    ) as Entity;
+    await this.upsertEntities([crtEntity]);
+  }
+
   private async refreshClusterTrait(name: string): Promise<void> {
     const client = await this.createApiClient();
     const ct = await this.fetchClusterTrait(client, name);
@@ -1124,6 +1153,9 @@ export class EventDeltaApplier {
         return;
       case 'clustercomponenttype':
         await this.refreshClusterComponentType(name);
+        return;
+      case 'clusterresourcetype':
+        await this.refreshClusterResourceType(name);
         return;
       case 'clustertrait':
         await this.refreshClusterTrait(name);

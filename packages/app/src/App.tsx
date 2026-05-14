@@ -27,6 +27,7 @@ import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
 import { ComponentTypeYamlEditorFieldExtension } from './scaffolder/ComponentTypeYamlEditor';
 import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
 import { ClusterComponentTypeYamlEditorFieldExtension } from './scaffolder/ClusterComponentTypeYamlEditor';
+import { ClusterResourceTypeYamlEditorFieldExtension } from './scaffolder/ClusterResourceTypeYamlEditor';
 import { ClusterTraitYamlEditorFieldExtension } from './scaffolder/ClusterTraitYamlEditor';
 import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
 import { ClusterWorkflowYamlEditorFieldExtension } from './scaffolder/ClusterWorkflowYamlEditor';
@@ -86,6 +87,7 @@ import {
   UserSettingsGeneral,
 } from '@backstage/plugin-user-settings';
 import CategoryIcon from '@material-ui/icons/Category';
+import LayersIcon from '@material-ui/icons/Layers';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
@@ -159,6 +161,7 @@ const app = createApp({
     'kind:clusterworkflowplane': BuildIcon,
     'kind:componenttype': CategoryIcon,
     'kind:clustercomponenttype': CategoryIcon,
+    'kind:clusterresourcetype': LayersIcon,
     'kind:traittype': ExtensionIcon,
     'kind:clustertraittype': ExtensionIcon,
     'kind:workflow': PlayCircleOutlineIcon,
@@ -250,6 +253,7 @@ const routes = (
         <ComponentTypeYamlEditorFieldExtension />
         <TraitYamlEditorFieldExtension />
         <ClusterComponentTypeYamlEditorFieldExtension />
+        <ClusterResourceTypeYamlEditorFieldExtension />
         <ClusterTraitYamlEditorFieldExtension />
         <ComponentWorkflowYamlEditorFieldExtension />
         <ClusterWorkflowYamlEditorFieldExtension />

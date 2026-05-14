@@ -7,6 +7,7 @@ import WidgetsOutlinedIcon from '@material-ui/icons/WidgetsOutlined';
 import CloudOutlinedIcon from '@material-ui/icons/CloudOutlined';
 import ExtensionOutlinedIcon from '@material-ui/icons/ExtensionOutlined';
 import CategoryOutlinedIcon from '@material-ui/icons/CategoryOutlined';
+import LayersOutlinedIcon from '@material-ui/icons/LayersOutlined';
 import SettingsApplicationsOutlinedIcon from '@material-ui/icons/SettingsApplicationsOutlined';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import ApartmentOutlined from '@material-ui/icons/ApartmentOutlined';
@@ -23,6 +24,7 @@ const TYPE_ICONS: Record<string, React.ReactElement> = {
   ClusterTrait: <ExtensionOutlinedIcon fontSize="inherit" />,
   ComponentType: <CategoryOutlinedIcon fontSize="inherit" />,
   ClusterComponentType: <CategoryOutlinedIcon fontSize="inherit" />,
+  ClusterResourceType: <LayersOutlinedIcon fontSize="inherit" />,
   ComponentWorkflow: <SettingsApplicationsOutlinedIcon fontSize="inherit" />,
   Namespace: <ApartmentOutlined fontSize="inherit" />,
   DeploymentPipeline: <AccountTreeOutlined fontSize="inherit" />,

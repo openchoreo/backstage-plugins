@@ -128,6 +128,7 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   clusterworkflowplane: 'cluster-scoped',
   clusterobservabilityplane: 'cluster-scoped',
   clustercomponenttype: 'cluster-scoped',
+  clusterresourcetype: 'cluster-scoped',
   clustertraittype: 'cluster-scoped',
   clusterworkflow: 'cluster-scoped',
 };
@@ -138,6 +139,7 @@ const CLUSTER_SCOPED_KINDS = new Set([
   'clusterworkflowplane',
   'clusterobservabilityplane',
   'clustercomponenttype',
+  'clusterresourcetype',
   'clustertraittype',
   'clusterworkflow',
 ]);

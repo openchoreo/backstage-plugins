@@ -85,6 +85,7 @@ import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import BuildIcon from '@material-ui/icons/Build';
 import CategoryIcon from '@material-ui/icons/Category';
+import LayersIcon from '@material-ui/icons/Layers';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
@@ -281,6 +282,7 @@ export const apis: AnyApiFactory[] = [
           clusterworkflowplane: BuildIcon,
           componenttype: CategoryIcon,
           clustercomponenttype: CategoryIcon,
+          clusterresourcetype: LayersIcon,
           traittype: ExtensionIcon,
           clustertraittype: ExtensionIcon,
           workflow: PlayCircleOutlineIcon,

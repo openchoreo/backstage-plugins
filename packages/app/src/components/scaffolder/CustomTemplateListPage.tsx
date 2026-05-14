@@ -46,6 +46,7 @@ import {
   useComponentTypePermission,
   useClusterTraitCreatePermission,
   useClusterComponentTypePermission,
+  useClusterResourceTypePermission,
   useComponentWorkflowPermission,
   useWorkflowPermission,
   useClusterWorkflowPermission,
@@ -69,6 +70,7 @@ const PLATFORM_TYPES = [
   'ClusterTrait',
   'Trait',
   'ClusterComponentType',
+  'ClusterResourceType',
   'ComponentType',
   'Workflow',
   'ClusterWorkflow',
@@ -135,6 +137,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   const componentTypePerm = useComponentTypePermission();
   const clusterTraitPerm = useClusterTraitCreatePermission();
   const clusterComponentTypePerm = useClusterComponentTypePermission();
+  const clusterResourceTypePerm = useClusterResourceTypePermission();
   const componentWorkflowPerm = useComponentWorkflowPermission();
   const workflowPerm = useWorkflowPermission();
   const clusterWorkflowPerm = useClusterWorkflowPermission();
@@ -162,6 +165,11 @@ const TemplateListContent = (props: TemplateListPageProps) => {
             !clusterComponentTypePerm.loading &&
             !clusterComponentTypePerm.canCreate
           );
+        case 'ClusterResourceType':
+          return (
+            !clusterResourceTypePerm.loading &&
+            !clusterResourceTypePerm.canCreate
+          );
         case 'ComponentWorkflow':
           return (
             !componentWorkflowPerm.loading && !componentWorkflowPerm.canCreate
@@ -188,6 +196,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
       clusterTraitPerm,
       componentTypePerm,
       clusterComponentTypePerm,
+      clusterResourceTypePerm,
       componentWorkflowPerm,
       workflowPerm,
       clusterWorkflowPerm,

@@ -18,6 +18,7 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 
 import { ClusterComponentTypeEntityProcessor } from './ClusterComponentTypeEntityProcessor';
+import { ClusterResourceTypeEntityProcessor } from './ClusterResourceTypeEntityProcessor';
 import { ClusterDataplaneEntityProcessor } from './ClusterDataplaneEntityProcessor';
 import { ClusterObservabilityPlaneEntityProcessor } from './ClusterObservabilityPlaneEntityProcessor';
 import { ClusterTraitTypeEntityProcessor } from './ClusterTraitTypeEntityProcessor';
@@ -513,6 +514,38 @@ describe('ClusterTraitTypeEntityProcessor', () => {
     const emit = jest.fn();
     await processor.postProcessEntity(
       { kind: 'ClusterTraitType', metadata: { name: 't' }, spec: {} } as any,
+      mockLocation,
+      emit,
+    );
+    expect(emit).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ClusterResourceTypeEntityProcessor
+// ---------------------------------------------------------------------------
+describe('ClusterResourceTypeEntityProcessor', () => {
+  const processor = new ClusterResourceTypeEntityProcessor();
+
+  it('validateEntityKind returns true for ClusterResourceType', async () => {
+    expect(
+      await processor.validateEntityKind({
+        kind: 'ClusterResourceType',
+      } as any),
+    ).toBe(true);
+    expect(
+      await processor.validateEntityKind({ kind: 'ResourceType' } as any),
+    ).toBe(false);
+  });
+
+  it('postProcessEntity emits no relations', async () => {
+    const emit = jest.fn();
+    await processor.postProcessEntity(
+      {
+        kind: 'ClusterResourceType',
+        metadata: { name: 'r' },
+        spec: { retainPolicy: 'Delete' },
+      } as any,
       mockLocation,
       emit,
     );

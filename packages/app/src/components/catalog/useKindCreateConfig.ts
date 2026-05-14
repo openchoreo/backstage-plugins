@@ -9,6 +9,7 @@ import {
   useDeploymentPipelinePermission,
   useComponentTypePermission,
   useClusterComponentTypePermission,
+  useClusterResourceTypePermission,
   useTraitCreatePermission,
   useClusterTraitCreatePermission,
   useWorkflowPermission,
@@ -38,6 +39,7 @@ export function useKindCreateConfig(): KindCreateConfig | null {
   const deploymentPipelinePerm = useDeploymentPipelinePermission();
   const componentTypePerm = useComponentTypePermission();
   const clusterComponentTypePerm = useClusterComponentTypePermission();
+  const clusterResourceTypePerm = useClusterResourceTypePermission();
   const traitPerm = useTraitCreatePermission();
   const clusterTraitPerm = useClusterTraitCreatePermission();
   const workflowPerm = useWorkflowPermission();
@@ -117,6 +119,17 @@ export function useKindCreateConfig(): KindCreateConfig | null {
         canCreate: clusterComponentTypePerm.canCreate,
         loading: clusterComponentTypePerm.loading,
         deniedTooltip: clusterComponentTypePerm.createDeniedTooltip,
+      };
+    case 'clusterresourcetype':
+      return {
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-clusterresourcetype',
+        }),
+        buttonLabel: 'Create Cluster Resource Type',
+        canCreate: clusterResourceTypePerm.canCreate,
+        loading: clusterResourceTypePerm.loading,
+        deniedTooltip: clusterResourceTypePerm.createDeniedTooltip,
       };
     case 'traittype':
       return {

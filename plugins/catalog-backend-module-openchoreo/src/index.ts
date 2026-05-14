@@ -28,6 +28,7 @@ export {
   translateWorkflowToEntity,
   translateNamespaceToDomainEntity,
   translateClusterComponentTypeToEntity,
+  translateClusterResourceTypeToEntity,
   translateClusterTraitToEntity,
   translateClusterWorkflowToEntity,
   translateDeploymentPipelineToEntity,

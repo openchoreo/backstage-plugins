@@ -384,6 +384,7 @@ export type PlatformResourceKind =
   | 'observabilityplanes'
   | 'deploymentpipelines'
   | 'clustercomponenttypes'
+  | 'clusterresourcetypes'
   | 'clustertraits'
   | 'clusterworkflows'
   | 'clusterdataplanes'
@@ -395,6 +396,7 @@ export type PlatformResourceKind =
 export const CLUSTER_SCOPED_RESOURCE_KINDS: ReadonlySet<PlatformResourceKind> =
   new Set([
     'clustercomponenttypes',
+    'clusterresourcetypes',
     'clustertraits',
     'clusterworkflows',
     'clusterdataplanes',

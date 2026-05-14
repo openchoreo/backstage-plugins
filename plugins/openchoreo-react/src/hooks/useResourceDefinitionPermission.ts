@@ -27,6 +27,8 @@ import {
   openchoreoDeploymentpipelineDeletePermission,
   openchoreoClusterComponentTypeUpdatePermission,
   openchoreoClusterComponentTypeDeletePermission,
+  openchoreoClusterResourceTypeUpdatePermission,
+  openchoreoClusterResourceTypeDeletePermission,
   openchoreoClusterTraitUpdatePermission,
   openchoreoClusterTraitDeletePermission,
   openchoreoClusterDataplaneUpdatePermission,
@@ -133,6 +135,11 @@ const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
   clustercomponenttype: {
     update: openchoreoClusterComponentTypeUpdatePermission,
     delete: openchoreoClusterComponentTypeDeletePermission,
+    isResourceScoped: false,
+  },
+  clusterresourcetype: {
+    update: openchoreoClusterResourceTypeUpdatePermission,
+    delete: openchoreoClusterResourceTypeDeletePermission,
     isResourceScoped: false,
   },
   clustertraittype: {

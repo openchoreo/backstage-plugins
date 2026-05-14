@@ -165,6 +165,7 @@ const PLATFORM_KIND_DISPLAY_NAMES: Record<string, string> = {
   deploymentpipeline: 'Deployment Pipeline',
   componenttype: 'Component Type',
   clustercomponenttype: 'Cluster Component Type',
+  clusterresourcetype: 'Cluster Resource Type',
   traittype: 'Trait Type',
   clustertraittype: 'Cluster Trait Type',
   workflow: 'Workflow',
@@ -1183,6 +1184,29 @@ const clusterComponentTypePage = (
   </EntityLayoutWithDelete>
 );
 
+const clusterResourceTypePage = (
+  <EntityLayoutWithDelete kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}>
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </OpenChoreoEntityLayout.Route>
+  </EntityLayoutWithDelete>
+);
+
 const clusterTraitTypePage = (
   <EntityLayoutWithDelete kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}>
     <OpenChoreoEntityLayout.Route path="/" title="Overview">
@@ -1354,6 +1378,10 @@ export const entityPage = (
     <EntitySwitch.Case
       if={isKind('clustercomponenttype')}
       children={clusterComponentTypePage}
+    />
+    <EntitySwitch.Case
+      if={isKind('clusterresourcetype')}
+      children={clusterResourceTypePage}
     />
     <EntitySwitch.Case if={isKind('traittype')} children={traitTypePage} />
     <EntitySwitch.Case

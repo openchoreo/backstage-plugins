@@ -205,6 +205,7 @@ describe('graphUtils', () => {
         'componenttype',
         'traittype',
         'clustercomponenttype',
+        'clusterresourcetype',
         'clustertraittype',
         'clusterdataplane',
         'clusterworkflowplane',
