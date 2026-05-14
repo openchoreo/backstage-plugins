@@ -150,3 +150,167 @@ describe('ObservabilityClient.getMetrics', () => {
     ).rejects.toThrow('Unsupported metric type: unknown');
   });
 });
+
+describe('ObservabilityClient.getFinOpsReports', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resolveUrls.mockResolvedValue({
+      observerUrl: 'http://observer',
+      finopsAgentUrl: 'http://finops',
+    });
+  });
+
+  it('fetches finops reports successfully', async () => {
+    const mockReports = [
+      {
+        reportId: 'r1',
+        namespace: 'dev',
+        project: 'proj',
+        timestamp: '2026-01-01T00:00:00Z',
+        status: 'completed',
+      },
+    ];
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({ reports: mockReports, totalCount: 1 }),
+    );
+
+    const client = createClient();
+    const result = await client.getFinOpsReports('dev', 'proj', 'env1', {
+      startTime: '2026-01-01T00:00:00Z',
+      endTime: '2026-01-02T00:00:00Z',
+      limit: 50,
+    });
+
+    expect(mockFetchApi.fetch).toHaveBeenCalledTimes(1);
+    const [url] = mockFetchApi.fetch.mock.calls[0];
+    expect(url).toContain('/api/v1alpha1/reports');
+    expect(url).toContain('namespace=dev');
+    expect(url).toContain('project=proj');
+    expect(url).toContain('environment=env1');
+    expect(url).toContain('limit=50');
+    expect(result.reports).toEqual(mockReports);
+    expect(result.totalCount).toBe(1);
+  });
+
+  it('throws when finopsAgentUrl is not configured', async () => {
+    resolveUrls.mockResolvedValue({
+      observerUrl: 'http://observer',
+      finopsAgentUrl: null,
+    });
+
+    const client = createClient();
+    await expect(
+      client.getFinOpsReports('dev', 'proj', 'env1'),
+    ).rejects.toThrow('FinOps service is not configured');
+  });
+
+  it('throws when fetch fails with network error', async () => {
+    mockFetchApi.fetch.mockRejectedValueOnce(new Error('connection refused'));
+
+    const client = createClient();
+    await expect(
+      client.getFinOpsReports('dev', 'proj', 'env1'),
+    ).rejects.toThrow('FinOps service is unreachable: connection refused');
+  });
+
+  it('throws friendly error when response is not ok', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Server Error',
+      json: () => Promise.resolve({ error: 'internal server error' }),
+    });
+
+    const client = createClient();
+    await expect(
+      client.getFinOpsReports('dev', 'proj', 'env1'),
+    ).rejects.toThrow('internal server error');
+  });
+
+  it('returns empty reports array when API returns no reports', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({ reports: undefined, totalCount: 0 }),
+    );
+
+    const client = createClient();
+    const result = await client.getFinOpsReports('dev', 'proj', 'env1');
+    expect(result.reports).toEqual([]);
+  });
+});
+
+describe('ObservabilityClient.getFinOpsReport', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resolveUrls.mockResolvedValue({
+      observerUrl: 'http://observer',
+      finopsAgentUrl: 'http://finops',
+    });
+  });
+
+  it('fetches a single finops report successfully', async () => {
+    const mockReport = {
+      reportId: 'r1',
+      namespace: 'dev',
+      project: 'proj',
+      timestamp: '2026-01-01T00:00:00Z',
+      status: 'completed',
+      report: null,
+    };
+    mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse(mockReport));
+
+    const client = createClient();
+    const result = await client.getFinOpsReport('r1', 'env1', 'dev');
+
+    expect(mockFetchApi.fetch).toHaveBeenCalledTimes(1);
+    const [url] = mockFetchApi.fetch.mock.calls[0];
+    expect(url).toContain('/api/v1alpha1/reports/r1');
+    expect(result).toEqual(mockReport);
+  });
+
+  it('throws when finopsAgentUrl is not configured', async () => {
+    resolveUrls.mockResolvedValue({
+      observerUrl: 'http://observer',
+      finopsAgentUrl: null,
+    });
+
+    const client = createClient();
+    await expect(client.getFinOpsReport('r1', 'env1', 'dev')).rejects.toThrow(
+      'FinOps service is not configured',
+    );
+  });
+
+  it('throws when fetch fails with network error', async () => {
+    mockFetchApi.fetch.mockRejectedValueOnce(new Error('timeout'));
+
+    const client = createClient();
+    await expect(client.getFinOpsReport('r1', 'env1', 'dev')).rejects.toThrow(
+      'FinOps service is unreachable: timeout',
+    );
+  });
+
+  it('throws not found error', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      json: () => Promise.resolve({ error: 'FinOps report not found' }),
+    });
+
+    const client = createClient();
+    await expect(
+      client.getFinOpsReport('missing-id', 'env1', 'dev'),
+    ).rejects.toThrow('FinOps report not found');
+  });
+
+  it('URL-encodes the reportId', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({ reportId: 'r1/special' }),
+    );
+
+    const client = createClient();
+    await client.getFinOpsReport('r1/special', 'env1', 'dev');
+
+    const [url] = mockFetchApi.fetch.mock.calls[0];
+    expect(url).toContain('r1%2Fspecial');
+  });
+});

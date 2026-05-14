@@ -3,6 +3,7 @@ import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 interface CachedUrls {
   observerUrl: string;
   rcaAgentUrl?: string;
+  finopsAgentUrl?: string;
   expiresAt: number;
 }
 
@@ -21,13 +22,18 @@ export class ObserverUrlCache {
   async resolveUrls(
     namespaceName: string,
     environmentName: string,
-  ): Promise<{ observerUrl: string; rcaAgentUrl?: string }> {
+  ): Promise<{
+    observerUrl: string;
+    rcaAgentUrl?: string;
+    finopsAgentUrl?: string;
+  }> {
     const cacheKey = `${namespaceName}/${environmentName}`;
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() < cached.expiresAt) {
       return {
         observerUrl: cached.observerUrl,
         rcaAgentUrl: cached.rcaAgentUrl,
+        finopsAgentUrl: cached.finopsAgentUrl,
       };
     }
 
@@ -64,12 +70,14 @@ export class ObserverUrlCache {
     this.cache.set(cacheKey, {
       observerUrl: data.observerUrl,
       rcaAgentUrl: data.rcaAgentUrl,
+      finopsAgentUrl: data.finopsAgentUrl,
       expiresAt: Date.now() + CACHE_TTL_MS,
     });
 
     return {
       observerUrl: data.observerUrl,
       rcaAgentUrl: data.rcaAgentUrl,
+      finopsAgentUrl: data.finopsAgentUrl,
     };
   }
 }

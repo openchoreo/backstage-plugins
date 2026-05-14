@@ -84,7 +84,7 @@ helm upgrade openchoreo-control-plane oci://ghcr.io/openchoreo/helm-charts/openc
 To develop observability plane features, port-forward the observer API:
 
 ```bash
-kubectl patch observabilityplane default --type='merge' -p '{"spec":{"observerURL":"http://localhost:9097"}}'
+kubectl patch clusterobservabilityplane default --type='merge' -p '{"spec":{"observerURL":"http://localhost:9097"}}'
 ```
 
 ```bash

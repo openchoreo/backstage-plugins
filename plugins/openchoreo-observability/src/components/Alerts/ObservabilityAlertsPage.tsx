@@ -175,6 +175,42 @@ const ObservabilityAlertsContent = () => {
     [entity, project, filters.environment],
   );
 
+  // Open the parent project's Cost Analysis tab in a new browser tab,
+  // pre-filtered by alertId and with a time range that covers the alert's age.
+  const handleViewCostAnalysis = useCallback(
+    (alert: AlertSummary) => {
+      const parentProject =
+        (entity.spec?.system as string | undefined) || project || '';
+      const catalogNs = entity.metadata.namespace || 'default';
+      if (!parentProject) return;
+
+      // Pick smallest preset >= age of alert
+      const PRESETS: Array<{ value: string; ms: number }> = [
+        { value: '10m', ms: 10 * 60 * 1000 },
+        { value: '30m', ms: 30 * 60 * 1000 },
+        { value: '1h', ms: 60 * 60 * 1000 },
+        { value: '24h', ms: 24 * 60 * 60 * 1000 },
+        { value: '7d', ms: 7 * 24 * 60 * 60 * 1000 },
+        { value: '14d', ms: 14 * 24 * 60 * 60 * 1000 },
+      ];
+      let timeRange = '1h'; // default
+      if (alert.timestamp) {
+        const ageMs = Date.now() - new Date(alert.timestamp).getTime();
+        const match = PRESETS.find(p => p.ms >= ageMs);
+        timeRange = match ? match.value : PRESETS[PRESETS.length - 1].value;
+      }
+
+      const params = new URLSearchParams({
+        q: alert.alertId,
+        timeRange,
+        ...(filters.environment ? { env: filters.environment } : {}),
+      });
+      const url = `/catalog/${catalogNs}/system/${parentProject}/cost-analysis?${params.toString()}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    },
+    [entity, project, filters.environment],
+  );
+
   const renderError = (error: string) => {
     const isObservabilityDisabled = error.includes(
       'Observability is not enabled',
@@ -246,6 +282,7 @@ const ObservabilityAlertsContent = () => {
             componentName={componentName}
             namespaceName={namespace}
             onViewIncident={handleViewIncident}
+            onViewCostAnalysis={handleViewCostAnalysis}
           />
         </>
       )}

@@ -115,3 +115,12 @@ export const ObservabilityProjectIncidents =
       mountPoint: rootRouteRef,
     }),
   );
+
+export const ObservabilityCostAnalysis = openchoreoObservabilityPlugin.provide(
+  createRoutableExtension({
+    name: 'ObservabilityCostAnalysis',
+    component: () =>
+      import('./components/CostAnalysis').then(m => m.CostAnalysisPage),
+    mountPoint: rootRouteRef,
+  }),
+);
