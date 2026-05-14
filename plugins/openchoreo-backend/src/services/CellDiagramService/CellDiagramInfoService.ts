@@ -27,8 +27,6 @@ type RuntimeTopologyMetrics =
   ObservabilityComponents['schemas']['RuntimeTopologyMetrics'];
 type RuntimeTopologyEdge =
   ObservabilityComponents['schemas']['RuntimeTopologyEdge'];
-type RuntimeTopologyNodeRef =
-  ObservabilityComponents['schemas']['RuntimeTopologyNodeRef'];
 
 interface ObservationEntry {
   sourceNodeId: number;
@@ -92,18 +90,6 @@ function adaptRuntimeTopologyMetrics(
     p90Latency: (metrics.latencyP90 ?? 0) * NS_PER_SEC,
     p99Latency: (metrics.latencyP99 ?? 0) * NS_PER_SEC,
   };
-}
-
-// Resolve a node reference's component name. The observer fills in `component`
-// (name) when it can; otherwise the caller-supplied UID -> name map provides
-// the fallback. Returns undefined if neither is known.
-function resolveComponentName(
-  ref: RuntimeTopologyNodeRef,
-  uidToName: Map<string, string>,
-): string | undefined {
-  if (ref.component) return ref.component;
-  if (ref.componentUid) return uidToName.get(ref.componentUid);
-  return undefined;
 }
 
 type ModelsCompleteComponent = ComponentResponse;
@@ -224,18 +210,9 @@ export class CellDiagramInfoService implements CellDiagramService {
         }
       }
 
-      // Convert new API components to the legacy ModelsCompleteComponent shape
-      // so we can reuse the existing buildProject logic. Build the UID -> name
-      // map at the same pass so Phase 2 (runtime cell graph) can translate
-      // edge UIDs back to component names.
-      const componentUidToName = new Map<string, string>();
       const completeComponents: ModelsCompleteComponent[] = componentItems
         .map(comp => {
           const name = comp.metadata?.name ?? '';
-          const uid = (comp.metadata as { uid?: string } | undefined)?.uid;
-          if (name && uid) {
-            componentUidToName.set(uid, name);
-          }
           const componentTypeRef = comp.spec?.componentType;
           const componentType =
             typeof componentTypeRef === 'string'
@@ -258,7 +235,7 @@ export class CellDiagramInfoService implements CellDiagramService {
       );
 
       if (environmentName) {
-        await this.enrichWithObservations(project, componentUidToName, {
+        await this.enrichWithObservations(project, {
           namespaceName,
           projectName,
           environmentName,
@@ -278,22 +255,16 @@ export class CellDiagramInfoService implements CellDiagramService {
   }
 
   /**
-   * Top-level enrichment: resolves the observer URL once, then runs the two
-   * observation phases in parallel:
-   *   - Phase 1: per-component HTTP metrics from /api/v1/metrics/query.
+   * Top-level enrichment: resolves the observer URL once, then fetches gateway
+   * and connection observations in parallel:
+   *   - Gateway observations: per-component HTTP metrics from /api/v1/metrics/query.
    *     Populates gateway observations on services with exposed gateways.
-   *     Slightly inflates gateway counts when there's mixed gateway+internal
-   *     traffic — kept for backwards compatibility until the metrics-adapter
-   *     emits real gateway -> component edges.
-   *   - Phase 2: per-edge HTTP metrics from /api/v1alpha1/metrics/runtime-topology.
-   *     Populates component-to-component connection observations with clean
-   *     source/destination breakdown. Component name back-resolution uses the
-   *     componentUidToName map (built from the project's components — the
-   *     observer doesn't currently fill component names in the response).
+   *   - Connection observations: per-edge HTTP metrics from /api/v1alpha1/metrics/runtime-topology.
+   *     Populates component-to-component connection observations. Component
+   *     names come directly from the response (pod labels via Prometheus).
    */
   private async enrichWithObservations(
     project: Project,
-    componentUidToName: Map<string, string>,
     params: {
       namespaceName: string;
       projectName: string;
@@ -336,12 +307,11 @@ export class CellDiagramInfoService implements CellDiagramService {
           startTime,
           endTime,
         }),
-        this.enrichConnectionsFromRuntimeTopology(
-          project,
-          componentUidToName,
-          obsClient,
-          { ...params, startTime, endTime },
-        ),
+        this.enrichConnectionsFromRuntimeTopology(project, obsClient, {
+          ...params,
+          startTime,
+          endTime,
+        }),
       ]);
     } catch (error) {
       // observability errors must not break the cell diagram
@@ -352,10 +322,9 @@ export class CellDiagramInfoService implements CellDiagramService {
   }
 
   /**
-   * Phase 1: per-component HTTP metrics → gateway observations.
-   * Existing behaviour (preserved from before the runtime-topology endpoint
-   * existed). Sums per-component request rates and attaches the result to any
-   * exposed gateway.
+   * Per-component HTTP metrics → gateway observations.
+   * Sums per-component request rates from /api/v1/metrics/query and attaches
+   * the result to any exposed gateway (internet/intranet).
    */
   private async enrichGatewaysFromHttpMetrics(
     project: Project,
@@ -444,17 +413,17 @@ export class CellDiagramInfoService implements CellDiagramService {
     );
 
     this.logger.info(
-      `Phase 1 (gateway observations) for '${projectName}/${environmentName}': ${attachedCount} attached, ${zeroTrafficCount} zero-traffic, ${noGatewayCount} no-exposed-gateway`,
+      `Gateway observations for '${projectName}/${environmentName}': ${attachedCount} attached, ${zeroTrafficCount} zero-traffic, ${noGatewayCount} no-exposed-gateway`,
     );
   }
 
   /**
-   * Phase 2: per-edge HTTP metrics → connection observations.
+   * Per-edge HTTP metrics → connection observations.
    * Calls /api/v1alpha1/metrics/runtime-topology and merges the resulting edges
    * onto Project.components[].connections. Connection IDs use the format
    *   ${ns}:${project}:${dstComponent}:${endpoint}
-   * but the runtime endpoint only knows components (not endpoints), so we
-   * match by prefix and attach to all connections from src -> dst.
+   * but the runtime topology endpoint only knows components (not endpoints), so
+   * we match by prefix and attach to all connections from src -> dst.
    *
    * If a runtime edge has no matching static connection, a runtime-only
    * connection is added with observationOnly=true so the diff layer can
@@ -463,7 +432,6 @@ export class CellDiagramInfoService implements CellDiagramService {
    */
   private async enrichConnectionsFromRuntimeTopology(
     project: Project,
-    componentUidToName: Map<string, string>,
     obsClient: ReturnType<typeof createObservabilityClientWithUrl>,
     params: {
       namespaceName: string;
@@ -502,7 +470,7 @@ export class CellDiagramInfoService implements CellDiagramService {
         // not warn, so this isn't noisy during the rollout.
         if (response.status === 404) {
           this.logger.info(
-            `runtime-topology endpoint not available (HTTP 404); skipping Phase 2`,
+            `runtime-topology endpoint not available (HTTP 404); skipping connection observations`,
           );
           return;
         }
@@ -514,14 +482,14 @@ export class CellDiagramInfoService implements CellDiagramService {
       const edges = (data?.edges ?? []) as RuntimeTopologyEdge[];
       if (edges.length === 0) {
         this.logger.info(
-          `Phase 2 (runtime topology): no edges returned for '${projectName}/${environmentName}'`,
+          `Runtime topology: no edges returned for '${projectName}/${environmentName}'`,
         );
         return;
       }
 
       for (const edge of edges) {
         this.logger.debug(
-          `Phase 2 edge: src={kind=${edge.source.kind}, component=${
+          `Runtime topology edge: src={kind=${edge.source.kind}, component=${
             edge.source.component ?? '-'
           }, uid=${edge.source.componentUid ?? '-'}} ` +
             `dst={kind=${edge.target.kind}, component=${
@@ -537,25 +505,43 @@ export class CellDiagramInfoService implements CellDiagramService {
           edge.source.kind !== 'component' ||
           edge.target.kind !== 'component'
         ) {
+          this.logger.info(
+            `Runtime topology skip (kind mismatch): src.kind=${edge.source.kind} dst.kind=${edge.target.kind}`,
+          );
           skipped += 1;
           continue;
         }
 
-        const srcName = resolveComponentName(edge.source, componentUidToName);
-        const dstName = resolveComponentName(edge.target, componentUidToName);
+        const srcName = edge.source.component;
+        const dstName = edge.target.component;
         if (!srcName || !dstName) {
+          this.logger.info(
+            `Runtime topology skip (no component name): src=${JSON.stringify(
+              edge.source,
+            )} dst=${JSON.stringify(edge.target)}`,
+          );
           skipped += 1;
           continue;
         }
 
         const observation = adaptRuntimeTopologyMetrics(edge.metrics);
         if (!observation) {
+          this.logger.info(
+            `Runtime topology skip (zero traffic): ${srcName} -> ${dstName} requestCount=${
+              edge.metrics?.requestCount ?? 0
+            }`,
+          );
           skipped += 1;
           continue;
         }
 
         const srcComponent = project.components.find(c => c.id === srcName);
         if (!srcComponent) {
+          this.logger.info(
+            `Runtime topology skip (src component not found): srcName='${srcName}' available=[${project.components
+              .map(c => c.id)
+              .join(', ')}]`,
+          );
           skipped += 1;
           continue;
         }
@@ -603,7 +589,7 @@ export class CellDiagramInfoService implements CellDiagramService {
       }
 
       this.logger.info(
-        `Phase 2 (runtime cell graph) for '${projectName}/${environmentName}': ${attached} attached, ${runtimeOnly} runtime-only, ${skipped} skipped (of ${edges.length} edges)`,
+        `Runtime topology for '${projectName}/${environmentName}': ${attached} attached, ${runtimeOnly} runtime-only, ${skipped} skipped (of ${edges.length} edges)`,
       );
     } catch (err) {
       this.logger.warn(
