@@ -784,7 +784,7 @@ export interface components {
          * @description The metric to query for metric based alerts
          * @enum {string}
          */
-        metric?: 'cpu_usage' | 'memory_usage' | 'budget';
+        metric?: 'cpu_usage' | 'memory_usage';
       };
       condition: {
         /** @description Whether the alert rule is enabled */
@@ -836,7 +836,7 @@ export interface components {
          * @description The metric to query for metric based alerts
          * @enum {string}
          */
-        metric?: 'cpu_usage' | 'memory_usage' | 'budget';
+        metric?: 'cpu_usage' | 'memory_usage';
       };
       condition?: {
         /** @description Whether the alert rule is enabled */
@@ -1040,10 +1040,7 @@ export interface components {
         alertId?: string;
         /** @description The ID of the incident */
         incidentId?: string;
-        /** @description Whether AI RCA was triggered for the incident */
         incidentTriggerAiRca?: boolean;
-        /** @description Whether AI cost analysis was triggered for the incident */
-        incidentTriggerAiCostAnalysis?: boolean;
         /**
          * @description The status of the incident
          * @enum {string}
@@ -1141,8 +1138,6 @@ export interface components {
       description?: string;
       /** @description Whether AI RCA was triggered for the incident */
       incidentTriggerAiRca?: boolean;
-      /** @description Whether AI cost analysis was triggered for the incident */
-      incidentTriggerAiCostAnalysis?: boolean;
       labels?: {
         /** @description The name of the component */
         componentName?: string;
