@@ -31,6 +31,7 @@ export function FeatureGatedContent({
       auth: 'Authentication',
       authz: 'Authorization',
       secretManagement: 'Secret Management',
+      assistant: 'Perch',
     };
 
     return (
