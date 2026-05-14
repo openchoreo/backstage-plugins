@@ -24,6 +24,7 @@ export {
   translateProjectToEntity,
   translateEnvironmentToEntity,
   translateComponentTypeToEntity,
+  translateResourceTypeToEntity,
   translateTraitToEntity,
   translateWorkflowToEntity,
   translateNamespaceToDomainEntity,

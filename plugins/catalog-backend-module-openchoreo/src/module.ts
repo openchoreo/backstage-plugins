@@ -28,6 +28,7 @@ import {
   ClusterWorkflowPlaneEntityProcessor,
   ClusterWorkflowEntityProcessor,
   ClusterResourceTypeEntityProcessor,
+  ResourceTypeEntityProcessor,
   SystemEntityProcessor,
 } from './processors';
 import {
@@ -160,6 +161,9 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register the ClusterResourceType entity processor
         catalog.addProcessor(new ClusterResourceTypeEntityProcessor());
+
+        // Register the ResourceType entity processor
+        catalog.addProcessor(new ResourceTypeEntityProcessor());
 
         // Register the System (Project) entity processor.
         // Emits the usesPipeline / pipelineUsedBy relation pair from the

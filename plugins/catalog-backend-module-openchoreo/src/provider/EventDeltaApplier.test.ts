@@ -96,6 +96,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       ],
     },
     { kind: 'Trait', expectedRefs: ['traittype:test-ns/order'] },
+    { kind: 'ResourceType', expectedRefs: ['resourcetype:test-ns/order'] },
     { kind: 'Workflow', expectedRefs: ['workflow:test-ns/order'] },
   ];
 

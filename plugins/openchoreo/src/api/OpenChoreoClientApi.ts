@@ -374,6 +374,7 @@ export type PlatformResourceKind =
   | 'projects'
   | 'namespaces'
   | 'componenttypes'
+  | 'resourcetypes'
   | 'traits'
   | 'workflows'
   | 'component-workflows'

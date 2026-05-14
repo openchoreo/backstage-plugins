@@ -8,6 +8,7 @@ import {
   annotationStoreRef,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
 import { createComponentTypeDefinitionAction } from './actions/componentType';
+import { createResourceTypeDefinitionAction } from './actions/resourceType';
 import { createTraitDefinitionAction } from './actions/trait';
 import { createComponentWorkflowDefinitionAction } from './actions/componentWorkflow';
 import { createClusterComponentTypeDefinitionAction } from './actions/clusterComponentType';
@@ -48,6 +49,7 @@ export const scaffolderModule = createBackendModule({
             annotationStore,
           ),
           createComponentTypeDefinitionAction(config, immediateCatalog),
+          createResourceTypeDefinitionAction(config, immediateCatalog),
           createTraitDefinitionAction(config, immediateCatalog),
           createComponentWorkflowDefinitionAction(config, immediateCatalog),
           createEnvironmentAction(config, immediateCatalog),

@@ -282,6 +282,7 @@ export const apis: AnyApiFactory[] = [
           clusterworkflowplane: BuildIcon,
           componenttype: CategoryIcon,
           clustercomponenttype: CategoryIcon,
+          resourcetype: LayersIcon,
           clusterresourcetype: LayersIcon,
           traittype: ExtensionIcon,
           clustertraittype: ExtensionIcon,

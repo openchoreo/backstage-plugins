@@ -17,3 +17,4 @@ export type { ClusterObservabilityPlaneEntityV1alpha1 } from './ClusterObservabi
 export type { ClusterWorkflowPlaneEntityV1alpha1 } from './ClusterWorkflowPlaneEntityV1alpha1';
 export type { ClusterWorkflowEntityV1alpha1 } from './ClusterWorkflowEntityV1alpha1';
 export type { ClusterResourceTypeEntityV1alpha1 } from './ClusterResourceTypeEntityV1alpha1';
+export type { ResourceTypeEntityV1alpha1 } from './ResourceTypeEntityV1alpha1';

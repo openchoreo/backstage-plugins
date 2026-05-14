@@ -15,4 +15,5 @@ export { ClusterObservabilityPlaneEntityProcessor } from './ClusterObservability
 export { ClusterWorkflowPlaneEntityProcessor } from './ClusterWorkflowPlaneEntityProcessor';
 export { ClusterWorkflowEntityProcessor } from './ClusterWorkflowEntityProcessor';
 export { ClusterResourceTypeEntityProcessor } from './ClusterResourceTypeEntityProcessor';
+export { ResourceTypeEntityProcessor } from './ResourceTypeEntityProcessor';
 export { SystemEntityProcessor } from './SystemEntityProcessor';

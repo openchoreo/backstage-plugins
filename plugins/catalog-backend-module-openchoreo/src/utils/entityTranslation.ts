@@ -33,6 +33,7 @@ import type {
   ClusterObservabilityPlaneEntityV1alpha1,
   ClusterWorkflowPlaneEntityV1alpha1,
   ClusterResourceTypeEntityV1alpha1,
+  ResourceTypeEntityV1alpha1,
   DeploymentPipelineEntityV1alpha1,
 } from '../kinds';
 import { normalizeObservabilityPlaneRef, resolveProjectOwner } from './helpers';
@@ -63,6 +64,7 @@ type NewClusterWorkflowPlane =
   OpenChoreoComponents['schemas']['ClusterWorkflowPlane'];
 type NewClusterResourceType =
   OpenChoreoComponents['schemas']['ClusterResourceType'];
+type NewResourceType = OpenChoreoComponents['schemas']['ResourceType'];
 type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];
 type NewAgentConnectionStatus =
   OpenChoreoComponents['schemas']['AgentConnectionStatus'];
@@ -621,6 +623,52 @@ export function translateTraitToEntity(
       domain: `default/${namespaceName}`,
     },
   };
+}
+
+/**
+ * Translates an OpenChoreo ResourceType to a Backstage ResourceType entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateResourceTypeToEntity(
+  rt: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    retainPolicy?: string;
+    createdAt?: string;
+    deletionTimestamp?: string;
+  },
+  namespaceName: string,
+  config: EntityTranslationConfig,
+): ResourceTypeEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ResourceType',
+    metadata: {
+      name: rt.name,
+      namespace: namespaceName,
+      title: rt.displayName || rt.name,
+      description: rt.description || `${rt.name} resource type`,
+      tags: ['openchoreo', 'resource-type', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: rt.createdAt || '',
+        ...(rt.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: rt.deletionTimestamp,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      domain: `default/${namespaceName}`,
+      retainPolicy:
+        (rt.retainPolicy as 'Delete' | 'Retain' | undefined) ?? 'Delete',
+    },
+  } as ResourceTypeEntityV1alpha1;
 }
 
 /**
@@ -1569,6 +1617,28 @@ export function translateNewClusterResourceTypeToEntity(
       createdAt: getCreatedAt(crt),
       deletionTimestamp: getDeletionTimestamp(crt),
     },
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API ResourceType into a Backstage ResourceType entity.
+ */
+export function translateNewResourceTypeToEntity(
+  rt: NewResourceType,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): ResourceTypeEntityV1alpha1 {
+  return translateResourceTypeToEntity(
+    {
+      name: getName(rt)!,
+      displayName: getDisplayName(rt),
+      description: getDescription(rt),
+      retainPolicy: rt.spec?.retainPolicy,
+      createdAt: getCreatedAt(rt),
+      deletionTimestamp: getDeletionTimestamp(rt),
+    },
+    namespaceName,
     { locationKey: ctx.providerName },
   );
 }

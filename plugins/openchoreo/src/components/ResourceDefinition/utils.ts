@@ -14,6 +14,8 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'components';
     case 'componenttype':
       return 'componenttypes';
+    case 'resourcetype':
+      return 'resourcetypes';
     case 'traittype':
       return 'traits';
     case 'workflow':
@@ -64,6 +66,8 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'Component';
     case 'componenttype':
       return 'ComponentType';
+    case 'resourcetype':
+      return 'ResourceType';
     case 'traittype':
       return 'Trait'; // TraitType in Backstage maps to Trait CRD
     case 'workflow':
@@ -150,6 +154,7 @@ export function isSupportedKind(kind: string): boolean {
     'domain',
     'component',
     'componenttype',
+    'resourcetype',
     'traittype',
     'workflow',
     'componentworkflow',

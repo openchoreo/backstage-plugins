@@ -60,6 +60,7 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
   clusterobservabilityplane: 'Cluster Observability Plane',
   deploymentpipeline: 'Deployment Pipeline',
   componenttype: 'Component Type',
+  resourcetype: 'Resource Type',
   clustercomponenttype: 'Cluster Component Type',
   clusterresourcetype: 'Cluster Resource Type',
   traittype: 'Trait Type',

@@ -203,6 +203,7 @@ describe('graphUtils', () => {
         'workflowplane',
         'observabilityplane',
         'componenttype',
+        'resourcetype',
         'traittype',
         'clustercomponenttype',
         'clusterresourcetype',

@@ -19,6 +19,7 @@ import {
 
 import { ClusterComponentTypeEntityProcessor } from './ClusterComponentTypeEntityProcessor';
 import { ClusterResourceTypeEntityProcessor } from './ClusterResourceTypeEntityProcessor';
+import { ResourceTypeEntityProcessor } from './ResourceTypeEntityProcessor';
 import { ClusterDataplaneEntityProcessor } from './ClusterDataplaneEntityProcessor';
 import { ClusterObservabilityPlaneEntityProcessor } from './ClusterObservabilityPlaneEntityProcessor';
 import { ClusterTraitTypeEntityProcessor } from './ClusterTraitTypeEntityProcessor';
@@ -550,6 +551,48 @@ describe('ClusterResourceTypeEntityProcessor', () => {
       emit,
     );
     expect(emit).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ResourceTypeEntityProcessor
+// ---------------------------------------------------------------------------
+describe('ResourceTypeEntityProcessor', () => {
+  const processor = new ResourceTypeEntityProcessor();
+
+  it('validateEntityKind returns true for ResourceType', async () => {
+    expect(
+      await processor.validateEntityKind({ kind: 'ResourceType' } as any),
+    ).toBe(true);
+    expect(
+      await processor.validateEntityKind({
+        kind: 'ClusterResourceType',
+      } as any),
+    ).toBe(false);
+  });
+
+  it('emits partOf domain relation', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'ResourceType',
+      metadata: { name: 'r', namespace: 'my-ns' },
+      spec: { domain: 'my-ns', retainPolicy: 'Delete' },
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'resourcetype', namespace: 'my-ns', name: 'r' },
+        target: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
+        type: RELATION_PART_OF,
+      }),
+    );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
+        target: { kind: 'resourcetype', namespace: 'my-ns', name: 'r' },
+        type: RELATION_HAS_PART,
+      }),
+    );
   });
 });
 

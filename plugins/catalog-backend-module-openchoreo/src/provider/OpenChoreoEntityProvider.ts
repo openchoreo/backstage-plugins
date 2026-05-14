@@ -50,6 +50,7 @@ import {
   translateNewNamespaceToDomainEntity,
   translateNewObservabilityPlaneToEntity,
   translateNewProjectToEntity,
+  translateNewResourceTypeToEntity,
   translateNewTraitToEntity,
   translateNewWorkflowPlaneToEntity,
   translateNewWorkflowToEntity,
@@ -70,6 +71,7 @@ type NewObservabilityPlane =
 type NewDeploymentPipeline =
   OpenChoreoComponents['schemas']['DeploymentPipeline'];
 type NewComponentType = OpenChoreoComponents['schemas']['ComponentType'];
+type NewResourceType = OpenChoreoComponents['schemas']['ResourceType'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewClusterComponentType =
   OpenChoreoComponents['schemas']['ClusterComponentType'];
@@ -169,6 +171,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'openchoreo.observabilityplane',
           'openchoreo.deploymentpipeline',
           'openchoreo.componenttype',
+          'openchoreo.resourcetype',
           'openchoreo.trait',
           'openchoreo.workflow',
           'openchoreo.workload',
@@ -900,6 +903,53 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         }
       }
 
+      // Get resource types for each namespace
+      for (const ns of namespaces) {
+        const nsName = getName(ns)!;
+        try {
+          const resourceTypes = await fetchAllPages<NewResourceType>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/resourcetypes', {
+                params: {
+                  path: { namespaceName: nsName },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(`Failed to fetch resource types for ${nsName}`);
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${resourceTypes.length} resource types in namespace: ${nsName}`,
+          );
+
+          const rtEntities: Entity[] = resourceTypes
+            .map(rt => {
+              try {
+                return translateNewResourceTypeToEntity(
+                  rt,
+                  nsName,
+                  this.translatorContext,
+                ) as Entity;
+              } catch (err) {
+                this.logger.warn(
+                  `Failed to translate ResourceType ${getName(rt)}: ${err}`,
+                );
+                return null;
+              }
+            })
+            .filter((e): e is Entity => e !== null);
+          allEntities.push(...rtEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch resource types for namespace ${nsName}: ${error}`,
+          );
+        }
+      }
+
       // Get workflows for each namespace
       for (const ns of namespaces) {
         const nsName = getName(ns)!;
@@ -1347,6 +1397,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     const traitTypeCount = allEntities.filter(
       e => e.kind === 'TraitType',
     ).length;
+    const resourceTypeCount = allEntities.filter(
+      e => e.kind === 'ResourceType',
+    ).length;
     const clusterComponentTypeCount = allEntities.filter(
       e => e.kind === 'ClusterComponentType',
     ).length;
@@ -1370,7 +1423,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       e => e.kind === 'ClusterWorkflow',
     ).length;
     this.logger.info(
-      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${clusterComponentTypeCount} cluster component types, ${clusterResourceTypeCount} cluster resource types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
+      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${resourceTypeCount} resource types, ${clusterComponentTypeCount} cluster component types, ${clusterResourceTypeCount} cluster resource types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
     );
   }
 }

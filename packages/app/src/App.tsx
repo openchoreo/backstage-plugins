@@ -28,6 +28,7 @@ import { ComponentTypeYamlEditorFieldExtension } from './scaffolder/ComponentTyp
 import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
 import { ClusterComponentTypeYamlEditorFieldExtension } from './scaffolder/ClusterComponentTypeYamlEditor';
 import { ClusterResourceTypeYamlEditorFieldExtension } from './scaffolder/ClusterResourceTypeYamlEditor';
+import { ResourceTypeYamlEditorFieldExtension } from './scaffolder/ResourceTypeYamlEditor';
 import { ClusterTraitYamlEditorFieldExtension } from './scaffolder/ClusterTraitYamlEditor';
 import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
 import { ClusterWorkflowYamlEditorFieldExtension } from './scaffolder/ClusterWorkflowYamlEditor';
@@ -161,6 +162,7 @@ const app = createApp({
     'kind:clusterworkflowplane': BuildIcon,
     'kind:componenttype': CategoryIcon,
     'kind:clustercomponenttype': CategoryIcon,
+    'kind:resourcetype': LayersIcon,
     'kind:clusterresourcetype': LayersIcon,
     'kind:traittype': ExtensionIcon,
     'kind:clustertraittype': ExtensionIcon,
@@ -254,6 +256,7 @@ const routes = (
         <TraitYamlEditorFieldExtension />
         <ClusterComponentTypeYamlEditorFieldExtension />
         <ClusterResourceTypeYamlEditorFieldExtension />
+        <ResourceTypeYamlEditorFieldExtension />
         <ClusterTraitYamlEditorFieldExtension />
         <ComponentWorkflowYamlEditorFieldExtension />
         <ClusterWorkflowYamlEditorFieldExtension />

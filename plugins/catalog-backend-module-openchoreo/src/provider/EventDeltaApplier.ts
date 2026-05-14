@@ -38,6 +38,7 @@ import {
   translateNewNamespaceToDomainEntity,
   translateNewObservabilityPlaneToEntity,
   translateNewProjectToEntity,
+  translateNewResourceTypeToEntity,
   translateNewTraitToEntity,
   translateNewWorkflowPlaneToEntity,
   translateNewWorkflowToEntity,
@@ -61,6 +62,7 @@ type NewObservabilityPlane =
 type NewDeploymentPipeline =
   OpenChoreoComponents['schemas']['DeploymentPipeline'];
 type NewComponentType = OpenChoreoComponents['schemas']['ComponentType'];
+type NewResourceType = OpenChoreoComponents['schemas']['ResourceType'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 type NewClusterComponentType =
@@ -400,6 +402,20 @@ export class EventDeltaApplier {
         params: { path: { namespaceName: ns, traitName: name } },
       }) as any,
       'trait',
+      `${ns}/${name}`,
+    );
+  }
+
+  private fetchResourceType(
+    client: OpenChoreoApiClient,
+    ns: string,
+    name: string,
+  ) {
+    return this.fetchOne<NewResourceType>(
+      client.GET('/api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}', {
+        params: { path: { namespaceName: ns, rtName: name } },
+      }) as any,
+      'resourcetype',
       `${ns}/${name}`,
     );
   }
@@ -924,6 +940,24 @@ export class EventDeltaApplier {
     ]);
   }
 
+  private async refreshResourceType(ns: string, name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const rt = await this.fetchResourceType(client, ns, name);
+    if (!rt) {
+      await this.removeEntityRefs([
+        this.buildEntityRef('resourcetype', ns, name),
+      ]);
+      return;
+    }
+    await this.upsertEntities([
+      translateNewResourceTypeToEntity(
+        rt,
+        ns,
+        this.translatorContext,
+      ) as Entity,
+    ]);
+  }
+
   private async refreshWorkflow(ns: string, name: string): Promise<void> {
     const client = await this.createApiClient();
     const wf = await this.fetchWorkflow(client, ns, name);
@@ -1147,6 +1181,9 @@ export class EventDeltaApplier {
         return;
       case 'trait':
         await this.refreshTrait(ns, name);
+        return;
+      case 'resourcetype':
+        await this.refreshResourceType(ns, name);
         return;
       case 'workflow':
         await this.refreshWorkflow(ns, name);

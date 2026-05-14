@@ -50,6 +50,7 @@ const VALID_PLATFORM_RESOURCE_KINDS = [
   'namespaces',
   'projects',
   'componenttypes',
+  'resourcetypes',
   'traits',
   'workflows',
   'component-workflows',

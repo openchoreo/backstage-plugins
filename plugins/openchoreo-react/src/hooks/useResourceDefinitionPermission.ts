@@ -29,6 +29,8 @@ import {
   openchoreoClusterComponentTypeDeletePermission,
   openchoreoClusterResourceTypeUpdatePermission,
   openchoreoClusterResourceTypeDeletePermission,
+  openchoreoResourceTypeUpdatePermission,
+  openchoreoResourceTypeDeletePermission,
   openchoreoClusterTraitUpdatePermission,
   openchoreoClusterTraitDeletePermission,
   openchoreoClusterDataplaneUpdatePermission,
@@ -90,6 +92,11 @@ const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
   componenttype: {
     update: openchoreoComponentTypeUpdatePermission,
     delete: openchoreoComponentTypeDeletePermission,
+    isResourceScoped: true,
+  },
+  resourcetype: {
+    update: openchoreoResourceTypeUpdatePermission,
+    delete: openchoreoResourceTypeDeletePermission,
     isResourceScoped: true,
   },
   traittype: {

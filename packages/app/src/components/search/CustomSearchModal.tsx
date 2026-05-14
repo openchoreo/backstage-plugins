@@ -46,6 +46,7 @@ const TEMPLATE_TYPE_ICONS: Record<string, React.ReactElement> = {
   ClusterTrait: <ExtensionOutlinedIcon />,
   ComponentType: <CategoryOutlinedIcon />,
   ClusterComponentType: <CategoryOutlinedIcon />,
+  ResourceType: <LayersOutlinedIcon />,
   ClusterResourceType: <LayersOutlinedIcon />,
   ComponentWorkflow: <SettingsApplicationsOutlinedIcon />,
   Namespace: <ApartmentOutlinedIcon />,

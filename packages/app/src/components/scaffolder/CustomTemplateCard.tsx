@@ -24,6 +24,7 @@ const TYPE_ICONS: Record<string, React.ReactElement> = {
   ClusterTrait: <ExtensionOutlinedIcon fontSize="inherit" />,
   ComponentType: <CategoryOutlinedIcon fontSize="inherit" />,
   ClusterComponentType: <CategoryOutlinedIcon fontSize="inherit" />,
+  ResourceType: <LayersOutlinedIcon fontSize="inherit" />,
   ClusterResourceType: <LayersOutlinedIcon fontSize="inherit" />,
   ComponentWorkflow: <SettingsApplicationsOutlinedIcon fontSize="inherit" />,
   Namespace: <ApartmentOutlined fontSize="inherit" />,

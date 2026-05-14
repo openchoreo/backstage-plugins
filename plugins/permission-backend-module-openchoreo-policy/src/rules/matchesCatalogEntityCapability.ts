@@ -120,6 +120,7 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   observabilityplane: 'namespace-scoped',
   deploymentpipeline: 'namespace-scoped',
   componenttype: 'namespace-scoped',
+  resourcetype: 'namespace-scoped',
   traittype: 'namespace-scoped',
   workflow: 'namespace-scoped',
   componentworkflow: 'namespace-scoped',

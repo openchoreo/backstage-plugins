@@ -1,0 +1,64 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-openchoreo-resourcetype
+  title: ResourceType
+  description: Define a namespace-scoped template for managed-infrastructure dependencies (databases, queues, caches, object storage) that components can consume.
+spec:
+  owner: openchoreo-users
+  type: ResourceType
+  # Enable user token injection for user-based authorization at OpenChoreo API
+  EXPERIMENTAL_formDecorators:
+    - id: openchoreo:inject-user-token
+  parameters:
+    - title: ResourceType Metadata
+      required:
+        - namespace_name
+        - resourcetype_name
+      properties:
+        namespace_name:
+          title: Namespace Name
+          type: string
+          description: Namespace where the resource type will be created
+          ui:field: NamespaceEntityPicker
+        resourcetype_name:
+          title: ResourceType Name
+          type: string
+          description: Unique name for your resource type (must be a valid Kubernetes name)
+          ui:field: ResourceNamePicker
+          ui:options:
+            catalogKind: ResourceType
+            resourceLabel: ResourceType
+            namespaceField: namespace_name
+        displayName:
+          title: Display Name
+          type: string
+          description: A human-readable display name for the resource type
+        description:
+          title: Description
+          type: string
+          description: Describe what this ResourceType is for
+    - title: ResourceType Definition
+      required:
+        - yaml_definition
+      properties:
+        yaml_definition:
+          title: ResourceType YAML
+          type: string
+          description: Edit the ResourceType YAML definition
+          ui:field: ResourceTypeYamlEditor
+          ui:backstage:
+            review:
+              mask: '(YAML definition provided)'
+  steps:
+    - id: create-openchoreo-resourcetype
+      name: Create OpenChoreo ResourceType
+      action: openchoreo:resourcetype-definition:create
+      input:
+        namespaceName: ${{ parameters.namespace_name }}
+        yamlContent: ${{ parameters.yaml_definition }}
+  output:
+    links:
+      - title: View ResourceType
+        icon: catalog
+        entityRef: ${{ steps['create-openchoreo-resourcetype'].output.entityRef }}

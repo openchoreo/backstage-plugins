@@ -1,0 +1,1 @@
+export { ResourceTypeYamlEditorFieldExtension } from './extensions';

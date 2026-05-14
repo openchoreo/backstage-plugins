@@ -164,6 +164,7 @@ const PLATFORM_KIND_DISPLAY_NAMES: Record<string, string> = {
   environment: 'Environment',
   deploymentpipeline: 'Deployment Pipeline',
   componenttype: 'Component Type',
+  resourcetype: 'Resource Type',
   clustercomponenttype: 'Cluster Component Type',
   clusterresourcetype: 'Cluster Resource Type',
   traittype: 'Trait Type',
@@ -1129,6 +1130,29 @@ const componentTypePage = (
   </EntityLayoutWithDelete>
 );
 
+const resourceTypePage = (
+  <EntityLayoutWithDelete kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}>
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </OpenChoreoEntityLayout.Route>
+  </EntityLayoutWithDelete>
+);
+
 const traitTypePage = (
   <EntityLayoutWithDelete
     parentEntityRelations={['partOf']}
@@ -1374,6 +1398,10 @@ export const entityPage = (
     <EntitySwitch.Case
       if={isKind('componenttype')}
       children={componentTypePage}
+    />
+    <EntitySwitch.Case
+      if={isKind('resourcetype')}
+      children={resourceTypePage}
     />
     <EntitySwitch.Case
       if={isKind('clustercomponenttype')}

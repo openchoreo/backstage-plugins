@@ -402,6 +402,7 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         'environment:create',
         'trait:create',
         'componenttype:create',
+        'resourcetype:create',
         'workflow:create',
         'clusterworkflow:create',
         'namespace:create',

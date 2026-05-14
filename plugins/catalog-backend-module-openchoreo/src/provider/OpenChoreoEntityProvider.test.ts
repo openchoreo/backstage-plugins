@@ -208,6 +208,15 @@ const k8sClusterResourceType = {
   status: { conditions: [readyCondition] },
 };
 
+const k8sResourceType = {
+  metadata: k8sMeta('postgres'),
+  spec: {
+    retainPolicy: 'Retain',
+    resources: [],
+  },
+  status: { conditions: [readyCondition] },
+};
+
 const k8sTrait = {
   metadata: k8sMeta('ingress'),
   spec: { schema: { type: 'object' } },
@@ -404,6 +413,9 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/namespaces/{namespaceName}/component-workflows': okData({
           items: [k8sComponentWorkflow],
         }),
+        '/api/v1/namespaces/{namespaceName}/resourcetypes': okData({
+          items: [k8sResourceType],
+        }),
         '/api/v1/clusterresourcetypes': okData({
           items: [k8sClusterResourceType],
         }),
@@ -427,6 +439,7 @@ describe('OpenChoreoEntityProvider', () => {
       expect(findEntities(entities, 'TraitType')).toHaveLength(1);
       expect(findEntities(entities, 'Workflow')).toHaveLength(1);
       expect(findEntities(entities, 'ClusterResourceType')).toHaveLength(1);
+      expect(findEntities(entities, 'ResourceType')).toHaveLength(1);
     });
 
     it('creates ClusterResourceType entity in the openchoreo-cluster namespace', async () => {
@@ -442,6 +455,24 @@ describe('OpenChoreoEntityProvider', () => {
         expect.arrayContaining([
           'openchoreo',
           'cluster-resource-type',
+          'platform-engineering',
+        ]),
+      );
+    });
+
+    it('creates ResourceType entity in the owning namespace with a domain ref', async () => {
+      const entities = await runProvider();
+      const rts = findEntities(entities, 'ResourceType');
+      expect(rts).toHaveLength(1);
+      const rt = rts[0];
+      expect(rt.metadata.name).toBe('postgres');
+      expect(rt.metadata.namespace).toBe('test-ns');
+      expect((rt.spec as any).domain).toBe('default/test-ns');
+      expect((rt.spec as any).retainPolicy).toBe('Retain');
+      expect(rt.metadata.tags).toEqual(
+        expect.arrayContaining([
+          'openchoreo',
+          'resource-type',
           'platform-engineering',
         ]),
       );

@@ -30,6 +30,7 @@ const PLATFORM_RESOURCE_KINDS = new Set([
   'clusterobservabilityplane',
   'deploymentpipeline',
   'componenttype',
+  'resourcetype',
   'clustercomponenttype',
   'clusterresourcetype',
   'traittype',

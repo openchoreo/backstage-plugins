@@ -143,6 +143,25 @@ describe('PlatformResourceService', () => {
       expect(result.data).toEqual(crt);
     });
 
+    it('fetches resourcetype via new API', async () => {
+      const rt = {
+        metadata: { name: 'postgres', namespace: 'test-ns' },
+        spec: { retainPolicy: 'Retain' },
+      };
+      mockGET.mockResolvedValueOnce(createOkResponse(rt));
+
+      const service = createService();
+      const result = await service.getResourceDefinition(
+        'resourcetypes' as any,
+        'test-ns',
+        'postgres',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(rt);
+    });
+
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(createErrorResponse());
 
@@ -209,6 +228,27 @@ describe('PlatformResourceService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.kind).toBe('ClusterResourceType');
+      expect(mockPUT).toHaveBeenCalledTimes(1);
+    });
+
+    it('updates resourcetype via new API PUT', async () => {
+      const rt = {
+        metadata: { name: 'postgres', namespace: 'test-ns' },
+        spec: { retainPolicy: 'Retain' },
+      };
+      mockPUT.mockResolvedValueOnce(createOkResponse(rt));
+
+      const service = createService();
+      const result = await service.updateResourceDefinition(
+        'resourcetypes' as any,
+        'test-ns',
+        'postgres',
+        rt,
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ResourceType');
       expect(mockPUT).toHaveBeenCalledTimes(1);
     });
 
@@ -283,6 +323,24 @@ describe('PlatformResourceService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.kind).toBe('ClusterResourceType');
+    });
+
+    it('deletes resourcetype via new API', async () => {
+      mockDELETE.mockResolvedValueOnce({
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
+
+      const service = createService();
+      const result = await service.deleteResourceDefinition(
+        'resourcetypes' as any,
+        'test-ns',
+        'postgres',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ResourceType');
     });
 
     it('throws on API error', async () => {
