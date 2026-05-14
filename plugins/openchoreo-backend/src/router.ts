@@ -13,7 +13,6 @@ import {
   CellDiagramService,
   WorkloadService,
   SecretReferencesService,
-  GitSecretsService,
   SecretsService,
 } from './types';
 import { ComponentInfoService } from './services/ComponentService/ComponentInfoService';
@@ -77,7 +76,6 @@ export async function createRouter({
   clusterTraitInfoService,
   clusterComponentTypeInfoService,
   secretReferencesInfoService,
-  gitSecretsService,
   secretsService,
   authzService,
   dataPlaneInfoService,
@@ -101,7 +99,6 @@ export async function createRouter({
   clusterTraitInfoService: ClusterTraitInfoService;
   clusterComponentTypeInfoService: ClusterComponentTypeInfoService;
   secretReferencesInfoService: SecretReferencesService;
-  gitSecretsService: GitSecretsService;
   secretsService: SecretsService;
   authzService: AuthzService;
   dataPlaneInfoService: DataPlaneInfoService;
@@ -1052,102 +1049,6 @@ export async function createRouter({
   });
 
   // =====================
-  // Git Secrets Endpoints
-  // =====================
-
-  // List git secrets for a namespace
-  router.get('/git-secrets', async (req, res) => {
-    const { namespaceName } = req.query;
-
-    if (!namespaceName) {
-      throw new InputError('namespaceName is a required query parameter');
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    res.json(
-      await gitSecretsService.listGitSecrets(
-        namespaceName as string,
-        userToken,
-      ),
-    );
-  });
-
-  // Create a new git secret
-  router.post('/git-secrets', requireAuth, async (req, res) => {
-    const { namespaceName } = req.query;
-    const {
-      secretName,
-      secretType,
-      token,
-      sshKey,
-      username,
-      sshKeyId,
-      workflowPlaneKind,
-      workflowPlaneName,
-    } = req.body;
-
-    if (!namespaceName) {
-      throw new InputError('namespaceName is a required query parameter');
-    }
-    if (!secretName || !secretType) {
-      throw new InputError(
-        'secretName and secretType are required in the request body',
-      );
-    }
-    if (secretType !== 'basic-auth' && secretType !== 'ssh-auth') {
-      throw new InputError(
-        'secretType must be either "basic-auth" or "ssh-auth"',
-      );
-    }
-    if (secretType === 'basic-auth' && !token) {
-      throw new InputError('token is required for basic-auth type');
-    }
-    if (secretType === 'ssh-auth' && !sshKey) {
-      throw new InputError('sshKey is required for ssh-auth type');
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    res
-      .status(201)
-      .json(
-        await gitSecretsService.createGitSecret(
-          namespaceName as string,
-          secretName,
-          secretType,
-          token,
-          sshKey,
-          username,
-          sshKeyId,
-          userToken,
-          workflowPlaneKind,
-          workflowPlaneName,
-        ),
-      );
-  });
-
-  // Delete a git secret
-  router.delete('/git-secrets/:secretName', requireAuth, async (req, res) => {
-    const { namespaceName } = req.query;
-    const { secretName } = req.params;
-
-    if (!namespaceName) {
-      throw new InputError('namespaceName is a required query parameter');
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    await gitSecretsService.deleteGitSecret(
-      namespaceName as string,
-      secretName,
-      userToken,
-    );
-
-    res.status(204).send();
-  });
-
-  // =====================
   // Secrets Endpoints
   // =====================
 
@@ -1204,7 +1105,8 @@ export async function createRouter({
   // Create a new secret
   router.post('/secrets', requireAuth, async (req, res) => {
     const { namespaceName } = req.query;
-    const { secretName, secretType, targetPlane, data } = req.body ?? {};
+    const { secretName, secretType, targetPlane, data, labels } =
+      req.body ?? {};
 
     if (!namespaceName) {
       throw new InputError('namespaceName is a required query parameter');
@@ -1243,6 +1145,18 @@ export async function createRouter({
         );
       }
     }
+    if (labels !== undefined) {
+      if (typeof labels !== 'object' || labels === null || Array.isArray(labels)) {
+        throw new InputError(
+          'labels must be an object of string keys to string values',
+        );
+      }
+      for (const [key, value] of Object.entries(labels)) {
+        if (typeof value !== 'string') {
+          throw new InputError(`labels.${key} must be a string`);
+        }
+      }
+    }
 
     const userToken = getUserTokenFromRequest(req);
 
@@ -1251,7 +1165,13 @@ export async function createRouter({
       .json(
         await secretsService.createSecret(
           namespaceName as string,
-          { secretName, secretType, targetPlane, data },
+          {
+            secretName,
+            secretType,
+            targetPlane,
+            data,
+            ...(labels !== undefined ? { labels } : {}),
+          },
           userToken,
         ),
       );
@@ -1261,7 +1181,7 @@ export async function createRouter({
   router.put('/secrets/:secretName', requireAuth, async (req, res) => {
     const { namespaceName } = req.query;
     const { secretName } = req.params;
-    const { data } = req.body ?? {};
+    const { data, labels } = req.body ?? {};
 
     if (!namespaceName) {
       throw new InputError('namespaceName is a required query parameter');
@@ -1280,6 +1200,18 @@ export async function createRouter({
         );
       }
     }
+    if (labels !== undefined) {
+      if (typeof labels !== 'object' || labels === null || Array.isArray(labels)) {
+        throw new InputError(
+          'labels must be an object of string keys to string values',
+        );
+      }
+      for (const [key, value] of Object.entries(labels)) {
+        if (typeof value !== 'string') {
+          throw new InputError(`labels.${key} must be a string`);
+        }
+      }
+    }
 
     const userToken = getUserTokenFromRequest(req);
 
@@ -1287,7 +1219,7 @@ export async function createRouter({
       await secretsService.updateSecret(
         namespaceName as string,
         secretName,
-        { data },
+        { data, ...(labels !== undefined ? { labels } : {}) },
         userToken,
       ),
     );

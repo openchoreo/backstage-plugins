@@ -30,8 +30,17 @@ export interface SecretResponse {
   keys: string[];
 }
 
+/**
+ * Secret list item. Extends SecretResponse with `labels` read from the
+ * underlying K8s Secret metadata, so callers can discover secrets marked
+ * with a category label (e.g. git credentials).
+ */
+export interface SecretListItem extends SecretResponse {
+  labels?: Record<string, string>;
+}
+
 export interface SecretsListResponse {
-  items: SecretResponse[];
+  items: SecretListItem[];
   totalCount: number;
   page: number;
   pageSize: number;
@@ -94,10 +103,13 @@ export class SecretsService {
         if (name) refByName.set(name, ref);
       }
 
-      const items: SecretResponse[] = secrets.map(secret => {
+      const items: SecretListItem[] = secrets.map(secret => {
         const name = secret.metadata?.name ?? '';
         const ref = refByName.get(name);
-        return projectSecret(secret, ref, name, namespaceName);
+        return {
+          ...projectSecret(secret, ref, name, namespaceName),
+          labels: secret.metadata?.labels,
+        };
       });
 
       this.logger.debug(

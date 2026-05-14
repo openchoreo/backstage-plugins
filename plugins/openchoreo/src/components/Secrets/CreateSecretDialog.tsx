@@ -34,6 +34,10 @@ import {
   TargetPlaneKind,
 } from '../../api/OpenChoreoClientApi';
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
+import {
+  CHOREO_LABELS,
+  GIT_SECRET_TYPE_VALUE,
+} from '@openchoreo/backstage-plugin-common';
 
 export interface TargetPlaneOption {
   name: string;
@@ -82,6 +86,17 @@ const useStyles = makeStyles(theme => ({
     alignItems: 'center',
     gap: theme.spacing(0.5),
   },
+  uploadBox: {
+    border: `2px dashed ${theme.palette.divider}`,
+    borderRadius: theme.shape.borderRadius,
+    padding: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    transition: 'all 0.2s ease',
+  },
+  uploadBoxActive: {
+    borderColor: theme.palette.primary.main,
+    backgroundColor: 'rgba(63, 81, 181, 0.05)',
+  },
 }));
 
 const SECRET_TYPE = {
@@ -128,6 +143,13 @@ const SECRET_TYPES: {
 // and end with an alphanumeric.
 const KUBE_NAME_RE = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/;
 
+type SecretCategory = 'generic' | 'git-credentials';
+
+const SECRET_CATEGORIES: { value: SecretCategory; label: string }[] = [
+  { value: 'generic', label: 'Generic' },
+  { value: 'git-credentials', label: 'Git Credentials' },
+];
+
 export const CreateSecretDialog = ({
   open,
   onClose,
@@ -141,6 +163,8 @@ export const CreateSecretDialog = ({
   const classes = useStyles();
 
   const [secretName, setSecretName] = useState('');
+  const [secretCategory, setSecretCategory] =
+    useState<SecretCategory>('generic');
   const [secretType, setSecretType] = useState<SecretType>(SECRET_TYPE.OPAQUE);
   const [selectedPlaneIndex, setSelectedPlaneIndex] = useState<number | ''>('');
   const [opaqueRows, setOpaqueRows] = useState<KeyValueRow[]>([
@@ -150,6 +174,10 @@ export const CreateSecretDialog = ({
   const [basicPassword, setBasicPassword] = useState('');
   const [showBasicPassword, setShowBasicPassword] = useState(false);
   const [sshKey, setSshKey] = useState('');
+  const [sshKeyId, setSshKeyId] = useState('');
+  const [sshExtraRows, setSshExtraRows] = useState<KeyValueRow[]>([]);
+  const [sshFileName, setSshFileName] = useState('');
+  const [sshDragging, setSshDragging] = useState(false);
   const [dockerConfig, setDockerConfig] = useState('');
   const [tlsCrt, setTlsCrt] = useState('');
   const [tlsKey, setTlsKey] = useState('');
@@ -166,12 +194,17 @@ export const CreateSecretDialog = ({
   useEffect(() => {
     if (open) {
       setSecretName('');
+      setSecretCategory('generic');
       setSecretType(SECRET_TYPE.OPAQUE);
       setSelectedPlaneIndex('');
       setOpaqueRows([{ key: '', value: '', show: false }]);
       setBasicUsername('');
       setBasicPassword('');
       setSshKey('');
+      setSshKeyId('');
+      setSshExtraRows([]);
+      setSshFileName('');
+      setSshDragging(false);
       setDockerConfig('');
       setTlsCrt('');
       setTlsKey('');
@@ -195,6 +228,50 @@ export const CreateSecretDialog = ({
         ? [{ key: '', value: '', show: false }]
         : rows.filter((_, i) => i !== index),
     );
+  };
+
+  const updateSshExtraRow = (index: number, patch: Partial<KeyValueRow>) => {
+    setSshExtraRows(rows =>
+      rows.map((r, i) => (i === index ? { ...r, ...patch } : r)),
+    );
+  };
+  const addSshExtraRow = () => {
+    setSshExtraRows(rows => [...rows, { key: '', value: '', show: false }]);
+  };
+  const removeSshExtraRow = (index: number) => {
+    setSshExtraRows(rows => rows.filter((_, i) => i !== index));
+  };
+
+  const readSshKeyFile = (file: File) => {
+    setSshFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = e => {
+      setSshKey((e.target?.result as string) ?? '');
+    };
+    reader.readAsText(file);
+  };
+
+  const handleSshFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) readSshKeyFile(file);
+  };
+
+  const handleSshDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSshDragging(true);
+  };
+  const handleSshDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSshDragging(false);
+  };
+  const handleSshDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSshDragging(false);
+    const file = event.dataTransfer.files?.[0];
+    if (file) readSshKeyFile(file);
   };
 
   const buildData = ():
@@ -232,9 +309,31 @@ export const CreateSecretDialog = ({
         return { ok: true, data };
       }
       case SECRET_TYPE.SSH_AUTH: {
-        if (!sshKey.trim())
-          return { ok: false, error: 'SSH private key is required' };
-        return { ok: true, data: { 'ssh-privatekey': sshKey } };
+        const key = sshKey.trim();
+        if (!key) return { ok: false, error: 'SSH private key is required' };
+        if (!key.includes('BEGIN') || !key.includes('PRIVATE KEY')) {
+          return {
+            ok: false,
+            error: 'Invalid SSH key format. Provide a valid private key.',
+          };
+        }
+        const data: Record<string, string> = {
+          'ssh-privatekey': sshKey.replace(/\r\n/g, '\n'),
+        };
+        const keyId = sshKeyId.trim();
+        if (keyId) data['ssh-key-id'] = keyId;
+        const seen = new Set(Object.keys(data));
+        for (const row of sshExtraRows) {
+          const k = row.key.trim();
+          if (!k && !row.value) continue;
+          if (!k) return { ok: false, error: 'All keys must have a name' };
+          if (seen.has(k)) return { ok: false, error: `Duplicate key: ${k}` };
+          if (!row.value)
+            return { ok: false, error: `Value for "${k}" is required` };
+          seen.add(k);
+          data[k] = row.value;
+        }
+        return { ok: true, data };
       }
       case SECRET_TYPE.DOCKER_CONFIG: {
         if (!dockerConfig.trim())
@@ -269,6 +368,8 @@ export const CreateSecretDialog = ({
     basicUsername,
     basicPassword,
     sshKey,
+    sshKeyId,
+    sshExtraRows,
     dockerConfig,
     tlsCrt,
     tlsKey,
@@ -315,12 +416,18 @@ export const CreateSecretDialog = ({
     setLoading(true);
     setError(null);
     try {
-      await onSubmit({
+      const request: CreateSecretRequest = {
         secretName: name,
         secretType,
         targetPlane: { kind: plane.kind, name: plane.name },
         data: built.data,
-      });
+      };
+      if (secretCategory === 'git-credentials') {
+        request.labels = {
+          [CHOREO_LABELS.SECRET_TYPE]: GIT_SECRET_TYPE_VALUE,
+        };
+      }
+      await onSubmit(request);
       onClose();
     } catch (err) {
       if (isForbiddenError(err)) {
@@ -446,19 +553,141 @@ export const CreateSecretDialog = ({
         );
       case SECRET_TYPE.SSH_AUTH:
         return (
-          <TextField
-            className={classes.field}
-            label="SSH Private Key"
-            variant="outlined"
-            size="small"
-            fullWidth
-            required
-            multiline
-            minRows={6}
-            value={sshKey}
-            onChange={e => setSshKey(e.target.value)}
-            placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-          />
+          <Box>
+            <TextField
+              className={classes.field}
+              label="SSH Key ID"
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={sshKeyId}
+              onChange={e => setSshKeyId(e.target.value)}
+              helperText="Optional identifier for this SSH key."
+            />
+
+            <Box
+              onDragOver={handleSshDragOver}
+              onDragLeave={handleSshDragLeave}
+              onDrop={handleSshDrop}
+              className={`${classes.uploadBox} ${
+                sshDragging ? classes.uploadBoxActive : ''
+              }`}
+            >
+              <Box display="flex" alignItems="flex-start" style={{ gap: 8 }}>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                  value={sshFileName}
+                  placeholder="No file selected"
+                  InputProps={{ readOnly: true }}
+                />
+                <input
+                  style={{ display: 'none' }}
+                  id="secret-ssh-key-file-upload"
+                  type="file"
+                  onChange={handleSshFileUpload}
+                />
+                <label htmlFor="secret-ssh-key-file-upload">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    style={{ whiteSpace: 'nowrap', height: 40 }}
+                  >
+                    Browse
+                  </Button>
+                </label>
+              </Box>
+              <Typography
+                variant="caption"
+                color="textSecondary"
+                style={{ display: 'block', marginTop: 8 }}
+              >
+                Drag and drop a private SSH key file here, or browse to upload.
+              </Typography>
+            </Box>
+
+            <TextField
+              className={classes.field}
+              label="SSH Private Key"
+              variant="outlined"
+              size="small"
+              fullWidth
+              required
+              multiline
+              minRows={6}
+              value={sshKey}
+              onChange={e => {
+                setSshKey(e.target.value);
+                setSshFileName('');
+              }}
+              placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+            />
+
+            <Typography variant="subtitle2" className={classes.sectionLabel}>
+              Additional Keys
+            </Typography>
+            {sshExtraRows.map((row, index) => (
+              <Box key={index} className={classes.row}>
+                <TextField
+                  className={classes.rowKey}
+                  label="Key"
+                  variant="outlined"
+                  size="small"
+                  value={row.key}
+                  onChange={e =>
+                    updateSshExtraRow(index, { key: e.target.value })
+                  }
+                />
+                <TextField
+                  className={classes.rowValue}
+                  label="Value"
+                  variant="outlined"
+                  size="small"
+                  type={row.show ? 'text' : 'password'}
+                  value={row.value}
+                  onChange={e =>
+                    updateSshExtraRow(index, { value: e.target.value })
+                  }
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() =>
+                            updateSshExtraRow(index, { show: !row.show })
+                          }
+                          tabIndex={-1}
+                          aria-label={row.show ? 'Hide value' : 'Show value'}
+                        >
+                          {row.show ? (
+                            <VisibilityOffIcon />
+                          ) : (
+                            <VisibilityIcon />
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                <IconButton
+                  size="small"
+                  className={classes.removeBtn}
+                  onClick={() => removeSshExtraRow(index)}
+                  aria-label="Remove key"
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+            ))}
+            <Link
+              className={classes.addLink}
+              onClick={addSshExtraRow}
+              color="primary"
+            >
+              <AddIcon fontSize="small" /> Add key
+            </Link>
+          </Box>
         );
       case SECRET_TYPE.DOCKER_CONFIG:
         return (
@@ -557,6 +786,35 @@ export const CreateSecretDialog = ({
             nameError ?? 'Lowercase letters, numbers, dashes and dots.'
           }
         />
+
+        <FormControl
+          variant="outlined"
+          size="small"
+          fullWidth
+          className={classes.field}
+        >
+          <InputLabel id="secret-category-label">Secret Category</InputLabel>
+          <Select
+            labelId="secret-category-label"
+            label="Secret Category"
+            value={secretCategory}
+            onChange={e =>
+              setSecretCategory(e.target.value as SecretCategory)
+            }
+            disabled={loading}
+          >
+            {SECRET_CATEGORIES.map(c => (
+              <MenuItem key={c.value} value={c.value}>
+                {c.label}
+              </MenuItem>
+            ))}
+          </Select>
+          <FormHelperText>
+            {secretCategory === 'git-credentials'
+              ? 'Marked as git credentials so workflows and builds can discover it.'
+              : 'A general-purpose secret.'}
+          </FormHelperText>
+        </FormControl>
 
         <FormControl
           variant="outlined"

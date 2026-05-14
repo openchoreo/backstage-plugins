@@ -73,11 +73,6 @@ function createMockServices() {
     secretReferencesInfoService: {
       fetchSecretReferences: jest.fn(),
     },
-    gitSecretsService: {
-      fetchGitSecrets: jest.fn(),
-      createGitSecret: jest.fn(),
-      deleteGitSecret: jest.fn(),
-    },
     secretsService: {
       listSecrets: jest.fn(),
       getSecret: jest.fn(),

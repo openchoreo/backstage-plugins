@@ -21,8 +21,6 @@ import type {
   NamespaceSummary,
   ProjectSummary,
   ComponentSummary,
-  GitSecret,
-  GitSecretsListResponse,
   Secret,
   SecretsListResponse,
   CreateSecretRequest,
@@ -84,8 +82,6 @@ const API_ENDPOINTS = {
   AUTHZ_ACTIONS: '/authz/actions',
   // Configuration endpoints
   USER_TYPES: '/user-types',
-  // Git secrets endpoints
-  GIT_SECRETS: '/git-secrets',
   // Secrets endpoints
   SECRETS: '/secrets',
   // Hierarchy data endpoints
@@ -1287,70 +1283,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
         namespace,
       )}/roles/${encodeURIComponent(name)}/bindings`,
-    );
-  }
-
-  // ============================================
-  // Git Secrets Operations
-  // ============================================
-
-  async listGitSecrets(namespaceName: string): Promise<GitSecretsListResponse> {
-    return this.apiFetch<GitSecretsListResponse>(API_ENDPOINTS.GIT_SECRETS, {
-      params: { namespaceName },
-    });
-  }
-
-  async createGitSecret(
-    namespaceName: string,
-    secretName: string,
-    secretType: 'basic-auth' | 'ssh-auth',
-    tokenOrKey: string,
-    username?: string,
-    sshKeyId?: string,
-    workflowPlaneKind?: string,
-    workflowPlaneName?: string,
-  ): Promise<GitSecret> {
-    const requestBody: any = {
-      secretName,
-      secretType,
-    };
-
-    if (workflowPlaneKind) {
-      requestBody.workflowPlaneKind = workflowPlaneKind;
-    }
-    if (workflowPlaneName) {
-      requestBody.workflowPlaneName = workflowPlaneName;
-    }
-
-    if (secretType === 'basic-auth') {
-      requestBody.token = tokenOrKey;
-      if (username) {
-        requestBody.username = username;
-      }
-    } else {
-      requestBody.sshKey = tokenOrKey;
-      if (sshKeyId) {
-        requestBody.sshKeyId = sshKeyId;
-      }
-    }
-
-    return this.apiFetch<GitSecret>(API_ENDPOINTS.GIT_SECRETS, {
-      method: 'POST',
-      params: { namespaceName },
-      body: requestBody,
-    });
-  }
-
-  async deleteGitSecret(
-    namespaceName: string,
-    secretName: string,
-  ): Promise<void> {
-    await this.apiFetch<void>(
-      `${API_ENDPOINTS.GIT_SECRETS}/${encodeURIComponent(secretName)}`,
-      {
-        method: 'DELETE',
-        params: { namespaceName },
-      },
     );
   }
 

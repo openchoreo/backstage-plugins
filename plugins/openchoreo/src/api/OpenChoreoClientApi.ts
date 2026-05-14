@@ -10,22 +10,6 @@ import type { Environment } from '../components/RuntimeLogs/types';
 // Response Types
 // ============================================
 
-/** Git secret item */
-export interface GitSecret {
-  name: string;
-  namespace: string;
-  workflowPlaneKind?: string;
-  workflowPlaneName?: string;
-}
-
-/** Git secrets list response */
-export interface GitSecretsListResponse {
-  items: GitSecret[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-}
-
 /** Kubernetes Secret type supported by the create/update API */
 export type SecretType =
   | 'Opaque'
@@ -57,6 +41,8 @@ export interface Secret {
   namespace: string;
   secretType?: SecretType;
   targetPlane?: TargetPlaneRef;
+  /** Labels on the underlying SecretReference / K8s Secret. */
+  labels?: Record<string, string>;
   /** Sorted list of keys present in the secret data */
   keys: string[];
   /**
@@ -81,11 +67,15 @@ export interface CreateSecretRequest {
   targetPlane: TargetPlaneRef;
   /** Required keys depend on secretType. */
   data: Record<string, string>;
+  /** Labels applied to the underlying SecretReference. */
+  labels?: Record<string, string>;
 }
 
 /** Body for updating an existing secret. Replaces all data; omitted keys are pruned. */
 export interface UpdateSecretRequest {
   data: Record<string, string>;
+  /** Labels applied to the underlying SecretReference. Replaces all user-set labels. */
+  labels?: Record<string, string>;
 }
 
 /** Schema response containing component-type and trait environment override schemas */
@@ -722,26 +712,6 @@ export interface OpenChoreoClientApi {
     namespaceName: string,
     dataplaneName: string,
   ): Promise<any>;
-
-  // === Git Secrets Operations ===
-
-  /** List git secrets for a namespace */
-  listGitSecrets(namespaceName: string): Promise<GitSecretsListResponse>;
-
-  /** Create a new git secret */
-  createGitSecret(
-    namespaceName: string,
-    secretName: string,
-    secretType: 'basic-auth' | 'ssh-auth',
-    tokenOrKey: string,
-    username?: string,
-    sshKeyId?: string,
-    workflowPlaneKind?: string,
-    workflowPlaneName?: string,
-  ): Promise<GitSecret>;
-
-  /** Delete a git secret */
-  deleteGitSecret(namespaceName: string, secretName: string): Promise<void>;
 
   // === Secrets Operations ===
 

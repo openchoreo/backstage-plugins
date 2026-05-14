@@ -21,6 +21,8 @@ import {
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import {
   CHOREO_ANNOTATIONS,
+  CHOREO_LABELS,
+  GIT_SECRET_TYPE_VALUE,
   parseWorkflowParametersAnnotation,
 } from '@openchoreo/backstage-plugin-common';
 import { GitSecretDialog } from '../GitSecretField/GitSecretDialog';
@@ -33,12 +35,20 @@ export interface GitSourceData {
   git_secret_ref: string;
 }
 
+interface TargetPlaneRef {
+  kind: string;
+  name: string;
+}
+
 interface GitSecret {
   name: string;
   namespace: string;
-  workflowPlaneKind?: string;
-  workflowPlaneName?: string;
+  targetPlane?: TargetPlaneRef;
 }
+
+// K8s Secret types used by git secrets.
+const K8S_BASIC_AUTH = 'kubernetes.io/basic-auth';
+const K8S_SSH_AUTH = 'kubernetes.io/ssh-auth';
 
 const CREATE_NEW_SECRET = '__create_new__';
 const NO_SECRET = '__no_secret__';
@@ -221,7 +231,7 @@ export const GitSourceField = ({
     try {
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
       const response = await fetchApi.fetch(
-        `${baseUrl}/git-secrets?namespaceName=${encodeURIComponent(nsName)}`,
+        `${baseUrl}/secrets?namespaceName=${encodeURIComponent(nsName)}`,
       );
 
       if (!response.ok) {
@@ -229,7 +239,23 @@ export const GitSourceField = ({
       }
 
       const result = await response.json();
-      setSecrets(result.items || []);
+      const items: GitSecret[] = (result.items || [])
+        .filter(
+          (s: { labels?: Record<string, string> }) =>
+            s.labels?.[CHOREO_LABELS.SECRET_TYPE] === GIT_SECRET_TYPE_VALUE,
+        )
+        .map(
+          (s: {
+            name: string;
+            namespace: string;
+            targetPlane?: TargetPlaneRef;
+          }) => ({
+            name: s.name,
+            namespace: s.namespace,
+            targetPlane: s.targetPlane,
+          }),
+        );
+      setSecrets(items);
     } catch (err) {
       setSecretsError(`Failed to fetch git secrets: ${err}`);
       setSecrets([]);
@@ -282,35 +308,42 @@ export const GitSourceField = ({
     username?: string,
     sshKeyId?: string,
   ) => {
+    // The target plane comes from the selected workflow's annotations.
+    if (!workflowPlaneRefKind || !workflowPlaneRef) {
+      throw new Error(
+        'No workflow plane is associated with the selected workflow.',
+      );
+    }
+
     try {
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-      const requestBody: any = {
+      // Build the K8s Secret data map for the chosen auth type.
+      let k8sSecretType: string;
+      const secretData: Record<string, string> = {};
+      if (secretType === 'basic-auth') {
+        k8sSecretType = K8S_BASIC_AUTH;
+        secretData.password = tokenOrKey;
+        if (username) secretData.username = username;
+      } else {
+        k8sSecretType = K8S_SSH_AUTH;
+        secretData['ssh-privatekey'] = tokenOrKey;
+        if (sshKeyId) secretData['ssh-key-id'] = sshKeyId;
+      }
+
+      const requestBody = {
         secretName,
-        secretType,
+        secretType: k8sSecretType,
+        targetPlane: {
+          kind: workflowPlaneRefKind,
+          name: workflowPlaneRef,
+        },
+        data: secretData,
+        labels: { [CHOREO_LABELS.SECRET_TYPE]: GIT_SECRET_TYPE_VALUE },
       };
 
-      // Auto-populate workflow plane from the selected workflow's annotations.
-      // Both fields are required as a pair by CreateGitSecretRequest.
-      if (workflowPlaneRefKind && workflowPlaneRef) {
-        requestBody.workflowPlaneKind = workflowPlaneRefKind;
-        requestBody.workflowPlaneName = workflowPlaneRef;
-      }
-
-      if (secretType === 'basic-auth') {
-        requestBody.token = tokenOrKey;
-        if (username) {
-          requestBody.username = username;
-        }
-      } else {
-        requestBody.sshKey = tokenOrKey;
-        if (sshKeyId) {
-          requestBody.sshKeyId = sshKeyId;
-        }
-      }
-
       const response = await fetchApi.fetch(
-        `${baseUrl}/git-secrets?namespaceName=${encodeURIComponent(nsName)}`,
+        `${baseUrl}/secrets?namespaceName=${encodeURIComponent(nsName)}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -334,13 +367,15 @@ export const GitSourceField = ({
     }
   };
 
-  // Filter secrets by workflow plane if the selected workflow has a plane ref
+  // Filter by workflow plane only for secrets that actually carry a
+  // targetPlane — legacy git secrets have none and always pass.
   const filteredSecrets =
     workflowPlaneRef && workflowPlaneRefKind
       ? secrets.filter(
           s =>
-            s.workflowPlaneName === workflowPlaneRef &&
-            s.workflowPlaneKind === workflowPlaneRefKind,
+            !s.targetPlane ||
+            (s.targetPlane.name === workflowPlaneRef &&
+              s.targetPlane.kind === workflowPlaneRefKind),
         )
       : secrets;
 

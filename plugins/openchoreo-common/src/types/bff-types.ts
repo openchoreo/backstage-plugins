@@ -817,17 +817,6 @@ export interface RemoteReferenceInfo {
   version?: string;
 }
 
-export interface GitSecretResponse {
-  /** @description Name of the git secret */
-  name: string;
-  /** @description Namespace the secret belongs to */
-  namespace: string;
-  /** @description Kind of the workflow plane resource used */
-  workflowPlaneKind?: string;
-  /** @description Name of the workflow plane resource used */
-  workflowPlaneName?: string;
-}
-
 // ---------------------------------------------------------------------------
 // Authorization
 // ---------------------------------------------------------------------------

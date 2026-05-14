@@ -1,6 +1,7 @@
 export {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
+  GIT_SECRET_TYPE_VALUE,
   RELATION_DEPLOYS_TO,
   RELATION_DEPLOYED_BY,
   RELATION_USES_PIPELINE,
@@ -198,7 +199,6 @@ export type {
   SecretStoreReference,
   SecretDataSourceInfo,
   RemoteReferenceInfo,
-  GitSecretResponse,
   SubjectType,
   UserCapabilitiesResponse,
   SubjectContext,

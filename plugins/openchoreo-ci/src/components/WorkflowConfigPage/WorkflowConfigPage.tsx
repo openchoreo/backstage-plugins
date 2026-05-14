@@ -24,6 +24,8 @@ import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import {
   CHOREO_ANNOTATIONS,
+  CHOREO_LABELS,
+  GIT_SECRET_TYPE_VALUE,
   sanitizeLabel,
   filterEmptyObjectProperties,
 } from '@openchoreo/backstage-plugin-common';
@@ -161,25 +163,31 @@ export const WorkflowConfigPage = ({
       // 2. Fetch all secrets for the namespace
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
       const response = await fetchApi.fetch(
-        `${baseUrl}/git-secrets?namespaceName=${encodeURIComponent(namespace)}`,
+        `${baseUrl}/secrets?namespaceName=${encodeURIComponent(namespace)}`,
       );
       if (response.ok) {
         const result = await response.json();
         const allSecrets: Array<{
           name: string;
-          workflowPlaneName?: string;
-          workflowPlaneKind?: string;
+          targetPlane?: { kind?: string; name?: string };
+          labels?: Record<string, string>;
         }> = result.items || [];
 
-        // 3. Filter by workflow plane if the workflow has a plane ref
-        const filtered =
-          planeRef && planeRefKind
-            ? allSecrets.filter(
-                s =>
-                  s.workflowPlaneName === planeRef &&
-                  s.workflowPlaneKind === planeRefKind,
-              )
-            : allSecrets;
+        // 3. Keep only git-credentials secrets. The label is the primary
+        // filter. A secret is plane-filtered only when it actually carries a
+        // targetPlane — legacy git secrets have none and always pass.
+        const filtered = allSecrets.filter(s => {
+          if (s.labels?.[CHOREO_LABELS.SECRET_TYPE] !== GIT_SECRET_TYPE_VALUE) {
+            return false;
+          }
+          if (s.targetPlane && planeRef && planeRefKind) {
+            return (
+              s.targetPlane.name === planeRef &&
+              s.targetPlane.kind === planeRefKind
+            );
+          }
+          return true;
+        });
 
         setGitSecrets(filtered.map(s => s.name));
       } else {

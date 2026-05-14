@@ -79,7 +79,6 @@ import VisibilityIcon from '@material-ui/icons/Visibility';
 import BuildIcon from '@material-ui/icons/Build';
 import {
   AccessControlContent,
-  GitSecretsContent,
   SecretsContent,
 } from '@openchoreo/backstage-plugin';
 import {
@@ -281,9 +280,6 @@ const routes = (
         </SettingsLayout.Route>
         <SettingsLayout.Route path="access-control" title="Access Control">
           <AccessControlContent />
-        </SettingsLayout.Route>
-        <SettingsLayout.Route path="git-secrets" title="Git Secrets">
-          <GitSecretsContent />
         </SettingsLayout.Route>
         <SettingsLayout.Route path="secrets" title="Secrets">
           <SecretsContent />
