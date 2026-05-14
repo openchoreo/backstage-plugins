@@ -569,6 +569,7 @@ export const CreateSecretDialog = ({
               value={sshKeyId}
               onChange={e => setSshKeyId(e.target.value)}
               helperText="Optional identifier for this SSH key."
+              inputProps={{ 'aria-label': 'SSH Key ID' }}
             />
 
             <Box
@@ -587,6 +588,7 @@ export const CreateSecretDialog = ({
                   value={sshFileName}
                   placeholder="No file selected"
                   InputProps={{ readOnly: true }}
+                  inputProps={{ 'aria-label': 'Selected SSH key file' }}
                 />
                 <input
                   style={{ display: 'none' }}
@@ -628,6 +630,7 @@ export const CreateSecretDialog = ({
                 setSshFileName('');
               }}
               placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+              inputProps={{ 'aria-label': 'SSH Private Key' }}
             />
 
             <Typography variant="subtitle2" className={classes.sectionLabel}>
@@ -644,6 +647,7 @@ export const CreateSecretDialog = ({
                   onChange={e =>
                     updateSshExtraRow(index, { key: e.target.value })
                   }
+                  inputProps={{ 'aria-label': `Key ${index + 1}` }}
                 />
                 <TextField
                   className={classes.rowValue}
@@ -655,6 +659,7 @@ export const CreateSecretDialog = ({
                   onChange={e =>
                     updateSshExtraRow(index, { value: e.target.value })
                   }
+                  inputProps={{ 'aria-label': `Value ${index + 1}` }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
