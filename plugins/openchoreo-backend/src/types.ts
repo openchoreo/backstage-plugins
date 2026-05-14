@@ -140,6 +140,9 @@ export interface CellDiagramService {
     request: {
       projectName: string;
       namespaceName: string;
+      environmentName?: string;
+      startTime?: string;
+      endTime?: string;
     },
     token?: string,
   ): Promise<Project | undefined>;

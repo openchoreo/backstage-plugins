@@ -273,7 +273,13 @@ export async function createRouter({
   router.get(
     '/cell-diagram',
     async (req: express.Request, res: express.Response) => {
-      const { projectName, namespaceName } = req.query;
+      const {
+        projectName,
+        namespaceName,
+        environmentName,
+        startTime,
+        endTime,
+      } = req.query;
 
       if (!projectName || !namespaceName) {
         throw new InputError(
@@ -288,6 +294,9 @@ export async function createRouter({
           {
             projectName: projectName as string,
             namespaceName: namespaceName as string,
+            environmentName: environmentName as string | undefined,
+            startTime: startTime as string | undefined,
+            endTime: endTime as string | undefined,
           },
           userToken,
         ),

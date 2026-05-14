@@ -618,7 +618,14 @@ export interface OpenChoreoClientApi {
   // === Other ===
 
   /** Fetch cell diagram info for a project */
-  getCellDiagramInfo(entity: Entity): Promise<any>;
+  getCellDiagramInfo(
+    entity: Entity,
+    options?: {
+      environmentName?: string;
+      startTime?: string;
+      endTime?: string;
+    },
+  ): Promise<any>;
 
   /** Fetch total bindings count for dashboard */
   fetchTotalBindingsCount(components: ComponentInfo[]): Promise<number>;

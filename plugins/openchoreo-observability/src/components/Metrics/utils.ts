@@ -181,8 +181,9 @@ const injectPerMetricGaps = (
 
     const epochs = sortedPoints.map(p => new Date(p.timestamp).getTime());
     const intervals = epochs.slice(1).map((t, i) => t - epochs[i]);
-    const sorted = [...intervals].sort((a, b) => a - b);
-    const medianInterval = sorted[Math.floor(sorted.length / 2)];
+    const sortedIntervals = [...intervals].sort((a, b) => a - b);
+    const medianInterval =
+      sortedIntervals[Math.floor(sortedIntervals.length / 2)];
     const gapThreshold = medianInterval * 2;
 
     const injected: RawPoint[] = [];

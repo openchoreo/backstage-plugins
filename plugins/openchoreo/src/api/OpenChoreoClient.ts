@@ -649,7 +649,14 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // Other
   // ============================================
 
-  async getCellDiagramInfo(entity: Entity): Promise<any> {
+  async getCellDiagramInfo(
+    entity: Entity,
+    options?: {
+      environmentName?: string;
+      startTime?: string;
+      endTime?: string;
+    },
+  ): Promise<any> {
     const project = entity.metadata.name;
     const namespace =
       entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
@@ -662,6 +669,11 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       params: {
         projectName: project,
         namespaceName: namespace,
+        ...(options?.environmentName && {
+          environmentName: options.environmentName,
+        }),
+        ...(options?.startTime && { startTime: options.startTime }),
+        ...(options?.endTime && { endTime: options.endTime }),
       },
     });
   }
