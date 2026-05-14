@@ -8,7 +8,6 @@ import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 
 export type SecretType = OpenChoreoComponents['schemas']['SecretType'];
 export type TargetPlaneRef = OpenChoreoComponents['schemas']['TargetPlaneRef'];
-export type SecretResponse = OpenChoreoComponents['schemas']['SecretResponse'];
 export type CreateSecretRequest =
   OpenChoreoComponents['schemas']['CreateSecretRequest'];
 export type UpdateSecretRequest =
@@ -17,6 +16,19 @@ type SecretReference = OpenChoreoComponents['schemas']['SecretReference'];
 type ListSecretsResponse =
   OpenChoreoComponents['schemas']['ListSecretsResponse'];
 type SecretObject = OpenChoreoComponents['schemas']['Secret'];
+
+/**
+ * Flat projection of a K8s Secret joined with its SecretReference for
+ * targetPlane. The BFF returns this shape so frontend consumers don't need
+ * to know about the K8s metadata/spec wrapper or the separate reference.
+ */
+export interface SecretResponse {
+  name: string;
+  namespace: string;
+  secretType?: SecretType;
+  targetPlane?: TargetPlaneRef;
+  keys: string[];
+}
 
 export interface SecretsListResponse {
   items: SecretResponse[];
@@ -85,16 +97,7 @@ export class SecretsService {
       const items: SecretResponse[] = secrets.map(secret => {
         const name = secret.metadata?.name ?? '';
         const ref = refByName.get(name);
-        const keys = Object.keys(secret.data ?? {}).sort((a, b) =>
-          a.localeCompare(b),
-        );
-        return {
-          name,
-          namespace: secret.metadata?.namespace ?? namespaceName,
-          secretType: toSecretType(secret.type),
-          targetPlane: ref?.spec?.targetPlane,
-          keys,
-        };
+        return projectSecret(secret, ref, name, namespaceName);
       });
 
       this.logger.debug(
@@ -159,14 +162,8 @@ export class SecretsService {
       }
 
       const data = (secret.data ?? {}) as Record<string, string>;
-      const keys = Object.keys(data).sort((a, b) => a.localeCompare(b));
-
       return {
-        name: secret.metadata?.name ?? secretName,
-        namespace: secret.metadata?.namespace ?? namespaceName,
-        secretType: toSecretType(secret.type),
-        targetPlane: ref.spec?.targetPlane,
-        keys,
+        ...projectSecret(secret, ref, secretName, namespaceName),
         data,
       };
     } catch (err) {
@@ -193,20 +190,27 @@ export class SecretsService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.POST(
+      const postRes = await client.POST(
         '/api/v1alpha1/namespaces/{namespaceName}/secrets',
         {
           params: { path: { namespaceName } },
           body,
         },
       );
-
-      assertApiResponse({ data, error, response }, 'create secret');
+      assertApiResponse(postRes, 'create secret');
 
       this.logger.debug(
         `Successfully created secret ${body.secretName} in namespace: ${namespaceName}`,
       );
-      return data as SecretResponse;
+      // targetPlane is not on the K8s Secret response; the only frontend
+      // consumer awaits this call for completion and refreshes via list,
+      // so we leave the optional field undefined to avoid an extra GET.
+      return projectSecret(
+        postRes.data as SecretObject,
+        undefined,
+        body.secretName,
+        namespaceName,
+      );
     } catch (err) {
       this.logger.error(
         `Failed to create secret ${body.secretName} in ${namespaceName}: ${err}`,
@@ -232,20 +236,25 @@ export class SecretsService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.PUT(
+      const putRes = await client.PUT(
         '/api/v1alpha1/namespaces/{namespaceName}/secrets/{secretName}',
         {
           params: { path: { namespaceName, secretName } },
           body,
         },
       );
-
-      assertApiResponse({ data, error, response }, 'update secret');
+      assertApiResponse(putRes, 'update secret');
 
       this.logger.debug(
         `Successfully updated secret ${secretName} in namespace: ${namespaceName}`,
       );
-      return data as SecretResponse;
+      // See createSecret: targetPlane is left undefined here too.
+      return projectSecret(
+        putRes.data as SecretObject,
+        undefined,
+        secretName,
+        namespaceName,
+      );
     } catch (err) {
       this.logger.error(
         `Failed to update secret ${secretName} in ${namespaceName}: ${err}`,
@@ -304,4 +313,23 @@ function toSecretType(raw: string | undefined): SecretType | undefined {
     return raw as SecretType;
   }
   return undefined;
+}
+
+/**
+ * Project a K8s Secret + SecretReference into the flat BFF response shape.
+ * `targetPlane` comes from the reference; everything else from the Secret.
+ */
+function projectSecret(
+  secret: SecretObject,
+  ref: SecretReference | undefined,
+  fallbackName: string,
+  fallbackNamespace: string,
+): SecretResponse {
+  return {
+    name: secret.metadata?.name ?? fallbackName,
+    namespace: secret.metadata?.namespace ?? fallbackNamespace,
+    secretType: toSecretType(secret.type),
+    targetPlane: ref?.spec?.targetPlane,
+    keys: Object.keys(secret.data ?? {}).sort((a, b) => a.localeCompare(b)),
+  };
 }

@@ -203,15 +203,11 @@ describe('SecretsService', () => {
   });
 
   describe('createSecret', () => {
-    it('POSTs the request body and returns the response', async () => {
-      const created = {
-        name: 'db-creds',
-        namespace: 'test-ns',
-        secretType: 'Opaque',
-        targetPlane: { kind: 'DataPlane', name: 'dp-prod' },
-        keys: ['DB_HOST', 'DB_USER'],
-      };
-      mockPOST.mockResolvedValueOnce(createOkResponse(created));
+    it('POSTs the request body and projects the K8s Secret response', async () => {
+      // The new API returns the K8s Secret shape. targetPlane is not on the
+      // response (it lives on the SecretReference); the BFF leaves the field
+      // undefined and the UI refreshes via list.
+      mockPOST.mockResolvedValueOnce(createOkResponse(dbCredsSecret));
 
       const result = await createService().createSecret(
         'test-ns',
@@ -224,7 +220,13 @@ describe('SecretsService', () => {
         'token',
       );
 
-      expect(result).toEqual(created);
+      expect(result).toEqual({
+        name: 'db-creds',
+        namespace: 'test-ns',
+        secretType: 'Opaque',
+        targetPlane: undefined,
+        keys: ['DB_HOST', 'DB_USER'],
+      });
       expect(mockPOST).toHaveBeenCalledWith(
         '/api/v1alpha1/namespaces/{namespaceName}/secrets',
         expect.objectContaining({
@@ -252,15 +254,8 @@ describe('SecretsService', () => {
   });
 
   describe('updateSecret', () => {
-    it('PUTs the request body and returns the response', async () => {
-      const updated = {
-        name: 'db-creds',
-        namespace: 'test-ns',
-        secretType: 'Opaque',
-        targetPlane: { kind: 'DataPlane', name: 'dp-prod' },
-        keys: ['DB_HOST', 'DB_USER'],
-      };
-      mockPUT.mockResolvedValueOnce(createOkResponse(updated));
+    it('PUTs the request body and projects the K8s Secret response', async () => {
+      mockPUT.mockResolvedValueOnce(createOkResponse(dbCredsSecret));
 
       const result = await createService().updateSecret(
         'test-ns',
@@ -269,7 +264,13 @@ describe('SecretsService', () => {
         'token',
       );
 
-      expect(result).toEqual(updated);
+      expect(result).toEqual({
+        name: 'db-creds',
+        namespace: 'test-ns',
+        secretType: 'Opaque',
+        targetPlane: undefined,
+        keys: ['DB_HOST', 'DB_USER'],
+      });
       expect(mockPUT).toHaveBeenCalledWith(
         '/api/v1alpha1/namespaces/{namespaceName}/secrets/{secretName}',
         expect.objectContaining({

@@ -79,6 +79,18 @@ tags:
     description: Observability alerts notification channel management
   - name: GitSecrets
     description: Git secret management for source code authentication
+  - name: Secrets
+    description: Secret management across workflow and data planes
+  - name: ClusterResourceTypes
+    description: Cluster-scoped ResourceType templates defined by platform engineers
+  - name: ResourceTypes
+    description: ResourceType templates defined by platform engineers
+  - name: Resources
+    description: Resource management within projects (managed-infrastructure dependencies)
+  - name: ResourceReleases
+    description: Resource release management
+  - name: ResourceReleaseBindings
+    description: Resource release binding management
 
 paths:
   # =============================================================================
@@ -226,6 +238,8 @@ paths:
                 $ref: '#/components/schemas/Namespace'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -281,6 +295,8 @@ paths:
                 $ref: '#/components/schemas/Namespace'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -364,6 +380,8 @@ paths:
                 $ref: '#/components/schemas/Project'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -421,6 +439,8 @@ paths:
                 $ref: '#/components/schemas/Project'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -508,6 +528,8 @@ paths:
                 $ref: '#/components/schemas/Component'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -570,6 +592,8 @@ paths:
                 $ref: '#/components/schemas/Environment'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -627,6 +651,8 @@ paths:
                 $ref: '#/components/schemas/Environment'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -711,6 +737,8 @@ paths:
                 $ref: '#/components/schemas/DataPlane'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -768,6 +796,8 @@ paths:
                 $ref: '#/components/schemas/DataPlane'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -852,6 +882,8 @@ paths:
                 $ref: '#/components/schemas/WorkflowPlane'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -909,6 +941,8 @@ paths:
                 $ref: '#/components/schemas/WorkflowPlane'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -993,6 +1027,8 @@ paths:
                 $ref: '#/components/schemas/ObservabilityPlane'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1050,6 +1086,8 @@ paths:
                 $ref: '#/components/schemas/ObservabilityPlane'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1131,6 +1169,8 @@ paths:
                 $ref: '#/components/schemas/ClusterDataPlane'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1186,6 +1226,8 @@ paths:
                 $ref: '#/components/schemas/ClusterDataPlane'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1266,6 +1308,8 @@ paths:
                 $ref: '#/components/schemas/ClusterWorkflowPlane'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1331,6 +1375,8 @@ paths:
                 $ref: '#/components/schemas/ClusterWorkflowPlane'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1416,6 +1462,8 @@ paths:
                 $ref: '#/components/schemas/ClusterObservabilityPlane'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1471,6 +1519,8 @@ paths:
                 $ref: '#/components/schemas/ClusterObservabilityPlane'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1551,6 +1601,8 @@ paths:
                 $ref: '#/components/schemas/ClusterComponentType'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1606,6 +1658,8 @@ paths:
                 $ref: '#/components/schemas/ClusterComponentType'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1710,6 +1764,8 @@ paths:
                 $ref: '#/components/schemas/ClusterTrait'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1765,6 +1821,8 @@ paths:
                 $ref: '#/components/schemas/ClusterTrait'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1872,6 +1930,8 @@ paths:
                 $ref: '#/components/schemas/ComponentType'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1929,6 +1989,8 @@ paths:
                 $ref: '#/components/schemas/ComponentType'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2038,6 +2100,8 @@ paths:
                 $ref: '#/components/schemas/Trait'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2095,6 +2159,8 @@ paths:
                 $ref: '#/components/schemas/Trait'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2201,6 +2267,8 @@ paths:
                 $ref: '#/components/schemas/ClusterWorkflow'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2256,6 +2324,8 @@ paths:
                 $ref: '#/components/schemas/ClusterWorkflow'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2363,6 +2433,8 @@ paths:
                 $ref: '#/components/schemas/Workflow'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2420,6 +2492,8 @@ paths:
                 $ref: '#/components/schemas/Workflow'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2530,6 +2604,8 @@ paths:
                 $ref: '#/components/schemas/WorkflowRun'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2587,6 +2663,28 @@ paths:
                 $ref: '#/components/schemas/WorkflowRun'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      operationId: deleteWorkflowRun
+      summary: Delete workflow run
+      description: Deletes a workflow run by name.
+      tags: [Workflows]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/WorkflowRunNameParam'
+      responses:
+        '204':
+          description: Workflow run deleted successfully
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2741,6 +2839,8 @@ paths:
                 $ref: '#/components/schemas/Component'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2821,6 +2921,8 @@ paths:
                 $ref: '#/components/schemas/ComponentRelease'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2880,6 +2982,8 @@ paths:
                   $ref: '#/components/schemas/Decision'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -2972,6 +3076,8 @@ paths:
                 $ref: '#/components/schemas/ClusterAuthzRole'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3039,6 +3145,8 @@ paths:
                 $ref: '#/components/schemas/ClusterAuthzRole'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3121,6 +3229,8 @@ paths:
                 $ref: '#/components/schemas/ClusterAuthzRoleBinding'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3188,6 +3298,8 @@ paths:
                 $ref: '#/components/schemas/ClusterAuthzRoleBinding'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3273,6 +3385,8 @@ paths:
                 $ref: '#/components/schemas/AuthzRole'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3344,6 +3458,8 @@ paths:
                 $ref: '#/components/schemas/AuthzRole'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3432,6 +3548,8 @@ paths:
                 $ref: '#/components/schemas/AuthzRoleBinding'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3503,6 +3621,8 @@ paths:
                 $ref: '#/components/schemas/AuthzRoleBinding'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3618,6 +3738,8 @@ paths:
                 $ref: '#/components/schemas/WebhookEventResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -3676,6 +3798,8 @@ paths:
                 $ref: '#/components/schemas/SecretReference'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3733,6 +3857,8 @@ paths:
                 $ref: '#/components/schemas/SecretReference'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3818,6 +3944,8 @@ paths:
                 $ref: '#/components/schemas/Workload'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3875,6 +4003,8 @@ paths:
                 $ref: '#/components/schemas/Workload'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3937,6 +4067,38 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+    post:
+      operationId: createComponentRelease
+      summary: Create component release
+      description: Creates a new component release within a namespace.
+      tags: [ComponentReleases]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComponentRelease'
+      responses:
+        '201':
+          description: Component release created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComponentRelease'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/v1/namespaces/{namespaceName}/componentreleases/{componentReleaseName}:
     get:
@@ -3954,6 +4116,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ComponentRelease'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: deleteComponentRelease
+      summary: Delete component release
+      description: Deletes a component release by name.
+      tags: [ComponentReleases]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ComponentReleaseNameParam'
+      responses:
+        '204':
+          description: Component release deleted successfully
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4019,6 +4200,8 @@ paths:
                 $ref: '#/components/schemas/ReleaseBinding'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4076,6 +4259,8 @@ paths:
                 $ref: '#/components/schemas/ReleaseBinding'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4225,6 +4410,719 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   # =============================================================================
+  # ClusterResourceType Endpoints (Cluster-Scoped)
+  # =============================================================================
+
+  /api/v1/clusterresourcetypes:
+    get:
+      operationId: listClusterResourceTypes
+      summary: List cluster resource types
+      description: Returns a list of cluster-scoped resource types.
+      tags: [ClusterResourceTypes]
+      parameters:
+        - $ref: '#/components/parameters/LabelSelectorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: List of cluster resource types
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResourceTypeList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      operationId: createClusterResourceType
+      summary: Create cluster resource type
+      description: Creates a new cluster-scoped resource type.
+      tags: [ClusterResourceTypes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterResourceType'
+      responses:
+        '201':
+          description: Cluster resource type created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResourceType'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/clusterresourcetypes/{crtName}:
+    get:
+      operationId: getClusterResourceType
+      summary: Get a cluster resource type
+      description: Returns details of a specific cluster-scoped resource type.
+      tags: [ClusterResourceTypes]
+      parameters:
+        - $ref: '#/components/parameters/ClusterResourceTypeNameParam'
+      responses:
+        '200':
+          description: Cluster resource type details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResourceType'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      operationId: updateClusterResourceType
+      summary: Update cluster resource type
+      description: Replaces an existing cluster-scoped resource type (full update).
+      tags: [ClusterResourceTypes]
+      parameters:
+        - $ref: '#/components/parameters/ClusterResourceTypeNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterResourceType'
+      responses:
+        '200':
+          description: Cluster resource type updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterResourceType'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      operationId: deleteClusterResourceType
+      summary: Delete cluster resource type
+      description: Deletes a cluster-scoped resource type by name.
+      tags: [ClusterResourceTypes]
+      parameters:
+        - $ref: '#/components/parameters/ClusterResourceTypeNameParam'
+      responses:
+        '204':
+          description: ClusterResourceType deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/clusterresourcetypes/{crtName}/schema:
+    get:
+      operationId: getClusterResourceTypeSchema
+      summary: Get cluster resource type schema
+      description: Returns the parameter schema for a specific cluster-scoped resource type.
+      tags: [ClusterResourceTypes]
+      parameters:
+        - $ref: '#/components/parameters/ClusterResourceTypeNameParam'
+      responses:
+        '200':
+          description: Cluster resource type schema
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # =============================================================================
+  # ResourceType Endpoints
+  # =============================================================================
+
+  /api/v1/namespaces/{namespaceName}/resourcetypes:
+    get:
+      operationId: listResourceTypes
+      summary: List resource types
+      description: Returns a paginated list of resource types available in the namespace.
+      tags: [ResourceTypes]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/LabelSelectorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: List of resource types
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceTypeList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      operationId: createResourceType
+      summary: Create resource type
+      description: Creates a new resource type within a namespace.
+      tags: [ResourceTypes]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceType'
+      responses:
+        '201':
+          description: Resource type created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceType'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}:
+    get:
+      operationId: getResourceType
+      summary: Get resource type
+      description: Returns details of a specific resource type.
+      tags: [ResourceTypes]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceTypeNameParam'
+      responses:
+        '200':
+          description: Resource type details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceType'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      operationId: updateResourceType
+      summary: Update resource type
+      description: Replaces an existing resource type (full update).
+      tags: [ResourceTypes]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceTypeNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceType'
+      responses:
+        '200':
+          description: Resource type updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceType'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      operationId: deleteResourceType
+      summary: Delete resource type
+      description: Deletes a resource type by name.
+      tags: [ResourceTypes]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceTypeNameParam'
+      responses:
+        '204':
+          description: Resource type deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}/schema:
+    get:
+      operationId: getResourceTypeSchema
+      summary: Get resource type schema
+      description: Returns the parameter schema for a specific resource type.
+      tags: [ResourceTypes]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceTypeNameParam'
+      responses:
+        '200':
+          description: Resource type schema
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # =============================================================================
+  # Resource Endpoints
+  # =============================================================================
+
+  /api/v1/namespaces/{namespaceName}/resources:
+    get:
+      operationId: listResources
+      summary: List resources
+      description: Returns a paginated list of resources within a namespace, optionally filtered by project.
+      tags: [Resources]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ProjectQueryParam'
+        - $ref: '#/components/parameters/LabelSelectorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: List of resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceInstanceList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      operationId: createResource
+      summary: Create resource
+      description: Creates a new resource within a namespace.
+      tags: [Resources]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceInstance'
+      responses:
+        '201':
+          description: Resource created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceInstance'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/resources/{resourceName}:
+    get:
+      operationId: getResource
+      summary: Get resource
+      description: Returns details of a specific resource.
+      tags: [Resources]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceNameParam'
+      responses:
+        '200':
+          description: Resource details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceInstance'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      operationId: updateResource
+      summary: Update resource
+      description: Replaces an existing resource (full update). Mutating spec.parameters cuts a new ResourceRelease via the Resource controller.
+      tags: [Resources]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceInstance'
+      responses:
+        '200':
+          description: Resource updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceInstance'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      operationId: deleteResource
+      summary: Delete resource
+      description: Deletes a resource by name. The Resource finalizer blocks deletion until all owned ResourceReleaseBindings and ResourceReleases are cleaned up.
+      tags: [Resources]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceNameParam'
+      responses:
+        '204':
+          description: Resource deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # =============================================================================
+  # ResourceRelease Endpoints
+  # =============================================================================
+
+  /api/v1/namespaces/{namespaceName}/resourcereleases:
+    get:
+      operationId: listResourceReleases
+      summary: List resource releases
+      description: Returns a paginated list of resource releases within a namespace, optionally filtered by resource.
+      tags: [ResourceReleases]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceQueryParam'
+        - $ref: '#/components/parameters/LabelSelectorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: List of resource releases
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceReleaseList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      operationId: createResourceRelease
+      summary: Create resource release
+      description: Creates a new resource release within a namespace. Normally cut by the Resource controller; exposed here for offline emit (e.g. `occ resource generate` in v1.2).
+      tags: [ResourceReleases]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceRelease'
+      responses:
+        '201':
+          description: Resource release created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceRelease'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/resourcereleases/{resourceReleaseName}:
+    get:
+      operationId: getResourceRelease
+      summary: Get resource release
+      description: Returns details of a specific resource release.
+      tags: [ResourceReleases]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceReleaseNameParam'
+      responses:
+        '200':
+          description: Resource release details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceRelease'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: deleteResourceRelease
+      summary: Delete resource release
+      description: Deletes a resource release by name.
+      tags: [ResourceReleases]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceReleaseNameParam'
+      responses:
+        '204':
+          description: Resource release deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # =============================================================================
+  # ResourceReleaseBinding Endpoints
+  # =============================================================================
+
+  /api/v1/namespaces/{namespaceName}/resourcereleasebindings:
+    get:
+      operationId: listResourceReleaseBindings
+      summary: List resource release bindings
+      description: Returns a paginated list of resource release bindings within a namespace, optionally filtered by resource.
+      tags: [ResourceReleaseBindings]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceQueryParam'
+        - $ref: '#/components/parameters/LabelSelectorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: List of resource release bindings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceReleaseBindingList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      operationId: createResourceReleaseBinding
+      summary: Create resource release binding
+      description: Creates a new resource release binding within a namespace.
+      tags: [ResourceReleaseBindings]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceReleaseBinding'
+      responses:
+        '201':
+          description: Resource release binding created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceReleaseBinding'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}:
+    get:
+      operationId: getResourceReleaseBinding
+      summary: Get resource release binding
+      description: Returns details of a specific resource release binding.
+      tags: [ResourceReleaseBindings]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceReleaseBindingNameParam'
+      responses:
+        '200':
+          description: Resource release binding details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceReleaseBinding'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      operationId: updateResourceReleaseBinding
+      summary: Update resource release binding
+      description: Replaces an existing resource release binding (full update). Used to advance `spec.resourceRelease` (the promote flow) or change `spec.retainPolicy` / `spec.resourceTypeEnvironmentConfigs`. `spec.owner` and `spec.environment` are immutable.
+      tags: [ResourceReleaseBindings]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceReleaseBindingNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceReleaseBinding'
+      responses:
+        '200':
+          description: Resource release binding updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceReleaseBinding'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      operationId: deleteResourceReleaseBinding
+      summary: Delete resource release binding
+      description: Deletes a resource release binding by name. The binding finalizer either cascades the underlying RenderedRelease (retainPolicy=Delete) or holds (retainPolicy=Retain).
+      tags: [ResourceReleaseBindings]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ResourceReleaseBindingNameParam'
+      responses:
+        '204':
+          description: Resource release binding deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # =============================================================================
   # Deployment Pipeline Endpoints
   # =============================================================================
 
@@ -4277,6 +5175,8 @@ paths:
                 $ref: '#/components/schemas/DeploymentPipeline'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4334,6 +5234,8 @@ paths:
                 $ref: '#/components/schemas/DeploymentPipeline'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4416,6 +5318,8 @@ paths:
                 $ref: '#/components/schemas/ObservabilityAlertsNotificationChannel'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4473,6 +5377,8 @@ paths:
                 $ref: '#/components/schemas/ObservabilityAlertsNotificationChannel'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4549,6 +5455,8 @@ paths:
                 $ref: '#/components/schemas/GitSecretResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4579,6 +5487,9 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  # =============================================================================
+  # Secrets (v1alpha1)
+  # =============================================================================
   /api/v1alpha1/namespaces/{namespaceName}/secrets:
     get:
       operationId: listSecrets
@@ -4608,6 +5519,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalError'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
 
     post:
       operationId: createSecret
@@ -4632,9 +5545,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SecretResponse'
+                $ref: '#/components/schemas/Secret'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4643,6 +5558,8 @@ paths:
           $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
 
   /api/v1alpha1/namespaces/{namespaceName}/secrets/{secretName}:
     get:
@@ -4671,13 +5588,18 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
 
     put:
       operationId: updateSecret
       summary: Update a secret
       description: |
-        Replaces the data of an existing secret. The secret type and target
-        plane cannot be changed; only the data keys and values.
+        Replaces a secret's data with the supplied final state. Keys present
+        in the existing secret but absent from the request body are pruned
+        from the Kubernetes Secret, the PushSecret, and the SecretReference.
+        Returns 404 if the SecretReference does not exist or is not managed
+        by the Secret API. Secret type and target plane are immutable.
       tags: [Secrets]
       parameters:
         - $ref: '#/components/parameters/NamespaceNameParam'
@@ -4694,9 +5616,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SecretResponse'
+                $ref: '#/components/schemas/Secret'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4705,6 +5629,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
 
     delete:
       operationId: deleteSecret
@@ -4719,6 +5645,8 @@ paths:
           description: Secret deleted successfully
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4727,6 +5655,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
 
 components:
   # ===========================================================================
@@ -4983,6 +5913,60 @@ components:
         type: string
         example: api-service-v1.0.0
 
+    ClusterResourceTypeNameParam:
+      name: crtName
+      in: path
+      required: true
+      description: ClusterResourceType name
+      schema:
+        type: string
+        example: mysql
+
+    ResourceTypeNameParam:
+      name: rtName
+      in: path
+      required: true
+      description: ResourceType name
+      schema:
+        type: string
+        example: mysql
+
+    ResourceNameParam:
+      name: resourceName
+      in: path
+      required: true
+      description: Resource name
+      schema:
+        type: string
+        example: analytics-shared-db
+
+    ResourceReleaseNameParam:
+      name: resourceReleaseName
+      in: path
+      required: true
+      description: Resource release name
+      schema:
+        type: string
+        example: analytics-shared-db-abc123
+
+    ResourceQueryParam:
+      name: resource
+      in: query
+      required: false
+      description: Filter resources by resource name (matches spec.owner.resourceName)
+      schema:
+        type: string
+        example: analytics-shared-db
+
+    ResourceReleaseBindingNameParam:
+      name: resourceReleaseBindingName
+      in: path
+      required: true
+      description: Resource release binding name
+      schema:
+        type: string
+        example: analytics-shared-db-dev
+
     RoleNameParam:
       name: roleName
       in: path
@@ -5083,13 +6067,13 @@ components:
             code: UNAUTHORIZED
 
     Forbidden:
-      description: Insufficient permissions to access the resource
+      description: Insufficient permissions to perform the operation
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: 'You do not have permission to access this resource'
+            error: 'You do not have permission to perform this operation'
             code: FORBIDDEN
 
     NotFound:
@@ -5112,6 +6096,19 @@ components:
             error: "Project 'my-project' already exists"
             code: CONFLICT
 
+    UnprocessableContent:
+      description: Request body is well-formed but failed validation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "spec.outputs[0].value: undeclared reference to 'applied'"
+            code: UNPROCESSABLE_CONTENT
+            details:
+              - field: spec.outputs[0].value
+                message: undeclared reference to 'applied'
+
     InternalError:
       description: Internal server error
       content:
@@ -5121,6 +6118,16 @@ components:
           example:
             error: 'Internal server error'
             code: INTERNAL_ERROR
+
+    NotImplemented:
+      description: Feature is disabled on this server
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: 'Secret API is disabled on this server'
+            code: NOT_IMPLEMENTED
 
   # ===========================================================================
   # Schemas
@@ -5149,7 +6156,9 @@ components:
             - FORBIDDEN
             - NOT_FOUND
             - CONFLICT
+            - UNPROCESSABLE_CONTENT
             - INTERNAL_ERROR
+            - NOT_IMPLEMENTED
             - UNKNOWN_GIT_PROVIDER
           example: NOT_FOUND
         details:
@@ -5208,8 +6217,13 @@ components:
         deletionTimestamp:
           type: string
           format: date-time
-          description: Deletion timestamp (set when resource is being deleted)
-          example: '2025-01-06T10:00:00Z'
+          description: Timestamp when the resource was requested to be deleted
+          example: '2025-01-06T12:00:00Z'
+        deletionGracePeriodSeconds:
+          type: integer
+          format: int64
+          description: Number of seconds before the object is removed after deletion is requested
+          example: 0
 
     Condition:
       type: object
@@ -5571,6 +6585,23 @@ components:
           allOf:
             - $ref: '#/components/schemas/ProjectStatus'
 
+    PatchProjectRequest:
+      type: object
+      description: Request to patch a project
+      properties:
+        displayName:
+          type: string
+          description: Human-readable display name
+        description:
+          type: string
+          description: Human-readable description
+        deploymentPipeline:
+          type: string
+          description: Name of the deployment pipeline resource
+          minLength: 1
+          maxLength: 63
+          example: default
+
     ProjectList:
       type: object
       description: Paginated list of projects
@@ -5709,50 +6740,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/ComponentStatus'
 
-    ComponentWorkflowConfig:
-      type: object
-      description: Component workflow configuration
-      properties:
-        kind:
-          type: string
-          description: Kind of workflow (Workflow or ClusterWorkflow)
-          enum: [Workflow, ClusterWorkflow]
-          default: Workflow
-        name:
-          type: string
-          description: Workflow name
-          example: docker-build
-        systemParameters:
-          type: object
-          description: System-managed parameters (repository info)
-          properties:
-            repository:
-              type: object
-              properties:
-                url:
-                  type: string
-                  description: Git repository URL
-                  example: https://github.com/org/repo.git
-                revision:
-                  type: object
-                  properties:
-                    branch:
-                      type: string
-                      description: Git branch
-                      example: main
-                    commit:
-                      type: string
-                      description: Git commit SHA
-                      example: abc1234
-                appPath:
-                  type: string
-                  description: Path to application within repository
-                  example: ./services/api
-        parameters:
-          type: object
-          description: User-defined workflow parameters
-          additionalProperties: true
-
     CreateComponentRequest:
       type: object
       description: Request to create a new component
@@ -5784,7 +6771,7 @@ components:
         componentType:
           type: string
           description: 'Component type reference (format: {workloadType}/{componentTypeName})'
-          example: deployment/go-service
+          example: service/go-service
         autoDeploy:
           type: boolean
           description: Whether to automatically deploy to default environment
@@ -5833,51 +6820,16 @@ components:
       description: Workflow configuration for component creation
       required:
         - name
-        - systemParameters
       properties:
         kind:
           type: string
-          description: Kind of workflow (Workflow or ClusterWorkflow)
+          description: Kind of referenced workflow resource (Workflow or ClusterWorkflow)
           enum: [Workflow, ClusterWorkflow]
-          default: Workflow
+          default: ClusterWorkflow
         name:
           type: string
-          description: ComponentWorkflow resource name
+          description: Workflow resource name
           example: docker-build
-        systemParameters:
-          type: object
-          description: System parameters including repository configuration
-          required:
-            - repository
-          properties:
-            repository:
-              type: object
-              required:
-                - url
-                - revision
-                - appPath
-              properties:
-                url:
-                  type: string
-                  description: Git repository URL
-                  example: https://github.com/org/repo.git
-                revision:
-                  type: object
-                  required:
-                    - branch
-                  properties:
-                    branch:
-                      type: string
-                      description: Git branch to build from
-                      example: main
-                    commit:
-                      type: string
-                      description: Specific commit SHA (optional)
-                      example: abc1234
-                appPath:
-                  type: string
-                  description: Path to application within repository
-                  example: ./services/api
         parameters:
           type: object
           description: User-defined workflow parameters
@@ -6332,6 +7284,10 @@ components:
           type: string
           description: Base URL of the RCA Agent API in the observability plane cluster
           example: http://rca-agent.observability-plane.svc:8080
+        finOpsAgentURL:
+          type: string
+          description: Base URL of the FinOps Agent API in the observability plane cluster
+          example: http://finops-agent.observability-plane.svc:8080
 
     ObservabilityPlaneStatus:
       type: object
@@ -6592,6 +7548,10 @@ components:
           type: string
           description: Base URL of the RCA Agent API in the observability plane cluster
           example: http://rca-agent.observability-plane.svc:8080
+        finOpsAgentURL:
+          type: string
+          description: Base URL of the FinOps Agent API in the observability plane cluster
+          example: http://finops-agent.observability-plane.svc:8080
 
     ClusterObservabilityPlaneStatus:
       type: object
@@ -6963,7 +7923,7 @@ components:
           example: deployment
         allowedWorkflows:
           type: array
-          description: List of allowed Workflow references for this component type
+          description: List of allowed Workflow or ClusterWorkflow references for this component type
           items:
             type: object
             required:
@@ -6971,17 +7931,17 @@ components:
             properties:
               kind:
                 type: string
-                description: Kind of the workflow reference. Currently only "Workflow" is supported.
-                enum: [Workflow]
-                default: Workflow
+                description: Kind of the workflow reference (Workflow or ClusterWorkflow)
+                enum: [Workflow, ClusterWorkflow]
+                default: ClusterWorkflow
               name:
                 type: string
                 description: Name of the workflow resource
                 minLength: 1
           example:
-            - kind: Workflow
+            - kind: ClusterWorkflow
               name: docker-build
-            - kind: Workflow
+            - kind: ClusterWorkflow
               name: buildpack-build
         parameters:
           $ref: '#/components/schemas/SchemaSection'
@@ -7332,7 +8292,9 @@ components:
         - runTemplate
       properties:
         workflowPlaneRef:
-          $ref: '#/components/schemas/WorkflowPlaneRef'
+          description: Reference to the WorkflowPlane or ClusterWorkflowPlane for this workflow's operations. Defaults to ClusterWorkflowPlane named "default" when omitted.
+          allOf:
+            - $ref: '#/components/schemas/WorkflowPlaneRef'
         parameters:
           $ref: '#/components/schemas/SchemaSection'
         runTemplate:
@@ -7484,7 +8446,7 @@ components:
         - runTemplate
       properties:
         workflowPlaneRef:
-          description: Reference to the ClusterWorkflowPlane for this workflow's build operations. Defaults to the ClusterWorkflowPlane named "default" when omitted.
+          description: Reference to the ClusterWorkflowPlane for this workflow's build operations. Defaults to ClusterWorkflowPlane named "default" when omitted.
           allOf:
             - $ref: '#/components/schemas/ClusterWorkflowPlaneRef'
         parameters:
@@ -7587,20 +8549,39 @@ components:
           type: string
           description: Time-to-live for this workflow run after completion (duration string like 10d1h30m).
 
-    WorkflowRunConfig:
+    ComponentWorkflowConfig:
       type: object
-      description: Workflow configuration referencing the Workflow and providing schema values.
+      description: Workflow configuration for a component. Kind and name are mutable.
       required:
         - name
       properties:
         kind:
           type: string
-          description: Kind of workflow (Workflow or ClusterWorkflow)
+          description: Kind of referenced workflow resource (Workflow or ClusterWorkflow)
           enum: [Workflow, ClusterWorkflow]
-          default: Workflow
+          default: ClusterWorkflow
         name:
           type: string
-          description: Referenced Workflow name
+          description: Referenced workflow resource name
+        parameters:
+          type: object
+          description: Developer-provided parameters for the referenced workflow
+          additionalProperties: true
+
+    WorkflowRunConfig:
+      type: object
+      description: Workflow configuration referencing the Workflow and providing schema values. Kind and name are immutable after creation.
+      required:
+        - name
+      properties:
+        kind:
+          type: string
+          description: Kind of referenced workflow resource (Workflow or ClusterWorkflow)
+          enum: [Workflow, ClusterWorkflow]
+          default: ClusterWorkflow
+        name:
+          type: string
+          description: Referenced workflow resource name
         parameters:
           type: object
           description: Developer-provided parameters for the referenced workflow
@@ -7786,8 +8767,21 @@ components:
     # -------------------------------------------------------------------------
     PatchComponentRequest:
       type: object
-      description: Request to patch a component
+      description: |
+        Request to patch a component. All fields are optional. Each field follows partial-update
+        semantics: a field that is omitted from the request leaves the corresponding component
+        attribute unchanged. A provided field is applied as described below.
       properties:
+        displayName:
+          type: string
+          description: |
+            Human-readable display name. When provided, replaces the existing display name.
+            Empty string is treated as "no change" (omit the field instead).
+        description:
+          type: string
+          description: |
+            Human-readable description. When provided, replaces the existing description.
+            Empty string is treated as "no change" (omit the field instead).
         autoDeploy:
           type: boolean
           description: Controls auto-deployment to default environment
@@ -7796,6 +8790,16 @@ components:
           type: object
           description: ComponentType parameters
           additionalProperties: true
+        traits:
+          type: array
+          description: |
+            Trait instances attached to the component. When provided, replaces the entire
+            traits list (whole-list replace at the slice level). Pass an empty array to
+            clear all traits.
+          items:
+            $ref: '#/components/schemas/ComponentTraitInput'
+        workflow:
+          $ref: '#/components/schemas/ComponentWorkflowInput'
 
     ComponentTrait:
       type: object
@@ -7895,9 +8899,11 @@ components:
           description: Frozen ComponentType spec at release time
           additionalProperties: true
         traits:
-          type: object
-          description: Frozen trait specs at release time (keyed by trait name)
-          additionalProperties: true
+          type: array
+          description: Frozen trait specs at release time
+          items:
+            type: object
+            additionalProperties: true
         componentProfile:
           type: object
           description: Snapshot of component parameters and trait configs
@@ -8029,6 +9035,80 @@ components:
           description: Resolved invoke URLs for each named workload endpoint
           items:
             $ref: '#/components/schemas/EndpointURLStatus'
+        resolvedConnections:
+          type: array
+          description: Connections that have been successfully resolved
+          items:
+            $ref: '#/components/schemas/ResolvedConnection'
+        pendingConnections:
+          type: array
+          description: Connections that could not be resolved
+          items:
+            $ref: '#/components/schemas/PendingConnection'
+
+    ResolvedConnection:
+      type: object
+      description: Holds the resolved URL for a single connection
+      required:
+        - namespace
+        - project
+        - component
+        - endpoint
+        - visibility
+        - url
+      properties:
+        namespace:
+          type: string
+          description: Control plane namespace of the target component
+          minLength: 1
+        project:
+          type: string
+          description: Name of the project that owns the target component
+          minLength: 1
+        component:
+          type: string
+          description: Name of the target component
+          minLength: 1
+        endpoint:
+          type: string
+          description: Name of the endpoint on the target component
+          minLength: 1
+        visibility:
+          type: string
+          description: Visibility level at which the endpoint was resolved
+          enum: [project, namespace, internal, external]
+        url:
+          $ref: '#/components/schemas/EndpointURL'
+
+    PendingConnection:
+      type: object
+      description: Represents a connection that could not be resolved
+      required:
+        - namespace
+        - project
+        - component
+        - endpoint
+        - reason
+      properties:
+        namespace:
+          type: string
+          description: Control plane namespace of the target component
+          minLength: 1
+        project:
+          type: string
+          description: Name of the project that owns the target component
+          minLength: 1
+        component:
+          type: string
+          description: Name of the target component
+          minLength: 1
+        endpoint:
+          type: string
+          description: Name of the endpoint on the target component
+          minLength: 1
+        reason:
+          type: string
+          description: Describes why the connection could not be resolved
 
     EndpointURLStatus:
       type: object
@@ -8163,6 +9243,558 @@ components:
           description: File content
         valueFrom:
           $ref: '#/components/schemas/EnvVarValueFrom'
+
+    # -------------------------------------------------------------------------
+    # Resource family — shared
+    # -------------------------------------------------------------------------
+    ResourceSecretKeyRef:
+      type: object
+      description: Reference to a specific key in a Kubernetes Secret on the data plane.
+      required:
+        - name
+        - key
+      properties:
+        name:
+          type: string
+          description: Secret name (supports ${...} CEL templating in ResourceType outputs)
+          minLength: 1
+          example: analytics-shared-db-conn
+        key:
+          type: string
+          description: Key within the Secret
+          minLength: 1
+          example: password
+
+    ResourceConfigMapKeyRef:
+      type: object
+      description: Reference to a specific key in a Kubernetes ConfigMap on the data plane.
+      required:
+        - name
+        - key
+      properties:
+        name:
+          type: string
+          description: ConfigMap name (supports ${...} CEL templating in ResourceType outputs)
+          minLength: 1
+          example: analytics-shared-db-tls
+        key:
+          type: string
+          description: Key within the ConfigMap
+          minLength: 1
+          example: ca.crt
+
+    ResourceTypeOutput:
+      type: object
+      description: |
+        Single output declaration of a (Cluster)ResourceType. Exactly one of
+        value, secretKeyRef, or configMapKeyRef must be set. Output value, name,
+        and key fields support ${...} CEL templating evaluated against
+        metadata.*, parameters.*, environmentConfigs.*, and applied.<id>.status.*.
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Unique output name. Referenced by Workload.spec.dependencies.resources[].envBindings and fileBindings keys.
+          minLength: 1
+          example: host
+        value:
+          type: string
+          description: Literal or ${...} CEL expression. Use only for non-sensitive data; the resolved value transits to the control plane.
+          example: '${applied.claim.status.host}'
+        secretKeyRef:
+          $ref: '#/components/schemas/ResourceSecretKeyRef'
+        configMapKeyRef:
+          $ref: '#/components/schemas/ResourceConfigMapKeyRef'
+
+    ResourceTypeManifest:
+      type: object
+      description: |
+        Kubernetes resource template emitted by the (Cluster)ResourceType
+        provisioner on the data plane. The template body, includeWhen, and
+        readyWhen support ${...} CEL templating against metadata.*, parameters.*,
+        environmentConfigs.*, and dataplane.* (plus applied.<id>.* for readyWhen).
+      required:
+        - id
+        - template
+      properties:
+        id:
+          type: string
+          description: Unique entry identifier within the (Cluster)ResourceType. Referenced by readyWhen and outputs CEL via applied.<id>.status.*.
+          minLength: 1
+          example: claim
+        includeWhen:
+          type: string
+          description: Optional ${...}-wrapped CEL expression. When false, the entry is skipped entirely.
+          example: '${parameters.tlsEnabled}'
+        template:
+          type: object
+          description: Kubernetes resource body with ${...} CEL substitutions.
+          additionalProperties: true
+        readyWhen:
+          type: string
+          description: Optional ${...}-wrapped CEL expression. When set, drives the entry's contribution to ResourceReleaseBinding.status.conditions[ResourcesReady]; otherwise per-Kind health inference is used.
+          example: "${applied.claim.status.conditions.exists(c, c.type == 'Ready' && c.status == 'True')}"
+
+    ResourceTypeSpec:
+      type: object
+      description: Desired state of a (Cluster)ResourceType.
+      required:
+        - resources
+      properties:
+        parameters:
+          $ref: '#/components/schemas/SchemaSection'
+        environmentConfigs:
+          $ref: '#/components/schemas/SchemaSection'
+        retainPolicy:
+          type: string
+          description: Default retention for ResourceReleaseBindings of this type. Per-env override available on the binding.
+          enum: [Delete, Retain]
+          default: Delete
+          example: Delete
+        outputs:
+          type: array
+          description: Outputs that workloads consume via dependencies.resources[].envBindings or fileBindings.
+          items:
+            $ref: '#/components/schemas/ResourceTypeOutput'
+        resources:
+          type: array
+          description: Kubernetes manifests the (Cluster)ResourceType provisioner emits on the data plane.
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ResourceTypeManifest'
+
+    # -------------------------------------------------------------------------
+    # ClusterResourceTypes
+    # -------------------------------------------------------------------------
+    ClusterResourceTypeList:
+      type: object
+      description: Paginated list of cluster resource types
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterResourceType'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ClusterResourceType:
+      type: object
+      description: |
+        ClusterResourceType resource.
+        Cluster-scoped sibling of ResourceType. Resources in any namespace can reference it.
+      required:
+        - metadata
+      properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ClusterResourceType
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/ResourceTypeSpec'
+        status:
+          readOnly: true
+          type: object
+          description: ClusterResourceType status (currently empty)
+
+    # -------------------------------------------------------------------------
+    # ResourceTypes
+    # -------------------------------------------------------------------------
+    ResourceTypeList:
+      type: object
+      description: Paginated list of resource types
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceType'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ResourceType:
+      type: object
+      description: |
+        ResourceType resource.
+        PE-published template scoped to a namespace. Developers reference it from Resource.spec.type.
+      required:
+        - metadata
+      properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ResourceType
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/ResourceTypeSpec'
+        status:
+          readOnly: true
+          type: object
+          description: ResourceType status (currently empty)
+
+    # -------------------------------------------------------------------------
+    # Resources
+    # -------------------------------------------------------------------------
+    # The OpenAPI schema name is `ResourceInstance` to avoid colliding with the
+    # existing authz `Resource` schema (used by `EvaluateRequest.resource`).
+    # The on-the-wire `kind` value remains `Resource` to match the Kubernetes
+    # CRD kind.
+    ResourceInstanceList:
+      type: object
+      description: Paginated list of resources
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceInstance'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ResourceInstance:
+      type: object
+      description: |
+        Resource.
+        Developer-facing intent for a managed-infrastructure dependency (database,
+        queue, cache, object storage). References a ResourceType or ClusterResourceType template.
+      required:
+        - metadata
+      properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource (always "Resource" on the wire; see schema name)
+          example: Resource
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/ResourceInstanceSpec'
+        status:
+          readOnly: true
+          allOf:
+            - $ref: '#/components/schemas/ResourceInstanceStatus'
+
+    ResourceInstanceSpec:
+      type: object
+      description: Desired state of a Resource. spec.owner and spec.type are immutable after creation.
+      required:
+        - owner
+        - type
+      properties:
+        owner:
+          type: object
+          description: Identifies the project that owns this Resource.
+          required:
+            - projectName
+          properties:
+            projectName:
+              type: string
+              description: Parent project name
+              minLength: 1
+              example: analytics
+        type:
+          $ref: '#/components/schemas/ResourceTypeRef'
+        parameters:
+          type: object
+          description: Values for the parameter schema declared on the referenced (Cluster)ResourceType. Validated by the controller.
+          additionalProperties: true
+
+    ResourceInstanceStatus:
+      type: object
+      description: Observed state of a Resource.
+      properties:
+        observedGeneration:
+          type: integer
+          format: int64
+          description: Most recent generation observed by the controller
+        conditions:
+          type: array
+          description: Latest available observations of the Resource's state. Includes Ready and Finalizing.
+          items:
+            $ref: '#/components/schemas/Condition'
+        latestRelease:
+          type: object
+          description: Most recent ResourceRelease for this Resource. Used as the promote source for ResourceReleaseBinding pin advance.
+          required:
+            - name
+            - hash
+          properties:
+            name:
+              type: string
+              description: Name of the ResourceRelease resource
+              example: analytics-shared-db-abc123
+            hash:
+              type: string
+              description: Content hash of Resource.spec + (Cluster)ResourceType.spec captured at release time
+              example: abc123
+
+    ResourceTypeRef:
+      type: object
+      description: Reference to a ResourceType or ClusterResourceType template.
+      required:
+        - name
+      properties:
+        kind:
+          type: string
+          description: Resource type kind. Defaults to ResourceType (namespaced).
+          enum: [ResourceType, ClusterResourceType]
+          default: ResourceType
+        name:
+          type: string
+          description: Template name.
+          minLength: 1
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          example: mysql
+
+    # -------------------------------------------------------------------------
+    # ResourceReleases
+    # -------------------------------------------------------------------------
+    ResourceReleaseList:
+      type: object
+      description: Paginated list of resource releases
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceRelease'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ResourceRelease:
+      type: object
+      description: |
+        ResourceRelease resource.
+        Immutable snapshot of Resource.spec and the referenced (Cluster)ResourceType.spec
+        at the time it was cut. Created by the Resource controller; spec is immutable.
+      required:
+        - metadata
+      properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ResourceRelease
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/ResourceReleaseSpec'
+        status:
+          readOnly: true
+          type: object
+          description: ResourceRelease status (currently empty, immutable after creation)
+
+    ResourceReleaseSpec:
+      type: object
+      description: Desired state of a ResourceRelease. Immutable after creation.
+      required:
+        - owner
+        - resourceType
+      properties:
+        owner:
+          type: object
+          description: Identifies the resource and project this ResourceRelease belongs to.
+          required:
+            - projectName
+            - resourceName
+          properties:
+            projectName:
+              type: string
+              description: Parent project name
+              minLength: 1
+              example: analytics
+            resourceName:
+              type: string
+              description: Parent resource name
+              minLength: 1
+              example: analytics-shared-db
+        resourceType:
+          type: object
+          description: Frozen snapshot of the referenced (Cluster)ResourceType.
+          required:
+            - kind
+            - name
+            - spec
+          properties:
+            kind:
+              type: string
+              description: Source kind (ResourceType or ClusterResourceType)
+              enum: [ResourceType, ClusterResourceType]
+            name:
+              type: string
+              description: Source resource type name
+              minLength: 1
+              example: mysql
+            spec:
+              $ref: '#/components/schemas/ResourceTypeSpec'
+        parameters:
+          type: object
+          description: Snapshot of parameter values from Resource.spec at release time.
+          additionalProperties: true
+
+    # -------------------------------------------------------------------------
+    # ResourceReleaseBindings
+    # -------------------------------------------------------------------------
+    ResourceReleaseBindingList:
+      type: object
+      description: Paginated list of resource release bindings
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceReleaseBinding'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ResourceReleaseBinding:
+      type: object
+      description: |
+        ResourceReleaseBinding resource.
+        Pins a ResourceRelease to an Environment and carries per-env config overrides.
+        Authored externally; not managed by the Resource controller.
+      required:
+        - metadata
+      properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ResourceReleaseBinding
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/ResourceReleaseBindingSpec'
+        status:
+          readOnly: true
+          allOf:
+            - $ref: '#/components/schemas/ResourceReleaseBindingStatus'
+
+    ResourceReleaseBindingSpec:
+      type: object
+      description: |
+        Desired state of a ResourceReleaseBinding. spec.owner and spec.environment
+        are immutable after creation. spec.resourceRelease is the promote pin and is
+        advanced manually via `occ resource promote` or kubectl edit.
+      required:
+        - owner
+        - environment
+      properties:
+        owner:
+          type: object
+          description: Identifies the resource and project this binding belongs to.
+          required:
+            - projectName
+            - resourceName
+          properties:
+            projectName:
+              type: string
+              description: Parent project name
+              minLength: 1
+              example: analytics
+            resourceName:
+              type: string
+              description: Parent resource name
+              minLength: 1
+              example: analytics-shared-db
+        environment:
+          type: string
+          description: Target environment name. Immutable after creation.
+          minLength: 1
+          example: dev
+        resourceRelease:
+          type: string
+          description: Pinned ResourceRelease name. Advanced manually (e.g. via `occ resource promote`).
+          example: analytics-shared-db-abc123
+        retainPolicy:
+          type: string
+          description: Per-env override for retention. Falls back to ResourceType.spec.retainPolicy when unset.
+          enum: [Delete, Retain]
+          example: Delete
+        resourceTypeEnvironmentConfigs:
+          type: object
+          description: Per-environment values for ResourceType.spec.environmentConfigs.
+          additionalProperties: true
+
+    ResolvedResourceOutput:
+      type: object
+      description: |
+        Resolved output value populated by the binding controller after evaluating
+        the ResourceType output CEL against the applied DP-side objects. Exactly one
+        of value, secretKeyRef, or configMapKeyRef is set, matching the source
+        declaration on ResourceType.spec.outputs.
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Output name. Matches the declared output name on the referenced ResourceType.
+          minLength: 1
+          example: host
+        value:
+          type: string
+          description: Resolved literal value when the source output is declared with `value:`.
+          example: 10.0.0.5
+        secretKeyRef:
+          $ref: '#/components/schemas/ResourceSecretKeyRef'
+        configMapKeyRef:
+          $ref: '#/components/schemas/ResourceConfigMapKeyRef'
+
+    ResourceReleaseBindingStatus:
+      type: object
+      description: Observed state of a ResourceReleaseBinding.
+      properties:
+        conditions:
+          type: array
+          description: Latest available observations of the binding's state. Includes Synced, ResourcesReady, OutputsResolved, Ready (aggregate), and Finalizing.
+          items:
+            $ref: '#/components/schemas/Condition'
+        outputs:
+          type: array
+          description: Resolved outputs for this environment, populated from the underlying RenderedRelease.status by the binding controller.
+          items:
+            $ref: '#/components/schemas/ResolvedResourceOutput'
 
     # -------------------------------------------------------------------------
     # RenderedRelease
@@ -8795,6 +10427,34 @@ components:
           description: Component name
           example: api-service
 
+    AuthzCondition:
+      type: object
+      description: >
+        Action-scoped mapping condition attached to a role mapping inside a binding.
+        It constrains only the actions listed in the "actions" property and does not
+        enable or disable the entire mapping or binding; all other actions in the
+        mapping remain unaffected by this condition.
+      required:
+        - actions
+        - expression
+      properties:
+        actions:
+          type: array
+          description: >
+            List of actions this condition applies to. Supports exact match
+            (e.g. "releasebinding:create") and wildcards (e.g. "releasebinding:*").
+          minItems: 1
+          items:
+            type: string
+          example: ['releasebinding:create', 'releasebinding:*']
+        expression:
+          type: string
+          description: >
+            CEL expression that must evaluate to true for the action to be permitted.
+            Example: resource.environment in ["dev", "staging"]
+          minLength: 1
+          example: 'resource.environment in ["dev", "staging"]'
+
     AuthzRoleMapping:
       type: object
       description: Pairs a role reference with an optional scope
@@ -8805,6 +10465,14 @@ components:
           $ref: '#/components/schemas/AuthzRoleRef'
         scope:
           $ref: '#/components/schemas/AuthzScope'
+        conditions:
+          type: array
+          description: >
+            Per-role-mapping conditions that restrict specific actions within this role mapping in the binding.
+            Each condition only affects the actions listed in its "actions" property and does not
+            enable or disable the mapping or binding as a whole.
+          items:
+            $ref: '#/components/schemas/AuthzCondition'
 
     AuthzClusterScope:
       type: object
@@ -8840,6 +10508,14 @@ components:
                   example: ClusterAuthzRole
         scope:
           $ref: '#/components/schemas/AuthzClusterScope'
+        conditions:
+          type: array
+          description: >
+            Per-role-mapping conditions that restrict specific actions within this role mapping in the binding.
+            Each condition only affects the actions listed in its "actions" property and does not
+            enable or disable the mapping or binding as a whole.
+          items:
+            $ref: '#/components/schemas/AuthzCondition'
 
     Entitlement:
       type: object
@@ -8877,7 +10553,15 @@ components:
     AuthzContext:
       type: object
       description: Additional context for authorization
-      additionalProperties: true
+      properties:
+        resource:
+          type: object
+          description: Resource-level attributes for condition evaluation
+          properties:
+            environment:
+              type: string
+              description: Target deployment environment (e.g. "dev", "staging", "prod")
+              example: dev
 
     SubjectContext:
       type: object
@@ -8959,6 +10643,22 @@ components:
               description: Reason for the decision
               example: User has admin role
 
+    ConditionAttribute:
+      type: object
+      description: An ABAC attribute available for CEL condition expressions on an action.
+      required:
+        - key
+        - description
+      properties:
+        key:
+          type: string
+          description: Full dotted path of the attribute (e.g. "resource.environment").
+          example: resource.environment
+        description:
+          type: string
+          description: Human-readable description of the attribute.
+          example: Environment associated with the resource
+
     ActionInfo:
       type: object
       description: An authorization action with its scope in the resource hierarchy.
@@ -8981,6 +10681,11 @@ components:
             - project
             - component
           example: component
+        conditions:
+          type: array
+          description: ABAC attributes available for CEL condition expressions on this action. Empty means no conditions are supported.
+          items:
+            $ref: '#/components/schemas/ConditionAttribute'
 
     ActionCapability:
       type: object
@@ -8997,6 +10702,22 @@ components:
           items:
             $ref: '#/components/schemas/CapabilityResource'
 
+    CapabilityConstraints:
+      type: object
+      description: CEL expressions constraining access for a given action and resource path. Multiple expressions are OR'd.
+      properties:
+        expressions:
+          type: array
+          description: CEL expressions; access is granted if any one evaluates to true
+          items:
+            type: string
+          minItems: 1
+          example:
+            [
+              'resource.environment == "prod"',
+              'resource.environment == "staging"',
+            ]
+
     CapabilityResource:
       type: object
       description: Resource with permission details
@@ -9006,9 +10727,7 @@ components:
           description: Full resource path
           example: namespace/acme/project/payment
         constraints:
-          type: object
-          description: Additional instance-level restrictions
-          additionalProperties: true
+          $ref: '#/components/schemas/CapabilityConstraints'
 
     UserCapabilitiesResponse:
       type: object
@@ -9026,314 +10745,6 @@ components:
           format: date-time
           description: Time when capabilities were evaluated
           example: '2025-01-06T10:00:00Z'
-
-    # -------------------------------------------------------------------------
-    # Legacy Authz Schemas (kept for legacy handler compatibility)
-    # -------------------------------------------------------------------------
-
-    Role:
-      type: object
-      description: Authorization role with permitted actions (legacy)
-      required:
-        - name
-        - actions
-      properties:
-        name:
-          type: string
-          description: Unique role name
-          example: admin
-        actions:
-          type: array
-          description: List of actions this role permits
-          items:
-            type: string
-          example: ['read', 'write', 'delete']
-        namespace:
-          type: string
-          description: Namespace for namespace-scoped roles, empty for cluster roles
-          example: my-namespace
-        description:
-          type: string
-          description: Human-readable description of the role
-          example: Full administrative access
-
-    UpdateRoleRequest:
-      type: object
-      description: Request to update a role's actions (legacy)
-      required:
-        - actions
-      properties:
-        actions:
-          type: array
-          description: New list of actions for the role
-          items:
-            type: string
-          example: ['read', 'write']
-
-    TargetPath:
-      type: object
-      description: Target resource path within a namespace (project/component only) (legacy)
-      properties:
-        project:
-          type: string
-          description: Project name
-          example: my-project
-        component:
-          type: string
-          description: Component name
-          example: api-service
-
-    RoleEntitlementMapping:
-      type: object
-      description: Mapping of a role to an entitlement within a scope (legacy)
-      required:
-        - name
-        - role
-        - entitlement
-        - hierarchy
-        - effect
-      properties:
-        name:
-          type: string
-          description: Unique mapping name
-          example: admin-binding
-        role:
-          $ref: '#/components/schemas/RoleRef'
-        entitlement:
-          $ref: '#/components/schemas/Entitlement'
-        hierarchy:
-          $ref: '#/components/schemas/ResourceHierarchy'
-        effect:
-          type: string
-          description: Policy effect (allow or deny)
-          enum: [allow, deny]
-          default: allow
-          example: allow
-        context:
-          $ref: '#/components/schemas/AuthzContext'
-
-    UpdateRoleMappingRequest:
-      type: object
-      description: Request to update a role mapping (legacy)
-      required:
-        - role
-        - entitlement
-        - hierarchy
-        - effect
-      properties:
-        role:
-          $ref: '#/components/schemas/RoleRef'
-        entitlement:
-          $ref: '#/components/schemas/Entitlement'
-        hierarchy:
-          $ref: '#/components/schemas/ResourceHierarchy'
-        effect:
-          type: string
-          description: Policy effect (allow or deny)
-          enum: [allow, deny]
-          default: allow
-          example: allow
-        context:
-          $ref: '#/components/schemas/AuthzContext'
-
-    ClusterRoleRef:
-      type: object
-      description: Reference to a cluster role by name only (legacy)
-      required:
-        - name
-      properties:
-        name:
-          type: string
-          description: Cluster role name
-          example: admin
-
-    RoleRef:
-      type: object
-      description: Reference to a role by name and namespace (legacy)
-      required:
-        - name
-      properties:
-        name:
-          type: string
-          description: Role name
-          example: developer
-        namespace:
-          type: string
-          description: Namespace for namespace-scoped roles, empty for cluster roles
-          example: my-namespace
-
-    CreateClusterRoleRequest:
-      type: object
-      description: Request to create a cluster-scoped role (legacy)
-      required:
-        - name
-        - actions
-      properties:
-        name:
-          type: string
-          description: Unique cluster role name
-          example: cluster-admin
-        actions:
-          type: array
-          description: List of actions this role permits
-          items:
-            type: string
-          example: ['read', 'write', 'delete']
-        description:
-          type: string
-          description: Human-readable description of the role
-          example: Full cluster administration access
-
-    UpdateClusterRoleRequest:
-      type: object
-      description: Request to update a cluster role (legacy)
-      required:
-        - actions
-      properties:
-        actions:
-          type: array
-          description: List of actions this role permits
-          items:
-            type: string
-          example: ['read', 'write']
-        description:
-          type: string
-          description: Human-readable description of the role
-          example: Updated cluster admin role
-
-    # NOTE: Legacy single-mapping endpoints. Multi-mapping is handled via the CRD API directly.
-    CreateClusterRoleBindingRequest:
-      type: object
-      description: Request to create a cluster-scoped role binding (legacy, single mapping only)
-      required:
-        - name
-        - entitlement
-        - role
-      properties:
-        name:
-          type: string
-          description: Unique cluster role binding name
-          example: admin-binding
-        entitlement:
-          $ref: '#/components/schemas/Entitlement'
-        role:
-          type: string
-          description: Cluster role name
-          example: admin
-        effect:
-          type: string
-          description: Policy effect (allow or deny)
-          enum: [allow, deny]
-          default: allow
-          example: allow
-
-    UpdateClusterRoleBindingRequest:
-      type: object
-      description: Request to update a cluster role binding (legacy, single mapping only)
-      required:
-        - entitlement
-        - role
-        - effect
-      properties:
-        entitlement:
-          $ref: '#/components/schemas/Entitlement'
-        role:
-          type: string
-          description: Cluster role name
-          example: admin
-        effect:
-          type: string
-          description: Policy effect (allow or deny)
-          enum: [allow, deny]
-          default: allow
-          example: allow
-
-    CreateNamespaceRoleRequest:
-      type: object
-      description: Request to create a namespace-scoped role (legacy)
-      required:
-        - name
-        - actions
-      properties:
-        name:
-          type: string
-          description: Unique namespace role name
-          example: developer
-        actions:
-          type: array
-          description: List of actions this role permits
-          items:
-            type: string
-          example: ['read', 'write']
-        description:
-          type: string
-          description: Human-readable description of the role
-          example: Developer access within namespace
-
-    UpdateNamespaceRoleRequest:
-      type: object
-      description: Request to update a namespace role (legacy)
-      required:
-        - actions
-      properties:
-        actions:
-          type: array
-          description: List of actions this role permits
-          items:
-            type: string
-          example: ['read', 'write']
-        description:
-          type: string
-          description: Human-readable description of the role
-          example: Updated developer role
-
-    # NOTE: Legacy single-mapping endpoints. Multi-mapping is handled via the CRD API directly.
-    CreateNamespaceRoleBindingRequest:
-      type: object
-      description: Request to create a namespace-scoped role binding (legacy, single mapping only)
-      required:
-        - name
-        - entitlement
-        - role
-      properties:
-        name:
-          type: string
-          description: Unique namespace role binding name
-          example: developer-binding
-        entitlement:
-          $ref: '#/components/schemas/Entitlement'
-        role:
-          $ref: '#/components/schemas/RoleRef'
-        targetPath:
-          $ref: '#/components/schemas/TargetPath'
-        effect:
-          type: string
-          description: Policy effect (allow or deny)
-          enum: [allow, deny]
-          default: allow
-          example: allow
-
-    UpdateNamespaceRoleBindingRequest:
-      type: object
-      description: Request to update a namespace role binding (legacy, single mapping only)
-      required:
-        - entitlement
-        - role
-        - targetPath
-        - effect
-      properties:
-        entitlement:
-          $ref: '#/components/schemas/Entitlement'
-        role:
-          $ref: '#/components/schemas/RoleRef'
-        targetPath:
-          $ref: '#/components/schemas/TargetPath'
-        effect:
-          type: string
-          description: Policy effect (allow or deny)
-          enum: [allow, deny]
-          default: allow
-          example: allow
 
     # -------------------------------------------------------------------------
     # Webhook Schemas
@@ -9843,7 +11254,7 @@ components:
 
     TargetEnvironmentRef:
       type: object
-      description: Target environment reference with approval settings
+      description: Target environment reference
       required:
         - name
       properties:
@@ -9856,14 +11267,6 @@ components:
           type: string
           description: Target environment name
           example: staging
-        requiresApproval:
-          type: boolean
-          description: Whether promotion requires approval
-          example: false
-        isManualApprovalRequired:
-          type: boolean
-          description: Whether manual approval is required
-          example: true
 
     # -------------------------------------------------------------------------
     # Observability Alerts Notification Channel Schemas
@@ -10181,6 +11584,9 @@ components:
           type: integer
           description: Number of items per page
 
+    # -------------------------------------------------------------------------
+    # Secrets
+    # -------------------------------------------------------------------------
     TargetPlaneRef:
       type: object
       description: Reference to the plane that hosts the secret data.
@@ -10238,46 +11644,45 @@ components:
           example:
             username: alice
             password: s3cret
+        labels:
+          type: object
+          description: |
+            Labels applied as Kubernetes labels on the underlying
+            SecretReference. Keys in the openchoreo.dev/ namespace are
+            reserved and rejected.
+          additionalProperties:
+            type: string
+          example:
+            team: payments
 
     UpdateSecretRequest:
       type: object
-      description: Request body for updating a secret
+      description: |
+        Request body for replacing a secret's data. The data map is the final
+        state; keys present in the existing secret but absent here are pruned.
       required:
         - data
       properties:
         data:
           type: object
-          description: New map of secret keys to plaintext values. Replaces all existing keys.
+          description: |
+            Map of secret keys to plaintext values. Required keys depend on
+            the secret's existing type.
           additionalProperties:
             type: string
           example:
             username: alice
-            password: r0tated
-
-    SecretResponse:
-      type: object
-      description: Secret resource. Values are never returned, only key names.
-      properties:
-        name:
-          type: string
-          description: Name of the secret
-          example: my-secret
-        namespace:
-          type: string
-          description: Namespace of the secret
-          example: my-namespace
-        secretType:
-          $ref: '#/components/schemas/SecretType'
-        targetPlane:
-          $ref: '#/components/schemas/TargetPlaneRef'
-        keys:
-          type: array
-          description: Sorted list of keys present in the secret data
-          items:
+            password: s3cret
+        labels:
+          type: object
+          description: |
+            Labels applied as Kubernetes labels on the underlying
+            SecretReference. The supplied map replaces all user-set labels;
+            keys in the openchoreo.dev/ namespace are reserved and rejected.
+          additionalProperties:
             type: string
           example:
-            - password
-            - username
+            team: payments
 
     Secret:
       type: object
@@ -10308,6 +11713,9 @@ components:
           additionalProperties:
             type: string
             format: byte
+          example:
+            username: YWxpY2U=
+            password: czNjcmV0
         immutable:
           type: boolean
           description: Whether the secret is immutable.

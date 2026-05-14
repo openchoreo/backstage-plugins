@@ -19,7 +19,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "1880fc9e",
-  "lastSyncDate": "2026-03-02T00:00:00+05:30",
-  "lastSyncDescription": "feat: add workflow run event and log apis (#2325) - Query param renamed from 'step' to 'task' for filtering logs and events in /workflowruns/{runName}/logs and /workflowruns/{runName}/events"
+  "lastSyncCommit": "f5ad5206",
+  "lastSyncDate": "2026-05-14T13:51:50+05:30",
+  "lastSyncDescription": "fix(deps): bump agent dependencies to clear dependabot alerts (#3480)"
 }

@@ -30,13 +30,6 @@ export const usePipelineStyles = makeStyles(theme => ({
     zIndex: 0,
     pointerEvents: 'none',
   },
-  edgeLineApproval: {
-    position: 'absolute',
-    borderTop: `1.5px dashed ${theme.palette.warning.main}`,
-    transformOrigin: 'center',
-    zIndex: 0,
-    pointerEvents: 'none',
-  },
   arrowHead: {
     position: 'absolute',
     width: 0,
@@ -45,19 +38,6 @@ export const usePipelineStyles = makeStyles(theme => ({
     borderBottom: '4px solid transparent',
     borderLeft: `6px solid ${theme.palette.grey[400]}`,
     zIndex: 0,
-    pointerEvents: 'none',
-  },
-  approvalIcon: {
-    position: 'absolute',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 16,
-    height: 16,
-    borderRadius: '50%',
-    backgroundColor: theme.palette.warning.light,
-    color: theme.palette.warning.dark,
-    zIndex: 1,
     pointerEvents: 'none',
   },
 }));

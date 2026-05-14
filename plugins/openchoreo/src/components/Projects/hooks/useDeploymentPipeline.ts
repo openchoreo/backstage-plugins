@@ -70,13 +70,7 @@ export const useDeploymentPipeline = () => {
             }
             const targets = (path.targetEnvironmentRefs ?? [])
               .filter(t => !!t.name)
-              .map(t => ({
-                name: t.name,
-                requiresApproval:
-                  t.requiresApproval ??
-                  (t as { isManualApprovalRequired?: boolean })
-                    .isManualApprovalRequired,
-              }));
+              .map(t => ({ name: t.name }));
             for (const target of targets) {
               if (!addedEnvs.has(target.name)) {
                 environments.push(target.name);
