@@ -20,7 +20,6 @@ import {
   MenuItem,
   IconButton,
   InputAdornment,
-  Link,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
@@ -81,10 +80,9 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(1),
   },
   addLink: {
-    cursor: 'pointer',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: theme.spacing(0.5),
+    textTransform: 'none',
+    paddingLeft: theme.spacing(0.5),
+    paddingRight: theme.spacing(0.5),
   },
   uploadBox: {
     border: `2px dashed ${theme.palette.divider}`,
@@ -501,9 +499,17 @@ export const CreateSecretDialog = ({
                 </IconButton>
               </Box>
             ))}
-            <Link className={classes.addLink} onClick={addRow} color="primary">
-              <AddIcon fontSize="small" /> Add key
-            </Link>
+            <Button
+              type="button"
+              size="small"
+              color="primary"
+              className={classes.addLink}
+              startIcon={<AddIcon fontSize="small" />}
+              onClick={addRow}
+              aria-label="Add key"
+            >
+              Add key
+            </Button>
           </Box>
         );
       case SECRET_TYPE.BASIC_AUTH:
@@ -680,13 +686,17 @@ export const CreateSecretDialog = ({
                 </IconButton>
               </Box>
             ))}
-            <Link
-              className={classes.addLink}
-              onClick={addSshExtraRow}
+            <Button
+              type="button"
+              size="small"
               color="primary"
+              className={classes.addLink}
+              startIcon={<AddIcon fontSize="small" />}
+              onClick={addSshExtraRow}
+              aria-label="Add key"
             >
-              <AddIcon fontSize="small" /> Add key
-            </Link>
+              Add key
+            </Button>
           </Box>
         );
       case SECRET_TYPE.DOCKER_CONFIG:
@@ -798,9 +808,7 @@ export const CreateSecretDialog = ({
             labelId="secret-category-label"
             label="Secret Category"
             value={secretCategory}
-            onChange={e =>
-              setSecretCategory(e.target.value as SecretCategory)
-            }
+            onChange={e => setSecretCategory(e.target.value as SecretCategory)}
             disabled={loading}
           >
             {SECRET_CATEGORIES.map(c => (

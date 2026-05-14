@@ -155,9 +155,13 @@ export const GitSecretField = ({
     let ignore = false;
 
     const fetchWorkflowPlane = async () => {
+      // Clear the cached plane before resolving a new workflow so the create
+      // flow can't target the previous plane while the catalog call is in
+      // flight.
+      setWorkflowPlaneRef(undefined);
+      setWorkflowPlaneRefKind(undefined);
+
       if (!selectedWorkflowName) {
-        setWorkflowPlaneRef(undefined);
-        setWorkflowPlaneRefKind(undefined);
         return;
       }
 
@@ -342,11 +346,7 @@ export const GitSecretField = ({
               if (!canCreateSecret) {
                 return (
                   <Tooltip title={createDisabledReason}>
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      style={{ gap: 8 }}
-                    >
+                    <Box display="flex" alignItems="center" style={{ gap: 8 }}>
                       <AddIcon fontSize="small" color="disabled" />
                       <Typography color="textSecondary">
                         Create New Git Secret

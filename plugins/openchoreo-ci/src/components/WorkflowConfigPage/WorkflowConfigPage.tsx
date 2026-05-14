@@ -174,19 +174,22 @@ export const WorkflowConfigPage = ({
         }> = result.items || [];
 
         // 3. Keep only git-credentials secrets. The label is the primary
-        // filter. A secret is plane-filtered only when it actually carries a
-        // targetPlane — legacy git secrets have none and always pass.
+        // filter. Legacy secrets without a targetPlane always pass; a
+        // plane-scoped secret passes only when the workflow's plane is
+        // resolved and matches — never fall back to cross-plane secrets.
         const filtered = allSecrets.filter(s => {
           if (s.labels?.[CHOREO_LABELS.SECRET_TYPE] !== GIT_SECRET_TYPE_VALUE) {
             return false;
           }
-          if (s.targetPlane && planeRef && planeRefKind) {
-            return (
-              s.targetPlane.name === planeRef &&
-              s.targetPlane.kind === planeRefKind
-            );
+          if (!s.targetPlane) {
+            return true;
           }
-          return true;
+          return (
+            !!planeRef &&
+            !!planeRefKind &&
+            s.targetPlane.name === planeRef &&
+            s.targetPlane.kind === planeRefKind
+          );
         });
 
         setGitSecrets(filtered.map(s => s.name));

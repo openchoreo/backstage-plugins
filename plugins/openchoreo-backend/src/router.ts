@@ -1146,7 +1146,11 @@ export async function createRouter({
       }
     }
     if (labels !== undefined) {
-      if (typeof labels !== 'object' || labels === null || Array.isArray(labels)) {
+      if (
+        typeof labels !== 'object' ||
+        labels === null ||
+        Array.isArray(labels)
+      ) {
         throw new InputError(
           'labels must be an object of string keys to string values',
         );
@@ -1160,21 +1164,19 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
-    res
-      .status(201)
-      .json(
-        await secretsService.createSecret(
-          namespaceName as string,
-          {
-            secretName,
-            secretType,
-            targetPlane,
-            data,
-            ...(labels !== undefined ? { labels } : {}),
-          },
-          userToken,
-        ),
-      );
+    res.status(201).json(
+      await secretsService.createSecret(
+        namespaceName as string,
+        {
+          secretName,
+          secretType,
+          targetPlane,
+          data,
+          ...(labels !== undefined ? { labels } : {}),
+        },
+        userToken,
+      ),
+    );
   });
 
   // Update an existing secret (replace its data)
@@ -1201,7 +1203,11 @@ export async function createRouter({
       }
     }
     if (labels !== undefined) {
-      if (typeof labels !== 'object' || labels === null || Array.isArray(labels)) {
+      if (
+        typeof labels !== 'object' ||
+        labels === null ||
+        Array.isArray(labels)
+      ) {
         throw new InputError(
           'labels must be an object of string keys to string values',
         );

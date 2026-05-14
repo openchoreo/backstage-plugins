@@ -108,7 +108,9 @@ export class SecretsService {
         const ref = refByName.get(name);
         return {
           ...projectSecret(secret, ref, name, namespaceName),
-          labels: secret.metadata?.labels,
+          // Category labels (e.g. git-credentials) live on the
+          // SecretReference, not the target-plane K8s Secret.
+          labels: ref?.metadata?.labels,
         };
       });
 
