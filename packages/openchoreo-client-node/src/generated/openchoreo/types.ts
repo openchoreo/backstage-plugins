@@ -1937,7 +1937,14 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /**
+     * List secrets
+     * @description Returns a paginated list of secrets managed by the Secret API in this
+     *     namespace. Each item includes the Kubernetes Secret data fetched from
+     *     the target plane. Items whose target-plane Secret has not yet been
+     *     synced are omitted from the page.
+     */
+    get: operations['listSecrets'];
     put?: never;
     /**
      * Create a secret
@@ -1960,7 +1967,13 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /**
+     * Get a secret
+     * @description Returns a secret managed by the Secret API, including its data fetched
+     *     from the target plane. Returns 404 if the SecretReference is missing or
+     *     the target-plane Kubernetes Secret has not yet been synced.
+     */
+    get: operations['getSecret'];
     /**
      * Update a secret
      * @description Replaces the data of an existing secret. The secret type and target
@@ -5603,6 +5616,33 @@ export interface components {
        *     ]
        */
       keys?: string[];
+    };
+    /**
+     * @description Kubernetes Secret. Wire shape matches `corev1.Secret`: `data` is a map
+     *     of keys to base64-encoded values.
+     */
+    Secret: {
+      /** @example v1 */
+      apiVersion: string;
+      /** @example Secret */
+      kind: string;
+      metadata: components['schemas']['ObjectMeta'];
+      type: components['schemas']['SecretType'];
+      /**
+       * @description Map of secret keys to base64-encoded values. Matches the
+       *     Kubernetes Secret `data` field semantics.
+       */
+      data?: {
+        [key: string]: string;
+      };
+      /** @description Whether the secret is immutable. */
+      immutable?: boolean;
+    };
+    /** @description Paginated list of secrets. */
+    ListSecretsResponse: {
+      /** @description Page of secrets. */
+      items: components['schemas']['Secret'][];
+      pagination: components['schemas']['Pagination'];
     };
   };
   responses: {
@@ -10804,6 +10844,41 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  listSecrets: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of secrets */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ListSecretsResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
   createSecret: {
     parameters: {
       query?: never;
@@ -10833,6 +10908,35 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getSecret: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Secret name */
+        secretName: components['parameters']['SecretNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Secret found */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Secret'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
       500: components['responses']['InternalError'];
     };
   };

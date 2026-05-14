@@ -4580,6 +4580,35 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /api/v1alpha1/namespaces/{namespaceName}/secrets:
+    get:
+      operationId: listSecrets
+      summary: List secrets
+      description: |
+        Returns a paginated list of secrets managed by the Secret API in this
+        namespace. Each item includes the Kubernetes Secret data fetched from
+        the target plane. Items whose target-plane Secret has not yet been
+        synced are omitted from the page.
+      tags: [Secrets]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: List of secrets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListSecretsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
     post:
       operationId: createSecret
       summary: Create a secret
@@ -4616,6 +4645,33 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /api/v1alpha1/namespaces/{namespaceName}/secrets/{secretName}:
+    get:
+      operationId: getSecret
+      summary: Get a secret
+      description: |
+        Returns a secret managed by the Secret API, including its data fetched
+        from the target plane. Returns 404 if the SecretReference is missing or
+        the target-plane Kubernetes Secret has not yet been synced.
+      tags: [Secrets]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/SecretNameParam'
+      responses:
+        '200':
+          description: Secret found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Secret'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
     put:
       operationId: updateSecret
       summary: Update a secret
@@ -10222,3 +10278,51 @@ components:
           example:
             - password
             - username
+
+    Secret:
+      type: object
+      description: |
+        Kubernetes Secret. Wire shape matches `corev1.Secret`: `data` is a map
+        of keys to base64-encoded values.
+      required:
+        - apiVersion
+        - kind
+        - metadata
+        - type
+      properties:
+        apiVersion:
+          type: string
+          example: v1
+        kind:
+          type: string
+          example: Secret
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        type:
+          $ref: '#/components/schemas/SecretType'
+        data:
+          type: object
+          description: |
+            Map of secret keys to base64-encoded values. Matches the
+            Kubernetes Secret `data` field semantics.
+          additionalProperties:
+            type: string
+            format: byte
+        immutable:
+          type: boolean
+          description: Whether the secret is immutable.
+
+    ListSecretsResponse:
+      type: object
+      description: Paginated list of secrets.
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: Page of secrets.
+          items:
+            $ref: '#/components/schemas/Secret'
+        pagination:
+          $ref: '#/components/schemas/Pagination'

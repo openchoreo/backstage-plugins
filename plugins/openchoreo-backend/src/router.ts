@@ -1248,6 +1248,42 @@ export async function createRouter({
       );
   });
 
+  // Update an existing secret (replace its data)
+  router.put('/secrets/:secretName', requireAuth, async (req, res) => {
+    const { namespaceName } = req.query;
+    const { secretName } = req.params;
+    const { data } = req.body ?? {};
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new InputError(
+        'data must be an object of string keys to string values',
+      );
+    }
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value !== 'string') {
+        throw new InputError(
+          `data.${key} must be a string (got ${
+            value === null ? 'null' : typeof value
+          })`,
+        );
+      }
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await secretsService.updateSecret(
+        namespaceName as string,
+        secretName,
+        { data },
+        userToken,
+      ),
+    );
+  });
+
   // Delete a secret
   router.delete('/secrets/:secretName', requireAuth, async (req, res) => {
     const { namespaceName } = req.query;

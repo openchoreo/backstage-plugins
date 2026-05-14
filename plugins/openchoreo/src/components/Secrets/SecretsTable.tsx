@@ -24,6 +24,7 @@ import {
 } from '@material-ui/core';
 import { Progress } from '@backstage/core-components';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
+import EditOutlinedIcon from '@material-ui/icons/EditOutlined';
 import VpnKeyOutlinedIcon from '@material-ui/icons/VpnKeyOutlined';
 import SearchIcon from '@material-ui/icons/Search';
 import { makeStyles } from '@material-ui/core/styles';
@@ -100,6 +101,7 @@ interface SecretsTableProps {
   secrets: Secret[];
   loading: boolean;
   onDelete: (secretName: string) => Promise<void>;
+  onEdit?: (secret: Secret) => void;
   namespaceName: string;
 }
 
@@ -107,6 +109,7 @@ export const SecretsTable = ({
   secrets,
   loading,
   onDelete,
+  onEdit,
   namespaceName,
 }: SecretsTableProps) => {
   const classes = useStyles();
@@ -263,6 +266,17 @@ export const SecretsTable = ({
                     )}
                   </TableCell>
                   <TableCell align="center">
+                    {onEdit && (
+                      <Tooltip title="Edit">
+                        <IconButton
+                          size="small"
+                          onClick={() => onEdit(secret)}
+                          aria-label={`Edit secret ${secret.name}`}
+                        >
+                          <EditOutlinedIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     <Tooltip title="Delete">
                       <IconButton
                         size="small"

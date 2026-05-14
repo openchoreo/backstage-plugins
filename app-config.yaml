@@ -171,7 +171,7 @@ openchoreo:
 
   # Feature flags for enabling/disabling OpenChoreo functionality
   # These can be controlled via Helm values: backstage.features.*
-  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED
+  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_AUTHZ_ENABLED, OPENCHOREO_FEATURES_SECRET_MANAGEMENT_ENABLED
   features:
     # Workflow plane / Workflows functionality
     # When disabled, hides Workflows tab and WorkflowsOverviewCard from entity pages
@@ -189,6 +189,10 @@ openchoreo:
     # When disabled, hides Access Control sidebar item and pages
     authz:
       enabled: ${OPENCHOREO_FEATURES_AUTHZ_ENABLED}
+    # Secret Management configuration
+    # When disabled, hides the Secrets settings tab and disables secret APIs
+    secretManagement:
+      enabled: ${OPENCHOREO_FEATURES_SECRET_MANAGEMENT_ENABLED}
 
   # Component Type Mappings (optional - defaults provided)
   # Maps OpenChoreo component types to Backstage page variants

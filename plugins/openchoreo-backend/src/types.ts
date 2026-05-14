@@ -9,7 +9,9 @@ import type {
 import type {
   SecretResponse,
   SecretsListResponse,
+  SecretDetail,
   CreateSecretRequest,
+  UpdateSecretRequest,
 } from './services/SecretsService/SecretsService';
 
 // Log types from the unified /api/v1/logs/query endpoint
@@ -222,10 +224,16 @@ export interface SecretsService {
     namespaceName: string,
     secretName: string,
     token?: string,
-  ): Promise<SecretResponse>;
+  ): Promise<SecretDetail>;
   createSecret(
     namespaceName: string,
     body: CreateSecretRequest,
+    userToken?: string,
+  ): Promise<SecretResponse>;
+  updateSecret(
+    namespaceName: string,
+    secretName: string,
+    body: UpdateSecretRequest,
     userToken?: string,
   ): Promise<SecretResponse>;
   deleteSecret(

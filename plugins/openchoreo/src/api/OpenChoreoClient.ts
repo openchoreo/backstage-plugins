@@ -26,6 +26,7 @@ import type {
   Secret,
   SecretsListResponse,
   CreateSecretRequest,
+  UpdateSecretRequest,
   PlatformResourceKind,
   ResourceCRUDResponse,
   ClusterRole,
@@ -1369,6 +1370,21 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       params: { namespaceName },
       body: request,
     });
+  }
+
+  async updateSecret(
+    namespaceName: string,
+    secretName: string,
+    request: UpdateSecretRequest,
+  ): Promise<Secret> {
+    return this.apiFetch<Secret>(
+      `${API_ENDPOINTS.SECRETS}/${encodeURIComponent(secretName)}`,
+      {
+        method: 'PUT',
+        params: { namespaceName },
+        body: request,
+      },
+    );
   }
 
   async deleteSecret(namespaceName: string, secretName: string): Promise<void> {

@@ -47,7 +47,11 @@ export interface TargetPlaneRef {
   name: string;
 }
 
-/** Secret resource. Values are never returned, only key names. */
+/**
+ * Secret resource. The list endpoint returns only `keys[]`; the single-secret
+ * GET endpoint additionally populates `data` with base64-encoded values
+ * (K8s Secret wire format). Decode at the UI boundary; treat as sensitive.
+ */
 export interface Secret {
   name: string;
   namespace: string;
@@ -55,6 +59,11 @@ export interface Secret {
   targetPlane?: TargetPlaneRef;
   /** Sorted list of keys present in the secret data */
   keys: string[];
+  /**
+   * Base64-encoded value map (K8s Secret wire format). Present only when
+   * fetched via getSecret. Decode with `atob` (or equivalent) before display.
+   */
+  data?: Record<string, string>;
 }
 
 /** Secrets list response */
@@ -71,6 +80,11 @@ export interface CreateSecretRequest {
   secretType: SecretType;
   targetPlane: TargetPlaneRef;
   /** Required keys depend on secretType. */
+  data: Record<string, string>;
+}
+
+/** Body for updating an existing secret. Replaces all data; omitted keys are pruned. */
+export interface UpdateSecretRequest {
   data: Record<string, string>;
 }
 
@@ -734,6 +748,13 @@ export interface OpenChoreoClientApi {
   createSecret(
     namespaceName: string,
     request: CreateSecretRequest,
+  ): Promise<Secret>;
+
+  /** Update (replace data of) an existing secret */
+  updateSecret(
+    namespaceName: string,
+    secretName: string,
+    request: UpdateSecretRequest,
   ): Promise<Secret>;
 
   /** Delete a secret */
