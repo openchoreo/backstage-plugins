@@ -126,9 +126,13 @@ jobs:
 
       - name: Validate VERSION file
         env:
+          ACTION: ${{ github.event.inputs.action }}
+          IN_COMMIT_SHA: ${{ github.event.inputs.commit_sha || '' }}
           BRANCH_EXISTS: ${{ steps.check-branch.outputs.branch-exists }}
         run: |
-          if [ "$BRANCH_EXISTS" = "true" ]; then
+          if [ "$ACTION" = "tag" ] && [ -n "$IN_COMMIT_SHA" ]; then
+            CONTENT=$(git show "${IN_COMMIT_SHA}:VERSION" | tr -d ' \n\r\t')
+          elif [ "$BRANCH_EXISTS" = "true" ]; then
             CONTENT=$(git show "origin/release-v${{ env.MAJOR }}.${{ env.MINOR }}:VERSION" | tr -d ' \n\r\t')
           else
             CONTENT=$(tr -d ' \n\r\t' < VERSION)
