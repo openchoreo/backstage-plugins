@@ -345,10 +345,10 @@ Both are enabled by default. If the event-driven sync is disabled, the periodic 
 
 ### Configuration
 
-| Setting                         | Environment Variable                | Default | Description                                                                                                                       |
-| ------------------------------- | ----------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Setting                         | Environment Variable                | Default | Description                                                                                                                         |
+| ------------------------------- | ----------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `openchoreo.events.enabled`     | `OPENCHOREO_EVENTS_ENABLED`         | `true`  | Enables event-driven catalog sync. When `false`, the entity provider runs in poll-only mode. Should match `eventForwarder.enabled`. |
-| `openchoreo.schedule.frequency` | `OPENCHOREO_CATALOG_SYNC_FREQUENCY` | `300`   | Seconds between periodic full syncs. Lower the value when `eventForwarder.enabled` is `false`.                                    |
+| `openchoreo.schedule.frequency` | `OPENCHOREO_CATALOG_SYNC_FREQUENCY` | `300`   | Seconds between periodic full syncs. Lower the value when `eventForwarder.enabled` is `false`.                                      |
 
 The events HTTP topic is registered in `app-config.yaml` (`events.http.topics: [openchoreo]`). When running Backstage locally, see [Receiving live catalog-sync events locally](#receiving-live-catalog-sync-events-locally) for pointing the event-forwarder at your local backend.
 
