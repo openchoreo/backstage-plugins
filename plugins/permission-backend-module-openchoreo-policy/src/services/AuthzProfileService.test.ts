@@ -7,11 +7,13 @@ import type { UserCapabilitiesResponse } from './types';
 // ---------------------------------------------------------------------------
 
 const mockGET = jest.fn();
+const mockPOST = jest.fn();
 
 jest.mock('@openchoreo/openchoreo-client-node', () => ({
   ...jest.requireActual('@openchoreo/openchoreo-client-node'),
   createOpenChoreoApiClient: jest.fn(() => ({
     GET: mockGET,
+    POST: mockPOST,
   })),
 }));
 
@@ -57,6 +59,8 @@ function createMockCache() {
     delete: jest.fn(),
     getByUser: jest.fn(),
     setByUser: jest.fn(),
+    getEvaluation: jest.fn(),
+    setEvaluation: jest.fn(),
   };
 }
 
@@ -333,6 +337,115 @@ describe('AuthzProfileService', () => {
       ).rejects.toThrow();
       expect(cache.set).not.toHaveBeenCalled();
       expect(cache.setByUser).not.toHaveBeenCalled();
+    });
+  });
+
+  // The CEL attribute `resource.environment` is matched against the same
+  // encoding the OpenChoreo Go service layer uses
+  // (`FormatDualScopedResourceName`). For namespaced resources that is
+  // `{namespace}/{name}`; for cluster-scoped resources it is the bare
+  // `{name}`. Real-world `AuthzRoleBinding` conditions are authored in
+  // this format, so getting the wire value wrong silently bypasses the
+  // ABAC condition.
+  describe('evaluate — environment encoding', () => {
+    const subjectProfile = {
+      user: {
+        type: 'user',
+        entitlement_claim: 'groups',
+        entitlement_values: ['developers'],
+      },
+      capabilities: {},
+    } as unknown as UserCapabilitiesResponse;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('encodes env as `{namespace}/{name}` for namespace-scoped resource paths', async () => {
+      const cache = createMockCache();
+      // Subject context is read from the cached profile by evaluate().
+      cache.getByUser.mockResolvedValue(subjectProfile);
+      cache.getEvaluation.mockResolvedValue(undefined); // force backend call
+      mockPOST.mockResolvedValue(createOkResponse([{ decision: false }]));
+
+      const service = createService(cache);
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      const result = await service.evaluate(
+        buildJwt(exp),
+        'user:default/alice',
+        [
+          {
+            action: 'releasebinding:update',
+            resourcePath:
+              'ns/team-shop/project/team-shop/component/snip-api-service',
+            environment: 'production',
+          },
+        ],
+      );
+
+      expect(result).toEqual([false]);
+      expect(mockPOST).toHaveBeenCalledTimes(1);
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: { environment: 'team-shop/production' },
+      });
+      // Cache write must use the encoded form so two namespaces sharing
+      // the same env name do not collide.
+      expect(cache.setEvaluation).toHaveBeenCalledWith(
+        'user:default/alice',
+        'releasebinding:update',
+        'ns/team-shop/project/team-shop/component/snip-api-service',
+        'team-shop/production',
+        false,
+        expect.any(Number),
+      );
+    });
+
+    it('passes env through as bare `{name}` when no namespace is in the resource path', async () => {
+      const cache = createMockCache();
+      cache.getByUser.mockResolvedValue(subjectProfile);
+      cache.getEvaluation.mockResolvedValue(undefined);
+      mockPOST.mockResolvedValue(createOkResponse([{ decision: true }]));
+
+      const service = createService(cache);
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      // No namespace in the resourcePath (cluster-wide wildcard "*"). The
+      // helper falls back to bare `{name}`, matching the upstream observer
+      // helper behavior — and the future cluster-scoped Environment case.
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'releasebinding:update',
+          resourcePath: '*',
+          environment: 'production',
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: { environment: 'production' },
+      });
+    });
+
+    it('omits the context.resource.environment when no environment is supplied', async () => {
+      const cache = createMockCache();
+      cache.getByUser.mockResolvedValue(subjectProfile);
+      cache.getEvaluation.mockResolvedValue(undefined);
+      mockPOST.mockResolvedValue(createOkResponse([{ decision: true }]));
+
+      const service = createService(cache);
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'releasebinding:view',
+          resourcePath: 'ns/team-shop',
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toBeUndefined();
     });
   });
 });

@@ -1,7 +1,7 @@
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
-import { usePermission } from '@backstage/plugin-permission-react';
 import { openchoreoMetricsViewPermission } from '@openchoreo/backstage-plugin-common';
+import { useEnvScopedPermission } from './useEnvScopedPermission';
 
 /**
  * Result of the useMetricsPermission hook.
@@ -23,30 +23,25 @@ export interface UseMetricsPermissionResult {
  *
  * Must be used within an EntityProvider context.
  *
- * @example
- * ```tsx
- * const { canViewMetrics, loading, deniedTooltip } = useMetricsPermission();
- *
- * return (
- *   <Tooltip title={deniedTooltip}>
- *     <span>
- *       <Button disabled={loading || !canViewMetrics}>View Metrics</Button>
- *     </span>
- *   </Tooltip>
- * );
- * ```
+ * @param environment - Optional environment name. When supplied, the check
+ *   also honors ABAC `resource.environment` CEL constraints (issue #3408).
  */
-export const useMetricsPermission = (): UseMetricsPermissionResult => {
+export const useMetricsPermission = (
+  environment?: string,
+): UseMetricsPermissionResult => {
   const { entity } = useEntity();
-  const { allowed, loading } = usePermission({
+  const { allowed, loading } = useEnvScopedPermission({
     permission: openchoreoMetricsViewPermission,
     resourceRef: stringifyEntityRef(entity),
+    environment,
   });
 
-  const deniedTooltip =
-    !allowed && !loading
-      ? 'You do not have permission to view metrics of this component.'
-      : '';
+  let deniedTooltip = '';
+  if (!allowed && !loading) {
+    deniedTooltip = environment
+      ? `You do not have permission to view metrics in ${environment}.`
+      : 'You do not have permission to view metrics of this component.';
+  }
 
   return {
     canViewMetrics: allowed,

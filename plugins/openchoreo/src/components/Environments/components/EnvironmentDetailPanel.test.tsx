@@ -17,6 +17,31 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
     loading: false,
     deniedTooltip: '',
   }),
+  useReleaseBindingUpdatePermission: () => ({
+    canUpdate: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  useRemoveDeploymentPermission: () => ({
+    canRemoveDeployment: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  useReleaseBindingViewPermission: () => ({
+    canViewBinding: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  usePromoteToEnvPermission: () => ({
+    canPromote: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  useConfigureAndDeployPermission: () => ({
+    canConfigureAndDeploy: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
   formatRelativeTime: (s: string) => `relative-${s}`,
 }));
 

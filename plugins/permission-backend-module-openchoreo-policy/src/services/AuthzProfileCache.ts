@@ -145,4 +145,59 @@ export class AuthzProfileCache {
     const key = this.buildUserKey(userEntityRef, org);
     await this.cache.set(key, capabilities, { ttl: ttlMs });
   }
+
+  /**
+   * Builds a cache key for a single ABAC evaluation result.
+   *
+   * Keys are scoped per-user so we never leak one user's decision to another,
+   * and per-(action, resourcePath, environment) so that the same UI rendering
+   * the same button repeatedly hits the cache instead of /authz/evaluates.
+   */
+  private buildEvaluationKey(
+    userEntityRef: string,
+    action: string,
+    resourcePath: string,
+    environment: string | undefined,
+  ): string {
+    // JSON-encode the tuple so a component containing the separator (or any
+    // other character) cannot collide with another distinct tuple.
+    return `openchoreo:authz-eval:${JSON.stringify([
+      userEntityRef,
+      action,
+      resourcePath,
+      environment ?? null,
+    ])}`;
+  }
+
+  async getEvaluation(
+    userEntityRef: string,
+    action: string,
+    resourcePath: string,
+    environment: string | undefined,
+  ): Promise<boolean | undefined> {
+    const key = this.buildEvaluationKey(
+      userEntityRef,
+      action,
+      resourcePath,
+      environment,
+    );
+    return this.cache.get<boolean>(key);
+  }
+
+  async setEvaluation(
+    userEntityRef: string,
+    action: string,
+    resourcePath: string,
+    environment: string | undefined,
+    allowed: boolean,
+    ttlMs: number,
+  ): Promise<void> {
+    const key = this.buildEvaluationKey(
+      userEntityRef,
+      action,
+      resourcePath,
+      environment,
+    );
+    await this.cache.set(key, allowed, { ttl: ttlMs });
+  }
 }

@@ -577,12 +577,34 @@ export const openchoreoReleaseBindingUpdatePermission = createPermission({
 });
 
 /**
+ * Permission to delete a release binding (i.e., remove a deployment from an
+ * environment). Resource-based — gates the per-env "Remove deployment" button.
+ */
+export const openchoreoReleaseBindingDeletePermission = createPermission({
+  name: 'openchoreo.releasebinding.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
  * Permission to read/view release bindings.
  * Org-scoped permission.
  */
 export const openchoreoReleaseBindingReadPermission = createPermission({
   name: 'openchoreo.releasebinding.read',
   attributes: { action: 'read' },
+});
+
+/**
+ * Resource-scoped variant of the release-binding view permission. Used by
+ * per-env hooks so ABAC `resource.environment` constraints on
+ * `releasebinding:view` can hide the body of individual env cards even
+ * when the org-level read permission is allowed.
+ */
+export const openchoreoReleaseBindingViewPermission = createPermission({
+  name: 'openchoreo.releasebinding.view',
+  attributes: { action: 'read' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -833,7 +855,9 @@ export const openchoreoPermissions = [
   openchoreoReleaseCreatePermission,
   openchoreoReleaseReadPermission,
   openchoreoReleaseBindingReadPermission,
+  openchoreoReleaseBindingViewPermission,
   openchoreoReleaseBindingUpdatePermission,
+  openchoreoReleaseBindingDeletePermission,
   openchoreoRoleViewPermission,
   openchoreoRoleCreatePermission,
   openchoreoRoleUpdatePermission,
@@ -929,7 +953,9 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.release.create': 'componentrelease:create',
   'openchoreo.release.read': 'componentrelease:view',
   'openchoreo.releasebinding.update': 'releasebinding:update',
+  'openchoreo.releasebinding.delete': 'releasebinding:delete',
   'openchoreo.releasebinding.read': 'releasebinding:view',
+  'openchoreo.releasebinding.view': 'releasebinding:view',
   'openchoreo.role.view': 'authzrole:view',
   'openchoreo.role.create': 'authzrole:create',
   'openchoreo.role.update': 'authzrole:update',

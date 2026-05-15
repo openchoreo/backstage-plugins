@@ -50,6 +50,16 @@ const ObservabilityRuntimeLogsContent = ({
     env => env.name === filters.environment,
   );
 
+  // Per-environment permission check: honors ABAC `resource.environment` CEL
+  // constraints (openchoreo#3408). Page-level gate below only verifies the
+  // user can view logs *somewhere* — this one gates the actual env content.
+  const {
+    canViewLogs: canViewLogsForEnv,
+    loading: envPermissionLoading,
+    deniedTooltip: envPermissionDenied,
+    permissionName: envPermissionName,
+  } = useLogsPermission(selectedEnvironment?.name);
+
   // Get component name from entity annotations
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
@@ -121,6 +131,7 @@ const ObservabilityRuntimeLogsContent = ({
       selectedEnvironment &&
       namespace &&
       project &&
+      canViewLogsForEnv &&
       filtersChanged
     ) {
       if (filters.logLevel.length === 0) {
@@ -144,6 +155,8 @@ const ObservabilityRuntimeLogsContent = ({
     selectedEnvironment,
     namespace,
     project,
+    canViewLogsForEnv,
+    envPermissionLoading,
   ]);
 
   // Update lastUpdated when logs are refreshed
@@ -217,7 +230,15 @@ const ObservabilityRuntimeLogsContent = ({
           </Alert>
         )}
 
-      {filters.environment && (
+      {filters.environment && !envPermissionLoading && !canViewLogsForEnv && (
+        <ForbiddenState
+          message={envPermissionDenied}
+          permissionName={envPermissionName}
+          variant="compact"
+        />
+      )}
+
+      {filters.environment && canViewLogsForEnv && (
         <>
           <LogsActions
             totalCount={totalCount}

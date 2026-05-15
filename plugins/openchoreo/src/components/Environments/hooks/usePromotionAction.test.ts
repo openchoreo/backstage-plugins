@@ -2,12 +2,11 @@ import { renderHook } from '@testing-library/react';
 import { usePromotionAction } from './usePromotionAction';
 import type { ItemActionTracker } from '../types';
 
-const mockUseDeployPermission = jest.fn();
-const mockUseUndeployPermission = jest.fn();
+const mockUseReleaseBindingUpdatePermission = jest.fn();
 
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
-  useDeployPermission: () => mockUseDeployPermission(),
-  useUndeployPermission: () => mockUseUndeployPermission(),
+  useReleaseBindingUpdatePermission: () =>
+    mockUseReleaseBindingUpdatePermission(),
 }));
 
 function tracker(active = false): ItemActionTracker {
@@ -23,13 +22,8 @@ function tracker(active = false): ItemActionTracker {
 describe('usePromotionAction', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseDeployPermission.mockReturnValue({
-      canDeploy: true,
-      loading: false,
-      deniedTooltip: '',
-    });
-    mockUseUndeployPermission.mockReturnValue({
-      canUndeploy: true,
+    mockUseReleaseBindingUpdatePermission.mockReturnValue({
+      canUpdate: true,
       loading: false,
       deniedTooltip: '',
     });
@@ -117,12 +111,10 @@ describe('usePromotionAction', () => {
     expect(result.current.primaryPromotion).toBeNull();
   });
 
-  it('blocks promotion when the user lacks deploy permission', () => {
-    mockUseDeployPermission.mockReturnValue({
-      canDeploy: false,
-      loading: false,
-      deniedTooltip: 'denied',
-    });
+  it('exposes raw promotion state without baking in permission', () => {
+    // Permission-driven disabling moved out of the hook so consumers can
+    // call usePromoteToEnvPermission per target. Hook-level `disabled` now
+    // reflects only tracker/promoted state.
     const { result } = renderHook(() =>
       usePromotionAction({
         environmentName: 'dev',
@@ -136,8 +128,8 @@ describe('usePromotionAction', () => {
         onRedeploy: jest.fn(),
       }),
     );
-    expect(result.current.promotionActions[0].disabled).toBe(true);
-    expect(result.current.allPromotionsDisabled).toBe(true);
+    expect(result.current.promotionActions[0].disabled).toBe(false);
+    expect(result.current.allPromotionsDisabled).toBe(false);
   });
 
   it('emits an undeploy action when binding exists and status is not undeployed', () => {

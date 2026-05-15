@@ -1,7 +1,7 @@
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
-import { usePermission } from '@backstage/plugin-permission-react';
 import { openchoreoReleaseBindingCreatePermission } from '@openchoreo/backstage-plugin-common';
+import { useEnvScopedPermission } from './useEnvScopedPermission';
 
 /**
  * Result of the useDeployPermission hook.
@@ -23,9 +23,14 @@ export interface UseDeployPermissionResult {
  *
  * Must be used within an EntityProvider context.
  *
+ * @param environment - Optional environment name. When supplied, the check
+ *   also honors ABAC `resource.environment` CEL constraints (see issue
+ *   openchoreo#3408). When omitted, this behaves like a plain visibility
+ *   check — useful for "can the user deploy *somewhere*?" gates.
+ *
  * @example
  * ```tsx
- * const { canDeploy, loading, deniedTooltip } = useDeployPermission();
+ * const { canDeploy, loading, deniedTooltip } = useDeployPermission(env.name);
  *
  * return (
  *   <Tooltip title={deniedTooltip}>
@@ -36,15 +41,22 @@ export interface UseDeployPermissionResult {
  * );
  * ```
  */
-export const useDeployPermission = (): UseDeployPermissionResult => {
+export const useDeployPermission = (
+  environment?: string,
+): UseDeployPermissionResult => {
   const { entity } = useEntity();
-  const { allowed, loading } = usePermission({
+  const { allowed, loading } = useEnvScopedPermission({
     permission: openchoreoReleaseBindingCreatePermission,
     resourceRef: stringifyEntityRef(entity),
+    environment,
   });
 
-  const deniedTooltip =
-    !allowed && !loading ? 'You do not have permission to deploy' : '';
+  let deniedTooltip = '';
+  if (!allowed && !loading) {
+    deniedTooltip = environment
+      ? `You do not have permission to deploy to ${environment}`
+      : 'You do not have permission to deploy';
+  }
 
   return {
     canDeploy: allowed,

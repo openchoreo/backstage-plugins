@@ -117,8 +117,14 @@ export const EnvironmentOverridesPage = ({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [diffOpen, setDiffOpen] = useState(false);
 
-  // Check deploy permission for the final Deploy/Promote button
-  const { canDeploy, loading: deployPermissionLoading } = useDeployPermission();
+  // Check deploy permission for the final Deploy/Promote button. Pass the
+  // target environment so ABAC `resource.environment` CEL constraints are
+  // honored (openchoreo#3408).
+  const environmentNameForPermission =
+    environment.resourceName || environment.name;
+  const { canDeploy, loading: deployPermissionLoading } = useDeployPermission(
+    environmentNameForPermission,
+  );
 
   // Load secret references for workload overrides — limited to refs whose
   // value is reachable from this environment's data plane (or unscoped refs).

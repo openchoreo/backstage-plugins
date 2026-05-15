@@ -23,27 +23,41 @@ export interface UseConfigureAndDeployPermissionResult {
  * - workload:update
  *
  * Must be used within an EntityProvider context.
+ *
+ * @param environment - Optional environment (kubernetes resource name) to
+ *   honor ABAC `resource.environment` CEL constraints on the deploy half
+ *   of the check. component:update / workload:update are component-scoped
+ *   and are not env-gated.
  */
-export const useConfigureAndDeployPermission =
-  (): UseConfigureAndDeployPermissionResult => {
-    const { canDeploy, loading: deployLoading } = useDeployPermission();
-    const { canUpdateComponent, loading: componentLoading } =
-      useComponentUpdatePermission();
-    const { canUpdateWorkload, loading: workloadLoading } =
-      useWorkloadUpdatePermission();
+export const useConfigureAndDeployPermission = (
+  environment?: string,
+): UseConfigureAndDeployPermissionResult => {
+  const { canDeploy, loading: deployLoading } =
+    useDeployPermission(environment);
+  const { canUpdateComponent, loading: componentLoading } =
+    useComponentUpdatePermission();
+  const { canUpdateWorkload, loading: workloadLoading } =
+    useWorkloadUpdatePermission();
 
-    const loading = deployLoading || componentLoading || workloadLoading;
-    const canConfigureAndDeploy =
-      canDeploy || canUpdateComponent || canUpdateWorkload;
+  const loading = deployLoading || componentLoading || workloadLoading;
+  // When an environment is supplied, the deploy check is authoritative — it's
+  // the only one that honors ABAC `resource.environment` constraints.
+  // component/workload-update are entity-scoped and would otherwise let a
+  // user enter the configure flow for an env they cannot deploy to.
+  const canConfigureAndDeploy = environment
+    ? canDeploy
+    : canDeploy || canUpdateComponent || canUpdateWorkload;
 
-    const deniedTooltip =
-      !canConfigureAndDeploy && !loading
-        ? 'You do not have permission to configure or deploy'
-        : '';
+  let deniedTooltip = '';
+  if (!canConfigureAndDeploy && !loading) {
+    deniedTooltip = environment
+      ? `You do not have permission to configure or deploy to ${environment}`
+      : 'You do not have permission to configure or deploy';
+  }
 
-    return {
-      canConfigureAndDeploy,
-      loading,
-      deniedTooltip,
-    };
+  return {
+    canConfigureAndDeploy,
+    loading,
+    deniedTooltip,
   };
+};
