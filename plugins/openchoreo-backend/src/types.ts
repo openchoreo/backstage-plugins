@@ -3,10 +3,6 @@ import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node
 import type { WorkloadResource } from '@openchoreo/backstage-plugin-common';
 import type { ModelsSecretReferences } from './services/SecretReferencesService/SecretReferencesService';
 import type {
-  GitSecretResponse,
-  GitSecretListResponse,
-} from './services/GitSecretsService/GitSecretsService';
-import type {
   SecretResponse,
   SecretsListResponse,
   SecretDetail,
@@ -190,30 +186,6 @@ export interface SecretReferencesService {
     namespaceName: string,
     token?: string,
   ): Promise<ModelsSecretReferences>;
-}
-
-export interface GitSecretsService {
-  listGitSecrets(
-    namespaceName: string,
-    token?: string,
-  ): Promise<GitSecretListResponse>;
-  createGitSecret(
-    namespaceName: string,
-    secretName: string,
-    secretType: 'basic-auth' | 'ssh-auth',
-    gitToken?: string,
-    sshKey?: string,
-    username?: string,
-    sshKeyId?: string,
-    userToken?: string,
-    workflowPlaneKind?: string,
-    workflowPlaneName?: string,
-  ): Promise<GitSecretResponse>;
-  deleteGitSecret(
-    namespaceName: string,
-    secretName: string,
-    userToken?: string,
-  ): Promise<void>;
 }
 
 export interface SecretsService {

@@ -54,7 +54,16 @@ export const CHOREO_LABELS = {
   WORKFLOW_PROJECT: 'openchoreo.dev/project',
   WORKFLOW_COMPONENT: 'openchoreo.dev/component',
   WORKFLOW_TYPE: 'openchoreo.dev/workflow-type',
+  // Marks a SecretReference's category (e.g. git credentials).
+  SECRET_TYPE: 'openchoreo.dev/secret-type',
 } as const;
+
+/**
+ * Value set on the {@link CHOREO_LABELS.SECRET_TYPE} label to mark a
+ * SecretReference as holding git credentials. Workflows and CI build dialogs
+ * discover git secrets by this label.
+ */
+export const GIT_SECRET_TYPE_VALUE = 'git-credentials';
 
 /**
  * Custom relation types for OpenChoreo entities.

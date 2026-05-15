@@ -213,6 +213,10 @@ openchoreo:
     # LLM API key Secret to be deployed.
     assistant:
       enabled: ${OPENCHOREO_FEATURES_ASSISTANT_ENABLED}
+    # Secret Management configuration
+    # When disabled, hides the Secrets settings tab and disables secret APIs
+    secretManagement:
+      enabled: ${OPENCHOREO_FEATURES_SECRET_MANAGEMENT_ENABLED}
 
 thunder:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)

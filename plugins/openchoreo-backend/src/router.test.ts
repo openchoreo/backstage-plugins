@@ -73,15 +73,11 @@ function createMockServices() {
     secretReferencesInfoService: {
       fetchSecretReferences: jest.fn(),
     },
-    gitSecretsService: {
-      fetchGitSecrets: jest.fn(),
-      createGitSecret: jest.fn(),
-      deleteGitSecret: jest.fn(),
-    },
     secretsService: {
       listSecrets: jest.fn(),
       getSecret: jest.fn(),
       createSecret: jest.fn(),
+      updateSecret: jest.fn(),
       deleteSecret: jest.fn(),
     },
     authzService: {
@@ -623,6 +619,112 @@ describe('createRouter', () => {
       expect(response.status).toBe(400);
       expect(response.body.error.message).toContain(
         'data.bad must be a string',
+      );
+    });
+
+    it('rejects when labels is not an object', async () => {
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send({ ...validBody, labels: ['a', 'b'] });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain('labels must be an object');
+    });
+
+    it('rejects when a label value is not a string', async () => {
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send({ ...validBody, labels: { team: 1 } });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain(
+        'labels.team must be a string',
+      );
+    });
+
+    it('forwards labels to the service when provided', async () => {
+      const created = { name: 's1', namespace: 'ns', keys: ['k'] };
+      services.secretsService.createSecret.mockResolvedValue(created);
+      const labels = { 'openchoreo.dev/secret-type': 'git-credentials' };
+
+      const response = await request(app)
+        .post('/secrets')
+        .query({ namespaceName: 'ns' })
+        .send({ ...validBody, labels });
+
+      expect(response.status).toBe(201);
+      expect(services.secretsService.createSecret).toHaveBeenCalledWith(
+        'ns',
+        { ...validBody, labels },
+        'mock-user-token',
+      );
+    });
+  });
+
+  describe('PUT /secrets/:secretName', () => {
+    it('updates a secret on a valid request', async () => {
+      const updated = { name: 's1', namespace: 'ns', keys: ['k'] };
+      services.secretsService.updateSecret.mockResolvedValue(updated);
+
+      const response = await request(app)
+        .put('/secrets/s1')
+        .query({ namespaceName: 'ns' })
+        .send({ data: { k: 'v' } });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(updated);
+      expect(services.secretsService.updateSecret).toHaveBeenCalledWith(
+        'ns',
+        's1',
+        { data: { k: 'v' } },
+        'mock-user-token',
+      );
+    });
+
+    it('rejects when namespaceName is missing', async () => {
+      const response = await request(app)
+        .put('/secrets/s1')
+        .send({ data: { k: 'v' } });
+      expect(response.status).toBe(400);
+      expect(services.secretsService.updateSecret).not.toHaveBeenCalled();
+    });
+
+    it('rejects when data is not an object', async () => {
+      const response = await request(app)
+        .put('/secrets/s1')
+        .query({ namespaceName: 'ns' })
+        .send({ data: ['k', 'v'] });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain('data must be an object');
+    });
+
+    it('rejects when a label value is not a string', async () => {
+      const response = await request(app)
+        .put('/secrets/s1')
+        .query({ namespaceName: 'ns' })
+        .send({ data: { k: 'v' }, labels: { team: 1 } });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toContain(
+        'labels.team must be a string',
+      );
+    });
+
+    it('forwards labels to the service when provided', async () => {
+      const updated = { name: 's1', namespace: 'ns', keys: ['k'] };
+      services.secretsService.updateSecret.mockResolvedValue(updated);
+      const labels = { 'openchoreo.dev/secret-type': 'git-credentials' };
+
+      const response = await request(app)
+        .put('/secrets/s1')
+        .query({ namespaceName: 'ns' })
+        .send({ data: { k: 'v' }, labels });
+
+      expect(response.status).toBe(200);
+      expect(services.secretsService.updateSecret).toHaveBeenCalledWith(
+        'ns',
+        's1',
+        { data: { k: 'v' }, labels },
+        'mock-user-token',
       );
     });
   });
