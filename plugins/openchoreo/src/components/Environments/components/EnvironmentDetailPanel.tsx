@@ -19,6 +19,7 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import AllInboxOutlinedIcon from '@material-ui/icons/AllInboxOutlined';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
@@ -341,9 +342,9 @@ export const EnvironmentDetailPanel = ({
                       }
                     >
                       <Box className={classes.driftLabel}>
-                        <ReportProblemOutlinedIcon fontSize="small" />
+                        <InfoOutlinedIcon fontSize="small" />
                         <Typography variant="caption">
-                          Behind upstream
+                          Behind {driftInfo.aheadUpstreams[0]?.envName}
                         </Typography>
                       </Box>
                     </Tooltip>
