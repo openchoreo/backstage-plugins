@@ -23,6 +23,11 @@ import type {
   FileChange,
   FieldChange,
 } from '../../../../api/RCAAgentApi';
+import {
+  applyJsonPointer,
+  applyEnvChange,
+  applyFileChange,
+} from '../../../../utils/applyResourceChange';
 
 interface ChatContext {
   namespaceName: string;
@@ -58,69 +63,6 @@ export function allActionsResolved(
         action.status === 'applied' || action.status === 'dismissed',
     )
   );
-}
-
-const ALLOWED_OVERRIDE_CATEGORIES = new Set([
-  'workloadOverrides',
-  'traitEnvironmentConfigs',
-  'componentTypeEnvironmentConfigs',
-]);
-
-function applyJsonPointer(doc: any, pointer: string, value: any): void {
-  const keys = pointer.replace(/^\//, '').split('/');
-  if (
-    keys.length < 3 ||
-    keys[0] !== 'spec' ||
-    !ALLOWED_OVERRIDE_CATEGORIES.has(keys[1])
-  ) {
-    throw new Error(`Invalid pointer: '${pointer}'`);
-  }
-  let current = doc;
-  for (const key of keys.slice(0, -1)) {
-    if (
-      current[key] === null ||
-      current[key] === undefined ||
-      typeof current[key] !== 'object'
-    ) {
-      current[key] = {};
-    }
-    current = current[key];
-  }
-  const last = keys.at(-1)!;
-  current[last] = value;
-}
-
-function applyEnvChange(doc: any, key: string, value: string): void {
-  const env: { key: string; value: string }[] =
-    doc.spec?.workloadOverrides?.container?.env ?? [];
-  const existing = env.find(e => e.key === key);
-  if (existing) {
-    existing.value = value;
-  } else {
-    env.push({ key, value });
-    doc.spec ??= {};
-    doc.spec.workloadOverrides ??= {};
-    doc.spec.workloadOverrides.container ??= {};
-    doc.spec.workloadOverrides.container.env = env;
-  }
-}
-
-function applyFileChange(
-  doc: any,
-  key: string,
-  mountPath: string,
-  value: string,
-): void {
-  const files: { key: string; value: string; mountPath: string }[] =
-    doc.spec?.workloadOverrides?.container?.files ?? [];
-  const existing = files.find(f => f.key === key && f.mountPath === mountPath);
-  if (existing) {
-    existing.value = value;
-  } else {
-    throw new Error(
-      `File mount '${key}' at '${mountPath}' not found in binding`,
-    );
-  }
 }
 
 type PrimitiveValue = string | number | boolean;

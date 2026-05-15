@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography } from '@material-ui/core';
 import { Progress } from '@backstage/core-components';
@@ -14,6 +15,8 @@ import {
 } from '../../hooks';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { CostAnalysisReportView } from './CostAnalysisReportView';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { finopsAgentApiRef } from '../../api/FinOpsAgentApi';
 
 const CostAnalysisReportContent = () => {
   const { reportId } = useParams<{ reportId?: string }>();
@@ -22,6 +25,8 @@ const CostAnalysisReportContent = () => {
   const { filters } = useFilters();
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
   const projectName = entity.metadata.name as string;
+  const finopsAgentApi = useApi(finopsAgentApiRef);
+  const discoveryApi = useApi(discoveryApiRef);
 
   // Get environments to ensure we have environment data
   const { environments } = useGetEnvironmentsByNamespace(
@@ -34,7 +39,28 @@ const CostAnalysisReportContent = () => {
     report: detailedReport,
     loading,
     error,
+    refresh,
   } = useFinOpsReport(reportId, environment?.name, entity);
+
+  const [backendBaseUrl, setBackendBaseUrl] = useState<string | undefined>();
+  const [discoveryError, setDiscoveryError] = useState<string | undefined>();
+  useEffect(() => {
+    discoveryApi
+      .getBaseUrl('openchoreo-observability-backend')
+      .then(setBackendBaseUrl)
+      .catch((err: unknown) => {
+        // eslint-disable-next-line no-console
+        console.error(
+          'Failed to discover openchoreo-observability-backend:',
+          err,
+        );
+        setDiscoveryError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to connect to the observability backend.',
+        );
+      });
+  }, [discoveryApi]);
 
   if (loading) {
     return <Progress />;
@@ -58,6 +84,16 @@ const CostAnalysisReportContent = () => {
       <Box mt={2} mb={2}>
         <Alert severity={severity}>
           <Typography variant="body1">{errorMessage}</Typography>
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (discoveryError) {
+    return (
+      <Box mt={2} mb={2}>
+        <Alert severity="error">
+          <Typography variant="body1">{discoveryError}</Typography>
         </Alert>
       </Box>
     );
@@ -90,6 +126,13 @@ const CostAnalysisReportContent = () => {
       }`
     : undefined;
 
+  const chatContext = {
+    backendBaseUrl,
+    namespaceName: namespace || '',
+    environmentName: environmentName || '',
+    finopsAgentApi,
+  };
+
   return (
     <CostAnalysisReportView
       report={detailedReport}
@@ -97,6 +140,8 @@ const CostAnalysisReportContent = () => {
       onBack={handleBack}
       componentUrl={componentUrl}
       metricsUrl={metricsUrl}
+      chatContext={chatContext}
+      onRecommendationApplied={refresh}
     />
   );
 };

@@ -263,6 +263,10 @@ export {
   type UseRcaUpdatePermissionResult,
 } from './hooks/useRcaUpdatePermission';
 export {
+  useFinopsUpdatePermission,
+  type UseFinopsUpdatePermissionResult,
+} from './hooks/useFinopsUpdatePermission';
+export {
   useTraitsPermission,
   type UseTraitsPermissionResult,
 } from './hooks/useTraitsPermission';
