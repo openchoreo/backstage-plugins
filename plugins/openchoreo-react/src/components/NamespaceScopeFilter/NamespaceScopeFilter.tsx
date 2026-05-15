@@ -104,7 +104,13 @@ export const NamespaceScopeFilter = ({
     }
     const value = parts.length === 0 ? emptyLabel : parts.join(' + ');
     return hideLabelInTrigger ? value : `${label}: ${value}`;
-  }, [clusterSelected, selectedNamespaces, label, emptyLabel, hideLabelInTrigger]);
+  }, [
+    clusterSelected,
+    selectedNamespaces,
+    label,
+    emptyLabel,
+    hideLabelInTrigger,
+  ]);
 
   const toggle = useCallback(
     (item: string) => {
@@ -171,7 +177,8 @@ export const NamespaceScopeFilter = ({
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
         PaperProps={{
           className: classes.popoverPaper,
-          style: fullWidth && anchor ? { width: anchor.clientWidth } : undefined,
+          style:
+            fullWidth && anchor ? { width: anchor.clientWidth } : undefined,
         }}
       >
         {hasCluster && (
