@@ -1,4 +1,5 @@
 export {
+  openchoreoObservabilityPlugin,
   ObservabilityMetrics,
   ObservabilityTraces,
   ObservabilityRCA,

@@ -14,7 +14,7 @@ import {
 import { rcaAgentApiRef, RCAAgentClient } from './api/RCAAgentApi';
 import { finopsAgentApiRef, FinOpsAgentClient } from './api/FinOpsAgentApi';
 
-const openchoreoObservabilityPlugin = createPlugin({
+export const openchoreoObservabilityPlugin = createPlugin({
   id: 'openchoreo-observability',
   routes: {
     root: rootRouteRef,
