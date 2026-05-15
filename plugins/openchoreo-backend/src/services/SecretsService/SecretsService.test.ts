@@ -200,6 +200,34 @@ describe('SecretsService', () => {
         createService().getSecret('test-ns', 'legacy-git', 'token'),
       ).rejects.toThrow(/not found/i);
     });
+
+    it('surfaces labels from the SecretReference so categories survive edits', async () => {
+      const refWithLabels = {
+        ...managedSecretRef,
+        metadata: {
+          ...managedSecretRef.metadata,
+          labels: {
+            'openchoreo.dev/secret-type': 'git-credentials',
+            'openchoreo.dev/managed-by': 'openchoreo-api',
+          },
+        },
+      };
+      mockGetByPath({
+        [SECRET_GET_PATH]: createOkResponse(dbCredsSecret),
+        [SECRETREF_GET_PATH]: createOkResponse(refWithLabels),
+      });
+
+      const result = await createService().getSecret(
+        'test-ns',
+        'db-creds',
+        'token',
+      );
+
+      expect(result.labels).toEqual({
+        'openchoreo.dev/secret-type': 'git-credentials',
+        'openchoreo.dev/managed-by': 'openchoreo-api',
+      });
+    });
   });
 
   describe('createSecret', () => {

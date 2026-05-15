@@ -66,6 +66,13 @@ export const CHOREO_LABELS = {
 export const GIT_SECRET_TYPE_VALUE = 'git-credentials';
 
 /**
+ * Value set on the {@link CHOREO_LABELS.SECRET_TYPE} label to mark a
+ * SecretReference as a general-purpose secret. Stamped on every secret
+ * created via the generic Secret API that isn't another known category.
+ */
+export const GENERIC_SECRET_TYPE_VALUE = 'generic';
+
+/**
  * Custom relation types for OpenChoreo entities.
  * These extend the standard Backstage relations.
  */

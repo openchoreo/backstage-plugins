@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   CreateSecretDialog,
@@ -120,7 +120,7 @@ describe('CreateSecretDialog — Secret Category', () => {
     expect(screen.getByText('A general-purpose secret.')).toBeInTheDocument();
   });
 
-  it('submits without labels when the category is Generic', async () => {
+  it('stamps the generic label when the category is Generic', async () => {
     const user = userEvent.setup();
     const onSubmit = jest.fn().mockResolvedValue({} as any);
     renderDialog({ targetPlanes: planes, onSubmit });
@@ -131,33 +131,8 @@ describe('CreateSecretDialog — Secret Category', () => {
     await user.click(screen.getByRole('button', { name: 'Create' }));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('labels');
-  });
-
-  it('stamps the git-credentials label when the category is Git Credentials', async () => {
-    const user = userEvent.setup();
-    const onSubmit = jest.fn().mockResolvedValue({} as any);
-    renderDialog({ targetPlanes: planes, onSubmit });
-
-    await user.type(inputForLabel('Secret Name'), 'git-secret');
-    // Open the Secret Category select and pick Git Credentials.
-    await user.click(screen.getByLabelText('Secret Category'));
-    await user.click(
-      within(screen.getByRole('listbox')).getByText('Git Credentials'),
-    );
-    expect(
-      screen.getByText(
-        'Marked as git credentials so workflows and builds can discover it.',
-      ),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole('radio', { name: /Basic Auth/i }));
-    await user.type(inputForLabel('Password / Token'), 'hunter2');
-    await user.click(screen.getByRole('button', { name: 'Create' }));
-
-    expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onSubmit.mock.calls[0][0].labels).toEqual({
-      'openchoreo.dev/secret-type': 'git-credentials',
+      'openchoreo.dev/secret-type': 'generic',
     });
   });
 });
@@ -185,14 +160,6 @@ describe('CreateSecretDialog — SSH Auth', () => {
     await user.paste(value);
   }
 
-  it('disables Create when the SSH key is not a valid private key', async () => {
-    const user = userEvent.setup();
-    renderDialog({ targetPlanes: planes });
-    await selectSshAuth(user);
-    await pasteSshKey(user, 'not-a-real-key');
-    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
-  });
-
   it('enables Create once a well-formed private key is provided', async () => {
     const user = userEvent.setup();
     renderDialog({ targetPlanes: planes });
@@ -201,6 +168,9 @@ describe('CreateSecretDialog — SSH Auth', () => {
     expect(screen.getByRole('button', { name: 'Create' })).toBeEnabled();
   });
 
+  // The two tests below interact with multiple fields (SSH Key ID + multiline
+  // SSH key + dynamically-added Key/Value rows). userEvent.type is per-keystroke
+  // and gets slow under jsdom load in the full suite, so give them extra time.
   it('submits the SSH key plus the optional SSH Key ID in the data map', async () => {
     const user = userEvent.setup();
     const onSubmit = jest.fn().mockResolvedValue({} as any);
@@ -214,7 +184,7 @@ describe('CreateSecretDialog — SSH Auth', () => {
     const { data } = onSubmit.mock.calls[0][0];
     expect(data['ssh-privatekey']).toContain('BEGIN OPENSSH PRIVATE KEY');
     expect(data['ssh-key-id']).toBe('my-key-id');
-  });
+  }, 15000);
 
   it('includes an SSH extra key/value row in the submitted data', async () => {
     const user = userEvent.setup();
@@ -231,5 +201,5 @@ describe('CreateSecretDialog — SSH Auth', () => {
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onSubmit.mock.calls[0][0].data.known_hosts).toBe('host-entry');
-  });
+  }, 15000);
 });

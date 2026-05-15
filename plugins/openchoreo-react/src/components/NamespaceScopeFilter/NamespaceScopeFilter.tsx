@@ -165,7 +165,8 @@ export const NamespaceScopeFilter = ({
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
         PaperProps={{
           className: classes.popoverPaper,
-          style: fullWidth && anchor ? { width: anchor.clientWidth } : undefined,
+          style:
+            fullWidth && anchor ? { width: anchor.clientWidth } : undefined,
         }}
       >
         {hasCluster && (

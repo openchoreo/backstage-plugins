@@ -129,6 +129,11 @@ export const EditSecretDialog = ({
   const client = useApi(openChoreoClientApiRef);
   const [rows, setRows] = useState<KeyValueRow[]>([]);
   const [baseline, setBaseline] = useState<Record<string, string> | null>(null);
+  // Existing labels on the underlying SecretReference. Echoed back on PUT so
+  // the backend (which replaces the full label set) preserves them.
+  const [existingLabels, setExistingLabels] = useState<
+    Record<string, string> | undefined
+  >(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [loadingValues, setLoadingValues] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -147,6 +152,9 @@ export const EditSecretDialog = ({
     setLoadError(null);
     setError(null);
     setBaseline(null);
+    // Seed labels from the list-row secret while the GET is in flight, so a
+    // submit during loading wouldn't strip them. Refined on detail load.
+    setExistingLabels(secret.labels);
     setRows(
       secret.keys.map(key => ({
         key,
@@ -171,6 +179,9 @@ export const EditSecretDialog = ({
         setBaseline(
           Object.fromEntries(orderedKeys.map(key => [key, decoded[key] ?? ''])),
         );
+        // Prefer detail.labels (authoritative from the SecretReference) over
+        // the list-row value seeded above.
+        setExistingLabels(detail.labels ?? secret.labels);
         setRows(
           orderedKeys.map(key => ({
             key,
@@ -274,7 +285,10 @@ export const EditSecretDialog = ({
     }
 
     try {
-      await onSubmit(secret.name, { data });
+      // Echo existing labels back: the backend replaces the full user-set
+      // label map on each PUT, so omitting them would strip category labels
+      // (e.g. `openchoreo.dev/secret-type: git-credentials`).
+      await onSubmit(secret.name, { data, labels: existingLabels });
       onClose();
     } catch (err) {
       if (isForbiddenError(err)) {
