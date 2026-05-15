@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { makeStyles } from '@material-ui/core';
+import { Box, Typography, makeStyles } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   catalogApiRef,
@@ -9,6 +9,13 @@ import {
 import { NamespaceScopeFilter } from '@openchoreo/backstage-plugin-react';
 
 const useStyles = makeStyles(theme => ({
+  label: {
+    fontWeight: 'bold',
+    fontSize: theme.typography.body2.fontSize,
+    color: theme.palette.text.primary,
+    marginBottom: theme.spacing(0.5),
+    display: 'block',
+  },
   trigger: {
     height: 44,
     fontSize: 14,
@@ -135,14 +142,20 @@ export const ScaffolderNamespacePicker = () => {
   }
 
   return (
-    <NamespaceScopeFilter
-      label="Scope"
-      availableNamespaces={availableNamespaces}
-      selected={selectedNamespaces}
-      onChange={setSelectedNamespaces}
-      emptyLabel="All"
-      fullWidth
-      triggerClassName={classes.trigger}
-    />
+    <Box>
+      <Typography variant="body2" component="label" className={classes.label}>
+        Scope
+      </Typography>
+      <NamespaceScopeFilter
+        label="Scope"
+        availableNamespaces={availableNamespaces}
+        selected={selectedNamespaces}
+        onChange={setSelectedNamespaces}
+        emptyLabel="All"
+        fullWidth
+        hideLabelInTrigger
+        triggerClassName={classes.trigger}
+      />
+    </Box>
   );
 };
