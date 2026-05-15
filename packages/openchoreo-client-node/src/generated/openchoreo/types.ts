@@ -1268,6 +1268,12 @@ export interface paths {
     /**
      * Get subject profile
      * @description Returns the authorization profile for the authenticated subject.
+     *
+     *     Scope query parameters follow the same hierarchy rules as the ResourceHierarchy schema:
+     *     - `project` is required when `component` or `resource` is set
+     *     - `component` and `resource` are mutually exclusive (siblings under `project`)
+     *
+     *     Omitting `component` and `resource` returns a project-scoped profile.
      */
     get: operations['getSubjectProfile'];
     put?: never;
@@ -5310,7 +5316,16 @@ export interface components {
        */
       value: string;
     };
-    /** @description Resource hierarchy scope */
+    /**
+     * @description Resource hierarchy scope. Authoritative validation lives on the
+     *     AuthzRoleBinding / ClusterAuthzRoleBinding CRD CEL rules; this schema
+     *     documents the same invariants for clients:
+     *     - `project` is required when `component` or `resource` is set
+     *     - `component` and `resource` are mutually exclusive (siblings under `project`)
+     *
+     *     Hierarchies that violate these invariants are treated as no-match by
+     *     the authz engine rather than rejected on the wire.
+     */
     ResourceHierarchy: {
       /**
        * @description Namespace name
@@ -5327,6 +5342,11 @@ export interface components {
        * @example api-service
        */
       component?: string;
+      /**
+       * @description Resource name (sibling of component under project)
+       * @example analytics-shared-db
+       */
+      resource?: string;
     };
     /** @description Additional context for authorization */
     AuthzContext: {
@@ -5423,11 +5443,16 @@ export interface components {
        */
       name: string;
       /**
-       * @description The lowest resource hierarchy level at which this action is evaluated. One of cluster, namespace, project, or component.
+       * @description The lowest resource hierarchy level at which this action is evaluated. One of cluster, namespace, project, component, or resource.
        * @example component
        * @enum {string}
        */
-      lowestScope: 'cluster' | 'namespace' | 'project' | 'component';
+      lowestScope:
+        | 'cluster'
+        | 'namespace'
+        | 'project'
+        | 'component'
+        | 'resource';
       /** @description ABAC attributes available for CEL condition expressions on this action. Empty means no conditions are supported. */
       conditions?: components['schemas']['ConditionAttribute'][];
     };
@@ -5670,10 +5695,16 @@ export interface components {
       endpoints?: {
         [key: string]: components['schemas']['WorkloadEndpoint'];
       };
-      /** @description Dependencies on other components' endpoints */
+      /** @description Dependencies on other components' endpoints and on Resources */
       dependencies?: {
         /** @description Endpoint connections to other components */
         endpoints?: components['schemas']['WorkloadConnection'][];
+        /**
+         * @description Resource dependencies. Each entry references a Resource by name and wires named
+         *     outputs of the resolved ResourceReleaseBinding into the container as env vars
+         *     (envBindings) and file mounts (fileBindings).
+         */
+        resources?: components['schemas']['WorkloadResourceDependency'][];
       };
     };
     /** @description Observed state of a Workload */
@@ -5746,6 +5777,31 @@ export interface components {
       port?: string;
       /** @description Env var name for just the base path */
       basePath?: string;
+    };
+    /**
+     * @description Dependency on a Resource. Output names declared on the referenced ResourceType are wired
+     *     into the consuming container as env vars (envBindings) and file mounts (fileBindings).
+     *     Outputs not listed in either map are ignored.
+     */
+    WorkloadResourceDependency: {
+      /** @description Name of the Resource to consume. */
+      ref: string;
+      /**
+       * @description Maps a ResourceType output name to a container environment variable name. The
+       *     output's source kind (value, secretKeyRef, configMapKeyRef) determines whether the
+       *     resulting env var is a literal or a valueFrom reference.
+       */
+      envBindings?: {
+        [key: string]: string;
+      };
+      /**
+       * @description Maps a ResourceType output name to a container mount path. The referenced output's
+       *     source kind must be secretKeyRef or configMapKeyRef; value-kind outputs cannot be
+       *     mounted as files because there is no DP-side object to mount.
+       */
+      fileBindings?: {
+        [key: string]: string;
+      };
     };
     /** @description Paginated list of deployment pipelines */
     DeploymentPipelineList: {
@@ -9644,6 +9700,8 @@ export interface operations {
         project?: string;
         /** @description Component scope */
         component?: string;
+        /** @description Resource scope (sibling of component under project) */
+        resource?: string;
       };
       header?: never;
       path?: never;

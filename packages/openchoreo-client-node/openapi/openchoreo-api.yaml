@@ -2993,7 +2993,14 @@ paths:
     get:
       operationId: getSubjectProfile
       summary: Get subject profile
-      description: Returns the authorization profile for the authenticated subject.
+      description: |
+        Returns the authorization profile for the authenticated subject.
+
+        Scope query parameters follow the same hierarchy rules as the ResourceHierarchy schema:
+        - `project` is required when `component` or `resource` is set
+        - `component` and `resource` are mutually exclusive (siblings under `project`)
+
+        Omitting `component` and `resource` returns a project-scoped profile.
       tags: [Authorization]
       parameters:
         - name: namespace
@@ -3012,6 +3019,12 @@ paths:
           in: query
           required: false
           description: Component scope
+          schema:
+            type: string
+        - name: resource
+          in: query
+          required: false
+          description: Resource scope (sibling of component under project)
           schema:
             type: string
       responses:
@@ -10535,7 +10548,15 @@ components:
 
     ResourceHierarchy:
       type: object
-      description: Resource hierarchy scope
+      description: |
+        Resource hierarchy scope. Authoritative validation lives on the
+        AuthzRoleBinding / ClusterAuthzRoleBinding CRD CEL rules; this schema
+        documents the same invariants for clients:
+        - `project` is required when `component` or `resource` is set
+        - `component` and `resource` are mutually exclusive (siblings under `project`)
+
+        Hierarchies that violate these invariants are treated as no-match by
+        the authz engine rather than rejected on the wire.
       properties:
         namespace:
           type: string
@@ -10549,6 +10570,10 @@ components:
           type: string
           description: Component name
           example: api-service
+        resource:
+          type: string
+          description: Resource name (sibling of component under project)
+          example: analytics-shared-db
 
     AuthzContext:
       type: object
@@ -10674,12 +10699,13 @@ components:
           type: string
           description: >
             The lowest resource hierarchy level at which this action is evaluated.
-            One of cluster, namespace, project, or component.
+            One of cluster, namespace, project, component, or resource.
           enum:
             - cluster
             - namespace
             - project
             - component
+            - resource
           example: component
         conditions:
           type: array
@@ -11025,13 +11051,22 @@ components:
             $ref: '#/components/schemas/WorkloadEndpoint'
         dependencies:
           type: object
-          description: Dependencies on other components' endpoints
+          description: Dependencies on other components' endpoints and on Resources
           properties:
             endpoints:
               type: array
               description: Endpoint connections to other components
               items:
                 $ref: '#/components/schemas/WorkloadConnection'
+            resources:
+              type: array
+              description: |
+                Resource dependencies. Each entry references a Resource by name and wires named
+                outputs of the resolved ResourceReleaseBinding into the container as env vars
+                (envBindings) and file mounts (fileBindings).
+              maxItems: 50
+              items:
+                $ref: '#/components/schemas/WorkloadResourceDependency'
 
     WorkloadStatus:
       type: object
@@ -11156,6 +11191,38 @@ components:
         basePath:
           type: string
           description: Env var name for just the base path
+
+    WorkloadResourceDependency:
+      type: object
+      description: |
+        Dependency on a Resource. Output names declared on the referenced ResourceType are wired
+        into the consuming container as env vars (envBindings) and file mounts (fileBindings).
+        Outputs not listed in either map are ignored.
+      required:
+        - ref
+      properties:
+        ref:
+          type: string
+          description: Name of the Resource to consume.
+          minLength: 1
+        envBindings:
+          type: object
+          description: |
+            Maps a ResourceType output name to a container environment variable name. The
+            output's source kind (value, secretKeyRef, configMapKeyRef) determines whether the
+            resulting env var is a literal or a valueFrom reference.
+          maxProperties: 50
+          additionalProperties:
+            type: string
+        fileBindings:
+          type: object
+          description: |
+            Maps a ResourceType output name to a container mount path. The referenced output's
+            source kind must be secretKeyRef or configMapKeyRef; value-kind outputs cannot be
+            mounted as files because there is no DP-side object to mount.
+          maxProperties: 50
+          additionalProperties:
+            type: string
 
     # -------------------------------------------------------------------------
     # Deployment Pipeline Schemas
