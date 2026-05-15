@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import {
   Grid,
   Card,
@@ -72,40 +72,16 @@ const ObservabilityMetricsContent = () => {
   } = useMetrics(filters, entity, namespace as string, project as string);
   const resourceMetrics = metrics as ResourceMetrics;
 
-  // Track previous filter values to detect changes
-  const previousFiltersRef = useRef({
-    environment: filters.environment?.name,
-    timeRange: filters.timeRange,
-  });
-
   // Fetch metrics when filters change
   useEffect(() => {
-    const currentFilters = {
-      environment: filters.environment?.name,
-      timeRange: filters.timeRange,
-    };
-
-    const filtersChanged =
-      JSON.stringify(previousFiltersRef.current) !==
-      JSON.stringify(currentFilters);
-
-    if (
-      filters.environment &&
-      filters.timeRange &&
-      canViewMetricsForEnv &&
-      filtersChanged
-    ) {
+    if (filters.environment && filters.timeRange && canViewMetricsForEnv) {
       fetchMetrics(true);
     }
-
-    previousFiltersRef.current = currentFilters;
   }, [
     filters.environment,
     filters.timeRange,
     fetchMetrics,
     canViewMetricsForEnv,
-    envPermissionLoading,
-    envPermissionDenied,
   ]);
 
   const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
