@@ -1293,8 +1293,75 @@ export class EnvironmentInfoService implements EnvironmentService {
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Error fetching release bindings for ${request.componentName} (${totalTime}ms):`,
-        error as Error,
+        `Failed to fetch release bindings for ${request.componentName}: ${
+          error instanceof Error ? error.message : String(error)
+        } (${totalTime}ms)`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches ResourceReleaseBindings for a given Resource (by name) within a
+   * project. The openchoreo-api endpoint filters by resource name; project
+   * scoping is applied here so bindings owned by other projects that happen
+   * to share the resource name in the same namespace are not returned.
+   */
+  async fetchResourceReleaseBindings(
+    request: {
+      resourceName: string;
+      projectName: string;
+      namespaceName: string;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Fetching resource release bindings for resource ${request.resourceName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/resourcereleasebindings',
+        {
+          params: {
+            path: { namespaceName: request.namespaceName },
+            query: { resource: request.resourceName },
+          },
+        },
+      );
+
+      assertApiResponse(
+        { data, error, response },
+        'fetch resource release bindings',
+      );
+
+      const filtered = {
+        ...(data as any),
+        items: ((data as any)?.items ?? []).filter(
+          (b: any) =>
+            b?.spec?.owner?.projectName === request.projectName,
+        ),
+      };
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Resource release bindings fetched for ${request.resourceName}: Total: ${totalTime}ms`,
+      );
+
+      return filtered;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Failed to fetch resource release bindings for ${request.resourceName}: ${
+          error instanceof Error ? error.message : String(error)
+        } (${totalTime}ms)`,
       );
       throw error;
     }

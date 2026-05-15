@@ -13,6 +13,7 @@ import type {
   CreateReleaseResponse,
   SchemaResponse,
   ReleaseBindingsResponse,
+  ResourceReleaseBindingsResponse,
   WorkflowSchemaResponse,
   ComponentInfo,
   SecretReferencesResponse,
@@ -59,6 +60,7 @@ const API_ENDPOINTS = {
   COMPONENT_RELEASE: '/component-release',
   COMPONENT_RELEASE_SCHEMA: '/component-release-schema',
   RELEASE_BINDINGS: '/release-bindings',
+  RESOURCE_RELEASE_BINDINGS: '/resource-release-bindings',
   UPDATE_RELEASE_BINDING: '/update-release-binding',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
   RESOURCE_TREE: '/resourcetree',
@@ -367,6 +369,31 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       API_ENDPOINTS.RELEASE_BINDINGS,
       {
         params: entityMetadataToParams(metadata),
+      },
+    );
+  }
+
+  async fetchResourceReleaseBindings(
+    entity: Entity,
+  ): Promise<ResourceReleaseBindingsResponse> {
+    const resourceName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE];
+    const projectName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+    const namespaceName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+
+    if (!resourceName || !projectName || !namespaceName) {
+      throw new Error(
+        'Missing required OpenChoreo annotations on Resource entity. ' +
+          `Required: ${CHOREO_ANNOTATIONS.RESOURCE}, ${CHOREO_ANNOTATIONS.PROJECT}, ${CHOREO_ANNOTATIONS.NAMESPACE}`,
+      );
+    }
+
+    return this.apiFetch<ResourceReleaseBindingsResponse>(
+      API_ENDPOINTS.RESOURCE_RELEASE_BINDINGS,
+      {
+        params: { resourceName, projectName, namespaceName },
       },
     );
   }

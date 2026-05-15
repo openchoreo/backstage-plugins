@@ -1,7 +1,11 @@
 import {
   translateClusterResourceTypeToEntity,
+  translateComponentToEntity,
   translateNewClusterResourceTypeToEntity,
+  translateNewComponentToEntity,
+  translateNewResourceToEntity,
   translateNewResourceTypeToEntity,
+  translateResourceToEntity,
   translateResourceTypeToEntity,
 } from './entityTranslation';
 
@@ -220,5 +224,385 @@ describe('translateNewResourceTypeToEntity', () => {
     expect(entity.metadata.annotations).toMatchObject({
       'backstage.io/managed-by-location': 'provider:openchoreo-provider',
     });
+  });
+});
+
+describe('translateResourceToEntity', () => {
+  const config = {
+    locationKey: 'openchoreo-provider',
+    defaultOwner: 'group:default/openchoreo',
+  };
+
+  it('emits a Resource entity linked to its project via spec.system', () => {
+    const entity = translateResourceToEntity(
+      {
+        name: 'analytics-db',
+        uid: 'res-uid-1',
+        displayName: 'Analytics DB',
+        description: 'Primary analytics database',
+        projectName: 'analytics',
+        typeName: 'mysql',
+        typeKind: 'ResourceType',
+        createdAt: '2026-05-15T10:00:00Z',
+      },
+      'finance',
+      config,
+    );
+
+    expect(entity.apiVersion).toBe('backstage.io/v1alpha1');
+    expect(entity.kind).toBe('Resource');
+    expect(entity.metadata.name).toBe('analytics-db');
+    expect(entity.metadata.namespace).toBe('finance');
+    expect(entity.metadata.title).toBe('Analytics DB');
+    expect(entity.metadata.description).toBe('Primary analytics database');
+    expect(entity.metadata.tags).toEqual(
+      expect.arrayContaining(['openchoreo', 'resource', 'mysql']),
+    );
+    expect(entity.metadata.annotations).toMatchObject({
+      'backstage.io/managed-by-location': 'provider:openchoreo-provider',
+      'backstage.io/managed-by-origin-location': 'provider:openchoreo-provider',
+      'openchoreo.io/namespace': 'finance',
+      'openchoreo.io/project': 'analytics',
+      'openchoreo.io/resource': 'analytics-db',
+      'openchoreo.io/resource-uid': 'res-uid-1',
+      'openchoreo.io/resource-type': 'mysql',
+      'openchoreo.io/resource-type-kind': 'ResourceType',
+      'openchoreo.io/created-at': '2026-05-15T10:00:00Z',
+    });
+    expect(entity.metadata.labels).toMatchObject({
+      'openchoreo.io/managed': 'true',
+    });
+    expect(entity.spec?.type).toBe('mysql');
+    expect(entity.spec?.owner).toBe('group:default/openchoreo');
+    expect(entity.spec?.system).toBe('analytics');
+  });
+
+  it('falls back to name when displayName is missing and synthesises a description', () => {
+    const entity = translateResourceToEntity(
+      {
+        name: 'queue',
+        projectName: 'analytics',
+        typeName: 'rabbitmq',
+        typeKind: 'ResourceType',
+      },
+      'finance',
+      config,
+    );
+    expect(entity.metadata.title).toBe('queue');
+    expect(entity.metadata.description).toBe('queue resource');
+  });
+
+  it('records ClusterResourceType in the resource-type-kind annotation', () => {
+    const entity = translateResourceToEntity(
+      {
+        name: 'shared-cache',
+        projectName: 'analytics',
+        typeName: 'redis',
+        typeKind: 'ClusterResourceType',
+      },
+      'finance',
+      config,
+    );
+    expect(entity.metadata.annotations).toMatchObject({
+      'openchoreo.io/resource-type-kind': 'ClusterResourceType',
+      'openchoreo.io/resource-type': 'redis',
+    });
+  });
+
+  it('sets the deletion-timestamp annotation only when the input carries one', () => {
+    const without = translateResourceToEntity(
+      {
+        name: 'a',
+        projectName: 'analytics',
+        typeName: 'mysql',
+        typeKind: 'ResourceType',
+      },
+      'finance',
+      config,
+    );
+    expect(Object.keys(without.metadata.annotations ?? {})).not.toContain(
+      'openchoreo.io/deletion-timestamp',
+    );
+
+    const withTs = translateResourceToEntity(
+      {
+        name: 'b',
+        projectName: 'analytics',
+        typeName: 'mysql',
+        typeKind: 'ResourceType',
+        deletionTimestamp: '2026-05-15T11:00:00Z',
+      },
+      'finance',
+      config,
+    );
+    expect(withTs.metadata.annotations).toMatchObject({
+      'openchoreo.io/deletion-timestamp': '2026-05-15T11:00:00Z',
+    });
+  });
+
+  it('omits the resource-uid annotation when uid is missing', () => {
+    const entity = translateResourceToEntity(
+      {
+        name: 'no-uid',
+        projectName: 'analytics',
+        typeName: 'mysql',
+        typeKind: 'ResourceType',
+      },
+      'finance',
+      config,
+    );
+    expect(Object.keys(entity.metadata.annotations ?? {})).not.toContain(
+      'openchoreo.io/resource-uid',
+    );
+  });
+
+  it('threads spec.parameters through to the entity when present', () => {
+    const entity = translateResourceToEntity(
+      {
+        name: 'analytics-db',
+        projectName: 'analytics',
+        typeName: 'postgres',
+        typeKind: 'ResourceType',
+        parameters: { size: 'small', replicas: 2 },
+      },
+      'finance',
+      config,
+    );
+    expect((entity.spec as any).parameters).toEqual({
+      size: 'small',
+      replicas: 2,
+    });
+  });
+
+  it('omits spec.parameters when parameters is empty', () => {
+    const entity = translateResourceToEntity(
+      {
+        name: 'no-params',
+        projectName: 'analytics',
+        typeName: 'postgres',
+        typeKind: 'ResourceType',
+        parameters: {},
+      },
+      'finance',
+      config,
+    );
+    expect((entity.spec as any).parameters).toBeUndefined();
+  });
+
+  it('omits spec.parameters when parameters is not provided', () => {
+    const entity = translateResourceToEntity(
+      {
+        name: 'no-params-arg',
+        projectName: 'analytics',
+        typeName: 'postgres',
+        typeKind: 'ResourceType',
+      },
+      'finance',
+      config,
+    );
+    expect((entity.spec as any).parameters).toBeUndefined();
+  });
+});
+
+describe('translateNewResourceToEntity', () => {
+  it('unwraps the typed-client ResourceInstance and delegates to the inner translator', () => {
+    const entity = translateNewResourceToEntity(
+      {
+        apiVersion: 'openchoreo.dev/v1alpha1',
+        kind: 'Resource',
+        metadata: {
+          name: 'analytics-db',
+          namespace: 'finance',
+          uid: 'res-uid-1',
+          annotations: {
+            'openchoreo.dev/display-name': 'Analytics DB',
+            'openchoreo.dev/description': 'Primary analytics database',
+          },
+          creationTimestamp: '2026-05-15T10:00:00Z',
+        } as any,
+        spec: {
+          owner: { projectName: 'analytics' },
+          type: { kind: 'ResourceType', name: 'mysql' },
+        } as any,
+      } as any,
+      'finance',
+      {
+        providerName: 'openchoreo-provider',
+        defaultOwner: 'group:default/openchoreo',
+      } as any,
+    );
+
+    expect(entity.kind).toBe('Resource');
+    expect(entity.metadata.name).toBe('analytics-db');
+    expect(entity.metadata.namespace).toBe('finance');
+    expect(entity.metadata.title).toBe('Analytics DB');
+    expect(entity.spec?.type).toBe('mysql');
+    expect(entity.spec?.system).toBe('analytics');
+    expect(entity.spec?.owner).toBe('group:default/openchoreo');
+    expect(entity.metadata.annotations).toMatchObject({
+      'backstage.io/managed-by-location': 'provider:openchoreo-provider',
+      'openchoreo.io/project': 'analytics',
+      'openchoreo.io/resource': 'analytics-db',
+      'openchoreo.io/resource-uid': 'res-uid-1',
+      'openchoreo.io/resource-type': 'mysql',
+      'openchoreo.io/resource-type-kind': 'ResourceType',
+    });
+  });
+
+  it('propagates ClusterResourceType kind from the typed-client spec', () => {
+    const entity = translateNewResourceToEntity(
+      {
+        apiVersion: 'openchoreo.dev/v1alpha1',
+        kind: 'Resource',
+        metadata: {
+          name: 'shared-cache',
+          namespace: 'finance',
+        } as any,
+        spec: {
+          owner: { projectName: 'analytics' },
+          type: { kind: 'ClusterResourceType', name: 'redis' },
+        } as any,
+      } as any,
+      'finance',
+      {
+        providerName: 'openchoreo-provider',
+        defaultOwner: 'group:default/openchoreo',
+      } as any,
+    );
+    expect(entity.metadata.annotations).toMatchObject({
+      'openchoreo.io/resource-type-kind': 'ClusterResourceType',
+      'openchoreo.io/resource-type': 'redis',
+    });
+  });
+
+  it('passes spec.parameters from the typed-client spec onto the entity', () => {
+    const entity = translateNewResourceToEntity(
+      {
+        apiVersion: 'openchoreo.dev/v1alpha1',
+        kind: 'Resource',
+        metadata: {
+          name: 'analytics-db',
+          namespace: 'finance',
+        } as any,
+        spec: {
+          owner: { projectName: 'analytics' },
+          type: { kind: 'ResourceType', name: 'postgres' },
+          parameters: { size: 'small', replicas: 2 },
+        } as any,
+      } as any,
+      'finance',
+      {
+        providerName: 'openchoreo-provider',
+        defaultOwner: 'group:default/openchoreo',
+      } as any,
+    );
+    expect((entity.spec as any).parameters).toEqual({
+      size: 'small',
+      replicas: 2,
+    });
+  });
+});
+
+describe('translateComponentToEntity — spec.dependsOn', () => {
+  const config = {
+    defaultOwner: 'group:default/openchoreo',
+    componentTypeUtils: { generateTags: () => [] } as any,
+    locationKey: 'test',
+  };
+
+  it('populates spec.dependsOn with the provided refs', () => {
+    const entity = translateComponentToEntity(
+      { name: 'api', type: 'service' } as any,
+      'finance',
+      'analytics',
+      config,
+      undefined,
+      undefined,
+      ['resource:finance/analytics-db', 'resource:finance/shared-cache'],
+    );
+
+    expect((entity.spec as any).dependsOn).toEqual([
+      'resource:finance/analytics-db',
+      'resource:finance/shared-cache',
+    ]);
+  });
+
+  it('omits spec.dependsOn when refs are empty', () => {
+    const entity = translateComponentToEntity(
+      { name: 'api', type: 'service' } as any,
+      'finance',
+      'analytics',
+      config,
+      undefined,
+      undefined,
+      [],
+    );
+
+    expect((entity.spec as any).dependsOn).toBeUndefined();
+  });
+
+  it('omits spec.dependsOn when refs are not passed', () => {
+    const entity = translateComponentToEntity(
+      { name: 'api', type: 'service' } as any,
+      'finance',
+      'analytics',
+      config,
+    );
+
+    expect((entity.spec as any).dependsOn).toBeUndefined();
+  });
+});
+
+describe('translateNewComponentToEntity — spec.dependsOn', () => {
+  const ctx = {
+    providerName: 'openchoreo-provider',
+    defaultOwner: 'group:default/openchoreo',
+    componentTypeUtils: { generateTags: () => [] } as any,
+  };
+
+  it('threads dependsOn refs through to spec.dependsOn', () => {
+    const entity = translateNewComponentToEntity(
+      {
+        apiVersion: 'openchoreo.dev/v1alpha1',
+        kind: 'Component',
+        metadata: { name: 'api', namespace: 'finance' } as any,
+        spec: {
+          componentType: { kind: 'ComponentType', name: 'service' },
+          owner: { projectName: 'analytics' },
+        } as any,
+      } as any,
+      'finance',
+      'analytics',
+      'group:default/owner',
+      ctx as any,
+      undefined,
+      undefined,
+      undefined,
+      ['resource:finance/analytics-db'],
+    );
+
+    expect((entity.spec as any).dependsOn).toEqual([
+      'resource:finance/analytics-db',
+    ]);
+  });
+
+  it('omits spec.dependsOn when no refs are passed', () => {
+    const entity = translateNewComponentToEntity(
+      {
+        apiVersion: 'openchoreo.dev/v1alpha1',
+        kind: 'Component',
+        metadata: { name: 'api', namespace: 'finance' } as any,
+        spec: {
+          componentType: { kind: 'ComponentType', name: 'service' },
+          owner: { projectName: 'analytics' },
+        } as any,
+      } as any,
+      'finance',
+      'analytics',
+      'group:default/owner',
+      ctx as any,
+    );
+
+    expect((entity.spec as any).dependsOn).toBeUndefined();
   });
 });

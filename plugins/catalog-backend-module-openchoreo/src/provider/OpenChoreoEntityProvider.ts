@@ -25,10 +25,12 @@ import { DeploymentPipelineEntityV1alpha1 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import { ComponentWorkloadData } from '../utils/types';
 import {
+  buildComponentDependsOnRefs,
   createApiEntitiesFromNewWorkload,
   extractAllWorkloadEndpoints,
   extractSchemaEndpoints,
   extractWorkloadDependencies,
+  extractWorkloadResourceDependencies,
   filterDependenciesWithSchema,
   resolveComponentOwner,
   resolveProvidesAndConsumes,
@@ -50,6 +52,7 @@ import {
   translateNewNamespaceToDomainEntity,
   translateNewObservabilityPlaneToEntity,
   translateNewProjectToEntity,
+  translateNewResourceToEntity,
   translateNewResourceTypeToEntity,
   translateNewTraitToEntity,
   translateNewWorkflowPlaneToEntity,
@@ -72,6 +75,7 @@ type NewDeploymentPipeline =
   OpenChoreoComponents['schemas']['DeploymentPipeline'];
 type NewComponentType = OpenChoreoComponents['schemas']['ComponentType'];
 type NewResourceType = OpenChoreoComponents['schemas']['ResourceType'];
+type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewClusterComponentType =
   OpenChoreoComponents['schemas']['ClusterComponentType'];
@@ -172,6 +176,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'openchoreo.deploymentpipeline',
           'openchoreo.componenttype',
           'openchoreo.resourcetype',
+          'openchoreo.resource',
           'openchoreo.trait',
           'openchoreo.workflow',
           'openchoreo.workload',
@@ -615,6 +620,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   const dependencies = workloadData
                     ? extractWorkloadDependencies(workloadData)
                     : [];
+                  const resourceDependencies = workloadData
+                    ? extractWorkloadResourceDependencies(workloadData)
+                    : [];
 
                   componentWorkloadMap.set(`${projectName}:${componentName}`, {
                     component,
@@ -622,6 +630,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     schemaEndpoints,
                     allEndpoints,
                     dependencies,
+                    resourceDependencies,
                     workloadName: workloadData?.metadata?.name,
                   });
                 } catch (error) {
@@ -635,6 +644,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     schemaEndpoints: {},
                     allEndpoints: {},
                     dependencies: [],
+                    resourceDependencies: [],
                   });
                 }
               }
@@ -654,6 +664,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               projectName,
               schemaEndpoints,
               dependencies,
+              resourceDependencies,
               workloadName,
             } = workloadData;
             const componentName = getName(component)!;
@@ -688,6 +699,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               this.defaultOwner,
             );
 
+            const dependsOn = buildComponentDependsOnRefs(
+              resourceDependencies,
+              nsName,
+            );
+
             const componentEntity = translateNewComponentToEntity(
               component,
               nsName,
@@ -697,6 +713,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               providesApis,
               consumesApis,
               workloadName,
+              dependsOn,
             );
             allEntities.push(componentEntity);
 
@@ -946,6 +963,53 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         } catch (error) {
           this.logger.warn(
             `Failed to fetch resource types for namespace ${nsName}: ${error}`,
+          );
+        }
+      }
+
+      // Get resources for each namespace
+      for (const ns of namespaces) {
+        const nsName = getName(ns)!;
+        try {
+          const resources = await fetchAllPages<NewResource>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/resources', {
+                params: {
+                  path: { namespaceName: nsName },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(`Failed to fetch resources for ${nsName}`);
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${resources.length} resources in namespace: ${nsName}`,
+          );
+
+          const resourceEntities: Entity[] = resources
+            .map(resource => {
+              try {
+                return translateNewResourceToEntity(
+                  resource,
+                  nsName,
+                  this.translatorContext,
+                );
+              } catch (err) {
+                this.logger.warn(
+                  `Failed to translate Resource ${getName(resource)}: ${err}`,
+                );
+                return null;
+              }
+            })
+            .filter((e): e is Entity => e !== null);
+          allEntities.push(...resourceEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch resources for namespace ${nsName}: ${error}`,
           );
         }
       }
@@ -1400,6 +1464,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     const resourceTypeCount = allEntities.filter(
       e => e.kind === 'ResourceType',
     ).length;
+    const resourceCount = allEntities.filter(
+      e => e.kind === 'Resource',
+    ).length;
     const clusterComponentTypeCount = allEntities.filter(
       e => e.kind === 'ClusterComponentType',
     ).length;
@@ -1423,7 +1490,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       e => e.kind === 'ClusterWorkflow',
     ).length;
     this.logger.info(
-      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${resourceTypeCount} resource types, ${clusterComponentTypeCount} cluster component types, ${clusterResourceTypeCount} cluster resource types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
+      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${resourceTypeCount} resource types, ${resourceCount} resources, ${clusterComponentTypeCount} cluster component types, ${clusterResourceTypeCount} cluster resource types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
     );
   }
 }

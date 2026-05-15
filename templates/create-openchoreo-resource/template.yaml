@@ -1,0 +1,71 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-openchoreo-resource
+  title: Resource
+  description: Declare a managed-infrastructure dependency (database, queue, cache, object storage) by referencing a ResourceType or ClusterResourceType template.
+spec:
+  owner: openchoreo-users
+  type: Resource
+  EXPERIMENTAL_formDecorators:
+    - id: openchoreo:inject-user-token
+  parameters:
+    - title: Resource Metadata
+      required:
+        - namespace_name
+        - project_name
+        - resource_name
+      properties:
+        namespace_name:
+          title: Namespace Name
+          type: string
+          description: Namespace where the Resource will be created
+          ui:field: NamespaceEntityPicker
+        project_name:
+          title: Project Name
+          type: string
+          description: Project that will own the Resource
+          ui:field: ProjectEntityPicker
+          ui:options:
+            namespaceField: namespace_name
+        resource_name:
+          title: Resource Name
+          type: string
+          description: Unique name for your Resource (must be a valid Kubernetes name)
+          ui:field: ResourceNamePicker
+          ui:options:
+            catalogKind: Resource
+            resourceLabel: Resource
+            namespaceField: namespace_name
+        displayName:
+          title: Display Name
+          type: string
+          description: A human-readable display name for the Resource
+        description:
+          title: Description
+          type: string
+          description: Describe what this Resource is for
+    - title: Resource Definition
+      required:
+        - yaml_definition
+      properties:
+        yaml_definition:
+          title: Resource YAML
+          type: string
+          description: Edit the Resource YAML definition
+          ui:field: ResourceYamlEditor
+          ui:backstage:
+            review:
+              mask: '(YAML definition provided)'
+  steps:
+    - id: create-openchoreo-resource
+      name: Create OpenChoreo Resource
+      action: openchoreo:resource:create
+      input:
+        namespaceName: ${{ parameters.namespace_name }}
+        yamlContent: ${{ parameters.yaml_definition }}
+  output:
+    links:
+      - title: View Resource
+        icon: catalog
+        entityRef: ${{ steps['create-openchoreo-resource'].output.entityRef }}

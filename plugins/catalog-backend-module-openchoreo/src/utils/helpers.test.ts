@@ -1,8 +1,13 @@
 import {
+  buildComponentDependsOnRefs,
+  extractWorkloadResourceDependencies,
   filterDependenciesWithSchema,
   type EndpointSchemaLookup,
 } from './helpers';
 import type { WorkloadDependency } from './types';
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
+
+type NewWorkload = OpenChoreoComponents['schemas']['Workload'];
 
 const dep = (
   overrides: Partial<WorkloadDependency> & {
@@ -101,5 +106,72 @@ describe('filterDependenciesWithSchema', () => {
     const result = await filterDependenciesWithSchema([], 'p', lookup);
     expect(result).toEqual([]);
     expect(lookup).not.toHaveBeenCalled();
+  });
+});
+
+describe('extractWorkloadResourceDependencies', () => {
+  function workload(spec: unknown): NewWorkload {
+    return { spec } as unknown as NewWorkload;
+  }
+
+  it('returns each resource dependency in spec order', () => {
+    const result = extractWorkloadResourceDependencies(
+      workload({
+        dependencies: {
+          resources: [
+            { ref: 'analytics-db' },
+            { ref: 'shared-cache' },
+            { ref: 'queue' },
+          ],
+        },
+      }),
+    );
+    expect(result.map(r => r.ref)).toEqual([
+      'analytics-db',
+      'shared-cache',
+      'queue',
+    ]);
+  });
+
+  it('returns an empty array when dependencies is absent', () => {
+    expect(extractWorkloadResourceDependencies(workload({}))).toEqual([]);
+  });
+
+  it('returns an empty array when dependencies.resources is absent', () => {
+    expect(
+      extractWorkloadResourceDependencies(
+        workload({ dependencies: { endpoints: [] } }),
+      ),
+    ).toEqual([]);
+  });
+
+  it('returns an empty array when spec is absent', () => {
+    expect(
+      extractWorkloadResourceDependencies({} as NewWorkload),
+    ).toEqual([]);
+  });
+});
+
+describe('buildComponentDependsOnRefs', () => {
+  it('maps each resource dep to a resource:<ns>/<ref> entity ref', () => {
+    expect(
+      buildComponentDependsOnRefs(
+        [{ ref: 'analytics-db' }, { ref: 'shared-cache' }],
+        'finance',
+      ),
+    ).toEqual(['resource:finance/analytics-db', 'resource:finance/shared-cache']);
+  });
+
+  it('preserves declared order', () => {
+    expect(
+      buildComponentDependsOnRefs(
+        [{ ref: 'c' }, { ref: 'a' }, { ref: 'b' }],
+        'ns',
+      ),
+    ).toEqual(['resource:ns/c', 'resource:ns/a', 'resource:ns/b']);
+  });
+
+  it('returns an empty array when no deps are given', () => {
+    expect(buildComponentDependsOnRefs([], 'finance')).toEqual([]);
   });
 });

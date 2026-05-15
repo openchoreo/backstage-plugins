@@ -379,6 +379,10 @@ export {
   type UseResourceTypePermissionResult,
 } from './hooks/useResourceTypePermission';
 export {
+  useResourceCreatePermission,
+  type UseResourceCreatePermissionResult,
+} from './hooks/useResourceCreatePermission';
+export {
   useResourceDefinitionPermission,
   type UseResourceDefinitionPermissionResult,
 } from './hooks/useResourceDefinitionPermission';

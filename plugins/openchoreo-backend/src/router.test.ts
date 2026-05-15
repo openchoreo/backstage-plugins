@@ -70,6 +70,12 @@ function createMockServices() {
       fetchClusterComponentTypes: jest.fn(),
       fetchClusterComponentTypeSchema: jest.fn(),
     },
+    resourceTypeInfoService: {
+      fetchResourceTypeSchema: jest.fn(),
+    },
+    clusterResourceTypeInfoService: {
+      fetchClusterResourceTypeSchema: jest.fn(),
+    },
     secretReferencesInfoService: {
       fetchSecretReferences: jest.fn(),
     },

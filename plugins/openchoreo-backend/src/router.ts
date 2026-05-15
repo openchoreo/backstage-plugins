@@ -21,6 +21,8 @@ import { DashboardInfoService } from './services/DashboardService/DashboardInfoS
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { ClusterTraitInfoService } from './services/ClusterTraitService/ClusterTraitInfoService';
 import { ClusterComponentTypeInfoService } from './services/ClusterComponentTypeService/ClusterComponentTypeInfoService';
+import { ResourceTypeInfoService } from './services/ResourceTypeService/ResourceTypeInfoService';
+import { ClusterResourceTypeInfoService } from './services/ClusterResourceTypeService/ClusterResourceTypeInfoService';
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
@@ -34,7 +36,10 @@ import {
 import type { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
 import type { AnnotationStore } from '@openchoreo/backstage-plugin-catalog-backend-module';
-import { transformReleaseBinding } from './services/transformers';
+import {
+  transformReleaseBinding,
+  transformResourceReleaseBinding,
+} from './services/transformers';
 
 const CLUSTER_SCOPED_KINDS = [
   'clustercomponenttypes',
@@ -51,6 +56,7 @@ const VALID_PLATFORM_RESOURCE_KINDS = [
   'projects',
   'componenttypes',
   'resourcetypes',
+  'resources',
   'traits',
   'workflows',
   'component-workflows',
@@ -77,6 +83,8 @@ export async function createRouter({
   traitInfoService,
   clusterTraitInfoService,
   clusterComponentTypeInfoService,
+  resourceTypeInfoService,
+  clusterResourceTypeInfoService,
   secretReferencesInfoService,
   secretsService,
   authzService,
@@ -100,6 +108,8 @@ export async function createRouter({
   traitInfoService: TraitInfoService;
   clusterTraitInfoService: ClusterTraitInfoService;
   clusterComponentTypeInfoService: ClusterComponentTypeInfoService;
+  resourceTypeInfoService: ResourceTypeInfoService;
+  clusterResourceTypeInfoService: ClusterResourceTypeInfoService;
   secretReferencesInfoService: SecretReferencesService;
   secretsService: SecretsService;
   authzService: AuthzService;
@@ -414,6 +424,45 @@ export async function createRouter({
     res.json(
       await clusterComponentTypeInfoService.fetchClusterComponentTypeSchema(
         cctName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for fetching namespace-scoped resource type schema
+  router.get('/resource-type-schema', async (req, res) => {
+    const { namespaceName, rtName } = req.query;
+
+    if (!namespaceName || !rtName) {
+      throw new InputError(
+        'namespaceName and rtName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await resourceTypeInfoService.fetchResourceTypeSchema(
+        namespaceName as string,
+        rtName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for fetching cluster resource type schema
+  router.get('/cluster-resource-type-schema', async (req, res) => {
+    const { crtName } = req.query;
+
+    if (!crtName) {
+      throw new InputError('crtName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await clusterResourceTypeInfoService.fetchClusterResourceTypeSchema(
+        crtName as string,
         userToken,
       ),
     );
@@ -861,6 +910,32 @@ export async function createRouter({
     );
     const items = ((rawBindings as any)?.items ?? []).map((binding: any) =>
       transformReleaseBinding(binding),
+    );
+    res.json({ success: true, data: { items } });
+  });
+
+  router.get('/resource-release-bindings', async (req, res) => {
+    const { resourceName, projectName, namespaceName } = req.query;
+
+    if (!resourceName || !projectName || !namespaceName) {
+      throw new InputError(
+        'resourceName, projectName and namespaceName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    const rawBindings =
+      await environmentInfoService.fetchResourceReleaseBindings(
+        {
+          resourceName: resourceName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+        },
+        userToken,
+      );
+    const items = ((rawBindings as any)?.items ?? []).map((binding: any) =>
+      transformResourceReleaseBinding(binding),
     );
     res.json({ success: true, data: { items } });
   });

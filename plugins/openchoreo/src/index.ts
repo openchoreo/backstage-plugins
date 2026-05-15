@@ -68,6 +68,11 @@ export {
 } from './components/DeploymentPipelineOverview';
 export { SecretsPage } from './components/Secrets';
 export { ComponentTypeOverviewCard } from './components/ComponentTypeOverview';
+export {
+  ResourceOverviewCard,
+  ResourceBindingsCard,
+  ConsumingComponentsCard,
+} from './components/ResourceOverview';
 export { TraitTypeOverviewCard } from './components/TraitTypeOverview';
 export { WorkflowOverviewCard } from './components/WorkflowOverview';
 export { ComponentWorkflowOverviewCard } from './components/ComponentWorkflowOverview';

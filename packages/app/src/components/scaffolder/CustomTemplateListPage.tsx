@@ -48,6 +48,7 @@ import {
   useClusterComponentTypePermission,
   useClusterResourceTypePermission,
   useResourceTypePermission,
+  useResourceCreatePermission,
   useComponentWorkflowPermission,
   useWorkflowPermission,
   useClusterWorkflowPermission,
@@ -63,7 +64,7 @@ import { CustomTemplateCard } from './CustomTemplateCard';
 import { TemplateCardSkeletons } from './TemplateCardSkeleton';
 import { useStyles } from './styles';
 
-const APPLICATION_TYPES = ['System (Project)'];
+const APPLICATION_TYPES = ['System (Project)', 'Resource'];
 const PLATFORM_TYPES = [
   'Namespace',
   'Environment',
@@ -141,6 +142,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   const clusterComponentTypePerm = useClusterComponentTypePermission();
   const clusterResourceTypePerm = useClusterResourceTypePermission();
   const resourceTypePerm = useResourceTypePermission();
+  const resourcePerm = useResourceCreatePermission();
   const componentWorkflowPerm = useComponentWorkflowPermission();
   const workflowPerm = useWorkflowPermission();
   const clusterWorkflowPerm = useClusterWorkflowPermission();
@@ -175,6 +177,8 @@ const TemplateListContent = (props: TemplateListPageProps) => {
           );
         case 'ResourceType':
           return !resourceTypePerm.loading && !resourceTypePerm.canCreate;
+        case 'Resource':
+          return !resourcePerm.loading && !resourcePerm.canCreate;
         case 'ComponentWorkflow':
           return (
             !componentWorkflowPerm.loading && !componentWorkflowPerm.canCreate
@@ -203,6 +207,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
       clusterComponentTypePerm,
       clusterResourceTypePerm,
       resourceTypePerm,
+      resourcePerm,
       componentWorkflowPerm,
       workflowPerm,
       clusterWorkflowPerm,

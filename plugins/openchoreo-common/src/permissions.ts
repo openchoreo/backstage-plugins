@@ -212,6 +212,15 @@ export const openchoreoResourceTypeCreatePermission = createPermission({
 });
 
 /**
+ * Permission to create a new resource (developer-facing managed
+ * infrastructure dependency). Project context resolved server-side.
+ */
+export const openchoreoResourceCreatePermission = createPermission({
+  name: 'openchoreo.resource.create',
+  attributes: { action: 'create' },
+});
+
+/**
  * Permission to create a new cluster component type.
  * Cluster-scoped permission (no namespace context required).
  */
@@ -303,6 +312,26 @@ export const openchoreoResourceTypeUpdatePermission = createPermission({
  */
 export const openchoreoResourceTypeDeletePermission = createPermission({
   name: 'openchoreo.resourcetype.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update a resource.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoResourceUpdatePermission = createPermission({
+  name: 'openchoreo.resource.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete a resource.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoResourceDeletePermission = createPermission({
+  name: 'openchoreo.resource.delete',
   attributes: { action: 'delete' },
   resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
@@ -952,6 +981,7 @@ export const openchoreoPermissions = [
   openchoreoTraitCreatePermission,
   openchoreoComponentTypeCreatePermission,
   openchoreoResourceTypeCreatePermission,
+  openchoreoResourceCreatePermission,
   openchoreoClusterComponentTypeCreatePermission,
   openchoreoClusterResourceTypeCreatePermission,
   openchoreoClusterTraitCreatePermission,
@@ -964,6 +994,8 @@ export const openchoreoPermissions = [
   openchoreoComponentTypeDeletePermission,
   openchoreoResourceTypeUpdatePermission,
   openchoreoResourceTypeDeletePermission,
+  openchoreoResourceUpdatePermission,
+  openchoreoResourceDeletePermission,
   openchoreoTraitUpdatePermission,
   openchoreoTraitDeletePermission,
   openchoreoWorkflowUpdatePermission,
@@ -1057,6 +1089,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.trait.create': 'trait:create',
   'openchoreo.componenttype.create': 'componenttype:create',
   'openchoreo.resourcetype.create': 'resourcetype:create',
+  'openchoreo.resource.create': 'resource:create',
   'openchoreo.workflow.create': 'workflow:create',
   'openchoreo.clusterworkflow.create': 'clusterworkflow:create',
   'openchoreo.componentworkflow.create': 'workflow:create',
@@ -1068,6 +1101,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.componenttype.delete': 'componenttype:delete',
   'openchoreo.resourcetype.update': 'resourcetype:update',
   'openchoreo.resourcetype.delete': 'resourcetype:delete',
+  'openchoreo.resource.update': 'resource:update',
+  'openchoreo.resource.delete': 'resource:delete',
   'openchoreo.trait.update': 'trait:update',
   'openchoreo.trait.delete': 'trait:delete',
   'openchoreo.workflow.update': 'workflow:update',
@@ -1128,6 +1163,7 @@ export const CATALOG_PERMISSION_TO_ACTION: Record<string, string> = {
  */
 export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
   'Component',
+  'Resource',
   'System',
   'Domain',
   'Dataplane',
@@ -1168,6 +1204,11 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
     'catalog.entity.read': 'component:view',
     'catalog.entity.delete': 'component:delete',
     'catalog.entity.refresh': 'component:update',
+  },
+  resource: {
+    'catalog.entity.read': 'resource:view',
+    'catalog.entity.delete': 'resource:delete',
+    'catalog.entity.refresh': 'resource:update',
   },
   system: {
     'catalog.entity.read': 'project:view',

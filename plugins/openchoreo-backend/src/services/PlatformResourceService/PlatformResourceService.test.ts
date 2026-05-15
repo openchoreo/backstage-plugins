@@ -162,6 +162,28 @@ describe('PlatformResourceService', () => {
       expect(result.data).toEqual(rt);
     });
 
+    it('fetches resource via new API', async () => {
+      const resource = {
+        metadata: { name: 'analytics-db', namespace: 'test-ns' },
+        spec: {
+          owner: { projectName: 'my-project' },
+          type: { kind: 'ResourceType', name: 'postgres' },
+        },
+      };
+      mockGET.mockResolvedValueOnce(createOkResponse(resource));
+
+      const service = createService();
+      const result = await service.getResourceDefinition(
+        'resources' as any,
+        'test-ns',
+        'analytics-db',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(resource);
+    });
+
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(createErrorResponse());
 
@@ -249,6 +271,30 @@ describe('PlatformResourceService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.kind).toBe('ResourceType');
+      expect(mockPUT).toHaveBeenCalledTimes(1);
+    });
+
+    it('updates resource via new API PUT', async () => {
+      const resource = {
+        metadata: { name: 'analytics-db', namespace: 'test-ns' },
+        spec: {
+          owner: { projectName: 'my-project' },
+          type: { kind: 'ResourceType', name: 'postgres' },
+        },
+      };
+      mockPUT.mockResolvedValueOnce(createOkResponse(resource));
+
+      const service = createService();
+      const result = await service.updateResourceDefinition(
+        'resources' as any,
+        'test-ns',
+        'analytics-db',
+        resource,
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('Resource');
       expect(mockPUT).toHaveBeenCalledTimes(1);
     });
 
@@ -341,6 +387,24 @@ describe('PlatformResourceService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.kind).toBe('ResourceType');
+    });
+
+    it('deletes resource via new API', async () => {
+      mockDELETE.mockResolvedValueOnce({
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
+
+      const service = createService();
+      const result = await service.deleteResourceDefinition(
+        'resources' as any,
+        'test-ns',
+        'analytics-db',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('Resource');
     });
 
     it('throws on API error', async () => {

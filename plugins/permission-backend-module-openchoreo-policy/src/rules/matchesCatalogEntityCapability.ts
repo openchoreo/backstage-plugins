@@ -115,6 +115,7 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   domain: 'domain',
   system: 'system',
   component: 'component',
+  resource: 'component',
   dataplane: 'namespace-scoped',
   workflowplane: 'namespace-scoped',
   observabilityplane: 'namespace-scoped',
@@ -295,7 +296,7 @@ function buildScopeFilter(
         key: `metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT_ID}`,
         values: [parsed.project],
       });
-    } else if (kindLower === 'component') {
+    } else if (kindLower === 'component' || kindLower === 'resource') {
       conditions.push({
         key: `metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT}`,
         values: [parsed.project],

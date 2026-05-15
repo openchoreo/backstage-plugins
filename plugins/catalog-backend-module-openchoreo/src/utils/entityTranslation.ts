@@ -65,6 +65,7 @@ type NewClusterWorkflowPlane =
 type NewClusterResourceType =
   OpenChoreoComponents['schemas']['ClusterResourceType'];
 type NewResourceType = OpenChoreoComponents['schemas']['ResourceType'];
+type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
 type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];
 type NewAgentConnectionStatus =
   OpenChoreoComponents['schemas']['AgentConnectionStatus'];
@@ -216,6 +217,13 @@ export function translateComponentToEntity(
   config: ComponentEntityTranslationConfig,
   providesApis?: string[],
   consumesApis?: string[],
+  /**
+   * Backstage entity refs (e.g. `resource:<ns>/<name>`) populated into
+   * `spec.dependsOn` so Backstage's built-in processor emits the
+   * Component → Resource `dependsOn` relation. Omitted from the entity
+   * when empty/undefined.
+   */
+  dependsOn?: string[],
 ): Entity {
   const componentEntity: Entity = {
     apiVersion: 'backstage.io/v1alpha1',
@@ -274,6 +282,7 @@ export function translateComponentToEntity(
       system: projectName, // Link to the parent system (project)
       ...(providesApis && providesApis.length > 0 && { providesApis }),
       ...(consumesApis && consumesApis.length > 0 && { consumesApis }),
+      ...(dependsOn && dependsOn.length > 0 && { dependsOn }),
     },
   };
 
@@ -669,6 +678,88 @@ export function translateResourceTypeToEntity(
         (rt.retainPolicy as 'Delete' | 'Retain' | undefined) ?? 'Delete',
     },
   } as ResourceTypeEntityV1alpha1;
+}
+
+/**
+ * Configuration for Resource entity translation.
+ */
+export interface ResourceEntityTranslationConfig
+  extends EntityTranslationConfig {
+  /** Default owner ref used as `spec.owner` (required by the Backstage Resource kind). */
+  defaultOwner: string;
+}
+
+/**
+ * Translates an OpenChoreo Resource to a Backstage Resource entity.
+ *
+ * Resources are developer-facing managed-infrastructure dependencies
+ * (databases, queues, caches, ...) that reference a (Cluster)ResourceType
+ * template via `spec.type`. The bare type name lives in `spec.type`; the
+ * template kind disambiguation lives in the `openchoreo.io/resource-type-kind`
+ * annotation so catalog filters stay flat. `spec.system` links to the
+ * owning Project, mirroring the Component precedent.
+ */
+export function translateResourceToEntity(
+  resource: {
+    name: string;
+    uid?: string;
+    displayName?: string;
+    description?: string;
+    projectName: string;
+    typeName: string;
+    typeKind: 'ResourceType' | 'ClusterResourceType';
+    parameters?: Record<string, unknown>;
+    createdAt?: string;
+    deletionTimestamp?: string;
+    status?: string;
+  },
+  namespaceName: string,
+  config: ResourceEntityTranslationConfig,
+): Entity {
+  const hasParameters =
+    resource.parameters &&
+    typeof resource.parameters === 'object' &&
+    Object.keys(resource.parameters).length > 0;
+
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'Resource',
+    metadata: {
+      name: resource.name,
+      namespace: namespaceName,
+      title: resource.displayName || resource.name,
+      description: resource.description || `${resource.name} resource`,
+      tags: ['openchoreo', 'resource', resource.typeName],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.PROJECT]: resource.projectName,
+        [CHOREO_ANNOTATIONS.RESOURCE]: resource.name,
+        ...(resource.uid && {
+          [CHOREO_ANNOTATIONS.RESOURCE_UID]: resource.uid,
+        }),
+        [CHOREO_ANNOTATIONS.RESOURCE_TYPE]: resource.typeName,
+        [CHOREO_ANNOTATIONS.RESOURCE_TYPE_KIND]: resource.typeKind,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: resource.createdAt || '',
+        ...(resource.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: resource.deletionTimestamp,
+        }),
+        ...(resource.status && {
+          [CHOREO_ANNOTATIONS.STATUS]: resource.status,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      type: resource.typeName,
+      owner: config.defaultOwner,
+      system: resource.projectName,
+      ...(hasParameters && { parameters: resource.parameters as any }),
+    },
+  };
 }
 
 /**
@@ -1132,6 +1223,12 @@ export function translateNewComponentToEntity(
    * after a Workload is created will add it).
    */
   workloadName?: string,
+  /**
+   * Backstage entity refs populated into `spec.dependsOn` so Backstage's
+   * built-in processor emits the Component → target `dependsOn` relation.
+   * Resource refs use the form `resource:<namespace>/<name>`.
+   */
+  dependsOn?: string[],
 ): Entity {
   const componentName = getName(component)!;
   const componentTypeRef = component.spec?.componentType;
@@ -1170,6 +1267,7 @@ export function translateNewComponentToEntity(
     },
     providesApis,
     consumesApis,
+    dependsOn,
   );
 
   if (workloadName) {
@@ -1640,6 +1738,37 @@ export function translateNewResourceTypeToEntity(
     },
     namespaceName,
     { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API Resource (typed-client `ResourceInstance` shape;
+ * on-the-wire `kind` is `Resource`) into a Backstage Resource entity.
+ */
+export function translateNewResourceToEntity(
+  resource: NewResource,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): Entity {
+  const spec = resource.spec;
+  const typeKind =
+    (spec?.type?.kind as 'ResourceType' | 'ClusterResourceType' | undefined) ??
+    'ResourceType';
+  return translateResourceToEntity(
+    {
+      name: getName(resource)!,
+      uid: getUid(resource),
+      displayName: getDisplayName(resource),
+      description: getDescription(resource),
+      projectName: spec?.owner?.projectName ?? '',
+      typeName: spec?.type?.name ?? '',
+      typeKind,
+      parameters: spec?.parameters as Record<string, unknown> | undefined,
+      createdAt: getCreatedAt(resource),
+      deletionTimestamp: getDeletionTimestamp(resource),
+    },
+    namespaceName,
+    { locationKey: ctx.providerName, defaultOwner: ctx.defaultOwner },
   );
 }
 

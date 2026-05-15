@@ -13,6 +13,7 @@ import { getDeletionTimestamp } from '../utils';
 /** Human-friendly display names for entity kinds */
 const KIND_DISPLAY_NAMES: Record<string, string> = {
   component: 'Component',
+  resource: 'Resource',
   system: 'Project',
   environment: 'Environment',
   dataplane: 'Dataplane',

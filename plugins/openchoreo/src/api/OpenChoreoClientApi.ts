@@ -112,6 +112,45 @@ export interface ReleaseBindingsResponse {
   };
 }
 
+/** A single condition on a ResourceReleaseBinding. */
+export interface ResourceReleaseBindingCondition {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+  observedGeneration?: number;
+}
+
+/**
+ * Resource release binding item — one per environment for a given Resource.
+ * Fields the BFF transformer always emits (possibly as empty strings) are
+ * required here; truly per-status fields are optional. Matches the
+ * `ResourceReleaseBindingResponse` shape in `@openchoreo/backstage-plugin-common`.
+ */
+export interface ResourceReleaseBinding {
+  name: string;
+  environment: string;
+  resourceName: string;
+  projectName: string;
+  namespaceName: string;
+  releaseName: string;
+  createdAt: string;
+  retainPolicy?: 'Delete' | 'Retain';
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  conditions?: ResourceReleaseBindingCondition[];
+}
+
+/** Resource release bindings response */
+export interface ResourceReleaseBindingsResponse {
+  success: boolean;
+  data?: {
+    items: ResourceReleaseBinding[];
+  };
+}
+
 /** Create release response */
 export interface CreateReleaseResponse {
   success: boolean;
@@ -375,6 +414,7 @@ export type PlatformResourceKind =
   | 'namespaces'
   | 'componenttypes'
   | 'resourcetypes'
+  | 'resources'
   | 'traits'
   | 'workflows'
   | 'component-workflows'
@@ -508,6 +548,15 @@ export interface OpenChoreoClientApi {
 
   /** Fetch all release bindings for a component */
   fetchReleaseBindings(entity: Entity): Promise<ReleaseBindingsResponse>;
+
+  /**
+   * Fetch all resource release bindings for a Resource entity.
+   * Filters by the entity's resource name and owning project, returning one
+   * binding per environment.
+   */
+  fetchResourceReleaseBindings(
+    entity: Entity,
+  ): Promise<ResourceReleaseBindingsResponse>;
 
   /** Create or update a release binding for deploy/promote actions */
   updateReleaseBinding(

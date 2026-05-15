@@ -13,9 +13,11 @@ import {
 import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 import {
   createApiEntitiesFromNewWorkload,
+  buildComponentDependsOnRefs,
   extractAllWorkloadEndpoints,
   extractSchemaEndpoints,
   extractWorkloadDependencies,
+  extractWorkloadResourceDependencies,
   filterDependenciesWithSchema,
   resolveComponentOwner,
   resolveProvidesAndConsumes,
@@ -38,6 +40,7 @@ import {
   translateNewNamespaceToDomainEntity,
   translateNewObservabilityPlaneToEntity,
   translateNewProjectToEntity,
+  translateNewResourceToEntity,
   translateNewResourceTypeToEntity,
   translateNewTraitToEntity,
   translateNewWorkflowPlaneToEntity,
@@ -63,6 +66,7 @@ type NewDeploymentPipeline =
   OpenChoreoComponents['schemas']['DeploymentPipeline'];
 type NewComponentType = OpenChoreoComponents['schemas']['ComponentType'];
 type NewResourceType = OpenChoreoComponents['schemas']['ResourceType'];
+type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 type NewClusterComponentType =
@@ -420,6 +424,23 @@ export class EventDeltaApplier {
     );
   }
 
+  private fetchResource(
+    client: OpenChoreoApiClient,
+    ns: string,
+    name: string,
+  ) {
+    return this.fetchOne<NewResource>(
+      client.GET(
+        '/api/v1/namespaces/{namespaceName}/resources/{resourceName}',
+        {
+          params: { path: { namespaceName: ns, resourceName: name } },
+        },
+      ) as any,
+      'resource',
+      `${ns}/${name}`,
+    );
+  }
+
   private fetchWorkflow(client: OpenChoreoApiClient, ns: string, name: string) {
     return this.fetchOne<NewWorkflow>(
       client.GET(
@@ -618,6 +639,9 @@ export class EventDeltaApplier {
     const allEndpoints = workload ? extractAllWorkloadEndpoints(workload) : {};
     const schemaEndpoints = extractSchemaEndpoints(allEndpoints);
     const dependencies = workload ? extractWorkloadDependencies(workload) : [];
+    const resourceDependencies = workload
+      ? extractWorkloadResourceDependencies(workload)
+      : [];
 
     // Filter `consumesApis` down to deps whose target endpoint actually
     // exposes a schema. Without this, refs in `spec.consumesApis` point
@@ -692,6 +716,7 @@ export class EventDeltaApplier {
       providesApis,
       consumesApis,
       workloadName,
+      buildComponentDependsOnRefs(resourceDependencies, ns),
     );
 
     // API entities exist only because a Workload exposes schema-bearing
@@ -958,6 +983,18 @@ export class EventDeltaApplier {
     ]);
   }
 
+  private async refreshResource(ns: string, name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const resource = await this.fetchResource(client, ns, name);
+    if (!resource) {
+      await this.removeEntityRefs([this.buildEntityRef('resource', ns, name)]);
+      return;
+    }
+    await this.upsertEntities([
+      translateNewResourceToEntity(resource, ns, this.translatorContext),
+    ]);
+  }
+
   private async refreshWorkflow(ns: string, name: string): Promise<void> {
     const client = await this.createApiClient();
     const wf = await this.fetchWorkflow(client, ns, name);
@@ -1184,6 +1221,9 @@ export class EventDeltaApplier {
         return;
       case 'resourcetype':
         await this.refreshResourceType(ns, name);
+        return;
+      case 'resource':
+        await this.refreshResource(ns, name);
         return;
       case 'workflow':
         await this.refreshWorkflow(ns, name);

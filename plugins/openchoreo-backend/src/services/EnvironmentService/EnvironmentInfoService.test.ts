@@ -387,6 +387,104 @@ describe('EnvironmentInfoService', () => {
     });
   });
 
+  describe('fetchResourceReleaseBindings', () => {
+    function rrb(projectName: string, environment: string) {
+      return {
+        metadata: { name: `binding-${environment}`, namespace: 'test-ns' },
+        spec: {
+          owner: { projectName, resourceName: 'analytics-db' },
+          environment,
+          resourceRelease: `analytics-db-${environment}-abc`,
+        },
+        status: {
+          conditions: [
+            {
+              type: 'Ready',
+              status: 'True',
+              reason: 'Ready',
+              message: 'Resource ready',
+            },
+          ],
+        },
+      };
+    }
+
+    it('returns bindings filtered to the requested project', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [
+            rrb('my-project', 'dev'),
+            rrb('other-project', 'dev'),
+            rrb('my-project', 'staging'),
+          ],
+        }),
+      );
+
+      const service = createService();
+      const result = await service.fetchResourceReleaseBindings(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect((result as any).items).toHaveLength(2);
+      expect(
+        (result as any).items.map((b: any) => b.spec.environment).sort(),
+      ).toEqual(['dev', 'staging']);
+      expect(
+        (result as any).items.every(
+          (b: any) => b.spec.owner.projectName === 'my-project',
+        ),
+      ).toBe(true);
+    });
+
+    it('returns an empty list when no bindings match the project', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [rrb('other-project', 'dev')] }),
+      );
+
+      const service = createService();
+      const result = await service.fetchResourceReleaseBindings(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect((result as any).items).toEqual([]);
+    });
+
+    it('passes the resource query to the openchoreo-api', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+
+      const service = createService();
+      await service.fetchResourceReleaseBindings(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      const call = mockGET.mock.calls[0];
+      expect(call[0]).toBe(
+        '/api/v1/namespaces/{namespaceName}/resourcereleasebindings',
+      );
+      expect(call[1]).toMatchObject({
+        params: {
+          path: { namespaceName: 'test-ns' },
+          query: { resource: 'analytics-db' },
+        },
+      });
+    });
+  });
+
   describe('fetchComponentReleaseSchema', () => {
     it('returns schema from new API', async () => {
       const schema = { type: 'object', properties: {} };

@@ -47,6 +47,7 @@ export interface DeletePermissionInfo {
 /** Human-friendly display names for all deletable entity kinds */
 const KIND_DISPLAY_NAMES: Record<string, string> = {
   component: 'Component',
+  resource: 'Resource',
   system: 'Project',
   domain: 'Namespace',
   environment: 'Environment',

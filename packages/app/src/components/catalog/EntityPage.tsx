@@ -22,6 +22,7 @@ import {
 import { EntityRelationWarning } from './EntityRelationWarning';
 import { OpenChoreoAboutCard } from './OpenChoreoAboutCard';
 import {
+  CHOREO_LABELS,
   ComponentTypeUtils,
   type PageVariant,
 } from '@openchoreo/backstage-plugin-common';
@@ -102,6 +103,9 @@ import {
   DeploymentPipelineVisualization,
   PromotionPathsCard,
   ComponentTypeOverviewCard,
+  ResourceOverviewCard,
+  ResourceBindingsCard,
+  ConsumingComponentsCard,
   TraitTypeOverviewCard,
   WorkflowOverviewCard,
   ComponentWorkflowOverviewCard,
@@ -752,7 +756,7 @@ const domainPage = (
   </EntityLayoutWithDelete>
 );
 
-const resourcePage = (
+const defaultResourcePage = (
   <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
@@ -776,6 +780,47 @@ const resourcePage = (
       </Grid>
     </EntityLayout.Route>
   </EntityLayout>
+);
+
+const isOpenChoreoResource = (entity: Entity) =>
+  entity.metadata.labels?.[CHOREO_LABELS.MANAGED] === 'true';
+
+const openchoreoResourcePage = (
+  <EntityLayoutWithDelete>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <ResourceOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <ResourceBindingsCard />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <ConsumingComponentsCard />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </EntityLayout.Route>
+  </EntityLayoutWithDelete>
+);
+
+const resourcePage = (
+  <EntitySwitch>
+    <EntitySwitch.Case if={isOpenChoreoResource}>
+      {openchoreoResourcePage}
+    </EntitySwitch.Case>
+    <EntitySwitch.Case>{defaultResourcePage}</EntitySwitch.Case>
+  </EntitySwitch>
 );
 
 const environmentPage = (

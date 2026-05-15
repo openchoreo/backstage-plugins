@@ -566,6 +566,24 @@ export interface ReleaseBindingCondition {
   observedGeneration?: number;
 }
 
+export interface ResourceReleaseBindingResponse {
+  name: string;
+  resourceName: string;
+  projectName: string;
+  namespaceName: string;
+  environment: string;
+  releaseName: string;
+  retainPolicy?: 'Delete' | 'Retain';
+  /** Format: date-time */
+  createdAt: string;
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  /** The Ready condition's reason */
+  statusReason?: string;
+  /** The Ready condition's human-readable message */
+  statusMessage?: string;
+  conditions?: ReleaseBindingCondition[];
+}
+
 export interface WorkloadOverrides {
   container?: ContainerOverride;
 }

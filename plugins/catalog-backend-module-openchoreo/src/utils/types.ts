@@ -29,6 +29,15 @@ export interface WorkloadDependency {
 }
 
 /**
+ * A Resource dependency declared on a Workload's
+ * spec.dependencies.resources[]. References a Resource by name within
+ * the same project as the consuming component.
+ */
+export interface WorkloadResourceDependency {
+  ref: string;
+}
+
+/**
  * Per-component data collected during the periodic full sync's first pass
  * and reused in the second pass to build Component / API entities. Not
  * used by the per-event delta path, which fetches resources on demand.
@@ -42,6 +51,8 @@ export interface ComponentWorkloadData {
   allEndpoints: Record<string, WorkloadEndpoint>;
   /** Dependency connections from workload spec */
   dependencies: WorkloadDependency[];
+  /** Resource dependencies from workload spec (refs by name within the project) */
+  resourceDependencies: WorkloadResourceDependency[];
   /**
    * Owning Workload's `metadata.name` if a Workload was paired with
    * this Component during the first sync pass. Threaded through to the

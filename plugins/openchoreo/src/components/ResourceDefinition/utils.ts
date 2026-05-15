@@ -12,6 +12,8 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'namespaces';
     case 'component':
       return 'components';
+    case 'resource':
+      return 'resources';
     case 'componenttype':
       return 'componenttypes';
     case 'resourcetype':
@@ -64,6 +66,8 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'Namespace';
     case 'component':
       return 'Component';
+    case 'resource':
+      return 'Resource';
     case 'componenttype':
       return 'ComponentType';
     case 'resourcetype':
@@ -153,6 +157,7 @@ export function isSupportedKind(kind: string): boolean {
     'system',
     'domain',
     'component',
+    'resource',
     'componenttype',
     'resourcetype',
     'traittype',

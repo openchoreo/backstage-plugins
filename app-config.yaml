@@ -277,6 +277,10 @@ catalog:
       rules:
         - allow: [Template]
     - type: file
+      target: ../../templates/create-openchoreo-resource/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
       target: ../../templates/create-openchoreo-trait/template.yaml
       rules:
         - allow: [Template]
