@@ -391,15 +391,56 @@ describe('AuthzProfileService', () => {
         resource: { environment: 'team-shop/production' },
       });
       // Cache write must use the encoded form so two namespaces sharing
-      // the same env name do not collide.
+      // the same env name do not collide. The second positional argument is
+      // a token-derived hash so the cache key invalidates when the user
+      // signs out and back in (see token-scoped test below).
       expect(cache.setEvaluation).toHaveBeenCalledWith(
         'user:default/alice',
+        expect.any(String),
         'releasebinding:update',
         'ns/team-shop/project/team-shop/component/snip-api-service',
         'team-shop/production',
         false,
         expect.any(Number),
       );
+    });
+
+    it('binds the cache key to the user token so re-login forces re-evaluation', async () => {
+      const cache = createMockCache();
+      cache.getByUser.mockResolvedValue(subjectProfile);
+      cache.getEvaluation.mockResolvedValue(undefined);
+      mockPOST.mockResolvedValue(createOkResponse([{ decision: false }]));
+
+      const service = createService(cache);
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+      const firstToken = buildJwt(exp);
+      // Different payload (e.g. fresh `iat` after re-login) → different JWT
+      // string → different hash. We only need the hash to differ.
+      const secondToken = `${firstToken}-second-session`;
+
+      const input = {
+        action: 'releasebinding:view',
+        resourcePath:
+          'ns/team-shop/project/team-shop/component/snip-api-service',
+        environment: 'development',
+      };
+
+      await service.evaluate(firstToken, 'user:default/alice', [input]);
+      await service.evaluate(secondToken, 'user:default/alice', [input]);
+
+      // Both calls should have looked up the cache with the *same*
+      // userEntityRef / action / resourcePath / encoded-env tuple, but with
+      // *different* token-hash components. That difference is what allows the
+      // second sign-in to bypass a stale `false` from the first session.
+      expect(cache.getEvaluation).toHaveBeenCalledTimes(2);
+      const firstHash = cache.getEvaluation.mock.calls[0][1];
+      const secondHash = cache.getEvaluation.mock.calls[1][1];
+      expect(firstHash).toEqual(expect.any(String));
+      expect(secondHash).toEqual(expect.any(String));
+      expect(firstHash).not.toEqual(secondHash);
+      // And the backend was hit twice — the second call did not piggy-back
+      // on the first session's cached decision.
+      expect(mockPOST).toHaveBeenCalledTimes(2);
     });
 
     it('passes env through as bare `{name}` when no namespace is in the resource path', async () => {
