@@ -32,7 +32,6 @@ import {
   usePromotionAction,
   type PromotionTargetAction,
 } from '../hooks/usePromotionAction';
-import { NO_DRIFT, type ReleaseDriftInfo } from '../hooks/computeReleaseDrift';
 import { deriveVersionLabel } from '../utils/deriveVersionLabel';
 import type { ActionTrackers, Environment } from '../types';
 import { ReleaseManifestDialog } from './ReleaseManifestDialog';
@@ -43,8 +42,6 @@ export interface MiniEnvironmentNodeProps {
   isRefreshing: boolean;
   isAlreadyPromoted: (targetEnvName: string) => boolean;
   actionTrackers: ActionTrackers;
-  /** Drift relative to direct upstreams; defaults to no drift. */
-  driftInfo?: ReleaseDriftInfo;
   /**
    * Active-incident count from useIncidentsSummary. Undefined when
    * observability isn't configured; rendered as a red chip when > 0.
@@ -70,7 +67,6 @@ export const MiniEnvironmentNode = ({
   isRefreshing,
   isAlreadyPromoted,
   actionTrackers,
-  driftInfo = NO_DRIFT,
   activeIncidentCount,
   onSelect,
   onRefresh,
@@ -304,35 +300,6 @@ export const MiniEnvironmentNode = ({
                     PopperProps={{ disablePortal: true }}
                   >
                     <span className={classes.versionChip}>{versionLabel}</span>
-                  </Tooltip>
-                )}
-                {driftInfo.isBehind && (
-                  <Tooltip
-                    title={
-                      <>
-                        <div>
-                          Behind{' '}
-                          {driftInfo.aheadUpstreams
-                            .map(u => u.envName)
-                            .join(', ')}
-                        </div>
-                        {driftInfo.aheadUpstreams[0]?.releaseName && (
-                          <div>
-                            {driftInfo.aheadUpstreams[0].envName} on{' '}
-                            {driftInfo.aheadUpstreams[0].releaseName}
-                          </div>
-                        )}
-                      </>
-                    }
-                    PopperProps={{ disablePortal: true }}
-                  >
-                    <span
-                      className={classes.driftBadge}
-                      aria-label="behind upstream"
-                    >
-                      <ReportProblemOutlinedIcon fontSize="inherit" />
-                      behind
-                    </span>
                   </Tooltip>
                 )}
               </Box>

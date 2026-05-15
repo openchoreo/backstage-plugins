@@ -440,7 +440,7 @@ describe('EnvironmentDetailPanel', () => {
     expect(screen.queryByLabelText('Copy release name')).toBeNull();
   });
 
-  it('renders a short "Behind upstream" line when driftInfo.isBehind', () => {
+  it('renders a short "Behind {upstream}" line when driftInfo.isBehind', () => {
     renderPanel({
       selection: {
         kind: 'env',
@@ -455,7 +455,7 @@ describe('EnvironmentDetailPanel', () => {
         aheadUpstreams: [{ envName: 'dev', releaseName: 'rel-7' }],
       },
     });
-    expect(screen.getByText(/^Behind upstream$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Behind dev$/)).toBeInTheDocument();
     // Full upstream details live on the tooltip, not inline.
     expect(screen.queryByText(/rel-7/)).toBeNull();
   });
