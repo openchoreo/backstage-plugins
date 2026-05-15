@@ -30,7 +30,6 @@ import { ClusterComponentTypeYamlEditorFieldExtension } from './scaffolder/Clust
 import { ClusterTraitYamlEditorFieldExtension } from './scaffolder/ClusterTraitYamlEditor';
 import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
 import { ClusterWorkflowYamlEditorFieldExtension } from './scaffolder/ClusterWorkflowYamlEditor';
-import { GitSecretFieldExtension } from './scaffolder/GitSecretField';
 import { GitSourceFieldExtension } from './scaffolder/GitSourceField';
 import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
 import { NamespaceEntityPickerFieldExtension } from './scaffolder/NamespaceEntityPicker';
@@ -256,7 +255,6 @@ const routes = (
         <ClusterWorkflowYamlEditorFieldExtension />
         <EnvironmentFormWithYamlFieldExtension />
         <DeploymentPipelineFormWithYamlFieldExtension />
-        <GitSecretFieldExtension />
         <GitSourceFieldExtension />
         <WorkloadDetailsFieldExtension />
       </ScaffolderFieldExtensions>

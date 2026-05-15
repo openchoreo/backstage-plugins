@@ -9,6 +9,7 @@ import {
   TextField,
   Divider,
   Typography,
+  Tooltip,
   Grid,
 } from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
@@ -25,6 +26,7 @@ import {
   GIT_SECRET_TYPE_VALUE,
   parseWorkflowParametersAnnotation,
 } from '@openchoreo/backstage-plugin-common';
+import { useSecretManagementEnabled } from '@openchoreo/backstage-plugin-react';
 import { GitSecretDialog } from '../GitSecretField/GitSecretDialog';
 import { CLUSTER_WORKFLOW_NAMESPACE } from '../types';
 
@@ -89,6 +91,7 @@ export const GitSourceField = ({
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
   const catalogApi = useApi(catalogApiRef);
+  const secretManagementEnabled = useSecretManagementEnabled();
 
   // Read the selected workflow from formContext (object with kind and name)
   const selectedWorkflow = formContext?.formData?.workflow_name as
@@ -217,10 +220,11 @@ export const GitSourceField = ({
   const showAppPath = !visibleFields || 'appPath' in visibleFields;
   const showSecretRef = !visibleFields || 'secretRef' in visibleFields;
 
-  // Fetch available git secrets
+  // Fetch available git secrets. Skip when secret management is off — the
+  // API returns 501 in that mode and we'd otherwise surface a spurious error.
   const fetchSecrets = useCallback(async () => {
     // If no namespace, still try to fetch — the field may work without it
-    if (!nsName) {
+    if (!nsName || !secretManagementEnabled) {
       setSecrets([]);
       return;
     }
@@ -262,7 +266,7 @@ export const GitSourceField = ({
     } finally {
       setSecretsLoading(false);
     }
-  }, [nsName, discoveryApi, fetchApi]);
+  }, [nsName, secretManagementEnabled, discoveryApi, fetchApi]);
 
   useEffect(() => {
     fetchSecrets();
@@ -379,6 +383,14 @@ export const GitSourceField = ({
         )
       : secrets;
 
+  // Creating a new git secret needs both the feature flag and a workflow
+  // plane to target (resolved from the selected workflow's annotations).
+  const canCreateSecret =
+    secretManagementEnabled && !!workflowPlaneRef && !!workflowPlaneRefKind;
+  const createDisabledReason = !secretManagementEnabled
+    ? 'Secret management is disabled. Enable it to create new git secrets.'
+    : 'Select a workflow first so the secret can target its workflow plane.';
+
   // Autocomplete options for git secret
   const secretOptions = [
     ...(nsName ? [CREATE_NEW_SECRET] : []),
@@ -389,6 +401,7 @@ export const GitSourceField = ({
 
   const handleSecretChange = (_event: any, value: string | null) => {
     if (value === CREATE_NEW_SECRET) {
+      if (!canCreateSecret) return;
       setDialogOpen(true);
       return;
     }
@@ -497,6 +510,29 @@ export const GitSourceField = ({
                 }}
                 renderOption={option => {
                   if (option === CREATE_NEW_SECRET) {
+                    if (!canCreateSecret) {
+                      return (
+                        <Tooltip
+                          title={createDisabledReason}
+                          placement="bottom-start"
+                        >
+                          <span
+                            style={{ pointerEvents: 'auto', width: '100%' }}
+                          >
+                            <Box
+                              display="flex"
+                              alignItems="center"
+                              style={{ gap: 8 }}
+                            >
+                              <AddIcon fontSize="small" color="disabled" />
+                              <Typography color="textSecondary">
+                                Create New Git Secret
+                              </Typography>
+                            </Box>
+                          </span>
+                        </Tooltip>
+                      );
+                    }
                     return (
                       <Box
                         display="flex"
@@ -518,7 +554,10 @@ export const GitSourceField = ({
                   }
                   return <Typography>{option}</Typography>;
                 }}
-                getOptionDisabled={option => option === DIVIDER}
+                getOptionDisabled={option =>
+                  option === DIVIDER ||
+                  (option === CREATE_NEW_SECRET && !canCreateSecret)
+                }
                 renderInput={params => (
                   <TextField
                     {...params}
