@@ -35,6 +35,7 @@ import {
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import {
   CHOREO_LABELS,
+  GENERIC_SECRET_TYPE_VALUE,
   GIT_SECRET_TYPE_VALUE,
 } from '@openchoreo/backstage-plugin-common';
 
@@ -414,17 +415,19 @@ export const CreateSecretDialog = ({
     setLoading(true);
     setError(null);
     try {
+      const categoryLabelValue =
+        secretCategory === 'git-credentials'
+          ? GIT_SECRET_TYPE_VALUE
+          : GENERIC_SECRET_TYPE_VALUE;
       const request: CreateSecretRequest = {
         secretName: name,
         secretType,
         targetPlane: { kind: plane.kind, name: plane.name },
         data: built.data,
+        labels: {
+          [CHOREO_LABELS.SECRET_TYPE]: categoryLabelValue,
+        },
       };
-      if (secretCategory === 'git-credentials') {
-        request.labels = {
-          [CHOREO_LABELS.SECRET_TYPE]: GIT_SECRET_TYPE_VALUE,
-        };
-      }
       await onSubmit(request);
       onClose();
     } catch (err) {

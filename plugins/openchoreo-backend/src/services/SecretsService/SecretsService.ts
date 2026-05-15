@@ -54,6 +54,7 @@ export interface SecretsListResponse {
 export interface SecretDetail extends SecretResponse {
   /** Base64-encoded value map (K8s Secret wire format). */
   data: Record<string, string>;
+  labels?: Record<string, string>;
 }
 
 export class SecretsService {
@@ -179,6 +180,7 @@ export class SecretsService {
       return {
         ...projectSecret(secret, ref, secretName, namespaceName),
         data,
+        labels: ref.metadata?.labels,
       };
     } catch (err) {
       this.logger.error(

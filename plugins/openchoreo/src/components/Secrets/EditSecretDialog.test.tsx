@@ -135,4 +135,40 @@ describe('EditSecretDialog', () => {
       await screen.findByText(/Could not load current values: boom/i),
     ).toBeInTheDocument();
   });
+
+  it('echoes existing labels back on save so categories are not stripped', async () => {
+    const existingLabels = {
+      'openchoreo.dev/secret-type': 'git-credentials',
+    };
+    mockClient.getSecret.mockResolvedValueOnce({
+      name: 'db-creds',
+      namespace: 'ns',
+      secretType: 'Opaque',
+      targetPlane: { kind: 'DataPlane', name: 'dp-prod' },
+      keys: ['DB_HOST', 'DB_USER'],
+      labels: existingLabels,
+      data: { DB_HOST: 'ZGIubG9jYWw=', DB_USER: 'YWxpY2U=' },
+    });
+
+    const onSubmit = jest.fn().mockResolvedValue({} as any);
+    const user = userEvent.setup();
+    renderDialog({ onSubmit });
+
+    await waitFor(() =>
+      expect((screen.getByLabelText('Value 1') as HTMLInputElement).value).toBe(
+        'db.local',
+      ),
+    );
+
+    await user.clear(screen.getByLabelText('Value 1'));
+    await user.type(screen.getByLabelText('Value 1'), 'new-host');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith('db-creds', {
+        data: { DB_HOST: 'new-host', DB_USER: 'alice' },
+        labels: existingLabels,
+      }),
+    );
+  });
 });
