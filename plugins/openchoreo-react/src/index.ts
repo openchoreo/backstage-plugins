@@ -473,6 +473,10 @@ export {
   type GraphKindFilterProps,
 } from './components/GraphKindFilter';
 export {
+  NamespaceScopeFilter,
+  type NamespaceScopeFilterProps,
+} from './components/NamespaceScopeFilter';
+export {
   PlatformOverviewGraphView,
   type PlatformOverviewGraphViewProps,
 } from './components/PlatformOverviewGraphView';

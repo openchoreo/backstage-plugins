@@ -1,27 +1,24 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import {
-  Select,
-  MenuItem,
-  Checkbox,
-  ListItemText,
-  FormControl,
-  Chip,
-  Box,
-  Typography,
-} from '@material-ui/core';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import { makeStyles } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   catalogApiRef,
   useEntityList,
   EntityNamespaceFilter,
 } from '@backstage/plugin-catalog-react';
-import { useFilterPickerStyles } from './filterPickerStyles';
+import { NamespaceScopeFilter } from '@openchoreo/backstage-plugin-react';
 
-const MAX_VISIBLE_CHIPS = 1;
+const useStyles = makeStyles(theme => ({
+  trigger: {
+    height: 44,
+    fontSize: 14,
+    backgroundColor: theme.palette.background.paper,
+    padding: theme.spacing(0, 1.75),
+  },
+}));
 
 export const ScaffolderNamespacePicker = () => {
-  const classes = useFilterPickerStyles();
+  const classes = useStyles();
   const catalogApi = useApi(catalogApiRef);
   const {
     updateFilters,
@@ -80,6 +77,30 @@ export const ScaffolderNamespacePicker = () => {
     };
   }, [catalogApi, kindFilter]);
 
+  // Seed the initial selection to "all available namespaces" once they're
+  // known, so templates published to non-default namespaces stay discoverable.
+  // Skipped if the user already has an active selection from query params,
+  // an external filter, or a prior choice.
+  const defaultSeedAppliedRef = useRef(false);
+  useEffect(() => {
+    if (defaultSeedAppliedRef.current) return;
+    if (availableNamespaces.length === 0) return;
+    if (selectedNamespaces.length > 0) {
+      defaultSeedAppliedRef.current = true;
+      return;
+    }
+    if (queryParamNamespaces.length > 0) return;
+    if (filteredNamespaces && filteredNamespaces.length > 0) return;
+
+    defaultSeedAppliedRef.current = true;
+    setSelectedNamespaces(availableNamespaces);
+  }, [
+    availableNamespaces,
+    selectedNamespaces,
+    queryParamNamespaces,
+    filteredNamespaces,
+  ]);
+
   useEffect(() => {
     updateFilters({
       namespace: selectedNamespaces.length
@@ -103,7 +124,6 @@ export const ScaffolderNamespacePicker = () => {
         setSelectedNamespaces(filteredNamespaces);
       }
     } else if (filterWasSetRef.current) {
-      // Filter was explicitly cleared (e.g. "clear all") — not initial mount
       filterWasSetRef.current = false;
       setSelectedNamespaces([]);
     }
@@ -114,92 +134,15 @@ export const ScaffolderNamespacePicker = () => {
     return null;
   }
 
-  const handleDelete = (namespaceToDelete: string) => {
-    setSelectedNamespaces(prev => prev.filter(n => n !== namespaceToDelete));
-  };
-
-  const overflowCount = selectedNamespaces.length - MAX_VISIBLE_CHIPS;
-
   return (
-    <Box className={classes.root}>
-      <Typography
-        id="namespace-picker-label"
-        variant="body2"
-        component="label"
-        className={classes.label}
-      >
-        Namespace
-      </Typography>
-      <FormControl
-        variant="outlined"
-        size="small"
-        className={classes.formControl}
-      >
-        <Select
-          id="namespace-picker"
-          labelId="namespace-picker-label"
-          multiple
-          displayEmpty
-          value={selectedNamespaces}
-          onChange={e => setSelectedNamespaces(e.target.value as string[])}
-          className={classes.select}
-          IconComponent={ExpandMoreIcon}
-          renderValue={selected => {
-            const values = selected as string[];
-            if (values.length === 0) {
-              return <span className={classes.placeholder}>All</span>;
-            }
-            return (
-              <Box className={classes.chips}>
-                {values.slice(0, MAX_VISIBLE_CHIPS).map(value => (
-                  <Chip
-                    key={value}
-                    label={value}
-                    size="small"
-                    className={classes.chip}
-                    onDelete={() => handleDelete(value)}
-                    onMouseDown={e => e.stopPropagation()}
-                  />
-                ))}
-                {overflowCount > 0 && (
-                  <Chip
-                    label={`+${overflowCount}`}
-                    size="small"
-                    className={classes.overflowChip}
-                    onMouseDown={e => e.stopPropagation()}
-                  />
-                )}
-              </Box>
-            );
-          }}
-          MenuProps={{
-            anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
-            transformOrigin: { vertical: 'top', horizontal: 'left' },
-            getContentAnchorEl: null,
-            PaperProps: {
-              style: { maxHeight: 300 },
-            },
-          }}
-        >
-          {availableNamespaces.map(namespace => (
-            <MenuItem
-              key={namespace}
-              value={namespace}
-              className={classes.menuItem}
-            >
-              <Checkbox
-                checked={selectedNamespaces.includes(namespace)}
-                size="small"
-                color="primary"
-              />
-              <ListItemText
-                primary={namespace}
-                primaryTypographyProps={{ style: { fontSize: 14 } }}
-              />
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </Box>
+    <NamespaceScopeFilter
+      label="Scope"
+      availableNamespaces={availableNamespaces}
+      selected={selectedNamespaces}
+      onChange={setSelectedNamespaces}
+      emptyLabel="All"
+      fullWidth
+      triggerClassName={classes.trigger}
+    />
   );
 };

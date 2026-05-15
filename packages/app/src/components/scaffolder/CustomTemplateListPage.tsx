@@ -312,7 +312,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
             <ScaffolderTagPicker />
           </Box>
           {isComponentsView && (
-            <Box className={classes.tagFilter}>
+            <Box className={classes.namespaceFilter}>
               <ScaffolderNamespacePicker />
             </Box>
           )}
