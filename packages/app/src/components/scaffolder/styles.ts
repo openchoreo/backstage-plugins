@@ -49,6 +49,10 @@ export const useStyles = makeStyles(theme => ({
   categoryFilter: {
     flex: '0 1 240px',
     minWidth: 180,
+    // Reserve label-plus-control height so the row doesn't briefly collapse
+    // while the inner picker (Categories or Namespace) is loading or
+    // swapping between views.
+    minHeight: 68,
   },
   tagFilter: {
     flex: '0 1 240px',
@@ -56,10 +60,6 @@ export const useStyles = makeStyles(theme => ({
     '&:empty': {
       display: 'none',
     },
-  },
-  namespaceFilter: {
-    flex: '0 1 250px',
-    minWidth: 180,
   },
   starredFilter: {
     flex: '0 0 auto',
