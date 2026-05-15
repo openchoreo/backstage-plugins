@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "bundled": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openchoreo/backstage-plugins.git",
+    "directory": "packages/app"
+  },
   "backstage": {
     "role": "frontend"
   },
