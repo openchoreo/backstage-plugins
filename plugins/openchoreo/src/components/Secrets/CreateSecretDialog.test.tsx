@@ -135,7 +135,6 @@ describe('CreateSecretDialog — Secret Category', () => {
       'openchoreo.dev/secret-type': 'generic',
     });
   });
-
 });
 
 describe('CreateSecretDialog — SSH Auth', () => {
@@ -172,43 +171,35 @@ describe('CreateSecretDialog — SSH Auth', () => {
   // The two tests below interact with multiple fields (SSH Key ID + multiline
   // SSH key + dynamically-added Key/Value rows). userEvent.type is per-keystroke
   // and gets slow under jsdom load in the full suite, so give them extra time.
-  it(
-    'submits the SSH key plus the optional SSH Key ID in the data map',
-    async () => {
-      const user = userEvent.setup();
-      const onSubmit = jest.fn().mockResolvedValue({} as any);
-      renderDialog({ targetPlanes: planes, onSubmit });
-      await selectSshAuth(user);
-      await user.type(screen.getByLabelText('SSH Key ID'), 'my-key-id');
-      await pasteSshKey(user, VALID_KEY);
-      await user.click(screen.getByRole('button', { name: 'Create' }));
+  it('submits the SSH key plus the optional SSH Key ID in the data map', async () => {
+    const user = userEvent.setup();
+    const onSubmit = jest.fn().mockResolvedValue({} as any);
+    renderDialog({ targetPlanes: planes, onSubmit });
+    await selectSshAuth(user);
+    await user.type(screen.getByLabelText('SSH Key ID'), 'my-key-id');
+    await pasteSshKey(user, VALID_KEY);
+    await user.click(screen.getByRole('button', { name: 'Create' }));
 
-      expect(onSubmit).toHaveBeenCalledTimes(1);
-      const { data } = onSubmit.mock.calls[0][0];
-      expect(data['ssh-privatekey']).toContain('BEGIN OPENSSH PRIVATE KEY');
-      expect(data['ssh-key-id']).toBe('my-key-id');
-    },
-    15000,
-  );
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    const { data } = onSubmit.mock.calls[0][0];
+    expect(data['ssh-privatekey']).toContain('BEGIN OPENSSH PRIVATE KEY');
+    expect(data['ssh-key-id']).toBe('my-key-id');
+  }, 15000);
 
-  it(
-    'includes an SSH extra key/value row in the submitted data',
-    async () => {
-      const user = userEvent.setup();
-      const onSubmit = jest.fn().mockResolvedValue({} as any);
-      renderDialog({ targetPlanes: planes, onSubmit });
-      await selectSshAuth(user);
-      await pasteSshKey(user, VALID_KEY);
+  it('includes an SSH extra key/value row in the submitted data', async () => {
+    const user = userEvent.setup();
+    const onSubmit = jest.fn().mockResolvedValue({} as any);
+    renderDialog({ targetPlanes: planes, onSubmit });
+    await selectSshAuth(user);
+    await pasteSshKey(user, VALID_KEY);
 
-      // The SSH-auth section renders its own "Add key" button for extra rows.
-      await user.click(screen.getByRole('button', { name: 'Add key' }));
-      await user.type(screen.getByLabelText('Key 1'), 'known_hosts');
-      await user.type(screen.getByLabelText('Value 1'), 'host-entry');
-      await user.click(screen.getByRole('button', { name: 'Create' }));
+    // The SSH-auth section renders its own "Add key" button for extra rows.
+    await user.click(screen.getByRole('button', { name: 'Add key' }));
+    await user.type(screen.getByLabelText('Key 1'), 'known_hosts');
+    await user.type(screen.getByLabelText('Value 1'), 'host-entry');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
 
-      expect(onSubmit).toHaveBeenCalledTimes(1);
-      expect(onSubmit.mock.calls[0][0].data.known_hosts).toBe('host-entry');
-    },
-    15000,
-  );
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0][0].data.known_hosts).toBe('host-entry');
+  }, 15000);
 });
