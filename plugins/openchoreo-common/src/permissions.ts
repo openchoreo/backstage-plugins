@@ -802,6 +802,16 @@ export const openchoreoRcaUpdatePermission = createPermission({
 });
 
 /**
+ * Permission to update FinOps reports for a project (apply/dismiss recommendations).
+ * Resource-based: requires the specific project context.
+ */
+export const openchoreoFinopsUpdatePermission = createPermission({
+  name: 'openchoreo.finops.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_PROJECT,
+});
+
+/**
  * Permission to view traits for a component.
  * Resource-based: requires the specific component context.
  */
@@ -879,6 +889,7 @@ export const openchoreoPermissions = [
   openchoreoTracesViewPermission,
   openchoreoRcaViewPermission,
   openchoreoRcaUpdatePermission,
+  openchoreoFinopsUpdatePermission,
   openchoreoTraitsViewPermission,
   openchoreoAlertsViewPermission,
   openchoreoIncidentsViewPermission,
@@ -979,6 +990,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.traces.view': 'traces:view',
   'openchoreo.rca.view': 'rcareport:view',
   'openchoreo.rca.update': 'rcareport:update',
+  'openchoreo.finops.update': 'finopsreport:update',
   'openchoreo.traits.view': 'trait:view',
   'openchoreo.trait.create': 'trait:create',
   'openchoreo.componenttype.create': 'componenttype:create',

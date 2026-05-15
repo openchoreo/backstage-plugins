@@ -209,6 +209,7 @@ export interface FinOpsReport {
   overprovisioning: OverprovisioningAssessment;
   summary: string;
   investigation_path: InvestigationStep[];
+  recommended_actions?: FinOpsRemediationAction[];
 }
 
 export interface CostBreakdown {
@@ -243,6 +244,24 @@ export interface ResourceRecommendation {
   memory_request: string;
   memory_limit: string;
   rationale: string;
+  release_binding?: string | null;
+}
+
+export interface FinOpsFieldChange {
+  json_pointer: string;
+  value: string | number | boolean;
+}
+
+export interface FinOpsResourceChange {
+  release_binding: string;
+  fields: FinOpsFieldChange[];
+}
+
+export interface FinOpsRemediationAction {
+  description: string;
+  rationale: string;
+  status: 'revised' | 'applied' | 'dismissed';
+  change: FinOpsResourceChange | null;
 }
 
 export interface InvestigationStep {

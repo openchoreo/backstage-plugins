@@ -14,6 +14,8 @@ import TrendingUpOutlinedIcon from '@material-ui/icons/TrendingUpOutlined';
 import AssignmentOutlinedIcon from '@material-ui/icons/AssignmentOutlined';
 import { FinOpsReportDetailed } from '../../types';
 import { FormattedText } from '../RCA/RCAReport/FormattedText';
+import { FinOpsApplyButton } from './FinOpsApplyButton';
+import type { FinOpsAgentApi } from '../../api/FinOpsAgentApi';
 
 const useStyles = makeStyles(theme => ({
   header: {
@@ -118,12 +120,21 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
+interface FinOpsApplyChatContextProp {
+  backendBaseUrl?: string;
+  namespaceName: string;
+  environmentName: string;
+  finopsAgentApi: FinOpsAgentApi;
+}
+
 interface CostAnalysisReportViewProps {
   report: FinOpsReportDetailed;
   reportId: string;
   onBack: () => void;
   componentUrl?: string;
   metricsUrl?: string;
+  chatContext?: FinOpsApplyChatContextProp;
+  onRecommendationApplied?: () => void;
 }
 
 export const CostAnalysisReportView = ({
@@ -132,6 +143,8 @@ export const CostAnalysisReportView = ({
   onBack,
   componentUrl,
   metricsUrl,
+  chatContext,
+  onRecommendationApplied,
 }: CostAnalysisReportViewProps) => {
   const classes = useStyles();
 
@@ -612,6 +625,21 @@ export const CostAnalysisReportView = ({
                     }
                   />
                 </Typography>
+                {(() => {
+                  const action = costAnalysis.recommended_actions?.[0];
+                  if (!action?.change || !chatContext) return null;
+                  return (
+                    <Box mt={2}>
+                      <FinOpsApplyButton
+                        reportId={reportId}
+                        actionIndex={0}
+                        action={action}
+                        chatContext={chatContext}
+                        onApplied={onRecommendationApplied}
+                      />
+                    </Box>
+                  );
+                })()}
               </InfoCard>
             </Grid>
           )}

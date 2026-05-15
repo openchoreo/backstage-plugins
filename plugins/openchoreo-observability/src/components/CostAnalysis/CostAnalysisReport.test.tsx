@@ -1,7 +1,9 @@
 import { screen } from '@testing-library/react';
-import { renderInTestApp } from '@backstage/test-utils';
+import { renderInTestApp, TestApiProvider } from '@backstage/test-utils';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { CostAnalysisReport } from './CostAnalysisReport';
+import { finopsAgentApiRef } from '../../api/FinOpsAgentApi';
+import { discoveryApiRef } from '@backstage/core-plugin-api';
 
 const mockUseRcaPermission = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
@@ -76,11 +78,30 @@ function setupDefaultMocks() {
   });
 }
 
+const mockFinopsAgentApi = {
+  updateActionStatuses: jest.fn().mockResolvedValue(undefined),
+};
+
+const mockDiscoveryApi = {
+  getBaseUrl: jest
+    .fn()
+    .mockResolvedValue(
+      'http://localhost:7007/api/openchoreo-observability-backend',
+    ),
+};
+
 async function renderReport(routePath = '/r1') {
   return renderInTestApp(
-    <EntityProvider entity={defaultEntity}>
-      <CostAnalysisReport />
-    </EntityProvider>,
+    <TestApiProvider
+      apis={[
+        [finopsAgentApiRef, mockFinopsAgentApi],
+        [discoveryApiRef, mockDiscoveryApi],
+      ]}
+    >
+      <EntityProvider entity={defaultEntity}>
+        <CostAnalysisReport />
+      </EntityProvider>
+    </TestApiProvider>,
     { routeEntries: [routePath] },
   );
 }
