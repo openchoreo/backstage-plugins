@@ -47,6 +47,11 @@ export interface NamespaceScopeFilterProps {
   triggerClassName?: string;
   /** Stretch the trigger button to fill its container. Defaults to false. */
   fullWidth?: boolean;
+  /**
+   * Hide the `label:` prefix inside the trigger button. Useful when the
+   * caller already renders the label above the picker. Defaults to false.
+   */
+  hideLabelInTrigger?: boolean;
 }
 
 /**
@@ -67,6 +72,7 @@ export const NamespaceScopeFilter = ({
   showCluster = true,
   triggerClassName,
   fullWidth = false,
+  hideLabelInTrigger = false,
 }: NamespaceScopeFilterProps) => {
   const classes = useNamespaceScopeFilterStyles();
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
@@ -96,9 +102,15 @@ export const NamespaceScopeFilter = ({
     } else if (selectedNamespaces.length > 1) {
       parts.push(`${selectedNamespaces.length} namespaces`);
     }
-    if (parts.length === 0) return `${label}: ${emptyLabel}`;
-    return `${label}: ${parts.join(' + ')}`;
-  }, [clusterSelected, selectedNamespaces, label, emptyLabel]);
+    const value = parts.length === 0 ? emptyLabel : parts.join(' + ');
+    return hideLabelInTrigger ? value : `${label}: ${value}`;
+  }, [
+    clusterSelected,
+    selectedNamespaces,
+    label,
+    emptyLabel,
+    hideLabelInTrigger,
+  ]);
 
   const toggle = useCallback(
     (item: string) => {

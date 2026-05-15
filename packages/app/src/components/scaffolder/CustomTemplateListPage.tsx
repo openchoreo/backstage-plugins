@@ -306,16 +306,15 @@ const TemplateListContent = (props: TemplateListPageProps) => {
         <Box className={classes.filterRow}>
           <ScaffolderSearchBar />
           <Box className={classes.categoryFilter}>
-            <ScaffolderCategoryPicker />
+            {isComponentsView ? (
+              <ScaffolderNamespacePicker />
+            ) : (
+              <ScaffolderCategoryPicker />
+            )}
           </Box>
           <Box className={classes.tagFilter}>
             <ScaffolderTagPicker />
           </Box>
-          {isComponentsView && (
-            <Box className={classes.namespaceFilter}>
-              <ScaffolderNamespacePicker />
-            </Box>
-          )}
           <Box className={classes.starredFilter}>
             <ScaffolderStarredFilter />
           </Box>
@@ -334,16 +333,15 @@ const TemplateListContent = (props: TemplateListPageProps) => {
               <ScaffolderSearchBar />
             </Box>
             <Box className={classes.filterItem}>
-              <ScaffolderCategoryPicker />
+              {isComponentsView ? (
+                <ScaffolderNamespacePicker />
+              ) : (
+                <ScaffolderCategoryPicker />
+              )}
             </Box>
             <Box className={classes.filterItem}>
               <ScaffolderTagPicker />
             </Box>
-            {isComponentsView && (
-              <Box className={classes.filterItem}>
-                <ScaffolderNamespacePicker />
-              </Box>
-            )}
             <Box className={classes.filterItem}>
               <ScaffolderStarredFilter />
             </Box>
