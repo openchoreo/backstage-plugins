@@ -16,6 +16,16 @@ import StopIcon from '@material-ui/icons/Stop';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import { useApi } from '@backstage/core-plugin-api';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {
+  perchAgentApiRef,
+  type ChatMessage,
+  type ChatScope,
+  type StreamEvent,
+} from '../../api/PerchAgentApi';
+import type { PinnedContext } from '../AssistantContext/AssistantDrawerContext';
+import { useStyles } from './styles';
+import { splitForCollapse } from './splitForCollapse';
 
 /**
  * Strip ``<comp:NAME>`` / ``<proj:NAME>`` / ``<env:NAME>`` /
@@ -31,15 +41,6 @@ const ENTITY_TAG_RE = /<(?:comp|proj|env|ns):([^>]+)>/g;
 function stripEntityTags(text: string): string {
   return text.replace(ENTITY_TAG_RE, '`$1`');
 }
-import remarkGfm from 'remark-gfm';
-import {
-  perchAgentApiRef,
-  type ChatMessage,
-  type ChatScope,
-  type StreamEvent,
-} from '../../api/PerchAgentApi';
-import type { PinnedContext } from '../AssistantContext/AssistantDrawerContext';
-import { useStyles } from './styles';
 
 // Module-level sentinel — a per-render symbol would never match the previous
 // render's symbol, breaking the conversationKey continuity check.
@@ -485,20 +486,28 @@ export const AssistantChatDrawer = ({
                   // there's no trace-anchored launcher. Per-row
                   // InvestigateLogButton can override these with
                   // pinned-log-aware suggestions.
+                  //
+                  // ``label === message`` is intentional — what the
+                  // user sees on the chip is what lands in the chat
+                  // as their turn. Earlier versions used a verbose
+                  // ``message`` to give the model extra hints
+                  // ("…in these logs", "…in the window"), but the
+                  // runtime_debug scope now carries prefetchedLogs,
+                  // logLevels, logsStartTime/End and pinnedLog* — so
+                  // those hints are redundant and just bloat the
+                  // visible user-turn in the drawer.
                   chips = [
                     {
                       label: 'Investigate the error',
-                      message:
-                        'Investigate the most recent error in these logs.',
+                      message: 'Investigate the error',
                     },
                     {
                       label: 'What triggered this?',
-                      message: 'What request triggered this error?',
+                      message: 'What triggered this?',
                     },
                     {
                       label: 'When did this start?',
-                      message:
-                        'When did this error first appear in the window?',
+                      message: 'When did this start?',
                     },
                   ];
                 } else {
@@ -537,18 +546,60 @@ export const AssistantChatDrawer = ({
           </Box>
         )}
 
-        {timeline.map((item, i) => (
-          <Box
-            key={`m-${i}`}
-            className={`${classes.message} ${
-              item.role === 'user' ? classes.user : classes.assistant
-            }`}
-          >
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {stripEntityTags(item.content)}
-            </ReactMarkdown>
-          </Box>
-        ))}
+        {timeline.map((item, i) => {
+          // User turns never contain an Evidence section — bypass the
+          // splitter and render verbatim. For assistant turns, split
+          // the diagnosis + next action from the supporting evidence
+          // so the actionable bits aren't scrolled out of view by a
+          // long bullet list. ``<details>`` is closed by default
+          // (collapsed) — the user opts in to seeing the evidence.
+          // Streaming-buffer rendering (below) deliberately skips this
+          // split: while tokens are arriving the response may not yet
+          // contain both opener and closer, and splitting mid-stream
+          // would reflow as the closer lands. The drawer's existing
+          // ``done`` handler clears the streaming buffer and the
+          // message lands in the timeline where the split applies.
+          const normalised = stripEntityTags(item.content);
+          if (item.role === 'user') {
+            return (
+              <Box
+                key={`m-${i}`}
+                className={`${classes.message} ${classes.user}`}
+              >
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {normalised}
+                </ReactMarkdown>
+              </Box>
+            );
+          }
+          const { summary, details } = splitForCollapse(normalised);
+          return (
+            <Box
+              key={`m-${i}`}
+              className={`${classes.message} ${classes.assistant}`}
+            >
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {summary}
+              </ReactMarkdown>
+              {details && (
+                // Affordance label is "Show details" (not "Show
+                // evidence") because the collapsed block holds BOTH
+                // ``**Evidence**`` bullets AND a ``**Trace bridge**``
+                // sentence. Saying "evidence" would also create a
+                // visual duplicate with the inner section label as
+                // soon as the user opens it.
+                <details className={classes.evidenceDetails}>
+                  <summary className={classes.evidenceSummary}>
+                    Show details
+                  </summary>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {details}
+                  </ReactMarkdown>
+                </details>
+              )}
+            </Box>
+          );
+        })}
 
         {streaming && (
           <Box className={`${classes.message} ${classes.assistant}`}>

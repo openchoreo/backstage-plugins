@@ -184,10 +184,23 @@ export const InvestigateLogButton = ({
 
     // Snapshot at click time (not at button mount) so the rows we
     // forward match what the user is actually staring at when they
-    // click Investigate. Sliced/trimmed by buildPrefetchedLogs to
-    // stay within the agent's per-request content budget.
+    // click Investigate. Sliced/trimmed by buildPrefetchedLogs.
+    //
+    // Pass pinned context to the helper so it narrows the snapshot to
+    // rows useful for diagnosing *this specific line*: drops
+    // INFO/DEBUG noise, keeps only rows within ±2 min of the pinned
+    // timestamp, always preserves the pinned row itself, and promotes
+    // trace-linked rows. Without this, a page with all four level
+    // chips selected would ship ~50 INFO request access logs that
+    // drown out the actual ERROR/WARN siblings.
     const prefetchedLogs = getLogsSnapshot
-      ? buildPrefetchedLogs(getLogsSnapshot())
+      ? buildPrefetchedLogs(getLogsSnapshot(), {
+          pin: {
+            timestamp: log.timestamp,
+            message: pinnedLogMessage,
+            traceId: pinnedTraceId,
+          },
+        })
       : undefined;
 
     const overrides: Partial<ChatScope> = {
