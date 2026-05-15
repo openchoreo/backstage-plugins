@@ -344,6 +344,15 @@ export class AuthzProfileService {
       return encoded || undefined;
     });
 
+    // Include a token-derived component in the cache key so that signing out
+    // and back in produces a new key and forces a re-evaluation. Without this,
+    // a stale `false` from before an authz binding change would survive
+    // re-login for the full JWT TTL (up to 24h on our setup), making the only
+    // recovery paths "wait" or "restart the backend".
+    const tokenHash = userToken
+      ? AuthzProfileCache.hashToken(userToken)
+      : 'no-token';
+
     // 1. Cache lookup for every input. Track which need a backend call.
     const results: (boolean | undefined)[] = new Array(inputs.length);
     const missingIdx: number[] = [];
@@ -352,6 +361,7 @@ export class AuthzProfileService {
         const { action, resourcePath } = inputs[i];
         results[i] = await this.cache.getEvaluation(
           userEntityRef,
+          tokenHash,
           action,
           resourcePath,
           encodedEnvs[i],
@@ -450,6 +460,7 @@ export class AuthzProfileService {
           // backend (and stay isolated per namespace).
           await this.cache.setEvaluation(
             userEntityRef,
+            tokenHash,
             action,
             resourcePath,
             encodedEnvs[i],
