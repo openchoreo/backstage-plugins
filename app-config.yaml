@@ -175,7 +175,7 @@ openchoreo:
   # For local k3d via port-forward: http://localhost:8088
   # For in-cluster Backstage: http://perch-agent.openchoreo-control-plane.svc.cluster.local:8080
   # For external access: configure via OPENCHOREO_PERCH_AGENT_URL env var.
-  # perchAgentUrl: ${OPENCHOREO_PERCH_AGENT_URL}
+  perchAgentUrl: ${OPENCHOREO_PERCH_AGENT_URL}
 
   schedule:
     frequency: 300 # seconds between runs (default: 300, the periodic full sync acts as a safety net behind the event-forwarder's real-time deltas)

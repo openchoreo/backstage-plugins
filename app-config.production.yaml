@@ -175,7 +175,7 @@ openchoreo:
   # perch-agent service is deployed. The perch-backend plugin self-
   # disables when this key is absent, matching the thunder.token pattern.
   # OPENCHOREO_PERCH_AGENT_URL: e.g. http://perch-agent.openchoreo-control-plane.svc.cluster.local:8080
-  # perchAgentUrl: ${OPENCHOREO_PERCH_AGENT_URL}
+  perchAgentUrl: ${OPENCHOREO_PERCH_AGENT_URL}
 
   schedule:
     frequency: ${OPENCHOREO_CATALOG_SYNC_FREQUENCY}
