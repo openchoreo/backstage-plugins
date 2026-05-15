@@ -52,6 +52,41 @@ export function getTtlFromToken(token: string): number {
 }
 
 /**
+ * Encodes a dual-scoped resource name into the authz-engine identifier used
+ * by ABAC CEL attributes such as `resource.environment`.
+ *
+ * Mirrors openchoreo's Go `FormatDualScopedResourceName` helper
+ * (`internal/openchoreo-api/services/utils.go`,
+ *  `internal/observer/authz/helpers.go`) so the value we send for
+ * `context.resource.environment` matches the encoding the openchoreo service
+ * layer uses everywhere. CEL expressions on `AuthzRoleBinding` conditions
+ * are authored against this format — getting it right here is what makes
+ * ABAC actually match.
+ *
+ *   Namespace-scoped resources → `{namespace}/{name}`   (e.g. `team-shop/production`)
+ *   Cluster-scoped resources   → plain `{name}`         (e.g. `production`)
+ *
+ * `Environment` is `scope: Namespaced` today and the only attribute we
+ * currently encode, so call sites pass `isClusterScoped: false`. The flag is
+ * kept on the signature so the moment OpenChoreo ships a cluster-scoped
+ * Environment variant (or any other dual-scoped attribute we want to
+ * evaluate against), we flip it at the call site instead of re-discovering
+ * the encoding rule.
+ *
+ * Empty name returns "" so callers can omit the attribute entirely when
+ * scope is not provided — matching the observer helper's behavior.
+ */
+export function formatDualScopedName(
+  namespace: string | undefined,
+  name: string,
+  isClusterScoped: boolean,
+): string {
+  if (!name) return '';
+  if (isClusterScoped || !namespace) return name;
+  return `${namespace}/${name}`;
+}
+
+/**
  * Configuration for AuthzProfileService.
  */
 export interface AuthzProfileServiceOptions {
@@ -291,17 +326,35 @@ export class AuthzProfileService {
   ): Promise<boolean[]> {
     if (inputs.length === 0) return [];
 
+    // Pre-encode each input's environment to the form the openchoreo authz
+    // layer expects (see `formatDualScopedName`). The same encoded value is
+    // used for both the cache key and the outbound /authz/evaluates call so
+    // they stay in lockstep — and so two different namespaces with the same
+    // env name (e.g. `team-a/dev` vs `team-b/dev`) cannot share a cache slot.
+    const encodedEnvs: (string | undefined)[] = inputs.map(input => {
+      if (!input.environment) return undefined;
+      const parsed = parseCapabilityPath(input.resourcePath);
+      const ns =
+        parsed?.namespace && parsed.namespace !== '*'
+          ? parsed.namespace
+          : undefined;
+      // Environment is namespace-scoped today; flip `isClusterScoped` here
+      // when/if OpenChoreo ships a cluster-scoped variant.
+      const encoded = formatDualScopedName(ns, input.environment, false);
+      return encoded || undefined;
+    });
+
     // 1. Cache lookup for every input. Track which need a backend call.
     const results: (boolean | undefined)[] = new Array(inputs.length);
     const missingIdx: number[] = [];
     if (this.cache) {
       for (let i = 0; i < inputs.length; i++) {
-        const { action, resourcePath, environment } = inputs[i];
+        const { action, resourcePath } = inputs[i];
         results[i] = await this.cache.getEvaluation(
           userEntityRef,
           action,
           resourcePath,
-          environment,
+          encodedEnvs[i],
         );
         if (results[i] === undefined) missingIdx.push(i);
       }
@@ -335,7 +388,7 @@ export class AuthzProfileService {
     }
 
     const requests: EvaluateRequest[] = missingIdx.map(i => {
-      const { action, resourcePath, environment } = inputs[i];
+      const { action, resourcePath } = inputs[i];
       const parsed = parseCapabilityPath(resourcePath);
       const hierarchy = {
         namespace:
@@ -369,8 +422,9 @@ export class AuthzProfileService {
         resource: { type: resourceType, hierarchy },
         action,
       };
-      if (environment) {
-        req.context = { resource: { environment } };
+      const encodedEnv = encodedEnvs[i];
+      if (encodedEnv) {
+        req.context = { resource: { environment: encodedEnv } };
       }
       return req;
     });
@@ -391,12 +445,14 @@ export class AuthzProfileService {
         const allowed = decisions[j]?.decision === true;
         results[i] = allowed;
         if (this.cache) {
-          const { action, resourcePath, environment } = inputs[i];
+          const { action, resourcePath } = inputs[i];
+          // Use the encoded env so cache keys match the form sent to the
+          // backend (and stay isolated per namespace).
           await this.cache.setEvaluation(
             userEntityRef,
             action,
             resourcePath,
-            environment,
+            encodedEnvs[i],
             allowed,
             ttlMs,
           );
