@@ -172,10 +172,15 @@ export BACKSTAGE_BASE_URL=http://localhost:3000
 export BACKEND_SECRET=your-secret-key-here
 export OPENCHOREO_API_URL=http://api.openchoreo.localhost:8080/api/v1
 export THUNDER_BASE_URL=http://thunder.openchoreo.localhost:8080
+# User sign-in client (OIDC — used by auth.providers.openchoreo-auth)
 export OPENCHOREO_AUTH_CLIENT_ID=openchoreo-backstage-client
 export OPENCHOREO_AUTH_CLIENT_SECRET=backstage-portal-secret
 export OPENCHOREO_AUTH_AUTHORIZATION_URL=http://thunder.openchoreo.localhost:8080/oauth2/authorize
 export OPENCHOREO_AUTH_TOKEN_URL=http://thunder.openchoreo.localhost:8080/oauth2/token
+# Service client (client credentials — used by background tasks such as the Catalog Provider)
+# Can be the same client as above in development, but should be a separate client in production
+export OPENCHOREO_SERVICE_CLIENT_ID=openchoreo-backstage-client
+export OPENCHOREO_SERVICE_CLIENT_SECRET=backstage-portal-secret
 export GITHUB_TOKEN=your-github-token  # Optional
 ```
 
