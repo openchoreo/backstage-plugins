@@ -63,39 +63,20 @@ const buildConfig = (
   } as any;
 };
 
-const yamlBody = (
-  overrides: { name?: string; project?: string; typeKind?: string; typeName?: string } = {},
-) => {
-  const {
-    name = 'analytics-db',
-    project = 'analytics',
-    typeKind = 'ResourceType',
-    typeName = 'postgres',
-  } = overrides;
-  return `apiVersion: openchoreo.dev/v1alpha1
-kind: Resource
-metadata:
-  name: ${name}
-  annotations:
-    openchoreo.dev/display-name: Analytics DB
-    openchoreo.dev/description: Primary analytics database
-spec:
-  owner:
-    projectName: ${project}
-  type:
-    kind: ${typeKind}
-    name: ${typeName}
-  parameters:
-    size: small
-`;
-};
+const buildInput = (overrides: Record<string, any> = {}) => ({
+  namespaceName: 'finance',
+  projectName: 'analytics',
+  resourceName: 'analytics-db',
+  displayName: 'Analytics DB',
+  description: 'Primary analytics database',
+  typeKind: 'ResourceType' as const,
+  typeName: 'postgres',
+  parameters: { size: 'small' },
+  ...overrides,
+});
 
 const buildCtx = (overrides: any = {}) => ({
-  input: {
-    namespaceName: 'finance',
-    yamlContent: yamlBody(),
-    ...overrides.input,
-  },
+  input: buildInput(overrides.input),
   logger: {
     info: jest.fn(),
     debug: jest.fn(),
@@ -128,7 +109,7 @@ describe('createResourceAction', () => {
     };
   });
 
-  it('POSTs to the resources endpoint with the apiVersion+kind envelope stripped', async () => {
+  it('POSTs to the resources endpoint with a structured body built from the inputs', async () => {
     mockPOST.mockResolvedValueOnce(successResponse());
     const action = createResourceAction(
       buildConfig(),
@@ -140,11 +121,54 @@ describe('createResourceAction', () => {
     const [path, opts] = mockPOST.mock.calls[0];
     expect(path).toBe('/api/v1/namespaces/{namespaceName}/resources');
     expect(opts.params.path.namespaceName).toBe('finance');
-    expect(opts.body.apiVersion).toBeUndefined();
-    expect(opts.body.kind).toBeUndefined();
     expect(opts.body.metadata.name).toBe('analytics-db');
+    expect(opts.body.metadata.annotations['openchoreo.dev/display-name']).toBe(
+      'Analytics DB',
+    );
+    expect(opts.body.metadata.annotations['openchoreo.dev/description']).toBe(
+      'Primary analytics database',
+    );
     expect(opts.body.spec.owner.projectName).toBe('analytics');
-    expect(opts.body.spec.type.name).toBe('postgres');
+    expect(opts.body.spec.type).toEqual({
+      kind: 'ResourceType',
+      name: 'postgres',
+    });
+    expect(opts.body.spec.parameters).toEqual({ size: 'small' });
+  });
+
+  it('omits annotations when displayName and description are absent', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
+    const action = createResourceAction(
+      buildConfig(),
+      mockImmediateCatalog as any,
+    );
+    await action.handler(
+      buildCtx({
+        input: { displayName: undefined, description: undefined },
+      }) as any,
+    );
+
+    const [, opts] = mockPOST.mock.calls[0];
+    expect(opts.body.metadata.annotations).toBeUndefined();
+  });
+
+  it('omits spec.parameters when none provided or when empty', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
+    const action = createResourceAction(
+      buildConfig(),
+      mockImmediateCatalog as any,
+    );
+    await action.handler(
+      buildCtx({ input: { parameters: undefined } }) as any,
+    );
+
+    let [, opts] = mockPOST.mock.calls[0];
+    expect(opts.body.spec.parameters).toBeUndefined();
+
+    mockPOST.mockResolvedValueOnce(successResponse());
+    await action.handler(buildCtx({ input: { parameters: {} } }) as any);
+    [, opts] = mockPOST.mock.calls[1];
+    expect(opts.body.spec.parameters).toBeUndefined();
   });
 
   it('emits outputs naming the resource, namespace, project, and entity ref', async () => {
@@ -187,7 +211,7 @@ describe('createResourceAction', () => {
     expect(inserted.spec.owner).toBe('group:default/owners');
   });
 
-  it('propagates ClusterResourceType when the YAML names that kind', async () => {
+  it('propagates ClusterResourceType when typeKind names that kind', async () => {
     mockPOST.mockResolvedValueOnce({
       data: {
         metadata: { name: 'shared-cache', namespace: 'finance' },
@@ -207,107 +231,38 @@ describe('createResourceAction', () => {
     await action.handler(
       buildCtx({
         input: {
-          namespaceName: 'finance',
-          yamlContent: yamlBody({
-            name: 'shared-cache',
-            typeKind: 'ClusterResourceType',
-            typeName: 'redis',
-          }),
+          resourceName: 'shared-cache',
+          typeKind: 'ClusterResourceType' as const,
+          typeName: 'redis',
         },
       }) as any,
     );
 
+    const [, opts] = mockPOST.mock.calls[0];
+    expect(opts.body.spec.type).toEqual({
+      kind: 'ClusterResourceType',
+      name: 'redis',
+    });
     const inserted = mockImmediateCatalog.insertEntity.mock.calls[0][0];
     expect(
       inserted.metadata.annotations['openchoreo.io/resource-type-kind'],
     ).toBe('ClusterResourceType');
-    expect(inserted.metadata.annotations['openchoreo.io/resource-type']).toBe(
-      'redis',
-    );
   });
 
-  it('threads spec.parameters from the YAML onto the inserted catalog entity', async () => {
-    mockPOST.mockResolvedValueOnce({
-      data: {
-        metadata: { name: 'analytics-db', namespace: 'finance' },
-        spec: {
-          owner: { projectName: 'analytics' },
-          type: { kind: 'ResourceType', name: 'postgres' },
-          parameters: { size: 'small', replicas: 2 },
-        },
-      },
-      error: undefined,
-      response: { ok: true, status: 200 } as any,
-    });
-
+  it('threads parameters from input onto the inserted catalog entity', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
     const action = createResourceAction(
       buildConfig(),
       mockImmediateCatalog as any,
     );
     await action.handler(
       buildCtx({
-        input: {
-          namespaceName: 'finance',
-          yamlContent: `apiVersion: openchoreo.dev/v1alpha1
-kind: Resource
-metadata:
-  name: analytics-db
-spec:
-  owner:
-    projectName: analytics
-  type:
-    kind: ResourceType
-    name: postgres
-  parameters:
-    size: small
-    replicas: 2
-`,
-        },
+        input: { parameters: { size: 'small', replicas: 2 } },
       }) as any,
     );
 
     const inserted = mockImmediateCatalog.insertEntity.mock.calls[0][0];
     expect(inserted.spec.parameters).toEqual({ size: 'small', replicas: 2 });
-  });
-
-  it('rejects YAML whose spec.type.kind is neither ResourceType nor ClusterResourceType', async () => {
-    mockPOST.mockResolvedValueOnce({
-      data: {
-        metadata: { name: 'bogus', namespace: 'finance' },
-        spec: {
-          owner: { projectName: 'analytics' },
-          type: { kind: 'SomethingElse', name: 'postgres' },
-        },
-      },
-      error: undefined,
-      response: { ok: true, status: 200 } as any,
-    });
-
-    const action = createResourceAction(
-      buildConfig(),
-      mockImmediateCatalog as any,
-    );
-    await expect(
-      action.handler(
-        buildCtx({
-          input: {
-            namespaceName: 'finance',
-            yamlContent: `apiVersion: openchoreo.dev/v1alpha1
-kind: Resource
-metadata:
-  name: bogus
-spec:
-  owner:
-    projectName: analytics
-  type:
-    kind: SomethingElse
-    name: postgres
-`,
-          },
-        }) as any,
-      ),
-    ).rejects.toThrow(/spec\.type\.kind must be either/);
-    expect(mockImmediateCatalog.insertEntity).not.toHaveBeenCalled();
   });
 
   it('wraps API errors with a "Failed to create Resource" message', async () => {
@@ -325,29 +280,6 @@ spec:
       /Failed to create Resource|boom/,
     );
     expect(mockImmediateCatalog.insertEntity).not.toHaveBeenCalled();
-  });
-
-  it('rejects YAML whose kind is not Resource', async () => {
-    const action = createResourceAction(
-      buildConfig(),
-      mockImmediateCatalog as any,
-    );
-    const ctx = buildCtx({
-      input: {
-        namespaceName: 'finance',
-        yamlContent: `apiVersion: openchoreo.dev/v1alpha1
-kind: ResourceType
-metadata:
-  name: postgres
-spec: {}
-`,
-      },
-    });
-
-    await expect(action.handler(ctx as any)).rejects.toThrow(
-      /Kind must be Resource/,
-    );
-    expect(mockPOST).not.toHaveBeenCalled();
   });
 
   it('throws when authz is enabled and no user token is provided', async () => {
@@ -394,22 +326,34 @@ spec: {}
     expect(ctx.output).toHaveBeenCalledWith('resourceName', 'analytics-db');
   });
 
-  it('accepts a NamespaceEntityPicker-style domain ref and strips it down to the bare name', async () => {
+  it('accepts a namespace ref like `domain:default/finance` and strips it', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
+    const action = createResourceAction(
+      buildConfig(),
+      mockImmediateCatalog as any,
+    );
+    const ctx = buildCtx({ input: { namespaceName: 'domain:default/finance' } });
+
+    await action.handler(ctx as any);
+
+    expect(mockPOST.mock.calls[0][1].params.path.namespaceName).toBe('finance');
+    expect(ctx.output).toHaveBeenCalledWith('namespaceName', 'finance');
+  });
+
+  it('accepts a project ref like `system:default/analytics` and strips it', async () => {
     mockPOST.mockResolvedValueOnce(successResponse());
     const action = createResourceAction(
       buildConfig(),
       mockImmediateCatalog as any,
     );
     const ctx = buildCtx({
-      input: {
-        namespaceName: 'domain:default/finance',
-        yamlContent: yamlBody(),
-      },
+      input: { projectName: 'system:default/analytics' },
     });
 
     await action.handler(ctx as any);
 
-    expect(mockPOST.mock.calls[0][1].params.path.namespaceName).toBe('finance');
-    expect(ctx.output).toHaveBeenCalledWith('namespaceName', 'finance');
+    const [, opts] = mockPOST.mock.calls[0];
+    expect(opts.body.spec.owner.projectName).toBe('analytics');
+    expect(ctx.output).toHaveBeenCalledWith('projectName', 'analytics');
   });
 });
