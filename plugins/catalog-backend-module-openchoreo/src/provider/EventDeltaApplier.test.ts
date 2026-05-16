@@ -2,6 +2,7 @@ import { EntityProviderConnection } from '@backstage/plugin-catalog-node';
 import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
 import { ConfigReader } from '@backstage/config';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
+import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
 import { EventDeltaApplier } from './EventDeltaApplier';
 
 // ---------------------------------------------------------------------------
@@ -50,6 +51,7 @@ function newApplier(connection: EntityProviderConnection) {
     },
     getConnection: () => connection,
     ctdConverter: new CtdToTemplateConverter(mkLogger()),
+    rtdConverter: new RtdToTemplateConverter(mkLogger()),
   });
 }
 
@@ -96,7 +98,13 @@ describe('EventDeltaApplier.handleEvent', () => {
       ],
     },
     { kind: 'Trait', expectedRefs: ['traittype:test-ns/order'] },
-    { kind: 'ResourceType', expectedRefs: ['resourcetype:test-ns/order'] },
+    {
+      kind: 'ResourceType',
+      expectedRefs: [
+        'resourcetype:test-ns/order',
+        'template:test-ns/template-resource-order',
+      ],
+    },
     { kind: 'Resource', expectedRefs: ['resource:test-ns/order'] },
     { kind: 'Workflow', expectedRefs: ['workflow:test-ns/order'] },
   ];
@@ -139,7 +147,10 @@ describe('EventDeltaApplier.handleEvent', () => {
     },
     {
       kind: 'ClusterResourceType',
-      expectedRefs: ['clusterresourcetype:openchoreo-cluster/global'],
+      expectedRefs: [
+        'clusterresourcetype:openchoreo-cluster/global',
+        'template:openchoreo-cluster/template-resource-global',
+      ],
     },
     {
       kind: 'ClusterTrait',
@@ -221,6 +232,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       },
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
+      rtdConverter: new RtdToTemplateConverter(logger),
     });
 
     await applier.handleEvent('NotARealKind', 'foo', 'ns', 'created');
@@ -251,6 +263,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       // nowhere to go and must silently drop instead of throwing.
       getConnection: () => undefined,
       ctdConverter: new CtdToTemplateConverter(mkLogger()),
+      rtdConverter: new RtdToTemplateConverter(mkLogger()),
     });
 
     await expect(
@@ -474,6 +487,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       },
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
+      rtdConverter: new RtdToTemplateConverter(logger),
     });
 
     await applier.handleEvent('Workload', 'orphan', 'test-ns', 'created');
@@ -502,6 +516,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       },
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
+      rtdConverter: new RtdToTemplateConverter(logger),
     });
 
     await applier.handleEvent('Workload', 'gone', 'test-ns', 'created');
@@ -547,6 +562,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       },
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(mkLogger()),
+      rtdConverter: new RtdToTemplateConverter(mkLogger()),
       catalogService,
       auth,
     });
@@ -627,6 +643,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       },
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
+      rtdConverter: new RtdToTemplateConverter(logger),
       catalogService,
       auth: makeAuth(),
     });
@@ -684,6 +701,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       },
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
+      rtdConverter: new RtdToTemplateConverter(logger),
       // No catalogService / auth — production always wires them, but
       // tests/legacy callers may not.
     });

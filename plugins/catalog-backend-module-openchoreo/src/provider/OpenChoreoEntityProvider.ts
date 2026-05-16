@@ -156,6 +156,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       translatorContext: this.translatorContext,
       getConnection: () => this.connection,
       ctdConverter: this.ctdConverter,
+      rtdConverter: this.rtdConverter,
       catalogService,
       auth,
     });
