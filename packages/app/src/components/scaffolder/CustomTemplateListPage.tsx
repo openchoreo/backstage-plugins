@@ -385,7 +385,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
               <ScaffolderSearchBar />
             </Box>
             <Box className={classes.filterItem}>
-              {isComponentsView ? (
+              {isComponentsView || isResourcesView ? (
                 <ScaffolderNamespacePicker />
               ) : (
                 <ScaffolderCategoryPicker />
