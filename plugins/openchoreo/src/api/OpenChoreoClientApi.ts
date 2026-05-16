@@ -137,6 +137,11 @@ export interface ResourceReleaseBinding {
   releaseName: string;
   createdAt: string;
   retainPolicy?: 'Delete' | 'Retain';
+  /**
+   * Per-environment parameter overrides layered over
+   * Resource.spec.parameters when manifests are rendered.
+   */
+  resourceTypeEnvironmentConfigs?: Record<string, unknown>;
   status?: 'Ready' | 'NotReady' | 'Failed';
   statusReason?: string;
   statusMessage?: string;

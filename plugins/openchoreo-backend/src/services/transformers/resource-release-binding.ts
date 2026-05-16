@@ -29,6 +29,10 @@ export function transformResourceReleaseBinding(
     environment: binding.spec?.environment ?? '',
     releaseName: binding.spec?.resourceRelease ?? '',
     retainPolicy: binding.spec?.retainPolicy,
+    resourceTypeEnvironmentConfigs:
+      binding.spec?.resourceTypeEnvironmentConfigs as
+        | Record<string, unknown>
+        | undefined,
     createdAt: getCreatedAt(binding) ?? '',
     status: derived?.status,
     statusReason: derived?.reason,

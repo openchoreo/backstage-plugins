@@ -597,6 +597,11 @@ export interface ResourceReleaseBindingResponse {
   environment: string;
   releaseName: string;
   retainPolicy?: 'Delete' | 'Retain';
+  /**
+   * Per-environment parameter overrides layered over Resource.spec.parameters
+   * when the dataplane manifests are rendered.
+   */
+  resourceTypeEnvironmentConfigs?: Record<string, unknown>;
   /** Format: date-time */
   createdAt: string;
   status?: 'Ready' | 'NotReady' | 'Failed';
