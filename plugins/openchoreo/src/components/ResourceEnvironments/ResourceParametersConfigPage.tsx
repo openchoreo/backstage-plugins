@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -49,23 +49,35 @@ const useStyles = makeStyles(theme => ({
 
 export interface ResourceParametersConfigPageProps {
   onBack: () => void;
-  onSaved: () => void;
+  /**
+   * Called after the Resource is saved AND a new ResourceRelease name is
+   * known (or the existing release if the user made no changes). Receives
+   * the first env's K8s ref and the release to pin.
+   */
+  onContinue: (firstEnvRef: string, releaseName: string) => void;
 }
+
+const POLL_INTERVAL_MS = 1_000;
+const POLL_TIMEOUT_MS = 30_000;
 
 /**
  * Edits `Resource.spec.parameters` against the per-type RJSF schema
  * fetched from the (Cluster)ResourceType the Resource consumes.
- * Mutating parameters causes the Resource controller to auto-cut a new
- * `ResourceRelease`, so there's no explicit "create release" step here.
+ *
+ * Saving PUTs the Resource and (when parameters changed) polls
+ * `fetchResourceEnvironmentInfo` until the controller-cut release name
+ * differs from the pre-save baseline, then hands the new release + first
+ * env to the parent so the overrides wizard can pin them.
  */
 export const ResourceParametersConfigPage = ({
   onBack,
-  onSaved,
+  onContinue,
 }: ResourceParametersConfigPageProps) => {
   const classes = useStyles();
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
   const notification = useNotification();
+  const cancelledRef = useRef(false);
 
   const [resource, setResource] = useState<Record<string, unknown> | null>(
     null,
@@ -75,9 +87,13 @@ export const ResourceParametersConfigPage = ({
   const [initialParameters, setInitialParameters] = useState<
     Record<string, unknown>
   >({});
+  const [firstEnvRef, setFirstEnvRef] = useState<string | null>(null);
+  const [baselineRelease, setBaselineRelease] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [phase, setPhase] = useState<'idle' | 'saving' | 'awaiting-release'>(
+    'idle',
+  );
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const namespaceName =
@@ -90,15 +106,23 @@ export const ResourceParametersConfigPage = ({
       rtName) ?? rtName;
 
   useEffect(() => {
+    cancelledRef.current = false;
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
 
     const load = async () => {
       try {
-        const [resourceData, schemaResult] = await Promise.all([
+        const [resourceData, schemaResult, envs] = await Promise.all([
           client.getResourceDefinition('resources', namespaceName, resourceName),
           client.fetchResourceTypeSchema(entity),
+          client.fetchResourceEnvironmentInfo(entity),
         ]);
 
         if (cancelled) return;
@@ -114,6 +138,10 @@ export const ResourceParametersConfigPage = ({
         } else {
           setSchema({} as JSONSchema7);
         }
+
+        const firstEnv = envs[0];
+        setFirstEnvRef(firstEnv?.resourceName ?? firstEnv?.name ?? null);
+        setBaselineRelease(firstEnv?.latestRelease ?? '');
       } catch (err: unknown) {
         if (cancelled) return;
         setLoadError(err instanceof Error ? err : new Error(String(err)));
@@ -136,9 +164,59 @@ export const ResourceParametersConfigPage = ({
   const hasFields =
     !!schema?.properties && Object.keys(schema.properties).length > 0;
 
-  const handleSave = useCallback(async () => {
+  /**
+   * Polls fetchResourceEnvironmentInfo until the first env's
+   * `latestRelease` differs from the captured baseline (or a previously
+   * unset release becomes set). Resolves with the new release name or
+   * rejects on timeout.
+   */
+  const waitForNewRelease = useCallback(async (): Promise<string> => {
+    const start = Date.now();
+    while (!cancelledRef.current) {
+      if (Date.now() - start > POLL_TIMEOUT_MS) {
+        throw new Error(
+          'Timed out waiting for the new ResourceRelease to be cut by the controller.',
+        );
+      }
+      try {
+        const envs = await client.fetchResourceEnvironmentInfo(entity);
+        const current = envs[0]?.latestRelease ?? '';
+        if (current && current !== baselineRelease) {
+          return current;
+        }
+      } catch {
+        // Transient errors are tolerated within the poll window.
+      }
+      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+    }
+    throw new Error('cancelled');
+  }, [baselineRelease, client, entity]);
+
+  const handleContinue = useCallback(async () => {
+    if (!firstEnvRef) {
+      setSaveError(
+        'No environments found in the deployment pipeline. Configure environments before deploying.',
+      );
+      return;
+    }
+
+    // Unchanged parameters: skip the PUT + poll and reuse the current
+    // release immediately. Defensive against empty baseline (very fresh
+    // Resource that hasn't yet been reconciled).
+    if (!hasChanges) {
+      if (!baselineRelease) {
+        setSaveError(
+          'No release exists yet. Wait a moment for the controller to cut the first release, then try again.',
+        );
+        return;
+      }
+      onContinue(firstEnvRef, baselineRelease);
+      return;
+    }
+
     if (!resource) return;
-    setSaving(true);
+
+    setPhase('saving');
     setSaveError(null);
     try {
       const next: Record<string, unknown> = {
@@ -154,36 +232,60 @@ export const ResourceParametersConfigPage = ({
         resourceName,
         next,
       );
+      if (cancelledRef.current) return;
+
+      setPhase('awaiting-release');
+      const newRelease = await waitForNewRelease();
+      if (cancelledRef.current) return;
+
       notification.showSuccess(
-        `Saved configuration for ${resourceName}. A new release will be cut shortly.`,
+        `Saved configuration for ${resourceName}; release ${newRelease} cut.`,
       );
-      onSaved();
+      onContinue(firstEnvRef, newRelease);
     } catch (err: unknown) {
       setSaveError(getErrorMessage(err));
     } finally {
-      setSaving(false);
+      if (!cancelledRef.current) setPhase('idle');
     }
   }, [
+    baselineRelease,
     client,
+    firstEnvRef,
+    hasChanges,
     namespaceName,
     notification,
-    onSaved,
+    onContinue,
     parameters,
     resource,
     resourceName,
+    waitForNewRelease,
   ]);
+
+  const primaryLabel =
+    phase === 'saving'
+      ? 'Saving'
+      : phase === 'awaiting-release'
+      ? 'Cutting release'
+      : 'Next';
 
   const headerActions = !loading && !loadError && (
     <Button
       variant="contained"
       color="primary"
-      onClick={handleSave}
-      disabled={saving || !hasChanges || !resource}
+      onClick={handleContinue}
+      disabled={
+        phase !== 'idle' ||
+        !resource ||
+        !firstEnvRef ||
+        (!hasChanges && !baselineRelease)
+      }
       startIcon={
-        saving ? <CircularProgress size={20} color="inherit" /> : undefined
+        phase !== 'idle' ? (
+          <CircularProgress size={20} color="inherit" />
+        ) : undefined
       }
     >
-      {saving ? 'Saving' : 'Save & Close'}
+      {primaryLabel}
     </Button>
   );
 

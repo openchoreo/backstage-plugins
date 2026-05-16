@@ -57,6 +57,12 @@ const useStyles = makeStyles(theme => ({
 
 export interface ResourceEnvironmentOverridesPageProps {
   envName: string;
+  /**
+   * When set, the wizard runs in deploy mode: the binding is pinned to
+   * this release on save and the primary action reads "Deploy". Comes
+   * from the wizard chain that follows a Resource parameter edit.
+   */
+  releaseFromUrl?: string;
   onBack: () => void;
   onSaved: () => void;
 }
@@ -66,9 +72,14 @@ export interface ResourceEnvironmentOverridesPageProps {
  * a single environment. Saving issues an upsert against the binding via
  * the BFF — the controller re-renders the dataplane manifests with the
  * new env-specific values layered over `Resource.spec.parameters`.
+ *
+ * The schema comes from the snapshot stored on the pinned ResourceRelease
+ * (not the live (Cluster)ResourceType) so the form validates against what
+ * the release was actually cut against — the live type may have drifted.
  */
 export const ResourceEnvironmentOverridesPage = ({
   envName,
+  releaseFromUrl,
   onBack,
   onSaved,
 }: ResourceEnvironmentOverridesPageProps) => {
@@ -80,21 +91,28 @@ export const ResourceEnvironmentOverridesPage = ({
   const [envInfo, setEnvInfo] = useState<ResourceEnvironment | null>(null);
   const [schema, setSchema] = useState<JSONSchema7 | null>(null);
   const [overrides, setOverrides] = useState<Record<string, unknown>>({});
-  const [initialOverrides, setInitialOverrides] = useState<
-    Record<string, unknown>
-  >({});
+  const [initialOverrides] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const namespaceName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] || '';
   const rtDisplayName =
     (entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RTD_DISPLAY_NAME] ||
       entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE_TYPE]) ??
     'this resource';
   const envDisplayName = envInfo?.name ?? envName;
   const hasBinding = Boolean(envInfo?.bindingName);
+  const isDeployMode = Boolean(releaseFromUrl);
+
+  const effectiveRelease =
+    releaseFromUrl ??
+    envInfo?.resourceRelease ??
+    envInfo?.latestRelease ??
+    '';
 
   useEffect(() => {
     let cancelled = false;
@@ -103,30 +121,35 @@ export const ResourceEnvironmentOverridesPage = ({
 
     const load = async () => {
       try {
-        const [envs, schemaResult] = await Promise.all([
-          client.fetchResourceEnvironmentInfo(entity),
-          client.fetchResourceTypeSchema(entity),
-        ]);
-
+        const envs = await client.fetchResourceEnvironmentInfo(entity);
         if (cancelled) return;
 
-        // URL param is the K8s env ref (resourceName); match against that
-        // first and fall back to display name for legacy callers.
         const matchingEnv =
           envs.find(e => e.resourceName === envName || e.name === envName) ??
           null;
         setEnvInfo(matchingEnv);
 
-        // Initial overrides start empty until a focused read path lands
-        // for ResourceReleaseBinding.spec.resourceTypeEnvironmentConfigs.
-        setOverrides({});
-        setInitialOverrides({});
+        const releaseForSchema =
+          releaseFromUrl ??
+          matchingEnv?.resourceRelease ??
+          matchingEnv?.latestRelease ??
+          '';
 
-        if (schemaResult.success && schemaResult.data) {
-          setSchema(schemaResult.data as JSONSchema7);
-        } else {
+        if (!releaseForSchema) {
           setSchema({} as JSONSchema7);
+          return;
         }
+
+        const schemaResult = await client.fetchResourceReleaseSchema(
+          namespaceName,
+          releaseForSchema,
+          'environmentConfigs',
+        );
+        if (cancelled) return;
+
+        setSchema(
+          (schemaResult?.data as JSONSchema7) ?? ({} as JSONSchema7),
+        );
       } catch (err: unknown) {
         if (cancelled) return;
         setLoadError(err instanceof Error ? err : new Error(String(err)));
@@ -139,7 +162,7 @@ export const ResourceEnvironmentOverridesPage = ({
     return () => {
       cancelled = true;
     };
-  }, [client, entity, envName]);
+  }, [client, entity, envName, namespaceName, releaseFromUrl]);
 
   const hasChanges = useMemo(
     () => JSON.stringify(overrides) !== JSON.stringify(initialOverrides),
@@ -152,42 +175,45 @@ export const ResourceEnvironmentOverridesPage = ({
 
   const persist = useCallback(
     async (next: Record<string, unknown>) => {
-      const releaseName =
-        envInfo?.resourceRelease ?? envInfo?.latestRelease ?? '';
-      if (!releaseName) {
+      if (!effectiveRelease) {
         throw new Error(
           'No release available to bind. Save resource parameters first to cut a release.',
         );
       }
       const envRef = envInfo?.resourceName ?? envName;
       await client.updateResourceReleaseBinding(entity, envRef, {
-        resourceRelease: releaseName,
+        resourceRelease: effectiveRelease,
         resourceTypeEnvironmentConfigs: next,
       });
     },
-    [
-      client,
-      entity,
-      envInfo?.latestRelease,
-      envInfo?.resourceName,
-      envInfo?.resourceRelease,
-      envName,
-    ],
+    [client, effectiveRelease, entity, envInfo?.resourceName, envName],
   );
 
-  const handleSave = useCallback(async () => {
+  const handlePrimary = useCallback(async () => {
     setSaving(true);
     setSaveError(null);
     try {
       await persist(overrides);
-      notification.showSuccess(`Saved overrides for ${envDisplayName}.`);
+      notification.showSuccess(
+        isDeployMode
+          ? `Deployed ${effectiveRelease} to ${envDisplayName}.`
+          : `Saved overrides for ${envDisplayName}.`,
+      );
       onSaved();
     } catch (err: unknown) {
       setSaveError(getErrorMessage(err));
     } finally {
       setSaving(false);
     }
-  }, [envDisplayName, notification, onSaved, overrides, persist]);
+  }, [
+    effectiveRelease,
+    envDisplayName,
+    isDeployMode,
+    notification,
+    onSaved,
+    overrides,
+    persist,
+  ]);
 
   const handleClear = useCallback(async () => {
     setClearing(true);
@@ -203,29 +229,49 @@ export const ResourceEnvironmentOverridesPage = ({
     }
   }, [envDisplayName, notification, onSaved, persist]);
 
+  const canPrimary = isDeployMode ? Boolean(effectiveRelease) : hasBinding;
+  const primaryDisabled =
+    saving ||
+    clearing ||
+    !canPrimary ||
+    (!isDeployMode && !hasChanges);
+  const primaryLabel = isDeployMode
+    ? saving
+      ? 'Deploying'
+      : 'Deploy'
+    : saving
+    ? 'Saving'
+    : 'Save Overrides';
+
   const headerActions = !loading && !loadError && (
     <Box className={classes.actionsRow}>
-      <Button
-        onClick={handleClear}
-        disabled={
-          saving || clearing || !hasExistingOverrides || !hasBinding
-        }
-      >
-        {clearing ? 'Clearing' : 'Clear Overrides'}
-      </Button>
+      {!isDeployMode && (
+        <Button
+          onClick={handleClear}
+          disabled={
+            saving || clearing || !hasExistingOverrides || !hasBinding
+          }
+        >
+          {clearing ? 'Clearing' : 'Clear Overrides'}
+        </Button>
+      )}
       <Button
         variant="contained"
         color="primary"
-        onClick={handleSave}
-        disabled={saving || clearing || !hasChanges || !hasBinding}
+        onClick={handlePrimary}
+        disabled={primaryDisabled}
         startIcon={
           saving ? <CircularProgress size={20} color="inherit" /> : undefined
         }
       >
-        {saving ? 'Saving' : 'Save Overrides'}
+        {primaryLabel}
       </Button>
     </Box>
   );
+
+  const subtitle = isDeployMode
+    ? `Pin ${envDisplayName} to ${effectiveRelease} and set any ${envDisplayName}-specific overrides.`
+    : `Set ${envDisplayName}-specific values that override the ${rtDisplayName} defaults for this binding only.`;
 
   if (isForbiddenError(loadError)) {
     return (
@@ -239,7 +285,7 @@ export const ResourceEnvironmentOverridesPage = ({
   return (
     <DetailPageLayout
       title={`Configure Environment Overrides — ${envDisplayName}`}
-      subtitle={`Set ${envDisplayName}-specific values that override the ${rtDisplayName} parameters for this binding only.`}
+      subtitle={subtitle}
       onBack={onBack}
       actions={headerActions}
     >
@@ -260,7 +306,7 @@ export const ResourceEnvironmentOverridesPage = ({
         </Box>
       )}
 
-      {!loading && !loadError && !hasBinding && (
+      {!loading && !loadError && !isDeployMode && !hasBinding && (
         <Box mb={2}>
           <Alert severity="info">
             No binding exists for {envDisplayName} yet. Deploy this resource
@@ -277,7 +323,7 @@ export const ResourceEnvironmentOverridesPage = ({
         </Box>
       )}
 
-      {!loading && !loadError && hasBinding && (
+      {!loading && !loadError && (isDeployMode || hasBinding) && (
         <Box className={classes.formCard}>
           {hasFields ? (
             <>
@@ -296,8 +342,8 @@ export const ResourceEnvironmentOverridesPage = ({
             </>
           ) : (
             <Typography className={classes.emptyState}>
-              {rtDisplayName} has no configurable parameters, so per-env
-              overrides are not applicable.
+              {rtDisplayName} declares no environment-configs schema, so per-env
+              overrides are not applicable for this release.
             </Typography>
           )}
         </Box>
