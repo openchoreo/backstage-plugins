@@ -70,8 +70,8 @@ export {
 export { SecretsPage } from './components/Secrets';
 export { ComponentTypeOverviewCard } from './components/ComponentTypeOverview';
 export {
-  ResourceOverviewCard,
-  ResourceBindingsCard,
+  ResourceParametersCard,
+  ResourceDeploymentsCard,
   ConsumingComponentsCard,
 } from './components/ResourceOverview';
 export { TraitTypeOverviewCard } from './components/TraitTypeOverview';

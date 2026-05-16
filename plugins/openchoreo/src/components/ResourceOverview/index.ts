@@ -1,3 +1,3 @@
-export { ResourceOverviewCard } from './ResourceOverviewCard';
-export { ResourceBindingsCard } from './ResourceBindingsCard';
+export { ResourceParametersCard } from './ResourceParametersCard';
+export { ResourceDeploymentsCard } from './ResourceDeploymentsCard';
 export { ConsumingComponentsCard } from './ConsumingComponentsCard';

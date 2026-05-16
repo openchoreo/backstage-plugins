@@ -103,8 +103,8 @@ import {
   DeploymentPipelineVisualization,
   PromotionPathsCard,
   ComponentTypeOverviewCard,
-  ResourceOverviewCard,
-  ResourceBindingsCard,
+  ResourceParametersCard,
+  ResourceDeploymentsCard,
   ConsumingComponentsCard,
   TraitTypeOverviewCard,
   WorkflowOverviewCard,
@@ -791,16 +791,21 @@ const openchoreoResourcePage = (
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
-        <Grid item md={6} xs={12}>
-          <ResourceOverviewCard />
+        {/* Row 1: Parameters / Deployments / Consuming Components */}
+        <Grid item md={4} xs={12}>
+          <ResourceParametersCard />
         </Grid>
-        <Grid item md={6} xs={12}>
-          <ResourceBindingsCard />
+        <Grid item md={4} xs={12}>
+          <ResourceDeploymentsCard />
         </Grid>
-        <Grid item md={12} xs={12}>
+        <Grid item md={4} xs={12}>
           <ConsumingComponentsCard />
         </Grid>
-        <Grid item md={12} xs={12}>
+        {/* Row 2: About / Relations */}
+        <Grid item md={6} xs={12}>
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
+        </Grid>
+        <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
             variant="gridItem"
             height={400}

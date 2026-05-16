@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Box, Typography } from '@material-ui/core';
+import { Box, Chip, Typography } from '@material-ui/core';
 import { Progress, Link } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
-import {
-  catalogApiRef,
-  useEntity,
-} from '@backstage/plugin-catalog-react';
+import { catalogApiRef, useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef, type Entity } from '@backstage/catalog-model';
 import { Card } from '@openchoreo/backstage-design-system';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
+import { useOverviewCardStyles } from '../Environments/OverviewCard/styles';
+
+const MAX_CHIP_AREA_HEIGHT = 200;
 
 /**
  * Lists Components whose workload declares this Resource under
@@ -19,6 +19,7 @@ import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
  */
 export const ConsumingComponentsCard = () => {
   const classes = useDataplaneOverviewStyles();
+  const chipClasses = useOverviewCardStyles();
   const { entity } = useEntity();
   const catalogApi = useApi(catalogApiRef);
 
@@ -60,10 +61,14 @@ export const ConsumingComponentsCard = () => {
     return `/catalog/${ns}/component/${name}`;
   };
 
+  const headerText = !loading && !error
+    ? `Consuming Components (${components.length})`
+    : 'Consuming Components';
+
   return (
     <Card padding={24} className={classes.card}>
       <Box className={classes.cardHeader}>
-        <Typography variant="h5">Consuming Components</Typography>
+        <Typography variant="h5">{headerText}</Typography>
       </Box>
 
       {loading && <Progress />}
@@ -76,24 +81,33 @@ export const ConsumingComponentsCard = () => {
 
       {!loading && !error && components.length === 0 && (
         <Typography className={classes.statusValue}>
-          No components currently depend on this resource.
+          No consuming components.
         </Typography>
       )}
 
       {!loading && !error && components.length > 0 && (
-        <Box>
-          {components.map(c => (
-            <Box
-              key={`${c.metadata.namespace}/${c.metadata.name}`}
-              className={classes.infoRow}
-            >
-              <Typography className={classes.infoValue}>
-                <Link to={componentLink(c)}>
-                  {c.metadata.title || c.metadata.name}
-                </Link>
-              </Typography>
-            </Box>
-          ))}
+        <Box
+          className={chipClasses.environmentChips}
+          style={{ maxHeight: MAX_CHIP_AREA_HEIGHT, overflowY: 'auto' }}
+        >
+          {components.map(c => {
+            const name = c.metadata.title || c.metadata.name;
+            return (
+              <Link
+                key={`${c.metadata.namespace}/${c.metadata.name}`}
+                to={componentLink(c)}
+                style={{ textDecoration: 'none' }}
+              >
+                <Chip
+                  size="small"
+                  clickable
+                  label={name}
+                  variant="outlined"
+                  style={{ height: 24, fontWeight: 500 }}
+                />
+              </Link>
+            );
+          })}
         </Box>
       )}
     </Card>

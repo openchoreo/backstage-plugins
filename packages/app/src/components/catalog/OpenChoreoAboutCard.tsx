@@ -204,7 +204,34 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
           />
         </AboutField>
       )}
-      {typeof entity?.spec?.type === 'string' && (
+      {isResource && typeof entity?.spec?.type === 'string' && (
+        <AboutField label="Type" gridSizes={{ xs: 12, sm: 6, lg: 4 }}>
+          {(() => {
+            const typeName = entity.spec.type as string;
+            const typeKind =
+              entity.metadata.annotations?.['openchoreo.io/resource-type-kind'];
+            const namespaceName = entity.metadata.namespace ?? 'default';
+            if (typeKind === 'ClusterResourceType') {
+              return (
+                <Link
+                  to={`/catalog/openchoreo-cluster/clusterresourcetype/${typeName}`}
+                >
+                  {typeName}
+                </Link>
+              );
+            }
+            if (typeKind === 'ResourceType') {
+              return (
+                <Link to={`/catalog/${namespaceName}/resourcetype/${typeName}`}>
+                  {typeName}
+                </Link>
+              );
+            }
+            return typeName;
+          })()}
+        </AboutField>
+      )}
+      {!isResource && typeof entity?.spec?.type === 'string' && (
         <AboutField
           label="Type"
           value={entity.spec.type as string}

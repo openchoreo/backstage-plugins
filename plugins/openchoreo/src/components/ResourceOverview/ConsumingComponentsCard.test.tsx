@@ -23,6 +23,12 @@ jest.mock('../DataplaneOverview/styles', () => ({
   }),
 }));
 
+jest.mock('../Environments/OverviewCard/styles', () => ({
+  useOverviewCardStyles: () => ({
+    environmentChips: '',
+  }),
+}));
+
 function makeResource(): Entity {
   return {
     apiVersion: 'backstage.io/v1alpha1',
@@ -91,7 +97,7 @@ describe('ConsumingComponentsCard', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText('No components currently depend on this resource.'),
+        screen.getByText('No consuming components.'),
       ).toBeInTheDocument();
     });
   });
