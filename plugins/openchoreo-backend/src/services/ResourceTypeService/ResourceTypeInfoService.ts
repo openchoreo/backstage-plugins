@@ -12,8 +12,10 @@ type ResourceTypeSchemaResponse = APIResponse & {
 };
 
 /**
- * BFF service for namespace-scoped ResourceType operations. Slice 3 only
- * needs the schema fetch (consumed by the Scaffolder ResourceYamlEditor).
+ * BFF service for namespace-scoped ResourceType operations. Today the
+ * schema fetch is consumed by the catalog backend's RtdToTemplateConverter
+ * to bake the parameters schema into the per-type Resource scaffolder
+ * template (both on periodic refresh and per-event delta updates).
  * Other CRUD already flows through PlatformResourceService.
  */
 export class ResourceTypeInfoService {

@@ -12,9 +12,11 @@ type ClusterResourceTypeSchemaResponse = APIResponse & {
 };
 
 /**
- * BFF service for cluster-scoped ClusterResourceType operations. Slice 3
- * only needs the schema fetch (consumed by the Scaffolder
- * ResourceYamlEditor).
+ * BFF service for cluster-scoped ClusterResourceType operations. Today
+ * the schema fetch is consumed by the catalog backend's
+ * RtdToTemplateConverter to bake the parameters schema into the per-type
+ * Resource scaffolder template (both on periodic refresh and per-event
+ * delta updates).
  */
 export class ClusterResourceTypeInfoService {
   private logger: LoggerService;
