@@ -78,6 +78,8 @@ const API_ENDPOINTS = {
   BUILDS: '/builds',
   COMPONENT_TYPE_SCHEMA: '/component-type-schema',
   CLUSTER_COMPONENT_TYPE_SCHEMA: '/cluster-component-type-schema',
+  RESOURCE_TYPE_SCHEMA: '/resource-type-schema',
+  CLUSTER_RESOURCE_TYPE_SCHEMA: '/cluster-resource-type-schema',
   COMPONENT_TRAITS: '/component-traits',
   COMPONENT_CONFIG: '/component-config',
   TRAITS: '/traits',
@@ -903,6 +905,45 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       params: {
         namespaceName: metadata.namespace,
         ctName,
+      },
+    });
+  }
+
+  async fetchResourceTypeSchema(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
+    // Resource entities don't carry the COMPONENT annotation that
+    // extractEntityMetadata requires, so pull just what's needed here.
+    const namespaceName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+    const rtName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE_TYPE] || '';
+    const rtKind =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE_TYPE_KIND] ||
+      '';
+
+    if (!rtName) {
+      throw new Error(
+        `Missing ${CHOREO_ANNOTATIONS.RESOURCE_TYPE} annotation on entity`,
+      );
+    }
+
+    if (rtKind === 'ClusterResourceType') {
+      return this.apiFetch(API_ENDPOINTS.CLUSTER_RESOURCE_TYPE_SCHEMA, {
+        params: { crtName: rtName },
+      });
+    }
+
+    if (!namespaceName) {
+      throw new Error(
+        `Missing ${CHOREO_ANNOTATIONS.NAMESPACE} annotation on entity`,
+      );
+    }
+
+    return this.apiFetch(API_ENDPOINTS.RESOURCE_TYPE_SCHEMA, {
+      params: {
+        namespaceName,
+        rtName,
       },
     });
   }

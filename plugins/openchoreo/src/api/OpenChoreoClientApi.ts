@@ -779,6 +779,15 @@ export interface OpenChoreoClientApi {
     entity: Entity,
   ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
 
+  /**
+   * Fetch the input parameter schema for a Resource's (Cluster)ResourceType.
+   * Reads RESOURCE_TYPE + RESOURCE_TYPE_KIND annotations off the Resource
+   * entity to pick the right endpoint.
+   */
+  fetchResourceTypeSchema(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
   /** Update component config (traits and/or parameters) in a single call */
   updateComponentConfig(
     entity: Entity,
