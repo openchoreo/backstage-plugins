@@ -793,6 +793,19 @@ export interface OpenChoreoClientApi {
     entity: Entity,
   ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
 
+  /**
+   * Fetch a schema section from the frozen snapshot stored on a
+   * ResourceRelease. `parameters` returns the developer schema; `environmentConfigs`
+   * returns the per-env override schema. Pinned-release flows use this so
+   * form validation matches what the release was actually cut against,
+   * not the live (Cluster)ResourceType which may have drifted.
+   */
+  fetchResourceReleaseSchema(
+    namespaceName: string,
+    releaseName: string,
+    section: 'parameters' | 'environmentConfigs',
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
   /** Update component config (traits and/or parameters) in a single call */
   updateComponentConfig(
     entity: Entity,

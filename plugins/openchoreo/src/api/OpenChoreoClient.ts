@@ -80,6 +80,7 @@ const API_ENDPOINTS = {
   CLUSTER_COMPONENT_TYPE_SCHEMA: '/cluster-component-type-schema',
   RESOURCE_TYPE_SCHEMA: '/resource-type-schema',
   CLUSTER_RESOURCE_TYPE_SCHEMA: '/cluster-resource-type-schema',
+  RESOURCE_RELEASE_SCHEMA: '/resource-release-schema',
   COMPONENT_TRAITS: '/component-traits',
   COMPONENT_CONFIG: '/component-config',
   TRAITS: '/traits',
@@ -945,6 +946,16 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         namespaceName,
         rtName,
       },
+    });
+  }
+
+  async fetchResourceReleaseSchema(
+    namespaceName: string,
+    releaseName: string,
+    section: 'parameters' | 'environmentConfigs',
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
+    return this.apiFetch(API_ENDPOINTS.RESOURCE_RELEASE_SCHEMA, {
+      params: { namespaceName, releaseName, section },
     });
   }
 

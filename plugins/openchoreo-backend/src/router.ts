@@ -23,6 +23,10 @@ import { ClusterTraitInfoService } from './services/ClusterTraitService/ClusterT
 import { ClusterComponentTypeInfoService } from './services/ClusterComponentTypeService/ClusterComponentTypeInfoService';
 import { ResourceTypeInfoService } from './services/ResourceTypeService/ResourceTypeInfoService';
 import { ClusterResourceTypeInfoService } from './services/ClusterResourceTypeService/ClusterResourceTypeInfoService';
+import {
+  ResourceReleaseInfoService,
+  type ResourceReleaseSchemaSection,
+} from './services/ResourceReleaseService/ResourceReleaseInfoService';
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
@@ -85,6 +89,7 @@ export async function createRouter({
   clusterComponentTypeInfoService,
   resourceTypeInfoService,
   clusterResourceTypeInfoService,
+  resourceReleaseInfoService,
   secretReferencesInfoService,
   secretsService,
   authzService,
@@ -110,6 +115,7 @@ export async function createRouter({
   clusterComponentTypeInfoService: ClusterComponentTypeInfoService;
   resourceTypeInfoService: ResourceTypeInfoService;
   clusterResourceTypeInfoService: ClusterResourceTypeInfoService;
+  resourceReleaseInfoService: ResourceReleaseInfoService;
   secretReferencesInfoService: SecretReferencesService;
   secretsService: SecretsService;
   authzService: AuthzService;
@@ -445,6 +451,43 @@ export async function createRouter({
       await resourceTypeInfoService.fetchResourceTypeSchema(
         namespaceName as string,
         rtName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for fetching a frozen schema section snapshotted on a
+  // ResourceRelease. Pinned-release flows (override wizard) use this so
+  // form validation matches what the release was actually cut against,
+  // not the live (Cluster)ResourceType which may have drifted.
+  router.get('/resource-release-schema', async (req, res) => {
+    const { namespaceName, releaseName, section } = req.query;
+    const allowedSections: ResourceReleaseSchemaSection[] = [
+      'parameters',
+      'environmentConfigs',
+    ];
+
+    if (!namespaceName || !releaseName) {
+      throw new InputError(
+        'namespaceName and releaseName are required query parameters',
+      );
+    }
+    if (
+      !section ||
+      !allowedSections.includes(section as ResourceReleaseSchemaSection)
+    ) {
+      throw new InputError(
+        `section must be one of: ${allowedSections.join(', ')}`,
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await resourceReleaseInfoService.fetchResourceReleaseSchema(
+        namespaceName as string,
+        releaseName as string,
+        section as ResourceReleaseSchemaSection,
         userToken,
       ),
     );
