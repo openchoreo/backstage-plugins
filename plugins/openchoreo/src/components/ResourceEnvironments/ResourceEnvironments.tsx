@@ -7,9 +7,7 @@ import { ResourceParametersConfigWrapper } from './ResourceParametersConfigWrapp
  *
  * Sub-routes:
  * - `/` — deploy view (canvas + detail panel)
- * - `/parameters-config` — Step 1 wizard (Configure Resource)
- *
- * Phase B-3 will add `/overrides/:envName` for the Step 2 wizard.
+ * - `/parameters-config` — Configure Resource wizard
  */
 export const ResourceEnvironments = () => (
   <Routes>

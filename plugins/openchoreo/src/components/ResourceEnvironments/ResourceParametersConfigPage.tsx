@@ -53,14 +53,10 @@ export interface ResourceParametersConfigPageProps {
 }
 
 /**
- * Step 1 of the Resource setup-to-deploy wizard. Edits
- * `Resource.spec.parameters` against the per-type RJSF schema fetched
- * from the (Cluster)ResourceType the Resource consumes. Mutating
- * parameters causes the Resource controller to auto-cut a new
+ * Edits `Resource.spec.parameters` against the per-type RJSF schema
+ * fetched from the (Cluster)ResourceType the Resource consumes.
+ * Mutating parameters causes the Resource controller to auto-cut a new
  * `ResourceRelease`, so there's no explicit "create release" step here.
- *
- * Phase B-2 ships this as a save-and-close surface. Phase B-3 will swap
- * the primary action to "Next" and add the Step 2 overrides flow.
  */
 export const ResourceParametersConfigPage = ({
   onBack,
