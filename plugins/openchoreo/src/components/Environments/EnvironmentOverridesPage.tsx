@@ -708,7 +708,7 @@ export const EnvironmentOverridesPage = ({
               disabled={saving || deleting}
               style={{ marginRight: 8 }}
             >
-              View diff
+              View release diff
             </Button>
           </span>
         </Tooltip>

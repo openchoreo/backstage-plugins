@@ -48,17 +48,22 @@ const useStyles = makeStyles<Theme, StyleProps>(theme => ({
     whiteSpace: 'nowrap',
   },
   container: ({ height, isDark }) => ({
-    height,
     fontSize: '0.75rem',
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: theme.shape.borderRadius,
     overflow: 'hidden',
     backgroundColor: isDark ? '#1e1e1e' : '#fafafa',
-    '& .cm-mergeView, & .cm-mergeViewEditors': {
-      height: '100%',
+    // Per CodeMirror's MergeView docs: views are not scrollable by default —
+    // the .cm-mergeView itself must have a height and `overflow: auto` to
+    // become the scroller. Both panes are children of .cm-mergeView, so they
+    // scroll together as one unit. CM's baseTheme forces inner .cm-scroller
+    // to height:auto + overflow:visible when nested in a .cm-mergeView, so
+    // we don't override those.
+    '& .cm-mergeView': {
+      height,
+      overflow: 'auto',
     },
     '& .cm-editor': {
-      height: '100%',
       backgroundColor: 'transparent',
     },
     '& .cm-scroller': {
