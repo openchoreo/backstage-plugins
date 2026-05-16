@@ -35,6 +35,7 @@ import type { TemplateListPageProps } from '@backstage/plugin-scaffolder/alpha';
 import { Link } from 'react-router-dom';
 import { usePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import useMediaQuery from '@material-ui/core/useMediaQuery';
 import { Theme } from '@material-ui/core/styles';
 import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
@@ -263,7 +264,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
       title: 'Resource Templates',
       filter: (e: any) =>
         e.spec?.type === 'Resource' &&
-        e.metadata?.annotations?.['openchoreo.io/rtd-generated'] === 'true',
+        e.metadata?.annotations?.[CHOREO_ANNOTATIONS.RTD_GENERATED] === 'true',
     },
   ];
 
