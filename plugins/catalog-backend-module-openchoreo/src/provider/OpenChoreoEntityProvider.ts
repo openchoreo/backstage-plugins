@@ -23,6 +23,7 @@ import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
 import { DeploymentPipelineEntityV1alpha1 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
+import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
 import { ComponentWorkloadData } from '../utils/types';
 import {
   buildComponentDependsOnRefs,
@@ -100,6 +101,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly baseUrl: string;
   private readonly defaultOwner: string;
   private readonly ctdConverter: CtdToTemplateConverter;
+  private readonly rtdConverter: RtdToTemplateConverter;
   private readonly componentTypeUtils: ComponentTypeUtils;
   private readonly tokenService?: OpenChoreoTokenService;
   private readonly events?: EventsService;
@@ -130,6 +132,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     this.defaultOwner = `group:default/${ownerName}`;
     // Initialize CTD to Template converter
     this.ctdConverter = new CtdToTemplateConverter({
+      defaultOwner: this.defaultOwner,
+    });
+    // Initialize RTD to Template converter — generates per-type Resource
+    // wizards from (Cluster)ResourceType entities.
+    this.rtdConverter = new RtdToTemplateConverter({
       defaultOwner: this.defaultOwner,
     });
     // Initialize component type utilities from config
@@ -960,6 +967,87 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             })
             .filter((e): e is Entity => e !== null);
           allEntities.push(...rtEntities);
+
+          // Generate per-type scaffolder Template entities from each
+          // ResourceType — mirrors the CTD template generation above.
+          const rtsWithSchemas = await Promise.all(
+            resourceTypes.map(async rt => {
+              const rtName = getName(rt);
+              if (!rtName) return null;
+              try {
+                const { data: schemaData, error: schemaError } =
+                  await client.GET(
+                    '/api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}/schema',
+                    {
+                      params: {
+                        path: { namespaceName: nsName, rtName },
+                      },
+                    },
+                  );
+
+                if (schemaError || !schemaData) {
+                  this.logger.warn(
+                    `Failed to fetch schema for ResourceType ${rtName} in namespace ${nsName}`,
+                  );
+                  return null;
+                }
+
+                return {
+                  metadata: {
+                    name: rtName,
+                    displayName: getDisplayName(rt),
+                    description: getDescription(rt),
+                    createdAt: getCreatedAt(rt) || '',
+                  },
+                  spec: {
+                    parameters: { openAPIV3Schema: schemaData as any },
+                    retainPolicy: rt.spec?.retainPolicy as
+                      | 'Delete'
+                      | 'Retain'
+                      | undefined,
+                  },
+                };
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to fetch schema for ResourceType ${rtName} in namespace ${nsName}: ${error}`,
+                );
+                return null;
+              }
+            }),
+          );
+
+          const validRts = rtsWithSchemas.filter(
+            (rt): rt is NonNullable<typeof rt> => rt !== null,
+          );
+
+          const rtTemplateEntities: Entity[] = validRts
+            .map(rt => {
+              try {
+                const templateEntity =
+                  this.rtdConverter.convertRtdToTemplateEntity(rt, nsName);
+                if (!templateEntity.metadata.annotations) {
+                  templateEntity.metadata.annotations = {};
+                }
+                templateEntity.metadata.annotations[
+                  'backstage.io/managed-by-location'
+                ] = `provider:${this.getProviderName()}`;
+                templateEntity.metadata.annotations[
+                  'backstage.io/managed-by-origin-location'
+                ] = `provider:${this.getProviderName()}`;
+                return templateEntity;
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to convert ResourceType ${rt.metadata.name} to template: ${error}`,
+                );
+                return null;
+              }
+            })
+            .filter((entity): entity is Entity => entity !== null);
+
+          allEntities.push(...rtTemplateEntities);
+          this.logger.debug(
+            `Generated ${rtTemplateEntities.length} template entities from ResourceTypes in namespace: ${nsName}`,
+          );
         } catch (error) {
           this.logger.warn(
             `Failed to fetch resource types for namespace ${nsName}: ${error}`,
@@ -1209,6 +1297,86 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           })
           .filter((e): e is Entity => e !== null);
         allEntities.push(...crtEntities);
+
+        // Generate per-type scaffolder Template entities from each
+        // ClusterResourceType — mirrors the CCT template generation above.
+        const crtsWithSchemas = await Promise.all(
+          clusterResourceTypes.map(async crt => {
+            const crtName = getName(crt);
+            if (!crtName) return null;
+            try {
+              const { data: schemaData, error: schemaError } = await client.GET(
+                '/api/v1/clusterresourcetypes/{crtName}/schema',
+                {
+                  params: {
+                    path: { crtName },
+                  },
+                },
+              );
+
+              if (schemaError || !schemaData) {
+                this.logger.warn(
+                  `Failed to fetch schema for ClusterResourceType ${crtName}`,
+                );
+                return null;
+              }
+
+              return {
+                metadata: {
+                  name: crtName,
+                  displayName: getDisplayName(crt),
+                  description: getDescription(crt),
+                  createdAt: getCreatedAt(crt) || '',
+                },
+                spec: {
+                  parameters: { openAPIV3Schema: schemaData as any },
+                  retainPolicy: crt.spec?.retainPolicy as
+                    | 'Delete'
+                    | 'Retain'
+                    | undefined,
+                },
+              };
+            } catch (error) {
+              this.logger.warn(
+                `Failed to fetch schema for ClusterResourceType ${crtName}: ${error}`,
+              );
+              return null;
+            }
+          }),
+        );
+
+        const validCrts = crtsWithSchemas.filter(
+          (crt): crt is NonNullable<typeof crt> => crt !== null,
+        );
+
+        const crtTemplateEntities: Entity[] = validCrts
+          .map(crt => {
+            try {
+              const templateEntity =
+                this.rtdConverter.convertClusterRtdToTemplateEntity(crt);
+              if (!templateEntity.metadata.annotations) {
+                templateEntity.metadata.annotations = {};
+              }
+              templateEntity.metadata.annotations[
+                'backstage.io/managed-by-location'
+              ] = `provider:${this.getProviderName()}`;
+              templateEntity.metadata.annotations[
+                'backstage.io/managed-by-origin-location'
+              ] = `provider:${this.getProviderName()}`;
+              return templateEntity;
+            } catch (error) {
+              this.logger.warn(
+                `Failed to convert ClusterResourceType ${crt.metadata.name} to template: ${error}`,
+              );
+              return null;
+            }
+          })
+          .filter((entity): entity is Entity => entity !== null);
+
+        allEntities.push(...crtTemplateEntities);
+        this.logger.info(
+          `Successfully generated ${crtTemplateEntities.length} template entities from ClusterResourceTypes`,
+        );
       } catch (error) {
         this.logger.warn(`Failed to fetch cluster resource types: ${error}`);
       }
