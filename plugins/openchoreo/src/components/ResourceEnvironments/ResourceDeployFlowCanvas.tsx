@@ -13,32 +13,43 @@ import {
   GraphControls,
   MINI_ENV_NODE_HEIGHT,
   MINI_ENV_NODE_WIDTH,
+  MINI_SETUP_NODE_HEIGHT,
+  MINI_SETUP_NODE_WIDTH,
   PipelineEdge,
   useHtmlGraphZoom,
 } from '@openchoreo/backstage-plugin-react';
 import type { ResourceEnvironment } from '../../api/OpenChoreoClientApi';
 import { useResourceDeployFlowCanvasStyles } from './styles';
 import { ResourceMiniEnvironmentNode } from './ResourceMiniEnvironmentNode';
+import { ResourceSetupCard } from './ResourceSetupCard';
+
+const SETUP_NODE_ID = '__setup__';
 
 interface ResourceDeployFlowCanvasProps {
   environments: ResourceEnvironment[];
   selectedEnvName: string | null;
+  selectedSetup: boolean;
   onSelectEnv: (envName: string | null) => void;
+  onSelectSetup: () => void;
+  onClearSelection: () => void;
 }
 
 /**
- * Pipeline DAG for a Resource's environments. Lays out compact env tiles
- * via the shared dagre helpers from @openchoreo/backstage-plugin-react and
- * pans/zooms via a CSS-transform layer. Click a tile to select it; the
- * detail panel mounts the full action surface separately.
+ * Pipeline DAG for a Resource's environments. Lays out a leading Set up
+ * tile plus compact env tiles via the shared dagre helpers from
+ * @openchoreo/backstage-plugin-react and pans/zooms via a CSS-transform
+ * layer. Click a tile to select it; the detail panel mounts the full
+ * action surface separately.
  *
- * Mirrors Component's DeployFlowCanvas without the synthetic setup node
- * (resources have no workload-config concept) or incidents/drift overlays.
+ * Mirrors Component's DeployFlowCanvas without incidents/drift overlays.
  */
 export const ResourceDeployFlowCanvas = ({
   environments,
   selectedEnvName,
+  selectedSetup,
   onSelectEnv,
+  onSelectSetup,
+  onClearSelection,
 }: ResourceDeployFlowCanvasProps) => {
   const classes = useResourceDeployFlowCanvasStyles();
   const tokens = useChoreoTokens();
@@ -53,6 +64,10 @@ export const ResourceDeployFlowCanvas = ({
       direction,
       defaultWidth: MINI_ENV_NODE_WIDTH,
       defaultHeight: MINI_ENV_NODE_HEIGHT,
+      nodeSize: node => ({
+        width: node.isSetup ? MINI_SETUP_NODE_WIDTH : MINI_ENV_NODE_WIDTH,
+        height: node.isSetup ? MINI_SETUP_NODE_HEIGHT : MINI_ENV_NODE_HEIGHT,
+      }),
       nodesep: 24,
       ranksep: 60,
     });
@@ -97,9 +112,7 @@ export const ResourceDeployFlowCanvas = ({
     fitToView,
   ]);
 
-  // buildEnvPipelineNodes prepends a synthetic setup node we don't want
-  // here. Filter it out and only render real env nodes; setup edges are
-  // dropped naturally because we never render a setup tile.
+  const setupNode = layout?.nodes.find(n => n.id === SETUP_NODE_ID);
   const envNodes = (layout?.nodes ?? []).filter(n => !n.isSetup);
 
   const envMap = useMemo(() => {
@@ -110,7 +123,7 @@ export const ResourceDeployFlowCanvas = ({
 
   const handleBackgroundClick = (e: ReactMouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
-      onSelectEnv(null);
+      onClearSelection();
     }
   };
 
@@ -142,11 +155,34 @@ export const ResourceDeployFlowCanvas = ({
           }}
           onClick={handleBackgroundClick}
         >
-          {layout.edges
-            .filter(edge => edge.from !== '__setup__' && edge.to !== '__setup__')
-            .map(edge => (
-              <PipelineEdge key={`${edge.from}-${edge.to}`} edge={edge} />
-            ))}
+          {layout.edges.map(edge => (
+            <PipelineEdge key={`${edge.from}-${edge.to}`} edge={edge} />
+          ))}
+
+          {setupNode && (
+            <Box
+              className={classes.setupNodeWrapper}
+              role="button"
+              tabIndex={0}
+              aria-pressed={selectedSetup}
+              aria-label="Select setup"
+              onClick={onSelectSetup}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectSetup();
+                }
+              }}
+              style={{
+                left: setupNode.x,
+                top: setupNode.y,
+                width: setupNode.width,
+                height: setupNode.height,
+              }}
+            >
+              <ResourceSetupCard selected={selectedSetup} />
+            </Box>
+          )}
 
           {envNodes.map(node => {
             const env = envMap.get(node.id);

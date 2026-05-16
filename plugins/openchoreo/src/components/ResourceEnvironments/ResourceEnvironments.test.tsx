@@ -39,8 +39,17 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
   }),
   // The canvas internals are exercised in their own test; here we stub the
   // graph layout so jsdom doesn't need to mount the real dagre + zoom infra.
-  buildEnvPipelineNodes: (envs: any[]) =>
-    envs.map((e: any) => ({ id: e.name, isSetup: false, data: e, parents: [] })),
+  // Mirror the real buildEnvPipelineNodes shape: prepend a synthetic setup
+  // node so the canvas exercises the Setup-tile render path.
+  buildEnvPipelineNodes: (envs: any[]) => [
+    { id: '__setup__', isSetup: true, data: undefined, parents: [] },
+    ...envs.map((e: any) => ({
+      id: e.name,
+      isSetup: false,
+      data: e,
+      parents: [],
+    })),
+  ],
   computePipelineLayout: (nodes: any[]) => ({
     width: 200,
     height: 200,
@@ -51,6 +60,8 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
   PipelineEdge: () => null,
   MINI_ENV_NODE_WIDTH: 100,
   MINI_ENV_NODE_HEIGHT: 100,
+  MINI_SETUP_NODE_WIDTH: 100,
+  MINI_SETUP_NODE_HEIGHT: 100,
   useHtmlGraphZoom: () => ({
     containerRef: { current: null },
     contentRef: { current: null },
@@ -224,6 +235,83 @@ describe('ResourceEnvironments', () => {
           screen.getByText(/no binding in this environment yet/i),
         ).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('setup tile', () => {
+    const envs = [
+      {
+        name: 'dev',
+        bindingName: 'b-dev',
+        resourceRelease: 'rel-1',
+        retainPolicy: 'Delete' as const,
+        status: 'Ready' as const,
+        latestRelease: 'rel-1',
+      },
+    ];
+
+    it('renders the Setup tile alongside env tiles', async () => {
+      const client = {
+        fetchResourceEnvironmentInfo: jest.fn().mockResolvedValue(envs),
+      };
+      renderTab(client);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: /select setup/i }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('opens the Setup detail pane when the Setup tile is clicked', async () => {
+      const client = {
+        fetchResourceEnvironmentInfo: jest.fn().mockResolvedValue(envs),
+      };
+      renderTab(client);
+
+      // Auto-selected env panel is showing.
+      await waitFor(() => {
+        expect(screen.getByText('Actions')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /select setup/i }));
+
+      // Configure & Deploy button is the unique marker of the Setup pane.
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: /configure & deploy/i }),
+        ).toBeInTheDocument();
+      });
+      // Env-panel Actions heading is gone — only one pane shows at a time.
+      expect(screen.queryByText('Actions')).not.toBeInTheDocument();
+    });
+
+    it('clears the Setup selection when a different env tile is clicked', async () => {
+      const client = {
+        fetchResourceEnvironmentInfo: jest.fn().mockResolvedValue(envs),
+      };
+      renderTab(client);
+
+      // Open Setup pane.
+      fireEvent.click(
+        await screen.findByRole('button', { name: /select setup/i }),
+      );
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: /configure & deploy/i }),
+        ).toBeInTheDocument();
+      });
+
+      // Click an env tile → env panel comes back, Setup pane goes away.
+      fireEvent.click(
+        screen.getByRole('button', { name: /select environment dev/i }),
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Actions')).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByRole('button', { name: /configure & deploy/i }),
+      ).not.toBeInTheDocument();
     });
   });
 

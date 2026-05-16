@@ -14,6 +14,7 @@ import { NotificationBanner } from '../Environments/components';
 import { useEnvironmentPolling } from '../Environments/hooks';
 import { ResourceDeployFlowCanvas } from './ResourceDeployFlowCanvas';
 import { ResourceEnvironmentDetailPanel } from './ResourceEnvironmentDetailPanel';
+import { ResourceSetupDetailPane } from './ResourceSetupDetailPane';
 import {
   ResourceEnvironmentsProvider,
   type ActionKind,
@@ -22,9 +23,6 @@ import { UndeployConfirmDialog } from './UndeployConfirmDialog';
 import { useResourceDeployFlowCanvasStyles } from './styles';
 
 const useStyles = makeStyles(theme => ({
-  page: {
-    padding: theme.spacing(3),
-  },
   error: {
     color: theme.palette.error.main,
   },
@@ -50,8 +48,35 @@ export const ResourceEnvironments = () => {
   } | null>(null);
   const [undeployTarget, setUndeployTarget] =
     useState<ResourceEnvironment | null>(null);
-  const [selectedEnvName, setSelectedEnvName] = useState<string | null>(null);
+  const [selectedEnvName, setSelectedEnvNameState] = useState<string | null>(
+    null,
+  );
+  const [selectedSetup, setSelectedSetup] = useState(false);
   const cancelledRef = useRef(false);
+
+  // Selecting an env clears the Setup selection and vice versa — the
+  // right pane shows at most one of them.
+  const setSelectedEnvName = useCallback((name: string | null) => {
+    setSelectedEnvNameState(name);
+    if (name !== null) setSelectedSetup(false);
+  }, []);
+
+  const handleSelectSetup = useCallback(() => {
+    setSelectedSetup(true);
+    setSelectedEnvNameState(null);
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedSetup(false);
+    setSelectedEnvNameState(null);
+  }, []);
+
+  // First-deploy wizard route lands in Phase B-2; for now the Set up
+  // panel's Configure & Deploy button is a no-op so the surface is
+  // visible end-to-end without a broken navigation.
+  const handleConfigureDeploy = useCallback(() => {
+    // TODO(B-2): navigate to /environments/parameters-config
+  }, []);
 
   useEffect(() => {
     cancelledRef.current = false;
@@ -83,19 +108,22 @@ export const ResourceEnvironments = () => {
   }, [fetchEnvs]);
 
   // Auto-select the first env once data lands so the detail panel isn't
-  // empty on initial render. Subsequent loads don't override the user's
-  // selection unless the previously selected env disappeared.
+  // empty on initial render. Skips when the Setup tile is currently
+  // selected so a background refresh doesn't steal focus. Subsequent
+  // loads don't override the user's selection unless the previously
+  // selected env disappeared.
   useEffect(() => {
     if (envs.length === 0) return;
+    if (selectedSetup) return;
     if (!selectedEnvName) {
-      setSelectedEnvName(envs[0].name);
+      setSelectedEnvNameState(envs[0].name);
       return;
     }
     const stillPresent = envs.some(e => e.name === selectedEnvName);
     if (!stillPresent) {
-      setSelectedEnvName(envs[0].name);
+      setSelectedEnvNameState(envs[0].name);
     }
-  }, [envs, selectedEnvName]);
+  }, [envs, selectedEnvName, selectedSetup]);
 
   // Background poll while any binding is mid-rollout. Pin advances kick
   // the controller into a Progressing state that flips back to Ready
@@ -245,62 +273,62 @@ export const ResourceEnvironments = () => {
   }
 
   if (loading) {
-    return (
-      <Box className={classes.page}>
-        <Progress />
-      </Box>
-    );
+    return <Progress />;
   }
 
   if (error) {
     return (
-      <Box className={classes.page}>
-        <Typography variant="body1" className={classes.error}>
-          Failed to load environments: {getErrorMessage(error)}
-        </Typography>
-      </Box>
+      <Typography variant="body1" className={classes.error}>
+        Failed to load environments: {getErrorMessage(error)}
+      </Typography>
     );
   }
 
   if (envs.length === 0) {
     return (
-      <Box className={classes.page}>
-        <Typography variant="body1" className={classes.empty}>
-          No environments configured in the project's deployment pipeline.
-        </Typography>
-      </Box>
+      <Typography variant="body1" className={classes.empty}>
+        No environments configured in the project's deployment pipeline.
+      </Typography>
     );
   }
 
   return (
     <ResourceEnvironmentsProvider value={contextValue}>
-      <Box className={classes.page}>
-        <NotificationBanner notification={notification.notification} />
-        <Box className={canvasClasses.splitContainer}>
-          <ResourceDeployFlowCanvas
-            environments={envs}
-            selectedEnvName={selectedEnvName}
-            onSelectEnv={setSelectedEnvName}
-          />
-          <Box className={canvasClasses.detailPanelFrame}>
+      <NotificationBanner notification={notification.notification} />
+      <Box className={canvasClasses.splitContainer}>
+        <ResourceDeployFlowCanvas
+          environments={envs}
+          selectedEnvName={selectedEnvName}
+          selectedSetup={selectedSetup}
+          onSelectEnv={setSelectedEnvName}
+          onSelectSetup={handleSelectSetup}
+          onClearSelection={handleClearSelection}
+        />
+        <Box className={canvasClasses.detailPanelFrame}>
+          {selectedSetup ? (
+            <ResourceSetupDetailPane
+              onConfigureDeploy={handleConfigureDeploy}
+              onClose={handleClearSelection}
+            />
+          ) : (
             <ResourceEnvironmentDetailPanel
               env={selectedEnv}
               onClose={() => setSelectedEnvName(null)}
             />
-          </Box>
+          )}
         </Box>
-        <UndeployConfirmDialog
-          open={undeployTarget !== null}
-          envName={undeployTarget?.name ?? ''}
-          retainPolicy={undeployTarget?.retainPolicy}
-          busy={
-            pendingAction?.env === undeployTarget?.name &&
-            pendingAction?.kind === 'undeploy'
-          }
-          onCancel={handleUndeployCancel}
-          onConfirm={handleUndeployConfirm}
-        />
       </Box>
+      <UndeployConfirmDialog
+        open={undeployTarget !== null}
+        envName={undeployTarget?.name ?? ''}
+        retainPolicy={undeployTarget?.retainPolicy}
+        busy={
+          pendingAction?.env === undeployTarget?.name &&
+          pendingAction?.kind === 'undeploy'
+        }
+        onCancel={handleUndeployCancel}
+        onConfirm={handleUndeployConfirm}
+      />
     </ResourceEnvironmentsProvider>
   );
 };

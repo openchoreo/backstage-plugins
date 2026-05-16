@@ -1,9 +1,9 @@
 import { makeStyles } from '@material-ui/core/styles';
+import { alpha } from '@material-ui/core/styles/colorManipulator';
 
 /**
  * Split-pane container for the Deploy tab. Canvas on the left, detail
- * panel on the right. Mirrors Component's deploy layout but without the
- * setup-node row; resources don't have a workload-config concept.
+ * panel on the right. Mirrors Component's deploy layout.
  */
 export const useResourceDeployFlowCanvasStyles = makeStyles(theme => ({
   splitContainer: {
@@ -48,6 +48,11 @@ export const useResourceDeployFlowCanvasStyles = makeStyles(theme => ({
     transformOrigin: '0 0',
   },
   nodeWrapper: { position: 'absolute' },
+  setupNodeWrapper: {
+    position: 'absolute',
+    display: 'flex',
+    alignItems: 'center',
+  },
   controlsOverlay: {
     position: 'absolute',
     bottom: theme.spacing(2),
@@ -60,6 +65,66 @@ export const useResourceDeployFlowCanvasStyles = makeStyles(theme => ({
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: 12,
     backgroundColor: theme.palette.background.paper,
+  },
+}));
+
+/**
+ * Compact `Set up` tile shown as the leftmost node on the deploy canvas.
+ * Width/height come from MINI_SETUP_NODE_* constants in
+ * @openchoreo/backstage-plugin-react so the dagre layout reserves the
+ * correct space.
+ */
+export const useResourceSetupCardCompactStyles = makeStyles(theme => ({
+  setupCard: {
+    backgroundColor: theme.palette.background.paper,
+    color: theme.palette.text.primary,
+    padding: theme.spacing(2),
+    borderRadius: 12,
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxSizing: 'border-box',
+    border: `1px dashed ${theme.palette.divider}`,
+    gap: theme.spacing(0.75),
+    cursor: 'pointer',
+    transition: 'box-shadow 120ms ease, border-color 120ms ease',
+    '&:hover': {
+      boxShadow: theme.shadows[3],
+    },
+  },
+  cardSelected: {
+    borderColor: theme.palette.primary.main,
+    borderStyle: 'solid',
+    backgroundColor: alpha(
+      theme.palette.primary.main,
+      theme.palette.type === 'dark' ? 0.12 : 0.04,
+    ),
+    boxShadow: `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[4]}`,
+    '&:hover': {
+      boxShadow: `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[4]}`,
+    },
+  },
+  titleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing(1),
+  },
+  titleIcon: {
+    color: theme.palette.text.primary,
+    fontSize: '1.1rem',
+  },
+  title: {
+    fontWeight: 600,
+    color: theme.palette.text.primary,
+  },
+  hint: {
+    color: theme.palette.text.secondary,
+    fontSize: '0.78rem',
+    textAlign: 'center',
   },
 }));
 
