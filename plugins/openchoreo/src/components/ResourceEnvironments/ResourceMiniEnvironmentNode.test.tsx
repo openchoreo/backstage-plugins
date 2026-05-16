@@ -29,7 +29,7 @@ describe('ResourceMiniEnvironmentNode', () => {
     );
 
     expect(screen.getByText('dev')).toBeInTheDocument();
-    expect(screen.getByTestId('status-badge').textContent).toBe('success');
+    expect(screen.getByTestId('status-badge').textContent).toBe('active');
     expect(screen.getByText('rel-abc')).toBeInTheDocument();
   });
 

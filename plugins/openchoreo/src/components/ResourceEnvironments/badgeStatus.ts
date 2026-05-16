@@ -10,7 +10,7 @@ export function deriveResourceEnvBadgeStatus(
   env: ResourceEnvironment,
 ): StatusType {
   if (!env.bindingName) return 'not-deployed';
-  if (env.status === 'Ready') return 'success';
+  if (env.status === 'Ready') return 'active';
   if (env.status === 'Failed') return 'failed';
   if (env.status === 'NotReady') return 'pending';
   return 'unknown';

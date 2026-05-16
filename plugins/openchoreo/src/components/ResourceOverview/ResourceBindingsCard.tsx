@@ -17,7 +17,7 @@ import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
 type Status = ResourceReleaseBinding['status'];
 
 function deriveBadgeStatus(status: Status): StatusType {
-  if (status === 'Ready') return 'success';
+  if (status === 'Ready') return 'active';
   if (status === 'NotReady') return 'pending';
   if (status === 'Failed') return 'failed';
   return 'unknown';

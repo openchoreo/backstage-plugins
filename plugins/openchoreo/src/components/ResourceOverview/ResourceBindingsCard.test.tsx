@@ -104,8 +104,8 @@ describe('ResourceBindingsCard', () => {
     expect(screen.getByText('analytics-db-def456')).toBeInTheDocument();
     const badges = screen.getAllByTestId('status-badge');
     expect(badges.map(b => b.textContent).sort()).toEqual([
+      'active',
       'pending',
-      'success',
     ]);
   });
 
