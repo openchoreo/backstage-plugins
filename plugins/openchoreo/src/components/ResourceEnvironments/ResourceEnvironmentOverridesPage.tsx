@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -91,7 +91,22 @@ export const ResourceEnvironmentOverridesPage = ({
   const [envInfo, setEnvInfo] = useState<ResourceEnvironment | null>(null);
   const [schema, setSchema] = useState<JSONSchema7 | null>(null);
   const [overrides, setOverrides] = useState<Record<string, unknown>>({});
-  const [initialOverrides] = useState<Record<string, unknown>>({});
+  const [initialOverrides, setInitialOverrides] = useState<
+    Record<string, unknown>
+  >({});
+  /**
+   * True when the binding had a non-empty resourceTypeEnvironmentConfigs
+   * map. Distinct from `hasChanges` because RJSF auto-fills defaults from
+   * the schema on mount; we use the backend's perspective to gate the
+   * Clear Overrides action.
+   */
+  const [hasActualOverrides, setHasActualOverrides] = useState(false);
+  /**
+   * Set on the first RJSF onChange after a load. The first onChange may
+   * carry schema-default expansion that we don't want to count as a user
+   * change — we capture that normalized formData as the initial baseline.
+   */
+  const formInitializedRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
@@ -121,13 +136,34 @@ export const ResourceEnvironmentOverridesPage = ({
 
     const load = async () => {
       try {
-        const envs = await client.fetchResourceEnvironmentInfo(entity);
+        const [envs, bindings] = await Promise.all([
+          client.fetchResourceEnvironmentInfo(entity),
+          client.fetchResourceReleaseBindings(entity),
+        ]);
         if (cancelled) return;
 
         const matchingEnv =
           envs.find(e => e.resourceName === envName || e.name === envName) ??
           null;
         setEnvInfo(matchingEnv);
+
+        const envRef = matchingEnv?.resourceName ?? envName;
+        const matchingBinding =
+          bindings?.data?.items?.find(b => b.environment === envRef) ?? null;
+        const backendOverrides =
+          (matchingBinding?.resourceTypeEnvironmentConfigs as
+            | Record<string, unknown>
+            | undefined) ?? {};
+        const backendOverridesCopy = JSON.parse(
+          JSON.stringify(backendOverrides),
+        );
+
+        // Reset the RJSF-init guard before seeding state so the first
+        // onChange on the new form captures the normalized baseline.
+        formInitializedRef.current = false;
+        setOverrides(backendOverridesCopy);
+        setInitialOverrides(backendOverridesCopy);
+        setHasActualOverrides(Object.keys(backendOverrides).length > 0);
 
         const releaseForSchema =
           releaseFromUrl ??
@@ -171,7 +207,6 @@ export const ResourceEnvironmentOverridesPage = ({
 
   const hasFields =
     !!schema?.properties && Object.keys(schema.properties).length > 0;
-  const hasExistingOverrides = Object.keys(initialOverrides).length > 0;
 
   const persist = useCallback(
     async (next: Record<string, unknown>) => {
@@ -249,7 +284,7 @@ export const ResourceEnvironmentOverridesPage = ({
         <Button
           onClick={handleClear}
           disabled={
-            saving || clearing || !hasExistingOverrides || !hasBinding
+            saving || clearing || !hasActualOverrides || !hasBinding
           }
         >
           {clearing ? 'Clearing' : 'Clear Overrides'}
@@ -336,7 +371,21 @@ export const ResourceEnvironmentOverridesPage = ({
                 schema={schema as any}
                 uiSchema={{}}
                 formData={overrides}
-                onChange={data => setOverrides(data.formData ?? {})}
+                onChange={data => {
+                  const next = (data.formData ?? {}) as Record<
+                    string,
+                    unknown
+                  >;
+                  setOverrides(next);
+                  // RJSF normalizes formData on first render (e.g. injects
+                  // schema defaults). Treat that normalized snapshot as
+                  // the baseline so the user's actual edits surface as
+                  // changes; without this, hasChanges flips true on mount.
+                  if (!formInitializedRef.current) {
+                    setInitialOverrides(next);
+                    formInitializedRef.current = true;
+                  }
+                }}
                 tagName="div"
               />
             </>

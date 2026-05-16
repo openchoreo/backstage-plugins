@@ -87,6 +87,13 @@ export const ResourceParametersConfigPage = ({
   const [initialParameters, setInitialParameters] = useState<
     Record<string, unknown>
   >({});
+  /**
+   * RJSF normalizes formData on the first render (e.g. injects schema
+   * defaults for missing fields). Treat that normalized snapshot as the
+   * baseline so the user's actual edits — not the framework's auto-fill —
+   * drive change detection.
+   */
+  const formInitializedRef = useRef(false);
   const [firstEnvRef, setFirstEnvRef] = useState<string | null>(null);
   const [baselineRelease, setBaselineRelease] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -130,6 +137,7 @@ export const ResourceParametersConfigPage = ({
         setResource(resourceData);
         const spec = (resourceData?.spec as Record<string, unknown>) || {};
         const currentParams = (spec.parameters as Record<string, unknown>) || {};
+        formInitializedRef.current = false;
         setParameters(currentParams);
         setInitialParameters(JSON.parse(JSON.stringify(currentParams)));
 
@@ -342,7 +350,17 @@ export const ResourceParametersConfigPage = ({
                 schema={schema as any}
                 uiSchema={{}}
                 formData={parameters}
-                onChange={data => setParameters(data.formData ?? {})}
+                onChange={data => {
+                  const next = (data.formData ?? {}) as Record<
+                    string,
+                    unknown
+                  >;
+                  setParameters(next);
+                  if (!formInitializedRef.current) {
+                    setInitialParameters(next);
+                    formInitializedRef.current = true;
+                  }
+                }}
                 tagName="div"
               />
             </>
