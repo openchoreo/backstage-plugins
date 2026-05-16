@@ -9,6 +9,7 @@ import type {
   Permission,
   ResourcePermission,
 } from '@backstage/plugin-permission-common';
+import { useAuthzEnabled } from './useOpenChoreoFeatures';
 
 interface UseEnvScopedPermissionOptions {
   /** Backstage permission to evaluate (must map to an OpenChoreo action). */
@@ -44,6 +45,17 @@ interface UseEnvScopedPermissionResult {
  *
  * The combined `allowed` is the AND of both checks: visibility must pass
  * AND (no environment specified OR env-specific evaluation passed).
+ *
+ * **Disabled-authz path.** When `openchoreo.features.authz.enabled = false`,
+ * the policy module installs `AllowAllPolicy` and does NOT mount the
+ * `/evaluate-with-context` route (see
+ * `permission-backend-module-openchoreo-policy/src/module.ts`). Firing the
+ * fetch anyway would 404 and fail closed to "denied" on every env tile.
+ * Degrade gracefully: skip the env-eval entirely and return whatever
+ * `usePermission` reports (which is `allowed: true` under AllowAllPolicy
+ * for OpenChoreo resource permissions). This keeps the chokepoint in one
+ * place so every consumer hook (`useDeployPermission`, …) inherits the
+ * correct behavior without each repeating the guard.
  */
 export function useEnvScopedPermission(
   options: UseEnvScopedPermissionOptions,
@@ -58,6 +70,8 @@ export function useEnvScopedPermission(
       : ({ permission, resourceRef } as Parameters<typeof usePermission>[0]),
   );
 
+  const authzEnabled = useAuthzEnabled();
+
   const discovery = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
 
@@ -65,6 +79,15 @@ export function useEnvScopedPermission(
   const [envLoading, setEnvLoading] = useState<boolean>(false);
 
   useEffect(() => {
+    // Authz disabled → backend policy is AllowAllPolicy and the
+    // /evaluate-with-context route is not mounted. Skip the fetch.
+    // The final return below degrades to `baseCheck` so we propagate
+    // whatever AllowAllPolicy decided.
+    if (!authzEnabled) {
+      setEnvAllowed(undefined);
+      setEnvLoading(false);
+      return undefined;
+    }
     // No environment supplied → skip env-specific check. Clear envLoading
     // explicitly so a previous cancelled fetch doesn't leave it stuck true.
     if (!environment) {
@@ -123,11 +146,12 @@ export function useEnvScopedPermission(
     permission.name,
     resourceRef,
     environment,
+    authzEnabled,
     baseCheck.allowed,
     baseCheck.loading,
   ]);
 
-  if (!environment) {
+  if (!authzEnabled || !environment) {
     return { allowed: baseCheck.allowed, loading: baseCheck.loading };
   }
   const loading = baseCheck.loading || envLoading || envAllowed === undefined;
