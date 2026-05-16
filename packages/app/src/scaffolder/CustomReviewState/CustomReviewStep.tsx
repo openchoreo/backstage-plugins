@@ -18,16 +18,22 @@ import { useStyles } from './styles';
  * "domain:default/team-beta" → "team-beta"
  * "system:default/my-project" → "my-project"
  * Plain strings pass through unchanged.
+ *
+ * Only strings that match the Backstage entity-ref shape
+ * (`kind[:namespace]/name`, all lowercase identifiers) are stripped.
+ * Arbitrary values containing "/" or ":" — file paths like "./Dockerfile",
+ * URLs like "https://example.com", build args, etc. — are returned as-is
+ * so flattenToMetadata doesn't mangle user-typed workflow parameters.
  */
+const ENTITY_REF_PATTERN = /^[a-z][a-z0-9-]*:([a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/;
+
 function extractName(ref: string): string {
   if (!ref || typeof ref !== 'string') return String(ref ?? '');
-  // entity ref format: kind:namespace/name
+  if (!ENTITY_REF_PATTERN.test(ref)) return ref;
   const slashIdx = ref.lastIndexOf('/');
   if (slashIdx >= 0) return ref.slice(slashIdx + 1);
-  // may also be "kind:name" without namespace
   const colonIdx = ref.indexOf(':');
-  if (colonIdx >= 0) return ref.slice(colonIdx + 1);
-  return ref;
+  return ref.slice(colonIdx + 1);
 }
 
 /**
