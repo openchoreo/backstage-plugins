@@ -681,6 +681,45 @@ export const openchoreoReleaseBindingReadPermission = createPermission({
 });
 
 /**
+ * Permission to update a ResourceReleaseBinding (e.g., promote to a newer
+ * ResourceRelease, toggle retainPolicy). Resource-scoped: requires the
+ * specific Resource entity context. Independent of the component-side
+ * release-binding permissions so a PE can grant resource-only authority
+ * without also granting component-binding authority.
+ */
+export const openchoreoResourceReleaseBindingUpdatePermission =
+  createPermission({
+    name: 'openchoreo.resourcereleasebinding.update',
+    attributes: { action: 'update' },
+    resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+  });
+
+/**
+ * Permission to create a ResourceReleaseBinding (i.e., deploy a Resource to
+ * an environment for the first time). Resource-scoped on the consuming
+ * Resource entity.
+ */
+export const openchoreoResourceReleaseBindingCreatePermission =
+  createPermission({
+    name: 'openchoreo.resourcereleasebinding.create',
+    attributes: { action: 'create' },
+    resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+  });
+
+/**
+ * Permission to delete a ResourceReleaseBinding (i.e., undeploy a Resource
+ * from an environment). The Resource controller's PV-style finalizer honours
+ * `spec.retainPolicy=Retain` and may keep DP-side state alive even after the
+ * binding is removed; the UI surfaces this explicitly in its confirm dialog.
+ */
+export const openchoreoResourceReleaseBindingDeletePermission =
+  createPermission({
+    name: 'openchoreo.resourcereleasebinding.delete',
+    attributes: { action: 'delete' },
+    resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+  });
+
+/**
  * Resource-scoped variant of the release-binding view permission. Used by
  * per-env hooks so ABAC `resource.environment` constraints on
  * `releasebinding:view` can hide the body of individual env cards even
@@ -953,6 +992,9 @@ export const openchoreoPermissions = [
   openchoreoReleaseBindingViewPermission,
   openchoreoReleaseBindingUpdatePermission,
   openchoreoReleaseBindingDeletePermission,
+  openchoreoResourceReleaseBindingUpdatePermission,
+  openchoreoResourceReleaseBindingCreatePermission,
+  openchoreoResourceReleaseBindingDeletePermission,
   openchoreoRoleViewPermission,
   openchoreoRoleCreatePermission,
   openchoreoRoleUpdatePermission,
@@ -1061,6 +1103,9 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.releasebinding.delete': 'releasebinding:delete',
   'openchoreo.releasebinding.read': 'releasebinding:view',
   'openchoreo.releasebinding.view': 'releasebinding:view',
+  'openchoreo.resourcereleasebinding.update': 'resourcereleasebinding:update',
+  'openchoreo.resourcereleasebinding.create': 'resourcereleasebinding:create',
+  'openchoreo.resourcereleasebinding.delete': 'resourcereleasebinding:delete',
   'openchoreo.role.view': 'authzrole:view',
   'openchoreo.role.create': 'authzrole:create',
   'openchoreo.role.update': 'authzrole:update',

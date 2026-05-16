@@ -11,6 +11,9 @@ jest.mock('@backstage/core-components', () => ({
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
   Card: ({ children }: any) => <div data-testid="card">{children}</div>,
+  StatusBadge: ({ status }: any) => (
+    <span data-testid="status-badge">{status}</span>
+  ),
 }));
 
 jest.mock('../DataplaneOverview/styles', () => ({
@@ -99,8 +102,11 @@ describe('ResourceBindingsCard', () => {
     expect(screen.getByText('prod')).toBeInTheDocument();
     expect(screen.getByText('analytics-db-abc123')).toBeInTheDocument();
     expect(screen.getByText('analytics-db-def456')).toBeInTheDocument();
-    expect(screen.getByText('Ready')).toBeInTheDocument();
-    expect(screen.getByText('NotReady')).toBeInTheDocument();
+    const badges = screen.getAllByTestId('status-badge');
+    expect(badges.map(b => b.textContent).sort()).toEqual([
+      'pending',
+      'success',
+    ]);
   });
 
   it('renders the empty-state message when there are no bindings', async () => {

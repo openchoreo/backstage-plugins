@@ -566,6 +566,29 @@ export interface ReleaseBindingCondition {
   observedGeneration?: number;
 }
 
+export interface ResourceSecretKeyRef {
+  name: string;
+  key: string;
+}
+
+export interface ResourceConfigMapKeyRef {
+  name: string;
+  key: string;
+}
+
+/**
+ * One resolved output of a ResourceReleaseBinding. Exactly one of
+ * value, secretKeyRef, or configMapKeyRef is set, matching the kind
+ * declared on the originating (Cluster)ResourceType output. Secret refs
+ * carry only {name, key} so resolved values never cross the wire.
+ */
+export interface ResolvedResourceOutput {
+  name: string;
+  value?: string;
+  secretKeyRef?: ResourceSecretKeyRef;
+  configMapKeyRef?: ResourceConfigMapKeyRef;
+}
+
 export interface ResourceReleaseBindingResponse {
   name: string;
   resourceName: string;
@@ -582,6 +605,7 @@ export interface ResourceReleaseBindingResponse {
   /** The Ready condition's human-readable message */
   statusMessage?: string;
   conditions?: ReleaseBindingCondition[];
+  outputs?: ResolvedResourceOutput[];
 }
 
 export interface WorkloadOverrides {

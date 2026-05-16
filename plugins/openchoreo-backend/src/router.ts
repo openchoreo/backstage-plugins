@@ -940,6 +940,103 @@ export async function createRouter({
     res.json({ success: true, data: { items } });
   });
 
+  router.put(
+    '/update-resource-release-binding',
+    requireAuth,
+    async (req, res) => {
+      const {
+        resourceName,
+        projectName,
+        namespaceName,
+        environment,
+        releaseName,
+        retainPolicy,
+        resourceTypeEnvironmentConfigs,
+      } = req.body;
+
+      if (
+        !resourceName ||
+        !projectName ||
+        !namespaceName ||
+        !environment ||
+        !releaseName
+      ) {
+        throw new InputError(
+          'resourceName, projectName, namespaceName, environment and releaseName are required in request body',
+        );
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+
+      res.json(
+        await environmentInfoService.updateResourceReleaseBinding(
+          {
+            resourceName: resourceName as string,
+            projectName: projectName as string,
+            namespaceName: namespaceName as string,
+            environment: environment as string,
+            releaseName: releaseName as string,
+            retainPolicy,
+            resourceTypeEnvironmentConfigs,
+          },
+          userToken,
+        ),
+      );
+    },
+  );
+
+  router.delete(
+    '/delete-resource-release-binding',
+    requireAuth,
+    async (req, res) => {
+      const { resourceName, projectName, namespaceName, environment } =
+        req.body;
+
+      if (!resourceName || !projectName || !namespaceName || !environment) {
+        throw new InputError(
+          'resourceName, projectName, namespaceName and environment are required in request body',
+        );
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+
+      res.json(
+        await environmentInfoService.deleteResourceReleaseBinding(
+          {
+            resourceName: resourceName as string,
+            projectName: projectName as string,
+            namespaceName: namespaceName as string,
+            environment: environment as string,
+          },
+          userToken,
+        ),
+      );
+    },
+  );
+
+  router.get('/resource-environment-info', async (req, res) => {
+    const { resourceName, projectName, namespaceName } = req.query;
+
+    if (!resourceName || !projectName || !namespaceName) {
+      throw new InputError(
+        'resourceName, projectName and namespaceName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await environmentInfoService.fetchResourceEnvironmentInfo(
+        {
+          resourceName: resourceName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+        },
+        userToken,
+      ),
+    );
+  });
+
   router.put('/update-release-binding', requireAuth, async (req, res) => {
     const {
       componentName,

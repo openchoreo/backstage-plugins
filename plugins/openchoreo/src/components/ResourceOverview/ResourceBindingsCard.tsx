@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Box, Chip, Typography } from '@material-ui/core';
+import { Box, Typography } from '@material-ui/core';
 import { Progress } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { Card } from '@openchoreo/backstage-design-system';
+import {
+  Card,
+  StatusBadge,
+  type StatusType,
+} from '@openchoreo/backstage-design-system';
 import {
   openChoreoClientApiRef,
   type ResourceReleaseBinding,
@@ -12,18 +16,12 @@ import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
 
 type Status = ResourceReleaseBinding['status'];
 
-const statusChipClass = (status: Status, classes: Record<string, string>) => {
-  switch (status) {
-    case 'Ready':
-      return classes.statusHealthy;
-    case 'NotReady':
-      return classes.statusWarning;
-    case 'Failed':
-      return classes.statusError;
-    default:
-      return classes.statusLabel;
-  }
-};
+function deriveBadgeStatus(status: Status): StatusType {
+  if (status === 'Ready') return 'success';
+  if (status === 'NotReady') return 'pending';
+  if (status === 'Failed') return 'failed';
+  return 'unknown';
+}
 
 /**
  * Per-environment summary of the bindings that target this Resource. Each
@@ -95,11 +93,7 @@ export const ResourceBindingsCard = () => {
                   {b.releaseName || 'unpinned'}
                 </Typography>
                 {b.status && (
-                  <Chip
-                    label={b.status}
-                    size="small"
-                    className={statusChipClass(b.status, classes)}
-                  />
+                  <StatusBadge status={deriveBadgeStatus(b.status)} />
                 )}
               </Box>
             </Box>

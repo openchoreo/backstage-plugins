@@ -110,6 +110,7 @@ import {
   WorkflowOverviewCard,
   ComponentWorkflowOverviewCard,
   ResourceDefinitionTab,
+  ResourceEnvironments,
 } from '@openchoreo/backstage-plugin';
 import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
 
@@ -810,6 +811,9 @@ const openchoreoResourcePage = (
     </EntityLayout.Route>
     <EntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/environments" title="Deploy">
+      <ResourceEnvironments />
     </EntityLayout.Route>
   </EntityLayoutWithDelete>
 );

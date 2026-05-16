@@ -327,6 +327,18 @@ export {
   type UseReleaseBindingUpdatePermissionResult,
 } from './hooks/useReleaseBindingUpdatePermission';
 export {
+  useResourceReleaseBindingUpdatePermission,
+  type UseResourceReleaseBindingUpdatePermissionResult,
+} from './hooks/useResourceReleaseBindingUpdatePermission';
+export {
+  useResourceReleaseBindingCreatePermission,
+  type UseResourceReleaseBindingCreatePermissionResult,
+} from './hooks/useResourceReleaseBindingCreatePermission';
+export {
+  useResourceReleaseBindingDeletePermission,
+  type UseResourceReleaseBindingDeletePermissionResult,
+} from './hooks/useResourceReleaseBindingDeletePermission';
+export {
   useRemoveDeploymentPermission,
   type UseRemoveDeploymentPermissionResult,
 } from './hooks/useRemoveDeploymentPermission';

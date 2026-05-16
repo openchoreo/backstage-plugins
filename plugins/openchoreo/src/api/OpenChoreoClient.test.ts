@@ -195,3 +195,148 @@ describe('OpenChoreoClient — secrets', () => {
     });
   });
 });
+
+const RESOURCE_ENTITY = {
+  apiVersion: 'backstage.io/v1',
+  kind: 'Resource',
+  metadata: {
+    name: 'analytics-db',
+    namespace: 'default',
+    annotations: {
+      'openchoreo.io/namespace': 'test-ns',
+      'openchoreo.io/resource': 'analytics-db',
+      'openchoreo.io/project': 'shop',
+    },
+  },
+  spec: { type: 'database' },
+};
+
+describe('OpenChoreoClient — resource environment info', () => {
+  const fetchMock = jest.fn();
+  const discovery = { getBaseUrl: jest.fn().mockResolvedValue(BASE_URL) };
+  const fetchApi = { fetch: fetchMock };
+  let client: OpenChoreoClient;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    discovery.getBaseUrl.mockResolvedValue(BASE_URL);
+    client = new OpenChoreoClient(discovery as any, fetchApi as any);
+  });
+
+  it('GETs /resource-environment-info with resource entity params', async () => {
+    const payload = [
+      { name: 'dev', latestRelease: 'analytics-db-abc' },
+      { name: 'staging', latestRelease: 'analytics-db-abc' },
+    ];
+    fetchMock.mockResolvedValueOnce(makeJsonResponse(payload));
+
+    const result = await client.fetchResourceEnvironmentInfo(
+      RESOURCE_ENTITY as any,
+    );
+
+    expect(result).toEqual(payload);
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/resource-environment-info');
+    expect(calledUrl).toContain('resourceName=analytics-db');
+    expect(calledUrl).toContain('projectName=shop');
+    expect(calledUrl).toContain('namespaceName=test-ns');
+    expect(opts.method ?? 'GET').toBe('GET');
+  });
+
+  it('throws when required annotations are missing on the entity', async () => {
+    const bareEntity = {
+      apiVersion: 'backstage.io/v1',
+      kind: 'Resource',
+      metadata: { name: 'x', namespace: 'default', annotations: {} },
+      spec: {},
+    };
+
+    await expect(
+      client.fetchResourceEnvironmentInfo(bareEntity as any),
+    ).rejects.toThrow(/Missing required OpenChoreo annotations/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('OpenChoreoClient — updateResourceReleaseBinding', () => {
+  const fetchMock = jest.fn();
+  const discovery = { getBaseUrl: jest.fn().mockResolvedValue(BASE_URL) };
+  const fetchApi = { fetch: fetchMock };
+  let client: OpenChoreoClient;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    discovery.getBaseUrl.mockResolvedValue(BASE_URL);
+    client = new OpenChoreoClient(discovery as any, fetchApi as any);
+  });
+
+  it('PUTs to /update-resource-release-binding with resource entity metadata + new release', async () => {
+    fetchMock.mockResolvedValueOnce(makeJsonResponse({ ok: true }));
+
+    await client.updateResourceReleaseBinding(
+      RESOURCE_ENTITY as any,
+      'dev',
+      { resourceRelease: 'analytics-db-new' },
+    );
+
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/update-resource-release-binding');
+    expect(opts.method).toBe('PUT');
+    const body = JSON.parse(opts.body);
+    expect(body).toEqual({
+      resourceName: 'analytics-db',
+      projectName: 'shop',
+      namespaceName: 'test-ns',
+      environment: 'dev',
+      releaseName: 'analytics-db-new',
+    });
+  });
+
+  it('forwards optional retainPolicy and resourceTypeEnvironmentConfigs', async () => {
+    fetchMock.mockResolvedValueOnce(makeJsonResponse({ ok: true }));
+
+    await client.updateResourceReleaseBinding(
+      RESOURCE_ENTITY as any,
+      'dev',
+      {
+        resourceRelease: 'rel-1',
+        retainPolicy: 'Retain',
+        resourceTypeEnvironmentConfigs: { replicas: 3 },
+      },
+    );
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.retainPolicy).toBe('Retain');
+    expect(body.resourceTypeEnvironmentConfigs).toEqual({ replicas: 3 });
+  });
+});
+
+describe('OpenChoreoClient — deleteResourceReleaseBinding', () => {
+  const fetchMock = jest.fn();
+  const discovery = { getBaseUrl: jest.fn().mockResolvedValue(BASE_URL) };
+  const fetchApi = { fetch: fetchMock };
+  let client: OpenChoreoClient;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    discovery.getBaseUrl.mockResolvedValue(BASE_URL);
+    client = new OpenChoreoClient(discovery as any, fetchApi as any);
+  });
+
+  it('DELETEs /delete-resource-release-binding with resource entity metadata', async () => {
+    fetchMock.mockResolvedValueOnce(makeJsonResponse({ success: true }));
+
+    await client.deleteResourceReleaseBinding(RESOURCE_ENTITY as any, 'dev');
+
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/delete-resource-release-binding');
+    expect(opts.method).toBe('DELETE');
+    const body = JSON.parse(opts.body);
+    expect(body).toEqual({
+      resourceName: 'analytics-db',
+      projectName: 'shop',
+      namespaceName: 'test-ns',
+      environment: 'dev',
+    });
+  });
+});

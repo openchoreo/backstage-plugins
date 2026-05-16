@@ -40,6 +40,29 @@ export interface EnvironmentService {
     bindingName: string;
     releaseState: 'Active' | 'Suspend' | 'Undeploy';
   }): Promise<Environment[]>;
+
+  fetchResourceEnvironmentInfo(request: {
+    resourceName: string;
+    projectName: string;
+    namespaceName: string;
+  }): Promise<ResourceEnvironment[]>;
+
+  updateResourceReleaseBinding(request: {
+    resourceName: string;
+    projectName: string;
+    namespaceName: string;
+    environment: string;
+    releaseName: string;
+    retainPolicy?: 'Delete' | 'Retain';
+    resourceTypeEnvironmentConfigs?: any;
+  }): Promise<unknown>;
+
+  deleteResourceReleaseBinding(request: {
+    resourceName: string;
+    projectName: string;
+    namespaceName: string;
+    environment: string;
+  }): Promise<unknown>;
 }
 
 export interface EndpointURLDetails {
@@ -78,6 +101,41 @@ export interface Environment {
     name: string;
     resourceName?: string;
   }[];
+}
+
+export interface ResourceBindingOutput {
+  name: string;
+  value?: string;
+  secretKeyRef?: { name: string; key: string };
+  configMapKeyRef?: { name: string; key: string };
+}
+
+/**
+ * Per-environment view of a Resource's runtime state. One entry per
+ * environment in the project's deployment pipeline, including
+ * environments where no ResourceReleaseBinding exists yet (so the UI
+ * can render a Deploy affordance against them).
+ */
+export interface ResourceEnvironment {
+  uid?: string;
+  name: string;
+  resourceName?: string;
+  dataPlaneRef?: string;
+  dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';
+  bindingName?: string;
+  resourceRelease?: string;
+  retainPolicy?: 'Delete' | 'Retain';
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  lastDeployed?: string;
+  outputs?: ResourceBindingOutput[];
+  promotionTargets?: {
+    name: string;
+    resourceName?: string;
+  }[];
+  /** Latest ResourceRelease cut by the Resource controller, if any. */
+  latestRelease?: string;
 }
 
 export type ObjectToFetch = {

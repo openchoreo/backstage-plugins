@@ -2,6 +2,7 @@ import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import type {
   ResourceReleaseBindingResponse,
   ReleaseBindingCondition,
+  ResolvedResourceOutput,
 } from '@openchoreo/backstage-plugin-common';
 import { getName, getNamespace, getCreatedAt } from './common';
 import { deriveBindingStatusDetailed } from './release-binding';
@@ -43,6 +44,22 @@ export function transformResourceReleaseBinding(
           message: c.message,
           lastTransitionTime: c.lastTransitionTime,
           observedGeneration: c.observedGeneration,
+        }),
+      );
+    })(),
+    outputs: (() => {
+      const raw = binding.status?.outputs;
+      if (!Array.isArray(raw)) return undefined;
+      return raw.map(
+        (o: any): ResolvedResourceOutput => ({
+          name: o.name,
+          value: o.value,
+          secretKeyRef: o.secretKeyRef
+            ? { name: o.secretKeyRef.name, key: o.secretKeyRef.key }
+            : undefined,
+          configMapKeyRef: o.configMapKeyRef
+            ? { name: o.configMapKeyRef.name, key: o.configMapKeyRef.key }
+            : undefined,
         }),
       );
     })(),

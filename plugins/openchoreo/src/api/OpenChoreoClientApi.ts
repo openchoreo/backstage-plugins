@@ -151,6 +151,40 @@ export interface ResourceReleaseBindingsResponse {
   };
 }
 
+export interface ResourceBindingOutput {
+  name: string;
+  value?: string;
+  secretKeyRef?: { name: string; key: string };
+  configMapKeyRef?: { name: string; key: string };
+}
+
+/**
+ * Per-environment runtime view of a Resource. One entry per environment
+ * defined in the project's deployment pipeline, including environments
+ * with no binding (so the UI can render a Deploy affordance). Matches
+ * the backend `ResourceEnvironment` shape in `plugins/openchoreo-backend/src/types.ts`.
+ */
+export interface ResourceEnvironment {
+  uid?: string;
+  name: string;
+  resourceName?: string;
+  dataPlaneRef?: string;
+  dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';
+  bindingName?: string;
+  resourceRelease?: string;
+  retainPolicy?: 'Delete' | 'Retain';
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  lastDeployed?: string;
+  outputs?: ResourceBindingOutput[];
+  promotionTargets?: {
+    name: string;
+    resourceName?: string;
+  }[];
+  latestRelease?: string;
+}
+
 /** Create release response */
 export interface CreateReleaseResponse {
   success: boolean;
@@ -557,6 +591,42 @@ export interface OpenChoreoClientApi {
   fetchResourceReleaseBindings(
     entity: Entity,
   ): Promise<ResourceReleaseBindingsResponse>;
+
+  /**
+   * Fetch per-environment runtime info for a Resource entity. Returns one
+   * entry per environment in the project's deployment pipeline (including
+   * environments without bindings yet), joined with the Resource's latest
+   * release.
+   */
+  fetchResourceEnvironmentInfo(
+    entity: Entity,
+  ): Promise<ResourceEnvironment[]>;
+
+  /**
+   * Create or update a ResourceReleaseBinding for the given environment.
+   * Creates a new binding when none exists; otherwise advances
+   * `spec.resourceRelease`. Optional fields are written when present, left
+   * untouched when omitted.
+   */
+  updateResourceReleaseBinding(
+    entity: Entity,
+    environment: string,
+    options: {
+      resourceRelease: string;
+      retainPolicy?: 'Delete' | 'Retain';
+      resourceTypeEnvironmentConfigs?: unknown;
+    },
+  ): Promise<unknown>;
+
+  /**
+   * Delete a ResourceReleaseBinding for the given environment. With
+   * `spec.retainPolicy=Retain` on the binding, the Resource controller's
+   * finalizer holds the actual delete and DP-side state can persist.
+   */
+  deleteResourceReleaseBinding(
+    entity: Entity,
+    environment: string,
+  ): Promise<unknown>;
 
   /** Create or update a release binding for deploy/promote actions */
   updateReleaseBinding(

@@ -39,6 +39,7 @@ import type {
   RoleBindingsLookup,
   ResourceEventsResponse,
   PodLogsResponse,
+  ResourceEnvironment,
 } from './OpenChoreoClientApi';
 import type { Environment } from '../components/RuntimeLogs/types';
 
@@ -61,6 +62,9 @@ const API_ENDPOINTS = {
   COMPONENT_RELEASE_SCHEMA: '/component-release-schema',
   RELEASE_BINDINGS: '/release-bindings',
   RESOURCE_RELEASE_BINDINGS: '/resource-release-bindings',
+  RESOURCE_ENVIRONMENT_INFO: '/resource-environment-info',
+  UPDATE_RESOURCE_RELEASE_BINDING: '/update-resource-release-binding',
+  DELETE_RESOURCE_RELEASE_BINDING: '/delete-resource-release-binding',
   UPDATE_RELEASE_BINDING: '/update-release-binding',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
   RESOURCE_TREE: '/resourcetree',
@@ -143,6 +147,32 @@ function entityMetadataToParams(
     projectName: metadata.project,
     namespaceName: metadata.namespace,
   };
+}
+
+interface ResourceEntityMetadata {
+  resourceName: string;
+  projectName: string;
+  namespaceName: string;
+}
+
+function extractResourceEntityMetadata(
+  entity: Entity,
+): ResourceEntityMetadata {
+  const resourceName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE];
+  const projectName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  const namespaceName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+
+  if (!resourceName || !projectName || !namespaceName) {
+    throw new Error(
+      'Missing required OpenChoreo annotations on Resource entity. ' +
+        `Required: ${CHOREO_ANNOTATIONS.RESOURCE}, ${CHOREO_ANNOTATIONS.PROJECT}, ${CHOREO_ANNOTATIONS.NAMESPACE}`,
+    );
+  }
+
+  return { resourceName, projectName, namespaceName };
 }
 
 // ============================================
@@ -376,19 +406,8 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async fetchResourceReleaseBindings(
     entity: Entity,
   ): Promise<ResourceReleaseBindingsResponse> {
-    const resourceName =
-      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE];
-    const projectName =
-      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-    const namespaceName =
-      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
-
-    if (!resourceName || !projectName || !namespaceName) {
-      throw new Error(
-        'Missing required OpenChoreo annotations on Resource entity. ' +
-          `Required: ${CHOREO_ANNOTATIONS.RESOURCE}, ${CHOREO_ANNOTATIONS.PROJECT}, ${CHOREO_ANNOTATIONS.NAMESPACE}`,
-      );
-    }
+    const { resourceName, projectName, namespaceName } =
+      extractResourceEntityMetadata(entity);
 
     return this.apiFetch<ResourceReleaseBindingsResponse>(
       API_ENDPOINTS.RESOURCE_RELEASE_BINDINGS,
@@ -396,6 +415,71 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         params: { resourceName, projectName, namespaceName },
       },
     );
+  }
+
+  async fetchResourceEnvironmentInfo(
+    entity: Entity,
+  ): Promise<ResourceEnvironment[]> {
+    const { resourceName, projectName, namespaceName } =
+      extractResourceEntityMetadata(entity);
+
+    return this.apiFetch<ResourceEnvironment[]>(
+      API_ENDPOINTS.RESOURCE_ENVIRONMENT_INFO,
+      {
+        params: { resourceName, projectName, namespaceName },
+      },
+    );
+  }
+
+  async updateResourceReleaseBinding(
+    entity: Entity,
+    environment: string,
+    options: {
+      resourceRelease: string;
+      retainPolicy?: 'Delete' | 'Retain';
+      resourceTypeEnvironmentConfigs?: unknown;
+    },
+  ): Promise<unknown> {
+    const { resourceName, projectName, namespaceName } =
+      extractResourceEntityMetadata(entity);
+
+    return this.apiFetch(API_ENDPOINTS.UPDATE_RESOURCE_RELEASE_BINDING, {
+      method: 'PUT',
+      body: {
+        resourceName,
+        projectName,
+        namespaceName,
+        environment,
+        releaseName: options.resourceRelease,
+        ...(options.retainPolicy !== undefined
+          ? { retainPolicy: options.retainPolicy }
+          : {}),
+        ...(options.resourceTypeEnvironmentConfigs !== undefined
+          ? {
+              resourceTypeEnvironmentConfigs:
+                options.resourceTypeEnvironmentConfigs,
+            }
+          : {}),
+      },
+    });
+  }
+
+  async deleteResourceReleaseBinding(
+    entity: Entity,
+    environment: string,
+  ): Promise<unknown> {
+    const { resourceName, projectName, namespaceName } =
+      extractResourceEntityMetadata(entity);
+
+    return this.apiFetch(API_ENDPOINTS.DELETE_RESOURCE_RELEASE_BINDING, {
+      method: 'DELETE',
+      body: {
+        resourceName,
+        projectName,
+        namespaceName,
+        environment,
+      },
+    });
   }
 
   async updateReleaseBinding(
