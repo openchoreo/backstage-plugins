@@ -6,6 +6,7 @@ import {
   type ReviewStateProps,
 } from '@backstage/plugin-scaffolder-react/alpha';
 import { type ReviewStepProps } from '@backstage/plugin-scaffolder-react';
+import { parseEntityRef } from '@backstage/catalog-model';
 import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
 import { useStyles } from './styles';
 
@@ -14,20 +15,27 @@ import { useStyles } from './styles';
 // ---------------------------------------------------------------------------
 
 /**
- * Extract readable name from a Backstage entity ref.
+ * Extract the readable name from a Backstage entity ref.
  * "domain:default/team-beta" → "team-beta"
  * "system:default/my-project" → "my-project"
- * Plain strings pass through unchanged.
+ *
+ * Arbitrary strings — file paths like "./Dockerfile", URLs like
+ * "https://example.com", build args, etc. — pass through unchanged so
+ * flattenToMetadata doesn't mangle user-typed workflow parameter values.
+ *
+ * Implementation: only strings with a "kind:" prefix are even considered,
+ * and the canonical `parseEntityRef` is the source of truth for whether
+ * a string is a valid ref. Any parse failure falls back to the original.
  */
 function extractName(ref: string): string {
   if (!ref || typeof ref !== 'string') return String(ref ?? '');
-  // entity ref format: kind:namespace/name
-  const slashIdx = ref.lastIndexOf('/');
-  if (slashIdx >= 0) return ref.slice(slashIdx + 1);
-  // may also be "kind:name" without namespace
-  const colonIdx = ref.indexOf(':');
-  if (colonIdx >= 0) return ref.slice(colonIdx + 1);
-  return ref;
+  // Without a `:`, it can't be a `kind:...` ref — skip parsing.
+  if (!ref.includes(':')) return ref;
+  try {
+    return parseEntityRef(ref).name;
+  } catch {
+    return ref;
+  }
 }
 
 /**
