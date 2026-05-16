@@ -1,10 +1,11 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import type { Entity } from '@backstage/catalog-model';
 import { TestApiProvider } from '@backstage/test-utils';
 import { ResponseError } from '@backstage/errors';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
-import { ResourceEnvironments } from './ResourceEnvironments';
+import { ResourceEnvironmentsList } from './ResourceEnvironmentsList';
 
 jest.mock('@backstage/core-components', () => ({
   Progress: () => <div data-testid="progress" />,
@@ -106,12 +107,17 @@ interface MockClient {
 }
 
 function renderTab(client: MockClient) {
+  // The list view uses useNavigate for the Set up → Configure & Deploy
+  // flow, so it needs a router context. Wrapping in MemoryRouter keeps
+  // each test isolated from URL state.
   return render(
-    <TestApiProvider apis={[[openChoreoClientApiRef, client as any]]}>
-      <EntityProvider entity={makeEntity()}>
-        <ResourceEnvironments />
-      </EntityProvider>
-    </TestApiProvider>,
+    <MemoryRouter>
+      <TestApiProvider apis={[[openChoreoClientApiRef, client as any]]}>
+        <EntityProvider entity={makeEntity()}>
+          <ResourceEnvironmentsList />
+        </EntityProvider>
+      </TestApiProvider>
+    </MemoryRouter>,
   );
 }
 
