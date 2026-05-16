@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { ResourceEnvironmentDetailPanel } from './ResourceEnvironmentDetailPanel';
 import {
   ResourceEnvironmentsProvider,
@@ -43,10 +44,14 @@ function renderPanel(
   env: ResourceEnvironment | null,
   ctxOverrides: Partial<ResourceEnvironmentsContextValue> = {},
 ) {
+  // The panel uses useNavigate for the Configure overrides button, so it
+  // needs a router context. MemoryRouter keeps each test isolated.
   return render(
-    <ResourceEnvironmentsProvider value={makeCtx(ctxOverrides)}>
-      <ResourceEnvironmentDetailPanel env={env} onClose={() => {}} />
-    </ResourceEnvironmentsProvider>,
+    <MemoryRouter>
+      <ResourceEnvironmentsProvider value={makeCtx(ctxOverrides)}>
+        <ResourceEnvironmentDetailPanel env={env} onClose={() => {}} />
+      </ResourceEnvironmentsProvider>
+    </MemoryRouter>,
   );
 }
 

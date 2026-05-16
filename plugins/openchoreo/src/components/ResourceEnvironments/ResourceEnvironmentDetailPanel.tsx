@@ -7,6 +7,7 @@ import {
   Typography,
 } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
+import { useNavigate } from 'react-router-dom';
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
 import {
@@ -54,6 +55,7 @@ interface ContentProps {
 
 const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
   const classes = useResourceEnvironmentDetailPanelStyles();
+  const navigate = useNavigate();
   const {
     pendingAction,
     onPromote,
@@ -190,6 +192,14 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                     onClick={() => onPromote(env.name, env.latestRelease!)}
                   />
                 )}
+                <ConfigureOverridesButton
+                  canUpdate={updatePerm.canUpdate}
+                  permLoading={updatePerm.loading}
+                  deniedTooltip={updatePerm.deniedTooltip}
+                  onClick={() =>
+                    navigate(`overrides/${env.resourceName ?? env.name}`)
+                  }
+                />
                 <UndeployButton
                   canDelete={deletePerm.canDelete}
                   permLoading={deletePerm.loading}
@@ -297,6 +307,40 @@ function DeployButton({
           }
         >
           Deploy
+        </Button>
+      </span>
+    </Tooltip>
+  );
+}
+
+interface ConfigureOverridesButtonProps {
+  canUpdate: boolean;
+  permLoading: boolean;
+  deniedTooltip: string;
+  onClick: () => void;
+}
+
+function ConfigureOverridesButton({
+  canUpdate,
+  permLoading,
+  deniedTooltip,
+  onClick,
+}: ConfigureOverridesButtonProps) {
+  const disabled = !canUpdate || permLoading;
+  const tooltip =
+    !canUpdate && !permLoading
+      ? deniedTooltip
+      : 'Edit per-environment parameter overrides for this binding';
+  return (
+    <Tooltip title={tooltip}>
+      <span>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={onClick}
+          disabled={disabled}
+        >
+          Configure overrides
         </Button>
       </span>
     </Tooltip>

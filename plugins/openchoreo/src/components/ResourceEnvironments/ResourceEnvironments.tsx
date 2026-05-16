@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { ResourceEnvironmentsList } from './ResourceEnvironmentsList';
 import { ResourceParametersConfigWrapper } from './ResourceParametersConfigWrapper';
+import { ResourceEnvironmentOverridesWrapper } from './ResourceEnvironmentOverridesWrapper';
 
 /**
  * Router for the Resource entity's `/environments` tab.
@@ -8,6 +9,7 @@ import { ResourceParametersConfigWrapper } from './ResourceParametersConfigWrapp
  * Sub-routes:
  * - `/` — deploy view (canvas + detail panel)
  * - `/parameters-config` — Configure Resource wizard
+ * - `/overrides/:envName` — per-env override wizard
  */
 export const ResourceEnvironments = () => (
   <Routes>
@@ -15,6 +17,10 @@ export const ResourceEnvironments = () => (
     <Route
       path="/parameters-config"
       element={<ResourceParametersConfigWrapper />}
+    />
+    <Route
+      path="/overrides/:envName"
+      element={<ResourceEnvironmentOverridesWrapper />}
     />
   </Routes>
 );

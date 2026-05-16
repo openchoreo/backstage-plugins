@@ -9,6 +9,11 @@ import { ResourceParametersConfigPage } from './ResourceParametersConfigPage';
  */
 export const ResourceParametersConfigWrapper = () => {
   const navigate = useNavigate();
-  const back = useCallback(() => navigate('..'), [navigate]);
+  // Path-relative so `..` strips a URL segment instead of climbing the
+  // parent route hierarchy.
+  const back = useCallback(
+    () => navigate('..', { relative: 'path' }),
+    [navigate],
+  );
   return <ResourceParametersConfigPage onBack={back} onSaved={back} />;
 };

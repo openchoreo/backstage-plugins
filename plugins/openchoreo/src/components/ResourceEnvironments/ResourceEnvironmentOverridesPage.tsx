@@ -1,0 +1,307 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Typography,
+  makeStyles,
+} from '@material-ui/core';
+import { Alert, Skeleton } from '@material-ui/lab';
+import type { JSONSchema7 } from 'json-schema';
+import { useApi } from '@backstage/core-plugin-api';
+import { useEntity } from '@backstage/plugin-catalog-react';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  DetailPageLayout,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
+import { RjsfForm } from '@openchoreo/backstage-design-system';
+import {
+  openChoreoClientApiRef,
+  type ResourceEnvironment,
+} from '../../api/OpenChoreoClientApi';
+import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
+import { useNotification } from '../../hooks';
+import { NotificationBanner } from '../Environments/components';
+
+const useStyles = makeStyles(theme => ({
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(2),
+    padding: theme.spacing(4),
+  },
+  formCard: {
+    backgroundColor: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 12,
+    padding: theme.spacing(3),
+  },
+  formHint: {
+    color: theme.palette.text.secondary,
+    fontSize: theme.typography.body2.fontSize,
+    marginBottom: theme.spacing(2),
+  },
+  actionsRow: {
+    display: 'flex',
+    gap: theme.spacing(1),
+    alignItems: 'center',
+  },
+  emptyState: {
+    color: theme.palette.text.secondary,
+    fontStyle: 'italic',
+    padding: theme.spacing(4),
+    textAlign: 'center',
+  },
+}));
+
+export interface ResourceEnvironmentOverridesPageProps {
+  envName: string;
+  onBack: () => void;
+  onSaved: () => void;
+}
+
+/**
+ * Edits `ResourceReleaseBinding.spec.resourceTypeEnvironmentConfigs` for
+ * a single environment. Saving issues an upsert against the binding via
+ * the BFF — the controller re-renders the dataplane manifests with the
+ * new env-specific values layered over `Resource.spec.parameters`.
+ */
+export const ResourceEnvironmentOverridesPage = ({
+  envName,
+  onBack,
+  onSaved,
+}: ResourceEnvironmentOverridesPageProps) => {
+  const classes = useStyles();
+  const { entity } = useEntity();
+  const client = useApi(openChoreoClientApiRef);
+  const notification = useNotification();
+
+  const [envInfo, setEnvInfo] = useState<ResourceEnvironment | null>(null);
+  const [schema, setSchema] = useState<JSONSchema7 | null>(null);
+  const [overrides, setOverrides] = useState<Record<string, unknown>>({});
+  const [initialOverrides, setInitialOverrides] = useState<
+    Record<string, unknown>
+  >({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<Error | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const rtDisplayName =
+    (entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RTD_DISPLAY_NAME] ||
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE_TYPE]) ??
+    'this resource';
+  const envDisplayName = envInfo?.name ?? envName;
+  const hasBinding = Boolean(envInfo?.bindingName);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+
+    const load = async () => {
+      try {
+        const [envs, schemaResult] = await Promise.all([
+          client.fetchResourceEnvironmentInfo(entity),
+          client.fetchResourceTypeSchema(entity),
+        ]);
+
+        if (cancelled) return;
+
+        // URL param is the K8s env ref (resourceName); match against that
+        // first and fall back to display name for legacy callers.
+        const matchingEnv =
+          envs.find(e => e.resourceName === envName || e.name === envName) ??
+          null;
+        setEnvInfo(matchingEnv);
+
+        // Initial overrides start empty until a focused read path lands
+        // for ResourceReleaseBinding.spec.resourceTypeEnvironmentConfigs.
+        setOverrides({});
+        setInitialOverrides({});
+
+        if (schemaResult.success && schemaResult.data) {
+          setSchema(schemaResult.data as JSONSchema7);
+        } else {
+          setSchema({} as JSONSchema7);
+        }
+      } catch (err: unknown) {
+        if (cancelled) return;
+        setLoadError(err instanceof Error ? err : new Error(String(err)));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [client, entity, envName]);
+
+  const hasChanges = useMemo(
+    () => JSON.stringify(overrides) !== JSON.stringify(initialOverrides),
+    [overrides, initialOverrides],
+  );
+
+  const hasFields =
+    !!schema?.properties && Object.keys(schema.properties).length > 0;
+  const hasExistingOverrides = Object.keys(initialOverrides).length > 0;
+
+  const persist = useCallback(
+    async (next: Record<string, unknown>) => {
+      const releaseName =
+        envInfo?.resourceRelease ?? envInfo?.latestRelease ?? '';
+      if (!releaseName) {
+        throw new Error(
+          'No release available to bind. Save resource parameters first to cut a release.',
+        );
+      }
+      const envRef = envInfo?.resourceName ?? envName;
+      await client.updateResourceReleaseBinding(entity, envRef, {
+        resourceRelease: releaseName,
+        resourceTypeEnvironmentConfigs: next,
+      });
+    },
+    [
+      client,
+      entity,
+      envInfo?.latestRelease,
+      envInfo?.resourceName,
+      envInfo?.resourceRelease,
+      envName,
+    ],
+  );
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await persist(overrides);
+      notification.showSuccess(`Saved overrides for ${envDisplayName}.`);
+      onSaved();
+    } catch (err: unknown) {
+      setSaveError(getErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }, [envDisplayName, notification, onSaved, overrides, persist]);
+
+  const handleClear = useCallback(async () => {
+    setClearing(true);
+    setSaveError(null);
+    try {
+      await persist({});
+      notification.showSuccess(`Cleared overrides for ${envDisplayName}.`);
+      onSaved();
+    } catch (err: unknown) {
+      setSaveError(getErrorMessage(err));
+    } finally {
+      setClearing(false);
+    }
+  }, [envDisplayName, notification, onSaved, persist]);
+
+  const headerActions = !loading && !loadError && (
+    <Box className={classes.actionsRow}>
+      <Button
+        onClick={handleClear}
+        disabled={
+          saving || clearing || !hasExistingOverrides || !hasBinding
+        }
+      >
+        {clearing ? 'Clearing' : 'Clear Overrides'}
+      </Button>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={handleSave}
+        disabled={saving || clearing || !hasChanges || !hasBinding}
+        startIcon={
+          saving ? <CircularProgress size={20} color="inherit" /> : undefined
+        }
+      >
+        {saving ? 'Saving' : 'Save Overrides'}
+      </Button>
+    </Box>
+  );
+
+  if (isForbiddenError(loadError)) {
+    return (
+      <ForbiddenState
+        message="You do not have permission to configure overrides for this environment."
+        minHeight="400px"
+      />
+    );
+  }
+
+  return (
+    <DetailPageLayout
+      title={`Configure Environment Overrides — ${envDisplayName}`}
+      subtitle={`Set ${envDisplayName}-specific values that override the ${rtDisplayName} parameters for this binding only.`}
+      onBack={onBack}
+      actions={headerActions}
+    >
+      <NotificationBanner notification={notification.notification} />
+
+      {loading && (
+        <Box className={classes.loadingContainer}>
+          <Skeleton variant="rect" width="100%" height={64} />
+          <Skeleton variant="rect" width="100%" height={120} />
+        </Box>
+      )}
+
+      {loadError && !loading && (
+        <Box mb={2}>
+          <Alert severity="error">
+            Failed to load overrides: {getErrorMessage(loadError)}
+          </Alert>
+        </Box>
+      )}
+
+      {!loading && !loadError && !hasBinding && (
+        <Box mb={2}>
+          <Alert severity="info">
+            No binding exists for {envDisplayName} yet. Deploy this resource
+            to {envDisplayName} before configuring overrides.
+          </Alert>
+        </Box>
+      )}
+
+      {saveError && !loading && (
+        <Box mb={2}>
+          <Alert severity="error" onClose={() => setSaveError(null)}>
+            {saveError}
+          </Alert>
+        </Box>
+      )}
+
+      {!loading && !loadError && hasBinding && (
+        <Box className={classes.formCard}>
+          {hasFields ? (
+            <>
+              <Typography className={classes.formHint}>
+                Only fields you fill in here are persisted as overrides on
+                this binding. Empty fields inherit from the resource&apos;s
+                own parameters.
+              </Typography>
+              <RjsfForm
+                schema={schema as any}
+                uiSchema={{}}
+                formData={overrides}
+                onChange={data => setOverrides(data.formData ?? {})}
+                tagName="div"
+              />
+            </>
+          ) : (
+            <Typography className={classes.emptyState}>
+              {rtDisplayName} has no configurable parameters, so per-env
+              overrides are not applicable.
+            </Typography>
+          )}
+        </Box>
+      )}
+    </DetailPageLayout>
+  );
+};
