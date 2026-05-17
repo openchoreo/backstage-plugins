@@ -284,6 +284,22 @@ export function WorkloadEditor({
     updateSpec({ ...formData, container: updated } as unknown as WorkloadSpec);
   };
 
+  /**
+   * Patch one or more fields of `spec.dependencies` while preserving every
+   * other field. Callers pass `{ endpoints }` (and, in future, `{ resources }`)
+   * and the other side survives. Without this merge, wholesale-replacing
+   * `dependencies` from a single-key patch drops the other side on save.
+   */
+  const updateDependencies = useCallback(
+    (patch: { endpoints?: Dependency[] }) => {
+      updateSpec({
+        ...formData,
+        dependencies: { ...formData.dependencies, ...patch },
+      } as WorkloadSpec);
+    },
+    [formData, updateSpec],
+  );
+
   const handleContainerChange = (field: keyof Container, value: any) => {
     if (!formData.container) return;
     updateContainer({ ...formData.container, [field]: value } as Container);
@@ -398,10 +414,7 @@ export function WorkloadEditor({
     const currentEndpoints = formData.dependencies?.endpoints || [];
     const updatedEndpoints = [...currentEndpoints];
     updatedEndpoints[index] = dependency as (typeof updatedEndpoints)[number];
-    updateSpec({
-      ...formData,
-      dependencies: { endpoints: updatedEndpoints },
-    } as WorkloadSpec);
+    updateDependencies({ endpoints: updatedEndpoints });
   };
 
   const addDependency = (): number => {
@@ -413,10 +426,7 @@ export function WorkloadEditor({
     };
     const currentEndpoints = formData.dependencies?.endpoints || [];
     const updatedEndpoints = [...currentEndpoints, newDependency];
-    updateSpec({
-      ...formData,
-      dependencies: { endpoints: updatedEndpoints },
-    } as WorkloadSpec);
+    updateDependencies({ endpoints: updatedEndpoints });
     return updatedEndpoints.length - 1;
   };
 
@@ -424,10 +434,7 @@ export function WorkloadEditor({
     const updatedEndpoints = (formData.dependencies?.endpoints || []).filter(
       (_, i) => i !== index,
     );
-    updateSpec({
-      ...formData,
-      dependencies: { endpoints: updatedEndpoints },
-    } as WorkloadSpec);
+    updateDependencies({ endpoints: updatedEndpoints });
   };
 
   const handleArrayFieldChange = (field: 'command' | 'args', value: string) => {
