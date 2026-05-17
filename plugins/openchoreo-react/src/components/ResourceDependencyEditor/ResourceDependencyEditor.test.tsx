@@ -257,4 +257,94 @@ describe('ResourceDependencyEditor', () => {
       ).toBeDisabled();
     });
   });
+
+  describe('in-row Resource picker (edit mode)', () => {
+    // Material-UI v4 Select renders the option list via a Portal that the
+    // jsdom test environment opens reliably via mouseDown on the
+    // `MuiSelect-root` div (the visible "button" with aria-haspopup).
+    const openSelect = () => {
+      const trigger = document.querySelector(
+        '.MuiSelect-root',
+      ) as HTMLElement;
+      expect(trigger).not.toBeNull();
+      fireEvent.mouseDown(trigger);
+    };
+
+    it('renders the Resource select with available resources as options', () => {
+      render(
+        <ResourceDependencyEditor
+          dependency={{ ref: '' }}
+          outputs={[]}
+          availableResources={[
+            { name: 'orders-db', resourceType: 'postgres' },
+            { name: 'orders-cache', resourceType: 'valkey' },
+          ]}
+          isEditing
+          onEdit={jest.fn()}
+          onApply={jest.fn()}
+          onCancel={jest.fn()}
+          onChange={jest.fn()}
+          onRemove={jest.fn()}
+        />,
+      );
+      openSelect();
+      const listbox = screen.getByRole('listbox');
+      expect(within(listbox).getByText('orders-db')).toBeInTheDocument();
+      expect(within(listbox).getByText('orders-cache')).toBeInTheDocument();
+    });
+
+    it('emits onChange with the new ref and cleared bindings when the picker changes', () => {
+      const onChange = jest.fn();
+      render(
+        <ResourceDependencyEditor
+          dependency={{
+            ref: 'orders-db',
+            envBindings: { host: 'DB_HOST' },
+            fileBindings: { password: '/etc/db/password' },
+          }}
+          outputs={dbOutputs}
+          availableResources={[
+            { name: 'orders-db' },
+            { name: 'orders-cache' },
+          ]}
+          isEditing
+          onEdit={jest.fn()}
+          onApply={jest.fn()}
+          onCancel={jest.fn()}
+          onChange={onChange}
+          onRemove={jest.fn()}
+        />,
+      );
+      openSelect();
+      fireEvent.click(
+        within(screen.getByRole('listbox')).getByText('orders-cache'),
+      );
+
+      expect(onChange).toHaveBeenCalledWith({
+        ref: 'orders-cache',
+        envBindings: undefined,
+        fileBindings: undefined,
+      });
+    });
+
+    it('keeps the current ref selectable even if not in availableResources', () => {
+      render(
+        <ResourceDependencyEditor
+          dependency={{ ref: 'orders-db' }}
+          outputs={[]}
+          availableResources={[{ name: 'orders-cache' }]}
+          isEditing
+          onEdit={jest.fn()}
+          onApply={jest.fn()}
+          onCancel={jest.fn()}
+          onChange={jest.fn()}
+          onRemove={jest.fn()}
+        />,
+      );
+      openSelect();
+      const listbox = screen.getByRole('listbox');
+      expect(within(listbox).getByText('orders-db')).toBeInTheDocument();
+      expect(within(listbox).getByText('orders-cache')).toBeInTheDocument();
+    });
+  });
 });

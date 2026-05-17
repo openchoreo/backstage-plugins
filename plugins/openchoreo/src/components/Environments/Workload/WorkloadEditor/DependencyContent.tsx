@@ -125,34 +125,25 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     fetchResources();
   }, [catalogApi, currentProject]);
 
-  // Fetch outputs for each wired resource dep. Walks resources[], looks up
-  // each ref's catalog Entity (for the RESOURCE_TYPE_KIND annotation), and
-  // hits the BFF outputs endpoint. Results are cached by ref so flipping
-  // between FORM and YAML modes doesn't re-fetch.
+  // Pre-fetch outputs for every project Resource entity. The editor's
+  // in-row picker lets the user switch between any project resource, so we
+  // need the outputs ready ahead of any pick. Cached by ref; FORM<->YAML
+  // toggles don't re-fetch.
   useEffect(() => {
-    if (!resources || resources.length === 0) return;
     if (projectResources.length === 0) return;
-
-    const refsToFetch = resources
-      .map(r => r.ref)
-      .filter(ref => ref && !(ref in outputsByRef));
-
-    refsToFetch.forEach(async ref => {
-      const entity = projectResources.find(e => e.metadata.name === ref);
-      if (!entity) return;
+    projectResources.forEach(async entity => {
+      const ref = entity.metadata.name;
+      if (ref in outputsByRef) return;
       try {
         const result = await client.fetchResourceTypeOutputs(entity);
-        setOutputsByRef(prev => ({
-          ...prev,
-          [ref]: result.data ?? [],
-        }));
+        setOutputsByRef(prev => ({ ...prev, [ref]: result.data ?? [] }));
       } catch {
         // Cache an empty array so we don't retry indefinitely; the editor
         // tolerates missing outputs (no kind chips, empty Add dropdown).
         setOutputsByRef(prev => ({ ...prev, [ref]: [] }));
       }
     });
-  }, [resources, projectResources, outputsByRef, client]);
+  }, [projectResources, outputsByRef, client]);
 
   // Get unique projects from all components
   const projectList: ProjectOption[] = useMemo(() => {

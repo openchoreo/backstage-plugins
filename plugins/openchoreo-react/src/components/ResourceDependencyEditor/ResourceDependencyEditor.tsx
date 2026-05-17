@@ -3,9 +3,12 @@ import {
   Box,
   Button,
   Chip,
+  FormControl,
   IconButton,
+  InputLabel,
   Menu,
   MenuItem,
+  Select,
   TextField,
   Typography,
 } from '@material-ui/core';
@@ -65,11 +68,8 @@ const useStyles = makeStyles((theme: Theme) => ({
     gap: theme.spacing(1),
     marginBottom: theme.spacing(1.5),
   },
-  ref: {
-    fontWeight: 600,
-    fontSize: '0.875rem',
-    color: theme.palette.text.primary,
-    flex: 1,
+  refSelect: {
+    minWidth: 240,
   },
   bindingsList: {
     display: 'flex',
@@ -120,6 +120,14 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
 }));
 
+/** Lightweight option shape for the in-row Resource picker. */
+export interface ResourceOption {
+  /** Resource name (the binding `ref`). */
+  name: string;
+  /** Optional ResourceType display name, shown as a caption next to the option. */
+  resourceType?: string;
+}
+
 export interface ResourceDependencyEditorProps {
   /**
    * Current state of the resource dependency: when `isEditing` is true this
@@ -132,6 +140,11 @@ export interface ResourceDependencyEditorProps {
    * Drives the Add-binding dropdown and per-row kind chips.
    */
   outputs: ResourceTypeOutput[];
+  /**
+   * Resources the user can pick from in edit mode. Caller should filter
+   * out resources already claimed by OTHER rows so duplicates don't appear.
+   */
+  availableResources?: ResourceOption[];
   /** Whether this row is in edit mode (expanded form). */
   isEditing: boolean;
   /** Begin editing this row (parent flips `isEditing` to true). */
@@ -176,6 +189,7 @@ function outputKind(output: ResourceTypeOutput): OutputKind {
 export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
   dependency,
   outputs,
+  availableResources = [],
   isEditing,
   onEdit,
   onApply,
@@ -223,6 +237,19 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
     const wired = new Set(wiredOutputNames);
     return outputs.filter(o => !wired.has(o.name));
   }, [outputs, wiredOutputNames]);
+
+  // The currently-selected ref must remain in the picker's option list so
+  // users don't lose their pick if the parent excludes it (e.g. another
+  // row claimed it).
+  const refOptions: ResourceOption[] = useMemo(() => {
+    if (
+      dependency.ref &&
+      !availableResources.some(o => o.name === dependency.ref)
+    ) {
+      return [{ name: dependency.ref }, ...availableResources];
+    }
+    return availableResources;
+  }, [availableResources, dependency.ref]);
 
   // Read-only summary line: "5 env, 1 file binding" — terse so the row
   // stays a single visual unit. Counts only; the user clicks Edit to see
@@ -331,6 +358,20 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
     setAddAnchor(null);
   };
 
+  const handleRefChange = (nextRef: string) => {
+    // Switching the ref invalidates the existing bindings — each
+    // (Cluster)ResourceType declares its own outputs, so a binding for
+    // `host` against postgres has no meaning against nats. Clear the
+    // binding maps when the ref changes.
+    if (nextRef === dependency.ref) return;
+    onChange({
+      ...dependency,
+      ref: nextRef,
+      envBindings: undefined,
+      fileBindings: undefined,
+    });
+  };
+
   return (
     <Box
       className={classes.containerEditing}
@@ -339,13 +380,35 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
       <Box display="flex" alignItems="flex-start">
         <Box flex={1}>
           <Box className={classes.header}>
-            <Typography className={classes.ref}>{dependency.ref}</Typography>
-            <Chip
-              label="Resource"
-              size="small"
+            <FormControl
               variant="outlined"
-              className={classes.typeChip}
-            />
+              size="small"
+              className={classes.refSelect}
+            >
+              <InputLabel>Resource</InputLabel>
+              <Select
+                value={dependency.ref || ''}
+                onChange={e => handleRefChange(e.target.value as string)}
+                label="Resource"
+                disabled={disabled}
+                inputProps={{ 'data-testid': 'resource-ref-select' }}
+              >
+                {refOptions.map(option => (
+                  <MenuItem key={option.name} value={option.name}>
+                    {option.name}
+                    {option.resourceType && (
+                      <Typography
+                        variant="caption"
+                        color="textSecondary"
+                        style={{ marginLeft: 8 }}
+                      >
+                        {option.resourceType}
+                      </Typography>
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
 
           <Box className={classes.bindingsList}>

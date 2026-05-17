@@ -90,6 +90,7 @@ export {
 export {
   ResourceDependencyEditor,
   type ResourceDependencyEditorProps,
+  type ResourceOption,
 } from './components/ResourceDependencyEditor';
 export {
   GroupedSection,

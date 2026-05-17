@@ -1,5 +1,5 @@
-import { useState, type FC } from 'react';
-import { Box, Button, Menu, MenuItem, Typography } from '@material-ui/core';
+import { useMemo, type FC } from 'react';
+import { Box, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import type { Entity } from '@backstage/catalog-model';
@@ -14,7 +14,10 @@ import {
   type ComponentOption,
   type EndpointOption,
 } from '../DependencyEditor';
-import { ResourceDependencyEditor } from '../ResourceDependencyEditor';
+import {
+  ResourceDependencyEditor,
+  type ResourceOption,
+} from '../ResourceDependencyEditor';
 import type { UseDependencyEditBufferResult } from '../../hooks/useDependencyEditBuffer';
 import { useResourceDependencyEditBuffer } from '../../hooks/useResourceDependencyEditBuffer';
 
@@ -101,9 +104,6 @@ export const DependencyList: FC<DependencyListProps> = ({
   onRemoveResourceDependency,
 }) => {
   const classes = useStyles();
-  const [resourceAnchor, setResourceAnchor] = useState<HTMLElement | null>(
-    null,
-  );
 
   // Resource-side edit buffer, mirroring the endpoint side. Both buffers
   // gate the Add buttons via `isAnyRowEditing`.
@@ -129,11 +129,13 @@ export const DependencyList: FC<DependencyListProps> = ({
     onRemoveDependency(index);
   };
 
-  const handleAddResourceDependency = (ref: string) => {
-    setResourceAnchor(null);
+  const handleAddResourceDependency = () => {
     if (!onAddResourceDependency) return;
-    const newIndex = onAddResourceDependency(ref);
-    resourceEditBuffer.startNew(newIndex, { ref });
+    // Add an empty placeholder; the editor's in-row Resource Select fills
+    // in the ref. Mirrors the endpoint flow where an empty row is added
+    // and the user picks Project / Component / Endpoint inside the form.
+    const newIndex = onAddResourceDependency('');
+    resourceEditBuffer.startNew(newIndex);
   };
 
   const handleRemoveResourceDependency = (index: number) => {
@@ -143,20 +145,24 @@ export const DependencyList: FC<DependencyListProps> = ({
     onRemoveResourceDependency?.(index);
   };
 
-  // Resources already wired (or being-added with an empty ref) are
-  // hidden from the picker. Empty refs are ignored so a placeholder row
-  // doesn't block adding another.
-  const wiredRefs = new Set(
-    (resources ?? []).map(r => r.ref).filter(ref => !!ref),
+  // Project resources mapped to the option shape consumed by the editor's
+  // in-row Select. The editor handles its own filtering for the active
+  // row's current ref so users can still see their own picked resource.
+  const projectResourceOptions: ResourceOption[] = useMemo(
+    () =>
+      projectResources.map(e => ({
+        name: e.metadata.name,
+        resourceType:
+          e.metadata.annotations?.['openchoreo.io/resource-type'] || undefined,
+      })),
+    [projectResources],
   );
-  const availableResources = projectResources.filter(
-    e => !wiredRefs.has(e.metadata.name),
-  );
+
   const canAddResource =
     !disabled &&
     !anyRowEditing &&
     !!onAddResourceDependency &&
-    availableResources.length > 0;
+    projectResources.length > 0;
 
   return (
     <Box>
@@ -173,7 +179,7 @@ export const DependencyList: FC<DependencyListProps> = ({
         </Button>
         <Button
           startIcon={<AddIcon />}
-          onClick={e => setResourceAnchor(e.currentTarget)}
+          onClick={handleAddResourceDependency}
           variant="outlined"
           size="small"
           disabled={!canAddResource}
@@ -181,31 +187,6 @@ export const DependencyList: FC<DependencyListProps> = ({
         >
           Add Resource Dependency
         </Button>
-        <Menu
-          anchorEl={resourceAnchor}
-          open={Boolean(resourceAnchor)}
-          onClose={() => setResourceAnchor(null)}
-        >
-          {availableResources.map(entity => (
-            <MenuItem
-              key={entity.metadata.name}
-              onClick={() =>
-                handleAddResourceDependency(entity.metadata.name)
-              }
-            >
-              {entity.metadata.name}
-              <Typography
-                variant="caption"
-                color="textSecondary"
-                style={{ marginLeft: 8 }}
-              >
-                {entity.metadata.annotations?.[
-                  'openchoreo.io/resource-type'
-                ] || ''}
-              </Typography>
-            </MenuItem>
-          ))}
-        </Menu>
       </Box>
 
       {dependencies.map((dependency, index) => {
@@ -279,11 +260,24 @@ export const DependencyList: FC<DependencyListProps> = ({
           isCurrentlyEditing && resourceEditBuffer.editBuffer
             ? resourceEditBuffer.editBuffer
             : resource;
+        // Each row's picker shows project resources minus those already
+        // claimed by OTHER rows. The active row's saved ref stays
+        // selectable so the user can keep their current pick.
+        const otherWiredRefs = new Set(
+          (resources ?? [])
+            .filter((_, i) => i !== index)
+            .map(r => r.ref)
+            .filter(ref => !!ref),
+        );
+        const availableForRow = projectResourceOptions.filter(
+          o => !otherWiredRefs.has(o.name),
+        );
         return (
           <Box key={`resource-${index}`} className={classes.rowWrapper}>
             <ResourceDependencyEditor
               dependency={effectiveResource}
               outputs={outputsByRef[effectiveResource.ref] ?? []}
+              availableResources={availableForRow}
               disabled={disabled}
               isEditing={isCurrentlyEditing}
               onEdit={() => resourceEditBuffer.startEdit(index)}
