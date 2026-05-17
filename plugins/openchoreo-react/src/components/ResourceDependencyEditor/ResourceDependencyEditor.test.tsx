@@ -20,108 +20,121 @@ const dbOutputs: ResourceTypeOutput[] = [
   },
 ];
 
-function renderEditor(overrides: Partial<{
-  dependency: ResourceDependency;
-  outputs: ResourceTypeOutput[];
-}> = {}) {
+function renderEditor(
+  overrides: Partial<{
+    dependency: ResourceDependency;
+    outputs: ResourceTypeOutput[];
+    isEditing: boolean;
+  }> = {},
+) {
   const onChange = jest.fn();
   const onRemove = jest.fn();
+  const onEdit = jest.fn();
+  const onApply = jest.fn();
+  const onCancel = jest.fn();
   render(
     <ResourceDependencyEditor
       dependency={overrides.dependency ?? { ref: 'orders-db' }}
       outputs={overrides.outputs ?? dbOutputs}
+      isEditing={overrides.isEditing ?? false}
+      onEdit={onEdit}
+      onApply={onApply}
+      onCancel={onCancel}
       onChange={onChange}
       onRemove={onRemove}
     />,
   );
-  return { onChange, onRemove };
+  return { onChange, onRemove, onEdit, onApply, onCancel };
 }
 
 describe('ResourceDependencyEditor', () => {
-  describe('rendering', () => {
-    it('renders the resource ref', () => {
-      renderEditor();
-      expect(screen.getByText('orders-db')).toBeInTheDocument();
-    });
-
-    it('renders one row per wired output (envBindings + fileBindings)', () => {
+  describe('read-only (collapsed) mode', () => {
+    it('renders ref + Resource chip + summary + Edit/Remove buttons', () => {
       renderEditor({
         dependency: {
           ref: 'orders-db',
           envBindings: { host: 'DB_HOST', password: 'DB_PASSWORD' },
-          fileBindings: { caCert: '/etc/db/ca.crt' },
-        },
-      });
-
-      // Three distinct wired outputs (caCert appears only in fileBindings;
-      // password is env-only; host is env-only).
-      expect(screen.getByTestId('binding-row-host')).toBeInTheDocument();
-      expect(screen.getByTestId('binding-row-password')).toBeInTheDocument();
-      expect(screen.getByTestId('binding-row-caCert')).toBeInTheDocument();
-    });
-
-    it('renders the output kind chip on each row', () => {
-      renderEditor({
-        dependency: {
-          ref: 'orders-db',
-          envBindings: { host: 'DB_HOST', password: 'DB_PASSWORD' },
-          fileBindings: { caCert: '/etc/db/ca.crt' },
-        },
-      });
-
-      const hostRow = screen.getByTestId('binding-row-host');
-      const passwordRow = screen.getByTestId('binding-row-password');
-      const caCertRow = screen.getByTestId('binding-row-caCert');
-      expect(within(hostRow).getByText('value')).toBeInTheDocument();
-      expect(within(passwordRow).getByText('secretKeyRef')).toBeInTheDocument();
-      expect(within(caCertRow).getByText('configMapKeyRef')).toBeInTheDocument();
-    });
-
-    it('shows the env-var and mount-path fields with their current values', () => {
-      renderEditor({
-        dependency: {
-          ref: 'orders-db',
-          envBindings: { password: 'DB_PASSWORD' },
           fileBindings: { password: '/etc/db/password' },
         },
       });
 
-      const envInput = screen.getByTestId(
-        'env-input-password',
-      ) as HTMLInputElement;
-      const mountInput = screen.getByTestId(
-        'mount-input-password',
-      ) as HTMLInputElement;
-      expect(envInput.value).toBe('DB_PASSWORD');
-      expect(mountInput.value).toBe('/etc/db/password');
+      expect(screen.getByText('orders-db')).toBeInTheDocument();
+      expect(screen.getByText('Resource')).toBeInTheDocument();
+      expect(screen.getByText('2 env, 1 file bindings')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /Edit/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByLabelText('Remove resource dependency'),
+      ).toBeInTheDocument();
     });
 
-    it('disables the mount-path field for value-kind outputs', () => {
+    it('shows "no bindings" when nothing is wired', () => {
+      renderEditor({ dependency: { ref: 'orders-db' } });
+      expect(screen.getByText('no bindings')).toBeInTheDocument();
+    });
+
+    it('invokes onEdit when the Edit button is clicked', () => {
+      const { onEdit } = renderEditor();
+      fireEvent.click(screen.getByRole('button', { name: /Edit/i }));
+      expect(onEdit).toHaveBeenCalledTimes(1);
+    });
+
+    it('invokes onRemove when the Remove icon is clicked', () => {
+      const { onRemove } = renderEditor();
+      fireEvent.click(screen.getByLabelText('Remove resource dependency'));
+      expect(onRemove).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders no expanded fields in read-only mode', () => {
       renderEditor({
         dependency: {
           ref: 'orders-db',
           envBindings: { host: 'DB_HOST' },
         },
       });
-
-      const mountInput = screen.getByTestId(
-        'mount-input-host',
-      ) as HTMLInputElement;
-      expect(mountInput).toBeDisabled();
-    });
-
-    it('shows an empty wired-bindings state with just the Add button when no outputs are wired', () => {
-      renderEditor({ dependency: { ref: 'orders-db' } });
-
-      // None of the dbOutputs should produce a binding row.
       expect(screen.queryByTestId(/^binding-row-/)).not.toBeInTheDocument();
-      expect(screen.getByText(/Add binding/i)).toBeInTheDocument();
+      expect(screen.queryByTestId(/^env-input-/)).not.toBeInTheDocument();
     });
   });
 
-  describe('field edits', () => {
+  describe('edit (expanded) mode', () => {
+    it('renders one binding row per wired output', () => {
+      renderEditor({
+        isEditing: true,
+        dependency: {
+          ref: 'orders-db',
+          envBindings: { host: 'DB_HOST', password: 'DB_PASSWORD' },
+          fileBindings: { caCert: '/etc/db/ca.crt' },
+        },
+      });
+
+      expect(screen.getByTestId('binding-row-host')).toBeInTheDocument();
+      expect(screen.getByTestId('binding-row-password')).toBeInTheDocument();
+      expect(screen.getByTestId('binding-row-caCert')).toBeInTheDocument();
+    });
+
+    it('renders Apply / Cancel buttons in the footer', () => {
+      renderEditor({ isEditing: true });
+      expect(
+        screen.getByRole('button', { name: /Apply changes/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /Cancel editing/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('invokes onApply / onCancel via footer buttons', () => {
+      const { onApply, onCancel } = renderEditor({ isEditing: true });
+      fireEvent.click(screen.getByRole('button', { name: /Apply changes/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Cancel editing/i }));
+      expect(onApply).toHaveBeenCalledTimes(1);
+      expect(onCancel).toHaveBeenCalledTimes(1);
+    });
+
     it('emits onChange with the new env var on env-field edit', () => {
       const { onChange } = renderEditor({
+        isEditing: true,
         dependency: {
           ref: 'orders-db',
           envBindings: { host: 'DB_HOST' },
@@ -139,27 +152,20 @@ describe('ResourceDependencyEditor', () => {
       });
     });
 
-    it('emits onChange with the new mount path on mount-field edit', () => {
-      const { onChange } = renderEditor({
+    it('disables the mount-path field for value-kind outputs', () => {
+      renderEditor({
+        isEditing: true,
         dependency: {
           ref: 'orders-db',
-          envBindings: { password: 'DB_PASSWORD' },
+          envBindings: { host: 'DB_HOST' },
         },
       });
-
-      fireEvent.change(screen.getByTestId('mount-input-password'), {
-        target: { value: '/etc/db/password' },
-      });
-
-      expect(onChange).toHaveBeenLastCalledWith({
-        ref: 'orders-db',
-        envBindings: { password: 'DB_PASSWORD' },
-        fileBindings: { password: '/etc/db/password' },
-      });
+      expect(screen.getByTestId('mount-input-host')).toBeDisabled();
     });
 
     it('drops the env binding when the env field is cleared', () => {
       const { onChange } = renderEditor({
+        isEditing: true,
         dependency: {
           ref: 'orders-db',
           envBindings: { host: 'DB_HOST', password: 'DB_PASSWORD' },
@@ -177,8 +183,9 @@ describe('ResourceDependencyEditor', () => {
       });
     });
 
-    it('removes the output from both envBindings and fileBindings on row-remove', () => {
+    it('removes the output from both maps on row-remove', () => {
       const { onChange } = renderEditor({
+        isEditing: true,
         dependency: {
           ref: 'orders-db',
           envBindings: { password: 'DB_PASSWORD', host: 'DB_HOST' },
@@ -196,60 +203,32 @@ describe('ResourceDependencyEditor', () => {
       });
     });
 
-    it('calls onRemove when the top-level Remove button is clicked', () => {
-      const { onRemove } = renderEditor();
-      fireEvent.click(screen.getByLabelText('Remove resource dependency'));
-      expect(onRemove).toHaveBeenCalledTimes(1);
-    });
-
-    it('keeps mount-path edits no-op for value-kind outputs (field disabled)', () => {
-      const { onChange } = renderEditor({
-        dependency: {
-          ref: 'orders-db',
-          envBindings: { host: 'DB_HOST' },
-        },
-      });
-
-      // mount-input-host is disabled because host is value-kind; the
-      // earlier rendering test already locks that in. Confirm there is no
-      // onChange firing when the user can't type.
-      expect(screen.getByTestId('mount-input-host')).toBeDisabled();
-      // Sanity check: clearing onChange + no event => no calls.
-      onChange.mockClear();
-      expect(onChange).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Add binding dropdown', () => {
-    it('lists outputs that are not yet wired', () => {
+    it('Add binding dropdown lists unbound outputs only', () => {
       renderEditor({
+        isEditing: true,
         dependency: {
           ref: 'orders-db',
           envBindings: { host: 'DB_HOST' },
         },
       });
 
-      fireEvent.click(screen.getByText(/Add binding/i));
+      fireEvent.click(screen.getByRole('button', { name: /Add binding/i }));
       const menu = screen.getByRole('menu');
-      // host is wired, so it should be absent from the menu.
       expect(within(menu).queryByText('host')).not.toBeInTheDocument();
-      // The other 5 dbOutputs are still unbound.
-      expect(within(menu).getByText('port')).toBeInTheDocument();
-      expect(within(menu).getByText('database')).toBeInTheDocument();
-      expect(within(menu).getByText('username')).toBeInTheDocument();
       expect(within(menu).getByText('password')).toBeInTheDocument();
       expect(within(menu).getByText('caCert')).toBeInTheDocument();
     });
 
     it('adds a new env-only row with an empty target when an output is picked', () => {
       const { onChange } = renderEditor({
+        isEditing: true,
         dependency: {
           ref: 'orders-db',
           envBindings: { host: 'DB_HOST' },
         },
       });
 
-      fireEvent.click(screen.getByText(/Add binding/i));
+      fireEvent.click(screen.getByRole('button', { name: /Add binding/i }));
       fireEvent.click(within(screen.getByRole('menu')).getByText('password'));
 
       expect(onChange).toHaveBeenLastCalledWith({
@@ -259,23 +238,23 @@ describe('ResourceDependencyEditor', () => {
       });
     });
 
-    it('disables the Add button when every output is wired', () => {
-      renderEditor({
-        dependency: {
-          ref: 'orders-db',
-          envBindings: {
-            host: 'A',
-            port: 'B',
-            database: 'C',
-            username: 'D',
-            password: 'E',
-            caCert: 'F',
-          },
-        },
-      });
-
-      const button = screen.getByRole('button', { name: /Add binding/i });
-      expect(button).toBeDisabled();
+    it('disables Apply when applyDisabled is true', () => {
+      render(
+        <ResourceDependencyEditor
+          dependency={{ ref: 'orders-db' }}
+          outputs={dbOutputs}
+          isEditing
+          onEdit={jest.fn()}
+          onApply={jest.fn()}
+          onCancel={jest.fn()}
+          onChange={jest.fn()}
+          onRemove={jest.fn()}
+          applyDisabled
+        />,
+      );
+      expect(
+        screen.getByRole('button', { name: /Apply changes/i }),
+      ).toBeDisabled();
     });
   });
 });

@@ -16,6 +16,7 @@ import {
 } from '../DependencyEditor';
 import { ResourceDependencyEditor } from '../ResourceDependencyEditor';
 import type { UseDependencyEditBufferResult } from '../../hooks/useDependencyEditBuffer';
+import { useResourceDependencyEditBuffer } from '../../hooks/useResourceDependencyEditBuffer';
 
 const useStyles = makeStyles(theme => ({
   rowWrapper: {
@@ -24,7 +25,7 @@ const useStyles = makeStyles(theme => ({
   addButtonRow: {
     display: 'flex',
     gap: theme.spacing(1),
-    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(1.5),
     flexWrap: 'wrap',
   },
 }));
@@ -74,12 +75,10 @@ export interface DependencyListProps {
 }
 
 /**
- * Dependency list with inline editing support. Renders endpoint
- * dependencies via the buffered DependencyEditor (one row editable at a
- * time) and resource dependencies via the always-editable
- * ResourceDependencyEditor. Two `+ Add` buttons at the bottom let the
- * developer add either kind; the resource button opens a dropdown of
- * project-owned Resource entities not yet bound.
+ * Dependency list with inline editing for endpoint and resource deps.
+ * Each row uses the collapsed-summary / expanded-form pattern: only one
+ * row across either type can be in edit mode at a time, and the two
+ * `+ Add` buttons disable while any row is editing.
  */
 export const DependencyList: FC<DependencyListProps> = ({
   dependencies,
@@ -106,13 +105,24 @@ export const DependencyList: FC<DependencyListProps> = ({
     null,
   );
 
+  // Resource-side edit buffer, mirroring the endpoint side. Both buffers
+  // gate the Add buttons via `isAnyRowEditing`.
+  const resourceEditBuffer = useResourceDependencyEditBuffer({
+    resources: resources ?? [],
+    onResourceDependencyReplace,
+    onRemoveResourceDependency:
+      onRemoveResourceDependency ?? (() => {}),
+  });
+
+  const anyRowEditing =
+    editBuffer.isAnyRowEditing || resourceEditBuffer.isAnyRowEditing;
+
   const handleAddDependency = () => {
     const newIndex = onAddDependency();
     editBuffer.startNew(newIndex);
   };
 
   const handleRemoveDependency = (index: number) => {
-    // If deleting the row being edited, clear edit state first
     if (editBuffer.isRowEditing(index)) {
       editBuffer.clearEditState();
     }
@@ -121,12 +131,21 @@ export const DependencyList: FC<DependencyListProps> = ({
 
   const handleAddResourceDependency = (ref: string) => {
     setResourceAnchor(null);
-    onAddResourceDependency?.(ref);
+    if (!onAddResourceDependency) return;
+    const newIndex = onAddResourceDependency(ref);
+    resourceEditBuffer.startNew(newIndex, { ref });
   };
 
-  // Resources that exist in the catalog and aren't already bound. Empty
-  // refs (a row that was just added but not yet pointed at a resource) are
-  // ignored here so adding a placeholder doesn't block adding more rows.
+  const handleRemoveResourceDependency = (index: number) => {
+    if (resourceEditBuffer.isRowEditing(index)) {
+      resourceEditBuffer.clearEditState();
+    }
+    onRemoveResourceDependency?.(index);
+  };
+
+  // Resources already wired (or being-added with an empty ref) are
+  // hidden from the picker. Empty refs are ignored so a placeholder row
+  // doesn't block adding another.
   const wiredRefs = new Set(
     (resources ?? []).map(r => r.ref).filter(ref => !!ref),
   );
@@ -135,11 +154,60 @@ export const DependencyList: FC<DependencyListProps> = ({
   );
   const canAddResource =
     !disabled &&
+    !anyRowEditing &&
     !!onAddResourceDependency &&
     availableResources.length > 0;
 
   return (
     <Box>
+      <Box className={classes.addButtonRow}>
+        <Button
+          startIcon={<AddIcon />}
+          onClick={handleAddDependency}
+          variant="outlined"
+          size="small"
+          disabled={disabled || anyRowEditing}
+          color="primary"
+        >
+          Add Component Dependency
+        </Button>
+        <Button
+          startIcon={<AddIcon />}
+          onClick={e => setResourceAnchor(e.currentTarget)}
+          variant="outlined"
+          size="small"
+          disabled={!canAddResource}
+          color="primary"
+        >
+          Add Resource Dependency
+        </Button>
+        <Menu
+          anchorEl={resourceAnchor}
+          open={Boolean(resourceAnchor)}
+          onClose={() => setResourceAnchor(null)}
+        >
+          {availableResources.map(entity => (
+            <MenuItem
+              key={entity.metadata.name}
+              onClick={() =>
+                handleAddResourceDependency(entity.metadata.name)
+              }
+            >
+              {entity.metadata.name}
+              <Typography
+                variant="caption"
+                color="textSecondary"
+                style={{ marginLeft: 8 }}
+              >
+                {entity.metadata.annotations?.[
+                  'openchoreo.io/resource-type'
+                ] || ''}
+              </Typography>
+            </MenuItem>
+          ))}
+        </Menu>
+      </Box>
+
       {dependencies.map((dependency, index) => {
         const isCurrentlyEditing = editBuffer.isRowEditing(index);
         const effectiveDependency =
@@ -157,8 +225,8 @@ export const DependencyList: FC<DependencyListProps> = ({
               onEdit={() => editBuffer.startEdit(index)}
               onApply={editBuffer.applyEdit}
               onCancel={editBuffer.cancelEdit}
-              editDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
-              deleteDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
+              editDisabled={anyRowEditing && !isCurrentlyEditing}
+              deleteDisabled={anyRowEditing && !isCurrentlyEditing}
               applyDisabled={isCurrentlyEditing && !editBuffer.isBufferValid}
               projects={getProjects(index)}
               components={getComponents(index)}
@@ -205,67 +273,37 @@ export const DependencyList: FC<DependencyListProps> = ({
         );
       })}
 
-      {(resources ?? []).map((resource, index) => (
-        <Box key={`resource-${index}`} className={classes.rowWrapper}>
-          <ResourceDependencyEditor
-            dependency={resource}
-            outputs={outputsByRef[resource.ref] ?? []}
-            disabled={disabled}
-            onChange={updated =>
-              onResourceDependencyReplace?.(index, updated)
-            }
-            onRemove={() => onRemoveResourceDependency?.(index)}
-          />
-        </Box>
-      ))}
-
-      <Box className={classes.addButtonRow}>
-        <Button
-          startIcon={<AddIcon />}
-          onClick={handleAddDependency}
-          variant="outlined"
-          size="small"
-          disabled={disabled || editBuffer.isAnyRowEditing}
-          color="primary"
-        >
-          Add Component Dependency
-        </Button>
-        <Button
-          startIcon={<AddIcon />}
-          onClick={e => setResourceAnchor(e.currentTarget)}
-          variant="outlined"
-          size="small"
-          disabled={!canAddResource}
-          color="primary"
-        >
-          Add Resource Dependency
-        </Button>
-        <Menu
-          anchorEl={resourceAnchor}
-          open={Boolean(resourceAnchor)}
-          onClose={() => setResourceAnchor(null)}
-        >
-          {availableResources.map(entity => (
-            <MenuItem
-              key={entity.metadata.name}
-              onClick={() =>
-                handleAddResourceDependency(entity.metadata.name)
+      {(resources ?? []).map((resource, index) => {
+        const isCurrentlyEditing = resourceEditBuffer.isRowEditing(index);
+        const effectiveResource =
+          isCurrentlyEditing && resourceEditBuffer.editBuffer
+            ? resourceEditBuffer.editBuffer
+            : resource;
+        return (
+          <Box key={`resource-${index}`} className={classes.rowWrapper}>
+            <ResourceDependencyEditor
+              dependency={effectiveResource}
+              outputs={outputsByRef[effectiveResource.ref] ?? []}
+              disabled={disabled}
+              isEditing={isCurrentlyEditing}
+              onEdit={() => resourceEditBuffer.startEdit(index)}
+              onApply={resourceEditBuffer.applyEdit}
+              onCancel={resourceEditBuffer.cancelEdit}
+              editDisabled={anyRowEditing && !isCurrentlyEditing}
+              deleteDisabled={anyRowEditing && !isCurrentlyEditing}
+              applyDisabled={
+                isCurrentlyEditing && !resourceEditBuffer.isBufferValid
               }
-            >
-              {entity.metadata.name}
-              <Typography
-                variant="caption"
-                color="textSecondary"
-                style={{ marginLeft: 8 }}
-              >
-                {entity.metadata.annotations?.[
-                  'openchoreo.io/resource-type'
-                ] || ''}
-              </Typography>
-            </MenuItem>
-          ))}
-        </Menu>
-      </Box>
+              onChange={updated => {
+                if (isCurrentlyEditing) {
+                  resourceEditBuffer.setBuffer(updated);
+                }
+              }}
+              onRemove={() => handleRemoveResourceDependency(index)}
+            />
+          </Box>
+        );
+      })}
     </Box>
   );
 };

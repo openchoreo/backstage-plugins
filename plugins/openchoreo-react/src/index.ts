@@ -222,6 +222,12 @@ export {
   type DependencyEditingRowState,
 } from './hooks/useDependencyEditBuffer';
 export {
+  useResourceDependencyEditBuffer,
+  type UseResourceDependencyEditBufferOptions,
+  type UseResourceDependencyEditBufferResult,
+  type ResourceDependencyEditingRowState,
+} from './hooks/useResourceDependencyEditBuffer';
+export {
   useChangeDetection,
   type UseChangeDetectionResult,
 } from './hooks/useChangeDetection';
