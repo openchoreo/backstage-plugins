@@ -88,12 +88,14 @@ export const ResourceParametersConfigPage = ({
     Record<string, unknown>
   >({});
   /**
-   * RJSF normalizes formData on the first render (e.g. injects schema
-   * defaults for missing fields). Treat that normalized snapshot as the
-   * baseline so the user's actual edits — not the framework's auto-fill —
-   * drive change detection.
+   * When the Resource has no stored parameters, RJSF auto-fills schema
+   * defaults on its first onChange and we adopt that normalized snapshot
+   * as the baseline (otherwise hasChanges would flip true on mount).
+   * When parameters are already stored, those values ARE the baseline
+   * and we skip the capture so a real user edit doesn't get mistaken
+   * for initial state.
    */
-  const formInitializedRef = useRef(false);
+  const formInitializedRef = useRef(true);
   const [firstEnvRef, setFirstEnvRef] = useState<string | null>(null);
   const [baselineRelease, setBaselineRelease] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -137,7 +139,10 @@ export const ResourceParametersConfigPage = ({
         setResource(resourceData);
         const spec = (resourceData?.spec as Record<string, unknown>) || {};
         const currentParams = (spec.parameters as Record<string, unknown>) || {};
-        formInitializedRef.current = false;
+        // Empty stored params → allow the first RJSF onChange to absorb
+        // schema-default expansion as the baseline. Otherwise the stored
+        // params are the baseline directly.
+        formInitializedRef.current = Object.keys(currentParams).length > 0;
         setParameters(currentParams);
         setInitialParameters(JSON.parse(JSON.stringify(currentParams)));
 

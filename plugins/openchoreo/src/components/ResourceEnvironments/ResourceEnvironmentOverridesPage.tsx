@@ -102,11 +102,14 @@ export const ResourceEnvironmentOverridesPage = ({
    */
   const [hasActualOverrides, setHasActualOverrides] = useState(false);
   /**
-   * Set on the first RJSF onChange after a load. The first onChange may
-   * carry schema-default expansion that we don't want to count as a user
-   * change — we capture that normalized formData as the initial baseline.
+   * When the backend has no stored overrides, RJSF auto-fills schema
+   * defaults on its first onChange and we adopt that normalized snapshot
+   * as the baseline (otherwise hasChanges would flip true on mount).
+   * When the backend already has values, those values ARE the baseline
+   * and we skip the capture so a real user edit doesn't get mistaken
+   * for initial state.
    */
-  const formInitializedRef = useRef(false);
+  const formInitializedRef = useRef(true);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
@@ -158,9 +161,11 @@ export const ResourceEnvironmentOverridesPage = ({
           JSON.stringify(backendOverrides),
         );
 
-        // Reset the RJSF-init guard before seeding state so the first
-        // onChange on the new form captures the normalized baseline.
-        formInitializedRef.current = false;
+        // If the backend has stored values, those are the baseline; skip
+        // the RJSF normalization capture so the user's first edit isn't
+        // mistaken for initial state. Empty backend → allow capture to
+        // absorb schema-default expansion.
+        formInitializedRef.current = Object.keys(backendOverrides).length > 0;
         setOverrides(backendOverridesCopy);
         setInitialOverrides(backendOverridesCopy);
         setHasActualOverrides(Object.keys(backendOverrides).length > 0);
