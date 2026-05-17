@@ -53,3 +53,58 @@ describe('ClusterResourceTypeInfoService.fetchClusterResourceTypeSchema', () => 
     ).rejects.toThrow();
   });
 });
+
+describe('ClusterResourceTypeInfoService.fetchClusterResourceTypeOutputs', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns spec.outputs from the full ClusterResourceType GET response', async () => {
+    const outputs = [
+      { name: 'host', value: '${applied.claim.status.host}' },
+      { name: 'token', secretKeyRef: { name: 'rt-secret', key: 'token' } },
+    ];
+    mockGET.mockResolvedValueOnce(
+      createOkResponse({
+        metadata: { name: 'redis' },
+        spec: { outputs, parameters: {}, resources: [] },
+      }),
+    );
+
+    const result = await createService().fetchClusterResourceTypeOutputs(
+      'redis',
+      'token-123',
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(outputs);
+    expect(mockGET).toHaveBeenCalledWith(
+      '/api/v1/clusterresourcetypes/{crtName}',
+      expect.objectContaining({ params: { path: { crtName: 'redis' } } }),
+    );
+  });
+
+  it('returns an empty array when outputs are absent', async () => {
+    mockGET.mockResolvedValueOnce(
+      createOkResponse({
+        metadata: { name: 'redis' },
+        spec: { parameters: {}, resources: [] },
+      }),
+    );
+
+    const result = await createService().fetchClusterResourceTypeOutputs(
+      'redis',
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual([]);
+  });
+
+  it('throws when the upstream API returns an error', async () => {
+    mockGET.mockResolvedValueOnce(createErrorResponse());
+
+    await expect(
+      createService().fetchClusterResourceTypeOutputs('redis'),
+    ).rejects.toThrow();
+  });
+});

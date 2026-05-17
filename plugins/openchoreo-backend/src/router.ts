@@ -531,6 +531,47 @@ export async function createRouter({
     );
   });
 
+  // Endpoint for fetching the declared outputs[] of a namespace-scoped
+  // ResourceType. Consumed by the resource-dependency editor to render
+  // one row per output with the appropriate env/file binding controls.
+  router.get('/resource-type-outputs', async (req, res) => {
+    const { namespaceName, rtName } = req.query;
+
+    if (!namespaceName || !rtName) {
+      throw new InputError(
+        'namespaceName and rtName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await resourceTypeInfoService.fetchResourceTypeOutputs(
+        namespaceName as string,
+        rtName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for fetching the declared outputs[] of a ClusterResourceType.
+  router.get('/cluster-resource-type-outputs', async (req, res) => {
+    const { crtName } = req.query;
+
+    if (!crtName) {
+      throw new InputError('crtName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await clusterResourceTypeInfoService.fetchClusterResourceTypeOutputs(
+        crtName as string,
+        userToken,
+      ),
+    );
+  });
+
   // Endpoint for listing component traits
   router.get('/component-traits', async (req, res) => {
     const { namespaceName, projectName, componentName } = req.query;

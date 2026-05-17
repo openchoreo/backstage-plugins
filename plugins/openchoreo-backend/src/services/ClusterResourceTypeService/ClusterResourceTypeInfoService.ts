@@ -11,6 +11,24 @@ type ClusterResourceTypeSchemaResponse = APIResponse & {
   };
 };
 
+/** An output entry declared on a (Cluster)ResourceType. The "kind" is implicit
+ * in which of value / secretKeyRef / configMapKeyRef is set. */
+type ResourceTypeOutput = {
+  name: string;
+  value?: string;
+  secretKeyRef?: { name: string; key: string };
+  configMapKeyRef?: { name: string; key: string };
+};
+
+/** APIResponse.data is record-shaped; outputs is array-shaped, so we
+ * declare this as a sibling interface rather than extending APIResponse. */
+interface ClusterResourceTypeOutputsResponse {
+  success: boolean;
+  data?: ResourceTypeOutput[];
+  error?: string;
+  code?: string;
+}
+
 /**
  * BFF service for cluster-scoped ClusterResourceType operations. Today
  * the schema fetch is consumed by the catalog backend's
@@ -67,6 +85,61 @@ export class ClusterResourceTypeInfoService {
     } catch (error) {
       this.logger.error(
         `Failed to fetch schema for cluster resource type ${crtName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Returns the declared outputs[] for a ClusterResourceType. Mirrors the
+   * namespace-scoped sibling on ResourceTypeInfoService. Fetches the full
+   * resource and returns spec.outputs (empty array when absent); the
+   * openchoreo-api has no dedicated /outputs endpoint.
+   */
+  async fetchClusterResourceTypeOutputs(
+    crtName: string,
+    token?: string,
+  ): Promise<ClusterResourceTypeOutputsResponse> {
+    this.logger.debug(
+      `Fetching outputs for cluster resource type: ${crtName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/clusterresourcetypes/{crtName}',
+        {
+          params: {
+            path: { crtName },
+          },
+        },
+      );
+
+      assertApiResponse(
+        { data, error, response },
+        'fetch cluster resource type outputs',
+      );
+
+      const outputs =
+        (data as { spec?: { outputs?: ResourceTypeOutput[] } })?.spec
+          ?.outputs ?? [];
+
+      this.logger.debug(
+        `Successfully fetched ${outputs.length} output(s) for cluster resource type: ${crtName}`,
+      );
+
+      return {
+        success: true,
+        data: outputs,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch outputs for cluster resource type ${crtName}: ${error}`,
       );
       throw error;
     }

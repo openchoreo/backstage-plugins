@@ -170,6 +170,22 @@ export interface ResourceBindingOutput {
 }
 
 /**
+ * An output entry declared on a (Cluster)ResourceType. Same wire shape as
+ * `ResourceBindingOutput` but semantically the template form: `value` may
+ * carry an unresolved CEL expression and the secret/configmap refs name
+ * a DP-side object that may not exist yet. The resource-dependency
+ * editor uses this to render one row per declared output with the right
+ * env/file binding controls (value-kind outputs can't be mounted as
+ * files; the binding for them is env-only).
+ */
+export interface ResourceTypeOutput {
+  name: string;
+  value?: string;
+  secretKeyRef?: { name: string; key: string };
+  configMapKeyRef?: { name: string; key: string };
+}
+
+/**
  * Per-environment runtime view of a Resource. One entry per environment
  * defined in the project's deployment pipeline, including environments
  * with no binding (so the UI can render a Deploy affordance). Matches
@@ -807,6 +823,18 @@ export interface OpenChoreoClientApi {
   fetchResourceTypeSchema(
     entity: Entity,
   ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
+  /**
+   * Fetch the declared outputs[] for a Resource's (Cluster)ResourceType.
+   * Reads RESOURCE_TYPE + RESOURCE_TYPE_KIND annotations off the Resource
+   * entity to pick the right endpoint. Consumed by the resource-dependency
+   * editor to render one row per output with the right env/file binding
+   * controls. Each output has a name and exactly one of value /
+   * secretKeyRef / configMapKeyRef set.
+   */
+  fetchResourceTypeOutputs(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: ResourceTypeOutput[] }>;
 
   /**
    * Fetch a schema section from the frozen snapshot stored on a

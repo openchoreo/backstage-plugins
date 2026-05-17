@@ -41,6 +41,7 @@ import type {
   ResourceEventsResponse,
   PodLogsResponse,
   ResourceEnvironment,
+  ResourceTypeOutput,
 } from './OpenChoreoClientApi';
 import type { Environment } from '../components/RuntimeLogs/types';
 
@@ -82,6 +83,8 @@ const API_ENDPOINTS = {
   CLUSTER_COMPONENT_TYPE_SCHEMA: '/cluster-component-type-schema',
   RESOURCE_TYPE_SCHEMA: '/resource-type-schema',
   CLUSTER_RESOURCE_TYPE_SCHEMA: '/cluster-resource-type-schema',
+  RESOURCE_TYPE_OUTPUTS: '/resource-type-outputs',
+  CLUSTER_RESOURCE_TYPE_OUTPUTS: '/cluster-resource-type-outputs',
   RESOURCE_RELEASE_SCHEMA: '/resource-release-schema',
   COMPONENT_TRAITS: '/component-traits',
   COMPONENT_CONFIG: '/component-config',
@@ -958,6 +961,46 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     }
 
     return this.apiFetch(API_ENDPOINTS.RESOURCE_TYPE_SCHEMA, {
+      params: {
+        namespaceName,
+        rtName,
+      },
+    });
+  }
+
+  async fetchResourceTypeOutputs(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: ResourceTypeOutput[] }> {
+    // Mirrors fetchResourceTypeSchema's dispatch: Resource entities carry
+    // RESOURCE_TYPE + RESOURCE_TYPE_KIND annotations identifying the
+    // (Cluster)ResourceType that owns the outputs contract.
+    const namespaceName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+    const rtName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE_TYPE] || '';
+    const rtKind =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE_TYPE_KIND] ||
+      '';
+
+    if (!rtName) {
+      throw new Error(
+        `Missing ${CHOREO_ANNOTATIONS.RESOURCE_TYPE} annotation on entity`,
+      );
+    }
+
+    if (rtKind === 'ClusterResourceType') {
+      return this.apiFetch(API_ENDPOINTS.CLUSTER_RESOURCE_TYPE_OUTPUTS, {
+        params: { crtName: rtName },
+      });
+    }
+
+    if (!namespaceName) {
+      throw new Error(
+        `Missing ${CHOREO_ANNOTATIONS.NAMESPACE} annotation on entity`,
+      );
+    }
+
+    return this.apiFetch(API_ENDPOINTS.RESOURCE_TYPE_OUTPUTS, {
       params: {
         namespaceName,
         rtName,

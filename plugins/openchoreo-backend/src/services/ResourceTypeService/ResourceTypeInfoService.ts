@@ -11,6 +11,24 @@ type ResourceTypeSchemaResponse = APIResponse & {
   };
 };
 
+/** An output entry declared on a (Cluster)ResourceType. The "kind" is implicit
+ * in which of value / secretKeyRef / configMapKeyRef is set. */
+type ResourceTypeOutput = {
+  name: string;
+  value?: string;
+  secretKeyRef?: { name: string; key: string };
+  configMapKeyRef?: { name: string; key: string };
+};
+
+/** APIResponse.data is record-shaped; outputs is array-shaped, so we
+ * declare this as a sibling interface rather than extending APIResponse. */
+interface ResourceTypeOutputsResponse {
+  success: boolean;
+  data?: ResourceTypeOutput[];
+  error?: string;
+  code?: string;
+}
+
 /**
  * BFF service for namespace-scoped ResourceType operations. Today the
  * schema fetch is consumed by the catalog backend's RtdToTemplateConverter
@@ -68,6 +86,63 @@ export class ResourceTypeInfoService {
     } catch (error) {
       this.logger.error(
         `Failed to fetch schema for resource type ${rtName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Returns the declared outputs[] for a namespace-scoped ResourceType. The
+   * resource-dependency editor uses this to render one row per output with
+   * the appropriate env/file binding controls. The openchoreo-api has no
+   * dedicated /outputs endpoint, so this fetches the full ResourceType and
+   * extracts spec.outputs (empty array when absent).
+   */
+  async fetchResourceTypeOutputs(
+    namespaceName: string,
+    rtName: string,
+    token?: string,
+  ): Promise<ResourceTypeOutputsResponse> {
+    this.logger.debug(
+      `Fetching outputs for resource type: ${rtName} in namespace: ${namespaceName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}',
+        {
+          params: {
+            path: { namespaceName, rtName },
+          },
+        },
+      );
+
+      assertApiResponse(
+        { data, error, response },
+        'fetch resource type outputs',
+      );
+
+      const outputs =
+        (data as { spec?: { outputs?: ResourceTypeOutput[] } })?.spec
+          ?.outputs ?? [];
+
+      this.logger.debug(
+        `Successfully fetched ${outputs.length} output(s) for resource type: ${rtName}`,
+      );
+
+      return {
+        success: true,
+        data: outputs,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch outputs for resource type ${rtName}: ${error}`,
       );
       throw error;
     }
