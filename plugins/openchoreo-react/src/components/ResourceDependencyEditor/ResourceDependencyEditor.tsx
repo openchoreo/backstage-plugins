@@ -104,9 +104,16 @@ const useStyles = makeStyles((theme: Theme) => ({
     gap: theme.spacing(1),
     flexWrap: 'wrap',
   },
+  fieldWithRemove: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    flex: 1,
+    minWidth: 200,
+  },
   field: {
     flex: 1,
-    minWidth: 180,
+    minWidth: 0,
   },
   emptyHint: {
     fontSize: '0.8rem',
@@ -335,24 +342,29 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
     });
   };
 
+  // Field edits set the value as-is (even empty). Removing a binding kind
+  // is an explicit action through the per-field ✕ button; clearing the
+  // text alone keeps the entry so the user doesn't lose the binding on
+  // accident while retyping. Empty values keep the buffer invalid (Apply
+  // disabled) until the user fills them in or explicitly removes.
   const handleEnvChange = (outputName: string, value: string) => {
-    const next = { ...envBindings };
-    if (value === '') {
-      delete next[outputName];
-    } else {
-      next[outputName] = value;
-    }
-    emit(next, fileBindings);
+    emit({ ...envBindings, [outputName]: value }, fileBindings);
   };
 
   const handleMountChange = (outputName: string, value: string) => {
-    const next = { ...fileBindings };
-    if (value === '') {
-      delete next[outputName];
-    } else {
-      next[outputName] = value;
-    }
-    emit(envBindings, next);
+    emit(envBindings, { ...fileBindings, [outputName]: value });
+  };
+
+  const handleRemoveEnvBinding = (outputName: string) => {
+    const env = { ...envBindings };
+    delete env[outputName];
+    emit(env, fileBindings);
+  };
+
+  const handleRemoveFileBinding = (outputName: string) => {
+    const file = { ...fileBindings };
+    delete file[outputName];
+    emit(envBindings, file);
   };
 
   const handleRemoveBinding = (outputName: string) => {
@@ -468,36 +480,58 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
                     </Box>
                     <Box className={classes.fields}>
                       {hasEnvBinding && (
-                        <TextField
-                          label="Env var"
-                          variant="outlined"
-                          size="small"
-                          className={classes.field}
-                          value={envBindings[name] ?? ''}
-                          disabled={disabled}
-                          onChange={e =>
-                            handleEnvChange(name, e.target.value)
-                          }
-                          placeholder="e.g. DB_HOST"
-                          inputProps={{ 'data-testid': `env-input-${name}` }}
-                        />
+                        <Box className={classes.fieldWithRemove}>
+                          <TextField
+                            label="Env var"
+                            variant="outlined"
+                            size="small"
+                            className={classes.field}
+                            value={envBindings[name] ?? ''}
+                            disabled={disabled}
+                            onChange={e =>
+                              handleEnvChange(name, e.target.value)
+                            }
+                            placeholder="e.g. DB_HOST"
+                            inputProps={{
+                              'data-testid': `env-input-${name}`,
+                            }}
+                          />
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRemoveEnvBinding(name)}
+                            disabled={disabled}
+                            aria-label={`Remove env binding ${name}`}
+                          >
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
                       )}
                       {hasFileBinding && (
-                        <TextField
-                          label="Mount path"
-                          variant="outlined"
-                          size="small"
-                          className={classes.field}
-                          value={fileBindings[name] ?? ''}
-                          disabled={disabled}
-                          onChange={e =>
-                            handleMountChange(name, e.target.value)
-                          }
-                          placeholder="e.g. /etc/secrets/db"
-                          inputProps={{
-                            'data-testid': `mount-input-${name}`,
-                          }}
-                        />
+                        <Box className={classes.fieldWithRemove}>
+                          <TextField
+                            label="Mount path"
+                            variant="outlined"
+                            size="small"
+                            className={classes.field}
+                            value={fileBindings[name] ?? ''}
+                            disabled={disabled}
+                            onChange={e =>
+                              handleMountChange(name, e.target.value)
+                            }
+                            placeholder="e.g. /etc/secrets/db"
+                            inputProps={{
+                              'data-testid': `mount-input-${name}`,
+                            }}
+                          />
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRemoveFileBinding(name)}
+                            disabled={disabled}
+                            aria-label={`Remove file mount ${name}`}
+                          >
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
                       )}
                     </Box>
                   </Box>

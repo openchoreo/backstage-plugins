@@ -180,7 +180,7 @@ describe('ResourceDependencyEditor', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('drops the env binding when the env field is cleared', () => {
+    it('keeps the env entry with an empty value when the env field is cleared (no auto-delete)', () => {
       const { onChange } = renderEditor({
         isEditing: true,
         dependency: {
@@ -192,6 +192,44 @@ describe('ResourceDependencyEditor', () => {
       fireEvent.change(screen.getByTestId('env-input-host'), {
         target: { value: '' },
       });
+
+      expect(onChange).toHaveBeenLastCalledWith({
+        ref: 'orders-db',
+        envBindings: { host: '', password: 'DB_PASSWORD' },
+        fileBindings: undefined,
+      });
+    });
+
+    it('removes only the env binding via the per-field remove button', () => {
+      const { onChange } = renderEditor({
+        isEditing: true,
+        dependency: {
+          ref: 'orders-db',
+          envBindings: { password: 'DB_PASSWORD' },
+          fileBindings: { password: '/etc/db/password' },
+        },
+      });
+
+      fireEvent.click(screen.getByLabelText('Remove env binding password'));
+
+      expect(onChange).toHaveBeenLastCalledWith({
+        ref: 'orders-db',
+        envBindings: undefined,
+        fileBindings: { password: '/etc/db/password' },
+      });
+    });
+
+    it('removes only the file mount via the per-field remove button', () => {
+      const { onChange } = renderEditor({
+        isEditing: true,
+        dependency: {
+          ref: 'orders-db',
+          envBindings: { password: 'DB_PASSWORD' },
+          fileBindings: { password: '/etc/db/password' },
+        },
+      });
+
+      fireEvent.click(screen.getByLabelText('Remove file mount password'));
 
       expect(onChange).toHaveBeenLastCalledWith({
         ref: 'orders-db',
