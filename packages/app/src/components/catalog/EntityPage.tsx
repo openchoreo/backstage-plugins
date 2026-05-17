@@ -103,6 +103,7 @@ import {
   DeploymentPipelineVisualization,
   PromotionPathsCard,
   ComponentTypeOverviewCard,
+  ResourceTypeOverviewCard,
   ResourceParametersCard,
   ResourceDeploymentsCard,
   ConsumingComponentsCard,
@@ -1190,7 +1191,7 @@ const resourceTypePage = (
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
         <Grid item md={6} xs={12}>
-          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
+          <ResourceTypeOverviewCard />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -1198,6 +1199,9 @@ const resourceTypePage = (
             height={400}
             renderNode={CustomGraphNode}
           />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
@@ -1268,7 +1272,7 @@ const clusterResourceTypePage = (
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
         <Grid item md={6} xs={12}>
-          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
+          <ResourceTypeOverviewCard />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -1276,6 +1280,9 @@ const clusterResourceTypePage = (
             height={400}
             renderNode={CustomGraphNode}
           />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>

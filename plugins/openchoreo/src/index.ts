@@ -69,6 +69,7 @@ export {
 } from './components/DeploymentPipelineOverview';
 export { SecretsPage } from './components/Secrets';
 export { ComponentTypeOverviewCard } from './components/ComponentTypeOverview';
+export { ResourceTypeOverviewCard } from './components/ResourceTypeOverview';
 export {
   ResourceParametersCard,
   ResourceDeploymentsCard,
