@@ -71,18 +71,24 @@ import { useStyles } from './styles';
 // /create?view=resources. Hide them from the landing application-templates
 // grid to avoid duplicate "Resource" cards.
 const APPLICATION_TYPES = ['System (Project)'];
+// Order is significant — this list controls the on-screen order of the
+// Platform Resources cards (see platformTemplates sort below). Foundation-
+// first to mirror Application Resources (Project → Component → Resource),
+// then template types grouped by concept (workload shape → cross-cutting
+// concerns → infra deps → automation), with cluster-scoped before
+// namespace-scoped within each pair so pairs stay adjacent.
 const PLATFORM_TYPES = [
   'Namespace',
   'Environment',
   'DeploymentPipeline',
+  'ClusterComponentType',
+  'ComponentType',
   'ClusterTrait',
   'Trait',
-  'ClusterComponentType',
   'ClusterResourceType',
-  'ComponentType',
   'ResourceType',
-  'Workflow',
   'ClusterWorkflow',
+  'Workflow',
 ];
 // 'Resource' is intentionally in KNOWN_CARD_TYPES but NOT in APPLICATION_TYPES
 // — per-type Resource templates are rendered under /create?view=resources,
@@ -240,7 +246,14 @@ const TemplateListContent = (props: TemplateListPageProps) => {
     [templates],
   );
   const platformTemplates = useMemo(
-    () => templates.filter(t => PLATFORM_TYPES.includes(t.spec?.type)),
+    () =>
+      templates
+        .filter(t => PLATFORM_TYPES.includes(t.spec?.type))
+        .sort(
+          (a, b) =>
+            PLATFORM_TYPES.indexOf(a.spec?.type) -
+            PLATFORM_TYPES.indexOf(b.spec?.type),
+        ),
     [templates],
   );
   const otherTemplates = useMemo(
