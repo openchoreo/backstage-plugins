@@ -148,10 +148,7 @@ export function useKindCreateConfig(): KindCreateConfig | null {
       };
     case 'resource':
       return {
-        createPath: templateRoute({
-          namespace: 'default',
-          templateName: 'create-openchoreo-resource',
-        }),
+        createPath: `${scaffolderRoot}?view=resources`,
         buttonLabel: 'Create Resource',
         canCreate: resourcePerm.canCreate,
         loading: resourcePerm.loading,
