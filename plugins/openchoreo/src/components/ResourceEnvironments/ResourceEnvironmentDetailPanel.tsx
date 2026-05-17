@@ -11,7 +11,6 @@ import { useNavigate } from 'react-router-dom';
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
 import {
-  useResourceReleaseBindingCreatePermission,
   useResourceReleaseBindingDeletePermission,
   useResourceReleaseBindingUpdatePermission,
 } from '@openchoreo/backstage-plugin-react';
@@ -59,7 +58,6 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
   const {
     pendingAction,
     onPromote,
-    onDeploy,
     onUndeployRequest,
     onRetainPolicyChange,
   } = useResourceEnvironmentsContext();
@@ -72,16 +70,12 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
     hasBinding &&
     Boolean(env.latestRelease) &&
     env.resourceRelease !== env.latestRelease;
-  const canDeploy = !hasBinding && Boolean(env.latestRelease);
 
   const updatePerm = useResourceReleaseBindingUpdatePermission(env.name);
-  const createPerm = useResourceReleaseBindingCreatePermission(env.name);
   const deletePerm = useResourceReleaseBindingDeletePermission(env.name);
 
   const isPromoting =
     pendingAction?.env === env.name && pendingAction.kind === 'promote';
-  const isDeploying =
-    pendingAction?.env === env.name && pendingAction.kind === 'deploy';
   const isUndeploying =
     pendingAction?.env === env.name && pendingAction.kind === 'undeploy';
   const isUpdatingRetainPolicy =
@@ -109,23 +103,30 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
 
       <Box className={classes.body}>
         {!hasBinding ? (
-          <Box className={classes.section}>
-            <Typography variant="body2" color="textSecondary">
-              No binding in this environment yet.
-            </Typography>
-            {canDeploy && (
-              <Box mt={2}>
-                <DeployButton
-                  targetRelease={env.latestRelease!}
-                  canCreate={createPerm.canCreate}
-                  permLoading={createPerm.loading}
-                  deniedTooltip={createPerm.deniedTooltip}
-                  isDeploying={isDeploying}
-                  onClick={() => onDeploy(env.name, env.latestRelease!)}
+          <>
+            <Box className={classes.section}>
+              <Typography variant="body2" color="textSecondary">
+                No binding in this environment yet. Use{' '}
+                <strong>Set up</strong> on the pipeline canvas to deploy
+                this resource for the first time, then promote forward
+                through the environments.
+              </Typography>
+            </Box>
+
+            <Box className={classes.section}>
+              <Typography variant="body2" className={classes.sectionHeading}>
+                Configuration
+              </Typography>
+              <Box className={classes.actionsRow}>
+                <ConfigureOverridesButton
+                  canUpdate={false}
+                  permLoading={false}
+                  deniedTooltip="Deploy this resource to the environment before configuring overrides."
+                  onClick={() => undefined}
                 />
               </Box>
-            )}
-          </Box>
+            </Box>
+          </>
         ) : (
           <>
             <Box className={classes.section}>
@@ -263,50 +264,6 @@ function PromoteButton({
           }
         >
           Promote
-        </Button>
-      </span>
-    </Tooltip>
-  );
-}
-
-interface DeployButtonProps {
-  targetRelease: string;
-  canCreate: boolean;
-  permLoading: boolean;
-  deniedTooltip: string;
-  isDeploying: boolean;
-  onClick: () => void;
-}
-
-function DeployButton({
-  targetRelease,
-  canCreate,
-  permLoading,
-  deniedTooltip,
-  isDeploying,
-  onClick,
-}: DeployButtonProps) {
-  const disabled = !canCreate || permLoading || isDeploying;
-  const tooltip =
-    !canCreate && !permLoading
-      ? deniedTooltip
-      : `Create binding pinned to ${targetRelease}`;
-  return (
-    <Tooltip title={tooltip}>
-      <span>
-        <Button
-          size="small"
-          variant="contained"
-          color="primary"
-          onClick={onClick}
-          disabled={disabled}
-          startIcon={
-            isDeploying ? (
-              <CircularProgress size={14} color="inherit" />
-            ) : undefined
-          }
-        >
-          Deploy
         </Button>
       </span>
     </Tooltip>

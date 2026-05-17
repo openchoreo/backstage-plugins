@@ -360,39 +360,24 @@ describe('ResourceEnvironments', () => {
     });
   });
 
-  describe('deploy action', () => {
+  describe('deploy-model alignment', () => {
     const envsWithUnbound = [{ name: 'staging', latestRelease: 'rel-1' }];
 
-    it('calls updateResourceReleaseBinding when Deploy is clicked', async () => {
+    it('does not expose a Deploy button on the unbound env detail panel', async () => {
       const client = {
-        fetchResourceEnvironmentInfo: jest
-          .fn()
-          .mockResolvedValueOnce(envsWithUnbound)
-          .mockResolvedValueOnce([
-            {
-              ...envsWithUnbound[0],
-              bindingName: 'b-staging',
-              resourceRelease: 'rel-1',
-              status: 'NotReady',
-            },
-          ]),
+        fetchResourceEnvironmentInfo: jest.fn().mockResolvedValue(envsWithUnbound),
         updateResourceReleaseBinding: jest.fn().mockResolvedValue({}),
       };
 
       renderTab(client);
 
-      fireEvent.click(await screen.findByRole('button', { name: /^deploy$/i }));
-
       await waitFor(() => {
-        expect(client.updateResourceReleaseBinding).toHaveBeenCalledWith(
-          expect.anything(),
-          'staging',
-          { resourceRelease: 'rel-1' },
-        );
+        expect(
+          screen.getByText(/no binding in this environment yet/i),
+        ).toBeInTheDocument();
       });
-      expect(screen.getByTestId('notification').getAttribute('data-type')).toBe(
-        'success',
-      );
+      expect(screen.queryByRole('button', { name: /^deploy$/i })).toBeNull();
+      expect(client.updateResourceReleaseBinding).not.toHaveBeenCalled();
     });
   });
 

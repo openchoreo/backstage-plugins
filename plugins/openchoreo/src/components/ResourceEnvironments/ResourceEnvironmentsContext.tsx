@@ -1,7 +1,7 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { ResourceEnvironment } from '../../api/OpenChoreoClientApi';
 
-export type ActionKind = 'promote' | 'deploy' | 'undeploy' | 'retain';
+export type ActionKind = 'promote' | 'undeploy' | 'retain';
 
 export interface ResourceEnvironmentsContextValue {
   environments: ResourceEnvironment[];
@@ -14,7 +14,6 @@ export interface ResourceEnvironmentsContextValue {
   pendingAction: { env: string; kind: ActionKind } | null;
 
   onPromote: (environment: string, releaseName: string) => void | Promise<void>;
-  onDeploy: (environment: string, releaseName: string) => void | Promise<void>;
   onUndeployRequest: (environment: string) => void;
   onRetainPolicyChange: (
     environment: string,

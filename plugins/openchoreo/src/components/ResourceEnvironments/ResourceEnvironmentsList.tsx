@@ -159,28 +159,6 @@ export const ResourceEnvironmentsList = () => {
     [client, entity, notification, fetchEnvs],
   );
 
-  const handleDeploy = useCallback(
-    async (environment: string, releaseName: string) => {
-      setPendingAction({ env: environment, kind: 'deploy' });
-      try {
-        await client.updateResourceReleaseBinding(entity, environment, {
-          resourceRelease: releaseName,
-        });
-        if (cancelledRef.current) return;
-        notification.showSuccess(`Deployed ${releaseName} to ${environment}`);
-        await fetchEnvs();
-      } catch (err: unknown) {
-        if (cancelledRef.current) return;
-        notification.showError(
-          `Failed to deploy to ${environment}: ${getErrorMessage(err)}`,
-        );
-      } finally {
-        if (!cancelledRef.current) setPendingAction(null);
-      }
-    },
-    [client, entity, notification, fetchEnvs],
-  );
-
   const handleUndeployRequest = useCallback(
     (environment: string) => {
       const target = envs.find(e => e.name === environment) ?? null;
@@ -252,7 +230,6 @@ export const ResourceEnvironmentsList = () => {
       setSelectedEnvName,
       pendingAction,
       onPromote: handlePromote,
-      onDeploy: handleDeploy,
       onUndeployRequest: handleUndeployRequest,
       onRetainPolicyChange: handleRetainPolicyChange,
     }),
@@ -263,7 +240,6 @@ export const ResourceEnvironmentsList = () => {
       selectedEnvName,
       pendingAction,
       handlePromote,
-      handleDeploy,
       handleUndeployRequest,
       handleRetainPolicyChange,
     ],

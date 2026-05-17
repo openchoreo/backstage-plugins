@@ -14,11 +14,9 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
 }));
 
 const mockUpdatePerm = jest.fn();
-const mockCreatePerm = jest.fn();
 const mockDeletePerm = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useResourceReleaseBindingUpdatePermission: () => mockUpdatePerm(),
-  useResourceReleaseBindingCreatePermission: () => mockCreatePerm(),
   useResourceReleaseBindingDeletePermission: () => mockDeletePerm(),
 }));
 
@@ -33,7 +31,6 @@ function makeCtx(
     setSelectedEnvName: jest.fn(),
     pendingAction: null,
     onPromote: jest.fn(),
-    onDeploy: jest.fn(),
     onUndeployRequest: jest.fn(),
     onRetainPolicyChange: jest.fn(),
     ...overrides,
@@ -62,11 +59,6 @@ beforeEach(() => {
     loading: false,
     deniedTooltip: '',
   });
-  mockCreatePerm.mockReturnValue({
-    canCreate: true,
-    loading: false,
-    deniedTooltip: '',
-  });
   mockDeletePerm.mockReturnValue({
     canDelete: true,
     loading: false,
@@ -82,23 +74,19 @@ describe('ResourceEnvironmentDetailPanel', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders empty body + Deploy button for unbound env with latestRelease', () => {
-    const onDeploy = jest.fn();
-    renderPanel({ name: 'staging', latestRelease: 'rel-1' }, { onDeploy });
+  it('renders empty body for an unbound env with no actionable Deploy', () => {
+    renderPanel({ name: 'staging', latestRelease: 'rel-1' });
 
     expect(screen.getByText('staging')).toBeInTheDocument();
     expect(
       screen.getByText(/no binding in this environment yet/i),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^deploy$/i })).toBeEnabled();
-
-    fireEvent.click(screen.getByRole('button', { name: /^deploy$/i }));
-    expect(onDeploy).toHaveBeenCalledWith('staging', 'rel-1');
-  });
-
-  it('omits Deploy button when there is no latestRelease', () => {
-    renderPanel({ name: 'staging' });
+    // First-deploy is exclusively via the Set up flow on the canvas.
     expect(screen.queryByRole('button', { name: /^deploy$/i })).toBeNull();
+    // Configure overrides is rendered but disabled until a binding exists.
+    expect(
+      screen.getByRole('button', { name: /configure overrides/i }),
+    ).toBeDisabled();
   });
 
   it('renders full meta + Undeploy for a bound env', () => {
