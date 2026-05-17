@@ -15,7 +15,6 @@ import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
 import DeleteIcon from '@material-ui/icons/Delete';
 import EditIcon from '@material-ui/icons/Edit';
-import StorageIcon from '@material-ui/icons/Storage';
 import type {
   ResourceDependency,
   ResourceTypeOutput,
@@ -118,12 +117,6 @@ const useStyles = makeStyles((theme: Theme) => ({
   addButton: {
     marginTop: theme.spacing(1),
     alignSelf: 'flex-start',
-  },
-  editFooter: {
-    display: 'flex',
-    gap: theme.spacing(0.5),
-    marginTop: theme.spacing(1.5),
-    justifyContent: 'flex-end',
   },
 }));
 
@@ -249,7 +242,6 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
       <Box className={classes.container}>
         <Box display="flex" alignItems="center">
           <Box flex={1} className={classes.readOnlyContent}>
-            <StorageIcon fontSize="small" color="action" />
             <Typography className={classes.readOnlyName}>
               {dependency.ref || '(no resource)'}
             </Typography>
@@ -344,144 +336,151 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
       className={classes.containerEditing}
       data-testid="resource-dependency-editor"
     >
-      <Box className={classes.header}>
-        <StorageIcon fontSize="small" color="action" />
-        <Typography className={classes.ref}>{dependency.ref}</Typography>
-        <Chip
-          label="Resource"
-          size="small"
-          variant="outlined"
-          className={classes.typeChip}
-        />
-      </Box>
+      <Box display="flex" alignItems="flex-start">
+        <Box flex={1}>
+          <Box className={classes.header}>
+            <Typography className={classes.ref}>{dependency.ref}</Typography>
+            <Chip
+              label="Resource"
+              size="small"
+              variant="outlined"
+              className={classes.typeChip}
+            />
+          </Box>
 
-      <Box className={classes.bindingsList}>
-        {wiredOutputNames.length === 0 ? (
-          <Typography className={classes.emptyHint}>
-            No bindings yet. Add a binding to wire an output into the container.
-          </Typography>
-        ) : (
-          wiredOutputNames.map(name => {
-            const output = outputByName.get(name);
-            const kind = output ? outputKind(output) : 'unknown';
-            const mountDisabled = kind === 'value';
-            return (
-              <Box
-                key={name}
-                className={classes.bindingRow}
-                data-testid={`binding-row-${name}`}
-              >
-                <Box className={classes.bindingHeader}>
-                  <Typography className={classes.bindingName}>
-                    {name}
-                  </Typography>
-                  <Chip
-                    label={kind}
-                    size="small"
-                    variant="outlined"
-                    className={classes.kindChip}
-                  />
-                  <IconButton
-                    size="small"
-                    onClick={() => handleRemoveBinding(name)}
-                    disabled={disabled}
-                    aria-label={`Remove binding ${name}`}
+          <Box className={classes.bindingsList}>
+            {wiredOutputNames.length === 0 ? (
+              <Typography className={classes.emptyHint}>
+                No bindings yet. Add a binding to wire an output into the
+                container.
+              </Typography>
+            ) : (
+              wiredOutputNames.map(name => {
+                const output = outputByName.get(name);
+                const kind = output ? outputKind(output) : 'unknown';
+                const mountDisabled = kind === 'value';
+                return (
+                  <Box
+                    key={name}
+                    className={classes.bindingRow}
+                    data-testid={`binding-row-${name}`}
                   >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-                <Box className={classes.fields}>
-                  <TextField
-                    label="Env var"
-                    variant="outlined"
-                    size="small"
-                    className={classes.field}
-                    value={envBindings[name] ?? ''}
-                    disabled={disabled}
-                    onChange={e => handleEnvChange(name, e.target.value)}
-                    placeholder="e.g. DB_HOST"
-                    inputProps={{ 'data-testid': `env-input-${name}` }}
-                  />
-                  <TextField
-                    label="Mount path"
-                    variant="outlined"
-                    size="small"
-                    className={classes.field}
-                    value={fileBindings[name] ?? ''}
-                    disabled={disabled || mountDisabled}
-                    onChange={e => handleMountChange(name, e.target.value)}
-                    placeholder={
-                      mountDisabled
-                        ? 'Not available for value-kind outputs'
-                        : 'e.g. /etc/secrets/db'
-                    }
-                    inputProps={{ 'data-testid': `mount-input-${name}` }}
-                  />
-                </Box>
-              </Box>
-            );
-          })
-        )}
-      </Box>
+                    <Box className={classes.bindingHeader}>
+                      <Typography className={classes.bindingName}>
+                        {name}
+                      </Typography>
+                      <Chip
+                        label={kind}
+                        size="small"
+                        variant="outlined"
+                        className={classes.kindChip}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => handleRemoveBinding(name)}
+                        disabled={disabled}
+                        aria-label={`Remove binding ${name}`}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                    <Box className={classes.fields}>
+                      <TextField
+                        label="Env var"
+                        variant="outlined"
+                        size="small"
+                        className={classes.field}
+                        value={envBindings[name] ?? ''}
+                        disabled={disabled}
+                        onChange={e => handleEnvChange(name, e.target.value)}
+                        placeholder="e.g. DB_HOST"
+                        inputProps={{ 'data-testid': `env-input-${name}` }}
+                      />
+                      <TextField
+                        label="Mount path"
+                        variant="outlined"
+                        size="small"
+                        className={classes.field}
+                        value={fileBindings[name] ?? ''}
+                        disabled={disabled || mountDisabled}
+                        onChange={e => handleMountChange(name, e.target.value)}
+                        placeholder={
+                          mountDisabled
+                            ? 'Not available for value-kind outputs'
+                            : 'e.g. /etc/secrets/db'
+                        }
+                        inputProps={{
+                          'data-testid': `mount-input-${name}`,
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                );
+              })
+            )}
+          </Box>
 
-      <Button
-        startIcon={<AddIcon />}
-        onClick={e => setAddAnchor(e.currentTarget)}
-        variant="outlined"
-        size="small"
-        className={classes.addButton}
-        disabled={disabled || unboundOutputs.length === 0}
-      >
-        Add binding
-      </Button>
-      <Menu
-        anchorEl={addAnchor}
-        open={Boolean(addAnchor)}
-        onClose={() => setAddAnchor(null)}
-      >
-        {unboundOutputs.map(o => (
-          <MenuItem key={o.name} onClick={() => handleAddBinding(o.name)}>
-            {o.name}{' '}
-            <Typography
-              variant="caption"
-              color="textSecondary"
-              style={{ marginLeft: 8 }}
-            >
-              {outputKind(o)}
-            </Typography>
-          </MenuItem>
-        ))}
-      </Menu>
+          <Button
+            startIcon={<AddIcon />}
+            onClick={e => setAddAnchor(e.currentTarget)}
+            variant="outlined"
+            size="small"
+            className={classes.addButton}
+            disabled={disabled || unboundOutputs.length === 0}
+          >
+            Add binding
+          </Button>
+          <Menu
+            anchorEl={addAnchor}
+            open={Boolean(addAnchor)}
+            onClose={() => setAddAnchor(null)}
+          >
+            {unboundOutputs.map(o => (
+              <MenuItem key={o.name} onClick={() => handleAddBinding(o.name)}>
+                {o.name}{' '}
+                <Typography
+                  variant="caption"
+                  color="textSecondary"
+                  style={{ marginLeft: 8 }}
+                >
+                  {outputKind(o)}
+                </Typography>
+              </MenuItem>
+            ))}
+          </Menu>
+        </Box>
 
-      <Box className={classes.editFooter}>
-        <Button
-          size="small"
-          variant="contained"
-          color="primary"
-          startIcon={<CheckIcon />}
-          onClick={onApply}
-          disabled={disabled || applyDisabled}
-        >
-          Apply changes
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<CloseIcon />}
-          onClick={onCancel}
-          disabled={disabled}
-        >
-          Cancel editing
-        </Button>
-        <IconButton
-          size="small"
-          onClick={onRemove}
-          color="secondary"
-          disabled={disabled}
-          aria-label="Remove resource dependency"
-        >
-          <DeleteIcon />
-        </IconButton>
+        <Box display="flex" flexDirection="column" ml={1}>
+          <IconButton
+            onClick={onApply}
+            color="primary"
+            size="small"
+            disabled={disabled || applyDisabled}
+            className={classes.actionButton}
+            aria-label="Apply changes"
+          >
+            <CheckIcon />
+          </IconButton>
+          <IconButton
+            onClick={onCancel}
+            size="small"
+            disabled={disabled}
+            className={classes.actionButton}
+            aria-label="Cancel editing"
+          >
+            <CloseIcon />
+          </IconButton>
+          <IconButton
+            onClick={onRemove}
+            color="secondary"
+            size="small"
+            disabled={disabled}
+            className={classes.actionButton}
+            aria-label="Remove resource dependency"
+          >
+            <DeleteIcon />
+          </IconButton>
+        </Box>
       </Box>
     </Box>
   );
