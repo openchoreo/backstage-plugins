@@ -260,6 +260,13 @@ export type WorkloadSpec = NonNullable<WorkloadResource['spec']>;
  */
 export type ResourceDependency =
   OpenChoreoComponents['schemas']['WorkloadResourceDependency'];
+/**
+ * An output declared on a (Cluster)ResourceType's spec.outputs[]. The "kind"
+ * (value / secretKeyRef / configMapKeyRef) is implicit in which field is set.
+ * Consumed by the resource-dependency editor to render one row per output.
+ */
+export type ResourceTypeOutput =
+  OpenChoreoComponents['schemas']['ResourceTypeOutput'];
 /** ComponentRelease resource type from the OpenAPI spec */
 export type ComponentRelease =
   OpenChoreoComponents['schemas']['ComponentRelease'];

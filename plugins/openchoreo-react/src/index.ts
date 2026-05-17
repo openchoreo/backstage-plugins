@@ -88,6 +88,10 @@ export {
   type ResourceDependencyDisplayProps,
 } from './components/ResourceDependencyDisplay';
 export {
+  ResourceDependencyEditor,
+  type ResourceDependencyEditorProps,
+} from './components/ResourceDependencyEditor';
+export {
   GroupedSection,
   type GroupedSectionProps,
   type GroupedSectionStatus,
