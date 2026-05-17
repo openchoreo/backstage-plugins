@@ -458,11 +458,12 @@ describe('ResourceEnvironments', () => {
       fireEvent.click(
         await screen.findByRole('button', { name: /select environment dev/i }),
       );
+      fireEvent.click(await screen.findByLabelText('Danger zone'));
       fireEvent.click(
-        await screen.findByRole('button', { name: /^undeploy$/i }),
+        await screen.findByRole('button', { name: /^remove deployment$/i }),
       );
 
-      // Confirm dialog has its own Undeploy button — find by text inside the dialog
+      // Confirm dialog has its own Remove deployment button — find by text inside the dialog
       const dialog = await screen.findByRole('dialog');
       const confirmButton = dialog.querySelector(
         'button.MuiButton-containedSecondary',
@@ -491,8 +492,9 @@ describe('ResourceEnvironments', () => {
       fireEvent.click(
         await screen.findByRole('button', { name: /select environment dev/i }),
       );
+      fireEvent.click(await screen.findByLabelText('Danger zone'));
       fireEvent.click(
-        await screen.findByRole('button', { name: /^undeploy$/i }),
+        await screen.findByRole('button', { name: /^remove deployment$/i }),
       );
       fireEvent.click(
         await screen.findByRole('button', { name: /cancel/i }),
@@ -528,6 +530,7 @@ describe('ResourceEnvironments', () => {
       fireEvent.click(
         await screen.findByRole('button', { name: /select environment dev/i }),
       );
+      fireEvent.click(await screen.findByLabelText('Danger zone'));
       const retainButton = await screen.findByRole('button', {
         name: /^retain$/i,
       });

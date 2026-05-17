@@ -21,7 +21,7 @@ import {
   ResourceEnvironmentsProvider,
   type ActionKind,
 } from './ResourceEnvironmentsContext';
-import { UndeployConfirmDialog } from './UndeployConfirmDialog';
+import { ResourceRemoveDeploymentDialog } from './ResourceRemoveDeploymentDialog';
 import { useResourceDeployFlowCanvasStyles } from './styles';
 
 const useStyles = makeStyles(theme => ({
@@ -311,11 +311,10 @@ export const ResourceEnvironmentsList = () => {
           )}
         </Box>
       </Box>
-      <UndeployConfirmDialog
+      <ResourceRemoveDeploymentDialog
         open={undeployTarget !== null}
-        envName={undeployTarget?.name ?? ''}
-        retainPolicy={undeployTarget?.retainPolicy}
-        busy={
+        environmentName={undeployTarget?.name ?? ''}
+        isRemoving={
           pendingAction?.env === undeployTarget?.name &&
           pendingAction?.kind === 'undeploy'
         }

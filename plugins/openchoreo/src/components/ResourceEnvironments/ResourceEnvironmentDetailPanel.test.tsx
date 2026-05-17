@@ -91,7 +91,7 @@ describe('ResourceEnvironmentDetailPanel', () => {
     ).toBeDisabled();
   });
 
-  it('renders full meta + Undeploy for a bound env', () => {
+  it('renders full meta and exposes Remove deployment via the Danger zone', () => {
     const onUndeployRequest = jest.fn();
     renderPanel(
       {
@@ -109,8 +109,16 @@ describe('ResourceEnvironmentDetailPanel', () => {
     expect(screen.getByText('rel-abc')).toBeInTheDocument();
     expect(screen.getByText('Actions')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^promote$/i })).toBeNull();
+    // The destructive surface lives in the Danger zone now, not the Actions row.
+    expect(
+      screen.queryByRole('button', { name: /^undeploy$/i }),
+    ).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: /^undeploy$/i }));
+    // Expand the Danger zone, then click Remove deployment.
+    fireEvent.click(screen.getByLabelText('Danger zone'));
+    fireEvent.click(
+      screen.getByRole('button', { name: /^remove deployment$/i }),
+    );
     expect(onUndeployRequest).toHaveBeenCalledWith('dev');
   });
 
@@ -152,7 +160,7 @@ describe('ResourceEnvironmentDetailPanel', () => {
     );
   });
 
-  it('renders an interactive retainPolicy toggle for users with update permission', () => {
+  it('lets Delete-policy users flip to Retain without a confirm dialog', () => {
     const onRetainPolicyChange = jest.fn();
     renderPanel(
       {
@@ -166,8 +174,39 @@ describe('ResourceEnvironmentDetailPanel', () => {
       { onRetainPolicyChange },
     );
 
+    fireEvent.click(screen.getByLabelText('Danger zone'));
     fireEvent.click(screen.getByRole('button', { name: /^retain$/i }));
+    // Delete → Retain only adds safety, so no confirm dialog.
+    expect(
+      screen.queryByText(/switch retain policy to delete/i),
+    ).toBeNull();
     expect(onRetainPolicyChange).toHaveBeenCalledWith('dev', 'Retain');
+  });
+
+  it('intercepts Retain → Delete with a confirm dialog before applying', () => {
+    const onRetainPolicyChange = jest.fn();
+    renderPanel(
+      {
+        name: 'dev',
+        bindingName: 'b-dev',
+        resourceRelease: 'rel-1',
+        retainPolicy: 'Retain',
+        status: 'Ready',
+        latestRelease: 'rel-1',
+      },
+      { onRetainPolicyChange },
+    );
+
+    fireEvent.click(screen.getByLabelText('Danger zone'));
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+    // Switch fires the confirm dialog, not the underlying change.
+    expect(onRetainPolicyChange).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/switch retain policy to delete/i),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^set to delete$/i }));
+    expect(onRetainPolicyChange).toHaveBeenCalledWith('dev', 'Delete');
   });
 
   it('renders retainPolicy as plain text when user lacks update permission', () => {
@@ -185,8 +224,31 @@ describe('ResourceEnvironmentDetailPanel', () => {
       latestRelease: 'rel-1',
     });
 
+    fireEvent.click(screen.getByLabelText('Danger zone'));
     expect(screen.queryByRole('group', { name: /retain policy/i })).toBeNull();
     expect(screen.getByText('Delete')).toBeInTheDocument();
+  });
+
+  it('disables Remove deployment when retainPolicy is Retain', () => {
+    renderPanel({
+      name: 'dev',
+      bindingName: 'b-dev',
+      resourceRelease: 'rel-1',
+      retainPolicy: 'Retain',
+      status: 'Ready',
+      latestRelease: 'rel-1',
+    });
+
+    fireEvent.click(screen.getByLabelText('Danger zone'));
+    expect(
+      screen.getByRole('button', { name: /^remove deployment$/i }),
+    ).toBeDisabled();
+  });
+
+  it('keeps the Danger zone collapsed by default and hidden when no binding', () => {
+    // No-binding env: danger zone never renders.
+    renderPanel({ name: 'staging', latestRelease: 'rel-1' });
+    expect(screen.queryByLabelText('Danger zone')).toBeNull();
   });
 
   it('renders an Outputs section with the count and View All link', () => {

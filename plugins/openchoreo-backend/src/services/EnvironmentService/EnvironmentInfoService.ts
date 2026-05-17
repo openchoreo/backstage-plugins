@@ -1589,11 +1589,23 @@ export class EnvironmentInfoService implements EnvironmentService {
       const environments = newEnvironments.map(transformEnvironment);
       const latestRelease = resource?.status?.latestRelease?.name;
 
+      // Resolve the (Cluster)ResourceType default retainPolicy so the
+      // BFF can surface the effective policy per env (binding override
+      // → ResourceType default → built-in Delete). Soft-fails: a fetch
+      // error just falls back to the built-in default downstream.
+      const resourceTypeRetainPolicyDefault =
+        await this.fetchResourceTypeRetainPolicyDefault(
+          client,
+          resource,
+          request.namespaceName,
+        );
+
       const result = this.transformResourceEnvironmentData(
         environments,
         bindings,
         deploymentPipeline,
         latestRelease,
+        resourceTypeRetainPolicyDefault,
       );
 
       const totalTime = Date.now() - startTime;
@@ -1624,6 +1636,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     bindings: NewResourceReleaseBinding[],
     deploymentPipeline: any | null,
     latestRelease: string | undefined,
+    resourceTypeRetainPolicyDefault: 'Delete' | 'Retain' | undefined,
   ): ResourceEnvironment[] {
     const envMap = new Map<string, ModelsEnvironment>();
     const envNameMap = new Map<string, string>();
@@ -1664,6 +1677,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           binding,
           undefined,
           latestRelease,
+          resourceTypeRetainPolicyDefault,
         );
       });
     }
@@ -1705,6 +1719,7 @@ export class EnvironmentInfoService implements EnvironmentService {
             binding,
             promotionTargets,
             latestRelease,
+            resourceTypeRetainPolicyDefault,
           ),
         );
       }
@@ -1723,6 +1738,7 @@ export class EnvironmentInfoService implements EnvironmentService {
               binding,
               undefined,
               latestRelease,
+              resourceTypeRetainPolicyDefault,
             ),
           );
         }
@@ -1989,11 +2005,55 @@ export class EnvironmentInfoService implements EnvironmentService {
     }
   }
 
+  /**
+   * Fetches the (Cluster)ResourceType referenced by `resource.spec.type`
+   * and returns its `spec.retainPolicy`, or `undefined` if neither the
+   * type is set nor the field is populated. Errors are swallowed and
+   * returned as undefined: the caller falls back to the built-in
+   * default ('Delete') downstream, so a transient API failure never
+   * blocks the env-info response.
+   */
+  private async fetchResourceTypeRetainPolicyDefault(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    resource: NewResource | null,
+    namespaceName: string,
+  ): Promise<'Delete' | 'Retain' | undefined> {
+    const typeRef = resource?.spec?.type;
+    if (!typeRef?.kind || !typeRef.name) return undefined;
+
+    try {
+      if (typeRef.kind === 'ClusterResourceType') {
+        const { data, error, response } = await client.GET(
+          '/api/v1/clusterresourcetypes/{crtName}',
+          { params: { path: { crtName: typeRef.name } } },
+        );
+        if (error || !response.ok) return undefined;
+        return (data as any)?.spec?.retainPolicy;
+      }
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}',
+        {
+          params: {
+            path: { namespaceName, rtName: typeRef.name },
+          },
+        },
+      );
+      if (error || !response.ok) return undefined;
+      return (data as any)?.spec?.retainPolicy;
+    } catch (err) {
+      this.logger.warn(
+        `Failed to fetch ${typeRef.kind} ${typeRef.name} for retainPolicy resolution: ${err}`,
+      );
+      return undefined;
+    }
+  }
+
   private createResourceEnvironment(
     envData: ModelsEnvironment,
     binding: NewResourceReleaseBinding | undefined,
     promotionTargets: any[] | undefined,
     latestRelease: string | undefined,
+    resourceTypeRetainPolicyDefault: 'Delete' | 'Retain' | undefined,
   ): ResourceEnvironment {
     const envName = envData.displayName || envData.name;
     const envResourceName = envData.name;
@@ -2003,14 +2063,22 @@ export class EnvironmentInfoService implements EnvironmentService {
     let statusMessage: string | undefined;
     let lastDeployed: string | undefined;
     let resourceRelease: string | undefined;
-    let retainPolicy: 'Delete' | 'Retain' | undefined;
     let outputs: ResourceBindingOutput[] | undefined;
     let bindingName: string | undefined;
+
+    // Effective retain policy follows the inheritance chain: built-in
+    // default ('Delete') ← (Cluster)ResourceType.spec.retainPolicy ←
+    // ResourceReleaseBinding.spec.retainPolicy. The K8s controller does
+    // the same resolution at delete-time; we mirror it here so the
+    // Backstage UI shows what will actually happen instead of whatever
+    // happens to be set on the binding spec.
+    const resourceTypeDefault = resourceTypeRetainPolicyDefault ?? 'Delete';
+    let retainPolicy: 'Delete' | 'Retain' = resourceTypeDefault;
 
     if (binding) {
       bindingName = binding.metadata?.name;
       resourceRelease = binding.spec?.resourceRelease;
-      retainPolicy = binding.spec?.retainPolicy;
+      retainPolicy = binding.spec?.retainPolicy ?? resourceTypeDefault;
       // Use the Ready condition's lastTransitionTime as the deploy
       // timestamp. The aggregate Ready flips whenever Synced /
       // ResourcesReady / OutputsResolved transition, so promotes (which

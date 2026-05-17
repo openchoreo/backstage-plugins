@@ -1,5 +1,8 @@
 import { useCallback, useState } from 'react';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Button,
   CircularProgress,
@@ -10,8 +13,11 @@ import {
 import AllInboxOutlinedIcon from '@material-ui/icons/AllInboxOutlined';
 import CloseIcon from '@material-ui/icons/Close';
 import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
+import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import RefreshIcon from '@material-ui/icons/Refresh';
+import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
 import { useNavigate } from 'react-router-dom';
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
@@ -25,6 +31,7 @@ import type { ResourceEnvironment } from '../../api/OpenChoreoClientApi';
 import { useResourceEnvironmentDetailPanelStyles } from './styles';
 import { useResourceEnvironmentsContext } from './ResourceEnvironmentsContext';
 import { ResourceOutputsDialog } from './ResourceOutputsDialog';
+import { ResourceRetainPolicySwitchDialog } from './ResourceRetainPolicySwitchDialog';
 import { deriveResourceEnvBadgeStatus } from './badgeStatus';
 
 interface ResourceEnvironmentDetailPanelProps {
@@ -74,7 +81,15 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
   } = useResourceEnvironmentsContext();
 
   const [outputsDialogOpen, setOutputsDialogOpen] = useState(false);
+  const [pendingRetainSwitchToDelete, setPendingRetainSwitchToDelete] =
+    useState(false);
   const hasBinding = Boolean(env.bindingName);
+  // BFF resolves the effective policy server-side: binding override →
+  // (Cluster)ResourceType default → built-in 'Delete'. We still guard
+  // with a fallback for the unbound case where retainPolicy is genuinely
+  // absent from the response.
+  const effectiveRetainPolicy: 'Delete' | 'Retain' =
+    env.retainPolicy ?? 'Delete';
   const outputCount = env.outputs?.length ?? 0;
   const hasOutputs = outputCount > 0;
   const badgeStatus = deriveResourceEnvBadgeStatus(env);
@@ -226,21 +241,6 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                   </Typography>
                 </Box>
               )}
-              {env.retainPolicy && (
-                <Box className={classes.metaRow}>
-                  <Typography className={classes.metaLabel}>
-                    Retain policy
-                  </Typography>
-                  <RetainPolicyToggle
-                    current={env.retainPolicy}
-                    canUpdate={updatePerm.canUpdate}
-                    permLoading={updatePerm.loading}
-                    deniedTooltip={updatePerm.deniedTooltip}
-                    busy={isUpdatingRetainPolicy}
-                    onChange={value => onRetainPolicyChange(env.name, value)}
-                  />
-                </Box>
-              )}
               {showStatusReasonAndMessage && env.statusReason && (
                 <Box className={classes.metaRow}>
                   <Typography className={classes.metaLabel}>Reason</Typography>
@@ -282,13 +282,6 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                     navigate(`overrides/${env.resourceName ?? env.name}`)
                   }
                 />
-                <UndeployButton
-                  canDelete={deletePerm.canDelete}
-                  permLoading={deletePerm.loading}
-                  deniedTooltip={deletePerm.deniedTooltip}
-                  isUndeploying={isUndeploying}
-                  onClick={() => onUndeployRequest(env.name)}
-                />
               </Box>
             </Box>
 
@@ -313,6 +306,102 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                 </Box>
               </Box>
             )}
+
+            {hasBinding && (
+              <Accordion className={classes.dangerAccordion}>
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  className={classes.dangerAccordionSummary}
+                  aria-label="Danger zone"
+                >
+                  <ReportProblemOutlinedIcon
+                    fontSize="small"
+                    className={classes.dangerAccordionIcon}
+                  />
+                  <Typography
+                    variant="body2"
+                    className={classes.dangerAccordionTitle}
+                  >
+                    Danger zone
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails className={classes.dangerAccordionDetails}>
+                  <Box className={classes.dangerSubsection}>
+                    <Typography
+                      variant="caption"
+                      className={classes.dangerCaption}
+                    >
+                      Retain policy
+                    </Typography>
+                    <RetainPolicyToggle
+                      current={effectiveRetainPolicy}
+                      canUpdate={updatePerm.canUpdate}
+                      permLoading={updatePerm.loading}
+                      deniedTooltip={updatePerm.deniedTooltip}
+                      busy={isUpdatingRetainPolicy}
+                      onChange={value => {
+                        // Retain → Delete removes the safety lock; warn
+                        // before applying. Delete → Retain only adds
+                        // safety, so apply immediately.
+                        if (
+                          value === 'Delete' &&
+                          effectiveRetainPolicy === 'Retain'
+                        ) {
+                          setPendingRetainSwitchToDelete(true);
+                          return;
+                        }
+                        void onRetainPolicyChange(env.name, value);
+                      }}
+                    />
+                    <Typography
+                      variant="caption"
+                      className={classes.dangerHelp}
+                    >
+                      Retain prevents this deployment from being deleted.
+                      Switch to Delete to allow removal.
+                    </Typography>
+                  </Box>
+
+                  <Box className={classes.dangerSubsection}>
+                    <Typography
+                      variant="caption"
+                      className={classes.dangerCaption}
+                    >
+                      Permanently delete this environment's deployment.
+                    </Typography>
+                    <Tooltip
+                      title={
+                        effectiveRetainPolicy === 'Retain'
+                          ? 'Set retain policy to Delete to allow removal.'
+                          : deletePerm.deniedTooltip
+                      }
+                      disableHoverListener={
+                        effectiveRetainPolicy === 'Delete' &&
+                        deletePerm.canDelete
+                      }
+                    >
+                      <span>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          className={classes.dangerButton}
+                          startIcon={<DeleteOutlineIcon fontSize="small" />}
+                          disabled={
+                            isUndeploying ||
+                            effectiveRetainPolicy === 'Retain' ||
+                            deletePerm.loading ||
+                            !deletePerm.canDelete
+                          }
+                          onClick={() => onUndeployRequest(env.name)}
+                        >
+                          {isUndeploying ? 'Removing...' : 'Remove deployment'}
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
+            )}
           </>
         )}
       </Box>
@@ -322,6 +411,16 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
         onClose={() => setOutputsDialogOpen(false)}
         environmentName={env.name}
         outputs={env.outputs ?? []}
+      />
+
+      <ResourceRetainPolicySwitchDialog
+        open={pendingRetainSwitchToDelete}
+        isUpdating={isUpdatingRetainPolicy}
+        onCancel={() => setPendingRetainSwitchToDelete(false)}
+        onConfirm={async () => {
+          setPendingRetainSwitchToDelete(false);
+          await onRetainPolicyChange(env.name, 'Delete');
+        }}
       />
     </Box>
   );
@@ -399,47 +498,6 @@ function ConfigureOverridesButton({
           disabled={disabled}
         >
           Configure overrides
-        </Button>
-      </span>
-    </Tooltip>
-  );
-}
-
-interface UndeployButtonProps {
-  canDelete: boolean;
-  permLoading: boolean;
-  deniedTooltip: string;
-  isUndeploying: boolean;
-  onClick: () => void;
-}
-
-function UndeployButton({
-  canDelete,
-  permLoading,
-  deniedTooltip,
-  isUndeploying,
-  onClick,
-}: UndeployButtonProps) {
-  const disabled = !canDelete || permLoading || isUndeploying;
-  const tooltip =
-    !canDelete && !permLoading
-      ? deniedTooltip
-      : 'Delete the binding for this environment';
-  return (
-    <Tooltip title={tooltip}>
-      <span>
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={onClick}
-          disabled={disabled}
-          startIcon={
-            isUndeploying ? (
-              <CircularProgress size={14} color="inherit" />
-            ) : undefined
-          }
-        >
-          Undeploy
         </Button>
       </span>
     </Tooltip>

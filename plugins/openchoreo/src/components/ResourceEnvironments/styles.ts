@@ -368,4 +368,55 @@ export const useResourceEnvironmentDetailPanelStyles = makeStyles(theme => ({
     backgroundColor: theme.palette.warning.light,
     color: theme.palette.warning.dark,
   },
+  dangerAccordion: {
+    marginTop: theme.spacing(2),
+    border: `1px solid ${alpha(theme.palette.error.main, 0.4)}`,
+    borderRadius: 4,
+    boxShadow: 'none',
+    backgroundColor: alpha(theme.palette.error.main, 0.04),
+    '&:before': { display: 'none' },
+    '&.Mui-expanded': { margin: `${theme.spacing(2)}px 0 0 0` },
+  },
+  dangerAccordionSummary: {
+    minHeight: 40,
+    '&.Mui-expanded': { minHeight: 40 },
+    '& .MuiAccordionSummary-content': {
+      margin: 0,
+      alignItems: 'center',
+    },
+    '& .MuiAccordionSummary-content.Mui-expanded': { margin: 0 },
+  },
+  dangerAccordionIcon: {
+    color: theme.palette.error.dark,
+    marginRight: theme.spacing(1),
+  },
+  dangerAccordionTitle: {
+    fontWeight: 600,
+    color: theme.palette.error.dark,
+  },
+  dangerAccordionDetails: {
+    flexDirection: 'column',
+    gap: theme.spacing(2),
+  },
+  dangerSubsection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(0.75),
+  },
+  dangerCaption: {
+    color: theme.palette.text.secondary,
+    fontWeight: 500,
+  },
+  dangerHelp: {
+    color: theme.palette.text.hint,
+  },
+  dangerButton: {
+    color: theme.palette.error.main,
+    borderColor: theme.palette.error.main,
+    alignSelf: 'flex-start',
+    '&:hover': {
+      borderColor: theme.palette.error.dark,
+      backgroundColor: theme.palette.action.hover,
+    },
+  },
 }));

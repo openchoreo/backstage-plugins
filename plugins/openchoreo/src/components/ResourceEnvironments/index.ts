@@ -3,7 +3,8 @@ export { ResourceDeployFlowCanvas } from './ResourceDeployFlowCanvas';
 export { ResourceMiniEnvironmentNode } from './ResourceMiniEnvironmentNode';
 export { ResourceEnvironmentDetailPanel } from './ResourceEnvironmentDetailPanel';
 export { ResourceOutputsDialog } from './ResourceOutputsDialog';
-export { UndeployConfirmDialog } from './UndeployConfirmDialog';
+export { ResourceRemoveDeploymentDialog } from './ResourceRemoveDeploymentDialog';
+export { ResourceRetainPolicySwitchDialog } from './ResourceRetainPolicySwitchDialog';
 export {
   ResourceEnvironmentsProvider,
   useResourceEnvironmentsContext,
