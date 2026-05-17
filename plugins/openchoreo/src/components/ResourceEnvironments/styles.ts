@@ -129,79 +129,125 @@ export const useResourceSetupCardCompactStyles = makeStyles(theme => ({
 }));
 
 /**
- * Per-env compact node tile shown on the canvas. Width/height come from
- * the MINI_ENV_NODE_* constants in @openchoreo/backstage-plugin-react so
- * the dagre layout reserves the correct space.
+ * Per-env compact node tile shown on the canvas. Layout: a vertical
+ * status stripe on the left whose color reflects the binding status,
+ * a body with icon + name + 3-dot menu (top), STATUS: row, and a
+ * DEPLOYED: relative-time row on bound envs.
+ *
+ * Width/height come from MINI_ENV_NODE_* in
+ * @openchoreo/backstage-plugin-react so the dagre layout reserves the
+ * correct space.
  */
 export const useResourceMiniEnvironmentNodeStyles = makeStyles(theme => ({
-  tile: {
+  card: {
     width: '100%',
     height: '100%',
-    padding: theme.spacing(1.5),
-    borderRadius: 8,
+    boxSizing: 'border-box',
     backgroundColor: theme.palette.background.paper,
     border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 8,
+    boxShadow: theme.shadows[1],
     display: 'flex',
     flexDirection: 'column',
-    gap: theme.spacing(1),
     cursor: 'pointer',
-    transition: 'border-color 120ms, box-shadow 120ms',
+    overflow: 'hidden',
+    transition: 'box-shadow 120ms ease, transform 120ms ease',
     '&:hover': {
-      borderColor: theme.palette.primary.light,
-    },
-    '&:focus-visible': {
-      outline: `2px solid ${theme.palette.primary.main}`,
-      outlineOffset: 2,
+      boxShadow: theme.shadows[3],
     },
   },
-  selected: {
+  cardSelected: {
     borderColor: theme.palette.primary.main,
-    boxShadow: `0 0 0 2px ${theme.palette.primary.light}`,
+    backgroundColor: theme.palette.background.paper,
+    backgroundImage: `linear-gradient(${alpha(
+      theme.palette.primary.main,
+      theme.palette.type === 'dark' ? 0.12 : 0.04,
+    )}, ${alpha(
+      theme.palette.primary.main,
+      theme.palette.type === 'dark' ? 0.12 : 0.04,
+    )})`,
+    boxShadow: `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[4]}`,
+    '&:hover': {
+      boxShadow: `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[4]}`,
+    },
   },
-  header: {
+  statusStripe: {
+    width: 4,
+    height: '100%',
+    flexShrink: 0,
+  },
+  statusStripeActive: {
+    backgroundColor: theme.palette.success.main,
+  },
+  statusStripePending: {
+    backgroundColor: theme.palette.warning.main,
+  },
+  statusStripeFailed: {
+    backgroundColor: theme.palette.error.main,
+  },
+  statusStripeIdle: {
+    backgroundColor: theme.palette.action.disabled,
+  },
+  body: {
+    flex: 1,
+    minWidth: 0,
+    padding: theme.spacing(1, 1.25),
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(0.5),
+  },
+  topRow: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: theme.spacing(1),
+    gap: theme.spacing(0.5),
+    minWidth: 0,
+  },
+  nameWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    minWidth: 0,
+    flex: 1,
+  },
+  kindIcon: {
+    color: theme.palette.text.secondary,
+    fontSize: '1rem',
+    flexShrink: 0,
   },
   envName: {
     fontWeight: 600,
     fontSize: '0.95rem',
+    lineHeight: 1.2,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-  release: {
-    fontFamily: 'monospace',
-    fontSize: '0.75rem',
+  menuButton: {
+    padding: theme.spacing(0.25),
+  },
+  metaRow: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: theme.spacing(0.75),
+    rowGap: theme.spacing(0.5),
     color: theme.palette.text.secondary,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    fontSize: '0.8rem',
+    minWidth: 0,
   },
   meta: {
-    fontSize: '0.7rem',
-    color: theme.palette.text.hint,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  empty: {
+    letterSpacing: 0.6,
     color: theme.palette.text.secondary,
-    fontStyle: 'italic',
-    fontSize: '0.8rem',
-  },
-  driftBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
-    padding: '2px 6px',
-    borderRadius: 4,
     fontSize: '0.65rem',
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    backgroundColor: theme.palette.warning.light,
-    color: theme.palette.warning.dark,
+    fontWeight: 500,
+    flexShrink: 0,
+  },
+  timeText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
 }));
 
