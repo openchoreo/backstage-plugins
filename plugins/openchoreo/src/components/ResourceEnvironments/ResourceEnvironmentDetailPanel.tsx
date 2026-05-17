@@ -120,9 +120,9 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
     env.status === 'Ready' &&
     promotionTargets.length > 0;
 
-  // Hide REASON / MESSAGE on the happy path; show them only when the
+  // Hide the status MESSAGE row on the happy path; show it only when the
   // binding isn't Ready so the user has the context to debug.
-  const showStatusReasonAndMessage = env.status !== 'Ready';
+  const showStatusMessage = env.status !== 'Ready';
 
   const copyToClipboard = useCallback(
     async (text: string, label: string) => {
@@ -140,9 +140,11 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
   const deletePerm = useResourceReleaseBindingDeletePermission(env.name);
 
   const isUndeploying =
-    pendingAction?.env === env.name && pendingAction.kind === 'undeploy';
+    pendingAction?.env === (env.resourceName ?? env.name) &&
+    pendingAction.kind === 'undeploy';
   const isUpdatingRetainPolicy =
-    pendingAction?.env === env.name && pendingAction.kind === 'retain';
+    pendingAction?.env === (env.resourceName ?? env.name) &&
+    pendingAction.kind === 'retain';
 
   const handlePromoteSingle = () => {
     const target = eligibleTargets[0];
@@ -261,20 +263,36 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                   </Typography>
                 </Box>
               )}
-              {showStatusReasonAndMessage && env.statusReason && (
-                <Box className={classes.metaRow}>
-                  <Typography className={classes.metaLabel}>Reason</Typography>
-                  <Typography className={classes.metaValue}>
-                    {env.statusReason}
+              {showStatusMessage && env.statusMessage && (
+                <Box className={classes.releaseNameRow}>
+                  <Typography
+                    variant="caption"
+                    className={classes.releaseNameLabel}
+                  >
+                    Message
                   </Typography>
-                </Box>
-              )}
-              {showStatusReasonAndMessage && env.statusMessage && (
-                <Box className={classes.metaRow}>
-                  <Typography className={classes.metaLabel}>Message</Typography>
-                  <Typography className={classes.metaValue}>
-                    {env.statusMessage}
-                  </Typography>
+                  <Tooltip title={env.statusMessage}>
+                    <Typography
+                      variant="caption"
+                      className={classes.statusMessage}
+                    >
+                      {env.statusMessage}
+                    </Typography>
+                  </Tooltip>
+                  <Tooltip
+                    title="Copy status message"
+                    PopperProps={{ disablePortal: true }}
+                  >
+                    <IconButton
+                      size="small"
+                      aria-label="Copy status message"
+                      onClick={() =>
+                        copyToClipboard(env.statusMessage!, 'status message')
+                      }
+                    >
+                      <FileCopyOutlinedIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
                 </Box>
               )}
             </Box>
@@ -367,7 +385,10 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                           setPendingRetainSwitchToDelete(true);
                           return;
                         }
-                        void onRetainPolicyChange(env.name, value);
+                        void onRetainPolicyChange(
+                          env.resourceName ?? env.name,
+                          value,
+                        );
                       }}
                     />
                     <Typography
@@ -409,7 +430,9 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                             deletePerm.loading ||
                             !deletePerm.canDelete
                           }
-                          onClick={() => onUndeployRequest(env.name)}
+                          onClick={() =>
+                            onUndeployRequest(env.resourceName ?? env.name)
+                          }
                         >
                           {isUndeploying ? 'Removing...' : 'Remove deployment'}
                         </Button>
@@ -436,7 +459,7 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
         onCancel={() => setPendingRetainSwitchToDelete(false)}
         onConfirm={async () => {
           setPendingRetainSwitchToDelete(false);
-          await onRetainPolicyChange(env.name, 'Delete');
+          await onRetainPolicyChange(env.resourceName ?? env.name, 'Delete');
         }}
       />
     </Box>

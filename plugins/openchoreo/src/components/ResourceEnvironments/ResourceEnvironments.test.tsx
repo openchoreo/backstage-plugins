@@ -515,6 +515,57 @@ describe('ResourceEnvironments', () => {
 
       expect(client.deleteResourceReleaseBinding).not.toHaveBeenCalled();
     });
+
+    it('passes resourceName (not display name) to the client', async () => {
+      // BFF surfaces both: name=displayName ("Production"), resourceName=K8s
+      // RFC 1123 name ("production"). Mirrors the promote regression in
+      // ResourceMiniEnvironmentNode.test.tsx; same bug class on undeploy.
+      const boundProd = [
+        {
+          name: 'Production',
+          resourceName: 'production',
+          bindingName: 'b-prod',
+          resourceRelease: 'rel-1',
+          retainPolicy: 'Delete' as const,
+          status: 'Ready' as const,
+          latestRelease: 'rel-1',
+        },
+      ];
+      const client = {
+        fetchResourceEnvironmentInfo: jest
+          .fn()
+          .mockResolvedValueOnce(boundProd)
+          .mockResolvedValueOnce([
+            { name: 'Production', resourceName: 'production', latestRelease: 'rel-1' },
+          ]),
+        deleteResourceReleaseBinding: jest.fn().mockResolvedValue({}),
+      };
+
+      renderTab(client);
+
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: /select environment production/i,
+        }),
+      );
+      fireEvent.click(await screen.findByLabelText('Danger zone'));
+      fireEvent.click(
+        await screen.findByRole('button', { name: /^remove deployment$/i }),
+      );
+
+      const dialog = await screen.findByRole('dialog');
+      const confirmButton = dialog.querySelector(
+        'button.MuiButton-containedSecondary',
+      ) as HTMLButtonElement;
+      fireEvent.click(confirmButton);
+
+      await waitFor(() => {
+        expect(client.deleteResourceReleaseBinding).toHaveBeenCalledWith(
+          expect.anything(),
+          'production',
+        );
+      });
+    });
   });
 
   describe('retain policy change', () => {
@@ -553,6 +604,50 @@ describe('ResourceEnvironments', () => {
         expect(client.updateResourceReleaseBinding).toHaveBeenCalledWith(
           expect.anything(),
           'dev',
+          { resourceRelease: 'rel-1', retainPolicy: 'Retain' },
+        );
+      });
+    });
+
+    it('passes resourceName (not display name) to the client', async () => {
+      const boundProd = [
+        {
+          name: 'Production',
+          resourceName: 'production',
+          bindingName: 'b-prod',
+          resourceRelease: 'rel-1',
+          retainPolicy: 'Delete' as const,
+          status: 'Ready' as const,
+          latestRelease: 'rel-1',
+        },
+      ];
+      const client = {
+        fetchResourceEnvironmentInfo: jest
+          .fn()
+          .mockResolvedValueOnce(boundProd)
+          .mockResolvedValueOnce([
+            { ...boundProd[0], retainPolicy: 'Retain' },
+          ]),
+        updateResourceReleaseBinding: jest.fn().mockResolvedValue({}),
+      };
+
+      renderTab(client);
+
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: /select environment production/i,
+        }),
+      );
+      fireEvent.click(await screen.findByLabelText('Danger zone'));
+      const retainButton = await screen.findByRole('button', {
+        name: /^retain$/i,
+      });
+      fireEvent.click(retainButton);
+
+      await waitFor(() => {
+        expect(client.updateResourceReleaseBinding).toHaveBeenCalledWith(
+          expect.anything(),
+          'production',
           { resourceRelease: 'rel-1', retainPolicy: 'Retain' },
         );
       });

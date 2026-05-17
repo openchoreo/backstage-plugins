@@ -162,8 +162,9 @@ export const ResourceEnvironmentsList = () => {
   );
 
   const handleUndeployRequest = useCallback(
-    (environment: string) => {
-      const target = envs.find(e => e.name === environment) ?? null;
+    (envResourceName: string) => {
+      const target =
+        envs.find(e => (e.resourceName ?? e.name) === envResourceName) ?? null;
       setUndeployTarget(target);
     },
     [envs],
@@ -171,18 +172,53 @@ export const ResourceEnvironmentsList = () => {
 
   const handleUndeployConfirm = useCallback(async () => {
     if (!undeployTarget) return;
-    const environment = undeployTarget.name;
-    setPendingAction({ env: environment, kind: 'undeploy' });
+    const envResourceName =
+      undeployTarget.resourceName ?? undeployTarget.name;
+    const envLabel = undeployTarget.name;
+    setPendingAction({ env: envResourceName, kind: 'undeploy' });
     try {
-      await client.deleteResourceReleaseBinding(entity, environment);
+      await client.deleteResourceReleaseBinding(entity, envResourceName);
       if (cancelledRef.current) return;
-      notification.showSuccess(`Undeployed ${environment}`);
+
+      // Poll fetchResourceEnvironmentInfo to confirm the binding actually
+      // disappears before reporting success. The Resource controller's
+      // two-phase finalizer can defer cluster-side removal for several
+      // seconds, so a green toast over the raw DELETE response would
+      // race the UI ahead of reality.
+      const POLL_INTERVAL_MS = 1500;
+      const POLL_TIMEOUT_MS = 15_000;
+      const deadline = Date.now() + POLL_TIMEOUT_MS;
+      let confirmed = false;
+      while (Date.now() < deadline && !cancelledRef.current) {
+        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+        if (cancelledRef.current) return;
+        try {
+          const refreshed = await client.fetchResourceEnvironmentInfo(entity);
+          const match = (refreshed ?? []).find(
+            e => (e.resourceName ?? e.name) === envResourceName,
+          );
+          if (!match || !match.bindingName) {
+            confirmed = true;
+            break;
+          }
+        } catch {
+          // Transient fetch failure during reconcile — keep polling
+          // until the deadline.
+        }
+      }
+
+      if (cancelledRef.current) return;
       setUndeployTarget(null);
       await fetchEnvs();
+      if (confirmed) {
+        notification.showSuccess(`Undeployed ${envLabel}`);
+      } else {
+        notification.showSuccess(`Removal of ${envLabel} accepted`);
+      }
     } catch (err: unknown) {
       if (cancelledRef.current) return;
       notification.showError(
-        `Failed to undeploy ${environment}: ${getErrorMessage(err)}`,
+        `Failed to undeploy ${envLabel}: ${getErrorMessage(err)}`,
       );
     } finally {
       if (!cancelledRef.current) setPendingAction(null);
@@ -205,24 +241,27 @@ export const ResourceEnvironmentsList = () => {
   }, []);
 
   const handleRetainPolicyChange = useCallback(
-    async (environment: string, next: 'Delete' | 'Retain') => {
-      const env = envs.find(e => e.name === environment);
+    async (envResourceName: string, next: 'Delete' | 'Retain') => {
+      const env = envs.find(
+        e => (e.resourceName ?? e.name) === envResourceName,
+      );
       if (!env || !env.resourceRelease) return;
-      setPendingAction({ env: environment, kind: 'retain' });
+      const envLabel = env.name;
+      setPendingAction({ env: envResourceName, kind: 'retain' });
       try {
-        await client.updateResourceReleaseBinding(entity, environment, {
+        await client.updateResourceReleaseBinding(entity, envResourceName, {
           resourceRelease: env.resourceRelease,
           retainPolicy: next,
         });
         if (cancelledRef.current) return;
         notification.showSuccess(
-          `Set retain policy on ${environment} to ${next}`,
+          `Set retain policy on ${envLabel} to ${next}`,
         );
         await fetchEnvs();
       } catch (err: unknown) {
         if (cancelledRef.current) return;
         notification.showError(
-          `Failed to update retain policy on ${environment}: ${getErrorMessage(err)}`,
+          `Failed to update retain policy on ${envLabel}: ${getErrorMessage(err)}`,
         );
       } finally {
         if (!cancelledRef.current) setPendingAction(null);
@@ -329,7 +368,8 @@ export const ResourceEnvironmentsList = () => {
         open={undeployTarget !== null}
         environmentName={undeployTarget?.name ?? ''}
         isRemoving={
-          pendingAction?.env === undeployTarget?.name &&
+          pendingAction?.env ===
+            (undeployTarget?.resourceName ?? undeployTarget?.name) &&
           pendingAction?.kind === 'undeploy'
         }
         onCancel={handleUndeployCancel}

@@ -871,7 +871,8 @@ describe('EnvironmentInfoService', () => {
   });
 
   describe('deleteResourceReleaseBinding', () => {
-    it('DELETEs the binding by composed name and returns success', async () => {
+    it('pre-flight GETs the binding, then DELETEs by composed name', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse({ metadata: { name: 'analytics-db-dev' } }));
       mockDELETE.mockResolvedValueOnce(createOkResponse(undefined));
 
       const service = createService();
@@ -886,6 +887,15 @@ describe('EnvironmentInfoService', () => {
       );
 
       expect(result).toEqual({ success: true });
+      expect(mockGET).toHaveBeenCalledTimes(1);
+      expect(mockGET.mock.calls[0][1]).toMatchObject({
+        params: {
+          path: {
+            namespaceName: 'test-ns',
+            resourceReleaseBindingName: 'analytics-db-dev',
+          },
+        },
+      });
       expect(mockDELETE).toHaveBeenCalledTimes(1);
       const call = mockDELETE.mock.calls[0];
       expect(call[0]).toBe(
@@ -901,7 +911,29 @@ describe('EnvironmentInfoService', () => {
       });
     });
 
+    it('throws (and skips DELETE) when pre-flight GET returns 404', async () => {
+      // Defense-in-depth against the openchoreo-api silently returning 204
+      // for delete on names that resolve to no binding on the cluster.
+      mockGET.mockResolvedValueOnce(createErrorResponse(404));
+
+      const service = createService();
+      await expect(
+        service.deleteResourceReleaseBinding(
+          {
+            resourceName: 'analytics-db',
+            projectName: 'my-project',
+            namespaceName: 'test-ns',
+            environment: 'Production',
+          },
+          'token-123',
+        ),
+      ).rejects.toThrow();
+
+      expect(mockDELETE).not.toHaveBeenCalled();
+    });
+
     it('propagates an error response from the openchoreo-api', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse({ metadata: { name: 'analytics-db-dev' } }));
       mockDELETE.mockResolvedValueOnce(createErrorResponse(403));
 
       const service = createService();

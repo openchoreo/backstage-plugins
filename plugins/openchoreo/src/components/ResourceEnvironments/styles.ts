@@ -361,22 +361,13 @@ export const useResourceEnvironmentDetailPanelStyles = makeStyles(theme => ({
     justifyContent: 'space-between',
     gap: theme.spacing(1),
   },
-  metaRow: {
-    display: 'grid',
-    gridTemplateColumns: '140px 1fr',
-    gap: theme.spacing(2),
-    alignItems: 'baseline',
-  },
-  metaLabel: {
-    color: theme.palette.text.hint,
-    fontSize: '0.75rem',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  metaValue: {
-    fontFamily: 'monospace',
-    fontSize: '0.875rem',
-    wordBreak: 'break-all',
+  statusMessage: {
+    color: theme.palette.text.primary,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    maxWidth: 280,
+    flex: 1,
   },
   actionsRow: {
     display: 'flex',

@@ -1972,6 +1972,31 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       const bindingName = `${request.resourceName}-${request.environment}`;
 
+      // Pre-flight GET. The openchoreo-api's DELETE can return 204 for
+      // names that resolve to no binding on the cluster, which surfaces
+      // to the frontend as a green response over a no-op. Verifying
+      // existence here turns any caller mistake (wrong case, wrong
+      // separator, drift) into a hard 404.
+      const {
+        error: getError,
+        response: getResponse,
+      } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              resourceReleaseBindingName: bindingName,
+            },
+          },
+        },
+      );
+
+      assertApiResponse(
+        { data: undefined, error: getError, response: getResponse },
+        `confirm resource release binding ${bindingName} exists before delete`,
+      );
+
       const { error, response } = await client.DELETE(
         '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}',
         {
