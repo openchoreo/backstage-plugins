@@ -111,7 +111,8 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
     promotionTargets.length > 0 && eligibleTargets.length === 0;
   const isPromotingForward = promotionTargets.some(
     t =>
-      pendingAction?.kind === 'promote' && pendingAction.env === t.name,
+      pendingAction?.kind === 'promote' &&
+      pendingAction.env === (t.resourceName ?? t.name),
   );
   const showForwardPromote =
     hasBinding &&
@@ -146,7 +147,9 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
   const handlePromoteSingle = () => {
     const target = eligibleTargets[0];
     if (!target || !env.resourceRelease) return;
-    void onPromote(target.name, env.resourceRelease);
+    // Promote needs the K8s-safe resource name (lowercase, RFC 1123).
+    // target.name is the display name (e.g. "Production").
+    void onPromote(target.resourceName ?? target.name, env.resourceRelease);
   };
 
   return (

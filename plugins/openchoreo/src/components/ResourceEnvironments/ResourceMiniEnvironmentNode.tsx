@@ -77,18 +77,23 @@ export const ResourceMiniEnvironmentNode = ({
   const isReady = env.status === 'Ready';
   const isPromotingForward = promotionTargets.some(
     t =>
-      pendingAction?.kind === 'promote' && pendingAction.env === t.name,
+      pendingAction?.kind === 'promote' &&
+      pendingAction.env === (t.resourceName ?? t.name),
   );
   const showPromote =
     hasBinding && hasRelease && isReady && hasPromotionTargets;
   const allTargetsInSync =
     hasPromotionTargets && eligibleTargets.length === 0;
 
+  // Promote needs the K8s-safe resource name (lowercase, RFC 1123).
+  // target.name carries the display name (e.g. "Production") which the
+  // BFF would otherwise stitch into a `metadata.name` like
+  // "orders-db-Production" and get 422'd by the apiserver.
   const handlePromoteSingle = (e: ReactMouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     const target = eligibleTargets[0];
     if (!target || !env.resourceRelease) return;
-    void onPromote(target.name, env.resourceRelease);
+    void onPromote(target.resourceName ?? target.name, env.resourceRelease);
   };
 
   const openPromoteMenu = (e: ReactMouseEvent<HTMLButtonElement>) => {
@@ -97,10 +102,10 @@ export const ResourceMiniEnvironmentNode = ({
   };
   const closePromoteMenu = () => setPromoteAnchor(null);
 
-  const handlePromoteTo = (targetName: string) => {
+  const handlePromoteTo = (target: { name: string; resourceName?: string }) => {
     closePromoteMenu();
     if (!env.resourceRelease) return;
-    void onPromote(targetName, env.resourceRelease);
+    void onPromote(target.resourceName ?? target.name, env.resourceRelease);
   };
 
   const isTargetAlreadyPromoted = (targetName: string) => {
@@ -328,7 +333,7 @@ export const ResourceMiniEnvironmentNode = ({
       >
         {promotionTargets.map(target => {
           const promoted = isTargetAlreadyPromoted(target.name);
-          const inFlight = isTargetInFlight(target.name);
+          const inFlight = isTargetInFlight(target.resourceName ?? target.name);
           let label: string;
           if (promoted) {
             label = `Promoted to ${target.name}`;
@@ -340,7 +345,7 @@ export const ResourceMiniEnvironmentNode = ({
           return (
             <MenuItem
               key={target.name}
-              onClick={() => handlePromoteTo(target.name)}
+              onClick={() => handlePromoteTo(target)}
               disabled={promoted || inFlight}
             >
               {label}

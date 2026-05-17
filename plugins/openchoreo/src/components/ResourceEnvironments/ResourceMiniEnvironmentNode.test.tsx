@@ -229,6 +229,32 @@ describe('ResourceMiniEnvironmentNode', () => {
       expect(onPromote).toHaveBeenCalledWith('staging', 'rel-abc');
     });
 
+    it('prefers target.resourceName over target.name (display name) on promote', () => {
+      // BFF surfaces both: name=displayName ("Production"), resourceName=K8s
+      // RFC 1123 name ("production"). The promote call must use the
+      // resource name; passing the display name produces a binding
+      // metadata.name like "orders-db-Production" that K8s rejects.
+      const onPromote = jest.fn();
+      const devToProd: ResourceEnvironment = {
+        ...bound(),
+        promotionTargets: [{ name: 'Production', resourceName: 'production' }],
+      };
+      const prodEnv: ResourceEnvironment = {
+        name: 'Production',
+        resourceName: 'production',
+        resourceRelease: 'rel-old',
+      };
+      renderTile(devToProd, false, () => {}, {
+        environments: [devToProd, prodEnv],
+        onPromote,
+      });
+
+      fireEvent.click(
+        screen.getByRole('button', { name: /promote dev to production/i }),
+      );
+      expect(onPromote).toHaveBeenCalledWith('production', 'rel-abc');
+    });
+
     it('shows Promoting... while the promote is in flight', () => {
       renderTile(env, false, () => {}, {
         environments: [env, stagingBehind],
