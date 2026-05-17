@@ -5,6 +5,7 @@ import {
 } from 'react';
 import {
   Box,
+  Divider,
   IconButton,
   Menu,
   MenuItem,
@@ -12,6 +13,7 @@ import {
   Typography,
 } from '@material-ui/core';
 import CloudIcon from '@material-ui/icons/Cloud';
+import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
 import MoreVertIcon from '@material-ui/icons/MoreVert';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
@@ -37,10 +39,11 @@ export const ResourceMiniEnvironmentNode = ({
 }: ResourceMiniEnvironmentNodeProps) => {
   const classes = useResourceMiniEnvironmentNodeStyles();
   const navigate = useNavigate();
-  const { refetch } = useResourceEnvironmentsContext();
+  const { refetch, onViewReleaseManifest } = useResourceEnvironmentsContext();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
   const hasBinding = Boolean(env.bindingName);
+  const hasRelease = Boolean(env.resourceRelease);
   const badgeStatus = deriveResourceEnvBadgeStatus(env);
   const relativeDeployed = env.lastDeployed
     ? formatRelativeTime(env.lastDeployed)
@@ -68,6 +71,11 @@ export const ResourceMiniEnvironmentNode = ({
   const handleConfigureOverrides = () => {
     closeMenu();
     navigate(`overrides/${env.resourceName ?? env.name}`);
+  };
+
+  const handleViewReleaseManifest = () => {
+    closeMenu();
+    onViewReleaseManifest(env);
   };
 
   return (
@@ -151,6 +159,22 @@ export const ResourceMiniEnvironmentNode = ({
           <RefreshIcon fontSize="small" style={{ marginRight: 8 }} />
           Refresh
         </MenuItem>
+        <Tooltip
+          title={hasRelease ? '' : 'No release on this environment yet.'}
+          placement="left"
+          PopperProps={{ disablePortal: true }}
+        >
+          <span>
+            <MenuItem
+              onClick={handleViewReleaseManifest}
+              disabled={!hasRelease}
+            >
+              <CodeOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
+              View release manifest
+            </MenuItem>
+          </span>
+        </Tooltip>
+        <Divider />
         <MenuItem
           onClick={handleConfigureOverrides}
           disabled={!hasBinding}

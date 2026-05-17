@@ -135,7 +135,7 @@ describe('ResourceEnvironments', () => {
     expect(screen.getByTestId('progress')).toBeInTheDocument();
   });
 
-  it('renders the canvas with env tiles and auto-selects the first one', async () => {
+  it('renders the canvas with env tiles and starts with no env selected', async () => {
     const client = {
       fetchResourceEnvironmentInfo: jest.fn().mockResolvedValue([
         {
@@ -159,8 +159,16 @@ describe('ResourceEnvironments', () => {
     expect(
       screen.getByRole('button', { name: /select environment staging/i }),
     ).toBeInTheDocument();
-    // Auto-selected first env: detail panel shows its header
-    expect(screen.getAllByText('dev').length).toBeGreaterThan(0);
+    // No env auto-selected: detail panel shows the empty-state copy
+    expect(
+      screen.getByText(/select an environment to view details/i),
+    ).toBeInTheDocument();
+    // Neither env tile is in the pressed state
+    expect(
+      screen
+        .getByRole('button', { name: /select environment dev/i })
+        .getAttribute('aria-pressed'),
+    ).toBe('false');
   });
 
   it('renders an empty-state message when env-info returns no entries', async () => {
@@ -226,7 +234,10 @@ describe('ResourceEnvironments', () => {
       };
       renderTab(client);
 
-      // Auto-selects dev → detail panel shows the Actions heading
+      // Click dev tile → detail panel shows the Actions heading
+      fireEvent.click(
+        await screen.findByRole('button', { name: /select environment dev/i }),
+      );
       await waitFor(() => {
         expect(screen.getByText('Actions')).toBeInTheDocument();
       });
@@ -239,6 +250,35 @@ describe('ResourceEnvironments', () => {
       await waitFor(() => {
         expect(
           screen.getByText(/no binding in this environment yet/i),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('clears the env selection when the canvas background is clicked', async () => {
+      const client = {
+        fetchResourceEnvironmentInfo: jest.fn().mockResolvedValue(envs),
+      };
+      renderTab(client);
+
+      // Pick dev so something is selected to clear.
+      fireEvent.click(
+        await screen.findByRole('button', { name: /select environment dev/i }),
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Actions')).toBeInTheDocument();
+      });
+
+      // Click on the canvas container itself (event.target === currentTarget).
+      const canvas = document.querySelector<HTMLElement>(
+        '[data-testid="resource-deploy-flow-canvas"]',
+      );
+      expect(canvas).not.toBeNull();
+      fireEvent.click(canvas!);
+
+      // Detail panel returns to the empty state.
+      await waitFor(() => {
+        expect(
+          screen.getByText(/select an environment to view details/i),
         ).toBeInTheDocument();
       });
     });
@@ -275,7 +315,10 @@ describe('ResourceEnvironments', () => {
       };
       renderTab(client);
 
-      // Auto-selected env panel is showing.
+      // Pick an env first so we can prove the Setup click swaps panes.
+      fireEvent.click(
+        await screen.findByRole('button', { name: /select environment dev/i }),
+      );
       await waitFor(() => {
         expect(screen.getByText('Actions')).toBeInTheDocument();
       });
@@ -344,6 +387,10 @@ describe('ResourceEnvironments', () => {
 
       renderTab(client);
 
+      fireEvent.click(
+        await screen.findByRole('button', { name: /select environment dev/i }),
+      );
+
       const button = await screen.findByRole('button', { name: /promote/i });
       fireEvent.click(button);
 
@@ -370,6 +417,10 @@ describe('ResourceEnvironments', () => {
       };
 
       renderTab(client);
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: /select environment staging/i }),
+      );
 
       await waitFor(() => {
         expect(
@@ -405,6 +456,9 @@ describe('ResourceEnvironments', () => {
       renderTab(client);
 
       fireEvent.click(
+        await screen.findByRole('button', { name: /select environment dev/i }),
+      );
+      fireEvent.click(
         await screen.findByRole('button', { name: /^undeploy$/i }),
       );
 
@@ -434,6 +488,9 @@ describe('ResourceEnvironments', () => {
 
       renderTab(client);
 
+      fireEvent.click(
+        await screen.findByRole('button', { name: /select environment dev/i }),
+      );
       fireEvent.click(
         await screen.findByRole('button', { name: /^undeploy$/i }),
       );
@@ -468,6 +525,9 @@ describe('ResourceEnvironments', () => {
 
       renderTab(client);
 
+      fireEvent.click(
+        await screen.findByRole('button', { name: /select environment dev/i }),
+      );
       const retainButton = await screen.findByRole('button', {
         name: /^retain$/i,
       });

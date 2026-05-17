@@ -140,6 +140,7 @@ export const ResourceDeployFlowCanvas = ({
     >
       {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
+        data-testid="resource-deploy-flow-canvas"
         className={classes.canvasContainer}
         ref={containerRef}
         onClick={handleBackgroundClick}

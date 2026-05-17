@@ -42,6 +42,7 @@ function makeCtx(
     onPromote: jest.fn(),
     onUndeployRequest: jest.fn(),
     onRetainPolicyChange: jest.fn(),
+    onViewReleaseManifest: jest.fn(),
     ...overrides,
   };
 }
@@ -146,6 +147,32 @@ describe('ResourceMiniEnvironmentNode', () => {
       );
       expect(
         screen.getByRole('menuitem', { name: /configure overrides/i }),
+      ).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('opens the release manifest dialog via the View release menu item', () => {
+      const onViewReleaseManifest = jest.fn();
+      renderTile(bound(), false, () => {}, { onViewReleaseManifest });
+
+      fireEvent.click(
+        screen.getByRole('button', { name: /actions for dev/i }),
+      );
+      fireEvent.click(
+        screen.getByRole('menuitem', { name: /view release manifest/i }),
+      );
+
+      expect(onViewReleaseManifest).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'dev', resourceRelease: 'rel-abc' }),
+      );
+    });
+
+    it('disables View release manifest when no release pinned', () => {
+      renderTile({ name: 'staging' });
+      fireEvent.click(
+        screen.getByRole('button', { name: /actions for staging/i }),
+      );
+      expect(
+        screen.getByRole('menuitem', { name: /view release manifest/i }),
       ).toHaveAttribute('aria-disabled', 'true');
     });
   });

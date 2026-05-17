@@ -7,7 +7,9 @@ import {
   Tooltip,
   Typography,
 } from '@material-ui/core';
+import AllInboxOutlinedIcon from '@material-ui/icons/AllInboxOutlined';
 import CloseIcon from '@material-ui/icons/Close';
+import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import { useNavigate } from 'react-router-dom';
@@ -39,10 +41,11 @@ export const ResourceEnvironmentDetailPanel = ({
   if (!env) {
     return (
       <Box className={classes.panel}>
-        <Box className={classes.emptyHero}>
-          <Typography variant="body1">
-            Select an environment from the pipeline to inspect its binding,
-            outputs, and actions.
+        <Box className={classes.emptyState}>
+          <AllInboxOutlinedIcon className={classes.emptyIcon} />
+          <Typography variant="body2">
+            Select an environment to view details, or click{' '}
+            <strong>Set up</strong> to update configuration.
           </Typography>
         </Box>
       </Box>
@@ -67,6 +70,7 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
     onPromote,
     onUndeployRequest,
     onRetainPolicyChange,
+    onViewReleaseManifest,
   } = useResourceEnvironmentsContext();
 
   const hasBinding = Boolean(env.bindingName);
@@ -184,6 +188,20 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                         }
                       >
                         <FileCopyOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  {env.resourceRelease && (
+                    <Tooltip
+                      title="View release manifest"
+                      PopperProps={{ disablePortal: true }}
+                    >
+                      <IconButton
+                        size="small"
+                        aria-label="View release manifest"
+                        onClick={() => onViewReleaseManifest(env)}
+                      >
+                        <CodeOutlinedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   )}

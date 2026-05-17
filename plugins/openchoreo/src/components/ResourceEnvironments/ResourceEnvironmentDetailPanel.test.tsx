@@ -33,6 +33,7 @@ function makeCtx(
     onPromote: jest.fn(),
     onUndeployRequest: jest.fn(),
     onRetainPolicyChange: jest.fn(),
+    onViewReleaseManifest: jest.fn(),
     ...overrides,
   };
 }
@@ -70,8 +71,9 @@ describe('ResourceEnvironmentDetailPanel', () => {
   it('shows a hint when no env is selected', () => {
     renderPanel(null);
     expect(
-      screen.getByText(/select an environment from the pipeline/i),
+      screen.getByText(/select an environment to view details/i),
     ).toBeInTheDocument();
+    expect(screen.getByText(/set up/i)).toBeInTheDocument();
   });
 
   it('renders empty body for an unbound env with no actionable Deploy', () => {
@@ -128,6 +130,26 @@ describe('ResourceEnvironmentDetailPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^promote$/i }));
     expect(onPromote).toHaveBeenCalledWith('dev', 'rel-new');
+  });
+
+  it('opens the release manifest dialog via the Release row View button', () => {
+    const onViewReleaseManifest = jest.fn();
+    const env = {
+      name: 'dev',
+      bindingName: 'b-dev',
+      resourceRelease: 'rel-1',
+      retainPolicy: 'Delete' as const,
+      status: 'Ready' as const,
+      latestRelease: 'rel-1',
+    };
+    renderPanel(env, { onViewReleaseManifest });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /view release manifest/i }),
+    );
+    expect(onViewReleaseManifest).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'dev', resourceRelease: 'rel-1' }),
+    );
   });
 
   it('renders an interactive retainPolicy toggle for users with update permission', () => {

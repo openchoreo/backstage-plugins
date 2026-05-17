@@ -156,6 +156,12 @@ export interface ResourceReleaseBindingsResponse {
   };
 }
 
+/** Full ResourceRelease CR — used by the View release manifest modal */
+export interface ResourceReleaseResponse {
+  success: boolean;
+  data?: Record<string, unknown>;
+}
+
 export interface ResourceBindingOutput {
   name: string;
   value?: string;
@@ -587,6 +593,15 @@ export interface OpenChoreoClientApi {
 
   /** Fetch all release bindings for a component */
   fetchReleaseBindings(entity: Entity): Promise<ReleaseBindingsResponse>;
+
+  /**
+   * Fetch a single ResourceRelease CR by name. Used by the Deploy tab's
+   * View release manifest modal to render the frozen snapshot as YAML.
+   */
+  fetchResourceRelease(
+    entity: Entity,
+    releaseName: string,
+  ): Promise<ResourceReleaseResponse>;
 
   /**
    * Fetch all resource release bindings for a Resource entity.

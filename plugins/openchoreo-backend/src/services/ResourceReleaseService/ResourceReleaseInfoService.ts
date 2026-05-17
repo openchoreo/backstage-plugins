@@ -30,6 +30,43 @@ export class ResourceReleaseInfoService {
   }
 
   /**
+   * Returns the full ResourceRelease CR. Used by the Deploy tab's
+   * "View release manifest" modal so users can inspect the frozen
+   * snapshot pinned to an env without dropping to kubectl.
+   */
+  async fetchResourceRelease(
+    namespaceName: string,
+    releaseName: string,
+    token?: string,
+  ): Promise<APIResponse & { data?: Record<string, unknown> }> {
+    this.logger.debug(
+      `Fetching resource release: ${releaseName} in namespace: ${namespaceName}`,
+    );
+
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      token,
+      logger: this.logger,
+    });
+
+    const { data, error, response } = await client.GET(
+      '/api/v1/namespaces/{namespaceName}/resourcereleases/{resourceReleaseName}',
+      {
+        params: {
+          path: { namespaceName, resourceReleaseName: releaseName },
+        },
+      },
+    );
+
+    assertApiResponse({ data, error, response }, 'fetch resource release');
+
+    return {
+      success: true,
+      data: data as Record<string, unknown>,
+    };
+  }
+
+  /**
    * Returns the requested schema section from the frozen snapshot stored on
    * a ResourceRelease. `parameters` is the developer-facing schema bound to
    * Resource.spec.parameters; `environmentConfigs` is the per-env override

@@ -39,7 +39,7 @@ export const ResourceSetupDetailPane = ({
 
       <Box className={classes.body} display="flex" flexDirection="column">
         <Typography variant="body2" color="textSecondary">
-          Manage resource configuration for this project.
+          Manage resource configuration and deploy a new version.
         </Typography>
 
         <Box mt="auto" pt={2} display="flex" justifyContent="flex-end">

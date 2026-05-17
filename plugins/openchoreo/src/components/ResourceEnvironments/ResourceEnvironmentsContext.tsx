@@ -19,6 +19,13 @@ export interface ResourceEnvironmentsContextValue {
     environment: string,
     retainPolicy: 'Delete' | 'Retain',
   ) => void | Promise<void>;
+
+  /**
+   * Open the View release manifest modal for the given env. Both the
+   * env card 3-dot menu and the detail panel Release row invoke this
+   * so there's a single dialog instance lifted up in the list view.
+   */
+  onViewReleaseManifest: (env: ResourceEnvironment) => void;
 }
 
 const ResourceEnvironmentsContext =

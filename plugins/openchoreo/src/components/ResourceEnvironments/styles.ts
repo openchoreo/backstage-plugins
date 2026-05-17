@@ -315,15 +315,20 @@ export const useResourceEnvironmentDetailPanelStyles = makeStyles(theme => ({
     flexWrap: 'wrap',
     gap: theme.spacing(1),
   },
-  emptyHero: {
-    height: '100%',
+  emptyState: {
+    flex: 1,
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    color: theme.palette.text.secondary,
-    fontStyle: 'italic',
-    padding: theme.spacing(4),
     textAlign: 'center',
+    padding: theme.spacing(4),
+    color: theme.palette.text.secondary,
+    gap: theme.spacing(2),
+  },
+  emptyIcon: {
+    fontSize: '3rem',
+    color: theme.palette.action.disabled,
   },
   releaseValueRow: {
     display: 'flex',

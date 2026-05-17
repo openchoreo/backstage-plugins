@@ -15,6 +15,7 @@ import { NotificationBanner } from '../Environments/components';
 import { useEnvironmentPolling } from '../Environments/hooks';
 import { ResourceDeployFlowCanvas } from './ResourceDeployFlowCanvas';
 import { ResourceEnvironmentDetailPanel } from './ResourceEnvironmentDetailPanel';
+import { ResourceReleaseManifestDialog } from './ResourceReleaseManifestDialog';
 import { ResourceSetupDetailPane } from './ResourceSetupDetailPane';
 import {
   ResourceEnvironmentsProvider,
@@ -56,6 +57,8 @@ export const ResourceEnvironmentsList = () => {
     kind: ActionKind;
   } | null>(null);
   const [undeployTarget, setUndeployTarget] =
+    useState<ResourceEnvironment | null>(null);
+  const [manifestTarget, setManifestTarget] =
     useState<ResourceEnvironment | null>(null);
   const [selectedEnvName, setSelectedEnvNameState] = useState<string | null>(
     null,
@@ -113,23 +116,18 @@ export const ResourceEnvironmentsList = () => {
     fetchEnvs({ showProgress: true });
   }, [fetchEnvs]);
 
-  // Auto-select the first env once data lands so the detail panel isn't
-  // empty on initial render. Skips when the Setup tile is currently
-  // selected so a background refresh doesn't steal focus. Subsequent
-  // loads don't override the user's selection unless the previously
-  // selected env disappeared.
+  // Keep the current selection valid across refreshes. The detail
+  // panel mirrors Component: it starts empty so the user picks a tile
+  // explicitly, and clicking empty canvas space deselects. If the
+  // previously selected env disappears between refreshes (e.g. the
+  // project's deployment pipeline changed), clear the stale reference.
   useEffect(() => {
-    if (envs.length === 0) return;
-    if (selectedSetup) return;
-    if (!selectedEnvName) {
-      setSelectedEnvNameState(envs[0].name);
-      return;
-    }
+    if (!selectedEnvName) return;
     const stillPresent = envs.some(e => e.name === selectedEnvName);
     if (!stillPresent) {
-      setSelectedEnvNameState(envs[0].name);
+      setSelectedEnvNameState(null);
     }
-  }, [envs, selectedEnvName, selectedSetup]);
+  }, [envs, selectedEnvName]);
 
   // Background poll while any binding is mid-rollout. Pin advances kick
   // the controller into a Progressing state that flips back to Ready
@@ -191,6 +189,17 @@ export const ResourceEnvironmentsList = () => {
     setUndeployTarget(null);
   }, []);
 
+  const handleViewReleaseManifest = useCallback(
+    (env: ResourceEnvironment) => {
+      setManifestTarget(env);
+    },
+    [],
+  );
+
+  const handleCloseReleaseManifest = useCallback(() => {
+    setManifestTarget(null);
+  }, []);
+
   const handleRetainPolicyChange = useCallback(
     async (environment: string, next: 'Delete' | 'Retain') => {
       const env = envs.find(e => e.name === environment);
@@ -232,6 +241,7 @@ export const ResourceEnvironmentsList = () => {
       onPromote: handlePromote,
       onUndeployRequest: handleUndeployRequest,
       onRetainPolicyChange: handleRetainPolicyChange,
+      onViewReleaseManifest: handleViewReleaseManifest,
     }),
     [
       envs,
@@ -242,6 +252,7 @@ export const ResourceEnvironmentsList = () => {
       handlePromote,
       handleUndeployRequest,
       handleRetainPolicyChange,
+      handleViewReleaseManifest,
     ],
   );
 
@@ -310,6 +321,12 @@ export const ResourceEnvironmentsList = () => {
         }
         onCancel={handleUndeployCancel}
         onConfirm={handleUndeployConfirm}
+      />
+      <ResourceReleaseManifestDialog
+        open={manifestTarget !== null}
+        onClose={handleCloseReleaseManifest}
+        releaseName={manifestTarget?.resourceRelease}
+        environmentName={manifestTarget?.name ?? ''}
       />
     </ResourceEnvironmentsProvider>
   );

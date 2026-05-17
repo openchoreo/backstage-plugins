@@ -460,6 +460,26 @@ export async function createRouter({
   // ResourceRelease. Pinned-release flows (override wizard) use this so
   // form validation matches what the release was actually cut against,
   // not the live (Cluster)ResourceType which may have drifted.
+  router.get('/resource-release', async (req, res) => {
+    const { namespaceName, releaseName } = req.query;
+
+    if (!namespaceName || !releaseName) {
+      throw new InputError(
+        'namespaceName and releaseName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await resourceReleaseInfoService.fetchResourceRelease(
+        namespaceName as string,
+        releaseName as string,
+        userToken,
+      ),
+    );
+  });
+
   router.get('/resource-release-schema', async (req, res) => {
     const { namespaceName, releaseName, section } = req.query;
     const allowedSections: ResourceReleaseSchemaSection[] = [
