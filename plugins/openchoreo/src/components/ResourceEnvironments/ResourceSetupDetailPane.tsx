@@ -21,23 +21,29 @@ export const ResourceSetupDetailPane = ({
 
   return (
     <Box className={classes.panel}>
-      <Box className={classes.header}>
-        <Box className={classes.headerLeft}>
-          <SettingsOutlinedIcon fontSize="small" />
-          <Typography className={classes.envName}>Set up</Typography>
-        </Box>
-        <Box className={classes.headerRight}>
-          <IconButton
-            size="small"
-            onClick={onClose}
-            aria-label="Close detail panel"
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
+      <Box className={classes.setupHeader}>
+        <Box className={classes.headerTopRow}>
+          <Box className={classes.headerNameRow}>
+            <SettingsOutlinedIcon
+              className={classes.headerKindIcon}
+              fontSize="small"
+              aria-hidden
+            />
+            <Typography className={classes.envName}>Set up</Typography>
+          </Box>
+          <Box>
+            <IconButton
+              size="small"
+              onClick={onClose}
+              aria-label="Close detail panel"
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
         </Box>
       </Box>
 
-      <Box className={classes.body} display="flex" flexDirection="column">
+      <Box className={classes.setupBody}>
         <Typography variant="body2" color="textSecondary">
           Manage resource configuration and deploy a new version.
         </Typography>

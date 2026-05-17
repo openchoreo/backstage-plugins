@@ -77,7 +77,7 @@ describe('ResourceEnvironmentDetailPanel', () => {
     expect(screen.getByText(/set up/i)).toBeInTheDocument();
   });
 
-  it('renders empty body for an unbound env with no actionable Deploy', () => {
+  it('renders the empty-state message for an unbound env with no actions', () => {
     renderPanel({ name: 'staging', latestRelease: 'rel-1' });
 
     expect(screen.getByText('staging')).toBeInTheDocument();
@@ -86,10 +86,10 @@ describe('ResourceEnvironmentDetailPanel', () => {
     ).toBeInTheDocument();
     // First-deploy is exclusively via the Set up flow on the canvas.
     expect(screen.queryByRole('button', { name: /^deploy$/i })).toBeNull();
-    // Configure overrides is rendered but disabled until a binding exists.
+    // Actions / Configure overrides only render once a binding exists.
     expect(
-      screen.getByRole('button', { name: /configure overrides/i }),
-    ).toBeDisabled();
+      screen.queryByRole('button', { name: /configure overrides/i }),
+    ).toBeNull();
   });
 
   it('renders full meta and exposes Remove deployment via the Danger zone', () => {

@@ -12,12 +12,14 @@ import {
 } from '@material-ui/core';
 import AllInboxOutlinedIcon from '@material-ui/icons/AllInboxOutlined';
 import CloseIcon from '@material-ui/icons/Close';
+import CloudIcon from '@material-ui/icons/Cloud';
 import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
+import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import { useNavigate } from 'react-router-dom';
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
@@ -150,17 +152,16 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
   return (
     <Box className={classes.panel}>
       <Box className={classes.header}>
-        <Box className={classes.headerLeft}>
-          <Typography variant="h6" className={classes.envName}>
-            {env.name}
-          </Typography>
-          <StatusBadge status={badgeStatus} />
-        </Box>
-        <Box className={classes.headerRight}>
-          <Tooltip
-            title="Refresh environment status"
-            PopperProps={{ disablePortal: true }}
-          >
+        <Box className={classes.headerTopRow}>
+          <Box className={classes.headerNameRow}>
+            <CloudIcon
+              className={classes.headerKindIcon}
+              fontSize="small"
+              aria-hidden
+            />
+            <Typography className={classes.envName}>{env.name}</Typography>
+          </Box>
+          <Box>
             <IconButton
               size="small"
               onClick={() => void refetch()}
@@ -168,90 +169,91 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
             >
               <RefreshIcon fontSize="small" />
             </IconButton>
-          </Tooltip>
-          <IconButton
-            size="small"
-            onClick={onClose}
-            aria-label="Close detail panel"
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
+            <IconButton
+              size="small"
+              onClick={onClose}
+              aria-label="Close detail panel"
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </Box>
+        <Box className={classes.headerStatusRow}>
+          <StatusBadge status={badgeStatus} />
         </Box>
       </Box>
 
       <Box className={classes.body}>
         {!hasBinding ? (
-          <>
-            <Box className={classes.section}>
-              <Typography variant="body2" color="textSecondary">
-                No binding in this environment yet. Use{' '}
-                <strong>Set up</strong> on the pipeline canvas to deploy
-                this resource for the first time, then promote forward
-                through the environments.
-              </Typography>
-            </Box>
-
-            <Box className={classes.section}>
-              <Typography variant="body2" className={classes.sectionHeading}>
-                Configuration
-              </Typography>
-              <Box className={classes.actionsRow}>
-                <ConfigureOverridesButton
-                  canUpdate={false}
-                  permLoading={false}
-                  deniedTooltip="Deploy this resource to the environment before configuring overrides."
-                  onClick={() => undefined}
-                />
-              </Box>
-            </Box>
-          </>
+          <Box className={classes.section}>
+            <Typography variant="body2" color="textSecondary">
+              No binding in this environment yet. Use{' '}
+              <strong>Set up</strong> on the pipeline canvas to deploy
+              this resource for the first time, then promote forward
+              through the environments.
+            </Typography>
+          </Box>
         ) : (
           <>
             <Box className={classes.section}>
-              <Box className={classes.metaRow}>
-                <Typography className={classes.metaLabel}>Release</Typography>
-                <Box className={classes.releaseValueRow}>
-                  <Typography className={classes.metaValue}>
+              <Box className={classes.releaseNameRow}>
+                <Typography
+                  variant="caption"
+                  className={classes.releaseNameLabel}
+                >
+                  Release
+                </Typography>
+                <Tooltip
+                  title={env.resourceRelease || ''}
+                  disableHoverListener={!env.resourceRelease}
+                >
+                  <Typography
+                    variant="caption"
+                    className={classes.releaseName}
+                  >
                     {env.resourceRelease || '(unset)'}
                   </Typography>
-                  {env.resourceRelease && (
-                    <Tooltip
-                      title="Copy release name"
-                      PopperProps={{ disablePortal: true }}
+                </Tooltip>
+                {env.resourceRelease && (
+                  <Tooltip
+                    title="View release manifest"
+                    PopperProps={{ disablePortal: true }}
+                  >
+                    <IconButton
+                      size="small"
+                      aria-label="View release manifest"
+                      onClick={() => onViewReleaseManifest(env)}
                     >
-                      <IconButton
-                        size="small"
-                        aria-label="Copy release name"
-                        onClick={() =>
-                          copyToClipboard(env.resourceRelease!, 'release name')
-                        }
-                      >
-                        <FileCopyOutlinedIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                  {env.resourceRelease && (
-                    <Tooltip
-                      title="View release manifest"
-                      PopperProps={{ disablePortal: true }}
+                      <CodeOutlinedIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {env.resourceRelease && (
+                  <Tooltip
+                    title="Copy release name"
+                    PopperProps={{ disablePortal: true }}
+                  >
+                    <IconButton
+                      size="small"
+                      aria-label="Copy release name"
+                      onClick={() =>
+                        copyToClipboard(env.resourceRelease!, 'release name')
+                      }
                     >
-                      <IconButton
-                        size="small"
-                        aria-label="View release manifest"
-                        onClick={() => onViewReleaseManifest(env)}
-                      >
-                        <CodeOutlinedIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                </Box>
+                      <FileCopyOutlinedIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
+                )}
               </Box>
               {env.lastDeployed && (
-                <Box className={classes.metaRow}>
-                  <Typography className={classes.metaLabel}>
+                <Box className={classes.deployedRow}>
+                  <Typography
+                    variant="caption"
+                    className={classes.releaseNameLabel}
+                  >
                     Deployed
                   </Typography>
-                  <Typography className={classes.metaValue}>
+                  <Typography variant="body2" color="textSecondary">
                     {formatRelativeTime(env.lastDeployed)}
                   </Typography>
                 </Box>
@@ -274,37 +276,10 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
               )}
             </Box>
 
-            <Box className={classes.section}>
-              <Typography variant="body2" className={classes.sectionHeading}>
-                Actions
-              </Typography>
-              <Box className={classes.actionsRow}>
-                {showForwardPromote && (
-                  <ForwardPromoteButton
-                    allTargetsInSync={allTargetsInSync}
-                    eligibleTargets={eligibleTargets}
-                    isPromotingForward={isPromotingForward}
-                    onPromoteSingle={handlePromoteSingle}
-                  />
-                )}
-                <ConfigureOverridesButton
-                  canUpdate={updatePerm.canUpdate}
-                  permLoading={updatePerm.loading}
-                  deniedTooltip={updatePerm.deniedTooltip}
-                  onClick={() =>
-                    navigate(`overrides/${env.resourceName ?? env.name}`)
-                  }
-                />
-              </Box>
-            </Box>
-
             {hasOutputs && (
               <Box className={classes.section}>
                 <Box className={classes.sectionTitleRow}>
-                  <Typography
-                    variant="body2"
-                    className={classes.sectionHeading}
-                  >
+                  <Typography className={classes.sectionHeading}>
                     Outputs ({outputCount})
                   </Typography>
                   <Button
@@ -320,7 +295,33 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
               </Box>
             )}
 
-            {hasBinding && (
+            <Box className={classes.section}>
+              <Box className={classes.sectionTitleRow}>
+                <Typography className={classes.sectionHeading}>
+                  Actions
+                </Typography>
+                <Box className={classes.actionsRow}>
+                  {showForwardPromote && (
+                    <ForwardPromoteButton
+                      allTargetsInSync={allTargetsInSync}
+                      eligibleTargets={eligibleTargets}
+                      isPromotingForward={isPromotingForward}
+                      onPromoteSingle={handlePromoteSingle}
+                    />
+                  )}
+                  <ConfigureOverridesButton
+                    canUpdate={updatePerm.canUpdate}
+                    permLoading={updatePerm.loading}
+                    deniedTooltip={updatePerm.deniedTooltip}
+                    onClick={() =>
+                      navigate(`overrides/${env.resourceName ?? env.name}`)
+                    }
+                  />
+                </Box>
+              </Box>
+            </Box>
+
+            <Box className={classes.section}>
               <Accordion className={classes.dangerAccordion}>
                 <AccordionSummary
                   expandIcon={<ExpandMoreIcon />}
@@ -414,7 +415,7 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                   </Box>
                 </AccordionDetails>
               </Accordion>
-            )}
+            </Box>
           </>
         )}
       </Box>
@@ -510,8 +511,11 @@ function ConfigureOverridesButton({
         <Button
           size="small"
           variant="outlined"
+          color="primary"
+          startIcon={<SettingsOutlinedIcon fontSize="small" />}
           onClick={onClick}
           disabled={disabled}
+          style={{ textTransform: 'none' }}
         >
           Configure overrides
         </Button>
