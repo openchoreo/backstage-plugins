@@ -498,7 +498,9 @@ describe('OpenChoreoEntityProvider', () => {
     it('populates Component.spec.dependsOn from workload resource deps', async () => {
       const entities = await runProvider();
       const components = findEntities(entities, 'Component');
-      const apiService = components.find(c => c.metadata.name === 'api-service');
+      const apiService = components.find(
+        c => c.metadata.name === 'api-service',
+      );
       expect(apiService).toBeDefined();
       expect((apiService!.spec as any).dependsOn).toEqual(
         expect.arrayContaining([

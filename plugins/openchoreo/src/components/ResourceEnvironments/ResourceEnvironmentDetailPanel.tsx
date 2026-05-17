@@ -192,10 +192,9 @@ function ResourceEnvironmentDetailContent({ env, onClose }: ContentProps) {
         {!hasBinding ? (
           <Box className={classes.section}>
             <Typography variant="body2" color="textSecondary">
-              No binding in this environment yet. Use{' '}
-              <strong>Set up</strong> on the pipeline canvas to deploy
-              this resource for the first time, then promote forward
-              through the environments.
+              No binding in this environment yet. Use <strong>Set up</strong> on
+              the pipeline canvas to deploy this resource for the first time,
+              then promote forward through the environments.
             </Typography>
           </Box>
         ) : (
@@ -212,10 +211,7 @@ function ResourceEnvironmentDetailContent({ env, onClose }: ContentProps) {
                   title={env.resourceRelease || ''}
                   disableHoverListener={!env.resourceRelease}
                 >
-                  <Typography
-                    variant="caption"
-                    className={classes.releaseName}
-                  >
+                  <Typography variant="caption" className={classes.releaseName}>
                     {env.resourceRelease || '(unset)'}
                   </Typography>
                 </Tooltip>
@@ -395,8 +391,8 @@ function ResourceEnvironmentDetailContent({ env, onClose }: ContentProps) {
                       variant="caption"
                       className={classes.dangerHelp}
                     >
-                      Retain prevents this deployment from being deleted.
-                      Switch to Delete to allow removal.
+                      Retain prevents this deployment from being deleted. Switch
+                      to Delete to allow removal.
                     </Typography>
                   </Box>
 

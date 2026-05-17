@@ -24,7 +24,11 @@ describe('RtdToTemplateConverter – convertClusterRtdToTemplateEntity', () => {
         openAPIV3Schema: {
           type: 'object',
           properties: {
-            database: { type: 'string', title: 'Database name', default: 'appdb' },
+            database: {
+              type: 'string',
+              title: 'Database name',
+              default: 'appdb',
+            },
           },
           required: ['database'],
         },

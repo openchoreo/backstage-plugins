@@ -1269,15 +1269,31 @@ describe('ResourceEntityProcessor', () => {
     await processor.postProcessEntity(entity, mockLocation, emit);
     expect(emit).toHaveBeenCalledWith(
       processingResult.relation({
-        source: { kind: 'resource', namespace: 'finance', name: 'analytics-db' },
-        target: { kind: 'resourcetype', namespace: 'finance', name: 'postgres' },
+        source: {
+          kind: 'resource',
+          namespace: 'finance',
+          name: 'analytics-db',
+        },
+        target: {
+          kind: 'resourcetype',
+          namespace: 'finance',
+          name: 'postgres',
+        },
         type: RELATION_INSTANCE_OF,
       }),
     );
     expect(emit).toHaveBeenCalledWith(
       processingResult.relation({
-        source: { kind: 'resourcetype', namespace: 'finance', name: 'postgres' },
-        target: { kind: 'resource', namespace: 'finance', name: 'analytics-db' },
+        source: {
+          kind: 'resourcetype',
+          namespace: 'finance',
+          name: 'postgres',
+        },
+        target: {
+          kind: 'resource',
+          namespace: 'finance',
+          name: 'analytics-db',
+        },
         type: RELATION_HAS_INSTANCE,
       }),
     );

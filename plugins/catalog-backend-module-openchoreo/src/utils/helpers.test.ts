@@ -146,9 +146,7 @@ describe('extractWorkloadResourceDependencies', () => {
   });
 
   it('returns an empty array when spec is absent', () => {
-    expect(
-      extractWorkloadResourceDependencies({} as NewWorkload),
-    ).toEqual([]);
+    expect(extractWorkloadResourceDependencies({} as NewWorkload)).toEqual([]);
   });
 });
 
@@ -159,7 +157,10 @@ describe('buildComponentDependsOnRefs', () => {
         [{ ref: 'analytics-db' }, { ref: 'shared-cache' }],
         'finance',
       ),
-    ).toEqual(['resource:finance/analytics-db', 'resource:finance/shared-cache']);
+    ).toEqual([
+      'resource:finance/analytics-db',
+      'resource:finance/shared-cache',
+    ]);
   });
 
   it('preserves declared order', () => {

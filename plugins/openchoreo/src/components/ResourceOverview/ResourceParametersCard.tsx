@@ -4,9 +4,7 @@ import { Card } from '@openchoreo/backstage-design-system';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return (
-    value !== null && typeof value === 'object' && !Array.isArray(value)
-  );
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 /**

@@ -73,11 +73,8 @@ function isResourceDependencyValid(dep: ResourceDependency | null): boolean {
 export function useResourceDependencyEditBuffer(
   options: UseResourceDependencyEditBufferOptions,
 ): UseResourceDependencyEditBufferResult {
-  const {
-    resources,
-    onResourceDependencyReplace,
-    onRemoveResourceDependency,
-  } = options;
+  const { resources, onResourceDependencyReplace, onRemoveResourceDependency } =
+    options;
 
   const [editingRow, setEditingRow] =
     useState<ResourceDependencyEditingRowState | null>(null);

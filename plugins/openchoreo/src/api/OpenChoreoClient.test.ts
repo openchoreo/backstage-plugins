@@ -273,11 +273,9 @@ describe('OpenChoreoClient — updateResourceReleaseBinding', () => {
   it('PUTs to /update-resource-release-binding with resource entity metadata + new release', async () => {
     fetchMock.mockResolvedValueOnce(makeJsonResponse({ ok: true }));
 
-    await client.updateResourceReleaseBinding(
-      RESOURCE_ENTITY as any,
-      'dev',
-      { resourceRelease: 'analytics-db-new' },
-    );
+    await client.updateResourceReleaseBinding(RESOURCE_ENTITY as any, 'dev', {
+      resourceRelease: 'analytics-db-new',
+    });
 
     const [calledUrl, opts] = fetchMock.mock.calls[0];
     expect(calledUrl).toContain('/update-resource-release-binding');
@@ -295,15 +293,11 @@ describe('OpenChoreoClient — updateResourceReleaseBinding', () => {
   it('forwards optional retainPolicy and resourceTypeEnvironmentConfigs', async () => {
     fetchMock.mockResolvedValueOnce(makeJsonResponse({ ok: true }));
 
-    await client.updateResourceReleaseBinding(
-      RESOURCE_ENTITY as any,
-      'dev',
-      {
-        resourceRelease: 'rel-1',
-        retainPolicy: 'Retain',
-        resourceTypeEnvironmentConfigs: { replicas: 3 },
-      },
-    );
+    await client.updateResourceReleaseBinding(RESOURCE_ENTITY as any, 'dev', {
+      resourceRelease: 'rel-1',
+      retainPolicy: 'Retain',
+      resourceTypeEnvironmentConfigs: { replicas: 3 },
+    });
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.retainPolicy).toBe('Retain');

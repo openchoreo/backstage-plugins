@@ -172,8 +172,7 @@ export const ResourceEnvironmentsList = () => {
 
   const handleUndeployConfirm = useCallback(async () => {
     if (!undeployTarget) return;
-    const envResourceName =
-      undeployTarget.resourceName ?? undeployTarget.name;
+    const envResourceName = undeployTarget.resourceName ?? undeployTarget.name;
     const envLabel = undeployTarget.name;
     setPendingAction({ env: envResourceName, kind: 'undeploy' });
     try {
@@ -229,12 +228,9 @@ export const ResourceEnvironmentsList = () => {
     setUndeployTarget(null);
   }, []);
 
-  const handleViewReleaseManifest = useCallback(
-    (env: ResourceEnvironment) => {
-      setManifestTarget(env);
-    },
-    [],
-  );
+  const handleViewReleaseManifest = useCallback((env: ResourceEnvironment) => {
+    setManifestTarget(env);
+  }, []);
 
   const handleCloseReleaseManifest = useCallback(() => {
     setManifestTarget(null);
@@ -254,14 +250,14 @@ export const ResourceEnvironmentsList = () => {
           retainPolicy: next,
         });
         if (cancelledRef.current) return;
-        notification.showSuccess(
-          `Set retain policy on ${envLabel} to ${next}`,
-        );
+        notification.showSuccess(`Set retain policy on ${envLabel} to ${next}`);
         await fetchEnvs();
       } catch (err: unknown) {
         if (cancelledRef.current) return;
         notification.showError(
-          `Failed to update retain policy on ${envLabel}: ${getErrorMessage(err)}`,
+          `Failed to update retain policy on ${envLabel}: ${getErrorMessage(
+            err,
+          )}`,
         );
       } finally {
         if (!cancelledRef.current) setPendingAction(null);
@@ -270,8 +266,7 @@ export const ResourceEnvironmentsList = () => {
     [client, entity, notification, fetchEnvs, envs],
   );
 
-  const selectedEnv =
-    envs.find(e => e.name === selectedEnvName) ?? null;
+  const selectedEnv = envs.find(e => e.name === selectedEnvName) ?? null;
 
   const driftByEnv = useMemo(() => {
     const map = new Map<string, ResourceReleaseDriftInfo>();

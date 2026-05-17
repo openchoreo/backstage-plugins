@@ -33,9 +33,7 @@ describe('useWorkloadChanges', () => {
         dependencies: { resources: [dbResource, cacheResource] },
       });
 
-      const { result } = renderHook(() =>
-        useWorkloadChanges(initial, current),
-      );
+      const { result } = renderHook(() => useWorkloadChanges(initial, current));
 
       expect(result.current.hasChanges).toBe(true);
       const newAdd = result.current.dependencies.find(c => c.type === 'new');
@@ -52,9 +50,7 @@ describe('useWorkloadChanges', () => {
         dependencies: { resources: [dbResource] },
       });
 
-      const { result } = renderHook(() =>
-        useWorkloadChanges(initial, current),
-      );
+      const { result } = renderHook(() => useWorkloadChanges(initial, current));
 
       expect(result.current.hasChanges).toBe(true);
       const removal = result.current.dependencies.find(
@@ -80,9 +76,7 @@ describe('useWorkloadChanges', () => {
         },
       });
 
-      const { result } = renderHook(() =>
-        useWorkloadChanges(initial, current),
-      );
+      const { result } = renderHook(() => useWorkloadChanges(initial, current));
 
       expect(result.current.hasChanges).toBe(true);
       expect(
@@ -114,9 +108,7 @@ describe('useWorkloadChanges', () => {
         },
       });
 
-      const { result } = renderHook(() =>
-        useWorkloadChanges(initial, current),
-      );
+      const { result } = renderHook(() => useWorkloadChanges(initial, current));
 
       expect(result.current.hasChanges).toBe(true);
       // Both sides reported in the dependencies bucket.
@@ -135,9 +127,7 @@ describe('useWorkloadChanges', () => {
         dependencies: { resources: [dbResource, cacheResource] },
       });
 
-      const { result } = renderHook(() =>
-        useWorkloadChanges(initial, current),
-      );
+      const { result } = renderHook(() => useWorkloadChanges(initial, current));
 
       expect(result.current.hasChanges).toBe(false);
       expect(result.current.dependencies).toEqual([]);

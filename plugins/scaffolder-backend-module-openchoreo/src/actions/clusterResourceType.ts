@@ -23,9 +23,7 @@ export const createClusterResourceTypeDefinitionAction = (
         zImpl.object({
           yamlContent: zImpl
             .string()
-            .describe(
-              'The YAML content of the ClusterResourceType definition',
-            ),
+            .describe('The YAML content of the ClusterResourceType definition'),
         }),
       output: (zImpl: typeof z) =>
         zImpl.object({

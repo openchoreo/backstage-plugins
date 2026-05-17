@@ -61,9 +61,7 @@ describe('ResourceDependencyEditor', () => {
       expect(screen.getByText('orders-db')).toBeInTheDocument();
       expect(screen.getByText('Resource')).toBeInTheDocument();
       expect(screen.getByText('2 env, 1 file bindings')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', { name: /Edit/i }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Edit/i })).toBeInTheDocument();
       expect(
         screen.getByLabelText('Remove resource dependency'),
       ).toBeInTheDocument();
@@ -161,9 +159,7 @@ describe('ResourceDependencyEditor', () => {
         },
       });
       expect(screen.getByTestId('env-input-host')).toBeInTheDocument();
-      expect(
-        screen.queryByTestId('mount-input-host'),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('mount-input-host')).not.toBeInTheDocument();
     });
 
     it('renders only the mount field when an output is wired as file only', () => {
@@ -267,9 +263,7 @@ describe('ResourceDependencyEditor', () => {
         },
       });
 
-      fireEvent.click(
-        screen.getByRole('button', { name: /Add env binding/i }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: /Add env binding/i }));
       const menu = screen.getByRole('menu');
       expect(within(menu).queryByText('host')).not.toBeInTheDocument();
       expect(within(menu).getByText('password')).toBeInTheDocument();
@@ -286,9 +280,7 @@ describe('ResourceDependencyEditor', () => {
         },
       });
 
-      fireEvent.click(
-        screen.getByRole('button', { name: /Add file mount/i }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: /Add file mount/i }));
       const menu = screen.getByRole('menu');
       // password is already mounted, host/port/etc. are value-kind.
       expect(within(menu).queryByText('password')).not.toBeInTheDocument();
@@ -305,9 +297,7 @@ describe('ResourceDependencyEditor', () => {
         },
       });
 
-      fireEvent.click(
-        screen.getByRole('button', { name: /Add env binding/i }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: /Add env binding/i }));
       fireEvent.click(within(screen.getByRole('menu')).getByText('password'));
 
       expect(onChange).toHaveBeenLastCalledWith({
@@ -326,9 +316,7 @@ describe('ResourceDependencyEditor', () => {
         },
       });
 
-      fireEvent.click(
-        screen.getByRole('button', { name: /Add file mount/i }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: /Add file mount/i }));
       fireEvent.click(within(screen.getByRole('menu')).getByText('password'));
 
       expect(onChange).toHaveBeenLastCalledWith({
@@ -363,9 +351,7 @@ describe('ResourceDependencyEditor', () => {
     // jsdom test environment opens reliably via mouseDown on the
     // `MuiSelect-root` div (the visible "button" with aria-haspopup).
     const openSelect = () => {
-      const trigger = document.querySelector(
-        '.MuiSelect-root',
-      ) as HTMLElement;
+      const trigger = document.querySelector('.MuiSelect-root') as HTMLElement;
       expect(trigger).not.toBeNull();
       fireEvent.mouseDown(trigger);
     };
@@ -403,10 +389,7 @@ describe('ResourceDependencyEditor', () => {
             fileBindings: { password: '/etc/db/password' },
           }}
           outputs={dbOutputs}
-          availableResources={[
-            { name: 'orders-db' },
-            { name: 'orders-cache' },
-          ]}
+          availableResources={[{ name: 'orders-db' }, { name: 'orders-cache' }]}
           isEditing
           onEdit={jest.fn()}
           onApply={jest.fn()}

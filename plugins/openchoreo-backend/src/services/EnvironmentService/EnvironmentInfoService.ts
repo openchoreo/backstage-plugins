@@ -1357,8 +1357,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       const filtered = {
         ...(data as any),
         items: ((data as any)?.items ?? []).filter(
-          (b: any) =>
-            b?.spec?.owner?.projectName === request.projectName,
+          (b: any) => b?.spec?.owner?.projectName === request.projectName,
         ),
       };
 
@@ -1371,7 +1370,9 @@ export class EnvironmentInfoService implements EnvironmentService {
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Failed to fetch resource release bindings for ${request.resourceName}: ${
+        `Failed to fetch resource release bindings for ${
+          request.resourceName
+        }: ${
           error instanceof Error ? error.message : String(error)
         } (${totalTime}ms)`,
       );
@@ -1846,9 +1847,9 @@ export class EnvironmentInfoService implements EnvironmentService {
       if (getResponse.status !== 404) {
         const errorDetail = getError ? JSON.stringify(getError) : '';
         throw new Error(
-          `Failed to fetch resource release binding ${bindingName}: ${getResponse.status} ${
-            getResponse.statusText
-          }${errorDetail ? ` ${errorDetail}` : ''}`,
+          `Failed to fetch resource release binding ${bindingName}: ${
+            getResponse.status
+          } ${getResponse.statusText}${errorDetail ? ` ${errorDetail}` : ''}`,
         );
       }
 
@@ -1977,10 +1978,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       // to the frontend as a green response over a no-op. Verifying
       // existence here turns any caller mistake (wrong case, wrong
       // separator, drift) into a hard 404.
-      const {
-        error: getError,
-        response: getResponse,
-      } = await client.GET(
+      const { error: getError, response: getResponse } = await client.GET(
         '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}',
         {
           params: {
@@ -2115,14 +2113,15 @@ export class EnvironmentInfoService implements EnvironmentService {
       // creationTimestamp on bindings the controller has not yet
       // reconciled.
       const readyCond = (
-        binding.status?.conditions as Array<{
-          type?: string;
-          lastTransitionTime?: string;
-        }> | undefined
+        binding.status?.conditions as
+          | Array<{
+              type?: string;
+              lastTransitionTime?: string;
+            }>
+          | undefined
       )?.find(c => c.type === 'Ready');
       lastDeployed =
-        readyCond?.lastTransitionTime ??
-        binding.metadata?.creationTimestamp;
+        readyCond?.lastTransitionTime ?? binding.metadata?.creationTimestamp;
 
       // Same Ready-condition derivation as the response transformer so the
       // env-info join and per-binding GET render identical status for the

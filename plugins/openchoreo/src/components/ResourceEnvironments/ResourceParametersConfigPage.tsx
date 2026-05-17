@@ -112,7 +112,8 @@ export const ResourceParametersConfigPage = ({
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE_TYPE] || '';
   const rtDisplayName =
     (entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RTD_DISPLAY_NAME] ||
-      rtName) ?? rtName;
+      rtName) ??
+    rtName;
 
   useEffect(() => {
     cancelledRef.current = false;
@@ -129,7 +130,11 @@ export const ResourceParametersConfigPage = ({
     const load = async () => {
       try {
         const [resourceData, schemaResult, envs] = await Promise.all([
-          client.getResourceDefinition('resources', namespaceName, resourceName),
+          client.getResourceDefinition(
+            'resources',
+            namespaceName,
+            resourceName,
+          ),
           client.fetchResourceTypeSchema(entity),
           client.fetchResourceEnvironmentInfo(entity),
         ]);
@@ -138,7 +143,8 @@ export const ResourceParametersConfigPage = ({
 
         setResource(resourceData);
         const spec = (resourceData?.spec as Record<string, unknown>) || {};
-        const currentParams = (spec.parameters as Record<string, unknown>) || {};
+        const currentParams =
+          (spec.parameters as Record<string, unknown>) || {};
         // Empty stored params → allow the first RJSF onChange to absorb
         // schema-default expansion as the baseline. Otherwise the stored
         // params are the baseline directly.
@@ -371,10 +377,7 @@ export const ResourceParametersConfigPage = ({
                 uiSchema={{}}
                 formData={parameters}
                 onChange={data => {
-                  const next = (data.formData ?? {}) as Record<
-                    string,
-                    unknown
-                  >;
+                  const next = (data.formData ?? {}) as Record<string, unknown>;
                   setParameters(next);
                   if (!formInitializedRef.current) {
                     setInitialParameters(next);

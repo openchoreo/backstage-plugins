@@ -55,8 +55,8 @@ export const ResourceRemoveDeploymentDialog: FC<
           </li>
           <li>
             <Typography variant="body2" color="textSecondary">
-              Underlying Kubernetes resources will be torn down. Stored data
-              may be lost depending on the resource type implementation.
+              Underlying Kubernetes resources will be torn down. Stored data may
+              be lost depending on the resource type implementation.
             </Typography>
           </li>
         </ul>

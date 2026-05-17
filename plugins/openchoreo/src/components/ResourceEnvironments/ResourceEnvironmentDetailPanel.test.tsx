@@ -111,9 +111,7 @@ describe('ResourceEnvironmentDetailPanel', () => {
     expect(screen.getByText('Actions')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^promote$/i })).toBeNull();
     // The destructive surface lives in the Danger zone now, not the Actions row.
-    expect(
-      screen.queryByRole('button', { name: /^undeploy$/i }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: /^undeploy$/i })).toBeNull();
 
     // Expand the Danger zone, then click Remove deployment.
     fireEvent.click(screen.getByLabelText('Danger zone'));
@@ -184,9 +182,7 @@ describe('ResourceEnvironmentDetailPanel', () => {
     fireEvent.click(screen.getByLabelText('Danger zone'));
     fireEvent.click(screen.getByRole('button', { name: /^retain$/i }));
     // Delete → Retain only adds safety, so no confirm dialog.
-    expect(
-      screen.queryByText(/switch retain policy to delete/i),
-    ).toBeNull();
+    expect(screen.queryByText(/switch retain policy to delete/i)).toBeNull();
     expect(onRetainPolicyChange).toHaveBeenCalledWith('dev', 'Retain');
   });
 
@@ -305,9 +301,7 @@ describe('ResourceEnvironmentDetailPanel', () => {
       latestRelease: 'rel-1',
     });
     expect(screen.queryByText(/outputs \(/i)).toBeNull();
-    expect(
-      screen.queryByRole('button', { name: /view all/i }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: /view all/i })).toBeNull();
   });
 
   it('shows Promoting... while a forward promote is in flight', () => {
@@ -320,13 +314,9 @@ describe('ResourceEnvironmentDetailPanel', () => {
       promotionTargets: [{ name: 'staging' }],
     };
     renderPanel(dev, {
-      environments: [
-        dev,
-        { name: 'staging', resourceName: 'staging' },
-      ],
+      environments: [dev, { name: 'staging', resourceName: 'staging' }],
       pendingAction: { env: 'staging', kind: 'promote' },
     });
     expect(screen.getByText('Promoting...')).toBeInTheDocument();
   });
-
 });

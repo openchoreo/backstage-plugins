@@ -61,9 +61,10 @@ export const ConsumingComponentsCard = () => {
     return `/catalog/${ns}/component/${name}`;
   };
 
-  const headerText = !loading && !error
-    ? `Consuming Components (${components.length})`
-    : 'Consuming Components';
+  const headerText =
+    !loading && !error
+      ? `Consuming Components (${components.length})`
+      : 'Consuming Components';
 
   return (
     <Card padding={24} className={classes.card}>

@@ -82,8 +82,7 @@ export const ResourceMiniEnvironmentNode = ({
   );
   const showPromote =
     hasBinding && hasRelease && isReady && hasPromotionTargets;
-  const allTargetsInSync =
-    hasPromotionTargets && eligibleTargets.length === 0;
+  const allTargetsInSync = hasPromotionTargets && eligibleTargets.length === 0;
 
   // Promote needs the K8s-safe resource name (lowercase, RFC 1123).
   // target.name carries the display name (e.g. "Production") which the
@@ -249,7 +248,8 @@ export const ResourceMiniEnvironmentNode = ({
                 title={
                   <>
                     <div>
-                      Behind {drift!.aheadUpstreams.map(u => u.envName).join(', ')}
+                      Behind{' '}
+                      {drift!.aheadUpstreams.map(u => u.envName).join(', ')}
                     </div>
                     {drift!.aheadUpstreams[0]?.releaseName && (
                       <div>
@@ -282,9 +282,7 @@ export const ResourceMiniEnvironmentNode = ({
           )}
 
           {showPromote && (
-            <Box className={classes.actionRow}>
-              {renderPromoteButton()}
-            </Box>
+            <Box className={classes.actionRow}>{renderPromoteButton()}</Box>
           )}
         </Box>
       </Box>
@@ -319,10 +317,7 @@ export const ResourceMiniEnvironmentNode = ({
           </span>
         </Tooltip>
         <Divider />
-        <MenuItem
-          onClick={handleConfigureOverrides}
-          disabled={!hasBinding}
-        >
+        <MenuItem onClick={handleConfigureOverrides} disabled={!hasBinding}>
           <SettingsOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
           Configure overrides
         </MenuItem>

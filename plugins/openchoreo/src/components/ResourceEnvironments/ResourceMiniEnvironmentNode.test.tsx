@@ -115,9 +115,7 @@ describe('ResourceMiniEnvironmentNode', () => {
       const onSelect = jest.fn();
       renderTile(bound(), false, onSelect);
 
-      fireEvent.click(
-        screen.getByRole('button', { name: /actions for dev/i }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: /actions for dev/i }));
 
       expect(
         screen.getByRole('menuitem', { name: /refresh/i }),
@@ -133,9 +131,7 @@ describe('ResourceMiniEnvironmentNode', () => {
       const refetch = jest.fn();
       renderTile(bound(), false, () => {}, { refetch });
 
-      fireEvent.click(
-        screen.getByRole('button', { name: /actions for dev/i }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: /actions for dev/i }));
       fireEvent.click(screen.getByRole('menuitem', { name: /refresh/i }));
 
       expect(refetch).toHaveBeenCalled();
@@ -155,9 +151,7 @@ describe('ResourceMiniEnvironmentNode', () => {
       const onViewReleaseManifest = jest.fn();
       renderTile(bound(), false, () => {}, { onViewReleaseManifest });
 
-      fireEvent.click(
-        screen.getByRole('button', { name: /actions for dev/i }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: /actions for dev/i }));
       fireEvent.click(
         screen.getByRole('menuitem', { name: /view release manifest/i }),
       );
@@ -304,9 +298,7 @@ describe('ResourceMiniEnvironmentNode', () => {
 
     it('omits the drift badge when not behind', () => {
       renderTile(bound(), false, () => {}, {
-        driftByEnv: new Map([
-          ['dev', { isBehind: false, aheadUpstreams: [] }],
-        ]),
+        driftByEnv: new Map([['dev', { isBehind: false, aheadUpstreams: [] }]]),
       });
       expect(screen.queryByLabelText('behind upstream')).toBeNull();
     });

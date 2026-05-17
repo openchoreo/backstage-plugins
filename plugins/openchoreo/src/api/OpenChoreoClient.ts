@@ -163,13 +163,10 @@ interface ResourceEntityMetadata {
   namespaceName: string;
 }
 
-function extractResourceEntityMetadata(
-  entity: Entity,
-): ResourceEntityMetadata {
+function extractResourceEntityMetadata(entity: Entity): ResourceEntityMetadata {
   const resourceName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE];
-  const projectName =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  const projectName = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
   const namespaceName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
@@ -417,12 +414,15 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   ): Promise<ResourceReleaseResponse> {
     const { namespaceName } = extractResourceEntityMetadata(entity);
 
-    return this.apiFetch<ResourceReleaseResponse>(API_ENDPOINTS.RESOURCE_RELEASE, {
-      params: {
-        namespaceName,
-        releaseName,
+    return this.apiFetch<ResourceReleaseResponse>(
+      API_ENDPOINTS.RESOURCE_RELEASE,
+      {
+        params: {
+          namespaceName,
+          releaseName,
+        },
       },
-    });
+    );
   }
 
   async fetchResourceReleaseBindings(

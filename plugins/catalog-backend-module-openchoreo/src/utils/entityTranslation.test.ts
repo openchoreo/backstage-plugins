@@ -62,13 +62,10 @@ describe('translateClusterResourceTypeToEntity', () => {
   });
 
   it('sets the deletion-timestamp annotation only when the input carries one', () => {
-    const without = translateClusterResourceTypeToEntity(
-      { name: 'a' },
-      config,
+    const without = translateClusterResourceTypeToEntity({ name: 'a' }, config);
+    expect(Object.keys(without.metadata.annotations ?? {})).not.toContain(
+      'openchoreo.io/deletion-timestamp',
     );
-    expect(
-      Object.keys(without.metadata.annotations ?? {}),
-    ).not.toContain('openchoreo.io/deletion-timestamp');
 
     const withTs = translateClusterResourceTypeToEntity(
       { name: 'b', deletionTimestamp: '2026-05-14T11:00:00Z' },
@@ -176,9 +173,9 @@ describe('translateResourceTypeToEntity', () => {
       'analytics',
       config,
     );
-    expect(
-      Object.keys(without.metadata.annotations ?? {}),
-    ).not.toContain('openchoreo.io/deletion-timestamp');
+    expect(Object.keys(without.metadata.annotations ?? {})).not.toContain(
+      'openchoreo.io/deletion-timestamp',
+    );
 
     const withTs = translateResourceTypeToEntity(
       { name: 'b', deletionTimestamp: '2026-05-14T11:00:00Z' },

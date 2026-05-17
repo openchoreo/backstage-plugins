@@ -297,8 +297,8 @@ describe('CellDiagramInfoService', () => {
             ],
             pagination: {},
           }),
-        )
-        // resources
+        );
+      // resources
 
       mockResolveForEnvironment.mockResolvedValueOnce({
         observerUrl: 'http://observer:8080',
@@ -370,7 +370,7 @@ describe('CellDiagramInfoService', () => {
             ],
             pagination: {},
           }),
-        )
+        );
 
       mockResolveForEnvironment.mockResolvedValueOnce({
         observerUrl: 'http://observer:8080',
@@ -439,7 +439,7 @@ describe('CellDiagramInfoService', () => {
           }),
         )
         // no workload dependencies
-        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }))
+        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }));
 
       mockResolveForEnvironment.mockResolvedValueOnce({
         observerUrl: 'http://observer:8080',
@@ -493,7 +493,7 @@ describe('CellDiagramInfoService', () => {
             pagination: {},
           }),
         )
-        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }))
+        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }));
 
       mockResolveForEnvironment.mockResolvedValueOnce({
         observerUrl: 'http://observer:8080',
@@ -531,7 +531,7 @@ describe('CellDiagramInfoService', () => {
             pagination: {},
           }),
         )
-        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }))
+        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }));
 
       mockResolveForEnvironment.mockResolvedValueOnce({ observerUrl: null });
 
@@ -557,7 +557,7 @@ describe('CellDiagramInfoService', () => {
             pagination: {},
           }),
         )
-        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }))
+        .mockResolvedValueOnce(createOkResponse({ items: [], pagination: {} }));
 
       mockResolveForEnvironment.mockResolvedValueOnce({
         observerUrl: 'http://observer:8080',
@@ -658,7 +658,11 @@ describe('CellDiagramInfoService', () => {
               k8sWorkload('api', {
                 dependencies: {
                   endpoints: [
-                    { name: 'http', component: 'reports', project: 'my-project' },
+                    {
+                      name: 'http',
+                      component: 'reports',
+                      project: 'my-project',
+                    },
                   ],
                   resources: [{ ref: 'orders-db' }],
                 },

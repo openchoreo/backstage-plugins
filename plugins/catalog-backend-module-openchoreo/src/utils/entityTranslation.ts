@@ -890,11 +890,7 @@ export function translateClusterResourceTypeToEntity(
       namespace: 'openchoreo-cluster',
       title: crt.displayName || crt.name,
       description: crt.description || `${crt.name} cluster resource type`,
-      tags: [
-        'openchoreo',
-        'cluster-resource-type',
-        'platform-engineering',
-      ],
+      tags: ['openchoreo', 'cluster-resource-type', 'platform-engineering'],
       annotations: {
         'backstage.io/managed-by-location': `provider:${config.locationKey}`,
         'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,

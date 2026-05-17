@@ -428,11 +428,7 @@ export class EventDeltaApplier {
     );
   }
 
-  private fetchResource(
-    client: OpenChoreoApiClient,
-    ns: string,
-    name: string,
-  ) {
+  private fetchResource(client: OpenChoreoApiClient, ns: string, name: string) {
     return this.fetchOne<NewResource>(
       client.GET(
         '/api/v1/namespaces/{namespaceName}/resources/{resourceName}',

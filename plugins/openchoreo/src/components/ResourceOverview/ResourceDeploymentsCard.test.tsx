@@ -98,7 +98,9 @@ describe('ResourceDeploymentsCard', () => {
     renderCard(client);
 
     await waitFor(() => {
-      expect(screen.getByText('No environments configured')).toBeInTheDocument();
+      expect(
+        screen.getByText('No environments configured'),
+      ).toBeInTheDocument();
     });
     const cta = screen.getByText('Go to Deploy').closest('a');
     expect(cta).toHaveAttribute('href', 'environments');
@@ -122,11 +124,13 @@ describe('ResourceDeploymentsCard', () => {
 
   it('renders a Go to Deploy CTA alongside the env chips', async () => {
     const client = {
-      fetchResourceEnvironmentInfo: jest
-        .fn()
-        .mockResolvedValue([
-          { name: 'development', bindingName: 'analytics-db-dev', status: 'Ready' },
-        ]),
+      fetchResourceEnvironmentInfo: jest.fn().mockResolvedValue([
+        {
+          name: 'development',
+          bindingName: 'analytics-db-dev',
+          status: 'Ready',
+        },
+      ]),
     };
 
     renderCard(client);

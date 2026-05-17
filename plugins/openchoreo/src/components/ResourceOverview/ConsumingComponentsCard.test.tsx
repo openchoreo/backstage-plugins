@@ -38,7 +38,11 @@ function makeResource(): Entity {
   };
 }
 
-function makeComponent(name: string, namespace = 'finance', title?: string): Entity {
+function makeComponent(
+  name: string,
+  namespace = 'finance',
+  title?: string,
+): Entity {
   return {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'Component',
@@ -77,7 +81,10 @@ describe('ConsumingComponentsCard', () => {
 
   it('renders one link per consuming component', async () => {
     const getEntities = jest.fn().mockResolvedValue({
-      items: [makeComponent('api-service', 'finance', 'API Service'), makeComponent('worker')],
+      items: [
+        makeComponent('api-service', 'finance', 'API Service'),
+        makeComponent('worker'),
+      ],
     });
     renderCard({ getEntities });
 
@@ -96,23 +103,17 @@ describe('ConsumingComponentsCard', () => {
     renderCard({ getEntities });
 
     await waitFor(() => {
-      expect(
-        screen.getByText('No consuming components.'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('No consuming components.')).toBeInTheDocument();
     });
   });
 
   it('renders an error message when the catalog query rejects', async () => {
-    const getEntities = jest
-      .fn()
-      .mockRejectedValue(new Error('catalog down'));
+    const getEntities = jest.fn().mockRejectedValue(new Error('catalog down'));
     renderCard({ getEntities });
 
     await waitFor(() => {
       expect(
-        screen.getByText(
-          'Failed to load consuming components: catalog down',
-        ),
+        screen.getByText('Failed to load consuming components: catalog down'),
       ).toBeInTheDocument();
     });
   });

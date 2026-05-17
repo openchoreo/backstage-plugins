@@ -67,9 +67,7 @@ describe('ResourceOutputsDialog', () => {
 
   it('renders non-URL value outputs as plain text (no link)', () => {
     renderDialog([{ name: 'host', value: 'db.dev.svc.cluster.local' }]);
-    expect(
-      screen.getByText('db.dev.svc.cluster.local'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('db.dev.svc.cluster.local')).toBeInTheDocument();
     expect(screen.queryByRole('link')).toBeNull();
   });
 
@@ -80,12 +78,8 @@ describe('ResourceOutputsDialog', () => {
         secretKeyRef: { name: 'db-creds', key: 'password' },
       },
     ]);
-    expect(
-      screen.getByText(/stored in secret/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText('Secret/db-creds.password'),
-    ).toBeNull();
+    expect(screen.getByText(/stored in secret/i)).toBeInTheDocument();
+    expect(screen.queryByText('Secret/db-creds.password')).toBeNull();
     expect(
       screen.getByRole('button', { name: /show reference/i }),
     ).toBeInTheDocument();
@@ -128,9 +122,7 @@ describe('ResourceOutputsDialog', () => {
         configMapKeyRef: { name: 'db-config', key: 'database' },
       },
     ]);
-    expect(
-      screen.getByText(/stored in configmap/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/stored in configmap/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /show reference/i }));
     expect(
       screen.getByText('ConfigMap/db-config.database'),

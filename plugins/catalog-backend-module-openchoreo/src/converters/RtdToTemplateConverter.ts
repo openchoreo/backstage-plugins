@@ -90,8 +90,7 @@ export class RtdToTemplateConverter {
   ): Entity {
     const templateName = this.generateTemplateName(rt.metadata.name);
     const title = rt.metadata.displayName || this.formatTitle(rt.metadata.name);
-    const description =
-      rt.metadata.description || `Create a ${title} resource`;
+    const description = rt.metadata.description || `Create a ${title} resource`;
 
     // For namespace-scoped templates, pre-fill the form's namespace dropdown
     // with the template's own namespace. For cluster-scoped templates the
@@ -118,7 +117,12 @@ export class RtdToTemplateConverter {
         owner: this.defaultOwner,
         type: 'Resource',
         EXPERIMENTAL_formDecorators: [{ id: 'openchoreo:inject-user-token' }],
-        parameters: this.generateParameters(rt, defaultNamespace, rtdKind, title),
+        parameters: this.generateParameters(
+          rt,
+          defaultNamespace,
+          rtdKind,
+          title,
+        ),
         steps: this.generateSteps(rt, rtdKind),
         output: {
           links: [

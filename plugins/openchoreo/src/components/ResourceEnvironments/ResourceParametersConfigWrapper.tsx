@@ -21,7 +21,9 @@ export const ResourceParametersConfigWrapper = () => {
   const continueToOverrides = useCallback(
     (firstEnvRef: string, releaseName: string) => {
       navigate(
-        `../overrides/${encodeURIComponent(firstEnvRef)}?action=deploy&release=${encodeURIComponent(releaseName)}`,
+        `../overrides/${encodeURIComponent(
+          firstEnvRef,
+        )}?action=deploy&release=${encodeURIComponent(releaseName)}`,
         { relative: 'path' },
       );
     },
@@ -29,6 +31,9 @@ export const ResourceParametersConfigWrapper = () => {
   );
 
   return (
-    <ResourceParametersConfigPage onBack={back} onContinue={continueToOverrides} />
+    <ResourceParametersConfigPage
+      onBack={back}
+      onContinue={continueToOverrides}
+    />
   );
 };

@@ -504,9 +504,7 @@ describe('EnvironmentInfoService', () => {
           retainPolicy: 'Delete',
         },
         status: {
-          conditions: [
-            { type: 'Ready', status: 'True', reason: 'Ready' },
-          ],
+          conditions: [{ type: 'Ready', status: 'True', reason: 'Ready' }],
           outputs: [
             { name: 'host', value: 'db.dev.svc' },
             {
@@ -583,7 +581,10 @@ describe('EnvironmentInfoService', () => {
 
     it('filters bindings to the owning project', async () => {
       mockGET.mockResolvedValueOnce(
-        createOkResponse({ items: [makeK8sEnvironment('dev')], pagination: {} }),
+        createOkResponse({
+          items: [makeK8sEnvironment('dev')],
+          pagination: {},
+        }),
       );
       mockGET.mockResolvedValueOnce(
         createOkResponse({
@@ -872,7 +873,9 @@ describe('EnvironmentInfoService', () => {
 
   describe('deleteResourceReleaseBinding', () => {
     it('pre-flight GETs the binding, then DELETEs by composed name', async () => {
-      mockGET.mockResolvedValueOnce(createOkResponse({ metadata: { name: 'analytics-db-dev' } }));
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ metadata: { name: 'analytics-db-dev' } }),
+      );
       mockDELETE.mockResolvedValueOnce(createOkResponse(undefined));
 
       const service = createService();
@@ -933,7 +936,9 @@ describe('EnvironmentInfoService', () => {
     });
 
     it('propagates an error response from the openchoreo-api', async () => {
-      mockGET.mockResolvedValueOnce(createOkResponse({ metadata: { name: 'analytics-db-dev' } }));
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ metadata: { name: 'analytics-db-dev' } }),
+      );
       mockDELETE.mockResolvedValueOnce(createErrorResponse(403));
 
       const service = createService();

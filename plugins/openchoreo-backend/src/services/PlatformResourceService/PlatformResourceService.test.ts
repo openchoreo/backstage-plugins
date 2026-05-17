@@ -128,7 +128,10 @@ describe('PlatformResourceService', () => {
     });
 
     it('fetches clusterresourcetype via new API', async () => {
-      const crt = { metadata: { name: 'mysql' }, spec: { retainPolicy: 'Retain' } };
+      const crt = {
+        metadata: { name: 'mysql' },
+        spec: { retainPolicy: 'Retain' },
+      };
       mockGET.mockResolvedValueOnce(createOkResponse(crt));
 
       const service = createService();
@@ -236,7 +239,10 @@ describe('PlatformResourceService', () => {
     });
 
     it('updates clusterresourcetype via new API PUT', async () => {
-      const crt = { metadata: { name: 'mysql' }, spec: { retainPolicy: 'Retain' } };
+      const crt = {
+        metadata: { name: 'mysql' },
+        spec: { retainPolicy: 'Retain' },
+      };
       mockPUT.mockResolvedValueOnce(createOkResponse(crt));
 
       const service = createService();

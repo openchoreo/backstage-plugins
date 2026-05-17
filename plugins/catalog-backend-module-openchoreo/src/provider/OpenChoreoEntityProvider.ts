@@ -942,7 +942,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               })
               .then(res => {
                 if (res.error)
-                  throw new Error(`Failed to fetch resource types for ${nsName}`);
+                  throw new Error(
+                    `Failed to fetch resource types for ${nsName}`,
+                  );
                 return res.data;
               }),
           );
@@ -1633,9 +1635,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     const resourceTypeCount = allEntities.filter(
       e => e.kind === 'ResourceType',
     ).length;
-    const resourceCount = allEntities.filter(
-      e => e.kind === 'Resource',
-    ).length;
+    const resourceCount = allEntities.filter(e => e.kind === 'Resource').length;
     const clusterComponentTypeCount = allEntities.filter(
       e => e.kind === 'ClusterComponentType',
     ).length;

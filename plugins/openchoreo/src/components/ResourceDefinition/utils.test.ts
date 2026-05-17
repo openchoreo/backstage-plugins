@@ -7,8 +7,12 @@ import {
 
 describe('ResourceDefinition utils — ClusterResourceType wiring', () => {
   it('maps the Backstage entity kind to the API path kind', () => {
-    expect(mapKindToApiKind('clusterresourcetype')).toBe('clusterresourcetypes');
-    expect(mapKindToApiKind('ClusterResourceType')).toBe('clusterresourcetypes');
+    expect(mapKindToApiKind('clusterresourcetype')).toBe(
+      'clusterresourcetypes',
+    );
+    expect(mapKindToApiKind('ClusterResourceType')).toBe(
+      'clusterresourcetypes',
+    );
   });
 
   it('maps the Backstage entity kind to the CRD kind', () => {

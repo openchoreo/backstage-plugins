@@ -49,9 +49,7 @@ export class ClusterResourceTypeInfoService {
     crtName: string,
     token?: string,
   ): Promise<ClusterResourceTypeSchemaResponse> {
-    this.logger.debug(
-      `Fetching schema for cluster resource type: ${crtName}`,
-    );
+    this.logger.debug(`Fetching schema for cluster resource type: ${crtName}`);
 
     try {
       const client = createOpenChoreoApiClient({
@@ -100,9 +98,7 @@ export class ClusterResourceTypeInfoService {
     crtName: string,
     token?: string,
   ): Promise<ClusterResourceTypeOutputsResponse> {
-    this.logger.debug(
-      `Fetching outputs for cluster resource type: ${crtName}`,
-    );
+    this.logger.debug(`Fetching outputs for cluster resource type: ${crtName}`);
 
     try {
       const client = createOpenChoreoApiClient({

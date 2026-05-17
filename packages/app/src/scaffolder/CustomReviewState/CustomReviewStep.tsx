@@ -599,7 +599,12 @@ function DefaultReview({
 
 function detectTemplateType(
   formData: Record<string, unknown>,
-): 'deployment-pipeline' | 'environment' | 'component' | 'resource' | 'default' {
+):
+  | 'deployment-pipeline'
+  | 'environment'
+  | 'component'
+  | 'resource'
+  | 'default' {
   if ('deploymentPipelineConfig' in formData) return 'deployment-pipeline';
   if ('environmentConfig' in formData) return 'environment';
   if ('workloadDetails' in formData) return 'component';

@@ -425,14 +425,18 @@ describe('ResourceEnvironments', () => {
 
     it('does not expose a Deploy button on the unbound env detail panel', async () => {
       const client = {
-        fetchResourceEnvironmentInfo: jest.fn().mockResolvedValue(envsWithUnbound),
+        fetchResourceEnvironmentInfo: jest
+          .fn()
+          .mockResolvedValue(envsWithUnbound),
         updateResourceReleaseBinding: jest.fn().mockResolvedValue({}),
       };
 
       renderTab(client);
 
       fireEvent.click(
-        await screen.findByRole('button', { name: /select environment staging/i }),
+        await screen.findByRole('button', {
+          name: /select environment staging/i,
+        }),
       );
 
       await waitFor(() => {
@@ -509,9 +513,7 @@ describe('ResourceEnvironments', () => {
       fireEvent.click(
         await screen.findByRole('button', { name: /^remove deployment$/i }),
       );
-      fireEvent.click(
-        await screen.findByRole('button', { name: /cancel/i }),
-      );
+      fireEvent.click(await screen.findByRole('button', { name: /cancel/i }));
 
       expect(client.deleteResourceReleaseBinding).not.toHaveBeenCalled();
     });
@@ -536,7 +538,11 @@ describe('ResourceEnvironments', () => {
           .fn()
           .mockResolvedValueOnce(boundProd)
           .mockResolvedValueOnce([
-            { name: 'Production', resourceName: 'production', latestRelease: 'rel-1' },
+            {
+              name: 'Production',
+              resourceName: 'production',
+              latestRelease: 'rel-1',
+            },
           ]),
         deleteResourceReleaseBinding: jest.fn().mockResolvedValue({}),
       };
@@ -625,9 +631,7 @@ describe('ResourceEnvironments', () => {
         fetchResourceEnvironmentInfo: jest
           .fn()
           .mockResolvedValueOnce(boundProd)
-          .mockResolvedValueOnce([
-            { ...boundProd[0], retainPolicy: 'Retain' },
-          ]),
+          .mockResolvedValueOnce([{ ...boundProd[0], retainPolicy: 'Retain' }]),
         updateResourceReleaseBinding: jest.fn().mockResolvedValue({}),
       };
 

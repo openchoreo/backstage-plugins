@@ -81,7 +81,7 @@ export const createResourceAction = (
           parameters: zImpl
             .record(zImpl.unknown())
             .optional()
-            .describe('Parameter values bound to the picked type\'s schema'),
+            .describe("Parameter values bound to the picked type's schema"),
         }),
       output: (zImpl: typeof z) =>
         zImpl.object({
@@ -145,8 +145,7 @@ export const createResourceAction = (
         annotations['openchoreo.dev/description'] = description;
       }
 
-      const hasParameters =
-        parameters && Object.keys(parameters).length > 0;
+      const hasParameters = parameters && Object.keys(parameters).length > 0;
 
       const apiBody: Record<string, unknown> = {
         metadata: {

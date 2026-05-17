@@ -73,9 +73,7 @@ export const createResourceTypeDefinitionAction = (
 
       // Validate required fields
       if (resourceObj.kind !== 'ResourceType') {
-        throw new Error(
-          `Kind must be ResourceType, got: ${resourceObj.kind}`,
-        );
+        throw new Error(`Kind must be ResourceType, got: ${resourceObj.kind}`);
       }
 
       if (!resourceObj.apiVersion) {

@@ -88,13 +88,18 @@ describe('RtdToTemplateConverter', () => {
 
     it('uses the provided description verbatim when present', () => {
       const rt: ResourceTypeCRD = {
-        metadata: { name: 'cache', description: 'A managed cache for fast reads.' },
+        metadata: {
+          name: 'cache',
+          description: 'A managed cache for fast reads.',
+        },
         spec: {},
       };
 
       const result = converter.convertRtdToTemplateEntity(rt, 'finance');
 
-      expect(result.metadata.description).toBe('A managed cache for fast reads.');
+      expect(result.metadata.description).toBe(
+        'A managed cache for fast reads.',
+      );
     });
 
     it('uses the default owner "guests" when no config is passed', () => {
@@ -181,9 +186,9 @@ describe('RtdToTemplateConverter', () => {
       const params = (result.spec as any).parameters;
 
       expect(params[1].title).toBe('Message Queue Details');
-      expect(
-        params[1].properties.parameters['ui:options'].rtdDisplayName,
-      ).toBe('Message Queue');
+      expect(params[1].properties.parameters['ui:options'].rtdDisplayName).toBe(
+        'Message Queue',
+      );
     });
 
     it('omits rtdSchema in ui:options when the ResourceType has no schema', () => {

@@ -634,9 +634,7 @@ export interface OpenChoreoClientApi {
    * environments without bindings yet), joined with the Resource's latest
    * release.
    */
-  fetchResourceEnvironmentInfo(
-    entity: Entity,
-  ): Promise<ResourceEnvironment[]>;
+  fetchResourceEnvironmentInfo(entity: Entity): Promise<ResourceEnvironment[]>;
 
   /**
    * Create or update a ResourceReleaseBinding for the given environment.

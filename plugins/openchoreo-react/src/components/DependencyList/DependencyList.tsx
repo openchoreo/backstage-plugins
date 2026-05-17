@@ -110,8 +110,7 @@ export const DependencyList: FC<DependencyListProps> = ({
   const resourceEditBuffer = useResourceDependencyEditBuffer({
     resources: resources ?? [],
     onResourceDependencyReplace,
-    onRemoveResourceDependency:
-      onRemoveResourceDependency ?? (() => {}),
+    onRemoveResourceDependency: onRemoveResourceDependency ?? (() => {}),
   });
 
   const anyRowEditing =

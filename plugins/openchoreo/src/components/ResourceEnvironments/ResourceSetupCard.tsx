@@ -25,9 +25,7 @@ export const ResourceSetupCard = ({ selected }: ResourceSetupCardProps) => {
         <SettingsOutlinedIcon className={classes.titleIcon} />
         <Typography className={classes.title}>Set up</Typography>
       </Box>
-      <Typography className={classes.hint}>
-        Resource configuration
-      </Typography>
+      <Typography className={classes.hint}>Resource configuration</Typography>
     </Box>
   );
 };

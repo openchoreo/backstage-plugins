@@ -72,9 +72,7 @@ function renderCard(entity: Entity, clientOverrides: ClientOverrides = {}) {
       jest.fn().mockResolvedValue({ success: true, data: [] }),
     fetchResourceTypeSchema:
       clientOverrides.fetchResourceTypeSchema ??
-      jest
-        .fn()
-        .mockResolvedValue({ success: true, data: { properties: {} } }),
+      jest.fn().mockResolvedValue({ success: true, data: { properties: {} } }),
   };
   const utils = render(
     <TestApiProvider apis={[[openChoreoClientApiRef, client as any]]}>
@@ -207,9 +205,9 @@ describe('ResourceTypeOverviewCard', () => {
       await screen.findByText('Outputs (0)');
 
       const [refEntity] = fetchResourceTypeOutputs.mock.calls[0];
-      expect(refEntity.metadata.annotations['openchoreo.io/resource-type']).toBe(
-        'redis',
-      );
+      expect(
+        refEntity.metadata.annotations['openchoreo.io/resource-type'],
+      ).toBe('redis');
       expect(
         refEntity.metadata.annotations['openchoreo.io/resource-type-kind'],
       ).toBe('ResourceType');

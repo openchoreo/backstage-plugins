@@ -225,7 +225,12 @@ interface CopyIconButtonProps {
   className?: string;
 }
 
-function CopyIconButton({ label, text, onCopy, className }: CopyIconButtonProps) {
+function CopyIconButton({
+  label,
+  text,
+  onCopy,
+  className,
+}: CopyIconButtonProps) {
   return (
     <Tooltip title={`Copy ${label}`} PopperProps={{ disablePortal: true }}>
       <span>

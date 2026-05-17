@@ -127,10 +127,7 @@ export const ResourceEnvironmentOverridesPage = ({
   const isDeployMode = Boolean(releaseFromUrl);
 
   const effectiveRelease =
-    releaseFromUrl ??
-    envInfo?.resourceRelease ??
-    envInfo?.latestRelease ??
-    '';
+    releaseFromUrl ?? envInfo?.resourceRelease ?? envInfo?.latestRelease ?? '';
 
   useEffect(() => {
     let cancelled = false;
@@ -188,9 +185,7 @@ export const ResourceEnvironmentOverridesPage = ({
         );
         if (cancelled) return;
 
-        setSchema(
-          (schemaResult?.data as JSONSchema7) ?? ({} as JSONSchema7),
-        );
+        setSchema((schemaResult?.data as JSONSchema7) ?? ({} as JSONSchema7));
       } catch (err: unknown) {
         if (cancelled) return;
         setLoadError(err instanceof Error ? err : new Error(String(err)));
@@ -271,10 +266,7 @@ export const ResourceEnvironmentOverridesPage = ({
 
   const canPrimary = isDeployMode ? Boolean(effectiveRelease) : hasBinding;
   const primaryDisabled =
-    saving ||
-    clearing ||
-    !canPrimary ||
-    (!isDeployMode && !hasChanges);
+    saving || clearing || !canPrimary || (!isDeployMode && !hasChanges);
   let primaryLabel: string;
   if (isDeployMode) {
     primaryLabel = saving ? 'Deploying' : 'Deploy';
@@ -287,9 +279,7 @@ export const ResourceEnvironmentOverridesPage = ({
       {!isDeployMode && (
         <Button
           onClick={handleClear}
-          disabled={
-            saving || clearing || !hasActualOverrides || !hasBinding
-          }
+          disabled={saving || clearing || !hasActualOverrides || !hasBinding}
         >
           {clearing ? 'Clearing' : 'Clear Overrides'}
         </Button>
@@ -348,8 +338,8 @@ export const ResourceEnvironmentOverridesPage = ({
       {!loading && !loadError && !isDeployMode && !hasBinding && (
         <Box mb={2}>
           <Alert severity="info">
-            No binding exists for {envDisplayName} yet. Deploy this resource
-            to {envDisplayName} before configuring overrides.
+            No binding exists for {envDisplayName} yet. Deploy this resource to{' '}
+            {envDisplayName} before configuring overrides.
           </Alert>
         </Box>
       )}
@@ -367,19 +357,16 @@ export const ResourceEnvironmentOverridesPage = ({
           {hasFields ? (
             <>
               <Typography className={classes.formHint}>
-                Only fields you fill in here are persisted as overrides on
-                this binding. Empty fields inherit from the resource&apos;s
-                own parameters.
+                Only fields you fill in here are persisted as overrides on this
+                binding. Empty fields inherit from the resource&apos;s own
+                parameters.
               </Typography>
               <RjsfForm
                 schema={schema as any}
                 uiSchema={{}}
                 formData={overrides}
                 onChange={data => {
-                  const next = (data.formData ?? {}) as Record<
-                    string,
-                    unknown
-                  >;
+                  const next = (data.formData ?? {}) as Record<string, unknown>;
                   setOverrides(next);
                   // RJSF normalizes formData on first render (e.g. injects
                   // schema defaults). Treat that normalized snapshot as

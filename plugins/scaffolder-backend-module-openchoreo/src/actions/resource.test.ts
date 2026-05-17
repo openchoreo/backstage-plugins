@@ -158,9 +158,7 @@ describe('createResourceAction', () => {
       buildConfig(),
       mockImmediateCatalog as any,
     );
-    await action.handler(
-      buildCtx({ input: { parameters: undefined } }) as any,
-    );
+    await action.handler(buildCtx({ input: { parameters: undefined } }) as any);
 
     let [, opts] = mockPOST.mock.calls[0];
     expect(opts.body.spec.parameters).toBeUndefined();
@@ -332,7 +330,9 @@ describe('createResourceAction', () => {
       buildConfig(),
       mockImmediateCatalog as any,
     );
-    const ctx = buildCtx({ input: { namespaceName: 'domain:default/finance' } });
+    const ctx = buildCtx({
+      input: { namespaceName: 'domain:default/finance' },
+    });
 
     await action.handler(ctx as any);
 
