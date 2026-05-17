@@ -5,6 +5,7 @@ import {
 } from 'react';
 import {
   Box,
+  Button,
   Divider,
   IconButton,
   Menu,
@@ -12,6 +13,7 @@ import {
   Tooltip,
   Typography,
 } from '@material-ui/core';
+import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import CloudIcon from '@material-ui/icons/Cloud';
 import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
 import MoreVertIcon from '@material-ui/icons/MoreVert';
@@ -39,8 +41,15 @@ export const ResourceMiniEnvironmentNode = ({
 }: ResourceMiniEnvironmentNodeProps) => {
   const classes = useResourceMiniEnvironmentNodeStyles();
   const navigate = useNavigate();
-  const { refetch, onViewReleaseManifest } = useResourceEnvironmentsContext();
+  const {
+    environments,
+    pendingAction,
+    refetch,
+    onPromote,
+    onViewReleaseManifest,
+  } = useResourceEnvironmentsContext();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [promoteAnchor, setPromoteAnchor] = useState<HTMLElement | null>(null);
 
   const hasBinding = Boolean(env.bindingName);
   const hasRelease = Boolean(env.resourceRelease);
@@ -48,6 +57,55 @@ export const ResourceMiniEnvironmentNode = ({
   const relativeDeployed = env.lastDeployed
     ? formatRelativeTime(env.lastDeployed)
     : null;
+
+  // Card-level Promote pushes this env's release FORWARD to the next env
+  // in the pipeline (mirrors Component). Distinct from the detail panel's
+  // Promote, which advances this binding to the latest ResourceRelease
+  // when the Resource spec has drifted ahead.
+  const promotionTargets = env.promotionTargets ?? [];
+  const hasPromotionTargets = promotionTargets.length > 0;
+  const eligibleTargets = hasRelease
+    ? promotionTargets.filter(t => {
+        const targetEnv = environments.find(e => e.name === t.name);
+        return targetEnv?.resourceRelease !== env.resourceRelease;
+      })
+    : [];
+  const isReady = env.status === 'Ready';
+  const isPromotingForward = promotionTargets.some(
+    t =>
+      pendingAction?.kind === 'promote' && pendingAction.env === t.name,
+  );
+  const showPromote =
+    hasBinding && hasRelease && isReady && hasPromotionTargets;
+  const allTargetsInSync =
+    hasPromotionTargets && eligibleTargets.length === 0;
+
+  const handlePromoteSingle = (e: ReactMouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    const target = eligibleTargets[0];
+    if (!target || !env.resourceRelease) return;
+    void onPromote(target.name, env.resourceRelease);
+  };
+
+  const openPromoteMenu = (e: ReactMouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    setPromoteAnchor(e.currentTarget);
+  };
+  const closePromoteMenu = () => setPromoteAnchor(null);
+
+  const handlePromoteTo = (targetName: string) => {
+    closePromoteMenu();
+    if (!env.resourceRelease) return;
+    void onPromote(targetName, env.resourceRelease);
+  };
+
+  const isTargetAlreadyPromoted = (targetName: string) => {
+    const targetEnv = environments.find(e => e.name === targetName);
+    return targetEnv?.resourceRelease === env.resourceRelease;
+  };
+
+  const isTargetInFlight = (targetName: string) =>
+    pendingAction?.kind === 'promote' && pendingAction.env === targetName;
 
   const handleKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -142,6 +200,47 @@ export const ResourceMiniEnvironmentNode = ({
               </Typography>
             </Box>
           )}
+
+          {showPromote && (
+            <Box className={classes.actionRow}>
+              {allTargetsInSync ? (
+                <Button
+                  size="small"
+                  variant="contained"
+                  disabled
+                  className={classes.primaryButton}
+                >
+                  Promoted
+                </Button>
+              ) : promotionTargets.length === 1 ? (
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  className={classes.primaryButton}
+                  onClick={handlePromoteSingle}
+                  disabled={isPromotingForward}
+                  aria-label={`Promote ${env.name} to ${eligibleTargets[0].name}`}
+                >
+                  {isPromotingForward ? 'Promoting...' : 'Promote'}
+                </Button>
+              ) : (
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  className={classes.primaryButton}
+                  endIcon={<ArrowDropDownIcon fontSize="small" />}
+                  onClick={openPromoteMenu}
+                  disabled={isPromotingForward}
+                  aria-haspopup="true"
+                  aria-label={`Promote ${env.name}`}
+                >
+                  {isPromotingForward ? 'Promoting...' : 'Promote'}
+                </Button>
+              )}
+            </Box>
+          )}
         </Box>
       </Box>
 
@@ -182,6 +281,42 @@ export const ResourceMiniEnvironmentNode = ({
           <SettingsOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
           Configure overrides
         </MenuItem>
+      </Menu>
+
+      {/* Per-target promote menu, only mounted when the env has more than
+          one promotion target (parallel branches). Single-target case uses
+          the direct button above. */}
+      <Menu
+        anchorEl={promoteAnchor}
+        keepMounted
+        open={Boolean(promoteAnchor)}
+        onClose={closePromoteMenu}
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {promotionTargets.map(target => {
+          const promoted = isTargetAlreadyPromoted(target.name);
+          const inFlight = isTargetInFlight(target.name);
+          let label: string;
+          if (promoted) {
+            label = `Promoted to ${target.name}`;
+          } else if (inFlight) {
+            label = `Promoting to ${target.name}...`;
+          } else {
+            label = `Promote to ${target.name}`;
+          }
+          return (
+            <MenuItem
+              key={target.name}
+              onClick={() => handlePromoteTo(target.name)}
+              disabled={promoted || inFlight}
+            >
+              {label}
+            </MenuItem>
+          );
+        })}
       </Menu>
     </Box>
   );

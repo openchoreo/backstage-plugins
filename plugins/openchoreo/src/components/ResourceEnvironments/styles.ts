@@ -249,6 +249,16 @@ export const useResourceMiniEnvironmentNodeStyles = makeStyles(theme => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
+  actionRow: {
+    marginTop: 'auto',
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: theme.spacing(0.75),
+    flexWrap: 'wrap',
+  },
+  primaryButton: {
+    textTransform: 'none',
+  },
 }));
 
 /**

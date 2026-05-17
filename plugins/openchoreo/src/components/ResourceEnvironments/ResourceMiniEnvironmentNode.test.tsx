@@ -176,4 +176,153 @@ describe('ResourceMiniEnvironmentNode', () => {
       ).toHaveAttribute('aria-disabled', 'true');
     });
   });
+
+  describe('inline promote action', () => {
+    const env: ResourceEnvironment = {
+      ...bound(),
+      promotionTargets: [{ name: 'staging' }],
+    };
+    const stagingBehind: ResourceEnvironment = {
+      name: 'staging',
+      resourceName: 'staging',
+      // staging exists but is pinned to a different (older) release —
+      // so dev's release is eligible to be promoted forward.
+      resourceRelease: 'rel-old',
+      status: 'NotReady',
+    };
+    const stagingInSync: ResourceEnvironment = {
+      name: 'staging',
+      resourceName: 'staging',
+      resourceRelease: 'rel-abc',
+      status: 'Ready',
+    };
+
+    it('shows Promote when next env is behind this env release', () => {
+      renderTile(env, false, () => {}, {
+        environments: [env, stagingBehind],
+      });
+      expect(
+        screen.getByRole('button', { name: /promote dev to staging/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('shows disabled Promoted when next env already has this release', () => {
+      renderTile(env, false, () => {}, {
+        environments: [env, stagingInSync],
+      });
+      const button = screen.getByRole('button', { name: /^promoted$/i });
+      expect(button).toBeInTheDocument();
+      expect(button).toBeDisabled();
+    });
+
+    it('calls onPromote with the next env name and this env release on click', () => {
+      const onPromote = jest.fn();
+      renderTile(env, false, () => {}, {
+        environments: [env, stagingBehind],
+        onPromote,
+      });
+
+      fireEvent.click(
+        screen.getByRole('button', { name: /promote dev to staging/i }),
+      );
+      expect(onPromote).toHaveBeenCalledWith('staging', 'rel-abc');
+    });
+
+    it('shows Promoting... while the promote is in flight', () => {
+      renderTile(env, false, () => {}, {
+        environments: [env, stagingBehind],
+        pendingAction: { env: 'staging', kind: 'promote' },
+      });
+      expect(screen.getByText('Promoting...')).toBeInTheDocument();
+    });
+
+    it('hides the promote button when there are no promotion targets', () => {
+      // Production (last env in pipeline) — no promotionTargets.
+      const prod: ResourceEnvironment = {
+        ...bound(),
+        name: 'prod',
+        resourceName: 'prod',
+        promotionTargets: [],
+      };
+      renderTile(prod, false, () => {}, { environments: [prod] });
+      expect(screen.queryByRole('button', { name: /^promote/i })).toBeNull();
+    });
+
+    it('hides the promote button when this env has no binding', () => {
+      const unbound: ResourceEnvironment = {
+        name: 'dev',
+        resourceName: 'dev',
+        promotionTargets: [{ name: 'staging' }],
+      };
+      renderTile(unbound, false, () => {}, { environments: [unbound] });
+      expect(screen.queryByRole('button', { name: /^promote/i })).toBeNull();
+    });
+
+    describe('multi-target dropdown', () => {
+      const devWithMulti: ResourceEnvironment = {
+        ...bound(),
+        promotionTargets: [{ name: 'stagingA' }, { name: 'stagingB' }],
+      };
+      const stagingABehind: ResourceEnvironment = {
+        name: 'stagingA',
+        resourceName: 'stagingA',
+        resourceRelease: 'rel-old',
+      };
+      const stagingBInSync: ResourceEnvironment = {
+        name: 'stagingB',
+        resourceName: 'stagingB',
+        resourceRelease: 'rel-abc',
+      };
+
+      it('opens a target picker when more than one eligible target exists', () => {
+        renderTile(devWithMulti, false, () => {}, {
+          environments: [
+            devWithMulti,
+            stagingABehind,
+            { name: 'stagingB', resourceName: 'stagingB' },
+          ],
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /^promote dev$/i }));
+        expect(
+          screen.getByRole('menuitem', { name: /promote to stagingA/i }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('menuitem', { name: /promote to stagingB/i }),
+        ).toBeInTheDocument();
+      });
+
+      it('disables targets already in sync inside the picker', () => {
+        renderTile(devWithMulti, false, () => {}, {
+          environments: [devWithMulti, stagingABehind, stagingBInSync],
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /^promote dev$/i }));
+        expect(
+          screen.getByRole('menuitem', { name: /promoted to stagingB/i }),
+        ).toHaveAttribute('aria-disabled', 'true');
+        expect(
+          screen.getByRole('menuitem', { name: /promote to stagingA/i }),
+        ).not.toHaveAttribute('aria-disabled', 'true');
+      });
+
+      it('calls onPromote with the chosen target', () => {
+        const onPromote = jest.fn();
+        renderTile(devWithMulti, false, () => {}, {
+          environments: [
+            devWithMulti,
+            stagingABehind,
+            { name: 'stagingB', resourceName: 'stagingB' },
+          ],
+          onPromote,
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /^promote dev$/i }));
+        fireEvent.click(
+          screen.getByRole('menuitem', { name: /promote to stagingB/i }),
+        );
+        expect(onPromote).toHaveBeenCalledWith('stagingB', 'rel-abc');
+      });
+    });
+  });
 });
