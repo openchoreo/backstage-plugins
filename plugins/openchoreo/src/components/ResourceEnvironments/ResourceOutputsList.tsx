@@ -1,10 +1,13 @@
-import { Box, Typography, makeStyles } from '@material-ui/core';
+import { useCallback } from 'react';
+import { Box, IconButton, Tooltip, Typography, makeStyles } from '@material-ui/core';
+import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import type { ResourceBindingOutput } from '../../api/OpenChoreoClientApi';
+import { useNotification } from '../../hooks';
 
 const useStyles = makeStyles(theme => ({
   row: {
     display: 'grid',
-    gridTemplateColumns: '160px 1fr',
+    gridTemplateColumns: '140px 1fr auto',
     gap: theme.spacing(2),
     padding: theme.spacing(0.5, 0),
     alignItems: 'baseline',
@@ -26,6 +29,10 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.text.hint,
     marginRight: theme.spacing(1),
   },
+  copyButton: {
+    padding: theme.spacing(0.25),
+    alignSelf: 'center',
+  },
 }));
 
 interface ResourceOutputsListProps {
@@ -35,23 +42,56 @@ interface ResourceOutputsListProps {
 /**
  * Renders ResourceReleaseBinding outputs with kind-aware formatting:
  * plain values inline, secret/configMap refs as Kind/name.key so consumers
- * can locate the underlying object without resolving the value here.
+ * can locate the underlying object without resolving the value here. Each
+ * row has a copy-to-clipboard button for the rendered text.
  */
 export const ResourceOutputsList = ({ outputs }: ResourceOutputsListProps) => {
   const classes = useStyles();
+  const notification = useNotification();
+
+  const copy = useCallback(
+    async (text: string, label: string) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        notification.showSuccess(`Copied ${label}`);
+      } catch {
+        notification.showError('Failed to copy to clipboard');
+      }
+    },
+    [notification],
+  );
 
   return (
     <Box>
-      {outputs.map(output => (
-        <Box key={output.name} className={classes.row}>
-          <Typography variant="body2" className={classes.name}>
-            {output.name}
-          </Typography>
-          <Typography variant="body2" className={classes.value}>
-            {renderOutputValue(output, classes.kindLabel)}
-          </Typography>
-        </Box>
-      ))}
+      {outputs.map(output => {
+        const copyText = copyTextForOutput(output);
+        return (
+          <Box key={output.name} className={classes.row}>
+            <Typography variant="body2" className={classes.name}>
+              {output.name}
+            </Typography>
+            <Typography variant="body2" className={classes.value}>
+              {renderOutputValue(output, classes.kindLabel)}
+            </Typography>
+            <Tooltip
+              title={`Copy ${output.name}`}
+              PopperProps={{ disablePortal: true }}
+            >
+              <span>
+                <IconButton
+                  size="small"
+                  className={classes.copyButton}
+                  onClick={() => copy(copyText, output.name)}
+                  disabled={!copyText}
+                  aria-label={`Copy ${output.name}`}
+                >
+                  <FileCopyOutlinedIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+        );
+      })}
     </Box>
   );
 };
@@ -80,4 +120,15 @@ function renderOutputValue(
     );
   }
   return <em>(unresolved)</em>;
+}
+
+function copyTextForOutput(output: ResourceBindingOutput): string {
+  if (output.value !== undefined) return output.value;
+  if (output.secretKeyRef) {
+    return `Secret/${output.secretKeyRef.name}.${output.secretKeyRef.key}`;
+  }
+  if (output.configMapKeyRef) {
+    return `ConfigMap/${output.configMapKeyRef.name}.${output.configMapKeyRef.key}`;
+  }
+  return '';
 }

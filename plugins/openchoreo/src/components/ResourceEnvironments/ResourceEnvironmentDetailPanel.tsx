@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import {
   Box,
   Button,
@@ -7,13 +8,17 @@ import {
   Typography,
 } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
+import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
+import RefreshIcon from '@material-ui/icons/Refresh';
 import { useNavigate } from 'react-router-dom';
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
 import {
+  formatRelativeTime,
   useResourceReleaseBindingDeletePermission,
   useResourceReleaseBindingUpdatePermission,
 } from '@openchoreo/backstage-plugin-react';
+import { useNotification } from '../../hooks';
 import type { ResourceEnvironment } from '../../api/OpenChoreoClientApi';
 import { useResourceEnvironmentDetailPanelStyles } from './styles';
 import { useResourceEnvironmentsContext } from './ResourceEnvironmentsContext';
@@ -55,8 +60,10 @@ interface ContentProps {
 const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
   const classes = useResourceEnvironmentDetailPanelStyles();
   const navigate = useNavigate();
+  const notification = useNotification();
   const {
     pendingAction,
+    refetch,
     onPromote,
     onUndeployRequest,
     onRetainPolicyChange,
@@ -70,6 +77,22 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
     hasBinding &&
     Boolean(env.latestRelease) &&
     env.resourceRelease !== env.latestRelease;
+
+  // Hide REASON / MESSAGE on the happy path; show them only when the
+  // binding isn't Ready so the user has the context to debug.
+  const showStatusReasonAndMessage = env.status !== 'Ready';
+
+  const copyToClipboard = useCallback(
+    async (text: string, label: string) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        notification.showSuccess(`Copied ${label}`);
+      } catch {
+        notification.showError('Failed to copy to clipboard');
+      }
+    },
+    [notification],
+  );
 
   const updatePerm = useResourceReleaseBindingUpdatePermission(env.name);
   const deletePerm = useResourceReleaseBindingDeletePermission(env.name);
@@ -91,6 +114,18 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
           <StatusBadge status={badgeStatus} />
         </Box>
         <Box className={classes.headerRight}>
+          <Tooltip
+            title="Refresh environment status"
+            PopperProps={{ disablePortal: true }}
+          >
+            <IconButton
+              size="small"
+              onClick={() => void refetch()}
+              aria-label="Refresh environment status"
+            >
+              <RefreshIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <IconButton
             size="small"
             onClick={onClose}
@@ -136,6 +171,22 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                   <Typography className={classes.metaValue}>
                     {env.resourceRelease || '(unset)'}
                   </Typography>
+                  {env.resourceRelease && (
+                    <Tooltip
+                      title="Copy release name"
+                      PopperProps={{ disablePortal: true }}
+                    >
+                      <IconButton
+                        size="small"
+                        aria-label="Copy release name"
+                        onClick={() =>
+                          copyToClipboard(env.resourceRelease!, 'release name')
+                        }
+                      >
+                        <FileCopyOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                   {isBehindLatest && (
                     <Tooltip
                       title={`Behind latest release ${env.latestRelease}. Click Promote to advance.`}
@@ -145,6 +196,16 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                   )}
                 </Box>
               </Box>
+              {env.lastDeployed && (
+                <Box className={classes.metaRow}>
+                  <Typography className={classes.metaLabel}>
+                    Deployed
+                  </Typography>
+                  <Typography className={classes.metaValue}>
+                    {formatRelativeTime(env.lastDeployed)}
+                  </Typography>
+                </Box>
+              )}
               {env.retainPolicy && (
                 <Box className={classes.metaRow}>
                   <Typography className={classes.metaLabel}>
@@ -160,7 +221,7 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                   />
                 </Box>
               )}
-              {env.statusReason && (
+              {showStatusReasonAndMessage && env.statusReason && (
                 <Box className={classes.metaRow}>
                   <Typography className={classes.metaLabel}>Reason</Typography>
                   <Typography className={classes.metaValue}>
@@ -168,7 +229,7 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                   </Typography>
                 </Box>
               )}
-              {env.statusMessage && (
+              {showStatusReasonAndMessage && env.statusMessage && (
                 <Box className={classes.metaRow}>
                   <Typography className={classes.metaLabel}>Message</Typography>
                   <Typography className={classes.metaValue}>
