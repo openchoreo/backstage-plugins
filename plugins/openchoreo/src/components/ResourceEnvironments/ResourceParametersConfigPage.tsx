@@ -278,12 +278,14 @@ export const ResourceParametersConfigPage = ({
     waitForNewRelease,
   ]);
 
-  const primaryLabel =
-    phase === 'saving'
-      ? 'Saving'
-      : phase === 'awaiting-release'
-      ? 'Cutting release'
-      : 'Next';
+  let primaryLabel: string;
+  if (phase === 'saving') {
+    primaryLabel = 'Saving';
+  } else if (phase === 'awaiting-release') {
+    primaryLabel = 'Cutting release';
+  } else {
+    primaryLabel = 'Next';
+  }
 
   const headerActions = !loading && !loadError && (
     <Button

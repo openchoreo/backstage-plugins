@@ -69,7 +69,7 @@ interface ContentProps {
   onClose: () => void;
 }
 
-const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
+function ResourceEnvironmentDetailContent({ env, onClose }: ContentProps) {
   const classes = useResourceEnvironmentDetailPanelStyles();
   const navigate = useNavigate();
   const notification = useNotification();
@@ -464,7 +464,7 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
       />
     </Box>
   );
-};
+}
 
 interface ForwardPromoteButtonProps {
   allTargetsInSync: boolean;

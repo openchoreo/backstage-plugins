@@ -145,6 +145,51 @@ export const ResourceMiniEnvironmentNode = ({
     onViewReleaseManifest(env);
   };
 
+  const renderPromoteButton = () => {
+    if (allTargetsInSync) {
+      return (
+        <Button
+          size="small"
+          variant="contained"
+          disabled
+          className={classes.primaryButton}
+        >
+          Promoted
+        </Button>
+      );
+    }
+    if (promotionTargets.length === 1) {
+      return (
+        <Button
+          size="small"
+          variant="contained"
+          color="primary"
+          className={classes.primaryButton}
+          onClick={handlePromoteSingle}
+          disabled={isPromotingForward}
+          aria-label={`Promote ${env.name} to ${eligibleTargets[0].name}`}
+        >
+          {isPromotingForward ? 'Promoting...' : 'Promote'}
+        </Button>
+      );
+    }
+    return (
+      <Button
+        size="small"
+        variant="contained"
+        color="primary"
+        className={classes.primaryButton}
+        endIcon={<ArrowDropDownIcon fontSize="small" />}
+        onClick={openPromoteMenu}
+        disabled={isPromotingForward}
+        aria-haspopup="true"
+        aria-label={`Promote ${env.name}`}
+      >
+        {isPromotingForward ? 'Promoting...' : 'Promote'}
+      </Button>
+    );
+  };
+
   return (
     <Box
       role="button"
@@ -238,42 +283,7 @@ export const ResourceMiniEnvironmentNode = ({
 
           {showPromote && (
             <Box className={classes.actionRow}>
-              {allTargetsInSync ? (
-                <Button
-                  size="small"
-                  variant="contained"
-                  disabled
-                  className={classes.primaryButton}
-                >
-                  Promoted
-                </Button>
-              ) : promotionTargets.length === 1 ? (
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="primary"
-                  className={classes.primaryButton}
-                  onClick={handlePromoteSingle}
-                  disabled={isPromotingForward}
-                  aria-label={`Promote ${env.name} to ${eligibleTargets[0].name}`}
-                >
-                  {isPromotingForward ? 'Promoting...' : 'Promote'}
-                </Button>
-              ) : (
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="primary"
-                  className={classes.primaryButton}
-                  endIcon={<ArrowDropDownIcon fontSize="small" />}
-                  onClick={openPromoteMenu}
-                  disabled={isPromotingForward}
-                  aria-haspopup="true"
-                  aria-label={`Promote ${env.name}`}
-                >
-                  {isPromotingForward ? 'Promoting...' : 'Promote'}
-                </Button>
-              )}
+              {renderPromoteButton()}
             </Box>
           )}
         </Box>

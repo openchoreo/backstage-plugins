@@ -300,6 +300,7 @@ export const ResourceEnvironmentsList = () => {
       loading,
       fetchEnvs,
       selectedEnvName,
+      setSelectedEnvName,
       pendingAction,
       driftByEnv,
       handlePromote,

@@ -275,13 +275,12 @@ export const ResourceEnvironmentOverridesPage = ({
     clearing ||
     !canPrimary ||
     (!isDeployMode && !hasChanges);
-  const primaryLabel = isDeployMode
-    ? saving
-      ? 'Deploying'
-      : 'Deploy'
-    : saving
-    ? 'Saving'
-    : 'Save Overrides';
+  let primaryLabel: string;
+  if (isDeployMode) {
+    primaryLabel = saving ? 'Deploying' : 'Deploy';
+  } else {
+    primaryLabel = saving ? 'Saving' : 'Save Overrides';
+  }
 
   const headerActions = !loading && !loadError && (
     <Box className={classes.actionsRow}>
