@@ -302,6 +302,16 @@ export const useResourceEnvironmentDetailPanelStyles = makeStyles(theme => ({
     fontWeight: 500,
     marginBottom: theme.spacing(1),
   },
+  sectionTitleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing(1),
+    gap: theme.spacing(1),
+    '& > $sectionHeading': {
+      marginBottom: 0,
+    },
+  },
   metaRow: {
     display: 'grid',
     gridTemplateColumns: '140px 1fr',

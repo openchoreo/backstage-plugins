@@ -189,7 +189,28 @@ describe('ResourceEnvironmentDetailPanel', () => {
     expect(screen.getByText('Delete')).toBeInTheDocument();
   });
 
-  it('renders outputs section when outputs are present', () => {
+  it('renders an Outputs section with the count and View All link', () => {
+    renderPanel({
+      name: 'dev',
+      bindingName: 'b-dev',
+      resourceRelease: 'rel-1',
+      status: 'Ready',
+      latestRelease: 'rel-1',
+      outputs: [
+        { name: 'host', value: 'db.dev.svc' },
+        { name: 'port', value: '5432' },
+      ],
+    });
+    expect(screen.getByText('Outputs (2)')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /view all/i }),
+    ).toBeInTheDocument();
+    // Output values are not inline — they live in the modal that View All opens.
+    expect(screen.queryByText('host')).toBeNull();
+    expect(screen.queryByText('db.dev.svc')).toBeNull();
+  });
+
+  it('opens the outputs dialog when View All is clicked', () => {
     renderPanel({
       name: 'dev',
       bindingName: 'b-dev',
@@ -198,9 +219,26 @@ describe('ResourceEnvironmentDetailPanel', () => {
       latestRelease: 'rel-1',
       outputs: [{ name: 'host', value: 'db.dev.svc' }],
     });
-    expect(screen.getByText('Outputs')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /view all/i }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/outputs — dev/i)).toBeInTheDocument();
     expect(screen.getByText('host')).toBeInTheDocument();
     expect(screen.getByText('db.dev.svc')).toBeInTheDocument();
+  });
+
+  it('hides the Outputs section when there are no outputs', () => {
+    renderPanel({
+      name: 'dev',
+      bindingName: 'b-dev',
+      resourceRelease: 'rel-1',
+      status: 'Ready',
+      latestRelease: 'rel-1',
+    });
+    expect(screen.queryByText(/outputs \(/i)).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /view all/i }),
+    ).toBeNull();
   });
 
   it('disables Promote when isPromoting for this env', () => {

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import {
   Box,
   Button,
@@ -24,7 +24,7 @@ import { useNotification } from '../../hooks';
 import type { ResourceEnvironment } from '../../api/OpenChoreoClientApi';
 import { useResourceEnvironmentDetailPanelStyles } from './styles';
 import { useResourceEnvironmentsContext } from './ResourceEnvironmentsContext';
-import { ResourceOutputsList } from './ResourceOutputsList';
+import { ResourceOutputsDialog } from './ResourceOutputsDialog';
 import { deriveResourceEnvBadgeStatus } from './badgeStatus';
 
 interface ResourceEnvironmentDetailPanelProps {
@@ -73,8 +73,10 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
     onViewReleaseManifest,
   } = useResourceEnvironmentsContext();
 
+  const [outputsDialogOpen, setOutputsDialogOpen] = useState(false);
   const hasBinding = Boolean(env.bindingName);
-  const hasOutputs = Boolean(env.outputs && env.outputs.length > 0);
+  const outputCount = env.outputs?.length ?? 0;
+  const hasOutputs = outputCount > 0;
   const badgeStatus = deriveResourceEnvBadgeStatus(env);
 
   const isBehindLatest =
@@ -292,15 +294,35 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
 
             {hasOutputs && (
               <Box className={classes.section}>
-                <Typography variant="body2" className={classes.sectionHeading}>
-                  Outputs
-                </Typography>
-                <ResourceOutputsList outputs={env.outputs!} />
+                <Box className={classes.sectionTitleRow}>
+                  <Typography
+                    variant="body2"
+                    className={classes.sectionHeading}
+                  >
+                    Outputs ({outputCount})
+                  </Typography>
+                  <Button
+                    variant="text"
+                    color="primary"
+                    size="small"
+                    onClick={() => setOutputsDialogOpen(true)}
+                    style={{ textTransform: 'none' }}
+                  >
+                    View All
+                  </Button>
+                </Box>
               </Box>
             )}
           </>
         )}
       </Box>
+
+      <ResourceOutputsDialog
+        open={outputsDialogOpen}
+        onClose={() => setOutputsDialogOpen(false)}
+        environmentName={env.name}
+        outputs={env.outputs ?? []}
+      />
     </Box>
   );
 };

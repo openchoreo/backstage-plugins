@@ -2,7 +2,7 @@ export { ResourceEnvironments } from './ResourceEnvironments';
 export { ResourceDeployFlowCanvas } from './ResourceDeployFlowCanvas';
 export { ResourceMiniEnvironmentNode } from './ResourceMiniEnvironmentNode';
 export { ResourceEnvironmentDetailPanel } from './ResourceEnvironmentDetailPanel';
-export { ResourceOutputsList } from './ResourceOutputsList';
+export { ResourceOutputsDialog } from './ResourceOutputsDialog';
 export { UndeployConfirmDialog } from './UndeployConfirmDialog';
 export {
   ResourceEnvironmentsProvider,
