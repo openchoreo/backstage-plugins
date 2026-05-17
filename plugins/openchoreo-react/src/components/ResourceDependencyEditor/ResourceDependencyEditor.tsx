@@ -114,9 +114,11 @@ const useStyles = makeStyles((theme: Theme) => ({
     fontStyle: 'italic',
     padding: theme.spacing(1, 0),
   },
-  addButton: {
+  addButtonRow: {
+    display: 'flex',
+    gap: theme.spacing(1),
     marginTop: theme.spacing(1),
-    alignSelf: 'flex-start',
+    flexWrap: 'wrap',
   },
 }));
 
@@ -202,7 +204,8 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
   applyDisabled = false,
 }) => {
   const classes = useStyles();
-  const [addAnchor, setAddAnchor] = useState<HTMLElement | null>(null);
+  const [envAddAnchor, setEnvAddAnchor] = useState<HTMLElement | null>(null);
+  const [fileAddAnchor, setFileAddAnchor] = useState<HTMLElement | null>(null);
 
   const envBindings = useMemo(
     () => dependency.envBindings ?? {},
@@ -233,10 +236,21 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
     return m;
   }, [outputs]);
 
-  const unboundOutputs = useMemo(() => {
-    const wired = new Set(wiredOutputNames);
-    return outputs.filter(o => !wired.has(o.name));
-  }, [outputs, wiredOutputNames]);
+  // Per-kind unbound lists for the two Add buttons. The env list shows
+  // anything not currently in envBindings (any kind). The file list
+  // hides value-kind outputs because the backend rejects mounting a
+  // literal value as a file.
+  const envUnboundOutputs = useMemo(
+    () => outputs.filter(o => !(o.name in envBindings)),
+    [outputs, envBindings],
+  );
+  const fileUnboundOutputs = useMemo(
+    () =>
+      outputs.filter(
+        o => !(o.name in fileBindings) && outputKind(o) !== 'value',
+      ),
+    [outputs, fileBindings],
+  );
 
   // The currently-selected ref must remain in the picker's option list so
   // users don't lose their pick if the parent excludes it (e.g. another
@@ -349,13 +363,17 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
     emit(env, file);
   };
 
-  const handleAddBinding = (outputName: string) => {
-    // Start as an env-only entry with an empty target; the user fills the
-    // env-var field to complete it. Empty values are kubebuilder-rejected,
-    // but the editor tolerates the intermediate state.
-    const next = { ...envBindings, [outputName]: '' };
-    emit(next, fileBindings);
-    setAddAnchor(null);
+  const handleAddEnvBinding = (outputName: string) => {
+    // Insert with an empty target; the user types into the env-var field
+    // to complete it. Empty values are kubebuilder-rejected, so the
+    // buffer reports invalid until filled.
+    emit({ ...envBindings, [outputName]: '' }, fileBindings);
+    setEnvAddAnchor(null);
+  };
+
+  const handleAddFileBinding = (outputName: string) => {
+    emit(envBindings, { ...fileBindings, [outputName]: '' });
+    setFileAddAnchor(null);
   };
 
   const handleRefChange = (nextRef: string) => {
@@ -421,7 +439,8 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
               wiredOutputNames.map(name => {
                 const output = outputByName.get(name);
                 const kind = output ? outputKind(output) : 'unknown';
-                const mountDisabled = kind === 'value';
+                const hasEnvBinding = name in envBindings;
+                const hasFileBinding = name in fileBindings;
                 return (
                   <Box
                     key={name}
@@ -448,34 +467,38 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
                       </IconButton>
                     </Box>
                     <Box className={classes.fields}>
-                      <TextField
-                        label="Env var"
-                        variant="outlined"
-                        size="small"
-                        className={classes.field}
-                        value={envBindings[name] ?? ''}
-                        disabled={disabled}
-                        onChange={e => handleEnvChange(name, e.target.value)}
-                        placeholder="e.g. DB_HOST"
-                        inputProps={{ 'data-testid': `env-input-${name}` }}
-                      />
-                      <TextField
-                        label="Mount path"
-                        variant="outlined"
-                        size="small"
-                        className={classes.field}
-                        value={fileBindings[name] ?? ''}
-                        disabled={disabled || mountDisabled}
-                        onChange={e => handleMountChange(name, e.target.value)}
-                        placeholder={
-                          mountDisabled
-                            ? 'Not available for value-kind outputs'
-                            : 'e.g. /etc/secrets/db'
-                        }
-                        inputProps={{
-                          'data-testid': `mount-input-${name}`,
-                        }}
-                      />
+                      {hasEnvBinding && (
+                        <TextField
+                          label="Env var"
+                          variant="outlined"
+                          size="small"
+                          className={classes.field}
+                          value={envBindings[name] ?? ''}
+                          disabled={disabled}
+                          onChange={e =>
+                            handleEnvChange(name, e.target.value)
+                          }
+                          placeholder="e.g. DB_HOST"
+                          inputProps={{ 'data-testid': `env-input-${name}` }}
+                        />
+                      )}
+                      {hasFileBinding && (
+                        <TextField
+                          label="Mount path"
+                          variant="outlined"
+                          size="small"
+                          className={classes.field}
+                          value={fileBindings[name] ?? ''}
+                          disabled={disabled}
+                          onChange={e =>
+                            handleMountChange(name, e.target.value)
+                          }
+                          placeholder="e.g. /etc/secrets/db"
+                          inputProps={{
+                            'data-testid': `mount-input-${name}`,
+                          }}
+                        />
+                      )}
                     </Box>
                   </Box>
                 );
@@ -483,34 +506,68 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
             )}
           </Box>
 
-          <Button
-            startIcon={<AddIcon />}
-            onClick={e => setAddAnchor(e.currentTarget)}
-            variant="outlined"
-            size="small"
-            className={classes.addButton}
-            disabled={disabled || unboundOutputs.length === 0}
-          >
-            Add binding
-          </Button>
-          <Menu
-            anchorEl={addAnchor}
-            open={Boolean(addAnchor)}
-            onClose={() => setAddAnchor(null)}
-          >
-            {unboundOutputs.map(o => (
-              <MenuItem key={o.name} onClick={() => handleAddBinding(o.name)}>
-                {o.name}{' '}
-                <Typography
-                  variant="caption"
-                  color="textSecondary"
-                  style={{ marginLeft: 8 }}
+          <Box className={classes.addButtonRow}>
+            <Button
+              startIcon={<AddIcon />}
+              onClick={e => setEnvAddAnchor(e.currentTarget)}
+              variant="outlined"
+              size="small"
+              disabled={disabled || envUnboundOutputs.length === 0}
+            >
+              Add env binding
+            </Button>
+            <Button
+              startIcon={<AddIcon />}
+              onClick={e => setFileAddAnchor(e.currentTarget)}
+              variant="outlined"
+              size="small"
+              disabled={disabled || fileUnboundOutputs.length === 0}
+            >
+              Add file mount
+            </Button>
+            <Menu
+              anchorEl={envAddAnchor}
+              open={Boolean(envAddAnchor)}
+              onClose={() => setEnvAddAnchor(null)}
+            >
+              {envUnboundOutputs.map(o => (
+                <MenuItem
+                  key={o.name}
+                  onClick={() => handleAddEnvBinding(o.name)}
                 >
-                  {outputKind(o)}
-                </Typography>
-              </MenuItem>
-            ))}
-          </Menu>
+                  {o.name}{' '}
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    style={{ marginLeft: 8 }}
+                  >
+                    {outputKind(o)}
+                  </Typography>
+                </MenuItem>
+              ))}
+            </Menu>
+            <Menu
+              anchorEl={fileAddAnchor}
+              open={Boolean(fileAddAnchor)}
+              onClose={() => setFileAddAnchor(null)}
+            >
+              {fileUnboundOutputs.map(o => (
+                <MenuItem
+                  key={o.name}
+                  onClick={() => handleAddFileBinding(o.name)}
+                >
+                  {o.name}{' '}
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    style={{ marginLeft: 8 }}
+                  >
+                    {outputKind(o)}
+                  </Typography>
+                </MenuItem>
+              ))}
+            </Menu>
+          </Box>
         </Box>
 
         <Box display="flex" flexDirection="column" ml={1}>

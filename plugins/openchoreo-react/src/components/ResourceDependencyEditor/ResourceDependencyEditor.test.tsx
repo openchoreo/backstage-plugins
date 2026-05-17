@@ -152,7 +152,7 @@ describe('ResourceDependencyEditor', () => {
       });
     });
 
-    it('disables the mount-path field for value-kind outputs', () => {
+    it('renders only the env field when an output is wired as env only', () => {
       renderEditor({
         isEditing: true,
         dependency: {
@@ -160,7 +160,24 @@ describe('ResourceDependencyEditor', () => {
           envBindings: { host: 'DB_HOST' },
         },
       });
-      expect(screen.getByTestId('mount-input-host')).toBeDisabled();
+      expect(screen.getByTestId('env-input-host')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('mount-input-host'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders only the mount field when an output is wired as file only', () => {
+      renderEditor({
+        isEditing: true,
+        dependency: {
+          ref: 'orders-db',
+          fileBindings: { password: '/etc/db/password' },
+        },
+      });
+      expect(screen.getByTestId('mount-input-password')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('env-input-password'),
+      ).not.toBeInTheDocument();
     });
 
     it('drops the env binding when the env field is cleared', () => {
@@ -203,7 +220,7 @@ describe('ResourceDependencyEditor', () => {
       });
     });
 
-    it('Add binding dropdown lists unbound outputs only', () => {
+    it('Add env binding dropdown lists outputs not yet in envBindings', () => {
       renderEditor({
         isEditing: true,
         dependency: {
@@ -212,14 +229,36 @@ describe('ResourceDependencyEditor', () => {
         },
       });
 
-      fireEvent.click(screen.getByRole('button', { name: /Add binding/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /Add env binding/i }),
+      );
       const menu = screen.getByRole('menu');
       expect(within(menu).queryByText('host')).not.toBeInTheDocument();
       expect(within(menu).getByText('password')).toBeInTheDocument();
+      // Value-kind outputs are still eligible for env binding.
+      expect(within(menu).getByText('port')).toBeInTheDocument();
+    });
+
+    it('Add file mount dropdown excludes outputs already mounted and value-kind outputs', () => {
+      renderEditor({
+        isEditing: true,
+        dependency: {
+          ref: 'orders-db',
+          fileBindings: { password: '/etc/db/password' },
+        },
+      });
+
+      fireEvent.click(
+        screen.getByRole('button', { name: /Add file mount/i }),
+      );
+      const menu = screen.getByRole('menu');
+      // password is already mounted, host/port/etc. are value-kind.
+      expect(within(menu).queryByText('password')).not.toBeInTheDocument();
+      expect(within(menu).queryByText('host')).not.toBeInTheDocument();
       expect(within(menu).getByText('caCert')).toBeInTheDocument();
     });
 
-    it('adds a new env-only row with an empty target when an output is picked', () => {
+    it('Add env binding adds a new entry with an empty env value', () => {
       const { onChange } = renderEditor({
         isEditing: true,
         dependency: {
@@ -228,13 +267,36 @@ describe('ResourceDependencyEditor', () => {
         },
       });
 
-      fireEvent.click(screen.getByRole('button', { name: /Add binding/i }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /Add env binding/i }),
+      );
       fireEvent.click(within(screen.getByRole('menu')).getByText('password'));
 
       expect(onChange).toHaveBeenLastCalledWith({
         ref: 'orders-db',
         envBindings: { host: 'DB_HOST', password: '' },
         fileBindings: undefined,
+      });
+    });
+
+    it('Add file mount adds a new entry with an empty mount path', () => {
+      const { onChange } = renderEditor({
+        isEditing: true,
+        dependency: {
+          ref: 'orders-db',
+          envBindings: { host: 'DB_HOST' },
+        },
+      });
+
+      fireEvent.click(
+        screen.getByRole('button', { name: /Add file mount/i }),
+      );
+      fireEvent.click(within(screen.getByRole('menu')).getByText('password'));
+
+      expect(onChange).toHaveBeenLastCalledWith({
+        ref: 'orders-db',
+        envBindings: { host: 'DB_HOST' },
+        fileBindings: { password: '' },
       });
     });
 
