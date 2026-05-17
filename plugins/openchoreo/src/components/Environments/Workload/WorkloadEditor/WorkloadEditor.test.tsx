@@ -102,6 +102,32 @@ jest.mock('./DependencyContent', () => ({
       >
         remove first dependency
       </button>
+      <button
+        type="button"
+        data-testid="trigger-add-resource-dependency"
+        onClick={() => props.onAddResourceDependency?.('orders-db')}
+      >
+        add resource dependency
+      </button>
+      <button
+        type="button"
+        data-testid="trigger-replace-resource-dependency-0"
+        onClick={() =>
+          props.onResourceDependencyReplace?.(0, {
+            ref: 'orders-db',
+            envBindings: { host: 'NEW_DB_HOST' },
+          })
+        }
+      >
+        replace first resource dependency
+      </button>
+      <button
+        type="button"
+        data-testid="trigger-remove-resource-dependency-0"
+        onClick={() => props.onRemoveResourceDependency?.(0)}
+      >
+        remove first resource dependency
+      </button>
     </div>
   ),
 }));
@@ -295,6 +321,72 @@ describe('WorkloadEditor', () => {
       const spec = lastSetSpec();
       expect(spec.dependencies?.endpoints).toHaveLength(1);
       expect(spec.dependencies?.resources).toBeUndefined();
+    });
+  });
+
+  describe('dependencies.endpoints preservation when resources are edited', () => {
+    const endpointDep = {
+      component: 'payments-svc',
+      name: 'orders',
+      visibility: 'project',
+      envBindings: { address: 'PAYMENTS_ADDR' },
+    };
+
+    it('preserves dependencies.endpoints when a resource dependency is added', () => {
+      renderEditor(
+        buildWorkload({
+          container: { image: 'nginx:1' },
+          dependencies: { endpoints: [endpointDep] },
+        }),
+      );
+
+      fireEvent.click(screen.getByTestId('trigger-add-resource-dependency'));
+
+      const spec = lastSetSpec();
+      expect(spec.dependencies?.endpoints).toEqual([endpointDep]);
+      expect(spec.dependencies?.resources).toEqual([{ ref: 'orders-db' }]);
+    });
+
+    it('preserves dependencies.endpoints when a resource dependency is replaced', () => {
+      renderEditor(
+        buildWorkload({
+          container: { image: 'nginx:1' },
+          dependencies: {
+            endpoints: [endpointDep],
+            resources: [{ ref: 'orders-db', envBindings: { host: 'OLD' } }],
+          },
+        }),
+      );
+
+      fireEvent.click(
+        screen.getByTestId('trigger-replace-resource-dependency-0'),
+      );
+
+      const spec = lastSetSpec();
+      expect(spec.dependencies?.endpoints).toEqual([endpointDep]);
+      expect(spec.dependencies?.resources).toEqual([
+        { ref: 'orders-db', envBindings: { host: 'NEW_DB_HOST' } },
+      ]);
+    });
+
+    it('preserves dependencies.endpoints when a resource dependency is removed', () => {
+      renderEditor(
+        buildWorkload({
+          container: { image: 'nginx:1' },
+          dependencies: {
+            endpoints: [endpointDep],
+            resources: [{ ref: 'orders-db' }],
+          },
+        }),
+      );
+
+      fireEvent.click(
+        screen.getByTestId('trigger-remove-resource-dependency-0'),
+      );
+
+      const spec = lastSetSpec();
+      expect(spec.dependencies?.endpoints).toEqual([endpointDep]);
+      expect(spec.dependencies?.resources).toEqual([]);
     });
   });
 });

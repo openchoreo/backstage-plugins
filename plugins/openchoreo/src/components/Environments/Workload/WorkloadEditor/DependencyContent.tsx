@@ -2,6 +2,7 @@ import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dependency,
   ResourceDependency,
+  ResourceTypeOutput,
   WorkloadEndpoint,
   WorkloadResource,
 } from '@openchoreo/backstage-plugin-common';
@@ -21,14 +22,18 @@ import { useWorkloadContext } from '../WorkloadContext';
 
 interface DependencyContentProps {
   dependencies: Dependency[];
-  /**
-   * Resource dependencies shown read-only. Editing flows through YAML for
-   * now; an inline editor will land alongside the two-button Add bar.
-   */
+  /** Resource dependencies rendered with an inline editor. */
   resources?: ResourceDependency[];
   onDependencyReplace: (index: number, dependency: Dependency) => void;
   onAddDependency: () => number;
   onRemoveDependency: (index: number) => void;
+  /** Resource dependency mutation handlers, mirrored from the endpoint side. */
+  onResourceDependencyReplace?: (
+    index: number,
+    resource: ResourceDependency,
+  ) => void;
+  onAddResourceDependency?: (ref: string) => number;
+  onRemoveResourceDependency?: (index: number) => void;
   disabled: boolean;
 }
 
@@ -41,6 +46,9 @@ export const DependencyContent: FC<DependencyContentProps> = ({
   onDependencyReplace,
   onAddDependency,
   onRemoveDependency,
+  onResourceDependencyReplace,
+  onAddResourceDependency,
+  onRemoveResourceDependency,
   disabled,
 }) => {
   const catalogApi = useApi(catalogApiRef);
@@ -57,6 +65,17 @@ export const DependencyContent: FC<DependencyContentProps> = ({
   const [allComponents, setAllComponents] = useState<Entity[]>([]);
   const [endpointCache, setEndpointCache] = useState<{
     [key: string]: EndpointMap;
+  }>({});
+  // Resource entities owned by the current project. Drives the Add
+  // Resource Dependency picker and lets the row editor resolve a ref to
+  // its (Cluster)ResourceType for the outputs fetch.
+  const [projectResources, setProjectResources] = useState<Entity[]>([]);
+  // Outputs cache keyed by resource ref. Each entry is the declared
+  // outputs[] of the resource's (Cluster)ResourceType; rendered by
+  // ResourceDependencyEditor to drive the Add-binding dropdown and the
+  // per-row kind chips.
+  const [outputsByRef, setOutputsByRef] = useState<{
+    [ref: string]: ResourceTypeOutput[];
   }>({});
 
   const editBuffer = useDependencyEditBuffer({
@@ -89,6 +108,51 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     };
     fetchComponents();
   }, [catalogApi, selectedEntity, currentProject]);
+
+  // Fetch Resource entities owned by the current project from the catalog.
+  useEffect(() => {
+    const fetchResources = async () => {
+      const entities = await catalogApi.getEntities();
+      setProjectResources(
+        entities.items?.filter(
+          entity =>
+            entity.kind === 'Resource' &&
+            entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ===
+              currentProject,
+        ) || [],
+      );
+    };
+    fetchResources();
+  }, [catalogApi, currentProject]);
+
+  // Fetch outputs for each wired resource dep. Walks resources[], looks up
+  // each ref's catalog Entity (for the RESOURCE_TYPE_KIND annotation), and
+  // hits the BFF outputs endpoint. Results are cached by ref so flipping
+  // between FORM and YAML modes doesn't re-fetch.
+  useEffect(() => {
+    if (!resources || resources.length === 0) return;
+    if (projectResources.length === 0) return;
+
+    const refsToFetch = resources
+      .map(r => r.ref)
+      .filter(ref => ref && !(ref in outputsByRef));
+
+    refsToFetch.forEach(async ref => {
+      const entity = projectResources.find(e => e.metadata.name === ref);
+      if (!entity) return;
+      try {
+        const result = await client.fetchResourceTypeOutputs(entity);
+        setOutputsByRef(prev => ({
+          ...prev,
+          [ref]: result.data ?? [],
+        }));
+      } catch {
+        // Cache an empty array so we don't retry indefinitely; the editor
+        // tolerates missing outputs (no kind chips, empty Add dropdown).
+        setOutputsByRef(prev => ({ ...prev, [ref]: [] }));
+      }
+    });
+  }, [resources, projectResources, outputsByRef, client]);
 
   // Get unique projects from all components
   const projectList: ProjectOption[] = useMemo(() => {
@@ -335,6 +399,11 @@ export const DependencyContent: FC<DependencyContentProps> = ({
       onComponentChange={handleComponentChange}
       onEndpointChange={handleEndpointChange}
       getAvailableVisibilities={getAvailableVisibilities}
+      projectResources={projectResources}
+      outputsByRef={outputsByRef}
+      onResourceDependencyReplace={onResourceDependencyReplace}
+      onAddResourceDependency={onAddResourceDependency}
+      onRemoveResourceDependency={onRemoveResourceDependency}
     />
   );
 };

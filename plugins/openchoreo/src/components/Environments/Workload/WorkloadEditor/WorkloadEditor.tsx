@@ -9,6 +9,7 @@ import type {
   EnvVar,
   FileVar,
   Dependency,
+  ResourceDependency,
   WorkloadResource,
   WorkloadSpec,
 } from '@openchoreo/backstage-plugin-common';
@@ -286,12 +287,12 @@ export function WorkloadEditor({
 
   /**
    * Patch one or more fields of `spec.dependencies` while preserving every
-   * other field. Callers pass `{ endpoints }` (and, in future, `{ resources }`)
-   * and the other side survives. Without this merge, wholesale-replacing
+   * other field. Callers pass `{ endpoints }` or `{ resources }` and the
+   * other side survives. Without this merge, wholesale-replacing
    * `dependencies` from a single-key patch drops the other side on save.
    */
   const updateDependencies = useCallback(
-    (patch: { endpoints?: Dependency[] }) => {
+    (patch: { endpoints?: Dependency[]; resources?: ResourceDependency[] }) => {
       updateSpec({
         ...formData,
         dependencies: { ...formData.dependencies, ...patch },
@@ -435,6 +436,31 @@ export function WorkloadEditor({
       (_, i) => i !== index,
     );
     updateDependencies({ endpoints: updatedEndpoints });
+  };
+
+  const handleResourceDependencyReplace = (
+    index: number,
+    resource: ResourceDependency,
+  ) => {
+    const currentResources = formData.dependencies?.resources || [];
+    const updatedResources = [...currentResources];
+    updatedResources[index] = resource;
+    updateDependencies({ resources: updatedResources });
+  };
+
+  const addResourceDependency = (ref: string): number => {
+    const newResource: ResourceDependency = { ref };
+    const currentResources = formData.dependencies?.resources || [];
+    const updatedResources = [...currentResources, newResource];
+    updateDependencies({ resources: updatedResources });
+    return updatedResources.length - 1;
+  };
+
+  const removeResourceDependency = (index: number) => {
+    const updatedResources = (formData.dependencies?.resources || []).filter(
+      (_, i) => i !== index,
+    );
+    updateDependencies({ resources: updatedResources });
   };
 
   const handleArrayFieldChange = (field: 'command' | 'args', value: string) => {
@@ -729,6 +755,11 @@ export function WorkloadEditor({
                       onDependencyReplace={handleDependencyReplace}
                       onAddDependency={addDependency}
                       onRemoveDependency={removeDependency}
+                      onResourceDependencyReplace={
+                        handleResourceDependencyReplace
+                      }
+                      onAddResourceDependency={addResourceDependency}
+                      onRemoveResourceDependency={removeResourceDependency}
                     />
                   )}
                 </Box>
