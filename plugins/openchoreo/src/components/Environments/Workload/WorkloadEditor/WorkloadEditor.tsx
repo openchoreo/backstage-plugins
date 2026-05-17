@@ -525,7 +525,9 @@ export function WorkloadEditor({
   // --- Inner nav items with counts ---
 
   const endpointCount = Object.keys(formData.endpoints || {}).length;
-  const dependencyCount = (formData.dependencies?.endpoints || []).length;
+  const dependencyCount =
+    (formData.dependencies?.endpoints || []).length +
+    (formData.dependencies?.resources || []).length;
 
   const workloadNavItems = useMemo(
     () =>
@@ -723,6 +725,7 @@ export function WorkloadEditor({
                     <DependencyContent
                       disabled={isDeploying}
                       dependencies={formData.dependencies?.endpoints || []}
+                      resources={formData.dependencies?.resources || []}
                       onDependencyReplace={handleDependencyReplace}
                       onAddDependency={addDependency}
                       onRemoveDependency={removeDependency}

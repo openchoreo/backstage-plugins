@@ -68,8 +68,11 @@ jest.mock('./EndpointContent', () => ({
 jest.mock('./DependencyContent', () => ({
   DependencyContent: (props: any) => (
     <div data-testid="dependency-content">
-      <div data-testid="dependency-content-count">
+      <div data-testid="dependency-content-endpoint-count">
         {(props.dependencies ?? []).length}
+      </div>
+      <div data-testid="dependency-content-resource-count">
+        {(props.resources ?? []).length}
       </div>
       <button
         type="button"
@@ -158,6 +161,32 @@ describe('WorkloadEditor', () => {
   it('mounts the dependencies tab', () => {
     renderEditor(buildWorkload({ container: { image: 'nginx:1' } }));
     expect(screen.getByTestId('dependency-content')).toBeInTheDocument();
+  });
+
+  it('passes both endpoint and resource dependencies down to DependencyContent', () => {
+    renderEditor(
+      buildWorkload({
+        container: { image: 'nginx:1' },
+        dependencies: {
+          endpoints: [
+            {
+              component: 'payments-svc',
+              name: 'orders',
+              visibility: 'project',
+              envBindings: { address: 'PAYMENTS_ADDR' },
+            },
+          ],
+          resources: [{ ref: 'orders-db', envBindings: { host: 'DB_HOST' } }],
+        },
+      }),
+    );
+
+    expect(
+      screen.getByTestId('dependency-content-endpoint-count').textContent,
+    ).toBe('1');
+    expect(
+      screen.getByTestId('dependency-content-resource-count').textContent,
+    ).toBe('1');
   });
 
   describe('dependencies.resources preservation when endpoints are edited', () => {

@@ -2,13 +2,17 @@ import type { FC } from 'react';
 import { Box, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
-import type { Dependency } from '@openchoreo/backstage-plugin-common';
+import type {
+  Dependency,
+  ResourceDependency,
+} from '@openchoreo/backstage-plugin-common';
 import {
   DependencyEditor,
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,
 } from '../DependencyEditor';
+import { ResourceDependencyDisplay } from '../ResourceDependencyDisplay';
 import type { UseDependencyEditBufferResult } from '../../hooks/useDependencyEditBuffer';
 
 const useStyles = makeStyles(theme => ({
@@ -21,8 +25,13 @@ const useStyles = makeStyles(theme => ({
 }));
 
 export interface DependencyListProps {
-  /** Dependencies to display */
+  /** Endpoint dependencies to display and edit */
   dependencies: Dependency[];
+  /**
+   * Resource dependencies to display read-only. Editing happens via the
+   * YAML view (or the dedicated resource-dependency editor, when shipped).
+   */
+  resources?: ResourceDependency[];
   /** Whether editing is disabled */
   disabled: boolean;
   /** Edit buffer state and handlers from useDependencyEditBuffer */
@@ -53,6 +62,7 @@ export interface DependencyListProps {
  */
 export const DependencyList: FC<DependencyListProps> = ({
   dependencies,
+  resources,
   disabled,
   editBuffer,
   onRemoveDependency,
@@ -157,6 +167,18 @@ export const DependencyList: FC<DependencyListProps> = ({
       >
         Add Dependency
       </Button>
+      {resources && resources.length > 0 && (
+        <Box mt={2}>
+          {resources.map((resource, index) => (
+            <ResourceDependencyDisplay
+              // ref is the developer's unique handle for the binding and is
+              // stable across renders; falls back to index for empty refs.
+              key={resource.ref || `resource-${index}`}
+              dependency={resource}
+            />
+          ))}
+        </Box>
+      )}
     </Box>
   );
 };

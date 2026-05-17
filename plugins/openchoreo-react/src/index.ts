@@ -84,6 +84,10 @@ export {
   type DependencyListProps,
 } from './components/DependencyList';
 export {
+  ResourceDependencyDisplay,
+  type ResourceDependencyDisplayProps,
+} from './components/ResourceDependencyDisplay';
+export {
   GroupedSection,
   type GroupedSectionProps,
   type GroupedSectionStatus,

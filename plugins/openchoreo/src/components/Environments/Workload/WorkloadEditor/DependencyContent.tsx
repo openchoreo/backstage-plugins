@@ -1,6 +1,7 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dependency,
+  ResourceDependency,
   WorkloadEndpoint,
   WorkloadResource,
 } from '@openchoreo/backstage-plugin-common';
@@ -20,6 +21,11 @@ import { useWorkloadContext } from '../WorkloadContext';
 
 interface DependencyContentProps {
   dependencies: Dependency[];
+  /**
+   * Resource dependencies shown read-only. Editing flows through YAML for
+   * now; an inline editor will land alongside the two-button Add bar.
+   */
+  resources?: ResourceDependency[];
   onDependencyReplace: (index: number, dependency: Dependency) => void;
   onAddDependency: () => number;
   onRemoveDependency: (index: number) => void;
@@ -31,6 +37,7 @@ type EndpointMap = { [endpointName: string]: WorkloadEndpoint };
 
 export const DependencyContent: FC<DependencyContentProps> = ({
   dependencies,
+  resources,
   onDependencyReplace,
   onAddDependency,
   onRemoveDependency,
@@ -316,6 +323,7 @@ export const DependencyContent: FC<DependencyContentProps> = ({
   return (
     <DependencyList
       dependencies={dependencies}
+      resources={resources}
       disabled={disabled}
       editBuffer={editBuffer}
       onRemoveDependency={onRemoveDependency}

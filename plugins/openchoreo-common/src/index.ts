@@ -253,6 +253,13 @@ export type ModelsWorkload = WorkloadResponse;
 export type WorkloadResource = OpenChoreoComponents['schemas']['Workload'];
 /** Spec portion of a WorkloadResource */
 export type WorkloadSpec = NonNullable<WorkloadResource['spec']>;
+/**
+ * A resource dependency entry under Workload.spec.dependencies.resources[].
+ * Binds named outputs of a Resource into the consuming container as env vars
+ * (envBindings) and file mounts (fileBindings).
+ */
+export type ResourceDependency =
+  OpenChoreoComponents['schemas']['WorkloadResourceDependency'];
 /** ComponentRelease resource type from the OpenAPI spec */
 export type ComponentRelease =
   OpenChoreoComponents['schemas']['ComponentRelease'];
