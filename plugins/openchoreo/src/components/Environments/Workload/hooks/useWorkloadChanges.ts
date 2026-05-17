@@ -31,8 +31,14 @@ type Dep = {
   envBindings: Record<string, string | undefined>;
 };
 
+type ResourceDep = {
+  ref: string;
+  envBindings?: Record<string, string | undefined>;
+  fileBindings?: Record<string, string | undefined>;
+};
+
 /**
- * Build a human-readable label for a dependency.
+ * Build a human-readable label for an endpoint dependency.
  */
 function dependencyLabel(dep: Dep): string {
   const parts: string[] = [];
@@ -43,35 +49,51 @@ function dependencyLabel(dep: Dep): string {
 }
 
 /**
- * Compare dependency arrays and produce changes with readable labels
- * instead of raw array indices.
+ * Build a human-readable label for a resource dependency. The ref is the
+ * developer's primary handle for the binding so the label is just the ref.
  */
-function compareDependencies(initial: Dep[], current: Dep[]): Change[] {
+function resourceDependencyLabel(dep: ResourceDep): string {
+  return dep.ref || 'unknown';
+}
+
+/**
+ * Walk two arrays in order and emit add/remove/modify changes, deriving
+ * each change's path from a caller-supplied label function so the user
+ * sees `payments-svc/orders` or `orders-db` instead of `[0]`.
+ */
+function diffNamedArray<T>(
+  initial: T[],
+  current: T[],
+  label: (item: T) => string,
+): Change[] {
   const changes: Change[] = [];
   const maxLen = Math.max(initial.length, current.length);
 
   for (let i = 0; i < maxLen; i++) {
-    const oldDep = initial[i];
-    const newDep = current[i];
+    const oldItem = initial[i];
+    const newItem = current[i];
 
-    if (!oldDep && newDep) {
+    if (!oldItem && newItem) {
       changes.push({
-        path: dependencyLabel(newDep),
+        path: label(newItem),
         type: 'new',
         newValue: 'Added',
       });
-    } else if (oldDep && !newDep) {
+    } else if (oldItem && !newItem) {
       changes.push({
-        path: dependencyLabel(oldDep),
+        path: label(oldItem),
         type: 'removed',
         oldValue: 'Removed',
       });
-    } else if (oldDep && newDep) {
-      const fieldDiffs = deepCompareObjects(oldDep, newDep);
+    } else if (oldItem && newItem) {
+      const fieldDiffs = deepCompareObjects(
+        oldItem as unknown as Record<string, unknown>,
+        newItem as unknown as Record<string, unknown>,
+      );
       if (fieldDiffs.length > 0) {
-        const label = dependencyLabel(newDep);
+        const path = label(newItem);
         for (const diff of fieldDiffs) {
-          changes.push({ ...diff, path: `${label}.${diff.path}` });
+          changes.push({ ...diff, path: `${path}.${diff.path}` });
         }
       }
     }
@@ -111,11 +133,23 @@ export function useWorkloadChanges(
       currentSpec?.endpoints || {},
     );
 
-    // Compare dependencies with human-readable labels
-    const dependencyChanges = compareDependencies(
+    // Compare dependencies with human-readable labels. Endpoint and resource
+    // deps live as siblings under spec.dependencies; both sides need to flip
+    // dirty state so callers (save buttons, unsaved-changes prompts) see them.
+    const endpointDependencyChanges = diffNamedArray(
       (initialSpec?.dependencies?.endpoints || []) as Dep[],
       (currentSpec?.dependencies?.endpoints || []) as Dep[],
+      dependencyLabel,
     );
+    const resourceDependencyChanges = diffNamedArray(
+      (initialSpec?.dependencies?.resources || []) as ResourceDep[],
+      (currentSpec?.dependencies?.resources || []) as ResourceDep[],
+      resourceDependencyLabel,
+    );
+    const dependencyChanges = [
+      ...endpointDependencyChanges,
+      ...resourceDependencyChanges,
+    ];
 
     // Compare everything else: remaining spec fields + resource-level fields (metadata, etc.)
     const pickOtherSpec = (
