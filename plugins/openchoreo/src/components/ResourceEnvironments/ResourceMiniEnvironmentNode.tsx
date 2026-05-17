@@ -11,10 +11,10 @@ import {
   Tooltip,
   Typography,
 } from '@material-ui/core';
+import CloudIcon from '@material-ui/icons/Cloud';
 import MoreVertIcon from '@material-ui/icons/MoreVert';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
-import StorageOutlinedIcon from '@material-ui/icons/StorageOutlined';
 import clsx from 'clsx';
 import { useNavigate } from 'react-router-dom';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
@@ -96,7 +96,7 @@ export const ResourceMiniEnvironmentNode = ({
         <Box className={classes.body}>
           <Box className={classes.topRow}>
             <Box className={classes.nameWrap}>
-              <StorageOutlinedIcon
+              <CloudIcon
                 aria-hidden
                 className={classes.kindIcon}
                 fontSize="small"
