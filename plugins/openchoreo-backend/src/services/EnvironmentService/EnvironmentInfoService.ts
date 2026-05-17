@@ -2011,7 +2011,25 @@ export class EnvironmentInfoService implements EnvironmentService {
       bindingName = binding.metadata?.name;
       resourceRelease = binding.spec?.resourceRelease;
       retainPolicy = binding.spec?.retainPolicy;
-      lastDeployed = binding.metadata?.creationTimestamp;
+      // Use the Ready condition's lastTransitionTime as the deploy
+      // timestamp. The aggregate Ready flips whenever Synced /
+      // ResourcesReady / OutputsResolved transition, so promotes (which
+      // push DP resources through a Pending → Ready cycle) bump it
+      // naturally. Synced alone is unreliable here — its message keys
+      // off the RenderedRelease name which is binding-stable across
+      // promotes, so SetStatusCondition treats subsequent re-renders
+      // as no-ops and never refreshes the timestamp. Falls back to
+      // creationTimestamp on bindings the controller has not yet
+      // reconciled.
+      const readyCond = (
+        binding.status?.conditions as Array<{
+          type?: string;
+          lastTransitionTime?: string;
+        }> | undefined
+      )?.find(c => c.type === 'Ready');
+      lastDeployed =
+        readyCond?.lastTransitionTime ??
+        binding.metadata?.creationTimestamp;
 
       // Same Ready-condition derivation as the response transformer so the
       // env-info join and per-binding GET render identical status for the
