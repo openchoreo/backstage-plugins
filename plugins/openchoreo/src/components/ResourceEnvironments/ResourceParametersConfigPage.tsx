@@ -256,7 +256,11 @@ export const ResourceParametersConfigPage = ({
       );
       onContinue(firstEnvRef, newRelease);
     } catch (err: unknown) {
-      setSaveError(getErrorMessage(err));
+      // Skip state writes if the user navigated away while a request
+      // was in flight or the poll loop was still iterating — the
+      // component is gone and React would warn about updating an
+      // unmounted component.
+      if (!cancelledRef.current) setSaveError(getErrorMessage(err));
     } finally {
       if (!cancelledRef.current) setPhase('idle');
     }
@@ -340,6 +344,15 @@ export const ResourceParametersConfigPage = ({
         <Box mb={2}>
           <Alert severity="error" onClose={() => setSaveError(null)}>
             {saveError}
+          </Alert>
+        </Box>
+      )}
+
+      {!loading && !loadError && !firstEnvRef && (
+        <Box mb={2}>
+          <Alert severity="info">
+            No environments are configured in the project&apos;s deployment
+            pipeline. Configure environments before deploying this resource.
           </Alert>
         </Box>
       )}
