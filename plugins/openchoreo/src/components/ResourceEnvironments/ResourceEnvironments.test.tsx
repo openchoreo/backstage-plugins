@@ -365,23 +365,32 @@ describe('ResourceEnvironments', () => {
   });
 
   describe('promote action', () => {
-    const behind = [
+    // Dev has rel-abc, Staging has nothing → dev is eligible to promote
+    // forward to staging. Mirrors Component's forward-promote semantic.
+    const forwardable = [
       {
         name: 'dev',
         bindingName: 'b-dev',
-        resourceRelease: 'rel-old',
+        resourceRelease: 'rel-abc',
         retainPolicy: 'Delete' as const,
         status: 'Ready' as const,
-        latestRelease: 'rel-new',
+        promotionTargets: [{ name: 'staging' }],
+      },
+      {
+        name: 'staging',
+        resourceName: 'staging',
       },
     ];
 
-    it('calls updateResourceReleaseBinding with the latest release on Promote click', async () => {
+    it('promotes this env release to the next env via the panel Promote button', async () => {
       const client = {
         fetchResourceEnvironmentInfo: jest
           .fn()
-          .mockResolvedValueOnce(behind)
-          .mockResolvedValueOnce([{ ...behind[0], resourceRelease: 'rel-new' }]),
+          .mockResolvedValueOnce(forwardable)
+          .mockResolvedValueOnce([
+            forwardable[0],
+            { ...forwardable[1], resourceRelease: 'rel-abc' },
+          ]),
         updateResourceReleaseBinding: jest.fn().mockResolvedValue({}),
       };
 
@@ -391,14 +400,18 @@ describe('ResourceEnvironments', () => {
         await screen.findByRole('button', { name: /select environment dev/i }),
       );
 
-      const button = await screen.findByRole('button', { name: /promote/i });
+      // Panel Promote button reads plain "Promote" (matches Component).
+      // Anchor to disambiguate from the env card's "Promote dev to staging".
+      const button = await screen.findByRole('button', {
+        name: /^promote$/i,
+      });
       fireEvent.click(button);
 
       await waitFor(() => {
         expect(client.updateResourceReleaseBinding).toHaveBeenCalledWith(
           expect.anything(),
-          'dev',
-          { resourceRelease: 'rel-new' },
+          'staging',
+          { resourceRelease: 'rel-abc' },
         );
       });
       expect(screen.getByTestId('notification').getAttribute('data-type')).toBe(

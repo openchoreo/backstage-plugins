@@ -16,6 +16,10 @@ import { useEnvironmentPolling } from '../Environments/hooks';
 import { ResourceDeployFlowCanvas } from './ResourceDeployFlowCanvas';
 import { ResourceEnvironmentDetailPanel } from './ResourceEnvironmentDetailPanel';
 import { ResourceReleaseManifestDialog } from './ResourceReleaseManifestDialog';
+import {
+  computeResourceReleaseDrift,
+  type ResourceReleaseDriftInfo,
+} from './computeResourceReleaseDrift';
 import { ResourceSetupDetailPane } from './ResourceSetupDetailPane';
 import {
   ResourceEnvironmentsProvider,
@@ -230,6 +234,14 @@ export const ResourceEnvironmentsList = () => {
   const selectedEnv =
     envs.find(e => e.name === selectedEnvName) ?? null;
 
+  const driftByEnv = useMemo(() => {
+    const map = new Map<string, ResourceReleaseDriftInfo>();
+    for (const env of envs) {
+      map.set(env.name, computeResourceReleaseDrift(env, envs));
+    }
+    return map;
+  }, [envs]);
+
   const contextValue = useMemo(
     () => ({
       environments: envs,
@@ -238,6 +250,7 @@ export const ResourceEnvironmentsList = () => {
       selectedEnvName,
       setSelectedEnvName,
       pendingAction,
+      driftByEnv,
       onPromote: handlePromote,
       onUndeployRequest: handleUndeployRequest,
       onRetainPolicyChange: handleRetainPolicyChange,
@@ -249,6 +262,7 @@ export const ResourceEnvironmentsList = () => {
       fetchEnvs,
       selectedEnvName,
       pendingAction,
+      driftByEnv,
       handlePromote,
       handleUndeployRequest,
       handleRetainPolicyChange,

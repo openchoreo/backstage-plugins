@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { ResourceEnvironment } from '../../api/OpenChoreoClientApi';
+import type { ResourceReleaseDriftInfo } from './computeResourceReleaseDrift';
 
 export type ActionKind = 'promote' | 'undeploy' | 'retain';
 
@@ -12,6 +13,9 @@ export interface ResourceEnvironmentsContextValue {
   setSelectedEnvName: (name: string | null) => void;
 
   pendingAction: { env: string; kind: ActionKind } | null;
+
+  /** Pipeline drift per env name (Component-style upstream comparison). */
+  driftByEnv: Map<string, ResourceReleaseDriftInfo>;
 
   onPromote: (environment: string, releaseName: string) => void | Promise<void>;
   onUndeployRequest: (environment: string) => void;

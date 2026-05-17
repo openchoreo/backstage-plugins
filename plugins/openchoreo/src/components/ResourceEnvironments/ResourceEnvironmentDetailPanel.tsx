@@ -72,6 +72,7 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
   const navigate = useNavigate();
   const notification = useNotification();
   const {
+    environments,
     pendingAction,
     refetch,
     onPromote,
@@ -94,10 +95,27 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
   const hasOutputs = outputCount > 0;
   const badgeStatus = deriveResourceEnvBadgeStatus(env);
 
-  const isBehindLatest =
+  // Promote eligibility (forward-promote semantic, same as the env card):
+  // shows when this env has a binding + release + at least one
+  // promotion target that doesn't already have this release.
+  const promotionTargets = env.promotionTargets ?? [];
+  const eligibleTargets = env.resourceRelease
+    ? promotionTargets.filter(t => {
+        const targetEnv = environments.find(e => e.name === t.name);
+        return targetEnv?.resourceRelease !== env.resourceRelease;
+      })
+    : [];
+  const allTargetsInSync =
+    promotionTargets.length > 0 && eligibleTargets.length === 0;
+  const isPromotingForward = promotionTargets.some(
+    t =>
+      pendingAction?.kind === 'promote' && pendingAction.env === t.name,
+  );
+  const showForwardPromote =
     hasBinding &&
-    Boolean(env.latestRelease) &&
-    env.resourceRelease !== env.latestRelease;
+    Boolean(env.resourceRelease) &&
+    env.status === 'Ready' &&
+    promotionTargets.length > 0;
 
   // Hide REASON / MESSAGE on the happy path; show them only when the
   // binding isn't Ready so the user has the context to debug.
@@ -118,12 +136,16 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
   const updatePerm = useResourceReleaseBindingUpdatePermission(env.name);
   const deletePerm = useResourceReleaseBindingDeletePermission(env.name);
 
-  const isPromoting =
-    pendingAction?.env === env.name && pendingAction.kind === 'promote';
   const isUndeploying =
     pendingAction?.env === env.name && pendingAction.kind === 'undeploy';
   const isUpdatingRetainPolicy =
     pendingAction?.env === env.name && pendingAction.kind === 'retain';
+
+  const handlePromoteSingle = () => {
+    const target = eligibleTargets[0];
+    if (!target || !env.resourceRelease) return;
+    void onPromote(target.name, env.resourceRelease);
+  };
 
   return (
     <Box className={classes.panel}>
@@ -222,13 +244,6 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                       </IconButton>
                     </Tooltip>
                   )}
-                  {isBehindLatest && (
-                    <Tooltip
-                      title={`Behind latest release ${env.latestRelease}. Click Promote to advance.`}
-                    >
-                      <span className={classes.driftBadge}>Behind</span>
-                    </Tooltip>
-                  )}
                 </Box>
               </Box>
               {env.lastDeployed && (
@@ -264,14 +279,12 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
                 Actions
               </Typography>
               <Box className={classes.actionsRow}>
-                {isBehindLatest && (
-                  <PromoteButton
-                    targetRelease={env.latestRelease!}
-                    canUpdate={updatePerm.canUpdate}
-                    permLoading={updatePerm.loading}
-                    deniedTooltip={updatePerm.deniedTooltip}
-                    isPromoting={isPromoting}
-                    onClick={() => onPromote(env.name, env.latestRelease!)}
+                {showForwardPromote && (
+                  <ForwardPromoteButton
+                    allTargetsInSync={allTargetsInSync}
+                    eligibleTargets={eligibleTargets}
+                    isPromotingForward={isPromotingForward}
+                    onPromoteSingle={handlePromoteSingle}
                   />
                 )}
                 <ConfigureOverridesButton
@@ -426,44 +439,47 @@ const ResourceEnvironmentDetailContent = ({ env, onClose }: ContentProps) => {
   );
 };
 
-interface PromoteButtonProps {
-  targetRelease: string;
-  canUpdate: boolean;
-  permLoading: boolean;
-  deniedTooltip: string;
-  isPromoting: boolean;
-  onClick: () => void;
+interface ForwardPromoteButtonProps {
+  allTargetsInSync: boolean;
+  eligibleTargets: Array<{ name: string }>;
+  isPromotingForward: boolean;
+  onPromoteSingle: () => void;
 }
 
-function PromoteButton({
-  targetRelease,
-  canUpdate,
-  permLoading,
-  deniedTooltip,
-  isPromoting,
-  onClick,
-}: PromoteButtonProps) {
-  const disabled = !canUpdate || permLoading || isPromoting;
-  const tooltip =
-    !canUpdate && !permLoading
-      ? deniedTooltip
-      : `Advance binding to ${targetRelease}`;
+function ForwardPromoteButton({
+  allTargetsInSync,
+  eligibleTargets,
+  isPromotingForward,
+  onPromoteSingle,
+}: ForwardPromoteButtonProps) {
+  if (allTargetsInSync) {
+    return (
+      <Button size="small" variant="contained" disabled>
+        Promoted
+      </Button>
+    );
+  }
+  // Single-target fast path. Resource pipelines are typically linear, so
+  // multi-target dropdown lives on the env card (cleaner anchor); the
+  // panel just promotes to the first eligible target for parity.
+  const target = eligibleTargets[0];
+  if (!target) return null;
   return (
-    <Tooltip title={tooltip}>
+    <Tooltip title={`Promote to ${target.name}`}>
       <span>
         <Button
           size="small"
           variant="contained"
           color="primary"
-          onClick={onClick}
-          disabled={disabled}
+          onClick={onPromoteSingle}
+          disabled={isPromotingForward}
           startIcon={
-            isPromoting ? (
+            isPromotingForward ? (
               <CircularProgress size={14} color="inherit" />
             ) : undefined
           }
         >
-          Promote
+          {isPromotingForward ? 'Promoting...' : 'Promote'}
         </Button>
       </span>
     </Tooltip>

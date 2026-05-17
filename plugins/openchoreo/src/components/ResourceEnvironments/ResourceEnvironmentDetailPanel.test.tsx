@@ -30,6 +30,7 @@ function makeCtx(
     selectedEnvName: null,
     setSelectedEnvName: jest.fn(),
     pendingAction: null,
+    driftByEnv: new Map(),
     onPromote: jest.fn(),
     onUndeployRequest: jest.fn(),
     onRetainPolicyChange: jest.fn(),
@@ -122,22 +123,28 @@ describe('ResourceEnvironmentDetailPanel', () => {
     expect(onUndeployRequest).toHaveBeenCalledWith('dev');
   });
 
-  it('shows Promote when binding pin is behind latestRelease', () => {
+  it('shows Promote to <next-env> when a promotion target is eligible', () => {
     const onPromote = jest.fn();
-    renderPanel(
-      {
-        name: 'dev',
-        bindingName: 'b-dev',
-        resourceRelease: 'rel-old',
-        retainPolicy: 'Delete',
-        status: 'Ready',
-        latestRelease: 'rel-new',
-      },
-      { onPromote },
-    );
+    const dev = {
+      name: 'dev',
+      bindingName: 'b-dev',
+      resourceRelease: 'rel-abc',
+      retainPolicy: 'Delete' as const,
+      status: 'Ready' as const,
+      promotionTargets: [{ name: 'staging' }],
+    };
+    const staging = {
+      name: 'staging',
+      resourceName: 'staging',
+      // Staging exists but lacks rel-abc, so dev can promote forward.
+    };
+    renderPanel(dev, {
+      onPromote,
+      environments: [dev, staging],
+    });
 
     fireEvent.click(screen.getByRole('button', { name: /^promote$/i }));
-    expect(onPromote).toHaveBeenCalledWith('dev', 'rel-new');
+    expect(onPromote).toHaveBeenCalledWith('staging', 'rel-abc');
   });
 
   it('opens the release manifest dialog via the Release row View button', () => {
@@ -303,43 +310,23 @@ describe('ResourceEnvironmentDetailPanel', () => {
     ).toBeNull();
   });
 
-  it('disables Promote when isPromoting for this env', () => {
-    renderPanel(
-      {
-        name: 'dev',
-        bindingName: 'b-dev',
-        resourceRelease: 'rel-old',
-        status: 'Ready',
-        latestRelease: 'rel-new',
-      },
-      { pendingAction: { env: 'dev', kind: 'promote' } },
-    );
-    expect(screen.getByRole('button', { name: /^promote$/i })).toBeDisabled();
+  it('shows Promoting... while a forward promote is in flight', () => {
+    const dev = {
+      name: 'dev',
+      bindingName: 'b-dev',
+      resourceRelease: 'rel-abc',
+      retainPolicy: 'Delete' as const,
+      status: 'Ready' as const,
+      promotionTargets: [{ name: 'staging' }],
+    };
+    renderPanel(dev, {
+      environments: [
+        dev,
+        { name: 'staging', resourceName: 'staging' },
+      ],
+      pendingAction: { env: 'staging', kind: 'promote' },
+    });
+    expect(screen.getByText('Promoting...')).toBeInTheDocument();
   });
 
-  describe('drift badge', () => {
-    it('renders a "Behind" badge inline with the Release row when behind latest', () => {
-      renderPanel({
-        name: 'dev',
-        bindingName: 'b-dev',
-        resourceRelease: 'rel-old',
-        retainPolicy: 'Delete',
-        status: 'Ready',
-        latestRelease: 'rel-new',
-      });
-      expect(screen.getByText('Behind')).toBeInTheDocument();
-    });
-
-    it('does not render the badge when at latest', () => {
-      renderPanel({
-        name: 'dev',
-        bindingName: 'b-dev',
-        resourceRelease: 'rel-1',
-        retainPolicy: 'Delete',
-        status: 'Ready',
-        latestRelease: 'rel-1',
-      });
-      expect(screen.queryByText('Behind')).toBeNull();
-    });
-  });
 });

@@ -18,6 +18,7 @@ import CloudIcon from '@material-ui/icons/Cloud';
 import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
 import MoreVertIcon from '@material-ui/icons/MoreVert';
 import RefreshIcon from '@material-ui/icons/Refresh';
+import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import clsx from 'clsx';
 import { useNavigate } from 'react-router-dom';
@@ -47,7 +48,10 @@ export const ResourceMiniEnvironmentNode = ({
     refetch,
     onPromote,
     onViewReleaseManifest,
+    driftByEnv,
   } = useResourceEnvironmentsContext();
+  const drift = driftByEnv.get(env.name);
+  const isBehindUpstream = drift?.isBehind ?? false;
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [promoteAnchor, setPromoteAnchor] = useState<HTMLElement | null>(null);
 
@@ -190,6 +194,32 @@ export const ResourceMiniEnvironmentNode = ({
           <Box className={classes.metaRow}>
             <span className={classes.meta}>STATUS:</span>
             <StatusBadge status={badgeStatus} />
+            {isBehindUpstream && (
+              <Tooltip
+                title={
+                  <>
+                    <div>
+                      Behind {drift!.aheadUpstreams.map(u => u.envName).join(', ')}
+                    </div>
+                    {drift!.aheadUpstreams[0]?.releaseName && (
+                      <div>
+                        {drift!.aheadUpstreams[0].envName} on{' '}
+                        {drift!.aheadUpstreams[0].releaseName}
+                      </div>
+                    )}
+                  </>
+                }
+                PopperProps={{ disablePortal: true }}
+              >
+                <span
+                  className={classes.driftBadge}
+                  aria-label="behind upstream"
+                >
+                  <ReportProblemOutlinedIcon fontSize="inherit" />
+                  behind
+                </span>
+              </Tooltip>
+            )}
           </Box>
 
           {relativeDeployed && (

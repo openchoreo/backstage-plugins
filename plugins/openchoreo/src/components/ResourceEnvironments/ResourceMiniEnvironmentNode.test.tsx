@@ -39,6 +39,7 @@ function makeCtx(
     selectedEnvName: null,
     setSelectedEnvName: jest.fn(),
     pendingAction: null,
+    driftByEnv: new Map(),
     onPromote: jest.fn(),
     onUndeployRequest: jest.fn(),
     onRetainPolicyChange: jest.fn(),
@@ -256,6 +257,32 @@ describe('ResourceMiniEnvironmentNode', () => {
       };
       renderTile(unbound, false, () => {}, { environments: [unbound] });
       expect(screen.queryByRole('button', { name: /^promote/i })).toBeNull();
+    });
+
+    it('renders a lowercase "behind" drift badge when an upstream is ahead', () => {
+      renderTile(bound(), false, () => {}, {
+        driftByEnv: new Map([
+          [
+            'dev',
+            {
+              isBehind: true,
+              aheadUpstreams: [{ envName: 'upstream', releaseName: 'rel-new' }],
+            },
+          ],
+        ]),
+      });
+      const badge = screen.getByLabelText('behind upstream');
+      expect(badge).toBeInTheDocument();
+      expect(badge.textContent).toBe('behind');
+    });
+
+    it('omits the drift badge when not behind', () => {
+      renderTile(bound(), false, () => {}, {
+        driftByEnv: new Map([
+          ['dev', { isBehind: false, aheadUpstreams: [] }],
+        ]),
+      });
+      expect(screen.queryByLabelText('behind upstream')).toBeNull();
     });
 
     describe('multi-target dropdown', () => {
