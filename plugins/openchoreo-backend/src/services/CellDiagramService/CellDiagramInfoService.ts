@@ -14,13 +14,20 @@ import {
   fetchAllPages,
   type ObservabilityComponents,
 } from '@openchoreo/openchoreo-client-node';
-import {
-  ComponentTypeUtils,
-  type ComponentResponse,
-  type Dependency,
-  type WorkloadEndpoint,
-  type WorkloadResponse,
-} from '@openchoreo/backstage-plugin-common';
+import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
+
+// Use generated OpenAPI schemas directly. CellDiagramInfoService previously
+// cast workload.spec through the hand-rolled `bff-types.WorkloadResponse`,
+// which had drifted behind the API (it never gained `dependencies.resources`).
+// The rest of the codebase — WorkloadEditor, resource-dependency editor,
+// per-CRD services — already reads workload data through these generated
+// schemas, so we follow the same pattern here.
+type WorkloadSpec = OpenChoreoComponents['schemas']['WorkloadSpec'];
+type WorkloadEndpoint = OpenChoreoComponents['schemas']['WorkloadEndpoint'];
+type EndpointDependency = OpenChoreoComponents['schemas']['WorkloadConnection'];
+type ResourceDependency =
+  OpenChoreoComponents['schemas']['WorkloadResourceDependency'];
 
 type HttpMetrics = ObservabilityComponents['schemas']['HttpMetricsTimeSeries'];
 type RuntimeTopologyMetrics =
@@ -92,7 +99,15 @@ function adaptRuntimeTopologyMetrics(
   };
 }
 
-type ModelsCompleteComponent = ComponentResponse;
+// Local shape carried through buildProject / generateConnections. Narrower
+// than `ComponentResponse` so the workload field can use the generated
+// `WorkloadSpec` (which includes `dependencies.resources`) instead of the
+// hand-rolled bff-types `WorkloadResponse`.
+interface CompleteComponent {
+  name: string;
+  type: string;
+  workload?: WorkloadSpec;
+}
 
 enum ComponentType {
   SERVICE = 'service',
@@ -155,7 +170,11 @@ export class CellDiagramInfoService implements CellDiagramService {
         logger: this.logger,
       });
 
-      // Fetch components and workloads in parallel (2 calls instead of N+1)
+      // Fetch components and workloads in parallel (2 calls instead of N+1).
+      // We don't need to fetch Resources here: the cell-diagram lib synthesizes
+      // resource nodes from each Datastore connection a workload declares.
+      // Resources that aren't consumed by any workload are not part of the
+      // wired topology and won't appear in the diagram.
       const [componentItems, workloadItems] = await Promise.all([
         fetchAllPages(cursor =>
           client
@@ -200,17 +219,17 @@ export class CellDiagramInfoService implements CellDiagramService {
 
       // Build a map from component name to workload spec
       // Key by owner.componentName (not workload metadata name, which differs)
-      const workloadMap = new Map<string, WorkloadResponse>();
+      const workloadMap = new Map<string, WorkloadSpec>();
       for (const workload of workloadItems) {
         const componentName = (
           workload.spec?.owner as { componentName?: string } | undefined
         )?.componentName;
         if (componentName && workload.spec) {
-          workloadMap.set(componentName, workload.spec as WorkloadResponse);
+          workloadMap.set(componentName, workload.spec as WorkloadSpec);
         }
       }
 
-      const completeComponents: ModelsCompleteComponent[] = componentItems
+      const completeComponents: CompleteComponent[] = componentItems
         .map(comp => {
           const name = comp.metadata?.name ?? '';
           const componentTypeRef = comp.spec?.componentType;
@@ -224,7 +243,7 @@ export class CellDiagramInfoService implements CellDiagramService {
             name,
             type: componentType,
             workload: workloadSpec,
-          } as ModelsCompleteComponent;
+          } as CompleteComponent;
         })
         .filter(comp => comp.name);
 
@@ -601,7 +620,7 @@ export class CellDiagramInfoService implements CellDiagramService {
   private buildProject(
     projectName: string,
     namespaceName: string,
-    completeComponents: ModelsCompleteComponent[],
+    completeComponents: CompleteComponent[],
   ): Project {
     const components: Component[] = completeComponents
       .filter(component => {
@@ -613,6 +632,7 @@ export class CellDiagramInfoService implements CellDiagramService {
         // Get dependencies from workload data included in component response
         const connections = this.generateConnections(
           component.workload?.dependencies?.endpoints,
+          component.workload?.dependencies?.resources,
           namespaceName,
           projectName,
           completeComponents,
@@ -723,22 +743,67 @@ export class CellDiagramInfoService implements CellDiagramService {
       id: projectName,
       name: projectName,
       modelVersion: '1.0.0',
-      components: components,
+      components,
       connections: [],
       configurations: [],
     };
   }
 
   private generateConnections(
-    dependencies: Dependency[] | undefined,
+    endpointDependencies: EndpointDependency[] | undefined,
+    resourceDependencies: ResourceDependency[] | undefined,
     namespaceName: string,
     projectName: string,
-    completeComponents: ModelsCompleteComponent[],
+    completeComponents: CompleteComponent[],
   ): CellDiagramConnection[] {
-    if (!dependencies || dependencies.length === 0) {
-      return [];
-    }
+    const endpointConnections =
+      endpointDependencies && endpointDependencies.length > 0
+        ? this.buildEndpointConnections(
+            endpointDependencies,
+            namespaceName,
+            projectName,
+            completeComponents,
+          )
+        : [];
 
+    const resourceConnections =
+      resourceDependencies && resourceDependencies.length > 0
+        ? this.buildResourceConnections(
+            resourceDependencies,
+            namespaceName,
+            projectName,
+          )
+        : [];
+
+    return [...endpointConnections, ...resourceConnections];
+  }
+
+  private buildResourceConnections(
+    resourceDependencies: ResourceDependency[],
+    namespaceName: string,
+    projectName: string,
+  ): CellDiagramConnection[] {
+    // Emit one Datastore connection per resource dependency. The cell-diagram
+    // lib auto-synthesizes a node from each connection (DatabaseIcon-styled),
+    // shared across consumers that emit the same connection id. We don't need
+    // to model the Resource as its own node — the lib does it for us.
+    return resourceDependencies.map(dep => ({
+      // 4-token id keeps the lib's getConnectionMetadata happy (splits on `:`,
+      // expects 3 or 4 tokens). The label is what gets displayed on the node.
+      id: `${namespaceName}:${projectName}:${dep.ref}:resource`,
+      label: dep.ref,
+      type: ConnectionType.Datastore,
+      onPlatform: true,
+      tooltip: `Resource: ${dep.ref}`,
+    }));
+  }
+
+  private buildEndpointConnections(
+    dependencies: EndpointDependency[],
+    namespaceName: string,
+    projectName: string,
+    completeComponents: CompleteComponent[],
+  ): CellDiagramConnection[] {
     return dependencies.map(dependency => {
       const dependentComponentName = dependency.component;
       const dependentProjectName = dependency.project || projectName;
