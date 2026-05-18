@@ -389,7 +389,7 @@ export const AssistantChatDrawer = ({
     >
       <Box className={classes.header}>
         <Typography variant="subtitle1" className={classes.headerTitle}>
-          Perch
+          Portal Assistant
         </Typography>
         <Box>
           <Tooltip title="Clear conversation">
