@@ -80,6 +80,14 @@ describe('OpenChoreoFetchApi', () => {
       expect(headers.get('Authorization')).toBe('Bearer backstage-token');
     });
 
+    it('does not set credentials in normal mode', async () => {
+      const api = createApi();
+      await api.fetch('http://example.com');
+
+      const init = mockFetch.mock.calls[0][1];
+      expect(init.credentials).toBeUndefined();
+    });
+
     it('continues without IDP token when oauthApi throws', async () => {
       mockOauthApi.getAccessToken.mockRejectedValue(new Error('no token'));
       const api = createApi();
@@ -113,6 +121,16 @@ describe('OpenChoreoFetchApi', () => {
       const headers = mockFetch.mock.calls[0][1].headers as Headers;
       expect(headers.get('Authorization')).toBe('Bearer idp-token');
       expect(mockIdentityApi.getCredentials).not.toHaveBeenCalled();
+    });
+
+    it('sets credentials to include in direct mode', async () => {
+      const api = createApi();
+      await api.fetch('http://example.com', {
+        headers: { 'x-openchoreo-direct': 'true' },
+      });
+
+      const init = mockFetch.mock.calls[0][1];
+      expect(init.credentials).toBe('include');
     });
 
     it('skips IDP token when auth is disabled in direct mode', async () => {
