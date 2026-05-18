@@ -94,7 +94,7 @@ export const createResourceTypeDefinitionAction = (
 
       if (authzEnabled && !token) {
         throw new Error(
-          'User authentication token not available. Please ensure you are logged in.',
+          'User authentication token not available. Ensure you are logged in.',
         );
       }
 

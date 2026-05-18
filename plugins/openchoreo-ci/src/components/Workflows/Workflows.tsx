@@ -399,7 +399,7 @@ export const Workflows = () => {
       <EmptyState
         missing="data"
         title="Workflows Not Available"
-        description="This component is configured to use pre-built container images. Workflows are only available for components that build from source code."
+        description="This component uses pre-built container images. Workflows are only supported for components built from source code."
       />
     );
   }

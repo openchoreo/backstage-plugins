@@ -91,8 +91,8 @@ export class DefaultOpenChoreoTokenService implements OpenChoreoTokenService {
   async getServiceToken(): Promise<string> {
     if (!this.clientCredentialsProvider) {
       throw new Error(
-        'OpenChoreo client credentials not configured. ' +
-          'Please configure openchoreo.auth.clientId, clientSecret, and tokenUrl in app-config.yaml',
+        'OpenChoreo client credentials are not configured. ' +
+          'Configure openchoreo.auth.clientId, clientSecret, and tokenUrl in app-config.yaml',
       );
     }
     return this.clientCredentialsProvider.getToken();

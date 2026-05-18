@@ -208,7 +208,7 @@ export const BindingWizardPage = ({
   const handleSubmit = async () => {
     for (const step of activeSteps) {
       if (!isStepValid(step.id, wizardState)) {
-        setError(`Please complete the ${step.label} step`);
+        setError(`Complete the ${step.label} step`);
         setCurrentStep(step.id);
         return;
       }

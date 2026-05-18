@@ -278,7 +278,7 @@ describe('ObservabilityProjectRuntimeLogsPage', () => {
 
     expect(
       screen.getByText(
-        'Observability is not enabled for this project in this environment. Please enable observability to view runtime logs.',
+        'Observability is not enabled for this project in the current environment. Enable observability to view runtime logs.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();

@@ -163,7 +163,7 @@ export const TimeRangeFilter: FC<TimeRangeFilterProps> = ({
 
   const handleApply = () => {
     if (!draftStart || !draftEnd) {
-      setError('Please pick both a start and end time.');
+      setError('Select both a start and end time.');
       return;
     }
     if (draftEnd.getTime() <= draftStart.getTime()) {

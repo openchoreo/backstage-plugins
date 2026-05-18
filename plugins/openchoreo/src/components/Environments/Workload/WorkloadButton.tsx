@@ -116,7 +116,7 @@ export const WorkloadButton = ({
         return 'Build your application first to generate a container image.';
       }
       if (hasSuccessfulBuild && !hasWorkload) {
-        return 'Workload configuration was not created automatically. Please re-run the build workflow or contact support.';
+        return 'Workload configuration was not created automatically. Re-run the build workflow or contact support.';
       }
     }
     if (!hasWorkload) {

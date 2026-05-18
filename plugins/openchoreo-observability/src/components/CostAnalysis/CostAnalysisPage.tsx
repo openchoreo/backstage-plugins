@@ -78,10 +78,10 @@ const CostAnalysisListContent = () => {
     let errorMessage = error;
     if (isObservabilityDisabled) {
       errorMessage =
-        'Observability is not enabled for this environment. Please enable observability and enable the FinOps agent.';
+        'Observability is not enabled for this environment. Enable observability and enable the FinOps agent.';
     } else if (isFinOpsServiceDisabled) {
       errorMessage =
-        'FinOps Agent is not configured. Please enable it to view cost analysis reports.';
+        'FinOps Agent is not configured. Enable it to view cost analysis reports.';
     }
 
     return (

@@ -239,7 +239,7 @@ const ObservabilityProjectIncidentsContent = () => {
       >
         <Typography variant="body1">
           {isObservabilityDisabled
-            ? 'Observability is not enabled for this project. Please enable observability to view incidents.'
+            ? 'Observability is not enabled for this project. Enable observability to view incidents.'
             : error}
         </Typography>
         {!isObservabilityDisabled && (

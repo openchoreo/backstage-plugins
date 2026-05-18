@@ -187,7 +187,7 @@ describe('ObservabilityProjectIncidentsPage', () => {
 
     expect(
       screen.getByText(
-        'Observability is not enabled for this project. Please enable observability to view incidents.',
+        'Observability is not enabled for this project. Enable observability to view incidents.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
@@ -257,7 +257,7 @@ describe('ObservabilityProjectIncidentsPage', () => {
 
     expect(
       screen.getByText(
-        'Observability is not enabled for this project. Please enable observability to view incidents.',
+        'Observability is not enabled for this project. Enable observability to view incidents.',
       ),
     ).toBeInTheDocument();
   });

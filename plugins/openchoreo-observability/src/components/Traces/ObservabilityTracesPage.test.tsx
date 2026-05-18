@@ -259,7 +259,7 @@ describe('ObservabilityTracesPage', () => {
 
     expect(
       screen.getByText(
-        'Observability is not enabled for this project in this environment. Please enable observability to view traces',
+        'Observability is not enabled for this project in the current environment. Enable observability to view traces',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();

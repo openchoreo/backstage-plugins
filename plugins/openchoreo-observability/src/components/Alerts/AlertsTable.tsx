@@ -67,7 +67,7 @@ export const AlertsTable: FC<AlertsTableProps> = ({
             No alerts found
           </Typography>
           <Typography variant="body2">
-            No alerts match the current filters in the selected time range.
+            No alerts found for the selected time range and filters.
           </Typography>
         </Box>
       </TableCell>

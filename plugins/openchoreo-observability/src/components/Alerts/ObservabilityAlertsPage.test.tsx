@@ -238,7 +238,7 @@ describe('ObservabilityAlertsPage', () => {
 
     expect(
       screen.getByText(
-        'Observability is not enabled for this component. Please enable observability to view alerts.',
+        'Observability is not enabled for this component. Enable observability to view alerts.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();

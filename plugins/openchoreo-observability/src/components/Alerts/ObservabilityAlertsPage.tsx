@@ -222,7 +222,7 @@ const ObservabilityAlertsContent = () => {
       >
         <Typography variant="body1">
           {isObservabilityDisabled
-            ? 'Observability is not enabled for this component. Please enable observability to view alerts.'
+            ? 'Observability is not enabled for this component. Enable observability to view alerts.'
             : error}
         </Typography>
         {!isObservabilityDisabled && (

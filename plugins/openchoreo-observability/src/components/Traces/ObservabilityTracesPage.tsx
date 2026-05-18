@@ -124,7 +124,7 @@ const ObservabilityTracesContent = () => {
         <Alert severity={isObservabilityDisabled ? 'info' : 'error'}>
           <Typography variant="body1">
             {isObservabilityDisabled
-              ? 'Observability is not enabled for this project in this environment. Please enable observability to view traces'
+              ? 'Observability is not enabled for this project in the current environment. Enable observability to view traces'
               : error}
           </Typography>
           {!isObservabilityDisabled && (

@@ -1429,7 +1429,7 @@ export const workloadDetailsFieldValidation = (
   // Block navigation when an inline editor is active
   if (value.isEditing) {
     validation.addError(
-      'Please save or cancel the item you are currently editing before proceeding.',
+      'Save or cancel the item you are currently editing before proceeding.',
     );
     return;
   }

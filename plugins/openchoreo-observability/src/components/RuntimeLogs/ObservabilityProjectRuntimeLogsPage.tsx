@@ -179,7 +179,7 @@ const ObservabilityProjectRuntimeLogsContent = ({
       >
         <Typography variant="body1">
           {isObservabilityDisabled
-            ? 'Observability is not enabled for this project in this environment. Please enable observability to view runtime logs.'
+            ? 'Observability is not enabled for this project in the current environment. Enable observability to view runtime logs.'
             : error}
         </Typography>
         {!isObservabilityDisabled && (
