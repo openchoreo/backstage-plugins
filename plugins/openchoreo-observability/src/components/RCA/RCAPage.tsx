@@ -85,8 +85,7 @@ const RCAListContent = () => {
       errorMessage =
         'Observability is not enabled for this environment. Enable observability and enable the AI RCA agent.';
     } else if (isRCAServiceDisabled) {
-      errorMessage =
-        'AI RCA is not configured. Enable it to view RCA reports.';
+      errorMessage = 'AI RCA is not configured. Enable it to view RCA reports.';
     }
 
     return (

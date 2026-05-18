@@ -66,9 +66,7 @@ export const GitSecretDialog = ({
 
     // Check for duplicate name
     if (existingSecretNames.includes(secretName.trim())) {
-      setError(
-        'A secret with this name already exists. Choose a unique name.',
-      );
+      setError('A secret with this name already exists. Choose a unique name.');
       return;
     }
 
