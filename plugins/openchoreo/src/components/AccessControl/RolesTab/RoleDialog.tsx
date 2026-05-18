@@ -78,6 +78,7 @@ const ROLE_TEMPLATES = {
       'component:delete',
       'componentrelease:view',
       'componentrelease:create',
+      'componentrelease:delete',
       'releasebinding:view',
       'releasebinding:create',
       'releasebinding:update',
