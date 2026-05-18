@@ -99,13 +99,18 @@ function parseCapabilityPath(path: string): CatalogParsedPath | null {
 /**
  * Entity level type for path specificity checking.
  * - domain/namespace-scoped: namespace-level only (no project/component paths)
- * - system: project-level (no component paths)
+ * - system: project-level (no component paths), keyed by PROJECT_ID annotation
+ * - resource: project-level (no component paths), keyed by PROJECT annotation.
+ *   Resources are siblings of Components under a Project — a deny on a sibling
+ *   Component must not cascade to Resources, but a deny on the parent Project
+ *   must.
  * - component: any level
  * - cluster-scoped: only global wildcard "*" path
  */
 type EntityLevel =
   | 'domain'
   | 'system'
+  | 'resource'
   | 'component'
   | 'namespace-scoped'
   | 'cluster-scoped';
@@ -115,7 +120,7 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   domain: 'domain',
   system: 'system',
   component: 'component',
-  resource: 'component',
+  resource: 'resource',
   dataplane: 'namespace-scoped',
   workflowplane: 'namespace-scoped',
   observabilityplane: 'namespace-scoped',
@@ -186,8 +191,11 @@ function matchesScope(
     }
   }
 
-  // System entities: path must NOT have component
-  if (entityLevel === 'system') {
+  // System and Resource entities: path must NOT have component. A
+  // component-segment path describes a sibling Component, not the entity
+  // itself — letting it through would let a Component-scoped deny strip a
+  // sibling Resource (or a System) from the catalog.
+  if (entityLevel === 'system' || entityLevel === 'resource') {
     if (parsed.component) {
       return false; // Path is more specific than entity level
     }
@@ -255,7 +263,7 @@ function isPathValidForLevel(path: string, entityLevel: EntityLevel): boolean {
     return !parsed.project && !parsed.component;
   }
 
-  if (entityLevel === 'system') {
+  if (entityLevel === 'system' || entityLevel === 'resource') {
     return !parsed.component;
   }
 
@@ -405,6 +413,15 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
       scope = {
         ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE],
         project: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT_ID],
+      };
+    } else if (entityLevel === 'resource') {
+      // Resources are sibling-to-Component under a Project. Like System we
+      // stop at project granularity, but unlike System we key off PROJECT
+      // (the project name) since that is the annotation the Resource
+      // translator emits — PROJECT_ID is System-only.
+      scope = {
+        ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE],
+        project: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT],
       };
     } else {
       scope = {
