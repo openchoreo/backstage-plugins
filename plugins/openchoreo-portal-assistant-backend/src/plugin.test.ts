@@ -1,15 +1,15 @@
 import { mockServices, startTestBackend } from '@backstage/backend-test-utils';
 
-import { openchoreoPerchBackendPlugin } from './plugin';
+import { openchoreoPortalAssistantBackendPlugin } from './plugin';
 
-describe('openchoreoPerchBackendPlugin', () => {
-  it('starts cleanly when openchoreo.perchAgentUrl is not set', async () => {
+describe('openchoreoPortalAssistantBackendPlugin', () => {
+  it('starts cleanly when openchoreo.portalAssistantUrl is not set', async () => {
     // The plugin must self-disable rather than crash — the frontend
     // feature flag is the primary gate, so a Backstage that ships the
     // plugin but has no upstream configured should still boot.
     const { server } = await startTestBackend({
       features: [
-        openchoreoPerchBackendPlugin,
+        openchoreoPortalAssistantBackendPlugin,
         mockServices.rootConfig.factory({ data: {} }),
       ],
     });
@@ -17,14 +17,14 @@ describe('openchoreoPerchBackendPlugin', () => {
     expect(server).toBeDefined();
   });
 
-  it('starts cleanly with openchoreo.perchAgentUrl configured', async () => {
+  it('starts cleanly with openchoreo.portalAssistantUrl configured', async () => {
     const { server } = await startTestBackend({
       features: [
-        openchoreoPerchBackendPlugin,
+        openchoreoPortalAssistantBackendPlugin,
         mockServices.rootConfig.factory({
           data: {
             openchoreo: {
-              perchAgentUrl: 'http://example.invalid',
+              portalAssistantUrl: 'http://example.invalid',
             },
           },
         }),

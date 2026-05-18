@@ -178,13 +178,16 @@ openchoreo:
   # only sync mechanism so you may want a much smaller frequency.
   # Environment variable: OPENCHOREO_CATALOG_SYNC_FREQUENCY (seconds)
 
-  # Upstream URL the openchoreo-perch-backend plugin forwards to (Perch
-  # AI assistant). Optional — uncomment only when the assistant feature
-  # is enabled (openchoreo.features.assistant.enabled = true) and the
-  # perch-agent service is deployed. The perch-backend plugin self-
-  # disables when this key is absent, matching the thunder.token pattern.
-  # OPENCHOREO_PERCH_AGENT_URL: e.g. http://perch-agent.openchoreo-control-plane.svc.cluster.local:8080
-  perchAgentUrl: ${OPENCHOREO_PERCH_AGENT_URL}
+  # Upstream URL the openchoreo-portal-assistant-backend plugin forwards
+  # to (Portal Assistant). Env-var-gated: when OPENCHOREO_PORTAL_ASSISTANT_URL
+  # is unset, Backstage substitutes the placeholder as undefined and the
+  # backend plugin self-disables (see plugin.ts — "disabled — openchoreo
+  # .portalAssistantUrl is not set"), matching the thunder.token pattern.
+  # Set the env var only when the assistant feature is enabled
+  # (openchoreo.features.assistant.enabled = true) and the portal-assistant
+  # service is deployed.
+  # Example: OPENCHOREO_PORTAL_ASSISTANT_URL=http://portal-assistant.openchoreo-control-plane.svc.cluster.local:8080
+  portalAssistantUrl: ${OPENCHOREO_PORTAL_ASSISTANT_URL}
 
   schedule:
     frequency: ${OPENCHOREO_CATALOG_SYNC_FREQUENCY}

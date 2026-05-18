@@ -38,7 +38,7 @@ import GroupIcon from '@material-ui/icons/People';
 import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
-import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-perch';
+import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 
 const isMac =
   typeof navigator !== 'undefined' &&

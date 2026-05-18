@@ -119,7 +119,7 @@ import { Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
 import {
   FailedBuildSnackbar,
   InvestigateLogButton,
-} from '@openchoreo/backstage-plugin-openchoreo-perch';
+} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 import {
   WorkflowRunsContent,
   EntityNamespaceProvider,

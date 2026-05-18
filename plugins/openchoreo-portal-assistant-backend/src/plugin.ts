@@ -6,12 +6,12 @@ import {
 import { createRouter } from './router';
 
 /**
- * openchoreo-perch-backend — thin Backstage backend plugin that forwards
- * requests from the Perch frontend to the external perch-agent service
- * in the OpenChoreo control plane.
+ * openchoreo-portal-assistant-backend — thin Backstage backend plugin that
+ * forwards requests from the Portal Assistant frontend to the external
+ * portal-assistant service in the OpenChoreo control plane.
  *
  * Why this exists vs. the Backstage `proxy` plugin: see
- * plugins/openchoreo-perch/README.md for the architectural rationale and
+ * plugins/openchoreo-portal-assistant/README.md for the architectural rationale and
  * trigger conditions. Today this plugin is a forwarder; future work
  * (Backstage permission gating, server-side scope enrichment, multi-
  * backend routing) lives in this same package and is the reason it's a
@@ -22,8 +22,8 @@ import { createRouter } from './router';
  * response body byte-for-byte instead of buffering it (which would
  * defeat the streaming protocol and risk OOM on long turns).
  */
-export const openchoreoPerchBackendPlugin = createBackendPlugin({
-  pluginId: 'openchoreo-perch-backend',
+export const openchoreoPortalAssistantBackendPlugin = createBackendPlugin({
+  pluginId: 'openchoreo-portal-assistant-backend',
   register(env) {
     env.registerInit({
       deps: {
@@ -32,7 +32,9 @@ export const openchoreoPerchBackendPlugin = createBackendPlugin({
         config: coreServices.rootConfig,
       },
       async init({ httpRouter, logger, config }) {
-        const targetUrl = config.getOptionalString('openchoreo.perchAgentUrl');
+        const targetUrl = config.getOptionalString(
+          'openchoreo.portalAssistantUrl',
+        );
 
         if (!targetUrl) {
           // Match the disabled-feature ergonomics of the other OpenChoreo
@@ -41,12 +43,14 @@ export const openchoreoPerchBackendPlugin = createBackendPlugin({
           // (OPENCHOREO_FEATURES_ASSISTANT_ENABLED) should already gate
           // the UI in that case, so this is a defence-in-depth log.
           logger.info(
-            'openchoreo-perch-backend disabled — openchoreo.perchAgentUrl is not set in app-config.',
+            'openchoreo-portal-assistant-backend disabled — openchoreo.portalAssistantUrl is not set in app-config.',
           );
           return;
         }
 
-        logger.info(`openchoreo-perch-backend forwarding to ${targetUrl}`);
+        logger.info(
+          `openchoreo-portal-assistant-backend forwarding to ${targetUrl}`,
+        );
 
         httpRouter.use(
           await createRouter({

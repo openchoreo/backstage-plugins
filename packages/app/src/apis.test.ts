@@ -30,7 +30,7 @@ import {
 import {
   perchAgentApiRef,
   PerchAgentClient,
-} from '@openchoreo/backstage-plugin-openchoreo-perch';
+} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 
 import { apis, openChoreoAuthApiRef } from './apis';
 

@@ -1,5 +1,5 @@
 {
-  "name": "@openchoreo/backstage-plugin-openchoreo-perch-backend",
+  "name": "@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "private": true,
@@ -13,13 +13,13 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/openchoreo/backstage-plugins.git",
-    "directory": "plugins/openchoreo-perch-backend"
+    "directory": "plugins/openchoreo-portal-assistant-backend"
   },
   "backstage": {
     "role": "backend-plugin",
-    "pluginId": "openchoreo-perch-backend",
+    "pluginId": "openchoreo-portal-assistant-backend",
     "pluginPackages": [
-      "@openchoreo/backstage-plugin-openchoreo-perch-backend"
+      "@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend"
     ]
   },
   "scripts": {

@@ -131,8 +131,8 @@ export const FailedBuildSnackbar = () => {
             }
           : undefined
       }
-      fabTooltip="Open Perch — failed build"
-      fabAriaLabel="Open Perch for failed build"
+      fabTooltip="Open Portal Assistant — failed build"
+      fabAriaLabel="Open Portal Assistant for failed build"
     />
   );
 };
