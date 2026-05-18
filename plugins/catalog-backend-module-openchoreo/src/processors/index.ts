@@ -4,6 +4,7 @@ export { WorkflowPlaneEntityProcessor } from './WorkflowPlaneEntityProcessor';
 export { ObservabilityPlaneEntityProcessor } from './ObservabilityPlaneEntityProcessor';
 export { DeploymentPipelineEntityProcessor } from './DeploymentPipelineEntityProcessor';
 export { ComponentEntityProcessor } from './ComponentEntityProcessor';
+export { ResourceEntityProcessor } from './ResourceEntityProcessor';
 export { ComponentTypeEntityProcessor } from './ComponentTypeEntityProcessor';
 export { TraitTypeEntityProcessor } from './TraitTypeEntityProcessor';
 export { WorkflowEntityProcessor } from './WorkflowEntityProcessor';
@@ -14,4 +15,6 @@ export { ClusterDataplaneEntityProcessor } from './ClusterDataplaneEntityProcess
 export { ClusterObservabilityPlaneEntityProcessor } from './ClusterObservabilityPlaneEntityProcessor';
 export { ClusterWorkflowPlaneEntityProcessor } from './ClusterWorkflowPlaneEntityProcessor';
 export { ClusterWorkflowEntityProcessor } from './ClusterWorkflowEntityProcessor';
+export { ClusterResourceTypeEntityProcessor } from './ClusterResourceTypeEntityProcessor';
+export { ResourceTypeEntityProcessor } from './ResourceTypeEntityProcessor';
 export { SystemEntityProcessor } from './SystemEntityProcessor';

@@ -13,6 +13,8 @@ import type {
   CreateReleaseResponse,
   SchemaResponse,
   ReleaseBindingsResponse,
+  ResourceReleaseResponse,
+  ResourceReleaseBindingsResponse,
   WorkflowSchemaResponse,
   ComponentInfo,
   SecretReferencesResponse,
@@ -38,6 +40,8 @@ import type {
   RoleBindingsLookup,
   ResourceEventsResponse,
   PodLogsResponse,
+  ResourceEnvironment,
+  ResourceTypeOutput,
 } from './OpenChoreoClientApi';
 import type { Environment } from '../components/RuntimeLogs/types';
 
@@ -59,6 +63,11 @@ const API_ENDPOINTS = {
   COMPONENT_RELEASE: '/component-release',
   COMPONENT_RELEASE_SCHEMA: '/component-release-schema',
   RELEASE_BINDINGS: '/release-bindings',
+  RESOURCE_RELEASE: '/resource-release',
+  RESOURCE_RELEASE_BINDINGS: '/resource-release-bindings',
+  RESOURCE_ENVIRONMENT_INFO: '/resource-environment-info',
+  UPDATE_RESOURCE_RELEASE_BINDING: '/update-resource-release-binding',
+  DELETE_RESOURCE_RELEASE_BINDING: '/delete-resource-release-binding',
   UPDATE_RELEASE_BINDING: '/update-release-binding',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
   RESOURCE_TREE: '/resourcetree',
@@ -72,6 +81,11 @@ const API_ENDPOINTS = {
   BUILDS: '/builds',
   COMPONENT_TYPE_SCHEMA: '/component-type-schema',
   CLUSTER_COMPONENT_TYPE_SCHEMA: '/cluster-component-type-schema',
+  RESOURCE_TYPE_SCHEMA: '/resource-type-schema',
+  CLUSTER_RESOURCE_TYPE_SCHEMA: '/cluster-resource-type-schema',
+  RESOURCE_TYPE_OUTPUTS: '/resource-type-outputs',
+  CLUSTER_RESOURCE_TYPE_OUTPUTS: '/cluster-resource-type-outputs',
+  RESOURCE_RELEASE_SCHEMA: '/resource-release-schema',
   COMPONENT_TRAITS: '/component-traits',
   COMPONENT_CONFIG: '/component-config',
   TRAITS: '/traits',
@@ -141,6 +155,29 @@ function entityMetadataToParams(
     projectName: metadata.project,
     namespaceName: metadata.namespace,
   };
+}
+
+interface ResourceEntityMetadata {
+  resourceName: string;
+  projectName: string;
+  namespaceName: string;
+}
+
+function extractResourceEntityMetadata(entity: Entity): ResourceEntityMetadata {
+  const resourceName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE];
+  const projectName = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  const namespaceName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+
+  if (!resourceName || !projectName || !namespaceName) {
+    throw new Error(
+      'Missing required OpenChoreo annotations on Resource entity. ' +
+        `Required: ${CHOREO_ANNOTATIONS.RESOURCE}, ${CHOREO_ANNOTATIONS.PROJECT}, ${CHOREO_ANNOTATIONS.NAMESPACE}`,
+    );
+  }
+
+  return { resourceName, projectName, namespaceName };
 }
 
 // ============================================
@@ -369,6 +406,102 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         params: entityMetadataToParams(metadata),
       },
     );
+  }
+
+  async fetchResourceRelease(
+    entity: Entity,
+    releaseName: string,
+  ): Promise<ResourceReleaseResponse> {
+    const { namespaceName } = extractResourceEntityMetadata(entity);
+
+    return this.apiFetch<ResourceReleaseResponse>(
+      API_ENDPOINTS.RESOURCE_RELEASE,
+      {
+        params: {
+          namespaceName,
+          releaseName,
+        },
+      },
+    );
+  }
+
+  async fetchResourceReleaseBindings(
+    entity: Entity,
+  ): Promise<ResourceReleaseBindingsResponse> {
+    const { resourceName, projectName, namespaceName } =
+      extractResourceEntityMetadata(entity);
+
+    return this.apiFetch<ResourceReleaseBindingsResponse>(
+      API_ENDPOINTS.RESOURCE_RELEASE_BINDINGS,
+      {
+        params: { resourceName, projectName, namespaceName },
+      },
+    );
+  }
+
+  async fetchResourceEnvironmentInfo(
+    entity: Entity,
+  ): Promise<ResourceEnvironment[]> {
+    const { resourceName, projectName, namespaceName } =
+      extractResourceEntityMetadata(entity);
+
+    return this.apiFetch<ResourceEnvironment[]>(
+      API_ENDPOINTS.RESOURCE_ENVIRONMENT_INFO,
+      {
+        params: { resourceName, projectName, namespaceName },
+      },
+    );
+  }
+
+  async updateResourceReleaseBinding(
+    entity: Entity,
+    environment: string,
+    options: {
+      resourceRelease: string;
+      retainPolicy?: 'Delete' | 'Retain';
+      resourceTypeEnvironmentConfigs?: unknown;
+    },
+  ): Promise<unknown> {
+    const { resourceName, projectName, namespaceName } =
+      extractResourceEntityMetadata(entity);
+
+    return this.apiFetch(API_ENDPOINTS.UPDATE_RESOURCE_RELEASE_BINDING, {
+      method: 'PUT',
+      body: {
+        resourceName,
+        projectName,
+        namespaceName,
+        environment,
+        releaseName: options.resourceRelease,
+        ...(options.retainPolicy !== undefined
+          ? { retainPolicy: options.retainPolicy }
+          : {}),
+        ...(options.resourceTypeEnvironmentConfigs !== undefined
+          ? {
+              resourceTypeEnvironmentConfigs:
+                options.resourceTypeEnvironmentConfigs,
+            }
+          : {}),
+      },
+    });
+  }
+
+  async deleteResourceReleaseBinding(
+    entity: Entity,
+    environment: string,
+  ): Promise<unknown> {
+    const { resourceName, projectName, namespaceName } =
+      extractResourceEntityMetadata(entity);
+
+    return this.apiFetch(API_ENDPOINTS.DELETE_RESOURCE_RELEASE_BINDING, {
+      method: 'DELETE',
+      body: {
+        resourceName,
+        projectName,
+        namespaceName,
+        environment,
+      },
+    });
   }
 
   async updateReleaseBinding(
@@ -793,6 +926,95 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         namespaceName: metadata.namespace,
         ctName,
       },
+    });
+  }
+
+  async fetchResourceTypeSchema(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
+    // Resource entities don't carry the COMPONENT annotation that
+    // extractEntityMetadata requires, so pull just what's needed here.
+    const namespaceName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+    const rtName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE_TYPE] || '';
+    const rtKind =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE_TYPE_KIND] ||
+      '';
+
+    if (!rtName) {
+      throw new Error(
+        `Missing ${CHOREO_ANNOTATIONS.RESOURCE_TYPE} annotation on entity`,
+      );
+    }
+
+    if (rtKind === 'ClusterResourceType') {
+      return this.apiFetch(API_ENDPOINTS.CLUSTER_RESOURCE_TYPE_SCHEMA, {
+        params: { crtName: rtName },
+      });
+    }
+
+    if (!namespaceName) {
+      throw new Error(
+        `Missing ${CHOREO_ANNOTATIONS.NAMESPACE} annotation on entity`,
+      );
+    }
+
+    return this.apiFetch(API_ENDPOINTS.RESOURCE_TYPE_SCHEMA, {
+      params: {
+        namespaceName,
+        rtName,
+      },
+    });
+  }
+
+  async fetchResourceTypeOutputs(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: ResourceTypeOutput[] }> {
+    // Mirrors fetchResourceTypeSchema's dispatch: Resource entities carry
+    // RESOURCE_TYPE + RESOURCE_TYPE_KIND annotations identifying the
+    // (Cluster)ResourceType that owns the outputs contract.
+    const namespaceName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+    const rtName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE_TYPE] || '';
+    const rtKind =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.RESOURCE_TYPE_KIND] ||
+      '';
+
+    if (!rtName) {
+      throw new Error(
+        `Missing ${CHOREO_ANNOTATIONS.RESOURCE_TYPE} annotation on entity`,
+      );
+    }
+
+    if (rtKind === 'ClusterResourceType') {
+      return this.apiFetch(API_ENDPOINTS.CLUSTER_RESOURCE_TYPE_OUTPUTS, {
+        params: { crtName: rtName },
+      });
+    }
+
+    if (!namespaceName) {
+      throw new Error(
+        `Missing ${CHOREO_ANNOTATIONS.NAMESPACE} annotation on entity`,
+      );
+    }
+
+    return this.apiFetch(API_ENDPOINTS.RESOURCE_TYPE_OUTPUTS, {
+      params: {
+        namespaceName,
+        rtName,
+      },
+    });
+  }
+
+  async fetchResourceReleaseSchema(
+    namespaceName: string,
+    releaseName: string,
+    section: 'parameters' | 'environmentConfigs',
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
+    return this.apiFetch(API_ENDPOINTS.RESOURCE_RELEASE_SCHEMA, {
+      params: { namespaceName, releaseName, section },
     });
   }
 

@@ -11,6 +11,7 @@ import { OpenChoreoClient } from './api/OpenChoreoClient';
 import {
   rootCatalogEnvironmentRouteRef,
   accessControlRouteRef,
+  resourceEnvironmentsRouteRef,
 } from './routes';
 
 export const choreoPlugin = createPlugin({
@@ -35,6 +36,18 @@ export const Environments = choreoPlugin.provide(
     component: () =>
       import('./components/Environments').then(m => m.Environments),
     mountPoint: rootCatalogEnvironmentRouteRef,
+  }),
+);
+
+// Resource page tab
+export const ResourceEnvironments = choreoPlugin.provide(
+  createRoutableExtension({
+    name: 'ChoreoResourceEnvironments',
+    component: () =>
+      import('./components/ResourceEnvironments').then(
+        m => m.ResourceEnvironments,
+      ),
+    mountPoint: resourceEnvironmentsRouteRef,
   }),
 );
 

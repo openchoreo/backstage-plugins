@@ -291,7 +291,11 @@ export const ProjectChip = () => {
       setSelectedProjects([]);
       updateFilters({ project: undefined } as any);
     }
-    if (kindLower !== 'component' && kindLower !== 'api') {
+    if (
+      kindLower !== 'component' &&
+      kindLower !== 'api' &&
+      kindLower !== 'resource'
+    ) {
       setAvailableProjects([]);
       return undefined;
     }
@@ -315,7 +319,11 @@ export const ProjectChip = () => {
   }, [kind, catalogApi]);
 
   useEffect(() => {
-    if (kindLower !== 'component' && kindLower !== 'api') {
+    if (
+      kindLower !== 'component' &&
+      kindLower !== 'api' &&
+      kindLower !== 'resource'
+    ) {
       return;
     }
     const hadQueryProjects = prevQueryProjectsRef.current.length > 0;
@@ -340,7 +348,11 @@ export const ProjectChip = () => {
     } as any);
   }, [kindLower, queryProjects, selectedProjects, updateFilters]);
 
-  if (kindLower !== 'component' && kindLower !== 'api') {
+  if (
+    kindLower !== 'component' &&
+    kindLower !== 'api' &&
+    kindLower !== 'resource'
+  ) {
     return null;
   }
 

@@ -235,7 +235,6 @@ export const WorkloadConfigPage = ({
                 container: {
                   image: '',
                 },
-                dependencies: { endpoints: [] },
               },
             } as WorkloadResource;
             setWorkloadResource(defaultResource);

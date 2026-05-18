@@ -4,7 +4,11 @@ import {
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { WorkloadDependency, WorkloadEndpoint } from './types';
+import {
+  WorkloadDependency,
+  WorkloadEndpoint,
+  WorkloadResourceDependency,
+} from './types';
 
 type NewProject = OpenChoreoComponents['schemas']['Project'];
 type NewComponent = OpenChoreoComponents['schemas']['Component'];
@@ -92,6 +96,34 @@ export function extractWorkloadDependencies(
     | { dependencies?: { endpoints?: WorkloadDependency[] } }
     | undefined;
   return spec?.dependencies?.endpoints || [];
+}
+
+/**
+ * Extracts Resource dependency refs from a workload's spec. Returns the
+ * `dependencies.resources[]` entries in their declared order; consumers
+ * derive Backstage entity refs from each `ref` against the workload's
+ * containing namespace.
+ */
+export function extractWorkloadResourceDependencies(
+  workload: NewWorkload,
+): WorkloadResourceDependency[] {
+  const spec = workload.spec as
+    | { dependencies?: { resources?: WorkloadResourceDependency[] } }
+    | undefined;
+  return spec?.dependencies?.resources || [];
+}
+
+/**
+ * Builds Backstage entity refs of the form `resource:<namespace>/<name>` for
+ * each Resource dependency declared on a Workload. Used to populate
+ * `Component.spec.dependsOn` so Backstage's built-in processor emits the
+ * `dependsOn` relation from Component to Resource automatically.
+ */
+export function buildComponentDependsOnRefs(
+  resourceDeps: WorkloadResourceDependency[],
+  namespaceName: string,
+): string[] {
+  return resourceDeps.map(d => `resource:${namespaceName}/${d.ref}`);
 }
 
 // ────────────────────────────────────────────────────────────────────────

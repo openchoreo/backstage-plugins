@@ -10,6 +10,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Chip,
 } from '@material-ui/core';
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -52,6 +53,11 @@ const useStyles = makeStyles((theme: Theme) => ({
     display: 'flex',
     alignItems: 'center',
     padding: theme.spacing(0.5, 0),
+    gap: theme.spacing(1),
+  },
+  typeChip: {
+    height: 20,
+    fontSize: '0.7rem',
   },
 }));
 
@@ -159,6 +165,12 @@ export const DependencyEditor: FC<DependencyEditorProps> = ({
             <Typography className={classes.readOnlyName}>
               {dependency.component || '(no component)'}
             </Typography>
+            <Chip
+              label="Component"
+              size="small"
+              variant="outlined"
+              className={classes.typeChip}
+            />
             <Typography className={classes.readOnlyDetails}>
               {formatDependencySummary()}
             </Typography>

@@ -12,8 +12,12 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'namespaces';
     case 'component':
       return 'components';
+    case 'resource':
+      return 'resources';
     case 'componenttype':
       return 'componenttypes';
+    case 'resourcetype':
+      return 'resourcetypes';
     case 'traittype':
       return 'traits';
     case 'workflow':
@@ -32,6 +36,8 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'deploymentpipelines';
     case 'clustercomponenttype':
       return 'clustercomponenttypes';
+    case 'clusterresourcetype':
+      return 'clusterresourcetypes';
     case 'clustertraittype':
       return 'clustertraits';
     case 'clusterworkflow':
@@ -60,8 +66,12 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'Namespace';
     case 'component':
       return 'Component';
+    case 'resource':
+      return 'Resource';
     case 'componenttype':
       return 'ComponentType';
+    case 'resourcetype':
+      return 'ResourceType';
     case 'traittype':
       return 'Trait'; // TraitType in Backstage maps to Trait CRD
     case 'workflow':
@@ -80,6 +90,8 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'DeploymentPipeline';
     case 'clustercomponenttype':
       return 'ClusterComponentType';
+    case 'clusterresourcetype':
+      return 'ClusterResourceType';
     case 'clustertraittype':
       return 'ClusterTrait'; // ClusterTraitType in Backstage maps to ClusterTrait CRD
     case 'clusterworkflow':
@@ -102,6 +114,7 @@ export function isClusterScopedKind(kind: string): boolean {
   const kindLower = kind.toLowerCase();
   return [
     'clustercomponenttype',
+    'clusterresourcetype',
     'clustertraittype',
     'clusterworkflow',
     'clusterdataplane',
@@ -144,7 +157,9 @@ export function isSupportedKind(kind: string): boolean {
     'system',
     'domain',
     'component',
+    'resource',
     'componenttype',
+    'resourcetype',
     'traittype',
     'workflow',
     'componentworkflow',
@@ -154,6 +169,7 @@ export function isSupportedKind(kind: string): boolean {
     'observabilityplane',
     'deploymentpipeline',
     'clustercomponenttype',
+    'clusterresourcetype',
     'clustertraittype',
     'clusterworkflow',
     'clusterdataplane',

@@ -274,6 +274,10 @@ catalog:
       rules:
         - allow: [Template]
     - type: file
+      target: ../../templates/create-openchoreo-resourcetype/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
       target: ../../templates/create-openchoreo-trait/template.yaml
       rules:
         - allow: [Template]
@@ -295,6 +299,10 @@ catalog:
         - allow: [Template]
     - type: file
       target: ../../templates/create-openchoreo-clustercomponenttype/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: ../../templates/create-openchoreo-clusterresourcetype/template.yaml
       rules:
         - allow: [Template]
     - type: file

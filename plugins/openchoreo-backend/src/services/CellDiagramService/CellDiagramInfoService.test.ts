@@ -84,7 +84,6 @@ describe('CellDiagramInfoService', () => {
       mockGET.mockResolvedValueOnce(
         createOkResponse({ items: [], pagination: {} }),
       );
-
       const service = createService();
       const result = await service.fetchProjectInfo(
         { projectName: 'my-project', namespaceName: 'test-ns' },
@@ -299,6 +298,7 @@ describe('CellDiagramInfoService', () => {
             pagination: {},
           }),
         );
+      // resources
 
       mockResolveForEnvironment.mockResolvedValueOnce({
         observerUrl: 'http://observer:8080',
@@ -592,6 +592,96 @@ describe('CellDiagramInfoService', () => {
       expect(result).toBeDefined();
       const api = result!.components.find(c => c.id === 'api');
       expect(api!.connections).toHaveLength(0);
+    });
+
+    it('emits Datastore connections from workload.dependencies.resources', async () => {
+      mockGET
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [k8sComponent('api', 'deployment/service')],
+            pagination: {},
+          }),
+        )
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [
+              k8sWorkload('api', {
+                dependencies: {
+                  resources: [
+                    { ref: 'orders-db', envBindings: { host: 'DB_HOST' } },
+                    { ref: 'orders-cache' },
+                  ],
+                },
+              }),
+            ],
+            pagination: {},
+          }),
+        );
+
+      const service = createService();
+      const result = await service.fetchProjectInfo(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token',
+      );
+
+      const api = result!.components.find(c => c.id === 'api');
+      expect(api!.connections).toHaveLength(2);
+
+      const dbConn = api!.connections!.find(c => c.label === 'orders-db');
+      expect(dbConn).toBeDefined();
+      expect(dbConn!.type).toBe('datastore');
+      expect(dbConn!.onPlatform).toBe(true);
+      // The cell-diagram lib's getConnectionMetadata splits on `:` and
+      // requires 3 or 4 tokens; a malformed id silently disables the edge.
+      expect(dbConn!.id).toBe('test-ns:my-project:orders-db:resource');
+      expect(dbConn!.id.split(':')).toHaveLength(4);
+
+      const cacheConn = api!.connections!.find(c => c.label === 'orders-cache');
+      expect(cacheConn).toBeDefined();
+      expect(cacheConn!.type).toBe('datastore');
+    });
+
+    it('emits endpoint and resource connections side by side', async () => {
+      mockGET
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [
+              k8sComponent('api', 'deployment/service'),
+              k8sComponent('reports', 'deployment/service'),
+            ],
+            pagination: {},
+          }),
+        )
+        .mockResolvedValueOnce(
+          createOkResponse({
+            items: [
+              k8sWorkload('api', {
+                dependencies: {
+                  endpoints: [
+                    {
+                      name: 'http',
+                      component: 'reports',
+                      project: 'my-project',
+                    },
+                  ],
+                  resources: [{ ref: 'orders-db' }],
+                },
+              }),
+            ],
+            pagination: {},
+          }),
+        );
+
+      const service = createService();
+      const result = await service.fetchProjectInfo(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token',
+      );
+
+      const api = result!.components.find(c => c.id === 'api');
+      expect(api!.connections).toHaveLength(2);
+      expect(api!.connections!.some(c => c.type === 'http')).toBe(true);
+      expect(api!.connections!.some(c => c.type === 'datastore')).toBe(true);
     });
   });
 });

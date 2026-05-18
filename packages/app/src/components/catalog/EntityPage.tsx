@@ -22,6 +22,7 @@ import {
 import { EntityRelationWarning } from './EntityRelationWarning';
 import { OpenChoreoAboutCard } from './OpenChoreoAboutCard';
 import {
+  CHOREO_LABELS,
   ComponentTypeUtils,
   type PageVariant,
 } from '@openchoreo/backstage-plugin-common';
@@ -102,10 +103,15 @@ import {
   DeploymentPipelineVisualization,
   PromotionPathsCard,
   ComponentTypeOverviewCard,
+  ResourceTypeOverviewCard,
+  ResourceParametersCard,
+  ResourceDeploymentsCard,
+  ConsumingComponentsCard,
   TraitTypeOverviewCard,
   WorkflowOverviewCard,
   ComponentWorkflowOverviewCard,
   ResourceDefinitionTab,
+  ResourceEnvironments,
 } from '@openchoreo/backstage-plugin';
 import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
 
@@ -164,7 +170,9 @@ const PLATFORM_KIND_DISPLAY_NAMES: Record<string, string> = {
   environment: 'Environment',
   deploymentpipeline: 'Deployment Pipeline',
   componenttype: 'Component Type',
+  resourcetype: 'Resource Type',
   clustercomponenttype: 'Cluster Component Type',
+  clusterresourcetype: 'Cluster Resource Type',
   traittype: 'Trait Type',
   clustertraittype: 'Cluster Trait Type',
   workflow: 'Workflow',
@@ -750,7 +758,7 @@ const domainPage = (
   </EntityLayoutWithDelete>
 );
 
-const resourcePage = (
+const defaultResourcePage = (
   <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
@@ -774,6 +782,55 @@ const resourcePage = (
       </Grid>
     </EntityLayout.Route>
   </EntityLayout>
+);
+
+const isOpenChoreoResource = (entity: Entity) =>
+  entity.metadata.labels?.[CHOREO_LABELS.MANAGED] === 'true';
+
+const openchoreoResourcePage = (
+  <EntityLayoutWithDelete>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        {/* Row 1: Parameters / Deployments / Consuming Components */}
+        <Grid item md={4} xs={12}>
+          <ResourceParametersCard />
+        </Grid>
+        <Grid item md={4} xs={12}>
+          <ResourceDeploymentsCard />
+        </Grid>
+        <Grid item md={4} xs={12}>
+          <ConsumingComponentsCard />
+        </Grid>
+        {/* Row 2: About / Relations */}
+        <Grid item md={6} xs={12}>
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/environments" title="Deploy">
+      <ResourceEnvironments />
+    </EntityLayout.Route>
+  </EntityLayoutWithDelete>
+);
+
+const resourcePage = (
+  <EntitySwitch>
+    <EntitySwitch.Case if={isOpenChoreoResource}>
+      {openchoreoResourcePage}
+    </EntitySwitch.Case>
+    <EntitySwitch.Case>{defaultResourcePage}</EntitySwitch.Case>
+  </EntitySwitch>
 );
 
 const environmentPage = (
@@ -1128,6 +1185,32 @@ const componentTypePage = (
   </EntityLayoutWithDelete>
 );
 
+const resourceTypePage = (
+  <EntityLayoutWithDelete kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}>
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <ResourceTypeOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </OpenChoreoEntityLayout.Route>
+  </EntityLayoutWithDelete>
+);
+
 const traitTypePage = (
   <EntityLayoutWithDelete
     parentEntityRelations={['partOf']}
@@ -1164,6 +1247,32 @@ const clusterComponentTypePage = (
         {entityWarningContent}
         <Grid item md={6} xs={12}>
           <ComponentTypeOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <OpenChoreoAboutCard variant="gridItem" showEditIcon />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </OpenChoreoEntityLayout.Route>
+  </EntityLayoutWithDelete>
+);
+
+const clusterResourceTypePage = (
+  <EntityLayoutWithDelete kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}>
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <ResourceTypeOverviewCard />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -1352,8 +1461,16 @@ export const entityPage = (
       children={componentTypePage}
     />
     <EntitySwitch.Case
+      if={isKind('resourcetype')}
+      children={resourceTypePage}
+    />
+    <EntitySwitch.Case
       if={isKind('clustercomponenttype')}
       children={clusterComponentTypePage}
+    />
+    <EntitySwitch.Case
+      if={isKind('clusterresourcetype')}
+      children={clusterResourceTypePage}
     />
     <EntitySwitch.Case if={isKind('traittype')} children={traitTypePage} />
     <EntitySwitch.Case

@@ -1,4 +1,8 @@
 import { renderHook } from '@testing-library/react';
+import {
+  openchoreoResourceUpdatePermission,
+  openchoreoResourceDeletePermission,
+} from '@openchoreo/backstage-plugin-common';
 import { useResourceDefinitionPermission } from './useResourceDefinitionPermission';
 
 const mockUsePermission = jest.fn();
@@ -87,5 +91,15 @@ describe('useResourceDefinitionPermission', () => {
     expect(result.current.canDelete).toBe(false);
     expect(result.current.updateDeniedTooltip).toBeTruthy();
     expect(result.current.deleteDeniedTooltip).toBeTruthy();
+  });
+
+  it('wires the Resource entry to distinct update + delete permissions', () => {
+    mockUseEntity.mockReturnValue(makeEntity('Resource'));
+    mockUsePermission.mockReturnValue({ allowed: true, loading: false });
+    renderHook(() => useResourceDefinitionPermission());
+
+    const calls = mockUsePermission.mock.calls.map(c => c[0].permission);
+    expect(calls).toContain(openchoreoResourceUpdatePermission);
+    expect(calls).toContain(openchoreoResourceDeletePermission);
   });
 });

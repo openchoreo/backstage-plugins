@@ -19,7 +19,7 @@ jest.mock('../utils', () => ({
 
 jest.mock('../../ResourceDefinition/utils', () => ({
   isSupportedKind: (kind: string) =>
-    ['componenttype', 'traittype', 'workflow'].includes(kind),
+    ['componenttype', 'resourcetype', 'traittype', 'workflow'].includes(kind),
   mapKindToApiKind: (kind: string) => kind,
 }));
 

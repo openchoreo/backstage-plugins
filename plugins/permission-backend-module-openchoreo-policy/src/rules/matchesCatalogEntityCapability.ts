@@ -115,11 +115,13 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   domain: 'domain',
   system: 'system',
   component: 'component',
+  resource: 'component',
   dataplane: 'namespace-scoped',
   workflowplane: 'namespace-scoped',
   observabilityplane: 'namespace-scoped',
   deploymentpipeline: 'namespace-scoped',
   componenttype: 'namespace-scoped',
+  resourcetype: 'namespace-scoped',
   traittype: 'namespace-scoped',
   workflow: 'namespace-scoped',
   componentworkflow: 'namespace-scoped',
@@ -128,6 +130,7 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   clusterworkflowplane: 'cluster-scoped',
   clusterobservabilityplane: 'cluster-scoped',
   clustercomponenttype: 'cluster-scoped',
+  clusterresourcetype: 'cluster-scoped',
   clustertraittype: 'cluster-scoped',
   clusterworkflow: 'cluster-scoped',
 };
@@ -138,6 +141,7 @@ const CLUSTER_SCOPED_KINDS = new Set([
   'clusterworkflowplane',
   'clusterobservabilityplane',
   'clustercomponenttype',
+  'clusterresourcetype',
   'clustertraittype',
   'clusterworkflow',
 ]);
@@ -292,7 +296,7 @@ function buildScopeFilter(
         key: `metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT_ID}`,
         values: [parsed.project],
       });
-    } else if (kindLower === 'component') {
+    } else if (kindLower === 'component' || kindLower === 'resource') {
       conditions.push({
         key: `metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT}`,
         values: [parsed.project],

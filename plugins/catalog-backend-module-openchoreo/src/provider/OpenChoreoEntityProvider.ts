@@ -23,12 +23,15 @@ import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
 import { DeploymentPipelineEntityV1alpha1 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
+import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
 import { ComponentWorkloadData } from '../utils/types';
 import {
+  buildComponentDependsOnRefs,
   createApiEntitiesFromNewWorkload,
   extractAllWorkloadEndpoints,
   extractSchemaEndpoints,
   extractWorkloadDependencies,
+  extractWorkloadResourceDependencies,
   filterDependenciesWithSchema,
   resolveComponentOwner,
   resolveProvidesAndConsumes,
@@ -36,6 +39,7 @@ import {
 import {
   NewApiTranslatorContext,
   translateNewClusterComponentTypeToEntity,
+  translateNewClusterResourceTypeToEntity,
   translateNewClusterDataplaneToEntity,
   translateNewClusterObservabilityPlaneToEntity,
   translateNewClusterTraitToEntity,
@@ -49,6 +53,8 @@ import {
   translateNewNamespaceToDomainEntity,
   translateNewObservabilityPlaneToEntity,
   translateNewProjectToEntity,
+  translateNewResourceToEntity,
+  translateNewResourceTypeToEntity,
   translateNewTraitToEntity,
   translateNewWorkflowPlaneToEntity,
   translateNewWorkflowToEntity,
@@ -69,9 +75,13 @@ type NewObservabilityPlane =
 type NewDeploymentPipeline =
   OpenChoreoComponents['schemas']['DeploymentPipeline'];
 type NewComponentType = OpenChoreoComponents['schemas']['ComponentType'];
+type NewResourceType = OpenChoreoComponents['schemas']['ResourceType'];
+type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewClusterComponentType =
   OpenChoreoComponents['schemas']['ClusterComponentType'];
+type NewClusterResourceType =
+  OpenChoreoComponents['schemas']['ClusterResourceType'];
 type NewClusterTrait = OpenChoreoComponents['schemas']['ClusterTrait'];
 type NewClusterDataPlane = OpenChoreoComponents['schemas']['ClusterDataPlane'];
 type NewClusterObservabilityPlane =
@@ -91,6 +101,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly baseUrl: string;
   private readonly defaultOwner: string;
   private readonly ctdConverter: CtdToTemplateConverter;
+  private readonly rtdConverter: RtdToTemplateConverter;
   private readonly componentTypeUtils: ComponentTypeUtils;
   private readonly tokenService?: OpenChoreoTokenService;
   private readonly events?: EventsService;
@@ -123,6 +134,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     this.ctdConverter = new CtdToTemplateConverter({
       defaultOwner: this.defaultOwner,
     });
+    // Initialize RTD to Template converter — generates per-type Resource
+    // wizards from (Cluster)ResourceType entities.
+    this.rtdConverter = new RtdToTemplateConverter({
+      defaultOwner: this.defaultOwner,
+    });
     // Initialize component type utilities from config
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
 
@@ -140,6 +156,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       translatorContext: this.translatorContext,
       getConnection: () => this.connection,
       ctdConverter: this.ctdConverter,
+      rtdConverter: this.rtdConverter,
       catalogService,
       auth,
     });
@@ -166,10 +183,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'openchoreo.observabilityplane',
           'openchoreo.deploymentpipeline',
           'openchoreo.componenttype',
+          'openchoreo.resourcetype',
+          'openchoreo.resource',
           'openchoreo.trait',
           'openchoreo.workflow',
           'openchoreo.workload',
           'openchoreo.clustercomponenttype',
+          'openchoreo.clusterresourcetype',
           'openchoreo.clustertrait',
           'openchoreo.clusterworkflow',
           'openchoreo.clusterdataplane',
@@ -608,6 +628,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   const dependencies = workloadData
                     ? extractWorkloadDependencies(workloadData)
                     : [];
+                  const resourceDependencies = workloadData
+                    ? extractWorkloadResourceDependencies(workloadData)
+                    : [];
 
                   componentWorkloadMap.set(`${projectName}:${componentName}`, {
                     component,
@@ -615,6 +638,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     schemaEndpoints,
                     allEndpoints,
                     dependencies,
+                    resourceDependencies,
                     workloadName: workloadData?.metadata?.name,
                   });
                 } catch (error) {
@@ -628,6 +652,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     schemaEndpoints: {},
                     allEndpoints: {},
                     dependencies: [],
+                    resourceDependencies: [],
                   });
                 }
               }
@@ -647,6 +672,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               projectName,
               schemaEndpoints,
               dependencies,
+              resourceDependencies,
               workloadName,
             } = workloadData;
             const componentName = getName(component)!;
@@ -681,6 +707,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               this.defaultOwner,
             );
 
+            const dependsOn = buildComponentDependsOnRefs(
+              resourceDependencies,
+              nsName,
+            );
+
             const componentEntity = translateNewComponentToEntity(
               component,
               nsName,
@@ -690,6 +721,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               providesApis,
               consumesApis,
               workloadName,
+              dependsOn,
             );
             allEntities.push(componentEntity);
 
@@ -896,6 +928,183 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         }
       }
 
+      // Get resource types for each namespace
+      for (const ns of namespaces) {
+        const nsName = getName(ns)!;
+        try {
+          const resourceTypes = await fetchAllPages<NewResourceType>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/resourcetypes', {
+                params: {
+                  path: { namespaceName: nsName },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(
+                    `Failed to fetch resource types for ${nsName}`,
+                  );
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${resourceTypes.length} resource types in namespace: ${nsName}`,
+          );
+
+          const rtEntities: Entity[] = resourceTypes
+            .map(rt => {
+              try {
+                return translateNewResourceTypeToEntity(
+                  rt,
+                  nsName,
+                  this.translatorContext,
+                ) as Entity;
+              } catch (err) {
+                this.logger.warn(
+                  `Failed to translate ResourceType ${getName(rt)}: ${err}`,
+                );
+                return null;
+              }
+            })
+            .filter((e): e is Entity => e !== null);
+          allEntities.push(...rtEntities);
+
+          // Generate per-type scaffolder Template entities from each
+          // ResourceType — mirrors the CTD template generation above.
+          const rtsWithSchemas = await Promise.all(
+            resourceTypes.map(async rt => {
+              const rtName = getName(rt);
+              if (!rtName) return null;
+              try {
+                const { data: schemaData, error: schemaError } =
+                  await client.GET(
+                    '/api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}/schema',
+                    {
+                      params: {
+                        path: { namespaceName: nsName, rtName },
+                      },
+                    },
+                  );
+
+                if (schemaError || !schemaData) {
+                  this.logger.warn(
+                    `Failed to fetch schema for ResourceType ${rtName} in namespace ${nsName}`,
+                  );
+                  return null;
+                }
+
+                return {
+                  metadata: {
+                    name: rtName,
+                    displayName: getDisplayName(rt),
+                    description: getDescription(rt),
+                    createdAt: getCreatedAt(rt) || '',
+                  },
+                  spec: {
+                    parameters: { openAPIV3Schema: schemaData as any },
+                    retainPolicy: rt.spec?.retainPolicy as
+                      | 'Delete'
+                      | 'Retain'
+                      | undefined,
+                  },
+                };
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to fetch schema for ResourceType ${rtName} in namespace ${nsName}: ${error}`,
+                );
+                return null;
+              }
+            }),
+          );
+
+          const validRts = rtsWithSchemas.filter(
+            (rt): rt is NonNullable<typeof rt> => rt !== null,
+          );
+
+          const rtTemplateEntities: Entity[] = validRts
+            .map(rt => {
+              try {
+                const templateEntity =
+                  this.rtdConverter.convertRtdToTemplateEntity(rt, nsName);
+                if (!templateEntity.metadata.annotations) {
+                  templateEntity.metadata.annotations = {};
+                }
+                templateEntity.metadata.annotations[
+                  'backstage.io/managed-by-location'
+                ] = `provider:${this.getProviderName()}`;
+                templateEntity.metadata.annotations[
+                  'backstage.io/managed-by-origin-location'
+                ] = `provider:${this.getProviderName()}`;
+                return templateEntity;
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to convert ResourceType ${rt.metadata.name} to template: ${error}`,
+                );
+                return null;
+              }
+            })
+            .filter((entity): entity is Entity => entity !== null);
+
+          allEntities.push(...rtTemplateEntities);
+          this.logger.debug(
+            `Generated ${rtTemplateEntities.length} template entities from ResourceTypes in namespace: ${nsName}`,
+          );
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch resource types for namespace ${nsName}: ${error}`,
+          );
+        }
+      }
+
+      // Get resources for each namespace
+      for (const ns of namespaces) {
+        const nsName = getName(ns)!;
+        try {
+          const resources = await fetchAllPages<NewResource>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/resources', {
+                params: {
+                  path: { namespaceName: nsName },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(`Failed to fetch resources for ${nsName}`);
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${resources.length} resources in namespace: ${nsName}`,
+          );
+
+          const resourceEntities: Entity[] = resources
+            .map(resource => {
+              try {
+                return translateNewResourceToEntity(
+                  resource,
+                  nsName,
+                  this.translatorContext,
+                );
+              } catch (err) {
+                this.logger.warn(
+                  `Failed to translate Resource ${getName(resource)}: ${err}`,
+                );
+                return null;
+              }
+            })
+            .filter((e): e is Entity => e !== null);
+          allEntities.push(...resourceEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch resources for namespace ${nsName}: ${error}`,
+          );
+        }
+      }
+
       // Get workflows for each namespace
       for (const ns of namespaces) {
         const nsName = getName(ns)!;
@@ -1052,6 +1261,127 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         );
       } catch (error) {
         this.logger.warn(`Failed to fetch cluster component types: ${error}`);
+      }
+
+      // Fetch cluster resource types (once, not per namespace)
+      try {
+        const clusterResourceTypes =
+          await fetchAllPages<NewClusterResourceType>(cursor =>
+            client
+              .GET('/api/v1/clusterresourcetypes', {
+                params: { query: { limit: 100, cursor } },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error('Failed to fetch cluster resource types');
+                return res.data;
+              }),
+          );
+
+        this.logger.debug(
+          `Found ${clusterResourceTypes.length} cluster resource types`,
+        );
+
+        const crtEntities: Entity[] = clusterResourceTypes
+          .map(crt => {
+            try {
+              return translateNewClusterResourceTypeToEntity(
+                crt,
+                this.translatorContext,
+              ) as Entity;
+            } catch (err) {
+              this.logger.warn(
+                `Failed to translate ClusterResourceType ${getName(
+                  crt,
+                )}: ${err}`,
+              );
+              return null;
+            }
+          })
+          .filter((e): e is Entity => e !== null);
+        allEntities.push(...crtEntities);
+
+        // Generate per-type scaffolder Template entities from each
+        // ClusterResourceType — mirrors the CCT template generation above.
+        const crtsWithSchemas = await Promise.all(
+          clusterResourceTypes.map(async crt => {
+            const crtName = getName(crt);
+            if (!crtName) return null;
+            try {
+              const { data: schemaData, error: schemaError } = await client.GET(
+                '/api/v1/clusterresourcetypes/{crtName}/schema',
+                {
+                  params: {
+                    path: { crtName },
+                  },
+                },
+              );
+
+              if (schemaError || !schemaData) {
+                this.logger.warn(
+                  `Failed to fetch schema for ClusterResourceType ${crtName}`,
+                );
+                return null;
+              }
+
+              return {
+                metadata: {
+                  name: crtName,
+                  displayName: getDisplayName(crt),
+                  description: getDescription(crt),
+                  createdAt: getCreatedAt(crt) || '',
+                },
+                spec: {
+                  parameters: { openAPIV3Schema: schemaData as any },
+                  retainPolicy: crt.spec?.retainPolicy as
+                    | 'Delete'
+                    | 'Retain'
+                    | undefined,
+                },
+              };
+            } catch (error) {
+              this.logger.warn(
+                `Failed to fetch schema for ClusterResourceType ${crtName}: ${error}`,
+              );
+              return null;
+            }
+          }),
+        );
+
+        const validCrts = crtsWithSchemas.filter(
+          (crt): crt is NonNullable<typeof crt> => crt !== null,
+        );
+
+        const crtTemplateEntities: Entity[] = validCrts
+          .map(crt => {
+            try {
+              const templateEntity =
+                this.rtdConverter.convertClusterRtdToTemplateEntity(crt);
+              if (!templateEntity.metadata.annotations) {
+                templateEntity.metadata.annotations = {};
+              }
+              templateEntity.metadata.annotations[
+                'backstage.io/managed-by-location'
+              ] = `provider:${this.getProviderName()}`;
+              templateEntity.metadata.annotations[
+                'backstage.io/managed-by-origin-location'
+              ] = `provider:${this.getProviderName()}`;
+              return templateEntity;
+            } catch (error) {
+              this.logger.warn(
+                `Failed to convert ClusterResourceType ${crt.metadata.name} to template: ${error}`,
+              );
+              return null;
+            }
+          })
+          .filter((entity): entity is Entity => entity !== null);
+
+        allEntities.push(...crtTemplateEntities);
+        this.logger.info(
+          `Successfully generated ${crtTemplateEntities.length} template entities from ClusterResourceTypes`,
+        );
+      } catch (error) {
+        this.logger.warn(`Failed to fetch cluster resource types: ${error}`);
       }
 
       // Fetch cluster traits (once, not per namespace)
@@ -1302,8 +1632,15 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     const traitTypeCount = allEntities.filter(
       e => e.kind === 'TraitType',
     ).length;
+    const resourceTypeCount = allEntities.filter(
+      e => e.kind === 'ResourceType',
+    ).length;
+    const resourceCount = allEntities.filter(e => e.kind === 'Resource').length;
     const clusterComponentTypeCount = allEntities.filter(
       e => e.kind === 'ClusterComponentType',
+    ).length;
+    const clusterResourceTypeCount = allEntities.filter(
+      e => e.kind === 'ClusterResourceType',
     ).length;
     const clusterTraitTypeCount = allEntities.filter(
       e => e.kind === 'ClusterTraitType',
@@ -1322,7 +1659,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       e => e.kind === 'ClusterWorkflow',
     ).length;
     this.logger.info(
-      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${clusterComponentTypeCount} cluster component types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
+      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${resourceTypeCount} resource types, ${resourceCount} resources, ${clusterComponentTypeCount} cluster component types, ${clusterResourceTypeCount} cluster resource types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
     );
   }
 }

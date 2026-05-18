@@ -40,8 +40,15 @@ export const CLUSTER_SCOPED_KINDS = [
 export const APPLICATION_VIEW: GraphViewDefinition = {
   id: 'developer',
   label: 'Developer Resources',
-  description: 'Projects, Components, Deployment Pipelines, and Environments',
-  kinds: ['system', 'component', 'deploymentpipeline', 'environment'],
+  description:
+    'Projects, Components, Resources, Deployment Pipelines, and Environments',
+  kinds: [
+    'system',
+    'component',
+    'resource',
+    'deploymentpipeline',
+    'environment',
+  ],
   relations: [
     RELATION_PART_OF,
     RELATION_HAS_PART,
@@ -176,6 +183,7 @@ export const ALL_FILTERABLE_KINDS: {
 }[] = [
   { id: 'system', label: 'Project' },
   { id: 'component', label: 'Component' },
+  { id: 'resource', label: 'Resource' },
   { id: 'deploymentpipeline', label: 'Pipeline' },
   { id: 'environment', label: 'Environment' },
   { id: 'dataplane', label: 'Data Plane' },

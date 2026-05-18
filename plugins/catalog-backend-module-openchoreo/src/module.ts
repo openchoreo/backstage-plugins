@@ -17,6 +17,7 @@ import {
   ObservabilityPlaneEntityProcessor,
   DeploymentPipelineEntityProcessor,
   ComponentEntityProcessor,
+  ResourceEntityProcessor,
   ComponentTypeEntityProcessor,
   TraitTypeEntityProcessor,
   WorkflowEntityProcessor,
@@ -27,6 +28,8 @@ import {
   ClusterObservabilityPlaneEntityProcessor,
   ClusterWorkflowPlaneEntityProcessor,
   ClusterWorkflowEntityProcessor,
+  ClusterResourceTypeEntityProcessor,
+  ResourceTypeEntityProcessor,
   SystemEntityProcessor,
 } from './processors';
 import {
@@ -130,6 +133,9 @@ export const catalogModuleOpenchoreo = createBackendModule({
         // Register the Component entity processor (emits instanceOf relation to ComponentType)
         catalog.addProcessor(new ComponentEntityProcessor());
 
+        // Register the Resource entity processor (emits instanceOf relation to (Cluster)ResourceType)
+        catalog.addProcessor(new ResourceEntityProcessor());
+
         // Register the ComponentType entity processor
         catalog.addProcessor(new ComponentTypeEntityProcessor());
 
@@ -156,6 +162,12 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register the ClusterWorkflow entity processor
         catalog.addProcessor(new ClusterWorkflowEntityProcessor());
+
+        // Register the ClusterResourceType entity processor
+        catalog.addProcessor(new ClusterResourceTypeEntityProcessor());
+
+        // Register the ResourceType entity processor
+        catalog.addProcessor(new ResourceTypeEntityProcessor());
 
         // Register the System (Project) entity processor.
         // Emits the usesPipeline / pipelineUsedBy relation pair from the

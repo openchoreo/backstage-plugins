@@ -54,9 +54,17 @@ export const ResourceNamePicker = ({
     | string
     | undefined;
 
-  // Get the namespace name from form context (only if namespaceField is specified)
+  // Resolve a possibly-dotted form-data path (e.g. `project_namespace.namespace_name`
+  // for templates that use ProjectNamespaceField, or just `namespace_name` for
+  // templates that use NamespaceEntityPicker directly).
   const namespaceName = namespaceField
-    ? formContext.formData?.[namespaceField]
+    ? namespaceField
+        .split('.')
+        .reduce<any>(
+          (acc, key) =>
+            acc === null || acc === undefined ? undefined : acc[key],
+          formContext.formData,
+        )
     : undefined;
 
   // Extract namespace name from entity reference format

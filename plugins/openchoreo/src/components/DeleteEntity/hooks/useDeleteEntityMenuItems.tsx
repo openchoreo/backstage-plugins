@@ -47,6 +47,7 @@ export interface DeletePermissionInfo {
 /** Human-friendly display names for all deletable entity kinds */
 const KIND_DISPLAY_NAMES: Record<string, string> = {
   component: 'Component',
+  resource: 'Resource',
   system: 'Project',
   domain: 'Namespace',
   environment: 'Environment',
@@ -60,7 +61,9 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
   clusterobservabilityplane: 'Cluster Observability Plane',
   deploymentpipeline: 'Deployment Pipeline',
   componenttype: 'Component Type',
+  resourcetype: 'Resource Type',
   clustercomponenttype: 'Cluster Component Type',
+  clusterresourcetype: 'Cluster Resource Type',
   traittype: 'Trait Type',
   clustertraittype: 'Cluster Trait Type',
   workflow: 'Workflow',

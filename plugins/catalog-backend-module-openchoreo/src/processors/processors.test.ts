@@ -18,12 +18,15 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 
 import { ClusterComponentTypeEntityProcessor } from './ClusterComponentTypeEntityProcessor';
+import { ClusterResourceTypeEntityProcessor } from './ClusterResourceTypeEntityProcessor';
+import { ResourceTypeEntityProcessor } from './ResourceTypeEntityProcessor';
 import { ClusterDataplaneEntityProcessor } from './ClusterDataplaneEntityProcessor';
 import { ClusterObservabilityPlaneEntityProcessor } from './ClusterObservabilityPlaneEntityProcessor';
 import { ClusterTraitTypeEntityProcessor } from './ClusterTraitTypeEntityProcessor';
 import { ClusterWorkflowEntityProcessor } from './ClusterWorkflowEntityProcessor';
 import { ClusterWorkflowPlaneEntityProcessor } from './ClusterWorkflowPlaneEntityProcessor';
 import { ComponentEntityProcessor } from './ComponentEntityProcessor';
+import { ResourceEntityProcessor } from './ResourceEntityProcessor';
 import { ComponentTypeEntityProcessor } from './ComponentTypeEntityProcessor';
 import { CustomAnnotationProcessor } from './CustomAnnotationProcessor';
 import { DataplaneEntityProcessor } from './DataplaneEntityProcessor';
@@ -517,6 +520,80 @@ describe('ClusterTraitTypeEntityProcessor', () => {
       emit,
     );
     expect(emit).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ClusterResourceTypeEntityProcessor
+// ---------------------------------------------------------------------------
+describe('ClusterResourceTypeEntityProcessor', () => {
+  const processor = new ClusterResourceTypeEntityProcessor();
+
+  it('validateEntityKind returns true for ClusterResourceType', async () => {
+    expect(
+      await processor.validateEntityKind({
+        kind: 'ClusterResourceType',
+      } as any),
+    ).toBe(true);
+    expect(
+      await processor.validateEntityKind({ kind: 'ResourceType' } as any),
+    ).toBe(false);
+  });
+
+  it('postProcessEntity emits no relations', async () => {
+    const emit = jest.fn();
+    await processor.postProcessEntity(
+      {
+        kind: 'ClusterResourceType',
+        metadata: { name: 'r' },
+        spec: { retainPolicy: 'Delete' },
+      } as any,
+      mockLocation,
+      emit,
+    );
+    expect(emit).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ResourceTypeEntityProcessor
+// ---------------------------------------------------------------------------
+describe('ResourceTypeEntityProcessor', () => {
+  const processor = new ResourceTypeEntityProcessor();
+
+  it('validateEntityKind returns true for ResourceType', async () => {
+    expect(
+      await processor.validateEntityKind({ kind: 'ResourceType' } as any),
+    ).toBe(true);
+    expect(
+      await processor.validateEntityKind({
+        kind: 'ClusterResourceType',
+      } as any),
+    ).toBe(false);
+  });
+
+  it('emits partOf domain relation', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'ResourceType',
+      metadata: { name: 'r', namespace: 'my-ns' },
+      spec: { domain: 'my-ns', retainPolicy: 'Delete' },
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'resourcetype', namespace: 'my-ns', name: 'r' },
+        target: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
+        type: RELATION_PART_OF,
+      }),
+    );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
+        target: { kind: 'resourcetype', namespace: 'my-ns', name: 'r' },
+        type: RELATION_HAS_PART,
+      }),
+    );
   });
 });
 
@@ -1161,6 +1238,133 @@ describe('SystemEntityProcessor', () => {
       kind: 'System',
       metadata: { name: 'proj-1' },
       spec: { deploymentPipelineRef: 'pipe' },
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    const call = emit.mock.calls[0][0];
+    expect(call.relation.source.namespace).toBe('default');
+    expect(call.relation.target.namespace).toBe('default');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ResourceEntityProcessor
+// ---------------------------------------------------------------------------
+describe('ResourceEntityProcessor', () => {
+  const processor = new ResourceEntityProcessor();
+
+  it('emits instanceOf/hasInstance to ResourceType when annotation is set', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'Resource',
+      metadata: {
+        name: 'analytics-db',
+        namespace: 'finance',
+        annotations: {
+          'openchoreo.io/resource-type': 'postgres',
+          'openchoreo.io/resource-type-kind': 'ResourceType',
+        },
+      },
+      spec: {},
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: {
+          kind: 'resource',
+          namespace: 'finance',
+          name: 'analytics-db',
+        },
+        target: {
+          kind: 'resourcetype',
+          namespace: 'finance',
+          name: 'postgres',
+        },
+        type: RELATION_INSTANCE_OF,
+      }),
+    );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: {
+          kind: 'resourcetype',
+          namespace: 'finance',
+          name: 'postgres',
+        },
+        target: {
+          kind: 'resource',
+          namespace: 'finance',
+          name: 'analytics-db',
+        },
+        type: RELATION_HAS_INSTANCE,
+      }),
+    );
+  });
+
+  it('targets ClusterResourceType when resource-type-kind annotation is set', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'Resource',
+      metadata: {
+        name: 'orders-cache',
+        namespace: 'sales',
+        annotations: {
+          'openchoreo.io/resource-type': 'valkey',
+          'openchoreo.io/resource-type-kind': 'ClusterResourceType',
+        },
+      },
+      spec: {},
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'resource', namespace: 'sales', name: 'orders-cache' },
+        target: {
+          kind: 'clusterresourcetype',
+          namespace: 'openchoreo-cluster',
+          name: 'valkey',
+        },
+        type: RELATION_INSTANCE_OF,
+      }),
+    );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: {
+          kind: 'clusterresourcetype',
+          namespace: 'openchoreo-cluster',
+          name: 'valkey',
+        },
+        target: { kind: 'resource', namespace: 'sales', name: 'orders-cache' },
+        type: RELATION_HAS_INSTANCE,
+      }),
+    );
+  });
+
+  it('skips non-Resource entities and Resources without the annotation', async () => {
+    const emit = jest.fn();
+    await processor.postProcessEntity(
+      { kind: 'Environment', metadata: { name: 'x' } } as any,
+      mockLocation,
+      emit,
+    );
+    await processor.postProcessEntity(
+      { kind: 'Resource', metadata: { name: 'x' } } as any,
+      mockLocation,
+      emit,
+    );
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('defaults to namespace "default" when metadata.namespace is missing', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'Resource',
+      metadata: {
+        name: 'no-ns',
+        annotations: {
+          'openchoreo.io/resource-type': 'postgres',
+          'openchoreo.io/resource-type-kind': 'ResourceType',
+        },
+      },
+      spec: {},
     } as any;
     await processor.postProcessEntity(entity, mockLocation, emit);
     const call = emit.mock.calls[0][0];

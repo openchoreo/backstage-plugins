@@ -387,6 +387,575 @@ describe('EnvironmentInfoService', () => {
     });
   });
 
+  describe('fetchResourceReleaseBindings', () => {
+    function rrb(projectName: string, environment: string) {
+      return {
+        metadata: { name: `binding-${environment}`, namespace: 'test-ns' },
+        spec: {
+          owner: { projectName, resourceName: 'analytics-db' },
+          environment,
+          resourceRelease: `analytics-db-${environment}-abc`,
+        },
+        status: {
+          conditions: [
+            {
+              type: 'Ready',
+              status: 'True',
+              reason: 'Ready',
+              message: 'Resource ready',
+            },
+          ],
+        },
+      };
+    }
+
+    it('returns bindings filtered to the requested project', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [
+            rrb('my-project', 'dev'),
+            rrb('other-project', 'dev'),
+            rrb('my-project', 'staging'),
+          ],
+        }),
+      );
+
+      const service = createService();
+      const result = await service.fetchResourceReleaseBindings(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect((result as any).items).toHaveLength(2);
+      expect(
+        (result as any).items.map((b: any) => b.spec.environment).sort(),
+      ).toEqual(['dev', 'staging']);
+      expect(
+        (result as any).items.every(
+          (b: any) => b.spec.owner.projectName === 'my-project',
+        ),
+      ).toBe(true);
+    });
+
+    it('returns an empty list when no bindings match the project', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [rrb('other-project', 'dev')] }),
+      );
+
+      const service = createService();
+      const result = await service.fetchResourceReleaseBindings(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect((result as any).items).toEqual([]);
+    });
+
+    it('passes the resource query to the openchoreo-api', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+
+      const service = createService();
+      await service.fetchResourceReleaseBindings(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      const call = mockGET.mock.calls[0];
+      expect(call[0]).toBe(
+        '/api/v1/namespaces/{namespaceName}/resourcereleasebindings',
+      );
+      expect(call[1]).toMatchObject({
+        params: {
+          path: { namespaceName: 'test-ns' },
+          query: { resource: 'analytics-db' },
+        },
+      });
+    });
+  });
+
+  describe('fetchResourceEnvironmentInfo', () => {
+    function rrbWithOutputs(
+      projectName: string,
+      environment: string,
+      release: string,
+    ) {
+      return {
+        metadata: {
+          name: `binding-${environment}`,
+          namespace: 'test-ns',
+          creationTimestamp: '2025-01-06T11:00:00Z',
+        },
+        spec: {
+          owner: { projectName, resourceName: 'analytics-db' },
+          environment,
+          resourceRelease: release,
+          retainPolicy: 'Delete',
+        },
+        status: {
+          conditions: [{ type: 'Ready', status: 'True', reason: 'Ready' }],
+          outputs: [
+            { name: 'host', value: 'db.dev.svc' },
+            {
+              name: 'password',
+              secretKeyRef: { name: 'db-creds', key: 'password' },
+            },
+          ],
+        },
+      };
+    }
+
+    const k8sResource = {
+      metadata: { name: 'analytics-db', namespace: 'test-ns' },
+      spec: { type: { kind: 'ResourceType', name: 'postgres' } },
+      status: {
+        latestRelease: { name: 'analytics-db-zzz', hash: 'zzz' },
+      },
+    };
+
+    it('returns one entry per pipeline environment with binding + latestRelease joined', async () => {
+      // env list
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [makeK8sEnvironment('dev'), makeK8sEnvironment('staging')],
+          pagination: {},
+        }),
+      );
+      // resource release bindings (dev only)
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [rrbWithOutputs('my-project', 'dev', 'analytics-db-abc')],
+        }),
+      );
+      // project
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      // resource
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sResource));
+      // pipeline
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      const service = createService();
+      const result = await service.fetchResourceEnvironmentInfo(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result.map(e => e.name)).toEqual(['dev', 'staging']);
+
+      expect(result[0].bindingName).toBe('binding-dev');
+      expect(result[0].resourceRelease).toBe('analytics-db-abc');
+      expect(result[0].retainPolicy).toBe('Delete');
+      expect(result[0].status).toBe('Ready');
+      expect(result[0].latestRelease).toBe('analytics-db-zzz');
+      expect(result[0].outputs).toEqual([
+        { name: 'host', value: 'db.dev.svc' },
+        {
+          name: 'password',
+          secretKeyRef: { name: 'db-creds', key: 'password' },
+        },
+      ]);
+      expect(result[0].promotionTargets).toEqual([
+        { name: 'staging', resourceName: 'staging' },
+      ]);
+
+      expect(result[1].bindingName).toBeUndefined();
+      expect(result[1].resourceRelease).toBeUndefined();
+      expect(result[1].latestRelease).toBe('analytics-db-zzz');
+    });
+
+    it('filters bindings to the owning project', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [makeK8sEnvironment('dev')],
+          pagination: {},
+        }),
+      );
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [
+            rrbWithOutputs('my-project', 'dev', 'rel-mine'),
+            rrbWithOutputs('other-project', 'dev', 'rel-theirs'),
+          ],
+        }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sResource));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      const service = createService();
+      const result = await service.fetchResourceEnvironmentInfo(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].resourceRelease).toBe('rel-mine');
+    });
+
+    it('returns environments with no bindings when none exist', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [makeK8sEnvironment('dev'), makeK8sEnvironment('staging')],
+          pagination: {},
+        }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sResource));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      const service = createService();
+      const result = await service.fetchResourceEnvironmentInfo(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result.every(e => e.bindingName === undefined)).toBe(true);
+      expect(result.every(e => e.latestRelease === 'analytics-db-zzz')).toBe(
+        true,
+      );
+    });
+
+    it('falls back to default ordering when project has no pipeline', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [makeK8sEnvironment('dev'), makeK8sEnvironment('staging')],
+          pagination: {},
+        }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+      // project without deploymentPipelineRef
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectNoPipeline));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sResource));
+
+      const service = createService();
+      const result = await service.fetchResourceEnvironmentInfo(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result.every(e => e.promotionTargets === undefined)).toBe(true);
+    });
+
+    it('returns env-info without latestRelease when resource fetch errors', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [makeK8sEnvironment('dev')],
+          pagination: {},
+        }),
+      );
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [rrbWithOutputs('my-project', 'dev', 'rel-1')],
+        }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      // resource fetch errors
+      mockGET.mockResolvedValueOnce(createErrorResponse());
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      const service = createService();
+      const result = await service.fetchResourceEnvironmentInfo(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].resourceRelease).toBe('rel-1');
+      expect(result[0].latestRelease).toBeUndefined();
+    });
+  });
+
+  describe('updateResourceReleaseBinding', () => {
+    const existingBinding = {
+      metadata: {
+        name: 'analytics-db-dev',
+        namespace: 'test-ns',
+        creationTimestamp: '2025-01-06T11:00:00Z',
+        resourceVersion: '42',
+      },
+      spec: {
+        owner: { projectName: 'my-project', resourceName: 'analytics-db' },
+        environment: 'dev',
+        resourceRelease: 'analytics-db-old',
+        retainPolicy: 'Delete',
+      },
+      status: { conditions: [] },
+    };
+
+    it('GETs the existing binding then PUTs with the new resourceRelease', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse(existingBinding));
+      mockPUT.mockResolvedValueOnce(createOkResponse({ ...existingBinding }));
+
+      const service = createService();
+      await service.updateResourceReleaseBinding(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environment: 'dev',
+          releaseName: 'analytics-db-new',
+        },
+        'token-123',
+      );
+
+      expect(mockGET).toHaveBeenCalledTimes(1);
+      expect(mockPUT).toHaveBeenCalledTimes(1);
+      const putCall = mockPUT.mock.calls[0];
+      expect(putCall[0]).toBe(
+        '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}',
+      );
+      expect(putCall[1].body.spec.resourceRelease).toBe('analytics-db-new');
+      expect(putCall[1].body.spec.retainPolicy).toBe('Delete');
+      expect(putCall[1].body.spec).not.toHaveProperty('state');
+    });
+
+    it('overrides retainPolicy when provided', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse(existingBinding));
+      mockPUT.mockResolvedValueOnce(createOkResponse({ ...existingBinding }));
+
+      const service = createService();
+      await service.updateResourceReleaseBinding(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environment: 'dev',
+          releaseName: 'analytics-db-new',
+          retainPolicy: 'Retain',
+        },
+        'token-123',
+      );
+
+      expect(mockPUT.mock.calls[0][1].body.spec.retainPolicy).toBe('Retain');
+    });
+
+    it('passes resourceTypeEnvironmentConfigs into the spec when provided', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse(existingBinding));
+      mockPUT.mockResolvedValueOnce(createOkResponse({ ...existingBinding }));
+
+      const service = createService();
+      await service.updateResourceReleaseBinding(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environment: 'dev',
+          releaseName: 'analytics-db-new',
+          resourceTypeEnvironmentConfigs: { replicas: 3 },
+        },
+        'token-123',
+      );
+
+      expect(
+        mockPUT.mock.calls[0][1].body.spec.resourceTypeEnvironmentConfigs,
+      ).toEqual({ replicas: 3 });
+    });
+
+    it('POSTs a new binding when GET returns 404', async () => {
+      mockGET.mockResolvedValueOnce(createErrorResponse(404));
+      mockPOST.mockResolvedValueOnce(
+        createOkResponse({ metadata: { name: 'analytics-db-dev' } }),
+      );
+
+      const service = createService();
+      await service.updateResourceReleaseBinding(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environment: 'dev',
+          releaseName: 'analytics-db-new',
+          retainPolicy: 'Retain',
+        },
+        'token-123',
+      );
+
+      expect(mockPUT).not.toHaveBeenCalled();
+      expect(mockPOST).toHaveBeenCalledTimes(1);
+      const postCall = mockPOST.mock.calls[0];
+      expect(postCall[0]).toBe(
+        '/api/v1/namespaces/{namespaceName}/resourcereleasebindings',
+      );
+      const body = postCall[1].body;
+      expect(body.metadata.name).toBe('analytics-db-dev');
+      expect(body.spec.owner).toEqual({
+        projectName: 'my-project',
+        resourceName: 'analytics-db',
+      });
+      expect(body.spec.environment).toBe('dev');
+      expect(body.spec.resourceRelease).toBe('analytics-db-new');
+      expect(body.spec.retainPolicy).toBe('Retain');
+      expect(body.spec).not.toHaveProperty('state');
+    });
+
+    it('refetches the binding when POST returns 409', async () => {
+      mockGET.mockResolvedValueOnce(createErrorResponse(404));
+      mockPOST.mockResolvedValueOnce(createErrorResponse(409));
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          metadata: { name: 'analytics-db-dev' },
+          spec: { resourceRelease: 'rel-from-conflict' },
+        }),
+      );
+
+      const service = createService();
+      const result = await service.updateResourceReleaseBinding(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environment: 'dev',
+          releaseName: 'analytics-db-new',
+        },
+        'token-123',
+      );
+
+      expect((result as any)?.metadata?.name).toBe('analytics-db-dev');
+      expect((result as any)?.spec?.resourceRelease).toBe('rel-from-conflict');
+    });
+
+    it('throws when GET returns a non-404 error', async () => {
+      mockGET.mockResolvedValueOnce(createErrorResponse(500));
+
+      const service = createService();
+      await expect(
+        service.updateResourceReleaseBinding(
+          {
+            resourceName: 'analytics-db',
+            projectName: 'my-project',
+            namespaceName: 'test-ns',
+            environment: 'dev',
+            releaseName: 'analytics-db-new',
+          },
+          'token-123',
+        ),
+      ).rejects.toThrow(/Failed to fetch resource release binding/);
+
+      expect(mockPUT).not.toHaveBeenCalled();
+      expect(mockPOST).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteResourceReleaseBinding', () => {
+    it('pre-flight GETs the binding, then DELETEs by composed name', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ metadata: { name: 'analytics-db-dev' } }),
+      );
+      mockDELETE.mockResolvedValueOnce(createOkResponse(undefined));
+
+      const service = createService();
+      const result = await service.deleteResourceReleaseBinding(
+        {
+          resourceName: 'analytics-db',
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environment: 'dev',
+        },
+        'token-123',
+      );
+
+      expect(result).toEqual({ success: true });
+      expect(mockGET).toHaveBeenCalledTimes(1);
+      expect(mockGET.mock.calls[0][1]).toMatchObject({
+        params: {
+          path: {
+            namespaceName: 'test-ns',
+            resourceReleaseBindingName: 'analytics-db-dev',
+          },
+        },
+      });
+      expect(mockDELETE).toHaveBeenCalledTimes(1);
+      const call = mockDELETE.mock.calls[0];
+      expect(call[0]).toBe(
+        '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}',
+      );
+      expect(call[1]).toMatchObject({
+        params: {
+          path: {
+            namespaceName: 'test-ns',
+            resourceReleaseBindingName: 'analytics-db-dev',
+          },
+        },
+      });
+    });
+
+    it('throws (and skips DELETE) when pre-flight GET returns 404', async () => {
+      // Defense-in-depth against the openchoreo-api silently returning 204
+      // for delete on names that resolve to no binding on the cluster.
+      mockGET.mockResolvedValueOnce(createErrorResponse(404));
+
+      const service = createService();
+      await expect(
+        service.deleteResourceReleaseBinding(
+          {
+            resourceName: 'analytics-db',
+            projectName: 'my-project',
+            namespaceName: 'test-ns',
+            environment: 'Production',
+          },
+          'token-123',
+        ),
+      ).rejects.toThrow();
+
+      expect(mockDELETE).not.toHaveBeenCalled();
+    });
+
+    it('propagates an error response from the openchoreo-api', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ metadata: { name: 'analytics-db-dev' } }),
+      );
+      mockDELETE.mockResolvedValueOnce(createErrorResponse(403));
+
+      const service = createService();
+      await expect(
+        service.deleteResourceReleaseBinding(
+          {
+            resourceName: 'analytics-db',
+            projectName: 'my-project',
+            namespaceName: 'test-ns',
+            environment: 'dev',
+          },
+          'token-123',
+        ),
+      ).rejects.toThrow();
+    });
+  });
+
   describe('fetchComponentReleaseSchema', () => {
     it('returns schema from new API', async () => {
       const schema = { type: 'object', properties: {} };

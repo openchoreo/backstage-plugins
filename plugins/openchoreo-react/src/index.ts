@@ -84,6 +84,15 @@ export {
   type DependencyListProps,
 } from './components/DependencyList';
 export {
+  ResourceDependencyDisplay,
+  type ResourceDependencyDisplayProps,
+} from './components/ResourceDependencyDisplay';
+export {
+  ResourceDependencyEditor,
+  type ResourceDependencyEditorProps,
+  type ResourceOption,
+} from './components/ResourceDependencyEditor';
+export {
   GroupedSection,
   type GroupedSectionProps,
   type GroupedSectionStatus,
@@ -214,6 +223,12 @@ export {
   type DependencyEditingRowState,
 } from './hooks/useDependencyEditBuffer';
 export {
+  useResourceDependencyEditBuffer,
+  type UseResourceDependencyEditBufferOptions,
+  type UseResourceDependencyEditBufferResult,
+  type ResourceDependencyEditingRowState,
+} from './hooks/useResourceDependencyEditBuffer';
+export {
   useChangeDetection,
   type UseChangeDetectionResult,
 } from './hooks/useChangeDetection';
@@ -327,6 +342,18 @@ export {
   type UseReleaseBindingUpdatePermissionResult,
 } from './hooks/useReleaseBindingUpdatePermission';
 export {
+  useResourceReleaseBindingUpdatePermission,
+  type UseResourceReleaseBindingUpdatePermissionResult,
+} from './hooks/useResourceReleaseBindingUpdatePermission';
+export {
+  useResourceReleaseBindingCreatePermission,
+  type UseResourceReleaseBindingCreatePermissionResult,
+} from './hooks/useResourceReleaseBindingCreatePermission';
+export {
+  useResourceReleaseBindingDeletePermission,
+  type UseResourceReleaseBindingDeletePermissionResult,
+} from './hooks/useResourceReleaseBindingDeletePermission';
+export {
   useRemoveDeploymentPermission,
   type UseRemoveDeploymentPermissionResult,
 } from './hooks/useRemoveDeploymentPermission';
@@ -370,6 +397,18 @@ export {
   useClusterComponentTypePermission,
   type UseClusterComponentTypePermissionResult,
 } from './hooks/useClusterComponentTypePermission';
+export {
+  useClusterResourceTypePermission,
+  type UseClusterResourceTypePermissionResult,
+} from './hooks/useClusterResourceTypePermission';
+export {
+  useResourceTypePermission,
+  type UseResourceTypePermissionResult,
+} from './hooks/useResourceTypePermission';
+export {
+  useResourceCreatePermission,
+  type UseResourceCreatePermissionResult,
+} from './hooks/useResourceCreatePermission';
 export {
   useResourceDefinitionPermission,
   type UseResourceDefinitionPermissionResult,

@@ -1,0 +1,1 @@
+export { ResourceTypeOverviewCard } from './ResourceTypeOverviewCard';

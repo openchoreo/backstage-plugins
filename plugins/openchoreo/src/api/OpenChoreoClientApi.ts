@@ -112,6 +112,106 @@ export interface ReleaseBindingsResponse {
   };
 }
 
+/** A single condition on a ResourceReleaseBinding. */
+export interface ResourceReleaseBindingCondition {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+  observedGeneration?: number;
+}
+
+/**
+ * Resource release binding item — one per environment for a given Resource.
+ * Fields the BFF transformer always emits (possibly as empty strings) are
+ * required here; truly per-status fields are optional. Matches the
+ * `ResourceReleaseBindingResponse` shape in `@openchoreo/backstage-plugin-common`.
+ */
+export interface ResourceReleaseBinding {
+  name: string;
+  environment: string;
+  resourceName: string;
+  projectName: string;
+  namespaceName: string;
+  releaseName: string;
+  createdAt: string;
+  retainPolicy?: 'Delete' | 'Retain';
+  /**
+   * Per-environment parameter overrides layered over
+   * Resource.spec.parameters when manifests are rendered.
+   */
+  resourceTypeEnvironmentConfigs?: Record<string, unknown>;
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  conditions?: ResourceReleaseBindingCondition[];
+}
+
+/** Resource release bindings response */
+export interface ResourceReleaseBindingsResponse {
+  success: boolean;
+  data?: {
+    items: ResourceReleaseBinding[];
+  };
+}
+
+/** Full ResourceRelease CR — used by the View release manifest modal */
+export interface ResourceReleaseResponse {
+  success: boolean;
+  data?: Record<string, unknown>;
+}
+
+export interface ResourceBindingOutput {
+  name: string;
+  value?: string;
+  secretKeyRef?: { name: string; key: string };
+  configMapKeyRef?: { name: string; key: string };
+}
+
+/**
+ * An output entry declared on a (Cluster)ResourceType. Same wire shape as
+ * `ResourceBindingOutput` but semantically the template form: `value` may
+ * carry an unresolved CEL expression and the secret/configmap refs name
+ * a DP-side object that may not exist yet. The resource-dependency
+ * editor uses this to render one row per declared output with the right
+ * env/file binding controls (value-kind outputs can't be mounted as
+ * files; the binding for them is env-only).
+ */
+export interface ResourceTypeOutput {
+  name: string;
+  value?: string;
+  secretKeyRef?: { name: string; key: string };
+  configMapKeyRef?: { name: string; key: string };
+}
+
+/**
+ * Per-environment runtime view of a Resource. One entry per environment
+ * defined in the project's deployment pipeline, including environments
+ * with no binding (so the UI can render a Deploy affordance). Matches
+ * the backend `ResourceEnvironment` shape in `plugins/openchoreo-backend/src/types.ts`.
+ */
+export interface ResourceEnvironment {
+  uid?: string;
+  name: string;
+  resourceName?: string;
+  dataPlaneRef?: string;
+  dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';
+  bindingName?: string;
+  resourceRelease?: string;
+  retainPolicy?: 'Delete' | 'Retain';
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  lastDeployed?: string;
+  outputs?: ResourceBindingOutput[];
+  promotionTargets?: {
+    name: string;
+    resourceName?: string;
+  }[];
+  latestRelease?: string;
+}
+
 /** Create release response */
 export interface CreateReleaseResponse {
   success: boolean;
@@ -374,6 +474,8 @@ export type PlatformResourceKind =
   | 'projects'
   | 'namespaces'
   | 'componenttypes'
+  | 'resourcetypes'
+  | 'resources'
   | 'traits'
   | 'workflows'
   | 'component-workflows'
@@ -384,6 +486,7 @@ export type PlatformResourceKind =
   | 'observabilityplanes'
   | 'deploymentpipelines'
   | 'clustercomponenttypes'
+  | 'clusterresourcetypes'
   | 'clustertraits'
   | 'clusterworkflows'
   | 'clusterdataplanes'
@@ -395,6 +498,7 @@ export type PlatformResourceKind =
 export const CLUSTER_SCOPED_RESOURCE_KINDS: ReadonlySet<PlatformResourceKind> =
   new Set([
     'clustercomponenttypes',
+    'clusterresourcetypes',
     'clustertraits',
     'clusterworkflows',
     'clusterdataplanes',
@@ -505,6 +609,58 @@ export interface OpenChoreoClientApi {
 
   /** Fetch all release bindings for a component */
   fetchReleaseBindings(entity: Entity): Promise<ReleaseBindingsResponse>;
+
+  /**
+   * Fetch a single ResourceRelease CR by name. Used by the Deploy tab's
+   * View release manifest modal to render the frozen snapshot as YAML.
+   */
+  fetchResourceRelease(
+    entity: Entity,
+    releaseName: string,
+  ): Promise<ResourceReleaseResponse>;
+
+  /**
+   * Fetch all resource release bindings for a Resource entity.
+   * Filters by the entity's resource name and owning project, returning one
+   * binding per environment.
+   */
+  fetchResourceReleaseBindings(
+    entity: Entity,
+  ): Promise<ResourceReleaseBindingsResponse>;
+
+  /**
+   * Fetch per-environment runtime info for a Resource entity. Returns one
+   * entry per environment in the project's deployment pipeline (including
+   * environments without bindings yet), joined with the Resource's latest
+   * release.
+   */
+  fetchResourceEnvironmentInfo(entity: Entity): Promise<ResourceEnvironment[]>;
+
+  /**
+   * Create or update a ResourceReleaseBinding for the given environment.
+   * Creates a new binding when none exists; otherwise advances
+   * `spec.resourceRelease`. Optional fields are written when present, left
+   * untouched when omitted.
+   */
+  updateResourceReleaseBinding(
+    entity: Entity,
+    environment: string,
+    options: {
+      resourceRelease: string;
+      retainPolicy?: 'Delete' | 'Retain';
+      resourceTypeEnvironmentConfigs?: unknown;
+    },
+  ): Promise<unknown>;
+
+  /**
+   * Delete a ResourceReleaseBinding for the given environment. With
+   * `spec.retainPolicy=Retain` on the binding, the Resource controller's
+   * finalizer holds the actual delete and DP-side state can persist.
+   */
+  deleteResourceReleaseBinding(
+    entity: Entity,
+    environment: string,
+  ): Promise<unknown>;
 
   /** Create or update a release binding for deploy/promote actions */
   updateReleaseBinding(
@@ -655,6 +811,40 @@ export interface OpenChoreoClientApi {
   /** Fetch the input parameter schema for a component type */
   fetchComponentTypeSchema(
     entity: Entity,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
+  /**
+   * Fetch the input parameter schema for a Resource's (Cluster)ResourceType.
+   * Reads RESOURCE_TYPE + RESOURCE_TYPE_KIND annotations off the Resource
+   * entity to pick the right endpoint.
+   */
+  fetchResourceTypeSchema(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
+  /**
+   * Fetch the declared outputs[] for a Resource's (Cluster)ResourceType.
+   * Reads RESOURCE_TYPE + RESOURCE_TYPE_KIND annotations off the Resource
+   * entity to pick the right endpoint. Consumed by the resource-dependency
+   * editor to render one row per output with the right env/file binding
+   * controls. Each output has a name and exactly one of value /
+   * secretKeyRef / configMapKeyRef set.
+   */
+  fetchResourceTypeOutputs(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: ResourceTypeOutput[] }>;
+
+  /**
+   * Fetch a schema section from the frozen snapshot stored on a
+   * ResourceRelease. `parameters` returns the developer schema; `environmentConfigs`
+   * returns the per-env override schema. Pinned-release flows use this so
+   * form validation matches what the release was actually cut against,
+   * not the live (Cluster)ResourceType which may have drifted.
+   */
+  fetchResourceReleaseSchema(
+    namespaceName: string,
+    releaseName: string,
+    section: 'parameters' | 'environmentConfigs',
   ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
 
   /** Update component config (traits and/or parameters) in a single call */

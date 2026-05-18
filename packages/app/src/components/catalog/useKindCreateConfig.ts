@@ -9,6 +9,9 @@ import {
   useDeploymentPipelinePermission,
   useComponentTypePermission,
   useClusterComponentTypePermission,
+  useClusterResourceTypePermission,
+  useResourceTypePermission,
+  useResourceCreatePermission,
   useTraitCreatePermission,
   useClusterTraitCreatePermission,
   useWorkflowPermission,
@@ -38,6 +41,9 @@ export function useKindCreateConfig(): KindCreateConfig | null {
   const deploymentPipelinePerm = useDeploymentPipelinePermission();
   const componentTypePerm = useComponentTypePermission();
   const clusterComponentTypePerm = useClusterComponentTypePermission();
+  const clusterResourceTypePerm = useClusterResourceTypePermission();
+  const resourceTypePerm = useResourceTypePermission();
+  const resourcePerm = useResourceCreatePermission();
   const traitPerm = useTraitCreatePermission();
   const clusterTraitPerm = useClusterTraitCreatePermission();
   const workflowPerm = useWorkflowPermission();
@@ -117,6 +123,36 @@ export function useKindCreateConfig(): KindCreateConfig | null {
         canCreate: clusterComponentTypePerm.canCreate,
         loading: clusterComponentTypePerm.loading,
         deniedTooltip: clusterComponentTypePerm.createDeniedTooltip,
+      };
+    case 'clusterresourcetype':
+      return {
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-clusterresourcetype',
+        }),
+        buttonLabel: 'Create Cluster Resource Type',
+        canCreate: clusterResourceTypePerm.canCreate,
+        loading: clusterResourceTypePerm.loading,
+        deniedTooltip: clusterResourceTypePerm.createDeniedTooltip,
+      };
+    case 'resourcetype':
+      return {
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-resourcetype',
+        }),
+        buttonLabel: 'Create Resource Type',
+        canCreate: resourceTypePerm.canCreate,
+        loading: resourceTypePerm.loading,
+        deniedTooltip: resourceTypePerm.createDeniedTooltip,
+      };
+    case 'resource':
+      return {
+        createPath: `${scaffolderRoot}?view=resources`,
+        buttonLabel: 'Create Resource',
+        canCreate: resourcePerm.canCreate,
+        loading: resourcePerm.loading,
+        deniedTooltip: resourcePerm.createDeniedTooltip,
       };
     case 'traittype':
       return {

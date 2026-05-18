@@ -6,6 +6,7 @@ export { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
 // at runtime when entity tabs (Environments, CellDiagram) try to useApi.
 export { OpenChoreoClient } from './api/OpenChoreoClient';
 export { Environments } from './components/Environments/Environments';
+export { ResourceEnvironments } from './components/ResourceEnvironments';
 export { CellDiagram } from './components/CellDiagram/CellDiagram';
 export {
   WorkflowsOverviewCard,
@@ -68,6 +69,12 @@ export {
 } from './components/DeploymentPipelineOverview';
 export { SecretsPage } from './components/Secrets';
 export { ComponentTypeOverviewCard } from './components/ComponentTypeOverview';
+export { ResourceTypeOverviewCard } from './components/ResourceTypeOverview';
+export {
+  ResourceParametersCard,
+  ResourceDeploymentsCard,
+  ConsumingComponentsCard,
+} from './components/ResourceOverview';
 export { TraitTypeOverviewCard } from './components/TraitTypeOverview';
 export { WorkflowOverviewCard } from './components/WorkflowOverview';
 export { ComponentWorkflowOverviewCard } from './components/ComponentWorkflowOverview';

@@ -187,6 +187,9 @@ const k8sWorkload = {
         schema: { type: 'openapi', content: '{"openapi":"3.0.0"}' },
       },
     },
+    dependencies: {
+      resources: [{ ref: 'analytics-db' }, { ref: 'shared-cache' }],
+    },
   },
 };
 
@@ -195,6 +198,34 @@ const k8sComponentType = {
   spec: {
     workloadType: 'deployment',
     allowedWorkflows: ['docker-build'],
+  },
+  status: { conditions: [readyCondition] },
+};
+
+const k8sClusterResourceType = {
+  metadata: k8sMeta('mysql'),
+  spec: {
+    retainPolicy: 'Retain',
+    resources: [],
+  },
+  status: { conditions: [readyCondition] },
+};
+
+const k8sResourceType = {
+  metadata: k8sMeta('postgres'),
+  spec: {
+    retainPolicy: 'Retain',
+    resources: [],
+  },
+  status: { conditions: [readyCondition] },
+};
+
+const k8sResource = {
+  metadata: k8sMeta('analytics-db'),
+  spec: {
+    owner: { projectName: 'my-project' },
+    type: { kind: 'ResourceType', name: 'postgres' },
+    parameters: {},
   },
   status: { conditions: [readyCondition] },
 };
@@ -395,6 +426,15 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/namespaces/{namespaceName}/component-workflows': okData({
           items: [k8sComponentWorkflow],
         }),
+        '/api/v1/namespaces/{namespaceName}/resourcetypes': okData({
+          items: [k8sResourceType],
+        }),
+        '/api/v1/namespaces/{namespaceName}/resources': okData({
+          items: [k8sResource],
+        }),
+        '/api/v1/clusterresourcetypes': okData({
+          items: [k8sClusterResourceType],
+        }),
         '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
       });
     });
@@ -414,6 +454,78 @@ describe('OpenChoreoEntityProvider', () => {
       expect(findEntities(entities, 'ComponentType')).toHaveLength(1);
       expect(findEntities(entities, 'TraitType')).toHaveLength(1);
       expect(findEntities(entities, 'Workflow')).toHaveLength(1);
+      expect(findEntities(entities, 'ClusterResourceType')).toHaveLength(1);
+      expect(findEntities(entities, 'ResourceType')).toHaveLength(1);
+      expect(findEntities(entities, 'Resource')).toHaveLength(1);
+    });
+
+    it('creates ClusterResourceType entity in the openchoreo-cluster namespace', async () => {
+      const entities = await runProvider();
+      const crts = findEntities(entities, 'ClusterResourceType');
+      expect(crts).toHaveLength(1);
+      const crt = crts[0];
+      expect(crt.metadata.name).toBe('mysql');
+      expect(crt.metadata.namespace).toBe('openchoreo-cluster');
+      expect(crt.metadata.title).toBe('mysql');
+      expect((crt.spec as any).retainPolicy).toBe('Retain');
+      expect(crt.metadata.tags).toEqual(
+        expect.arrayContaining([
+          'openchoreo',
+          'cluster-resource-type',
+          'platform-engineering',
+        ]),
+      );
+    });
+
+    it('creates ResourceType entity in the owning namespace with a domain ref', async () => {
+      const entities = await runProvider();
+      const rts = findEntities(entities, 'ResourceType');
+      expect(rts).toHaveLength(1);
+      const rt = rts[0];
+      expect(rt.metadata.name).toBe('postgres');
+      expect(rt.metadata.namespace).toBe('test-ns');
+      expect((rt.spec as any).domain).toBe('default/test-ns');
+      expect((rt.spec as any).retainPolicy).toBe('Retain');
+      expect(rt.metadata.tags).toEqual(
+        expect.arrayContaining([
+          'openchoreo',
+          'resource-type',
+          'platform-engineering',
+        ]),
+      );
+    });
+
+    it('populates Component.spec.dependsOn from workload resource deps', async () => {
+      const entities = await runProvider();
+      const components = findEntities(entities, 'Component');
+      const apiService = components.find(
+        c => c.metadata.name === 'api-service',
+      );
+      expect(apiService).toBeDefined();
+      expect((apiService!.spec as any).dependsOn).toEqual(
+        expect.arrayContaining([
+          'resource:test-ns/analytics-db',
+          'resource:test-ns/shared-cache',
+        ]),
+      );
+    });
+
+    it('creates Resource entity linked to its project via spec.system', async () => {
+      const entities = await runProvider();
+      const resources = findEntities(entities, 'Resource');
+      expect(resources).toHaveLength(1);
+      const res = resources[0];
+      expect(res.metadata.name).toBe('analytics-db');
+      expect(res.metadata.namespace).toBe('test-ns');
+      expect((res.spec as any).type).toBe('postgres');
+      expect((res.spec as any).system).toBe('my-project');
+      expect((res.spec as any).owner).toBe('group:default/test-owner');
+      expect(res.metadata.annotations).toMatchObject({
+        'openchoreo.io/project': 'my-project',
+        'openchoreo.io/resource': 'analytics-db',
+        'openchoreo.io/resource-type': 'postgres',
+        'openchoreo.io/resource-type-kind': 'ResourceType',
+      });
     });
 
     it('creates Domain entity from namespace', async () => {

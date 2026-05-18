@@ -1,0 +1,1 @@
+export { ResourceParametersFieldExtension } from './extensions';

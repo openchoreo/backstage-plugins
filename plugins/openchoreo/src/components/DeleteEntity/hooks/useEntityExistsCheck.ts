@@ -13,6 +13,7 @@ import { getDeletionTimestamp } from '../utils';
 /** Human-friendly display names for entity kinds */
 const KIND_DISPLAY_NAMES: Record<string, string> = {
   component: 'Component',
+  resource: 'Resource',
   system: 'Project',
   environment: 'Environment',
   dataplane: 'Dataplane',
@@ -23,7 +24,9 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
   clusterobservabilityplane: 'Cluster Observability Plane',
   deploymentpipeline: 'Deployment Pipeline',
   componenttype: 'Component Type',
+  resourcetype: 'Resource Type',
   clustercomponenttype: 'Cluster Component Type',
+  clusterresourcetype: 'Cluster Resource Type',
   traittype: 'Trait Type',
   clustertraittype: 'Cluster Trait Type',
   workflow: 'Workflow',

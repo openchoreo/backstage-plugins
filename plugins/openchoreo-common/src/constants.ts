@@ -16,6 +16,10 @@ export const CHOREO_ANNOTATIONS = {
   PROJECT_UID: 'openchoreo.io/project-uid',
   COMPONENT_TYPE: 'openchoreo.io/component-type',
   COMPONENT_TYPE_KIND: 'openchoreo.io/component-type-kind',
+  RESOURCE: 'openchoreo.io/resource',
+  RESOURCE_UID: 'openchoreo.io/resource-uid',
+  RESOURCE_TYPE: 'openchoreo.io/resource-type',
+  RESOURCE_TYPE_KIND: 'openchoreo.io/resource-type-kind',
   ENDPOINT_NAME: 'openchoreo.io/endpoint-name',
   ENDPOINT_TYPE: 'openchoreo.io/endpoint-type',
   ENDPOINT_PORT: 'openchoreo.io/endpoint-port',
@@ -25,6 +29,14 @@ export const CHOREO_ANNOTATIONS = {
   CTD_DISPLAY_NAME: 'openchoreo.io/ctd-display-name',
   CTD_GENERATED: 'openchoreo.io/ctd-generated',
   CTD_KIND: 'openchoreo.io/ctd-kind',
+  // (Cluster)ResourceType Definition (RTD) annotations
+  // Umbrella prefix `RTD` mirrors `CTD` on the Component side: a third
+  // letter (`D` for Definition) keeps it distinct from `RT` (ResourceType)
+  // and `CRT` (ClusterResourceType). The kind itself is carried in RTD_KIND.
+  RTD_NAME: 'openchoreo.io/rtd-name',
+  RTD_DISPLAY_NAME: 'openchoreo.io/rtd-display-name',
+  RTD_GENERATED: 'openchoreo.io/rtd-generated',
+  RTD_KIND: 'openchoreo.io/rtd-kind',
   // Deletion tracking
   DELETION_TIMESTAMP: 'openchoreo.io/deletion-timestamp',
   // Agent connection status
