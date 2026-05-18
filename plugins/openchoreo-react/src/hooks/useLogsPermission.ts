@@ -1,7 +1,7 @@
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
-import { usePermission } from '@backstage/plugin-permission-react';
 import { openchoreoLogsViewPermission } from '@openchoreo/backstage-plugin-common';
+import { useEnvScopedPermission } from './useEnvScopedPermission';
 
 /**
  * Result of the useLogsPermission hook.
@@ -23,31 +23,26 @@ export interface UseLogsPermissionResult {
  *
  * Must be used within an EntityProvider context.
  *
- * @example
- * ```tsx
- * const { canViewLogs, loading, deniedTooltip } = useLogsPermission();
- *
- * return (
- *   <Tooltip title={deniedTooltip}>
- *     <span>
- *       <Button disabled={loading || !canViewLogs}>View Logs</Button>
- *     </span>
- *   </Tooltip>
- * );
- * ```
+ * @param environment - Optional environment name. When supplied, the check
+ *   also honors ABAC `resource.environment` CEL constraints (issue #3408).
  */
-export const useLogsPermission = (): UseLogsPermissionResult => {
+export const useLogsPermission = (
+  environment?: string,
+): UseLogsPermissionResult => {
   const { entity } = useEntity();
-  const { allowed, loading } = usePermission({
+  const { allowed, loading } = useEnvScopedPermission({
     permission: openchoreoLogsViewPermission,
     resourceRef: stringifyEntityRef(entity),
+    environment,
   });
 
   const scope = entity.kind === 'System' ? 'project' : 'component';
-  const deniedTooltip =
-    !allowed && !loading
-      ? `You do not have permission to view logs of this ${scope}.`
-      : '';
+  let deniedTooltip = '';
+  if (!allowed && !loading) {
+    deniedTooltip = environment
+      ? `You do not have permission to view logs in ${environment}.`
+      : `You do not have permission to view logs of this ${scope}.`;
+  }
 
   return {
     canViewLogs: allowed,

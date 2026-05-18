@@ -10,6 +10,7 @@ import {
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
+    overflowX: 'hidden',
   },
   stepper: {
     padding: theme.spacing(2, 0, 0, 0),

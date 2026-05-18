@@ -12,3 +12,10 @@ export {
   type ChatRequest,
   type StreamEvent,
 } from './RCAAgentApi';
+
+export {
+  finopsAgentApiRef,
+  FinOpsAgentClient,
+  type FinOpsAgentApi,
+  type FinOpsRoutingContext,
+} from './FinOpsAgentApi';

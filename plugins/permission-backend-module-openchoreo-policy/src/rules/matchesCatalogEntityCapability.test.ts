@@ -272,6 +272,74 @@ describe('matchesCatalogEntityCapability.apply', () => {
     });
   });
 
+  describe('Resource entities (project-sibling of Component)', () => {
+    it('uses PROJECT annotation (not PROJECT_ID) for project scope', () => {
+      const entity = makeEntity('Resource', {
+        [CHOREO_ANNOTATIONS.NAMESPACE]: 'acme',
+        [CHOREO_ANNOTATIONS.PROJECT]: 'payments',
+      });
+      expect(
+        apply(entity, {
+          resource: {
+            action: 'resource:view',
+            allowedPaths: ['ns/acme/project/payments'],
+            deniedPaths: [],
+          },
+        }),
+      ).toBe(true);
+    });
+
+    it('project-level deny hides the Resource (Project → Resource cascade)', () => {
+      const entity = makeEntity('Resource', {
+        [CHOREO_ANNOTATIONS.NAMESPACE]: 'acme',
+        [CHOREO_ANNOTATIONS.PROJECT]: 'payments',
+      });
+      expect(
+        apply(entity, {
+          resource: {
+            action: 'resource:view',
+            allowedPaths: ['*'],
+            deniedPaths: ['ns/acme/project/payments'],
+          },
+        }),
+      ).toBe(false);
+    });
+
+    it('component-segment deny does NOT cascade to a sibling Resource', () => {
+      // Regression: a deny on `component/orders-api` used to broaden to
+      // project-wide and hide every Resource under `payments`.
+      const entity = makeEntity('Resource', {
+        [CHOREO_ANNOTATIONS.NAMESPACE]: 'acme',
+        [CHOREO_ANNOTATIONS.PROJECT]: 'payments',
+      });
+      expect(
+        apply(entity, {
+          resource: {
+            action: 'resource:view',
+            allowedPaths: ['*'],
+            deniedPaths: ['ns/acme/project/payments/component/orders-api'],
+          },
+        }),
+      ).toBe(true);
+    });
+
+    it('rejects component-segment allow path for Resource', () => {
+      const entity = makeEntity('Resource', {
+        [CHOREO_ANNOTATIONS.NAMESPACE]: 'acme',
+        [CHOREO_ANNOTATIONS.PROJECT]: 'payments',
+      });
+      expect(
+        apply(entity, {
+          resource: {
+            action: 'resource:view',
+            allowedPaths: ['ns/acme/project/payments/component/orders-api'],
+            deniedPaths: [],
+          },
+        }),
+      ).toBe(false);
+    });
+  });
+
   describe('cluster-scoped entities', () => {
     it('allows ClusterDataplane only when global wildcard "*" is allowed', () => {
       const entity = makeEntity('ClusterDataplane', {});
@@ -462,6 +530,66 @@ describe('matchesCatalogEntityCapability.toQuery', () => {
     const result = toQuery({}, ['clusterdataplane']) as any;
     expect(result).toEqual({
       not: { key: 'kind', values: ['clusterdataplane'] },
+    });
+  });
+
+  describe('Resource kind (project-sibling of Component)', () => {
+    it('keys project-level filter off PROJECT annotation', () => {
+      const result = toQuery({
+        resource: {
+          action: 'resource:view',
+          allowedPaths: ['ns/acme/project/payments'],
+          deniedPaths: [],
+        },
+      }) as any;
+
+      const serialized = JSON.stringify(result);
+      expect(serialized).toContain(CHOREO_ANNOTATIONS.PROJECT);
+      expect(serialized).toContain('payments');
+      // PROJECT_ID is System-only; Resource must not use it.
+      expect(serialized).not.toContain(CHOREO_ANNOTATIONS.PROJECT_ID);
+    });
+
+    it('does NOT broaden a component-segment deny to a project-wide exclusion', () => {
+      // Regression: with wildcard allow + a component-segment deny that
+      // merged in via caps['*'], the previous buildScopeFilter dropped the
+      // component segment and excluded every Resource in the project.
+      const result = toQuery({
+        resource: {
+          action: 'resource:view',
+          allowedPaths: ['*'],
+          deniedPaths: ['ns/acme/project/payments/component/orders-api'],
+        },
+      }) as any;
+
+      // With the fix, the component-segment path is filtered out by
+      // isPathValidForLevel for entityLevel='resource', so the resource
+      // kind ends up as a plain wildcard kind filter — no deny exclusion.
+      expect(result.anyOf).toContainEqual({
+        key: 'kind',
+        values: ['resource'],
+      });
+      // And critically, the project annotation must not appear in any
+      // not-clause that would strip resources under `payments`.
+      const serialized = JSON.stringify(result);
+      expect(serialized).not.toContain('"payments"');
+    });
+
+    it('project-level deny still excludes all Resources in the project', () => {
+      const result = toQuery({
+        resource: {
+          action: 'resource:view',
+          allowedPaths: ['*'],
+          deniedPaths: ['ns/acme/project/payments'],
+        },
+      }) as any;
+
+      const serialized = JSON.stringify(result);
+      // Both the project annotation and value should appear inside a
+      // negated clause — i.e. the cascade fires for the parent project.
+      expect(serialized).toContain(CHOREO_ANNOTATIONS.PROJECT);
+      expect(serialized).toContain('payments');
+      expect(serialized).toContain('"not"');
     });
   });
 });

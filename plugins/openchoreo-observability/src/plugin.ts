@@ -12,8 +12,9 @@ import {
   ObservabilityClient,
 } from './api/ObservabilityApi';
 import { rcaAgentApiRef, RCAAgentClient } from './api/RCAAgentApi';
+import { finopsAgentApiRef, FinOpsAgentClient } from './api/FinOpsAgentApi';
 
-const openchoreoObservabilityPlugin = createPlugin({
+export const openchoreoObservabilityPlugin = createPlugin({
   id: 'openchoreo-observability',
   routes: {
     root: rootRouteRef,
@@ -36,6 +37,15 @@ const openchoreoObservabilityPlugin = createPlugin({
       },
       factory: ({ discoveryApi, fetchApi }) =>
         new RCAAgentClient({ discoveryApi, fetchApi }),
+    }),
+    createApiFactory({
+      api: finopsAgentApiRef,
+      deps: {
+        discoveryApi: discoveryApiRef,
+        fetchApi: fetchApiRef,
+      },
+      factory: ({ discoveryApi, fetchApi }) =>
+        new FinOpsAgentClient({ discoveryApi, fetchApi }),
     }),
   ],
 });
@@ -115,3 +125,12 @@ export const ObservabilityProjectIncidents =
       mountPoint: rootRouteRef,
     }),
   );
+
+export const ObservabilityCostAnalysis = openchoreoObservabilityPlugin.provide(
+  createRoutableExtension({
+    name: 'ObservabilityCostAnalysis',
+    component: () =>
+      import('./components/CostAnalysis').then(m => m.CostAnalysisPage),
+    mountPoint: rootRouteRef,
+  }),
+);

@@ -64,7 +64,7 @@ describe('AlertsTable', () => {
     expect(screen.getByText('No alerts found')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'No alerts match the current filters in the selected time range.',
+        'No alerts found for the selected time range and filters.',
       ),
     ).toBeInTheDocument();
   });

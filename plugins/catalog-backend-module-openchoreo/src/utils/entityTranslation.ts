@@ -32,6 +32,8 @@ import type {
   ClusterDataplaneEntityV1alpha1,
   ClusterObservabilityPlaneEntityV1alpha1,
   ClusterWorkflowPlaneEntityV1alpha1,
+  ClusterResourceTypeEntityV1alpha1,
+  ResourceTypeEntityV1alpha1,
   DeploymentPipelineEntityV1alpha1,
 } from '../kinds';
 import { normalizeObservabilityPlaneRef, resolveProjectOwner } from './helpers';
@@ -60,6 +62,10 @@ type NewClusterObservabilityPlane =
   OpenChoreoComponents['schemas']['ClusterObservabilityPlane'];
 type NewClusterWorkflowPlane =
   OpenChoreoComponents['schemas']['ClusterWorkflowPlane'];
+type NewClusterResourceType =
+  OpenChoreoComponents['schemas']['ClusterResourceType'];
+type NewResourceType = OpenChoreoComponents['schemas']['ResourceType'];
+type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
 type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];
 type NewAgentConnectionStatus =
   OpenChoreoComponents['schemas']['AgentConnectionStatus'];
@@ -211,6 +217,13 @@ export function translateComponentToEntity(
   config: ComponentEntityTranslationConfig,
   providesApis?: string[],
   consumesApis?: string[],
+  /**
+   * Backstage entity refs (e.g. `resource:<ns>/<name>`) populated into
+   * `spec.dependsOn` so Backstage's built-in processor emits the
+   * Component → Resource `dependsOn` relation. Omitted from the entity
+   * when empty/undefined.
+   */
+  dependsOn?: string[],
 ): Entity {
   const componentEntity: Entity = {
     apiVersion: 'backstage.io/v1alpha1',
@@ -269,6 +282,7 @@ export function translateComponentToEntity(
       system: projectName, // Link to the parent system (project)
       ...(providesApis && providesApis.length > 0 && { providesApis }),
       ...(consumesApis && consumesApis.length > 0 && { consumesApis }),
+      ...(dependsOn && dependsOn.length > 0 && { dependsOn }),
     },
   };
 
@@ -621,6 +635,134 @@ export function translateTraitToEntity(
 }
 
 /**
+ * Translates an OpenChoreo ResourceType to a Backstage ResourceType entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateResourceTypeToEntity(
+  rt: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    retainPolicy?: string;
+    createdAt?: string;
+    deletionTimestamp?: string;
+  },
+  namespaceName: string,
+  config: EntityTranslationConfig,
+): ResourceTypeEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ResourceType',
+    metadata: {
+      name: rt.name,
+      namespace: namespaceName,
+      title: rt.displayName || rt.name,
+      description: rt.description || `${rt.name} resource type`,
+      tags: ['openchoreo', 'resource-type', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: rt.createdAt || '',
+        ...(rt.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: rt.deletionTimestamp,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      domain: `default/${namespaceName}`,
+      retainPolicy:
+        (rt.retainPolicy as 'Delete' | 'Retain' | undefined) ?? 'Delete',
+    },
+  } as ResourceTypeEntityV1alpha1;
+}
+
+/**
+ * Configuration for Resource entity translation.
+ */
+export interface ResourceEntityTranslationConfig
+  extends EntityTranslationConfig {
+  /** Default owner ref used as `spec.owner` (required by the Backstage Resource kind). */
+  defaultOwner: string;
+}
+
+/**
+ * Translates an OpenChoreo Resource to a Backstage Resource entity.
+ *
+ * Resources are developer-facing managed-infrastructure dependencies
+ * (databases, queues, caches, ...) that reference a (Cluster)ResourceType
+ * template via `spec.type`. The bare type name lives in `spec.type`; the
+ * template kind disambiguation lives in the `openchoreo.io/resource-type-kind`
+ * annotation so catalog filters stay flat. `spec.system` links to the
+ * owning Project, mirroring the Component precedent.
+ */
+export function translateResourceToEntity(
+  resource: {
+    name: string;
+    uid?: string;
+    displayName?: string;
+    description?: string;
+    projectName: string;
+    typeName: string;
+    typeKind: 'ResourceType' | 'ClusterResourceType';
+    parameters?: Record<string, unknown>;
+    createdAt?: string;
+    deletionTimestamp?: string;
+    status?: string;
+  },
+  namespaceName: string,
+  config: ResourceEntityTranslationConfig,
+): Entity {
+  const hasParameters =
+    resource.parameters &&
+    typeof resource.parameters === 'object' &&
+    Object.keys(resource.parameters).length > 0;
+
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'Resource',
+    metadata: {
+      name: resource.name,
+      namespace: namespaceName,
+      title: resource.displayName || resource.name,
+      description: resource.description || `${resource.name} resource`,
+      tags: ['openchoreo', 'resource', resource.typeName],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.PROJECT]: resource.projectName,
+        [CHOREO_ANNOTATIONS.RESOURCE]: resource.name,
+        ...(resource.uid && {
+          [CHOREO_ANNOTATIONS.RESOURCE_UID]: resource.uid,
+        }),
+        [CHOREO_ANNOTATIONS.RESOURCE_TYPE]: resource.typeName,
+        [CHOREO_ANNOTATIONS.RESOURCE_TYPE_KIND]: resource.typeKind,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: resource.createdAt || '',
+        ...(resource.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: resource.deletionTimestamp,
+        }),
+        ...(resource.status && {
+          [CHOREO_ANNOTATIONS.STATUS]: resource.status,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      type: resource.typeName,
+      owner: config.defaultOwner,
+      system: resource.projectName,
+      ...(hasParameters && { parameters: resource.parameters as any }),
+    },
+  };
+}
+
+/**
  * Configuration for namespace entity translation
  */
 export interface NamespaceEntityTranslationConfig
@@ -723,6 +865,49 @@ export function translateClusterComponentTypeToEntity(
       allowedTraits: normalizeAllowedTraits(ct.allowedTraits, 'ClusterTrait'),
     },
   } as ClusterComponentTypeEntityV1alpha1;
+}
+
+/**
+ * Translates an OpenChoreo ClusterResourceType to a Backstage ClusterResourceType entity.
+ * Cluster-scoped: no namespace param, entity namespace is 'openchoreo-cluster', no domain.
+ */
+export function translateClusterResourceTypeToEntity(
+  crt: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    retainPolicy?: string;
+    createdAt?: string;
+    deletionTimestamp?: string;
+  },
+  config: EntityTranslationConfig,
+): ClusterResourceTypeEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ClusterResourceType',
+    metadata: {
+      name: crt.name,
+      namespace: 'openchoreo-cluster',
+      title: crt.displayName || crt.name,
+      description: crt.description || `${crt.name} cluster resource type`,
+      tags: ['openchoreo', 'cluster-resource-type', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: crt.createdAt || '',
+        ...(crt.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: crt.deletionTimestamp,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      retainPolicy:
+        (crt.retainPolicy as 'Delete' | 'Retain' | undefined) ?? 'Delete',
+    },
+  } as ClusterResourceTypeEntityV1alpha1;
 }
 
 /**
@@ -1034,6 +1219,12 @@ export function translateNewComponentToEntity(
    * after a Workload is created will add it).
    */
   workloadName?: string,
+  /**
+   * Backstage entity refs populated into `spec.dependsOn` so Backstage's
+   * built-in processor emits the Component → target `dependsOn` relation.
+   * Resource refs use the form `resource:<namespace>/<name>`.
+   */
+  dependsOn?: string[],
 ): Entity {
   const componentName = getName(component)!;
   const componentTypeRef = component.spec?.componentType;
@@ -1072,6 +1263,7 @@ export function translateNewComponentToEntity(
     },
     providesApis,
     consumesApis,
+    dependsOn,
   );
 
   if (workloadName) {
@@ -1365,8 +1557,6 @@ export function translateNewDeploymentPipelineToEntity(
       targetEnvironments:
         path.targetEnvironmentRefs?.map(target => ({
           name: target.name,
-          requiresApproval: target.requiresApproval,
-          isManualApprovalRequired: target.isManualApprovalRequired,
         })) || [],
     })) || [];
 
@@ -1501,6 +1691,80 @@ export function translateNewClusterComponentTypeToEntity(
       deletionTimestamp: getDeletionTimestamp(cct),
     },
     { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API ClusterResourceType into a Backstage
+ * ClusterResourceType entity.
+ */
+export function translateNewClusterResourceTypeToEntity(
+  crt: NewClusterResourceType,
+  ctx: NewApiTranslatorContext,
+): ClusterResourceTypeEntityV1alpha1 {
+  return translateClusterResourceTypeToEntity(
+    {
+      name: getName(crt)!,
+      displayName: getDisplayName(crt),
+      description: getDescription(crt),
+      retainPolicy: crt.spec?.retainPolicy,
+      createdAt: getCreatedAt(crt),
+      deletionTimestamp: getDeletionTimestamp(crt),
+    },
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API ResourceType into a Backstage ResourceType entity.
+ */
+export function translateNewResourceTypeToEntity(
+  rt: NewResourceType,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): ResourceTypeEntityV1alpha1 {
+  return translateResourceTypeToEntity(
+    {
+      name: getName(rt)!,
+      displayName: getDisplayName(rt),
+      description: getDescription(rt),
+      retainPolicy: rt.spec?.retainPolicy,
+      createdAt: getCreatedAt(rt),
+      deletionTimestamp: getDeletionTimestamp(rt),
+    },
+    namespaceName,
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API Resource (typed-client `ResourceInstance` shape;
+ * on-the-wire `kind` is `Resource`) into a Backstage Resource entity.
+ */
+export function translateNewResourceToEntity(
+  resource: NewResource,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): Entity {
+  const spec = resource.spec;
+  const typeKind =
+    (spec?.type?.kind as 'ResourceType' | 'ClusterResourceType' | undefined) ??
+    'ResourceType';
+  return translateResourceToEntity(
+    {
+      name: getName(resource)!,
+      uid: getUid(resource),
+      displayName: getDisplayName(resource),
+      description: getDescription(resource),
+      projectName: spec?.owner?.projectName ?? '',
+      typeName: spec?.type?.name ?? '',
+      typeKind,
+      parameters: spec?.parameters as Record<string, unknown> | undefined,
+      createdAt: getCreatedAt(resource),
+      deletionTimestamp: getDeletionTimestamp(resource),
+    },
+    namespaceName,
+    { locationKey: ctx.providerName, defaultOwner: ctx.defaultOwner },
   );
 }
 

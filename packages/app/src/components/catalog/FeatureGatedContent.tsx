@@ -30,7 +30,8 @@ export function FeatureGatedContent({
       observability: 'Observability',
       auth: 'Authentication',
       authz: 'Authorization',
-      cilium: 'Cilium',
+      secretManagement: 'Secret Management',
+      assistant: 'Portal Assistant',
     };
 
     return (

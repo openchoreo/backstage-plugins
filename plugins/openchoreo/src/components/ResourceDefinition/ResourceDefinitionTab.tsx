@@ -241,11 +241,12 @@ export function ResourceDefinitionTab() {
           Definition editing is not supported for {entity.kind} entities.
         </Typography>
         <Typography variant="body2" color="textSecondary">
-          Supported kinds: System, Component, ComponentType, TraitType,
-          Workflow, ComponentWorkflow, Environment, DataPlane, WorkflowPlane,
-          ObservabilityPlane, DeploymentPipeline, ClusterComponentType,
-          ClusterTraitType, ClusterWorkflow, ClusterDataPlane,
-          ClusterObservabilityPlane, ClusterWorkflowPlane
+          Supported kinds: System, Component, ComponentType, ResourceType,
+          TraitType, Workflow, ComponentWorkflow, Environment, DataPlane,
+          WorkflowPlane, ObservabilityPlane, DeploymentPipeline,
+          ClusterComponentType, ClusterResourceType, ClusterTraitType,
+          ClusterWorkflow, ClusterDataPlane, ClusterObservabilityPlane,
+          ClusterWorkflowPlane
         </Typography>
       </Box>
     );

@@ -1,6 +1,12 @@
 export { choreoPlugin } from './plugin';
 export { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
+// Exported so external Backstage hosts can register the API factory in
+// their packages/app/src/apis.ts. Without this, hosts that do not include
+// the plugin in their auto-discovered routes tree get a NotImplementedError
+// at runtime when entity tabs (Environments, CellDiagram) try to useApi.
+export { OpenChoreoClient } from './api/OpenChoreoClient';
 export { Environments } from './components/Environments/Environments';
+export { ResourceEnvironments } from './components/ResourceEnvironments';
 export { CellDiagram } from './components/CellDiagram/CellDiagram';
 export {
   WorkflowsOverviewCard,
@@ -10,7 +16,6 @@ export {
   AccessControlPage,
 } from './plugin';
 export { AccessControlContent } from './components/AccessControl';
-export { GitSecretsContent } from './components/GitSecrets';
 export { SecretsContent } from './components/Secrets';
 export * from './components/HomePage/MyProjectsWidget';
 export * from './components/HomePage/QuickActionsSection';
@@ -62,9 +67,14 @@ export {
   DeploymentPipelineVisualization,
   PromotionPathsCard,
 } from './components/DeploymentPipelineOverview';
-export { GitSecretsPage } from './components/GitSecrets';
 export { SecretsPage } from './components/Secrets';
 export { ComponentTypeOverviewCard } from './components/ComponentTypeOverview';
+export { ResourceTypeOverviewCard } from './components/ResourceTypeOverview';
+export {
+  ResourceParametersCard,
+  ResourceDeploymentsCard,
+  ConsumingComponentsCard,
+} from './components/ResourceOverview';
 export { TraitTypeOverviewCard } from './components/TraitTypeOverview';
 export { WorkflowOverviewCard } from './components/WorkflowOverview';
 export { ComponentWorkflowOverviewCard } from './components/ComponentWorkflowOverview';

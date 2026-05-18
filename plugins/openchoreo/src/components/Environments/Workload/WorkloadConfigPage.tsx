@@ -219,7 +219,7 @@ export const WorkloadConfigPage = ({
         } else {
           if (isFromSourceComponent(entity)) {
             setLoadError(
-              'Workload configuration not found. The workload should have been created automatically after a successful build. Please re-run the build workflow.',
+              'Workload configuration not found. The workload should have been created automatically after a successful build. Re-run the build workflow.',
             );
           } else {
             setIsNewWorkload(true);
@@ -235,7 +235,6 @@ export const WorkloadConfigPage = ({
                 container: {
                   image: '',
                 },
-                dependencies: { endpoints: [] },
               },
             } as WorkloadResource;
             setWorkloadResource(defaultResource);

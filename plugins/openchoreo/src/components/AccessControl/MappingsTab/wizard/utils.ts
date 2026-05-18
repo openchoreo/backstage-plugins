@@ -1,3 +1,72 @@
+import { BindingScope, SCOPE_CLUSTER } from '../../constants';
+import { ActionInfo } from '../../hooks';
+import { WizardRoleMapping } from './types';
+
+/**
+ * Expand `role:*` wildcards into concrete action names from the catalog.
+ * ex: `["releasebindings:*"]` => `["releasebindings:create", "releasebindings:delete", ...]`
+ */
+export function expandWildcardRoleActions(
+  roleActions: string[],
+  actionCatalog: ActionInfo[],
+): string[] {
+  return Array.from(
+    new Set(
+      roleActions.flatMap(a => {
+        if (!a.endsWith(':*')) return [a];
+        const prefix = a.slice(0, -1);
+        return actionCatalog
+          .map(ac => ac.name)
+          .filter(name => name.startsWith(prefix));
+      }),
+    ),
+  );
+}
+
+/**
+ * Return the subset of a role's actions (with wildcards expanded) that the
+ * catalog marks as having condition predicates.
+ */
+export function getConditionableActions(
+  roleActions: string[],
+  actionCatalog: ActionInfo[],
+): string[] {
+  return expandWildcardRoleActions(roleActions, actionCatalog).filter(name => {
+    const info = actionCatalog.find(ac => ac.name === name);
+    return (info?.conditions?.length ?? 0) > 0;
+  });
+}
+
+/**
+ * Build a human-readable scope path like `ns:default/proj:myproj/*` from a wizard role mapping.
+ */
+export function buildScopePath(
+  rm: Pick<WizardRoleMapping, 'namespace' | 'project' | 'component'>,
+  bindingType?: BindingScope,
+  namespace?: string,
+): string {
+  if (bindingType === SCOPE_CLUSTER) {
+    if (!rm.namespace && (rm.project || rm.component)) return '';
+    if (!rm.project && rm.component) return '';
+    if (!rm.namespace) return 'cluster:*';
+    const parts: string[] = [`ns:${rm.namespace}`];
+    if (rm.project) {
+      parts.push(`proj:${rm.project}`);
+      parts.push(rm.component ? `comp:${rm.component}` : '*');
+    } else {
+      parts.push('*');
+    }
+    return parts.join('/');
+  }
+  if (!namespace && (rm.project || rm.component)) return '';
+  if (!rm.project && rm.component) return '';
+  const ns = namespace || '*';
+  if (!rm.project) return `ns:${ns}/*`;
+  const parts: string[] = [`ns:${ns}`, `proj:${rm.project}`];
+  parts.push(rm.component ? `comp:${rm.component}` : '*');
+  return parts.join('/');
+}
+
 /**
  * Sanitize a string into a valid Kubernetes name (RFC 1123 DNS label):
  * lowercase alphanumeric or '-', must start/end with alphanumeric, max 63 chars.

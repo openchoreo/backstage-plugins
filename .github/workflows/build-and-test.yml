@@ -13,8 +13,8 @@ on:
       - 'LICENSE'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -191,7 +191,20 @@ jobs:
           fi
           echo "TAGS=$TAGS" >> $GITHUB_OUTPUT
 
+      - name: Check if image already exists
+        id: check-image
+        run: |
+          SHA=$(git rev-parse --short=8 HEAD)
+          if docker buildx imagetools inspect "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${SHA}" >/dev/null 2>&1; then
+            echo "Image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${SHA} already exists. Skipping build."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "Image not found. Proceeding with build."
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push commit image
+        if: steps.check-image.outputs.skip != 'true'
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           push: true

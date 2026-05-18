@@ -11,6 +11,7 @@ import {
 const mockClient = {
   listSecrets: jest.fn<Promise<SecretsListResponse>, [string]>(),
   createSecret: jest.fn(),
+  updateSecret: jest.fn(),
   deleteSecret: jest.fn(),
 };
 
@@ -44,6 +45,7 @@ describe('useSecrets', () => {
       pageSize: 100,
     });
     mockClient.createSecret.mockResolvedValue(makeSecret('new'));
+    mockClient.updateSecret.mockResolvedValue(makeSecret('updated'));
     mockClient.deleteSecret.mockResolvedValue(undefined);
   });
 
@@ -144,6 +146,40 @@ describe('useSecrets', () => {
     expect(returned).toEqual(created);
     expect(mockClient.listSecrets).toHaveBeenCalledTimes(2);
     expect(result.current.secrets).toEqual([created]);
+  });
+
+  it('updateSecret calls the client and refetches', async () => {
+    const updated = makeSecret('victim');
+    mockClient.updateSecret.mockResolvedValueOnce(updated);
+    mockClient.listSecrets.mockResolvedValueOnce({
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 100,
+    });
+    mockClient.listSecrets.mockResolvedValueOnce({
+      items: [updated],
+      totalCount: 1,
+      page: 1,
+      pageSize: 100,
+    });
+
+    const { result } = renderUseSecrets('ns');
+    await act(async () => {});
+
+    let returned: Secret | undefined;
+    await act(async () => {
+      returned = await result.current.updateSecret('victim', {
+        data: { k1: 'new' },
+      });
+    });
+
+    expect(mockClient.updateSecret).toHaveBeenCalledWith('ns', 'victim', {
+      data: { k1: 'new' },
+    });
+    expect(returned).toEqual(updated);
+    expect(mockClient.listSecrets).toHaveBeenCalledTimes(2);
+    expect(result.current.secrets).toEqual([updated]);
   });
 
   it('deleteSecret calls the client and refetches', async () => {

@@ -90,12 +90,26 @@ export interface EnvironmentCardHeaderProps {
  */
 export interface EnvironmentActionsProps {
   environmentName: string;
+  /**
+   * Kubernetes resource name of the environment (e.g. "production"). When
+   * omitted, `environmentName` is used. The ABAC permission check needs the
+   * resource name because cluster CEL expressions match against it.
+   */
+  environmentResourceName?: string;
   bindingName?: string;
   deploymentStatus?: 'Ready' | 'NotReady' | 'Failed';
   statusReason?: string;
   releaseName?: string;
   suspendTracker: ItemActionTracker;
   rolloutRestartTracker?: ItemActionTracker;
+  /**
+   * Permission gate for the Rollout restart button. Backed by
+   * `releasebinding:update` — passed in by the parent (which already has
+   * the same permission for Undeploy/Redeploy) to avoid duplicating the
+   * hook call inside this component.
+   */
+  canRolloutRestart?: boolean;
+  rolloutRestartDeniedTooltip?: string;
   onSuspend: () => Promise<void>;
   onRedeploy: () => Promise<void>;
   onRolloutRestart?: () => void | Promise<void>;

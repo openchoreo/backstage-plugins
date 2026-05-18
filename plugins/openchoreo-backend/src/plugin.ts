@@ -14,8 +14,10 @@ import { DashboardInfoService } from './services/DashboardService/DashboardInfoS
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { ClusterTraitInfoService } from './services/ClusterTraitService/ClusterTraitInfoService';
 import { ClusterComponentTypeInfoService } from './services/ClusterComponentTypeService/ClusterComponentTypeInfoService';
+import { ResourceTypeInfoService } from './services/ResourceTypeService/ResourceTypeInfoService';
+import { ClusterResourceTypeInfoService } from './services/ClusterResourceTypeService/ClusterResourceTypeInfoService';
+import { ResourceReleaseInfoService } from './services/ResourceReleaseService/ResourceReleaseInfoService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
-import { GitSecretsService } from './services/GitSecretsService/GitSecretsService';
 import { SecretsService } from './services/SecretsService/SecretsService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
@@ -108,12 +110,23 @@ export const choreoPlugin = createBackendPlugin({
         const clusterComponentTypeInfoService =
           new ClusterComponentTypeInfoService(logger, baseUrl);
 
-        const secretReferencesInfoService = new SecretReferencesService(
+        const resourceTypeInfoService = new ResourceTypeInfoService(
           logger,
           baseUrl,
         );
 
-        const gitSecretsService = new GitSecretsService(logger, baseUrl);
+        const clusterResourceTypeInfoService =
+          new ClusterResourceTypeInfoService(logger, baseUrl);
+
+        const resourceReleaseInfoService = new ResourceReleaseInfoService(
+          logger,
+          baseUrl,
+        );
+
+        const secretReferencesInfoService = new SecretReferencesService(
+          logger,
+          baseUrl,
+        );
 
         const secretsService = new SecretsService(logger, baseUrl);
 
@@ -177,8 +190,10 @@ export const choreoPlugin = createBackendPlugin({
             traitInfoService,
             clusterTraitInfoService,
             clusterComponentTypeInfoService,
+            resourceTypeInfoService,
+            clusterResourceTypeInfoService,
+            resourceReleaseInfoService,
             secretReferencesInfoService,
-            gitSecretsService,
             secretsService,
             authzService,
             dataPlaneInfoService,

@@ -23,6 +23,7 @@ interface AlertsTableProps {
   componentName?: string;
   namespaceName?: string;
   onViewIncident?: (alert: AlertSummary) => void;
+  onViewCostAnalysis?: (alert: AlertSummary) => void;
 }
 
 export const AlertsTable: FC<AlertsTableProps> = ({
@@ -33,6 +34,7 @@ export const AlertsTable: FC<AlertsTableProps> = ({
   componentName = '',
   namespaceName = 'default',
   onViewIncident,
+  onViewCostAnalysis,
 }) => {
   const classes = useLogsTableStyles();
 
@@ -65,7 +67,7 @@ export const AlertsTable: FC<AlertsTableProps> = ({
             No alerts found
           </Typography>
           <Typography variant="body2">
-            No alerts match the current filters in the selected time range.
+            No alerts found for the selected time range and filters.
           </Typography>
         </Box>
       </TableCell>
@@ -100,6 +102,7 @@ export const AlertsTable: FC<AlertsTableProps> = ({
                   componentName={componentName}
                   namespaceName={namespaceName}
                   onViewIncident={onViewIncident ?? (() => {})}
+                  onViewCostAnalysis={onViewCostAnalysis}
                 />
               ))}
           </TableBody>

@@ -1,0 +1,301 @@
+name: Release Orchestrator
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'full (branch+tag), branch, tag'
+        required: true
+        type: choice
+        options:
+          - full
+          - branch
+          - tag
+      major:
+        description: 'Semver major component'
+        required: true
+        type: number
+      minor:
+        description: 'Semver minor component'
+        required: true
+        type: number
+      patch:
+        description: 'Semver patch component'
+        required: true
+        type: number
+      pre_release_id:
+        description: 'Prerelease identifier (e.g. rc.1, beta.2)'
+        required: false
+        type: string
+      commit_sha:
+        description: 'Pin the tag to a specific commit SHA (overrides automatic resolution)'
+        required: false
+        type: string
+
+concurrency:
+  group: release-orchestrator-${{ github.event.inputs.major }}-${{ github.event.inputs.minor }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  # ----------------------------------------------------------------
+  # Validate: resolve inputs, check preconditions, poll for image.
+  # Always runs; outputs computed values consumed by branch and tag.
+  # ----------------------------------------------------------------
+  validate:
+    runs-on: ubuntu-24.04
+    outputs:
+      release-tag: ${{ steps.resolve-version.outputs.release-tag }}
+      release-version: ${{ steps.resolve-version.outputs.release-version }}
+      target-commit: ${{ steps.determine-commit.outputs.target-commit }}
+      checkout-sha: ${{ steps.resolve-version.outputs.checkout-sha }}
+      branch-exists: ${{ steps.check-branch.outputs.branch-exists }}
+      prerelease: ${{ steps.resolve-version.outputs.prerelease }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
+        with:
+          client-id: ${{ secrets.OC_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.OC_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Resolve version and validate
+        id: resolve-version
+        env:
+          IN_MAJOR: ${{ github.event.inputs.major }}
+          IN_MINOR: ${{ github.event.inputs.minor }}
+          IN_PATCH: ${{ github.event.inputs.patch }}
+          IN_PRERELEASE: ${{ github.event.inputs.pre_release_id || '' }}
+        run: |
+          MAJOR="$IN_MAJOR"
+          MINOR="$IN_MINOR"
+          PATCH="$IN_PATCH"
+          PRERELEASE="$IN_PRERELEASE"
+
+          if [[ ! "$MAJOR" =~ ^[0-9]+$ ]] || [[ ! "$MINOR" =~ ^[0-9]+$ ]] || [[ ! "$PATCH" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: major, minor, patch must be numbers"
+            exit 1
+          fi
+
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          if [ -n "$PRERELEASE" ]; then
+            if [[ ! "$PRERELEASE" =~ ^[a-zA-Z0-9.-]+$ ]]; then
+              echo "ERROR: Invalid prerelease identifier: ${PRERELEASE}"
+              exit 1
+            fi
+            VERSION="${VERSION}-${PRERELEASE}"
+          fi
+
+          TAG="v${VERSION}"
+          echo "MAJOR=${MAJOR}" >> $GITHUB_ENV
+          echo "MINOR=${MINOR}" >> $GITHUB_ENV
+          echo "PRERELEASE=${PRERELEASE}" >> $GITHUB_ENV
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "RELEASE_TAG=${TAG}" >> $GITHUB_ENV
+          echo "release-tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "release-version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "checkout-sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "prerelease=${PRERELEASE}" >> $GITHUB_OUTPUT
+
+      - name: Check if release branch exists
+        id: check-branch
+        run: |
+          if git ls-remote origin "refs/heads/release-v${{ env.MAJOR }}.${{ env.MINOR }}" | head -1 | grep -q .; then
+            echo "branch-exists=true" >> $GITHUB_OUTPUT
+            echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "branch-exists=false" >> $GITHUB_OUTPUT
+            echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Fail if tag mode without release branch
+        if: ${{ github.event.inputs.action == 'tag' && github.event.inputs.commit_sha == '' && steps.check-branch.outputs.branch-exists == 'false' }}
+        run: |
+          echo "ERROR: action=tag requires an existing release branch (release-v${{ env.MAJOR }}.${{ env.MINOR }}), but it does not exist."
+          exit 1
+
+      - name: Validate VERSION file
+        env:
+          ACTION: ${{ github.event.inputs.action }}
+          IN_COMMIT_SHA: ${{ github.event.inputs.commit_sha || '' }}
+          BRANCH_EXISTS: ${{ steps.check-branch.outputs.branch-exists }}
+        run: |
+          if [ "$ACTION" = "tag" ] && [ -n "$IN_COMMIT_SHA" ]; then
+            CONTENT=$(git show "${IN_COMMIT_SHA}:VERSION" | tr -d ' \n\r\t')
+          elif [ "$BRANCH_EXISTS" = "true" ]; then
+            CONTENT=$(git show "origin/release-v${{ env.MAJOR }}.${{ env.MINOR }}:VERSION" | tr -d ' \n\r\t')
+          else
+            CONTENT=$(tr -d ' \n\r\t' < VERSION)
+          fi
+          if [ "$CONTENT" != "${{ env.VERSION }}" ]; then
+            echo "ERROR: VERSION file contains '$CONTENT', expected '${{ env.VERSION }}'"
+            exit 1
+          fi
+
+      - name: Check for existing tag
+        if: ${{ github.event.inputs.action == 'full' || github.event.inputs.action == 'tag' }}
+        run: |
+          TAG="${{ env.RELEASE_TAG }}"
+          if git ls-remote origin "refs/tags/${TAG}" | head -1 | grep -q .; then
+            echo "ERROR: Tag ${TAG} already exists on remote. Remove it first if you want to retag."
+            exit 1
+          fi
+
+      - name: Determine commit to tag
+        id: determine-commit
+        env:
+          IN_COMMIT_SHA: ${{ github.event.inputs.commit_sha || '' }}
+          ACTION: ${{ github.event.inputs.action }}
+          CHECKOUT_SHA: ${{ steps.resolve-version.outputs.checkout-sha }}
+          IN_PRERELEASE: ${{ github.event.inputs.pre_release_id || '' }}
+        run: |
+          COMMIT_SHA="$IN_COMMIT_SHA"
+
+          if [ -n "$COMMIT_SHA" ]; then
+            RESOLVED_SHA="${COMMIT_SHA}"
+          elif [[ "$ACTION" == "full" || "$ACTION" == "branch" ]] && [[ "$BRANCH_EXISTS" == "false" ]] && [[ -z "$IN_PRERELEASE" ]]; then
+            # Branch will be created from checkout-sha; use it as the tag target
+            RESOLVED_SHA="${CHECKOUT_SHA}"
+          elif [ "$BRANCH_EXISTS" = "true" ]; then
+            git fetch origin "refs/heads/release-v${{ env.MAJOR }}.${{ env.MINOR }}"
+            RESOLVED_SHA=$(git rev-parse "origin/release-v${{ env.MAJOR }}.${{ env.MINOR }}")
+          else
+            RESOLVED_SHA="${CHECKOUT_SHA}"
+          fi
+
+          if ! git cat-file -e "${RESOLVED_SHA}" 2>/dev/null; then
+            echo "ERROR: Commit ${RESOLVED_SHA} does not exist in this repository."
+            exit 1
+          fi
+          echo "target-commit=${RESOLVED_SHA}" >> $GITHUB_OUTPUT
+          echo "TARGET_COMMIT=${RESOLVED_SHA}" >> $GITHUB_ENV
+
+      - name: Wait for build-and-test at target commit
+        if: ${{ github.event.inputs.action == 'full' || github.event.inputs.action == 'tag' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TARGET_SHA="${{ env.TARGET_COMMIT }}"
+          SHORT_SHA=$(git rev-parse --short=8 "${TARGET_SHA}")
+          echo "Waiting for build-and-test workflow for commit ${SHORT_SHA}..."
+          for i in $(seq 1 30); do
+            RUN_INFO=$(gh run list \
+              --repo "${{ github.repository }}" \
+              --workflow "build-and-test.yml" \
+              --event push \
+              --commit "${TARGET_SHA}" \
+              --limit 1 \
+              --json databaseId,status,conclusion \
+              --jq '.[0] | {id: .databaseId, status: .status, conclusion: .conclusion}')
+            if [ -n "$RUN_INFO" ] && [ "$RUN_INFO" != "null" ]; then
+              RUN_ID=$(echo "$RUN_INFO" | jq -r '.id // empty')
+              STATUS=$(echo "$RUN_INFO" | jq -r '.status // empty')
+              CONCLUSION=$(echo "$RUN_INFO" | jq -r '.conclusion // empty')
+              RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${RUN_ID}"
+              if [ "$STATUS" = "completed" ]; then
+                if [ "$CONCLUSION" = "success" ]; then
+                  echo "build-and-test succeeded for ${SHORT_SHA}: ${RUN_URL}"
+                  exit 0
+                fi
+                echo "::error::build-and-test for ${SHORT_SHA} completed but failed: ${CONCLUSION}"
+                echo "::error::See: ${RUN_URL}"
+                exit 1
+              fi
+              echo "Attempt ${i}/30 — run ${RUN_ID} status: ${STATUS}. Waiting 60s..."
+            else
+              echo "Attempt ${i}/30 — workflow run not found for ${SHORT_SHA}. Waiting 60s..."
+            fi
+            sleep 60
+          done
+          echo "::error::build-and-test for ${SHORT_SHA} not completed after 30 minutes."
+          exit 1
+
+  # ----------------------------------------------------------------
+  # Branch: create release-vX.Y branch from checkout-sha.
+  # Only runs for stable releases (not prereleases) when no branch exists.
+  # ----------------------------------------------------------------
+  branch:
+    needs: [validate]
+    if: ${{ needs.validate.outputs.branch-exists == 'false' && (github.event.inputs.action == 'full' || github.event.inputs.action == 'branch') && github.event.inputs.pre_release_id == '' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
+        with:
+          client-id: ${{ secrets.OC_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.OC_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          ref: ${{ needs.validate.outputs.checkout-sha }}
+          fetch-depth: 0
+
+      - name: Set git identity
+        run: |
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+
+      - name: Create release branch
+        env:
+          PAT: ${{ steps.app-token.outputs.token }}
+        run: |
+          BRANCH="release-v${{ github.event.inputs.major }}.${{ github.event.inputs.minor }}"
+          git branch "${BRANCH}"
+          git push "https://x-access-token:${PAT}@github.com/${GITHUB_REPOSITORY}.git" "${BRANCH}"
+          echo "Pushed branch: ${BRANCH}"
+
+  # ----------------------------------------------------------------
+  # Tag: create and push the annotated release tag at target-commit.
+  # always() allows this to run even when branch is skipped (action=tag,
+  # branch already exists, or prerelease). !failure() prevents tagging
+  # after errors in validate or branch.
+  # ----------------------------------------------------------------
+  tag:
+    needs: [validate, branch]
+    if: ${{ always() && !failure() && !cancelled() && (github.event.inputs.action == 'full' || github.event.inputs.action == 'tag') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
+        with:
+          client-id: ${{ secrets.OC_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.OC_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          ref: ${{ needs.validate.outputs.target-commit }}
+          fetch-depth: 0
+
+      - name: Set git identity
+        run: |
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+
+      - name: Create and push annotated tag
+        env:
+          PAT: ${{ steps.app-token.outputs.token }}
+        run: |
+          TAG="${{ needs.validate.outputs.release-tag }}"
+          TARGET="${{ needs.validate.outputs.target-commit }}"
+          VERSION="${{ needs.validate.outputs.release-version }}"
+          git tag -a "${TAG}" -m "Release ${VERSION}" "${TARGET}"
+          git push "https://x-access-token:${PAT}@github.com/${GITHUB_REPOSITORY}.git" "${TAG}"
+          echo "Tag pushed: ${TAG} (commit: ${TARGET})"

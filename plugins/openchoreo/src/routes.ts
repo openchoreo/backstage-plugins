@@ -9,3 +9,6 @@ export const rootCatalogCellDiagramRouteRef = createRouteRef({
 export const accessControlRouteRef = createRouteRef({
   id: 'access-control',
 });
+export const resourceEnvironmentsRouteRef = createRouteRef({
+  id: 'resource-environments',
+});

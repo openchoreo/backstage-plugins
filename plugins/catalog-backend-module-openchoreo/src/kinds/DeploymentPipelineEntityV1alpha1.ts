@@ -12,14 +12,6 @@ export interface TargetEnvironmentRef {
    */
   name: string;
   /**
-   * Whether promotion to this environment requires approval
-   */
-  requiresApproval?: boolean;
-  /**
-   * Whether manual approval is required (as opposed to automated approval)
-   */
-  isManualApprovalRequired?: boolean;
-  /**
    * Index signature for JSON compatibility
    */
   [key: string]: JsonValue | undefined;

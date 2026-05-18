@@ -19,10 +19,16 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import AllInboxOutlinedIcon from '@material-ui/icons/AllInboxOutlined';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
-import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
+import {
+  formatRelativeTime,
+  useReleaseBindingUpdatePermission,
+  useReleaseBindingViewPermission,
+  useRemoveDeploymentPermission,
+} from '@openchoreo/backstage-plugin-react';
 import { useEnvironmentDetailPanelStyles } from '../styles';
 import { useEnvironmentStatusVariant } from '../hooks/useEnvironmentStatusVariant';
 import { NO_DRIFT, type ReleaseDriftInfo } from '../hooks/computeReleaseDrift';
@@ -98,6 +104,27 @@ export const EnvironmentDetailPanel = ({
 }: EnvironmentDetailPanelProps) => {
   const classes = useEnvironmentDetailPanelStyles();
   const environment = selection?.kind === 'env' ? selection.environment : null;
+  // ABAC env-aware permission checks. Resource name (not display name) is
+  // what the cluster's CEL expressions match against.
+  const envResourceName = environment?.resourceName ?? environment?.name;
+  // Configure overrides / Undeploy / Redeploy / Rollout restart all mutate
+  // an existing release binding — they share releasebinding:update.
+  const {
+    canUpdate: canModifyBinding,
+    deniedTooltip: modifyBindingDeniedTooltip,
+  } = useReleaseBindingUpdatePermission(envResourceName);
+  // Remove deployment deletes the binding — releasebinding:delete.
+  const { canRemoveDeployment, deniedTooltip: removeDeploymentDeniedTooltip } =
+    useRemoveDeploymentPermission(envResourceName);
+  // Per-env view permission. When denied, the detail panel header still
+  // renders but the body (status / endpoints / config / actions / danger
+  // zone) is replaced with a compact "No permissions" placeholder. The
+  // mini-card mirrors this state — see MiniEnvironmentNode.
+  const {
+    canViewBinding,
+    loading: viewPermissionLoading,
+    deniedTooltip: viewDeniedTooltip,
+  } = useReleaseBindingViewPermission(envResourceName);
   const [manifestOpen, setManifestOpen] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
@@ -233,270 +260,308 @@ export const EnvironmentDetailPanel = ({
       </Box>
 
       <Box className={classes.body}>
-        {showReleaseSection && (
+        {!canViewBinding && !viewPermissionLoading ? (
           <Box className={classes.section}>
-            {environment.deployment.releaseName && (
-              <Box className={classes.releaseNameRow}>
-                <Typography
-                  variant="caption"
-                  className={classes.releaseNameLabel}
-                >
-                  Release
-                </Typography>
-                <Tooltip title={environment.deployment.releaseName}>
-                  <Typography variant="caption" className={classes.releaseName}>
-                    {environment.deployment.releaseName}
-                  </Typography>
-                </Tooltip>
-                <Tooltip title="View release">
-                  <IconButton
-                    size="small"
-                    aria-label="View release"
-                    onClick={() => setManifestOpen(true)}
-                  >
-                    <CodeOutlinedIcon fontSize="inherit" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Copy release name">
-                  <IconButton
-                    size="small"
-                    aria-label="Copy release name"
-                    onClick={() =>
-                      navigator.clipboard?.writeText(
-                        environment.deployment.releaseName!,
-                      )
-                    }
-                  >
-                    <FileCopyOutlinedIcon fontSize="inherit" />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            )}
-            {environment.deployment.lastDeployed && (
-              <Box className={classes.deployedRow}>
-                <Typography
-                  variant="caption"
-                  className={classes.releaseNameLabel}
-                >
-                  Deployed
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {formatRelativeTime(environment.deployment.lastDeployed)}
-                </Typography>
-              </Box>
-            )}
-            {driftInfo.isBehind && (
-              <Box className={classes.driftRow}>
-                <Tooltip
-                  title={
-                    <>
-                      {driftInfo.aheadUpstreams.map(u => (
-                        <div key={u.envName}>
-                          {u.envName}
-                          {u.releaseName ? ` on ${u.releaseName}` : ''}
-                        </div>
-                      ))}
-                    </>
-                  }
-                >
-                  <Box className={classes.driftLabel}>
-                    <ReportProblemOutlinedIcon fontSize="small" />
-                    <Typography variant="caption">Behind upstream</Typography>
-                  </Box>
-                </Tooltip>
-                {driftInfo.aheadUpstreams[0]?.releaseName &&
-                  environment.deployment.releaseName && (
-                    <Button
-                      size="small"
-                      variant="text"
-                      color="primary"
-                      className={classes.driftDiffButton}
-                      startIcon={<CompareArrowsIcon fontSize="small" />}
-                      onClick={() => setDiffOpen(true)}
+            <Typography
+              variant="body2"
+              color="textSecondary"
+              style={{ fontStyle: 'italic' }}
+            >
+              {viewDeniedTooltip || 'No permissions to view this environment.'}
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            {showReleaseSection && (
+              <Box className={classes.section}>
+                {environment.deployment.releaseName && (
+                  <Box className={classes.releaseNameRow}>
+                    <Typography
+                      variant="caption"
+                      className={classes.releaseNameLabel}
                     >
-                      View diff
-                    </Button>
+                      Release
+                    </Typography>
+                    <Tooltip title={environment.deployment.releaseName}>
+                      <Typography
+                        variant="caption"
+                        className={classes.releaseName}
+                      >
+                        {environment.deployment.releaseName}
+                      </Typography>
+                    </Tooltip>
+                    <Tooltip title="View release">
+                      <IconButton
+                        size="small"
+                        aria-label="View release"
+                        onClick={() => setManifestOpen(true)}
+                      >
+                        <CodeOutlinedIcon fontSize="inherit" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Copy release name">
+                      <IconButton
+                        size="small"
+                        aria-label="Copy release name"
+                        onClick={() =>
+                          navigator.clipboard?.writeText(
+                            environment.deployment.releaseName!,
+                          )
+                        }
+                      >
+                        <FileCopyOutlinedIcon fontSize="inherit" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                )}
+                {environment.deployment.lastDeployed && (
+                  <Box className={classes.deployedRow}>
+                    <Typography
+                      variant="caption"
+                      className={classes.releaseNameLabel}
+                    >
+                      Deployed
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {formatRelativeTime(environment.deployment.lastDeployed)}
+                    </Typography>
+                  </Box>
+                )}
+                {driftInfo.isBehind && (
+                  <Box className={classes.driftRow}>
+                    <Tooltip
+                      title={
+                        <>
+                          {driftInfo.aheadUpstreams.map(u => (
+                            <div key={u.envName}>
+                              {u.envName}
+                              {u.releaseName ? ` on ${u.releaseName}` : ''}
+                            </div>
+                          ))}
+                        </>
+                      }
+                    >
+                      <Box className={classes.driftLabel}>
+                        <InfoOutlinedIcon fontSize="small" />
+                        <Typography variant="caption">
+                          Behind {driftInfo.aheadUpstreams[0]?.envName}
+                        </Typography>
+                      </Box>
+                    </Tooltip>
+                    {driftInfo.aheadUpstreams[0]?.releaseName &&
+                      environment.deployment.releaseName && (
+                        <Button
+                          size="small"
+                          variant="text"
+                          color="primary"
+                          className={classes.driftDiffButton}
+                          startIcon={<CompareArrowsIcon fontSize="small" />}
+                          onClick={() => setDiffOpen(true)}
+                        >
+                          View diff
+                        </Button>
+                      )}
+                  </Box>
+                )}
+                {activeIncidentCount !== undefined &&
+                  activeIncidentCount > 0 && (
+                    <IncidentsBanner
+                      count={activeIncidentCount}
+                      environmentName={environment.name}
+                    />
                   )}
+                {environment.deployment.releaseName && (
+                  <Box>
+                    <Tooltip title="View Kubernetes artifacts">
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        size="small"
+                        startIcon={<DescriptionOutlinedIcon fontSize="small" />}
+                        onClick={onOpenReleaseDetails}
+                        style={{ textTransform: 'none' }}
+                      >
+                        View K8s Artifacts
+                      </Button>
+                    </Tooltip>
+                  </Box>
+                )}
               </Box>
             )}
-            {activeIncidentCount !== undefined && activeIncidentCount > 0 && (
-              <IncidentsBanner
-                count={activeIncidentCount}
-                environmentName={environment.name}
-              />
-            )}
-            {environment.deployment.releaseName && (
-              <Box>
-                <Tooltip title="View Kubernetes artifacts">
+
+            {hasEndpoints && (
+              <Box className={classes.section}>
+                <Box className={classes.sectionTitleRow}>
+                  <Typography className={classes.sectionTitle}>
+                    Endpoints
+                  </Typography>
                   <Button
-                    variant="outlined"
+                    variant="text"
                     color="primary"
                     size="small"
-                    startIcon={<DescriptionOutlinedIcon fontSize="small" />}
-                    onClick={onOpenReleaseDetails}
+                    onClick={() => setInvokeUrlsOpen(true)}
                     style={{ textTransform: 'none' }}
                   >
-                    View K8s Artifacts
+                    View All
                   </Button>
-                </Tooltip>
+                </Box>
+                {primaryUrl && (
+                  <Box className={classes.inlineUrlRow}>
+                    <Typography
+                      variant="caption"
+                      className={classes.inlineUrlLabel}
+                    >
+                      {primaryUrl.label}:
+                    </Typography>
+                    <Tooltip title={primaryUrl.url}>
+                      <a
+                        href={primaryUrl.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={classes.inlineUrl}
+                      >
+                        {primaryUrl.url}
+                      </a>
+                    </Tooltip>
+                    <Tooltip title="Copy URL">
+                      <IconButton
+                        size="small"
+                        aria-label="Copy URL"
+                        onClick={() =>
+                          navigator.clipboard?.writeText(primaryUrl.url)
+                        }
+                      >
+                        <FileCopyOutlinedIcon fontSize="inherit" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                )}
               </Box>
             )}
-          </Box>
-        )}
 
-        {hasEndpoints && (
-          <Box className={classes.section}>
-            <Box className={classes.sectionTitleRow}>
-              <Typography className={classes.sectionTitle}>
-                Endpoints
-              </Typography>
-              <Button
-                variant="text"
-                color="primary"
-                size="small"
-                onClick={() => setInvokeUrlsOpen(true)}
-                style={{ textTransform: 'none' }}
-              >
-                View All
-              </Button>
-            </Box>
-            {primaryUrl && (
-              <Box className={classes.inlineUrlRow}>
-                <Typography
-                  variant="caption"
-                  className={classes.inlineUrlLabel}
-                >
-                  {primaryUrl.label}:
+            <Box className={classes.section}>
+              <Box className={classes.sectionTitleRow}>
+                <Typography className={classes.sectionTitle}>
+                  Configuration
                 </Typography>
-                <Tooltip title={primaryUrl.url}>
-                  <a
-                    href={primaryUrl.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={classes.inlineUrl}
-                  >
-                    {primaryUrl.url}
-                  </a>
-                </Tooltip>
-                <Tooltip title="Copy URL">
-                  <IconButton
-                    size="small"
-                    aria-label="Copy URL"
-                    onClick={() =>
-                      navigator.clipboard?.writeText(primaryUrl.url)
-                    }
-                  >
-                    <FileCopyOutlinedIcon fontSize="inherit" />
-                  </IconButton>
+                <Tooltip
+                  title={
+                    modifyBindingDeniedTooltip ||
+                    (environment.bindingName
+                      ? 'Customise environment-specific overrides for this release.'
+                      : 'Deploy this environment first to configure overrides.')
+                  }
+                  placement="top"
+                >
+                  <span>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      size="small"
+                      startIcon={<SettingsOutlinedIcon fontSize="small" />}
+                      disabled={!environment.bindingName || !canModifyBinding}
+                      onClick={onOpenOverrides}
+                      style={{ textTransform: 'none' }}
+                    >
+                      Configure overrides
+                    </Button>
+                  </span>
                 </Tooltip>
               </Box>
-            )}
-          </Box>
-        )}
+            </Box>
 
-        <Box className={classes.section}>
-          <Box className={classes.sectionTitleRow}>
-            <Typography className={classes.sectionTitle}>
-              Configuration
-            </Typography>
-            <Tooltip
-              title={
-                environment.bindingName
-                  ? 'Customise environment-specific overrides for this release.'
-                  : 'Deploy this environment first to configure overrides.'
-              }
-              placement="top"
-            >
-              <span>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  size="small"
-                  startIcon={<SettingsOutlinedIcon fontSize="small" />}
-                  disabled={!environment.bindingName}
-                  onClick={onOpenOverrides}
-                  style={{ textTransform: 'none' }}
-                >
-                  Configure overrides
-                </Button>
-              </span>
-            </Tooltip>
-          </Box>
-        </Box>
-
-        {showActionsSection && (
-          <Box className={classes.section}>
-            <Typography className={classes.sectionTitle}>Actions</Typography>
-            {showPromote && (
-              <Box display="flex" justifyContent="flex-end">
-                <PromotePrimaryAction
+            {showActionsSection && (
+              <Box className={classes.section}>
+                <Typography className={classes.sectionTitle}>
+                  Actions
+                </Typography>
+                {showPromote && (
+                  <Box display="flex" justifyContent="flex-end">
+                    <PromotePrimaryAction
+                      environmentName={environment.name}
+                      environmentResourceName={environment.resourceName}
+                      bindingName={environment.bindingName}
+                      deploymentStatus={environment.deployment.status}
+                      statusReason={environment.deployment.statusReason}
+                      promotionTargets={environment.promotionTargets}
+                      isAlreadyPromoted={isAlreadyPromoted}
+                      promotionTracker={actionTrackers.promotionTracker}
+                      onPromote={onPromote}
+                    />
+                  </Box>
+                )}
+                <EnvironmentActions
                   environmentName={environment.name}
+                  environmentResourceName={environment.resourceName}
                   bindingName={environment.bindingName}
                   deploymentStatus={environment.deployment.status}
                   statusReason={environment.deployment.statusReason}
-                  promotionTargets={environment.promotionTargets}
-                  isAlreadyPromoted={isAlreadyPromoted}
-                  promotionTracker={actionTrackers.promotionTracker}
-                  onPromote={onPromote}
+                  suspendTracker={actionTrackers.suspendTracker}
+                  rolloutRestartTracker={actionTrackers.rolloutRestartTracker}
+                  canRolloutRestart={canModifyBinding}
+                  rolloutRestartDeniedTooltip={modifyBindingDeniedTooltip}
+                  onSuspend={onSuspend}
+                  onRedeploy={onRedeploy}
+                  onRolloutRestart={onRolloutRestart}
                 />
+                {showRemoveDeployment && (
+                  <Accordion
+                    ref={dangerAccordionRef}
+                    expanded={dangerExpanded}
+                    onChange={(_, val) => setDangerExpanded(val)}
+                    className={classes.dangerAccordion}
+                  >
+                    <AccordionSummary
+                      expandIcon={<ExpandMoreIcon />}
+                      className={classes.dangerAccordionSummary}
+                      aria-label="Danger zone"
+                    >
+                      <ReportProblemOutlinedIcon
+                        fontSize="small"
+                        className={classes.dangerAccordionIcon}
+                      />
+                      <Typography
+                        variant="body2"
+                        className={classes.dangerAccordionTitle}
+                      >
+                        Danger zone
+                      </Typography>
+                    </AccordionSummary>
+                    <AccordionDetails
+                      className={classes.dangerAccordionDetails}
+                    >
+                      <Typography
+                        variant="caption"
+                        color="textSecondary"
+                        style={{ marginBottom: 8 }}
+                      >
+                        Permanently delete this environment's deployment.
+                      </Typography>
+                      <Tooltip
+                        title={removeDeploymentDeniedTooltip}
+                        disableHoverListener={!removeDeploymentDeniedTooltip}
+                      >
+                        <span>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            className={classes.dangerButton}
+                            startIcon={<DeleteOutlineIcon fontSize="small" />}
+                            disabled={removeInFlight || !canRemoveDeployment}
+                            onClick={() => setShowRemoveDialog(true)}
+                          >
+                            {removeInFlight
+                              ? 'Removing...'
+                              : 'Remove deployment'}
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    </AccordionDetails>
+                  </Accordion>
+                )}
               </Box>
             )}
-            <EnvironmentActions
-              environmentName={environment.name}
-              bindingName={environment.bindingName}
-              deploymentStatus={environment.deployment.status}
-              statusReason={environment.deployment.statusReason}
-              suspendTracker={actionTrackers.suspendTracker}
-              rolloutRestartTracker={actionTrackers.rolloutRestartTracker}
-              onSuspend={onSuspend}
-              onRedeploy={onRedeploy}
-              onRolloutRestart={onRolloutRestart}
-            />
-            {showRemoveDeployment && (
-              <Accordion
-                ref={dangerAccordionRef}
-                expanded={dangerExpanded}
-                onChange={(_, val) => setDangerExpanded(val)}
-                className={classes.dangerAccordion}
-              >
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
-                  className={classes.dangerAccordionSummary}
-                  aria-label="Danger zone"
-                >
-                  <ReportProblemOutlinedIcon
-                    fontSize="small"
-                    className={classes.dangerAccordionIcon}
-                  />
-                  <Typography
-                    variant="body2"
-                    className={classes.dangerAccordionTitle}
-                  >
-                    Danger zone
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails className={classes.dangerAccordionDetails}>
-                  <Typography
-                    variant="caption"
-                    color="textSecondary"
-                    style={{ marginBottom: 8 }}
-                  >
-                    Permanently delete this environment's deployment.
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    className={classes.dangerButton}
-                    startIcon={<DeleteOutlineIcon fontSize="small" />}
-                    disabled={removeInFlight}
-                    onClick={() => setShowRemoveDialog(true)}
-                  >
-                    {removeInFlight ? 'Removing...' : 'Remove deployment'}
-                  </Button>
-                </AccordionDetails>
-              </Accordion>
-            )}
-          </Box>
+          </>
         )}
       </Box>
 

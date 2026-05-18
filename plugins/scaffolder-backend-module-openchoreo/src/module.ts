@@ -8,9 +8,12 @@ import {
   annotationStoreRef,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
 import { createComponentTypeDefinitionAction } from './actions/componentType';
+import { createResourceTypeDefinitionAction } from './actions/resourceType';
+import { createResourceAction } from './actions/resource';
 import { createTraitDefinitionAction } from './actions/trait';
 import { createComponentWorkflowDefinitionAction } from './actions/componentWorkflow';
 import { createClusterComponentTypeDefinitionAction } from './actions/clusterComponentType';
+import { createClusterResourceTypeDefinitionAction } from './actions/clusterResourceType';
 import { createClusterTraitDefinitionAction } from './actions/clusterTrait';
 import { createClusterWorkflowDefinitionAction } from './actions/clusterWorkflow';
 import { createEnvironmentAction } from './actions/environment';
@@ -47,11 +50,14 @@ export const scaffolderModule = createBackendModule({
             annotationStore,
           ),
           createComponentTypeDefinitionAction(config, immediateCatalog),
+          createResourceTypeDefinitionAction(config, immediateCatalog),
+          createResourceAction(config, immediateCatalog),
           createTraitDefinitionAction(config, immediateCatalog),
           createComponentWorkflowDefinitionAction(config, immediateCatalog),
           createEnvironmentAction(config, immediateCatalog),
           createNamespaceAction(config, immediateCatalog),
           createClusterComponentTypeDefinitionAction(config, immediateCatalog),
+          createClusterResourceTypeDefinitionAction(config, immediateCatalog),
           createClusterTraitDefinitionAction(config, immediateCatalog),
           createClusterWorkflowDefinitionAction(config, immediateCatalog),
           createDeploymentPipelineAction(config, immediateCatalog),

@@ -6,10 +6,8 @@ import { ObservabilityMetricsPage } from './ObservabilityMetricsPage';
 // ---- Mocks (own hooks and child components only) ----
 
 const mockUseMetricsPermission = jest.fn();
-const mockUseCiliumEnabled = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useMetricsPermission: () => mockUseMetricsPermission(),
-  useCiliumEnabled: () => mockUseCiliumEnabled(),
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden-state">{message}</div>
   ),
@@ -19,6 +17,7 @@ const mockUseGetNamespaceAndProjectByEntity = jest.fn();
 const mockUseGetEnvironmentsByNamespace = jest.fn();
 const mockUseMetrics = jest.fn();
 const mockUseUrlFilters = jest.fn();
+const mockUseDataPlaneNetPolProvider = jest.fn();
 
 jest.mock('../../hooks', () => ({
   useGetNamespaceAndProjectByEntity: (...args: any[]) =>
@@ -27,6 +26,8 @@ jest.mock('../../hooks', () => ({
     mockUseGetEnvironmentsByNamespace(...args),
   useMetrics: (...args: any[]) => mockUseMetrics(...args),
   useUrlFilters: (...args: any[]) => mockUseUrlFilters(...args),
+  useDataPlaneNetPolProvider: (...args: any[]) =>
+    mockUseDataPlaneNetPolProvider(...args),
 }));
 
 jest.mock('./MetricsFilters', () => ({
@@ -76,6 +77,7 @@ const defaultEnvironment = {
   displayName: 'Development',
   isProduction: false,
   createdAt: '2024-01-01T00:00:00Z',
+  dataPlaneRef: { kind: 'DataPlane', name: 'default-dp' },
 };
 
 function renderPage() {
@@ -87,7 +89,10 @@ function renderPage() {
 }
 
 function setupDefaultMocks() {
-  mockUseCiliumEnabled.mockReturnValue(true);
+  mockUseDataPlaneNetPolProvider.mockReturnValue({
+    networkPolicyProvider: 'cilium',
+    loading: false,
+  });
   mockUseMetricsPermission.mockReturnValue({
     canViewMetrics: true,
     loading: false,
@@ -238,7 +243,10 @@ describe('ObservabilityMetricsPage', () => {
   });
 
   it('shows info message when observability is disabled', async () => {
-    mockUseCiliumEnabled.mockReturnValue(false);
+    mockUseDataPlaneNetPolProvider.mockReturnValue({
+      networkPolicyProvider: undefined,
+      loading: false,
+    });
     mockUseMetrics.mockReturnValue({
       metrics: null,
       loading: false,
@@ -251,7 +259,7 @@ describe('ObservabilityMetricsPage', () => {
 
     expect(
       screen.getByText(
-        'Observability is not enabled for this component in this environment. Please enable observability to view metrics.',
+        'Observability is not enabled for this component in the current environment. Enable observability to view metrics.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();

@@ -7,9 +7,12 @@ import type { EnvironmentActionsProps, ItemActionTracker } from '../types';
 
 const mockUseDeployPermission = jest.fn();
 const mockUseUndeployPermission = jest.fn();
+const mockUseReleaseBindingUpdatePermission = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useDeployPermission: () => mockUseDeployPermission(),
   useUndeployPermission: () => mockUseUndeployPermission(),
+  useReleaseBindingUpdatePermission: () =>
+    mockUseReleaseBindingUpdatePermission(),
 }));
 
 // ---- Helpers ----
@@ -55,12 +58,6 @@ const grantedUndeploy = {
   deniedTooltip: '',
 };
 
-const deniedUndeploy = {
-  canUndeploy: false,
-  loading: false,
-  deniedTooltip: 'You do not have permission to undeploy',
-};
-
 // ---- Tests ----
 
 describe('EnvironmentActions', () => {
@@ -68,6 +65,11 @@ describe('EnvironmentActions', () => {
     jest.clearAllMocks();
     mockUseDeployPermission.mockReturnValue(grantedDeploy);
     mockUseUndeployPermission.mockReturnValue(grantedUndeploy);
+    mockUseReleaseBindingUpdatePermission.mockReturnValue({
+      canUpdate: true,
+      loading: false,
+      deniedTooltip: '',
+    });
   });
 
   it('renders nothing when there are no actions to show', () => {
@@ -133,8 +135,12 @@ describe('EnvironmentActions', () => {
     expect(onRedeploy).toHaveBeenCalled();
   });
 
-  it('disables undeploy/redeploy when user lacks permission', () => {
-    mockUseUndeployPermission.mockReturnValue(deniedUndeploy);
+  it('disables undeploy/redeploy when user lacks releasebinding:update', () => {
+    mockUseReleaseBindingUpdatePermission.mockReturnValue({
+      canUpdate: false,
+      loading: false,
+      deniedTooltip: 'You do not have permission to modify the deployment',
+    });
 
     renderActions({
       bindingName: 'my-binding',

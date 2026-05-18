@@ -40,6 +40,18 @@ import {
   genericWorkflowsClientApiRef,
   GenericWorkflowsClient,
 } from '@openchoreo/backstage-plugin-openchoreo-workflows';
+// NOTE: ``perchAgentApiRef`` is also declared on
+// ``openchoreoPerchPlugin.apis`` in plugins/openchoreo-portal-assistant/src/plugin.ts.
+// That declaration is NOT picked up by the app at runtime because the plugin
+// exports plain React components — it never registers a routable or
+// component extension, so Backstage's plugin loader never visits its
+// ``apis`` array. The app-level factory below is the one actually wired in;
+// removing it causes ``NotImplementedError: No implementation available for
+// apiRef{plugin.openchoreo-portal-assistant.service}`` in AssistantDrawerProvider.
+import {
+  perchAgentApiRef,
+  PerchAgentClient,
+} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 import {
   catalogApiRef,
   entityPresentationApiRef,
@@ -73,6 +85,8 @@ import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import BuildIcon from '@material-ui/icons/Build';
 import CategoryIcon from '@material-ui/icons/Category';
+import LayersIcon from '@material-ui/icons/Layers';
+import StorageIcon from '@material-ui/icons/Storage';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
@@ -237,6 +251,19 @@ export const apis: AnyApiFactory[] = [
       new GenericWorkflowsClient(discoveryApi, fetchApi),
   }),
 
+  // Assistant Agent client (Perch). Mirrors the registration on
+  // openchoreoPerchPlugin.apis — see the import-site comment for why
+  // both exist.
+  createApiFactory({
+    api: perchAgentApiRef,
+    deps: {
+      discoveryApi: discoveryApiRef,
+      fetchApi: fetchApiRef,
+    },
+    factory: ({ discoveryApi, fetchApi }) =>
+      new PerchAgentClient({ discoveryApi, fetchApi }),
+  }),
+
   // Custom EntityPresentationApi with icons for custom entity kinds
   // This enables icons for Environment, DataPlane, and DeploymentPipeline in the catalog graph
   createApiFactory({
@@ -256,6 +283,9 @@ export const apis: AnyApiFactory[] = [
           clusterworkflowplane: BuildIcon,
           componenttype: CategoryIcon,
           clustercomponenttype: CategoryIcon,
+          resourcetype: LayersIcon,
+          clusterresourcetype: LayersIcon,
+          resource: StorageIcon,
           traittype: ExtensionIcon,
           clustertraittype: ExtensionIcon,
           workflow: PlayCircleOutlineIcon,

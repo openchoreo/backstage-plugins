@@ -1,6 +1,8 @@
 export {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
+  GENERIC_SECRET_TYPE_VALUE,
+  GIT_SECRET_TYPE_VALUE,
   RELATION_DEPLOYS_TO,
   RELATION_DEPLOYED_BY,
   RELATION_USES_PIPELINE,
@@ -42,7 +44,12 @@ export {
   openchoreoReleaseCreatePermission,
   openchoreoReleaseReadPermission,
   openchoreoReleaseBindingUpdatePermission,
+  openchoreoReleaseBindingDeletePermission,
   openchoreoReleaseBindingReadPermission,
+  openchoreoReleaseBindingViewPermission,
+  openchoreoResourceReleaseBindingUpdatePermission,
+  openchoreoResourceReleaseBindingCreatePermission,
+  openchoreoResourceReleaseBindingDeletePermission,
   openchoreoRoleViewPermission,
   openchoreoRoleCreatePermission,
   openchoreoRoleUpdatePermission,
@@ -66,16 +73,24 @@ export {
   openchoreoTracesViewPermission,
   openchoreoRcaViewPermission,
   openchoreoRcaUpdatePermission,
+  openchoreoFinopsUpdatePermission,
   openchoreoTraitsViewPermission,
   openchoreoTraitCreatePermission,
   openchoreoComponentTypeCreatePermission,
+  openchoreoResourceTypeCreatePermission,
+  openchoreoResourceCreatePermission,
   openchoreoClusterComponentTypeCreatePermission,
+  openchoreoClusterResourceTypeCreatePermission,
   openchoreoClusterTraitCreatePermission,
   openchoreoWorkflowCreatePermission,
   openchoreoClusterWorkflowCreatePermission,
   openchoreoComponentWorkflowCreatePermission,
   openchoreoComponentTypeUpdatePermission,
   openchoreoComponentTypeDeletePermission,
+  openchoreoResourceTypeUpdatePermission,
+  openchoreoResourceTypeDeletePermission,
+  openchoreoResourceUpdatePermission,
+  openchoreoResourceDeletePermission,
   openchoreoTraitUpdatePermission,
   openchoreoTraitDeletePermission,
   openchoreoWorkflowUpdatePermission,
@@ -95,6 +110,8 @@ export {
   openchoreoDeploymentpipelineDeletePermission,
   openchoreoClusterComponentTypeUpdatePermission,
   openchoreoClusterComponentTypeDeletePermission,
+  openchoreoClusterResourceTypeUpdatePermission,
+  openchoreoClusterResourceTypeDeletePermission,
   openchoreoClusterTraitUpdatePermission,
   openchoreoClusterTraitDeletePermission,
   openchoreoClusterDataplaneUpdatePermission,
@@ -170,6 +187,10 @@ export type {
   ReleaseBindingEndpoint,
   ReleaseBindingResponse,
   ReleaseBindingCondition,
+  ResourceReleaseBindingResponse,
+  ResolvedResourceOutput,
+  ResourceSecretKeyRef,
+  ResourceConfigMapKeyRef,
   WorkloadOverrides,
   ContainerOverride,
   ComponentReleaseResponse,
@@ -198,12 +219,12 @@ export type {
   SecretStoreReference,
   SecretDataSourceInfo,
   RemoteReferenceInfo,
-  GitSecretResponse,
   SubjectType,
   UserCapabilitiesResponse,
   SubjectContext,
   ActionCapability,
   CapabilityResource,
+  CapabilityConstraints,
   ReleaseResponse,
   ReleaseSpec,
   ReleaseStatus,
@@ -232,6 +253,20 @@ export type ModelsWorkload = WorkloadResponse;
 export type WorkloadResource = OpenChoreoComponents['schemas']['Workload'];
 /** Spec portion of a WorkloadResource */
 export type WorkloadSpec = NonNullable<WorkloadResource['spec']>;
+/**
+ * A resource dependency entry under Workload.spec.dependencies.resources[].
+ * Binds named outputs of a Resource into the consuming container as env vars
+ * (envBindings) and file mounts (fileBindings).
+ */
+export type ResourceDependency =
+  OpenChoreoComponents['schemas']['WorkloadResourceDependency'];
+/**
+ * An output declared on a (Cluster)ResourceType's spec.outputs[]. The "kind"
+ * (value / secretKeyRef / configMapKeyRef) is implicit in which field is set.
+ * Consumed by the resource-dependency editor to render one row per output.
+ */
+export type ResourceTypeOutput =
+  OpenChoreoComponents['schemas']['ResourceTypeOutput'];
 /** ComponentRelease resource type from the OpenAPI spec */
 export type ComponentRelease =
   OpenChoreoComponents['schemas']['ComponentRelease'];

@@ -13,9 +13,11 @@ import {
 import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 import {
   createApiEntitiesFromNewWorkload,
+  buildComponentDependsOnRefs,
   extractAllWorkloadEndpoints,
   extractSchemaEndpoints,
   extractWorkloadDependencies,
+  extractWorkloadResourceDependencies,
   filterDependenciesWithSchema,
   resolveComponentOwner,
   resolveProvidesAndConsumes,
@@ -24,6 +26,7 @@ import { WorkloadEndpoint } from '../utils/types';
 import {
   NewApiTranslatorContext,
   translateNewClusterComponentTypeToEntity,
+  translateNewClusterResourceTypeToEntity,
   translateNewClusterDataplaneToEntity,
   translateNewClusterObservabilityPlaneToEntity,
   translateNewClusterTraitToEntity,
@@ -37,6 +40,8 @@ import {
   translateNewNamespaceToDomainEntity,
   translateNewObservabilityPlaneToEntity,
   translateNewProjectToEntity,
+  translateNewResourceToEntity,
+  translateNewResourceTypeToEntity,
   translateNewTraitToEntity,
   translateNewWorkflowPlaneToEntity,
   translateNewWorkflowToEntity,
@@ -48,6 +53,7 @@ import {
   getName,
 } from '@openchoreo/openchoreo-client-node';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
+import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
 
 type NewProject = OpenChoreoComponents['schemas']['Project'];
 type NewComponent = OpenChoreoComponents['schemas']['Component'];
@@ -60,10 +66,14 @@ type NewObservabilityPlane =
 type NewDeploymentPipeline =
   OpenChoreoComponents['schemas']['DeploymentPipeline'];
 type NewComponentType = OpenChoreoComponents['schemas']['ComponentType'];
+type NewResourceType = OpenChoreoComponents['schemas']['ResourceType'];
+type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 type NewClusterComponentType =
   OpenChoreoComponents['schemas']['ClusterComponentType'];
+type NewClusterResourceType =
+  OpenChoreoComponents['schemas']['ClusterResourceType'];
 type NewClusterTrait = OpenChoreoComponents['schemas']['ClusterTrait'];
 type NewClusterWorkflow = OpenChoreoComponents['schemas']['ClusterWorkflow'];
 type NewClusterDataPlane = OpenChoreoComponents['schemas']['ClusterDataPlane'];
@@ -98,6 +108,7 @@ export class EventDeltaApplier {
   private readonly translatorContext: NewApiTranslatorContext;
   private readonly getConnection: () => EntityProviderConnection | undefined;
   private readonly ctdConverter: CtdToTemplateConverter;
+  private readonly rtdConverter: RtdToTemplateConverter;
   private readonly catalogService?: CatalogService;
   private readonly auth?: AuthService;
 
@@ -109,6 +120,7 @@ export class EventDeltaApplier {
     translatorContext: NewApiTranslatorContext;
     getConnection: () => EntityProviderConnection | undefined;
     ctdConverter: CtdToTemplateConverter;
+    rtdConverter: RtdToTemplateConverter;
     /**
      * Optional catalog read-side. Used by the workload-deletion handler
      * to find entities annotated with the deleted workload's name and
@@ -128,6 +140,7 @@ export class EventDeltaApplier {
     this.defaultOwner = opts.defaultOwner;
     this.translatorContext = opts.translatorContext;
     this.ctdConverter = opts.ctdConverter;
+    this.rtdConverter = opts.rtdConverter;
     this.getConnection = opts.getConnection;
     this.catalogService = opts.catalogService;
     this.auth = opts.auth;
@@ -401,6 +414,33 @@ export class EventDeltaApplier {
     );
   }
 
+  private fetchResourceType(
+    client: OpenChoreoApiClient,
+    ns: string,
+    name: string,
+  ) {
+    return this.fetchOne<NewResourceType>(
+      client.GET('/api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}', {
+        params: { path: { namespaceName: ns, rtName: name } },
+      }) as any,
+      'resourcetype',
+      `${ns}/${name}`,
+    );
+  }
+
+  private fetchResource(client: OpenChoreoApiClient, ns: string, name: string) {
+    return this.fetchOne<NewResource>(
+      client.GET(
+        '/api/v1/namespaces/{namespaceName}/resources/{resourceName}',
+        {
+          params: { path: { namespaceName: ns, resourceName: name } },
+        },
+      ) as any,
+      'resource',
+      `${ns}/${name}`,
+    );
+  }
+
   private fetchWorkflow(client: OpenChoreoApiClient, ns: string, name: string) {
     return this.fetchOne<NewWorkflow>(
       client.GET(
@@ -437,6 +477,16 @@ export class EventDeltaApplier {
         params: { path: { cctName: name } },
       }) as any,
       'clustercomponenttype',
+      name,
+    );
+  }
+
+  private fetchClusterResourceType(client: OpenChoreoApiClient, name: string) {
+    return this.fetchOne<NewClusterResourceType>(
+      client.GET('/api/v1/clusterresourcetypes/{crtName}', {
+        params: { path: { crtName: name } },
+      }) as any,
+      'clusterresourcetype',
       name,
     );
   }
@@ -589,6 +639,9 @@ export class EventDeltaApplier {
     const allEndpoints = workload ? extractAllWorkloadEndpoints(workload) : {};
     const schemaEndpoints = extractSchemaEndpoints(allEndpoints);
     const dependencies = workload ? extractWorkloadDependencies(workload) : [];
+    const resourceDependencies = workload
+      ? extractWorkloadResourceDependencies(workload)
+      : [];
 
     // Filter `consumesApis` down to deps whose target endpoint actually
     // exposes a schema. Without this, refs in `spec.consumesApis` point
@@ -663,6 +716,7 @@ export class EventDeltaApplier {
       providesApis,
       consumesApis,
       workloadName,
+      buildComponentDependsOnRefs(resourceDependencies, ns),
     );
 
     // API entities exist only because a Workload exposes schema-bearing
@@ -871,6 +925,129 @@ export class EventDeltaApplier {
     }
   }
 
+  /**
+   * Fetches the ResourceType's parameters schema and produces the derived
+   * Backstage Template entity via `RtdToTemplateConverter`. Mirrors
+   * `buildComponentTypeTemplateEntity` so the periodic and event-driven
+   * paths emit identical Template entities for the Resource family.
+   */
+  private async buildResourceTypeTemplateEntity(
+    client: OpenChoreoApiClient,
+    ns: string,
+    rt: NewResourceType,
+  ): Promise<Entity | undefined> {
+    const rtName = getName(rt);
+    if (!rtName) return undefined;
+
+    try {
+      const { data: schemaData, error: schemaError } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}/schema',
+        { params: { path: { namespaceName: ns, rtName } } },
+      );
+      if (schemaError || !schemaData) {
+        this.logger.warn(
+          `Failed to fetch schema for ResourceType ${rtName} in ns ${ns}; Template entity will not be refreshed`,
+        );
+        return undefined;
+      }
+
+      const fullResourceType = {
+        metadata: {
+          name: rtName,
+          displayName: getDisplayName(rt),
+          description: getDescription(rt),
+          createdAt: getCreatedAt(rt) || '',
+        },
+        spec: {
+          parameters: { openAPIV3Schema: schemaData as any },
+          retainPolicy: rt.spec?.retainPolicy as
+            | 'Delete'
+            | 'Retain'
+            | undefined,
+        },
+      };
+
+      const templateEntity = this.rtdConverter.convertRtdToTemplateEntity(
+        fullResourceType,
+        ns,
+      );
+      if (!templateEntity.metadata.annotations) {
+        templateEntity.metadata.annotations = {};
+      }
+      templateEntity.metadata.annotations['backstage.io/managed-by-location'] =
+        this.locationKey();
+      templateEntity.metadata.annotations[
+        'backstage.io/managed-by-origin-location'
+      ] = this.locationKey();
+      return templateEntity;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to build Template entity for ResourceType ${ns}/${rtName}: ${error}`,
+      );
+      return undefined;
+    }
+  }
+
+  /**
+   * Same as `buildResourceTypeTemplateEntity` but for a cluster-scoped
+   * ResourceType. Template entity lives in `openchoreo-cluster`.
+   */
+  private async buildClusterResourceTypeTemplateEntity(
+    client: OpenChoreoApiClient,
+    crt: NewClusterResourceType,
+  ): Promise<Entity | undefined> {
+    const crtName = getName(crt);
+    if (!crtName) return undefined;
+
+    try {
+      const { data: schemaData, error: schemaError } = await client.GET(
+        '/api/v1/clusterresourcetypes/{crtName}/schema',
+        { params: { path: { crtName } } },
+      );
+      if (schemaError || !schemaData) {
+        this.logger.warn(
+          `Failed to fetch schema for ClusterResourceType ${crtName}; Template entity will not be refreshed`,
+        );
+        return undefined;
+      }
+
+      const fullClusterResourceType = {
+        metadata: {
+          name: crtName,
+          displayName: getDisplayName(crt),
+          description: getDescription(crt),
+          createdAt: getCreatedAt(crt) || '',
+        },
+        spec: {
+          parameters: { openAPIV3Schema: schemaData as any },
+          retainPolicy: crt.spec?.retainPolicy as
+            | 'Delete'
+            | 'Retain'
+            | undefined,
+        },
+      };
+
+      const templateEntity =
+        this.rtdConverter.convertClusterRtdToTemplateEntity(
+          fullClusterResourceType,
+        );
+      if (!templateEntity.metadata.annotations) {
+        templateEntity.metadata.annotations = {};
+      }
+      templateEntity.metadata.annotations['backstage.io/managed-by-location'] =
+        this.locationKey();
+      templateEntity.metadata.annotations[
+        'backstage.io/managed-by-origin-location'
+      ] = this.locationKey();
+      return templateEntity;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to build Template entity for ClusterResourceType ${crtName}: ${error}`,
+      );
+      return undefined;
+    }
+  }
+
   private async refreshComponentType(ns: string, name: string): Promise<void> {
     const client = await this.createApiClient();
     const ct = await this.fetchComponentType(client, ns, name);
@@ -908,6 +1085,46 @@ export class EventDeltaApplier {
     }
     await this.upsertEntities([
       translateNewTraitToEntity(trait, ns, this.translatorContext),
+    ]);
+  }
+
+  private async refreshResourceType(ns: string, name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const rt = await this.fetchResourceType(client, ns, name);
+    if (!rt) {
+      // Both the ResourceType entity and its derived Template entity
+      // need to disappear. The Template name is `template-resource-<rtName>`.
+      await this.removeEntityRefs([
+        this.buildEntityRef('resourcetype', ns, name),
+        this.buildEntityRef('template', ns, `template-resource-${name}`),
+      ]);
+      return;
+    }
+    const rtEntity = translateNewResourceTypeToEntity(
+      rt,
+      ns,
+      this.translatorContext,
+    ) as Entity;
+    const templateEntity = await this.buildResourceTypeTemplateEntity(
+      client,
+      ns,
+      rt,
+    );
+    const entities: Entity[] = templateEntity
+      ? [rtEntity, templateEntity]
+      : [rtEntity];
+    await this.upsertEntities(entities);
+  }
+
+  private async refreshResource(ns: string, name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const resource = await this.fetchResource(client, ns, name);
+    if (!resource) {
+      await this.removeEntityRefs([this.buildEntityRef('resource', ns, name)]);
+      return;
+    }
+    await this.upsertEntities([
+      translateNewResourceToEntity(resource, ns, this.translatorContext),
     ]);
   }
 
@@ -973,6 +1190,34 @@ export class EventDeltaApplier {
     const entities: Entity[] = templateEntity
       ? [cctEntity, templateEntity]
       : [cctEntity];
+    await this.upsertEntities(entities);
+  }
+
+  private async refreshClusterResourceType(name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const crt = await this.fetchClusterResourceType(client, name);
+    if (!crt) {
+      await this.removeEntityRefs([
+        this.buildEntityRef('clusterresourcetype', 'openchoreo-cluster', name),
+        this.buildEntityRef(
+          'template',
+          'openchoreo-cluster',
+          `template-resource-${name}`,
+        ),
+      ]);
+      return;
+    }
+    const crtEntity = translateNewClusterResourceTypeToEntity(
+      crt,
+      this.translatorContext,
+    ) as Entity;
+    const templateEntity = await this.buildClusterResourceTypeTemplateEntity(
+      client,
+      crt,
+    );
+    const entities: Entity[] = templateEntity
+      ? [crtEntity, templateEntity]
+      : [crtEntity];
     await this.upsertEntities(entities);
   }
 
@@ -1119,11 +1364,20 @@ export class EventDeltaApplier {
       case 'trait':
         await this.refreshTrait(ns, name);
         return;
+      case 'resourcetype':
+        await this.refreshResourceType(ns, name);
+        return;
+      case 'resource':
+        await this.refreshResource(ns, name);
+        return;
       case 'workflow':
         await this.refreshWorkflow(ns, name);
         return;
       case 'clustercomponenttype':
         await this.refreshClusterComponentType(name);
+        return;
+      case 'clusterresourcetype':
+        await this.refreshClusterResourceType(name);
         return;
       case 'clustertrait':
         await this.refreshClusterTrait(name);

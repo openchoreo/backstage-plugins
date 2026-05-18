@@ -1,4 +1,4 @@
-import { RefObject, FC } from 'react';
+import { RefObject, FC, useCallback, useEffect, useRef } from 'react';
 import {
   Table,
   TableHead,
@@ -12,7 +12,7 @@ import {
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { LogEntryField, LogEntry as LogEntryType } from './types';
-import { LogEntry } from './LogEntry';
+import { LogEntry, RenderLogRowAction } from './LogEntry';
 import { useLogsTableStyles } from './styles';
 
 interface LogsTableProps {
@@ -24,6 +24,7 @@ interface LogsTableProps {
   environmentName?: string;
   projectName?: string;
   componentName?: string;
+  renderRowAction?: RenderLogRowAction;
 }
 
 export const LogsTable: FC<LogsTableProps> = ({
@@ -35,8 +36,21 @@ export const LogsTable: FC<LogsTableProps> = ({
   environmentName,
   projectName,
   componentName,
+  renderRowAction,
 }) => {
   const classes = useLogsTableStyles();
+
+  // Ref-backed snapshot accessor so per-row buttons can read the
+  // *current* logs list without their parent component re-rendering
+  // every time a new log batch arrives. Each LogEntry receives a
+  // stable callback reference; only the rows whose own props change
+  // re-render. The ref is updated after every render so the closure
+  // always returns the freshest list.
+  const logsRef = useRef<LogEntryType[]>(logs);
+  useEffect(() => {
+    logsRef.current = logs;
+  }, [logs]);
+  const getLogsSnapshot = useCallback(() => logsRef.current, []);
 
   const totalColumns = selectedFields.length;
   const renderLoadingSkeletons = () => {
@@ -133,6 +147,8 @@ export const LogsTable: FC<LogsTableProps> = ({
                 environmentName={environmentName}
                 projectName={projectName}
                 componentName={componentName}
+                getLogsSnapshot={getLogsSnapshot}
+                renderRowAction={renderRowAction}
               />
             ))}
 

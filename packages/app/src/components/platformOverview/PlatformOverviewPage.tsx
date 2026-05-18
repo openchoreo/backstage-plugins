@@ -19,11 +19,11 @@ import Checkbox from '@material-ui/core/Checkbox';
 import Divider from '@material-ui/core/Divider';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
-import ListSubheader from '@material-ui/core/ListSubheader';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import {
   PlatformOverviewGraphView,
   GraphKindFilter,
+  NamespaceScopeFilter,
   buildDynamicView,
   getEffectiveKinds,
   APPLICATION_VIEW,
@@ -190,11 +190,22 @@ export function PlatformOverviewPage() {
   );
   const projects = useProjects(projectNamespaces);
 
-  const [scopeAnchor, setScopeAnchor] = useState<HTMLButtonElement | null>(
-    null,
-  );
   const [projectAnchor, setProjectAnchor] = useState<HTMLButtonElement | null>(
     null,
+  );
+
+  // Cluster row should appear in the scope picker regardless of catalog state.
+  const scopePickerNamespaces = useMemo(() => {
+    const set = new Set<string>(availableNamespaces);
+    set.add(CLUSTER_NAMESPACE);
+    return [...set];
+  }, [availableNamespaces]);
+
+  const handleScopeChange = useCallback(
+    (next: string[]) => {
+      setParams({ scope: next.join(',') });
+    },
+    [setParams],
   );
 
   // --- Kinds ---
@@ -297,33 +308,6 @@ export function PlatformOverviewPage() {
   const showProjectFilter =
     selectedKinds.includes('system') && projects.length > 0;
 
-  // --- Scope selector ---
-  const handleScopeToggle = useCallback(
-    (item: string) => {
-      const current = new Set(selectedScopes);
-      if (current.has(item)) {
-        if (current.size <= 1) return; // prevent empty scope
-        current.delete(item);
-      } else {
-        current.add(item);
-      }
-      setParams({ scope: [...current].join(',') });
-    },
-    [selectedScopes, setParams],
-  );
-
-  const scopeButtonLabel = useMemo(() => {
-    const parts: string[] = [];
-    if (clusterSelected) parts.push('Cluster');
-    if (selectedNamespaces.length === 1) {
-      parts.push(selectedNamespaces[0]);
-    } else if (selectedNamespaces.length > 1) {
-      parts.push(`${selectedNamespaces.length} namespaces`);
-    }
-    if (parts.length === 0) return 'Scope: None';
-    return `Scope: ${parts.join(' + ')}`;
-  }, [clusterSelected, selectedNamespaces]);
-
   // --- Kind filter ---
   const handleKindsChange = useCallback(
     (kinds: string[]) => {
@@ -357,75 +341,15 @@ export function PlatformOverviewPage() {
     [multiNamespace],
   );
 
-  // --- Scope selector popover ---
+  // --- Scope selector ---
   const scopeLeading = (
-    <>
-      <Button
-        className={classes.triggerButton}
-        endIcon={<ArrowDropDownIcon />}
-        onClick={e => setScopeAnchor(e.currentTarget)}
-      >
-        {scopeButtonLabel}
-      </Button>
-      <Popover
-        open={Boolean(scopeAnchor)}
-        anchorEl={scopeAnchor}
-        onClose={() => setScopeAnchor(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-        PaperProps={{ className: classes.popoverPaper }}
-      >
-        <MenuList dense>
-          <MenuItem
-            className={classes.menuItem}
-            disabled={clusterSelected && selectedScopes.length <= 1}
-            onClick={() => handleScopeToggle(CLUSTER_NAMESPACE)}
-          >
-            <ListItemIcon>
-              <Checkbox
-                className={classes.checkbox}
-                checked={clusterSelected}
-                disabled={clusterSelected && selectedScopes.length <= 1}
-                color="primary"
-                size="small"
-                disableRipple
-              />
-            </ListItemIcon>
-            <ListItemText primary="Cluster" />
-          </MenuItem>
-        </MenuList>
-        <Divider />
-        <ListSubheader className={classes.subheader} disableSticky>
-          Namespaces
-        </ListSubheader>
-        <MenuList dense>
-          {availableNamespaces.map(ns => {
-            const isSelected = selectedNamespaces.includes(ns);
-            const isLastItem = isSelected && selectedScopes.length <= 1;
-            return (
-              <MenuItem
-                key={ns}
-                className={classes.menuItem}
-                disabled={isLastItem}
-                onClick={() => handleScopeToggle(ns)}
-              >
-                <ListItemIcon>
-                  <Checkbox
-                    className={classes.checkbox}
-                    checked={isSelected}
-                    disabled={isLastItem}
-                    color="primary"
-                    size="small"
-                    disableRipple
-                  />
-                </ListItemIcon>
-                <ListItemText primary={ns} />
-              </MenuItem>
-            );
-          })}
-        </MenuList>
-      </Popover>
-    </>
+    <NamespaceScopeFilter
+      label="Scope"
+      availableNamespaces={scopePickerNamespaces}
+      selected={selectedScopes}
+      onChange={handleScopeChange}
+      minSelection={1}
+    />
   );
 
   // --- Project filter popover ---

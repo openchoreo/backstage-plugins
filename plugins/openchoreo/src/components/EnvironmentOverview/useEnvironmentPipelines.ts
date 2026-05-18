@@ -65,22 +65,14 @@ export function useEnvironmentPipelines(): UseEnvironmentPipelinesResult {
             // Catalog entity may use either the old (string) or new (object) shape:
             sourceEnvironment?: string;
             sourceEnvironmentRef?: string | { name?: string };
-            targetEnvironments?: Array<{
-              name: string;
-              requiresApproval?: boolean;
-              isManualApprovalRequired?: boolean;
-            }>;
-            targetEnvironmentRefs?: Array<{
-              name: string;
-              requiresApproval?: boolean;
-              isManualApprovalRequired?: boolean;
-            }>;
+            targetEnvironments?: Array<{ name: string }>;
+            targetEnvironmentRefs?: Array<{ name: string }>;
           }>;
         };
         if (!rawSpec?.promotionPaths) continue;
 
         // Normalize to a single shape:
-        // { source: string, targets: { name, requiresApproval? }[] }[]
+        // { source: string, targets: { name }[] }[]
         const normalized = rawSpec.promotionPaths.map(path => {
           const source =
             path.sourceEnvironment ??
@@ -92,11 +84,7 @@ export function useEnvironmentPipelines(): UseEnvironmentPipelinesResult {
             path.targetEnvironments ?? path.targetEnvironmentRefs ?? [];
           const targets = rawTargets
             .filter(t => !!t.name)
-            .map(t => ({
-              name: t.name,
-              requiresApproval:
-                t.requiresApproval ?? t.isManualApprovalRequired,
-            }));
+            .map(t => ({ name: t.name }));
           return { source, targets };
         });
 

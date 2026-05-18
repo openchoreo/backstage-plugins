@@ -248,7 +248,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
       existingInstanceNames.includes(instanceName)
     ) {
       setInstanceNameError(
-        'Instance name already exists. Please choose a unique name.',
+        'Instance name already exists. Choose a unique name.',
       );
     } else {
       setInstanceNameError('');

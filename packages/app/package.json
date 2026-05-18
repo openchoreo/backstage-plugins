@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "bundled": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openchoreo/backstage-plugins.git",
+    "directory": "packages/app"
+  },
   "backstage": {
     "role": "frontend"
   },
@@ -55,6 +60,7 @@
     "@openchoreo/backstage-plugin-common": "workspace:^",
     "@openchoreo/backstage-plugin-openchoreo-ci": "workspace:^",
     "@openchoreo/backstage-plugin-openchoreo-observability": "workspace:^",
+    "@openchoreo/backstage-plugin-openchoreo-portal-assistant": "workspace:^",
     "@openchoreo/backstage-plugin-openchoreo-workflows": "workspace:^",
     "@openchoreo/backstage-plugin-platform-engineer-core": "workspace:^",
     "@openchoreo/backstage-plugin-react": "workspace:^",

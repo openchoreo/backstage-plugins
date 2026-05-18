@@ -26,19 +26,43 @@ function makeEntity(
   };
 }
 
+interface ConstrainedEntryInput {
+  path: string;
+  expressions?: string[];
+}
+
 const apply = (
   entity: Entity,
   params: {
     action?: string;
     allowedPaths: string[];
     deniedPaths: string[];
+    /** Constrained allow entries with CEL expressions. */
+    allowedEntries?: ConstrainedEntryInput[];
+    /** Constrained deny entries with CEL expressions. */
+    deniedEntries?: ConstrainedEntryInput[];
   },
-) =>
-  matchesCapability.apply(entity, {
+) => {
+  const toEntries = (paths: string[], extra: ConstrainedEntryInput[] = []) => [
+    ...paths.map(path => ({ path })),
+    ...extra.map(e =>
+      e.expressions
+        ? { path: e.path, constraints: { expressions: e.expressions } }
+        : { path: e.path },
+    ),
+  ];
+  return matchesCapability.apply(entity, {
     action: params.action ?? 'component:view',
-    allowedPaths: params.allowedPaths,
-    deniedPaths: params.deniedPaths,
+    // The rule now accepts full CapabilityResource[] (JSON-encoded) so it can
+    // observe ABAC `constraints.expressions`.
+    allowedJson: JSON.stringify(
+      toEntries(params.allowedPaths, params.allowedEntries),
+    ),
+    deniedJson: JSON.stringify(
+      toEntries(params.deniedPaths, params.deniedEntries),
+    ),
   });
+};
 
 describe('matchesCapability.apply', () => {
   describe('entity without namespace annotation', () => {
@@ -339,14 +363,90 @@ describe('matchesCapability.apply', () => {
       ).toBe(true);
     });
   });
+
+  // Apply-time semantics for ABAC-gated entries — the rule cannot evaluate
+  // CEL expressions synchronously, so it soft-permits at visibility time
+  // and lets the env-aware permission hook gate the actual button via
+  // /evaluate-with-context. These tests pin that behavior.
+  describe('ABAC-constrained entries', () => {
+    const componentEntity = makeEntity('Component', {
+      [CHOREO_ANNOTATIONS.NAMESPACE]: 'acme',
+      [CHOREO_ANNOTATIONS.PROJECT]: 'foo',
+      [CHOREO_ANNOTATIONS.COMPONENT]: 'api',
+    });
+
+    it('skips a constrained deny at apply-time (soft-permit visibility)', () => {
+      // An unconstrained allow + a constrained deny on the same path. The
+      // rule cannot evaluate the CEL here so the deny is skipped and the
+      // allow wins; runtime denial is enforced via the env-aware route.
+      expect(
+        apply(componentEntity, {
+          allowedPaths: ['ns/acme/project/foo/component/api'],
+          deniedPaths: [],
+          deniedEntries: [
+            {
+              path: 'ns/acme/project/foo/component/api',
+              expressions: ['resource.environment == "production"'],
+            },
+          ],
+        }),
+      ).toBe(true);
+    });
+
+    it('soft-permits a constrained allow when path matches', () => {
+      expect(
+        apply(componentEntity, {
+          allowedPaths: [],
+          deniedPaths: [],
+          allowedEntries: [
+            {
+              path: 'ns/acme/project/foo/component/api',
+              expressions: ['resource.environment == "development"'],
+            },
+          ],
+        }),
+      ).toBe(true);
+    });
+
+    it('unconstrained deny still beats a constrained allow', () => {
+      expect(
+        apply(componentEntity, {
+          allowedPaths: [],
+          deniedPaths: ['ns/acme/project/foo/component/api'],
+          allowedEntries: [
+            {
+              path: 'ns/acme/project/foo/component/api',
+              expressions: ['resource.environment == "development"'],
+            },
+          ],
+        }),
+      ).toBe(false);
+    });
+
+    it('ignores malformed entries (missing path) in the JSON payload', () => {
+      // Inject an object with no `path` directly via JSON to exercise the
+      // parseEntries guard. The valid allow entry should still take effect.
+      const allowedJson = JSON.stringify([
+        { not_a_path: 'oops' },
+        { path: 'ns/acme/project/foo/component/api' },
+      ]);
+      expect(
+        matchesCapability.apply(componentEntity, {
+          action: 'component:view',
+          allowedJson,
+          deniedJson: '[]',
+        }),
+      ).toBe(true);
+    });
+  });
 });
 
 describe('matchesCapability.toQuery', () => {
   it('returns an empty object (no DB filtering)', () => {
     const query = matchesCapability.toQuery({
       action: 'component:view',
-      allowedPaths: ['*'],
-      deniedPaths: [],
+      allowedJson: JSON.stringify([{ path: '*' }]),
+      deniedJson: JSON.stringify([]),
     });
     expect(query).toEqual({});
   });

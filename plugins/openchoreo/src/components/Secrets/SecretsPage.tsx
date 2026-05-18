@@ -16,7 +16,11 @@ import {
   Content,
   WarningPanel,
 } from '@backstage/core-components';
-import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
+import { Alert } from '@material-ui/lab';
+import {
+  ForbiddenState,
+  useSecretManagementEnabled,
+} from '@openchoreo/backstage-plugin-react';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
@@ -24,6 +28,7 @@ import AddIcon from '@material-ui/icons/Add';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import {
   openChoreoClientApiRef,
+  Secret,
   TargetPlaneKind,
 } from '../../api/OpenChoreoClientApi';
 import { useSecrets } from './hooks/useSecrets';
@@ -32,6 +37,7 @@ import {
   CreateSecretDialog,
   type TargetPlaneOption,
 } from './CreateSecretDialog';
+import { EditSecretDialog } from './EditSecretDialog';
 import { useAsync } from 'react-use';
 
 const useStyles = makeStyles(theme => ({
@@ -57,8 +63,10 @@ export const SecretsContent = () => {
   const classes = useStyles();
   const client = useApi(openChoreoClientApiRef);
   const catalogApi = useApi(catalogApiRef);
+  const secretManagementEnabled = useSecretManagementEnabled();
   const [selectedNamespace, setSelectedNamespace] = useState<string>('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editingSecret, setEditingSecret] = useState<Secret | null>(null);
 
   const {
     value: namespaces,
@@ -134,6 +142,7 @@ export const SecretsContent = () => {
     error: secretsError,
     isForbidden: secretsForbidden,
     createSecret,
+    updateSecret,
     deleteSecret,
     fetchSecrets,
   } = useSecrets(selectedNamespace);
@@ -158,6 +167,18 @@ export const SecretsContent = () => {
       setSelectedNamespace(sortedNamespaces[0].name);
     }
   }, [sortedNamespaces, selectedNamespace]);
+
+  if (!secretManagementEnabled) {
+    return (
+      <Box mt={2} mb={2} width="100%">
+        <Alert severity="info">
+          <Typography variant="body1">
+            Secret Management is disabled. Enable it to manage secrets.
+          </Typography>
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box className={classes.root}>
@@ -255,6 +276,7 @@ export const SecretsContent = () => {
             secrets={secrets}
             loading={secretsLoading}
             onDelete={handleDeleteSecret}
+            onEdit={setEditingSecret}
             namespaceName={selectedNamespace}
           />
         )
@@ -269,6 +291,14 @@ export const SecretsContent = () => {
         targetPlanes={targetPlanes || []}
         targetPlanesLoading={targetPlanesLoading}
         targetPlanesError={targetPlanesError}
+      />
+
+      <EditSecretDialog
+        open={editingSecret !== null}
+        onClose={() => setEditingSecret(null)}
+        onSubmit={updateSecret}
+        secret={editingSecret}
+        namespaceName={selectedNamespace}
       />
     </Box>
   );

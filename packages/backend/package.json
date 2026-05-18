@@ -4,6 +4,11 @@
   "main": "dist/index.cjs.js",
   "types": "src/index.ts",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openchoreo/backstage-plugins.git",
+    "directory": "packages/backend"
+  },
   "backstage": {
     "role": "backend"
   },
@@ -49,6 +54,7 @@
     "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users": "workspace:^",
     "@openchoreo/backstage-plugin-openchoreo-ci-backend": "workspace:^",
     "@openchoreo/backstage-plugin-openchoreo-observability-backend": "workspace:^",
+    "@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend": "workspace:^",
     "@openchoreo/backstage-plugin-openchoreo-workflows-backend": "workspace:^",
     "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy": "workspace:^",
     "@openchoreo/backstage-plugin-platform-engineer-core-backend": "workspace:^",

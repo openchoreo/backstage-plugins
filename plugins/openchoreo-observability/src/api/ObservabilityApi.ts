@@ -14,6 +14,8 @@ import {
   RCAReportDetailed,
   AlertSummary,
   IncidentSummary,
+  FinOpsReportSummary,
+  FinOpsReportDetailed,
 } from '../types';
 import { LogsResponse } from '../components/RuntimeLogs/types';
 import { ObserverUrlCache } from './ObserverUrlCache';
@@ -146,6 +148,28 @@ export interface ObservabilityApi {
     namespaceName: string,
     environmentName: string,
   ): Promise<void>;
+
+  getFinOpsReports(
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      status?: 'pending' | 'completed' | 'failed';
+      limit?: number;
+      sort?: string;
+    },
+  ): Promise<{
+    reports: FinOpsReportSummary[];
+    totalCount?: number;
+  }>;
+
+  getFinOpsReport(
+    reportId: string,
+    environmentName: string,
+    namespaceName: string,
+  ): Promise<FinOpsReportDetailed>;
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
@@ -619,6 +643,8 @@ export class ObservabilityClient implements ObservabilityApi {
             acknowledgedAt: i.acknowledgedAt,
             resolvedAt: i.resolvedAt,
             incidentTriggerAiRca: i.incidentTriggerAiRca ?? false,
+            incidentTriggerAiCostAnalysis:
+              i.incidentTriggerAiCostAnalysis ?? false,
             projectName: i.labels?.projectName,
             componentName: i.labels?.componentName,
             environmentName: i.labels?.environmentName,
@@ -793,6 +819,123 @@ export class ObservabilityClient implements ObservabilityApi {
         error || `Failed to update incident: ${response.statusText}`,
       );
     }
+  }
+
+  async getFinOpsReports(
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      status?: 'pending' | 'completed' | 'failed';
+      limit?: number;
+      sort?: string;
+    },
+  ): Promise<{
+    reports: FinOpsReportSummary[];
+    totalCount?: number;
+  }> {
+    const { finopsAgentUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    if (!finopsAgentUrl) {
+      throw new Error('FinOps service is not configured');
+    }
+
+    const url = new URL(`${finopsAgentUrl}/api/v1alpha1/reports`);
+    url.searchParams.set('namespace', namespaceName);
+    url.searchParams.set('project', projectName);
+    url.searchParams.set('environment', environmentName);
+    if (options?.startTime)
+      url.searchParams.set('startTime', options.startTime);
+    if (options?.endTime) url.searchParams.set('endTime', options.endTime);
+    if (options?.status) url.searchParams.set('status', options.status);
+    if (options?.limit !== undefined)
+      url.searchParams.set('limit', String(options.limit));
+    if (options?.sort) url.searchParams.set('sort', options.sort);
+
+    let response: Response;
+    try {
+      response = await this.fetchApi.fetch(url.toString(), {
+        headers: { ...DIRECT_HEADER },
+      });
+    } catch (err) {
+      throw new Error(
+        `FinOps service is unreachable: ${
+          err instanceof Error ? err.message : err
+        }`,
+      );
+    }
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      if (error.includes('FinOps service is not configured')) {
+        throw new Error('FinOps service is not configured');
+      }
+      if (error.includes('Observability is not configured for component')) {
+        throw new Error('Observability is not enabled for this component');
+      }
+      throw new Error(
+        error || `Failed to fetch FinOps reports: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    return {
+      reports: data.reports || [],
+      totalCount: data.totalCount,
+    };
+  }
+
+  async getFinOpsReport(
+    reportId: string,
+    environmentName: string,
+    namespaceName: string,
+  ): Promise<FinOpsReportDetailed> {
+    const { finopsAgentUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    if (!finopsAgentUrl) {
+      throw new Error('FinOps service is not configured');
+    }
+
+    const url = new URL(
+      `${finopsAgentUrl}/api/v1alpha1/reports/${encodeURIComponent(reportId)}`,
+    );
+
+    let response: Response;
+    try {
+      response = await this.fetchApi.fetch(url.toString(), {
+        headers: { ...DIRECT_HEADER },
+      });
+    } catch (err) {
+      throw new Error(
+        `FinOps service is unreachable: ${
+          err instanceof Error ? err.message : err
+        }`,
+      );
+    }
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      if (error.includes('FinOps service is not configured')) {
+        throw new Error('FinOps service is not configured');
+      }
+      if (error.includes('FinOps report not found')) {
+        throw new Error('FinOps report not found');
+      }
+      throw new Error(
+        error || `Failed to fetch FinOps report: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    return data;
   }
 
   private async parseError(response: Response): Promise<string> {

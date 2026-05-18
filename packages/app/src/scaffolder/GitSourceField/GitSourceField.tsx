@@ -9,6 +9,7 @@ import {
   TextField,
   Divider,
   Typography,
+  Tooltip,
   Grid,
 } from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
@@ -21,8 +22,11 @@ import {
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import {
   CHOREO_ANNOTATIONS,
+  CHOREO_LABELS,
+  GIT_SECRET_TYPE_VALUE,
   parseWorkflowParametersAnnotation,
 } from '@openchoreo/backstage-plugin-common';
+import { useSecretManagementEnabled } from '@openchoreo/backstage-plugin-react';
 import { GitSecretDialog } from '../GitSecretField/GitSecretDialog';
 import { CLUSTER_WORKFLOW_NAMESPACE } from '../types';
 
@@ -33,12 +37,20 @@ export interface GitSourceData {
   git_secret_ref: string;
 }
 
+interface TargetPlaneRef {
+  kind: string;
+  name: string;
+}
+
 interface GitSecret {
   name: string;
   namespace: string;
-  workflowPlaneKind?: string;
-  workflowPlaneName?: string;
+  targetPlane?: TargetPlaneRef;
 }
+
+// K8s Secret types used by git secrets.
+const K8S_BASIC_AUTH = 'kubernetes.io/basic-auth';
+const K8S_SSH_AUTH = 'kubernetes.io/ssh-auth';
 
 const CREATE_NEW_SECRET = '__create_new__';
 const NO_SECRET = '__no_secret__';
@@ -79,6 +91,7 @@ export const GitSourceField = ({
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
   const catalogApi = useApi(catalogApiRef);
+  const secretManagementEnabled = useSecretManagementEnabled();
 
   // Read the selected workflow from formContext (object with kind and name)
   const selectedWorkflow = formContext?.formData?.workflow_name as
@@ -207,10 +220,11 @@ export const GitSourceField = ({
   const showAppPath = !visibleFields || 'appPath' in visibleFields;
   const showSecretRef = !visibleFields || 'secretRef' in visibleFields;
 
-  // Fetch available git secrets
+  // Fetch available git secrets. Skip when secret management is off — the
+  // API returns 501 in that mode and we'd otherwise surface a spurious error.
   const fetchSecrets = useCallback(async () => {
     // If no namespace, still try to fetch — the field may work without it
-    if (!nsName) {
+    if (!nsName || !secretManagementEnabled) {
       setSecrets([]);
       return;
     }
@@ -221,7 +235,7 @@ export const GitSourceField = ({
     try {
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
       const response = await fetchApi.fetch(
-        `${baseUrl}/git-secrets?namespaceName=${encodeURIComponent(nsName)}`,
+        `${baseUrl}/secrets?namespaceName=${encodeURIComponent(nsName)}`,
       );
 
       if (!response.ok) {
@@ -229,14 +243,30 @@ export const GitSourceField = ({
       }
 
       const result = await response.json();
-      setSecrets(result.items || []);
+      const items: GitSecret[] = (result.items || [])
+        .filter(
+          (s: { labels?: Record<string, string> }) =>
+            s.labels?.[CHOREO_LABELS.SECRET_TYPE] === GIT_SECRET_TYPE_VALUE,
+        )
+        .map(
+          (s: {
+            name: string;
+            namespace: string;
+            targetPlane?: TargetPlaneRef;
+          }) => ({
+            name: s.name,
+            namespace: s.namespace,
+            targetPlane: s.targetPlane,
+          }),
+        );
+      setSecrets(items);
     } catch (err) {
       setSecretsError(`Failed to fetch git secrets: ${err}`);
       setSecrets([]);
     } finally {
       setSecretsLoading(false);
     }
-  }, [nsName, discoveryApi, fetchApi]);
+  }, [nsName, secretManagementEnabled, discoveryApi, fetchApi]);
 
   useEffect(() => {
     fetchSecrets();
@@ -282,35 +312,42 @@ export const GitSourceField = ({
     username?: string,
     sshKeyId?: string,
   ) => {
+    // The target plane comes from the selected workflow's annotations.
+    if (!workflowPlaneRefKind || !workflowPlaneRef) {
+      throw new Error(
+        'No workflow plane is associated with the selected workflow.',
+      );
+    }
+
     try {
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-      const requestBody: any = {
+      // Build the K8s Secret data map for the chosen auth type.
+      let k8sSecretType: string;
+      const secretData: Record<string, string> = {};
+      if (secretType === 'basic-auth') {
+        k8sSecretType = K8S_BASIC_AUTH;
+        secretData.password = tokenOrKey;
+        if (username) secretData.username = username;
+      } else {
+        k8sSecretType = K8S_SSH_AUTH;
+        secretData['ssh-privatekey'] = tokenOrKey;
+        if (sshKeyId) secretData['ssh-key-id'] = sshKeyId;
+      }
+
+      const requestBody = {
         secretName,
-        secretType,
+        secretType: k8sSecretType,
+        targetPlane: {
+          kind: workflowPlaneRefKind,
+          name: workflowPlaneRef,
+        },
+        data: secretData,
+        labels: { [CHOREO_LABELS.SECRET_TYPE]: GIT_SECRET_TYPE_VALUE },
       };
 
-      // Auto-populate workflow plane from the selected workflow's annotations.
-      // Both fields are required as a pair by CreateGitSecretRequest.
-      if (workflowPlaneRefKind && workflowPlaneRef) {
-        requestBody.workflowPlaneKind = workflowPlaneRefKind;
-        requestBody.workflowPlaneName = workflowPlaneRef;
-      }
-
-      if (secretType === 'basic-auth') {
-        requestBody.token = tokenOrKey;
-        if (username) {
-          requestBody.username = username;
-        }
-      } else {
-        requestBody.sshKey = tokenOrKey;
-        if (sshKeyId) {
-          requestBody.sshKeyId = sshKeyId;
-        }
-      }
-
       const response = await fetchApi.fetch(
-        `${baseUrl}/git-secrets?namespaceName=${encodeURIComponent(nsName)}`,
+        `${baseUrl}/secrets?namespaceName=${encodeURIComponent(nsName)}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -334,15 +371,25 @@ export const GitSourceField = ({
     }
   };
 
-  // Filter secrets by workflow plane if the selected workflow has a plane ref
+  // Filter by workflow plane only for secrets that actually carry a
+  // targetPlane — legacy git secrets have none and always pass.
   const filteredSecrets =
     workflowPlaneRef && workflowPlaneRefKind
       ? secrets.filter(
           s =>
-            s.workflowPlaneName === workflowPlaneRef &&
-            s.workflowPlaneKind === workflowPlaneRefKind,
+            !s.targetPlane ||
+            (s.targetPlane.name === workflowPlaneRef &&
+              s.targetPlane.kind === workflowPlaneRefKind),
         )
       : secrets;
+
+  // Creating a new git secret needs both the feature flag and a workflow
+  // plane to target (resolved from the selected workflow's annotations).
+  const canCreateSecret =
+    secretManagementEnabled && !!workflowPlaneRef && !!workflowPlaneRefKind;
+  const createDisabledReason = !secretManagementEnabled
+    ? 'Secret management is disabled. Enable it to create new git secrets.'
+    : 'Select a workflow first so the secret can target its workflow plane.';
 
   // Autocomplete options for git secret
   const secretOptions = [
@@ -354,6 +401,7 @@ export const GitSourceField = ({
 
   const handleSecretChange = (_event: any, value: string | null) => {
     if (value === CREATE_NEW_SECRET) {
+      if (!canCreateSecret) return;
       setDialogOpen(true);
       return;
     }
@@ -462,6 +510,29 @@ export const GitSourceField = ({
                 }}
                 renderOption={option => {
                   if (option === CREATE_NEW_SECRET) {
+                    if (!canCreateSecret) {
+                      return (
+                        <Tooltip
+                          title={createDisabledReason}
+                          placement="bottom-start"
+                        >
+                          <span
+                            style={{ pointerEvents: 'auto', width: '100%' }}
+                          >
+                            <Box
+                              display="flex"
+                              alignItems="center"
+                              style={{ gap: 8 }}
+                            >
+                              <AddIcon fontSize="small" color="disabled" />
+                              <Typography color="textSecondary">
+                                Create New Git Secret
+                              </Typography>
+                            </Box>
+                          </span>
+                        </Tooltip>
+                      );
+                    }
                     return (
                       <Box
                         display="flex"
@@ -483,7 +554,10 @@ export const GitSourceField = ({
                   }
                   return <Typography>{option}</Typography>;
                 }}
-                getOptionDisabled={option => option === DIVIDER}
+                getOptionDisabled={option =>
+                  option === DIVIDER ||
+                  (option === CREATE_NEW_SECRET && !canCreateSecret)
+                }
                 renderInput={params => (
                   <TextField
                     {...params}

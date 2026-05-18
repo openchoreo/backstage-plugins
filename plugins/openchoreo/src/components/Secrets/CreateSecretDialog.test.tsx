@@ -19,6 +19,25 @@ function renderDialog(
   return render(<CreateSecretDialog {...defaults} {...overrides} />);
 }
 
+// MUI v4 TextField doesn't link <label> via htmlFor, so getByLabelText fails.
+// Query by the visible label text rendered inside the wrapping FormControl
+// and walk to the input it controls.
+function inputForLabel(labelText: string): HTMLElement {
+  const labels = screen
+    .getAllByText(
+      (_, el) =>
+        (el?.textContent ?? '').replace(/\s*\*\s*$/, '').trim() === labelText,
+    )
+    .filter(el => el.tagName === 'LABEL');
+  for (const labelEl of labels) {
+    const formControl = labelEl.closest('.MuiFormControl-root');
+    const input =
+      formControl?.querySelector<HTMLElement>('input, textarea') ?? null;
+    if (input) return input;
+  }
+  throw new Error(`No input found near label "${labelText}"`);
+}
+
 describe('CreateSecretDialog — target plane error surface', () => {
   it('shows the error message in helper text when targetPlanesError is set', () => {
     renderDialog({ targetPlanesError: new Error('catalog down') });
@@ -45,25 +64,6 @@ describe('CreateSecretDialog — target plane error surface', () => {
 
 describe('CreateSecretDialog — Create button data validation', () => {
   const planes: TargetPlaneOption[] = [{ kind: 'DataPlane', name: 'dp' }];
-
-  // MUI v4 TextField doesn't link <label> via htmlFor, so getByLabelText
-  // fails. Query by the visible label text rendered inside the wrapping
-  // FormControl and walk to the input it controls.
-  function inputForLabel(labelText: string): HTMLElement {
-    const labels = screen
-      .getAllByText(
-        (_, el) =>
-          (el?.textContent ?? '').replace(/\s*\*\s*$/, '').trim() === labelText,
-      )
-      .filter(el => el.tagName === 'LABEL');
-    for (const labelEl of labels) {
-      const formControl = labelEl.closest('.MuiFormControl-root');
-      const input =
-        formControl?.querySelector<HTMLElement>('input, textarea') ?? null;
-      if (input) return input;
-    }
-    throw new Error(`No input found near label "${labelText}"`);
-  }
 
   it('keeps Create disabled with a valid name + plane but empty Opaque data', async () => {
     const user = userEvent.setup();
@@ -110,4 +110,96 @@ describe('CreateSecretDialog — Create button data validation', () => {
     await user.type(inputForLabel('tls.key'), 'key-pem');
     expect(screen.getByRole('button', { name: 'Create' })).toBeEnabled();
   });
+});
+
+describe('CreateSecretDialog — Secret Category', () => {
+  const planes: TargetPlaneOption[] = [{ kind: 'DataPlane', name: 'dp' }];
+
+  it('defaults to Generic with the general-purpose helper text', () => {
+    renderDialog({ targetPlanes: planes });
+    expect(screen.getByText('A general-purpose secret.')).toBeInTheDocument();
+  });
+
+  it('stamps the generic label when the category is Generic', async () => {
+    const user = userEvent.setup();
+    const onSubmit = jest.fn().mockResolvedValue({} as any);
+    renderDialog({ targetPlanes: planes, onSubmit });
+
+    await user.type(inputForLabel('Secret Name'), 'generic-secret');
+    await user.click(screen.getByRole('radio', { name: /Basic Auth/i }));
+    await user.type(inputForLabel('Password / Token'), 'hunter2');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0][0].labels).toEqual({
+      'openchoreo.dev/secret-type': 'generic',
+    });
+  });
+});
+
+describe('CreateSecretDialog — SSH Auth', () => {
+  const planes: TargetPlaneOption[] = [{ kind: 'DataPlane', name: 'dp' }];
+
+  async function selectSshAuth(user: ReturnType<typeof userEvent.setup>) {
+    await user.type(inputForLabel('Secret Name'), 'ssh-secret');
+    await user.click(screen.getByRole('radio', { name: /SSH Auth/i }));
+  }
+
+  // A well-formed key only needs the BEGIN + PRIVATE KEY markers the dialog
+  // validates against. userEvent.type into a multiline textarea is slow, so
+  // the key value is pasted; short single-line fields still use type.
+  const VALID_KEY =
+    '-----BEGIN OPENSSH PRIVATE KEY-----abc-----END OPENSSH PRIVATE KEY-----';
+
+  async function pasteSshKey(
+    user: ReturnType<typeof userEvent.setup>,
+    value: string,
+  ) {
+    const keyInput = screen.getByLabelText('SSH Private Key');
+    keyInput.focus();
+    await user.paste(value);
+  }
+
+  it('enables Create once a well-formed private key is provided', async () => {
+    const user = userEvent.setup();
+    renderDialog({ targetPlanes: planes });
+    await selectSshAuth(user);
+    await pasteSshKey(user, VALID_KEY);
+    expect(screen.getByRole('button', { name: 'Create' })).toBeEnabled();
+  });
+
+  // The two tests below interact with multiple fields (SSH Key ID + multiline
+  // SSH key + dynamically-added Key/Value rows). userEvent.type is per-keystroke
+  // and gets slow under jsdom load in the full suite, so give them extra time.
+  it('submits the SSH key plus the optional SSH Key ID in the data map', async () => {
+    const user = userEvent.setup();
+    const onSubmit = jest.fn().mockResolvedValue({} as any);
+    renderDialog({ targetPlanes: planes, onSubmit });
+    await selectSshAuth(user);
+    await user.type(screen.getByLabelText('SSH Key ID'), 'my-key-id');
+    await pasteSshKey(user, VALID_KEY);
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    const { data } = onSubmit.mock.calls[0][0];
+    expect(data['ssh-privatekey']).toContain('BEGIN OPENSSH PRIVATE KEY');
+    expect(data['ssh-key-id']).toBe('my-key-id');
+  }, 15000);
+
+  it('includes an SSH extra key/value row in the submitted data', async () => {
+    const user = userEvent.setup();
+    const onSubmit = jest.fn().mockResolvedValue({} as any);
+    renderDialog({ targetPlanes: planes, onSubmit });
+    await selectSshAuth(user);
+    await pasteSshKey(user, VALID_KEY);
+
+    // The SSH-auth section renders its own "Add key" button for extra rows.
+    await user.click(screen.getByRole('button', { name: 'Add key' }));
+    await user.type(screen.getByLabelText('Key 1'), 'known_hosts');
+    await user.type(screen.getByLabelText('Value 1'), 'host-entry');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0][0].data.known_hosts).toBe('host-entry');
+  }, 15000);
 });

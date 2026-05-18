@@ -44,6 +44,38 @@ jobs:
             echo "LATEST=false" >> $GITHUB_ENV
           fi
 
+      # npm publish runs before any Docker retag so a publish failure aborts
+      # the release before GHCR is mutated. The reverse ordering would leave
+      # the image retagged to vX.Y.Z (and possibly `latest`) without the
+      # corresponding @openchoreo/* packages on the npm registry.
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: 'yarn'
+          # Intentionally no `registry-url:` — Yarn Berry ignores the .npmrc
+          # this would write. Auth is wired via YARN_NPM_AUTH_TOKEN below.
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build all workspaces
+        # `changeset publish` runs each workspace's `prepack`, which invokes
+        # `backstage-cli package prepack` — that rewrites `workspace:^` deps to
+        # concrete versions and assumes `dist/` exists. Build everything first.
+        run: yarn build:all
+
+      - name: Publish to GitHub Packages
+        env:
+          YARN_NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${IS_PRERELEASE}" = "true" ]; then
+            yarn changeset publish --tag next
+          else
+            yarn release:publish
+          fi
+
       - name: Login to GitHub container registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
@@ -71,5 +103,3 @@ jobs:
           docker buildx imagetools create \
             --tag "${IMAGE}:latest" \
             "${IMAGE}:${{ env.RELEASE_TAG }}"
-
-      # TODO: Add npm package publishing via changesets once registry permissions are resolved.

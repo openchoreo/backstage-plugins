@@ -1,4 +1,5 @@
 export { useGetNamespaceAndProjectByEntity } from './useGetNamespaceAndProjectByEntity';
+export { useDataPlaneNetPolProvider } from './useDataPlaneNetPolProvider';
 export { useGetEnvironmentsByNamespace } from './useGetEnvironmentsByNamespace';
 export { useFilters } from './useFilters';
 export { useUrlFilters } from './useUrlFilters';
@@ -9,6 +10,8 @@ export { useSpanDetails } from './useSpanDetails';
 export { useGetComponentsByProject } from './useGetComponentsByProject';
 export { useRCAReport, useRCAReportByAlert } from './useRCAReportByAlert';
 export { useRCAReports } from './useRCAReports';
+export { useFinOpsReport } from './useFinOpsReport';
+export { useFinOpsReports } from './useFinOpsReports';
 export { useRuntimeLogs } from './useRuntimeLogs';
 export { useProjectRuntimeLogs } from './useProjectRuntimeLogs';
 export { useUrlFiltersForRuntimeLogs } from './useUrlFiltersForRuntimeLogs';

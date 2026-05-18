@@ -28,12 +28,13 @@ const useStyles = makeStyles(theme => ({
   },
   typeCards: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(1),
+    flexDirection: 'row',
+    gap: theme.spacing(2),
     marginBottom: theme.spacing(3),
   },
   typeCard: {
-    padding: theme.spacing(2),
+    flex: 1,
+    padding: theme.spacing(1),
     borderRadius: 12,
     cursor: 'pointer',
     transition: 'all 0.2s',
@@ -72,9 +73,7 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.text.secondary,
     fontSize: '0.875rem',
   },
-  valueSection: {
-    marginTop: theme.spacing(3),
-  },
+  valueSection: {},
   valueLabel: {
     marginBottom: theme.spacing(1),
   },

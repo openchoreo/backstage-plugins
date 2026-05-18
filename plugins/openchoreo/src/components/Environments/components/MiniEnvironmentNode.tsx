@@ -20,11 +20,18 @@ import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined'
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import clsx from 'clsx';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
-import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
+import {
+  formatRelativeTime,
+  usePromoteToEnvPermission,
+  useReleaseBindingUpdatePermission,
+  useReleaseBindingViewPermission,
+} from '@openchoreo/backstage-plugin-react';
 import { useMiniEnvironmentNodeStyles } from '../styles';
 import { useEnvironmentStatusVariant } from '../hooks/useEnvironmentStatusVariant';
-import { usePromotionAction } from '../hooks/usePromotionAction';
-import { NO_DRIFT, type ReleaseDriftInfo } from '../hooks/computeReleaseDrift';
+import {
+  usePromotionAction,
+  type PromotionTargetAction,
+} from '../hooks/usePromotionAction';
 import { deriveVersionLabel } from '../utils/deriveVersionLabel';
 import type { ActionTrackers, Environment } from '../types';
 import { ReleaseManifestDialog } from './ReleaseManifestDialog';
@@ -35,8 +42,6 @@ export interface MiniEnvironmentNodeProps {
   isRefreshing: boolean;
   isAlreadyPromoted: (targetEnvName: string) => boolean;
   actionTrackers: ActionTrackers;
-  /** Drift relative to direct upstreams; defaults to no drift. */
-  driftInfo?: ReleaseDriftInfo;
   /**
    * Active-incident count from useIncidentsSummary. Undefined when
    * observability isn't configured; rendered as a red chip when > 0.
@@ -62,7 +67,6 @@ export const MiniEnvironmentNode = ({
   isRefreshing,
   isAlreadyPromoted,
   actionTrackers,
-  driftInfo = NO_DRIFT,
   activeIncidentCount,
   onSelect,
   onRefresh,
@@ -89,6 +93,7 @@ export const MiniEnvironmentNode = ({
   const noop = () => {};
   const { promotionActions } = usePromotionAction({
     environmentName: environment.name,
+    environmentResourceName: environment.resourceName,
     bindingName: environment.bindingName,
     deploymentStatus: environment.deployment.status,
     statusReason: environment.deployment.statusReason,
@@ -100,6 +105,25 @@ export const MiniEnvironmentNode = ({
     onSuspend: noop,
     onRedeploy: noop,
   });
+
+  // ABAC env-aware permission check for the Configure overrides menu item.
+  // Configure overrides edits an *existing* release binding, so the action
+  // is releasebinding:update — not :create. Resource name (not display name)
+  // is what the cluster's CEL matches against.
+  const envResourceName = environment.resourceName ?? environment.name;
+  const {
+    canUpdate: canConfigureOverrides,
+    deniedTooltip: configureOverridesDeniedTooltip,
+  } = useReleaseBindingUpdatePermission(envResourceName);
+  // Per-env view permission. When denied, the tile is still rendered (so the
+  // user sees the env exists) but its body is replaced with a compact "No
+  // permissions" placeholder. The detail panel mirrors this state when the
+  // env is selected.
+  const {
+    canViewBinding,
+    loading: viewPermissionLoading,
+    deniedTooltip: viewDeniedTooltip,
+  } = useReleaseBindingViewPermission(envResourceName);
 
   // Only surface promote on the canvas tile when the env is actually
   // deployed (has a binding). `usePromotionAction` already gates on
@@ -147,28 +171,12 @@ export const MiniEnvironmentNode = ({
       );
     }
     if (visibleActions.length === 1) {
-      const only = visibleActions[0];
       return (
-        <Tooltip
-          title={only.deniedTooltip}
-          disableHoverListener={!only.deniedTooltip}
-        >
-          <span>
-            <Button
-              size="small"
-              variant="contained"
-              color="primary"
-              className={classes.primaryButton}
-              disabled={only.disabled}
-              onClick={e => {
-                stop(e);
-                only.onClick();
-              }}
-            >
-              {only.isPromoting ? 'Promoting...' : 'Promote'}
-            </Button>
-          </span>
-        </Tooltip>
+        <PromotePrimaryButton
+          action={visibleActions[0]}
+          className={classes.primaryButton}
+          onStop={stop}
+        />
       );
     }
     // Multi-target — render the trigger; the menus themselves live in the
@@ -249,97 +257,95 @@ export const MiniEnvironmentNode = ({
               </IconButton>
             </Tooltip>
           </Box>
-          {/* Row 1 — primary identity: status + version + drift. */}
-          <Box className={classes.metaRow}>
-            <span className={classes.metaLabel}>status:</span>
-            <StatusBadge status={statusVariant.variant} />
-            {versionLabel && (
-              <Tooltip
-                title={
-                  <>
-                    {environment.deployment.releaseName && (
-                      <div>Release: {environment.deployment.releaseName}</div>
-                    )}
-                    {environment.deployment.image && (
-                      <div>Image: {environment.deployment.image}</div>
-                    )}
-                  </>
-                }
-                disableHoverListener={
-                  !environment.deployment.image &&
-                  !environment.deployment.releaseName
-                }
-                PopperProps={{ disablePortal: true }}
-              >
-                <span className={classes.versionChip}>{versionLabel}</span>
-              </Tooltip>
-            )}
-            {driftInfo.isBehind && (
-              <Tooltip
-                title={
-                  <>
-                    <div>
-                      Behind{' '}
-                      {driftInfo.aheadUpstreams.map(u => u.envName).join(', ')}
-                    </div>
-                    {driftInfo.aheadUpstreams[0]?.releaseName && (
-                      <div>
-                        {driftInfo.aheadUpstreams[0].envName} on{' '}
-                        {driftInfo.aheadUpstreams[0].releaseName}
-                      </div>
-                    )}
-                  </>
-                }
-                PopperProps={{ disablePortal: true }}
-              >
-                <span
-                  className={classes.driftBadge}
-                  aria-label="behind upstream"
+          {!canViewBinding && !viewPermissionLoading ? (
+            <Tooltip
+              title={viewDeniedTooltip}
+              disableHoverListener={!viewDeniedTooltip}
+              PopperProps={{ disablePortal: true }}
+            >
+              <Box className={classes.metaRow}>
+                <Typography
+                  variant="caption"
+                  color="textSecondary"
+                  style={{ fontStyle: 'italic' }}
                 >
-                  <ReportProblemOutlinedIcon fontSize="inherit" />
-                  behind
-                </span>
-              </Tooltip>
-            )}
-          </Box>
+                  No permissions to view this environment
+                </Typography>
+              </Box>
+            </Tooltip>
+          ) : (
+            <>
+              {/* Row 1 — primary identity: status + version + drift. */}
+              <Box className={classes.metaRow}>
+                <span className={classes.metaLabel}>status:</span>
+                <StatusBadge status={statusVariant.variant} />
+                {versionLabel && (
+                  <Tooltip
+                    title={
+                      <>
+                        {environment.deployment.releaseName && (
+                          <div>
+                            Release: {environment.deployment.releaseName}
+                          </div>
+                        )}
+                        {environment.deployment.image && (
+                          <div>Image: {environment.deployment.image}</div>
+                        )}
+                      </>
+                    }
+                    disableHoverListener={
+                      !environment.deployment.image &&
+                      !environment.deployment.releaseName
+                    }
+                    PopperProps={{ disablePortal: true }}
+                  >
+                    <span className={classes.versionChip}>{versionLabel}</span>
+                  </Tooltip>
+                )}
+              </Box>
 
-          {/* Row 2 — supplementary: incidents + freshness. Skipped
+              {/* Row 2 — supplementary: incidents + freshness. Skipped
               entirely when nothing here applies so we don't render an
               empty row. */}
-          {((!!activeIncidentCount && activeIncidentCount > 0) ||
-            relativeTime) && (
-            <Box className={classes.metaRow}>
-              {!!activeIncidentCount && activeIncidentCount > 0 && (
-                <Tooltip
-                  title={`${activeIncidentCount} active incident${
-                    activeIncidentCount === 1 ? '' : 's'
-                  }`}
-                  PopperProps={{ disablePortal: true }}
-                >
-                  <span
-                    className={clsx(classes.metaChip, classes.metaChipDanger)}
-                    aria-label="active incidents"
-                  >
-                    <ReportProblemOutlinedIcon fontSize="inherit" />
-                    {activeIncidentCount}
-                  </span>
-                </Tooltip>
+              {((!!activeIncidentCount && activeIncidentCount > 0) ||
+                relativeTime) && (
+                <Box className={classes.metaRow}>
+                  {!!activeIncidentCount && activeIncidentCount > 0 && (
+                    <Tooltip
+                      title={`${activeIncidentCount} active incident${
+                        activeIncidentCount === 1 ? '' : 's'
+                      }`}
+                      PopperProps={{ disablePortal: true }}
+                    >
+                      <span
+                        className={clsx(
+                          classes.metaChip,
+                          classes.metaChipDanger,
+                        )}
+                        aria-label="active incidents"
+                      >
+                        <ReportProblemOutlinedIcon fontSize="inherit" />
+                        {activeIncidentCount}
+                      </span>
+                    </Tooltip>
+                  )}
+                  {relativeTime && (
+                    <>
+                      <span className={classes.metaLabel}>deployed:</span>
+                      <Typography
+                        variant="caption"
+                        color="textSecondary"
+                        className={classes.timeText}
+                      >
+                        {relativeTime}
+                      </Typography>
+                    </>
+                  )}
+                </Box>
               )}
-              {relativeTime && (
-                <>
-                  <span className={classes.metaLabel}>deployed:</span>
-                  <Typography
-                    variant="caption"
-                    color="textSecondary"
-                    className={classes.timeText}
-                  >
-                    {relativeTime}
-                  </Typography>
-                </>
-              )}
-            </Box>
+              <Box className={classes.actionRow}>{renderActions()}</Box>
+            </>
           )}
-          <Box className={classes.actionRow}>{renderActions()}</Box>
         </Box>
       </Box>
 
@@ -415,9 +421,10 @@ export const MiniEnvironmentNode = ({
         {/* Group 2 — mutating actions */}
         <Tooltip
           title={
-            environment.bindingName
+            configureOverridesDeniedTooltip ||
+            (environment.bindingName
               ? ''
-              : 'Deploy this environment first to configure overrides.'
+              : 'Deploy this environment first to configure overrides.')
           }
           placement="left"
         >
@@ -428,7 +435,7 @@ export const MiniEnvironmentNode = ({
                 closeMenu();
                 onOpenOverrides();
               }}
-              disabled={!environment.bindingName}
+              disabled={!environment.bindingName || !canConfigureOverrides}
             >
               <SettingsOutlinedIcon
                 fontSize="small"
@@ -485,20 +492,15 @@ export const MiniEnvironmentNode = ({
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
       >
         {visibleActions.map(action => (
-          <MenuItem
+          <PromoteMenuItemRow
             key={action.target.name}
-            disabled={action.disabled}
-            onClick={e => {
-              stop(e);
+            action={action}
+            onStop={stop}
+            onAfterClick={() => {
               setPromoteAnchor(null);
               setPromoteToSubAnchor(null);
-              action.onClick();
             }}
-          >
-            {action.isAlreadyPromoted
-              ? `${action.target.name} (promoted)`
-              : action.target.name}
-          </MenuItem>
+          />
         ))}
       </Menu>
 
@@ -511,3 +513,84 @@ export const MiniEnvironmentNode = ({
     </Box>
   );
 };
+
+/**
+ * Primary Promote button (single eligible target). Calls
+ * `usePromoteToEnvPermission(target)` so the disabled state honors both
+ * `releasebinding:create` and `releasebinding:update` on the target env's
+ * ABAC CEL constraints.
+ */
+interface PromotePrimaryButtonProps {
+  action: PromotionTargetAction;
+  className?: string;
+  onStop: (e: ReactMouseEvent) => void;
+}
+function PromotePrimaryButton({
+  action,
+  className,
+  onStop,
+}: PromotePrimaryButtonProps) {
+  const targetEnvName = action.target.resourceName ?? action.target.name;
+  const { canPromote, loading, deniedTooltip } =
+    usePromoteToEnvPermission(targetEnvName);
+  const disabled = action.disabled || loading || !canPromote;
+  const tooltip = !canPromote && !loading ? deniedTooltip : '';
+  return (
+    <Tooltip title={tooltip} disableHoverListener={!tooltip}>
+      <span>
+        <Button
+          size="small"
+          variant="contained"
+          color="primary"
+          className={className}
+          disabled={disabled}
+          onClick={e => {
+            onStop(e);
+            action.onClick();
+          }}
+        >
+          {action.isPromoting ? 'Promoting...' : 'Promote'}
+        </Button>
+      </span>
+    </Tooltip>
+  );
+}
+
+/**
+ * Single MenuItem inside the multi-target promote menu. Same ABAC story as
+ * `PromotePrimaryButton` — see `usePromoteToEnvPermission`.
+ */
+interface PromoteMenuItemRowProps {
+  action: PromotionTargetAction;
+  onStop: (e: ReactMouseEvent) => void;
+  onAfterClick: () => void;
+}
+function PromoteMenuItemRow({
+  action,
+  onStop,
+  onAfterClick,
+}: PromoteMenuItemRowProps) {
+  const targetEnvName = action.target.resourceName ?? action.target.name;
+  const { canPromote, loading, deniedTooltip } =
+    usePromoteToEnvPermission(targetEnvName);
+  const disabled = action.disabled || loading || !canPromote;
+  const tooltip = !canPromote && !loading ? deniedTooltip : '';
+  return (
+    <Tooltip title={tooltip} disableHoverListener={!tooltip} placement="left">
+      <span>
+        <MenuItem
+          disabled={disabled}
+          onClick={e => {
+            onStop(e);
+            onAfterClick();
+            action.onClick();
+          }}
+        >
+          {action.isAlreadyPromoted
+            ? `${action.target.name} (promoted)`
+            : action.target.name}
+        </MenuItem>
+      </span>
+    </Tooltip>
+  );
+}

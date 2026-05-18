@@ -20,8 +20,15 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from './styles';
 import { LogEntryField } from './types';
+import type { RenderLogRowAction } from './LogEntry';
 
-const ObservabilityProjectRuntimeLogsContent = () => {
+export interface ObservabilityProjectRuntimeLogsPageProps {
+  renderRowAction?: RenderLogRowAction;
+}
+
+const ObservabilityProjectRuntimeLogsContent = ({
+  renderRowAction,
+}: ObservabilityProjectRuntimeLogsPageProps) => {
   const classes = useRuntimeLogsStyles();
   const { entity } = useEntity();
 
@@ -172,7 +179,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
       >
         <Typography variant="body1">
           {isObservabilityDisabled
-            ? 'Observability is not enabled for this project in this environment. Please enable observability to view runtime logs.'
+            ? 'Observability is not enabled for this project in the current environment. Enable observability to view runtime logs.'
             : error}
         </Typography>
         {!isObservabilityDisabled && (
@@ -237,6 +244,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
               selectedEnvironment?.displayName || selectedEnvironment?.name
             }
             projectName={projectName}
+            renderRowAction={renderRowAction}
           />
         </>
       )}
@@ -244,7 +252,9 @@ const ObservabilityProjectRuntimeLogsContent = () => {
   );
 };
 
-export const ObservabilityProjectRuntimeLogsPage = () => {
+export const ObservabilityProjectRuntimeLogsPage = ({
+  renderRowAction,
+}: ObservabilityProjectRuntimeLogsPageProps) => {
   const {
     canViewLogs,
     loading: permissionLoading,
@@ -266,5 +276,7 @@ export const ObservabilityProjectRuntimeLogsPage = () => {
     );
   }
 
-  return <ObservabilityProjectRuntimeLogsContent />;
+  return (
+    <ObservabilityProjectRuntimeLogsContent renderRowAction={renderRowAction} />
+  );
 };

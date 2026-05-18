@@ -117,8 +117,14 @@ export const EnvironmentOverridesPage = ({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [diffOpen, setDiffOpen] = useState(false);
 
-  // Check deploy permission for the final Deploy/Promote button
-  const { canDeploy, loading: deployPermissionLoading } = useDeployPermission();
+  // Check deploy permission for the final Deploy/Promote button. Pass the
+  // target environment so ABAC `resource.environment` CEL constraints are
+  // honored (openchoreo#3408).
+  const environmentNameForPermission =
+    environment.resourceName || environment.name;
+  const { canDeploy, loading: deployPermissionLoading } = useDeployPermission(
+    environmentNameForPermission,
+  );
 
   // Load secret references for workload overrides — limited to refs whose
   // value is reachable from this environment's data plane (or unscoped refs).
@@ -671,12 +677,12 @@ export const EnvironmentOverridesPage = ({
   // Get the warning message for missing required fields
   const getRequiredFieldsWarningMessage = () => {
     if (!pendingAction) {
-      return 'Please fill in the required fields below before saving.';
+      return 'Fill in the required fields below before saving.';
     }
     if (pendingAction.type === 'deploy') {
-      return `Please fill in the required fields below before deploying to ${pendingAction.targetEnvironment}.`;
+      return `Fill in the required fields below before deploying to ${pendingAction.targetEnvironment}.`;
     }
-    return `Please fill in the required fields below before promoting to ${pendingAction.targetEnvironment}.`;
+    return `Fill in the required fields below before promoting to ${pendingAction.targetEnvironment}.`;
   };
 
   // Header actions - show when content exists OR when there's a pending action (for Skip & Deploy)
@@ -702,7 +708,7 @@ export const EnvironmentOverridesPage = ({
               disabled={saving || deleting}
               style={{ marginRight: 8 }}
             >
-              View diff
+              View release diff
             </Button>
           </span>
         </Tooltip>

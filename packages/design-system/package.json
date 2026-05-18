@@ -7,7 +7,13 @@
   "publishConfig": {
     "access": "public",
     "main": "dist/index.esm.js",
-    "types": "dist/index.d.ts"
+    "types": "dist/index.d.ts",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openchoreo/backstage-plugins.git",
+    "directory": "packages/design-system"
   },
   "backstage": {
     "role": "web-library"
@@ -30,7 +36,7 @@
     "@types/react-syntax-highlighter": "^15.5.13"
   },
   "dependencies": {
-    "@backstage/theme": "0.6.8",
+    "@backstage/theme": "^0.6.8",
     "@material-ui/core": "4.12.4",
     "@material-ui/icons": "^4.11.3",
     "@material-ui/lab": "4.0.0-alpha.61",

@@ -145,4 +145,85 @@ export class AuthzProfileCache {
     const key = this.buildUserKey(userEntityRef, org);
     await this.cache.set(key, capabilities, { ttl: ttlMs });
   }
+
+  /**
+   * Builds a cache key for a single ABAC evaluation result.
+   *
+   * Keys are scoped per-user so we never leak one user's decision to another,
+   * and per-(action, resourcePath, environment) so that the same UI rendering
+   * the same button repeatedly hits the cache instead of /authz/evaluates.
+   *
+   * The token hash is included so that signing out + back in produces a new
+   * key and forces a re-evaluation. Otherwise a stale `false` decision from
+   * before a binding change would survive re-login for the full JWT TTL
+   * (up to 24h), and operators would have to wait or restart the backend
+   * to recover. Callers pass `'no-token'` when no token is available (rare
+   * fail-closed path) so the cache still functions.
+   */
+  private buildEvaluationKey(
+    userEntityRef: string,
+    tokenHash: string,
+    action: string,
+    resourcePath: string,
+    environment: string | undefined,
+  ): string {
+    // JSON-encode the tuple so a component containing the separator (or any
+    // other character) cannot collide with another distinct tuple.
+    return `openchoreo:authz-eval:${JSON.stringify([
+      userEntityRef,
+      tokenHash,
+      action,
+      resourcePath,
+      environment ?? null,
+    ])}`;
+  }
+
+  /**
+   * Hashes a user token into a short, non-reversible cache-key fragment.
+   * Mirrors the helper used by `buildKey()` for the capabilities cache so
+   * both caches partition the same way per token issuance.
+   */
+  static hashToken(userToken: string): string {
+    return crypto
+      .createHash('sha256')
+      .update(userToken)
+      .digest('hex')
+      .substring(0, 16);
+  }
+
+  async getEvaluation(
+    userEntityRef: string,
+    tokenHash: string,
+    action: string,
+    resourcePath: string,
+    environment: string | undefined,
+  ): Promise<boolean | undefined> {
+    const key = this.buildEvaluationKey(
+      userEntityRef,
+      tokenHash,
+      action,
+      resourcePath,
+      environment,
+    );
+    return this.cache.get<boolean>(key);
+  }
+
+  async setEvaluation(
+    userEntityRef: string,
+    tokenHash: string,
+    action: string,
+    resourcePath: string,
+    environment: string | undefined,
+    allowed: boolean,
+    ttlMs: number,
+  ): Promise<void> {
+    const key = this.buildEvaluationKey(
+      userEntityRef,
+      tokenHash,
+      action,
+      resourcePath,
+      environment,
+    );
+    await this.cache.set(key, allowed, { ttl: ttlMs });
+  }
 }

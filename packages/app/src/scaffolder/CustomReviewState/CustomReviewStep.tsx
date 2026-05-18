@@ -6,6 +6,7 @@ import {
   type ReviewStateProps,
 } from '@backstage/plugin-scaffolder-react/alpha';
 import { type ReviewStepProps } from '@backstage/plugin-scaffolder-react';
+import { parseEntityRef } from '@backstage/catalog-model';
 import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
 import { useStyles } from './styles';
 
@@ -14,20 +15,27 @@ import { useStyles } from './styles';
 // ---------------------------------------------------------------------------
 
 /**
- * Extract readable name from a Backstage entity ref.
+ * Extract the readable name from a Backstage entity ref.
  * "domain:default/team-beta" → "team-beta"
  * "system:default/my-project" → "my-project"
- * Plain strings pass through unchanged.
+ *
+ * Arbitrary strings — file paths like "./Dockerfile", URLs like
+ * "https://example.com", build args, etc. — pass through unchanged so
+ * flattenToMetadata doesn't mangle user-typed workflow parameter values.
+ *
+ * Implementation: only strings with a "kind:" prefix are even considered,
+ * and the canonical `parseEntityRef` is the source of truth for whether
+ * a string is a valid ref. Any parse failure falls back to the original.
  */
 function extractName(ref: string): string {
   if (!ref || typeof ref !== 'string') return String(ref ?? '');
-  // entity ref format: kind:namespace/name
-  const slashIdx = ref.lastIndexOf('/');
-  if (slashIdx >= 0) return ref.slice(slashIdx + 1);
-  // may also be "kind:name" without namespace
-  const colonIdx = ref.indexOf(':');
-  if (colonIdx >= 0) return ref.slice(colonIdx + 1);
-  return ref;
+  // Without a `:`, it can't be a `kind:...` ref — skip parsing.
+  if (!ref.includes(':')) return ref;
+  try {
+    return parseEntityRef(ref).name;
+  } catch {
+    return ref;
+  }
 }
 
 /**
@@ -511,6 +519,64 @@ function ComponentReview({ data }: { data: Record<string, unknown> }) {
 }
 
 // ---------------------------------------------------------------------------
+// ResourceReview
+// ---------------------------------------------------------------------------
+
+function ResourceReview({ data }: { data: Record<string, unknown> }) {
+  const classes = useStyles();
+
+  // Section: Resource Metadata
+  const projectNs = data.project_namespace as
+    | { project_name?: string; namespace_name?: string }
+    | undefined;
+  const resourceMeta: Record<string, string> = {};
+  if (projectNs?.project_name) {
+    setMeta(resourceMeta, 'Project', extractName(projectNs.project_name));
+  }
+  if (projectNs?.namespace_name) {
+    setMeta(resourceMeta, 'Namespace', extractName(projectNs.namespace_name));
+  }
+  if (data.resource_name) {
+    setMeta(resourceMeta, 'Resource Name', String(data.resource_name));
+  }
+  if (data.displayName) {
+    setMeta(resourceMeta, 'Display Name', String(data.displayName));
+  }
+  if (data.description) {
+    setMeta(resourceMeta, 'Description', String(data.description));
+  }
+
+  // Section: Parameters — the per-type schema-driven form values flattened
+  // to label/value rows. Empty/missing fields are dropped by flattenToMetadata.
+  let parametersMeta: Record<string, string> | undefined;
+  const parameters = data.parameters as Record<string, unknown> | undefined;
+  if (parameters && Object.keys(parameters).length > 0) {
+    parametersMeta = {};
+    flattenToMetadata(parameters, '', parametersMeta);
+  }
+
+  return (
+    <>
+      {Object.keys(resourceMeta).length > 0 && (
+        <>
+          <Typography className={classes.sectionTitle}>
+            Resource Metadata
+          </Typography>
+          <StructuredMetadataTable metadata={resourceMeta} />
+        </>
+      )}
+
+      {parametersMeta && Object.keys(parametersMeta).length > 0 && (
+        <>
+          <Typography className={classes.sectionTitle}>Parameters</Typography>
+          <StructuredMetadataTable metadata={parametersMeta} />
+        </>
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // DefaultReview (fallback using Backstage ReviewState)
 // ---------------------------------------------------------------------------
 
@@ -541,10 +607,18 @@ function DefaultReview({
 
 function detectTemplateType(
   formData: Record<string, unknown>,
-): 'deployment-pipeline' | 'environment' | 'component' | 'default' {
+):
+  | 'deployment-pipeline'
+  | 'environment'
+  | 'component'
+  | 'resource'
+  | 'default' {
   if ('deploymentPipelineConfig' in formData) return 'deployment-pipeline';
   if ('environmentConfig' in formData) return 'environment';
   if ('workloadDetails' in formData) return 'component';
+  // Per-type Resource templates emit `resource_name` at the top level
+  // (vs Component's `component_name` which is paired with `workloadDetails`).
+  if ('resource_name' in formData) return 'resource';
   return 'default';
 }
 
@@ -572,6 +646,7 @@ export const CustomReviewStep = ({
           <EnvironmentReview data={formData} />
         )}
         {templateType === 'component' && <ComponentReview data={formData} />}
+        {templateType === 'resource' && <ResourceReview data={formData} />}
         {templateType === 'default' && (
           <DefaultReview formData={formData} steps={steps} />
         )}

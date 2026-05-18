@@ -17,6 +17,31 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
     loading: false,
     deniedTooltip: '',
   }),
+  useReleaseBindingUpdatePermission: () => ({
+    canUpdate: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  useRemoveDeploymentPermission: () => ({
+    canRemoveDeployment: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  useReleaseBindingViewPermission: () => ({
+    canViewBinding: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  usePromoteToEnvPermission: () => ({
+    canPromote: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  useConfigureAndDeployPermission: () => ({
+    canConfigureAndDeploy: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
   formatRelativeTime: (s: string) => `relative-${s}`,
 }));
 
@@ -415,7 +440,7 @@ describe('EnvironmentDetailPanel', () => {
     expect(screen.queryByLabelText('Copy release name')).toBeNull();
   });
 
-  it('renders a short "Behind upstream" line when driftInfo.isBehind', () => {
+  it('renders a short "Behind {upstream}" line when driftInfo.isBehind', () => {
     renderPanel({
       selection: {
         kind: 'env',
@@ -430,7 +455,7 @@ describe('EnvironmentDetailPanel', () => {
         aheadUpstreams: [{ envName: 'dev', releaseName: 'rel-7' }],
       },
     });
-    expect(screen.getByText(/^Behind upstream$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Behind dev$/)).toBeInTheDocument();
     // Full upstream details live on the tooltip, not inline.
     expect(screen.queryByText(/rel-7/)).toBeNull();
   });

@@ -25,7 +25,7 @@ import { decodeJwtUnsafe } from './jwtUtils';
  * - Extracts user profile from JWT tokens
  * - Pre-caches user capabilities at sign-in for permission checks
  *
- * Configuration:
+ * Configuration (user sign-in client — separate from the service client used by background tasks):
  * ```yaml
  * auth:
  *   providers:
@@ -37,6 +37,9 @@ import { decodeJwtUnsafe } from './jwtUtils';
  *         tokenUrl: ${OPENCHOREO_AUTH_TOKEN_URL}
  *         scope: 'openid profile email'
  * ```
+ *
+ * Background tasks (Catalog Provider) use a separate service client configured under
+ * `openchoreo.auth` with `OPENCHOREO_SERVICE_CLIENT_ID` / `OPENCHOREO_SERVICE_CLIENT_SECRET`.
  *
  * This provider checks the openchoreo.features.auth.enabled config flag.
  * When disabled (false), this provider skips registration to allow guest mode.

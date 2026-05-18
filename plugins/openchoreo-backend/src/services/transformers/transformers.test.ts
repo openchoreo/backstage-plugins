@@ -496,7 +496,6 @@ describe('transformDeploymentPipeline', () => {
             {
               kind: 'Environment' as const,
               name: 'staging',
-              requiresApproval: true,
             },
           ],
         },

@@ -17,7 +17,16 @@
       "@openchoreo/backstage-design-system",
       "@openchoreo/openapi-client-generator-node",
       "@openchoreo/openchoreo-auth",
-      "@openchoreo/openchoreo-client-node"
+      "@openchoreo/openchoreo-client-node",
+      "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth",
+      "@openchoreo/backstage-plugin-openchoreo-observability",
+      "@openchoreo/backstage-plugin-openchoreo-observability-backend",
+      "@openchoreo/backstage-plugin-openchoreo-ci",
+      "@openchoreo/backstage-plugin-openchoreo-ci-backend",
+      "@openchoreo/backstage-plugin-openchoreo-workflows",
+      "@openchoreo/backstage-plugin-openchoreo-workflows-backend",
+      "@openchoreo/backstage-plugin-thunder-idp-client-node",
+      "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users"
     ]
   ],
   "access": "restricted",

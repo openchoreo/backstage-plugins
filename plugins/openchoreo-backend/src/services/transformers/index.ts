@@ -21,3 +21,4 @@ export {
   transformReleaseBinding,
   deriveBindingStatus,
 } from './release-binding';
+export { transformResourceReleaseBinding } from './resource-release-binding';

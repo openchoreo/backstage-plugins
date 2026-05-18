@@ -2,18 +2,24 @@
   "name": "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth",
   "version": "0.1.0",
   "license": "Apache-2.0",
-  "private": true,
   "description": "OpenChoreo authentication backend module for Backstage. Works with any OIDC-compliant IDP configured in OpenChoreo.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "publishConfig": {
     "access": "public",
     "main": "dist/index.cjs.js",
-    "types": "dist/index.d.ts"
+    "types": "dist/index.d.ts",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openchoreo/backstage-plugins.git",
+    "directory": "plugins/auth-backend-module-openchoreo-auth"
   },
   "backstage": {
     "role": "backend-plugin-module",
-    "pluginId": "auth"
+    "pluginId": "auth",
+    "pluginPackage": "@backstage/plugin-auth-backend"
   },
   "scripts": {
     "start": "backstage-cli package start",
@@ -25,18 +31,18 @@
     "postpack": "backstage-cli package postpack"
   },
   "dependencies": {
-    "@backstage/backend-plugin-api": "1.4.3",
-    "@backstage/catalog-model": "1.7.5",
-    "@backstage/plugin-auth-backend-module-oidc-provider": "0.4.8",
-    "@backstage/plugin-auth-node": "0.6.8",
+    "@backstage/backend-plugin-api": "^1.4.3",
+    "@backstage/catalog-model": "^1.7.5",
+    "@backstage/plugin-auth-backend-module-oidc-provider": "^0.4.8",
+    "@backstage/plugin-auth-node": "^0.6.8",
     "express": "^5.2.1",
     "jose": "^6.1.3",
     "passport-oauth2": "1.8.0",
     "sync-fetch": "^0.5.2"
   },
   "devDependencies": {
-    "@backstage/backend-test-utils": "1.9.0",
-    "@backstage/cli": "0.34.3",
+    "@backstage/backend-test-utils": "^1.9.0",
+    "@backstage/cli": "^0.34.3",
     "@types/express": "^5",
     "@types/passport-oauth2": "1.8.0"
   },

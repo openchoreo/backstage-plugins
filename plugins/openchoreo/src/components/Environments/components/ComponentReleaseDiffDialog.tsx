@@ -74,25 +74,29 @@ export const ComponentReleaseDiffDialog = ({
     setOriginal(null);
     setModified(null);
 
+    // Diff orientation: LHS shows the target env's *current* release ("before"),
+    // RHS shows the upstream env's incoming release ("after"). The dialog title's
+    // `upstreamEnv → targetEnv` arrow still reflects promotion direction, not
+    // LHS → RHS.
     const fetches: Array<Promise<unknown>> = [];
-    if (upstreamReleaseName) {
-      fetches.push(
-        api.fetchComponentRelease(entity, upstreamReleaseName).then(res => {
-          if (cancelled) return;
-          if (!res?.success || !res.data) {
-            setError(`Couldn't fetch ${upstreamEnvName}'s release manifest.`);
-            return;
-          }
-          setOriginal(YAML.stringify(res.data));
-        }),
-      );
-    }
     if (releaseName) {
       fetches.push(
         api.fetchComponentRelease(entity, releaseName).then(res => {
           if (cancelled) return;
           if (!res?.success || !res.data) {
             setError(`Couldn't fetch ${environmentName}'s release manifest.`);
+            return;
+          }
+          setOriginal(YAML.stringify(res.data));
+        }),
+      );
+    }
+    if (upstreamReleaseName) {
+      fetches.push(
+        api.fetchComponentRelease(entity, upstreamReleaseName).then(res => {
+          if (cancelled) return;
+          if (!res?.success || !res.data) {
+            setError(`Couldn't fetch ${upstreamEnvName}'s release manifest.`);
             return;
           }
           setModified(YAML.stringify(res.data));
@@ -146,28 +150,28 @@ export const ComponentReleaseDiffDialog = ({
           <YamlDiffViewer
             original={original}
             modified={modified}
-            originalLabel={`${upstreamEnvName} (${upstreamReleaseName})`}
-            modifiedLabel={`${environmentName} (${releaseName})`}
+            originalLabel={`${environmentName} (${releaseName})`}
+            modifiedLabel={`${upstreamEnvName} (${upstreamReleaseName})`}
             height="60vh"
           />
         )}
-        {previewMode === 'source-only' && original && (
+        {previewMode === 'source-only' && modified && (
           <>
             <Typography variant="body2" color="textSecondary" gutterBottom>
               <strong>{environmentName}</strong> has no release yet — this is
               the manifest that will be created from{' '}
               <strong>{upstreamEnvName}</strong>.
             </Typography>
-            <YamlViewer value={original} maxHeight="60vh" showLineNumbers />
+            <YamlViewer value={modified} maxHeight="60vh" showLineNumbers />
           </>
         )}
-        {previewMode === 'target-only' && modified && (
+        {previewMode === 'target-only' && original && (
           <>
             <Typography variant="body2" color="textSecondary" gutterBottom>
               <strong>{upstreamEnvName}</strong> has no release to compare;
               showing <strong>{environmentName}</strong>'s current manifest.
             </Typography>
-            <YamlViewer value={modified} maxHeight="60vh" showLineNumbers />
+            <YamlViewer value={original} maxHeight="60vh" showLineNumbers />
           </>
         )}
       </DialogContent>

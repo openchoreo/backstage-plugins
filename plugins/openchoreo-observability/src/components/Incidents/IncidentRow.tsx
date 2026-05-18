@@ -22,6 +22,7 @@ interface IncidentRowProps {
   projectName: string;
   environmentName?: string;
   onViewRCA: (incident: IncidentSummary) => void;
+  onViewCostAnalysis?: (incident: IncidentSummary) => void;
   onAcknowledge?: (incident: IncidentSummary) => void;
   onResolve?: (incident: IncidentSummary) => void;
   updating?: boolean;
@@ -59,6 +60,7 @@ export const IncidentRow: FC<IncidentRowProps> = ({
   projectName,
   environmentName,
   onViewRCA,
+  onViewCostAnalysis,
   onAcknowledge,
   onResolve,
   updating = false,
@@ -73,6 +75,13 @@ export const IncidentRow: FC<IncidentRowProps> = ({
   const handleViewRCAClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     onViewRCA(incident);
+  };
+
+  const handleViewCostAnalysisClick = (
+    event: MouseEvent<HTMLButtonElement>,
+  ) => {
+    event.stopPropagation();
+    onViewCostAnalysis?.(incident);
   };
 
   const handleAcknowledgeClick = (event: MouseEvent<HTMLButtonElement>) => {
@@ -145,17 +154,30 @@ export const IncidentRow: FC<IncidentRowProps> = ({
           {effectiveComponent}
         </TableCell>
         <TableCell>
-          {incident.incidentTriggerAiRca && (
-            <Tooltip title="Open RCA Reports tab for this incident">
-              <Button
-                size="small"
-                startIcon={<OpenInNewIcon fontSize="small" />}
-                onClick={handleViewRCAClick}
-              >
-                View RCA
-              </Button>
-            </Tooltip>
-          )}
+          <Box display="flex" style={{ gap: 8 }}>
+            {incident.incidentTriggerAiRca && (
+              <Tooltip title="Open RCA Reports tab for this incident">
+                <Button
+                  size="small"
+                  startIcon={<OpenInNewIcon fontSize="small" />}
+                  onClick={handleViewRCAClick}
+                >
+                  View RCA
+                </Button>
+              </Tooltip>
+            )}
+            {incident.incidentTriggerAiCostAnalysis && onViewCostAnalysis && (
+              <Tooltip title="Open Cost Analysis tab for this incident">
+                <Button
+                  size="small"
+                  startIcon={<OpenInNewIcon fontSize="small" />}
+                  onClick={handleViewCostAnalysisClick}
+                >
+                  View Cost Analysis
+                </Button>
+              </Tooltip>
+            )}
+          </Box>
         </TableCell>
       </TableRow>
 
@@ -187,6 +209,20 @@ export const IncidentRow: FC<IncidentRowProps> = ({
                         </Button>
                       </Tooltip>
                     )}
+
+                    {incident.incidentTriggerAiCostAnalysis &&
+                      onViewCostAnalysis && (
+                        <Tooltip title="Open Cost Analysis tab for this incident">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<OpenInNewIcon fontSize="small" />}
+                            onClick={handleViewCostAnalysisClick}
+                          >
+                            View Cost Analysis
+                          </Button>
+                        </Tooltip>
+                      )}
 
                     {incident.status === 'active' && onAcknowledge && (
                       <Tooltip title="Mark this incident as acknowledged">

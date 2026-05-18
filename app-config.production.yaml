@@ -112,6 +112,10 @@ catalog:
       rules:
         - allow: [Template]
     - type: file
+      target: /app/templates/create-openchoreo-resourcetype/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
       target: /app/templates/create-openchoreo-trait/template.yaml
       rules:
         - allow: [Template]
@@ -136,6 +140,10 @@ catalog:
       rules:
         - allow: [Template]
     - type: file
+      target: /app/templates/create-openchoreo-clusterresourcetype/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
       target: /app/templates/create-openchoreo-clustertrait/template.yaml
       rules:
         - allow: [Template]
@@ -151,12 +159,13 @@ openchoreo:
 
   # Authentication configuration
   # User-initiated requests: Token forwarded from frontend (IDP access token via x-openchoreo-token header)
-  # Background tasks (Catalog Provider): Uses client credentials below
+  # Background tasks (Catalog Provider): Uses a separate service client via client credentials below
   auth:
     # OAuth2 Client Credentials for background tasks (Catalog Entity Provider)
+    # Uses a dedicated service client — independent from the user-facing sign-in client (auth.providers.openchoreo-auth)
     # Required for the Catalog Provider to fetch organizations, projects, and components
-    clientId: ${OPENCHOREO_AUTH_CLIENT_ID}
-    clientSecret: ${OPENCHOREO_AUTH_CLIENT_SECRET}
+    clientId: ${OPENCHOREO_SERVICE_CLIENT_ID}
+    clientSecret: ${OPENCHOREO_SERVICE_CLIENT_SECRET}
     tokenUrl: ${OPENCHOREO_AUTH_TOKEN_URL}
     scope: ${OPENCHOREO_AUTH_SCOPE} # Optional: space-separated scopes (e.g. 'api://client-id/.default openid')
 
@@ -168,6 +177,18 @@ openchoreo:
   # event-driven path; with the event-forwarder disabled, it is the
   # only sync mechanism so you may want a much smaller frequency.
   # Environment variable: OPENCHOREO_CATALOG_SYNC_FREQUENCY (seconds)
+
+  # Upstream URL the openchoreo-portal-assistant-backend plugin forwards
+  # to (Portal Assistant). Env-var-gated: when OPENCHOREO_PORTAL_ASSISTANT_URL
+  # is unset, Backstage substitutes the placeholder as undefined and the
+  # backend plugin self-disables (see plugin.ts — "disabled — openchoreo
+  # .portalAssistantUrl is not set"), matching the thunder.token pattern.
+  # Set the env var only when the assistant feature is enabled
+  # (openchoreo.features.assistant.enabled = true) and the portal-assistant
+  # service is deployed.
+  # Example: OPENCHOREO_PORTAL_ASSISTANT_URL=http://portal-assistant.openchoreo-control-plane.svc.cluster.local:8080
+  portalAssistantUrl: ${OPENCHOREO_PORTAL_ASSISTANT_URL}
+
   schedule:
     frequency: ${OPENCHOREO_CATALOG_SYNC_FREQUENCY}
     timeout: 120 # seconds for timeout (default: 120)
@@ -181,7 +202,7 @@ openchoreo:
     enabled: ${OPENCHOREO_EVENTS_ENABLED}
 
   # Feature flags for enabling/disabling OpenChoreo functionality
-  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_CILIUM_ENABLED
+  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_AUTHZ_ENABLED, OPENCHOREO_FEATURES_ASSISTANT_ENABLED
   features:
     # Workflow plane / Workflows functionality
     # When disabled, hides Workflows tab and WorkflowsOverviewCard from entity pages
@@ -199,10 +220,15 @@ openchoreo:
     # When disabled, hides Access Control sidebar item and pages
     authz:
       enabled: ${OPENCHOREO_FEATURES_AUTHZ_ENABLED}
-    # Cilium feature — HTTP metrics (Network Throughput, Network Latency)
-    # When disabled, HTTP metrics graphs are hidden and the HTTP query is not sent to the observer
-    cilium:
-      enabled: ${OPENCHOREO_FEATURES_CILIUM_ENABLED}
+    # OpenChoreo Assistant chat agent (FAB, drawer, contextual launchers)
+    # Opt-in: defaults to false. Requires the perch-agent service and an
+    # LLM API key Secret to be deployed.
+    assistant:
+      enabled: ${OPENCHOREO_FEATURES_ASSISTANT_ENABLED}
+    # Secret Management configuration
+    # When disabled, hides the Secrets settings tab and disables secret APIs
+    secretManagement:
+      enabled: ${OPENCHOREO_FEATURES_SECRET_MANAGEMENT_ENABLED}
 
 thunder:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)

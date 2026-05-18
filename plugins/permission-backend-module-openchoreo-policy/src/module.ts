@@ -6,6 +6,8 @@ import {
   AuthorizeResult,
   PolicyDecision,
 } from '@backstage/plugin-permission-common';
+import { catalogServiceRef } from '@backstage/plugin-catalog-node';
+import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { OpenChoreoPermissionPolicy } from './policy';
 import { AuthzProfileService, AuthzProfileCache } from './services';
 import { createRouter } from './router';
@@ -58,8 +60,22 @@ export const permissionModuleOpenChoreoPolicy = createBackendModule({
         logger: coreServices.logger,
         cache: coreServices.cache,
         httpRouter: coreServices.httpRouter,
+        auth: coreServices.auth,
+        httpAuth: coreServices.httpAuth,
+        catalogService: catalogServiceRef,
+        tokenService: openChoreoTokenServiceRef,
       },
-      async init({ policy, config, logger, cache, httpRouter }) {
+      async init({
+        policy,
+        config,
+        logger,
+        cache,
+        httpRouter,
+        auth,
+        httpAuth,
+        catalogService,
+        tokenService,
+      }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
 
         if (!openchoreoConfig) {
@@ -101,11 +117,16 @@ export const permissionModuleOpenChoreoPolicy = createBackendModule({
 
         policy.setPolicy(openchoreoPolicy);
 
-        // Register the router for internal endpoints (e.g., cache-capabilities)
+        // Register the router for internal endpoints (cache-capabilities,
+        // evaluate-with-context).
         httpRouter.use(
           await createRouter({
             authzService,
             logger,
+            auth,
+            httpAuth,
+            catalogService,
+            tokenService,
           }),
         );
 

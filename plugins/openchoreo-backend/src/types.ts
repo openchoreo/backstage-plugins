@@ -3,13 +3,11 @@ import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node
 import type { WorkloadResource } from '@openchoreo/backstage-plugin-common';
 import type { ModelsSecretReferences } from './services/SecretReferencesService/SecretReferencesService';
 import type {
-  GitSecretResponse,
-  GitSecretListResponse,
-} from './services/GitSecretsService/GitSecretsService';
-import type {
   SecretResponse,
   SecretsListResponse,
+  SecretDetail,
   CreateSecretRequest,
+  UpdateSecretRequest,
 } from './services/SecretsService/SecretsService';
 
 // Log types from the unified /api/v1/logs/query endpoint
@@ -42,6 +40,29 @@ export interface EnvironmentService {
     bindingName: string;
     releaseState: 'Active' | 'Suspend' | 'Undeploy';
   }): Promise<Environment[]>;
+
+  fetchResourceEnvironmentInfo(request: {
+    resourceName: string;
+    projectName: string;
+    namespaceName: string;
+  }): Promise<ResourceEnvironment[]>;
+
+  updateResourceReleaseBinding(request: {
+    resourceName: string;
+    projectName: string;
+    namespaceName: string;
+    environment: string;
+    releaseName: string;
+    retainPolicy?: 'Delete' | 'Retain';
+    resourceTypeEnvironmentConfigs?: any;
+  }): Promise<unknown>;
+
+  deleteResourceReleaseBinding(request: {
+    resourceName: string;
+    projectName: string;
+    namespaceName: string;
+    environment: string;
+  }): Promise<unknown>;
 }
 
 export interface EndpointURLDetails {
@@ -79,9 +100,42 @@ export interface Environment {
   promotionTargets?: {
     name: string;
     resourceName?: string;
-    requiresApproval?: boolean;
-    isManualApprovalRequired?: boolean;
   }[];
+}
+
+export interface ResourceBindingOutput {
+  name: string;
+  value?: string;
+  secretKeyRef?: { name: string; key: string };
+  configMapKeyRef?: { name: string; key: string };
+}
+
+/**
+ * Per-environment view of a Resource's runtime state. One entry per
+ * environment in the project's deployment pipeline, including
+ * environments where no ResourceReleaseBinding exists yet (so the UI
+ * can render a Deploy affordance against them).
+ */
+export interface ResourceEnvironment {
+  uid?: string;
+  name: string;
+  resourceName?: string;
+  dataPlaneRef?: string;
+  dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';
+  bindingName?: string;
+  resourceRelease?: string;
+  retainPolicy?: 'Delete' | 'Retain';
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  lastDeployed?: string;
+  outputs?: ResourceBindingOutput[];
+  promotionTargets?: {
+    name: string;
+    resourceName?: string;
+  }[];
+  /** Latest ResourceRelease cut by the Resource controller, if any. */
+  latestRelease?: string;
 }
 
 export type ObjectToFetch = {
@@ -138,6 +192,9 @@ export interface CellDiagramService {
     request: {
       projectName: string;
       namespaceName: string;
+      environmentName?: string;
+      startTime?: string;
+      endTime?: string;
     },
     token?: string,
   ): Promise<Project | undefined>;
@@ -189,30 +246,6 @@ export interface SecretReferencesService {
   ): Promise<ModelsSecretReferences>;
 }
 
-export interface GitSecretsService {
-  listGitSecrets(
-    namespaceName: string,
-    token?: string,
-  ): Promise<GitSecretListResponse>;
-  createGitSecret(
-    namespaceName: string,
-    secretName: string,
-    secretType: 'basic-auth' | 'ssh-auth',
-    gitToken?: string,
-    sshKey?: string,
-    username?: string,
-    sshKeyId?: string,
-    userToken?: string,
-    workflowPlaneKind?: string,
-    workflowPlaneName?: string,
-  ): Promise<GitSecretResponse>;
-  deleteGitSecret(
-    namespaceName: string,
-    secretName: string,
-    userToken?: string,
-  ): Promise<void>;
-}
-
 export interface SecretsService {
   listSecrets(
     namespaceName: string,
@@ -222,10 +255,16 @@ export interface SecretsService {
     namespaceName: string,
     secretName: string,
     token?: string,
-  ): Promise<SecretResponse>;
+  ): Promise<SecretDetail>;
   createSecret(
     namespaceName: string,
     body: CreateSecretRequest,
+    userToken?: string,
+  ): Promise<SecretResponse>;
+  updateSecret(
+    namespaceName: string,
+    secretName: string,
+    body: UpdateSecretRequest,
     userToken?: string,
   ): Promise<SecretResponse>;
   deleteSecret(

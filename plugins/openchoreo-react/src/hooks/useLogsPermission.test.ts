@@ -15,6 +15,12 @@ jest.mock('@backstage/catalog-model', () => ({
   stringifyEntityRef: () => 'component:default/test',
 }));
 
+jest.mock('@backstage/core-plugin-api', () => ({
+  useApi: () => ({}),
+  discoveryApiRef: {},
+  fetchApiRef: {},
+}));
+
 const componentEntity = {
   entity: {
     apiVersion: 'backstage.io/v1alpha1',

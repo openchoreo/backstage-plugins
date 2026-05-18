@@ -20,8 +20,15 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from './styles';
 import { LOG_LEVELS } from './types';
+import type { RenderLogRowAction } from './LogEntry';
 
-const ObservabilityRuntimeLogsContent = () => {
+export interface ObservabilityRuntimeLogsPageProps {
+  renderRowAction?: RenderLogRowAction;
+}
+
+const ObservabilityRuntimeLogsContent = ({
+  renderRowAction,
+}: ObservabilityRuntimeLogsPageProps) => {
   const classes = useRuntimeLogsStyles();
   const { entity } = useEntity();
 
@@ -42,6 +49,16 @@ const ObservabilityRuntimeLogsContent = () => {
   const selectedEnvironment = environments.find(
     env => env.name === filters.environment,
   );
+
+  // Per-environment permission check: honors ABAC `resource.environment` CEL
+  // constraints (openchoreo#3408). Page-level gate below only verifies the
+  // user can view logs *somewhere* — this one gates the actual env content.
+  const {
+    canViewLogs: canViewLogsForEnv,
+    loading: envPermissionLoading,
+    deniedTooltip: envPermissionDenied,
+    permissionName: envPermissionName,
+  } = useLogsPermission(selectedEnvironment?.name);
 
   // Get component name from entity annotations
   const componentName =
@@ -114,6 +131,7 @@ const ObservabilityRuntimeLogsContent = () => {
       selectedEnvironment &&
       namespace &&
       project &&
+      canViewLogsForEnv &&
       filtersChanged
     ) {
       if (filters.logLevel.length === 0) {
@@ -137,6 +155,8 @@ const ObservabilityRuntimeLogsContent = () => {
     selectedEnvironment,
     namespace,
     project,
+    canViewLogsForEnv,
+    envPermissionLoading,
   ]);
 
   // Update lastUpdated when logs are refreshed
@@ -171,7 +191,7 @@ const ObservabilityRuntimeLogsContent = () => {
       >
         <Typography variant="body1">
           {isObservabilityDisabled
-            ? 'Observability is not enabled for this component in this environment. Please enable observability to view runtime logs.'
+            ? 'Observability is not enabled for this component in the current environment. Enable observability to view runtime logs.'
             : error}
         </Typography>
         {!isObservabilityDisabled && (
@@ -210,7 +230,15 @@ const ObservabilityRuntimeLogsContent = () => {
           </Alert>
         )}
 
-      {filters.environment && (
+      {filters.environment && !envPermissionLoading && !canViewLogsForEnv && (
+        <ForbiddenState
+          message={envPermissionDenied}
+          permissionName={envPermissionName}
+          variant="compact"
+        />
+      )}
+
+      {filters.environment && canViewLogsForEnv && (
         <>
           <LogsActions
             totalCount={totalCount}
@@ -232,6 +260,7 @@ const ObservabilityRuntimeLogsContent = () => {
             }
             projectName={project}
             componentName={componentName}
+            renderRowAction={renderRowAction}
           />
         </>
       )}
@@ -239,7 +268,9 @@ const ObservabilityRuntimeLogsContent = () => {
   );
 };
 
-export const ObservabilityRuntimeLogsPage = () => {
+export const ObservabilityRuntimeLogsPage = ({
+  renderRowAction,
+}: ObservabilityRuntimeLogsPageProps) => {
   const {
     canViewLogs,
     loading: permissionLoading,
@@ -261,5 +292,5 @@ export const ObservabilityRuntimeLogsPage = () => {
     );
   }
 
-  return <ObservabilityRuntimeLogsContent />;
+  return <ObservabilityRuntimeLogsContent renderRowAction={renderRowAction} />;
 };

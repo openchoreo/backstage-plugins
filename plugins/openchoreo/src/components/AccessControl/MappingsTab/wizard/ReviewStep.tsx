@@ -3,11 +3,11 @@ import { makeStyles } from '@material-ui/core/styles';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import BlockIcon from '@material-ui/icons/Block';
 import { NotificationBanner } from '@openchoreo/backstage-plugin-react';
-import { WizardStepProps, WizardRoleMapping } from './types';
+import { WizardStepProps } from './types';
 import { getEntitlementClaim } from '../../hooks';
-import { BindingType } from '../MappingDialog';
-import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../../constants';
+import { BindingScope, SCOPE_NAMESPACE } from '../../constants';
 import { useSharedStyles } from '../styles';
+import { buildScopePath } from './utils';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -42,7 +42,9 @@ const useStyles = makeStyles(theme => ({
   },
   summaryValue: {
     flex: 1,
+    minWidth: 0,
     fontWeight: 500,
+    overflowWrap: 'anywhere',
   },
   divider: {
     margin: theme.spacing(2, 0),
@@ -65,14 +67,37 @@ const useStyles = makeStyles(theme => ({
     },
   },
   mappingRoleColumn: {
-    flex: '0 0 40%',
+    flex: '0 0 30%',
+    minWidth: 0,
     fontWeight: 500,
   },
   mappingScopeColumn: {
-    flex: '0 0 60%',
+    flex: '0 0 35%',
+    minWidth: 0,
     fontFamily: 'monospace',
     fontSize: '0.875rem',
     color: theme.palette.text.secondary,
+    overflowWrap: 'anywhere',
+  },
+  mappingConditionsColumn: {
+    flex: '0 0 35%',
+    minWidth: 0,
+    fontSize: '0.8rem',
+    color: theme.palette.text.secondary,
+    overflowWrap: 'anywhere',
+  },
+  conditionEntry: {
+    marginBottom: theme.spacing(0.5),
+    '&:last-child': { marginBottom: 0 },
+  },
+  conditionActions: {
+    fontFamily: 'monospace',
+    fontSize: '0.75rem',
+    color: theme.palette.text.primary,
+  },
+  conditionExpression: {
+    fontFamily: 'monospace',
+    fontSize: '0.75rem',
   },
   mappingTableHeader: {
     display: 'flex',
@@ -112,46 +137,8 @@ const useStyles = makeStyles(theme => ({
 }));
 
 interface ReviewStepProps extends WizardStepProps {
-  bindingType?: BindingType;
+  bindingType?: BindingScope;
   namespace?: string;
-}
-
-/** Build scope path matching RoleMappingsStep format */
-function buildScopePath(
-  rm: WizardRoleMapping,
-  bindingType?: BindingType,
-  namespace?: string,
-): string {
-  if (bindingType === SCOPE_CLUSTER) {
-    if (!rm.namespace && !rm.project && !rm.component) return 'cluster:*';
-    const parts: string[] = [];
-    if (rm.namespace) {
-      parts.push(`ns:${rm.namespace}`);
-      if (rm.project) {
-        parts.push(`proj:${rm.project}`);
-        if (rm.component) {
-          parts.push(`comp:${rm.component}`);
-        } else {
-          parts.push('*');
-        }
-      } else {
-        parts.push('*');
-      }
-    }
-    return parts.join('/');
-  }
-  const ns = namespace || '*';
-  if (!rm.project && !rm.component) return `ns:${ns}/*`;
-  const parts: string[] = [`ns:${ns}`];
-  if (rm.project) {
-    parts.push(`proj:${rm.project}`);
-    if (rm.component) {
-      parts.push(`comp:${rm.component}`);
-    } else {
-      parts.push('*');
-    }
-  }
-  return parts.join('/');
 }
 
 export const ReviewStep = ({
@@ -243,6 +230,11 @@ export const ReviewStep = ({
                   Scope
                 </Typography>
               </Box>
+              <Box className={classes.mappingConditionsColumn}>
+                <Typography className={classes.mappingHeaderLabel}>
+                  Conditions
+                </Typography>
+              </Box>
             </Box>
             {state.roleMappings.map((rm, idx) => (
               <Box key={idx} className={classes.mappingRow}>
@@ -263,6 +255,20 @@ export const ReviewStep = ({
                 </Box>
                 <Box className={classes.mappingScopeColumn}>
                   {buildScopePath(rm, bindingType, namespace)}
+                </Box>
+                <Box className={classes.mappingConditionsColumn}>
+                  {rm.conditions.length === 0
+                    ? '—'
+                    : rm.conditions.map((c, ci) => (
+                        <Box key={ci} className={classes.conditionEntry}>
+                          <Box className={classes.conditionActions}>
+                            {c.actions.join(', ')}
+                          </Box>
+                          <Box className={classes.conditionExpression}>
+                            {c.expression}
+                          </Box>
+                        </Box>
+                      ))}
                 </Box>
               </Box>
             ))}

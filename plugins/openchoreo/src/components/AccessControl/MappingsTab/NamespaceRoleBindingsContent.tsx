@@ -45,12 +45,14 @@ import {
   NamespaceRoleBinding,
   NamespaceRoleBindingRequest,
 } from '../hooks';
+import { ClusterRoleBindingRequest } from '../../../api/OpenChoreoClientApi';
 import { useNotification } from '../../../hooks';
+import { useQueryParams } from '../../../hooks/useQueryParams';
 import { isForbiddenError } from '../../../utils/errorUtils';
 import { NotificationBanner } from '../../Environments/components';
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { SCOPE_NAMESPACE } from '../constants';
-import { MappingDialog } from './MappingDialog';
+import { BindingWizardPage } from './BindingWizardPage';
 import { BindingDetailDialog, BindingDetail } from './BindingDetailDialog';
 
 const useStyles = makeStyles(theme => ({
@@ -133,11 +135,15 @@ const formatNsMappingScope = (
 interface NamespaceRoleBindingsContentProps {
   selectedNamespace: string;
   actionsContainerRef: RefObject<HTMLDivElement>;
+  wizardAction: '' | 'create' | 'edit';
+  wizardBindingName: string;
 }
 
 export const NamespaceRoleBindingsContent = ({
   selectedNamespace,
   actionsContainerRef,
+  wizardAction,
+  wizardBindingName,
 }: NamespaceRoleBindingsContentProps) => {
   const classes = useStyles();
   const notification = useNotification();
@@ -174,19 +180,25 @@ export const NamespaceRoleBindingsContent = ({
     [clusterRoles, namespaceRoles],
   );
 
+  const [, setParams] = useQueryParams({
+    action: { defaultValue: '' },
+    bindingName: { defaultValue: '' },
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [effectFilter, setEffectFilter] = useState<string>('all');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingBinding, setEditingBinding] = useState<
-    NamespaceRoleBinding | undefined
-  >(undefined);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [bindingToDelete, setBindingToDelete] =
     useState<NamespaceRoleBinding | null>(null);
   const [detailBinding, setDetailBinding] = useState<BindingDetail | null>(
     null,
   );
+
+  const editingBinding = useMemo(() => {
+    if (wizardAction !== 'edit' || !wizardBindingName) return undefined;
+    return bindings.find(b => b.name === wizardBindingName);
+  }, [wizardAction, wizardBindingName, bindings]);
 
   // Clear all filters
   const handleClearFilters = useCallback(() => {
@@ -246,18 +258,17 @@ export const NamespaceRoleBindingsContent = ({
         role: rm.role?.name || '\u2014',
         scope: formatNsMappingScope(rm.scope, binding.namespace),
         isClusterRole: !rm.role?.namespace,
+        conditions: rm.conditions,
       })),
     });
   };
 
   const handleCreateBinding = () => {
-    setEditingBinding(undefined);
-    setDialogOpen(true);
+    setParams({ action: 'create', bindingName: '' });
   };
 
   const handleEditBinding = (binding: NamespaceRoleBinding) => {
-    setEditingBinding(binding);
-    setDialogOpen(true);
+    setParams({ action: 'edit', bindingName: binding.name });
   };
 
   const handleDeleteBinding = (binding: NamespaceRoleBinding) => {
@@ -290,19 +301,26 @@ export const NamespaceRoleBindingsContent = ({
     }
   };
 
-  const handleSaveBinding = async (binding: NamespaceRoleBindingRequest) => {
+  const handleSaveBinding = async (
+    binding: ClusterRoleBindingRequest | NamespaceRoleBindingRequest,
+  ) => {
+    const nb = binding as NamespaceRoleBindingRequest;
     if (editingBinding) {
-      await updateBinding(editingBinding.name, binding);
+      await updateBinding(editingBinding.name, nb);
+      notification.showSuccess(
+        `Namespace role binding "${editingBinding.name}" updated successfully`,
+      );
     } else {
-      await addBinding(binding);
+      await addBinding(nb);
+      notification.showSuccess(
+        `Namespace role binding "${nb.name}" created successfully`,
+      );
     }
-    setDialogOpen(false);
-    setEditingBinding(undefined);
+    setParams({ action: '', bindingName: '' });
   };
 
-  const handleDialogClose = () => {
-    setDialogOpen(false);
-    setEditingBinding(undefined);
+  const handleWizardCancel = () => {
+    setParams({ action: '', bindingName: '' });
   };
 
   const hasActiveFilters =
@@ -318,6 +336,27 @@ export const NamespaceRoleBindingsContent = ({
         <Typography variant="body1" color="textSecondary">
           You do not have permission to view namespace role bindings.
         </Typography>
+      </Box>
+    );
+  }
+
+  // View-swap: render wizard in place of the bindings list when ?action=create|edit.
+  // Requires a namespace to be selected; otherwise fall through to the empty-state UI.
+  if (
+    selectedNamespace &&
+    (wizardAction === 'create' || (wizardAction === 'edit' && editingBinding))
+  ) {
+    return (
+      <Box>
+        <NotificationBanner notification={notification.notification} />
+        <BindingWizardPage
+          bindingType={SCOPE_NAMESPACE}
+          editingBinding={editingBinding}
+          availableRoles={availableRoles}
+          namespace={selectedNamespace}
+          onSave={handleSaveBinding}
+          onCancel={handleWizardCancel}
+        />
       </Box>
     );
   }
@@ -606,16 +645,6 @@ export const NamespaceRoleBindingsContent = ({
             )}
         </>
       )}
-
-      <MappingDialog
-        open={dialogOpen}
-        onClose={handleDialogClose}
-        onSave={handleSaveBinding}
-        availableRoles={availableRoles}
-        editingBinding={editingBinding}
-        bindingType={SCOPE_NAMESPACE}
-        namespace={selectedNamespace}
-      />
 
       <Dialog
         open={deleteConfirmOpen}

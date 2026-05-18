@@ -17,6 +17,26 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
     loading: false,
     deniedTooltip: '',
   }),
+  useReleaseBindingUpdatePermission: () => ({
+    canUpdate: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  useReleaseBindingViewPermission: () => ({
+    canViewBinding: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  usePromoteToEnvPermission: () => ({
+    canPromote: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+  useConfigureAndDeployPermission: () => ({
+    canConfigureAndDeploy: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
   formatRelativeTime: (s: string) => `relative-${s}`,
 }));
 
@@ -317,32 +337,6 @@ describe('MiniEnvironmentNode', () => {
     expect(
       within(menu).queryByRole('menuitem', { name: /undeploy/i }),
     ).toBeNull();
-  });
-
-  it('renders the drift badge when driftInfo.isBehind is true', () => {
-    renderNode({
-      environment: makeEnv({
-        name: 'staging',
-        bindingName: 'staging-binding',
-        deployment: { status: 'Ready', releaseName: 'rel-5' },
-      }),
-      driftInfo: {
-        isBehind: true,
-        aheadUpstreams: [{ envName: 'dev', releaseName: 'rel-7' }],
-      },
-    });
-    expect(screen.getByLabelText('behind upstream')).toBeInTheDocument();
-  });
-
-  it('omits the drift badge when not behind', () => {
-    renderNode({
-      environment: makeEnv({
-        name: 'staging',
-        bindingName: 'staging-binding',
-        deployment: { status: 'Ready' },
-      }),
-    });
-    expect(screen.queryByLabelText('behind upstream')).toBeNull();
   });
 
   it('lists "View release manifest" in the overflow menu when releaseName exists', async () => {

@@ -1,0 +1,114 @@
+name: Prepare Next Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      major:
+        description: 'Next major version'
+        required: true
+        type: number
+      minor:
+        description: 'Next minor version'
+        required: true
+        type: number
+      patch:
+        description: 'Next patch version'
+        required: true
+        type: number
+      pre_release_id:
+        description: 'Prerelease identifier (e.g. rc.1, beta.2)'
+        required: false
+        type: string
+
+concurrency:
+  group: prepare-next-version-${{ github.event.inputs.major }}-${{ github.event.inputs.minor }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  MAJOR: ${{ github.event.inputs.major }}
+  MINOR: ${{ github.event.inputs.minor }}
+  PATCH: ${{ github.event.inputs.patch }}
+  PRE_RELEASE_ID: ${{ github.event.inputs.pre_release_id }}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
+        with:
+          client-id: ${{ secrets.OC_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.OC_RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Set git identity
+        run: |
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+
+      - name: Resolve target branch and version
+        env:
+          MAJOR: ${{ github.event.inputs.major }}
+          MINOR: ${{ github.event.inputs.minor }}
+          PATCH: ${{ github.event.inputs.patch }}
+          PRE_RELEASE_ID: ${{ github.event.inputs.pre_release_id }}
+        run: |
+          if [[ ! "${MAJOR}" =~ ^[0-9]+$ ]] || [[ ! "${MINOR}" =~ ^[0-9]+$ ]] || [[ ! "${PATCH}" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: major, minor, and patch must be non-negative integers"
+            exit 1
+          fi
+          if [ -n "${PRE_RELEASE_ID}" ] && [[ ! "${PRE_RELEASE_ID}" =~ ^[A-Za-z0-9.-]+$ ]]; then
+            echo "ERROR: invalid pre_release_id: ${PRE_RELEASE_ID}"
+            exit 1
+          fi
+
+          VER="${MAJOR}.${MINOR}.${PATCH}"
+          if [ -n "${PRE_RELEASE_ID}" ]; then
+            VER="${VER}-${PRE_RELEASE_ID}"
+          fi
+
+          if git ls-remote origin "refs/heads/release-v${MAJOR}.${MINOR}" | head -1 | grep -q .; then
+            echo "TARGET=release-v${MAJOR}.${MINOR}" >> $GITHUB_ENV
+          else
+            echo "TARGET=main" >> $GITHUB_ENV
+          fi
+          echo "VERSION=${VER}" >> $GITHUB_ENV
+
+      - name: Create version bump branch and PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          BRANCH="release-next-v${{ env.VERSION }}"
+
+          git fetch origin "${{ env.TARGET }}"
+          git checkout -b "${BRANCH}" "origin/${{ env.TARGET }}"
+
+          echo "${{ env.VERSION }}" > VERSION
+          git add VERSION
+          git diff --staged --quiet || git commit -s -m "chore: bump version to ${{ env.VERSION }}"
+
+          git push --force-with-lease origin "${BRANCH}"
+
+          PR_TITLE="chore: bump version to ${{ env.VERSION }}"
+          # Check if a PR already exists for this branch before creating one
+          EXISTING_PR=$(gh pr list --head "${BRANCH}" --base "${{ env.TARGET }}" --json number --jq '.[0].number' 2>/dev/null)
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #${EXISTING_PR} already exists for ${BRANCH} → ${{ env.TARGET }}. Skipping creation."
+          else
+            gh pr create \
+              --base "${{ env.TARGET }}" \
+              --head "${BRANCH}" \
+              --title "${PR_TITLE}" \
+              --body "Bump to next development version ${{ env.VERSION }}. Before merging, add a \`${{ env.VERSION }}\` section header to \`CHANGELOG.md\` if this is a new release." \
+              --label "type/release"
+          fi

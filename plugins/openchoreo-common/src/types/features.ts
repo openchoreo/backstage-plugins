@@ -27,8 +27,14 @@ export interface OpenChoreoFeatures {
   auth: { enabled: boolean };
   /** Authorization feature (Access Control UI) */
   authz: { enabled: boolean };
-  /** Cilium feature — controls HTTP metrics graphs and queries */
-  cilium: { enabled: boolean };
+  /** Secret Management UI (Secrets settings tab + APIs) */
+  secretManagement: { enabled: boolean };
+  /**
+   * OpenChoreo Assistant chat agent (FAB, drawer, contextual launchers).
+   * Opt-in: defaults to false because the assistant requires the
+   * `perch-agent` service and an LLM API key Secret to be deployed.
+   */
+  assistant: { enabled: boolean };
 }
 
 /**
@@ -39,4 +45,5 @@ export type FeatureName =
   | 'observability'
   | 'auth'
   | 'authz'
-  | 'cilium';
+  | 'secretManagement'
+  | 'assistant';

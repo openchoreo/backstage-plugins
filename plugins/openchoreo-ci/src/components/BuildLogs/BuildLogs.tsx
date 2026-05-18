@@ -119,11 +119,11 @@ export const LogsContent = ({ build }: LogsContentProps) => {
             setStatusError(
               match
                 ? match[1]
-                : 'Observability is not enabled for this component. Please enable observability to view build logs.',
+                : 'Observability is not enabled for this component. Enable observability to view build logs.',
             );
           } catch {
             setStatusError(
-              'Observability is not enabled for this component. Please enable observability to view build logs.',
+              'Observability is not enabled for this component. Enable observability to view build logs.',
             );
           }
         } else {
@@ -208,11 +208,11 @@ export const LogsContent = ({ build }: LogsContentProps) => {
             setLogsError(
               match
                 ? match[1]
-                : 'Observability is not enabled for this component. Please enable observability to view build logs.',
+                : 'Observability is not enabled for this component. Enable observability to view build logs.',
             );
           } catch {
             setLogsError(
-              'Observability is not enabled for this component. Please enable observability to view build logs.',
+              'Observability is not enabled for this component. Enable observability to view build logs.',
             );
           }
         } else {

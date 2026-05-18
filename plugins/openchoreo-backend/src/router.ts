@@ -13,7 +13,6 @@ import {
   CellDiagramService,
   WorkloadService,
   SecretReferencesService,
-  GitSecretsService,
   SecretsService,
 } from './types';
 import { ComponentInfoService } from './services/ComponentService/ComponentInfoService';
@@ -22,6 +21,12 @@ import { DashboardInfoService } from './services/DashboardService/DashboardInfoS
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { ClusterTraitInfoService } from './services/ClusterTraitService/ClusterTraitInfoService';
 import { ClusterComponentTypeInfoService } from './services/ClusterComponentTypeService/ClusterComponentTypeInfoService';
+import { ResourceTypeInfoService } from './services/ResourceTypeService/ResourceTypeInfoService';
+import { ClusterResourceTypeInfoService } from './services/ClusterResourceTypeService/ClusterResourceTypeInfoService';
+import {
+  ResourceReleaseInfoService,
+  type ResourceReleaseSchemaSection,
+} from './services/ResourceReleaseService/ResourceReleaseInfoService';
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
@@ -35,10 +40,14 @@ import {
 import type { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
 import type { AnnotationStore } from '@openchoreo/backstage-plugin-catalog-backend-module';
-import { transformReleaseBinding } from './services/transformers';
+import {
+  transformReleaseBinding,
+  transformResourceReleaseBinding,
+} from './services/transformers';
 
 const CLUSTER_SCOPED_KINDS = [
   'clustercomponenttypes',
+  'clusterresourcetypes',
   'clustertraits',
   'clusterworkflows',
   'clusterdataplanes',
@@ -50,6 +59,8 @@ const VALID_PLATFORM_RESOURCE_KINDS = [
   'namespaces',
   'projects',
   'componenttypes',
+  'resourcetypes',
+  'resources',
   'traits',
   'workflows',
   'component-workflows',
@@ -76,8 +87,10 @@ export async function createRouter({
   traitInfoService,
   clusterTraitInfoService,
   clusterComponentTypeInfoService,
+  resourceTypeInfoService,
+  clusterResourceTypeInfoService,
+  resourceReleaseInfoService,
   secretReferencesInfoService,
-  gitSecretsService,
   secretsService,
   authzService,
   dataPlaneInfoService,
@@ -100,8 +113,10 @@ export async function createRouter({
   traitInfoService: TraitInfoService;
   clusterTraitInfoService: ClusterTraitInfoService;
   clusterComponentTypeInfoService: ClusterComponentTypeInfoService;
+  resourceTypeInfoService: ResourceTypeInfoService;
+  clusterResourceTypeInfoService: ClusterResourceTypeInfoService;
+  resourceReleaseInfoService: ResourceReleaseInfoService;
   secretReferencesInfoService: SecretReferencesService;
-  gitSecretsService: GitSecretsService;
   secretsService: SecretsService;
   authzService: AuthzService;
   dataPlaneInfoService: DataPlaneInfoService;
@@ -273,7 +288,13 @@ export async function createRouter({
   router.get(
     '/cell-diagram',
     async (req: express.Request, res: express.Response) => {
-      const { projectName, namespaceName } = req.query;
+      const {
+        projectName,
+        namespaceName,
+        environmentName,
+        startTime,
+        endTime,
+      } = req.query;
 
       if (!projectName || !namespaceName) {
         throw new InputError(
@@ -288,6 +309,9 @@ export async function createRouter({
           {
             projectName: projectName as string,
             namespaceName: namespaceName as string,
+            environmentName: environmentName as string | undefined,
+            startTime: startTime as string | undefined,
+            endTime: endTime as string | undefined,
           },
           userToken,
         ),
@@ -406,6 +430,143 @@ export async function createRouter({
     res.json(
       await clusterComponentTypeInfoService.fetchClusterComponentTypeSchema(
         cctName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for fetching namespace-scoped resource type schema
+  router.get('/resource-type-schema', async (req, res) => {
+    const { namespaceName, rtName } = req.query;
+
+    if (!namespaceName || !rtName) {
+      throw new InputError(
+        'namespaceName and rtName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await resourceTypeInfoService.fetchResourceTypeSchema(
+        namespaceName as string,
+        rtName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for fetching a frozen schema section snapshotted on a
+  // ResourceRelease. Pinned-release flows (override wizard) use this so
+  // form validation matches what the release was actually cut against,
+  // not the live (Cluster)ResourceType which may have drifted.
+  router.get('/resource-release', async (req, res) => {
+    const { namespaceName, releaseName } = req.query;
+
+    if (!namespaceName || !releaseName) {
+      throw new InputError(
+        'namespaceName and releaseName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await resourceReleaseInfoService.fetchResourceRelease(
+        namespaceName as string,
+        releaseName as string,
+        userToken,
+      ),
+    );
+  });
+
+  router.get('/resource-release-schema', async (req, res) => {
+    const { namespaceName, releaseName, section } = req.query;
+    const allowedSections: ResourceReleaseSchemaSection[] = [
+      'parameters',
+      'environmentConfigs',
+    ];
+
+    if (!namespaceName || !releaseName) {
+      throw new InputError(
+        'namespaceName and releaseName are required query parameters',
+      );
+    }
+    if (
+      !section ||
+      !allowedSections.includes(section as ResourceReleaseSchemaSection)
+    ) {
+      throw new InputError(
+        `section must be one of: ${allowedSections.join(', ')}`,
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await resourceReleaseInfoService.fetchResourceReleaseSchema(
+        namespaceName as string,
+        releaseName as string,
+        section as ResourceReleaseSchemaSection,
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for fetching cluster resource type schema
+  router.get('/cluster-resource-type-schema', async (req, res) => {
+    const { crtName } = req.query;
+
+    if (!crtName) {
+      throw new InputError('crtName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await clusterResourceTypeInfoService.fetchClusterResourceTypeSchema(
+        crtName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for fetching the declared outputs[] of a namespace-scoped
+  // ResourceType. Consumed by the resource-dependency editor to render
+  // one row per output with the appropriate env/file binding controls.
+  router.get('/resource-type-outputs', async (req, res) => {
+    const { namespaceName, rtName } = req.query;
+
+    if (!namespaceName || !rtName) {
+      throw new InputError(
+        'namespaceName and rtName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await resourceTypeInfoService.fetchResourceTypeOutputs(
+        namespaceName as string,
+        rtName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for fetching the declared outputs[] of a ClusterResourceType.
+  router.get('/cluster-resource-type-outputs', async (req, res) => {
+    const { crtName } = req.query;
+
+    if (!crtName) {
+      throw new InputError('crtName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await clusterResourceTypeInfoService.fetchClusterResourceTypeOutputs(
+        crtName as string,
         userToken,
       ),
     );
@@ -857,6 +1018,129 @@ export async function createRouter({
     res.json({ success: true, data: { items } });
   });
 
+  router.get('/resource-release-bindings', async (req, res) => {
+    const { resourceName, projectName, namespaceName } = req.query;
+
+    if (!resourceName || !projectName || !namespaceName) {
+      throw new InputError(
+        'resourceName, projectName and namespaceName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    const rawBindings =
+      await environmentInfoService.fetchResourceReleaseBindings(
+        {
+          resourceName: resourceName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+        },
+        userToken,
+      );
+    const items = ((rawBindings as any)?.items ?? []).map((binding: any) =>
+      transformResourceReleaseBinding(binding),
+    );
+    res.json({ success: true, data: { items } });
+  });
+
+  router.put(
+    '/update-resource-release-binding',
+    requireAuth,
+    async (req, res) => {
+      const {
+        resourceName,
+        projectName,
+        namespaceName,
+        environment,
+        releaseName,
+        retainPolicy,
+        resourceTypeEnvironmentConfigs,
+      } = req.body;
+
+      if (
+        !resourceName ||
+        !projectName ||
+        !namespaceName ||
+        !environment ||
+        !releaseName
+      ) {
+        throw new InputError(
+          'resourceName, projectName, namespaceName, environment and releaseName are required in request body',
+        );
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+
+      res.json(
+        await environmentInfoService.updateResourceReleaseBinding(
+          {
+            resourceName: resourceName as string,
+            projectName: projectName as string,
+            namespaceName: namespaceName as string,
+            environment: environment as string,
+            releaseName: releaseName as string,
+            retainPolicy,
+            resourceTypeEnvironmentConfigs,
+          },
+          userToken,
+        ),
+      );
+    },
+  );
+
+  router.delete(
+    '/delete-resource-release-binding',
+    requireAuth,
+    async (req, res) => {
+      const { resourceName, projectName, namespaceName, environment } =
+        req.body;
+
+      if (!resourceName || !projectName || !namespaceName || !environment) {
+        throw new InputError(
+          'resourceName, projectName, namespaceName and environment are required in request body',
+        );
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+
+      res.json(
+        await environmentInfoService.deleteResourceReleaseBinding(
+          {
+            resourceName: resourceName as string,
+            projectName: projectName as string,
+            namespaceName: namespaceName as string,
+            environment: environment as string,
+          },
+          userToken,
+        ),
+      );
+    },
+  );
+
+  router.get('/resource-environment-info', async (req, res) => {
+    const { resourceName, projectName, namespaceName } = req.query;
+
+    if (!resourceName || !projectName || !namespaceName) {
+      throw new InputError(
+        'resourceName, projectName and namespaceName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await environmentInfoService.fetchResourceEnvironmentInfo(
+        {
+          resourceName: resourceName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+        },
+        userToken,
+      ),
+    );
+  });
+
   router.put('/update-release-binding', requireAuth, async (req, res) => {
     const {
       componentName,
@@ -1043,102 +1327,6 @@ export async function createRouter({
   });
 
   // =====================
-  // Git Secrets Endpoints
-  // =====================
-
-  // List git secrets for a namespace
-  router.get('/git-secrets', async (req, res) => {
-    const { namespaceName } = req.query;
-
-    if (!namespaceName) {
-      throw new InputError('namespaceName is a required query parameter');
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    res.json(
-      await gitSecretsService.listGitSecrets(
-        namespaceName as string,
-        userToken,
-      ),
-    );
-  });
-
-  // Create a new git secret
-  router.post('/git-secrets', requireAuth, async (req, res) => {
-    const { namespaceName } = req.query;
-    const {
-      secretName,
-      secretType,
-      token,
-      sshKey,
-      username,
-      sshKeyId,
-      workflowPlaneKind,
-      workflowPlaneName,
-    } = req.body;
-
-    if (!namespaceName) {
-      throw new InputError('namespaceName is a required query parameter');
-    }
-    if (!secretName || !secretType) {
-      throw new InputError(
-        'secretName and secretType are required in the request body',
-      );
-    }
-    if (secretType !== 'basic-auth' && secretType !== 'ssh-auth') {
-      throw new InputError(
-        'secretType must be either "basic-auth" or "ssh-auth"',
-      );
-    }
-    if (secretType === 'basic-auth' && !token) {
-      throw new InputError('token is required for basic-auth type');
-    }
-    if (secretType === 'ssh-auth' && !sshKey) {
-      throw new InputError('sshKey is required for ssh-auth type');
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    res
-      .status(201)
-      .json(
-        await gitSecretsService.createGitSecret(
-          namespaceName as string,
-          secretName,
-          secretType,
-          token,
-          sshKey,
-          username,
-          sshKeyId,
-          userToken,
-          workflowPlaneKind,
-          workflowPlaneName,
-        ),
-      );
-  });
-
-  // Delete a git secret
-  router.delete('/git-secrets/:secretName', requireAuth, async (req, res) => {
-    const { namespaceName } = req.query;
-    const { secretName } = req.params;
-
-    if (!namespaceName) {
-      throw new InputError('namespaceName is a required query parameter');
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    await gitSecretsService.deleteGitSecret(
-      namespaceName as string,
-      secretName,
-      userToken,
-    );
-
-    res.status(204).send();
-  });
-
-  // =====================
   // Secrets Endpoints
   // =====================
 
@@ -1195,7 +1383,8 @@ export async function createRouter({
   // Create a new secret
   router.post('/secrets', requireAuth, async (req, res) => {
     const { namespaceName } = req.query;
-    const { secretName, secretType, targetPlane, data } = req.body ?? {};
+    const { secretName, secretType, targetPlane, data, labels } =
+      req.body ?? {};
 
     if (!namespaceName) {
       throw new InputError('namespaceName is a required query parameter');
@@ -1234,18 +1423,90 @@ export async function createRouter({
         );
       }
     }
+    if (labels !== undefined) {
+      if (
+        typeof labels !== 'object' ||
+        labels === null ||
+        Array.isArray(labels)
+      ) {
+        throw new InputError(
+          'labels must be an object of string keys to string values',
+        );
+      }
+      for (const [key, value] of Object.entries(labels)) {
+        if (typeof value !== 'string') {
+          throw new InputError(`labels.${key} must be a string`);
+        }
+      }
+    }
 
     const userToken = getUserTokenFromRequest(req);
 
-    res
-      .status(201)
-      .json(
-        await secretsService.createSecret(
-          namespaceName as string,
-          { secretName, secretType, targetPlane, data },
-          userToken,
-        ),
+    res.status(201).json(
+      await secretsService.createSecret(
+        namespaceName as string,
+        {
+          secretName,
+          secretType,
+          targetPlane,
+          data,
+          ...(labels !== undefined ? { labels } : {}),
+        },
+        userToken,
+      ),
+    );
+  });
+
+  // Update an existing secret (replace its data)
+  router.put('/secrets/:secretName', requireAuth, async (req, res) => {
+    const { namespaceName } = req.query;
+    const { secretName } = req.params;
+    const { data, labels } = req.body ?? {};
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new InputError(
+        'data must be an object of string keys to string values',
       );
+    }
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value !== 'string') {
+        throw new InputError(
+          `data.${key} must be a string (got ${
+            value === null ? 'null' : typeof value
+          })`,
+        );
+      }
+    }
+    if (labels !== undefined) {
+      if (
+        typeof labels !== 'object' ||
+        labels === null ||
+        Array.isArray(labels)
+      ) {
+        throw new InputError(
+          'labels must be an object of string keys to string values',
+        );
+      }
+      for (const [key, value] of Object.entries(labels)) {
+        if (typeof value !== 'string') {
+          throw new InputError(`labels.${key} must be a string`);
+        }
+      }
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await secretsService.updateSecret(
+        namespaceName as string,
+        secretName,
+        { data, ...(labels !== undefined ? { labels } : {}) },
+        userToken,
+      ),
+    );
   });
 
   // Delete a secret

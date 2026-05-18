@@ -11,6 +11,7 @@ import {
 import FilterListIcon from '@material-ui/icons/FilterList';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import WidgetsOutlinedIcon from '@material-ui/icons/WidgetsOutlined';
+import StorageOutlinedIcon from '@material-ui/icons/StorageOutlined';
 import { useRouteRef, useApp } from '@backstage/core-plugin-api';
 import { DocsIcon, Page, Header, Content } from '@backstage/core-components';
 import {
@@ -34,6 +35,7 @@ import type { TemplateListPageProps } from '@backstage/plugin-scaffolder/alpha';
 import { Link } from 'react-router-dom';
 import { usePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import useMediaQuery from '@material-ui/core/useMediaQuery';
 import { Theme } from '@material-ui/core/styles';
 import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
@@ -46,6 +48,9 @@ import {
   useComponentTypePermission,
   useClusterTraitCreatePermission,
   useClusterComponentTypePermission,
+  useClusterResourceTypePermission,
+  useResourceTypePermission,
+  useResourceCreatePermission,
   useComponentWorkflowPermission,
   useWorkflowPermission,
   useClusterWorkflowPermission,
@@ -61,19 +66,39 @@ import { CustomTemplateCard } from './CustomTemplateCard';
 import { TemplateCardSkeletons } from './TemplateCardSkeleton';
 import { useStyles } from './styles';
 
+// 'Resource' templates are presented as a meta-card on the landing view
+// (mirrors 'Component') and the per-type templates are listed under
+// /create?view=resources. Hide them from the landing application-templates
+// grid to avoid duplicate "Resource" cards.
 const APPLICATION_TYPES = ['System (Project)'];
+// Order is significant — this list controls the on-screen order of the
+// Platform Resources cards (see platformTemplates sort below). Foundation-
+// first to mirror Application Resources (Project → Component → Resource),
+// then template types grouped by concept (workload shape → cross-cutting
+// concerns → infra deps → automation), with cluster-scoped before
+// namespace-scoped within each pair so pairs stay adjacent.
 const PLATFORM_TYPES = [
   'Namespace',
   'Environment',
   'DeploymentPipeline',
-  'ClusterTrait',
-  'Trait',
   'ClusterComponentType',
   'ComponentType',
-  'Workflow',
+  'ClusterTrait',
+  'Trait',
+  'ClusterResourceType',
+  'ResourceType',
   'ClusterWorkflow',
+  'Workflow',
 ];
-const KNOWN_CARD_TYPES = [...APPLICATION_TYPES, 'Component', ...PLATFORM_TYPES];
+// 'Resource' is intentionally in KNOWN_CARD_TYPES but NOT in APPLICATION_TYPES
+// — per-type Resource templates are rendered under /create?view=resources,
+// not in the landing grid or the "Other Templates" catch-all.
+const KNOWN_CARD_TYPES = [
+  ...APPLICATION_TYPES,
+  'Component',
+  'Resource',
+  ...PLATFORM_TYPES,
+];
 
 const RegisterExistingButton = ({ to }: { to: string | undefined }) => {
   const { allowed } = usePermission({
@@ -108,6 +133,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const isComponentsView = searchParams.get('view') === 'components';
+  const isResourcesView = searchParams.get('view') === 'resources';
 
   const { templateFilter, headerOptions } = props;
 
@@ -135,6 +161,9 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   const componentTypePerm = useComponentTypePermission();
   const clusterTraitPerm = useClusterTraitCreatePermission();
   const clusterComponentTypePerm = useClusterComponentTypePermission();
+  const clusterResourceTypePerm = useClusterResourceTypePermission();
+  const resourceTypePerm = useResourceTypePermission();
+  const resourcePerm = useResourceCreatePermission();
   const componentWorkflowPerm = useComponentWorkflowPermission();
   const workflowPerm = useWorkflowPermission();
   const clusterWorkflowPerm = useClusterWorkflowPermission();
@@ -162,6 +191,15 @@ const TemplateListContent = (props: TemplateListPageProps) => {
             !clusterComponentTypePerm.loading &&
             !clusterComponentTypePerm.canCreate
           );
+        case 'ClusterResourceType':
+          return (
+            !clusterResourceTypePerm.loading &&
+            !clusterResourceTypePerm.canCreate
+          );
+        case 'ResourceType':
+          return !resourceTypePerm.loading && !resourceTypePerm.canCreate;
+        case 'Resource':
+          return !resourcePerm.loading && !resourcePerm.canCreate;
         case 'ComponentWorkflow':
           return (
             !componentWorkflowPerm.loading && !componentWorkflowPerm.canCreate
@@ -188,6 +226,9 @@ const TemplateListContent = (props: TemplateListPageProps) => {
       clusterTraitPerm,
       componentTypePerm,
       clusterComponentTypePerm,
+      clusterResourceTypePerm,
+      resourceTypePerm,
+      resourcePerm,
       componentWorkflowPerm,
       workflowPerm,
       clusterWorkflowPerm,
@@ -205,7 +246,14 @@ const TemplateListContent = (props: TemplateListPageProps) => {
     [templates],
   );
   const platformTemplates = useMemo(
-    () => templates.filter(t => PLATFORM_TYPES.includes(t.spec?.type)),
+    () =>
+      templates
+        .filter(t => PLATFORM_TYPES.includes(t.spec?.type))
+        .sort(
+          (a, b) =>
+            PLATFORM_TYPES.indexOf(a.spec?.type) -
+            PLATFORM_TYPES.indexOf(b.spec?.type),
+        ),
     [templates],
   );
   const otherTemplates = useMemo(
@@ -217,6 +265,19 @@ const TemplateListContent = (props: TemplateListPageProps) => {
     {
       title: 'Component Templates',
       filter: (e: any) => e.spec?.type === 'Component',
+    },
+  ];
+
+  // Resource Templates view shows the per-type wizards generated by
+  // RtdToTemplateConverter from (Cluster)ResourceType entities. The
+  // RTD_GENERATED annotation distinguishes them from any standalone
+  // hand-written Resource template.
+  const resourceGroups = [
+    {
+      title: 'Resource Templates',
+      filter: (e: any) =>
+        e.spec?.type === 'Resource' &&
+        e.metadata?.annotations?.[CHOREO_ANNOTATIONS.RTD_GENERATED] === 'true',
     },
   ];
 
@@ -276,6 +337,10 @@ const TemplateListContent = (props: TemplateListPageProps) => {
     setSearchParams({ view: 'components' });
   }, [setSearchParams]);
 
+  const navigateToResourcesView = useCallback(() => {
+    setSearchParams({ view: 'resources' });
+  }, [setSearchParams]);
+
   const navigateBackToLanding = useCallback(() => {
     setSearchParams({});
   }, [setSearchParams]);
@@ -306,16 +371,15 @@ const TemplateListContent = (props: TemplateListPageProps) => {
         <Box className={classes.filterRow}>
           <ScaffolderSearchBar />
           <Box className={classes.categoryFilter}>
-            <ScaffolderCategoryPicker />
+            {isComponentsView || isResourcesView ? (
+              <ScaffolderNamespacePicker />
+            ) : (
+              <ScaffolderCategoryPicker />
+            )}
           </Box>
           <Box className={classes.tagFilter}>
             <ScaffolderTagPicker />
           </Box>
-          {isComponentsView && (
-            <Box className={classes.tagFilter}>
-              <ScaffolderNamespacePicker />
-            </Box>
-          )}
           <Box className={classes.starredFilter}>
             <ScaffolderStarredFilter />
           </Box>
@@ -334,16 +398,15 @@ const TemplateListContent = (props: TemplateListPageProps) => {
               <ScaffolderSearchBar />
             </Box>
             <Box className={classes.filterItem}>
-              <ScaffolderCategoryPicker />
+              {isComponentsView || isResourcesView ? (
+                <ScaffolderNamespacePicker />
+              ) : (
+                <ScaffolderCategoryPicker />
+              )}
             </Box>
             <Box className={classes.filterItem}>
               <ScaffolderTagPicker />
             </Box>
-            {isComponentsView && (
-              <Box className={classes.filterItem}>
-                <ScaffolderNamespacePicker />
-              </Box>
-            )}
             <Box className={classes.filterItem}>
               <ScaffolderStarredFilter />
             </Box>
@@ -386,6 +449,37 @@ const TemplateListContent = (props: TemplateListPageProps) => {
       </Box>
     );
 
+    const resourceDisabled = isTemplateDisabled('Resource');
+    const resourceCard = (
+      <Box
+        className={`${classes.cardBase} ${classes.resourceCard} ${
+          resourceDisabled ? classes.cardDisabled : ''
+        }`}
+        onClick={resourceDisabled ? undefined : navigateToResourcesView}
+        onKeyDown={
+          resourceDisabled
+            ? undefined
+            : e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigateToResourcesView();
+                }
+              }
+        }
+        role="button"
+        tabIndex={resourceDisabled ? -1 : 0}
+        aria-disabled={resourceDisabled || undefined}
+      >
+        <Box className={classes.resourceCardIcon}>
+          <StorageOutlinedIcon fontSize="inherit" />
+        </Box>
+        <Typography className={classes.resourceCardTitle}>Resource</Typography>
+        <Typography className={classes.resourceCardDescription}>
+          Browse resource templates
+        </Typography>
+      </Box>
+    );
+
     return (
       <>
         <Typography
@@ -414,6 +508,18 @@ const TemplateListContent = (props: TemplateListPageProps) => {
               </Tooltip>
             ) : (
               componentCard
+            )}
+          </Grid>
+          {/* Resource — navigation card, opens the per-type templates list */}
+          <Grid item xs={12} sm={6} md={3}>
+            {resourceDisabled ? (
+              <Tooltip title={resourcePerm.createDeniedTooltip}>
+                <Box className={classes.cardDisabledWrapper}>
+                  {resourceCard}
+                </Box>
+              </Tooltip>
+            ) : (
+              resourceCard
             )}
           </Grid>
         </Grid>
@@ -459,6 +565,16 @@ const TemplateListContent = (props: TemplateListPageProps) => {
     return Card;
   }, [isTemplateDisabled]);
 
+  const ResourceTemplateCard = useMemo(() => {
+    const disabled = isTemplateDisabled('Resource');
+    const Card = (cardProps: {
+      template: TemplateEntityV1beta3;
+      onSelected?: (template: TemplateEntityV1beta3) => void;
+    }) => <CustomTemplateCard {...cardProps} disabled={disabled} />;
+    Card.displayName = 'ResourceTemplateCard';
+    return Card;
+  }, [isTemplateDisabled]);
+
   const renderComponentsView = () => (
     <>
       <Box
@@ -474,6 +590,28 @@ const TemplateListContent = (props: TemplateListPageProps) => {
           groups={componentGroups}
           templateFilter={templateFilter}
           TemplateCardComponent={ComponentTemplateCard}
+          onTemplateSelected={onTemplateSelected}
+          additionalLinksForEntity={additionalLinksForEntity}
+        />
+      </Box>
+    </>
+  );
+
+  const renderResourcesView = () => (
+    <>
+      <Box
+        component="button"
+        className={classes.backButton}
+        onClick={navigateBackToLanding}
+      >
+        <ArrowBackIcon fontSize="small" />
+        Back to Resources
+      </Box>
+      <Box className={classes.contentArea}>
+        <TemplateGroups
+          groups={resourceGroups}
+          templateFilter={templateFilter}
+          TemplateCardComponent={ResourceTemplateCard}
           onTemplateSelected={onTemplateSelected}
           additionalLinksForEntity={additionalLinksForEntity}
         />
@@ -513,7 +651,11 @@ const TemplateListContent = (props: TemplateListPageProps) => {
 
           {renderFilters()}
 
-          {isComponentsView ? renderComponentsView() : renderLandingView()}
+          {(() => {
+            if (isComponentsView) return renderComponentsView();
+            if (isResourcesView) return renderResourcesView();
+            return renderLandingView();
+          })()}
         </Box>
       </Content>
     </Page>

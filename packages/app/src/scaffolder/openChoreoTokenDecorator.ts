@@ -33,7 +33,7 @@ export const openChoreoTokenDecorator = createScaffolderFormDecorator({
     const token = await oauthApi.getAccessToken();
     if (!token) {
       throw new Error(
-        'Failed to get authentication token. Please ensure you are logged in.',
+        'Failed to get authentication token. Ensure you are logged in.',
       );
     }
     setSecrets(state => ({

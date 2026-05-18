@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import {
   Grid,
   Card,
@@ -53,6 +53,15 @@ const ObservabilityMetricsContent = () => {
     environments,
   });
 
+  // Per-environment permission (ABAC `resource.environment`) — gates the
+  // metrics content and the fetch once an env is selected. See openchoreo#3408.
+  const {
+    canViewMetrics: canViewMetricsForEnv,
+    loading: envPermissionLoading,
+    deniedTooltip: envPermissionDenied,
+    permissionName: envPermissionName,
+  } = useMetricsPermission(filters.environment?.name);
+
   // Fetch metrics using the custom hook
   const {
     metrics,
@@ -63,29 +72,17 @@ const ObservabilityMetricsContent = () => {
   } = useMetrics(filters, entity, namespace as string, project as string);
   const resourceMetrics = metrics as ResourceMetrics;
 
-  // Track previous filter values to detect changes
-  const previousFiltersRef = useRef({
-    environment: filters.environment?.name,
-    timeRange: filters.timeRange,
-  });
-
   // Fetch metrics when filters change
   useEffect(() => {
-    const currentFilters = {
-      environment: filters.environment?.name,
-      timeRange: filters.timeRange,
-    };
-
-    const filtersChanged =
-      JSON.stringify(previousFiltersRef.current) !==
-      JSON.stringify(currentFilters);
-
-    if (filters.environment && filters.timeRange && filtersChanged) {
+    if (filters.environment && filters.timeRange && canViewMetricsForEnv) {
       fetchMetrics(true);
     }
-
-    previousFiltersRef.current = currentFilters;
-  }, [filters.environment, filters.timeRange, fetchMetrics]);
+  }, [
+    filters.environment,
+    filters.timeRange,
+    fetchMetrics,
+    canViewMetricsForEnv,
+  ]);
 
   const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
     updateFilters(newFilters);
@@ -105,7 +102,7 @@ const ObservabilityMetricsContent = () => {
     return <></>;
   }
 
-  const isLoading = environmentsLoading || metricsLoading;
+  const isLoading = environmentsLoading;
 
   const renderError = (error: string) => {
     const isObservabilityDisabled = error.includes(
@@ -119,7 +116,7 @@ const ObservabilityMetricsContent = () => {
       >
         <Typography variant="body1">
           {isObservabilityDisabled
-            ? 'Observability is not enabled for this component in this environment. Please enable observability to view metrics.'
+            ? 'Observability is not enabled for this component in the current environment. Enable observability to view metrics.'
             : error}
         </Typography>
         {!isObservabilityDisabled && (
@@ -133,7 +130,7 @@ const ObservabilityMetricsContent = () => {
 
   return (
     <Box>
-      {isLoading && <Progress />}
+      {(isLoading || metricsLoading) && <Progress />}
 
       {!isLoading && (
         <>
@@ -143,50 +140,71 @@ const ObservabilityMetricsContent = () => {
             environments={environments}
             disabled={isLoading}
           />
-          {metricsError && renderError(metricsError)}
-          <MetricsActions onRefresh={handleRefresh} disabled={metricsLoading} />
-          <Grid container spacing={4} className={classes.metricsGridContainer}>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardHeader title="CPU Usage" />
-                <Divider />
-                <CardContent>
-                  <MetricGraphByComponent
-                    usageData={
-                      resourceMetrics?.cpuUsage || ({} as CpuUsageMetrics)
-                    }
-                    usageType="cpu"
-                    timeRange={filters.timeRange}
-                    customStartTime={filters.customStartTime}
-                    customEndTime={filters.customEndTime}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardHeader title="Memory Usage" />
-                <Divider />
-                <CardContent>
-                  <MetricGraphByComponent
-                    usageData={
-                      resourceMetrics?.memoryUsage || ({} as MemoryUsageMetrics)
-                    }
-                    usageType="memory"
-                    timeRange={filters.timeRange}
-                    customStartTime={filters.customStartTime}
-                    customEndTime={filters.customEndTime}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
-            <HTTPMetricsSection
-              filters={filters}
-              entity={entity}
-              namespaceName={namespace as string}
-              project={project as string}
+          {filters.environment &&
+            !envPermissionLoading &&
+            !canViewMetricsForEnv && (
+              <ForbiddenState
+                message={envPermissionDenied}
+                permissionName={envPermissionName}
+                variant="compact"
+              />
+            )}
+          {canViewMetricsForEnv && metricsError && renderError(metricsError)}
+          {canViewMetricsForEnv && (
+            <MetricsActions
+              onRefresh={handleRefresh}
+              disabled={metricsLoading}
             />
-          </Grid>
+          )}
+          {canViewMetricsForEnv && (
+            <Grid
+              container
+              spacing={4}
+              className={classes.metricsGridContainer}
+            >
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardHeader title="CPU Usage" />
+                  <Divider />
+                  <CardContent>
+                    <MetricGraphByComponent
+                      usageData={
+                        resourceMetrics?.cpuUsage || ({} as CpuUsageMetrics)
+                      }
+                      usageType="cpu"
+                      timeRange={filters.timeRange}
+                      customStartTime={filters.customStartTime}
+                      customEndTime={filters.customEndTime}
+                    />
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardHeader title="Memory Usage" />
+                  <Divider />
+                  <CardContent>
+                    <MetricGraphByComponent
+                      usageData={
+                        resourceMetrics?.memoryUsage ||
+                        ({} as MemoryUsageMetrics)
+                      }
+                      usageType="memory"
+                      timeRange={filters.timeRange}
+                      customStartTime={filters.customStartTime}
+                      customEndTime={filters.customEndTime}
+                    />
+                  </CardContent>
+                </Card>
+              </Grid>
+              <HTTPMetricsSection
+                filters={filters}
+                entity={entity}
+                namespaceName={namespace as string}
+                project={project as string}
+              />
+            </Grid>
+          )}
         </>
       )}
     </Box>

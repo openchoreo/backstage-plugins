@@ -8,9 +8,14 @@ import type { ItemActionTracker } from '../types';
 
 const mockUseDeployPermission = jest.fn();
 const mockUseUndeployPermission = jest.fn();
+const mockUseReleaseBindingUpdatePermission = jest.fn();
+const mockUsePromoteToEnvPermission = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useDeployPermission: () => mockUseDeployPermission(),
   useUndeployPermission: () => mockUseUndeployPermission(),
+  useReleaseBindingUpdatePermission: () =>
+    mockUseReleaseBindingUpdatePermission(),
+  usePromoteToEnvPermission: () => mockUsePromoteToEnvPermission(),
 }));
 
 function createTracker(
@@ -50,6 +55,16 @@ describe('PromotePrimaryAction', () => {
     });
     mockUseUndeployPermission.mockReturnValue({
       canUndeploy: true,
+      loading: false,
+      deniedTooltip: '',
+    });
+    mockUseReleaseBindingUpdatePermission.mockReturnValue({
+      canUpdate: true,
+      loading: false,
+      deniedTooltip: '',
+    });
+    mockUsePromoteToEnvPermission.mockReturnValue({
+      canPromote: true,
       loading: false,
       deniedTooltip: '',
     });

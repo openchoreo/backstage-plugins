@@ -108,7 +108,7 @@ export interface Environment {
   displayName?: string;
   description?: string;
   organization?: string;
-  dataPlaneRef?: string;
+  dataPlaneRef?: { kind?: string; name?: string };
   isProduction: boolean;
   dnsPrefix?: string;
   createdAt: string;
@@ -165,8 +165,107 @@ export interface IncidentSummary {
   acknowledgedAt?: string;
   resolvedAt?: string;
   incidentTriggerAiRca?: boolean;
+  incidentTriggerAiCostAnalysis?: boolean;
   projectName?: string;
   componentName?: string;
   environmentName?: string;
   namespaceName?: string;
+}
+
+// -- FinOps / Cost Analysis types (from finops-agent OpenAPI spec) --
+
+export type FinOpsReportStatus = 'pending' | 'completed' | 'failed';
+
+export interface FinOpsReportSummary {
+  reportId: string;
+  namespace: string;
+  project: string;
+  environment?: string | null;
+  component?: string | null;
+  timestamp: string;
+  summary?: string | null;
+  status: FinOpsReportStatus;
+}
+
+export interface FinOpsReportDetailed {
+  reportId: string;
+  namespace: string;
+  project: string;
+  environment?: string | null;
+  component?: string | null;
+  timestamp: string;
+  status: FinOpsReportStatus;
+  report?: FinOpsReport | null;
+}
+
+export interface FinOpsReport {
+  component: string;
+  namespace: string;
+  project: string;
+  analysis_period: string;
+  budgeted_cost: CostBreakdown;
+  actual_cost: CostBreakdown;
+  resource_metrics: FinOpsResourceMetrics;
+  overprovisioning: OverprovisioningAssessment;
+  summary: string;
+  investigation_path: InvestigationStep[];
+  recommended_actions?: FinOpsRemediationAction[];
+}
+
+export interface CostBreakdown {
+  total_cost: number;
+  currency: string;
+  is_estimated: boolean;
+}
+
+export interface FinOpsResourceMetrics {
+  cpu_request?: string | null;
+  cpu_limit?: string | null;
+  cpu_actual_avg?: string | null;
+  cpu_actual_peak?: string | null;
+  memory_request?: string | null;
+  memory_limit?: string | null;
+  memory_actual_avg?: string | null;
+  memory_actual_peak?: string | null;
+  data_available?: boolean;
+}
+
+export interface OverprovisioningAssessment {
+  is_overprovisioned: boolean;
+  cpu_utilization_pct?: number | null;
+  memory_utilization_pct?: number | null;
+  analysis: string;
+  recommendation?: ResourceRecommendation | null;
+}
+
+export interface ResourceRecommendation {
+  cpu_request: string;
+  cpu_limit: string;
+  memory_request: string;
+  memory_limit: string;
+  rationale: string;
+  release_binding?: string | null;
+}
+
+export interface FinOpsFieldChange {
+  json_pointer: string;
+  value: string | number | boolean;
+}
+
+export interface FinOpsResourceChange {
+  release_binding: string;
+  fields: FinOpsFieldChange[];
+}
+
+export interface FinOpsRemediationAction {
+  description: string;
+  rationale: string;
+  status: 'revised' | 'applied' | 'dismissed';
+  change: FinOpsResourceChange | null;
+}
+
+export interface InvestigationStep {
+  action: string;
+  outcome: string;
+  rationale?: string | null;
 }

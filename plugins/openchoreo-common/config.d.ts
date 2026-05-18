@@ -94,15 +94,15 @@ export interface Config {
       };
 
       /**
-       * Cilium feature configuration.
-       * Controls HTTP metrics graphs and queries in the Observability plane.
+       * Secret Management configuration.
+       * Controls the Secrets settings tab and related secret-management APIs.
        * @deepVisibility frontend
        */
-      cilium?: {
+      secretManagement?: {
         /**
-         * Enable or disable Cilium-powered HTTP metrics.
-         * When disabled, Network Throughput and Network Latency graphs are hidden
-         * and the HTTP metrics query is not sent to the observer.
+         * Enable or disable secret management features.
+         * When disabled, the Secrets settings tab is hidden and the page
+         * renders a "feature disabled" notice if reached directly.
          * @visibility frontend
          */
         enabled?: boolean;

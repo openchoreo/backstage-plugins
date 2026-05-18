@@ -10,22 +10,6 @@ import type { Environment } from '../components/RuntimeLogs/types';
 // Response Types
 // ============================================
 
-/** Git secret item */
-export interface GitSecret {
-  name: string;
-  namespace: string;
-  workflowPlaneKind?: string;
-  workflowPlaneName?: string;
-}
-
-/** Git secrets list response */
-export interface GitSecretsListResponse {
-  items: GitSecret[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-}
-
 /** Kubernetes Secret type supported by the create/update API */
 export type SecretType =
   | 'Opaque'
@@ -47,14 +31,25 @@ export interface TargetPlaneRef {
   name: string;
 }
 
-/** Secret resource. Values are never returned, only key names. */
+/**
+ * Secret resource. The list endpoint returns only `keys[]`; the single-secret
+ * GET endpoint additionally populates `data` with base64-encoded values
+ * (K8s Secret wire format). Decode at the UI boundary; treat as sensitive.
+ */
 export interface Secret {
   name: string;
   namespace: string;
   secretType?: SecretType;
   targetPlane?: TargetPlaneRef;
+  /** Labels on the underlying SecretReference / K8s Secret. */
+  labels?: Record<string, string>;
   /** Sorted list of keys present in the secret data */
   keys: string[];
+  /**
+   * Base64-encoded value map (K8s Secret wire format). Present only when
+   * fetched via getSecret. Decode with `atob` (or equivalent) before display.
+   */
+  data?: Record<string, string>;
 }
 
 /** Secrets list response */
@@ -72,6 +67,15 @@ export interface CreateSecretRequest {
   targetPlane: TargetPlaneRef;
   /** Required keys depend on secretType. */
   data: Record<string, string>;
+  /** Labels applied to the underlying SecretReference. */
+  labels?: Record<string, string>;
+}
+
+/** Body for updating an existing secret. Replaces all data; omitted keys are pruned. */
+export interface UpdateSecretRequest {
+  data: Record<string, string>;
+  /** Labels applied to the underlying SecretReference. Replaces all user-set labels. */
+  labels?: Record<string, string>;
 }
 
 /** Schema response containing component-type and trait environment override schemas */
@@ -106,6 +110,106 @@ export interface ReleaseBindingsResponse {
   data?: {
     items: ReleaseBinding[];
   };
+}
+
+/** A single condition on a ResourceReleaseBinding. */
+export interface ResourceReleaseBindingCondition {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+  observedGeneration?: number;
+}
+
+/**
+ * Resource release binding item — one per environment for a given Resource.
+ * Fields the BFF transformer always emits (possibly as empty strings) are
+ * required here; truly per-status fields are optional. Matches the
+ * `ResourceReleaseBindingResponse` shape in `@openchoreo/backstage-plugin-common`.
+ */
+export interface ResourceReleaseBinding {
+  name: string;
+  environment: string;
+  resourceName: string;
+  projectName: string;
+  namespaceName: string;
+  releaseName: string;
+  createdAt: string;
+  retainPolicy?: 'Delete' | 'Retain';
+  /**
+   * Per-environment parameter overrides layered over
+   * Resource.spec.parameters when manifests are rendered.
+   */
+  resourceTypeEnvironmentConfigs?: Record<string, unknown>;
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  conditions?: ResourceReleaseBindingCondition[];
+}
+
+/** Resource release bindings response */
+export interface ResourceReleaseBindingsResponse {
+  success: boolean;
+  data?: {
+    items: ResourceReleaseBinding[];
+  };
+}
+
+/** Full ResourceRelease CR — used by the View release manifest modal */
+export interface ResourceReleaseResponse {
+  success: boolean;
+  data?: Record<string, unknown>;
+}
+
+export interface ResourceBindingOutput {
+  name: string;
+  value?: string;
+  secretKeyRef?: { name: string; key: string };
+  configMapKeyRef?: { name: string; key: string };
+}
+
+/**
+ * An output entry declared on a (Cluster)ResourceType. Same wire shape as
+ * `ResourceBindingOutput` but semantically the template form: `value` may
+ * carry an unresolved CEL expression and the secret/configmap refs name
+ * a DP-side object that may not exist yet. The resource-dependency
+ * editor uses this to render one row per declared output with the right
+ * env/file binding controls (value-kind outputs can't be mounted as
+ * files; the binding for them is env-only).
+ */
+export interface ResourceTypeOutput {
+  name: string;
+  value?: string;
+  secretKeyRef?: { name: string; key: string };
+  configMapKeyRef?: { name: string; key: string };
+}
+
+/**
+ * Per-environment runtime view of a Resource. One entry per environment
+ * defined in the project's deployment pipeline, including environments
+ * with no binding (so the UI can render a Deploy affordance). Matches
+ * the backend `ResourceEnvironment` shape in `plugins/openchoreo-backend/src/types.ts`.
+ */
+export interface ResourceEnvironment {
+  uid?: string;
+  name: string;
+  resourceName?: string;
+  dataPlaneRef?: string;
+  dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';
+  bindingName?: string;
+  resourceRelease?: string;
+  retainPolicy?: 'Delete' | 'Retain';
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  lastDeployed?: string;
+  outputs?: ResourceBindingOutput[];
+  promotionTargets?: {
+    name: string;
+    resourceName?: string;
+  }[];
+  latestRelease?: string;
 }
 
 /** Create release response */
@@ -179,10 +283,32 @@ export type PolicyEffect = 'allow' | 'deny';
 // Cluster & Namespace Scoped Authorization Types
 // ============================================
 
+/** ABAC attribute available for CEL condition expressions on an action. */
+export interface ConditionAttribute {
+  /** Full dotted path of the attribute (e.g. "resource.environment"). */
+  key: string;
+  /** Human-readable description of the attribute. */
+  description: string;
+}
+
 /** Authorization action with its scope in the resource hierarchy */
 export interface ActionInfo {
   name: string;
   lowestScope: 'cluster' | 'namespace' | 'project' | 'component';
+  /**
+   * ABAC attributes available for CEL condition expressions on this action.
+   * Empty / omitted means no conditions are supported.
+   */
+  conditions?: ConditionAttribute[];
+}
+
+/**
+ * Action-scoped condition on a role mapping. Constrains only the listed
+ * actions; multiple entries on the same mapping are OR-combined.
+ */
+export interface AuthzCondition {
+  actions: string[];
+  expression: string;
 }
 
 /** Cluster Role - cluster-wide role definition */
@@ -214,6 +340,11 @@ export interface ClusterRoleMappingScope {
 export interface ClusterRoleMappingEntry {
   role: string;
   scope?: ClusterRoleMappingScope;
+  /**
+   * Per-mapping conditions that restrict specific actions granted by this role.
+   * Multiple entries are OR-combined; only the listed actions are constrained.
+   */
+  conditions?: AuthzCondition[];
 }
 
 /** Cluster Role Binding - binds cluster roles to an entitlement */
@@ -246,6 +377,11 @@ export interface NamespaceRoleMappingScope {
 export interface NamespaceRoleMappingEntry {
   role: { name: string; namespace?: string };
   scope?: NamespaceRoleMappingScope;
+  /**
+   * Per-mapping conditions that restrict specific actions granted by this role.
+   * Multiple entries are OR-combined; only the listed actions are constrained.
+   */
+  conditions?: AuthzCondition[];
 }
 
 /** Namespace Role Binding - response shape from the API */
@@ -338,6 +474,8 @@ export type PlatformResourceKind =
   | 'projects'
   | 'namespaces'
   | 'componenttypes'
+  | 'resourcetypes'
+  | 'resources'
   | 'traits'
   | 'workflows'
   | 'component-workflows'
@@ -348,6 +486,7 @@ export type PlatformResourceKind =
   | 'observabilityplanes'
   | 'deploymentpipelines'
   | 'clustercomponenttypes'
+  | 'clusterresourcetypes'
   | 'clustertraits'
   | 'clusterworkflows'
   | 'clusterdataplanes'
@@ -359,6 +498,7 @@ export type PlatformResourceKind =
 export const CLUSTER_SCOPED_RESOURCE_KINDS: ReadonlySet<PlatformResourceKind> =
   new Set([
     'clustercomponenttypes',
+    'clusterresourcetypes',
     'clustertraits',
     'clusterworkflows',
     'clusterdataplanes',
@@ -470,6 +610,58 @@ export interface OpenChoreoClientApi {
   /** Fetch all release bindings for a component */
   fetchReleaseBindings(entity: Entity): Promise<ReleaseBindingsResponse>;
 
+  /**
+   * Fetch a single ResourceRelease CR by name. Used by the Deploy tab's
+   * View release manifest modal to render the frozen snapshot as YAML.
+   */
+  fetchResourceRelease(
+    entity: Entity,
+    releaseName: string,
+  ): Promise<ResourceReleaseResponse>;
+
+  /**
+   * Fetch all resource release bindings for a Resource entity.
+   * Filters by the entity's resource name and owning project, returning one
+   * binding per environment.
+   */
+  fetchResourceReleaseBindings(
+    entity: Entity,
+  ): Promise<ResourceReleaseBindingsResponse>;
+
+  /**
+   * Fetch per-environment runtime info for a Resource entity. Returns one
+   * entry per environment in the project's deployment pipeline (including
+   * environments without bindings yet), joined with the Resource's latest
+   * release.
+   */
+  fetchResourceEnvironmentInfo(entity: Entity): Promise<ResourceEnvironment[]>;
+
+  /**
+   * Create or update a ResourceReleaseBinding for the given environment.
+   * Creates a new binding when none exists; otherwise advances
+   * `spec.resourceRelease`. Optional fields are written when present, left
+   * untouched when omitted.
+   */
+  updateResourceReleaseBinding(
+    entity: Entity,
+    environment: string,
+    options: {
+      resourceRelease: string;
+      retainPolicy?: 'Delete' | 'Retain';
+      resourceTypeEnvironmentConfigs?: unknown;
+    },
+  ): Promise<unknown>;
+
+  /**
+   * Delete a ResourceReleaseBinding for the given environment. With
+   * `spec.retainPolicy=Retain` on the binding, the Resource controller's
+   * finalizer holds the actual delete and DP-side state can persist.
+   */
+  deleteResourceReleaseBinding(
+    entity: Entity,
+    environment: string,
+  ): Promise<unknown>;
+
   /** Create or update a release binding for deploy/promote actions */
   updateReleaseBinding(
     entity: Entity,
@@ -572,7 +764,14 @@ export interface OpenChoreoClientApi {
   // === Other ===
 
   /** Fetch cell diagram info for a project */
-  getCellDiagramInfo(entity: Entity): Promise<any>;
+  getCellDiagramInfo(
+    entity: Entity,
+    options?: {
+      environmentName?: string;
+      startTime?: string;
+      endTime?: string;
+    },
+  ): Promise<any>;
 
   /** Fetch total bindings count for dashboard */
   fetchTotalBindingsCount(components: ComponentInfo[]): Promise<number>;
@@ -612,6 +811,40 @@ export interface OpenChoreoClientApi {
   /** Fetch the input parameter schema for a component type */
   fetchComponentTypeSchema(
     entity: Entity,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
+  /**
+   * Fetch the input parameter schema for a Resource's (Cluster)ResourceType.
+   * Reads RESOURCE_TYPE + RESOURCE_TYPE_KIND annotations off the Resource
+   * entity to pick the right endpoint.
+   */
+  fetchResourceTypeSchema(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
+  /**
+   * Fetch the declared outputs[] for a Resource's (Cluster)ResourceType.
+   * Reads RESOURCE_TYPE + RESOURCE_TYPE_KIND annotations off the Resource
+   * entity to pick the right endpoint. Consumed by the resource-dependency
+   * editor to render one row per output with the right env/file binding
+   * controls. Each output has a name and exactly one of value /
+   * secretKeyRef / configMapKeyRef set.
+   */
+  fetchResourceTypeOutputs(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: ResourceTypeOutput[] }>;
+
+  /**
+   * Fetch a schema section from the frozen snapshot stored on a
+   * ResourceRelease. `parameters` returns the developer schema; `environmentConfigs`
+   * returns the per-env override schema. Pinned-release flows use this so
+   * form validation matches what the release was actually cut against,
+   * not the live (Cluster)ResourceType which may have drifted.
+   */
+  fetchResourceReleaseSchema(
+    namespaceName: string,
+    releaseName: string,
+    section: 'parameters' | 'environmentConfigs',
   ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
 
   /** Update component config (traits and/or parameters) in a single call */
@@ -670,26 +903,6 @@ export interface OpenChoreoClientApi {
     dataplaneName: string,
   ): Promise<any>;
 
-  // === Git Secrets Operations ===
-
-  /** List git secrets for a namespace */
-  listGitSecrets(namespaceName: string): Promise<GitSecretsListResponse>;
-
-  /** Create a new git secret */
-  createGitSecret(
-    namespaceName: string,
-    secretName: string,
-    secretType: 'basic-auth' | 'ssh-auth',
-    tokenOrKey: string,
-    username?: string,
-    sshKeyId?: string,
-    workflowPlaneKind?: string,
-    workflowPlaneName?: string,
-  ): Promise<GitSecret>;
-
-  /** Delete a git secret */
-  deleteGitSecret(namespaceName: string, secretName: string): Promise<void>;
-
   // === Secrets Operations ===
 
   /** List secrets for a namespace */
@@ -702,6 +915,13 @@ export interface OpenChoreoClientApi {
   createSecret(
     namespaceName: string,
     request: CreateSecretRequest,
+  ): Promise<Secret>;
+
+  /** Update (replace data of) an existing secret */
+  updateSecret(
+    namespaceName: string,
+    secretName: string,
+    request: UpdateSecretRequest,
   ): Promise<Secret>;
 
   /** Delete a secret */

@@ -112,11 +112,11 @@ export const EventsContent = ({ build }: EventsContentProps) => {
             setStatusError(
               match
                 ? match[1]
-                : 'Observability is not enabled for this component. Please enable observability to view workflow events.',
+                : 'Observability is not enabled for this component. Enable observability to view workflow events.',
             );
           } catch {
             setStatusError(
-              'Observability is not enabled for this component. Please enable observability to view workflow events.',
+              'Observability is not enabled for this component. Enable observability to view workflow events.',
             );
           }
         } else {
@@ -207,11 +207,11 @@ export const EventsContent = ({ build }: EventsContentProps) => {
             setEventsError(
               match
                 ? match[1]
-                : 'Observability is not enabled for this component. Please enable observability to view workflow events.',
+                : 'Observability is not enabled for this component. Enable observability to view workflow events.',
             );
           } catch {
             setEventsError(
-              'Observability is not enabled for this component. Please enable observability to view workflow events.',
+              'Observability is not enabled for this component. Enable observability to view workflow events.',
             );
           }
         } else if (

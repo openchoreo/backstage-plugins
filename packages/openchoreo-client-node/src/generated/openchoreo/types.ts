@@ -1080,7 +1080,11 @@ export interface paths {
      */
     put: operations['updateWorkflowRun'];
     post?: never;
-    delete?: never;
+    /**
+     * Delete workflow run
+     * @description Deletes a workflow run by name.
+     */
+    delete: operations['deleteWorkflowRun'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1264,6 +1268,12 @@ export interface paths {
     /**
      * Get subject profile
      * @description Returns the authorization profile for the authenticated subject.
+     *
+     *     Scope query parameters follow the same hierarchy rules as the ResourceHierarchy schema:
+     *     - `project` is required when `component` or `resource` is set
+     *     - `component` and `resource` are mutually exclusive (siblings under `project`)
+     *
+     *     Omitting `component` and `resource` returns a project-scoped profile.
      */
     get: operations['getSubjectProfile'];
     put?: never;
@@ -1643,7 +1653,11 @@ export interface paths {
      */
     get: operations['listComponentReleases'];
     put?: never;
-    post?: never;
+    /**
+     * Create component release
+     * @description Creates a new component release within a namespace.
+     */
+    post: operations['createComponentRelease'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1664,7 +1678,11 @@ export interface paths {
     get: operations['getComponentRelease'];
     put?: never;
     post?: never;
-    delete?: never;
+    /**
+     * Delete component release
+     * @description Deletes a component release by name.
+     */
+    delete: operations['deleteComponentRelease'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1777,6 +1795,302 @@ export interface paths {
     put?: never;
     post?: never;
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterresourcetypes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List cluster resource types
+     * @description Returns a list of cluster-scoped resource types.
+     */
+    get: operations['listClusterResourceTypes'];
+    put?: never;
+    /**
+     * Create cluster resource type
+     * @description Creates a new cluster-scoped resource type.
+     */
+    post: operations['createClusterResourceType'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterresourcetypes/{crtName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a cluster resource type
+     * @description Returns details of a specific cluster-scoped resource type.
+     */
+    get: operations['getClusterResourceType'];
+    /**
+     * Update cluster resource type
+     * @description Replaces an existing cluster-scoped resource type (full update).
+     */
+    put: operations['updateClusterResourceType'];
+    post?: never;
+    /**
+     * Delete cluster resource type
+     * @description Deletes a cluster-scoped resource type by name.
+     */
+    delete: operations['deleteClusterResourceType'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterresourcetypes/{crtName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get cluster resource type schema
+     * @description Returns the parameter schema for a specific cluster-scoped resource type.
+     */
+    get: operations['getClusterResourceTypeSchema'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/resourcetypes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List resource types
+     * @description Returns a paginated list of resource types available in the namespace.
+     */
+    get: operations['listResourceTypes'];
+    put?: never;
+    /**
+     * Create resource type
+     * @description Creates a new resource type within a namespace.
+     */
+    post: operations['createResourceType'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get resource type
+     * @description Returns details of a specific resource type.
+     */
+    get: operations['getResourceType'];
+    /**
+     * Update resource type
+     * @description Replaces an existing resource type (full update).
+     */
+    put: operations['updateResourceType'];
+    post?: never;
+    /**
+     * Delete resource type
+     * @description Deletes a resource type by name.
+     */
+    delete: operations['deleteResourceType'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get resource type schema
+     * @description Returns the parameter schema for a specific resource type.
+     */
+    get: operations['getResourceTypeSchema'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/resources': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List resources
+     * @description Returns a paginated list of resources within a namespace, optionally filtered by project.
+     */
+    get: operations['listResources'];
+    put?: never;
+    /**
+     * Create resource
+     * @description Creates a new resource within a namespace.
+     */
+    post: operations['createResource'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/resources/{resourceName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get resource
+     * @description Returns details of a specific resource.
+     */
+    get: operations['getResource'];
+    /**
+     * Update resource
+     * @description Replaces an existing resource (full update). Mutating spec.parameters cuts a new ResourceRelease via the Resource controller.
+     */
+    put: operations['updateResource'];
+    post?: never;
+    /**
+     * Delete resource
+     * @description Deletes a resource by name. The Resource finalizer blocks deletion until all owned ResourceReleaseBindings and ResourceReleases are cleaned up.
+     */
+    delete: operations['deleteResource'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/resourcereleases': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List resource releases
+     * @description Returns a paginated list of resource releases within a namespace, optionally filtered by resource.
+     */
+    get: operations['listResourceReleases'];
+    put?: never;
+    /**
+     * Create resource release
+     * @description Creates a new resource release within a namespace. Normally cut by the Resource controller; exposed here for offline emit (e.g. `occ resource generate` in v1.2).
+     */
+    post: operations['createResourceRelease'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/resourcereleases/{resourceReleaseName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get resource release
+     * @description Returns details of a specific resource release.
+     */
+    get: operations['getResourceRelease'];
+    put?: never;
+    post?: never;
+    /**
+     * Delete resource release
+     * @description Deletes a resource release by name.
+     */
+    delete: operations['deleteResourceRelease'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/resourcereleasebindings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List resource release bindings
+     * @description Returns a paginated list of resource release bindings within a namespace, optionally filtered by resource.
+     */
+    get: operations['listResourceReleaseBindings'];
+    put?: never;
+    /**
+     * Create resource release binding
+     * @description Creates a new resource release binding within a namespace.
+     */
+    post: operations['createResourceReleaseBinding'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get resource release binding
+     * @description Returns details of a specific resource release binding.
+     */
+    get: operations['getResourceReleaseBinding'];
+    /**
+     * Update resource release binding
+     * @description Replaces an existing resource release binding (full update). Used to advance `spec.resourceRelease` (the promote flow) or change `spec.retainPolicy` / `spec.resourceTypeEnvironmentConfigs`. `spec.owner` and `spec.environment` are immutable.
+     */
+    put: operations['updateResourceReleaseBinding'];
+    post?: never;
+    /**
+     * Delete resource release binding
+     * @description Deletes a resource release binding by name. The binding finalizer either cascades the underlying RenderedRelease (retainPolicy=Delete) or holds (retainPolicy=Retain).
+     */
+    delete: operations['deleteResourceReleaseBinding'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1937,7 +2251,14 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /**
+     * List secrets
+     * @description Returns a paginated list of secrets managed by the Secret API in this
+     *     namespace. Each item includes the Kubernetes Secret data fetched from
+     *     the target plane. Items whose target-plane Secret has not yet been
+     *     synced are omitted from the page.
+     */
+    get: operations['listSecrets'];
     put?: never;
     /**
      * Create a secret
@@ -1960,11 +2281,20 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /**
+     * Get a secret
+     * @description Returns a secret managed by the Secret API, including its data fetched
+     *     from the target plane. Returns 404 if the SecretReference is missing or
+     *     the target-plane Kubernetes Secret has not yet been synced.
+     */
+    get: operations['getSecret'];
     /**
      * Update a secret
-     * @description Replaces the data of an existing secret. The secret type and target
-     *     plane cannot be changed; only the data keys and values.
+     * @description Replaces a secret's data with the supplied final state. Keys present
+     *     in the existing secret but absent from the request body are pruned
+     *     from the Kubernetes Secret, the PushSecret, and the SecretReference.
+     *     Returns 404 if the SecretReference does not exist or is not managed
+     *     by the Secret API. Secret type and target plane are immutable.
      */
     put: operations['updateSecret'];
     post?: never;
@@ -2000,7 +2330,9 @@ export interface components {
         | 'FORBIDDEN'
         | 'NOT_FOUND'
         | 'CONFLICT'
+        | 'UNPROCESSABLE_CONTENT'
         | 'INTERNAL_ERROR'
+        | 'NOT_IMPLEMENTED'
         | 'UNKNOWN_GIT_PROVIDER';
       /** @description Additional error details (e.g., validation errors) */
       details?: {
@@ -2052,10 +2384,16 @@ export interface components {
       creationTimestamp?: string;
       /**
        * Format: date-time
-       * @description Deletion timestamp (set when resource is being deleted)
-       * @example 2025-01-06T10:00:00Z
+       * @description Timestamp when the resource was requested to be deleted
+       * @example 2025-01-06T12:00:00Z
        */
       deletionTimestamp?: string;
+      /**
+       * Format: int64
+       * @description Number of seconds before the object is removed after deletion is requested
+       * @example 0
+       */
+      deletionGracePeriodSeconds?: number;
     };
     /** @description Kubernetes-style condition */
     Condition: {
@@ -2330,6 +2668,18 @@ export interface components {
       spec?: components['schemas']['ProjectSpec'];
       readonly status?: components['schemas']['ProjectStatus'];
     };
+    /** @description Request to patch a project */
+    PatchProjectRequest: {
+      /** @description Human-readable display name */
+      displayName?: string;
+      /** @description Human-readable description */
+      description?: string;
+      /**
+       * @description Name of the deployment pipeline resource
+       * @example default
+       */
+      deploymentPipeline?: string;
+    };
     /** @description Paginated list of projects */
     ProjectList: {
       items: components['schemas']['Project'][];
@@ -2425,51 +2775,6 @@ export interface components {
       spec?: components['schemas']['ComponentSpec'];
       readonly status?: components['schemas']['ComponentStatus'];
     };
-    /** @description Component workflow configuration */
-    ComponentWorkflowConfig: {
-      /**
-       * @description Kind of workflow (Workflow or ClusterWorkflow)
-       * @default Workflow
-       * @enum {string}
-       */
-      kind: 'Workflow' | 'ClusterWorkflow';
-      /**
-       * @description Workflow name
-       * @example docker-build
-       */
-      name?: string;
-      /** @description System-managed parameters (repository info) */
-      systemParameters?: {
-        repository?: {
-          /**
-           * @description Git repository URL
-           * @example https://github.com/org/repo.git
-           */
-          url?: string;
-          revision?: {
-            /**
-             * @description Git branch
-             * @example main
-             */
-            branch?: string;
-            /**
-             * @description Git commit SHA
-             * @example abc1234
-             */
-            commit?: string;
-          };
-          /**
-           * @description Path to application within repository
-           * @example ./services/api
-           */
-          appPath?: string;
-        };
-      };
-      /** @description User-defined workflow parameters */
-      parameters?: {
-        [key: string]: unknown;
-      };
-    };
     /** @description Request to create a new component */
     CreateComponentRequest: {
       /**
@@ -2495,7 +2800,7 @@ export interface components {
       type?: string;
       /**
        * @description Component type reference (format: {workloadType}/{componentTypeName})
-       * @example deployment/go-service
+       * @example service/go-service
        */
       componentType?: string;
       /**
@@ -2539,43 +2844,16 @@ export interface components {
     /** @description Workflow configuration for component creation */
     ComponentWorkflowInput: {
       /**
-       * @description Kind of workflow (Workflow or ClusterWorkflow)
-       * @default Workflow
+       * @description Kind of referenced workflow resource (Workflow or ClusterWorkflow)
+       * @default ClusterWorkflow
        * @enum {string}
        */
       kind: 'Workflow' | 'ClusterWorkflow';
       /**
-       * @description ComponentWorkflow resource name
+       * @description Workflow resource name
        * @example docker-build
        */
       name: string;
-      /** @description System parameters including repository configuration */
-      systemParameters: {
-        repository: {
-          /**
-           * @description Git repository URL
-           * @example https://github.com/org/repo.git
-           */
-          url: string;
-          revision: {
-            /**
-             * @description Git branch to build from
-             * @example main
-             */
-            branch: string;
-            /**
-             * @description Specific commit SHA (optional)
-             * @example abc1234
-             */
-            commit?: string;
-          };
-          /**
-           * @description Path to application within repository
-           * @example ./services/api
-           */
-          appPath: string;
-        };
-      };
       /** @description User-defined workflow parameters */
       parameters?: {
         [key: string]: unknown;
@@ -2874,6 +3152,11 @@ export interface components {
        * @example http://rca-agent.observability-plane.svc:8080
        */
       rcaAgentURL?: string;
+      /**
+       * @description Base URL of the FinOps Agent API in the observability plane cluster
+       * @example http://finops-agent.observability-plane.svc:8080
+       */
+      finOpsAgentURL?: string;
     };
     /** @description Observed state of an ObservabilityPlane */
     ObservabilityPlaneStatus: {
@@ -3038,6 +3321,11 @@ export interface components {
        * @example http://rca-agent.observability-plane.svc:8080
        */
       rcaAgentURL?: string;
+      /**
+       * @description Base URL of the FinOps Agent API in the observability plane cluster
+       * @example http://finops-agent.observability-plane.svc:8080
+       */
+      finOpsAgentURL?: string;
     };
     /** @description Observed state of a ClusterObservabilityPlane */
     ClusterObservabilityPlaneStatus: {
@@ -3265,25 +3553,25 @@ export interface components {
        */
       workloadType: 'deployment' | 'statefulset' | 'cronjob' | 'job' | 'proxy';
       /**
-       * @description List of allowed Workflow references for this component type
+       * @description List of allowed Workflow or ClusterWorkflow references for this component type
        * @example [
        *       {
-       *         "kind": "Workflow",
+       *         "kind": "ClusterWorkflow",
        *         "name": "docker-build"
        *       },
        *       {
-       *         "kind": "Workflow",
+       *         "kind": "ClusterWorkflow",
        *         "name": "buildpack-build"
        *       }
        *     ]
        */
       allowedWorkflows?: {
         /**
-         * @description Kind of the workflow reference. Currently only "Workflow" is supported.
-         * @default Workflow
+         * @description Kind of the workflow reference (Workflow or ClusterWorkflow)
+         * @default ClusterWorkflow
          * @enum {string}
          */
-        kind: 'Workflow';
+        kind: 'Workflow' | 'ClusterWorkflow';
         /** @description Name of the workflow resource */
         name: string;
       }[];
@@ -3502,6 +3790,7 @@ export interface components {
     };
     /** @description Desired state of a Workflow */
     WorkflowSpec: {
+      /** @description Reference to the WorkflowPlane or ClusterWorkflowPlane for this workflow's operations. Defaults to ClusterWorkflowPlane named "default" when omitted. */
       workflowPlaneRef?: components['schemas']['WorkflowPlaneRef'];
       parameters?: components['schemas']['SchemaSection'];
       /** @description Kubernetes resource template to render and apply for this workflow run. */
@@ -3592,7 +3881,7 @@ export interface components {
     };
     /** @description Desired state of a ClusterWorkflow */
     ClusterWorkflowSpec: {
-      /** @description Reference to the ClusterWorkflowPlane for this workflow's build operations. Defaults to the ClusterWorkflowPlane named "default" when omitted. */
+      /** @description Reference to the ClusterWorkflowPlane for this workflow's build operations. Defaults to ClusterWorkflowPlane named "default" when omitted. */
       workflowPlaneRef?: components['schemas']['ClusterWorkflowPlaneRef'];
       parameters?: components['schemas']['SchemaSection'];
       /** @description Kubernetes resource template to render and apply for this workflow run. */
@@ -3651,15 +3940,30 @@ export interface components {
       /** @description Time-to-live for this workflow run after completion (duration string like 10d1h30m). */
       ttlAfterCompletion?: string;
     };
-    /** @description Workflow configuration referencing the Workflow and providing schema values. */
-    WorkflowRunConfig: {
+    /** @description Workflow configuration for a component. Kind and name are mutable. */
+    ComponentWorkflowConfig: {
       /**
-       * @description Kind of workflow (Workflow or ClusterWorkflow)
-       * @default Workflow
+       * @description Kind of referenced workflow resource (Workflow or ClusterWorkflow)
+       * @default ClusterWorkflow
        * @enum {string}
        */
       kind: 'Workflow' | 'ClusterWorkflow';
-      /** @description Referenced Workflow name */
+      /** @description Referenced workflow resource name */
+      name: string;
+      /** @description Developer-provided parameters for the referenced workflow */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description Workflow configuration referencing the Workflow and providing schema values. Kind and name are immutable after creation. */
+    WorkflowRunConfig: {
+      /**
+       * @description Kind of referenced workflow resource (Workflow or ClusterWorkflow)
+       * @default ClusterWorkflow
+       * @enum {string}
+       */
+      kind: 'Workflow' | 'ClusterWorkflow';
+      /** @description Referenced workflow resource name */
       name: string;
       /** @description Developer-provided parameters for the referenced workflow */
       parameters?: {
@@ -3800,8 +4104,22 @@ export interface components {
         [key: string]: unknown;
       };
     };
-    /** @description Request to patch a component */
+    /**
+     * @description Request to patch a component. All fields are optional. Each field follows partial-update
+     *     semantics: a field that is omitted from the request leaves the corresponding component
+     *     attribute unchanged. A provided field is applied as described below.
+     */
     PatchComponentRequest: {
+      /**
+       * @description Human-readable display name. When provided, replaces the existing display name.
+       *     Empty string is treated as "no change" (omit the field instead).
+       */
+      displayName?: string;
+      /**
+       * @description Human-readable description. When provided, replaces the existing description.
+       *     Empty string is treated as "no change" (omit the field instead).
+       */
+      description?: string;
       /**
        * @description Controls auto-deployment to default environment
        * @example true
@@ -3811,6 +4129,13 @@ export interface components {
       parameters?: {
         [key: string]: unknown;
       };
+      /**
+       * @description Trait instances attached to the component. When provided, replaces the entire
+       *     traits list (whole-list replace at the slice level). Pass an empty array to
+       *     clear all traits.
+       */
+      traits?: components['schemas']['ComponentTraitInput'][];
+      workflow?: components['schemas']['ComponentWorkflowInput'];
     };
     /** @description Trait attached to a component */
     ComponentTrait: {
@@ -3880,10 +4205,10 @@ export interface components {
       componentType: {
         [key: string]: unknown;
       };
-      /** @description Frozen trait specs at release time (keyed by trait name) */
+      /** @description Frozen trait specs at release time */
       traits?: {
         [key: string]: unknown;
-      };
+      }[];
       /** @description Snapshot of component parameters and trait configs */
       componentProfile?: {
         /** @description Component type parameters */
@@ -3980,6 +4305,40 @@ export interface components {
       conditions?: components['schemas']['Condition'][];
       /** @description Resolved invoke URLs for each named workload endpoint */
       endpoints?: components['schemas']['EndpointURLStatus'][];
+      /** @description Connections that have been successfully resolved */
+      resolvedConnections?: components['schemas']['ResolvedConnection'][];
+      /** @description Connections that could not be resolved */
+      pendingConnections?: components['schemas']['PendingConnection'][];
+    };
+    /** @description Holds the resolved URL for a single connection */
+    ResolvedConnection: {
+      /** @description Control plane namespace of the target component */
+      namespace: string;
+      /** @description Name of the project that owns the target component */
+      project: string;
+      /** @description Name of the target component */
+      component: string;
+      /** @description Name of the endpoint on the target component */
+      endpoint: string;
+      /**
+       * @description Visibility level at which the endpoint was resolved
+       * @enum {string}
+       */
+      visibility: 'project' | 'namespace' | 'internal' | 'external';
+      url: components['schemas']['EndpointURL'];
+    };
+    /** @description Represents a connection that could not be resolved */
+    PendingConnection: {
+      /** @description Control plane namespace of the target component */
+      namespace: string;
+      /** @description Name of the project that owns the target component */
+      project: string;
+      /** @description Name of the target component */
+      component: string;
+      /** @description Name of the endpoint on the target component */
+      endpoint: string;
+      /** @description Describes why the connection could not be resolved */
+      reason: string;
     };
     /** @description Resolved URLs for a single named workload endpoint */
     EndpointURLStatus: {
@@ -4081,6 +4440,375 @@ export interface components {
       /** @description File content */
       value?: string;
       valueFrom?: components['schemas']['EnvVarValueFrom'];
+    };
+    /** @description Reference to a specific key in a Kubernetes Secret on the data plane. */
+    ResourceSecretKeyRef: {
+      /**
+       * @description Secret name (supports ${...} CEL templating in ResourceType outputs)
+       * @example analytics-shared-db-conn
+       */
+      name: string;
+      /**
+       * @description Key within the Secret
+       * @example password
+       */
+      key: string;
+    };
+    /** @description Reference to a specific key in a Kubernetes ConfigMap on the data plane. */
+    ResourceConfigMapKeyRef: {
+      /**
+       * @description ConfigMap name (supports ${...} CEL templating in ResourceType outputs)
+       * @example analytics-shared-db-tls
+       */
+      name: string;
+      /**
+       * @description Key within the ConfigMap
+       * @example ca.crt
+       */
+      key: string;
+    };
+    /**
+     * @description Single output declaration of a (Cluster)ResourceType. Exactly one of
+     *     value, secretKeyRef, or configMapKeyRef must be set. Output value, name,
+     *     and key fields support ${...} CEL templating evaluated against
+     *     metadata.*, parameters.*, environmentConfigs.*, and applied.<id>.status.*.
+     */
+    ResourceTypeOutput: {
+      /**
+       * @description Unique output name. Referenced by Workload.spec.dependencies.resources[].envBindings and fileBindings keys.
+       * @example host
+       */
+      name: string;
+      /**
+       * @description Literal or ${...} CEL expression. Use only for non-sensitive data; the resolved value transits to the control plane.
+       * @example ${applied.claim.status.host}
+       */
+      value?: string;
+      secretKeyRef?: components['schemas']['ResourceSecretKeyRef'];
+      configMapKeyRef?: components['schemas']['ResourceConfigMapKeyRef'];
+    };
+    /**
+     * @description Kubernetes resource template emitted by the (Cluster)ResourceType
+     *     provisioner on the data plane. The template body, includeWhen, and
+     *     readyWhen support ${...} CEL templating against metadata.*, parameters.*,
+     *     environmentConfigs.*, and dataplane.* (plus applied.<id>.* for readyWhen).
+     */
+    ResourceTypeManifest: {
+      /**
+       * @description Unique entry identifier within the (Cluster)ResourceType. Referenced by readyWhen and outputs CEL via applied.<id>.status.*.
+       * @example claim
+       */
+      id: string;
+      /**
+       * @description Optional ${...}-wrapped CEL expression. When false, the entry is skipped entirely.
+       * @example ${parameters.tlsEnabled}
+       */
+      includeWhen?: string;
+      /** @description Kubernetes resource body with ${...} CEL substitutions. */
+      template: {
+        [key: string]: unknown;
+      };
+      /**
+       * @description Optional ${...}-wrapped CEL expression. When set, drives the entry's contribution to ResourceReleaseBinding.status.conditions[ResourcesReady]; otherwise per-Kind health inference is used.
+       * @example ${applied.claim.status.conditions.exists(c, c.type == 'Ready' && c.status == 'True')}
+       */
+      readyWhen?: string;
+    };
+    /** @description Desired state of a (Cluster)ResourceType. */
+    ResourceTypeSpec: {
+      parameters?: components['schemas']['SchemaSection'];
+      environmentConfigs?: components['schemas']['SchemaSection'];
+      /**
+       * @description Default retention for ResourceReleaseBindings of this type. Per-env override available on the binding.
+       * @default Delete
+       * @example Delete
+       * @enum {string}
+       */
+      retainPolicy: 'Delete' | 'Retain';
+      /** @description Outputs that workloads consume via dependencies.resources[].envBindings or fileBindings. */
+      outputs?: components['schemas']['ResourceTypeOutput'][];
+      /** @description Kubernetes manifests the (Cluster)ResourceType provisioner emits on the data plane. */
+      resources: components['schemas']['ResourceTypeManifest'][];
+    };
+    /** @description Paginated list of cluster resource types */
+    ClusterResourceTypeList: {
+      items: components['schemas']['ClusterResourceType'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description ClusterResourceType resource.
+     *     Cluster-scoped sibling of ResourceType. Resources in any namespace can reference it.
+     */
+    ClusterResourceType: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ClusterResourceType
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ResourceTypeSpec'];
+      /** @description ClusterResourceType status (currently empty) */
+      readonly status?: Record<string, never>;
+    };
+    /** @description Paginated list of resource types */
+    ResourceTypeList: {
+      items: components['schemas']['ResourceType'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description ResourceType resource.
+     *     PE-published template scoped to a namespace. Developers reference it from Resource.spec.type.
+     */
+    ResourceType: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ResourceType
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ResourceTypeSpec'];
+      /** @description ResourceType status (currently empty) */
+      readonly status?: Record<string, never>;
+    };
+    /** @description Paginated list of resources */
+    ResourceInstanceList: {
+      items: components['schemas']['ResourceInstance'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description Resource.
+     *     Developer-facing intent for a managed-infrastructure dependency (database,
+     *     queue, cache, object storage). References a ResourceType or ClusterResourceType template.
+     */
+    ResourceInstance: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource (always "Resource" on the wire; see schema name)
+       * @example Resource
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ResourceInstanceSpec'];
+      readonly status?: components['schemas']['ResourceInstanceStatus'];
+    };
+    /** @description Desired state of a Resource. spec.owner and spec.type are immutable after creation. */
+    ResourceInstanceSpec: {
+      /** @description Identifies the project that owns this Resource. */
+      owner: {
+        /**
+         * @description Parent project name
+         * @example analytics
+         */
+        projectName: string;
+      };
+      type: components['schemas']['ResourceTypeRef'];
+      /** @description Values for the parameter schema declared on the referenced (Cluster)ResourceType. Validated by the controller. */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description Observed state of a Resource. */
+    ResourceInstanceStatus: {
+      /**
+       * Format: int64
+       * @description Most recent generation observed by the controller
+       */
+      observedGeneration?: number;
+      /** @description Latest available observations of the Resource's state. Includes Ready and Finalizing. */
+      conditions?: components['schemas']['Condition'][];
+      /** @description Most recent ResourceRelease for this Resource. Used as the promote source for ResourceReleaseBinding pin advance. */
+      latestRelease?: {
+        /**
+         * @description Name of the ResourceRelease resource
+         * @example analytics-shared-db-abc123
+         */
+        name: string;
+        /**
+         * @description Content hash of Resource.spec + (Cluster)ResourceType.spec captured at release time
+         * @example abc123
+         */
+        hash: string;
+      };
+    };
+    /** @description Reference to a ResourceType or ClusterResourceType template. */
+    ResourceTypeRef: {
+      /**
+       * @description Resource type kind. Defaults to ResourceType (namespaced).
+       * @default ResourceType
+       * @enum {string}
+       */
+      kind: 'ResourceType' | 'ClusterResourceType';
+      /**
+       * @description Template name.
+       * @example mysql
+       */
+      name: string;
+    };
+    /** @description Paginated list of resource releases */
+    ResourceReleaseList: {
+      items: components['schemas']['ResourceRelease'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description ResourceRelease resource.
+     *     Immutable snapshot of Resource.spec and the referenced (Cluster)ResourceType.spec
+     *     at the time it was cut. Created by the Resource controller; spec is immutable.
+     */
+    ResourceRelease: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ResourceRelease
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ResourceReleaseSpec'];
+      /** @description ResourceRelease status (currently empty, immutable after creation) */
+      readonly status?: Record<string, never>;
+    };
+    /** @description Desired state of a ResourceRelease. Immutable after creation. */
+    ResourceReleaseSpec: {
+      /** @description Identifies the resource and project this ResourceRelease belongs to. */
+      owner: {
+        /**
+         * @description Parent project name
+         * @example analytics
+         */
+        projectName: string;
+        /**
+         * @description Parent resource name
+         * @example analytics-shared-db
+         */
+        resourceName: string;
+      };
+      /** @description Frozen snapshot of the referenced (Cluster)ResourceType. */
+      resourceType: {
+        /**
+         * @description Source kind (ResourceType or ClusterResourceType)
+         * @enum {string}
+         */
+        kind: 'ResourceType' | 'ClusterResourceType';
+        /**
+         * @description Source resource type name
+         * @example mysql
+         */
+        name: string;
+        spec: components['schemas']['ResourceTypeSpec'];
+      };
+      /** @description Snapshot of parameter values from Resource.spec at release time. */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description Paginated list of resource release bindings */
+    ResourceReleaseBindingList: {
+      items: components['schemas']['ResourceReleaseBinding'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description ResourceReleaseBinding resource.
+     *     Pins a ResourceRelease to an Environment and carries per-env config overrides.
+     *     Authored externally; not managed by the Resource controller.
+     */
+    ResourceReleaseBinding: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ResourceReleaseBinding
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ResourceReleaseBindingSpec'];
+      readonly status?: components['schemas']['ResourceReleaseBindingStatus'];
+    };
+    /**
+     * @description Desired state of a ResourceReleaseBinding. spec.owner and spec.environment
+     *     are immutable after creation. spec.resourceRelease is the promote pin and is
+     *     advanced manually via `occ resource promote` or kubectl edit.
+     */
+    ResourceReleaseBindingSpec: {
+      /** @description Identifies the resource and project this binding belongs to. */
+      owner: {
+        /**
+         * @description Parent project name
+         * @example analytics
+         */
+        projectName: string;
+        /**
+         * @description Parent resource name
+         * @example analytics-shared-db
+         */
+        resourceName: string;
+      };
+      /**
+       * @description Target environment name. Immutable after creation.
+       * @example dev
+       */
+      environment: string;
+      /**
+       * @description Pinned ResourceRelease name. Advanced manually (e.g. via `occ resource promote`).
+       * @example analytics-shared-db-abc123
+       */
+      resourceRelease?: string;
+      /**
+       * @description Per-env override for retention. Falls back to ResourceType.spec.retainPolicy when unset.
+       * @example Delete
+       * @enum {string}
+       */
+      retainPolicy?: 'Delete' | 'Retain';
+      /** @description Per-environment values for ResourceType.spec.environmentConfigs. */
+      resourceTypeEnvironmentConfigs?: {
+        [key: string]: unknown;
+      };
+    };
+    /**
+     * @description Resolved output value populated by the binding controller after evaluating
+     *     the ResourceType output CEL against the applied DP-side objects. Exactly one
+     *     of value, secretKeyRef, or configMapKeyRef is set, matching the source
+     *     declaration on ResourceType.spec.outputs.
+     */
+    ResolvedResourceOutput: {
+      /**
+       * @description Output name. Matches the declared output name on the referenced ResourceType.
+       * @example host
+       */
+      name: string;
+      /**
+       * @description Resolved literal value when the source output is declared with `value:`.
+       * @example 10.0.0.5
+       */
+      value?: string;
+      secretKeyRef?: components['schemas']['ResourceSecretKeyRef'];
+      configMapKeyRef?: components['schemas']['ResourceConfigMapKeyRef'];
+    };
+    /** @description Observed state of a ResourceReleaseBinding. */
+    ResourceReleaseBindingStatus: {
+      /** @description Latest available observations of the binding's state. Includes Synced, ResourcesReady, OutputsResolved, Ready (aggregate), and Finalizing. */
+      conditions?: components['schemas']['Condition'][];
+      /** @description Resolved outputs for this environment, populated from the underlying RenderedRelease.status by the binding controller. */
+      outputs?: components['schemas']['ResolvedResourceOutput'][];
     };
     /**
      * @description RenderedRelease resource.
@@ -4521,10 +5249,28 @@ export interface components {
        */
       component?: string;
     };
+    /** @description Action-scoped mapping condition attached to a role mapping inside a binding. It constrains only the actions listed in the "actions" property and does not enable or disable the entire mapping or binding; all other actions in the mapping remain unaffected by this condition. */
+    AuthzCondition: {
+      /**
+       * @description List of actions this condition applies to. Supports exact match (e.g. "releasebinding:create") and wildcards (e.g. "releasebinding:*").
+       * @example [
+       *       "releasebinding:create",
+       *       "releasebinding:*"
+       *     ]
+       */
+      actions: string[];
+      /**
+       * @description CEL expression that must evaluate to true for the action to be permitted. Example: resource.environment in ["dev", "staging"]
+       * @example resource.environment in ["dev", "staging"]
+       */
+      expression: string;
+    };
     /** @description Pairs a role reference with an optional scope */
     AuthzRoleMapping: {
       roleRef: components['schemas']['AuthzRoleRef'];
       scope?: components['schemas']['AuthzScope'];
+      /** @description Per-role-mapping conditions that restrict specific actions within this role mapping in the binding. Each condition only affects the actions listed in its "actions" property and does not enable or disable the mapping or binding as a whole. */
+      conditions?: components['schemas']['AuthzCondition'][];
     };
     /** @description Target resource scope for cluster-scoped bindings (namespace/project/component) */
     AuthzClusterScope: {
@@ -4554,6 +5300,8 @@ export interface components {
         kind?: 'ClusterAuthzRole';
       };
       scope?: components['schemas']['AuthzClusterScope'];
+      /** @description Per-role-mapping conditions that restrict specific actions within this role mapping in the binding. Each condition only affects the actions listed in its "actions" property and does not enable or disable the mapping or binding as a whole. */
+      conditions?: components['schemas']['AuthzCondition'][];
     };
     /** @description Entitlement with claim and value */
     Entitlement: {
@@ -4568,7 +5316,16 @@ export interface components {
        */
       value: string;
     };
-    /** @description Resource hierarchy scope */
+    /**
+     * @description Resource hierarchy scope. Authoritative validation lives on the
+     *     AuthzRoleBinding / ClusterAuthzRoleBinding CRD CEL rules; this schema
+     *     documents the same invariants for clients:
+     *     - `project` is required when `component` or `resource` is set
+     *     - `component` and `resource` are mutually exclusive (siblings under `project`)
+     *
+     *     Hierarchies that violate these invariants are treated as no-match by
+     *     the authz engine rather than rejected on the wire.
+     */
     ResourceHierarchy: {
       /**
        * @description Namespace name
@@ -4585,10 +5342,22 @@ export interface components {
        * @example api-service
        */
       component?: string;
+      /**
+       * @description Resource name (sibling of component under project)
+       * @example analytics-shared-db
+       */
+      resource?: string;
     };
     /** @description Additional context for authorization */
     AuthzContext: {
-      [key: string]: unknown;
+      /** @description Resource-level attributes for condition evaluation */
+      resource?: {
+        /**
+         * @description Target deployment environment (e.g. "dev", "staging", "prod")
+         * @example dev
+         */
+        environment?: string;
+      };
     };
     /** @description Authenticated subject context */
     SubjectContext: {
@@ -4653,6 +5422,19 @@ export interface components {
         reason?: string;
       };
     };
+    /** @description An ABAC attribute available for CEL condition expressions on an action. */
+    ConditionAttribute: {
+      /**
+       * @description Full dotted path of the attribute (e.g. "resource.environment").
+       * @example resource.environment
+       */
+      key: string;
+      /**
+       * @description Human-readable description of the attribute.
+       * @example Environment associated with the resource
+       */
+      description: string;
+    };
     /** @description An authorization action with its scope in the resource hierarchy. */
     ActionInfo: {
       /**
@@ -4661,11 +5443,18 @@ export interface components {
        */
       name: string;
       /**
-       * @description The lowest resource hierarchy level at which this action is evaluated. One of cluster, namespace, project, or component.
+       * @description The lowest resource hierarchy level at which this action is evaluated. One of cluster, namespace, project, component, or resource.
        * @example component
        * @enum {string}
        */
-      lowestScope: 'cluster' | 'namespace' | 'project' | 'component';
+      lowestScope:
+        | 'cluster'
+        | 'namespace'
+        | 'project'
+        | 'component'
+        | 'resource';
+      /** @description ABAC attributes available for CEL condition expressions on this action. Empty means no conditions are supported. */
+      conditions?: components['schemas']['ConditionAttribute'][];
     };
     /** @description Capabilities for a specific action */
     ActionCapability: {
@@ -4674,6 +5463,17 @@ export interface components {
       /** @description Resources where action is denied */
       denied?: components['schemas']['CapabilityResource'][];
     };
+    /** @description CEL expressions constraining access for a given action and resource path. Multiple expressions are OR'd. */
+    CapabilityConstraints: {
+      /**
+       * @description CEL expressions; access is granted if any one evaluates to true
+       * @example [
+       *       "resource.environment == \"prod\"",
+       *       "resource.environment == \"staging\""
+       *     ]
+       */
+      expressions?: string[];
+    };
     /** @description Resource with permission details */
     CapabilityResource: {
       /**
@@ -4681,10 +5481,7 @@ export interface components {
        * @example namespace/acme/project/payment
        */
       path?: string;
-      /** @description Additional instance-level restrictions */
-      constraints?: {
-        [key: string]: unknown;
-      };
+      constraints?: components['schemas']['CapabilityConstraints'];
     };
     /** @description User authorization profile response */
     UserCapabilitiesResponse: {
@@ -4699,254 +5496,6 @@ export interface components {
        * @example 2025-01-06T10:00:00Z
        */
       evaluatedAt?: string;
-    };
-    /** @description Authorization role with permitted actions (legacy) */
-    Role: {
-      /**
-       * @description Unique role name
-       * @example admin
-       */
-      name: string;
-      /**
-       * @description List of actions this role permits
-       * @example [
-       *       "read",
-       *       "write",
-       *       "delete"
-       *     ]
-       */
-      actions: string[];
-      /**
-       * @description Namespace for namespace-scoped roles, empty for cluster roles
-       * @example my-namespace
-       */
-      namespace?: string;
-      /**
-       * @description Human-readable description of the role
-       * @example Full administrative access
-       */
-      description?: string;
-    };
-    /** @description Request to update a role's actions (legacy) */
-    UpdateRoleRequest: {
-      /**
-       * @description New list of actions for the role
-       * @example [
-       *       "read",
-       *       "write"
-       *     ]
-       */
-      actions: string[];
-    };
-    /** @description Target resource path within a namespace (project/component only) (legacy) */
-    TargetPath: {
-      /**
-       * @description Project name
-       * @example my-project
-       */
-      project?: string;
-      /**
-       * @description Component name
-       * @example api-service
-       */
-      component?: string;
-    };
-    /** @description Mapping of a role to an entitlement within a scope (legacy) */
-    RoleEntitlementMapping: {
-      /**
-       * @description Unique mapping name
-       * @example admin-binding
-       */
-      name: string;
-      role: components['schemas']['RoleRef'];
-      entitlement: components['schemas']['Entitlement'];
-      hierarchy: components['schemas']['ResourceHierarchy'];
-      /**
-       * @description Policy effect (allow or deny)
-       * @default allow
-       * @example allow
-       * @enum {string}
-       */
-      effect: 'allow' | 'deny';
-      context?: components['schemas']['AuthzContext'];
-    };
-    /** @description Request to update a role mapping (legacy) */
-    UpdateRoleMappingRequest: {
-      role: components['schemas']['RoleRef'];
-      entitlement: components['schemas']['Entitlement'];
-      hierarchy: components['schemas']['ResourceHierarchy'];
-      /**
-       * @description Policy effect (allow or deny)
-       * @default allow
-       * @example allow
-       * @enum {string}
-       */
-      effect: 'allow' | 'deny';
-      context?: components['schemas']['AuthzContext'];
-    };
-    /** @description Reference to a cluster role by name only (legacy) */
-    ClusterRoleRef: {
-      /**
-       * @description Cluster role name
-       * @example admin
-       */
-      name: string;
-    };
-    /** @description Reference to a role by name and namespace (legacy) */
-    RoleRef: {
-      /**
-       * @description Role name
-       * @example developer
-       */
-      name: string;
-      /**
-       * @description Namespace for namespace-scoped roles, empty for cluster roles
-       * @example my-namespace
-       */
-      namespace?: string;
-    };
-    /** @description Request to create a cluster-scoped role (legacy) */
-    CreateClusterRoleRequest: {
-      /**
-       * @description Unique cluster role name
-       * @example cluster-admin
-       */
-      name: string;
-      /**
-       * @description List of actions this role permits
-       * @example [
-       *       "read",
-       *       "write",
-       *       "delete"
-       *     ]
-       */
-      actions: string[];
-      /**
-       * @description Human-readable description of the role
-       * @example Full cluster administration access
-       */
-      description?: string;
-    };
-    /** @description Request to update a cluster role (legacy) */
-    UpdateClusterRoleRequest: {
-      /**
-       * @description List of actions this role permits
-       * @example [
-       *       "read",
-       *       "write"
-       *     ]
-       */
-      actions: string[];
-      /**
-       * @description Human-readable description of the role
-       * @example Updated cluster admin role
-       */
-      description?: string;
-    };
-    /** @description Request to create a cluster-scoped role binding (legacy, single mapping only) */
-    CreateClusterRoleBindingRequest: {
-      /**
-       * @description Unique cluster role binding name
-       * @example admin-binding
-       */
-      name: string;
-      entitlement: components['schemas']['Entitlement'];
-      /**
-       * @description Cluster role name
-       * @example admin
-       */
-      role: string;
-      /**
-       * @description Policy effect (allow or deny)
-       * @default allow
-       * @example allow
-       * @enum {string}
-       */
-      effect: 'allow' | 'deny';
-    };
-    /** @description Request to update a cluster role binding (legacy, single mapping only) */
-    UpdateClusterRoleBindingRequest: {
-      entitlement: components['schemas']['Entitlement'];
-      /**
-       * @description Cluster role name
-       * @example admin
-       */
-      role: string;
-      /**
-       * @description Policy effect (allow or deny)
-       * @default allow
-       * @example allow
-       * @enum {string}
-       */
-      effect: 'allow' | 'deny';
-    };
-    /** @description Request to create a namespace-scoped role (legacy) */
-    CreateNamespaceRoleRequest: {
-      /**
-       * @description Unique namespace role name
-       * @example developer
-       */
-      name: string;
-      /**
-       * @description List of actions this role permits
-       * @example [
-       *       "read",
-       *       "write"
-       *     ]
-       */
-      actions: string[];
-      /**
-       * @description Human-readable description of the role
-       * @example Developer access within namespace
-       */
-      description?: string;
-    };
-    /** @description Request to update a namespace role (legacy) */
-    UpdateNamespaceRoleRequest: {
-      /**
-       * @description List of actions this role permits
-       * @example [
-       *       "read",
-       *       "write"
-       *     ]
-       */
-      actions: string[];
-      /**
-       * @description Human-readable description of the role
-       * @example Updated developer role
-       */
-      description?: string;
-    };
-    /** @description Request to create a namespace-scoped role binding (legacy, single mapping only) */
-    CreateNamespaceRoleBindingRequest: {
-      /**
-       * @description Unique namespace role binding name
-       * @example developer-binding
-       */
-      name: string;
-      entitlement: components['schemas']['Entitlement'];
-      role: components['schemas']['RoleRef'];
-      targetPath?: components['schemas']['TargetPath'];
-      /**
-       * @description Policy effect (allow or deny)
-       * @default allow
-       * @example allow
-       * @enum {string}
-       */
-      effect: 'allow' | 'deny';
-    };
-    /** @description Request to update a namespace role binding (legacy, single mapping only) */
-    UpdateNamespaceRoleBindingRequest: {
-      entitlement: components['schemas']['Entitlement'];
-      role: components['schemas']['RoleRef'];
-      targetPath: components['schemas']['TargetPath'];
-      /**
-       * @description Policy effect (allow or deny)
-       * @default allow
-       * @example allow
-       * @enum {string}
-       */
-      effect: 'allow' | 'deny';
     };
     /** @description Response after processing a webhook event */
     WebhookEventResponse: {
@@ -5146,10 +5695,16 @@ export interface components {
       endpoints?: {
         [key: string]: components['schemas']['WorkloadEndpoint'];
       };
-      /** @description Dependencies on other components' endpoints */
+      /** @description Dependencies on other components' endpoints and on Resources */
       dependencies?: {
         /** @description Endpoint connections to other components */
         endpoints?: components['schemas']['WorkloadConnection'][];
+        /**
+         * @description Resource dependencies. Each entry references a Resource by name and wires named
+         *     outputs of the resolved ResourceReleaseBinding into the container as env vars
+         *     (envBindings) and file mounts (fileBindings).
+         */
+        resources?: components['schemas']['WorkloadResourceDependency'][];
       };
     };
     /** @description Observed state of a Workload */
@@ -5223,6 +5778,31 @@ export interface components {
       /** @description Env var name for just the base path */
       basePath?: string;
     };
+    /**
+     * @description Dependency on a Resource. Output names declared on the referenced ResourceType are wired
+     *     into the consuming container as env vars (envBindings) and file mounts (fileBindings).
+     *     Outputs not listed in either map are ignored.
+     */
+    WorkloadResourceDependency: {
+      /** @description Name of the Resource to consume. */
+      ref: string;
+      /**
+       * @description Maps a ResourceType output name to a container environment variable name. The
+       *     output's source kind (value, secretKeyRef, configMapKeyRef) determines whether the
+       *     resulting env var is a literal or a valueFrom reference.
+       */
+      envBindings?: {
+        [key: string]: string;
+      };
+      /**
+       * @description Maps a ResourceType output name to a container mount path. The referenced output's
+       *     source kind must be secretKeyRef or configMapKeyRef; value-kind outputs cannot be
+       *     mounted as files because there is no DP-side object to mount.
+       */
+      fileBindings?: {
+        [key: string]: string;
+      };
+    };
     /** @description Paginated list of deployment pipelines */
     DeploymentPipelineList: {
       items: components['schemas']['DeploymentPipeline'][];
@@ -5276,7 +5856,7 @@ export interface components {
       /** @description Target environments for promotion */
       targetEnvironmentRefs: components['schemas']['TargetEnvironmentRef'][];
     };
-    /** @description Target environment reference with approval settings */
+    /** @description Target environment reference */
     TargetEnvironmentRef: {
       /**
        * @description Kind of environment resource
@@ -5289,16 +5869,6 @@ export interface components {
        * @example staging
        */
       name: string;
-      /**
-       * @description Whether promotion requires approval
-       * @example false
-       */
-      requiresApproval?: boolean;
-      /**
-       * @description Whether manual approval is required
-       * @example true
-       */
-      isManualApprovalRequired?: boolean;
     };
     /** @description Paginated list of observability alerts notification channels */
     ObservabilityAlertsNotificationChannelList: {
@@ -5567,42 +6137,76 @@ export interface components {
       data: {
         [key: string]: string;
       };
+      /**
+       * @description Labels applied as Kubernetes labels on the underlying
+       *     SecretReference. Keys in the openchoreo.dev/ namespace are
+       *     reserved and rejected.
+       * @example {
+       *       "team": "payments"
+       *     }
+       */
+      labels?: {
+        [key: string]: string;
+      };
     };
-    /** @description Request body for updating a secret */
+    /**
+     * @description Request body for replacing a secret's data. The data map is the final
+     *     state; keys present in the existing secret but absent here are pruned.
+     */
     UpdateSecretRequest: {
       /**
-       * @description New map of secret keys to plaintext values. Replaces all existing keys.
+       * @description Map of secret keys to plaintext values. Required keys depend on
+       *     the secret's existing type.
        * @example {
        *       "username": "alice",
-       *       "password": "r0tated"
+       *       "password": "s3cret"
        *     }
        */
       data: {
         [key: string]: string;
       };
+      /**
+       * @description Labels applied as Kubernetes labels on the underlying
+       *     SecretReference. The supplied map replaces all user-set labels;
+       *     keys in the openchoreo.dev/ namespace are reserved and rejected.
+       * @example {
+       *       "team": "payments"
+       *     }
+       */
+      labels?: {
+        [key: string]: string;
+      };
     };
-    /** @description Secret resource. Values are never returned, only key names. */
-    SecretResponse: {
+    /**
+     * @description Kubernetes Secret. Wire shape matches `corev1.Secret`: `data` is a map
+     *     of keys to base64-encoded values.
+     */
+    Secret: {
+      /** @example v1 */
+      apiVersion: string;
+      /** @example Secret */
+      kind: string;
+      metadata: components['schemas']['ObjectMeta'];
+      type: components['schemas']['SecretType'];
       /**
-       * @description Name of the secret
-       * @example my-secret
+       * @description Map of secret keys to base64-encoded values. Matches the
+       *     Kubernetes Secret `data` field semantics.
+       * @example {
+       *       "username": "YWxpY2U=",
+       *       "password": "czNjcmV0"
+       *     }
        */
-      name?: string;
-      /**
-       * @description Namespace of the secret
-       * @example my-namespace
-       */
-      namespace?: string;
-      secretType?: components['schemas']['SecretType'];
-      targetPlane?: components['schemas']['TargetPlaneRef'];
-      /**
-       * @description Sorted list of keys present in the secret data
-       * @example [
-       *       "password",
-       *       "username"
-       *     ]
-       */
-      keys?: string[];
+      data?: {
+        [key: string]: string;
+      };
+      /** @description Whether the secret is immutable. */
+      immutable?: boolean;
+    };
+    /** @description Paginated list of secrets. */
+    ListSecretsResponse: {
+      /** @description Page of secrets. */
+      items: components['schemas']['Secret'][];
+      pagination: components['schemas']['Pagination'];
     };
   };
   responses: {
@@ -5642,7 +6246,7 @@ export interface components {
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
-    /** @description Insufficient permissions to access the resource */
+    /** @description Insufficient permissions to perform the operation */
     Forbidden: {
       headers: {
         [name: string]: unknown;
@@ -5650,7 +6254,7 @@ export interface components {
       content: {
         /**
          * @example {
-         *       "error": "You do not have permission to access this resource",
+         *       "error": "You do not have permission to perform this operation",
          *       "code": "FORBIDDEN"
          *     }
          */
@@ -5687,6 +6291,27 @@ export interface components {
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
+    /** @description Request body is well-formed but failed validation */
+    UnprocessableContent: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "spec.outputs[0].value: undeclared reference to 'applied'",
+         *       "code": "UNPROCESSABLE_CONTENT",
+         *       "details": [
+         *         {
+         *           "field": "spec.outputs[0].value",
+         *           "message": "undeclared reference to 'applied'"
+         *         }
+         *       ]
+         *     }
+         */
+        'application/json': components['schemas']['ErrorResponse'];
+      };
+    };
     /** @description Internal server error */
     InternalError: {
       headers: {
@@ -5697,6 +6322,21 @@ export interface components {
          * @example {
          *       "error": "Internal server error",
          *       "code": "INTERNAL_ERROR"
+         *     }
+         */
+        'application/json': components['schemas']['ErrorResponse'];
+      };
+    };
+    /** @description Feature is disabled on this server */
+    NotImplemented: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "Secret API is disabled on this server",
+         *       "code": "NOT_IMPLEMENTED"
          *     }
          */
         'application/json': components['schemas']['ErrorResponse'];
@@ -5756,6 +6396,18 @@ export interface components {
     ReleaseBindingNameParam: string;
     /** @description Component release name */
     ComponentReleaseNameParam: string;
+    /** @description ClusterResourceType name */
+    ClusterResourceTypeNameParam: string;
+    /** @description ResourceType name */
+    ResourceTypeNameParam: string;
+    /** @description Resource name */
+    ResourceNameParam: string;
+    /** @description Resource release name */
+    ResourceReleaseNameParam: string;
+    /** @description Filter resources by resource name (matches spec.owner.resourceName) */
+    ResourceQueryParam: string;
+    /** @description Resource release binding name */
+    ResourceReleaseBindingNameParam: string;
     /** @description Role name */
     RoleNameParam: string;
     /** @description Role mapping ID */
@@ -5952,6 +6604,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6011,6 +6664,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6112,6 +6766,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6176,6 +6831,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6281,6 +6937,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6356,6 +7013,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6420,6 +7078,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6522,6 +7181,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6586,6 +7246,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6688,6 +7349,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6752,6 +7414,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6854,6 +7517,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6918,6 +7582,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7014,6 +7679,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7074,6 +7740,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7168,6 +7835,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7228,6 +7896,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7322,6 +7991,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7382,6 +8052,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7476,6 +8147,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7536,6 +8208,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7657,6 +8330,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7717,6 +8391,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7844,6 +8519,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7908,6 +8584,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -8039,6 +8716,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -8103,6 +8781,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -8228,6 +8907,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -8288,6 +8968,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -8415,6 +9096,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -8479,6 +9161,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -8612,6 +9295,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -8672,6 +9356,34 @@ export interface operations {
         };
       };
       400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteWorkflowRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow run name */
+        runName: components['parameters']['WorkflowRunNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow run deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
@@ -8833,6 +9545,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -8923,6 +9636,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -8973,6 +9687,7 @@ export interface operations {
       };
       400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -8985,6 +9700,8 @@ export interface operations {
         project?: string;
         /** @description Component scope */
         component?: string;
+        /** @description Resource scope (sibling of component under project) */
+        resource?: string;
       };
       header?: never;
       path?: never;
@@ -9073,6 +9790,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -9132,6 +9850,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -9227,6 +9946,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -9287,6 +10007,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -9387,6 +10108,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -9451,6 +10173,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -9555,6 +10278,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -9620,6 +10344,7 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -9706,6 +10431,7 @@ export interface operations {
       };
       400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -9781,6 +10507,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -9844,6 +10571,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -9949,6 +10677,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -10012,6 +10741,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -10088,6 +10818,39 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  createComponentRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ComponentRelease'];
+      };
+    };
+    responses: {
+      /** @description Component release created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentRelease'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
+      500: components['responses']['InternalError'];
+    };
+  };
   getComponentRelease: {
     parameters: {
       query?: never;
@@ -10110,6 +10873,33 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ComponentRelease'];
         };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteComponentRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component release name */
+        componentReleaseName: components['parameters']['ComponentReleaseNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component release deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
@@ -10192,6 +10982,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -10255,6 +11046,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -10389,6 +11181,850 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  listClusterResourceTypes: {
+    parameters: {
+      query?: {
+        /**
+         * @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of cluster resource types */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterResourceTypeList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createClusterResourceType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterResourceType'];
+      };
+    };
+    responses: {
+      /** @description Cluster resource type created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterResourceType'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterResourceType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterResourceType name */
+        crtName: components['parameters']['ClusterResourceTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster resource type details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterResourceType'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateClusterResourceType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterResourceType name */
+        crtName: components['parameters']['ClusterResourceTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterResourceType'];
+      };
+    };
+    responses: {
+      /** @description Cluster resource type updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterResourceType'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteClusterResourceType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterResourceType name */
+        crtName: components['parameters']['ClusterResourceTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterResourceType deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterResourceTypeSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterResourceType name */
+        crtName: components['parameters']['ClusterResourceTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster resource type schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listResourceTypes: {
+    parameters: {
+      query?: {
+        /**
+         * @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of resource types */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceTypeList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createResourceType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResourceType'];
+      };
+    };
+    responses: {
+      /** @description Resource type created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceType'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getResourceType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ResourceType name */
+        rtName: components['parameters']['ResourceTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource type details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceType'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateResourceType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ResourceType name */
+        rtName: components['parameters']['ResourceTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResourceType'];
+      };
+    };
+    responses: {
+      /** @description Resource type updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceType'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteResourceType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ResourceType name */
+        rtName: components['parameters']['ResourceTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource type deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getResourceTypeSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ResourceType name */
+        rtName: components['parameters']['ResourceTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource type schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listResources: {
+    parameters: {
+      query?: {
+        /** @description Filter resources by project name */
+        project?: components['parameters']['ProjectQueryParam'];
+        /**
+         * @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of resources */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceInstanceList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createResource: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResourceInstance'];
+      };
+    };
+    responses: {
+      /** @description Resource created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceInstance'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getResource: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Resource name */
+        resourceName: components['parameters']['ResourceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceInstance'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateResource: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Resource name */
+        resourceName: components['parameters']['ResourceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResourceInstance'];
+      };
+    };
+    responses: {
+      /** @description Resource updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceInstance'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteResource: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Resource name */
+        resourceName: components['parameters']['ResourceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listResourceReleases: {
+    parameters: {
+      query?: {
+        /** @description Filter resources by resource name (matches spec.owner.resourceName) */
+        resource?: components['parameters']['ResourceQueryParam'];
+        /**
+         * @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of resource releases */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceReleaseList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createResourceRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResourceRelease'];
+      };
+    };
+    responses: {
+      /** @description Resource release created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceRelease'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getResourceRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Resource release name */
+        resourceReleaseName: components['parameters']['ResourceReleaseNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource release details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceRelease'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteResourceRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Resource release name */
+        resourceReleaseName: components['parameters']['ResourceReleaseNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource release deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listResourceReleaseBindings: {
+    parameters: {
+      query?: {
+        /** @description Filter resources by resource name (matches spec.owner.resourceName) */
+        resource?: components['parameters']['ResourceQueryParam'];
+        /**
+         * @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of resource release bindings */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceReleaseBindingList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createResourceReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResourceReleaseBinding'];
+      };
+    };
+    responses: {
+      /** @description Resource release binding created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceReleaseBinding'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getResourceReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Resource release binding name */
+        resourceReleaseBindingName: components['parameters']['ResourceReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource release binding details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceReleaseBinding'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateResourceReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Resource release binding name */
+        resourceReleaseBindingName: components['parameters']['ResourceReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ResourceReleaseBinding'];
+      };
+    };
+    responses: {
+      /** @description Resource release binding updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceReleaseBinding'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteResourceReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Resource release binding name */
+        resourceReleaseBindingName: components['parameters']['ResourceReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource release binding deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
   listDeploymentPipelines: {
     parameters: {
       query?: {
@@ -10461,6 +12097,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -10524,6 +12161,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -10626,6 +12264,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -10689,6 +12328,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -10774,6 +12414,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
     };
   };
@@ -10804,6 +12445,42 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  listSecrets: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of secrets */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ListSecretsResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+      501: components['responses']['NotImplemented'];
+    };
+  };
   createSecret: {
     parameters: {
       query?: never;
@@ -10826,14 +12503,46 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['SecretResponse'];
+          'application/json': components['schemas']['Secret'];
         };
       };
       400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
+      501: components['responses']['NotImplemented'];
+    };
+  };
+  getSecret: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Secret name */
+        secretName: components['parameters']['SecretNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Secret found */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Secret'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+      501: components['responses']['NotImplemented'];
     };
   };
   updateSecret: {
@@ -10860,14 +12569,16 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['SecretResponse'];
+          'application/json': components['schemas']['Secret'];
         };
       };
       400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
+      501: components['responses']['NotImplemented'];
     };
   };
   deleteSecret: {
@@ -10895,7 +12606,9 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      422: components['responses']['UnprocessableContent'];
       500: components['responses']['InternalError'];
+      501: components['responses']['NotImplemented'];
     };
   };
 }

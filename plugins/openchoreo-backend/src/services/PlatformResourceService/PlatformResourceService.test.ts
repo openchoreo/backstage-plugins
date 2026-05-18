@@ -127,6 +127,66 @@ describe('PlatformResourceService', () => {
       expect(result.success).toBe(true);
     });
 
+    it('fetches clusterresourcetype via new API', async () => {
+      const crt = {
+        metadata: { name: 'mysql' },
+        spec: { retainPolicy: 'Retain' },
+      };
+      mockGET.mockResolvedValueOnce(createOkResponse(crt));
+
+      const service = createService();
+      const result = await service.getResourceDefinition(
+        'clusterresourcetypes' as any,
+        '',
+        'mysql',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(crt);
+    });
+
+    it('fetches resourcetype via new API', async () => {
+      const rt = {
+        metadata: { name: 'postgres', namespace: 'test-ns' },
+        spec: { retainPolicy: 'Retain' },
+      };
+      mockGET.mockResolvedValueOnce(createOkResponse(rt));
+
+      const service = createService();
+      const result = await service.getResourceDefinition(
+        'resourcetypes' as any,
+        'test-ns',
+        'postgres',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(rt);
+    });
+
+    it('fetches resource via new API', async () => {
+      const resource = {
+        metadata: { name: 'analytics-db', namespace: 'test-ns' },
+        spec: {
+          owner: { projectName: 'my-project' },
+          type: { kind: 'ResourceType', name: 'postgres' },
+        },
+      };
+      mockGET.mockResolvedValueOnce(createOkResponse(resource));
+
+      const service = createService();
+      const result = await service.getResourceDefinition(
+        'resources' as any,
+        'test-ns',
+        'analytics-db',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(resource);
+    });
+
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(createErrorResponse());
 
@@ -176,6 +236,72 @@ describe('PlatformResourceService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.kind).toBe('Workflow');
+    });
+
+    it('updates clusterresourcetype via new API PUT', async () => {
+      const crt = {
+        metadata: { name: 'mysql' },
+        spec: { retainPolicy: 'Retain' },
+      };
+      mockPUT.mockResolvedValueOnce(createOkResponse(crt));
+
+      const service = createService();
+      const result = await service.updateResourceDefinition(
+        'clusterresourcetypes' as any,
+        '',
+        'mysql',
+        crt,
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ClusterResourceType');
+      expect(mockPUT).toHaveBeenCalledTimes(1);
+    });
+
+    it('updates resourcetype via new API PUT', async () => {
+      const rt = {
+        metadata: { name: 'postgres', namespace: 'test-ns' },
+        spec: { retainPolicy: 'Retain' },
+      };
+      mockPUT.mockResolvedValueOnce(createOkResponse(rt));
+
+      const service = createService();
+      const result = await service.updateResourceDefinition(
+        'resourcetypes' as any,
+        'test-ns',
+        'postgres',
+        rt,
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ResourceType');
+      expect(mockPUT).toHaveBeenCalledTimes(1);
+    });
+
+    it('updates resource via new API PUT', async () => {
+      const resource = {
+        metadata: { name: 'analytics-db', namespace: 'test-ns' },
+        spec: {
+          owner: { projectName: 'my-project' },
+          type: { kind: 'ResourceType', name: 'postgres' },
+        },
+      };
+      mockPUT.mockResolvedValueOnce(createOkResponse(resource));
+
+      const service = createService();
+      const result = await service.updateResourceDefinition(
+        'resources' as any,
+        'test-ns',
+        'analytics-db',
+        resource,
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('Resource');
+      expect(mockPUT).toHaveBeenCalledTimes(1);
     });
 
     it('throws on API error', async () => {
@@ -231,6 +357,60 @@ describe('PlatformResourceService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.kind).toBe('WorkflowPlane');
+    });
+
+    it('deletes clusterresourcetype via new API', async () => {
+      mockDELETE.mockResolvedValueOnce({
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
+
+      const service = createService();
+      const result = await service.deleteResourceDefinition(
+        'clusterresourcetypes' as any,
+        '',
+        'mysql',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ClusterResourceType');
+    });
+
+    it('deletes resourcetype via new API', async () => {
+      mockDELETE.mockResolvedValueOnce({
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
+
+      const service = createService();
+      const result = await service.deleteResourceDefinition(
+        'resourcetypes' as any,
+        'test-ns',
+        'postgres',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ResourceType');
+    });
+
+    it('deletes resource via new API', async () => {
+      mockDELETE.mockResolvedValueOnce({
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
+
+      const service = createService();
+      const result = await service.deleteResourceDefinition(
+        'resources' as any,
+        'test-ns',
+        'analytics-db',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('Resource');
     });
 
     it('throws on API error', async () => {

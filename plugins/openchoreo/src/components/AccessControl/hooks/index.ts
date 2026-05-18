@@ -32,4 +32,7 @@ export type {
   ClusterRoleBindingFilters,
   NamespaceRoleBindingFilters,
   PolicyEffect,
+  ActionInfo,
+  AuthzCondition,
+  ConditionAttribute,
 } from '../../../api/OpenChoreoClientApi';

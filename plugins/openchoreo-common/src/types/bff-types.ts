@@ -82,8 +82,6 @@ export interface PromotionPath {
 
 export interface TargetEnvironmentRef {
   name: string;
-  requiresApproval?: boolean;
-  isManualApprovalRequired?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -568,6 +566,53 @@ export interface ReleaseBindingCondition {
   observedGeneration?: number;
 }
 
+export interface ResourceSecretKeyRef {
+  name: string;
+  key: string;
+}
+
+export interface ResourceConfigMapKeyRef {
+  name: string;
+  key: string;
+}
+
+/**
+ * One resolved output of a ResourceReleaseBinding. Exactly one of
+ * value, secretKeyRef, or configMapKeyRef is set, matching the kind
+ * declared on the originating (Cluster)ResourceType output. Secret refs
+ * carry only {name, key} so resolved values never cross the wire.
+ */
+export interface ResolvedResourceOutput {
+  name: string;
+  value?: string;
+  secretKeyRef?: ResourceSecretKeyRef;
+  configMapKeyRef?: ResourceConfigMapKeyRef;
+}
+
+export interface ResourceReleaseBindingResponse {
+  name: string;
+  resourceName: string;
+  projectName: string;
+  namespaceName: string;
+  environment: string;
+  releaseName: string;
+  retainPolicy?: 'Delete' | 'Retain';
+  /**
+   * Per-environment parameter overrides layered over Resource.spec.parameters
+   * when the dataplane manifests are rendered.
+   */
+  resourceTypeEnvironmentConfigs?: Record<string, unknown>;
+  /** Format: date-time */
+  createdAt: string;
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  /** The Ready condition's reason */
+  statusReason?: string;
+  /** The Ready condition's human-readable message */
+  statusMessage?: string;
+  conditions?: ReleaseBindingCondition[];
+  outputs?: ResolvedResourceOutput[];
+}
+
 export interface WorkloadOverrides {
   container?: ContainerOverride;
 }
@@ -819,17 +864,6 @@ export interface RemoteReferenceInfo {
   version?: string;
 }
 
-export interface GitSecretResponse {
-  /** @description Name of the git secret */
-  name: string;
-  /** @description Namespace the secret belongs to */
-  namespace: string;
-  /** @description Kind of the workflow plane resource used */
-  workflowPlaneKind?: string;
-  /** @description Name of the workflow plane resource used */
-  workflowPlaneName?: string;
-}
-
 // ---------------------------------------------------------------------------
 // Authorization
 // ---------------------------------------------------------------------------
@@ -859,7 +893,17 @@ export type ActionCapability = {
 
 export type CapabilityResource = {
   path: string;
-  constraints?: Record<string, never>;
+  constraints?: CapabilityConstraints;
+};
+
+/**
+ * ABAC constraints that gate access to a capability entry. Multiple
+ * expressions are OR'd — access is granted when any one of them evaluates to
+ * true. Backstage cannot evaluate CEL locally; when expressions are present,
+ * the policy must delegate to POST /api/v1/authz/evaluates.
+ */
+export type CapabilityConstraints = {
+  expressions?: string[];
 };
 
 // ---------------------------------------------------------------------------

@@ -84,12 +84,30 @@ helm upgrade openchoreo-control-plane oci://ghcr.io/openchoreo/helm-charts/openc
 To develop observability plane features, port-forward the observer API:
 
 ```bash
-kubectl patch observabilityplane default --type='merge' -p '{"spec":{"observerURL":"http://localhost:9097"}}'
+kubectl patch clusterobservabilityplane default --type='merge' -p '{"spec":{"observerURL":"http://localhost:9097"}}'
 ```
 
 ```bash
 kubectl port-forward -n openchoreo-observability-plane svc/observer 9097:8080
 ```
+
+#### Receiving live catalog-sync events locally
+
+When running Backstage locally with `yarn start`, the OpenChoreo event-forwarder still posts webhooks to the in-cluster Backstage Service by default. Your local backend on `localhost:7007` will not receive them, and the catalog falls back to the periodic full sync only.
+
+To point the event-forwarder at your local Backstage:
+
+```bash
+helm upgrade openchoreo-control-plane oci://ghcr.io/openchoreo/helm-charts/openchoreo-control-plane \
+  --version 0.0.0-latest-dev \
+  --namespace openchoreo-control-plane \
+  --reuse-values \
+  --set-json 'eventForwarder.config.webhooks.endpoints=[{"url":"http://host.docker.internal:7007/api/events/http/openchoreo"}]'
+
+kubectl rollout restart deploy/event-forwarder -n openchoreo-control-plane
+```
+
+`host.docker.internal` resolves from inside the k3d node back to the host's loopback. To switch back to the in-cluster Backstage Service, repeat the command with `http://backstage:7007/api/events/http/openchoreo` as the URL.
 
 ```bash
 # Copy the pre-configured local development template
@@ -154,10 +172,15 @@ export BACKSTAGE_BASE_URL=http://localhost:3000
 export BACKEND_SECRET=your-secret-key-here
 export OPENCHOREO_API_URL=http://api.openchoreo.localhost:8080/api/v1
 export THUNDER_BASE_URL=http://thunder.openchoreo.localhost:8080
+# User sign-in client (OIDC — used by auth.providers.openchoreo-auth)
 export OPENCHOREO_AUTH_CLIENT_ID=openchoreo-backstage-client
 export OPENCHOREO_AUTH_CLIENT_SECRET=backstage-portal-secret
 export OPENCHOREO_AUTH_AUTHORIZATION_URL=http://thunder.openchoreo.localhost:8080/oauth2/authorize
 export OPENCHOREO_AUTH_TOKEN_URL=http://thunder.openchoreo.localhost:8080/oauth2/token
+# Service client (client credentials — used by background tasks such as the Catalog Provider)
+# Can be the same client as above in development, but should be a separate client in production
+export OPENCHOREO_SERVICE_CLIENT_ID=openchoreo-backstage-client
+export OPENCHOREO_SERVICE_CLIENT_SECRET=backstage-portal-secret
 export GITHUB_TOKEN=your-github-token  # Optional
 ```
 
@@ -316,6 +339,38 @@ When a feature is disabled:
 - **Overview cards** for the feature are hidden from the Overview tab
 - This approach ensures consistent navigation while clearly communicating feature availability
 
+## Catalog Sync
+
+OpenChoreo entities are synced to the Backstage catalog through two mechanisms:
+
+- **Event-driven sync**: The OpenChoreo event-forwarder watches Kubernetes resources in the control plane and posts change notifications to Backstage's events HTTP topic (`/api/events/http/openchoreo`). Backstage applies a delta update to the catalog within seconds.
+- **Periodic full sync**: A scheduled task re-fetches all OpenChoreo state and applies a full update. This catches anything missed by the event path.
+
+Both are enabled by default. If the event-driven sync is disabled, the periodic full sync becomes the only sync mechanism.
+
+### Configuration
+
+| Setting                         | Environment Variable                | Default | Description                                                                                                                         |
+| ------------------------------- | ----------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `openchoreo.events.enabled`     | `OPENCHOREO_EVENTS_ENABLED`         | `true`  | Enables event-driven catalog sync. When `false`, the entity provider runs in poll-only mode. Should match `eventForwarder.enabled`. |
+| `openchoreo.schedule.frequency` | `OPENCHOREO_CATALOG_SYNC_FREQUENCY` | `300`   | Seconds between periodic full syncs. Lower the value when `eventForwarder.enabled` is `false`.                                      |
+
+The events HTTP topic is registered in `app-config.yaml` (`events.http.topics: [openchoreo]`). When running Backstage locally, see [Receiving live catalog-sync events locally](#receiving-live-catalog-sync-events-locally) for pointing the event-forwarder at your local backend.
+
+**Production (Helm):**
+
+The Helm chart automatically injects these environment variables. You can configure them via Helm values:
+
+```yaml
+backstage:
+  catalogSync:
+    frequency: 300
+  events:
+    enabled: true
+eventForwarder:
+  enabled: true
+```
+
 ## External CI Platform Integration
 
 OpenChoreo includes built-in support for viewing CI build status from external platforms directly in Backstage.
@@ -411,6 +466,68 @@ When annotations are present, you'll see:
 - **Dedicated tabs** (Jenkins, GitHub Actions, or GitLab) with full build history
 
 For detailed setup instructions, see the [External CI Integration Guide](https://openchoreo.dev/docs/platform-engineer-guide/workflows/external-ci/).
+
+## Releasing
+
+Releases are tag-driven. Pushing a `v*.*.*` tag triggers the [release workflow](.github/workflows/release.yml), which retags the Docker image in GHCR **and** publishes every public `@openchoreo/*` package to GitHub Packages (`https://npm.pkg.github.com`). Authentication uses the auto-issued `GITHUB_TOKEN` — no extra secrets needed.
+
+### Cutting a release
+
+1. **Accumulate changesets** as PRs land on `main`. Run `yarn changeset` whenever a PR introduces a user-visible change; commit the generated `.changeset/*.md` file.
+
+2. **Open a "Version Packages" PR** when ready to release:
+
+   ```bash
+   git checkout -b release/version-bump
+   yarn release:version   # consumes .changeset/*.md, bumps versions, regenerates CHANGELOGs
+   git add -A && git commit -m "chore: version packages"
+   git push -u origin release/version-bump
+   ```
+
+   The 13 packages in the `linked` group in `.changeset/config.json` bump together. Review the PR carefully — version bumps are inferred from the changeset bump types (`patch` / `minor` / `major`).
+
+3. **Merge** the version PR to `main`.
+
+4. **Tag the merge commit and push**:
+
+   ```bash
+   git checkout main && git pull
+   git tag v0.4.0           # stable release
+   # or: git tag v0.4.0-rc.1  # prerelease
+   git push origin v0.4.0
+   ```
+
+5. **CI publishes**. The release workflow:
+   - Retags the existing Docker image (built earlier on the `main` push) to `vX.Y.Z` in GHCR.
+   - Runs `yarn install --immutable && yarn build:all && yarn release:publish` to publish npm packages to GitHub Packages.
+   - On **stable** tags (`vX.Y.Z`) publishes under the `latest` npm dist-tag.
+   - On **prerelease** tags (`vX.Y.Z-rc.N`, `vX.Y.Z-test.N`, etc. — any tag containing a hyphen) publishes under the `next` dist-tag, leaving `latest` untouched.
+
+### Verifying a release
+
+```bash
+yarn npm info @openchoreo/backstage-plugin --registry=https://npm.pkg.github.com
+yarn npm info @openchoreo/backstage-design-system --registry=https://npm.pkg.github.com
+```
+
+Both should show the new version. Confirm under `dist-tags` that stable releases moved `latest` and prereleases moved `next`.
+
+### Re-running a tag
+
+`changeset publish` is idempotent — re-running the workflow on an already-published tag skips packages whose versions already exist on the registry and exits cleanly. Useful when a transient failure leaves some packages published and others not.
+
+### One-time local dry run
+
+Before the first real release, validate the publish path locally:
+
+```bash
+export YARN_NPM_AUTH_TOKEN=<a classic PAT with write:packages on the openchoreo org>
+yarn install --immutable
+yarn build:all
+yarn changeset publish --dry-run
+```
+
+Output should list exactly the 13 public `@openchoreo/*` packages targeting `https://npm.pkg.github.com`. No `"private": true` package should appear.
 
 ## Documentation
 

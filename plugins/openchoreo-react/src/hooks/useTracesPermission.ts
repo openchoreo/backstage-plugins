@@ -1,7 +1,7 @@
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
-import { usePermission } from '@backstage/plugin-permission-react';
 import { openchoreoTracesViewPermission } from '@openchoreo/backstage-plugin-common';
+import { useEnvScopedPermission } from './useEnvScopedPermission';
 
 /**
  * Result of the useTracesPermission hook.
@@ -17,15 +17,29 @@ export interface UseTracesPermissionResult {
   permissionName: string;
 }
 
-export const useTracesPermission = (): UseTracesPermissionResult => {
+/**
+ * Hook for checking if the current user has permission to view traces
+ * for the current entity.
+ *
+ * @param environment - Optional environment name. When supplied, the check
+ *   also honors ABAC `resource.environment` CEL constraints (issue #3408).
+ */
+export const useTracesPermission = (
+  environment?: string,
+): UseTracesPermissionResult => {
   const { entity } = useEntity();
-  const { allowed, loading } = usePermission({
+  const { allowed, loading } = useEnvScopedPermission({
     permission: openchoreoTracesViewPermission,
     resourceRef: stringifyEntityRef(entity),
+    environment,
   });
 
-  const deniedTooltip =
-    !allowed && !loading ? 'You do not have permission to view traces.' : '';
+  let deniedTooltip = '';
+  if (!allowed && !loading) {
+    deniedTooltip = environment
+      ? `You do not have permission to view traces in ${environment}.`
+      : 'You do not have permission to view traces.';
+  }
 
   return {
     canViewTraces: allowed,

@@ -123,4 +123,10 @@ backend.add(import('@backstage-community/plugin-jenkins-backend'));
 backend.add(
   import('@openchoreo/backstage-plugin-openchoreo-workflows-backend'),
 );
+// Portal Assistant backend — forwards Portal Assistant frontend traffic to the
+// portal-assistant service in the OpenChoreo control plane. Plugin
+// self-disables when openchoreo.portalAssistantUrl is not set.
+backend.add(
+  import('@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend'),
+);
 backend.start();

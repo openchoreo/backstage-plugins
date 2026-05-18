@@ -3,6 +3,7 @@ import { useApi } from '@backstage/core-plugin-api';
 import {
   openChoreoClientApiRef,
   CreateSecretRequest,
+  UpdateSecretRequest,
   Secret,
 } from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError } from '../../../utils/errorUtils';
@@ -14,6 +15,10 @@ export interface UseSecretsResult {
   isForbidden: boolean;
   fetchSecrets: () => Promise<void>;
   createSecret: (request: CreateSecretRequest) => Promise<Secret>;
+  updateSecret: (
+    secretName: string,
+    request: UpdateSecretRequest,
+  ) => Promise<Secret>;
   deleteSecret: (secretName: string) => Promise<void>;
 }
 
@@ -55,6 +60,22 @@ export function useSecrets(namespaceName: string): UseSecretsResult {
     [client, namespaceName, fetchSecrets],
   );
 
+  const updateSecret = useCallback(
+    async (
+      secretName: string,
+      request: UpdateSecretRequest,
+    ): Promise<Secret> => {
+      const secret = await client.updateSecret(
+        namespaceName,
+        secretName,
+        request,
+      );
+      await fetchSecrets();
+      return secret;
+    },
+    [client, namespaceName, fetchSecrets],
+  );
+
   const deleteSecret = useCallback(
     async (secretName: string): Promise<void> => {
       await client.deleteSecret(namespaceName, secretName);
@@ -74,6 +95,7 @@ export function useSecrets(namespaceName: string): UseSecretsResult {
     isForbidden: isForbiddenError(error),
     fetchSecrets,
     createSecret,
+    updateSecret,
     deleteSecret,
   };
 }

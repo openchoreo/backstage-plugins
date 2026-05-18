@@ -235,7 +235,7 @@ export const BuildTemplateParameters = ({
     return (
       <Box mt={2}>
         <Typography variant="body2" color="textSecondary">
-          Please select a build template first
+          Select a build template first
         </Typography>
       </Box>
     );

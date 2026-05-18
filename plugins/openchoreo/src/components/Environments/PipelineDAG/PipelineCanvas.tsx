@@ -385,7 +385,6 @@ export const PipelineCanvas: FC = () => {
             refreshingEnvName={envName => refreshTracker.isActive(envName)}
             isAlreadyPromoted={isAlreadyPromoted}
             actionTrackers={actionTrackers}
-            driftByEnv={driftByEnv}
             incidentsSummaries={incidentsSummaries}
             onSelectEnv={name =>
               setSelection(name ? { kind: 'env', name } : null)

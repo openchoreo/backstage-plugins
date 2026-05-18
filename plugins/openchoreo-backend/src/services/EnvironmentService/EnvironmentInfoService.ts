@@ -1,5 +1,11 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { EnvironmentService, Environment, EndpointInfo } from '../../types';
+import {
+  EnvironmentService,
+  Environment,
+  EndpointInfo,
+  ResourceEnvironment,
+  ResourceBindingOutput,
+} from '../../types';
 import {
   createOpenChoreoApiClient,
   assertApiResponse,
@@ -15,10 +21,16 @@ import {
   transformDeploymentPipeline,
   transformReleaseBinding,
 } from '../transformers';
+import { deriveBindingStatusDetailed } from '../transformers/release-binding';
 
 type ModelsEnvironment = EnvironmentResponse;
 
 type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
+
+type NewResourceReleaseBinding =
+  OpenChoreoComponents['schemas']['ResourceReleaseBinding'];
+
+type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
 
 /**
  * Extracts the environment name from a sourceEnvironmentRef which may be
@@ -426,8 +438,6 @@ export class EnvironmentInfoService implements EnvironmentService {
       transformedEnv.promotionTargets = promotionTargets.map((ref: any) => ({
         name: ref.name,
         resourceName: ref.resourceName,
-        requiresApproval: ref.requiresApproval,
-        isManualApprovalRequired: ref.isManualApprovalRequired,
       }));
     }
 
@@ -1295,11 +1305,878 @@ export class EnvironmentInfoService implements EnvironmentService {
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Error fetching release bindings for ${request.componentName} (${totalTime}ms):`,
+        `Failed to fetch release bindings for ${request.componentName}: ${
+          error instanceof Error ? error.message : String(error)
+        } (${totalTime}ms)`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches ResourceReleaseBindings for a given Resource (by name) within a
+   * project. The openchoreo-api endpoint filters by resource name; project
+   * scoping is applied here so bindings owned by other projects that happen
+   * to share the resource name in the same namespace are not returned.
+   */
+  async fetchResourceReleaseBindings(
+    request: {
+      resourceName: string;
+      projectName: string;
+      namespaceName: string;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Fetching resource release bindings for resource ${request.resourceName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/resourcereleasebindings',
+        {
+          params: {
+            path: { namespaceName: request.namespaceName },
+            query: { resource: request.resourceName },
+          },
+        },
+      );
+
+      assertApiResponse(
+        { data, error, response },
+        'fetch resource release bindings',
+      );
+
+      const filtered = {
+        ...(data as any),
+        items: ((data as any)?.items ?? []).filter(
+          (b: any) => b?.spec?.owner?.projectName === request.projectName,
+        ),
+      };
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Resource release bindings fetched for ${request.resourceName}: Total: ${totalTime}ms`,
+      );
+
+      return filtered;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Failed to fetch resource release bindings for ${
+          request.resourceName
+        }: ${
+          error instanceof Error ? error.message : String(error)
+        } (${totalTime}ms)`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches per-environment runtime view for a Resource. Joins environments,
+   * the project's deployment pipeline, ResourceReleaseBindings owned by the
+   * project, and the Resource's status.latestRelease. Returns one entry per
+   * pipeline environment, including environments where no binding exists yet
+   * (so a Deploy affordance can render against them).
+   *
+   * Mirrors the shape of fetchDeploymentInfo but built around the Resource
+   * lifecycle (ResourceReleaseBinding instead of ReleaseBinding, no endpoints
+   * or images, outputs in place of deployment-status detail).
+   */
+  async fetchResourceEnvironmentInfo(
+    request: {
+      resourceName: string;
+      projectName: string;
+      namespaceName: string;
+    },
+    token?: string,
+  ): Promise<ResourceEnvironment[]> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Starting resource environment fetch for: ${request.resourceName}`,
+      );
+
+      const createTimedPromise = <T>(promise: Promise<T>, name: string) => {
+        const start = Date.now();
+        return promise
+          .then(result => ({
+            type: name,
+            result,
+            duration: Date.now() - start,
+          }))
+          .catch(error => {
+            if (
+              error.name === 'NotAllowedError' ||
+              error.name === 'AuthenticationError'
+            ) {
+              throw error;
+            }
+            const duration = Date.now() - start;
+            if (name === 'bindings') {
+              this.logger.warn(
+                `Failed to fetch resource bindings for ${request.resourceName}: ${error}`,
+              );
+              return { type: name, result: [] as any, duration };
+            } else if (name === 'pipeline') {
+              this.logger.warn(
+                `No deployment pipeline found for project ${request.projectName}, using default ordering`,
+              );
+              return { type: name, result: null as any, duration };
+            } else if (name === 'resource') {
+              this.logger.warn(
+                `Failed to fetch resource ${request.resourceName}: ${error}`,
+              );
+              return { type: name, result: null as any, duration };
+            }
+            throw error;
+          });
+      };
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const environmentsPromise = createTimedPromise(
+        fetchAllPages(cursor =>
+          client
+            .GET('/api/v1/namespaces/{namespaceName}/environments', {
+              params: {
+                path: { namespaceName: request.namespaceName },
+                query: { limit: 100, cursor },
+              },
+            })
+            .then(res => {
+              assertApiResponse(res, 'fetch environments');
+              return res.data;
+            }),
+        ),
+        'environments',
+      );
+
+      const bindingsPromise = createTimedPromise(
+        (async () => {
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/resourcereleasebindings',
+            {
+              params: {
+                path: { namespaceName: request.namespaceName },
+                query: { resource: request.resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data, error, response },
+            'fetch resource release bindings',
+          );
+          // openchoreo-api filters by resource name only; restrict to bindings
+          // owned by this project so two projects with the same resource name
+          // in the same namespace don't bleed into each other.
+          const items = (data?.items ?? []).filter(
+            (b: NewResourceReleaseBinding) =>
+              b.spec?.owner?.projectName === request.projectName,
+          );
+          return items;
+        })(),
+        'bindings',
+      );
+
+      const pipelinePromise = createTimedPromise(
+        (async () => {
+          const {
+            data: project,
+            error: projectError,
+            response: projectResponse,
+          } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
+            {
+              params: {
+                path: {
+                  namespaceName: request.namespaceName,
+                  projectName: request.projectName,
+                },
+              },
+            },
+          );
+          if (
+            projectError ||
+            !projectResponse.ok ||
+            !project?.spec?.deploymentPipelineRef?.name
+          ) {
+            return null;
+          }
+
+          const pipelineName = project.spec.deploymentPipelineRef.name;
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}',
+            {
+              params: {
+                path: {
+                  namespaceName: request.namespaceName,
+                  deploymentPipelineName: pipelineName,
+                },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            return null;
+          }
+          return transformDeploymentPipeline(data!);
+        })(),
+        'pipeline',
+      );
+
+      const resourcePromise = createTimedPromise(
+        (async () => {
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/resources/{resourceName}',
+            {
+              params: {
+                path: {
+                  namespaceName: request.namespaceName,
+                  resourceName: request.resourceName,
+                },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            return null;
+          }
+          return data as NewResource;
+        })(),
+        'resource',
+      );
+
+      const [
+        environmentsResult,
+        bindingsResult,
+        pipelineResult,
+        resourceResult,
+      ] = await Promise.all([
+        environmentsPromise,
+        bindingsPromise,
+        pipelinePromise,
+        resourcePromise,
+      ]);
+
+      this.logger.debug(
+        `Resource env-info API timings - Environments: ${environmentsResult.duration}ms, ` +
+          `Bindings: ${bindingsResult.duration}ms, ` +
+          `Pipeline: ${pipelineResult.duration}ms, ` +
+          `Resource: ${resourceResult.duration}ms`,
+      );
+
+      const newEnvironments = environmentsResult.result;
+      const bindings =
+        (bindingsResult.result as NewResourceReleaseBinding[]) ?? [];
+      const deploymentPipeline = pipelineResult.result;
+      const resource = resourceResult.result as NewResource | null;
+
+      if (!newEnvironments || newEnvironments.length === 0) {
+        this.logger.warn('No environments found in API response');
+        return [];
+      }
+
+      const environments = newEnvironments.map(transformEnvironment);
+      const latestRelease = resource?.status?.latestRelease?.name;
+
+      // Resolve the (Cluster)ResourceType default retainPolicy so the
+      // BFF can surface the effective policy per env (binding override
+      // → ResourceType default → built-in Delete). Soft-fails: a fetch
+      // error just falls back to the built-in default downstream.
+      const resourceTypeRetainPolicyDefault =
+        await this.fetchResourceTypeRetainPolicyDefault(
+          client,
+          resource,
+          request.namespaceName,
+        );
+
+      const result = this.transformResourceEnvironmentData(
+        environments,
+        bindings,
+        deploymentPipeline,
+        latestRelease,
+        resourceTypeRetainPolicyDefault,
+      );
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Resource env-info completed for ${request.resourceName}: Total: ${totalTime}ms`,
+      );
+
+      return result;
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        (error.name === 'NotAllowedError' ||
+          error.name === 'AuthenticationError')
+      ) {
+        throw error;
+      }
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching resource environment info for ${request.resourceName} (${totalTime}ms):`,
+        error as Error,
+      );
+      return [];
+    }
+  }
+
+  private transformResourceEnvironmentData(
+    environmentData: ModelsEnvironment[],
+    bindings: NewResourceReleaseBinding[],
+    deploymentPipeline: any | null,
+    latestRelease: string | undefined,
+    resourceTypeRetainPolicyDefault: 'Delete' | 'Retain' | undefined,
+  ): ResourceEnvironment[] {
+    const envMap = new Map<string, ModelsEnvironment>();
+    const envNameMap = new Map<string, string>();
+    const bindingsByEnv = new Map<string, NewResourceReleaseBinding>();
+
+    for (const env of environmentData) {
+      const displayName = env.displayName || env.name;
+      envMap.set(displayName, env);
+      envMap.set(displayName.toLowerCase(), env);
+      envNameMap.set(displayName.toLowerCase(), displayName);
+      if (env.name && env.name.toLowerCase() !== displayName.toLowerCase()) {
+        envMap.set(env.name, env);
+        envMap.set(env.name.toLowerCase(), env);
+        envNameMap.set(env.name.toLowerCase(), displayName);
+      }
+    }
+
+    for (const binding of bindings) {
+      const envKey = binding.spec?.environment;
+      if (!envKey) continue;
+      const envName = envNameMap.get(envKey.toLowerCase()) || envKey;
+      bindingsByEnv.set(envName, binding);
+    }
+
+    if (
+      !deploymentPipeline ||
+      !deploymentPipeline.promotionPaths ||
+      deploymentPipeline.promotionPaths.length === 0
+    ) {
+      this.logger.debug(
+        'No deployment pipeline found for resource, using default ordering',
+      );
+      return environmentData.map(env => {
+        const envName = env.displayName || env.name;
+        const binding = bindingsByEnv.get(envName);
+        return this.createResourceEnvironment(
+          env,
+          binding,
+          undefined,
+          latestRelease,
+          resourceTypeRetainPolicyDefault,
+        );
+      });
+    }
+
+    const promotionMap = new Map<string, any[]>();
+    for (const path of deploymentPipeline.promotionPaths) {
+      const sourceRef = getSourceEnvName(path.sourceEnvironmentRef);
+      const sourceEnv = envNameMap.get(sourceRef.toLowerCase()) || sourceRef;
+      const targets = path.targetEnvironmentRefs.map((ref: any) => ({
+        ...ref,
+        name: envNameMap.get(ref.name.toLowerCase()) || ref.name,
+        resourceName: ref.name,
+      }));
+      const existing = promotionMap.get(sourceEnv);
+      if (existing) {
+        existing.push(...targets);
+      } else {
+        promotionMap.set(sourceEnv, targets);
+      }
+    }
+
+    const orderedEnvNames = this.getEnvironmentOrder(
+      deploymentPipeline.promotionPaths,
+      envNameMap,
+    );
+
+    const ordered: ResourceEnvironment[] = [];
+    const processed = new Set<string>();
+
+    for (const envName of orderedEnvNames) {
+      const envData = envMap.get(envName);
+      if (envData && !processed.has(envName)) {
+        processed.add(envName);
+        const binding = bindingsByEnv.get(envName);
+        const promotionTargets = promotionMap.get(envName);
+        ordered.push(
+          this.createResourceEnvironment(
+            envData,
+            binding,
+            promotionTargets,
+            latestRelease,
+            resourceTypeRetainPolicyDefault,
+          ),
+        );
+      }
+    }
+
+    // Append any environments referenced by bindings but not in the pipeline
+    // so the UI surfaces drift instead of silently hiding them.
+    for (const [envName, binding] of bindingsByEnv.entries()) {
+      if (!processed.has(envName)) {
+        const envData = envMap.get(envName);
+        if (envData) {
+          processed.add(envName);
+          ordered.push(
+            this.createResourceEnvironment(
+              envData,
+              binding,
+              undefined,
+              latestRelease,
+              resourceTypeRetainPolicyDefault,
+            ),
+          );
+        }
+      }
+    }
+
+    return ordered;
+  }
+
+  /**
+   * Creates or updates a ResourceReleaseBinding for deploy/promote actions.
+   * GET → PUT when the binding already exists; GET 404 → POST a new binding.
+   *
+   * The BFF accepts `releaseName` for naming symmetry with the Component-side
+   * `/update-release-binding` route, but writes it to `spec.resourceRelease`
+   * because that is the field the Resource binding schema uses. Resource
+   * bindings have no `spec.state` field (unlike Component), so it is not set.
+   */
+  async updateResourceReleaseBinding(
+    request: {
+      resourceName: string;
+      projectName: string;
+      namespaceName: string;
+      environment: string;
+      releaseName: string;
+      retainPolicy?: 'Delete' | 'Retain';
+      resourceTypeEnvironmentConfigs?: any;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Updating resource release binding for ${request.resourceName} in ${request.environment}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const bindingName = `${request.resourceName}-${request.environment}`;
+
+      const {
+        data: existing,
+        error: getError,
+        response: getResponse,
+      } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              resourceReleaseBindingName: bindingName,
+            },
+          },
+        },
+      );
+
+      if (getResponse.ok && existing) {
+        const updated = {
+          ...existing,
+          spec: {
+            ...existing.spec!,
+            resourceRelease: request.releaseName,
+            ...(request.retainPolicy !== undefined
+              ? { retainPolicy: request.retainPolicy }
+              : {}),
+            ...(request.resourceTypeEnvironmentConfigs !== undefined
+              ? {
+                  resourceTypeEnvironmentConfigs:
+                    request.resourceTypeEnvironmentConfigs,
+                }
+              : {}),
+          },
+        };
+
+        const { data, error, response } = await client.PUT(
+          '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}',
+          {
+            params: {
+              path: {
+                namespaceName: request.namespaceName,
+                resourceReleaseBindingName: bindingName,
+              },
+            },
+            body: updated,
+          },
+        );
+
+        assertApiResponse(
+          { data, error, response },
+          'update resource release binding',
+        );
+
+        const totalTime = Date.now() - startTime;
+        this.logger.debug(
+          `Resource release binding updated for ${request.resourceName} in ${request.environment}: Total: ${totalTime}ms`,
+        );
+
+        return data;
+      }
+
+      if (getResponse.status !== 404) {
+        const errorDetail = getError ? JSON.stringify(getError) : '';
+        throw new Error(
+          `Failed to fetch resource release binding ${bindingName}: ${
+            getResponse.status
+          } ${getResponse.statusText}${errorDetail ? ` ${errorDetail}` : ''}`,
+        );
+      }
+
+      const newBinding = {
+        metadata: {
+          name: bindingName,
+          namespace: request.namespaceName,
+        },
+        spec: {
+          owner: {
+            projectName: request.projectName,
+            resourceName: request.resourceName,
+          },
+          environment: request.environment,
+          resourceRelease: request.releaseName,
+          ...(request.retainPolicy !== undefined
+            ? { retainPolicy: request.retainPolicy }
+            : {}),
+          ...(request.resourceTypeEnvironmentConfigs !== undefined
+            ? {
+                resourceTypeEnvironmentConfigs:
+                  request.resourceTypeEnvironmentConfigs,
+              }
+            : {}),
+        },
+      };
+
+      const {
+        data: createData,
+        error: createError,
+        response: createResponse,
+      } = await client.POST(
+        '/api/v1/namespaces/{namespaceName}/resourcereleasebindings',
+        {
+          params: {
+            path: { namespaceName: request.namespaceName },
+          },
+          body: newBinding,
+        },
+      );
+
+      // Concurrent create produced a 409 — refetch and return the existing
+      // binding so the caller sees a consistent result.
+      if (createResponse.status === 409) {
+        this.logger.debug(
+          `Resource release binding ${bindingName} already exists (409 conflict), fetching existing`,
+        );
+        const {
+          data: conflictExisting,
+          error: conflictGetError,
+          response: conflictGetResponse,
+        } = await client.GET(
+          '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}',
+          {
+            params: {
+              path: {
+                namespaceName: request.namespaceName,
+                resourceReleaseBindingName: bindingName,
+              },
+            },
+          },
+        );
+        assertApiResponse(
+          {
+            data: conflictExisting,
+            error: conflictGetError,
+            response: conflictGetResponse,
+          },
+          'fetch resource release binding after 409 conflict',
+        );
+        return conflictExisting;
+      }
+
+      assertApiResponse(
+        { data: createData, error: createError, response: createResponse },
+        'create resource release binding',
+      );
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Resource release binding created for ${request.resourceName} in ${request.environment}: Total: ${totalTime}ms`,
+      );
+
+      return createData;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error updating resource release binding for ${request.resourceName} in ${request.environment} (${totalTime}ms):`,
         error as Error,
       );
       throw error;
     }
+  }
+
+  /**
+   * Deletes a ResourceReleaseBinding for a given environment. The Resource
+   * controller's PV-style finalizer holds the actual delete when
+   * `spec.retainPolicy === 'Retain'`, so the data plane state can survive
+   * a UI-driven undeploy until the binding's retain pin is flipped.
+   */
+  async deleteResourceReleaseBinding(
+    request: {
+      resourceName: string;
+      projectName: string;
+      namespaceName: string;
+      environment: string;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    try {
+      this.logger.info(
+        `Deleting resource release binding for ${request.resourceName} from ${request.environment}`,
+      );
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const bindingName = `${request.resourceName}-${request.environment}`;
+
+      // Pre-flight GET. The openchoreo-api's DELETE can return 204 for
+      // names that resolve to no binding on the cluster, which surfaces
+      // to the frontend as a green response over a no-op. Verifying
+      // existence here turns any caller mistake (wrong case, wrong
+      // separator, drift) into a hard 404.
+      const { error: getError, response: getResponse } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              resourceReleaseBindingName: bindingName,
+            },
+          },
+        },
+      );
+
+      assertApiResponse(
+        { data: undefined, error: getError, response: getResponse },
+        `confirm resource release binding ${bindingName} exists before delete`,
+      );
+
+      const { error, response } = await client.DELETE(
+        '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              resourceReleaseBindingName: bindingName,
+            },
+          },
+        },
+      );
+
+      assertApiResponse(
+        { data: undefined, error, response },
+        'delete resource release binding',
+      );
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Resource release binding deleted for ${request.resourceName} from ${request.environment}: Total: ${totalTime}ms`,
+      );
+
+      return { success: true };
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error deleting resource release binding for ${request.resourceName} from ${request.environment} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches the (Cluster)ResourceType referenced by `resource.spec.type`
+   * and returns its `spec.retainPolicy`, or `undefined` if neither the
+   * type is set nor the field is populated. Errors are swallowed and
+   * returned as undefined: the caller falls back to the built-in
+   * default ('Delete') downstream, so a transient API failure never
+   * blocks the env-info response.
+   */
+  private async fetchResourceTypeRetainPolicyDefault(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    resource: NewResource | null,
+    namespaceName: string,
+  ): Promise<'Delete' | 'Retain' | undefined> {
+    const typeRef = resource?.spec?.type;
+    if (!typeRef?.kind || !typeRef.name) return undefined;
+
+    try {
+      if (typeRef.kind === 'ClusterResourceType') {
+        const { data, error, response } = await client.GET(
+          '/api/v1/clusterresourcetypes/{crtName}',
+          { params: { path: { crtName: typeRef.name } } },
+        );
+        if (error || !response.ok) return undefined;
+        return (data as any)?.spec?.retainPolicy;
+      }
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}',
+        {
+          params: {
+            path: { namespaceName, rtName: typeRef.name },
+          },
+        },
+      );
+      if (error || !response.ok) return undefined;
+      return (data as any)?.spec?.retainPolicy;
+    } catch (err) {
+      this.logger.warn(
+        `Failed to fetch ${typeRef.kind} ${typeRef.name} for retainPolicy resolution: ${err}`,
+      );
+      return undefined;
+    }
+  }
+
+  private createResourceEnvironment(
+    envData: ModelsEnvironment,
+    binding: NewResourceReleaseBinding | undefined,
+    promotionTargets: any[] | undefined,
+    latestRelease: string | undefined,
+    resourceTypeRetainPolicyDefault: 'Delete' | 'Retain' | undefined,
+  ): ResourceEnvironment {
+    const envName = envData.displayName || envData.name;
+    const envResourceName = envData.name;
+
+    let status: 'Ready' | 'NotReady' | 'Failed' | undefined;
+    let statusReason: string | undefined;
+    let statusMessage: string | undefined;
+    let lastDeployed: string | undefined;
+    let resourceRelease: string | undefined;
+    let outputs: ResourceBindingOutput[] | undefined;
+    let bindingName: string | undefined;
+
+    // Effective retain policy follows the inheritance chain: built-in
+    // default ('Delete') ← (Cluster)ResourceType.spec.retainPolicy ←
+    // ResourceReleaseBinding.spec.retainPolicy. The K8s controller does
+    // the same resolution at delete-time; we mirror it here so the
+    // Backstage UI shows what will actually happen instead of whatever
+    // happens to be set on the binding spec.
+    const resourceTypeDefault = resourceTypeRetainPolicyDefault ?? 'Delete';
+    let retainPolicy: 'Delete' | 'Retain' = resourceTypeDefault;
+
+    if (binding) {
+      bindingName = binding.metadata?.name;
+      resourceRelease = binding.spec?.resourceRelease;
+      retainPolicy = binding.spec?.retainPolicy ?? resourceTypeDefault;
+      // Use the Ready condition's lastTransitionTime as the deploy
+      // timestamp. The aggregate Ready flips whenever Synced /
+      // ResourcesReady / OutputsResolved transition, so promotes (which
+      // push DP resources through a Pending → Ready cycle) bump it
+      // naturally. Synced alone is unreliable here — its message keys
+      // off the RenderedRelease name which is binding-stable across
+      // promotes, so SetStatusCondition treats subsequent re-renders
+      // as no-ops and never refreshes the timestamp. Falls back to
+      // creationTimestamp on bindings the controller has not yet
+      // reconciled.
+      const readyCond = (
+        binding.status?.conditions as
+          | Array<{
+              type?: string;
+              lastTransitionTime?: string;
+            }>
+          | undefined
+      )?.find(c => c.type === 'Ready');
+      lastDeployed =
+        readyCond?.lastTransitionTime ?? binding.metadata?.creationTimestamp;
+
+      // Same Ready-condition derivation as the response transformer so the
+      // env-info join and per-binding GET render identical status for the
+      // same input (including observedGeneration handling + progressing/
+      // intentional-undeploy reason filtering).
+      const derived = deriveBindingStatusDetailed(binding as any);
+      if (derived) {
+        status = derived.status;
+        statusReason = derived.reason;
+        statusMessage = derived.message;
+      }
+
+      const rawOutputs = binding.status?.outputs;
+      if (Array.isArray(rawOutputs) && rawOutputs.length > 0) {
+        outputs = rawOutputs.map((o: any) => ({
+          name: o.name,
+          value: o.value,
+          secretKeyRef: o.secretKeyRef
+            ? { name: o.secretKeyRef.name, key: o.secretKeyRef.key }
+            : undefined,
+          configMapKeyRef: o.configMapKeyRef
+            ? { name: o.configMapKeyRef.name, key: o.configMapKeyRef.key }
+            : undefined,
+        }));
+      }
+    }
+
+    const result: ResourceEnvironment = {
+      uid: envData.uid,
+      name: envName,
+      resourceName: envResourceName,
+      dataPlaneRef: envData.dataPlaneRef?.name,
+      dataPlaneKind: envData.dataPlaneRef?.kind as
+        | 'DataPlane'
+        | 'ClusterDataPlane'
+        | undefined,
+      bindingName,
+      resourceRelease,
+      retainPolicy,
+      status,
+      statusReason,
+      statusMessage,
+      lastDeployed,
+      outputs,
+      latestRelease,
+    };
+
+    if (promotionTargets && promotionTargets.length > 0) {
+      result.promotionTargets = promotionTargets.map((ref: any) => ({
+        name: ref.name,
+        resourceName: ref.resourceName,
+      }));
+    }
+
+    return result;
   }
 
   /**
