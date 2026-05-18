@@ -48,7 +48,7 @@ export type ChatScope = {
   environment?: string;
   /**
    * Optional pinned workflow-run name. Set by external triggers (e.g. the
-   * failed-build snackbar) so the perch-agent's prompt knows which run
+   * failed-build snackbar) so the portal-assistant's prompt knows which run
    * is being discussed without the LLM having to infer it from text.
    */
   runName?: string;
@@ -124,7 +124,7 @@ export type ChatRequest = {
   scope?: ChatScope;
 };
 
-// Mirrors the StreamEvent discriminated union emitted by perch-agent.
+// Mirrors the StreamEvent discriminated union emitted by portal-assistant.
 // Inlined here (rather than imported from a shared package) so this
 // plugin ships independent of other openchoreo plugins. The agent is
 // read-only — there is no `actions` event variant.
@@ -150,29 +150,30 @@ export interface PerchAgentApi {
 }
 
 export const perchAgentApiRef = createApiRef<PerchAgentApi>({
-  id: 'plugin.openchoreo-perch.service',
+  id: 'plugin.openchoreo-portal-assistant.service',
 });
 
 /**
- * PerchAgentClient calls the perch-agent service via the
- * ``openchoreo-perch-backend`` Backstage backend plugin (a thin
- * forwarder that streams ndjson upstream → response). The plugin
- * mounts at ``/api/openchoreo-perch-backend`` on the Backstage backend
- * and forwards each call to the configured perch-agent URL.
+ * PerchAgentClient calls the portal-assistant service via the
+ * ``openchoreo-portal-assistant-backend`` Backstage backend plugin (a
+ * thin forwarder that streams ndjson upstream → response). The plugin
+ * mounts at ``/api/openchoreo-portal-assistant-backend`` on the
+ * Backstage backend and forwards each call to the configured
+ * portal-assistant URL.
  *
- * Both the local Backstage routes and the upstream perch-agent
+ * Both the local Backstage routes and the upstream portal-assistant
  * service use the same path prefix
- * (``/api/v1alpha1/perch-agent/...``), so the forwarder simply
+ * (``/api/v1alpha1/portal-assistant/...``), so the forwarder simply
  * appends the suffix verbatim.
  *
  * Why a backend plugin (not the proxy plugin): see
- * plugins/openchoreo-perch/README.md "Why a backend plugin?" — it's
+ * plugins/openchoreo-portal-assistant/README.md "Why a backend plugin?" — it's
  * the same shape as the other OpenChoreo backends and gives us a
  * place to add Backstage-side logic later (permissions, server-side
  * scope enrichment, multi-backend routing) without changing the
  * frontend.
  *
- * Discovery resolves to ``http://localhost:7007/api/openchoreo-perch-backend``
+ * Discovery resolves to ``http://localhost:7007/api/openchoreo-portal-assistant-backend``
  * in dev or the in-cluster Backstage backend URL in deployment.
  */
 export class PerchAgentClient implements PerchAgentApi {
@@ -189,8 +190,10 @@ export class PerchAgentClient implements PerchAgentApi {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal,
   ): Promise<void> {
-    const base = await this.discoveryApi.getBaseUrl('openchoreo-perch-backend');
-    const url = `${base}/api/v1alpha1/perch-agent/chat`;
+    const base = await this.discoveryApi.getBaseUrl(
+      'openchoreo-portal-assistant-backend',
+    );
+    const url = `${base}/api/v1alpha1/portal-assistant/chat`;
 
     const response = await this.fetchApi.fetch(url, {
       method: 'POST',
@@ -210,10 +213,10 @@ export class PerchAgentClient implements PerchAgentApi {
       } catch {
         // ignore JSON parse failure; fall back to statusText
       }
-      throw new Error(`Perch chat failed: ${errMsg}`);
+      throw new Error(`Portal Assistant chat failed: ${errMsg}`);
     }
     if (!response.body) {
-      throw new Error('No response body from Perch chat');
+      throw new Error('No response body from Portal Assistant chat');
     }
 
     const reader = response.body.getReader();
@@ -255,8 +258,10 @@ export class PerchAgentClient implements PerchAgentApi {
   }
 
   async warmup(): Promise<void> {
-    const base = await this.discoveryApi.getBaseUrl('openchoreo-perch-backend');
-    const url = `${base}/api/v1alpha1/perch-agent/warmup`;
+    const base = await this.discoveryApi.getBaseUrl(
+      'openchoreo-portal-assistant-backend',
+    );
+    const url = `${base}/api/v1alpha1/portal-assistant/warmup`;
 
     try {
       await this.fetchApi.fetch(url, {

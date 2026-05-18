@@ -1,4 +1,4 @@
-# @openchoreo/backstage-plugin-openchoreo-perch
+# @openchoreo/backstage-plugin-openchoreo-portal-assistant
 
 The Backstage frontend for **Perch** — the OpenChoreo AI assistant. Provides
 the chat drawer, the global FAB, and the contextual launchers mounted on
@@ -36,7 +36,7 @@ the app root.
 
 ```tsx
 // packages/app/src/components/Root/Root.tsx
-import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-perch';
+import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 
 <AssistantDrawerProvider>
   {/* app shell — the provider owns the chat drawer's open state and
@@ -51,7 +51,7 @@ import {
   FailedBuildSnackbar,
   BuildPagePromptLauncher,
   LogsPageDebugPrompt,
-} from '@openchoreo/backstage-plugin-openchoreo-perch';
+} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 ```
 
 The plugin is feature-gated by `openchoreo.features.assistant.enabled`
@@ -63,8 +63,8 @@ because it would break existing installs.
 ## Backend
 
 The frontend talks to the `perch-agent` service in the OpenChoreo
-control plane through the **`openchoreo-perch-backend`** Node plugin
-(see `plugins/openchoreo-perch-backend/`), which runs inside the
+control plane through the **`openchoreo-portal-assistant-backend`** Node plugin
+(see `plugins/openchoreo-portal-assistant-backend/`), which runs inside the
 Backstage backend Express process and forwards requests upstream.
 
 This matches the shape of the other OpenChoreo plugins
@@ -107,7 +107,7 @@ slots that justify the plugin (vs. just a proxy entry) are:
 None of those are wired today; the plugin is intentionally a forwarder
 until one of them becomes a real driver. The point is that the
 _plumbing_ is in place so adding any of the above is a localised
-change in `plugins/openchoreo-perch-backend/` rather than a refactor.
+change in `plugins/openchoreo-portal-assistant-backend/` rather than a refactor.
 
 ## Out of scope (V1)
 

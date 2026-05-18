@@ -39,9 +39,9 @@ const upstreamDispatcher = new Agent({
 export interface RouterOptions {
   logger: LoggerService;
   /**
-   * Base URL of the upstream perch-agent service, e.g.
-   * ``http://perch-agent.openchoreo-control-plane.svc.cluster.local:8080``.
-   * The trailing ``/api/v1alpha1/perch-agent/...`` path segments are
+   * Base URL of the upstream portal-assistant service, e.g.
+   * ``http://portal-assistant.openchoreo-control-plane.svc.cluster.local:8080``.
+   * The trailing ``/api/v1alpha1/portal-assistant/...`` path segments are
    * appended per-route.
    */
   targetUrl: string;
@@ -74,15 +74,15 @@ interface ForwardCtx {
 }
 
 /**
- * Routes registered by this plugin (mounted at /api/openchoreo-perch-backend):
+ * Routes registered by this plugin (mounted at /api/openchoreo-portal-assistant-backend):
  *
- *   POST  /api/v1alpha1/perch-agent/chat       (streaming ndjson)
- *   POST  /api/v1alpha1/perch-agent/warmup     (small JSON, 202)
+ *   POST  /api/v1alpha1/portal-assistant/chat       (streaming ndjson)
+ *   POST  /api/v1alpha1/portal-assistant/warmup     (small JSON, 202)
  *
  * The frontend's ``PerchAgentClient`` calls
- * ``discoveryApi.getBaseUrl('openchoreo-perch-backend') + '/api/v1alpha1/perch-agent/...'``;
+ * ``discoveryApi.getBaseUrl('openchoreo-portal-assistant-backend') + '/api/v1alpha1/portal-assistant/...'``;
  * the forwarder appends the same suffix to ``targetUrl`` (the upstream
- * perch-agent service exposes its routes at the same prefix).
+ * portal-assistant service exposes its routes at the same prefix).
  */
 export async function createRouter(
   options: RouterOptions,
@@ -98,10 +98,10 @@ export async function createRouter(
 
   // Forwarders: streaming /chat and JSON /warmup. The agent is read-only —
   // there is no /execute route to proxy.
-  router.post('/api/v1alpha1/perch-agent/chat', async (req, res) => {
+  router.post('/api/v1alpha1/portal-assistant/chat', async (req, res) => {
     await forwardStream(req, res, '/chat', ctx);
   });
-  router.post('/api/v1alpha1/perch-agent/warmup', async (req, res) => {
+  router.post('/api/v1alpha1/portal-assistant/warmup', async (req, res) => {
     await forwardJson(req, res, '/warmup', ctx);
   });
 
@@ -152,7 +152,7 @@ const STRIP_RESPONSE_HEADERS = new Set([
 ]);
 
 /**
- * Tight allowlist of inbound headers we forward to the perch-agent.
+ * Tight allowlist of inbound headers we forward to the portal-assistant.
  *
  * Why a whitelist (and not a blacklist of "sensitive" headers): a
  * blacklist trains the next contributor to add new sensitive headers
@@ -237,7 +237,7 @@ async function forwardStream(
   const url = `${targetUrl.replace(
     /\/$/,
     '',
-  )}/api/v1alpha1/perch-agent${upstreamPath}`;
+  )}/api/v1alpha1/portal-assistant${upstreamPath}`;
   // Build request headers FIRST — the returned requestId is the single
   // source of truth used by every subsequent log line, error envelope,
   // and the upstream call itself. Pre-buildForwardHeaders the local
@@ -304,7 +304,7 @@ async function forwardStream(
       } else {
         res.status(502).json({
           error: 'BAD_GATEWAY',
-          message: 'Failed to reach perch-agent',
+          message: 'Failed to reach portal-assistant',
           request_id: requestId,
         });
       }
@@ -383,7 +383,7 @@ async function forwardJson(
   const url = `${targetUrl.replace(
     /\/$/,
     '',
-  )}/api/v1alpha1/perch-agent${upstreamPath}`;
+  )}/api/v1alpha1/portal-assistant${upstreamPath}`;
   // Single source of truth for the request id — forwarded to upstream
   // AND echoed in any error envelope below.
   const { headers: forwardHeaders, requestId } = buildForwardHeaders(req);
@@ -417,7 +417,7 @@ async function forwardJson(
     } else {
       res.status(502).json({
         error: 'BAD_GATEWAY',
-        message: 'Failed to reach perch-agent',
+        message: 'Failed to reach portal-assistant',
         request_id: requestId,
       });
     }
@@ -449,7 +449,7 @@ async function forwardJson(
     } else {
       res.status(502).json({
         error: 'BAD_GATEWAY',
-        message: 'Failed to reach perch-agent',
+        message: 'Failed to reach portal-assistant',
         request_id: requestId,
       });
     }

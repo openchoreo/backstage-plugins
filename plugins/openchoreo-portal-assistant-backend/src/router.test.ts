@@ -48,7 +48,7 @@ function makeLogger() {
   } as any;
 }
 
-describe('openchoreo-perch-backend router', () => {
+describe('openchoreo-portal-assistant-backend router', () => {
   let upstream: Awaited<ReturnType<typeof startMockUpstream>>;
   let app: express.Express;
   let logger: ReturnType<typeof makeLogger>;
@@ -65,7 +65,7 @@ describe('openchoreo-perch-backend router', () => {
     await upstream.close();
   });
 
-  describe('POST /api/v1alpha1/perch-agent/warmup', () => {
+  describe('POST /api/v1alpha1/portal-assistant/warmup', () => {
     it('forwards to the upstream and returns its status + body', async () => {
       const inbound: { headers: http.IncomingHttpHeaders; body: string } = {
         headers: {},
@@ -83,14 +83,14 @@ describe('openchoreo-perch-backend router', () => {
       });
 
       const res = await request(app)
-        .post('/api/v1alpha1/perch-agent/warmup')
+        .post('/api/v1alpha1/portal-assistant/warmup')
         .set('Authorization', 'Bearer test-token')
         .set('Content-Type', 'application/json')
         .send({});
 
       expect(res.status).toBe(202);
       expect(res.body).toEqual({ status: 'warming' });
-      // Forwarded path: local route /api/v1alpha1/perch-agent/warmup is
+      // Forwarded path: local route /api/v1alpha1/portal-assistant/warmup is
       // appended to the configured upstream targetUrl (same prefix
       // upstream).
       expect(inbound.headers.authorization).toBe('Bearer test-token');
@@ -104,7 +104,7 @@ describe('openchoreo-perch-backend router', () => {
         res.writeHead(202).end();
       });
 
-      await request(app).post('/api/v1alpha1/perch-agent/warmup').send({});
+      await request(app).post('/api/v1alpha1/portal-assistant/warmup').send({});
 
       expect(receivedRid).toBeDefined();
       expect(receivedRid).toMatch(/^[a-f0-9]{12}$/);
@@ -118,7 +118,7 @@ describe('openchoreo-perch-backend router', () => {
       });
 
       await request(app)
-        .post('/api/v1alpha1/perch-agent/warmup')
+        .post('/api/v1alpha1/portal-assistant/warmup')
         .set('X-Request-ID', 'rid_correlation_test')
         .send({});
 
@@ -132,7 +132,7 @@ describe('openchoreo-perch-backend router', () => {
         res.writeHead(202).end();
       });
 
-      await request(app).post('/api/v1alpha1/perch-agent/warmup').send({});
+      await request(app).post('/api/v1alpha1/portal-assistant/warmup').send({});
 
       // ``host`` is still present because Node's fetch sets its own Host;
       // we only assert that the *original* Host (referencing supertest's
@@ -152,7 +152,7 @@ describe('openchoreo-perch-backend router', () => {
       });
 
       await request(app)
-        .post('/api/v1alpha1/perch-agent/warmup')
+        .post('/api/v1alpha1/portal-assistant/warmup')
         .set('Cookie', 'session=abc; csrf=xyz')
         .set('X-Forwarded-For', '203.0.113.7')
         .set('X-Forwarded-Host', 'attacker.example')
@@ -197,7 +197,7 @@ describe('openchoreo-perch-backend router', () => {
       tightApp.use(tightRouter);
 
       const res = await request(tightApp)
-        .post('/api/v1alpha1/perch-agent/warmup')
+        .post('/api/v1alpha1/portal-assistant/warmup')
         .send({});
 
       expect(receivedRid).toBeDefined();
@@ -205,7 +205,7 @@ describe('openchoreo-perch-backend router', () => {
     });
   });
 
-  describe('POST /api/v1alpha1/perch-agent/chat (streaming)', () => {
+  describe('POST /api/v1alpha1/portal-assistant/chat (streaming)', () => {
     /**
      * Regression test for the 502 bug: previously the AbortController was
      * wired to ``req.on('close')``, which fires when express.json()
@@ -221,7 +221,7 @@ describe('openchoreo-perch-backend router', () => {
       });
 
       const res = await request(app)
-        .post('/api/v1alpha1/perch-agent/chat')
+        .post('/api/v1alpha1/portal-assistant/chat')
         .send({ messages: [{ role: 'user', content: 'hi' }] });
 
       expect(res.status).toBe(200);
@@ -249,7 +249,7 @@ describe('openchoreo-perch-backend router', () => {
       });
 
       const res = await request(app)
-        .post('/api/v1alpha1/perch-agent/chat')
+        .post('/api/v1alpha1/portal-assistant/chat')
         .send({ messages: [{ role: 'user', content: 'hi' }] });
 
       expect(res.status).toBe(200);
@@ -265,7 +265,7 @@ describe('openchoreo-perch-backend router', () => {
       });
 
       await request(app)
-        .post('/api/v1alpha1/perch-agent/chat')
+        .post('/api/v1alpha1/portal-assistant/chat')
         .set('Authorization', 'Bearer my-jwt')
         .send({ messages: [{ role: 'user', content: 'x' }] });
 
@@ -290,7 +290,7 @@ describe('openchoreo-perch-backend router', () => {
 
       const start = Date.now();
       const res = await request(tightApp)
-        .post('/api/v1alpha1/perch-agent/warmup')
+        .post('/api/v1alpha1/portal-assistant/warmup')
         .send({});
       const elapsed = Date.now() - start;
 
@@ -321,7 +321,7 @@ describe('openchoreo-perch-backend router', () => {
 
       const start = Date.now();
       const res = await request(tightApp)
-        .post('/api/v1alpha1/perch-agent/chat')
+        .post('/api/v1alpha1/portal-assistant/chat')
         .send({ messages: [{ role: 'user', content: 'x' }] });
       const elapsed = Date.now() - start;
 
@@ -345,13 +345,13 @@ describe('openchoreo-perch-backend router', () => {
       standalone.use(router);
 
       const res = await request(standalone)
-        .post('/api/v1alpha1/perch-agent/warmup')
+        .post('/api/v1alpha1/portal-assistant/warmup')
         .send({});
 
       expect(res.status).toBe(502);
       expect(res.body).toEqual({
         error: 'BAD_GATEWAY',
-        message: 'Failed to reach perch-agent',
+        message: 'Failed to reach portal-assistant',
         request_id: expect.any(String),
       });
       // We logged the underlying cause server-side; assert we did NOT
@@ -381,13 +381,13 @@ describe('openchoreo-perch-backend router', () => {
       standalone.use(router);
 
       const res = await request(standalone)
-        .post('/api/v1alpha1/perch-agent/chat')
+        .post('/api/v1alpha1/portal-assistant/chat')
         .send({ messages: [{ role: 'user', content: 'x' }] });
 
       expect(res.status).toBe(502);
       expect(res.body).toEqual({
         error: 'BAD_GATEWAY',
-        message: 'Failed to reach perch-agent',
+        message: 'Failed to reach portal-assistant',
         request_id: expect.any(String),
       });
       expect(logger.error).toHaveBeenCalledWith(
@@ -409,7 +409,7 @@ describe('openchoreo-perch-backend router', () => {
       });
 
       const res = await request(app)
-        .post('/api/v1alpha1/perch-agent/chat')
+        .post('/api/v1alpha1/portal-assistant/chat')
         .send({ messages: [{ role: 'user', content: 'x' }] });
 
       expect(res.status).toBe(204);
@@ -442,7 +442,7 @@ describe('openchoreo-perch-backend router', () => {
               host: '127.0.0.1',
               port,
               method: 'POST',
-              path: '/api/v1alpha1/perch-agent/chat',
+              path: '/api/v1alpha1/portal-assistant/chat',
               headers: { 'content-type': 'application/json' },
             },
             clientRes => {
@@ -479,7 +479,7 @@ describe('openchoreo-perch-backend router', () => {
       });
 
       const res = await request(app)
-        .post('/api/v1alpha1/perch-agent/chat')
+        .post('/api/v1alpha1/portal-assistant/chat')
         .send({ messages: [{ role: 'user', content: 'x' }] });
 
       expect(res.status).toBe(429);

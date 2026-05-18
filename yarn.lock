@@ -11726,9 +11726,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@openchoreo/backstage-plugin-openchoreo-perch-backend@workspace:^, @openchoreo/backstage-plugin-openchoreo-perch-backend@workspace:plugins/openchoreo-perch-backend":
+"@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend@workspace:^, @openchoreo/backstage-plugin-openchoreo-portal-assistant-backend@workspace:plugins/openchoreo-portal-assistant-backend":
   version: 0.0.0-use.local
-  resolution: "@openchoreo/backstage-plugin-openchoreo-perch-backend@workspace:plugins/openchoreo-perch-backend"
+  resolution: "@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend@workspace:plugins/openchoreo-portal-assistant-backend"
   dependencies:
     "@backstage/backend-defaults": "npm:0.12.1"
     "@backstage/backend-plugin-api": "npm:1.4.3"
@@ -11744,9 +11744,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@openchoreo/backstage-plugin-openchoreo-perch@workspace:^, @openchoreo/backstage-plugin-openchoreo-perch@workspace:plugins/openchoreo-perch":
+"@openchoreo/backstage-plugin-openchoreo-portal-assistant@workspace:^, @openchoreo/backstage-plugin-openchoreo-portal-assistant@workspace:plugins/openchoreo-portal-assistant":
   version: 0.0.0-use.local
-  resolution: "@openchoreo/backstage-plugin-openchoreo-perch@workspace:plugins/openchoreo-perch"
+  resolution: "@openchoreo/backstage-plugin-openchoreo-portal-assistant@workspace:plugins/openchoreo-portal-assistant"
   dependencies:
     "@backstage/catalog-model": "npm:1.7.5"
     "@backstage/cli": "npm:0.34.3"
@@ -20873,7 +20873,7 @@ __metadata:
     "@openchoreo/backstage-plugin-common": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-ci": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-observability": "workspace:^"
-    "@openchoreo/backstage-plugin-openchoreo-perch": "workspace:^"
+    "@openchoreo/backstage-plugin-openchoreo-portal-assistant": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-workflows": "workspace:^"
     "@openchoreo/backstage-plugin-platform-engineer-core": "workspace:^"
     "@openchoreo/backstage-plugin-react": "workspace:^"
@@ -21527,7 +21527,7 @@ __metadata:
     "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-ci-backend": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-observability-backend": "workspace:^"
-    "@openchoreo/backstage-plugin-openchoreo-perch-backend": "workspace:^"
+    "@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-workflows-backend": "workspace:^"
     "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy": "workspace:^"
     "@openchoreo/backstage-plugin-platform-engineer-core-backend": "workspace:^"

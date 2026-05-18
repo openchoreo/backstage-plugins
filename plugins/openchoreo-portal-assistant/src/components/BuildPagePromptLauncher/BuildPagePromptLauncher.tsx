@@ -186,8 +186,8 @@ export const BuildPagePromptLauncher = () => {
               }
             : undefined
         }
-        fabTooltip="Open Perch — failed build"
-        fabAriaLabel="Open Perch for failed build"
+        fabTooltip="Open Portal Assistant — failed build"
+        fabAriaLabel="Open Portal Assistant for failed build"
       />
     );
   }
@@ -232,10 +232,10 @@ export const BuildPagePromptLauncher = () => {
         onClick={() => {
           void handleClickOverview();
         }}
-        aria-label="Open Perch to review recent build runs"
+        aria-label="Open Portal Assistant to review recent build runs"
       >
         <ChatOutlinedIcon className={classes.icon} />
-        Ask Perch
+        Ask AI
       </Button>
     </Box>
   );

@@ -1,5 +1,5 @@
 {
-  "name": "@openchoreo/backstage-plugin-openchoreo-perch",
+  "name": "@openchoreo/backstage-plugin-openchoreo-portal-assistant",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "//": "private+publishConfig is the canonical Backstage workspace pattern (see every sibling plugin). private:true blocks accidental yarn publish during day-to-day work; the Backstage CLI's prepack swaps private off and merges publishConfig.* to top-level fields at release time, where access:'public' is needed for scoped packages (npm defaults to 'restricted'). The pair is intentionally co-resident; do NOT remove either key in isolation.",
@@ -14,13 +14,13 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/openchoreo/backstage-plugins.git",
-    "directory": "plugins/openchoreo-perch"
+    "directory": "plugins/openchoreo-portal-assistant"
   },
   "backstage": {
     "role": "frontend-plugin",
-    "pluginId": "openchoreo-perch",
+    "pluginId": "openchoreo-portal-assistant",
     "pluginPackages": [
-      "@openchoreo/backstage-plugin-openchoreo-perch"
+      "@openchoreo/backstage-plugin-openchoreo-portal-assistant"
     ]
   },
   "sideEffects": false,

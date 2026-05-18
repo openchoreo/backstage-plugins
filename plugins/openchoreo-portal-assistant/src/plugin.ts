@@ -8,7 +8,7 @@ import {
 import { PerchAgentClient, perchAgentApiRef } from './api/PerchAgentApi';
 
 /**
- * openchoreo-perch — the OpenChoreo AI assistant ("Perch") for Backstage.
+ * openchoreo-portal-assistant — the OpenChoreo Portal Assistant for Backstage.
  *
  * This is an internal-only plugin: it's deployed as part of the OpenChoreo
  * Backstage app and has no third-party consumers. The plugin shell exists
@@ -26,7 +26,7 @@ import { PerchAgentClient, perchAgentApiRef } from './api/PerchAgentApi';
  * matters, wrap that one specifically.
  */
 export const openchoreoPerchPlugin = createPlugin({
-  id: 'openchoreo-perch',
+  id: 'openchoreo-portal-assistant',
   apis: [
     createApiFactory({
       api: perchAgentApiRef,

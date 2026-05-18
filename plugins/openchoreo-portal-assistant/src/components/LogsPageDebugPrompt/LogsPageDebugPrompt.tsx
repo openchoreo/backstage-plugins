@@ -215,10 +215,10 @@ export const LogsPageDebugPrompt = ({
         }}
         onMouseEnter={warmIfStale}
         onFocus={warmIfStale}
-        aria-label="Ask Perch about these logs"
+        aria-label="Ask AI about these logs"
       >
         <ChatOutlinedIcon className={classes.icon} />
-        Ask Perch
+        Ask AI
       </Button>
     </Box>
   );

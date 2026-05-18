@@ -41,17 +41,17 @@ import {
   GenericWorkflowsClient,
 } from '@openchoreo/backstage-plugin-openchoreo-workflows';
 // NOTE: ``perchAgentApiRef`` is also declared on
-// ``openchoreoPerchPlugin.apis`` in plugins/openchoreo-perch/src/plugin.ts.
-// That declaration is NOT picked up by the app at runtime because the perch
-// plugin exports plain React components — it never registers a routable or
+// ``openchoreoPerchPlugin.apis`` in plugins/openchoreo-portal-assistant/src/plugin.ts.
+// That declaration is NOT picked up by the app at runtime because the plugin
+// exports plain React components — it never registers a routable or
 // component extension, so Backstage's plugin loader never visits its
 // ``apis`` array. The app-level factory below is the one actually wired in;
 // removing it causes ``NotImplementedError: No implementation available for
-// apiRef{plugin.openchoreo-perch.service}`` in AssistantDrawerProvider.
+// apiRef{plugin.openchoreo-portal-assistant.service}`` in AssistantDrawerProvider.
 import {
   perchAgentApiRef,
   PerchAgentClient,
-} from '@openchoreo/backstage-plugin-openchoreo-perch';
+} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 import {
   catalogApiRef,
   entityPresentationApiRef,

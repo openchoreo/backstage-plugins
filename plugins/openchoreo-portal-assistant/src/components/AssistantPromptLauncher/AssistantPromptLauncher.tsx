@@ -75,7 +75,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 export type AssistantPromptLauncherProps = {
-  /** Header label for the popup. Defaults to "Perch". */
+  /** Header label for the popup. Defaults to "Portal Assistant". */
   title?: string;
   /** Body of the chat bubble — usually a short message from the assistant. */
   message: ReactNode;
@@ -87,9 +87,9 @@ export type AssistantPromptLauncherProps = {
   secondaryActionLabel?: string;
   /** Optional secondary CTA handler. Defaults to closing the popup. */
   onSecondaryAction?: () => void;
-  /** Tooltip for the chat-icon FAB. Defaults to "Open Perch". */
+  /** Tooltip for the chat-icon FAB. Defaults to "Open Portal Assistant". */
   fabTooltip?: string;
-  /** Aria-label for the launcher FAB. Defaults to "Open Perch". */
+  /** Aria-label for the launcher FAB. Defaults to "Open Portal Assistant". */
   fabAriaLabel?: string;
   /**
    * Whether the popup is open on first mount. Defaults to true so the
@@ -109,14 +109,14 @@ export type AssistantPromptLauncherProps = {
  * and ComponentCreatePrompt stay visually consistent.
  */
 export const AssistantPromptLauncher = ({
-  title = 'Perch',
+  title = 'Portal Assistant',
   message,
   primaryActionLabel,
   onPrimaryAction,
   secondaryActionLabel = 'Not now',
   onSecondaryAction,
-  fabTooltip = 'Open Perch',
-  fabAriaLabel = 'Open Perch',
+  fabTooltip = 'Open Portal Assistant',
+  fabAriaLabel = 'Open Portal Assistant',
   defaultOpen = true,
 }: AssistantPromptLauncherProps) => {
   const classes = useStyles();
@@ -169,7 +169,7 @@ export const AssistantPromptLauncher = ({
           id={panelId}
           ref={panelRef}
           role="dialog"
-          aria-label={title || 'Perch prompt'}
+          aria-label={title || 'Portal Assistant'}
           tabIndex={-1}
         >
           <Paper className={classes.panel} elevation={6}>
@@ -179,7 +179,7 @@ export const AssistantPromptLauncher = ({
                 size="small"
                 className={classes.closeBtn}
                 onClick={handleClose}
-                aria-label={`Dismiss ${title || 'Perch prompt'}`}
+                aria-label={`Dismiss ${title || 'Portal Assistant'}`}
               >
                 <CloseIcon fontSize="small" />
               </IconButton>

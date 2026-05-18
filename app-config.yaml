@@ -166,17 +166,18 @@ openchoreo:
   # Required by Backstage schema validation. Custom OpenChoreo kinds don't use owner.
   defaultOwner: 'openchoreo-users'
 
-  # Upstream URL the openchoreo-perch-backend plugin forwards to (Perch
-  # AI assistant). Optional — leave commented to keep the plugin disabled
-  # by default. Uncomment AND set OPENCHOREO_PERCH_AGENT_URL only when
-  # the assistant feature is enabled
-  # (openchoreo.features.assistant.enabled = true) and the perch-agent
-  # service is deployed.
+  # Upstream URL the openchoreo-portal-assistant-backend plugin forwards
+  # to (Portal Assistant). Env-var-gated: when OPENCHOREO_PORTAL_ASSISTANT_URL
+  # is unset, Backstage substitutes the placeholder as undefined and the
+  # backend plugin self-disables (see plugin.ts — "disabled — openchoreo
+  # .portalAssistantUrl is not set"). Set the env var only when the
+  # assistant feature is enabled (openchoreo.features.assistant.enabled =
+  # true) and the portal-assistant service is deployed.
   #
   # For local k3d via port-forward: http://localhost:8088
-  # For in-cluster Backstage: http://perch-agent.openchoreo-control-plane.svc.cluster.local:8080
-  # For external access: configure via OPENCHOREO_PERCH_AGENT_URL env var.
-  perchAgentUrl: ${OPENCHOREO_PERCH_AGENT_URL}
+  # For in-cluster Backstage: http://portal-assistant.openchoreo-control-plane.svc.cluster.local:8080
+  # For external access: configure via OPENCHOREO_PORTAL_ASSISTANT_URL env var.
+  portalAssistantUrl: ${OPENCHOREO_PORTAL_ASSISTANT_URL}
 
   schedule:
     frequency: 300 # seconds between runs (default: 300, the periodic full sync acts as a safety net behind the event-forwarder's real-time deltas)
