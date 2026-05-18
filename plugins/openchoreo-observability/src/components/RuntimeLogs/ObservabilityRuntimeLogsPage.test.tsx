@@ -249,8 +249,8 @@ describe('ObservabilityRuntimeLogsPage', () => {
     await renderPage();
 
     expect(
-      screen.getByText('Observability is not enabled for this component in the current environment. Enable observability to view runtime logs.',
-        
+      screen.getByText(
+        'Observability is not enabled for this component in the current environment. Enable observability to view runtime logs.',
       ),
     ).toBeInTheDocument();
   });
