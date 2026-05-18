@@ -89,6 +89,6 @@ export class OpenChoreoFetchApi implements FetchApi {
       }
     }
 
-    return fetch(input, { ...init, headers });
+    return fetch(input, { ...init, headers, ...(isDirect && { credentials: 'include' as RequestCredentials }) });
   }
 }
