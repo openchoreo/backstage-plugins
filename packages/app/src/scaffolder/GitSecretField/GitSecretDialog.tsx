@@ -66,9 +66,7 @@ export const GitSecretDialog = ({
 
     // Check for duplicate name
     if (existingSecretNames.includes(secretName.trim())) {
-      setError(
-        'A secret with this name already exists. Please choose a unique name.',
-      );
+      setError('A secret with this name already exists. Choose a unique name.');
       return;
     }
 
@@ -99,7 +97,7 @@ export const GitSecretDialog = ({
         !trimmedKey.includes('BEGIN') ||
         !trimmedKey.includes('PRIVATE KEY')
       ) {
-        setError('Invalid SSH key format. Please provide a valid private key.');
+        setError('Invalid SSH key format. Provide a valid private key.');
         return;
       }
     }

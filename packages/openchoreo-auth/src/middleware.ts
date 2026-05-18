@@ -117,7 +117,7 @@ export function createRequireAuthMiddleware(
     const userToken = tokenService.getUserToken(req);
     if (!userToken) {
       throw new AuthenticationError(
-        'Authentication required for this operation. Please sign in to continue.',
+        'Authentication required for this operation. Sign in to continue.',
       );
     }
 

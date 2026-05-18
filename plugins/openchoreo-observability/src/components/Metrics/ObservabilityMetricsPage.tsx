@@ -116,7 +116,7 @@ const ObservabilityMetricsContent = () => {
       >
         <Typography variant="body1">
           {isObservabilityDisabled
-            ? 'Observability is not enabled for this component in this environment. Please enable observability to view metrics.'
+            ? 'Observability is not enabled for this component in the current environment. Enable observability to view metrics.'
             : error}
         </Typography>
         {!isObservabilityDisabled && (

@@ -13,7 +13,7 @@ export function useNamespace(): string {
 
   if (!namespace) {
     throw new Error(
-      'Namespace not configured. Please set openchoreo.namespace in app-config.yaml',
+      'Namespace not configured. Set openchoreo.namespace in app-config.yaml',
     );
   }
 

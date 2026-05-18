@@ -173,7 +173,7 @@ export const SecretsContent = () => {
       <Box mt={2} mb={2} width="100%">
         <Alert severity="info">
           <Typography variant="body1">
-            Secret Management is disabled. Please enable it to manage secrets.
+            Secret Management is disabled. Enable it to manage secrets.
           </Typography>
         </Alert>
       </Box>

@@ -218,7 +218,7 @@ export const createComponentAction = (
 
         if (existsInNamespace) {
           throw new Error(
-            `A component named "${ctx.input.componentName}" already exists in namespace "${namespaceName}". Please choose a different name.`,
+            `A component named "${ctx.input.componentName}" already exists in namespace "${namespaceName}". Choose a different name.`,
           );
         }
 
@@ -417,7 +417,7 @@ export const createComponentAction = (
 
         if (authzEnabled && !token) {
           throw new Error(
-            'User authentication token not available. Please ensure you are logged in.',
+            'User authentication token not available. Ensure you are logged in.',
           );
         }
 

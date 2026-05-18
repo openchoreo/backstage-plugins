@@ -215,7 +215,7 @@ describe('RCAPage', () => {
 
     expect(
       screen.getByText(
-        'Observability is not enabled for this environment. Please enable observability and enable the AI RCA agent.',
+        'Observability is not enabled for this environment. Enable observability and enable the AI RCA agent.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
@@ -233,7 +233,7 @@ describe('RCAPage', () => {
 
     expect(
       screen.getByText(
-        'AI RCA is not configured. Please enable it to view RCA reports.',
+        'AI RCA is not configured. Enable it to view RCA reports.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();

@@ -342,12 +342,12 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
         }
         inputElement.value = '';
       } catch (err) {
-        setError('Error reading file. Please try again.');
+        setError('Error reading file. Try again.');
         inputElement.value = '';
       }
     };
     reader.onerror = () => {
-      setError('Failed to read file. Please check the file and try again.');
+      setError('Failed to read file. Check the file and try again.');
       inputElement.value = '';
     };
     reader.readAsText(file);

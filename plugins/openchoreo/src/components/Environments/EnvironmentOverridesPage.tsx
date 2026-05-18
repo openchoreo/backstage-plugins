@@ -677,12 +677,12 @@ export const EnvironmentOverridesPage = ({
   // Get the warning message for missing required fields
   const getRequiredFieldsWarningMessage = () => {
     if (!pendingAction) {
-      return 'Please fill in the required fields below before saving.';
+      return 'Fill in the required fields below before saving.';
     }
     if (pendingAction.type === 'deploy') {
-      return `Please fill in the required fields below before deploying to ${pendingAction.targetEnvironment}.`;
+      return `Fill in the required fields below before deploying to ${pendingAction.targetEnvironment}.`;
     }
-    return `Please fill in the required fields below before promoting to ${pendingAction.targetEnvironment}.`;
+    return `Fill in the required fields below before promoting to ${pendingAction.targetEnvironment}.`;
   };
 
   // Header actions - show when content exists OR when there's a pending action (for Skip & Deploy)
