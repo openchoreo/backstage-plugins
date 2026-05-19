@@ -20821,13 +20821,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"app@link:../app::locator=backend%40workspace%3Apackages%2Fbackend":
-  version: 0.0.0-use.local
-  resolution: "app@link:../app::locator=backend%40workspace%3Apackages%2Fbackend"
-  languageName: node
-  linkType: soft
-
-"app@workspace:packages/app":
+"app@workspace:^, app@workspace:packages/app":
   version: 0.0.0-use.local
   resolution: "app@workspace:packages/app"
   dependencies:
@@ -21535,7 +21529,7 @@ __metadata:
     "@openchoreo/openchoreo-auth": "workspace:^"
     "@types/cookie-parser": "npm:1.4.8"
     "@types/express-session": "npm:1.18.2"
-    app: "link:../app"
+    app: "workspace:^"
     better-sqlite3: "npm:9.6.0"
     cookie-parser: "npm:1.4.7"
     express-session: "npm:1.18.2"
