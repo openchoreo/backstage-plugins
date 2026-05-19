@@ -60,6 +60,13 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      - name: TypeScript compile
+        # Backstage's per-package builder reads `.d.ts` files from
+        # `dist-types/` during `build:all`. Without a prior `yarn tsc` the
+        # build fails with "No declaration files found at ../../dist-types/...".
+        # Mirrors the order used by build-and-test.yml.
+        run: yarn tsc
+
       - name: Build all workspaces
         # `changeset publish` runs each workspace's `prepack`, which invokes
         # `backstage-cli package prepack` — that rewrites `workspace:^` deps to
