@@ -126,7 +126,7 @@ export const InvestigateLogButton = ({
   const pinnedTraceId = extractTraceId(log.log);
   const tooltip = pinnedTraceId
     ? `Investigate this log line (trace ${pinnedTraceId.slice(0, 8)}…)`
-    : 'Investigate this log line with Perch';
+    : 'Investigate this log line with Portal Assistant';
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     // Don't toggle the row's expand affordance — the parent <TableRow>
@@ -246,7 +246,7 @@ export const InvestigateLogButton = ({
         onMouseEnter={warmIfStale}
         onFocus={warmIfStale}
         size="small"
-        aria-label="Investigate this log line with Perch"
+        aria-label="Investigate this log line with Portal Assistant"
       >
         <ChatOutlinedIcon className={classes.icon} />
       </IconButton>
