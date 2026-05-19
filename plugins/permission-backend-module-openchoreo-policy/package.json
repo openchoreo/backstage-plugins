@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "license": "Apache-2.0",
   "description": "OpenChoreo permission policy module for the Backstage permission backend.",
   "main": "src/index.ts",

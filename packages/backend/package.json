@@ -60,7 +60,7 @@
     "@openchoreo/backstage-plugin-platform-engineer-core-backend": "workspace:^",
     "@openchoreo/backstage-plugin-scaffolder-backend-module": "workspace:^",
     "@openchoreo/openchoreo-auth": "workspace:^",
-    "app": "link:../app",
+    "app": "workspace:^",
     "better-sqlite3": "9.6.0",
     "cookie-parser": "1.4.7",
     "express-session": "1.18.2",
