@@ -630,7 +630,7 @@ export const AssistantChatDrawer = ({
           maxRows={4}
           variant="outlined"
           size="small"
-          placeholder="Message Perch…"
+          placeholder="Message Portal Assistant"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
