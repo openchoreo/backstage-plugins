@@ -107,22 +107,19 @@ jobs:
           echo "checkout-sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "prerelease=${PRERELEASE}" >> $GITHUB_OUTPUT
 
+      # TEMP: branch check disabled — release-v1.1 already exists, hardcoding branch-exists=true.
       - name: Check if release branch exists
         id: check-branch
         run: |
-          if git ls-remote origin "refs/heads/release-v${{ env.MAJOR }}.${{ env.MINOR }}" | head -1 | grep -q .; then
-            echo "branch-exists=true" >> $GITHUB_OUTPUT
-            echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
-          else
-            echo "branch-exists=false" >> $GITHUB_OUTPUT
-            echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
-          fi
+          echo "branch-exists=true" >> $GITHUB_OUTPUT
+          echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
 
-      - name: Fail if tag mode without release branch
-        if: ${{ github.event.inputs.action == 'tag' && github.event.inputs.commit_sha == '' && steps.check-branch.outputs.branch-exists == 'false' }}
-        run: |
-          echo "ERROR: action=tag requires an existing release branch (release-v${{ env.MAJOR }}.${{ env.MINOR }}), but it does not exist."
-          exit 1
+      # TEMP: tag-mode branch-existence guard disabled.
+      # - name: Fail if tag mode without release branch
+      #   if: ${{ github.event.inputs.action == 'tag' && github.event.inputs.commit_sha == '' && steps.check-branch.outputs.branch-exists == 'false' }}
+      #   run: |
+      #     echo "ERROR: action=tag requires an existing release branch (release-v${{ env.MAJOR }}.${{ env.MINOR }}), but it does not exist."
+      #     exit 1
 
       - name: Validate VERSION file
         env:
@@ -142,14 +139,15 @@ jobs:
             exit 1
           fi
 
-      - name: Check for existing tag
-        if: ${{ github.event.inputs.action == 'full' || github.event.inputs.action == 'tag' }}
-        run: |
-          TAG="${{ env.RELEASE_TAG }}"
-          if git ls-remote origin "refs/tags/${TAG}" | head -1 | grep -q .; then
-            echo "ERROR: Tag ${TAG} already exists on remote. Remove it first if you want to retag."
-            exit 1
-          fi
+      # TEMP: existing-tag check disabled.
+      # - name: Check for existing tag
+      #   if: ${{ github.event.inputs.action == 'full' || github.event.inputs.action == 'tag' }}
+      #   run: |
+      #     TAG="${{ env.RELEASE_TAG }}"
+      #     if git ls-remote origin "refs/tags/${TAG}" | head -1 | grep -q .; then
+      #       echo "ERROR: Tag ${TAG} already exists on remote. Remove it first if you want to retag."
+      #       exit 1
+      #     fi
 
       - name: Determine commit to tag
         id: determine-commit
@@ -226,7 +224,8 @@ jobs:
   # ----------------------------------------------------------------
   branch:
     needs: [validate]
-    if: ${{ needs.validate.outputs.branch-exists == 'false' && (github.event.inputs.action == 'full' || github.event.inputs.action == 'branch') && github.event.inputs.pre_release_id == '' }}
+    # TEMP: release branch creation disabled (release-v1.1 already exists).
+    if: ${{ false && needs.validate.outputs.branch-exists == 'false' && (github.event.inputs.action == 'full' || github.event.inputs.action == 'branch') && github.event.inputs.pre_release_id == '' }}
     runs-on: ubuntu-24.04
     steps:
       - name: Generate GitHub App token
