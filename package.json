@@ -27,7 +27,7 @@
     "prettier:write": "prettier --write .",
     "new": "backstage-cli new",
     "release:version": "changeset version && yarn prettier --write '{packages,plugins}/*/{package.json,CHANGELOG.md}' && yarn install",
-    "release:publish": "changeset publish"
+    "release:publish": "yarn workspaces foreach --all --no-private --topological --verbose npm publish --tolerate-republish --access public --tag latest"
   },
   "workspaces": {
     "packages": [
