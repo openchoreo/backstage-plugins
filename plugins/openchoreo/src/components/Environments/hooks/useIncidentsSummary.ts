@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { useApi, createApiRef } from '@backstage/core-plugin-api';
+import { useApiHolder, createApiRef } from '@backstage/core-plugin-api';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import type { Environment } from './useEnvironmentData';
 
@@ -42,7 +42,11 @@ export function useIncidentsSummary(
   environments: Environment[],
 ): Map<string, IncidentsSummary> {
   const { entity } = useEntity();
-  const observabilityApi = useApi(observabilityApiRef);
+  // Observability is optional. When @openchoreo/backstage-plugin-openchoreo-observability
+  // is not installed in the host app, no API factory is registered for this ref and
+  // `useApi()` would throw NotImplementedError. `useApiHolder().get()` returns undefined
+  // instead, letting the Deploy tab render without incident chips.
+  const observabilityApi = useApiHolder().get(observabilityApiRef);
   const [summaries, setSummaries] = useState<Map<string, IncidentsSummary>>(
     new Map(),
   );
@@ -56,6 +60,11 @@ export function useIncidentsSummary(
 
   const fetchIncidents = useCallback(async () => {
     const currentRequestId = ++requestIdRef.current;
+
+    if (!observabilityApi) {
+      setSummaries(new Map());
+      return;
+    }
 
     if (!componentName || !projectName || !namespaceName) {
       setSummaries(new Map());

@@ -499,9 +499,11 @@ Releases are tag-driven. Pushing a `v*.*.*` tag triggers the [release workflow](
 
 5. **CI publishes**. The release workflow:
    - Retags the existing Docker image (built earlier on the `main` push) to `vX.Y.Z` in GHCR.
-   - Runs `yarn install --immutable && yarn build:all && yarn release:publish` to publish npm packages to GitHub Packages.
+   - Runs `yarn install --immutable && yarn tsc && yarn build:all`, then `yarn workspaces foreach --all --no-private --topological --verbose npm publish --tolerate-republish --access public --tag <latest|next>` to publish npm packages to GitHub Packages.
    - On **stable** tags (`vX.Y.Z`) publishes under the `latest` npm dist-tag.
    - On **prerelease** tags (`vX.Y.Z-rc.N`, `vX.Y.Z-test.N`, etc. — any tag containing a hyphen) publishes under the `next` dist-tag, leaving `latest` untouched.
+
+`yarn npm publish` (not `npm publish` or `changeset publish`) is required so that Yarn Berry rewrites `workspace:^` deps to concrete versions at pack time. `npm publish` and `changeset publish` (which shells out to `npm publish` on non-pnpm repos) leak `workspace:^` strings into the tarball and break installs for external consumers.
 
 ### Verifying a release
 
@@ -510,24 +512,33 @@ yarn npm info @openchoreo/backstage-plugin --registry=https://npm.pkg.github.com
 yarn npm info @openchoreo/backstage-design-system --registry=https://npm.pkg.github.com
 ```
 
-Both should show the new version. Confirm under `dist-tags` that stable releases moved `latest` and prereleases moved `next`.
+Both should show the new version. Confirm under `dist-tags` that stable releases moved `latest` and prereleases moved `next`. To confirm `workspace:^` rewriting worked, inspect the `dependencies` field of any published `@openchoreo/*` package — every version specifier should be a concrete range (e.g. `^1.1.0`), never `workspace:^`.
 
 ### Re-running a tag
 
-`changeset publish` is idempotent — re-running the workflow on an already-published tag skips packages whose versions already exist on the registry and exits cleanly. Useful when a transient failure leaves some packages published and others not.
+The publish step is idempotent — `--tolerate-republish` makes `yarn npm publish` skip packages whose versions already exist on the registry and exit cleanly. Useful when a transient failure leaves some packages published and others not.
 
 ### One-time local dry run
 
-Before the first real release, validate the publish path locally:
+Before the first real release, validate the publish path locally. Yarn Berry's `yarn npm publish` does not accept a `--dry-run` flag, so the equivalent offline check is `yarn pack` on every public workspace — `yarn pack` runs the same workspace-protocol rewriter that `yarn npm publish` does, just stopping before the upload:
 
 ```bash
-export YARN_NPM_AUTH_TOKEN=<a classic PAT with write:packages on the openchoreo org>
 yarn install --immutable
+yarn tsc
 yarn build:all
-yarn changeset publish --dry-run
+yarn workspaces foreach --all --no-private --topological --verbose pack
 ```
 
-Output should list exactly the 13 public `@openchoreo/*` packages targeting `https://npm.pkg.github.com`. No `"private": true` package should appear.
+Then confirm a sample tarball has no `workspace:` leaks in its `dependencies`:
+
+```bash
+cd plugins/openchoreo
+tar -xzf package.tgz package/package.json -O | \
+  python3 -c "import json,sys; d=json.load(sys.stdin).get('dependencies',{}); leaks={k:v for k,v in d.items() if str(v).startswith('workspace:')}; print('workspace: leaks:', leaks if leaks else 'NONE')"
+rm package.tgz
+```
+
+Expected output: `workspace: leaks: NONE`. Repeat for any other plugin to spot-check. `yarn pack` writes a `package.tgz` next to each workspace's `package.json`; clean them up with `find packages plugins -maxdepth 2 -name package.tgz -delete` when done.
 
 ## Documentation
 

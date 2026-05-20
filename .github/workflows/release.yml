@@ -68,20 +68,25 @@ jobs:
         run: yarn tsc
 
       - name: Build all workspaces
-        # `changeset publish` runs each workspace's `prepack`, which invokes
-        # `backstage-cli package prepack` — that rewrites `workspace:^` deps to
-        # concrete versions and assumes `dist/` exists. Build everything first.
+        # `yarn npm publish` runs each workspace's `prepack` (which invokes
+        # `backstage-cli package prepack` to populate `dist/` entry points)
+        # and rewrites `workspace:^` deps to concrete versions at pack time.
+        # `npm publish` (and `changeset publish`, which shells out to it for
+        # non-pnpm repos) leaks `workspace:^` strings into the tarball, so we
+        # use Yarn Berry's native publish instead. Build first so `dist/`
+        # exists before prepack reads it.
         run: yarn build:all
 
       - name: Publish to GitHub Packages
         env:
           YARN_NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          TAG=latest
           if [ "${IS_PRERELEASE}" = "true" ]; then
-            yarn changeset publish --tag next
-          else
-            yarn release:publish
+            TAG=next
           fi
+          yarn workspaces foreach --all --no-private --topological --verbose \
+            npm publish --tolerate-republish --access public --tag "${TAG}"
 
       - name: Login to GitHub container registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
