@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { useApi, createApiRef } from '@backstage/core-plugin-api';
+import { useApi, useApiHolder, createApiRef } from '@backstage/core-plugin-api';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { calculateTimeRange } from '../../../api/runtimeLogs';
@@ -50,7 +50,11 @@ interface LogsSummaryState {
 export function useLogsSummary() {
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
-  const observabilityApi = useApi(observabilityApiRef);
+  // Optional — see note in useIncidentsSummary.ts. When the observability plugin is not
+  // installed, useApiHolder().get() returns undefined and we short-circuit fetchData below
+  // by setting observabilityDisabled: true (the same state the backend sets when the
+  // cluster has observability turned off).
+  const observabilityApi = useApiHolder().get(observabilityApiRef);
 
   const [state, setState] = useState<LogsSummaryState>({
     errorCount: 0,
@@ -63,6 +67,15 @@ export function useLogsSummary() {
   });
 
   const fetchData = useCallback(async () => {
+    if (!observabilityApi) {
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: null,
+        observabilityDisabled: true,
+      }));
+      return;
+    }
     try {
       // Get environments
       const environments: Environment[] = await client.getEnvironments(entity);
