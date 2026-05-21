@@ -116,6 +116,9 @@ export const useReleaseReadiness = (
       if (!hasBuilds) {
         return 'Build your application first to generate a container image.';
       }
+      if (!hasSuccessfulBuild) {
+        return 'No successful build yet. Re-run the build workflow to generate a container image.';
+      }
       if (hasSuccessfulBuild && !hasWorkload) {
         return 'Workload configuration was not created automatically. Please re-run the build workflow or contact support.';
       }
@@ -127,8 +130,10 @@ export const useReleaseReadiness = (
   })();
 
   const alertSeverity: ReleaseReadinessAlertSeverity = (() => {
+    if (loading) return 'info';
     if (isFromSource && hasSuccessfulBuild && !hasWorkload) return 'error';
     if (isFromSource && !hasBuilds) return 'warning';
+    if (isFromSource && !hasSuccessfulBuild) return 'warning';
     return 'info';
   })();
 

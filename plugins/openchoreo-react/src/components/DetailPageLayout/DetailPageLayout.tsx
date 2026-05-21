@@ -103,22 +103,33 @@ export const DetailPageLayout = ({
 
   // Esc closes the page via the same path as the back arrow, so the
   // unsaved-changes dialog (when present) still fires. Skip when the user
-  // is typing in a field — Esc-while-typing is a common reflex.
+  // is typing in a field (Esc-while-typing is a common reflex), when an
+  // overlay is handling Esc itself (MUI dialogs call preventDefault), or
+  // when focus is inside an overlay container (dialog/menu/listbox/combobox
+  // or a native <dialog>) so closing the overlay doesn't also navigate back.
   useEffect(() => {
+    const OVERLAY_SELECTOR =
+      '[role="dialog"], [role="menu"], [role="listbox"], [role="combobox"], [aria-modal="true"], dialog[open]';
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      const target = document.activeElement as HTMLElement | null;
-      if (!target) {
-        onBack();
-        return;
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+
+      const eventTarget = e.target as HTMLElement | null;
+      if (eventTarget?.closest?.(OVERLAY_SELECTOR)) return;
+
+      const active = document.activeElement as HTMLElement | null;
+      if (active?.closest?.(OVERLAY_SELECTOR)) return;
+
+      if (active) {
+        const tag = active.tagName;
+        const isEditable =
+          tag === 'INPUT' ||
+          tag === 'TEXTAREA' ||
+          tag === 'SELECT' ||
+          active.isContentEditable;
+        if (isEditable) return;
       }
-      const tag = target.tagName;
-      const isEditable =
-        tag === 'INPUT' ||
-        tag === 'TEXTAREA' ||
-        tag === 'SELECT' ||
-        target.isContentEditable;
-      if (isEditable) return;
+
       onBack();
     };
     window.addEventListener('keydown', handleKeyDown);

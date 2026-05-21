@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import {
   Box,
   Button,
+  ButtonBase,
   Divider,
   FormControlLabel,
   IconButton,
@@ -73,11 +74,20 @@ const LatestReleaseRow = ({
         </Typography>
       )}
       {latest && (
-        <Box
+        <ButtonBase
           onClick={() => setBrowserOpen(true)}
-          display="flex"
-          alignItems="center"
-          style={{ cursor: 'pointer', gap: 8 }}
+          aria-label={`View release ${latest.metadata?.name}`}
+          focusRipple
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '2px 4px',
+            margin: '-2px -4px',
+            borderRadius: 4,
+            justifyContent: 'flex-start',
+            textAlign: 'left',
+          }}
         >
           <Typography variant="body2" style={{ fontWeight: 500 }}>
             {latest.metadata?.name}
@@ -90,7 +100,7 @@ const LatestReleaseRow = ({
             </Typography>
           )}
           <ChevronRightIcon fontSize="small" color="action" />
-        </Box>
+        </ButtonBase>
       )}
       <ReleaseBrowserDialog
         open={browserOpen}

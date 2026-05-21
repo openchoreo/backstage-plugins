@@ -87,6 +87,9 @@ const useStyles = makeStyles((theme: Theme) => ({
     fontSize: '1rem',
     color: theme.palette.text.disabled,
   },
+  helpButton: {
+    padding: 2,
+  },
   helpIcon: {
     fontSize: '0.95rem',
     color: theme.palette.text.secondary,
@@ -153,10 +156,14 @@ export const GroupedSection: FC<GroupedSectionProps> = ({
         <Typography className={classes.title}>{displayTitle}</Typography>
         {titleTooltip && (
           <Tooltip title={titleTooltip} arrow placement="top">
-            <HelpOutlineIcon
-              className={classes.helpIcon}
+            <IconButton
+              size="small"
+              aria-label={`About ${displayTitle}`}
+              className={classes.helpButton}
               onClick={e => e.stopPropagation()}
-            />
+            >
+              <HelpOutlineIcon className={classes.helpIcon} />
+            </IconButton>
           </Tooltip>
         )}
         <Chip

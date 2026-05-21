@@ -475,16 +475,21 @@ export const WorkloadConfigPage = ({
       }
 
       setIsProcessing(false);
-      allowNavigationRef.current = true;
       if (autoDeployEnabled) {
         // Auto-deploy controller will create a ComponentRelease itself; manual
         // creation here would be a redundant sibling release that's never bound.
+        // We're about to navigate via onReleaseCreated, so disarm the
+        // unsaved-changes guard.
+        allowNavigationRef.current = true;
         notification.showSuccess(
           `Component saved. Auto-deploy will create a release and roll it out to ${lowestEnvironment} shortly.`,
         );
         refetchReleases();
         onReleaseCreated();
       } else {
+        // Manual-release path: keep the guard armed — the user stays on the
+        // page to name the release; bypassing unsaved-changes protection here
+        // would leak past the release dialog.
         setShowCreateReleaseDialog(true);
       }
     } catch (e: unknown) {
@@ -497,6 +502,9 @@ export const WorkloadConfigPage = ({
     setShowCreateReleaseDialog(false);
     notification.showSuccess(`Created release ${releaseName}`);
     refetchReleases();
+    // About to navigate via onReleaseCreated — disarm the guard now, after
+    // the release has been created successfully.
+    allowNavigationRef.current = true;
     onReleaseCreated();
   };
 
@@ -512,6 +520,11 @@ export const WorkloadConfigPage = ({
   };
 
   const handleButtonClick = () => {
+    // The branch below depends on autoDeployEnabled; if the toggle state
+    // hasn't settled yet, defer rather than send the user down the wrong
+    // flow. The button is also disabled while loading, but guard here too
+    // so any imperative trigger (Enter on a focused button, etc.) is safe.
+    if (autoDeployLoading) return;
     if (hasAnyChanges) {
       setShowConfirmDialog(true);
       return;
@@ -559,7 +572,13 @@ export const WorkloadConfigPage = ({
       variant="contained"
       color="primary"
       onClick={handleButtonClick}
-      disabled={isProcessing || isLoading || !enableNext || isEditing}
+      disabled={
+        isProcessing ||
+        isLoading ||
+        autoDeployLoading ||
+        !enableNext ||
+        isEditing
+      }
       startIcon={
         isProcessing ? (
           <CircularProgress size={20} color="inherit" />

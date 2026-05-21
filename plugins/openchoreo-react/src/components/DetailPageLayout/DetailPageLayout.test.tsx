@@ -30,6 +30,44 @@ describe('DetailPageLayout', () => {
     expect(onBack).not.toHaveBeenCalled();
   });
 
+  it('does not call onBack when Escape is pressed inside an open dialog', () => {
+    const onBack = jest.fn();
+    render(
+      <DetailPageLayout title="Test" onBack={onBack}>
+        <div role="dialog" aria-modal="true" data-testid="overlay">
+          <button type="button" data-testid="dialog-button">
+            OK
+          </button>
+        </div>
+      </DetailPageLayout>,
+    );
+
+    fireEvent.keyDown(screen.getByTestId('dialog-button'), { key: 'Escape' });
+    expect(onBack).not.toHaveBeenCalled();
+  });
+
+  it('does not call onBack when another handler has already preventDefault-ed the Escape event', () => {
+    const onBack = jest.fn();
+    render(
+      <DetailPageLayout title="Test" onBack={onBack}>
+        <div />
+      </DetailPageLayout>,
+    );
+
+    // Simulate an overlay/MUI dialog that intercepts Escape first by calling
+    // preventDefault before our listener runs.
+    const intercept = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') e.preventDefault();
+    };
+    window.addEventListener('keydown', intercept, true /* capture */);
+    try {
+      fireEvent.keyDown(window, { key: 'Escape' });
+    } finally {
+      window.removeEventListener('keydown', intercept, true);
+    }
+    expect(onBack).not.toHaveBeenCalled();
+  });
+
   it('renders the Esc shortcut chip in the header', () => {
     render(
       <DetailPageLayout title="Test" onBack={jest.fn()}>

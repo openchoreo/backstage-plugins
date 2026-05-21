@@ -78,18 +78,34 @@ export const DeployReleasePanel = ({
   const { navigateToOverrides } = useEnvironmentRouting();
   const [browserOpen, setBrowserOpen] = useState(false);
 
-  // Preselect the most recent release when nothing is selected yet. Only
-  // react to the newest name changing so the user's explicit selection
-  // survives refetches.
+  // Preselect the most recent release when nothing is selected yet, and
+  // re-snap to the newest if the current selection no longer exists in the
+  // releases list (e.g. the release was deleted upstream between refetches).
+  // Skip while loading so a transient empty list doesn't clear a valid
+  // selection.
   const newestName = releases[0]?.metadata?.name ?? null;
+  const selectedExists =
+    !!selectedReleaseName &&
+    releases.some(r => r.metadata?.name === selectedReleaseName);
   useEffect(() => {
+    if (releasesLoading) return;
     if (!selectedReleaseName && newestName) {
       onSelectedReleaseChange(newestName);
+      return;
     }
-  }, [newestName, selectedReleaseName, onSelectedReleaseChange]);
+    if (selectedReleaseName && !selectedExists) {
+      onSelectedReleaseChange(newestName);
+    }
+  }, [
+    releasesLoading,
+    newestName,
+    selectedReleaseName,
+    selectedExists,
+    onSelectedReleaseChange,
+  ]);
 
   const handleDeploy = () => {
-    if (!selectedReleaseName) return;
+    if (!selectedReleaseName || !selectedExists) return;
     navigateToOverrides(firstEnvironmentName, {
       type: 'deploy',
       releaseName: selectedReleaseName,
@@ -102,16 +118,21 @@ export const DeployReleasePanel = ({
   // while `firstEnvironmentName` is lowercased upstream, so compare loosely.
   const targetEnv = firstEnvironmentName.toLowerCase();
   const alreadyDeployed =
-    !!selectedReleaseName &&
-    (deployments[selectedReleaseName] ?? []).some(
+    selectedExists &&
+    (deployments[selectedReleaseName!] ?? []).some(
       e => e.toLowerCase() === targetEnv,
     );
   const deployDisabled =
-    disabled || !selectedReleaseName || noReleases || alreadyDeployed;
+    disabled ||
+    !selectedReleaseName ||
+    !selectedExists ||
+    noReleases ||
+    alreadyDeployed;
 
   const getTooltip = () => {
     if (disabled && disabledReason) return disabledReason;
     if (!selectedReleaseName) return 'Pick a release first';
+    if (!selectedExists) return 'The selected release is no longer available.';
     if (alreadyDeployed) {
       return `This release is already deployed to ${firstEnvironmentName}.`;
     }
