@@ -10,7 +10,6 @@ import {
   Typography,
 } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
-import AddIcon from '@material-ui/icons/Add';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import CloseIcon from '@material-ui/icons/Close';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
@@ -310,41 +309,11 @@ export const SetupDetailPane = ({
               </>
             ) : (
               <>
-                {/* Story 1 — Create release (routes to workload page) */}
-                <Box display="flex" flexDirection="column" gridGap={8}>
-                  <Typography variant="subtitle2">Release</Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    Update your component's configuration and snapshot it as a
-                    release.
-                  </Typography>
-                  {readiness.alertMessage && (
-                    <Alert severity={readiness.alertSeverity}>
-                      {readiness.alertMessage}
-                    </Alert>
-                  )}
-                  {isWorkloadEditorSupported && (
-                    <Box display="flex">
-                      <Tooltip title={createDisabledReason}>
-                        <span>
-                          <Button
-                            variant="contained"
-                            color="primary"
-                            size="small"
-                            startIcon={<AddIcon />}
-                            onClick={onConfigureWorkload}
-                            disabled={!canCreate || readiness.loading}
-                          >
-                            Create release
-                          </Button>
-                        </span>
-                      </Tooltip>
-                    </Box>
-                  )}
-                </Box>
-
-                <Divider style={{ margin: '12px 0' }} />
-
-                {/* Story 2 — Deploy */}
+                {readiness.alertMessage && (
+                  <Alert severity={readiness.alertSeverity}>
+                    {readiness.alertMessage}
+                  </Alert>
+                )}
                 <DeployReleasePanel
                   releases={releases}
                   releasesLoading={releasesLoading}
@@ -355,6 +324,11 @@ export const SetupDetailPane = ({
                   firstEnvironmentName={lowestEnvironment}
                   disabled={permissionLoading || !canConfigureAndDeploy}
                   disabledReason={deniedTooltip}
+                  onCreateRelease={
+                    isWorkloadEditorSupported ? onConfigureWorkload : undefined
+                  }
+                  canCreateRelease={canCreate && !readiness.loading}
+                  createDisabledReason={createDisabledReason}
                 />
               </>
             )}

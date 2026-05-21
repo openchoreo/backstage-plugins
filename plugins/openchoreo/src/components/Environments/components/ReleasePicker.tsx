@@ -1,24 +1,10 @@
-import { useMemo, useState } from 'react';
-import { Box, Button, Chip, Typography } from '@material-ui/core';
+import { useMemo } from 'react';
+import { Box, Chip, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { Skeleton } from '@material-ui/lab';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
-import { ReleaseBrowserDialog } from './ReleaseBrowserDialog';
 
 const useStyles = makeStyles(theme => ({
-  wrapper: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(0.5),
-  },
-  label: {
-    color: theme.palette.text.secondary,
-    fontWeight: 600,
-    fontSize: 11,
-    letterSpacing: '0.06em',
-    textTransform: 'uppercase',
-    marginBottom: theme.spacing(0.5),
-  },
   summaryRow: {
     display: 'flex',
     flexDirection: 'column',
@@ -27,18 +13,11 @@ const useStyles = makeStyles(theme => ({
     backgroundColor: theme.palette.action.hover,
     borderRadius: 6,
   },
-  topLine: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: theme.spacing(1.5),
-  },
   name: {
     fontWeight: 500,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    flexGrow: 1,
     minWidth: 0,
   },
   meta: {
@@ -65,14 +44,9 @@ export type ReleaseDeployments = Record<string, string[]>;
 export interface ReleasePickerProps {
   releases: ComponentRelease[];
   selectedReleaseName: string | null;
-  onChange: (releaseName: string | null) => void;
   /** Environments where each release is currently deployed. Used for badges. */
   deployments?: ReleaseDeployments;
-  /** Env name passed to the browser dialog for context. */
-  environmentName: string;
-  disabled?: boolean;
   loading?: boolean;
-  label?: string;
 }
 
 const formatRelativeTime = (iso?: string): string => {
@@ -105,15 +79,10 @@ const shortenImage = (image: string): string => {
 export const ReleasePicker = ({
   releases,
   selectedReleaseName,
-  onChange,
   deployments = {},
-  environmentName,
-  disabled,
   loading,
-  label = 'Selected release',
 }: ReleasePickerProps) => {
   const classes = useStyles();
-  const [dialogOpen, setDialogOpen] = useState(false);
 
   const selected = useMemo(
     () => releases.find(r => r.metadata?.name === selectedReleaseName) ?? null,
@@ -129,63 +98,36 @@ export const ReleasePicker = ({
     ? deployments[selected.metadata?.name ?? ''] ?? []
     : [];
 
-  return (
-    <Box className={classes.wrapper}>
-      <Typography variant="caption" className={classes.label}>
-        {label}
-      </Typography>
+  if (loading) {
+    return <Skeleton variant="rect" height={56} />;
+  }
 
-      {loading ? (
-        <Skeleton variant="rect" height={36} />
+  return (
+    <Box className={classes.summaryRow}>
+      {selected ? (
+        <Typography variant="body2" className={classes.name}>
+          {selected.metadata?.name}
+        </Typography>
       ) : (
-        <Box className={classes.summaryRow}>
-          <Box className={classes.topLine}>
-            {selected ? (
-              <Typography variant="body2" className={classes.name}>
-                {selected.metadata?.name}
-              </Typography>
-            ) : (
-              <Typography variant="body2" className={classes.empty}>
-                {noReleases ? 'No releases yet' : 'No release selected'}
-              </Typography>
-            )}
-            <Button
-              variant="outlined"
+        <Typography variant="body2" className={classes.empty}>
+          {noReleases ? 'No releases yet' : 'No release selected'}
+        </Typography>
+      )}
+      {selected && (
+        <Box className={classes.meta}>
+          {created && <span>{created}</span>}
+          {image && <span>img: {shortenImage(image)}</span>}
+          {deployedIn.map(env => (
+            <Chip
+              key={env}
+              label={`current in ${env}`}
               size="small"
-              onClick={() => setDialogOpen(true)}
-              disabled={disabled || noReleases}
-            >
-              {selected ? 'Change' : 'Select release'}
-            </Button>
-          </Box>
-          {selected && (
-            <Box className={classes.meta}>
-              {created && <span>{created}</span>}
-              {image && <span>img: {shortenImage(image)}</span>}
-              {deployedIn.map(env => (
-                <Chip
-                  key={env}
-                  label={`current in ${env}`}
-                  size="small"
-                  color="primary"
-                  className={classes.chip}
-                />
-              ))}
-            </Box>
-          )}
+              color="primary"
+              className={classes.chip}
+            />
+          ))}
         </Box>
       )}
-
-      <ReleaseBrowserDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        releases={releases}
-        deployments={deployments}
-        selectedReleaseName={selectedReleaseName}
-        onConfirm={name => onChange(name)}
-        environmentName={environmentName}
-        loading={loading}
-      />
     </Box>
   );
 };

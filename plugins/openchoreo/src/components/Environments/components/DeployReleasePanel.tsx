@@ -1,16 +1,30 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Box, Button, Tooltip, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { Alert } from '@material-ui/lab';
+import AddIcon from '@material-ui/icons/Add';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
 import { useEnvironmentRouting } from '../hooks/useEnvironmentRouting';
 import { ReleasePicker, type ReleaseDeployments } from './ReleasePicker';
+import { ReleaseBrowserDialog } from './ReleaseBrowserDialog';
 
 const useStyles = makeStyles(theme => ({
   panel: {
     display: 'flex',
     flexDirection: 'column',
     gap: theme.spacing(1.5),
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing(1.5),
+  },
+  headerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.75),
+    flexShrink: 0,
   },
   actionsRow: {
     display: 'flex',
@@ -32,6 +46,10 @@ export interface DeployReleasePanelProps {
   firstEnvironmentName: string;
   disabled?: boolean;
   disabledReason?: string;
+  /** Forwarded to ReleasePicker to render an inline "+ Create release" button. */
+  onCreateRelease?: () => void;
+  canCreateRelease?: boolean;
+  createDisabledReason?: string;
 }
 
 /**
@@ -52,9 +70,13 @@ export const DeployReleasePanel = ({
   firstEnvironmentName,
   disabled,
   disabledReason,
+  onCreateRelease,
+  canCreateRelease,
+  createDisabledReason,
 }: DeployReleasePanelProps) => {
   const classes = useStyles();
   const { navigateToOverrides } = useEnvironmentRouting();
+  const [browserOpen, setBrowserOpen] = useState(false);
 
   // Preselect the most recent release when nothing is selected yet. Only
   // react to the newest name changing so the user's explicit selection
@@ -98,27 +120,47 @@ export const DeployReleasePanel = ({
 
   return (
     <Box className={classes.panel}>
-      <Typography variant="subtitle2">Deploy</Typography>
+      <Box className={classes.header}>
+        <Typography variant="subtitle2">Deploy</Typography>
+        <Box className={classes.headerActions}>
+          {onCreateRelease && (
+            <Tooltip title={createDisabledReason ?? ''}>
+              <span>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={onCreateRelease}
+                  disabled={!canCreateRelease}
+                >
+                  Create release
+                </Button>
+              </span>
+            </Tooltip>
+          )}
+          {!(noReleases && onCreateRelease) && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setBrowserOpen(true)}
+              disabled={disabled || noReleases}
+            >
+              Select release
+            </Button>
+          )}
+        </Box>
+      </Box>
       <Typography variant="caption" color="textSecondary">
         Pick a release and deploy it to {firstEnvironmentName}.
       </Typography>
 
       {releasesError && <Alert severity="error">{releasesError}</Alert>}
 
-      {noReleases && !releasesError && (
-        <Alert severity="info">
-          No releases yet. Create one above to deploy it here.
-        </Alert>
-      )}
-
       <ReleasePicker
         releases={releases}
         selectedReleaseName={selectedReleaseName}
-        onChange={onSelectedReleaseChange}
         deployments={deployments}
-        environmentName={firstEnvironmentName}
         loading={releasesLoading}
-        disabled={disabled || noReleases}
       />
 
       <Box className={classes.actionsRow}>
@@ -136,6 +178,17 @@ export const DeployReleasePanel = ({
           </span>
         </Tooltip>
       </Box>
+
+      <ReleaseBrowserDialog
+        open={browserOpen}
+        onClose={() => setBrowserOpen(false)}
+        releases={releases}
+        deployments={deployments}
+        selectedReleaseName={selectedReleaseName}
+        onConfirm={name => onSelectedReleaseChange(name)}
+        environmentName={firstEnvironmentName}
+        loading={releasesLoading}
+      />
     </Box>
   );
 };

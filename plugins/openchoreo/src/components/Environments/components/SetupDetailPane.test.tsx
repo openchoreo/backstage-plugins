@@ -19,11 +19,25 @@ jest.mock('./LoadingSkeleton', () => ({
 }));
 
 jest.mock('./DeployReleasePanel', () => ({
-  DeployReleasePanel: ({ disabled }: any) => (
+  DeployReleasePanel: ({
+    disabled,
+    onCreateRelease,
+    canCreateRelease,
+  }: any) => (
     <div
       data-testid="deploy-release-panel"
       data-disabled={String(!!disabled)}
-    />
+    >
+      {onCreateRelease && (
+        <button
+          type="button"
+          onClick={onCreateRelease}
+          disabled={!canCreateRelease}
+        >
+          Create release
+        </button>
+      )}
+    </div>
   ),
 }));
 
@@ -154,13 +168,13 @@ beforeEach(() => {
 });
 
 describe('SetupDetailPane', () => {
-  it('renders both stories: Create release button and the deploy panel', async () => {
+  it('renders the deploy panel with an inline Create release affordance', async () => {
     renderPane();
 
+    expect(screen.getByTestId('deploy-release-panel')).toBeInTheDocument();
     expect(
       await screen.findByRole('button', { name: /create release/i }),
     ).toBeEnabled();
-    expect(screen.getByTestId('deploy-release-panel')).toBeInTheDocument();
   });
 
   it('Create release navigates to the workload page (onConfigureWorkload)', async () => {
