@@ -315,6 +315,32 @@ async function forwardStream(
   res.status(upstream.status);
   applyResponseHeaders(upstream.headers, res);
 
+  // Disable every layer of buffering between us and the browser so the
+  // NDJSON stream actually surfaces one event at a time:
+  //   - ``Content-Encoding: identity`` opts out of the ``compression``
+  //     middleware that backend-defaults wires by default (it batches
+  //     small writes to compress them, which collapses our token-sized
+  //     chunks into one dump).
+  //   - ``X-Accel-Buffering: no`` tells any reverse proxy (nginx, envoy
+  //     with the right ext_proc) not to buffer.
+  //   - ``Cache-Control: no-cache, no-transform`` blocks transformative
+  //     proxies from re-encoding the body.
+  //   - ``flushHeaders()`` sends the status + headers immediately, before
+  //     the first body byte — so the browser opens its stream reader
+  //     instead of waiting on Content-Length.
+  //   - ``setNoDelay(true)`` disables Nagle's algorithm on this socket so
+  //     each write goes out the wire immediately rather than waiting for
+  //     a 40-200 ms coalesce window.
+  // RCA's chat doesn't need any of this because the frontend calls the
+  // agent directly with ``x-openchoreo-direct``; perch goes through this
+  // forwarder, so the same protections it inherits from being in-cluster
+  // we have to recreate by hand here.
+  res.setHeader('Content-Encoding', 'identity');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.flushHeaders();
+  res.socket?.setNoDelay(true);
+
   if (!upstream.body) {
     res.end();
     res.off('close', onResClose);

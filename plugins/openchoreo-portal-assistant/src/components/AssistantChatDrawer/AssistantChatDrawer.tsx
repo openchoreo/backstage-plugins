@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Box,
+  Button,
   Chip,
   Drawer,
   IconButton,
   InputAdornment,
+  Snackbar,
   TextField,
   Tooltip,
   Typography,
@@ -14,9 +16,13 @@ import CloseIcon from '@material-ui/icons/Close';
 import SendIcon from '@material-ui/icons/Send';
 import StopIcon from '@material-ui/icons/Stop';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
+import AndroidOutlinedIcon from '@material-ui/icons/AndroidOutlined';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import { useApi } from '@backstage/core-plugin-api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remend from 'remend';
 import {
   perchAgentApiRef,
   type ChatMessage,
@@ -25,7 +31,7 @@ import {
 } from '../../api/PerchAgentApi';
 import type { PinnedContext } from '../AssistantContext/AssistantDrawerContext';
 import { useStyles } from './styles';
-import { splitForCollapse } from './splitForCollapse';
+import { splitForCollapse, splitForStreaming } from './splitForCollapse';
 
 /**
  * Strip ``<comp:NAME>`` / ``<proj:NAME>`` / ``<env:NAME>`` /
@@ -146,6 +152,9 @@ export const AssistantChatDrawer = ({
           workflowName: pin.workflowName,
           workflowKind: pin.workflowKind,
           caseType: pin.caseType,
+          // Forwarded so the agent can drop the URL into the
+          // ``fix_prompt`` it generates on build_failure turns.
+          repoUrl: pin.repoUrl,
         }
       : fromPath;
     return scopeOverrides ? { ...fromPin, ...scopeOverrides } : fromPin;
@@ -154,10 +163,17 @@ export const AssistantChatDrawer = ({
   // The agent is read-only — every timeline item is a plain user / assistant
   // message. The unified-item shape is kept (rather than ChatMessage[])
   // so future non-message variants can slot in without restructuring.
+  //
+  // ``fixPrompt`` is set ONLY on assistant items when the agent's
+  // terminal DoneEvent carried a ``fix_prompt`` field (build_failure
+  // turns with a code-level cause). The drawer uses its presence to
+  // gate the per-message "Copy as prompt" affordance — the frontend
+  // never synthesises this; it copies the backend payload verbatim.
   type ChatItem = {
     kind: 'message';
     role: 'user' | 'assistant';
     content: string;
+    fixPrompt?: string;
   };
 
   const [timeline, setTimeline] = useState<ChatItem[]>([]);
@@ -166,6 +182,28 @@ export const AssistantChatDrawer = ({
   const [toolStatus, setToolStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  // Toast for the "Copy as prompt" action on build_failure assistant
+  // turns. Null when no toast is showing; non-null string carries the
+  // message text (success copy + failure mode share the same component).
+  const [copyToast, setCopyToast] = useState<string | null>(null);
+  // Which assistant turns currently have their fix_prompt expanded
+  // inline (chevron toggled on). Keyed by timeline index — stable
+  // across turns because new turns append. A Set rather than a single
+  // index so power users can keep multiple prompts open side-by-side.
+  const [expandedPrompts, setExpandedPrompts] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const toggleExpandPrompt = useCallback((index: number) => {
+    setExpandedPrompts(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  }, []);
   // Forwarded to TextField.inputRef so the seed effect can focus the
   // composer after drafting a launcher's prefilled message.
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
@@ -196,6 +234,38 @@ export const AssistantChatDrawer = ({
     setStreaming('');
     setToolStatus(null);
     setError(null);
+  }, []);
+
+  // Copy whatever the backend put on ``DoneEvent.fix_prompt`` into the
+  // clipboard. The drawer does NOT synthesise the prompt — the agent
+  // has the real tool-call context (logs, error excerpts, repo URL
+  // from scope) and produces a far better-targeted prompt than the
+  // frontend ever could. We just expose it to the user.
+  const handleCopyPrompt = useCallback(async (prompt: string) => {
+    try {
+      // Prefer the async Clipboard API (only available on secure
+      // contexts — https + localhost). Fall back to the legacy
+      // execCommand path so http-served Backstage instances still
+      // work — the textarea is briefly mounted off-screen so the
+      // user never sees it.
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(prompt);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = prompt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopyToast('Copied — paste into your AI coding assistant');
+    } catch (e) {
+      setCopyToast(
+        `Copy failed: ${e instanceof Error ? e.message : 'unknown error'}`,
+      );
+    }
   }, []);
 
   const sendMessage = useCallback(
@@ -257,6 +327,11 @@ export const AssistantChatDrawer = ({
                       kind: 'message',
                       role: 'assistant',
                       content: event.message,
+                      // Snake_case on the wire (matches the backend's
+                      // DoneEvent field). Only set on build_failure
+                      // turns where the agent surfaced a code-level
+                      // cause; absent for everything else.
+                      fixPrompt: event.fix_prompt || undefined,
                     },
                   ]);
                 }
@@ -581,6 +656,86 @@ export const AssistantChatDrawer = ({
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {summary}
               </ReactMarkdown>
+              {item.fixPrompt && (
+                // Banner sits BETWEEN the summary and the <details>
+                // expander so the affordance is visible the moment the
+                // diagnosis lands — a small icon buried under
+                // "Show details" was easy to miss. Gate strictly on
+                // backend-supplied fixPrompt: build_failure turns
+                // without a code-level cause (infra issues, empty
+                // logs) intentionally have it unset and the banner
+                // does not render.
+                <>
+                  <Box
+                    className={`${classes.fixPromptBanner}${
+                      expandedPrompts.has(i)
+                        ? ` ${classes.fixPromptBannerOpen}`
+                        : ''
+                    }`}
+                  >
+                    <Box className={classes.fixPromptBannerLabel}>
+                      <AndroidOutlinedIcon
+                        className={classes.fixPromptBannerIcon}
+                      />
+                      <Typography
+                        variant="caption"
+                        className={classes.fixPromptBannerText}
+                      >
+                        Prompt for AI Agents
+                      </Typography>
+                    </Box>
+                    <Box className={classes.fixPromptBannerActions}>
+                      <Tooltip
+                        title={
+                          expandedPrompts.has(i)
+                            ? 'Hide prompt'
+                            : 'Show prompt'
+                        }
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={() => toggleExpandPrompt(i)}
+                          aria-label={
+                            expandedPrompts.has(i)
+                              ? 'Hide the generated prompt'
+                              : 'Show the generated prompt'
+                          }
+                          className={classes.fixPromptBannerExpand}
+                        >
+                          {expandedPrompts.has(i) ? (
+                            <ExpandLessIcon fontSize="small" />
+                          ) : (
+                            <ExpandMoreIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                      <Button
+                        size="small"
+                        color="primary"
+                        onClick={() => {
+                          void handleCopyPrompt(item.fixPrompt!);
+                        }}
+                        className={classes.fixPromptBannerButton}
+                        aria-label="Copy diagnosis as a prompt for an external AI assistant"
+                      >
+                        Copy
+                      </Button>
+                    </Box>
+                  </Box>
+                  {expandedPrompts.has(i) && (
+                    // Preview lives OUTSIDE the banner so its tinted
+                    // background visually anchors to the banner above
+                    // it (same accent, square top corners). Text is
+                    // pre-wrap so paragraph breaks the agent included
+                    // survive, but long lines wrap so a wide repo URL
+                    // or stack-trace line doesn't introduce horizontal
+                    // scroll inside the narrow drawer.
+                    <pre className={classes.fixPromptPreview}>
+                      {item.fixPrompt}
+                    </pre>
+                  )}
+                </>
+              )}
               {details && (
                 // Affordance label is "Show details" (not "Show
                 // evidence") because the collapsed block holds BOTH
@@ -604,7 +759,13 @@ export const AssistantChatDrawer = ({
         {streaming && (
           <Box className={`${classes.message} ${classes.assistant}`}>
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {stripEntityTags(streaming)}
+              {/* Use splitForStreaming so Evidence content is hidden the
+                  moment its header arrives, instead of streaming in and
+                  then snapping behind "Show details" once `done` lands.
+                  remend() still self-heals partial markdown in the
+                  visible summary so the user never sees raw `**` or
+                  half-closed code fences. */}
+              {stripEntityTags(remend(splitForStreaming(streaming).summary))}
             </ReactMarkdown>
           </Box>
         )}
@@ -663,6 +824,13 @@ export const AssistantChatDrawer = ({
           }}
         />
       </Box>
+      <Snackbar
+        open={copyToast !== null}
+        autoHideDuration={2500}
+        onClose={() => setCopyToast(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        message={copyToast ?? ''}
+      />
     </Drawer>
   );
 };
