@@ -1163,7 +1163,6 @@ export async function createRouter({
     res.json({ success: true, data: { items } });
   });
 
-
   router.put('/update-release-binding', requireAuth, async (req, res) => {
     const {
       componentName,

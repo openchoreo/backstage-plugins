@@ -24,10 +24,7 @@ jest.mock('./DeployReleasePanel', () => ({
     onCreateRelease,
     canCreateRelease,
   }: any) => (
-    <div
-      data-testid="deploy-release-panel"
-      data-disabled={String(!!disabled)}
-    >
+    <div data-testid="deploy-release-panel" data-disabled={String(!!disabled)}>
       {onCreateRelease && (
         <button
           type="button"
