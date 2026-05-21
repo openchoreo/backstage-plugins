@@ -295,6 +295,7 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
             </Typography>
             <Typography className={classes.readOnlyDetails}>
               {endpoint.type} : {endpoint.port}
+              {endpoint.basePath ? ` · ${endpoint.basePath}` : ''}
               {(() => {
                 const vis = endpoint.visibility ?? [];
                 const displayVis = vis.includes('project')
@@ -437,6 +438,21 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
                   })}
                 </FormGroup>
               </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Base Path"
+                value={endpoint.basePath || ''}
+                onChange={e =>
+                  onChange('basePath', e.target.value || undefined)
+                }
+                fullWidth
+                variant="outlined"
+                size="small"
+                disabled={disabled}
+                placeholder="/api/v1"
+                helperText="API basepath (optional)"
+              />
             </Grid>
             <Grid item xs={12}>
               <Box className={classes.schemaContentField}>
