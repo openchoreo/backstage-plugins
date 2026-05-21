@@ -3,6 +3,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 
 import { useNotification } from '../../hooks';
 import {
+  useAutoDeploy,
   useEnvironmentData,
   useStaleEnvironments,
   useEnvironmentPolling,
@@ -38,6 +39,14 @@ export const Environments = () => {
     useEnvironmentReadPermission();
   const { canViewBindings, loading: bindingsPermissionLoading } =
     useReleaseBindingPermission();
+
+  // Component-level auto-deploy flag — loaded once and shared via context so
+  // child pages don't flicker on their own defaults during initial fetch.
+  const {
+    autoDeploy,
+    loading: autoDeployLoading,
+    refetch: refetchAutoDeploy,
+  } = useAutoDeploy(entity);
 
   // Notifications
   const notification = useNotification();
@@ -100,6 +109,9 @@ export const Environments = () => {
       environmentReadPermissionLoading,
       canViewBindings,
       bindingsPermissionLoading,
+      autoDeploy,
+      autoDeployLoading,
+      refetchAutoDeploy,
       selection,
       setSelection,
     }),
@@ -114,6 +126,9 @@ export const Environments = () => {
       environmentReadPermissionLoading,
       canViewBindings,
       bindingsPermissionLoading,
+      autoDeploy,
+      autoDeployLoading,
+      refetchAutoDeploy,
       selection,
     ],
   );

@@ -21,8 +21,8 @@ export const SETUP_NODE_HEIGHT = ENV_NODE_HEIGHT;
 // rendering inside the detail panel.
 export const MINI_ENV_NODE_WIDTH = 240;
 export const MINI_ENV_NODE_HEIGHT = 140;
-export const MINI_SETUP_NODE_WIDTH = 240;
-export const MINI_SETUP_NODE_HEIGHT = 140;
+export const MINI_SETUP_NODE_WIDTH = 180;
+export const MINI_SETUP_NODE_HEIGHT = 96;
 
 /** Minimal env shape used by buildEnvPipelineNodes */
 export interface EnvPipelineInput {

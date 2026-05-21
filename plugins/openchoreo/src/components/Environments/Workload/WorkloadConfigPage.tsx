@@ -35,6 +35,10 @@ import { useWorkloadChanges } from './hooks/useWorkloadChanges';
 import { WorkloadSaveConfirmationDialog } from './WorkloadSaveConfirmationDialog';
 import { usePendingChanges } from '../../Traits/hooks/usePendingChanges';
 import { deepCompareObjects } from '@openchoreo/backstage-plugin-react';
+import { CreateReleaseDialog } from '../components/CreateReleaseDialog';
+import { useReleases } from '../hooks/useReleases';
+import { useEnvironmentsContext } from '../EnvironmentsContext';
+import { useNotification } from '../../../hooks';
 
 /** Stable empty array to avoid unnecessary rerenders in WorkloadProvider */
 const EMPTY_BUILDS: never[] = [];
@@ -61,12 +65,11 @@ const useStyles = makeStyles(theme => ({
 
 interface WorkloadConfigPageProps {
   onBack: () => void;
-  /** Called after workload is applied and release is created, navigates to overrides */
-  onNext: (releaseName: string, targetEnvironment: string) => void;
-  /** The lowest environment name (first in deployment pipeline) */
-  lowestEnvironment: string;
+  /** Called after the release is successfully created. */
+  onReleaseCreated: () => void;
   /**
-   * Data plane of the lowest environment.
+   * Data plane of the lowest environment, used by the workload editor for
+   * endpoint previews.
    */
   lowestEnvDataPlane?: { kind?: string; name?: string };
   /** Initial tab to display (from URL) */
@@ -77,8 +80,7 @@ interface WorkloadConfigPageProps {
 
 export const WorkloadConfigPage = ({
   onBack,
-  onNext,
-  lowestEnvironment,
+  onReleaseCreated,
   lowestEnvDataPlane,
   initialTab,
   onTabChange,
@@ -87,6 +89,14 @@ export const WorkloadConfigPage = ({
   const client = useApi(openChoreoClientApiRef);
   const catalogApi = useApi(catalogApiRef);
   const { entity } = useEntity();
+  const {
+    lowestEnvironment,
+    autoDeploy: autoDeployEnabled,
+    autoDeployLoading,
+  } = useEnvironmentsContext();
+  const { releases, refetch: refetchReleases } = useReleases(entity);
+  const notification = useNotification();
+  const [showCreateReleaseDialog, setShowCreateReleaseDialog] = useState(false);
 
   // Single source of truth: the full K8s workload resource
   const [workloadResource, setWorkloadResource] =
@@ -434,31 +444,28 @@ export const WorkloadConfigPage = ({
   const hasAnyChanges =
     workloadChanges.hasChanges || hasTraitChanges || hasParameterChanges;
 
-  const handleNext = async () => {
+  const handleSave = async () => {
     if (!workloadResource) {
       return;
     }
     if (!isFromSource && !spec?.container?.image?.trim()) {
-      setSaveError('A container image is required before proceeding.');
+      setSaveError('A container image is required before saving.');
       return;
     }
     setIsProcessing(true);
     setSaveError(null);
     try {
-      // Step 1: Apply workload (if changed) — send the full resource as-is
       if (workloadChanges.hasChanges) {
         const result = await client.applyWorkload(
           entity,
           workloadResource,
           isNewWorkload,
         );
-        // Advance the saved baseline so retries don't reapply the same change
         setWorkloadResource(result);
         setInitialResource(JSON.parse(JSON.stringify(result)));
         setIsNewWorkload(false);
       }
 
-      // Step 2: Update component config (traits/parameters) if changed
       if (hasTraitChanges || hasParameterChanges) {
         await client.updateComponentConfig(
           entity,
@@ -467,23 +474,38 @@ export const WorkloadConfigPage = ({
         );
       }
 
-      // Step 3: Create ComponentRelease
-      const releaseResponse = await client.createComponentRelease(entity);
-
-      if (!releaseResponse.data?.name) {
-        throw new Error('Failed to create release: no release name returned');
-      }
-
-      const releaseName = releaseResponse.data.name;
-
-      // Step 4: Navigate to overrides page
       setIsProcessing(false);
-      allowNavigationRef.current = true;
-      onNext(releaseName, lowestEnvironment);
+      if (autoDeployEnabled) {
+        // Auto-deploy controller will create a ComponentRelease itself; manual
+        // creation here would be a redundant sibling release that's never bound.
+        // We're about to navigate via onReleaseCreated, so disarm the
+        // unsaved-changes guard.
+        allowNavigationRef.current = true;
+        notification.showSuccess(
+          `Component saved. Auto-deploy will create a release and roll it out to ${lowestEnvironment} shortly.`,
+        );
+        refetchReleases();
+        onReleaseCreated();
+      } else {
+        // Manual-release path: keep the guard armed — the user stays on the
+        // page to name the release; bypassing unsaved-changes protection here
+        // would leak past the release dialog.
+        setShowCreateReleaseDialog(true);
+      }
     } catch (e: unknown) {
       setIsProcessing(false);
       setSaveError(getErrorMessage(e));
     }
+  };
+
+  const handleReleaseCreated = (releaseName: string) => {
+    setShowCreateReleaseDialog(false);
+    notification.showSuccess(`Created release ${releaseName}`);
+    refetchReleases();
+    // About to navigate via onReleaseCreated — disarm the guard now, after
+    // the release has been created successfully.
+    allowNavigationRef.current = true;
+    onReleaseCreated();
   };
 
   const enableNext = isFromSource
@@ -494,20 +516,33 @@ export const WorkloadConfigPage = ({
     if (isFromSource && !hasImage) {
       return 'Build your application first to generate a container image.';
     }
-    return 'Configure your workload to enable deployment.';
+    return 'Configure your workload, then save to create a release snapshot.';
   };
 
   const handleButtonClick = () => {
+    // The branch below depends on autoDeployEnabled; if the toggle state
+    // hasn't settled yet, defer rather than send the user down the wrong
+    // flow. The button is also disabled while loading, but guard here too
+    // so any imperative trigger (Enter on a focused button, etc.) is safe.
+    if (autoDeployLoading) return;
     if (hasAnyChanges) {
       setShowConfirmDialog(true);
-    } else {
-      handleNext();
+      return;
     }
+    if (autoDeployEnabled) {
+      // No changes + auto-deploy on: nothing to do here. The controller already
+      // owns the release lifecycle — just hand control back to the caller.
+      onReleaseCreated();
+      return;
+    }
+    // No changes — workload is already up-to-date; jump straight to
+    // naming and creating the release snapshot.
+    setShowCreateReleaseDialog(true);
   };
 
   const handleConfirmSave = () => {
     setShowConfirmDialog(false);
-    handleNext();
+    handleSave();
   };
 
   const handleBackClick = () => {
@@ -519,9 +554,9 @@ export const WorkloadConfigPage = ({
   };
 
   const getButtonText = () => {
-    if (isProcessing) return 'Processing...';
-    if (hasAnyChanges) return 'Save & Next';
-    return 'Next';
+    if (isProcessing) return 'Saving...';
+    if (hasAnyChanges) return autoDeployEnabled ? 'Save' : 'Save & continue';
+    return autoDeployEnabled ? 'Done' : 'Continue';
   };
 
   const totalChanges =
@@ -537,7 +572,13 @@ export const WorkloadConfigPage = ({
       variant="contained"
       color="primary"
       onClick={handleButtonClick}
-      disabled={isProcessing || isLoading || !enableNext || isEditing}
+      disabled={
+        isProcessing ||
+        isLoading ||
+        autoDeployLoading ||
+        !enableNext ||
+        isEditing
+      }
       startIcon={
         isProcessing ? (
           <CircularProgress size={20} color="inherit" />
@@ -567,10 +608,26 @@ export const WorkloadConfigPage = ({
     [undoDelete],
   );
 
+  const getTitle = () => {
+    if (autoDeployLoading) {
+      return <Skeleton variant="text" width={220} height={36} />;
+    }
+    return autoDeployEnabled ? 'Configure component' : 'Create release';
+  };
+
+  const getSubtitle = () => {
+    if (autoDeployLoading) {
+      return <Skeleton variant="text" width={420} />;
+    }
+    return autoDeployEnabled
+      ? "Review and update your component's configuration. Auto-deploy will create a release automatically on save."
+      : "Review and update your component's configuration, then snapshot it as a release.";
+  };
+
   return (
     <DetailPageLayout
-      title="Configure Component"
-      subtitle="Review and update your component's runtime configuration"
+      title={getTitle()}
+      subtitle={getSubtitle()}
       onBack={handleBackClick}
       actions={headerActions}
     >
@@ -685,6 +742,15 @@ export const WorkloadConfigPage = ({
           pendingNavigationRef.current = null;
         }}
         changeCount={totalChanges}
+      />
+
+      <CreateReleaseDialog
+        open={showCreateReleaseDialog}
+        onClose={() => setShowCreateReleaseDialog(false)}
+        onCreated={handleReleaseCreated}
+        existingReleases={releases}
+        autoDeployEnabled={autoDeployEnabled}
+        firstEnvironmentName={lowestEnvironment}
       />
     </DetailPageLayout>
   );

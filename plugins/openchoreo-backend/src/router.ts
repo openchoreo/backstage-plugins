@@ -1141,6 +1141,28 @@ export async function createRouter({
     );
   });
 
+  router.get('/component-releases', async (req, res) => {
+    const { componentName, namespaceName } = req.query;
+
+    if (!componentName || !namespaceName) {
+      throw new InputError(
+        'componentName and namespaceName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    const rawReleases = await environmentInfoService.listComponentReleases(
+      {
+        componentName: componentName as string,
+        namespaceName: namespaceName as string,
+      },
+      userToken,
+    );
+    const items = (rawReleases as any)?.items ?? [];
+    res.json({ success: true, data: { items } });
+  });
+
   router.put('/update-release-binding', requireAuth, async (req, res) => {
     const {
       componentName,

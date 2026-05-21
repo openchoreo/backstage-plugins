@@ -57,6 +57,13 @@ export interface ContainerContentProps {
   secretReferences?: SecretReference[];
   /** Base workload data for reference display (optional) */
   baseWorkloadData?: ModelsWorkload | null;
+  /**
+   * Initial override workload data — the form's overrides as loaded from the
+   * binding, before any user edits in this session. Lets the override lists
+   * distinguish stale persisted entries (`extra`) from freshly-added rows
+   * (`new`).
+   */
+  initialWorkloadData?: ModelsWorkload | null;
   /** Whether to show env var status badges and enable inline override (optional) */
   showEnvVarStatus?: boolean;
   /** Callback when user starts overriding an inherited env var (optional) */
@@ -92,6 +99,7 @@ export function ContainerContent({
   hideContainerFields = false,
   secretReferences = [],
   baseWorkloadData,
+  initialWorkloadData,
   showEnvVarStatus = false,
   onStartOverride,
   onStartFileOverride,
@@ -267,6 +275,9 @@ export function ContainerContent({
             containerName={CONTAINER_KEY}
             envVars={container.env || []}
             baseEnvVars={getBaseEnvVarsForContainer(baseWorkloadData)}
+            initialEnvVars={getBaseEnvVarsForContainer(
+              initialWorkloadData ?? null,
+            )}
             environmentName={environmentName}
             secretOptions={secretOptions}
             envModes={envModes}
@@ -314,6 +325,9 @@ export function ContainerContent({
             containerName={CONTAINER_KEY}
             fileVars={(container as any).files || []}
             baseFileVars={getBaseFileVarsForContainer(baseWorkloadData)}
+            initialFileVars={getBaseFileVarsForContainer(
+              initialWorkloadData ?? null,
+            )}
             environmentName={environmentName}
             secretOptions={secretOptions}
             fileModes={fileModes}

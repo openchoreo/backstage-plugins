@@ -233,6 +233,14 @@ export interface ComponentReleaseResponse {
   data?: ComponentRelease;
 }
 
+/** Component releases list response */
+export interface ComponentReleasesResponse {
+  success: boolean;
+  data?: {
+    items: ComponentRelease[];
+  };
+}
+
 /** Workflow schema response */
 export interface WorkflowSchemaResponse {
   success: boolean;
@@ -661,6 +669,9 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     environment: string,
   ): Promise<unknown>;
+
+  /** List all component releases for a component (sorted newest first by caller) */
+  listComponentReleases(entity: Entity): Promise<ComponentReleasesResponse>;
 
   /** Create or update a release binding for deploy/promote actions */
   updateReleaseBinding(

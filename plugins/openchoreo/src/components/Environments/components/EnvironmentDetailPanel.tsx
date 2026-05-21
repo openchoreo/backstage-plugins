@@ -358,7 +358,7 @@ export const EnvironmentDetailPanel = ({
                           startIcon={<CompareArrowsIcon fontSize="small" />}
                           onClick={() => setDiffOpen(true)}
                         >
-                          View diff
+                          View release diff
                         </Button>
                       )}
                   </Box>

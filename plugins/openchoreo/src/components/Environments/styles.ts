@@ -83,6 +83,7 @@ export const useSetupCardStyles = makeStyles(theme => ({
  */
 export const useSetupCardCompactStyles = makeStyles(theme => ({
   setupCard: {
+    position: 'relative',
     backgroundColor: theme.palette.background.paper,
     color: theme.palette.text.primary,
     padding: theme.spacing(2),
@@ -101,6 +102,20 @@ export const useSetupCardCompactStyles = makeStyles(theme => ({
     '&:hover': {
       boxShadow: theme.shadows[3],
     },
+  },
+  startBadge: {
+    position: 'absolute',
+    top: theme.spacing(1),
+    left: theme.spacing(1),
+    padding: '1px 6px',
+    borderRadius: 3,
+    backgroundColor: alpha(theme.palette.primary.main, 0.15),
+    color: theme.palette.primary.main,
+    fontSize: 9,
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    lineHeight: 1.4,
+    textTransform: 'uppercase',
   },
   cardSelected: {
     borderColor: theme.palette.primary.main,

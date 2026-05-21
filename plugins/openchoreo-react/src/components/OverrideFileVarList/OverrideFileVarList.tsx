@@ -1,5 +1,5 @@
 import { useMemo, type FC } from 'react';
-import { Box, Button } from '@material-ui/core';
+import { Box, Button, Chip } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import type { FileVar } from '@openchoreo/backstage-plugin-common';
@@ -24,6 +24,17 @@ const useStyles = makeStyles(theme => ({
     borderRadius: 6,
     border: `1px dashed ${theme.palette.grey[300]}`,
   },
+  rowHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    marginBottom: theme.spacing(0.5),
+  },
+  newChip: {
+    height: 18,
+    fontSize: 10,
+    letterSpacing: '0.04em',
+  },
   addButton: {
     marginTop: theme.spacing(1),
   },
@@ -36,7 +47,13 @@ export interface OverrideFileVarListProps {
   fileVars: FileVar[];
   /** Base workload file mounts (for comparison) */
   baseFileVars: FileVar[];
-  /** Environment name for display in section titles */
+  /**
+   * Override file mounts as initially loaded from the binding. Used to
+   * distinguish entries that were already persisted (`extra`) from
+   * ones the user just added in this session (`new`).
+   */
+  initialFileVars?: FileVar[];
+  /** Environment name for display in section titles (currently unused). */
   environmentName?: string;
   /** Available secrets for reference selection */
   secretOptions: SecretOption[];
@@ -76,7 +93,8 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
   containerName,
   fileVars,
   baseFileVars,
-  environmentName,
+  initialFileVars,
+  // environmentName intentionally unused — section title is no longer per-env.
   secretOptions,
   fileModes,
   disabled,
@@ -91,8 +109,8 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
 
   // Merge base and override file vars with status metadata
   const mergedFileVars = useMemo(
-    () => mergeFileVarsWithStatus(baseFileVars, fileVars),
-    [baseFileVars, fileVars],
+    () => mergeFileVarsWithStatus(baseFileVars, fileVars, initialFileVars),
+    [baseFileVars, fileVars, initialFileVars],
   );
 
   // Group items by status
@@ -165,6 +183,16 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
         key={`${item.status}-${item.fileVar.key}-${displayIndex}`}
         className={classes.fileVarRowWrapper}
       >
+        {item.status === 'new' && (
+          <Box className={classes.rowHeader}>
+            <Chip
+              size="small"
+              label="NEW"
+              color="primary"
+              className={classes.newChip}
+            />
+          </Box>
+        )}
         <FileVarEditor
           fileVar={
             isCurrentlyEditing && editBuffer.editBuffer
@@ -230,15 +258,18 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
 
   return (
     <Box>
-      {/* Environment-specific section */}
-      {grouped.new.length > 0 && (
+      {/* Not in current workload — overrides whose key isn't in the bound release's workload.
+          Includes both stale entries already on the binding ('extra') and ones the user
+          just added in this form session ('new'). 'new' rows show a NEW chip. */}
+      {grouped.extra.length + grouped.new.length > 0 && (
         <GroupedSection
-          title={environmentName ? `${environmentName} Specific` : undefined}
-          count={grouped.new.length}
+          title="Not in workload"
+          titleTooltip="These overrides have no matching file mount in the release's workload spec. They'll still be applied to the environment binding when you save. Common when a previous release had this file, or when you've just added a new one."
+          count={grouped.extra.length + grouped.new.length}
           status="new"
           defaultExpanded
         >
-          {grouped.new.map((item, index) =>
+          {[...grouped.extra, ...grouped.new].map((item, index) =>
             renderEditableRow(item as FileVarWithStatus, index),
           )}
         </GroupedSection>

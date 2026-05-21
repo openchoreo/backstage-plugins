@@ -28,7 +28,7 @@ export const AutoDeployConfirmationDialog: FC<
       <DialogContent dividers>
         <Typography variant="body2" color="textSecondary">
           {isEnabling
-            ? 'Enabling auto deploy will automatically deploy the component to the default environment when component configurations change.'
+            ? 'Enabling auto deploy will automatically deploy the component to the lowest environment when component configurations change.'
             : 'Disabling auto deploy will require manual deployment when component configurations change.'}
         </Typography>
       </DialogContent>

@@ -685,6 +685,35 @@ export const EnvironmentOverridesPage = ({
     return `Fill in the required fields below before promoting to ${pendingAction.targetEnvironment}.`;
   };
 
+  // Title reflects the user's intent (deploy / promote) so they don't lose
+  // context on the overrides page. Falls back to today's "Configure overrides"
+  // wording when there's no pending action (editing an existing binding).
+  const getPageTitle = () => {
+    if (!pendingAction) return 'Configure overrides';
+    const blocking = missingRequiredFields.length > 0;
+    if (blocking)
+      return `Required overrides for ${pendingAction.targetEnvironment}`;
+    return pendingAction.type === 'deploy'
+      ? `Deploy to ${pendingAction.targetEnvironment}`
+      : `Promote to ${pendingAction.targetEnvironment}`;
+  };
+
+  const getPageSubtitle = () => {
+    if (!pendingAction) return environment.name;
+    const blocking = missingRequiredFields.length > 0;
+    if (blocking) {
+      return pendingAction.type === 'deploy'
+        ? 'Fill in the required fields below before deploying.'
+        : 'Fill in the required fields below before promoting.';
+    }
+    if (pendingAction.type === 'promote' && pendingAction.sourceEnvironment) {
+      return `Review environment overrides in ${pendingAction.targetEnvironment} before promoting from ${pendingAction.sourceEnvironment}.`;
+    }
+    return pendingAction.type === 'deploy'
+      ? `Review environment overrides in ${pendingAction.targetEnvironment} before deploying.`
+      : `Review environment overrides in ${pendingAction.targetEnvironment} before promoting.`;
+  };
+
   // Header actions - show when content exists OR when there's a pending action (for Skip & Deploy)
   const showActions = !loading && !error && (hasAnyContent || pendingAction);
   const headerActions = showActions ? (
@@ -698,8 +727,14 @@ export const EnvironmentOverridesPage = ({
           Delete All
         </Button>
       )}
-      {pendingAction?.type === 'promote' && pendingAction.releaseName && (
-        <Tooltip title="Compare the source release with this environment's current release">
+      {pendingAction?.releaseName && environment.deployment.releaseName && (
+        <Tooltip
+          title={
+            pendingAction.type === 'promote'
+              ? "Compare the source release with this environment's current release"
+              : "Compare the selected release with this environment's current release"
+          }
+        >
           <span>
             <Button
               onClick={() => setDiffOpen(true)}
@@ -844,6 +879,11 @@ export const EnvironmentOverridesPage = ({
               hideContainerFields
               secretReferences={secretReferences}
               baseWorkloadData={formState.baseWorkloadData}
+              initialWorkloadData={
+                formState.initialWorkloadFormData as
+                  | typeof formState.baseWorkloadData
+                  | null
+              }
               showEnvVarStatus
               onStartOverride={handleStartOverride}
               onStartFileOverride={handleStartFileOverride}
@@ -860,12 +900,8 @@ export const EnvironmentOverridesPage = ({
   return (
     <>
       <DetailPageLayout
-        title={
-          pendingAction && missingRequiredFields.length > 0
-            ? 'Configure Required Environment Overrides'
-            : 'Configure Environment Overrides'
-        }
-        subtitle={environment.name}
+        title={getPageTitle()}
+        subtitle={getPageSubtitle()}
         onBack={handleBackClick}
         actions={headerActions}
       >
@@ -1000,11 +1036,15 @@ export const EnvironmentOverridesPage = ({
         changeCount={totalChanges}
       />
 
-      {pendingAction?.type === 'promote' && pendingAction.releaseName && (
+      {pendingAction?.releaseName && (
         <ComponentReleaseDiffDialog
           open={diffOpen}
           onClose={() => setDiffOpen(false)}
-          upstreamEnvName={pendingAction.sourceEnvironment}
+          upstreamEnvName={
+            pendingAction.type === 'promote'
+              ? pendingAction.sourceEnvironment
+              : 'Selected release'
+          }
           upstreamReleaseName={pendingAction.releaseName}
           environmentName={environment.name}
           releaseName={environment.deployment.releaseName}

@@ -33,6 +33,10 @@ const useStyles = makeStyles((theme: Theme) => ({
     backgroundColor: theme.palette.success.light,
     color: theme.palette.success.contrastText,
   },
+  extra: {
+    backgroundColor: theme.palette.warning.light,
+    color: theme.palette.warning.contrastText,
+  },
 }));
 
 const statusConfig: Record<
@@ -40,7 +44,7 @@ const statusConfig: Record<
   {
     label: string;
     tooltip: string;
-    className: 'inherited' | 'overridden' | 'new';
+    className: 'inherited' | 'overridden' | 'new' | 'extra';
   }
 > = {
   inherited: {
@@ -57,6 +61,11 @@ const statusConfig: Record<
     label: 'New',
     tooltip: 'New file mount',
     className: 'new',
+  },
+  extra: {
+    label: 'Extra',
+    tooltip: 'Not in current workload',
+    className: 'extra',
   },
 };
 

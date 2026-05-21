@@ -1,5 +1,13 @@
 import { useState, type FC, type ReactNode } from 'react';
-import { Box, Typography, IconButton, Collapse, Chip } from '@material-ui/core';
+import {
+  Box,
+  Typography,
+  IconButton,
+  Collapse,
+  Chip,
+  Tooltip,
+} from '@material-ui/core';
+import HelpOutlineIcon from '@material-ui/icons/HelpOutline';
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
@@ -9,6 +17,8 @@ export type GroupedSectionStatus = 'overridden' | 'new' | 'inherited';
 export interface GroupedSectionProps {
   /** Section title (falls back to default based on status if not provided) */
   title?: string;
+  /** Optional tooltip explaining the section; renders a help icon next to the title. */
+  titleTooltip?: string;
   /** Number of items in section */
   count: number;
   /** Status type for color accent */
@@ -77,6 +87,13 @@ const useStyles = makeStyles((theme: Theme) => ({
     fontSize: '1rem',
     color: theme.palette.text.disabled,
   },
+  helpButton: {
+    padding: 2,
+  },
+  helpIcon: {
+    fontSize: '0.95rem',
+    color: theme.palette.text.secondary,
+  },
   content: {
     paddingLeft: theme.spacing(1.5),
     paddingTop: theme.spacing(1),
@@ -95,6 +112,7 @@ const statusTitles: Record<GroupedSectionStatus, string> = {
  */
 export const GroupedSection: FC<GroupedSectionProps> = ({
   title,
+  titleTooltip,
   count,
   status,
   defaultExpanded = true,
@@ -136,6 +154,18 @@ export const GroupedSection: FC<GroupedSectionProps> = ({
       <Box className={classes.header} onClick={handleToggle}>
         <span className={`${classes.accentBar} ${getAccentClass()}`} />
         <Typography className={classes.title}>{displayTitle}</Typography>
+        {titleTooltip && (
+          <Tooltip title={titleTooltip} arrow placement="top">
+            <IconButton
+              size="small"
+              aria-label={`About ${displayTitle}`}
+              className={classes.helpButton}
+              onClick={e => e.stopPropagation()}
+            >
+              <HelpOutlineIcon className={classes.helpIcon} />
+            </IconButton>
+          </Tooltip>
+        )}
         <Chip
           label={count}
           size="small"

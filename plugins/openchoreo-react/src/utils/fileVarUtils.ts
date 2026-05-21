@@ -7,9 +7,10 @@ import type {
  * Status of a file mount in the override context.
  * - 'inherited': From base workload, not overridden
  * - 'overridden': Has a base value that is being overridden
- * - 'new': New file mount added in override, not in base workload
+ * - 'extra': In the persisted overrides but not in the base workload
+ * - 'new': Added by the user in the current form session and not in base
  */
-export type FileVarStatus = 'inherited' | 'overridden' | 'new';
+export type FileVarStatus = 'inherited' | 'overridden' | 'extra' | 'new';
 
 /**
  * File mount with its override status metadata.
@@ -27,20 +28,24 @@ export interface FileVarWithStatus {
 
 /**
  * Merges base workload file mounts with override file mounts into a unified list.
- * Returns status for each: inherited, overridden, or new.
+ * Returns status for each: inherited, overridden, extra, or new.
+ *
+ * When `initialOverrideFileVars` is provided, an override key not in `base` is
+ * tagged `'extra'` if it was already in `initial` and `'new'` otherwise.
+ * When omitted, falls back to legacy behavior (everything not-in-base → `'new'`).
  *
  * File mounts are matched by their key (file name).
- *
- * @param baseFileVars - File mounts from the base workload
- * @param overrideFileVars - File mounts from the override form
- * @returns Unified list with status metadata for each file mount
  */
 export function mergeFileVarsWithStatus(
   baseFileVars: FileVar[],
   overrideFileVars: FileVar[],
+  initialOverrideFileVars?: FileVar[],
 ): FileVarWithStatus[] {
   const result: FileVarWithStatus[] = [];
   const baseMap = new Map(baseFileVars.map(f => [f.key, f]));
+  const initialKeys = initialOverrideFileVars
+    ? new Set(initialOverrideFileVars.map(f => f.key))
+    : undefined;
 
   // Create a map of override keys to their actual indices in the array
   const overrideIndexMap = new Map(
@@ -65,13 +70,15 @@ export function mergeFileVarsWithStatus(
     }
   }
 
-  // Add new override file vars (not in base)
+  // Add override file vars not present in base ('extra' if loaded, else 'new').
   for (let i = 0; i < overrideFileVars.length; i++) {
     const overrideFile = overrideFileVars[i];
     if (!baseMap.has(overrideFile.key)) {
+      const status: FileVarStatus =
+        initialKeys && initialKeys.has(overrideFile.key) ? 'extra' : 'new';
       result.push({
         fileVar: overrideFile,
-        status: 'new',
+        status,
         actualIndex: i,
       });
     }

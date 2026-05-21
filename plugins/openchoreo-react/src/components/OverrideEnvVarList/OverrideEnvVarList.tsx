@@ -1,5 +1,5 @@
 import { useMemo, type FC } from 'react';
-import { Box, Button } from '@material-ui/core';
+import { Box, Button, Chip } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import type { EnvVar } from '@openchoreo/backstage-plugin-common';
@@ -24,6 +24,17 @@ const useStyles = makeStyles(theme => ({
     borderRadius: 6,
     border: `1px dashed ${theme.palette.grey[300]}`,
   },
+  rowHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    marginBottom: theme.spacing(0.5),
+  },
+  newChip: {
+    height: 18,
+    fontSize: 10,
+    letterSpacing: '0.04em',
+  },
   addButton: {
     marginTop: theme.spacing(1),
   },
@@ -36,7 +47,13 @@ export interface OverrideEnvVarListProps {
   envVars: EnvVar[];
   /** Base workload environment variables (for comparison) */
   baseEnvVars: EnvVar[];
-  /** Environment name for display in section titles */
+  /**
+   * Override env vars as initially loaded from the binding. Used to
+   * distinguish entries that were already persisted (`extra`) from
+   * ones the user just added in this session (`new`).
+   */
+  initialEnvVars?: EnvVar[];
+  /** Environment name for display in section titles (currently unused). */
   environmentName?: string;
   /** Available secrets for reference selection */
   secretOptions: SecretOption[];
@@ -76,7 +93,8 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
   containerName,
   envVars,
   baseEnvVars,
-  environmentName,
+  initialEnvVars,
+  // environmentName intentionally unused — section title is no longer per-env.
   secretOptions,
   envModes,
   disabled,
@@ -91,8 +109,8 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
 
   // Merge base and override env vars with status metadata
   const mergedEnvVars = useMemo(
-    () => mergeEnvVarsWithStatus(baseEnvVars, envVars),
-    [baseEnvVars, envVars],
+    () => mergeEnvVarsWithStatus(baseEnvVars, envVars, initialEnvVars),
+    [baseEnvVars, envVars, initialEnvVars],
   );
 
   // Group items by status
@@ -162,6 +180,16 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
         key={`${item.status}-${item.envVar.key}-${displayIndex}`}
         className={classes.envVarRowWrapper}
       >
+        {item.status === 'new' && (
+          <Box className={classes.rowHeader}>
+            <Chip
+              size="small"
+              label="NEW"
+              color="primary"
+              className={classes.newChip}
+            />
+          </Box>
+        )}
         <EnvVarEditor
           envVar={
             isCurrentlyEditing && editBuffer.editBuffer
@@ -225,15 +253,18 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
 
   return (
     <Box>
-      {/* Environment-specific section */}
-      {grouped.new.length > 0 && (
+      {/* Not in current workload — overrides whose key isn't in the bound release's workload.
+          Includes both stale entries already on the binding ('extra') and ones the user
+          just added in this form session ('new'). 'new' rows show a NEW chip. */}
+      {grouped.extra.length + grouped.new.length > 0 && (
         <GroupedSection
-          title={environmentName ? `${environmentName} Specific` : undefined}
-          count={grouped.new.length}
+          title="Not in workload"
+          titleTooltip="These overrides have no matching variable in the release's workload spec. They'll still be applied to the environment binding when you save. Common when a previous release had this variable, or when you've just added a new one."
+          count={grouped.extra.length + grouped.new.length}
           status="new"
           defaultExpanded
         >
-          {grouped.new.map((item, index) =>
+          {[...grouped.extra, ...grouped.new].map((item, index) =>
             renderEditableRow(item as EnvVarWithStatus, index),
           )}
         </GroupedSection>
