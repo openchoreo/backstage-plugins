@@ -34,6 +34,13 @@ export type PinnedContext = {
   /** Kind: "Workflow" (namespace-scoped) or "ClusterWorkflow". */
   workflowKind?: string;
   /**
+   * Git URL extracted from the component's workflow schema. Plumbed
+   * through so the build_failure "Copy as prompt" button can include
+   * a repo hint for external coding bots (CodeRabbit, Cursor, etc.).
+   * Optional — components without a workflow repository field omit it.
+   */
+  repoUrl?: string;
+  /**
    * Optional case discriminator forwarded into ChatScope.caseType so the
    * agent layers in case-specific guidance. Launchers built for a single
    * scenario (e.g. failed builds) set this; the generic FAB leaves it
