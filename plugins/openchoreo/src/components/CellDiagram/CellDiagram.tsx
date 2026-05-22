@@ -241,7 +241,7 @@ export const CellDiagram = () => {
         }}
       >
         {toggleDisabled ? (
-          <Tooltip title="Observability is unavailable. Cilium module is not setup in all environments.">
+          <Tooltip title="Observability is unavailable in all environments. Configure the Cilium module to enable observability.">
             <span>{toggleControl}</span>
           </Tooltip>
         ) : (
@@ -336,8 +336,9 @@ export const CellDiagram = () => {
                     borderRadius: 4,
                   }}
                 >
-                  Observability is unavailable: Cilium module is not set up in{' '}
-                  <strong>{environment}</strong> environment.
+                  Observability is unavailable in the{' '}
+                  <strong>{environment}</strong> environment. Configure the
+                  Cilium module to enable observability.
                 </Typography>
               )}
 
