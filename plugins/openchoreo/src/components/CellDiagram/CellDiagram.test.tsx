@@ -322,7 +322,7 @@ describe('CellDiagram', () => {
 
     expect(
       document.querySelector(
-        '[data-tooltip*="Cilium module is not setup in all environments"]',
+        '[data-tooltip*="Observability is unavailable in all environments. Configure the Cilium module to enable observability."]',
       ),
     ).not.toBeNull();
   });
@@ -370,9 +370,7 @@ describe('CellDiagram', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(
-          /Observability is unavailable: Cilium module is not set up/i,
-        ),
+        screen.getByText(/Observability is unavailable in the/i),
       ).toBeInTheDocument();
     });
   });
