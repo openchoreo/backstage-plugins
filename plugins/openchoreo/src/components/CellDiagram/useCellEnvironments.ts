@@ -8,6 +8,10 @@ import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 
+// Cap each network-policy probe so a single hanging DataPlane doesn't
+// indefinitely block the diagram from rendering.
+const NETPOL_TIMEOUT_MS = 8000;
+
 export interface CellEnvironment {
   name: string;
   displayName?: string;
@@ -117,6 +121,11 @@ export const useCellEnvironments = (
             if (!env.namespace || !env.dataPlaneRef.name) {
               return { ...env, hasRuntimeObservability: false };
             }
+            const controller = new AbortController();
+            const timeout = setTimeout(
+              () => controller.abort(),
+              NETPOL_TIMEOUT_MS,
+            );
             try {
               const params = new URLSearchParams({
                 namespaceName: env.namespace,
@@ -125,6 +134,7 @@ export const useCellEnvironments = (
               });
               const res = await fetchApi.fetch(
                 `${baseUrl}/dataplane-netpol-provider?${params.toString()}`,
+                { signal: controller.signal },
               );
               if (!res.ok) return { ...env, hasRuntimeObservability: false };
               const data = await res.json();
@@ -135,6 +145,8 @@ export const useCellEnvironments = (
               };
             } catch {
               return { ...env, hasRuntimeObservability: false };
+            } finally {
+              clearTimeout(timeout);
             }
           }),
         );

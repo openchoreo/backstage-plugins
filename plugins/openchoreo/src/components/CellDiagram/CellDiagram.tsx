@@ -133,7 +133,11 @@ export const CellDiagram = () => {
   }, [runtimeEnabled]);
 
   useEffect(() => {
-    if (environmentsLoading) return undefined;
+    if (environmentsLoading) {
+      setCellDiagramData(undefined);
+      setLoading(false);
+      return undefined;
+    }
     let cancelled = false;
     setLoading(true);
     const observabilityActive =
@@ -182,6 +186,12 @@ export const CellDiagram = () => {
     !environmentsLoading &&
     environments.length > 0 &&
     !anyEnvHasRuntimeObservability;
+
+  useEffect(() => {
+    if (toggleDisabled && runtimeEnabled) {
+      setRuntimeEnabled(false);
+    }
+  }, [toggleDisabled, runtimeEnabled]);
 
   const toggleControl = (
     <FormControlLabel
