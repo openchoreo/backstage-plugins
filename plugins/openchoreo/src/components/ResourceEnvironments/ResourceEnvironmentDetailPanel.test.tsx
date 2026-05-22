@@ -15,9 +15,14 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
 
 const mockUpdatePerm = jest.fn();
 const mockDeletePerm = jest.fn();
+const mockPromotePerm = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
-  useResourceReleaseBindingUpdatePermission: () => mockUpdatePerm(),
-  useResourceReleaseBindingDeletePermission: () => mockDeletePerm(),
+  formatRelativeTime: () => 'just now',
+  useResourceReleaseBindingUpdatePermission: (env?: string) =>
+    mockUpdatePerm(env),
+  useResourceReleaseBindingDeletePermission: (env?: string) =>
+    mockDeletePerm(env),
+  useResourcePromoteToEnvPermission: (env: string) => mockPromotePerm(env),
 }));
 
 function makeCtx(
@@ -63,6 +68,11 @@ beforeEach(() => {
   });
   mockDeletePerm.mockReturnValue({
     canDelete: true,
+    loading: false,
+    deniedTooltip: '',
+  });
+  mockPromotePerm.mockReturnValue({
+    canPromote: true,
     loading: false,
     deniedTooltip: '',
   });
@@ -304,7 +314,7 @@ describe('ResourceEnvironmentDetailPanel', () => {
     expect(screen.queryByRole('button', { name: /view all/i })).toBeNull();
   });
 
-  it('shows Promoting... while a forward promote is in flight', () => {
+  it('shows Promoting... while a promote is in flight', () => {
     const dev = {
       name: 'dev',
       bindingName: 'b-dev',
@@ -318,5 +328,83 @@ describe('ResourceEnvironmentDetailPanel', () => {
       pendingAction: { env: 'staging', kind: 'promote' },
     });
     expect(screen.getByText('Promoting...')).toBeInTheDocument();
+  });
+
+  // ABAC-aware permission gating. Bug observed in live cluster: a developer
+  // role with `resource.environment != 'default/production'` CEL gating
+  // saw Configure overrides + Promote enabled on the prod panel because
+  // (1) the env display name was being passed instead of resourceName, and
+  // (2) the panel Promote button didn't check promote perm at all.
+  describe('permission gating', () => {
+    const prodEnv = {
+      name: 'Production',
+      resourceName: 'production',
+      bindingName: 'b-prod',
+      resourceRelease: 'rel-1',
+      retainPolicy: 'Delete' as const,
+      status: 'Ready' as const,
+      latestRelease: 'rel-1',
+    };
+
+    it('passes env.resourceName to update perm hook, not the display name', () => {
+      renderPanel(prodEnv);
+      // ABAC CEL on the cluster matches against the K8s name "production",
+      // not the display name "Production".
+      expect(mockUpdatePerm).toHaveBeenCalledWith('production');
+    });
+
+    it('passes env.resourceName to delete perm hook, not the display name', () => {
+      renderPanel(prodEnv);
+      expect(mockDeletePerm).toHaveBeenCalledWith('production');
+    });
+
+    it('falls back to env.name when resourceName is absent', () => {
+      // Component-side compatibility: not all entries carry resourceName.
+      renderPanel({
+        name: 'dev',
+        bindingName: 'b-dev',
+        resourceRelease: 'rel-1',
+        retainPolicy: 'Delete',
+        status: 'Ready',
+        latestRelease: 'rel-1',
+      });
+      expect(mockUpdatePerm).toHaveBeenCalledWith('dev');
+      expect(mockDeletePerm).toHaveBeenCalledWith('dev');
+    });
+
+    it('disables the panel Promote button when target env denies promote perm', () => {
+      mockPromotePerm.mockReturnValue({
+        canPromote: false,
+        loading: false,
+        deniedTooltip: 'You do not have permission to promote to production',
+      });
+      const staging = {
+        name: 'staging',
+        bindingName: 'b-staging',
+        resourceRelease: 'rel-abc',
+        retainPolicy: 'Delete' as const,
+        status: 'Ready' as const,
+        promotionTargets: [{ name: 'Production', resourceName: 'production' }],
+      };
+      renderPanel(staging, {
+        environments: [staging, { ...prodEnv, resourceRelease: 'rel-old' }],
+      });
+      expect(screen.getByRole('button', { name: /^promote$/i })).toBeDisabled();
+    });
+
+    it('queries promote perm using the target resourceName, not the display name', () => {
+      const staging = {
+        name: 'staging',
+        bindingName: 'b-staging',
+        resourceRelease: 'rel-abc',
+        retainPolicy: 'Delete' as const,
+        status: 'Ready' as const,
+        promotionTargets: [{ name: 'Production', resourceName: 'production' }],
+      };
+      renderPanel(staging, {
+        environments: [staging, { ...prodEnv, resourceRelease: 'rel-old' }],
+      });
+      expect(mockPromotePerm).toHaveBeenCalledWith('production');
+    });
   });
 });
