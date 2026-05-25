@@ -82,11 +82,21 @@ export const AlertsTable: FC<AlertsTableProps> = ({
         <Table className={classes.table} size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell className={classes.headerCell}>Time</TableCell>
-              <TableCell className={classes.headerCell}>Rule</TableCell>
-              <TableCell className={classes.headerCell}>Severity</TableCell>
-              <TableCell className={classes.headerCell}>Source</TableCell>
-              <TableCell className={classes.headerCell}>Value</TableCell>
+              <TableCell scope="col" className={classes.headerCell}>
+                Time
+              </TableCell>
+              <TableCell scope="col" className={classes.headerCell}>
+                Rule
+              </TableCell>
+              <TableCell scope="col" className={classes.headerCell}>
+                Severity
+              </TableCell>
+              <TableCell scope="col" className={classes.headerCell}>
+                Source
+              </TableCell>
+              <TableCell scope="col" className={classes.headerCell}>
+                Value
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

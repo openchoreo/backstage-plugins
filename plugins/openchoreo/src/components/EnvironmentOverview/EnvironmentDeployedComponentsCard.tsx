@@ -143,10 +143,10 @@ export const EnvironmentDeployedComponentsCard = () => {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Component</TableCell>
-                <TableCell>Release</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Endpoints</TableCell>
+                <TableCell scope="col">Component</TableCell>
+                <TableCell scope="col">Release</TableCell>
+                <TableCell scope="col">Status</TableCell>
+                <TableCell scope="col">Endpoints</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -236,11 +236,11 @@ export const EnvironmentDeployedComponentsCard = () => {
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Component</TableCell>
-              <TableCell>Project</TableCell>
-              <TableCell>Release</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Endpoints</TableCell>
+              <TableCell scope="col">Component</TableCell>
+              <TableCell scope="col">Project</TableCell>
+              <TableCell scope="col">Release</TableCell>
+              <TableCell scope="col">Status</TableCell>
+              <TableCell scope="col">Endpoints</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

@@ -119,9 +119,11 @@ export const TraitParameters: React.FC<TraitParametersProps> = ({
 
   const hasParameters = parameters && Object.keys(parameters).length > 0;
 
+  const toggleExpanded = () => setExpanded(prev => !prev);
+
   return (
     <Box className={classes.container}>
-      <Box className={classes.header} onClick={() => setExpanded(!expanded)}>
+      <Box className={classes.header} onClick={toggleExpanded}>
         <Typography variant="h5" color="textSecondary">
           Configured Parameters
         </Typography>
@@ -131,7 +133,14 @@ export const TraitParameters: React.FC<TraitParametersProps> = ({
           className={classes.readOnlyBadge}
         />
         <IconButton
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Collapse parameters' : 'Expand parameters'}
+          aria-controls="trait-parameters-content"
           size="small"
+          onClick={e => {
+            e.stopPropagation();
+            toggleExpanded();
+          }}
           className={`${classes.expandIcon} ${
             expanded ? classes.expandIconExpanded : ''
           }`}
@@ -140,17 +149,19 @@ export const TraitParameters: React.FC<TraitParametersProps> = ({
         </IconButton>
       </Box>
       <Collapse in={expanded}>
-        {hasParameters ? (
-          <Box className={classes.jsonContainer}>
-            <pre className={classes.jsonContent}>
-              {JSON.stringify(parameters, null, 2)}
-            </pre>
-          </Box>
-        ) : (
-          <Typography className={classes.noParameters}>
-            No parameters configured
-          </Typography>
-        )}
+        <div id="trait-parameters-content">
+          {hasParameters ? (
+            <Box className={classes.jsonContainer}>
+              <pre className={classes.jsonContent}>
+                {JSON.stringify(parameters, null, 2)}
+              </pre>
+            </Box>
+          ) : (
+            <Typography className={classes.noParameters}>
+              No parameters configured
+            </Typography>
+          )}
+        </div>
       </Collapse>
     </Box>
   );

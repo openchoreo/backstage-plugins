@@ -88,22 +88,23 @@ export const TracesTable: FC<TracesTableProps> = ({
         <Table className={classes.table} aria-label="traces table" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell className={classes.headerCell} width="12%">
+              <TableCell scope="col" className={classes.headerCell} width="12%">
                 Trace Name
               </TableCell>
-              <TableCell className={classes.headerCell} width="20%">
+              <TableCell scope="col" className={classes.headerCell} width="20%">
                 Start Time
               </TableCell>
-              <TableCell className={classes.headerCell} width="20%">
+              <TableCell scope="col" className={classes.headerCell} width="20%">
                 End Time
               </TableCell>
-              <TableCell className={classes.headerCell} width="12%">
+              <TableCell scope="col" className={classes.headerCell} width="12%">
                 Duration
               </TableCell>
-              <TableCell className={classes.headerCell} width="12%">
+              <TableCell scope="col" className={classes.headerCell} width="12%">
                 Number of Spans
               </TableCell>
               <TableCell
+                scope="col"
                 className={classes.headerCell}
                 width="12%"
                 align="right"

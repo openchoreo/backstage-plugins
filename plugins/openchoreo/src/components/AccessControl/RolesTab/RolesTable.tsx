@@ -148,9 +148,13 @@ export const RolesTable = ({
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Role Name</TableCell>
-                <TableCell className={classes.actionsCell}>Actions</TableCell>
-                <TableCell align="right">Operations</TableCell>
+                <TableCell scope="col">Role Name</TableCell>
+                <TableCell scope="col" className={classes.actionsCell}>
+                  Actions
+                </TableCell>
+                <TableCell scope="col" align="right">
+                  Operations
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

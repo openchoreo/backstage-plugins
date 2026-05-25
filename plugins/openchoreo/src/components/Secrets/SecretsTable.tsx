@@ -222,10 +222,16 @@ export const SecretsTable = ({
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell style={{ width: '32%' }}>Name</TableCell>
-                <TableCell style={{ width: '24%' }}>Type</TableCell>
-                <TableCell style={{ width: '32%' }}>Target Plane</TableCell>
-                <TableCell align="center" style={{ width: '12%' }}>
+                <TableCell scope="col" style={{ width: '32%' }}>
+                  Name
+                </TableCell>
+                <TableCell scope="col" style={{ width: '24%' }}>
+                  Type
+                </TableCell>
+                <TableCell scope="col" style={{ width: '32%' }}>
+                  Target Plane
+                </TableCell>
+                <TableCell scope="col" align="center" style={{ width: '12%' }}>
                   Actions
                 </TableCell>
               </TableRow>

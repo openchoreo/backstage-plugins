@@ -125,6 +125,7 @@ export const LogsTable: FC<LogsTableProps> = ({
                 return (
                   <TableCell
                     key={field}
+                    scope="col"
                     className={classes.headerCell}
                     width={width}
                   >

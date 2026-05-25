@@ -169,11 +169,11 @@ export const ReleaseBindingDetailTabs: FC<ReleaseBindingDetailTabsProps> = ({
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell>Type</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Reason</TableCell>
-                        <TableCell>Message</TableCell>
-                        <TableCell>Last Transition</TableCell>
+                        <TableCell scope="col">Type</TableCell>
+                        <TableCell scope="col">Status</TableCell>
+                        <TableCell scope="col">Reason</TableCell>
+                        <TableCell scope="col">Message</TableCell>
+                        <TableCell scope="col">Last Transition</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
