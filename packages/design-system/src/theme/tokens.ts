@@ -312,9 +312,10 @@ export const lightTokens: ThemeTokens = {
     ok: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
-    info: '#6c7fd8',
+    // Darkened from #6c7fd8 (3.71:1) to meet WCAG 2.2 AA 4.5:1 on white.
+    info: '#5568c4',
     pending: '#6b7280',
-    running: '#6c7fd8',
+    running: '#5568c4',
     aborted: '#374151',
     gold: '#f3ba37',
   },
@@ -344,9 +345,12 @@ export const lightTokens: ThemeTokens = {
   },
 
   gradient: {
-    header: 'linear-gradient(90deg, #6c7fd8 0%, #7c8ee0 100%)',
-    cardHeader: 'linear-gradient(135deg, #6c7fd8 0%, #7c8ee0 100%)',
-    burst: 'linear-gradient(135deg, #6c7fd8 0%, #a8b5ff 100%)',
+    // Dark stop darkened from #6c7fd8 (3.71:1) to #5568c4 (5.04:1) so white
+    // text overlaid on the gradient meets WCAG 2.2 AA. The lighter stops
+    // stay close to their original values to preserve the gradient effect.
+    header: 'linear-gradient(90deg, #5568c4 0%, #7c8ee0 100%)',
+    cardHeader: 'linear-gradient(135deg, #5568c4 0%, #7c8ee0 100%)',
+    burst: 'linear-gradient(135deg, #5568c4 0%, #a8b5ff 100%)',
   },
 
   editor: {
@@ -356,13 +360,15 @@ export const lightTokens: ThemeTokens = {
   },
 
   entityKind: {
-    system: { accent: '#6c7fd8', tint: '#eef0fa' },
+    // Brand-blue entity accents darkened from #6c7fd8 to #5568c4 to keep
+    // accent-on-white contrast above 3:1 (UI component bar, WCAG 2.2 AA).
+    system: { accent: '#5568c4', tint: '#eef0fa' },
     component: { accent: '#64748b', tint: '#f1f5f9' },
-    api: { accent: '#6c7fd8', tint: '#eef0fa' },
+    api: { accent: '#5568c4', tint: '#eef0fa' },
     group: { accent: '#6b7280', tint: '#f3f4f6' },
     user: { accent: '#6b7280', tint: '#f3f4f6' },
     resource: { accent: '#6b7280', tint: '#f3f4f6' },
-    domain: { accent: '#6c7fd8', tint: '#eef0fa' },
+    domain: { accent: '#5568c4', tint: '#eef0fa' },
     environment: { accent: '#10b981', tint: '#ecfdf5' },
     dataplane: { accent: '#6b7280', tint: '#f3f4f6' },
     deploymentpipeline: { accent: '#f59e0b', tint: '#fffbeb' },
@@ -384,15 +390,19 @@ export const lightTokens: ThemeTokens = {
   entityKindDefault: { accent: '#6b7280', tint: '#f3f4f6' },
 
   graph: {
-    edge: '#6c7fd8',
+    // Graph edge darkened from #6c7fd8 to #5568c4 so edge-on-white meets the
+    // ≥3:1 UI-component bar in WCAG 2.2 AA.
+    edge: '#5568c4',
     canvasDotPattern:
       'radial-gradient(circle, rgba(0,0,0,0.05) 1px, transparent 1px)',
     minimapDotPattern:
       'radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px)',
     minimapMask: 'rgba(255, 255, 255, 0.75)',
-    minimapViewportTint: 'rgba(108, 127, 216, 0.10)',
-    minimapViewportTintActive: 'rgba(108, 127, 216, 0.22)',
-    minimapViewportBorder: 'rgba(108, 127, 216, 0.45)',
+    // rgba base recolored from rgb(108,127,216) → rgb(85,104,196) to match
+    // the darkened primary; opacity stops unchanged.
+    minimapViewportTint: 'rgba(85, 104, 196, 0.10)',
+    minimapViewportTintActive: 'rgba(85, 104, 196, 0.22)',
+    minimapViewportBorder: 'rgba(85, 104, 196, 0.45)',
     skeletonStops: [
       'rgba(0, 0, 0, 0.08)',
       'rgba(0, 0, 0, 0.14)',
@@ -405,7 +415,8 @@ export const lightTokens: ThemeTokens = {
 
   navigation: {
     background: '#ffffff',
-    indicator: '#6c7fd8',
+    // Indicator bar darkened from #6c7fd8 to #5568c4 (5.04:1 on white).
+    indicator: '#5568c4',
     color: '#111827',
     // Darkened to meet WCAG 2.2 AA 4.5:1 on white sidebar background (5.04:1).
     selectedColor: '#5568c4',
@@ -414,10 +425,12 @@ export const lightTokens: ThemeTokens = {
   },
 
   banner: {
-    info: '#6c7fd8',
+    // Banner background and link colour darkened from #6c7fd8 to #5568c4 so
+    // both the colour itself and any link text on it pass WCAG 2.2 AA.
+    info: '#5568c4',
     error: '#ef4444',
     text: '#111827',
-    link: '#6c7fd8',
+    link: '#5568c4',
     closeButtonColor: '#6b7280',
     warning: '#f59e0b',
   },
@@ -425,7 +438,7 @@ export const lightTokens: ThemeTokens = {
     fontColor: '#111827',
     slackChannelText: '#6b7280',
     backgroundColor: '#fafbfc',
-    gradient: 'linear-gradient(135deg, #6c7fd8 0%, #a8b5ff 100%)',
+    gradient: 'linear-gradient(135deg, #5568c4 0%, #a8b5ff 100%)',
   },
   pinSidebarButton: {
     icon: '#6b7280',
