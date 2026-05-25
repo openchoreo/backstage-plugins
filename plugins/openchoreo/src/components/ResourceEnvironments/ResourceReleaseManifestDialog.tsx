@@ -94,7 +94,9 @@ export const ResourceReleaseManifestDialog = ({
       fullWidth
       aria-labelledby="resource-release-manifest-dialog-title"
     >
-      <DialogTitle id="resource-release-manifest-dialog-title">Release manifest — {environmentName}</DialogTitle>
+      <DialogTitle id="resource-release-manifest-dialog-title">
+        Release manifest — {environmentName}
+      </DialogTitle>
       <DialogContent dividers>
         {!releaseName && (
           <Typography variant="body2" color="textSecondary">

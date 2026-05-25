@@ -103,7 +103,9 @@ export const BuildWithCommitDialog = ({
       fullWidth
       aria-labelledby="build-with-commit-dialog-title"
     >
-      <DialogTitle id="build-with-commit-dialog-title">Build with Specific Commit</DialogTitle>
+      <DialogTitle id="build-with-commit-dialog-title">
+        Build with Specific Commit
+      </DialogTitle>
       <DialogContent className={classes.dialogContent}>
         <Typography variant="body2" className={classes.helperText}>
           Enter the commit SHA to build from a specific commit in your

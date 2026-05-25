@@ -498,7 +498,9 @@ export const WorkflowConfigPage = ({
         fullWidth
         aria-labelledby="workflow-config-confirm-dialog-title"
       >
-        <DialogTitle id="workflow-config-confirm-dialog-title">Confirm Changes</DialogTitle>
+        <DialogTitle id="workflow-config-confirm-dialog-title">
+          Confirm Changes
+        </DialogTitle>
         <DialogContent>
           <ChangesPreview changes={changes} />
           {error && (

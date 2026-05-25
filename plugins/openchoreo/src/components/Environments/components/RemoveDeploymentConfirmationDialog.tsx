@@ -36,7 +36,9 @@ export const RemoveDeploymentConfirmationDialog: FC<
       fullWidth
       aria-labelledby="remove-deployment-confirmation-dialog-title"
     >
-      <DialogTitle id="remove-deployment-confirmation-dialog-title">Remove deployment from {environmentName}?</DialogTitle>
+      <DialogTitle id="remove-deployment-confirmation-dialog-title">
+        Remove deployment from {environmentName}?
+      </DialogTitle>
 
       <DialogContent dividers>
         <Typography variant="body2" color="textSecondary" paragraph>

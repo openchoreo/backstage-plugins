@@ -580,7 +580,10 @@ export const ClusterRoleBindingsContent = ({
         onClose={() => setDeleteConfirmOpen(false)}
         aria-labelledby="cluster-role-bindings-delete-dialog-title"
       >
-        <DialogTitle disableTypography id="cluster-role-bindings-delete-dialog-title">
+        <DialogTitle
+          disableTypography
+          id="cluster-role-bindings-delete-dialog-title"
+        >
           <Typography variant="h4">Delete Cluster Role Binding</Typography>
         </DialogTitle>
         <DialogContent>

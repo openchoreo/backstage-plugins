@@ -36,7 +36,9 @@ export const ResourceRetainPolicySwitchDialog: FC<
       fullWidth
       aria-labelledby="resource-retain-policy-switch-dialog-title"
     >
-      <DialogTitle id="resource-retain-policy-switch-dialog-title">Switch retain policy to Delete?</DialogTitle>
+      <DialogTitle id="resource-retain-policy-switch-dialog-title">
+        Switch retain policy to Delete?
+      </DialogTitle>
 
       <DialogContent dividers>
         <Typography variant="body2" color="textSecondary">

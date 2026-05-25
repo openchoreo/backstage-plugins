@@ -27,7 +27,10 @@ export interface VisuallyHiddenProps {
  * skip-link targets, page-level headings hidden behind a visual header, and
  * loading-state labels announced via `role="status"`.
  */
-export function VisuallyHidden({ children, as: Tag = 'span' }: VisuallyHiddenProps) {
+export function VisuallyHidden({
+  children,
+  as: Tag = 'span',
+}: VisuallyHiddenProps) {
   const classes = useVisuallyHiddenStyles();
   return <Tag className={classes.root}>{children}</Tag>;
 }

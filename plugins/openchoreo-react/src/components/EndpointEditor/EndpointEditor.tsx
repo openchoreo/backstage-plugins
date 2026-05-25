@@ -188,7 +188,9 @@ const SchemaContentDialog: FC<{
       fullWidth
       aria-labelledby="endpoint-editor-dialog-title"
     >
-      <DialogTitle id="endpoint-editor-dialog-title">Edit Schema Content</DialogTitle>
+      <DialogTitle id="endpoint-editor-dialog-title">
+        Edit Schema Content
+      </DialogTitle>
       <DialogContent>
         <div
           className={

@@ -29,7 +29,9 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({
       fullWidth
       aria-labelledby="unsaved-changes-dialog-title"
     >
-      <DialogTitle id="unsaved-changes-dialog-title">Unsaved Changes</DialogTitle>
+      <DialogTitle id="unsaved-changes-dialog-title">
+        Unsaved Changes
+      </DialogTitle>
 
       <DialogContent>
         <Typography variant="body1">

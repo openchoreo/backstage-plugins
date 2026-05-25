@@ -122,7 +122,9 @@ export const ChangePipelineDialog = ({
       maxWidth="sm"
       aria-labelledby="change-pipeline-dialog-title"
     >
-      <DialogTitle id="change-pipeline-dialog-title">Change Deployment Pipeline</DialogTitle>
+      <DialogTitle id="change-pipeline-dialog-title">
+        Change Deployment Pipeline
+      </DialogTitle>
       <DialogContent>
         <TextField
           select

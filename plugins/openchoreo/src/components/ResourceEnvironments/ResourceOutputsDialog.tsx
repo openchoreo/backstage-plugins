@@ -140,7 +140,9 @@ export const ResourceOutputsDialog = ({
       fullWidth
       aria-labelledby="resource-outputs-dialog-title"
     >
-      <DialogTitle id="resource-outputs-dialog-title">Outputs — {environmentName}</DialogTitle>
+      <DialogTitle id="resource-outputs-dialog-title">
+        Outputs — {environmentName}
+      </DialogTitle>
       <DialogContent dividers>
         {outputs.length === 0 ? (
           <Typography variant="body2" className={classes.emptyText}>

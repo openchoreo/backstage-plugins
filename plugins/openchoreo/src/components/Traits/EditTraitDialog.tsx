@@ -322,7 +322,9 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
       fullWidth
       aria-labelledby="edit-trait-dialog-title"
     >
-      <DialogTitle id="edit-trait-dialog-title">Edit Trait: {trait.name}</DialogTitle>
+      <DialogTitle id="edit-trait-dialog-title">
+        Edit Trait: {trait.name}
+      </DialogTitle>
       <DialogContent dividers className={classes.dialogContent}>
         {error && (
           <Typography variant="body2" color="error" gutterBottom>
