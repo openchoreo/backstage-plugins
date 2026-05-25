@@ -1,7 +1,21 @@
 import { type ReactNode } from 'react';
-import { Box } from '@material-ui/core';
+import { Box, makeStyles } from '@material-ui/core';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { EmptyState, Progress } from '@backstage/core-components';
+
+const useVisuallyHiddenStyles = makeStyles({
+  visuallyHidden: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    padding: 0,
+    margin: -1,
+    overflow: 'hidden',
+    clip: 'rect(0, 0, 0, 0)',
+    whiteSpace: 'nowrap',
+    border: 0,
+  },
+});
 import {
   useDeleteEntityMenuItems,
   useEntityExistsCheck,
@@ -73,6 +87,9 @@ export function EntityLayoutWithDelete({
   contextMenuOptions = { disableUnregister: 'hidden' },
 }: EntityLayoutWithDeleteProps) {
   const { entity } = useEntity();
+  const visuallyHidden = useVisuallyHiddenStyles().visuallyHidden;
+  const entityTitle =
+    (entity.metadata.title as string | undefined) ?? entity.metadata.name;
 
   // Permission check for platform resources
   const {
@@ -120,57 +137,64 @@ export function EntityLayoutWithDelete({
   // Show empty state with header if entity not found in OpenChoreo
   if (status === 'not-found') {
     return (
-      <OpenChoreoEntityLayout
-        contextMenuOptions={contextMenuOptions}
-        parentEntityRelations={parentEntityRelations}
-        kindDisplayNames={mergedKindDisplayNames}
-      >
-        <OpenChoreoEntityLayout.Route path="/" title="Overview">
-          <Box py={4}>
-            <EmptyState
-              missing="data"
-              title={`${entityTypeLabel} Not Found`}
-              description={
-                message ||
-                `The ${entityTypeLabel.toLowerCase()} "${
-                  entity.metadata.name
-                }" could not be found in OpenChoreo. It may have been deleted.`
-              }
-            />
-          </Box>
-        </OpenChoreoEntityLayout.Route>
-      </OpenChoreoEntityLayout>
+      <>
+        <h1 className={visuallyHidden}>{entityTitle}</h1>
+        <OpenChoreoEntityLayout
+          contextMenuOptions={contextMenuOptions}
+          parentEntityRelations={parentEntityRelations}
+          kindDisplayNames={mergedKindDisplayNames}
+        >
+          <OpenChoreoEntityLayout.Route path="/" title="Overview">
+            <Box py={4}>
+              <EmptyState
+                missing="data"
+                title={`${entityTypeLabel} Not Found`}
+                description={
+                  message ||
+                  `The ${entityTypeLabel.toLowerCase()} "${
+                    entity.metadata.name
+                  }" could not be found in OpenChoreo. It may have been deleted.`
+                }
+              />
+            </Box>
+          </OpenChoreoEntityLayout.Route>
+        </OpenChoreoEntityLayout>
+      </>
     );
   }
 
   // Show empty state with header if entity is marked for deletion
   if (status === 'marked-for-deletion') {
     return (
-      <OpenChoreoEntityLayout
-        contextMenuOptions={contextMenuOptions}
-        parentEntityRelations={parentEntityRelations}
-        kindDisplayNames={mergedKindDisplayNames}
-      >
-        <OpenChoreoEntityLayout.Route path="/" title="Overview">
-          <Box py={4}>
-            <EmptyState
-              missing="data"
-              title={`${entityTypeLabel} Marked for Deletion`}
-              description={
-                message ||
-                `This ${entityTypeLabel.toLowerCase()} "${
-                  entity.metadata.name
-                }" is marked for deletion and will be permanently removed soon.`
-              }
-            />
-          </Box>
-        </OpenChoreoEntityLayout.Route>
-      </OpenChoreoEntityLayout>
+      <>
+        <h1 className={visuallyHidden}>{entityTitle}</h1>
+        <OpenChoreoEntityLayout
+          contextMenuOptions={contextMenuOptions}
+          parentEntityRelations={parentEntityRelations}
+          kindDisplayNames={mergedKindDisplayNames}
+        >
+          <OpenChoreoEntityLayout.Route path="/" title="Overview">
+            <Box py={4}>
+              <EmptyState
+                missing="data"
+                title={`${entityTypeLabel} Marked for Deletion`}
+                description={
+                  message ||
+                  `This ${entityTypeLabel.toLowerCase()} "${
+                    entity.metadata.name
+                  }" is marked for deletion and will be permanently removed soon.`
+                }
+              />
+            </Box>
+          </OpenChoreoEntityLayout.Route>
+        </OpenChoreoEntityLayout>
+      </>
     );
   }
 
   return (
     <>
+      <h1 className={visuallyHidden}>{entityTitle}</h1>
       <OpenChoreoEntityLayout
         contextMenuOptions={contextMenuOptions}
         extraContextMenuItems={extraMenuItems}
