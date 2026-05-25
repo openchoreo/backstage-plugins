@@ -202,18 +202,8 @@ export const MiniEnvironmentNode = ({
 
   return (
     <Box
-      role="button"
-      tabIndex={0}
-      aria-pressed={selected}
-      aria-label={`Select environment ${environment.name}`}
       className={clsx(classes.card, { [classes.cardSelected]: selected })}
       onClick={onSelect}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
     >
       <Box display="flex" height="100%" minWidth={0}>
         <Box
@@ -241,9 +231,20 @@ export const MiniEnvironmentNode = ({
                 disableHoverListener={environment.name.length < 20}
                 PopperProps={{ disablePortal: true }}
               >
-                <Typography className={classes.name}>
+                <button
+                  type="button"
+                  className={classes.nameButton}
+                  aria-pressed={selected}
+                  aria-label={`Select environment ${environment.name}`}
+                  onClick={e => {
+                    // Outer Box also has onClick; stop here so we don't
+                    // double-fire onSelect.
+                    e.stopPropagation();
+                    onSelect();
+                  }}
+                >
                   {environment.name}
-                </Typography>
+                </button>
               </Tooltip>
             </Box>
             <Tooltip title="More actions" PopperProps={{ disablePortal: true }}>

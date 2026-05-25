@@ -239,6 +239,29 @@ export const useMiniEnvironmentNodeStyles = makeStyles(theme => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
+  // Real-button version of `.name` used to make the environment selectable
+  // by keyboard without nesting interactive elements inside an outer button.
+  nameButton: {
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    margin: 0,
+    cursor: 'pointer',
+    color: 'inherit',
+    font: 'inherit',
+    textAlign: 'inherit',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    fontWeight: 600,
+    fontSize: '0.95rem',
+    lineHeight: 1.2,
+    '&:focus-visible': {
+      outline: `2px solid ${theme.palette.primary.main}`,
+      outlineOffset: 2,
+      borderRadius: 2,
+    },
+  },
   metaRow: {
     display: 'flex',
     alignItems: 'center',
