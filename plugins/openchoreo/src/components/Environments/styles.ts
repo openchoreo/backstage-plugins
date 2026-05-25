@@ -315,10 +315,16 @@ export const useMiniEnvironmentNodeStyles = makeStyles(theme => ({
     flexWrap: 'wrap',
   },
   menuButton: {
-    padding: theme.spacing(0.25),
+    // WCAG 2.2 SC 2.5.8 target-size: ensure ≥24x24 effective hit area.
+    // With a 16px icon, 4px padding gives a 24x24 button.
+    padding: theme.spacing(0.5),
+    minWidth: 24,
+    minHeight: 24,
   },
   primaryButton: {
     textTransform: 'none',
+    // WCAG 2.2 SC 2.5.8 target-size for the small "Promote" button.
+    minHeight: 24,
   },
 }));
 
