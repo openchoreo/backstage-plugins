@@ -179,6 +179,7 @@ export function YamlEditor({
                 >
                   <span>
                     <IconButton
+                      aria-label="Save changes"
                       className={`${classes.floatingButton} ${
                         classes.saveButton
                       } ${!isDirty ? classes.disabledButton : ''}`}
@@ -197,6 +198,7 @@ export function YamlEditor({
                 >
                   <span>
                     <IconButton
+                      aria-label="Discard changes"
                       className={`${classes.floatingButton} ${
                         classes.discardButton
                       } ${!isDirty ? classes.disabledButton : ''}`}
@@ -212,6 +214,7 @@ export function YamlEditor({
               {onDelete && (
                 <Tooltip title="Delete resource">
                   <IconButton
+                    aria-label="Delete resource"
                     className={`${classes.floatingButton} ${classes.deleteButton}`}
                     onClick={onDelete}
                     disabled={readOnly}
