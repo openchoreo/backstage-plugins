@@ -133,11 +133,6 @@ export const CellDiagram = () => {
   }, [runtimeEnabled]);
 
   useEffect(() => {
-    if (environmentsLoading) {
-      setCellDiagramData(undefined);
-      setLoading(false);
-      return undefined;
-    }
     let cancelled = false;
     setLoading(true);
     const observabilityActive =
@@ -169,7 +164,6 @@ export const CellDiagram = () => {
     client,
     environment,
     range,
-    environmentsLoading,
     runtimeEnabled,
     selectedEnvHasRuntimeObservability,
   ]);
@@ -201,7 +195,7 @@ export const CellDiagram = () => {
           checked={runtimeEnabled}
           onChange={e => setRuntimeEnabled(e.target.checked)}
           color="primary"
-          disabled={toggleDisabled}
+          disabled={toggleDisabled || environmentsLoading}
           inputProps={{ 'aria-label': 'Runtime Observability' }}
         />
       }
