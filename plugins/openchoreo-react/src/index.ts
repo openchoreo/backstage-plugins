@@ -366,6 +366,10 @@ export {
   type UsePromoteToEnvPermissionResult,
 } from './hooks/usePromoteToEnvPermission';
 export {
+  useResourcePromoteToEnvPermission,
+  type UseResourcePromoteToEnvPermissionResult,
+} from './hooks/useResourcePromoteToEnvPermission';
+export {
   useReleaseBindingPermission,
   type UseReleaseBindingPermissionResult,
 } from './hooks/useReleaseBindingPermission';

@@ -38,6 +38,11 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
     loading: false,
     deniedTooltip: '',
   }),
+  useResourcePromoteToEnvPermission: () => ({
+    canPromote: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
   // The canvas internals are exercised in their own test; here we stub the
   // graph layout so jsdom doesn't need to mount the real dagre + zoom infra.
   // Mirror the real buildEnvPipelineNodes shape: prepend a synthetic setup
