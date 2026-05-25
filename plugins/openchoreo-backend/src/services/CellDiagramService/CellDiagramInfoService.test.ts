@@ -128,7 +128,7 @@ describe('CellDiagramInfoService', () => {
       expect(result!.components[0].id).toBe('api');
     });
 
-    it('returns undefined when no components found', async () => {
+    it('returns an empty project when no components found (so the UI can render an empty diagram instead of spinning forever)', async () => {
       mockGET.mockResolvedValueOnce(
         createOkResponse({ items: [], pagination: {} }),
       );
@@ -142,7 +142,10 @@ describe('CellDiagramInfoService', () => {
         'token',
       );
 
-      expect(result).toBeUndefined();
+      expect(result).toBeDefined();
+      expect(result!.id).toBe('proj');
+      expect(result!.components).toEqual([]);
+      expect(result!.connections).toEqual([]);
     });
 
     it('returns undefined on API error', async () => {
