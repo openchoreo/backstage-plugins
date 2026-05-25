@@ -315,8 +315,16 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>Edit Trait: {trait.name}</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="md"
+      fullWidth
+      aria-labelledby="edit-trait-dialog-title"
+    >
+      <DialogTitle id="edit-trait-dialog-title">
+        Edit Trait: {trait.name}
+      </DialogTitle>
       <DialogContent dividers className={classes.dialogContent}>
         {error && (
           <Typography variant="body2" color="error" gutterBottom>
@@ -326,8 +334,18 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
 
         {/* Loading Schema */}
         {loadingSchema && (
-          <Box display="flex" alignItems="center" mt={2}>
-            <CircularProgress size={20} style={{ marginRight: 8 }} />
+          <Box
+            display="flex"
+            alignItems="center"
+            mt={2}
+            role="status"
+            aria-busy="true"
+          >
+            <CircularProgress
+              size={20}
+              style={{ marginRight: 8 }}
+              aria-hidden="true"
+            />
             <Typography variant="body2">Loading trait schema...</Typography>
           </Box>
         )}

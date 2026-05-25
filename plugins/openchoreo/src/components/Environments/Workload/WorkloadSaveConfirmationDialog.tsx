@@ -159,8 +159,14 @@ export const WorkloadSaveConfirmationDialog: FC<
   const hasComponentChanges = componentSections.length > 0;
 
   return (
-    <Dialog open={open} onClose={onCancel} maxWidth="md" fullWidth>
-      <DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      maxWidth="md"
+      fullWidth
+      aria-labelledby="workload-save-confirmation-dialog-title"
+    >
+      <DialogTitle id="workload-save-confirmation-dialog-title">
         Confirm Save Changes ({totalChanges}{' '}
         {totalChanges === 1 ? 'change' : 'changes'})
       </DialogTitle>

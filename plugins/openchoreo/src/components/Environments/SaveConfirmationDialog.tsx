@@ -70,8 +70,14 @@ export const SaveConfirmationDialog: FC<SaveConfirmationDialogProps> = ({
   }, [changes]);
 
   return (
-    <Dialog open={open} onClose={onCancel} maxWidth="md" fullWidth>
-      <DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      maxWidth="md"
+      fullWidth
+      aria-labelledby="save-confirmation-dialog-title"
+    >
+      <DialogTitle id="save-confirmation-dialog-title">
         Confirm Save Changes ({totalChanges}{' '}
         {totalChanges === 1 ? 'change' : 'changes'})
       </DialogTitle>

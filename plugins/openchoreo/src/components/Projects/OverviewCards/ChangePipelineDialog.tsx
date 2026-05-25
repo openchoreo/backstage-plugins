@@ -115,8 +115,16 @@ export const ChangePipelineDialog = ({
   const noPipelines = !loading && pipelines.length === 0;
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Change Deployment Pipeline</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      aria-labelledby="change-pipeline-dialog-title"
+    >
+      <DialogTitle id="change-pipeline-dialog-title">
+        Change Deployment Pipeline
+      </DialogTitle>
       <DialogContent>
         <TextField
           select

@@ -34,8 +34,11 @@ export const RemoveDeploymentConfirmationDialog: FC<
       disableEscapeKeyDown={isRemoving}
       maxWidth="sm"
       fullWidth
+      aria-labelledby="remove-deployment-confirmation-dialog-title"
     >
-      <DialogTitle>Remove deployment from {environmentName}?</DialogTitle>
+      <DialogTitle id="remove-deployment-confirmation-dialog-title">
+        Remove deployment from {environmentName}?
+      </DialogTitle>
 
       <DialogContent dividers>
         <Typography variant="body2" color="textSecondary" paragraph>

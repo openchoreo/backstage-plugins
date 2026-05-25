@@ -90,6 +90,7 @@ export const ScaffolderCategoryPicker = () => {
                 checked={selectedTypes.includes(type)}
                 size="small"
                 color="primary"
+                inputProps={{ 'aria-label': type }}
               />
               <ListItemText
                 primary={type}

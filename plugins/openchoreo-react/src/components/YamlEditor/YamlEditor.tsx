@@ -127,12 +127,17 @@ export function YamlEditor({
 
   // @uiw/react-codemirror sets tabindex="-1" on .cm-scroller, which axe flags
   // as a non-focusable scrollable region. Promote it to tabindex="0" so
-  // keyboard users can Tab into the editor.
+  // keyboard users can Tab into the editor. The .cm-content contenteditable
+  // also gets an aria-label so it carries an accessible name.
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const scroller = containerRef.current?.querySelector('.cm-scroller');
     if (scroller && scroller.getAttribute('tabindex') !== '0') {
       scroller.setAttribute('tabindex', '0');
+    }
+    const cmContent = containerRef.current?.querySelector('.cm-content');
+    if (cmContent && !cmContent.getAttribute('aria-label')) {
+      cmContent.setAttribute('aria-label', 'YAML editor');
     }
   }, [content]);
 

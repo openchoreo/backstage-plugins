@@ -470,8 +470,14 @@ export const ReleaseBrowserDialog = ({
     compareOptions.find(o => o.releaseName === compareTargetName) ?? null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle disableTypography>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      fullWidth
+      aria-labelledby="release-browser-dialog-title"
+    >
+      <DialogTitle disableTypography id="release-browser-dialog-title">
         <Box className={classes.titleBar}>
           <Typography variant="h6" className={classes.titleText}>
             {readOnly ? 'Releases' : 'Select release'}

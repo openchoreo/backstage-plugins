@@ -20,8 +20,14 @@ export const AutoDeployConfirmationDialog: FC<
   AutoDeployConfirmationDialogProps
 > = ({ open, onCancel, onConfirm, isEnabling, isUpdating }) => {
   return (
-    <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
-      <DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      maxWidth="sm"
+      fullWidth
+      aria-labelledby="auto-deploy-confirmation-dialog-title"
+    >
+      <DialogTitle id="auto-deploy-confirmation-dialog-title">
         {isEnabling ? 'Enable' : 'Disable'} Auto Deploy?
       </DialogTitle>
 

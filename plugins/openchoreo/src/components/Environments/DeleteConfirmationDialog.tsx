@@ -100,8 +100,14 @@ export const DeleteConfirmationDialog: FC<DeleteConfirmationDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
-      <DialogTitle disableTypography>
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      maxWidth="sm"
+      fullWidth
+      aria-labelledby="delete-overrides-dialog-title"
+    >
+      <DialogTitle disableTypography id="delete-overrides-dialog-title">
         <Typography variant="h4">Delete Overrides?</Typography>
       </DialogTitle>
 

@@ -158,6 +158,7 @@ export const ScaffolderTagPicker = () => {
                 checked={selectedTags.includes(tag)}
                 size="small"
                 color="primary"
+                inputProps={{ 'aria-label': tag }}
               />
               <ListItemText
                 primary={tag}

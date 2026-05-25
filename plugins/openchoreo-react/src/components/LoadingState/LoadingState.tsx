@@ -1,5 +1,6 @@
 import { Box, CircularProgress, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import { VisuallyHidden } from '@openchoreo/backstage-design-system';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -49,12 +50,19 @@ export const LoadingState = ({
   const classes = useStyles();
 
   return (
-    <Box className={classes.container} style={{ minHeight }}>
-      <CircularProgress size={size} />
-      {message && (
+    <Box
+      className={classes.container}
+      style={{ minHeight }}
+      role="status"
+      aria-busy="true"
+    >
+      <CircularProgress size={size} aria-hidden="true" />
+      {message ? (
         <Typography variant="body2" className={classes.message}>
           {message}
         </Typography>
+      ) : (
+        <VisuallyHidden>Loading</VisuallyHidden>
       )}
     </Box>
   );

@@ -317,8 +317,12 @@ describe('MiniEnvironmentNode', () => {
 
   it('marks the card as selected via class name when selected', () => {
     renderNode({ selected: true });
-    const card = screen.getByLabelText('Select environment staging');
-    expect(card.className).toMatch(/cardSelected/);
+    // The "Select environment X" label sits on the inner name button; the
+    // selected-state class lives on the outer card wrapper.
+    const card = screen
+      .getByLabelText('Select environment staging')
+      .closest('[class*="card"]');
+    expect(card?.className).toMatch(/cardSelected/);
   });
 
   it('does not list Undeploy in the overflow menu', async () => {
@@ -412,10 +416,12 @@ describe('MiniEnvironmentNode', () => {
     renderNode({
       environment: makeEnv({ name: 'staging' }),
     });
-    // The icon is decorative (aria-hidden); the env name is the
-    // accessible label. Just confirm an SVG sits next to the name.
-    const card = screen.getByLabelText('Select environment staging');
-    expect(card.querySelectorAll('svg').length).toBeGreaterThan(0);
+    // The icon is decorative (aria-hidden); the env name is the accessible
+    // label. The icon lives next to the name inside the outer card wrapper.
+    const card = screen
+      .getByLabelText('Select environment staging')
+      .closest('[class*="card"]');
+    expect(card?.querySelectorAll('svg').length ?? 0).toBeGreaterThan(0);
   });
 
   it('renders a StatusBadge with the env status variant', () => {

@@ -49,3 +49,8 @@ export type {
   SplitButtonProps,
   SplitButtonOption,
 } from './components/SplitButton';
+export {
+  VisuallyHidden,
+  useVisuallyHiddenStyles,
+} from './components/VisuallyHidden';
+export type { VisuallyHiddenProps } from './components/VisuallyHidden';

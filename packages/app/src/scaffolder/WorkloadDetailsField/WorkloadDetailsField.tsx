@@ -1386,8 +1386,11 @@ export const WorkloadDetailsField = ({
         PaperProps={{
           style: { borderRadius: 16 },
         }}
+        aria-labelledby="workload-descriptor-dialog-title"
       >
-        <DialogTitle>Workload Descriptor Reference</DialogTitle>
+        <DialogTitle id="workload-descriptor-dialog-title">
+          Workload Descriptor Reference
+        </DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="textSecondary" paragraph>
             A workload descriptor (<code>workload.yaml</code>) allows you to

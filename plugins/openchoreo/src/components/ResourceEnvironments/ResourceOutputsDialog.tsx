@@ -133,8 +133,16 @@ export const ResourceOutputsDialog = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Outputs — {environmentName}</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      aria-labelledby="resource-outputs-dialog-title"
+    >
+      <DialogTitle id="resource-outputs-dialog-title">
+        Outputs — {environmentName}
+      </DialogTitle>
       <DialogContent dividers>
         {outputs.length === 0 ? (
           <Typography variant="body2" className={classes.emptyText}>

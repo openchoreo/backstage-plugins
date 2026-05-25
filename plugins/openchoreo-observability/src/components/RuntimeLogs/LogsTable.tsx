@@ -158,8 +158,13 @@ export const LogsTable: FC<LogsTableProps> = ({
                 <TableCell colSpan={totalColumns}>
                   <div className={classes.loadingContainer} ref={loadingRef}>
                     {loading ? (
-                      <Box display="flex" alignItems="center">
-                        <CircularProgress size={20} />
+                      <Box
+                        display="flex"
+                        alignItems="center"
+                        role="status"
+                        aria-busy="true"
+                      >
+                        <CircularProgress size={20} aria-hidden="true" />
                         <Typography variant="body2" style={{ marginLeft: 8 }}>
                           Loading more logs...
                         </Typography>

@@ -120,8 +120,9 @@ export const CreateReleaseDialog = ({
       onClose={submitting ? undefined : onClose}
       maxWidth="sm"
       fullWidth
+      aria-labelledby="create-release-dialog-title"
     >
-      <DialogTitle>Create release</DialogTitle>
+      <DialogTitle id="create-release-dialog-title">Create release</DialogTitle>
       <DialogContent dividers>
         <Typography variant="body2" color="textSecondary" gutterBottom>
           A release captures an immutable snapshot of the current workload,

@@ -180,8 +180,14 @@ export const BindingDetailDialog = ({
   const isSystem = binding.labels?.[CHOREO_LABELS.SYSTEM] === 'true';
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle disableTypography>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      aria-labelledby="binding-detail-dialog-title"
+    >
+      <DialogTitle disableTypography id="binding-detail-dialog-title">
         <Typography variant="h4">{binding.name}</Typography>
       </DialogTitle>
       <DialogContent>

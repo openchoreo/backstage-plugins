@@ -181,8 +181,16 @@ const SchemaContentDialog: FC<{
   }, [schemaType]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Edit Schema Content</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      aria-labelledby="endpoint-editor-dialog-title"
+    >
+      <DialogTitle id="endpoint-editor-dialog-title">
+        Edit Schema Content
+      </DialogTitle>
       <DialogContent>
         <div
           className={

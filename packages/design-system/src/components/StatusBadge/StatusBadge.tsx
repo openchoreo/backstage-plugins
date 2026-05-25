@@ -1,5 +1,10 @@
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import { Box, Typography } from '@material-ui/core';
+import CheckCircleIcon from '@material-ui/icons/CheckCircle';
+import WarningRoundedIcon from '@material-ui/icons/WarningRounded';
+import ErrorIcon from '@material-ui/icons/Error';
+import InfoIcon from '@material-ui/icons/Info';
+import RadioButtonUncheckedIcon from '@material-ui/icons/RadioButtonUnchecked';
 
 const useStyles = makeStyles((theme: Theme) => ({
   badge: {
@@ -16,6 +21,10 @@ const useStyles = makeStyles((theme: Theme) => ({
     width: 8,
     height: 8,
     borderRadius: '50%',
+    flexShrink: 0,
+  },
+  icon: {
+    fontSize: 14,
     flexShrink: 0,
   },
   success: {
@@ -71,8 +80,26 @@ export type StatusType =
 interface StatusBadgeProps {
   status: StatusType;
   label?: string;
+  /** Render a coloured dot before the label (default: true). */
   showDot?: boolean;
+  /**
+   * Render a variant-specific glyph before the label so colour is not the
+   * sole differentiator (WCAG 1.4.1). When `showIcon` is true, the dot is
+   * suppressed. Default: false (preserves existing visual).
+   */
+  showIcon?: boolean;
 }
+
+const VARIANT_ICON: Record<
+  'success' | 'warning' | 'error' | 'info' | 'default',
+  typeof CheckCircleIcon
+> = {
+  success: CheckCircleIcon,
+  warning: WarningRoundedIcon,
+  error: ErrorIcon,
+  info: InfoIcon,
+  default: RadioButtonUncheckedIcon,
+};
 
 const STATUS_CONFIG: Record<
   StatusType,
@@ -98,14 +125,20 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
   label,
   showDot = true,
+  showIcon = false,
 }) => {
   const classes = useStyles();
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.default;
   const displayLabel = label || config.defaultLabel;
+  const Icon = VARIANT_ICON[config.variant];
 
   return (
     <Box className={`${classes.badge} ${classes[config.variant]}`}>
-      {showDot && <span className={classes.dot} />}
+      {showIcon ? (
+        <Icon className={classes.icon} aria-hidden="true" />
+      ) : (
+        showDot && <span className={classes.dot} />
+      )}
       <Typography component="span" variant="body2">
         {displayLabel}
       </Typography>

@@ -306,8 +306,9 @@ export const SecretsTable = ({
         onClose={handleDeleteCancel}
         maxWidth="sm"
         fullWidth
+        aria-labelledby="delete-secret-dialog-title"
       >
-        <DialogTitle disableTypography>
+        <DialogTitle disableTypography id="delete-secret-dialog-title">
           <Typography variant="h4">Delete Secret</Typography>
         </DialogTitle>
         <DialogContent>

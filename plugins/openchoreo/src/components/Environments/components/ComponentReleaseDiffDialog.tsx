@@ -126,8 +126,14 @@ export const ComponentReleaseDiffDialog = ({
   ]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      fullWidth
+      aria-labelledby="component-release-diff-dialog-title"
+    >
+      <DialogTitle id="component-release-diff-dialog-title">
         Release diff — {upstreamEnvName} → {environmentName}
       </DialogTitle>
       <DialogContent dividers>
