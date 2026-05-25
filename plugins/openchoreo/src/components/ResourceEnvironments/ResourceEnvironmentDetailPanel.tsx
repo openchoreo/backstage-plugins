@@ -25,6 +25,7 @@ import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
 import {
   formatRelativeTime,
+  useResourcePromoteToEnvPermission,
   useResourceReleaseBindingDeletePermission,
   useResourceReleaseBindingUpdatePermission,
 } from '@openchoreo/backstage-plugin-react';
@@ -97,9 +98,11 @@ function ResourceEnvironmentDetailContent({ env, onClose }: ContentProps) {
   const hasOutputs = outputCount > 0;
   const badgeStatus = deriveResourceEnvBadgeStatus(env);
 
-  // Promote eligibility (forward-promote semantic, same as the env card):
-  // shows when this env has a binding + release + at least one
-  // promotion target that doesn't already have this release.
+  // Promote eligibility: shows when this env has a binding + release + at
+  // least one promotion target that doesn't already have this release. Promote
+  // copies this env's release pin forward to the next env's binding; the
+  // pipeline-defined `promotionTargets` enforces ordering (prod has no
+  // targets, so the button never appears on the terminal env).
   const promotionTargets = env.promotionTargets ?? [];
   const eligibleTargets = env.resourceRelease
     ? promotionTargets.filter(t => {
@@ -109,12 +112,12 @@ function ResourceEnvironmentDetailContent({ env, onClose }: ContentProps) {
     : [];
   const allTargetsInSync =
     promotionTargets.length > 0 && eligibleTargets.length === 0;
-  const isPromotingForward = promotionTargets.some(
+  const isPromoting = promotionTargets.some(
     t =>
       pendingAction?.kind === 'promote' &&
       pendingAction.env === (t.resourceName ?? t.name),
   );
-  const showForwardPromote =
+  const showPromote =
     hasBinding &&
     Boolean(env.resourceRelease) &&
     env.status === 'Ready' &&
@@ -136,8 +139,12 @@ function ResourceEnvironmentDetailContent({ env, onClose }: ContentProps) {
     [notification],
   );
 
-  const updatePerm = useResourceReleaseBindingUpdatePermission(env.name);
-  const deletePerm = useResourceReleaseBindingDeletePermission(env.name);
+  // ABAC env-aware perms key on the K8s resource name (e.g. "production"),
+  // not the display name ("Production") — that's what the cluster's
+  // `resource.environment` CEL matches against.
+  const envResourceName = env.resourceName ?? env.name;
+  const updatePerm = useResourceReleaseBindingUpdatePermission(envResourceName);
+  const deletePerm = useResourceReleaseBindingDeletePermission(envResourceName);
 
   const isUndeploying =
     pendingAction?.env === (env.resourceName ?? env.name) &&
@@ -318,11 +325,11 @@ function ResourceEnvironmentDetailContent({ env, onClose }: ContentProps) {
                   Actions
                 </Typography>
                 <Box className={classes.actionsRow}>
-                  {showForwardPromote && (
-                    <ForwardPromoteButton
+                  {showPromote && (
+                    <PromotePrimaryAction
                       allTargetsInSync={allTargetsInSync}
                       eligibleTargets={eligibleTargets}
-                      isPromotingForward={isPromotingForward}
+                      isPromoting={isPromoting}
                       onPromoteSingle={handlePromoteSingle}
                     />
                   )}
@@ -462,19 +469,19 @@ function ResourceEnvironmentDetailContent({ env, onClose }: ContentProps) {
   );
 }
 
-interface ForwardPromoteButtonProps {
+interface PromotePrimaryActionProps {
   allTargetsInSync: boolean;
-  eligibleTargets: Array<{ name: string }>;
-  isPromotingForward: boolean;
+  eligibleTargets: Array<{ name: string; resourceName?: string }>;
+  isPromoting: boolean;
   onPromoteSingle: () => void;
 }
 
-function ForwardPromoteButton({
+function PromotePrimaryAction({
   allTargetsInSync,
   eligibleTargets,
-  isPromotingForward,
+  isPromoting,
   onPromoteSingle,
-}: ForwardPromoteButtonProps) {
+}: PromotePrimaryActionProps) {
   if (allTargetsInSync) {
     return (
       <Button size="small" variant="contained" disabled>
@@ -488,21 +495,57 @@ function ForwardPromoteButton({
   const target = eligibleTargets[0];
   if (!target) return null;
   return (
-    <Tooltip title={`Promote to ${target.name}`}>
+    <PromotePrimaryButton
+      target={target}
+      isPromoting={isPromoting}
+      onPromoteSingle={onPromoteSingle}
+    />
+  );
+}
+
+interface PromotePrimaryButtonProps {
+  target: { name: string; resourceName?: string };
+  isPromoting: boolean;
+  onPromoteSingle: () => void;
+}
+
+/**
+ * Single-target Promote button on the panel. Calls
+ * `useResourcePromoteToEnvPermission(target)` so disabled state honors both
+ * `resourcereleasebinding:create` and `resourcereleasebinding:update` ABAC
+ * on the target env. Mirrors the Component-side `PromotePrimaryButton` in
+ * `PromotePrimaryAction.tsx`.
+ *
+ * Mounted only when there is a real target to promote to so the hook
+ * receives a stable argument (hooks can't be called conditionally).
+ */
+function PromotePrimaryButton({
+  target,
+  isPromoting,
+  onPromoteSingle,
+}: PromotePrimaryButtonProps) {
+  const targetEnvName = target.resourceName ?? target.name;
+  const { canPromote, loading, deniedTooltip } =
+    useResourcePromoteToEnvPermission(targetEnvName);
+  const disabled = isPromoting || loading || !canPromote;
+  const tooltip =
+    !canPromote && !loading ? deniedTooltip : `Promote to ${target.name}`;
+  return (
+    <Tooltip title={tooltip}>
       <span>
         <Button
           size="small"
           variant="contained"
           color="primary"
           onClick={onPromoteSingle}
-          disabled={isPromotingForward}
+          disabled={disabled}
           startIcon={
-            isPromotingForward ? (
+            isPromoting ? (
               <CircularProgress size={14} color="inherit" />
             ) : undefined
           }
         >
-          {isPromotingForward ? 'Promoting...' : 'Promote'}
+          {isPromoting ? 'Promoting...' : 'Promote'}
         </Button>
       </span>
     </Tooltip>
