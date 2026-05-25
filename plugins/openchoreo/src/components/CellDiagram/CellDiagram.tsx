@@ -132,11 +132,17 @@ export const CellDiagram = () => {
     }
   }, [runtimeEnabled]);
 
+  const observabilityActive =
+    runtimeEnabled && selectedEnvHasRuntimeObservability;
+  // When observability is off, environment/time-range don't affect the result, so they must not be in
+  // the useEffect's dependancies. Use a memoized key that only changes when relevant values change.
+  const diagramFetchKey = observabilityActive
+    ? `obs|${environment}|${range?.startTime ?? ''}|${range?.endTime ?? ''}`
+    : 'arch';
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    const observabilityActive =
-      runtimeEnabled && selectedEnvHasRuntimeObservability;
     const fetchData = async () => {
       try {
         const data = await client.getCellDiagramInfo(entity, {
@@ -159,14 +165,8 @@ export const CellDiagram = () => {
     return () => {
       cancelled = true;
     };
-  }, [
-    entity,
-    client,
-    environment,
-    range,
-    runtimeEnabled,
-    selectedEnvHasRuntimeObservability,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entity, client, diagramFetchKey]);
 
   const showEmptyHint =
     runtimeEnabled &&
