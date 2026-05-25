@@ -250,6 +250,11 @@ export const useMiniEnvironmentNodeStyles = makeStyles(theme => ({
     color: 'inherit',
     font: 'inherit',
     textAlign: 'inherit',
+    // <button> has an intrinsic min-content width; allow it to shrink in
+    // the flex `nameWrap` so `text-overflow: ellipsis` can take effect on
+    // long environment names.
+    minWidth: 0,
+    flex: '1 1 auto',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
