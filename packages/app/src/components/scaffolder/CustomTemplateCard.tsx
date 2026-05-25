@@ -59,11 +59,11 @@ export const CustomTemplateCard = ({
   const handleClick = () => {
     if (!disabled) onSelected?.(template);
   };
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
-      e.preventDefault();
-      handleClick();
-    }
+
+  const handleTitleClick = (e: React.MouseEvent) => {
+    // Outer Box also has onClick; stop here so we don't double-fire.
+    e.stopPropagation();
+    handleClick();
   };
 
   const handleStarClick = (e: React.MouseEvent) => {
@@ -77,9 +77,6 @@ export const CustomTemplateCard = ({
         disabled ? classes.cardDisabled : ''
       }`}
       onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      role="button"
-      tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}
     >
       {workloadType && (
@@ -104,7 +101,15 @@ export const CustomTemplateCard = ({
         )}
       </IconButton>
       <Box className={classes.resourceCardIcon}>{icon}</Box>
-      <Typography className={classes.resourceCardTitle}>{title}</Typography>
+      <button
+        type="button"
+        className={classes.resourceCardTitleButton}
+        onClick={handleTitleClick}
+        disabled={disabled}
+        aria-label={`Use template ${title}`}
+      >
+        {title}
+      </button>
       {template.metadata.namespace &&
         template.metadata.namespace !== 'default' && (
           <Chip

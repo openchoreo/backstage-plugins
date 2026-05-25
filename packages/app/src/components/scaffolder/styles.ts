@@ -167,6 +167,31 @@ export const useStyles = makeStyles(theme => ({
     color: theme.palette.text.primary,
     lineHeight: 1.4,
   },
+  // Real-button version of `.resourceCardTitle` used to make the template
+  // selectable by keyboard without nesting interactive elements inside an
+  // outer button (WCAG 4.1.2 nested-interactive).
+  resourceCardTitleButton: {
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    margin: 0,
+    cursor: 'pointer',
+    textAlign: 'left' as const,
+    fontFamily: 'inherit',
+    fontSize: '0.938rem',
+    fontWeight: 600,
+    color: theme.palette.text.primary,
+    lineHeight: 1.4,
+    '&:disabled': {
+      cursor: 'not-allowed',
+      opacity: 0.6,
+    },
+    '&:focus-visible': {
+      outline: `2px solid ${theme.palette.primary.main}`,
+      outlineOffset: 2,
+      borderRadius: 2,
+    },
+  },
   resourceCardDescription: {
     fontSize: '0.813rem',
     color: theme.palette.text.secondary,
