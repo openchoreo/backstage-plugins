@@ -213,8 +213,10 @@ export class CellDiagramInfoService implements CellDiagramService {
       ]);
 
       if (!componentItems.length) {
-        this.logger.warn('No components found in API response');
-        return undefined;
+        this.logger.info(
+          `No components in project '${projectName}'; returning empty cell diagram`,
+        );
+        return this.buildProject(projectName, namespaceName, []);
       }
 
       // Build a map from component name to workload spec

@@ -37,6 +37,20 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
   useChoreoTokens: () => ({ mode: 'light' }),
 }));
 
+jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  EmptyState: ({ title, description, action }: any) => (
+    <div data-testid="empty-state">
+      <div>{title}</div>
+      {description && <div>{description}</div>}
+      {action && (
+        <button onClick={action.onClick} aria-label={action.label}>
+          {action.label}
+        </button>
+      )}
+    </div>
+  ),
+}));
+
 jest.mock('@material-ui/core/styles', () => ({
   useTheme: () => ({
     palette: {
@@ -195,7 +209,9 @@ function setupMockClient(
   const mockClient = {
     getCellDiagramInfo: jest.fn().mockResolvedValue({
       id: 'my-project',
-      components: [],
+      // Default has one component so the toggle renders; the "no components" path
+      // is hidden in the empty state and is exercised by a dedicated test below.
+      components: [{ id: 'svc-a', label: 'svc-a', services: {} }],
       connections: [],
     }),
     fetchDeploymentPipeline: jest.fn().mockResolvedValue({
@@ -582,5 +598,62 @@ describe('CellDiagram', () => {
         callsAfterToggle,
       );
     });
+  });
+
+  it('shows a "No components yet" empty state (and skips the cell diagram lib) when the project has no components', async () => {
+    setupMockClient({
+      getCellDiagramInfo: jest.fn().mockResolvedValue({
+        id: 'my-project',
+        components: [],
+        connections: [],
+      }),
+    });
+
+    await act(async () => {
+      render(<CellDiagram />);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('cell-diagram-no-components'),
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByText(/no components yet/i)).toBeInTheDocument();
+    // The cell-diagram lib is intentionally not rendered for empty projects —
+    // otherwise the standalone octagon outline looks awkward around the message.
+    expect(screen.queryByTestId('cell-diagram-view')).not.toBeInTheDocument();
+  });
+
+  it('shows an empty state with Retry when the fetch fails (instead of an infinite spinner)', async () => {
+    const mockClient = setupMockClient({
+      getCellDiagramInfo: jest
+        .fn()
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockResolvedValue({
+          id: 'my-project',
+          components: [{ id: 'svc-a', label: 'svc-a', services: {} }],
+          connections: [],
+        }),
+    });
+
+    await act(async () => {
+      render(<CellDiagram />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('cell-diagram-view')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('progress')).not.toBeInTheDocument();
+
+    const retry = screen.getByRole('button', { name: /retry/i });
+    await act(async () => {
+      await userEvent.click(retry);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('cell-diagram-view')).toBeInTheDocument();
+    });
+    expect(mockClient.getCellDiagramInfo).toHaveBeenCalledTimes(2);
   });
 });

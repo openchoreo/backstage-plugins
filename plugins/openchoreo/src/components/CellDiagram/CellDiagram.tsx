@@ -27,6 +27,7 @@ import { useTheme } from '@material-ui/core/styles';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { DiagramLayer, Project } from '@wso2/cell-diagram';
 import { useChoreoTokens } from '@openchoreo/backstage-design-system';
+import { EmptyState } from '@openchoreo/backstage-plugin-react';
 import { useCellEnvironments } from './useCellEnvironments';
 
 const CellView = lazy(() =>
@@ -136,9 +137,11 @@ export const CellDiagram = () => {
     runtimeEnabled && selectedEnvHasRuntimeObservability;
   // When observability is off, environment/time-range don't affect the result, so they must not be in
   // the useEffect's dependancies. Use a memoized key that only changes when relevant values change.
+  // refreshNonce is included in the arch key so the Retry button can re-trigger the fetch even when
+  // observability is off (in obs mode it already flows through `range`).
   const diagramFetchKey = observabilityActive
     ? `obs|${environment}|${range?.startTime ?? ''}|${range?.endTime ?? ''}`
-    : 'arch';
+    : `arch|${refreshNonce}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -154,11 +157,13 @@ export const CellDiagram = () => {
         });
         if (cancelled) return;
         setCellDiagramData(data as Project);
-        setHasFetchedOnce(true);
       } catch {
-        // swallow — diagram falls back to undefined
+        // swallow — empty-state with Retry surfaces failure in the UI
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setHasFetchedOnce(true);
+        }
       }
     };
     fetchData();
@@ -208,6 +213,9 @@ export const CellDiagram = () => {
     />
   );
 
+  const hasNoComponents =
+    !!cellDiagramData && (cellDiagramData.components?.length ?? 0) === 0;
+
   return (
     <Box
       sx={{
@@ -221,139 +229,143 @@ export const CellDiagram = () => {
         position: 'relative',
       }}
     >
-      <Box
-        style={{
-          position: 'absolute',
-          top: 16,
-          left: 24,
-          right: 24,
-          zIndex: 10,
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: 12,
-        }}
-      >
-        {toggleDisabled ? (
-          <Tooltip title="Observability is unavailable in all environments. Configure the Cilium module to enable observability.">
-            <span>{toggleControl}</span>
-          </Tooltip>
-        ) : (
-          toggleControl
-        )}
-
-        {runtimeEnabled && (
-          <>
-            <FormControl
-              variant="outlined"
-              size="small"
-              style={{
-                minWidth: 200,
-                backgroundColor: controlBg,
-                borderRadius: 4,
-              }}
-            >
-              <InputLabel id="cell-diagram-env-label">Environment</InputLabel>
-              <Select
-                labelId="cell-diagram-env-label"
-                value={environment}
-                label="Environment"
-                onChange={e => setEnvironment(e.target.value as string)}
-                disabled={environments.length === 0}
-              >
-                {environments.length === 0 && (
-                  <MenuItem value="" disabled>
-                    No environments
-                  </MenuItem>
-                )}
-                {environments.map(env => (
-                  <MenuItem key={env.name} value={env.name}>
-                    {env.displayName ?? env.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl
-              variant="outlined"
-              size="small"
-              style={{
-                minWidth: 180,
-                backgroundColor: controlBg,
-                borderRadius: 4,
-              }}
-            >
-              <InputLabel id="cell-diagram-range-label">Time range</InputLabel>
-              <Select
-                labelId="cell-diagram-range-label"
-                value={timeRange}
-                label="Time range"
-                onChange={e => setTimeRange(e.target.value as string)}
-              >
-                {TIME_RANGES.map(r => (
-                  <MenuItem key={r.value} value={r.value}>
-                    {r.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Tooltip title="Refresh">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={() => setRefreshNonce(n => n + 1)}
-                  disabled={loading || environmentsLoading}
-                  style={{
-                    backgroundColor: controlBg,
-                    borderRadius: 4,
-                  }}
-                >
-                  {loading ? (
-                    <CircularProgress size={18} />
-                  ) : (
-                    <RefreshIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </span>
+      {!hasNoComponents && (
+        <Box
+          style={{
+            position: 'absolute',
+            top: 16,
+            left: 24,
+            right: 24,
+            zIndex: 10,
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          {toggleDisabled ? (
+            <Tooltip title="Observability is unavailable in all environments. Configure the Cilium module to enable observability.">
+              <span>{toggleControl}</span>
             </Tooltip>
+          ) : (
+            toggleControl
+          )}
 
-            {environment &&
-              !selectedEnvHasRuntimeObservability &&
-              !environmentsLoading && (
-                <Typography
-                  variant="body2"
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: theme.palette.warning.light,
-                    color: theme.palette.warning.contrastText,
-                    borderRadius: 4,
-                  }}
-                >
-                  Observability is unavailable in the{' '}
-                  <strong>{environment}</strong> environment. Configure the
-                  Cilium module to enable observability.
-                </Typography>
-              )}
-
-            {showEmptyHint && (
-              <Typography
-                variant="caption"
+          {runtimeEnabled && (
+            <>
+              <FormControl
+                variant="outlined"
+                size="small"
                 style={{
-                  padding: '6px 12px',
+                  minWidth: 200,
                   backgroundColor: controlBg,
                   borderRadius: 4,
-                  opacity: 0.8,
                 }}
               >
-                No HTTP traffic in selected range
-              </Typography>
-            )}
-          </>
-        )}
-      </Box>
+                <InputLabel id="cell-diagram-env-label">Environment</InputLabel>
+                <Select
+                  labelId="cell-diagram-env-label"
+                  value={environment}
+                  label="Environment"
+                  onChange={e => setEnvironment(e.target.value as string)}
+                  disabled={environments.length === 0}
+                >
+                  {environments.length === 0 && (
+                    <MenuItem value="" disabled>
+                      No environments
+                    </MenuItem>
+                  )}
+                  {environments.map(env => (
+                    <MenuItem key={env.name} value={env.name}>
+                      {env.displayName ?? env.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-      {runtimeEnabled && (
+              <FormControl
+                variant="outlined"
+                size="small"
+                style={{
+                  minWidth: 180,
+                  backgroundColor: controlBg,
+                  borderRadius: 4,
+                }}
+              >
+                <InputLabel id="cell-diagram-range-label">
+                  Time range
+                </InputLabel>
+                <Select
+                  labelId="cell-diagram-range-label"
+                  value={timeRange}
+                  label="Time range"
+                  onChange={e => setTimeRange(e.target.value as string)}
+                >
+                  {TIME_RANGES.map(r => (
+                    <MenuItem key={r.value} value={r.value}>
+                      {r.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <Tooltip title="Refresh">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => setRefreshNonce(n => n + 1)}
+                    disabled={loading || environmentsLoading}
+                    style={{
+                      backgroundColor: controlBg,
+                      borderRadius: 4,
+                    }}
+                  >
+                    {loading ? (
+                      <CircularProgress size={18} />
+                    ) : (
+                      <RefreshIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </span>
+              </Tooltip>
+
+              {environment &&
+                !selectedEnvHasRuntimeObservability &&
+                !environmentsLoading && (
+                  <Typography
+                    variant="body2"
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: theme.palette.warning.light,
+                      color: theme.palette.warning.contrastText,
+                      borderRadius: 4,
+                    }}
+                  >
+                    Observability is unavailable in the{' '}
+                    <strong>{environment}</strong> environment. Configure the
+                    Cilium module to enable observability.
+                  </Typography>
+                )}
+
+              {showEmptyHint && (
+                <Typography
+                  variant="caption"
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: controlBg,
+                    borderRadius: 4,
+                    opacity: 0.8,
+                  }}
+                >
+                  No HTTP traffic in selected range
+                </Typography>
+              )}
+            </>
+          )}
+        </Box>
+      )}
+
+      {runtimeEnabled && !hasNoComponents && (
         <Typography
           variant="caption"
           style={{
@@ -371,7 +383,7 @@ export const CellDiagram = () => {
           observed.
         </Typography>
       )}
-      {cellDiagramData ? (
+      {cellDiagramData && !hasNoComponents && (
         <Suspense fallback={<Progress />}>
           {(() => {
             const targetLayer =
@@ -388,8 +400,42 @@ export const CellDiagram = () => {
             );
           })()}
         </Suspense>
-      ) : (
-        <Progress />
+      )}
+      {hasNoComponents && (
+        <Box
+          data-testid="cell-diagram-no-components"
+          style={{
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <EmptyState
+            title="No components yet"
+            description="This project does not have any components. Create one to see it on the cell diagram."
+          />
+        </Box>
+      )}
+      {!cellDiagramData && (loading || !hasFetchedOnce) && <Progress />}
+      {!cellDiagramData && hasFetchedOnce && !loading && (
+        <Box
+          style={{
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <EmptyState
+            title="Failed to load cell diagram"
+            description="Could not load project information. Try again in a moment."
+            action={{
+              label: 'Retry',
+              onClick: () => setRefreshNonce(n => n + 1),
+            }}
+          />
+        </Box>
       )}
     </Box>
   );
