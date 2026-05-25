@@ -54,6 +54,33 @@ const useSearchModalStyles = makeStyles({
   },
 });
 
+const useA11yStyles = makeStyles(theme => ({
+  skipLink: {
+    position: 'absolute',
+    left: -9999,
+    top: 'auto',
+    width: 1,
+    height: 1,
+    overflow: 'hidden',
+    zIndex: theme.zIndex.tooltip + 1,
+    '&:focus': {
+      left: theme.spacing(2),
+      top: theme.spacing(2),
+      width: 'auto',
+      height: 'auto',
+      padding: theme.spacing(1, 2),
+      backgroundColor: theme.palette.background.paper,
+      color: theme.palette.text.primary,
+      border: `2px solid ${theme.palette.primary.main}`,
+      borderRadius: 4,
+      textDecoration: 'none',
+    },
+  },
+  mainContent: {
+    display: 'contents',
+  },
+}));
+
 const useSidebarLogoStyles = makeStyles(theme => ({
   root: {
     width: sidebarConfig.drawerWidthClosed,
@@ -139,8 +166,12 @@ const SignOutButton = () => {
 
 export const Root = ({ children }: PropsWithChildren<{}>) => {
   useSearchModalStyles();
+  const a11yClasses = useA11yStyles();
   return (
     <AssistantDrawerProvider>
+      <a href="#main-content" className={a11yClasses.skipLink}>
+        Skip to main content
+      </a>
       <SidebarPage>
         <Sidebar>
           <SidebarLogo />
@@ -198,7 +229,9 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
           <SidebarDivider />
           <SignOutButton />
         </Sidebar>
-        {children}
+        <main id="main-content" tabIndex={-1} className={a11yClasses.mainContent}>
+          {children}
+        </main>
       </SidebarPage>
     </AssistantDrawerProvider>
   );
