@@ -499,8 +499,14 @@ export const BuildWithParamsDialog = ({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle disableTypography>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="md"
+      fullWidth
+      aria-labelledby="build-with-params-dialog-title"
+    >
+      <DialogTitle disableTypography id="build-with-params-dialog-title">
         <Typography variant="h4">Build with Custom Parameters</Typography>
       </DialogTitle>
       <DialogContent className={classes.dialogContent}>

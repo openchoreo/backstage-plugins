@@ -246,10 +246,11 @@ export const RolesTable = ({
         onClose={closeDeleteDialog}
         maxWidth="sm"
         fullWidth
+        aria-labelledby="roles-delete-dialog-title"
       >
         {checkingBindings && (
           <>
-            <DialogTitle disableTypography>
+            <DialogTitle disableTypography id="roles-delete-dialog-title">
               <Typography variant="h6">Checking {scopeLabel} Usage</Typography>
             </DialogTitle>
             <DialogContent>
@@ -269,7 +270,7 @@ export const RolesTable = ({
         )}
         {!checkingBindings && activeBindings.length > 0 && (
           <>
-            <DialogTitle disableTypography>
+            <DialogTitle disableTypography id="roles-delete-dialog-title">
               <Box className={classes.warningHeader}>
                 <WarningIcon className={classes.warningIcon} />
                 <Typography variant="h4" component="span">
@@ -312,7 +313,7 @@ export const RolesTable = ({
         )}
         {!checkingBindings && activeBindings.length === 0 && (
           <>
-            <DialogTitle disableTypography>
+            <DialogTitle disableTypography id="roles-delete-dialog-title">
               <Typography variant="h4">Delete {scopeLabel}</Typography>
             </DialogTitle>
             <DialogContent>

@@ -34,8 +34,9 @@ export const ResourceRetainPolicySwitchDialog: FC<
       disableEscapeKeyDown={isUpdating}
       maxWidth="sm"
       fullWidth
+      aria-labelledby="resource-retain-policy-switch-dialog-title"
     >
-      <DialogTitle>Switch retain policy to Delete?</DialogTitle>
+      <DialogTitle id="resource-retain-policy-switch-dialog-title">Switch retain policy to Delete?</DialogTitle>
 
       <DialogContent dividers>
         <Typography variant="body2" color="textSecondary">

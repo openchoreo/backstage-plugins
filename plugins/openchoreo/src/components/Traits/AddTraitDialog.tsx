@@ -366,8 +366,14 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
     yamlValid;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="md"
+      fullWidth
+      aria-labelledby="add-trait-dialog-title"
+    >
+      <DialogTitle id="add-trait-dialog-title">
         <Typography variant="h4">Add Trait</Typography>
       </DialogTitle>
       <DialogContent dividers className={classes.dialogContent}>

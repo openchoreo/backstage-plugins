@@ -496,8 +496,9 @@ export const WorkflowConfigPage = ({
         onClose={handleCancelSave}
         maxWidth="sm"
         fullWidth
+        aria-labelledby="workflow-config-confirm-dialog-title"
       >
-        <DialogTitle>Confirm Changes</DialogTitle>
+        <DialogTitle id="workflow-config-confirm-dialog-title">Confirm Changes</DialogTitle>
         <DialogContent>
           <ChangesPreview changes={changes} />
           {error && (

@@ -654,8 +654,9 @@ export const NamespaceRoleBindingsContent = ({
       <Dialog
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
+        aria-labelledby="namespace-role-bindings-delete-dialog-title"
       >
-        <DialogTitle disableTypography>
+        <DialogTitle disableTypography id="namespace-role-bindings-delete-dialog-title">
           <Typography variant="h4">Delete Namespace Role Binding</Typography>
         </DialogTitle>
         <DialogContent>

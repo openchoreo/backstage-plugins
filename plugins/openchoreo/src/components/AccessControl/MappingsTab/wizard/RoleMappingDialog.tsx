@@ -272,8 +272,13 @@ export const RoleMappingDialog = ({
       maxWidth="md"
       fullWidth
       classes={{ paper: classes.dialogPaper }}
+      aria-labelledby="role-mapping-dialog-title"
     >
-      <DialogTitle disableTypography className={classes.dialogTitle}>
+      <DialogTitle
+        disableTypography
+        className={classes.dialogTitle}
+        id="role-mapping-dialog-title"
+      >
         <Typography variant="h4">
           {isEdit ? 'Edit Role Mapping' : 'Add Role Mapping'}
         </Typography>

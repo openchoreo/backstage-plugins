@@ -107,8 +107,14 @@ export const InvokeUrlsDialog = ({
   endpoints,
 }: InvokeUrlsDialogProps) => {
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Endpoint URLs</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      aria-labelledby="invoke-urls-dialog-title"
+    >
+      <DialogTitle id="invoke-urls-dialog-title">Endpoint URLs</DialogTitle>
       <DialogContent dividers>
         {endpoints.length === 0 ? (
           <Typography variant="body2" color="textSecondary">

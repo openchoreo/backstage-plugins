@@ -204,8 +204,9 @@ export const GitSecretDialog = ({
           maxHeight: '80vh',
         },
       }}
+      aria-labelledby="create-git-secret-dialog-title"
     >
-      <DialogTitle>
+      <DialogTitle id="create-git-secret-dialog-title">
         <Typography variant="h4" component="div" style={{ fontWeight: 600 }}>
           Create Git Secret
         </Typography>

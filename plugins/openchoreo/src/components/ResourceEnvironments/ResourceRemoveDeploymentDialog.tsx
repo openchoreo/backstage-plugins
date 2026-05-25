@@ -39,8 +39,9 @@ export const ResourceRemoveDeploymentDialog: FC<
       disableEscapeKeyDown={isRemoving}
       maxWidth="sm"
       fullWidth
+      aria-labelledby="resource-remove-deployment-dialog-title"
     >
-      <DialogTitle>Remove deployment from {environmentName}?</DialogTitle>
+      <DialogTitle id="resource-remove-deployment-dialog-title">Remove deployment from {environmentName}?</DialogTitle>
 
       <DialogContent dividers>
         <Typography variant="body2" color="textSecondary" paragraph>

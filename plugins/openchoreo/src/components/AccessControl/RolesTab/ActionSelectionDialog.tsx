@@ -215,8 +215,14 @@ export const ActionSelectionDialog = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      aria-labelledby="action-selection-dialog-title"
+    >
+      <DialogTitle id="action-selection-dialog-title">
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <span>Select Actions</span>
           <Typography variant="body2" className={classes.selectionCount}>

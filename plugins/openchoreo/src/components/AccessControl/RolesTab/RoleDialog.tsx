@@ -368,8 +368,14 @@ export const RoleDialog = ({
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogTitle disableTypography>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="sm"
+        fullWidth
+        aria-labelledby="role-dialog-title"
+      >
+        <DialogTitle disableTypography id="role-dialog-title">
           <Typography variant="h4">
             {editingRole ? (
               <>

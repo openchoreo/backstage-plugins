@@ -86,8 +86,14 @@ export const ReleaseManifestDialog = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Release manifest — {environmentName}</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      aria-labelledby="release-manifest-dialog-title"
+    >
+      <DialogTitle id="release-manifest-dialog-title">Release manifest — {environmentName}</DialogTitle>
       <DialogContent dividers>
         {!releaseName && (
           <Typography variant="body2" color="textSecondary">

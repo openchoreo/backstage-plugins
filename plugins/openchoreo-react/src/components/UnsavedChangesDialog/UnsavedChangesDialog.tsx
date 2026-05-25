@@ -22,8 +22,14 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({
   changeCount,
 }) => {
   return (
-    <Dialog open={open} onClose={onStay} maxWidth="sm" fullWidth>
-      <DialogTitle>Unsaved Changes</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onStay}
+      maxWidth="sm"
+      fullWidth
+      aria-labelledby="unsaved-changes-dialog-title"
+    >
+      <DialogTitle id="unsaved-changes-dialog-title">Unsaved Changes</DialogTitle>
 
       <DialogContent>
         <Typography variant="body1">

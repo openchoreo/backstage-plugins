@@ -96,8 +96,14 @@ export const BuildWithCommitDialog = ({
   const isValid = commitSha.trim() && !validateCommitSha(commitSha.trim());
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Build with Specific Commit</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="sm"
+      fullWidth
+      aria-labelledby="build-with-commit-dialog-title"
+    >
+      <DialogTitle id="build-with-commit-dialog-title">Build with Specific Commit</DialogTitle>
       <DialogContent className={classes.dialogContent}>
         <Typography variant="body2" className={classes.helperText}>
           Enter the commit SHA to build from a specific commit in your

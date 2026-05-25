@@ -782,8 +782,9 @@ export const CreateSecretDialog = ({
       onClose={loading ? undefined : onClose}
       maxWidth="sm"
       fullWidth
+      aria-labelledby="create-secret-dialog-title"
     >
-      <DialogTitle disableTypography>
+      <DialogTitle disableTypography id="create-secret-dialog-title">
         <Typography variant="h4">Create Secret</Typography>
         <Typography variant="body2" color="textSecondary">
           Create a new secret in namespace <strong>{namespaceName}</strong>.
