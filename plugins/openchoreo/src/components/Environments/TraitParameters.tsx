@@ -134,9 +134,7 @@ export const TraitParameters: React.FC<TraitParametersProps> = ({
         />
         <IconButton
           aria-expanded={expanded}
-          aria-label={
-            expanded ? 'Collapse parameters' : 'Expand parameters'
-          }
+          aria-label={expanded ? 'Collapse parameters' : 'Expand parameters'}
           aria-controls="trait-parameters-content"
           size="small"
           onClick={e => {

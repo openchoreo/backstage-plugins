@@ -180,11 +180,21 @@ export const ResourceEventsTable: FC<ResourceEventsTableProps> = ({
       <Table size="small" stickyHeader>
         <TableHead>
           <TableRow>
-            <TableCell scope="col" className={classes.headerCell}>Reason</TableCell>
-            <TableCell scope="col" className={classes.headerCell}>Message</TableCell>
-            <TableCell scope="col" className={classes.headerCell}>Count</TableCell>
-            <TableCell scope="col" className={classes.headerCell}>First Seen</TableCell>
-            <TableCell scope="col" className={classes.headerCell}>Last Seen</TableCell>
+            <TableCell scope="col" className={classes.headerCell}>
+              Reason
+            </TableCell>
+            <TableCell scope="col" className={classes.headerCell}>
+              Message
+            </TableCell>
+            <TableCell scope="col" className={classes.headerCell}>
+              Count
+            </TableCell>
+            <TableCell scope="col" className={classes.headerCell}>
+              First Seen
+            </TableCell>
+            <TableCell scope="col" className={classes.headerCell}>
+              Last Seen
+            </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

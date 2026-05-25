@@ -513,11 +513,16 @@ export const NamespaceRoleBindingsContent = ({
                         <TableRow>
                           <TableCell scope="col">Binding Name</TableCell>
                           <TableCell scope="col">Role Mappings</TableCell>
-                          <TableCell scope="col" className={classes.entitlementCell}>
+                          <TableCell
+                            scope="col"
+                            className={classes.entitlementCell}
+                          >
                             Entitlement (claim=value)
                           </TableCell>
                           <TableCell scope="col">Effect</TableCell>
-                          <TableCell scope="col" align="right">Actions</TableCell>
+                          <TableCell scope="col" align="right">
+                            Actions
+                          </TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>

@@ -96,7 +96,9 @@ export const IncidentsTable: FC<IncidentsTableProps> = ({
               <TableCell scope="col" className={classes.headerCell} width="10%">
                 Status
               </TableCell>
-              <TableCell scope="col" className={classes.headerCell}>Description</TableCell>
+              <TableCell scope="col" className={classes.headerCell}>
+                Description
+              </TableCell>
               <TableCell scope="col" className={classes.headerCell} width="12%">
                 Component
               </TableCell>

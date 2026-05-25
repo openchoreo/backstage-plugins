@@ -353,16 +353,28 @@ export const EventsContent = ({ build }: EventsContentProps) => {
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell scope="col" className={classes.tableHeaderCell}>
+                          <TableCell
+                            scope="col"
+                            className={classes.tableHeaderCell}
+                          >
                             Type
                           </TableCell>
-                          <TableCell scope="col" className={classes.tableHeaderCell}>
+                          <TableCell
+                            scope="col"
+                            className={classes.tableHeaderCell}
+                          >
                             Reason
                           </TableCell>
-                          <TableCell scope="col" className={classes.tableHeaderCell}>
+                          <TableCell
+                            scope="col"
+                            className={classes.tableHeaderCell}
+                          >
                             Message
                           </TableCell>
-                          <TableCell scope="col" className={classes.tableHeaderCell}>
+                          <TableCell
+                            scope="col"
+                            className={classes.tableHeaderCell}
+                          >
                             Last Seen
                           </TableCell>
                         </TableRow>

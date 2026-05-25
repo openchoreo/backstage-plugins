@@ -229,7 +229,11 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
           <SidebarDivider />
           <SignOutButton />
         </Sidebar>
-        <main id="main-content" tabIndex={-1} className={a11yClasses.mainContent}>
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className={a11yClasses.mainContent}
+        >
           {children}
         </main>
       </SidebarPage>

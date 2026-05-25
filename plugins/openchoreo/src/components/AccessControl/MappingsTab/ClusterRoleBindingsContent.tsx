@@ -469,7 +469,9 @@ export const ClusterRoleBindingsContent = ({
                   Entitlement (claim=value)
                 </TableCell>
                 <TableCell scope="col">Effect</TableCell>
-                <TableCell scope="col" align="right">Actions</TableCell>
+                <TableCell scope="col" align="right">
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
