@@ -383,7 +383,7 @@ export const CellDiagram = () => {
           observed.
         </Typography>
       )}
-      {cellDiagramData && (cellDiagramData.components?.length ?? 0) > 0 && (
+      {cellDiagramData && !hasNoComponents && (
         <Suspense fallback={<Progress />}>
           {(() => {
             const targetLayer =
@@ -401,7 +401,7 @@ export const CellDiagram = () => {
           })()}
         </Suspense>
       )}
-      {cellDiagramData && (cellDiagramData.components?.length ?? 0) === 0 && (
+      {hasNoComponents && (
         <Box
           data-testid="cell-diagram-no-components"
           style={{
@@ -417,8 +417,8 @@ export const CellDiagram = () => {
           />
         </Box>
       )}
-      {!cellDiagramData && loading && <Progress />}
-      {!cellDiagramData && !loading && (
+      {!cellDiagramData && (loading || !hasFetchedOnce) && <Progress />}
+      {!cellDiagramData && hasFetchedOnce && !loading && (
         <Box
           style={{
             height: '100%',
