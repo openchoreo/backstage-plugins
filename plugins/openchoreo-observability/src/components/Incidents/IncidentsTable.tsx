@@ -87,20 +87,20 @@ export const IncidentsTable: FC<IncidentsTableProps> = ({
         <Table className={classes.table} size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell className={classes.headerCell} width="15%">
+              <TableCell scope="col" className={classes.headerCell} width="15%">
                 Time
               </TableCell>
-              <TableCell className={classes.headerCell} width="12%">
+              <TableCell scope="col" className={classes.headerCell} width="12%">
                 Incident ID
               </TableCell>
-              <TableCell className={classes.headerCell} width="10%">
+              <TableCell scope="col" className={classes.headerCell} width="10%">
                 Status
               </TableCell>
-              <TableCell className={classes.headerCell}>Description</TableCell>
-              <TableCell className={classes.headerCell} width="12%">
+              <TableCell scope="col" className={classes.headerCell}>Description</TableCell>
+              <TableCell scope="col" className={classes.headerCell} width="12%">
                 Component
               </TableCell>
-              <TableCell className={classes.headerCell} width="15%">
+              <TableCell scope="col" className={classes.headerCell} width="15%">
                 Actions
               </TableCell>
             </TableRow>

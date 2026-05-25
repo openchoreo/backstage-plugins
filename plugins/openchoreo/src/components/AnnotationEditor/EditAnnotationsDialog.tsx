@@ -372,9 +372,9 @@ export function EditAnnotationsDialog({
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell className={classes.keyCell}>Key</TableCell>
-                    <TableCell className={classes.valueCell}>Value</TableCell>
-                    <TableCell className={classes.actionCell} />
+                    <TableCell scope="col" className={classes.keyCell}>Key</TableCell>
+                    <TableCell scope="col" className={classes.valueCell}>Value</TableCell>
+                    <TableCell scope="col" className={classes.actionCell} />
                   </TableRow>
                 </TableHead>
                 <TableBody>
