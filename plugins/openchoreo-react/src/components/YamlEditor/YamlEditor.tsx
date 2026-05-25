@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { StreamLanguage } from '@codemirror/language';
 import { yaml as yamlSupport } from '@codemirror/legacy-modes/mode/yaml';
 import { showPanel } from '@codemirror/view';
@@ -125,6 +125,17 @@ export function YamlEditor({
   const globalIsDark = tokens.editor.codeMirrorTheme === 'dark';
   const effectiveDark = isDarkThemeProp ?? globalIsDark;
 
+  // @uiw/react-codemirror sets tabindex="-1" on .cm-scroller, which axe flags
+  // as a non-focusable scrollable region. Promote it to tabindex="0" so
+  // keyboard users can Tab into the editor.
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const scroller = containerRef.current?.querySelector('.cm-scroller');
+    if (scroller && scroller.getAttribute('tabindex') !== '0') {
+      scroller.setAttribute('tabindex', '0');
+    }
+  }, [content]);
+
   // Error panel extension
   const panelExtension = useMemo(() => {
     if (!errorText) {
@@ -152,7 +163,7 @@ export function YamlEditor({
   );
 
   return (
-    <div className={classes.container}>
+    <div ref={containerRef} className={classes.container}>
       <CodeMirror
         className={classes.codeMirror}
         theme={effectiveDark ? 'dark' : 'light'}
