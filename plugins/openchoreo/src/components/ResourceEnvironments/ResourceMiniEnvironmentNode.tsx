@@ -23,7 +23,11 @@ import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import clsx from 'clsx';
 import { useNavigate } from 'react-router-dom';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
-import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
+import {
+  formatRelativeTime,
+  useResourcePromoteToEnvPermission,
+  useResourceReleaseBindingUpdatePermission,
+} from '@openchoreo/backstage-plugin-react';
 import type { ResourceEnvironment } from '../../api/OpenChoreoClientApi';
 import { useResourceMiniEnvironmentNodeStyles } from './styles';
 import { useResourceEnvironmentsContext } from './ResourceEnvironmentsContext';
@@ -57,15 +61,21 @@ export const ResourceMiniEnvironmentNode = ({
 
   const hasBinding = Boolean(env.bindingName);
   const hasRelease = Boolean(env.resourceRelease);
+  // ABAC env-aware perm for Configure overrides on THIS env. Use the
+  // K8s resource name (not the display name) so `resource.environment`
+  // CEL on the cluster matches the expected lowercase RFC 1123 form.
+  const envResourceName = env.resourceName ?? env.name;
+  const updatePerm = useResourceReleaseBindingUpdatePermission(envResourceName);
   const badgeStatus = deriveResourceEnvBadgeStatus(env);
   const relativeDeployed = env.lastDeployed
     ? formatRelativeTime(env.lastDeployed)
     : null;
 
-  // Card-level Promote pushes this env's release FORWARD to the next env
-  // in the pipeline (mirrors Component). Distinct from the detail panel's
-  // Promote, which advances this binding to the latest ResourceRelease
-  // when the Resource spec has drifted ahead.
+  // Card Promote copies this env's release pin forward to the next env's
+  // binding (mirrors Component). The pipeline-defined `promotionTargets`
+  // enforces ordering: prod has no targets, so the button never appears on
+  // the terminal env. There is no skip-the-pipeline "jump to latest"
+  // operation by design.
   const promotionTargets = env.promotionTargets ?? [];
   const hasPromotionTargets = promotionTargets.length > 0;
   const eligibleTargets = hasRelease
@@ -75,7 +85,7 @@ export const ResourceMiniEnvironmentNode = ({
       })
     : [];
   const isReady = env.status === 'Ready';
-  const isPromotingForward = promotionTargets.some(
+  const isPromoting = promotionTargets.some(
     t =>
       pendingAction?.kind === 'promote' &&
       pendingAction.env === (t.resourceName ?? t.name),
@@ -159,17 +169,13 @@ export const ResourceMiniEnvironmentNode = ({
     }
     if (promotionTargets.length === 1) {
       return (
-        <Button
-          size="small"
-          variant="contained"
-          color="primary"
+        <PromotePrimaryButton
+          envName={env.name}
+          target={eligibleTargets[0]}
+          isPromoting={isPromoting}
           className={classes.primaryButton}
           onClick={handlePromoteSingle}
-          disabled={isPromotingForward}
-          aria-label={`Promote ${env.name} to ${eligibleTargets[0].name}`}
-        >
-          {isPromotingForward ? 'Promoting...' : 'Promote'}
-        </Button>
+        />
       );
     }
     return (
@@ -180,11 +186,11 @@ export const ResourceMiniEnvironmentNode = ({
         className={classes.primaryButton}
         endIcon={<ArrowDropDownIcon fontSize="small" />}
         onClick={openPromoteMenu}
-        disabled={isPromotingForward}
+        disabled={isPromoting}
         aria-haspopup="true"
         aria-label={`Promote ${env.name}`}
       >
-        {isPromotingForward ? 'Promoting...' : 'Promote'}
+        {isPromoting ? 'Promoting...' : 'Promote'}
       </Button>
     );
   };
@@ -317,10 +323,30 @@ export const ResourceMiniEnvironmentNode = ({
           </span>
         </Tooltip>
         <Divider />
-        <MenuItem onClick={handleConfigureOverrides} disabled={!hasBinding}>
-          <SettingsOutlinedIcon fontSize="small" style={{ marginRight: 8 }} />
-          Configure overrides
-        </MenuItem>
+        <Tooltip
+          title={
+            hasBinding && !updatePerm.loading && !updatePerm.canUpdate
+              ? updatePerm.deniedTooltip
+              : ''
+          }
+          placement="left"
+          PopperProps={{ disablePortal: true }}
+        >
+          <span>
+            <MenuItem
+              onClick={handleConfigureOverrides}
+              disabled={
+                !hasBinding || updatePerm.loading || !updatePerm.canUpdate
+              }
+            >
+              <SettingsOutlinedIcon
+                fontSize="small"
+                style={{ marginRight: 8 }}
+              />
+              Configure overrides
+            </MenuItem>
+          </span>
+        </Tooltip>
       </Menu>
 
       {/* Per-target promote menu, only mounted when the env has more than
@@ -336,28 +362,118 @@ export const ResourceMiniEnvironmentNode = ({
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
         onClick={e => e.stopPropagation()}
       >
-        {promotionTargets.map(target => {
-          const promoted = isTargetAlreadyPromoted(target.name);
-          const inFlight = isTargetInFlight(target.resourceName ?? target.name);
-          let label: string;
-          if (promoted) {
-            label = `Promoted to ${target.name}`;
-          } else if (inFlight) {
-            label = `Promoting to ${target.name}...`;
-          } else {
-            label = `Promote to ${target.name}`;
-          }
-          return (
-            <MenuItem
-              key={target.name}
-              onClick={() => handlePromoteTo(target)}
-              disabled={promoted || inFlight}
-            >
-              {label}
-            </MenuItem>
-          );
-        })}
+        {promotionTargets.map(target => (
+          <PromoteMenuItemRow
+            key={target.name}
+            target={target}
+            promoted={isTargetAlreadyPromoted(target.name)}
+            inFlight={isTargetInFlight(target.resourceName ?? target.name)}
+            onClick={() => handlePromoteTo(target)}
+          />
+        ))}
       </Menu>
     </Box>
   );
 };
+
+interface PromoteTarget {
+  name: string;
+  resourceName?: string;
+}
+
+interface PromotePrimaryButtonProps {
+  envName: string;
+  target: PromoteTarget;
+  isPromoting: boolean;
+  className?: string;
+  onClick: (e: ReactMouseEvent<HTMLButtonElement>) => void;
+}
+
+/**
+ * Single-target Promote button on the env card. Calls
+ * `useResourcePromoteToEnvPermission(target)` so disabled state honors both
+ * `resourcereleasebinding:create` and `resourcereleasebinding:update` ABAC
+ * on the target env. Mirrors the Component-side `PromotePrimaryButton` in
+ * `MiniEnvironmentNode.tsx`.
+ */
+function PromotePrimaryButton({
+  envName,
+  target,
+  isPromoting,
+  className,
+  onClick,
+}: PromotePrimaryButtonProps) {
+  const targetEnvName = target.resourceName ?? target.name;
+  const { canPromote, loading, deniedTooltip } =
+    useResourcePromoteToEnvPermission(targetEnvName);
+  const disabled = isPromoting || loading || !canPromote;
+  const tooltip = !canPromote && !loading ? deniedTooltip : '';
+  return (
+    <Tooltip
+      title={tooltip}
+      disableHoverListener={!tooltip}
+      PopperProps={{ disablePortal: true }}
+    >
+      <span>
+        <Button
+          size="small"
+          variant="contained"
+          color="primary"
+          className={className}
+          onClick={onClick}
+          disabled={disabled}
+          aria-label={`Promote ${envName} to ${target.name}`}
+        >
+          {isPromoting ? 'Promoting...' : 'Promote'}
+        </Button>
+      </span>
+    </Tooltip>
+  );
+}
+
+interface PromoteMenuItemRowProps {
+  target: PromoteTarget;
+  promoted: boolean;
+  inFlight: boolean;
+  onClick: () => void;
+}
+
+/**
+ * Single MenuItem inside the multi-target promote dropdown. Same ABAC story
+ * as the single-target button — one hook call per target row.
+ */
+function PromoteMenuItemRow({
+  target,
+  promoted,
+  inFlight,
+  onClick,
+}: PromoteMenuItemRowProps) {
+  const targetEnvName = target.resourceName ?? target.name;
+  const { canPromote, loading, deniedTooltip } =
+    useResourcePromoteToEnvPermission(targetEnvName);
+  let label: string;
+  if (promoted) {
+    label = `Promoted to ${target.name}`;
+  } else if (inFlight) {
+    label = `Promoting to ${target.name}...`;
+  } else {
+    label = `Promote to ${target.name}`;
+  }
+  const permDenied = !loading && !canPromote;
+  const disabled = promoted || inFlight || loading || !canPromote;
+  const tooltip = permDenied ? deniedTooltip : '';
+  return (
+    <Tooltip
+      title={tooltip}
+      disableHoverListener={!tooltip}
+      placement="left"
+      PopperProps={{ disablePortal: true }}
+    >
+      <span>
+        <MenuItem disabled={disabled} onClick={onClick}>
+          {label}
+        </MenuItem>
+      </span>
+    </Tooltip>
+  );
+}

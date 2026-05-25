@@ -13,9 +13,29 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
   ),
 }));
 
+const mockPromotePerm = jest.fn();
+const mockUpdatePerm = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   formatRelativeTime: () => 'just now',
+  useResourcePromoteToEnvPermission: (env: string) => mockPromotePerm(env),
+  useResourceReleaseBindingUpdatePermission: (env?: string) =>
+    mockUpdatePerm(env),
 }));
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  // Default to allowed so existing tests keep passing; gating tests override.
+  mockPromotePerm.mockReturnValue({
+    canPromote: true,
+    loading: false,
+    deniedTooltip: '',
+  });
+  mockUpdatePerm.mockReturnValue({
+    canUpdate: true,
+    loading: false,
+    deniedTooltip: '',
+  });
+});
 
 function bound(): ResourceEnvironment {
   return {
@@ -368,6 +388,110 @@ describe('ResourceMiniEnvironmentNode', () => {
         );
         expect(onPromote).toHaveBeenCalledWith('stagingB', 'rel-abc');
       });
+    });
+  });
+
+  // ABAC env-aware permission gating. The Resource Deploy tab honors the same
+  // `resource.environment` CEL constraints as Component side; without these
+  // checks a developer with `releasebinding:update` allowed on non-prod envs
+  // saw an enabled "Promote to Production" button that 403'd on click.
+  // Mirrors MiniEnvironmentNode.test.tsx coverage for Components.
+  describe('permission gating', () => {
+    const devToProd: ResourceEnvironment = {
+      ...bound(),
+      promotionTargets: [{ name: 'Production', resourceName: 'production' }],
+    };
+    const prodBehind: ResourceEnvironment = {
+      name: 'Production',
+      resourceName: 'production',
+      resourceRelease: 'rel-old',
+    };
+
+    it('queries promote permission using the target resourceName, not the display name', () => {
+      renderTile(devToProd, false, () => {}, {
+        environments: [devToProd, prodBehind],
+      });
+      // ABAC matches on the lowercase RFC 1123 name; passing the display
+      // name ("Production") lets the prod-deny CEL slip through.
+      expect(mockPromotePerm).toHaveBeenCalledWith('production');
+    });
+
+    it('disables the single-target Promote button when promote perm is denied', () => {
+      mockPromotePerm.mockReturnValue({
+        canPromote: false,
+        loading: false,
+        deniedTooltip: 'You do not have permission to promote to production',
+      });
+      renderTile(devToProd, false, () => {}, {
+        environments: [devToProd, prodBehind],
+      });
+      const button = screen.getByRole('button', {
+        name: /promote dev to production/i,
+      });
+      expect(button).toBeDisabled();
+    });
+
+    it('disables a multi-target promote MenuItem when its target denies promote perm', () => {
+      const devToTwo: ResourceEnvironment = {
+        ...bound(),
+        promotionTargets: [
+          { name: 'staging', resourceName: 'staging' },
+          { name: 'Production', resourceName: 'production' },
+        ],
+      };
+      const stagingBehind: ResourceEnvironment = {
+        name: 'staging',
+        resourceName: 'staging',
+        resourceRelease: 'rel-old',
+      };
+      // Only deny on production; staging stays allowed so the row-by-row
+      // gating assertion is meaningful.
+      mockPromotePerm.mockImplementation((env: string) =>
+        env === 'production'
+          ? {
+              canPromote: false,
+              loading: false,
+              deniedTooltip: 'denied',
+            }
+          : {
+              canPromote: true,
+              loading: false,
+              deniedTooltip: '',
+            },
+      );
+      renderTile(devToTwo, false, () => {}, {
+        environments: [devToTwo, stagingBehind, prodBehind],
+      });
+      fireEvent.click(screen.getByRole('button', { name: /^promote dev$/i }));
+      expect(
+        screen.getByRole('menuitem', { name: /promote to production/i }),
+      ).toHaveAttribute('aria-disabled', 'true');
+      expect(
+        screen.getByRole('menuitem', { name: /promote to staging/i }),
+      ).not.toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('queries Configure overrides permission with the env resourceName', () => {
+      const prodEnv: ResourceEnvironment = {
+        ...bound(),
+        name: 'Production',
+        resourceName: 'production',
+      };
+      renderTile(prodEnv);
+      expect(mockUpdatePerm).toHaveBeenCalledWith('production');
+    });
+
+    it('disables Configure overrides when binding-update perm is denied', () => {
+      mockUpdatePerm.mockReturnValue({
+        canUpdate: false,
+        loading: false,
+        deniedTooltip: 'no update',
+      });
+      renderTile(bound());
+      fireEvent.click(screen.getByRole('button', { name: /actions for dev/i }));
+      expect(
+        screen.getByRole('menuitem', { name: /configure overrides/i }),
+      ).toHaveAttribute('aria-disabled', 'true');
     });
   });
 });
