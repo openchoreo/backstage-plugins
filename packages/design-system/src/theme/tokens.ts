@@ -219,8 +219,10 @@ export type ThemeTokens = {
 
 const lightPrimary: ColorScale = {
   light: '#f0f1fb',
-  main: '#6c7fd8',
-  dark: '#5568c4',
+  // Darkened from #6c7fd8 (3.71:1) to meet WCAG 2.2 AA 4.5:1 on white.
+  // 5.04:1 on #ffffff — used for sidebar-selected labels, links, entity names.
+  main: '#5568c4',
+  dark: '#4456b8',
 };
 const lightSecondary: ColorScale = {
   light: '#fafbfc',
@@ -301,8 +303,9 @@ export const lightTokens: ThemeTokens = {
     verySubtle: '#9ca3af',
     disabled: '#9ca3af',
     inverted: '#ffffff',
-    link: '#6c7fd8',
-    linkHover: '#5568c4',
+    // Darkened to meet WCAG 2.2 AA 4.5:1 on white (5.04:1).
+    link: '#5568c4',
+    linkHover: '#4456b8',
   },
 
   status: {
@@ -404,7 +407,8 @@ export const lightTokens: ThemeTokens = {
     background: '#ffffff',
     indicator: '#6c7fd8',
     color: '#111827',
-    selectedColor: '#6c7fd8',
+    // Darkened to meet WCAG 2.2 AA 4.5:1 on white sidebar background (5.04:1).
+    selectedColor: '#5568c4',
     navItemHoverBackground: '#f9fafb',
     submenuBackground: '#fafbfc',
   },
