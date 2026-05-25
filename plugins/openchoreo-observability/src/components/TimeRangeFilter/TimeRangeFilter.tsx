@@ -194,6 +194,7 @@ export const TimeRangeFilter: FC<TimeRangeFilterProps> = ({
           value={triggerLabel}
           onClick={openDropdown}
           InputLabelProps={{ shrink: true }}
+          inputProps={{ 'aria-label': 'Time Range' }}
           InputProps={{
             readOnly: true,
             classes: { root: classes.trigger },

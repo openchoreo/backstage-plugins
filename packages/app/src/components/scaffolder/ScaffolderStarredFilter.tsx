@@ -104,6 +104,7 @@ export const ScaffolderStarredFilter = () => {
             size="small"
             color="primary"
             disabled={starredCount === 0}
+            inputProps={{ 'aria-label': 'Show only starred templates' }}
           />
           <Box className={classes.labelRow}>
             <StarIcon className={classes.icon} />
