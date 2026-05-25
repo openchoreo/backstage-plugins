@@ -258,8 +258,10 @@ export const RolesTable = ({
                 alignItems="center"
                 style={{ gap: 16 }}
                 py={2}
+                role="status"
+                aria-busy="true"
               >
-                <CircularProgress size={24} />
+                <CircularProgress size={24} aria-hidden="true" />
                 <Typography>Checking for role bindings...</Typography>
               </Box>
             </DialogContent>
