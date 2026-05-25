@@ -1,21 +1,8 @@
 import { type ReactNode } from 'react';
-import { Box, makeStyles } from '@material-ui/core';
+import { Box } from '@material-ui/core';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { EmptyState, Progress } from '@backstage/core-components';
-
-const useVisuallyHiddenStyles = makeStyles({
-  visuallyHidden: {
-    position: 'absolute',
-    width: 1,
-    height: 1,
-    padding: 0,
-    margin: -1,
-    overflow: 'hidden',
-    clip: 'rect(0, 0, 0, 0)',
-    whiteSpace: 'nowrap',
-    border: 0,
-  },
-});
+import { VisuallyHidden } from '@openchoreo/backstage-design-system';
 import {
   useDeleteEntityMenuItems,
   useEntityExistsCheck,
@@ -87,7 +74,6 @@ export function EntityLayoutWithDelete({
   contextMenuOptions = { disableUnregister: 'hidden' },
 }: EntityLayoutWithDeleteProps) {
   const { entity } = useEntity();
-  const visuallyHidden = useVisuallyHiddenStyles().visuallyHidden;
   const entityTitle =
     (entity.metadata.title as string | undefined) ?? entity.metadata.name;
 
@@ -138,7 +124,7 @@ export function EntityLayoutWithDelete({
   if (status === 'not-found') {
     return (
       <>
-        <h1 className={visuallyHidden}>{entityTitle}</h1>
+        <VisuallyHidden as="h1">{entityTitle}</VisuallyHidden>
         <OpenChoreoEntityLayout
           contextMenuOptions={contextMenuOptions}
           parentEntityRelations={parentEntityRelations}
@@ -167,7 +153,7 @@ export function EntityLayoutWithDelete({
   if (status === 'marked-for-deletion') {
     return (
       <>
-        <h1 className={visuallyHidden}>{entityTitle}</h1>
+        <VisuallyHidden as="h1">{entityTitle}</VisuallyHidden>
         <OpenChoreoEntityLayout
           contextMenuOptions={contextMenuOptions}
           parentEntityRelations={parentEntityRelations}
@@ -194,7 +180,7 @@ export function EntityLayoutWithDelete({
 
   return (
     <>
-      <h1 className={visuallyHidden}>{entityTitle}</h1>
+      <VisuallyHidden as="h1">{entityTitle}</VisuallyHidden>
       <OpenChoreoEntityLayout
         contextMenuOptions={contextMenuOptions}
         extraContextMenuItems={extraMenuItems}
