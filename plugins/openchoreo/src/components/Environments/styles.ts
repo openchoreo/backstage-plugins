@@ -110,7 +110,9 @@ export const useSetupCardCompactStyles = makeStyles(theme => ({
     padding: '1px 6px',
     borderRadius: 3,
     backgroundColor: alpha(theme.palette.primary.main, 0.15),
-    color: theme.palette.primary.main,
+    // Use primary.dark instead of primary.main so the badge text passes
+    // WCAG 2.2 AA on the alpha-blended background (~#e6e8f6).
+    color: theme.palette.primary.dark,
     fontSize: 9,
     fontWeight: 700,
     letterSpacing: '0.08em',
