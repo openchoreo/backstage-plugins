@@ -246,8 +246,10 @@ const lightWarning: ColorScale = {
 };
 const lightSuccess: ColorScale = {
   light: '#f0fdf4',
-  main: '#10b981',
-  dark: '#059669',
+  // Darkened from #10b981 (2.54:1) to #047857 (5.4:1) for WCAG 2.2 AA on
+  // white. Phase B's `/` route flagged the "Connected" status badge text.
+  main: '#047857',
+  dark: '#065f46',
 };
 
 export const lightTokens: ThemeTokens = {
@@ -309,7 +311,8 @@ export const lightTokens: ThemeTokens = {
   },
 
   status: {
-    ok: '#10b981',
+    // ok darkened from #10b981 (2.54:1) to #047857 (5.4:1) for WCAG 2.2 AA.
+    ok: '#047857',
     warning: '#f59e0b',
     error: '#ef4444',
     // Darkened from #6c7fd8 (3.71:1) to meet WCAG 2.2 AA 4.5:1 on white.
