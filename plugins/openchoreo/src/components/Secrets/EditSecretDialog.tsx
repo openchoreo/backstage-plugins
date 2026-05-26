@@ -373,6 +373,7 @@ export const EditSecretDialog = ({
               helperText={
                 duplicateKeys.has(row.key.trim()) ? 'Duplicate key' : undefined
               }
+              autoComplete="off"
               inputProps={{ 'aria-label': `Key ${index + 1}` }}
             />
             <TextField
@@ -384,6 +385,7 @@ export const EditSecretDialog = ({
               value={row.value}
               placeholder="••••••••"
               onChange={e => handleRowChange(index, 'value', e.target.value)}
+              autoComplete="off"
               inputProps={{ 'aria-label': `Value ${index + 1}` }}
               InputProps={{
                 endAdornment: (

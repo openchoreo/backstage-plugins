@@ -203,6 +203,7 @@ export const ComponentNamePicker = ({
             ? errorMessage
             : 'Unique name for your component (must be a valid Kubernetes name)'
         }
+        autoComplete="off"
         InputProps={{
           endAdornment: validationState.isValidating ? (
             <InputAdornment position="end">
