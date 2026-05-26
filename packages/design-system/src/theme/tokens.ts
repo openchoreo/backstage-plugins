@@ -236,13 +236,17 @@ const lightInfo: ColorScale = {
 };
 const lightError: ColorScale = {
   light: '#fef2f2',
-  main: '#ef4444',
-  dark: '#dc2626',
+  // Darkened from #ef4444 (3.76:1) to #dc2626 (4.83:1) for WCAG 2.2 AA on
+  // white. Entity-overview "Failed to load …" text was flagged in Phase 3.
+  main: '#dc2626',
+  dark: '#b91c1c',
 };
 const lightWarning: ColorScale = {
   light: '#fff5eb',
-  main: '#f59e0b',
-  dark: '#d97706',
+  // Darkened from #f59e0b (2.16:1) to #b45309 (4.84:1) for WCAG 2.2 AA on
+  // white. Caught in the Phase 3 broader re-scan.
+  main: '#b45309',
+  dark: '#92400e',
 };
 const lightSuccess: ColorScale = {
   light: '#f0fdf4',
@@ -311,11 +315,12 @@ export const lightTokens: ThemeTokens = {
   },
 
   status: {
-    // ok darkened from #10b981 (2.54:1) to #047857 (5.4:1) for WCAG 2.2 AA.
+    // Status colours darkened to meet WCAG 2.2 AA 4.5:1 on white. Original
+    // values failed: ok #10b981 (2.54:1), warning #f59e0b (2.16:1),
+    // error #ef4444 (3.76:1), info #6c7fd8 (3.71:1).
     ok: '#047857',
-    warning: '#f59e0b',
-    error: '#ef4444',
-    // Darkened from #6c7fd8 (3.71:1) to meet WCAG 2.2 AA 4.5:1 on white.
+    warning: '#b45309',
+    error: '#dc2626',
     info: '#5568c4',
     pending: '#6b7280',
     running: '#5568c4',
