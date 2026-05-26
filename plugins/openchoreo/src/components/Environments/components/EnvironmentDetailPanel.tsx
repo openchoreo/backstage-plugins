@@ -9,6 +9,7 @@ import {
   Tooltip,
   Typography,
 } from '@material-ui/core';
+import { useTheme } from '@material-ui/core/styles';
 import CloseIcon from '@material-ui/icons/Close';
 import CloudIcon from '@material-ui/icons/Cloud';
 import CodeOutlinedIcon from '@material-ui/icons/CodeOutlined';
@@ -103,6 +104,7 @@ export const EnvironmentDetailPanel = ({
   onRemoveDeployment,
 }: EnvironmentDetailPanelProps) => {
   const classes = useEnvironmentDetailPanelStyles();
+  const theme = useTheme();
   const environment = selection?.kind === 'env' ? selection.environment : null;
   // ABAC env-aware permission checks. Resource name (not display name) is
   // what the cluster's CEL expressions match against.
@@ -159,6 +161,23 @@ export const EnvironmentDetailPanel = ({
     environment?.deployment.status,
     environment?.deployment.statusReason,
   );
+  // Mirror the badge colour on the View K8s Artifacts button so it stops
+  // signalling "healthy" when the env isn't. Stays enabled because the
+  // artifacts are exactly what users need to inspect during a failure.
+  // `undeployed` is a deliberate teardown, not a warning — match the badge's
+  // neutral grey rather than amber.
+  const artifactsButtonColor = (() => {
+    switch (statusVariant.variant) {
+      case 'failed':
+        return theme.palette.error.main;
+      case 'pending':
+        return theme.palette.warning.main;
+      case 'undeployed':
+        return theme.palette.text.secondary;
+      default:
+        return theme.palette.primary.main;
+    }
+  })();
   const removeInFlight =
     !!environment?.bindingName &&
     !!actionTrackers.removeDeploymentTracker?.isActive(environment.bindingName);
@@ -375,11 +394,14 @@ export const EnvironmentDetailPanel = ({
                     <Tooltip title="View Kubernetes artifacts">
                       <Button
                         variant="outlined"
-                        color="primary"
                         size="small"
                         startIcon={<DescriptionOutlinedIcon fontSize="small" />}
                         onClick={onOpenReleaseDetails}
-                        style={{ textTransform: 'none' }}
+                        style={{
+                          textTransform: 'none',
+                          color: artifactsButtonColor,
+                          borderColor: artifactsButtonColor,
+                        }}
                       >
                         View K8s Artifacts
                       </Button>
