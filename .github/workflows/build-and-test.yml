@@ -186,6 +186,13 @@ jobs:
         run: yarn playwright install --with-deps chromium
 
       - name: Start app
+        # Run in guest mode so the Playwright spec can dismiss the auth gate
+        # and actually reach the post-login layout. Without this the spec
+        # would silently scan the OAuth sign-in card and return "clean" for
+        # every route — a false signal we'd rather catch loudly.
+        env:
+          OPENCHOREO_FEATURES_AUTH_ENABLED: 'false'
+          OPENCHOREO_FEATURES_AUTHZ_ENABLED: 'false'
         run: |
           nohup yarn start > /tmp/app.log 2>&1 &
           echo $! > /tmp/app.pid

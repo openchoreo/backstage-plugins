@@ -24,10 +24,19 @@ function getResultLink(result: SearchDocument, doc: CatalogEntityDocument) {
 
 const useStyles = makeStyles((theme: Theme) => ({
   item: {
+    // The interactive surface lives on the <Link> child so the <ul> can
+    // contain real <li>s (axe `list` rule). Reset the default ListItem
+    // padding here and move it onto `linkRow` below.
+    padding: 0,
+  },
+  linkRow: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
     padding: theme.spacing(1, 2),
     textDecoration: 'none',
-    alignItems: 'center',
-    '&:hover': {
+    color: 'inherit',
+    '&:hover, &:focus': {
       backgroundColor: theme.palette.action.hover,
       textDecoration: 'none',
     },
@@ -78,64 +87,59 @@ export const SearchResultItem = ({ result }: SearchResultItemProps) => {
   const linkTo = getResultLink(result, doc);
 
   return (
-    <ListItem
-      className={classes.item}
-      button
-      component={Link}
-      to={linkTo}
-      noTrack
-      divider
-    >
-      <ListItemIcon className={classes.icon}>
-        {KindIcon ? <KindIcon /> : <CatalogIcon />}
-      </ListItemIcon>
-      <ListItemText
-        disableTypography
-        primary={
-          <Typography variant="body1" className={classes.title}>
-            {result.title}
-          </Typography>
-        }
-        secondary={
-          result.text && (
-            <Typography
-              variant="body2"
-              color="textSecondary"
-              className={classes.description}
-            >
-              {result.text}
+    <ListItem className={classes.item} divider disableGutters>
+      <Link to={linkTo} noTrack className={classes.linkRow}>
+        <ListItemIcon className={classes.icon}>
+          {KindIcon ? <KindIcon /> : <CatalogIcon />}
+        </ListItemIcon>
+        <ListItemText
+          disableTypography
+          primary={
+            <Typography variant="body1" className={classes.title}>
+              {result.title}
             </Typography>
-          )
-        }
-      />
-      <Box className={classes.chips}>
-        {isTemplate && (
-          <Chip
-            icon={<AddCircleOutlineIcon />}
-            label="Create"
-            size="small"
-            color="primary"
-            variant="outlined"
-            className={classes.chip}
-          />
-        )}
-        {!isTemplate && kindLabel && (
-          <Chip
-            label={kindLabel}
-            size="small"
-            variant="outlined"
-            className={classes.chip}
-          />
-        )}
-        {doc.type && (
-          <Chip
-            label={doc.type}
-            size="small"
-            variant="outlined"
-            className={classes.chip}
-          />
-        )}
-      </Box>
+          }
+          secondary={
+            result.text && (
+              <Typography
+                variant="body2"
+                color="textSecondary"
+                className={classes.description}
+              >
+                {result.text}
+              </Typography>
+            )
+          }
+        />
+        <Box className={classes.chips}>
+          {isTemplate && (
+            <Chip
+              icon={<AddCircleOutlineIcon />}
+              label="Create"
+              size="small"
+              color="primary"
+              variant="outlined"
+              className={classes.chip}
+            />
+          )}
+          {!isTemplate && kindLabel && (
+            <Chip
+              label={kindLabel}
+              size="small"
+              variant="outlined"
+              className={classes.chip}
+            />
+          )}
+          {doc.type && (
+            <Chip
+              label={doc.type}
+              size="small"
+              variant="outlined"
+              className={classes.chip}
+            />
+          )}
+        </Box>
+      </Link>
     </ListItem>
   );
 };
