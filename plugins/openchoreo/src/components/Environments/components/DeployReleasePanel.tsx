@@ -181,6 +181,7 @@ export const DeployReleasePanel = ({
         releases={releases}
         selectedReleaseName={selectedReleaseName}
         deployments={deployments}
+        firstEnvironmentName={firstEnvironmentName}
         loading={releasesLoading}
       />
 

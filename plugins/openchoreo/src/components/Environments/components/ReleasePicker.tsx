@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
-import { Box, Chip, Typography } from '@material-ui/core';
+import { Box, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { Skeleton } from '@material-ui/lab';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
+import { DeployedEnvBadges } from './DeployedEnvBadges';
 
 const useStyles = makeStyles(theme => ({
   summaryRow: {
@@ -28,10 +29,6 @@ const useStyles = makeStyles(theme => ({
     alignItems: 'center',
     gap: theme.spacing(0.75),
   },
-  chip: {
-    height: 20,
-    fontSize: 11,
-  },
   empty: {
     color: theme.palette.text.secondary,
     fontStyle: 'italic',
@@ -46,6 +43,8 @@ export interface ReleasePickerProps {
   selectedReleaseName: string | null;
   /** Environments where each release is currently deployed. Used for badges. */
   deployments?: ReleaseDeployments;
+  /** First (lowest) env name — used to highlight the most relevant chip. */
+  firstEnvironmentName?: string;
   loading?: boolean;
 }
 
@@ -80,6 +79,7 @@ export const ReleasePicker = ({
   releases,
   selectedReleaseName,
   deployments = {},
+  firstEnvironmentName,
   loading,
 }: ReleasePickerProps) => {
   const classes = useStyles();
@@ -117,16 +117,13 @@ export const ReleasePicker = ({
         <Box className={classes.meta}>
           {created && <span>{created}</span>}
           {image && <span>img: {shortenImage(image)}</span>}
-          {deployedIn.map(env => (
-            <Chip
-              key={env}
-              label={`current in ${env}`}
-              size="small"
-              color="primary"
-              className={classes.chip}
-            />
-          ))}
         </Box>
+      )}
+      {selected && deployedIn.length > 0 && (
+        <DeployedEnvBadges
+          envs={deployedIn}
+          primaryEnv={firstEnvironmentName}
+        />
       )}
     </Box>
   );

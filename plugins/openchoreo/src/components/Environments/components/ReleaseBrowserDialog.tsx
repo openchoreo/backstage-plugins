@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -34,6 +33,7 @@ import YAML from 'yaml';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import type { ReleaseDeployments } from './ReleasePicker';
+import { DeployedEnvBadges } from './DeployedEnvBadges';
 
 const useStyles = makeStyles(theme => ({
   titleBar: {
@@ -99,10 +99,6 @@ const useStyles = makeStyles(theme => ({
     gap: theme.spacing(0.75),
     color: theme.palette.text.secondary,
     fontSize: 12,
-  },
-  chip: {
-    height: 20,
-    fontSize: 11,
   },
   detailHeader: {
     display: 'flex',
@@ -561,16 +557,13 @@ export const ReleaseBrowserDialog = ({
                             <Box className={classes.listItemMeta}>
                               {created && <span>{created}</span>}
                               {image && <span>img: {shortenImage(image)}</span>}
-                              {deployedIn.map(env => (
-                                <Chip
-                                  key={env}
-                                  label={`current in ${env}`}
-                                  size="small"
-                                  color="primary"
-                                  className={classes.chip}
-                                />
-                              ))}
                             </Box>
+                            {deployedIn.length > 0 && (
+                              <DeployedEnvBadges
+                                envs={deployedIn}
+                                primaryEnv={environmentName}
+                              />
+                            )}
                           </Box>
                         }
                       />
@@ -595,17 +588,12 @@ export const ReleaseBrowserDialog = ({
                       <Typography variant="h6">
                         {highlighted.metadata?.name}
                       </Typography>
-                      {(
-                        deployments[highlighted.metadata?.name ?? ''] ?? []
-                      ).map(env => (
-                        <Chip
-                          key={env}
-                          label={`current in ${env}`}
-                          size="small"
-                          color="primary"
-                          className={classes.chip}
-                        />
-                      ))}
+                      <DeployedEnvBadges
+                        envs={
+                          deployments[highlighted.metadata?.name ?? ''] ?? []
+                        }
+                        primaryEnv={environmentName}
+                      />
                     </Box>
                     <ToggleButtonGroup
                       size="small"
