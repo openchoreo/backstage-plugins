@@ -14,8 +14,13 @@ import AxeBuilder from '@axe-core/playwright';
 // Subset of the 18 routes scanned in the Phase B audit
 // (audit-artifacts/axe/_summary.json). Six high-traffic routes are enough
 // to catch regressions on the patterns Phase 1 + Phase 2 + Phase 3 fixed.
-// `/search` was added in the Phase 3 tail so the `list`-rule fix in
-// SearchResultItem stays gated by the advisory CI job.
+//
+// Run locally: start the portal (`yarn start`) against an OpenChoreo
+// runtime, then `PLAYWRIGHT_URL=http://localhost:3000 yarn test:e2e:a11y`.
+// Not wired to CI yet — the portal needs a live OpenChoreo backend
+// (catalog, IDP, observer, k8s) to render any post-login route, which
+// GH Actions can't provide today. Wire back into CI once we have a
+// portable runtime story (mocked APIs / fixture container / …).
 const ROUTES = [
   { id: 'home', path: '/' },
   { id: 'catalog', path: '/catalog' },
@@ -69,11 +74,11 @@ for (const route of ROUTES) {
 
     // Fail loudly if we're still on the sign-in card — silent passes against
     // an empty card are worse than a red test, because they normalise
-    // "the gate is clean" while no content was actually scanned.
+    // "the spec is clean" while no content was actually scanned.
     if (!(await isPostLogin(page))) {
       throw new Error(
-        `axe gate could not reach the post-login layout for ${route.id}; ` +
-          'check OPENCHOREO_FEATURES_AUTH_ENABLED / app-config.local.yaml.',
+        `axe spec could not reach the post-login layout for ${route.id}; ` +
+          'make sure the portal is running and you are signed in.',
       );
     }
 
@@ -99,10 +104,8 @@ for (const route of ROUTES) {
       );
     }
 
-    // Phase 3 lands the gate as advisory (`continue-on-error: true` in CI).
-    // We still assert here so test runs *flag* regressions in the local
-    // report, even when CI ignores them. Once the violation curve flattens,
-    // flip the workflow to blocking and these expects start enforcing.
+    // Soft expects so the full per-route report comes back in one run
+    // rather than bailing on the first failing route.
     expect.soft(critical, 'critical violations').toEqual([]);
     expect.soft(serious, 'serious violations').toEqual([]);
   });
