@@ -44,5 +44,36 @@ module.exports = {
         'no-restricted-syntax': ['error', ...colorLiteralRules],
       },
     },
+    {
+      // a11y regression net for frontend code. Phase A baseline scan showed
+      // 0 instances of these rules because MUI v4 hides the raw HTML —
+      // promoting them from warn to error is free today and catches future
+      // raw-HTML use. Scoped to .tsx so the backend packages (which don't
+      // ship the jsx-a11y plugin in their lint config) aren't affected.
+      files: ['packages/**/*.tsx', 'plugins/**/*.tsx'],
+      excludedFiles: [
+        '**/dist/**',
+        '**/dist-types/**',
+        '**/generated/**',
+        '**/*.test.tsx',
+      ],
+      rules: {
+        'jsx-a11y/alt-text': 'error',
+        'jsx-a11y/anchor-has-content': 'error',
+        'jsx-a11y/aria-props': 'error',
+        'jsx-a11y/aria-role': 'error',
+        'jsx-a11y/aria-unsupported-elements': 'error',
+        'jsx-a11y/click-events-have-key-events': 'error',
+        'jsx-a11y/heading-has-content': 'error',
+        'jsx-a11y/iframe-has-title': 'error',
+        'jsx-a11y/img-redundant-alt': 'error',
+        'jsx-a11y/label-has-associated-control': 'error',
+        'jsx-a11y/no-noninteractive-element-interactions': 'error',
+        'jsx-a11y/no-redundant-roles': 'error',
+        'jsx-a11y/no-static-element-interactions': 'error',
+        'jsx-a11y/role-has-required-aria-props': 'error',
+        'jsx-a11y/role-supports-aria-props': 'error',
+      },
+    },
   ],
 };

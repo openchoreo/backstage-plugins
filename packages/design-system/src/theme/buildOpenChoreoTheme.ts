@@ -54,15 +54,16 @@ export function buildOpenChoreoTheme(t: ThemeTokens): UnifiedTheme {
       success: t.success,
       grey: t.grey,
       common: t.common,
-      // Only override MUI text/background/divider in dark mode. Light mode
-      // leaves these as MUI defaults (matches original).
+      // Override MUI text/background/divider in both modes. Light mode used
+      // to fall through to MUI defaults, which left text.secondary at #717171
+      // — 4.47:1 on the #f5f5f5 error-panel background, failing WCAG AA.
+      text: {
+        primary: t.text.primary,
+        secondary: t.text.secondary,
+        disabled: t.text.disabled,
+      },
       ...(isDark
         ? {
-            text: {
-              primary: t.text.primary,
-              secondary: t.text.secondary,
-              disabled: t.text.disabled,
-            },
             background: {
               default: t.surface.default,
               paper: t.surface.paper,

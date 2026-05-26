@@ -460,6 +460,7 @@ export const CreateSecretDialog = ({
                   size="small"
                   value={row.key}
                   onChange={e => updateRow(index, { key: e.target.value })}
+                  autoComplete="off"
                 />
                 <TextField
                   className={classes.rowValue}
@@ -469,6 +470,7 @@ export const CreateSecretDialog = ({
                   type={row.show ? 'text' : 'password'}
                   value={row.value}
                   onChange={e => updateRow(index, { value: e.target.value })}
+                  autoComplete="off"
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -526,6 +528,7 @@ export const CreateSecretDialog = ({
               fullWidth
               value={basicUsername}
               onChange={e => setBasicUsername(e.target.value)}
+              autoComplete="off"
             />
             <TextField
               className={classes.field}
@@ -537,6 +540,7 @@ export const CreateSecretDialog = ({
               type={showBasicPassword ? 'text' : 'password'}
               value={basicPassword}
               onChange={e => setBasicPassword(e.target.value)}
+              autoComplete="new-password"
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -633,6 +637,7 @@ export const CreateSecretDialog = ({
                 setSshFileName('');
               }}
               placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+              autoComplete="off"
               inputProps={{ 'aria-label': 'SSH Private Key' }}
             />
 
@@ -650,6 +655,7 @@ export const CreateSecretDialog = ({
                   onChange={e =>
                     updateSshExtraRow(index, { key: e.target.value })
                   }
+                  autoComplete="off"
                   inputProps={{ 'aria-label': `Key ${index + 1}` }}
                 />
                 <TextField
@@ -662,6 +668,7 @@ export const CreateSecretDialog = ({
                   onChange={e =>
                     updateSshExtraRow(index, { value: e.target.value })
                   }
+                  autoComplete="off"
                   inputProps={{ 'aria-label': `Value ${index + 1}` }}
                   InputProps={{
                     endAdornment: (
@@ -721,6 +728,7 @@ export const CreateSecretDialog = ({
             value={dockerConfig}
             onChange={e => setDockerConfig(e.target.value)}
             placeholder='{"auths":{"registry.example.com":{"auth":"..."}}}'
+            autoComplete="off"
           />
         );
       case SECRET_TYPE.TLS:
@@ -738,6 +746,7 @@ export const CreateSecretDialog = ({
               value={tlsCrt}
               onChange={e => setTlsCrt(e.target.value)}
               placeholder="-----BEGIN CERTIFICATE-----"
+              autoComplete="off"
             />
             <TextField
               className={classes.field}
@@ -752,6 +761,7 @@ export const CreateSecretDialog = ({
               value={tlsKey}
               onChange={e => setTlsKey(e.target.value)}
               placeholder="-----BEGIN PRIVATE KEY-----"
+              autoComplete="off"
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -800,6 +810,7 @@ export const CreateSecretDialog = ({
           required
           value={secretName}
           onChange={e => setSecretName(e.target.value)}
+          autoComplete="off"
           error={!!nameError}
           helperText={
             nameError ?? 'Lowercase letters, numbers, dashes and dots.'

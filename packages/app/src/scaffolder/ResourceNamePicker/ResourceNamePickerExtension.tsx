@@ -247,6 +247,7 @@ export const ResourceNamePicker = ({
             ? errorMessage
             : `Unique name for your ${resourceLabel.toLowerCase()} (must be a valid Kubernetes name)`
         }
+        autoComplete="off"
         InputProps={{
           endAdornment: validationState.isValidating ? (
             <InputAdornment position="end">

@@ -460,6 +460,7 @@ export const GitSourceField = ({
               required
               error={hasError && !data.repo_url}
               helperText="URL of the Git repository containing your source code"
+              autoComplete="url"
             />
           </Grid>
         )}
@@ -476,6 +477,7 @@ export const GitSourceField = ({
               required
               error={hasError && !data.branch}
               helperText="Git branch to build from"
+              autoComplete="off"
             />
           </Grid>
         )}
@@ -488,6 +490,7 @@ export const GitSourceField = ({
               fullWidth
               variant="outlined"
               helperText="Path to the application directory within the repository"
+              autoComplete="off"
             />
           </Grid>
         )}

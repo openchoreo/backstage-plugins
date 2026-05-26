@@ -216,6 +216,7 @@ export const RolesTable = ({
                           onClick={() => onEdit(role)}
                           disabled={!canUpdate}
                           color="primary"
+                          aria-label={`Edit role ${role.name}`}
                         >
                           <EditIcon />
                         </IconButton>
@@ -228,6 +229,7 @@ export const RolesTable = ({
                           onClick={() => handleDeleteRole(role.name)}
                           disabled={!canDelete}
                           className={classes.deleteIconButton}
+                          aria-label={`Delete role ${role.name}`}
                         >
                           <DeleteIcon />
                         </IconButton>

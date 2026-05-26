@@ -617,6 +617,7 @@ export const NamespaceRoleBindingsContent = ({
                                       onClick={() => handleEditBinding(binding)}
                                       disabled={!canUpdate}
                                       color="primary"
+                                      aria-label="Edit binding"
                                     >
                                       <EditIcon />
                                     </IconButton>
@@ -633,6 +634,7 @@ export const NamespaceRoleBindingsContent = ({
                                       }
                                       disabled={!canDelete}
                                       className={classes.deleteIconButton}
+                                      aria-label="Delete binding"
                                     >
                                       <DeleteIcon />
                                     </IconButton>
