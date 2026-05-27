@@ -41,6 +41,7 @@
     "@backstage/e2e-test-utils": "^0.1.2",
     "@changesets/cli": "2.29.7",
     "@playwright/test": "1.56.0",
+    "@types/jest": "^29.5.14",
     "node-gyp": "10.3.1",
     "prettier": "2.8.8",
     "typescript": "5.8.3"
