@@ -241,6 +241,7 @@ export {
   useBuildPermission,
   type UseBuildPermissionResult,
 } from './hooks/useBuildPermission';
+export { type WorkflowContext } from './hooks/useWorkflowScopedPermission';
 export {
   useDeployPermission,
   type UseDeployPermissionResult,

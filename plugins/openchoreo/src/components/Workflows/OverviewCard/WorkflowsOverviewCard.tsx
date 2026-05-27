@@ -26,12 +26,16 @@ export const WorkflowsOverviewCard = () => {
   const classes = useOverviewCardStyles();
   const {
     latestBuild,
+    componentDetails,
     hasWorkflows,
     loading,
     error,
     triggeringBuild,
     triggerBuild,
   } = useWorkflowsSummary();
+  // Scope the trigger-build check to the component's workflow so ABAC
+  // `resource.workflow` CEL constraints are honored
+  const componentWorkflow = componentDetails?.componentWorkflow;
   const {
     canBuild,
     canView,
@@ -39,7 +43,11 @@ export const WorkflowsOverviewCard = () => {
     triggerLoading: permissionLoading,
     viewLoading: viewPermissionLoading,
     triggerBuildDeniedTooltip: deniedTooltip,
-  } = useBuildPermission();
+  } = useBuildPermission(
+    componentWorkflow?.name
+      ? { name: componentWorkflow.name, kind: componentWorkflow.kind }
+      : undefined,
+  );
 
   // Permission denied state
   if (!viewPermissionLoading && !canView) {

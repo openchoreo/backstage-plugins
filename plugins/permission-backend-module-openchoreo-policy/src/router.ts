@@ -102,9 +102,10 @@ export async function createRouter(
   /**
    * POST /evaluate-with-context
    *
-   * Env-aware permission check. Used by frontend permission hooks
-   * (useDeployPermission, useLogsPermission, …) to honor ABAC CEL
-   * constraints scoped to `resource.environment`.
+   * Context-aware permission check. Used by frontend permission hooks
+   * (useDeployPermission, useLogsPermission, useBuildPermission, …) to honor
+   * ABAC CEL constraints scoped to `resource.environment` and/or
+   * `resource.workflow`.
    *
    * Decision flow for the resolved capability (with wildcard fallback):
    *   1. If any deny entry matches the entity's scope → DENY.
@@ -119,6 +120,7 @@ export async function createRouter(
    *   - permissionName: string  (e.g. "openchoreo.releasebinding.create")
    *   - resourceRef:   string   (Backstage entity ref)
    *   - environment?: string    (e.g. "dev")
+   *   - workflow?: { name: string; kind?: string }
    *
    * Response:
    *   - 200: { allowed: boolean }
@@ -128,7 +130,8 @@ export async function createRouter(
     const credentials = await httpAuth.credentials(req, { allow: ['user'] });
     const userEntityRef = credentials.principal.userEntityRef;
 
-    const { permissionName, resourceRef, environment } = req.body ?? {};
+    const { permissionName, resourceRef, environment, workflow } =
+      req.body ?? {};
     if (typeof permissionName !== 'string' || !permissionName) {
       return res
         .status(400)
@@ -141,6 +144,22 @@ export async function createRouter(
       typeof environment === 'string' && environment.length > 0
         ? environment
         : undefined;
+
+    // `workflow` is an optional `{ name, kind? }` object feeding the ABAC
+    // `resource.workflow` CEL attribute.
+    let workflowValue: { name: string; kind?: string } | undefined;
+    const hasWorkflowName =
+      workflow &&
+      typeof workflow === 'object' &&
+      typeof workflow.name === 'string' &&
+      workflow.name.length > 0;
+    if (hasWorkflowName) {
+      const workflowKind =
+        typeof workflow.kind === 'string' && workflow.kind.length > 0
+          ? workflow.kind
+          : undefined;
+      workflowValue = { name: workflow.name, kind: workflowKind };
+    }
 
     const action = OPENCHOREO_PERMISSION_TO_ACTION[permissionName];
     if (!action) {
@@ -251,7 +270,12 @@ export async function createRouter(
     }
     try {
       const decisions = await authzService.evaluate(userToken, userEntityRef, [
-        { action, resourcePath: entityPath, environment: envValue },
+        {
+          action,
+          resourcePath: entityPath,
+          environment: envValue,
+          workflow: workflowValue,
+        },
       ]);
       return res.status(200).json({ allowed: decisions[0] === true });
     } catch (err) {

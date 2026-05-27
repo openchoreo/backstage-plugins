@@ -5357,6 +5357,11 @@ export interface components {
          * @example dev
          */
         environment?: string;
+        /**
+         * @description Target workflow, dual-scope encoded the same way as environment: "{namespace}/{name}" for namespace-scoped workflows (Workflow, ComponentWorkflow) or the bare "{name}" for cluster-scoped workflows (ClusterWorkflow). Used by ABAC conditions on `resource.workflow`.
+         * @example team-shop/build-go
+         */
+        workflow?: string;
       };
     };
     /** @description Authenticated subject context */
