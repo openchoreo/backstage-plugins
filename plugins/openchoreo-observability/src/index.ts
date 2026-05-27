@@ -6,6 +6,7 @@ export {
   ObservabilityRuntimeLogs,
   ObservabilityProjectRuntimeLogs,
   ObservabilityAlerts,
+  ObservabilityWirelogs,
   ObservabilityProjectIncidents,
   ObservabilityCostAnalysis,
 } from './plugin';

@@ -956,6 +956,17 @@ export const openchoreoAlertsViewPermission = createPermission({
 });
 
 /**
+ * Permission to view Cilium Hubble wirelogs for a project/component.
+ * Resource-based: scoped to the component's namespaced resource so the
+ * tab is gated alongside Logs/Metrics/Alerts on the component page.
+ */
+export const openchoreoWirelogsViewPermission = createPermission({
+  name: 'openchoreo.wirelogs.view',
+  attributes: { action: 'read' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
  * Permission to view incidents for a project.
  * Resource-based: requires the specific project context.
  */
@@ -1019,6 +1030,7 @@ export const openchoreoPermissions = [
   openchoreoFinopsUpdatePermission,
   openchoreoTraitsViewPermission,
   openchoreoAlertsViewPermission,
+  openchoreoWirelogsViewPermission,
   openchoreoIncidentsViewPermission,
   openchoreoTraitCreatePermission,
   openchoreoComponentTypeCreatePermission,
@@ -1124,6 +1136,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.clusterrolemapping.delete': 'clusterauthzrolebinding:delete',
   'openchoreo.logs.view': 'logs:view',
   'openchoreo.alerts.view': 'alerts:view',
+  'openchoreo.wirelogs.view': 'wirelogs:view',
   'openchoreo.incidents.view': 'incidents:view',
   'openchoreo.metrics.view': 'metrics:view',
   'openchoreo.traces.view': 'traces:view',

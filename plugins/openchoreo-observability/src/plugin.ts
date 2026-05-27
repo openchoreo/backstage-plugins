@@ -114,6 +114,17 @@ export const ObservabilityAlerts = openchoreoObservabilityPlugin.provide(
   }),
 );
 
+export const ObservabilityWirelogs = openchoreoObservabilityPlugin.provide(
+  createRoutableExtension({
+    name: 'ObservabilityWirelogs',
+    component: () =>
+      import('./components/Wirelogs/ObservabilityWirelogsPage').then(
+        m => m.ObservabilityWirelogsPage,
+      ),
+    mountPoint: rootRouteRef,
+  }),
+);
+
 export const ObservabilityProjectIncidents =
   openchoreoObservabilityPlugin.provide(
     createRoutableExtension({

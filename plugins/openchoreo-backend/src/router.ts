@@ -28,6 +28,7 @@ import {
   type ResourceReleaseSchemaSection,
 } from './services/ResourceReleaseService/ResourceReleaseInfoService';
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
+import { WirelogsInfoService } from './services/WirelogsService/WirelogsInfoService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
 import { ClusterDataPlaneInfoService } from './services/ClusterDataPlaneService/ClusterDataPlaneInfoService';
@@ -96,6 +97,7 @@ export async function createRouter({
   dataPlaneInfoService,
   clusterDataPlaneInfoService,
   platformResourceService,
+  wirelogsInfoService,
   annotationStore,
   catalogService,
   auth,
@@ -122,6 +124,7 @@ export async function createRouter({
   dataPlaneInfoService: DataPlaneInfoService;
   clusterDataPlaneInfoService: ClusterDataPlaneInfoService;
   platformResourceService: PlatformResourceService;
+  wirelogsInfoService: WirelogsInfoService;
   annotationStore: AnnotationStore;
   catalogService: CatalogService;
   auth: AuthService;
@@ -2201,6 +2204,102 @@ export async function createRouter({
       );
     },
   );
+
+  // SSE proxy for Cilium Hubble wirelogs from openchoreo-api (PR #3571).
+  // Frontend opens an EventSource against this route; we open the upstream
+  // stream with the user's bearer token and pipe chunks straight through.
+  router.get('/wirelogs/stream', async (req, res) => {
+    const { namespaceName, environmentName, projectName, componentName } =
+      req.query;
+
+    if (!namespaceName || !environmentName || !projectName) {
+      throw new InputError(
+        'namespaceName, environmentName and projectName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    if (typeof res.flushHeaders === 'function') {
+      res.flushHeaders();
+    }
+
+    const abortController = new AbortController();
+    const onClientClose = () => abortController.abort();
+    req.on('close', onClientClose);
+
+    let upstream: Response;
+    try {
+      upstream = await wirelogsInfoService.openStream(
+        {
+          namespaceName: namespaceName as string,
+          environmentName: environmentName as string,
+          projectName: projectName as string,
+          componentName: componentName as string | undefined,
+        },
+        userToken,
+        abortController.signal,
+      );
+    } catch (err) {
+      logger.error(
+        `Failed to open wirelogs upstream: ${(err as Error).message}`,
+      );
+      res.write(
+        `event: error\ndata: ${JSON.stringify({
+          message: 'Failed to open wirelogs stream',
+        })}\n\n`,
+      );
+      res.end();
+      return;
+    }
+
+    if (!upstream.ok || !upstream.body) {
+      const status = upstream.status;
+      const errorText = await upstream.text().catch(() => '');
+      logger.warn(
+        `Wirelogs upstream returned ${status}: ${errorText.slice(0, 200)}`,
+      );
+      res.write(
+        `event: error\ndata: ${JSON.stringify({
+          status,
+          message: errorText || `Upstream returned ${status}`,
+        })}\n\n`,
+      );
+      res.end();
+      return;
+    }
+
+    const reader = upstream.body.getReader();
+    try {
+      let streaming = true;
+      while (streaming) {
+        const { value, done } = await reader.read();
+        if (done) {
+          streaming = false;
+          break;
+        }
+        if (!res.write(Buffer.from(value))) {
+          await new Promise<void>(resolve => res.once('drain', resolve));
+        }
+      }
+    } catch (err) {
+      if (!abortController.signal.aborted) {
+        logger.warn(`Wirelogs stream interrupted: ${(err as Error).message}`);
+      }
+    } finally {
+      req.off('close', onClientClose);
+      try {
+        await reader.cancel();
+      } catch {
+        // ignore
+      }
+      res.end();
+    }
+  });
 
   return router;
 }
