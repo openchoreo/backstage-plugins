@@ -61,9 +61,10 @@ export const formatMetricValue = (
     return `${(value * 1000000).toFixed(2)} uCPU`;
   }
   if (usageType === 'memory') {
-    // value is in Bytes
-    if (value > 1000000) return `${(value / 1000000).toFixed(2)} MB`;
-    if (value > 1000) return `${(value / 1000).toFixed(2)} KB`;
+    // value is in Bytes; Kubernetes memory uses IEC binary units
+    if (value >= 1024 ** 3) return `${(value / 1024 ** 3).toFixed(2)} GiB`;
+    if (value >= 1024 ** 2) return `${(value / 1024 ** 2).toFixed(2)} MiB`;
+    if (value >= 1024) return `${(value / 1024).toFixed(2)} KiB`;
     return `${value.toFixed(2)} B`;
   }
   if (usageType === 'networkThroughput') {
@@ -76,6 +77,57 @@ export const formatMetricValue = (
     return `${(value * 1000000).toFixed(2)} us`;
   }
   return value.toFixed(2);
+};
+
+/**
+ * Round x up to the next "nice" number (1, 2, 5 × 10^n).
+ */
+const niceCeil = (x: number): number => {
+  if (x <= 0) return 1;
+  const exp = Math.floor(Math.log10(x));
+  const pow = 10 ** exp;
+  const f = x / pow;
+  let nf: number;
+  if (f <= 1) nf = 1;
+  else if (f <= 2) nf = 2;
+  else if (f <= 5) nf = 5;
+  else nf = 10;
+  return nf * pow;
+};
+
+/**
+ * Compute Y-axis ticks (in bytes) that render as round numbers in the
+ * display unit (KiB/MiB/GiB). Returns undefined when the data has no
+ * positive values, so the caller can fall back to Recharts defaults.
+ */
+export const calculateMemoryYAxis = (
+  usageData: MemoryUsageMetrics,
+): { ticks: number[]; domain: [number, number] } | undefined => {
+  let max = 0;
+  Object.values(usageData).forEach(series => {
+    series.forEach(point => {
+      const v = point.value;
+      if (typeof v === 'number' && v > max) max = v;
+    });
+  });
+  if (max <= 0) return undefined;
+
+  const B = 1;
+  const KiB = 1024;
+  const MiB = KiB * 1024;
+  const GiB = MiB * 1024;
+  let unit: number;
+  if (max >= GiB) unit = GiB;
+  else if (max >= MiB) unit = MiB;
+  else if (max >= KiB) unit = KiB;
+  else unit = B;
+
+  const maxInUnit = max / unit;
+  const niceStep = niceCeil(maxInUnit / 4);
+  const finalMaxInUnit = Math.ceil(maxInUnit / niceStep) * niceStep;
+  const numTicks = Math.round(finalMaxInUnit / niceStep) + 1;
+  const ticks = Array.from({ length: numTicks }, (_, i) => i * niceStep * unit);
+  return { ticks, domain: [0, finalMaxInUnit * unit] };
 };
 
 /**
