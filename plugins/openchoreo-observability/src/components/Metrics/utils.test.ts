@@ -7,7 +7,22 @@ import {
   getLineOpacity,
   formatMetricName,
   calculateTimeDomain,
+  calculateMemoryYAxis,
 } from './utils';
+import { MemoryUsageMetrics } from '../../types';
+
+const memoryData = (
+  values: (number | null)[],
+  key: keyof MemoryUsageMetrics = 'memoryUsage',
+): MemoryUsageMetrics => ({
+  memoryUsage: [],
+  memoryRequests: [],
+  memoryLimits: [],
+  [key]: values.map((value, i) => ({
+    timestamp: new Date(2024, 0, 1, 0, i).toISOString(),
+    value,
+  })),
+});
 
 // ---- Tests ----
 
@@ -46,12 +61,16 @@ describe('formatMetricValue', () => {
     expect(formatMetricValue(2.5, 'cpu')).toBe('2.5000');
   });
 
-  it('formats memory in MB', () => {
-    expect(formatMetricValue(5000000, 'memory')).toBe('5.00 MB');
+  it('formats memory in GiB', () => {
+    expect(formatMetricValue(5000000000, 'memory')).toBe('4.66 GiB');
   });
 
-  it('formats memory in KB', () => {
-    expect(formatMetricValue(5000, 'memory')).toBe('5.00 KB');
+  it('formats memory in MiB', () => {
+    expect(formatMetricValue(5000000, 'memory')).toBe('4.77 MiB');
+  });
+
+  it('formats memory in KiB', () => {
+    expect(formatMetricValue(5000, 'memory')).toBe('4.88 KiB');
   });
 
   it('formats memory in bytes', () => {
@@ -355,5 +374,103 @@ describe('formatMetricName', () => {
 
   it('formats latencyP99', () => {
     expect(formatMetricName('latencyP99')).toBe('Latency P99');
+  });
+});
+
+describe('calculateMemoryYAxis', () => {
+  const KiB = 1024;
+  const MiB = KiB * 1024;
+  const GiB = MiB * 1024;
+
+  it('returns undefined when all series are empty', () => {
+    expect(calculateMemoryYAxis(memoryData([]))).toBeUndefined();
+  });
+
+  it('returns undefined when all values are null', () => {
+    expect(calculateMemoryYAxis(memoryData([null, null]))).toBeUndefined();
+  });
+
+  it('returns undefined when max is 0', () => {
+    expect(calculateMemoryYAxis(memoryData([0, 0]))).toBeUndefined();
+  });
+
+  it('picks MiB unit with nice round ticks for pod-scale data', () => {
+    // max ≈ 267 MiB → niceStep = 100 MiB, finalMax = 300 MiB, 4 ticks
+    const result = calculateMemoryYAxis(memoryData([267 * MiB]));
+
+    expect(result).toEqual({
+      ticks: [0, 100 * MiB, 200 * MiB, 300 * MiB],
+      domain: [0, 300 * MiB],
+    });
+  });
+
+  it('picks GiB unit for large pods', () => {
+    // max = 3 GiB → niceStep = 1 GiB, finalMax = 3 GiB, 4 ticks
+    const result = calculateMemoryYAxis(memoryData([3 * GiB]));
+
+    expect(result).toEqual({
+      ticks: [0, GiB, 2 * GiB, 3 * GiB],
+      domain: [0, 3 * GiB],
+    });
+  });
+
+  it('picks KiB unit for small data', () => {
+    // max = 5 KiB → niceStep = 2 KiB, finalMax = 6 KiB, 4 ticks
+    const result = calculateMemoryYAxis(memoryData([5 * KiB]));
+
+    expect(result).toEqual({
+      ticks: [0, 2 * KiB, 4 * KiB, 6 * KiB],
+      domain: [0, 6 * KiB],
+    });
+  });
+
+  it('picks bytes unit for sub-KiB data so ticks stay whole bytes', () => {
+    // max = 500 B → niceStep = 200 B, finalMax = 600 B, 4 ticks
+    const result = calculateMemoryYAxis(memoryData([500]));
+
+    expect(result).toEqual({
+      ticks: [0, 200, 400, 600],
+      domain: [0, 600],
+    });
+  });
+
+  it('takes the max across all series', () => {
+    const data: MemoryUsageMetrics = {
+      memoryUsage: [{ timestamp: 't1', value: 50 * MiB }],
+      memoryRequests: [{ timestamp: 't1', value: 100 * MiB }],
+      memoryLimits: [{ timestamp: 't1', value: 200 * MiB }],
+    };
+    const result = calculateMemoryYAxis(data);
+
+    // max is 200 MiB → niceStep = 50, finalMax = 200, 5 ticks
+    expect(result?.ticks[result.ticks.length - 1]).toBe(200 * MiB);
+    expect(result?.domain[1]).toBe(200 * MiB);
+  });
+
+  it('produces ticks evenly spaced starting at 0', () => {
+    const result = calculateMemoryYAxis(memoryData([150 * MiB]));
+
+    expect(result?.ticks[0]).toBe(0);
+    const step = result!.ticks[1] - result!.ticks[0];
+    for (let i = 1; i < result!.ticks.length; i++) {
+      expect(result!.ticks[i] - result!.ticks[i - 1]).toBe(step);
+    }
+  });
+
+  it('domain max equals the last tick and is >= data max', () => {
+    const dataMax = 137 * MiB;
+    const result = calculateMemoryYAxis(memoryData([dataMax]));
+
+    expect(result?.domain[1]).toBe(result?.ticks[result.ticks.length - 1]);
+    expect(result!.domain[1]).toBeGreaterThanOrEqual(dataMax);
+  });
+
+  it('ignores null values when computing the max', () => {
+    const result = calculateMemoryYAxis(
+      memoryData([null, 100 * MiB, null, 50 * MiB]),
+    );
+
+    // Max is 100 MiB → niceStep = 25, finalMax = 100, 5 ticks
+    expect(result?.domain[1]).toBe(100 * MiB);
   });
 });

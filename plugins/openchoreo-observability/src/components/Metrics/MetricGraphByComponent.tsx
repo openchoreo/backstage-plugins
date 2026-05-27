@@ -21,6 +21,7 @@ import {
   formatTooltipTime,
   formatMetricValue,
   calculateTimeDomain,
+  calculateMemoryYAxis,
   transformMetricsData,
   getMetricConfigs,
   getLineOpacity,
@@ -67,6 +68,14 @@ export const MetricGraphByComponent = ({
 
   const metrics = useMemo(() => getMetricConfigs(usageType), [usageType]);
 
+  const memoryYAxis = useMemo(
+    () =>
+      usageType === 'memory'
+        ? calculateMemoryYAxis(usageData as MemoryUsageMetrics)
+        : undefined,
+    [usageType, usageData],
+  );
+
   const handleMouseEnter = (payload: LegendPayload) =>
     setHoveringDataKey(payload.dataKey);
 
@@ -94,6 +103,8 @@ export const MetricGraphByComponent = ({
         <YAxis
           width="auto"
           tickFormatter={v => formatMetricValue(v, usageType)}
+          ticks={memoryYAxis?.ticks}
+          domain={memoryYAxis?.domain}
         />
         <Tooltip
           content={
