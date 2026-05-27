@@ -326,7 +326,14 @@ describe('AuthzProfileCache', () => {
     });
 
     it('treats an absent workflow distinctly from a present one', async () => {
-      await authzCache.getEvaluation(USER, HASH, ACTION, PATH, undefined, undefined);
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+      );
       await authzCache.getEvaluation(
         USER,
         HASH,

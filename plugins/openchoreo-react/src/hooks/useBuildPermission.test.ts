@@ -172,7 +172,10 @@ describe('useBuildPermission', () => {
     await waitFor(() => expect(result.current.triggerLoading).toBe(false));
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.workflow).toEqual({ name: 'build-go', kind: 'ClusterWorkflow' });
+    expect(body.workflow).toEqual({
+      name: 'build-go',
+      kind: 'ClusterWorkflow',
+    });
   });
 
   it('skips the workflow-eval and uses visibility when authz is disabled', async () => {

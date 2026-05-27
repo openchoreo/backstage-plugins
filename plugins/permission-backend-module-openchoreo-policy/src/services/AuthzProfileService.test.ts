@@ -571,7 +571,7 @@ describe('AuthzProfileService', () => {
       });
     });
 
-    it('treats an unknown/absent kind as namespace-scoped', async () => {
+    it('treats an absent kind as cluster-scoped (the backend default)', async () => {
       const { service } = setupService();
       const exp = Math.floor(Date.now() / 1000) + 3600;
 
@@ -585,7 +585,7 @@ describe('AuthzProfileService', () => {
 
       const body = mockPOST.mock.calls[0][1].body;
       expect(body[0].context).toEqual({
-        resource: { workflow: 'team-shop/build-go' },
+        resource: { workflow: 'build-go' },
       });
     });
 

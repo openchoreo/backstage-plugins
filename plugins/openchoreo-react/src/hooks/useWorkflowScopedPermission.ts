@@ -36,7 +36,7 @@ interface UseWorkflowScopedPermissionOptions {
   workflow?: WorkflowContext;
 }
 
-interface UseWorkflowScopedPermissionResult {
+export interface UseWorkflowScopedPermissionResult {
   allowed: boolean;
   loading: boolean;
 }
@@ -138,8 +138,11 @@ export function useWorkflowScopedPermission(
   if (!authzEnabled || !workflowName) {
     return { allowed: baseCheck.allowed, loading: baseCheck.loading };
   }
+  const workflowLoading =
+    baseCheck.allowed && (wfLoading || wfAllowed === undefined);
+
   return {
     allowed: baseCheck.allowed && wfAllowed === true,
-    loading: baseCheck.loading || wfLoading || wfAllowed === undefined,
+    loading: baseCheck.loading || workflowLoading,
   };
 }

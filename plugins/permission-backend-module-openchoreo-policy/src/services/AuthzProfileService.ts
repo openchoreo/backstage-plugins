@@ -369,8 +369,10 @@ export class AuthzProfileService {
         parsed?.namespace && parsed.namespace !== '*'
           ? parsed.namespace
           : undefined;
-      const isClusterScoped =
-        wf.kind?.toLowerCase() === CLUSTER_SCOPED_WORKFLOW_KIND;
+      // Cluster-scoped when the kind explicitly says so, or when it's missing —
+      // cluster-scoped is the backend's default for an absent workflow kind.
+      const kind = wf.kind?.toLowerCase();
+      const isClusterScoped = kind === CLUSTER_SCOPED_WORKFLOW_KIND || !kind;
       const encoded = formatDualScopedName(ns, wf.name, isClusterScoped);
       return encoded || undefined;
     });
