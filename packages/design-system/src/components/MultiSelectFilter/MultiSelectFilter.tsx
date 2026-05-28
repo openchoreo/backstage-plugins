@@ -147,11 +147,11 @@ export const MultiSelectFilter = ({
             Clear
           </Button>
         </Box>
-        {groups.flatMap(group => [
+        {groups.flatMap((group, groupIndex) => [
           ...(group.label
             ? [
                 <ListSubheader
-                  key={`${group.label}-label`}
+                  key={`group-${groupIndex}-label`}
                   disableSticky
                   className={classes.groupLabel}
                 >
@@ -161,7 +161,7 @@ export const MultiSelectFilter = ({
             : []),
           ...group.options.map(option => (
             <MenuItem
-              key={option.value}
+              key={`group-${groupIndex}-${option.value}`}
               dense
               className={classes.menuItem}
               onClick={() => toggle(option.value)}

@@ -56,6 +56,10 @@ export function useProjectContentFacets(
       return undefined;
     }
 
+    // Reflect the in-flight refetch (e.g. on project change) while keeping the
+    // previous counts/types so the chips don't flicker to empty.
+    setFacets(prev => ({ ...prev, loading: true }));
+
     const base = { 'spec.system': project, 'metadata.namespace': namespace };
     Promise.all([
       catalogApi.getEntityFacets({

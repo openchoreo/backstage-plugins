@@ -222,6 +222,7 @@ export const ProjectContentsCard = () => {
               placeholder="Search by name"
               value={searchInput}
               onChange={event => setSearchInput(event.target.value)}
+              inputProps={{ 'aria-label': 'Search by name' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
