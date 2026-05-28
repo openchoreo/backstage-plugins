@@ -1,5 +1,5 @@
 import { createBackendModule } from '@backstage/backend-plugin-api';
-import { scaffolderActionsExtensionPoint } from '@backstage/plugin-scaffolder-node/alpha';
+import { scaffolderActionsExtensionPoint } from '@backstage/plugin-scaffolder-node';
 import { coreServices } from '@backstage/backend-plugin-api';
 import { createProjectAction } from './actions/project';
 import { createComponentAction } from './actions/component';

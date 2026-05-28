@@ -4,7 +4,6 @@ import {
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
-import { z } from 'zod';
 import {
   type ImmediateCatalogService,
   translateEnvironmentToEntity,
@@ -18,42 +17,45 @@ export const createEnvironmentAction = (
     id: 'openchoreo:environment:create',
     description: 'Create OpenChoreo Environment',
     schema: {
-      input: (zImpl: typeof z) =>
-        zImpl.object({
-          namespaceName: zImpl
-            .string()
-            .describe('The name of the namespace to create the environment in'),
-          environmentName: zImpl
-            .string()
-            .describe('The name of the environment to create'),
-          displayName: zImpl
-            .string()
-            .optional()
-            .describe('The display name of the environment'),
-          description: zImpl
-            .string()
-            .optional()
-            .describe('The description of the environment'),
-          dataPlaneRef: zImpl
-            .string()
-            .optional()
-            .describe('Reference to the data plane for this environment'),
-          isProduction: zImpl
-            .boolean()
-            .describe('Whether this is a production environment'),
-        }),
-      output: (zImpl: typeof z) =>
-        zImpl.object({
-          environmentName: zImpl
-            .string()
-            .describe('The name of the created environment'),
-          namespaceName: zImpl
-            .string()
-            .describe('The namespace where the environment was created'),
-          entityRef: zImpl
-            .string()
-            .describe('Entity reference for the created environment'),
-        }),
+      input: {
+        namespaceName: z =>
+          z.string({
+            description:
+              'The name of the namespace to create the environment in',
+          }),
+        environmentName: z =>
+          z.string({ description: 'The name of the environment to create' }),
+        displayName: z =>
+          z
+            .string({ description: 'The display name of the environment' })
+            .optional(),
+        description: z =>
+          z
+            .string({ description: 'The description of the environment' })
+            .optional(),
+        dataPlaneRef: z =>
+          z
+            .string({
+              description: 'Reference to the data plane for this environment',
+            })
+            .optional(),
+        isProduction: z =>
+          z.boolean({
+            description: 'Whether this is a production environment',
+          }),
+      },
+      output: {
+        environmentName: z =>
+          z.string({ description: 'The name of the created environment' }),
+        namespaceName: z =>
+          z.string({
+            description: 'The namespace where the environment was created',
+          }),
+        entityRef: z =>
+          z.string({
+            description: 'Entity reference for the created environment',
+          }),
+      },
     },
     async handler(ctx) {
       ctx.logger.debug(

@@ -4,7 +4,6 @@ import {
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
-import { z } from 'zod';
 import {
   type ImmediateCatalogService,
   translateDeploymentPipelineToEntity,
@@ -18,56 +17,63 @@ export const createDeploymentPipelineAction = (
     id: 'openchoreo:deployment-pipeline:create',
     description: 'Create OpenChoreo Deployment Pipeline',
     schema: {
-      input: (zImpl: typeof z) =>
-        zImpl.object({
-          namespaceName: zImpl
-            .string()
-            .describe(
+      input: {
+        namespaceName: z =>
+          z.string({
+            description:
               'The name of the namespace to create the deployment pipeline in',
-            ),
-          pipelineName: zImpl
-            .string()
-            .describe('The name of the deployment pipeline to create'),
-          displayName: zImpl
-            .string()
-            .optional()
-            .describe('The display name of the deployment pipeline'),
-          description: zImpl
-            .string()
-            .optional()
-            .describe('The description of the deployment pipeline'),
-          promotionPaths: zImpl
+          }),
+        pipelineName: z =>
+          z.string({
+            description: 'The name of the deployment pipeline to create',
+          }),
+        displayName: z =>
+          z
+            .string({
+              description: 'The display name of the deployment pipeline',
+            })
+            .optional(),
+        description: z =>
+          z
+            .string({
+              description: 'The description of the deployment pipeline',
+            })
+            .optional(),
+        promotionPaths: z =>
+          z
             .array(
-              zImpl.object({
-                sourceEnvironmentRef: zImpl.object({
-                  kind: zImpl.string().optional(),
-                  name: zImpl.string(),
+              z.object({
+                sourceEnvironmentRef: z.object({
+                  kind: z.string().optional(),
+                  name: z.string(),
                 }),
-                targetEnvironmentRefs: zImpl.array(
-                  zImpl.object({
-                    kind: zImpl.string().optional(),
-                    name: zImpl.string(),
+                targetEnvironmentRefs: z.array(
+                  z.object({
+                    kind: z.string().optional(),
+                    name: z.string(),
                   }),
                 ),
               }),
+              { description: 'Promotion paths between environments' },
             )
-            .optional()
-            .describe('Promotion paths between environments'),
-        }),
-      output: (zImpl: typeof z) =>
-        zImpl.object({
-          pipelineName: zImpl
-            .string()
-            .describe('The name of the created deployment pipeline'),
-          namespaceName: zImpl
-            .string()
-            .describe(
+            .optional(),
+      },
+      output: {
+        pipelineName: z =>
+          z.string({
+            description: 'The name of the created deployment pipeline',
+          }),
+        namespaceName: z =>
+          z.string({
+            description:
               'The namespace where the deployment pipeline was created',
-            ),
-          entityRef: zImpl
-            .string()
-            .describe('Entity reference for the created deployment pipeline'),
-        }),
+          }),
+        entityRef: z =>
+          z.string({
+            description:
+              'Entity reference for the created deployment pipeline',
+          }),
+      },
     },
     async handler(ctx) {
       ctx.logger.debug(
