@@ -69,7 +69,10 @@ export const useProjectContentsCardStyles = makeStyles(theme => {
       gap: theme.spacing(1.5),
     },
     searchField: {
-      minWidth: 220,
+      // Fixed width (not min-width) so the field doesn't jump when the clear
+      // button's adornment appears/disappears as the user types.
+      width: 220,
+      flexShrink: 0,
     },
     // Lets the table scroll horizontally on narrow viewports instead of
     // crushing the fixed columns until cell content overlaps.
