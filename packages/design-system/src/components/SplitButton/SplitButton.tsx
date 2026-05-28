@@ -45,6 +45,8 @@ export interface SplitButtonProps {
   color?: 'primary' | 'secondary' | 'default';
   /** Button variant @default "contained" */
   variant?: 'contained' | 'outlined' | 'text';
+  /** Button size @default "medium" */
+  size?: 'small' | 'medium' | 'large';
 }
 
 /**
@@ -76,6 +78,7 @@ export const SplitButton: React.FC<SplitButtonProps> = ({
   tooltip = '',
   color = 'primary',
   variant = 'contained',
+  size = 'medium',
 }) => {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -121,6 +124,7 @@ export const SplitButton: React.FC<SplitButtonProps> = ({
         <ButtonGroup
           variant={variant}
           color={color}
+          size={size}
           ref={anchorRef}
           disabled={disabled || loading}
           aria-label="split button"
@@ -150,8 +154,7 @@ export const SplitButton: React.FC<SplitButtonProps> = ({
         anchorEl={anchorRef.current}
         role={undefined}
         transition
-        disablePortal
-        style={{ zIndex: 1 }}
+        className={classes.popper}
       >
         {({ TransitionProps, placement }) => (
           <Grow

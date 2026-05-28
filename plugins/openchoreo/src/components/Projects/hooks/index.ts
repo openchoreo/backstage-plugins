@@ -1,9 +1,15 @@
-export { useComponentsWithDeployment } from './useComponentsWithDeployment';
 export { useDeploymentPipeline } from './useDeploymentPipeline';
 export { useEnvironments } from './useEnvironments';
+export { useProjectContentsPage } from './useProjectContentsPage';
 export type {
-  ComponentWithDeployment,
-  ComponentDeploymentStatus,
+  ProjectContentItem,
+  ProjectContentKind,
+  ProjectContentsOrderBy,
+  ProjectContentsPageParams,
+  ProjectContentsPageResult,
+  DeploymentStatusByEnv,
   EnvironmentDeploymentStatus,
-} from './useComponentsWithDeployment';
+} from './useProjectContentsPage';
+export { useProjectContentFacets } from './useProjectContentFacets';
+export type { ProjectContentFacets } from './useProjectContentFacets';
 export type { Environment } from './useEnvironments';

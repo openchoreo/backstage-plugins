@@ -20,4 +20,9 @@ export const useStyles = makeStyles((theme: Theme) => ({
     minWidth: 'unset',
     borderLeft: `1px solid ${theme.palette.primary.dark}`,
   },
+  // Render above surrounding content (e.g. table rows/headers) — the menu is
+  // portaled so it also escapes any ancestor `overflow: hidden`.
+  popper: {
+    zIndex: theme.zIndex.modal,
+  },
 }));
