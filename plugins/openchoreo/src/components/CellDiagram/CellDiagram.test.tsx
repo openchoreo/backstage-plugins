@@ -269,7 +269,7 @@ beforeEach(() => {
 });
 
 describe('CellDiagram', () => {
-  it('renders the cell diagram and defaults Runtime Observability OFF', async () => {
+  it('renders the cell diagram and defaults Runtime Network Observability OFF', async () => {
     const mockClient = setupMockClient();
 
     await act(async () => {
@@ -282,7 +282,7 @@ describe('CellDiagram', () => {
 
     // Toggle is rendered and OFF
     const toggle = screen.getByRole('switch', {
-      name: /runtime observability/i,
+      name: /runtime network observability/i,
     });
     expect(toggle).not.toBeChecked();
 
@@ -311,7 +311,7 @@ describe('CellDiagram', () => {
     });
 
     const toggle = screen.getByRole('switch', {
-      name: /runtime observability/i,
+      name: /runtime network observability/i,
     });
 
     await act(async () => {
@@ -355,14 +355,14 @@ describe('CellDiagram', () => {
     // The hook resolves async — wait for the disabled state to settle
     await waitFor(() => {
       const toggle = screen.getByRole('switch', {
-        name: /runtime observability/i,
+        name: /runtime network observability/i,
       });
       expect(toggle).toBeDisabled();
     });
 
     expect(
       document.querySelector(
-        '[data-tooltip*="Observability is unavailable in all environments. Configure the Cilium module to enable observability."]',
+        '[data-tooltip*="Runtime network observability is unavailable in all environments. Configure the Cilium module to enable network observability."]',
       ),
     ).not.toBeNull();
   });
@@ -396,7 +396,7 @@ describe('CellDiagram', () => {
     });
 
     const toggle = screen.getByRole('switch', {
-      name: /runtime observability/i,
+      name: /runtime network observability/i,
     });
     await act(async () => {
       await userEvent.click(toggle);
@@ -444,7 +444,7 @@ describe('CellDiagram', () => {
     });
 
     const toggle = screen.getByRole('switch', {
-      name: /runtime observability/i,
+      name: /runtime network observability/i,
     });
     await act(async () => {
       await userEvent.click(toggle);
@@ -485,7 +485,7 @@ describe('CellDiagram', () => {
     });
 
     const toggle = screen.getByRole('switch', {
-      name: /runtime observability/i,
+      name: /runtime network observability/i,
     });
     await act(async () => {
       await userEvent.click(toggle);
@@ -536,7 +536,7 @@ describe('CellDiagram', () => {
     });
 
     const toggle = screen.getByRole('switch', {
-      name: /runtime observability/i,
+      name: /runtime network observability/i,
     });
     await act(async () => {
       await userEvent.click(toggle);
@@ -576,7 +576,7 @@ describe('CellDiagram', () => {
     });
 
     const toggle = screen.getByRole('switch', {
-      name: /runtime observability/i,
+      name: /runtime network observability/i,
     });
     await act(async () => {
       await userEvent.click(toggle);
@@ -602,7 +602,7 @@ describe('CellDiagram', () => {
     });
 
     const toggle = screen.getByRole('switch', {
-      name: /runtime observability/i,
+      name: /runtime network observability/i,
     });
     await act(async () => {
       await userEvent.click(toggle);

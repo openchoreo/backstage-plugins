@@ -177,12 +177,12 @@ export const CellDiagram = () => {
           onChange={e => setRuntimeEnabled(e.target.checked)}
           color="primary"
           disabled={toggleDisabled || environmentsLoading}
-          inputProps={{ 'aria-label': 'Runtime Observability' }}
+          inputProps={{ 'aria-label': 'Runtime Network Observability' }}
         />
       }
       label={
         <Typography variant="body2" style={{ fontWeight: 500 }}>
-          Runtime Observability
+          Runtime Network Observability
         </Typography>
       }
       labelPlacement="start"
@@ -220,7 +220,7 @@ export const CellDiagram = () => {
           }}
         >
           {toggleDisabled ? (
-            <Tooltip title="Observability is unavailable in all environments. Configure the Cilium module to enable observability.">
+            <Tooltip title="Runtime network observability is unavailable in all environments. Configure the Cilium module to enable network observability.">
               <span>{toggleControl}</span>
             </Tooltip>
           ) : (
@@ -306,9 +306,9 @@ export const CellDiagram = () => {
                       borderRadius: 4,
                     }}
                   >
-                    Observability is unavailable in the{' '}
+                    Runtime network observability is unavailable in the{' '}
                     <strong>{environment}</strong> environment. Configure the
-                    Cilium module to enable observability.
+                    Cilium module to enable network observability.
                   </Typography>
                 )}
 
@@ -344,8 +344,8 @@ export const CellDiagram = () => {
             opacity: 0.6,
           }}
         >
-          Runtime visibility is limited to HTTP traffic. TCP/UDP traffic is not
-          observed.
+          Runtime network observability is limited to HTTP traffic. TCP/UDP
+          traffic is not observed.
         </Typography>
       )}
       {cellDiagramData && !hasNoComponents && (
