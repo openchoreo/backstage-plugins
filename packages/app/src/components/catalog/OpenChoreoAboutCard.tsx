@@ -145,7 +145,7 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
 
   return (
     <Grid container>
-      <AboutField label="Description" gridSizes={{ xs: 12 }}>
+      <AboutField label="Description">
         <MarkdownContent
           className={classes.description}
           content={entity?.metadata?.description || 'No description'}
@@ -155,7 +155,6 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
         label="Owner"
         value="No Owner"
         className={classes.description}
-        gridSizes={{ xs: 12, sm: 6, lg: 4 }}
       >
         {ownedByRelations.length > 0 && (
           <EntityRefLinks entityRefs={ownedByRelations} defaultKind="group" />
@@ -165,8 +164,7 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
         <AboutField
           label="Namespace"
           value="No Namespace"
-          gridSizes={{ xs: 12, sm: 6, lg: 4 }}
-        >
+          >
           {partOfDomainRelations.length > 0 && (
             <EntityRefLinks
               entityRefs={partOfDomainRelations}
@@ -182,8 +180,7 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
         <AboutField
           label="Project"
           value="No Project"
-          gridSizes={{ xs: 12, sm: 6, lg: 4 }}
-        >
+          >
           {partOfSystemRelations.length > 0 && (
             <EntityRefLinks
               entityRefs={partOfSystemRelations}
@@ -196,8 +193,7 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
         <AboutField
           label="Parent Component"
           value="No Parent Component"
-          gridSizes={{ xs: 12, sm: 6, lg: 4 }}
-        >
+          >
           <EntityRefLinks
             entityRefs={partOfComponentRelations}
             defaultKind="component"
@@ -205,7 +201,7 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
         </AboutField>
       )}
       {isResource && typeof entity?.spec?.type === 'string' && (
-        <AboutField label="Type" gridSizes={{ xs: 12, sm: 6, lg: 4 }}>
+        <AboutField label="Type">
           {(() => {
             const typeName = entity.spec.type as string;
             const typeKind =
@@ -235,8 +231,7 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
         <AboutField
           label="Type"
           value={entity.spec.type as string}
-          gridSizes={{ xs: 12, sm: 6, lg: 4 }}
-        />
+          />
       )}
       {(isAPI ||
         isComponent ||
@@ -244,13 +239,11 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
         <AboutField
           label="Lifecycle"
           value={entity?.spec?.lifecycle as string}
-          gridSizes={{ xs: 12, sm: 6, lg: 4 }}
-        />
+          />
       )}
       <AboutField
         label="Tags"
         value="No Tags"
-        gridSizes={{ xs: 12, sm: 6, lg: 4 }}
       >
         {(entity?.metadata?.tags || []).map(tag => (
           <Chip key={tag} size="small" label={tag} />
