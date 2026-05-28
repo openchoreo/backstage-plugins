@@ -81,7 +81,7 @@ import {
   DeploymentStatusCard,
   RuntimeHealthCard,
   DeploymentPipelineCard,
-  ProjectComponentsCard,
+  ProjectContentsCard,
   NamespaceProjectsCard,
   NamespaceResourcesCard,
   EnvironmentStatusSummaryCard,
@@ -646,19 +646,21 @@ const systemPage = (
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
-        {/* Row 1: Has Components + Deployment Pipeline */}
-        <Grid item md={8} xs={12}>
-          <ProjectComponentsCard />
-        </Grid>
-        <Grid item md={4} xs={12}>
-          <DeploymentPipelineCard />
+        {/* Row 1: Project Contents (components + resources), full width */}
+        <Grid item xs={12}>
+          <ProjectContentsCard />
         </Grid>
 
-        {/* Row 2: About + Catalog Relations */}
+        {/* Row 2: Deployment Pipeline + About */}
+        <Grid item md={6} xs={12}>
+          <DeploymentPipelineCard />
+        </Grid>
         <Grid item md={6} xs={12}>
           <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
-        <Grid item md={6} xs={12}>
+
+        {/* Row 3: Catalog Relations, full width */}
+        <Grid item xs={12}>
           <EntityCatalogGraphCard
             variant="gridItem"
             height={400}

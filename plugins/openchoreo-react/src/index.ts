@@ -558,6 +558,10 @@ export {
   useCreateComponentPath,
   type UseCreateComponentPathResult,
 } from './hooks/useCreateComponentPath';
+export {
+  useCreateResourcePath,
+  type UseCreateResourcePathResult,
+} from './hooks/useCreateResourcePath';
 
 // Re-export graph types for consumers
 export { type EntityNode } from '@backstage/plugin-catalog-graph';
