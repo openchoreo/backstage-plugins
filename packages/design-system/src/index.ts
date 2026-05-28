@@ -49,3 +49,9 @@ export type {
   SplitButtonProps,
   SplitButtonOption,
 } from './components/SplitButton';
+export { MultiSelectFilter } from './components/MultiSelectFilter';
+export type {
+  MultiSelectFilterProps,
+  MultiSelectOption,
+  MultiSelectGroup,
+} from './components/MultiSelectFilter';

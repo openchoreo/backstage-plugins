@@ -129,6 +129,29 @@ export function buildCreateComponentPath(
 }
 
 /**
+ * Build path to the scaffolder resource template selection page. Mirrors
+ * {@link buildCreateComponentPath}: pre-selects the provided namespaces so both
+ * namespace-scoped ResourceTypes and (when the cluster namespace is included)
+ * cluster ResourceTypes in `openchoreo-cluster` are visible in the picker.
+ */
+export function buildCreateResourcePath(
+  projectName: string,
+  namespaces: string[],
+): string {
+  const params = new URLSearchParams();
+  params.set('view', 'resources');
+  params.append('filters[type]', 'resource');
+  for (const ns of namespaces) {
+    params.append('filters[namespace]', ns);
+  }
+  params.set('project', projectName);
+  if (namespaces.length > 0) {
+    params.set('namespace', namespaces[0]);
+  }
+  return `/create?${params.toString()}`;
+}
+
+/**
  * Build path to workflow list with specific tab
  */
 export function buildWorkflowListPath(
