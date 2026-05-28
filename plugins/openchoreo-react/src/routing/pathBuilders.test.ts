@@ -11,6 +11,7 @@ import {
   buildWorkflowRunPath,
   buildWorkflowConfigPath,
   buildCreateComponentPath,
+  buildCreateResourcePath,
   buildWorkflowListPath,
 } from './pathBuilders';
 
@@ -192,5 +193,33 @@ describe('buildCreateComponentPath', () => {
     const params = new URLSearchParams(url.split('?')[1]);
     expect(params.get('namespace')).toBeNull();
     expect(params.getAll('filters[namespace]')).toEqual([]);
+  });
+});
+
+describe('buildCreateResourcePath', () => {
+  it('builds scaffolder path with the resources view and resource type filter', () => {
+    const url = buildCreateResourcePath('my-project', ['org-ns']);
+
+    expect(url).toContain('/create?');
+    expect(url).toContain('view=resources');
+    expect(url).toContain('filters%5Btype%5D=resource');
+    expect(url).toContain('filters%5Bnamespace%5D=org-ns');
+    expect(url).toContain('project=my-project');
+    expect(url).toContain('namespace=org-ns');
+  });
+
+  it('includes the cluster namespace when provided so cluster resource types show', () => {
+    const url = buildCreateResourcePath('proj', [
+      'proj-ns',
+      'openchoreo-cluster',
+    ]);
+    const params = new URLSearchParams(url.split('?')[1]);
+
+    expect(params.getAll('filters[namespace]')).toEqual([
+      'proj-ns',
+      'openchoreo-cluster',
+    ]);
+    // First namespace is the form's pre-selected default.
+    expect(params.get('namespace')).toBe('proj-ns');
   });
 });

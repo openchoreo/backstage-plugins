@@ -45,6 +45,10 @@ export interface SplitButtonProps {
   color?: 'primary' | 'secondary' | 'default';
   /** Button variant @default "contained" */
   variant?: 'contained' | 'outlined' | 'text';
+  /** Button size @default "medium" */
+  size?: 'small' | 'medium' | 'large';
+  /** Optional fixed minimum width for the primary button */
+  minWidth?: number | string;
 }
 
 /**
@@ -76,6 +80,8 @@ export const SplitButton: React.FC<SplitButtonProps> = ({
   tooltip = '',
   color = 'primary',
   variant = 'contained',
+  size = 'medium',
+  minWidth,
 }) => {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -121,6 +127,7 @@ export const SplitButton: React.FC<SplitButtonProps> = ({
         <ButtonGroup
           variant={variant}
           color={color}
+          size={size}
           ref={anchorRef}
           disabled={disabled || loading}
           aria-label="split button"
@@ -130,6 +137,7 @@ export const SplitButton: React.FC<SplitButtonProps> = ({
             onClick={handlePrimaryClick}
             startIcon={startIcon}
             disabled={selectedOption?.disabled}
+            style={minWidth !== undefined ? { minWidth } : undefined}
           >
             {selectedOption?.label}
           </Button>
@@ -150,8 +158,7 @@ export const SplitButton: React.FC<SplitButtonProps> = ({
         anchorEl={anchorRef.current}
         role={undefined}
         transition
-        disablePortal
-        style={{ zIndex: 1 }}
+        className={classes.popper}
       >
         {({ TransitionProps, placement }) => (
           <Grow
@@ -161,7 +168,7 @@ export const SplitButton: React.FC<SplitButtonProps> = ({
                 placement === 'bottom' ? 'center top' : 'center bottom',
             }}
           >
-            <Paper>
+            <Paper className={classes.menuPaper}>
               <ClickAwayListener onClickAway={handleClose}>
                 <MenuList autoFocusItem={menuOpen}>
                   {options.map((option, index) => (
