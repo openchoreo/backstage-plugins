@@ -2,7 +2,7 @@ import {
   coreServices,
   createBackendModule,
 } from '@backstage/backend-plugin-api';
-import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/alpha';
+import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node';
 import { ThunderUserGroupEntityProvider } from './provider/ThunderUserGroupEntityProvider';
 
 export const catalogModuleOpenchoreoUsers = createBackendModule({

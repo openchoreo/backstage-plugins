@@ -5,9 +5,8 @@ import {
 } from '@backstage/backend-plugin-api';
 import {
   catalogProcessingExtensionPoint,
-  catalogPermissionExtensionPoint,
-} from '@backstage/plugin-catalog-node/alpha';
-import { catalogServiceRef } from '@backstage/plugin-catalog-node';
+  catalogServiceRef,
+} from '@backstage/plugin-catalog-node';
 import { OpenChoreoEntityProvider } from './provider/OpenChoreoEntityProvider';
 import { ScaffolderEntityProvider } from './provider/ScaffolderEntityProvider';
 import {
@@ -69,7 +68,7 @@ export const catalogModuleOpenchoreo = createBackendModule({
     env.registerInit({
       deps: {
         catalog: catalogProcessingExtensionPoint,
-        catalogPermissions: catalogPermissionExtensionPoint,
+        permissionsRegistry: coreServices.permissionsRegistry,
         catalogService: catalogServiceRef,
         config: coreServices.rootConfig,
         logger: coreServices.logger,
@@ -81,7 +80,7 @@ export const catalogModuleOpenchoreo = createBackendModule({
       },
       async init({
         catalog,
-        catalogPermissions,
+        permissionsRegistry,
         catalogService,
         config,
         logger,
@@ -214,7 +213,7 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register OpenChoreo permission rule for catalog entities
         // This allows catalog.entity.* permissions to be checked against OpenChoreo capabilities
-        catalogPermissions.addPermissionRules(matchesCatalogEntityCapability);
+        permissionsRegistry.addPermissionRules([matchesCatalogEntityCapability]);
       },
     });
   },
