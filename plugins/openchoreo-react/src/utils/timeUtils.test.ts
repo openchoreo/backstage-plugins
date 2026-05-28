@@ -173,11 +173,13 @@ describe('pickRangeForAge', () => {
     [7 * 24 * 60 * 60 * 1000, '7d'],
     [7 * 24 * 60 * 60 * 1000 + 1, '14d'],
     [14 * 24 * 60 * 60 * 1000, '14d'],
+    [14 * 24 * 60 * 60 * 1000 + 1, '30d'],
+    [30 * 24 * 60 * 60 * 1000, '30d'],
   ])('picks the smallest preset that covers %s ms', (ageMs, expected) => {
     expect(pickRangeForAge(ageMs)).toBe(expected);
   });
 
-  it('falls back to the widest preset (14d) when no preset covers the age', () => {
-    expect(pickRangeForAge(30 * 24 * 60 * 60 * 1000)).toBe('14d');
+  it('falls back to the widest preset (30d) when no preset covers the age', () => {
+    expect(pickRangeForAge(60 * 24 * 60 * 60 * 1000)).toBe('30d');
   });
 });

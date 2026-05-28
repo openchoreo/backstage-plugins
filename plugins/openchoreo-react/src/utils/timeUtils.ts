@@ -106,6 +106,7 @@ export function pickRangeForAge(ageMs: number): string {
     { value: '24h', ms: 24 * 60 * 60 * 1000 },
     { value: '7d', ms: 7 * 24 * 60 * 60 * 1000 },
     { value: '14d', ms: 14 * 24 * 60 * 60 * 1000 },
+    { value: '30d', ms: 30 * 24 * 60 * 60 * 1000 },
   ];
   const match = presets.find(p => p.ms >= ageMs);
   return match ? match.value : presets[presets.length - 1].value;
