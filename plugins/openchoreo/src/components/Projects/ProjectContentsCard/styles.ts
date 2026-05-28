@@ -71,6 +71,12 @@ export const useProjectContentsCardStyles = makeStyles(theme => {
     searchField: {
       minWidth: 220,
     },
+    // Lets the table scroll horizontally on narrow viewports instead of
+    // crushing the fixed columns until cell content overlaps.
+    tableScroll: {
+      width: '100%',
+      overflowX: 'auto',
+    },
 
     // --- Deployment status chips -------------------------------------------
     deploymentStatus: {

@@ -251,45 +251,47 @@ export const ProjectContentsCard = () => {
         <ProjectContentsEmptyState entity={entity} />
       ) : (
         <>
-          <Table<ProjectContentItem>
-            columns={columns}
-            data={page.items}
-            isLoading={tableLoading}
-            onOrderChange={handleOrderChange}
-            onRowClick={(event, rowData) => {
-              if (
-                !rowData ||
-                !shouldNavigateOnRowClick(event) ||
-                isMarkedForDeletion(rowData.entity)
-              ) {
-                return;
+          <Box className={classes.tableScroll}>
+            <Table<ProjectContentItem>
+              columns={columns}
+              data={page.items}
+              isLoading={tableLoading}
+              onOrderChange={handleOrderChange}
+              onRowClick={(event, rowData) => {
+                if (
+                  !rowData ||
+                  !shouldNavigateOnRowClick(event) ||
+                  isMarkedForDeletion(rowData.entity)
+                ) {
+                  return;
+                }
+                const ns = rowData.entity.metadata.namespace || 'default';
+                navigate(`/catalog/${ns}/${rowData.kind}/${rowData.name}`);
+              }}
+              emptyContent={
+                <Box p={3}>
+                  <Typography
+                    variant="body1"
+                    color="textSecondary"
+                    align="center"
+                  >
+                    No components or resources match the current filters
+                  </Typography>
+                </Box>
               }
-              const ns = rowData.entity.metadata.namespace || 'default';
-              navigate(`/catalog/${ns}/${rowData.kind}/${rowData.name}`);
-            }}
-            emptyContent={
-              <Box p={3}>
-                <Typography
-                  variant="body1"
-                  color="textSecondary"
-                  align="center"
-                >
-                  No components or resources match the current filters
-                </Typography>
-              </Box>
-            }
-            options={{
-              paging: false,
-              sorting: true,
-              thirdSortClick: false,
-              search: false,
-              toolbar: false,
-              draggable: false,
-              padding: 'dense',
-              tableLayout: 'fixed',
-            }}
-            style={{ width: '100%', boxShadow: 'none' }}
-          />
+              options={{
+                paging: false,
+                sorting: true,
+                thirdSortClick: false,
+                search: false,
+                toolbar: false,
+                draggable: false,
+                padding: 'dense',
+                tableLayout: 'fixed',
+              }}
+              style={{ width: '100%', minWidth: 950, boxShadow: 'none' }}
+            />
+          </Box>
 
           {page.totalItems > 0 && (
             <Box className={classes.pager}>
