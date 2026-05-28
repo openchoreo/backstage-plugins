@@ -31,6 +31,10 @@ export const useStyles = makeStyles((theme: Theme) => {
       minWidth: 240,
       maxHeight: 360,
       padding: theme.spacing(0.5, 0),
+      // Use the raised surface + a soft shadow so the menu reads as a distinct
+      // floating layer (in dark mode the default paper blends with the page).
+      backgroundColor: tokens.surface.raised,
+      boxShadow: tokens.shadow.lg,
     },
     menuActions: {
       display: 'flex',

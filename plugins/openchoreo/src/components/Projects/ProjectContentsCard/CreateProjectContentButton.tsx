@@ -72,6 +72,7 @@ export const CreateProjectContentButton = ({ entity }: { entity: Entity }) => {
       variant="outlined"
       color="primary"
       size="small"
+      minWidth={180}
       tooltip={
         groupDisabled ? componentDeniedTooltip || resourceDeniedTooltip : ''
       }
