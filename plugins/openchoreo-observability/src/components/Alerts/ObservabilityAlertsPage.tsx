@@ -13,7 +13,10 @@ import {
   useGetEnvironmentsByNamespace,
   useUrlFiltersForAlerts,
 } from '../../hooks';
-import { useAlertsPermission } from '@openchoreo/backstage-plugin-react';
+import {
+  useAlertsPermission,
+  pickRangeForAge,
+} from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
 import type { AlertSummary } from '../../types';
 
@@ -148,21 +151,9 @@ const ObservabilityAlertsContent = () => {
       const catalogNs = entity.metadata.namespace || 'default';
       if (!parentProject) return;
 
-      // Pick smallest preset >= age of alert
-      const PRESETS: Array<{ value: string; ms: number }> = [
-        { value: '10m', ms: 10 * 60 * 1000 },
-        { value: '30m', ms: 30 * 60 * 1000 },
-        { value: '1h', ms: 60 * 60 * 1000 },
-        { value: '24h', ms: 24 * 60 * 60 * 1000 },
-        { value: '7d', ms: 7 * 24 * 60 * 60 * 1000 },
-        { value: '14d', ms: 14 * 24 * 60 * 60 * 1000 },
-      ];
-      let timeRange = '1h'; // default
-      if (alert.timestamp) {
-        const ageMs = Date.now() - new Date(alert.timestamp).getTime();
-        const match = PRESETS.find(p => p.ms >= ageMs);
-        timeRange = match ? match.value : PRESETS[PRESETS.length - 1].value;
-      }
+      const timeRange = alert.timestamp
+        ? pickRangeForAge(Date.now() - new Date(alert.timestamp).getTime())
+        : '1h';
 
       const params = new URLSearchParams({
         search: alert.alertId,
@@ -184,21 +175,9 @@ const ObservabilityAlertsContent = () => {
       const catalogNs = entity.metadata.namespace || 'default';
       if (!parentProject) return;
 
-      // Pick smallest preset >= age of alert
-      const PRESETS: Array<{ value: string; ms: number }> = [
-        { value: '10m', ms: 10 * 60 * 1000 },
-        { value: '30m', ms: 30 * 60 * 1000 },
-        { value: '1h', ms: 60 * 60 * 1000 },
-        { value: '24h', ms: 24 * 60 * 60 * 1000 },
-        { value: '7d', ms: 7 * 24 * 60 * 60 * 1000 },
-        { value: '14d', ms: 14 * 24 * 60 * 60 * 1000 },
-      ];
-      let timeRange = '1h'; // default
-      if (alert.timestamp) {
-        const ageMs = Date.now() - new Date(alert.timestamp).getTime();
-        const match = PRESETS.find(p => p.ms >= ageMs);
-        timeRange = match ? match.value : PRESETS[PRESETS.length - 1].value;
-      }
+      const timeRange = alert.timestamp
+        ? pickRangeForAge(Date.now() - new Date(alert.timestamp).getTime())
+        : '1h';
 
       const params = new URLSearchParams({
         q: alert.alertId,

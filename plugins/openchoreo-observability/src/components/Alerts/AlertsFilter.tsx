@@ -11,7 +11,7 @@ import {
 import { Skeleton } from '@material-ui/lab';
 import { type AlertsFilters, ALERT_SEVERITIES } from './types';
 import { type Environment } from '../../types';
-import { TimeRangeFilter } from '../TimeRangeFilter';
+import { TimeRangeFilter } from '@openchoreo/backstage-plugin-react';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 
 interface AlertsFilterProps {

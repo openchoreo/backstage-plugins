@@ -92,3 +92,22 @@ export function calculateTimeRange(
     endTime,
   };
 }
+
+/**
+ * Picks the smallest preset range whose duration covers `ageMs` (e.g. an
+ * alert's age), so a linked view opens with a window that includes the event.
+ * Falls back to the widest preset when nothing is large enough.
+ */
+export function pickRangeForAge(ageMs: number): string {
+  const presets: Array<{ value: string; ms: number }> = [
+    { value: '10m', ms: 10 * 60 * 1000 },
+    { value: '30m', ms: 30 * 60 * 1000 },
+    { value: '1h', ms: 60 * 60 * 1000 },
+    { value: '24h', ms: 24 * 60 * 60 * 1000 },
+    { value: '7d', ms: 7 * 24 * 60 * 60 * 1000 },
+    { value: '14d', ms: 14 * 24 * 60 * 60 * 1000 },
+    { value: '30d', ms: 30 * 24 * 60 * 60 * 1000 },
+  ];
+  const match = presets.find(p => p.ms >= ageMs);
+  return match ? match.value : presets[presets.length - 1].value;
+}

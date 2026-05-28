@@ -13,7 +13,7 @@ import { Skeleton } from '@material-ui/lab';
 import { Component } from '../../hooks/useGetComponentsByProject';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 import { type Environment } from '../../types';
-import { TimeRangeFilter } from '../TimeRangeFilter';
+import { TimeRangeFilter } from '@openchoreo/backstage-plugin-react';
 import {
   RuntimeLogsFilters,
   LOG_LEVELS,

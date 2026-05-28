@@ -1,4 +1,8 @@
-import { formatRelativeTime, calculateTimeRange } from './timeUtils';
+import {
+  formatRelativeTime,
+  calculateTimeRange,
+  pickRangeForAge,
+} from './timeUtils';
 
 describe('formatRelativeTime', () => {
   const NOW = new Date('2025-06-15T12:00:00Z');
@@ -133,5 +137,49 @@ describe('calculateTimeRange', () => {
       expect(endMs - startMs).toBe(60 * 60 * 1000);
       expect(result.endTime).toBe(NOW.toISOString());
     });
+
+    it('falls back to last hour when only startTime is provided', () => {
+      const startTime = '2025-06-14T08:00:00.000Z';
+      const result = calculateTimeRange('custom', { startTime });
+      const endMs = new Date(result.endTime).getTime();
+
+      expect(result.startTime).toBe(startTime);
+      expect(endMs).toBe(NOW.getTime());
+    });
+
+    it('falls back to one-hour-ago start when only endTime is provided', () => {
+      const endTime = '2025-06-15T11:30:00.000Z';
+      const result = calculateTimeRange('custom', { endTime });
+      const startMs = new Date(result.startTime).getTime();
+
+      expect(result.endTime).toBe(endTime);
+      expect(startMs).toBe(NOW.getTime() - 60 * 60 * 1000);
+    });
+  });
+});
+
+describe('pickRangeForAge', () => {
+  it.each([
+    [0, '10m'],
+    [60 * 1000, '10m'],
+    [10 * 60 * 1000, '10m'],
+    [10 * 60 * 1000 + 1, '30m'],
+    [30 * 60 * 1000, '30m'],
+    [30 * 60 * 1000 + 1, '1h'],
+    [60 * 60 * 1000, '1h'],
+    [60 * 60 * 1000 + 1, '24h'],
+    [24 * 60 * 60 * 1000, '24h'],
+    [24 * 60 * 60 * 1000 + 1, '7d'],
+    [7 * 24 * 60 * 60 * 1000, '7d'],
+    [7 * 24 * 60 * 60 * 1000 + 1, '14d'],
+    [14 * 24 * 60 * 60 * 1000, '14d'],
+    [14 * 24 * 60 * 60 * 1000 + 1, '30d'],
+    [30 * 24 * 60 * 60 * 1000, '30d'],
+  ])('picks the smallest preset that covers %s ms', (ageMs, expected) => {
+    expect(pickRangeForAge(ageMs)).toBe(expected);
+  });
+
+  it('falls back to the widest preset (30d) when no preset covers the age', () => {
+    expect(pickRangeForAge(60 * 24 * 60 * 60 * 1000)).toBe('30d');
   });
 });

@@ -6,7 +6,7 @@ import {
   Grid,
 } from '@material-ui/core';
 import { Filters, Environment } from '../../types';
-import { TimeRangeFilter } from '../TimeRangeFilter';
+import { TimeRangeFilter } from '@openchoreo/backstage-plugin-react';
 
 interface MetricsFiltersProps {
   filters: Filters;
