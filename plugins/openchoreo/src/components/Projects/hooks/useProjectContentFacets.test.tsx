@@ -46,7 +46,11 @@ describe('useProjectContentFacets', () => {
     const { result } = renderFacets();
     await act(async () => {});
 
-    expect(result.current.counts).toEqual({ all: 6, component: 4, resource: 2 });
+    expect(result.current.counts).toEqual({
+      all: 6,
+      component: 4,
+      resource: 2,
+    });
     expect(result.current.typesByKind.component).toEqual([
       'deployment/service',
       'deployment/web',
@@ -83,7 +87,11 @@ describe('useProjectContentFacets', () => {
     const { result } = renderFacets();
     await act(async () => {});
 
-    expect(result.current.counts).toEqual({ all: 0, component: 0, resource: 0 });
+    expect(result.current.counts).toEqual({
+      all: 0,
+      component: 0,
+      resource: 0,
+    });
     expect(result.current.typesByKind).toEqual({ component: [], resource: [] });
     expect(result.current.loading).toBe(false);
   });

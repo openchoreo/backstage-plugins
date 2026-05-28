@@ -15,7 +15,10 @@ const groupedGroups: MultiSelectGroup[] = [
     label: 'Component Types',
     options: [{ value: 'deployment/service', label: 'deployment/service' }],
   },
-  { label: 'Resource Types', options: [{ value: 'postgres', label: 'postgres' }] },
+  {
+    label: 'Resource Types',
+    options: [{ value: 'postgres', label: 'postgres' }],
+  },
 ];
 
 const kinds = ['component', 'resource'];
