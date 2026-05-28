@@ -211,9 +211,14 @@ export const catalogModuleOpenchoreo = createBackendModule({
         }
         catalog.addEntityProvider(scaffolderProviderInstance);
 
-        // Register OpenChoreo permission rule for catalog entities
-        // This allows catalog.entity.* permissions to be checked against OpenChoreo capabilities
-        permissionsRegistry.addPermissionRules([matchesCatalogEntityCapability]);
+        // Register OpenChoreo permission rule for catalog entities.
+        // v1.51 `addPermissionRules` types its arg as
+        // `PermissionRule<any, any, string>[]` (3 generics) while
+        // `createPermissionRule` returns the more specific 4-generic
+        // shape. Widening cast — the runtime contract is identical.
+        permissionsRegistry.addPermissionRules([
+          matchesCatalogEntityCapability as any,
+        ]);
       },
     });
   },

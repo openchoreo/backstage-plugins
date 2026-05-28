@@ -155,7 +155,12 @@ export const choreoPlugin = createBackendPlugin({
         permissionsRegistry.addResourceType({
           resourceRef: openchoreoNamespacedResourceRef,
           permissions: namespacedResourcePermissions,
-          rules: [matchesCapability],
+          // v1.51 `PermissionsRegistryService.addResourceType` types `rules`
+          // as `PermissionRule<TResource, TQuery, TResourceType>[]` (3
+          // generics) while `createPermissionRule` returns the more specific
+          // 4-generic `PermissionRule<..., TParams>`. Widening cast — the
+          // runtime contract is identical.
+          rules: [matchesCapability as any],
           getResources: async (resourceRefs: string[]) => {
             try {
               // Get service credentials for catalog access
