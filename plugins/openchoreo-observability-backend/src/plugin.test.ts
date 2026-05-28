@@ -20,7 +20,6 @@ describe('plugin', () => {
               observerUrl: 'https://observer.example.com',
               rcaAgentUrl: 'https://rca.example.com',
             }),
-            fetchEnvironmentsByNamespace: jest.fn().mockResolvedValue([]),
             getReleaseBinding: jest.fn(),
             updateReleaseBinding: jest.fn(),
             fetchDataPlaneNetPolProvider: jest.fn(),
@@ -50,9 +49,6 @@ describe('plugin', () => {
             resolveUrls: jest
               .fn()
               .mockRejectedValue(new Error('Failed to resolve URLs')),
-            fetchEnvironmentsByNamespace: jest
-              .fn()
-              .mockRejectedValue(new Error('Failed to fetch environments')),
             getReleaseBinding: jest.fn(),
             updateReleaseBinding: jest.fn(),
             fetchDataPlaneNetPolProvider: jest.fn(),
@@ -81,7 +77,6 @@ describe('plugin', () => {
             resolveUrls: jest
               .fn()
               .mockRejectedValue(new ObservabilityNotConfiguredError('org-1')),
-            fetchEnvironmentsByNamespace: jest.fn().mockResolvedValue([]),
             getReleaseBinding: jest.fn(),
             updateReleaseBinding: jest.fn(),
             fetchDataPlaneNetPolProvider: jest.fn(),

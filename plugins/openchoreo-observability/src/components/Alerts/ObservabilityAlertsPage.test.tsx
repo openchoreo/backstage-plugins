@@ -6,20 +6,20 @@ import { ObservabilityAlertsPage } from './ObservabilityAlertsPage';
 // ---- Mocks (own hooks and child components only) ----
 
 const mockUseAlertsPermission = jest.fn();
+const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useAlertsPermission: () => mockUseAlertsPermission(),
+  useProjectEnvironments: (...args: any[]) =>
+    mockUseProjectEnvironments(...args),
 }));
 
 const mockUseGetNamespaceAndProjectByEntity = jest.fn();
-const mockUseGetEnvironmentsByNamespace = jest.fn();
 const mockUseComponentAlerts = jest.fn();
 const mockUseUrlFiltersForAlerts = jest.fn();
 
 jest.mock('../../hooks', () => ({
   useGetNamespaceAndProjectByEntity: (...args: any[]) =>
     mockUseGetNamespaceAndProjectByEntity(...args),
-  useGetEnvironmentsByNamespace: (...args: any[]) =>
-    mockUseGetEnvironmentsByNamespace(...args),
   useComponentAlerts: (...args: any[]) => mockUseComponentAlerts(...args),
   useUrlFiltersForAlerts: (...args: any[]) =>
     mockUseUrlFiltersForAlerts(...args),
@@ -103,7 +103,7 @@ function setupDefaultMocks() {
     project: 'my-project',
   });
 
-  mockUseGetEnvironmentsByNamespace.mockReturnValue({
+  mockUseProjectEnvironments.mockReturnValue({
     environments: [{ name: 'development', displayName: 'Development' }],
     loading: false,
     error: null,
@@ -197,7 +197,7 @@ describe('ObservabilityAlertsPage', () => {
   });
 
   it('shows environment error', async () => {
-    mockUseGetEnvironmentsByNamespace.mockReturnValue({
+    mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
       error: 'Failed to fetch environments',
@@ -245,7 +245,7 @@ describe('ObservabilityAlertsPage', () => {
   });
 
   it('shows no environments alert when none found', async () => {
-    mockUseGetEnvironmentsByNamespace.mockReturnValue({
+    mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
       error: null,

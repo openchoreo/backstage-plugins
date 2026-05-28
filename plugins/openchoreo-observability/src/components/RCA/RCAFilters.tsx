@@ -7,15 +7,13 @@ import {
   Grid,
   TextField,
 } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
+import { Filters, RCA_STATUS_OPTIONS, RCAStatus } from '../../types';
 import {
-  type Environment,
-  Filters,
-  RCA_STATUS_OPTIONS,
-  RCAStatus,
-} from '../../types';
-import { TimeRangeFilter } from '@openchoreo/backstage-plugin-react';
+  Environment,
+  EnvironmentFilter,
+  TimeRangeFilter,
+} from '@openchoreo/backstage-plugin-react';
 
 interface RCAFiltersProps {
   filters: Filters;
@@ -36,15 +34,6 @@ export const RCAFilters = ({
     filters.searchQuery,
     value => onFiltersChange({ searchQuery: value }),
   );
-
-  const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
-    const selectedEnvironment = environments.find(
-      env => env.uid === (event.target.value as string),
-    );
-    if (selectedEnvironment) {
-      onFiltersChange({ environment: selectedEnvironment, searchQuery: '' });
-    }
-  };
 
   const handleTimeRangeChange = (next: {
     timeRange: string;
@@ -76,29 +65,20 @@ export const RCAFilters = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl
-          fullWidth
-          disabled={disabled || environmentsLoading}
-          variant="outlined"
-        >
-          <InputLabel id="environment-label">Environment</InputLabel>
-          {environmentsLoading ? (
-            <Skeleton variant="rect" height={56} />
-          ) : (
-            <Select
-              value={filters.environment?.uid || ''}
-              onChange={handleEnvironmentChange}
-              labelId="environment-label"
-              label="Environment"
-            >
-              {environments.map((env: Environment) => (
-                <MenuItem key={env.uid || env.name} value={env.uid || env.name}>
-                  {env.displayName || env.name}
-                </MenuItem>
-              ))}
-            </Select>
-          )}
-        </FormControl>
+        <EnvironmentFilter
+          environments={environments}
+          loading={environmentsLoading}
+          value={filters.environment ?? null}
+          onChange={env =>
+            env &&
+            onFiltersChange({
+              environment: env as Environment,
+              searchQuery: '',
+            })
+          }
+          disabled={disabled}
+          size="medium"
+        />
       </Grid>
 
       <Grid item xs={12} md={3}>

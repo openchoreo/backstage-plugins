@@ -7,16 +7,13 @@ import { CostAnalysisTable } from './CostAnalysisTable';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import type { FinOpsReportSummary } from '../../types';
-import {
-  useUrlFilters,
-  useGetEnvironmentsByNamespace,
-  useFinOpsReports,
-} from '../../hooks';
+import { useUrlFilters, useFinOpsReports } from '../../hooks';
 import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import {
   useRcaPermission,
   ForbiddenState,
+  useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { CostAnalysisReport } from './CostAnalysisReport';
 import { EntityLinkContext } from '../RCA/RCAReport/EntityLinkContext';
@@ -33,7 +30,7 @@ const CostAnalysisListContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace, projectName);
+  } = useProjectEnvironments(projectName, namespace);
   const { filters, updateFilters } = useUrlFilters({ environments });
 
   const {

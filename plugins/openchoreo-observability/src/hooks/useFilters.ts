@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Environment, Filters } from '../types';
+import { Filters } from '../types';
+import { Environment } from '@openchoreo/backstage-plugin-react';
 
 const DEFAULT_TIME_RANGE = '10m';
 /**

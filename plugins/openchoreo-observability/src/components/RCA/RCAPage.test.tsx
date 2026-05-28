@@ -6,20 +6,20 @@ import { RCAPage } from './RCAPage';
 // ---- Mocks (own hooks and child components only) ----
 
 const mockUseRcaPermission = jest.fn();
+const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useRcaPermission: () => mockUseRcaPermission(),
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden-state">{message}</div>
   ),
+  useProjectEnvironments: (...args: any[]) =>
+    mockUseProjectEnvironments(...args),
 }));
 
-const mockUseGetEnvironmentsByNamespace = jest.fn();
 const mockUseUrlFilters = jest.fn();
 const mockUseRCAReports = jest.fn();
 
 jest.mock('../../hooks', () => ({
-  useGetEnvironmentsByNamespace: (...args: any[]) =>
-    mockUseGetEnvironmentsByNamespace(...args),
   useUrlFilters: (...args: any[]) => mockUseUrlFilters(...args),
   useRCAReports: (...args: any[]) => mockUseRCAReports(...args),
 }));
@@ -94,7 +94,7 @@ function setupDefaultMocks() {
     permissionName: '',
   });
 
-  mockUseGetEnvironmentsByNamespace.mockReturnValue({
+  mockUseProjectEnvironments.mockReturnValue({
     environments: [defaultEnvironment],
     loading: false,
     error: null,
@@ -254,7 +254,7 @@ describe('RCAPage', () => {
   });
 
   it('renders nothing for environments error', async () => {
-    mockUseGetEnvironmentsByNamespace.mockReturnValue({
+    mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
       error: 'Environment error',

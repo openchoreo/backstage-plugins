@@ -10,12 +10,8 @@ import {
 import { Progress } from '@backstage/core-components';
 import Box from '@material-ui/core/Box';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import FormControl from '@material-ui/core/FormControl';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import IconButton from '@material-ui/core/IconButton';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
-import Select from '@material-ui/core/Select';
 import Switch from '@material-ui/core/Switch';
 import Tooltip from '@material-ui/core/Tooltip';
 import Typography from '@material-ui/core/Typography';
@@ -29,6 +25,8 @@ import { DiagramLayer, Project } from '@wso2/cell-diagram';
 import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 import {
   EmptyState,
+  type Environment,
+  EnvironmentFilter,
   TimeRangeFilter,
   calculateTimeRange,
 } from '@openchoreo/backstage-plugin-react';
@@ -63,7 +61,7 @@ function hasObservations(project: Project | undefined): boolean {
 export const CellDiagram = () => {
   const { entity } = useEntity();
   const [cellDiagramData, setCellDiagramData] = useState<Project>();
-  const [environment, setEnvironment] = useState<string>('');
+  const [environment, setEnvironment] = useState<Environment | null>(null);
   const [timeRange, setTimeRange] = useState<string>('1h');
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -82,17 +80,19 @@ export const CellDiagram = () => {
     namespaceName,
   );
 
-  useEffect(() => {
-    setEnvironment(environments[0]?.name ?? '');
-  }, [environments]);
-
   const anyEnvHasRuntimeObservability = useMemo(
     () => environments.some(e => e.hasRuntimeObservability),
     [environments],
   );
   const selectedEnvHasRuntimeObservability =
-    environments.find(e => e.name === environment)?.hasRuntimeObservability ??
-    false;
+    environments.find(e => e.name === environment?.name)
+      ?.hasRuntimeObservability ?? false;
+
+  // Auto-select the first environment once the list resolves.
+  useEffect(() => {
+    if (environmentsLoading || environment || environments.length === 0) return;
+    setEnvironment(environments[0]);
+  }, [environmentsLoading, environment, environments]);
 
   // Compute startTime/endTime/step from selected range. Recomputes when refreshNonce changes
   // so the refresh button advances "now" in the window.
@@ -116,7 +116,9 @@ export const CellDiagram = () => {
   // refreshNonce is included in the arch key so the Retry button can re-trigger the fetch even when
   // observability is off (in obs mode it already flows through `range`).
   const diagramFetchKey = observabilityActive
-    ? `obs|${environment}|${range?.startTime ?? ''}|${range?.endTime ?? ''}`
+    ? `obs|${environment?.name ?? ''}|${range?.startTime ?? ''}|${
+        range?.endTime ?? ''
+      }`
     : `arch|${refreshNonce}`;
 
   useEffect(() => {
@@ -126,7 +128,7 @@ export const CellDiagram = () => {
       try {
         const data = await client.getCellDiagramInfo(entity, {
           environmentName: observabilityActive
-            ? environment || undefined
+            ? environment?.name || undefined
             : undefined,
           startTime: observabilityActive ? range?.startTime : undefined,
           endTime: observabilityActive ? range?.endTime : undefined,
@@ -229,35 +231,20 @@ export const CellDiagram = () => {
 
           {runtimeEnabled && (
             <>
-              <FormControl
-                variant="outlined"
-                size="small"
+              <Box
                 style={{
                   minWidth: 200,
                   backgroundColor: controlBg,
                   borderRadius: 4,
                 }}
               >
-                <InputLabel id="cell-diagram-env-label">Environment</InputLabel>
-                <Select
-                  labelId="cell-diagram-env-label"
+                <EnvironmentFilter
+                  environments={environments}
+                  loading={environmentsLoading}
                   value={environment}
-                  label="Environment"
-                  onChange={e => setEnvironment(e.target.value as string)}
-                  disabled={environments.length === 0}
-                >
-                  {environments.length === 0 && (
-                    <MenuItem value="" disabled>
-                      No environments
-                    </MenuItem>
-                  )}
-                  {environments.map(env => (
-                    <MenuItem key={env.name} value={env.name}>
-                      {env.displayName ?? env.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                  onChange={setEnvironment}
+                />
+              </Box>
 
               <Box
                 style={{
@@ -307,8 +294,11 @@ export const CellDiagram = () => {
                     }}
                   >
                     Runtime network observability is unavailable in the{' '}
-                    <strong>{environment}</strong> environment. Configure the
-                    Cilium module to enable network observability.
+                    <strong>
+                      {environment.displayName || environment.name}
+                    </strong>{' '}
+                    environment. Configure the Cilium module to enable network
+                    observability.
                   </Typography>
                 )}
 

@@ -6,6 +6,7 @@ import { ObservabilityTracesPage } from './ObservabilityTracesPage';
 // ---- Mocks (own hooks and child components only) ----
 
 const mockUseTracesPermission = jest.fn();
+const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useTracesPermission: () => mockUseTracesPermission(),
   ForbiddenState: ({ message }: any) => (
@@ -15,16 +16,15 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
     startTime: '2026-01-01T00:00:00.000Z',
     endTime: '2026-01-01T01:00:00.000Z',
   }),
+  useProjectEnvironments: (...args: any[]) =>
+    mockUseProjectEnvironments(...args),
 }));
 
-const mockUseGetEnvironmentsByNamespace = jest.fn();
 const mockUseGetComponentsByProject = jest.fn();
 const mockUseTraces = jest.fn();
 const mockUseUrlFilters = jest.fn();
 
 jest.mock('../../hooks', () => ({
-  useGetEnvironmentsByNamespace: (...args: any[]) =>
-    mockUseGetEnvironmentsByNamespace(...args),
   useGetComponentsByProject: (...args: any[]) =>
     mockUseGetComponentsByProject(...args),
   useTraces: (...args: any[]) => mockUseTraces(...args),
@@ -109,7 +109,7 @@ function setupDefaultMocks() {
     permissionName: '',
   });
 
-  mockUseGetEnvironmentsByNamespace.mockReturnValue({
+  mockUseProjectEnvironments.mockReturnValue({
     environments: [defaultEnvironment],
     loading: false,
     error: null,
@@ -266,7 +266,7 @@ describe('ObservabilityTracesPage', () => {
   });
 
   it('renders nothing for environments error', async () => {
-    mockUseGetEnvironmentsByNamespace.mockReturnValue({
+    mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
       error: 'Environment error',

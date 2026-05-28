@@ -10,8 +10,11 @@ import {
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { type IncidentsFilters, INCIDENT_STATUSES } from './types';
-import { type Environment } from '../../types';
-import { TimeRangeFilter } from '@openchoreo/backstage-plugin-react';
+import {
+  Environment,
+  EnvironmentFilter,
+  TimeRangeFilter,
+} from '@openchoreo/backstage-plugin-react';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 import type { Component } from '../../hooks/useGetComponentsByProject';
 
@@ -38,13 +41,6 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
     filters.searchQuery,
     value => onFiltersChange({ searchQuery: value }),
   );
-
-  const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({
-      environment: event.target.value as string,
-      searchQuery: '',
-    });
-  };
 
   const handleTimeRangeChange = (next: {
     timeRange: string;
@@ -144,29 +140,19 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
       </Grid>
 
       <Grid item xs={12} md={2}>
-        <FormControl
-          fullWidth
-          disabled={disabled || environmentsLoading}
-          variant="outlined"
-        >
-          <InputLabel id="environment-label">Environment</InputLabel>
-          {environmentsLoading ? (
-            <Skeleton variant="rect" height={56} />
-          ) : (
-            <Select
-              value={filters.environment}
-              onChange={handleEnvironmentChange}
-              labelId="environment-label"
-              label="Environment"
-            >
-              {environments.map(env => (
-                <MenuItem key={env.name} value={env.name}>
-                  {env.displayName || env.name}
-                </MenuItem>
-              ))}
-            </Select>
-          )}
-        </FormControl>
+        <EnvironmentFilter
+          environments={environments}
+          loading={environmentsLoading}
+          value={environments.find(e => e.name === filters.environment) ?? null}
+          onChange={env =>
+            onFiltersChange({
+              environment: env?.name ?? '',
+              searchQuery: '',
+            })
+          }
+          disabled={disabled}
+          size="medium"
+        />
       </Grid>
 
       <Grid item xs={12} md={2}>

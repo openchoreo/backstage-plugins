@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { Environment } from '../types';
+import { Environment } from '@openchoreo/backstage-plugin-react';
 
 /**
  * Automatically selects the first available environment in the URL query params

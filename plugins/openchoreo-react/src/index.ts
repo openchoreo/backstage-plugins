@@ -578,3 +578,8 @@ export { type EntityNode } from '@backstage/plugin-catalog-graph';
 // Routing utilities
 export * from './routing';
 export * from './components/TimeRangeFilter';
+export * from './components/EnvironmentFilter';
+export {
+  useProjectEnvironments,
+  type UseProjectEnvironmentsResult,
+} from './hooks/useProjectEnvironments';

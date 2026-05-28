@@ -16,10 +16,10 @@ import { MetricsActions } from './MetricsActions';
 import { HTTPMetricsSection } from './HTTPMetricsSection';
 import {
   useGetNamespaceAndProjectByEntity,
-  useGetEnvironmentsByNamespace,
   useUrlFilters,
   useMetrics,
 } from '../../hooks';
+import { useProjectEnvironments } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   ResourceMetrics,
@@ -46,7 +46,7 @@ const ObservabilityMetricsContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace, project);
+  } = useProjectEnvironments(project, namespace);
 
   // URL-synced filters - must be after environments are available
   const { filters, updateFilters } = useUrlFilters({

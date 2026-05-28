@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Environment } from '../types';
+import { Environment } from '@openchoreo/backstage-plugin-react';
 import type { IncidentsFilters } from '../components/Incidents/types';
 import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
 import { parseUrlTimeRange, writeUrlTimeRange } from '../utils/urlTimeRange';

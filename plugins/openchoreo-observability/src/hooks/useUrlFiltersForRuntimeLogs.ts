@@ -6,7 +6,7 @@ import {
   LOG_LEVELS,
   SELECTED_FIELDS,
 } from '../components/RuntimeLogs/types';
-import type { Environment } from '../types';
+import { Environment } from '@openchoreo/backstage-plugin-react';
 import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
 import { parseUrlTimeRange, writeUrlTimeRange } from '../utils/urlTimeRange';
 

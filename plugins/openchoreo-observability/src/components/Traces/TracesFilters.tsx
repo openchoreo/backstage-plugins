@@ -9,8 +9,12 @@ import {
   Checkbox,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import { type Environment, Filters } from '../../types';
-import { TimeRangeFilter } from '@openchoreo/backstage-plugin-react';
+import { Filters } from '../../types';
+import {
+  Environment,
+  EnvironmentFilter,
+  TimeRangeFilter,
+} from '@openchoreo/backstage-plugin-react';
 import { Component } from '../../hooks/useGetComponentsByProject';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 
@@ -38,15 +42,6 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
     value => onFiltersChange({ searchQuery: value }),
     500,
   );
-
-  const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
-    const selectedEnvironment = environments.find(
-      env => env.uid === (event.target.value as string),
-    );
-    if (selectedEnvironment) {
-      onFiltersChange({ environment: selectedEnvironment });
-    }
-  };
 
   const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
     const value = event.target.value as string[];
@@ -112,29 +107,16 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl
-          fullWidth
-          disabled={disabled || environmentsLoading}
-          variant="outlined"
-        >
-          <InputLabel id="environment-label">Environment</InputLabel>
-          {environmentsLoading ? (
-            <Skeleton variant="rect" height={56} />
-          ) : (
-            <Select
-              value={filters.environment?.uid || ''}
-              onChange={handleEnvironmentChange}
-              labelId="environment-label"
-              label="Environment"
-            >
-              {environments.map((env: Environment) => (
-                <MenuItem key={env.uid || env.name} value={env.uid || env.name}>
-                  {env.displayName || env.name}
-                </MenuItem>
-              ))}
-            </Select>
-          )}
-        </FormControl>
+        <EnvironmentFilter
+          environments={environments}
+          loading={environmentsLoading}
+          value={filters.environment ?? null}
+          onChange={env =>
+            env && onFiltersChange({ environment: env as Environment })
+          }
+          disabled={disabled}
+          size="medium"
+        />
       </Grid>
 
       <Grid item xs={12} md={3}>

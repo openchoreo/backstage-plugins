@@ -7,15 +7,17 @@ import { ObservabilityMetricsPage } from './ObservabilityMetricsPage';
 // ---- Mocks (own hooks and child components only) ----
 
 const mockUseMetricsPermission = jest.fn();
+const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useMetricsPermission: () => mockUseMetricsPermission(),
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden-state">{message}</div>
   ),
+  useProjectEnvironments: (...args: any[]) =>
+    mockUseProjectEnvironments(...args),
 }));
 
 const mockUseGetNamespaceAndProjectByEntity = jest.fn();
-const mockUseGetEnvironmentsByNamespace = jest.fn();
 const mockUseMetrics = jest.fn();
 const mockUseUrlFilters = jest.fn();
 const mockUseDataPlaneNetPolProvider = jest.fn();
@@ -23,8 +25,6 @@ const mockUseDataPlaneNetPolProvider = jest.fn();
 jest.mock('../../hooks', () => ({
   useGetNamespaceAndProjectByEntity: (...args: any[]) =>
     mockUseGetNamespaceAndProjectByEntity(...args),
-  useGetEnvironmentsByNamespace: (...args: any[]) =>
-    mockUseGetEnvironmentsByNamespace(...args),
   useMetrics: (...args: any[]) => mockUseMetrics(...args),
   useUrlFilters: (...args: any[]) => mockUseUrlFilters(...args),
   useDataPlaneNetPolProvider: (...args: any[]) =>
@@ -107,7 +107,7 @@ function setupDefaultMocks() {
     error: null,
   });
 
-  mockUseGetEnvironmentsByNamespace.mockReturnValue({
+  mockUseProjectEnvironments.mockReturnValue({
     environments: [defaultEnvironment],
     loading: false,
     error: null,
@@ -215,7 +215,7 @@ describe('ObservabilityMetricsPage', () => {
   });
 
   it('shows progress when loading', async () => {
-    mockUseGetEnvironmentsByNamespace.mockReturnValue({
+    mockUseProjectEnvironments.mockReturnValue({
       environments: [defaultEnvironment],
       loading: true,
       error: null,
