@@ -400,6 +400,7 @@ describe('AuthzProfileService', () => {
         'releasebinding:update',
         'ns/team-shop/project/team-shop/component/snip-api-service',
         'team-shop/production',
+        undefined, // no workflow on this input
         false,
         expect.any(Number),
       );
@@ -483,6 +484,163 @@ describe('AuthzProfileService', () => {
           action: 'releasebinding:view',
           resourcePath: 'ns/team-shop',
         },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toBeUndefined();
+    });
+  });
+
+  describe('evaluate — workflow encoding', () => {
+    const subjectProfile = {
+      user: {
+        type: 'user',
+        entitlement_claim: 'groups',
+        entitlement_values: ['developers'],
+      },
+      capabilities: {},
+    } as unknown as UserCapabilitiesResponse;
+
+    const NS_PATH = 'ns/team-shop/project/team-shop/component/snip-api-service';
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    function setupService() {
+      const cache = createMockCache();
+      cache.getByUser.mockResolvedValue(subjectProfile);
+      cache.getEvaluation.mockResolvedValue(undefined);
+      mockPOST.mockResolvedValue(createOkResponse([{ decision: true }]));
+      return { cache, service: createService(cache) };
+    }
+
+    it('encodes workflow as `{namespace}/{name}` for a namespace-scoped Workflow', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'workflowrun:create',
+          resourcePath: NS_PATH,
+          workflow: { name: 'build-go', kind: 'Workflow' },
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: { workflow: 'team-shop/build-go' },
+      });
+    });
+
+    it('encodes workflow as `{namespace}/{name}` for a ComponentWorkflow', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'workflowrun:create',
+          resourcePath: NS_PATH,
+          workflow: { name: 'build-go', kind: 'ComponentWorkflow' },
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: { workflow: 'team-shop/build-go' },
+      });
+    });
+
+    it('encodes workflow as the bare `{name}` for a cluster-scoped ClusterWorkflow', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'workflowrun:create',
+          resourcePath: NS_PATH,
+          // Even though the resource path is namespaced, a ClusterWorkflow is
+          // globally unique by name, so no namespace prefix is added.
+          workflow: { name: 'build-go', kind: 'ClusterWorkflow' },
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: { workflow: 'build-go' },
+      });
+    });
+
+    it('treats an absent kind as cluster-scoped (the backend default)', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'workflowrun:create',
+          resourcePath: NS_PATH,
+          workflow: { name: 'build-go' }, // no kind
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: { workflow: 'build-go' },
+      });
+    });
+
+    it('sends both environment and workflow when both are supplied', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'workflowrun:create',
+          resourcePath: NS_PATH,
+          environment: 'production',
+          workflow: { name: 'build-go', kind: 'Workflow' },
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: {
+          environment: 'team-shop/production',
+          workflow: 'team-shop/build-go',
+        },
+      });
+    });
+
+    it('caches the decision under the encoded workflow value', async () => {
+      const { cache, service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'workflowrun:create',
+          resourcePath: NS_PATH,
+          workflow: { name: 'build-go', kind: 'Workflow' },
+        },
+      ]);
+
+      expect(cache.setEvaluation).toHaveBeenCalledWith(
+        'user:default/alice',
+        expect.any(String),
+        'workflowrun:create',
+        NS_PATH,
+        undefined, // no environment on this input
+        'team-shop/build-go', // encoded workflow
+        true,
+        expect.any(Number),
+      );
+    });
+
+    it('omits context entirely when neither environment nor workflow is supplied', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        { action: 'workflowrun:create', resourcePath: NS_PATH },
       ]);
 
       const body = mockPOST.mock.calls[0][1].body;

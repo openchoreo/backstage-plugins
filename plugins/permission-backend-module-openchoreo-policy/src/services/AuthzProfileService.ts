@@ -12,15 +12,32 @@ type EvaluateRequest = OpenChoreoComponents['schemas']['EvaluateRequest'];
 type SubjectContext = OpenChoreoComponents['schemas']['SubjectContext'];
 
 /**
+ * Workflow attribute used by ABAC CEL expressions like `resource.workflow`.
+ *
+ * `name` is the workflow resource name (as carried in the build payload).
+ * `kind` is the workflow's own kind string — `Workflow`, `ComponentWorkflow`
+ */
+export interface WorkflowContext {
+  name: string;
+  kind?: string;
+}
+
+/** Workflow kind string the OpenChoreo authz core treats as cluster-scoped. */
+const CLUSTER_SCOPED_WORKFLOW_KIND = 'clusterworkflow';
+
+/**
  * Inputs the policy needs to evaluate one capability entry at runtime.
  * `resourcePath` is the capability path matched by the user's profile
- * (e.g., "ns/acme/project/payments/component/api"). `environment` is the
- * runtime attribute used by ABAC CEL expressions like `resource.environment`.
+ * (e.g., "ns/acme/project/payments/component/api"). `environment` and
+ * `workflow` are the runtime attributes used by ABAC CEL expressions like
+ * `resource.environment` and `resource.workflow`. They are independent — an
+ * input may carry either, both, or neither.
  */
 export interface EvaluateInput {
   action: string;
   resourcePath: string;
   environment?: string;
+  workflow?: WorkflowContext;
 }
 
 /** Default TTL in milliseconds when token expiration cannot be determined */
@@ -344,6 +361,22 @@ export class AuthzProfileService {
       return encoded || undefined;
     });
 
+    const encodedWorkflows: (string | undefined)[] = inputs.map(input => {
+      const wf = input.workflow;
+      if (!wf?.name) return undefined;
+      const parsed = parseCapabilityPath(input.resourcePath);
+      const ns =
+        parsed?.namespace && parsed.namespace !== '*'
+          ? parsed.namespace
+          : undefined;
+      // Cluster-scoped when the kind explicitly says so, or when it's missing —
+      // cluster-scoped is the backend's default for an absent workflow kind.
+      const kind = wf.kind?.toLowerCase();
+      const isClusterScoped = kind === CLUSTER_SCOPED_WORKFLOW_KIND || !kind;
+      const encoded = formatDualScopedName(ns, wf.name, isClusterScoped);
+      return encoded || undefined;
+    });
+
     // Include a token-derived component in the cache key so that signing out
     // and back in produces a new key and forces a re-evaluation. Without this,
     // a stale `false` from before an authz binding change would survive
@@ -365,6 +398,7 @@ export class AuthzProfileService {
           action,
           resourcePath,
           encodedEnvs[i],
+          encodedWorkflows[i],
         );
         if (results[i] === undefined) missingIdx.push(i);
       }
@@ -432,9 +466,16 @@ export class AuthzProfileService {
         resource: { type: resourceType, hierarchy },
         action,
       };
+      // Attach whichever ABAC attributes this input carries. Both feed the
+      // same `context.resource` object the authz core reads CEL against; they
+      // are independent, so an input may set one, both, or neither.
       const encodedEnv = encodedEnvs[i];
-      if (encodedEnv) {
-        req.context = { resource: { environment: encodedEnv } };
+      const encodedWorkflow = encodedWorkflows[i];
+      if (encodedEnv || encodedWorkflow) {
+        const resourceContext: { environment?: string; workflow?: string } = {};
+        if (encodedEnv) resourceContext.environment = encodedEnv;
+        if (encodedWorkflow) resourceContext.workflow = encodedWorkflow;
+        req.context = { resource: resourceContext };
       }
       return req;
     });
@@ -456,14 +497,15 @@ export class AuthzProfileService {
         results[i] = allowed;
         if (this.cache) {
           const { action, resourcePath } = inputs[i];
-          // Use the encoded env so cache keys match the form sent to the
-          // backend (and stay isolated per namespace).
+          // Use the encoded env/workflow so cache keys match the form sent to
+          // the backend (and stay isolated per namespace and per attribute).
           await this.cache.setEvaluation(
             userEntityRef,
             tokenHash,
             action,
             resourcePath,
             encodedEnvs[i],
+            encodedWorkflows[i],
             allowed,
             ttlMs,
           );

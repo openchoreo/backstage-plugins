@@ -150,8 +150,12 @@ export class AuthzProfileCache {
    * Builds a cache key for a single ABAC evaluation result.
    *
    * Keys are scoped per-user so we never leak one user's decision to another,
-   * and per-(action, resourcePath, environment) so that the same UI rendering
-   * the same button repeatedly hits the cache instead of /authz/evaluates.
+   * and per-(action, resourcePath, environment, workflow) so that the same UI
+   * rendering the same button repeatedly hits the cache instead of
+   * /authz/evaluates. `environment` and `workflow` occupy distinct slots so an
+   * env-gated decision and a workflow-gated decision on the same action+path
+   * can never collide on one key (which would serve one attribute's `true`/
+   * `false` to the other).
    *
    * The token hash is included so that signing out + back in produces a new
    * key and forces a re-evaluation. Otherwise a stale `false` decision from
@@ -166,6 +170,7 @@ export class AuthzProfileCache {
     action: string,
     resourcePath: string,
     environment: string | undefined,
+    workflow: string | undefined,
   ): string {
     // JSON-encode the tuple so a component containing the separator (or any
     // other character) cannot collide with another distinct tuple.
@@ -175,6 +180,7 @@ export class AuthzProfileCache {
       action,
       resourcePath,
       environment ?? null,
+      workflow ?? null,
     ])}`;
   }
 
@@ -197,6 +203,7 @@ export class AuthzProfileCache {
     action: string,
     resourcePath: string,
     environment: string | undefined,
+    workflow: string | undefined,
   ): Promise<boolean | undefined> {
     const key = this.buildEvaluationKey(
       userEntityRef,
@@ -204,6 +211,7 @@ export class AuthzProfileCache {
       action,
       resourcePath,
       environment,
+      workflow,
     );
     return this.cache.get<boolean>(key);
   }
@@ -214,6 +222,7 @@ export class AuthzProfileCache {
     action: string,
     resourcePath: string,
     environment: string | undefined,
+    workflow: string | undefined,
     allowed: boolean,
     ttlMs: number,
   ): Promise<void> {
@@ -223,6 +232,7 @@ export class AuthzProfileCache {
       action,
       resourcePath,
       environment,
+      workflow,
     );
     await this.cache.set(key, allowed, { ttl: ttlMs });
   }

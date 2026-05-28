@@ -5,6 +5,10 @@ import {
   openchoreoComponentBuildPermission,
   openchoreoComponentViewBuildsPermission,
 } from '@openchoreo/backstage-plugin-common';
+import {
+  useWorkflowScopedPermission,
+  type WorkflowContext,
+} from './useWorkflowScopedPermission';
 
 /**
  * Result of the useBuildPermission hook.
@@ -34,25 +38,38 @@ export interface UseBuildPermissionResult {
  *
  * Must be used within an EntityProvider context.
  *
+ * @param workflow - Optional workflow `{ name, kind }`. When supplied, the
+ *   trigger-build (`canBuild`) check also honors ABAC `resource.workflow` CEL
+ *   constraints via {@link useWorkflowScopedPermission}. When omitted, the
+ *   check is plain visibility-level — identical to the previous behavior, so
+ *   existing call sites need no change. The view-builds (`canView`) check is
+ *   never workflow-scoped.
+ *
  * @example
  * ```tsx
- * const { canBuild, loading, deniedTooltip } = useBuildPermission();
+ * // Workflow-scoped (honors resource.workflow CEL):
+ * const { canBuild, triggerLoading, triggerBuildDeniedTooltip } =
+ *   useBuildPermission({ name: wf.name, kind: wf.kind });
  *
  * return (
- *   <Tooltip title={deniedTooltip}>
+ *   <Tooltip title={triggerBuildDeniedTooltip}>
  *     <span>
- *       <Button disabled={loading || !canBuild}>Build</Button>
+ *       <Button disabled={triggerLoading || !canBuild}>Build</Button>
  *     </span>
  *   </Tooltip>
  * );
  * ```
  */
-export const useBuildPermission = (): UseBuildPermissionResult => {
+export const useBuildPermission = (
+  workflow?: WorkflowContext,
+): UseBuildPermissionResult => {
   const { entity } = useEntity();
-  const { allowed: canBuild, loading: triggerLoading } = usePermission({
-    permission: openchoreoComponentBuildPermission,
-    resourceRef: stringifyEntityRef(entity),
-  });
+  const { allowed: canBuild, loading: triggerLoading } =
+    useWorkflowScopedPermission({
+      permission: openchoreoComponentBuildPermission,
+      resourceRef: stringifyEntityRef(entity),
+      workflow,
+    });
 
   const { allowed: canView, loading: viewLoading } = usePermission({
     permission: openchoreoComponentViewBuildsPermission,

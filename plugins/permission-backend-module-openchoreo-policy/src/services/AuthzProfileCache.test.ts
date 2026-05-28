@@ -198,4 +198,154 @@ describe('AuthzProfileCache', () => {
       );
     });
   });
+
+  // Single ABAC evaluation results are keyed by
+  // (userEntityRef, tokenHash, action, resourcePath, environment, workflow).
+  // The environment and workflow slots are independent: a check that varies
+  // only by attribute must produce a distinct key, otherwise an env-gated
+  // decision and a workflow-gated decision on the same action+path would
+  // collide and serve one attribute's boolean for the other.
+  describe('getEvaluation / setEvaluation', () => {
+    const USER = 'user:default/alice';
+    const HASH = 'abcdef0123456789';
+    const ACTION = 'workflowrun:create';
+    const PATH = 'ns/team-shop/project/team-shop/component/api';
+
+    it('setEvaluation stores the boolean with a TTL option', async () => {
+      await authzCache.setEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined, // environment
+        'team-shop/build-go', // workflow
+        true,
+        60000,
+      );
+
+      expect(mockCache.set).toHaveBeenCalledTimes(1);
+      const [, value, opts] = mockCache.set.mock.calls[0];
+      expect(value).toBe(true);
+      expect(opts).toEqual({ ttl: 60000 });
+    });
+
+    it('get/set use the same key for the same tuple (round-trip)', async () => {
+      await authzCache.setEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        'team-shop/build-go',
+        true,
+        1000,
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        'team-shop/build-go',
+      );
+
+      expect(mockCache.set.mock.calls[0][0]).toBe(
+        mockCache.get.mock.calls[0][0],
+      );
+    });
+
+    it('isolates a workflow-gated decision from an env-gated one on the same action+path', async () => {
+      // Same user/hash/action/path. One varies only by environment, the other
+      // only by workflow. Without distinct slots these would collide.
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        'team-shop/production', // env set, workflow absent
+        undefined,
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        'team-shop/build-go', // workflow set, env absent
+      );
+
+      const envKey = mockCache.get.mock.calls[0][0] as string;
+      const workflowKey = mockCache.get.mock.calls[1][0] as string;
+      expect(envKey).not.toBe(workflowKey);
+    });
+
+    it('produces different keys for different workflows', async () => {
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        'team-shop/build-go',
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        'team-shop/build-node',
+      );
+
+      expect(mockCache.get.mock.calls[0][0]).not.toBe(
+        mockCache.get.mock.calls[1][0],
+      );
+    });
+
+    it('produces the same key when only the workflow matches (determinism)', async () => {
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        'team-shop/build-go',
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        'team-shop/build-go',
+      );
+
+      expect(mockCache.get.mock.calls[0][0]).toBe(
+        mockCache.get.mock.calls[1][0],
+      );
+    });
+
+    it('treats an absent workflow distinctly from a present one', async () => {
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        'team-shop/build-go',
+      );
+
+      expect(mockCache.get.mock.calls[0][0]).not.toBe(
+        mockCache.get.mock.calls[1][0],
+      );
+    });
+  });
 });

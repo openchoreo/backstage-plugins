@@ -74,14 +74,6 @@ export const Workflows = () => {
   const { entity } = useEntity();
   const client = useApi(openChoreoCiClientApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
-  const {
-    canBuild,
-    canView,
-    triggerLoading: permissionLoading,
-    viewLoading,
-    triggerBuildDeniedTooltip: deniedTooltip,
-    viewPermissionName,
-  } = useBuildPermission();
 
   // URL-based routing
   const {
@@ -110,6 +102,19 @@ export const Workflows = () => {
   const workflowKind = workflowData.componentDetails?.componentWorkflow?.kind;
   const entityNamespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+
+  // Trigger-build permission, scoped to the component's workflow so ABAC
+  // `resource.workflow` CEL constraints are honored.
+  const {
+    canBuild,
+    canView,
+    triggerLoading: permissionLoading,
+    viewLoading,
+    triggerBuildDeniedTooltip: deniedTooltip,
+    viewPermissionName,
+  } = useBuildPermission(
+    workflowName ? { name: workflowName, kind: workflowKind } : undefined,
+  );
 
   // Fetch workflow retention TTL from catalog entity
   const retentionTtl = useWorkflowRetention(
