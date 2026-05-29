@@ -24,6 +24,7 @@ type HTTPMetricsSectionProps = {
   entity: Entity;
   namespaceName: string;
   project: string;
+  refreshNonce: number;
 };
 
 export const HTTPMetricsSection = ({
@@ -31,6 +32,7 @@ export const HTTPMetricsSection = ({
   entity,
   namespaceName,
   project,
+  refreshNonce,
 }: HTTPMetricsSectionProps) => {
   const { networkPolicyProvider, loading: netPolLoading } =
     useDataPlaneNetPolProvider(
@@ -51,6 +53,7 @@ export const HTTPMetricsSection = ({
     environment: undefined as string | undefined,
     timeRange: undefined as string | undefined,
   });
+  const previousRefreshNonceRef = useRef(refreshNonce);
 
   useEffect(() => {
     if (!httpEnabled) {
@@ -65,13 +68,25 @@ export const HTTPMetricsSection = ({
     const filtersChanged =
       JSON.stringify(previousFiltersRef.current) !==
       JSON.stringify(currentFilters);
+    const refreshRequested = previousRefreshNonceRef.current !== refreshNonce;
 
-    if (filters.environment && filters.timeRange && filtersChanged) {
+    if (
+      filters.environment &&
+      filters.timeRange &&
+      (filtersChanged || refreshRequested)
+    ) {
       fetchMetrics(true);
     }
 
     previousFiltersRef.current = currentFilters;
-  }, [httpEnabled, filters.environment, filters.timeRange, fetchMetrics]);
+    previousRefreshNonceRef.current = refreshNonce;
+  }, [
+    httpEnabled,
+    filters.environment,
+    filters.timeRange,
+    fetchMetrics,
+    refreshNonce,
+  ]);
 
   if (netPolLoading || !httpEnabled) {
     return null;

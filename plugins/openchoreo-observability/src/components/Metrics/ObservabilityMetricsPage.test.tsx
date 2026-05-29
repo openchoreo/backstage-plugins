@@ -1,4 +1,5 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { renderInTestApp } from '@backstage/test-utils';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { ObservabilityMetricsPage } from './ObservabilityMetricsPage';
@@ -263,6 +264,67 @@ describe('ObservabilityMetricsPage', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+  });
+
+  it('refetches both resource and HTTP metrics when refresh is clicked', async () => {
+    const user = userEvent.setup();
+    const resourceRefresh = jest.fn();
+    const httpFetchMetrics = jest.fn();
+
+    mockUseMetrics.mockImplementation(
+      (
+        _filters: any,
+        _entity: any,
+        _namespace: any,
+        _project: any,
+        type?: string,
+      ) => {
+        if (type === 'http') {
+          return {
+            metrics: {
+              networkThroughput: {
+                requestCount: [],
+                successfulRequestCount: [],
+                unsuccessfulRequestCount: [],
+              },
+              networkLatency: {
+                meanLatency: [],
+                latencyP50: [],
+                latencyP90: [],
+                latencyP99: [],
+              },
+            },
+            loading: false,
+            error: null,
+            fetchMetrics: httpFetchMetrics,
+            refresh: jest.fn(),
+          };
+        }
+        return {
+          metrics: {
+            cpuUsage: { cpuUsage: [], cpuRequests: [], cpuLimits: [] },
+            memoryUsage: {
+              memoryUsage: [],
+              memoryRequests: [],
+              memoryLimits: [],
+            },
+          },
+          loading: false,
+          error: null,
+          fetchMetrics: jest.fn(),
+          refresh: resourceRefresh,
+        };
+      },
+    );
+
+    await renderPage();
+
+    httpFetchMetrics.mockClear();
+
+    await user.click(screen.getByTestId('refresh-btn'));
+
+    expect(resourceRefresh).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(httpFetchMetrics).toHaveBeenCalledTimes(1));
   });
 
   it('renders nothing for namespace error', async () => {
