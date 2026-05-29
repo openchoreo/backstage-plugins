@@ -401,6 +401,7 @@ describe('AuthzProfileService', () => {
         'ns/team-shop/project/team-shop/component/snip-api-service',
         'team-shop/production',
         undefined, // no workflow on this input
+        undefined, // no componentType on this input
         false,
         expect.any(Number),
       );
@@ -630,12 +631,13 @@ describe('AuthzProfileService', () => {
         NS_PATH,
         undefined, // no environment on this input
         'team-shop/build-go', // encoded workflow
+        undefined, // no componentType on this input
         true,
         expect.any(Number),
       );
     });
 
-    it('omits context entirely when neither environment nor workflow is supplied', async () => {
+    it('omits context entirely when no ABAC attributes are supplied', async () => {
       const { service } = setupService();
       const exp = Math.floor(Date.now() / 1000) + 3600;
 
@@ -645,6 +647,134 @@ describe('AuthzProfileService', () => {
 
       const body = mockPOST.mock.calls[0][1].body;
       expect(body[0].context).toBeUndefined();
+    });
+  });
+
+  describe('evaluate — componentType encoding', () => {
+    const subjectProfile = {
+      user: {
+        type: 'user',
+        entitlement_claim: 'groups',
+        entitlement_values: ['developers'],
+      },
+      capabilities: {},
+    } as unknown as UserCapabilitiesResponse;
+
+    const NS_PATH = 'ns/team-shop/project/team-shop/component/snip-api-service';
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    function setupService() {
+      const cache = createMockCache();
+      cache.getByUser.mockResolvedValue(subjectProfile);
+      cache.getEvaluation.mockResolvedValue(undefined);
+      mockPOST.mockResolvedValue(createOkResponse([{ decision: true }]));
+      return { cache, service: createService(cache) };
+    }
+
+    it('encodes componentType as `{namespace}/{name}` for a namespace-scoped ComponentType', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'component:create',
+          resourcePath: NS_PATH,
+          componentType: { name: 'service', kind: 'ComponentType' },
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: { componentType: 'team-shop/service' },
+      });
+    });
+
+    it('encodes componentType as the bare `{name}` for a cluster-scoped ClusterComponentType', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'component:create',
+          resourcePath: NS_PATH,
+          componentType: { name: 'service', kind: 'ClusterComponentType' },
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: { componentType: 'service' },
+      });
+    });
+
+    it('treats an absent kind as namespace-scoped (`ComponentType` is the default)', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'component:create',
+          resourcePath: NS_PATH,
+          componentType: { name: 'service' }, // no kind
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: { componentType: 'team-shop/service' },
+      });
+    });
+
+    it('sends environment, workflow, and componentType together when all are supplied', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'component:create',
+          resourcePath: NS_PATH,
+          environment: 'production',
+          workflow: { name: 'build-go', kind: 'Workflow' },
+          componentType: { name: 'service', kind: 'ComponentType' },
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: {
+          environment: 'team-shop/production',
+          workflow: 'team-shop/build-go',
+          componentType: 'team-shop/service',
+        },
+      });
+    });
+
+    it('caches the decision under the encoded componentType value', async () => {
+      const { cache, service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'component:create',
+          resourcePath: NS_PATH,
+          componentType: { name: 'service', kind: 'ComponentType' },
+        },
+      ]);
+
+      expect(cache.setEvaluation).toHaveBeenCalledWith(
+        'user:default/alice',
+        expect.any(String),
+        'component:create',
+        NS_PATH,
+        undefined,
+        undefined,
+        'team-shop/service',
+        true,
+        expect.any(Number),
+      );
     });
   });
 });

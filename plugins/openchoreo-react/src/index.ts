@@ -247,6 +247,19 @@ export {
   type UseWorkflowScopedPermissionResult,
 } from './hooks/useWorkflowScopedPermission';
 export {
+  useComponentCreateContextPermission,
+  type ComponentTypeContext,
+  type UseComponentCreateContextPermissionOptions,
+  type UseComponentCreateContextPermissionResult,
+} from './hooks/useComponentCreateContextPermission';
+export {
+  useComponentCreateContextPermissions,
+  type ComponentCreateContextItem,
+  type ComponentCreateContextDecision,
+  type UseComponentCreateContextPermissionsOptions,
+  type UseComponentCreateContextPermissionsResult,
+} from './hooks/useComponentCreateContextPermissions';
+export {
   useDeployPermission,
   type UseDeployPermissionResult,
 } from './hooks/useDeployPermission';

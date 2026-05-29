@@ -26,18 +26,30 @@ export interface WorkflowContext {
 const CLUSTER_SCOPED_WORKFLOW_KIND = 'clusterworkflow';
 
 /**
+ * ComponentType attribute for `resource.componentType` CEL conditions.
+ * Dual-scoped: `kind` is `ComponentType` (namespace-scoped, default) or
+ * `ClusterComponentType` (cluster-scoped).
+ */
+export interface ComponentTypeContext {
+  name: string;
+  kind?: string;
+}
+
+/** ComponentType kind string the OpenChoreo authz core treats as cluster-scoped. */
+const CLUSTER_SCOPED_COMPONENT_TYPE_KIND = 'clustercomponenttype';
+
+/**
  * Inputs the policy needs to evaluate one capability entry at runtime.
- * `resourcePath` is the capability path matched by the user's profile
- * (e.g., "ns/acme/project/payments/component/api"). `environment` and
- * `workflow` are the runtime attributes used by ABAC CEL expressions like
- * `resource.environment` and `resource.workflow`. They are independent — an
- * input may carry either, both, or neither.
+ * `environment`, `workflow`, and `componentType` feed ABAC CEL attributes
+ * `resource.environment`, `resource.workflow`, and `resource.componentType`.
+ * Each is independent — supply any subset, including none.
  */
 export interface EvaluateInput {
   action: string;
   resourcePath: string;
   environment?: string;
   workflow?: WorkflowContext;
+  componentType?: ComponentTypeContext;
 }
 
 /** Default TTL in milliseconds when token expiration cannot be determined */
@@ -377,6 +389,22 @@ export class AuthzProfileService {
       return encoded || undefined;
     });
 
+    const encodedComponentTypes: (string | undefined)[] = inputs.map(input => {
+      const ct = input.componentType;
+      if (!ct?.name) return undefined;
+      const parsed = parseCapabilityPath(input.resourcePath);
+      const ns =
+        parsed?.namespace && parsed.namespace !== '*'
+          ? parsed.namespace
+          : undefined;
+      // Default to namespace-scoped (`ComponentType`); only the explicit
+      // cluster kind flips to cluster scope.
+      const kind = ct.kind?.toLowerCase();
+      const isClusterScoped = kind === CLUSTER_SCOPED_COMPONENT_TYPE_KIND;
+      const encoded = formatDualScopedName(ns, ct.name, isClusterScoped);
+      return encoded || undefined;
+    });
+
     // Include a token-derived component in the cache key so that signing out
     // and back in produces a new key and forces a re-evaluation. Without this,
     // a stale `false` from before an authz binding change would survive
@@ -399,6 +427,7 @@ export class AuthzProfileService {
           resourcePath,
           encodedEnvs[i],
           encodedWorkflows[i],
+          encodedComponentTypes[i],
         );
         if (results[i] === undefined) missingIdx.push(i);
       }
@@ -466,15 +495,22 @@ export class AuthzProfileService {
         resource: { type: resourceType, hierarchy },
         action,
       };
-      // Attach whichever ABAC attributes this input carries. Both feed the
-      // same `context.resource` object the authz core reads CEL against; they
-      // are independent, so an input may set one, both, or neither.
+      // Attach whichever ABAC attributes this input carries — they all feed
+      // the same `context.resource` object the authz core reads CEL against.
       const encodedEnv = encodedEnvs[i];
       const encodedWorkflow = encodedWorkflows[i];
-      if (encodedEnv || encodedWorkflow) {
-        const resourceContext: { environment?: string; workflow?: string } = {};
+      const encodedComponentType = encodedComponentTypes[i];
+      if (encodedEnv || encodedWorkflow || encodedComponentType) {
+        const resourceContext: {
+          environment?: string;
+          workflow?: string;
+          componentType?: string;
+        } = {};
         if (encodedEnv) resourceContext.environment = encodedEnv;
         if (encodedWorkflow) resourceContext.workflow = encodedWorkflow;
+        if (encodedComponentType) {
+          resourceContext.componentType = encodedComponentType;
+        }
         req.context = { resource: resourceContext };
       }
       return req;
@@ -506,6 +542,7 @@ export class AuthzProfileService {
             resourcePath,
             encodedEnvs[i],
             encodedWorkflows[i],
+            encodedComponentTypes[i],
             allowed,
             ttlMs,
           );
