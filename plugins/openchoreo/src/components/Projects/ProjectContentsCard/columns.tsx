@@ -22,9 +22,9 @@ const NameCell = ({ item }: { item: ProjectContentItem }) => {
       {isMarkedForDeletion(item.entity) ? (
         <Box
           display="flex"
-          flexDirection="column"
-          alignItems="flex-start"
-          gridGap={4}
+          flexWrap="wrap"
+          alignItems="center"
+          gridGap={6}
           minWidth={0}
         >
           <Typography variant="body2" color="textSecondary">
