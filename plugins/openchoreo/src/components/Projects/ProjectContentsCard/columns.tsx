@@ -19,7 +19,7 @@ const NameCell = ({ item }: { item: ProjectContentItem }) => {
   return (
     <Box display="flex" alignItems="center" gridGap={6} minWidth={0}>
       {Icon && <Icon fontSize="small" />}
-      {isMarkedForDeletion(item.entity)? (
+      {isMarkedForDeletion(item.entity) ? (
         // Stack the badge under the name so it stays within the Name column
         // instead of overflowing into the Kind column.
         <Box
