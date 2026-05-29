@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Grid,
   Card,
@@ -84,12 +84,15 @@ const ObservabilityMetricsContent = () => {
     canViewMetricsForEnv,
   ]);
 
+  const [refreshNonce, setRefreshNonce] = useState(0);
+
   const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
     updateFilters(newFilters);
   };
 
   const handleRefresh = () => {
     refresh();
+    setRefreshNonce(prev => prev + 1);
   };
 
   if (namespaceError) {
@@ -202,6 +205,7 @@ const ObservabilityMetricsContent = () => {
                 entity={entity}
                 namespaceName={namespace as string}
                 project={project as string}
+                refreshNonce={refreshNonce}
               />
             </Grid>
           )}
