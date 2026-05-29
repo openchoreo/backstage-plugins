@@ -59,39 +59,6 @@ export async function createRouter({
     }
   });
 
-  router.get('/environments', async (req, res) => {
-    // Only enforce user auth when auth feature is enabled
-    if (authEnabled) {
-      await httpAuth.credentials(req, { allow: ['user'] });
-    }
-    const { namespace, project } = req.query;
-    if (!namespace) {
-      return res.status(400).json({ error: 'Namespace is required' });
-    }
-    const userToken = getUserTokenFromRequest(req);
-    try {
-      const environments =
-        await observabilityService.fetchEnvironmentsByNamespace(
-          namespace as string,
-          project as string | undefined,
-          userToken,
-        );
-      return res.status(200).json({ environments });
-    } catch (error) {
-      if (error instanceof ObservabilityNotConfiguredError) {
-        return res.status(404).json({
-          error: error.message,
-        });
-      }
-      return res.status(500).json({
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch environments',
-      });
-    }
-  });
-
   router.get('/dataplane-netpol-provider', async (req, res) => {
     if (authEnabled) {
       await httpAuth.credentials(req, { allow: ['user'] });

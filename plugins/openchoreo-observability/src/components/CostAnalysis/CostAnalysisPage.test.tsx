@@ -5,21 +5,21 @@ import { CostAnalysisPage } from './CostAnalysisPage';
 
 // Mock permissions
 const mockUseRcaPermission = jest.fn();
+const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useRcaPermission: () => mockUseRcaPermission(),
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden-state">{message}</div>
   ),
+  useProjectEnvironments: (...args: any[]) =>
+    mockUseProjectEnvironments(...args),
 }));
 
 // Mock hooks
-const mockUseGetEnvironmentsByNamespace = jest.fn();
 const mockUseUrlFilters = jest.fn();
 const mockUseFinOpsReports = jest.fn();
 
 jest.mock('../../hooks', () => ({
-  useGetEnvironmentsByNamespace: (...args: any[]) =>
-    mockUseGetEnvironmentsByNamespace(...args),
   useUrlFilters: (...args: any[]) => mockUseUrlFilters(...args),
   useFinOpsReports: (...args: any[]) => mockUseFinOpsReports(...args),
   useFinOpsReport: jest
@@ -75,7 +75,7 @@ function setupDefaultMocks() {
     deniedTooltip: '',
     permissionName: '',
   });
-  mockUseGetEnvironmentsByNamespace.mockReturnValue({
+  mockUseProjectEnvironments.mockReturnValue({
     environments: [defaultEnvironment],
     loading: false,
     error: null,

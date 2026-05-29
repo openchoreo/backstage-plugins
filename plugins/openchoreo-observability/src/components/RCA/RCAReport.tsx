@@ -6,13 +6,10 @@ import { Alert } from '@material-ui/lab';
 import {
   useRcaPermission,
   ForbiddenState,
+  useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import {
-  useRCAReport,
-  useFilters,
-  useGetEnvironmentsByNamespace,
-} from '../../hooks';
+import { useRCAReport, useFilters } from '../../hooks';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { RCAReportView } from './RCAReport/RCAReportView';
 import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
@@ -29,10 +26,7 @@ const RCAReportContent = () => {
   const projectName = entity.metadata.name as string;
 
   // Get environments to ensure we have environment data
-  const { environments } = useGetEnvironmentsByNamespace(
-    namespace,
-    projectName,
-  );
+  const { environments } = useProjectEnvironments(projectName, namespace);
   const environment = filters.environment || environments[0];
 
   const {

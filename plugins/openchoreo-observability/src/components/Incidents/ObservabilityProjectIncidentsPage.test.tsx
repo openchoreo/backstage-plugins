@@ -6,19 +6,19 @@ import { ObservabilityProjectIncidentsPage } from './ObservabilityProjectInciden
 // ---- Mocks (own hooks and child components only) ----
 
 const mockUseIncidentsPermission = jest.fn();
+const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useIncidentsPermission: () => mockUseIncidentsPermission(),
+  useProjectEnvironments: (...args: any[]) =>
+    mockUseProjectEnvironments(...args),
 }));
 
-const mockUseGetEnvironmentsByNamespace = jest.fn();
 const mockUseGetComponentsByProject = jest.fn();
 const mockUseProjectIncidents = jest.fn();
 const mockUseUrlFiltersForIncidents = jest.fn();
 const mockUseUpdateIncident = jest.fn();
 
 jest.mock('../../hooks', () => ({
-  useGetEnvironmentsByNamespace: (...args: any[]) =>
-    mockUseGetEnvironmentsByNamespace(...args),
   useGetComponentsByProject: (...args: any[]) =>
     mockUseGetComponentsByProject(...args),
   useProjectIncidents: (...args: any[]) => mockUseProjectIncidents(...args),
@@ -87,7 +87,7 @@ function setupDefaultMocks() {
     deniedTooltip: '',
   });
 
-  mockUseGetEnvironmentsByNamespace.mockReturnValue({
+  mockUseProjectEnvironments.mockReturnValue({
     environments: [defaultEnvironment],
     loading: false,
     error: null,
@@ -209,7 +209,7 @@ describe('ObservabilityProjectIncidentsPage', () => {
   });
 
   it('shows no environments alert', async () => {
-    mockUseGetEnvironmentsByNamespace.mockReturnValue({
+    mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
       error: null,
@@ -247,7 +247,7 @@ describe('ObservabilityProjectIncidentsPage', () => {
   });
 
   it('renders environments error as observability disabled info', async () => {
-    mockUseGetEnvironmentsByNamespace.mockReturnValue({
+    mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
       error: 'Observability is not enabled for this project',

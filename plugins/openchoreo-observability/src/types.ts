@@ -2,6 +2,7 @@ import type {
   ObservabilityComponents,
   AIRCAAgentComponents,
 } from '@openchoreo/backstage-plugin-common';
+import type { Environment } from '@openchoreo/backstage-plugin-react';
 
 // Use generated types from OpenAPI spec
 export type MetricsTimeSeriesItem =
@@ -83,20 +84,6 @@ export interface Filters {
   components?: string[];
   searchQuery?: string;
   rcaStatus?: RCAStatus;
-}
-
-export interface Environment {
-  uid?: string;
-  name: string;
-  namespace: string;
-  displayName?: string;
-  description?: string;
-  organization?: string;
-  dataPlaneRef?: { kind?: string; name?: string };
-  isProduction: boolean;
-  dnsPrefix?: string;
-  createdAt: string;
-  status?: string;
 }
 
 export type RCAStatus = 'pending' | 'completed' | 'failed';

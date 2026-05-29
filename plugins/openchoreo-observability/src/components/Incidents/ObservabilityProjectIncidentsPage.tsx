@@ -8,13 +8,15 @@ import { IncidentsFilter } from './IncidentsFilter';
 import { IncidentsTable } from './IncidentsTable';
 import { IncidentsActions } from './IncidentsActions';
 import {
-  useGetEnvironmentsByNamespace,
   useGetComponentsByProject,
   useProjectIncidents,
   useUrlFiltersForIncidents,
   useUpdateIncident,
 } from '../../hooks';
-import { useIncidentsPermission } from '@openchoreo/backstage-plugin-react';
+import {
+  useIncidentsPermission,
+  useProjectEnvironments,
+} from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
 import type { IncidentSummary } from '../../types';
 
@@ -30,7 +32,7 @@ const ObservabilityProjectIncidentsContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace, projectName);
+  } = useProjectEnvironments(projectName, namespace);
 
   const {
     components,

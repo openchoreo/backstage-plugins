@@ -10,13 +10,13 @@ import { LogsActions } from './LogsActions';
 import {
   useRuntimeLogs,
   useGetNamespaceAndProjectByEntity,
-  useGetEnvironmentsByNamespace,
   useUrlFiltersForRuntimeLogs,
 } from '../../hooks';
 import {
   useInfiniteScroll,
   useLogsPermission,
   ForbiddenState,
+  useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from './styles';
 import { LOG_LEVELS } from './types';
@@ -35,12 +35,12 @@ const ObservabilityRuntimeLogsContent = ({
   // Get namespace and project names from entity
   const { namespace, project } = useGetNamespaceAndProjectByEntity(entity);
 
-  // Fetch environments from observability backend
+  // Fetch environments in deployment-pipeline order
   const {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace, project);
+  } = useProjectEnvironments(project, namespace);
 
   const { filters, updateFilters } = useUrlFiltersForRuntimeLogs({
     environments,

@@ -7,16 +7,13 @@ import { RCATable } from './RCATable';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import type { RCAReportSummary } from '../../types';
-import {
-  useUrlFilters,
-  useGetEnvironmentsByNamespace,
-  useRCAReports,
-} from '../../hooks';
+import { useUrlFilters, useRCAReports } from '../../hooks';
 import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import {
   useRcaPermission,
   ForbiddenState,
+  useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { RCAReport } from './RCAReport';
 import { EntityLinkContext } from './RCAReport/EntityLinkContext';
@@ -33,7 +30,7 @@ const RCAListContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace, projectName);
+  } = useProjectEnvironments(projectName, namespace);
   const { filters, updateFilters } = useUrlFilters({ environments });
 
   const {

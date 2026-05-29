@@ -38,6 +38,8 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
 }));
 
 jest.mock('@openchoreo/backstage-plugin-react', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require('react');
   // Each recompute advances "now" (mirroring the real calculateTimeRange,
   // which uses `new Date()`), so the Refresh button produces a new fetch key
   // and triggers a refetch.
@@ -71,6 +73,112 @@ jest.mock('@openchoreo/backstage-plugin-react', () => {
         startTime: '2024-01-01T00:00:00.000Z',
         endTime: new Date(Date.UTC(2024, 0, 1, 1, 0, rangeCall)).toISOString(),
       };
+    },
+    // Mirrors the real hook so existing fetch/catalog mocks drive the env list.
+    useProjectEnvironments: (
+      projectName: string | undefined,
+      namespaceName: string | undefined,
+    ) => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { useApi } = require('@backstage/core-plugin-api');
+      const discoveryApi = useApi({ id: 'discovery' });
+      const fetchApi = useApi({ id: 'fetch' });
+      const catalogApi = useApi({ id: 'catalog' });
+      const [state, setState] = React.useState({
+        environments: [],
+        loading: true,
+        error: null,
+      });
+      React.useEffect(() => {
+        let cancelled = false;
+        if (!projectName || !namespaceName) {
+          setState({ environments: [], loading: false, error: null });
+          return undefined;
+        }
+        (async () => {
+          try {
+            const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+            const res = await fetchApi.fetch(
+              `${baseUrl}/deployment-pipeline?projectName=${projectName}&namespaceName=${namespaceName}`,
+            );
+            const pipeline = await res.json();
+            const ordered: string[] = [];
+            const seen = new Set<string>();
+            for (const path of pipeline?.promotionPaths ?? []) {
+              const src =
+                typeof path.sourceEnvironmentRef === 'string'
+                  ? path.sourceEnvironmentRef
+                  : path.sourceEnvironmentRef?.name;
+              if (src && !seen.has(src)) {
+                ordered.push(src);
+                seen.add(src);
+              }
+              for (const t of path.targetEnvironmentRefs ?? []) {
+                if (t.name && !seen.has(t.name)) {
+                  ordered.push(t.name);
+                  seen.add(t.name);
+                }
+              }
+            }
+            const { items } = await catalogApi.getEntities({
+              filter: {
+                kind: 'Environment',
+                'metadata.namespace': namespaceName,
+              },
+            });
+            const byName = new Map(items.map((e: any) => [e.metadata.name, e]));
+            const envs = ordered.map(name => {
+              const e: any = byName.get(name);
+              const ann = e?.metadata?.annotations ?? {};
+              return {
+                name,
+                displayName: e?.metadata?.title ?? name,
+                namespace: ann['openchoreo.io/namespace'] ?? namespaceName,
+                dataPlaneRef: {
+                  name: ann['openchoreo.io/data-plane-ref'],
+                  kind: ann['openchoreo.io/data-plane-ref-kind'] ?? 'DataPlane',
+                },
+              };
+            });
+            if (!cancelled) {
+              setState({ environments: envs, loading: false, error: null });
+            }
+          } catch (err) {
+            if (!cancelled) {
+              setState({
+                environments: [],
+                loading: false,
+                error: String(err),
+              });
+            }
+          }
+        })();
+        return () => {
+          cancelled = true;
+        };
+      }, [projectName, namespaceName, discoveryApi, fetchApi, catalogApi]);
+      return state;
+    },
+    // Presentational <select> stub for the EnvironmentFilter
+    EnvironmentFilter: ({ value, onChange, environments }: any) => {
+      return (
+        <select
+          data-testid="env-select"
+          value={value?.name ?? ''}
+          onChange={e => {
+            const next =
+              environments?.find((env: any) => env.name === e.target.value) ??
+              null;
+            onChange?.(next);
+          }}
+        >
+          {environments?.map((env: any) => (
+            <option key={env.name} value={env.name}>
+              {env.displayName ?? env.name}
+            </option>
+          ))}
+        </select>
+      );
     },
   };
 });
@@ -201,20 +309,40 @@ const mockCatalogApi = {
 };
 
 const mockDiscoveryApi = {
-  getBaseUrl: jest
-    .fn()
-    .mockResolvedValue('http://localhost/observability-backend'),
+  getBaseUrl: jest.fn().mockImplementation(async (plugin: string) => {
+    return `http://localhost/${plugin}`;
+  }),
 };
+
+// Module-level state driving the fetchApi mock. Defaults set in beforeEach.
+let mockPipeline: any = null;
+let netPolProviderByDp: Record<string, string | undefined> = {};
 
 let mockFetchApi: { fetch: jest.Mock };
 const setNetPolResponses = (
   providerByDpName: Record<string, string | undefined>,
 ) => {
+  netPolProviderByDp = providerByDpName;
+};
+
+const setPipeline = (pipeline: any) => {
+  mockPipeline = pipeline;
+};
+
+const installFetchApi = () => {
   mockFetchApi = {
     fetch: jest.fn().mockImplementation(async (url: string) => {
       const u = new URL(url);
+      if (u.pathname.endsWith('/deployment-pipeline')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockPipeline,
+        };
+      }
+      // Default: netpol probe
       const dpName = u.searchParams.get('dpName') ?? '';
-      const provider = providerByDpName[dpName];
+      const provider = netPolProviderByDp[dpName];
       return {
         ok: true,
         status: 200,
@@ -227,7 +355,6 @@ const setNetPolResponses = (
 function setupMockClient(
   overrides: Partial<{
     getCellDiagramInfo: jest.Mock;
-    fetchDeploymentPipeline: jest.Mock;
   }> = {},
 ) {
   const mockClient = {
@@ -237,15 +364,6 @@ function setupMockClient(
       // is hidden in the empty state and is exercised by a dedicated test below.
       components: [{ id: 'svc-a', label: 'svc-a', services: {} }],
       connections: [],
-    }),
-    fetchDeploymentPipeline: jest.fn().mockResolvedValue({
-      name: 'default-pipeline',
-      promotionPaths: [
-        {
-          sourceEnvironmentRef: 'dev',
-          targetEnvironmentRefs: [{ name: 'prod' }],
-        },
-      ],
     }),
     ...overrides,
   };
@@ -264,8 +382,19 @@ beforeEach(() => {
   mockCatalogApi.getEntities.mockResolvedValue({
     items: [mkEnvEntity('dev'), mkEnvEntity('prod')],
   });
+  // Default pipeline: dev → prod
+  setPipeline({
+    name: 'default-pipeline',
+    promotionPaths: [
+      {
+        sourceEnvironmentRef: 'dev',
+        targetEnvironmentRefs: [{ name: 'prod' }],
+      },
+    ],
+  });
   // Default: both envs use a Cilium-enabled DataPlane
   setNetPolResponses({ 'dp-cilium': 'cilium' });
+  installFetchApi();
 });
 
 describe('CellDiagram', () => {
@@ -375,17 +504,16 @@ describe('CellDiagram', () => {
         mkEnvEntity('staging', 'dp-no-cilium'),
       ],
     });
-    setupMockClient({
-      fetchDeploymentPipeline: jest.fn().mockResolvedValue({
-        name: 'default-pipeline',
-        promotionPaths: [
-          {
-            sourceEnvironmentRef: 'dev',
-            targetEnvironmentRefs: [{ name: 'staging' }],
-          },
-        ],
-      }),
+    setPipeline({
+      name: 'default-pipeline',
+      promotionPaths: [
+        {
+          sourceEnvironmentRef: 'dev',
+          targetEnvironmentRefs: [{ name: 'staging' }],
+        },
+      ],
     });
+    setupMockClient();
 
     await act(async () => {
       render(<CellDiagram />);

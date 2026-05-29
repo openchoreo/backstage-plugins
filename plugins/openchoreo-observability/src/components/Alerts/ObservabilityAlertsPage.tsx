@@ -10,12 +10,12 @@ import { AlertsActions } from './AlertsActions';
 import {
   useComponentAlerts,
   useGetNamespaceAndProjectByEntity,
-  useGetEnvironmentsByNamespace,
   useUrlFiltersForAlerts,
 } from '../../hooks';
 import {
   useAlertsPermission,
   pickRangeForAge,
+  useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
 import type { AlertSummary } from '../../types';
@@ -30,7 +30,7 @@ const ObservabilityAlertsContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace, project);
+  } = useProjectEnvironments(project, namespace);
 
   const { filters, updateFilters } = useUrlFiltersForAlerts({
     environments,

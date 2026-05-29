@@ -6,22 +6,22 @@ import { ObservabilityProjectRuntimeLogsPage } from './ObservabilityProjectRunti
 // ---- Mocks (own hooks and child components only) ----
 
 const mockUseLogsPermission = jest.fn();
+const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useLogsPermission: () => mockUseLogsPermission(),
   useInfiniteScroll: () => ({ loadingRef: { current: null } }),
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden-state">{message}</div>
   ),
+  useProjectEnvironments: (...args: any[]) =>
+    mockUseProjectEnvironments(...args),
 }));
 
-const mockUseGetEnvironmentsByNamespace = jest.fn();
 const mockUseGetComponentsByProject = jest.fn();
 const mockUseProjectRuntimeLogs = jest.fn();
 const mockUseUrlFiltersForRuntimeLogs = jest.fn();
 
 jest.mock('../../hooks', () => ({
-  useGetEnvironmentsByNamespace: (...args: any[]) =>
-    mockUseGetEnvironmentsByNamespace(...args),
   useGetComponentsByProject: (...args: any[]) =>
     mockUseGetComponentsByProject(...args),
   useProjectRuntimeLogs: (...args: any[]) => mockUseProjectRuntimeLogs(...args),
@@ -106,7 +106,7 @@ function setupDefaultMocks() {
     permissionName: '',
   });
 
-  mockUseGetEnvironmentsByNamespace.mockReturnValue({
+  mockUseProjectEnvironments.mockReturnValue({
     environments: [{ name: 'development', displayName: 'Development' }],
     loading: false,
     error: null,
@@ -221,7 +221,7 @@ describe('ObservabilityProjectRuntimeLogsPage', () => {
   });
 
   it('shows environment error', async () => {
-    mockUseGetEnvironmentsByNamespace.mockReturnValue({
+    mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
       error: 'Environment fetch failed',
@@ -285,7 +285,7 @@ describe('ObservabilityProjectRuntimeLogsPage', () => {
   });
 
   it('shows no environments alert when none found', async () => {
-    mockUseGetEnvironmentsByNamespace.mockReturnValue({
+    mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
       error: null,

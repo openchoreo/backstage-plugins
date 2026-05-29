@@ -8,7 +8,6 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   useUrlFilters,
   useTraces,
-  useGetEnvironmentsByNamespace,
   useGetComponentsByProject,
 } from '../../hooks';
 import { useTraceSpans } from '../../hooks/useTraceSpans';
@@ -20,6 +19,7 @@ import {
   useTracesPermission,
   ForbiddenState,
   calculateTimeRange,
+  useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 
 const ObservabilityTracesContent = () => {
@@ -32,7 +32,7 @@ const ObservabilityTracesContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace, projectName);
+  } = useProjectEnvironments(projectName, namespace);
   const {
     components,
     loading: componentsLoading,

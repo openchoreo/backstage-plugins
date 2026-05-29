@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { type Environment } from '../types';
+import { Environment } from '@openchoreo/backstage-plugin-react';
 import {
   type AlertsFilters,
   ALERT_SEVERITIES,

@@ -8,7 +8,6 @@ import { LogsFilter } from './LogsFilter';
 import { LogsTable } from './LogsTable';
 import { LogsActions } from './LogsActions';
 import {
-  useGetEnvironmentsByNamespace,
   useGetComponentsByProject,
   useProjectRuntimeLogs,
   useUrlFiltersForRuntimeLogs,
@@ -17,6 +16,7 @@ import {
   useInfiniteScroll,
   useLogsPermission,
   ForbiddenState,
+  useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from './styles';
 import { LogEntryField } from './types';
@@ -40,7 +40,7 @@ const ObservabilityProjectRuntimeLogsContent = ({
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace, projectName);
+  } = useProjectEnvironments(projectName, namespace);
 
   const {
     components,

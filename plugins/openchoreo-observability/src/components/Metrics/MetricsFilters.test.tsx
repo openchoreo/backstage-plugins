@@ -1,25 +1,20 @@
 import { render, screen } from '@testing-library/react';
 import { MetricsFilters } from './MetricsFilters';
-import { Environment, Filters } from '../../types';
+import { Filters } from '../../types';
+import { Environment } from '@openchoreo/backstage-plugin-react';
 
 // ---- Helpers ----
 
 const environments: Environment[] = [
   {
-    uid: 'env-1',
     name: 'development',
     namespace: 'dev-ns',
     displayName: 'Development',
-    isProduction: false,
-    createdAt: '2024-01-01T00:00:00Z',
   },
   {
-    uid: 'env-2',
     name: 'staging',
     namespace: 'stg-ns',
     displayName: 'Staging',
-    isProduction: false,
-    createdAt: '2024-01-01T00:00:00Z',
   },
 ];
 
