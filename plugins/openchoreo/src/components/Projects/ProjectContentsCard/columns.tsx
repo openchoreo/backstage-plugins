@@ -17,15 +17,21 @@ const NameCell = ({ item }: { item: ProjectContentItem }) => {
   const ns = item.entity.metadata.namespace || 'default';
 
   return (
-    <Box display="flex" alignItems="center" gridGap={6}>
+    <Box display="flex" alignItems="center" gridGap={6} minWidth={0}>
       {Icon && <Icon fontSize="small" />}
       {isMarkedForDeletion(item.entity) ? (
-        <>
+        <Box
+          display="flex"
+          flexWrap="wrap"
+          alignItems="center"
+          gridGap={6}
+          minWidth={0}
+        >
           <Typography variant="body2" color="textSecondary">
             {item.displayName}
           </Typography>
           <DeletionBadge />
-        </>
+        </Box>
       ) : (
         <Link to={`/catalog/${ns}/${item.kind}/${item.name}`}>
           {item.displayName}
