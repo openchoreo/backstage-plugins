@@ -28,24 +28,17 @@ import { hasUncoveredAllowedPath } from '../utils/pathUtils';
 import { isConstrained, resolveCapability } from '../utils/capabilityLookup';
 import type { CapabilityResource } from '@openchoreo/backstage-plugin-common';
 
-/**
- * Drops capability entries that carry ABAC CEL expressions. Used by the
- * basic-permission decision path where there is no entity/environment in
- * scope to satisfy `resource.environment`-style CEL predicates — those
- * entries cannot grant a basic-permission allow.
- *
- * Returns just the paths from unconstrained entries (which is what the
- * existing `hasUncoveredAllowedPath` helper expects).
- */
+// converts capability entries to their paths, filters out entries without paths
+function extractPaths(entries: CapabilityResource[] | undefined): string[] {
+  return entries?.map(e => e.path).filter((p): p is string => !!p) ?? [];
+}
+
+// Drops ABAC-constrained entries — used on deny lists where a constrained
+// deny we can't evaluate must not silently swallow allowed paths.
 function unconstrainedPaths(
   entries: CapabilityResource[] | undefined,
 ): string[] {
-  return (
-    entries
-      ?.filter(e => !isConstrained(e))
-      .map(e => e.path)
-      .filter((p): p is string => !!p) ?? []
-  );
+  return extractPaths(entries?.filter(e => !isConstrained(e)));
 }
 
 /** Permission name prefix for OpenChoreo permissions */
@@ -197,13 +190,11 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         );
       }
 
-      // For basic permissions (non-resource), check if action has any allowed
-      // paths not fully covered by a deny. Constrained entries cannot satisfy a
-      // basic permission — there is no resource/environment in scope to feed
-      // their CEL expressions, so we deliberately drop them here. Per-resource
-      // env-aware enforcement happens via the matchesCapability rule and the
-      // /evaluate-with-context route for frontend hooks.
-      const allowedPaths = unconstrainedPaths(actionCapability?.allowed);
+      // For basic permissions, check if action has any allowed
+      // path not fully covered by an *unconstrained* deny.
+      // the real CEL evaluation happens downstream once the missing context
+      // is in hand.
+      const allowedPaths = extractPaths(actionCapability?.allowed);
       const deniedPaths = unconstrainedPaths(actionCapability?.denied);
 
       const isAllowed = hasUncoveredAllowedPath(allowedPaths, deniedPaths);
@@ -413,8 +404,10 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
 
       const hasAnyCreate = scaffolderCreateActions.some(action => {
         const cap = resolveCapability(capabilities.capabilities, action);
-        // Constrained entries are dropped — no env context for CEL here.
-        const allowed = unconstrainedPaths(cap?.allowed);
+        // base-permit constrained allows so users whose only create grant
+        // carries an ABAC condition can still enter the scaffolder.
+        // The actual CEL evaluation happens when the template is selected and the form gathers the context.
+        const allowed = extractPaths(cap?.allowed);
         const denied = unconstrainedPaths(cap?.denied);
         return hasUncoveredAllowedPath(allowed, denied);
       });
@@ -465,8 +458,9 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
       // Check if user has any create capability not fully covered by deny paths
       const hasUncoveredCreate = (action: string): boolean => {
         const cap = resolveCapability(capabilities.capabilities, action);
-        // Constrained entries are dropped — no env context for CEL here.
-        const allowed = unconstrainedPaths(cap?.allowed);
+        // base-permit constrained allows so the Create button is visible to
+        // users whose only grant is ABAC-gated; downstream checks enforce the CEL condition.
+        const allowed = extractPaths(cap?.allowed);
         const denied = unconstrainedPaths(cap?.denied);
         return hasUncoveredAllowedPath(allowed, denied);
       };

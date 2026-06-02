@@ -200,11 +200,12 @@ describe('AuthzProfileCache', () => {
   });
 
   // Single ABAC evaluation results are keyed by
-  // (userEntityRef, tokenHash, action, resourcePath, environment, workflow).
-  // The environment and workflow slots are independent: a check that varies
+  // (userEntityRef, tokenHash, action, resourcePath, environment, workflow,
+  // componentType). Each attribute slot is independent: a check that varies
   // only by attribute must produce a distinct key, otherwise an env-gated
-  // decision and a workflow-gated decision on the same action+path would
-  // collide and serve one attribute's boolean for the other.
+  // decision and a workflow-gated decision (or componentType-gated decision)
+  // on the same action+path would collide and serve one attribute's boolean
+  // for the other.
   describe('getEvaluation / setEvaluation', () => {
     const USER = 'user:default/alice';
     const HASH = 'abcdef0123456789';
@@ -219,6 +220,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined, // environment
         'team-shop/build-go', // workflow
+        undefined, // componentType
         true,
         60000,
       );
@@ -237,6 +239,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-go',
+        undefined,
         true,
         1000,
       );
@@ -247,6 +250,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-go',
+        undefined,
       );
 
       expect(mockCache.set.mock.calls[0][0]).toBe(
@@ -264,6 +268,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         'team-shop/production', // env set, workflow absent
         undefined,
+        undefined,
       );
       await authzCache.getEvaluation(
         USER,
@@ -272,6 +277,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-go', // workflow set, env absent
+        undefined,
       );
 
       const envKey = mockCache.get.mock.calls[0][0] as string;
@@ -287,6 +293,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-go',
+        undefined,
       );
       await authzCache.getEvaluation(
         USER,
@@ -295,6 +302,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-node',
+        undefined,
       );
 
       expect(mockCache.get.mock.calls[0][0]).not.toBe(
@@ -310,6 +318,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-go',
+        undefined,
       );
       await authzCache.getEvaluation(
         USER,
@@ -318,6 +327,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-go',
+        undefined,
       );
 
       expect(mockCache.get.mock.calls[0][0]).toBe(
@@ -333,6 +343,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         undefined,
+        undefined,
       );
       await authzCache.getEvaluation(
         USER,
@@ -341,6 +352,93 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-go',
+        undefined,
+      );
+
+      expect(mockCache.get.mock.calls[0][0]).not.toBe(
+        mockCache.get.mock.calls[1][0],
+      );
+    });
+
+    it('isolates a componentType-gated decision from env- and workflow-gated ones', async () => {
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        'team-shop/production',
+        undefined,
+        undefined,
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        'team-shop/build-go',
+        undefined,
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+        'team-shop/service',
+      );
+
+      const envKey = mockCache.get.mock.calls[0][0] as string;
+      const workflowKey = mockCache.get.mock.calls[1][0] as string;
+      const ctKey = mockCache.get.mock.calls[2][0] as string;
+      expect(envKey).not.toBe(ctKey);
+      expect(workflowKey).not.toBe(ctKey);
+    });
+
+    it('produces different keys for different componentTypes', async () => {
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+        'team-shop/service',
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+        'team-shop/web',
+      );
+
+      expect(mockCache.get.mock.calls[0][0]).not.toBe(
+        mockCache.get.mock.calls[1][0],
+      );
+    });
+
+    it('treats an absent componentType distinctly from a present one', async () => {
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+        undefined,
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+        'team-shop/service',
       );
 
       expect(mockCache.get.mock.calls[0][0]).not.toBe(

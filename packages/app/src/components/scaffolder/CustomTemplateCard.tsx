@@ -39,12 +39,18 @@ type CustomTemplateCardProps = {
   template: TemplateEntityV1beta3;
   onSelected?: (template: TemplateEntityV1beta3) => void;
   disabled?: boolean;
+  /**
+   * Tooltip text shown when `disabled` is true. Defaults to the generic
+   * "no permission" copy.
+   */
+  disabledReason?: string;
 };
 
 export const CustomTemplateCard = ({
   template,
   onSelected,
   disabled,
+  disabledReason,
 }: CustomTemplateCardProps) => {
   const classes = useStyles();
   const { toggleStarredEntity, isStarredEntity } = useStarredEntity(template);
@@ -142,7 +148,11 @@ export const CustomTemplateCard = ({
 
   if (disabled) {
     return (
-      <Tooltip title="You do not have permission to create this resource">
+      <Tooltip
+        title={
+          disabledReason ?? 'You do not have permission to create this resource'
+        }
+      >
         <Box className={classes.cardDisabledWrapper}>{card}</Box>
       </Tooltip>
     );

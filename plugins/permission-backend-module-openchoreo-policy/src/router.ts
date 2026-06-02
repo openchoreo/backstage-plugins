@@ -14,11 +14,35 @@ import express from 'express';
 import Router from 'express-promise-router';
 import { AuthzProfileService } from './services';
 import { isConstrained, resolveCapability } from './utils/capabilityLookup';
-import { entityToCapabilityPath, getEntityScope } from './utils/entityScope';
+import {
+  entityToCapabilityPath,
+  getEntityScope,
+  scopeToCapabilityPath,
+} from './utils/entityScope';
 import {
   matchesScope,
   NAMESPACE_SCOPED_KINDS,
 } from './rules/matchesCapability';
+
+// Parses an optional `{ name, kind? }` request-body field used for ABAC
+// attributes like `workflow` and `componentType`. Returns undefined when the
+// input is missing or malformed.
+function parseDualScopedAttr(
+  value: unknown,
+): { name: string; kind?: string } | undefined {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    typeof (value as { name?: unknown }).name !== 'string' ||
+    (value as { name: string }).name.length === 0
+  ) {
+    return undefined;
+  }
+  const v = value as { name: string; kind?: unknown };
+  const kind =
+    typeof v.kind === 'string' && v.kind.length > 0 ? v.kind : undefined;
+  return { name: v.name, kind };
+}
 
 /**
  * Router options for the OpenChoreo permission policy module.
@@ -116,11 +140,16 @@ export async function createRouter(
    *      ALLOW if any decision is true. Cached in AuthzProfileCache so a
    *      page that renders many buttons hits the cache after the first call.
    *
-   * Request body:
+   * Request body — caller must supply EITHER `resourceRef` OR `namespace`:
    *   - permissionName: string  (e.g. "openchoreo.releasebinding.create")
-   *   - resourceRef:   string   (Backstage entity ref)
+   *   - resourceRef?: string    (Backstage entity ref — scope derived from
+   *                              the entity's annotations)
+   *   - namespace?: string      (raw scope — used when no entity exists yet,
+   *                              e.g. the scaffolder form before create)
+   *   - project?:   string      (only valid alongside `namespace`)
    *   - environment?: string    (e.g. "dev")
    *   - workflow?: { name: string; kind?: string }
+   *   - componentType?: { name: string; kind?: string }
    *
    * Response:
    *   - 200: { allowed: boolean }
@@ -130,36 +159,37 @@ export async function createRouter(
     const credentials = await httpAuth.credentials(req, { allow: ['user'] });
     const userEntityRef = credentials.principal.userEntityRef;
 
-    const { permissionName, resourceRef, environment, workflow } =
-      req.body ?? {};
+    const {
+      permissionName,
+      resourceRef,
+      namespace,
+      project,
+      environment,
+      workflow,
+      componentType,
+    } = req.body ?? {};
     if (typeof permissionName !== 'string' || !permissionName) {
       return res
         .status(400)
         .json({ error: 'Missing or invalid permissionName' });
     }
-    if (typeof resourceRef !== 'string' || !resourceRef) {
-      return res.status(400).json({ error: 'Missing or invalid resourceRef' });
+    // Caller picks one of two ways to describe the scope: an entity ref
+    // or rawm namespace/project
+    const hasResourceRef =
+      typeof resourceRef === 'string' && resourceRef.length > 0;
+    const hasNamespace = typeof namespace === 'string' && namespace.length > 0;
+    if (!hasResourceRef && !hasNamespace) {
+      return res
+        .status(400)
+        .json({ error: 'Must supply either resourceRef or namespace' });
     }
+
     const envValue =
       typeof environment === 'string' && environment.length > 0
         ? environment
         : undefined;
-
-    // `workflow` is an optional `{ name, kind? }` object feeding the ABAC
-    // `resource.workflow` CEL attribute.
-    let workflowValue: { name: string; kind?: string } | undefined;
-    const hasWorkflowName =
-      workflow &&
-      typeof workflow === 'object' &&
-      typeof workflow.name === 'string' &&
-      workflow.name.length > 0;
-    if (hasWorkflowName) {
-      const workflowKind =
-        typeof workflow.kind === 'string' && workflow.kind.length > 0
-          ? workflow.kind
-          : undefined;
-      workflowValue = { name: workflow.name, kind: workflowKind };
-    }
+    const workflowValue = parseDualScopedAttr(workflow);
+    const componentTypeValue = parseDualScopedAttr(componentType);
 
     const action = OPENCHOREO_PERMISSION_TO_ACTION[permissionName];
     if (!action) {
@@ -168,33 +198,54 @@ export async function createRouter(
         .json({ error: `Unknown OpenChoreo permission: ${permissionName}` });
     }
 
-    // Resolve the entity using a service token so the route works for any
-    // catalog visibility setting. A malformed resourceRef surfaces as
-    // InputError from the catalog client — treat that as a 400 so callers
-    // can fix their request instead of seeing a generic 500.
-    const serviceCredentials = await auth.getOwnServiceCredentials();
-    let entity;
-    try {
-      entity = await catalogService.getEntityByRef(resourceRef, {
-        credentials: serviceCredentials,
-      });
-    } catch (err) {
-      const name = (err as Error)?.name;
-      if (name === 'InputError') {
-        return res
-          .status(400)
-          .json({ error: `Invalid resourceRef: ${resourceRef}` });
+    // Resolve scope and capability path from either an entity ref (existing
+    // resource flow) or raw fields (create flow, before any entity exists).
+    let scope: { namespace?: string; project?: string; component?: string };
+    let namespaceOnly: boolean;
+    let entityPath: string | undefined;
+
+    if (hasResourceRef) {
+      // Use a service token so the lookup works regardless of catalog
+      // visibility policies. Malformed refs surface as InputError → 400.
+      const serviceCredentials = await auth.getOwnServiceCredentials();
+      let entity;
+      try {
+        entity = await catalogService.getEntityByRef(resourceRef, {
+          credentials: serviceCredentials,
+        });
+      } catch (err) {
+        const errName = (err as Error)?.name;
+        if (errName === 'InputError') {
+          return res
+            .status(400)
+            .json({ error: `Invalid resourceRef: ${resourceRef}` });
+        }
+        logger.error(
+          `Failed to resolve resourceRef=${resourceRef}`,
+          err as Error,
+        );
+        return res.status(500).json({ error: 'Failed to resolve resourceRef' });
       }
-      logger.error(
-        `Failed to resolve resourceRef=${resourceRef}`,
-        err as Error,
-      );
-      return res.status(500).json({ error: 'Failed to resolve resourceRef' });
+      if (!entity) {
+        return res
+          .status(404)
+          .json({ error: `Entity not found: ${resourceRef}` });
+      }
+      scope = getEntityScope(entity);
+      namespaceOnly = NAMESPACE_SCOPED_KINDS.has(entity.kind.toLowerCase());
+      entityPath = entityToCapabilityPath(entity);
+    } else {
+      const projectValue =
+        typeof project === 'string' && project.length > 0 ? project : undefined;
+      scope = { namespace, project: projectValue };
+      const resourceKind = action.split(':')[0];
+      namespaceOnly = NAMESPACE_SCOPED_KINDS.has(resourceKind);
+      entityPath = scopeToCapabilityPath(namespace, projectValue);
     }
-    if (!entity) {
-      return res
-        .status(404)
-        .json({ error: `Entity not found: ${resourceRef}` });
+
+    if (!scope.namespace) {
+      // Unknown scope — same default as matchesCapability rule.
+      return res.status(200).json({ allowed: false });
     }
 
     const userToken = getUserTokenFromRequest(req);
@@ -220,14 +271,6 @@ export async function createRouter(
     if (!actionCapability) {
       return res.status(200).json({ allowed: false });
     }
-
-    const scope = getEntityScope(entity);
-    if (!scope.namespace) {
-      // Unknown entity — same default as matchesCapability rule.
-      return res.status(200).json({ allowed: false });
-    }
-    const namespaceOnly = NAMESPACE_SCOPED_KINDS.has(entity.kind.toLowerCase());
-    const entityPath = entityToCapabilityPath(entity);
 
     // Partition allowed/denied entries that match the entity's scope into
     // unconstrained (RBAC-only) and ABAC-gated buckets. Unconstrained entries
@@ -275,6 +318,7 @@ export async function createRouter(
           resourcePath: entityPath,
           environment: envValue,
           workflow: workflowValue,
+          componentType: componentTypeValue,
         },
       ]);
       return res.status(200).json({ allowed: decisions[0] === true });

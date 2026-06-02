@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import {
   Grid,
@@ -11,7 +12,17 @@ import {
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  useComponentCreateContextPermission,
+  type ComponentTypeContext,
+} from '@openchoreo/backstage-plugin-react';
 import { useScaffolderPreselection } from '../ScaffolderPreselectionContext';
+
+// Bridges the async ABAC check to the sync validator: the field writes the
+// latest denial here, projectNamespaceFieldValidation reads it on submit.
+const lastAuthzDenialRef: {
+  current: { namespace: string; project: string; reason: string } | undefined;
+} = { current: undefined };
 
 export interface ProjectNamespaceData {
   project_name: string;
@@ -86,6 +97,99 @@ export const ProjectNamespaceField = ({
   // Current values — fixed namespace always takes precedence over stale form state
   const projectName = formData?.project_name || '';
   const namespaceName = defaultNamespace || formData?.namespace_name || '';
+
+  // Template ref from the URL — used to look up the CTD_NAME annotation.
+  const routeParams = useParams<{
+    namespace?: string;
+    templateName?: string;
+  }>();
+  const templateNamespace = routeParams.namespace;
+  const templateName = routeParams.templateName;
+
+  const [componentTypeCtx, setComponentTypeCtx] = useState<
+    ComponentTypeContext | undefined
+  >(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!templateName || !templateNamespace) {
+      setComponentTypeCtx(undefined);
+      return undefined;
+    }
+    const fetchTemplate = async () => {
+      try {
+        const tpl = await catalogApi.getEntityByRef({
+          kind: 'Template',
+          namespace: templateNamespace,
+          name: templateName,
+        });
+        if (cancelled || !tpl) return;
+        const ctdName = tpl.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_NAME];
+        if (!ctdName) {
+          // Non-component template — ABAC check doesn't apply.
+          setComponentTypeCtx(undefined);
+          return;
+        }
+        const ctdKind = tpl.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_KIND];
+        setComponentTypeCtx({
+          name: ctdName,
+          ...(ctdKind ? { kind: ctdKind } : {}),
+        });
+      } catch {
+        if (!cancelled) setComponentTypeCtx(undefined);
+      }
+    };
+    fetchTemplate();
+    return () => {
+      cancelled = true;
+    };
+  }, [catalogApi, templateNamespace, templateName]);
+
+  // Form holds an entityRef (`system:<ns>/<name>`); the backend wants the bare name.
+  const bareProjectName = projectName.includes('/')
+    ? projectName.split('/').pop() ?? ''
+    : projectName;
+
+  const { allowed: ctxAllowed, loading: ctxLoading } =
+    useComponentCreateContextPermission({
+      namespace: namespaceName || undefined,
+      project: bareProjectName || undefined,
+      componentType: componentTypeCtx,
+    });
+
+  // Sync the deny decision into the module ref so validate() can block submit.
+  const authzCheckActive = Boolean(
+    componentTypeCtx && namespaceName && bareProjectName,
+  );
+  const authzDenied = authzCheckActive && !ctxLoading && !ctxAllowed;
+  const authzDeniedReason = authzDenied
+    ? `You do not have permission to create a '${componentTypeCtx?.name}' component.`
+    : undefined;
+
+  useEffect(() => {
+    if (authzDenied && componentTypeCtx) {
+      lastAuthzDenialRef.current = {
+        namespace: namespaceName,
+        project: bareProjectName,
+        reason:
+          authzDeniedReason ??
+          'You do not have permission to create this component.',
+      };
+    } else if (
+      lastAuthzDenialRef.current &&
+      lastAuthzDenialRef.current.namespace === namespaceName &&
+      lastAuthzDenialRef.current.project === bareProjectName
+    ) {
+      // The currently-selected tuple is now allowed — clear the stale denial.
+      lastAuthzDenialRef.current = undefined;
+    }
+  }, [
+    authzDenied,
+    namespaceName,
+    bareProjectName,
+    authzDeniedReason,
+    componentTypeCtx,
+  ]);
 
   // Fetch available namespaces (Domain entities) for cluster-scoped templates
   useEffect(() => {
@@ -343,8 +447,12 @@ export const ProjectNamespaceField = ({
             fullWidth
             variant="outlined"
             required
-            error={hasProjectError || !!projectError}
-            helperText={projectError || 'Select the project for this component'}
+            error={hasProjectError || !!projectError || authzDenied}
+            helperText={
+              authzDeniedReason ||
+              projectError ||
+              'Select the project for this component'
+            }
             InputProps={{
               endAdornment: loading ? (
                 <InputAdornment position="end">
@@ -374,7 +482,8 @@ export const ProjectNamespaceField = ({
 };
 
 /**
- * Validation function for project namespace field
+ * Sync validator. Also blocks submit when the current tuple matches the last
+ * denial recorded in `lastAuthzDenialRef`.
  */
 export const projectNamespaceFieldValidation = (
   value: ProjectNamespaceData,
@@ -385,5 +494,19 @@ export const projectNamespaceFieldValidation = (
   }
   if (!value?.namespace_name || value.namespace_name.trim() === '') {
     validation.addError('Namespace is required');
+  }
+
+  const denial = lastAuthzDenialRef.current;
+  if (denial) {
+    const formProjectBare = value?.project_name?.includes('/')
+      ? value.project_name.split('/').pop() ?? ''
+      : value?.project_name ?? '';
+    const formNamespace = value?.namespace_name ?? '';
+    if (
+      formNamespace === denial.namespace &&
+      formProjectBare === denial.project
+    ) {
+      validation.addError(denial.reason);
+    }
   }
 };
