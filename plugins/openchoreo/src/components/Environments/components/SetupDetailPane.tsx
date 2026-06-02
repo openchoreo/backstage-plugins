@@ -20,6 +20,7 @@ import { useEnvironmentDetailPanelStyles } from '../styles';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { AutoDeployConfirmationDialog } from './AutoDeployConfirmationDialog';
 import { DeployReleasePanel } from './DeployReleasePanel';
+import { NotificationBanner } from './NotificationBanner';
 import { ReleaseBrowserDialog } from './ReleaseBrowserDialog';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
 import { useAutoDeployUpdate } from '../hooks/useAutoDeployUpdate';
@@ -28,6 +29,7 @@ import { useReleaseReadiness } from '../hooks/useReleaseReadiness';
 import { useEnvironmentsContext } from '../EnvironmentsContext';
 import { useConfigureAndDeployPermission } from '@openchoreo/backstage-plugin-react';
 import { useNotification } from '../../../hooks';
+import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import type { ReleaseDeployments } from './ReleasePicker';
 
 interface LatestReleaseRowProps {
@@ -174,14 +176,18 @@ export const SetupDetailPane = ({
 
   const handleAutoDeployChange = useCallback(
     async (next: boolean) => {
-      const ok = await updateAutoDeploy(next);
-      if (ok) {
+      try {
+        await updateAutoDeploy(next);
         refetchAutoDeploy();
         notification.showSuccess(
           `Auto deploy ${next ? 'enabled' : 'disabled'} successfully`,
         );
-      } else {
-        notification.showError('Failed to update auto deploy setting');
+      } catch (err) {
+        notification.showError(
+          isForbiddenError(err)
+            ? 'You do not have permission to change auto deploy.'
+            : `Failed to update auto deploy setting: ${getErrorMessage(err)}`,
+        );
       }
     },
     [updateAutoDeploy, refetchAutoDeploy, notification],
@@ -221,6 +227,7 @@ export const SetupDetailPane = ({
 
   return (
     <Box className={classes.panel}>
+      <NotificationBanner notification={notification.notification} />
       <Box className={classes.setupHeader}>
         <Box className={classes.headerTopRow}>
           <Box className={classes.headerStatusRow}>

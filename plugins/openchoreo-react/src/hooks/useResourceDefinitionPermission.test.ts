@@ -76,9 +76,13 @@ describe('useResourceDefinitionPermission', () => {
     expect(result.current.canUpdate).toBe(true);
     expect(result.current.canDelete).toBe(true);
 
-    // Verify no resourceRef for cluster-scoped kind
-    for (const call of mockUsePermission.mock.calls) {
-      expect(call[0]).not.toHaveProperty('resourceRef');
+    // Verify no resourceRef for cluster-scoped kind.
+    const inputs = mockUsePermission.mock.calls
+      .map(call => call[0])
+      .filter(Boolean);
+    expect(inputs.length).toBeGreaterThan(0);
+    for (const input of inputs) {
+      expect(input).not.toHaveProperty('resourceRef');
     }
   });
 
@@ -117,7 +121,10 @@ describe('useResourceDefinitionPermission', () => {
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
     renderHook(() => useResourceDefinitionPermission());
 
-    const calls = mockUsePermission.mock.calls.map(c => c[0].permission);
+    const calls = mockUsePermission.mock.calls
+      .map(c => c[0])
+      .filter(Boolean)
+      .map(input => input.permission);
     expect(calls).toContain(openchoreoResourceUpdatePermission);
     expect(calls).toContain(openchoreoResourceDeletePermission);
   });

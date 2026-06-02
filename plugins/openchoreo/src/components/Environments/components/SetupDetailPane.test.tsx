@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { ResponseError } from '@backstage/errors';
 import { TestApiProvider } from '@backstage/test-utils';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import {
@@ -212,7 +213,7 @@ describe('SetupDetailPane', () => {
 
   it('confirms auto-deploy changes through the confirmation dialog', async () => {
     const user = userEvent.setup();
-    mockUpdateAutoDeploy.mockResolvedValue(true);
+    mockUpdateAutoDeploy.mockResolvedValue(undefined);
     renderPane();
 
     await waitFor(() => {
@@ -232,6 +233,37 @@ describe('SetupDetailPane', () => {
         'Auto deploy enabled successfully',
       );
     });
+  });
+
+  it('shows a permission notification when the auto-deploy update is forbidden', async () => {
+    const user = userEvent.setup();
+    const forbidden = await ResponseError.fromResponse(
+      new Response(
+        JSON.stringify({
+          error: { name: 'NotAllowedError', message: 'no' },
+        }),
+        { status: 403, statusText: 'Forbidden' },
+      ),
+    );
+    mockUpdateAutoDeploy.mockRejectedValue(forbidden);
+    renderPane();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('checkbox', { name: /auto deploy/i }),
+      ).not.toBeChecked();
+    });
+
+    await user.click(screen.getByRole('checkbox', { name: /auto deploy/i }));
+    await user.click(screen.getByRole('button', { name: /confirm/i }));
+
+    expect(mockUpdateAutoDeploy).toHaveBeenCalledWith(true);
+    await waitFor(() => {
+      expect(mockShowError).toHaveBeenCalledWith(
+        'You do not have permission to change auto deploy.',
+      );
+    });
+    expect(mockShowSuccess).not.toHaveBeenCalled();
   });
 
   it('hides the deploy panel and shows Configure component when auto-deploy is on', async () => {

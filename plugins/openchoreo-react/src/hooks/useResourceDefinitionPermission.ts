@@ -234,7 +234,6 @@ export const useResourceDefinitionPermission =
     const { allowed: canDelete, loading: deleteLoading } =
       usePermission(deleteInput);
 
-
     const componentCtx = useComponentUpdateContextPermission();
     const isComponent = entity.kind.toLowerCase() === 'component';
 
