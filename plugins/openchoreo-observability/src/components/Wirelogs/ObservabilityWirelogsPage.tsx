@@ -23,6 +23,7 @@ const ObservabilityWirelogsContent = () => {
   const { namespace, project } = useGetNamespaceAndProjectByEntity(entity);
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+  const componentScopeMissing = entity.kind === 'Component' && !componentName;
 
   const {
     environments,
@@ -52,7 +53,9 @@ const ObservabilityWirelogsContent = () => {
   const stream = useWirelogsStream({
     namespaceName: namespace,
     projectName: project,
-    environmentName: filters.environment?.name,
+    environmentName: componentScopeMissing
+      ? undefined
+      : filters.environment?.name,
     componentName,
   });
 
@@ -103,6 +106,19 @@ const ObservabilityWirelogsContent = () => {
     );
   }
 
+  if (componentScopeMissing) {
+    return (
+      <Box>
+        <Alert severity="error" className={classes.errorContainer}>
+          <Typography variant="body1">
+            This component is missing the {CHOREO_ANNOTATIONS.COMPONENT}{' '}
+            annotation, so wirelogs cannot be scoped to it.
+          </Typography>
+        </Alert>
+      </Box>
+    );
+  }
+
   const isStreaming =
     stream.status === 'streaming' || stream.status === 'connecting';
 
@@ -148,7 +164,7 @@ const ObservabilityWirelogsContent = () => {
         <>
           <WirelogsStats
             visibleCount={visibleFlows.length}
-            totalLoaded={stream.flows.length}
+            totalLoaded={stream.totalReceived}
             allowed={stats.allowed}
             dropped={stats.dropped}
           />

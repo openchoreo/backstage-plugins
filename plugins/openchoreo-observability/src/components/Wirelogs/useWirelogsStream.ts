@@ -55,6 +55,7 @@ export function useWirelogsStream({
 
   const abortRef = useRef<AbortController | null>(null);
   const stopRequestedRef = useRef(false);
+  const eventCounterRef = useRef(0);
 
   const stop = useCallback(() => {
     stopRequestedRef.current = true;
@@ -141,8 +142,13 @@ export function useWirelogsStream({
 
             const parsed = parseSseFrame(frame);
             if (parsed?.kind === 'data') {
+              eventCounterRef.current += 1;
+              const event: WirelogEvent = {
+                ...parsed.event,
+                __id: `ev-${eventCounterRef.current}`,
+              };
               setFlows(prev => {
-                const next = [...prev, parsed.event];
+                const next = [...prev, event];
                 return next.length > maxBuffer
                   ? next.slice(next.length - maxBuffer)
                   : next;
@@ -181,12 +187,12 @@ export function useWirelogsStream({
 
   useEffect(() => () => stop(), [stop]);
 
-  // Reset state if the user switches environment/component while streaming.
+  // Reset state when the user switches environment/component.
   useEffect(() => {
     if (abortRef.current) {
       stop();
-      clear();
     }
+    clear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespaceName, projectName, environmentName, componentName]);
 

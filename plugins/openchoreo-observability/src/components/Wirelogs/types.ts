@@ -63,6 +63,7 @@ export interface WirelogFlow {
 export interface WirelogEvent {
   flow: WirelogFlow;
   time?: string;
+  __id?: string;
 }
 
 import type { Environment } from '@openchoreo/backstage-plugin-react';

@@ -35,6 +35,7 @@ interface WirelogsTableProps {
 
 function rowKey(event: WirelogEvent): string {
   if (event.flow.uuid) return event.flow.uuid;
+  if (event.__id) return event.__id;
   return `${event.flow.time ?? ''}:${event.flow.source?.pod_name ?? ''}:${
     event.flow.destination?.pod_name ?? ''
   }`;
@@ -336,8 +337,8 @@ export const WirelogsTable: FC<WirelogsTableProps> = ({
  * re-deriving search logic per consumer.
  */
 export function matchesSearch(event: WirelogEvent, q: string): boolean {
-  if (!q) return true;
-  const needle = q.toLowerCase();
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
   const flow: WirelogFlow = event.flow;
   const haystack = [
     flow.uuid,

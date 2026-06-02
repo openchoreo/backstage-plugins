@@ -2208,7 +2208,7 @@ export async function createRouter({
   // SSE proxy for Cilium Hubble wirelogs from openchoreo-api (PR #3571).
   // Frontend opens an EventSource against this route; we open the upstream
   // stream with the user's bearer token and pipe chunks straight through.
-  router.get('/wirelogs/stream', async (req, res) => {
+  router.get('/wirelogs/stream', requireAuth, async (req, res) => {
     const { namespaceName, environmentName, projectName, componentName } =
       req.query;
 
@@ -2283,7 +2283,22 @@ export async function createRouter({
           break;
         }
         if (!res.write(Buffer.from(value))) {
-          await new Promise<void>(resolve => res.once('drain', resolve));
+          await new Promise<void>(resolve => {
+            const cleanup = (handler: () => void) => {
+              res.off('drain', handler);
+              res.off('close', handler);
+            };
+            const onSettled = () => {
+              cleanup(onSettled);
+              resolve();
+            };
+            res.once('drain', onSettled);
+            res.once('close', onSettled);
+          });
+          if (abortController.signal.aborted) {
+            streaming = false;
+            break;
+          }
         }
       }
     } catch (err) {
