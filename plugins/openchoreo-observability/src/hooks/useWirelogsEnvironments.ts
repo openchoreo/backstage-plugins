@@ -49,6 +49,7 @@ export const useWirelogsEnvironments = (
   } = useProjectEnvironments(projectName, namespaceName);
   const [environments, setEnvironments] = useState<WirelogsEnvironment[]>([]);
   const [enriching, setEnriching] = useState(false);
+  const [enrichError, setEnrichError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,9 +57,11 @@ export const useWirelogsEnvironments = (
     if (baseEnvs.length === 0) {
       setEnvironments([]);
       setEnriching(false);
+      setEnrichError(null);
       return undefined;
     }
     setEnriching(true);
+    setEnrichError(null);
     (async () => {
       try {
         const baseUrl = await discoveryApi.getBaseUrl(
@@ -98,8 +101,13 @@ export const useWirelogsEnvironments = (
           }),
         );
         if (!cancelled) setEnvironments(enriched);
-      } catch {
-        if (!cancelled) setEnvironments([]);
+      } catch (err) {
+        if (!cancelled) {
+          setEnvironments([]);
+          setEnrichError(
+            err instanceof Error ? err.message : 'Failed to probe environments',
+          );
+        }
       } finally {
         if (!cancelled) setEnriching(false);
       }
@@ -110,5 +118,9 @@ export const useWirelogsEnvironments = (
     };
   }, [baseEnvs, baseLoading, discoveryApi, fetchApi]);
 
-  return { environments, loading: baseLoading || enriching, error };
+  return {
+    environments,
+    loading: baseLoading || enriching,
+    error: error || enrichError,
+  };
 };

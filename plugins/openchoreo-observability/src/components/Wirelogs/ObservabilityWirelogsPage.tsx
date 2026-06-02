@@ -60,6 +60,9 @@ const ObservabilityWirelogsContent = () => {
     permissionName: envPermissionName,
   } = useWirelogsPermission(filters.environment?.name);
 
+  const envAccessDenied =
+    !!filters.environment && !envPermissionLoading && !canViewForEnv;
+
   const stream = useWirelogsStream({
     namespaceName: namespace,
     projectName: project,
@@ -74,7 +77,7 @@ const ObservabilityWirelogsContent = () => {
     if (
       !environmentsLoading &&
       filters.environment &&
-      !selectedEnvHasWirelogs &&
+      (!selectedEnvHasWirelogs || envAccessDenied) &&
       (streamStatus === 'streaming' || streamStatus === 'connecting')
     ) {
       stopStream();
@@ -83,6 +86,7 @@ const ObservabilityWirelogsContent = () => {
     environmentsLoading,
     filters.environment,
     selectedEnvHasWirelogs,
+    envAccessDenied,
     streamStatus,
     stopStream,
   ]);
@@ -170,7 +174,7 @@ const ObservabilityWirelogsContent = () => {
       onClear={stream.clear}
       onDownload={handleDownload}
       disabled={noEnvSupportsWirelogs}
-      startDisabled={selectedEnvUnsupported}
+      startDisabled={selectedEnvUnsupported || envAccessDenied}
     />
   );
 
