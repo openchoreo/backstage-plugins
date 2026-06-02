@@ -40,11 +40,11 @@ describe('useResourceDefinitionPermission', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseEntity.mockReturnValue(makeEntity('Component'));
-    // Default: the componentType-aware hook degrades to base — mirror whatever
-    // the base usePermission mock returns so component-kind cases behave like
-    // plain RBAC unless a test overrides this.
+    // Default: mirror the base usePermission result. Read the last recorded
+    // result instead of re-invoking the mock, which would dirty mock.calls.
     mockUseComponentUpdateContextPermission.mockImplementation(() => {
-      const base = mockUsePermission();
+      const { results } = mockUsePermission.mock;
+      const base = results[results.length - 1]?.value;
       return {
         canUpdateComponent: base?.allowed ?? false,
         loading: base?.loading ?? false,

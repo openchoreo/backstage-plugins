@@ -53,9 +53,12 @@ export const useComponentUpdateContextPermission =
     const discovery = useApi(discoveryApiRef);
     const fetchApi = useApi(fetchApiRef);
 
-    const [ctxAllowed, setCtxAllowed] = useState<boolean | undefined>(
-      undefined,
-    );
+    // Tagged with the input tuple it was evaluated for, so a stale result from
+    // a previously rendered entity is never reused.
+    const [ctxResult, setCtxResult] = useState<{
+      key: string;
+      allowed: boolean | undefined;
+    }>({ key: '', allowed: undefined });
     const [ctxLoading, setCtxLoading] = useState<boolean>(false);
 
     // The `component-type` annotation carries the `workloadType/name` composite
@@ -69,16 +72,21 @@ export const useComponentUpdateContextPermission =
     const componentTypeKind =
       entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND];
 
+    // Identifies the input tuple a contextual result belongs to.
+    const ctxKey = `${resourceRef}|${componentTypeName ?? ''}|${
+      componentTypeKind ?? ''
+    }`;
+
     useEffect(() => {
       const skip = !authzEnabled || !componentTypeName || baseCheck.loading;
       if (skip) {
-        setCtxAllowed(undefined);
+        setCtxResult({ key: ctxKey, allowed: undefined });
         setCtxLoading(false);
         return undefined;
       }
 
       if (!baseCheck.allowed) {
-        setCtxAllowed(false);
+        setCtxResult({ key: ctxKey, allowed: false });
         setCtxLoading(false);
         return undefined;
       }
@@ -106,9 +114,9 @@ export const useComponentUpdateContextPermission =
           const body = res.ok
             ? ((await res.json()) as { allowed: boolean })
             : null;
-          setCtxAllowed(body?.allowed === true);
+          setCtxResult({ key: ctxKey, allowed: body?.allowed === true });
         } catch {
-          if (!cancelled) setCtxAllowed(false);
+          if (!cancelled) setCtxResult({ key: ctxKey, allowed: false });
         } finally {
           if (!cancelled) setCtxLoading(false);
         }
@@ -122,6 +130,7 @@ export const useComponentUpdateContextPermission =
     }, [
       discovery,
       fetchApi,
+      ctxKey,
       resourceRef,
       componentTypeName,
       componentTypeKind,
@@ -138,6 +147,10 @@ export const useComponentUpdateContextPermission =
         loading: baseCheck.loading,
       };
     }
+
+    // Ignore a cached result evaluated for a different tuple: it reads as "not
+    // yet known" (loading), never as an allow.
+    const ctxAllowed = ctxResult.key === ctxKey ? ctxResult.allowed : undefined;
 
     const ctxStillLoading =
       baseCheck.allowed && (ctxLoading || ctxAllowed === undefined);

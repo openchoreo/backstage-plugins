@@ -238,4 +238,38 @@ describe('useComponentUpdateContextPermission', () => {
     expect(result.current.loading).toBe(true);
     expect(mockFetch).not.toHaveBeenCalled();
   });
+
+  it('does not reuse the previous entity allow result when the componentType changes', async () => {
+    mockUsePermission.mockReturnValue({ allowed: true, loading: false });
+    // First entity's componentType is allowed by the backend; a subsequent
+    // entity is denied.
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ allowed: true }),
+      })
+      .mockResolvedValue({ ok: true, json: async () => ({ allowed: false }) });
+
+    const { result, rerender } = renderHook(() =>
+      useComponentUpdateContextPermission(),
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.canUpdateComponent).toBe(true);
+
+    // Switch to a different component before the new evaluation resolves. The
+    // stale allow from the first entity must not leak through: the hook reports
+    // loading (not a settled allow) until the backend re-evaluates.
+    mockUseEntity.mockReturnValue(
+      makeEntity({ componentType: 'deployment/other' }),
+    );
+    rerender();
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.canUpdateComponent).toBe(false);
+
+    // Once the backend denies the new componentType, the result settles to deny.
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.canUpdateComponent).toBe(false);
+  });
 });
