@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-scaffolder-backend-module",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "Apache-2.0",
   "description": "The openchoreo module for @backstage/plugin-scaffolder-backend",
   "main": "src/index.ts",
