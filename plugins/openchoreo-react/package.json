@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-react",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "Apache-2.0",
   "description": "Shared React components, hooks, and utilities for OpenChoreo Backstage plugins",
   "main": "src/index.ts",
