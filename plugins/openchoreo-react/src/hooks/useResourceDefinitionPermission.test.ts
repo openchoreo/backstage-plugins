@@ -19,6 +19,15 @@ jest.mock('@backstage/catalog-model', () => ({
   stringifyEntityRef: () => 'component:default/test',
 }));
 
+// componentType-aware update hook. By default it passes through the base
+// `usePermission` result for components (authz off / no annotation). Individual
+// tests override it to simulate an ABAC componentType deny.
+const mockUseComponentUpdateContextPermission = jest.fn();
+jest.mock('./useComponentUpdateContextPermission', () => ({
+  useComponentUpdateContextPermission: () =>
+    mockUseComponentUpdateContextPermission(),
+}));
+
 const makeEntity = (kind: string) => ({
   entity: {
     apiVersion: 'backstage.io/v1alpha1',
@@ -31,6 +40,16 @@ describe('useResourceDefinitionPermission', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseEntity.mockReturnValue(makeEntity('Component'));
+    // Default: the componentType-aware hook degrades to base — mirror whatever
+    // the base usePermission mock returns so component-kind cases behave like
+    // plain RBAC unless a test overrides this.
+    mockUseComponentUpdateContextPermission.mockImplementation(() => {
+      const base = mockUsePermission();
+      return {
+        canUpdateComponent: base?.allowed ?? false,
+        loading: base?.loading ?? false,
+      };
+    });
   });
 
   it('returns allowed for resource-scoped kind with resourceRef', () => {
@@ -101,5 +120,36 @@ describe('useResourceDefinitionPermission', () => {
     const calls = mockUsePermission.mock.calls.map(c => c[0].permission);
     expect(calls).toContain(openchoreoResourceUpdatePermission);
     expect(calls).toContain(openchoreoResourceDeletePermission);
+  });
+
+  it('flips canUpdate to false for a component when componentType ABAC denies', () => {
+    // Base RBAC allows, but the componentType-aware hook denies (ABAC condition).
+    mockUsePermission.mockReturnValue({ allowed: true, loading: false });
+    mockUseComponentUpdateContextPermission.mockReturnValue({
+      canUpdateComponent: false,
+      loading: false,
+    });
+
+    const { result } = renderHook(() => useResourceDefinitionPermission());
+
+    expect(result.current.canUpdate).toBe(false);
+    expect(result.current.updateDeniedTooltip).toBeTruthy();
+    // Delete is unaffected by the componentType condition.
+    expect(result.current.canDelete).toBe(true);
+  });
+
+  it('does not apply the componentType condition to non-component kinds', () => {
+    mockUseEntity.mockReturnValue(makeEntity('TraitType'));
+    mockUsePermission.mockReturnValue({ allowed: true, loading: false });
+    // Even if the context hook would deny, a non-component kind ignores it.
+    mockUseComponentUpdateContextPermission.mockReturnValue({
+      canUpdateComponent: false,
+      loading: false,
+    });
+
+    const { result } = renderHook(() => useResourceDefinitionPermission());
+
+    expect(result.current.canUpdate).toBe(true);
+    expect(result.current.canDelete).toBe(true);
   });
 });
