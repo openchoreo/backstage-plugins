@@ -4,13 +4,10 @@ import { ObservabilityWirelogsPage } from './ObservabilityWirelogsPage';
 // ---- Mocks ----------------------------------------------------------------
 
 const mockUseWirelogsPermission = jest.fn();
-const mockUseProjectEnvironments = jest.fn();
 
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   __esModule: true,
   useWirelogsPermission: (...args: any[]) => mockUseWirelogsPermission(...args),
-  useProjectEnvironments: (...args: any[]) =>
-    mockUseProjectEnvironments(...args),
   ForbiddenState: ({ message, variant }: any) => (
     <div data-testid={`forbidden-${variant}`}>{message}</div>
   ),
@@ -52,9 +49,12 @@ const mockUseGetNamespaceAndProjectByEntity = jest.fn().mockReturnValue({
   namespace: 'ns',
   project: 'proj',
 });
+const mockUseWirelogsEnvironments = jest.fn();
 jest.mock('../../hooks', () => ({
   useGetNamespaceAndProjectByEntity: (...args: any[]) =>
     mockUseGetNamespaceAndProjectByEntity(...args),
+  useWirelogsEnvironments: (...args: any[]) =>
+    mockUseWirelogsEnvironments(...args),
 }));
 
 const mockUseWirelogsStream = jest.fn();
@@ -63,8 +63,20 @@ jest.mock('./useWirelogsStream', () => ({
 }));
 
 jest.mock('./WirelogsFilter', () => ({
-  WirelogsFilter: ({ onDownload, onStart, onStop, onClear, status }: any) => (
-    <div data-testid="filter">
+  WirelogsFilter: ({
+    onDownload,
+    onStart,
+    onStop,
+    onClear,
+    status,
+    disabled,
+    startDisabled,
+  }: any) => (
+    <div
+      data-testid="filter"
+      data-disabled={String(!!disabled)}
+      data-start-disabled={String(!!startDisabled)}
+    >
       <span data-testid="status">{status}</span>
       <button onClick={onStart}>start</button>
       <button onClick={onStop}>stop</button>
@@ -121,16 +133,31 @@ function defaultStream(): StreamState {
 
 const dev = {
   name: 'dev',
+  displayName: 'Dev',
   namespace: 'dev-ns',
   isProduction: false,
   createdAt: '2026-01-01T00:00:00Z',
+  dataPlaneRef: { name: 'dp-dev', kind: 'DataPlane' },
+  hasWirelogs: true,
 };
 const stg = {
   name: 'stg',
+  displayName: 'Staging',
   namespace: 'stg-ns',
   isProduction: false,
   createdAt: '2026-01-01T00:00:00Z',
+  dataPlaneRef: { name: 'dp-stg', kind: 'DataPlane' },
+  hasWirelogs: true,
 };
+
+function setupEnvironments(over: Partial<ReturnType<any>> = {}) {
+  mockUseWirelogsEnvironments.mockReturnValue({
+    environments: [dev, stg],
+    loading: false,
+    error: null,
+    ...over,
+  });
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -141,11 +168,7 @@ beforeEach(() => {
     deniedTooltip: '',
     permissionName: 'view-wirelogs',
   });
-  mockUseProjectEnvironments.mockReturnValue({
-    environments: [dev, stg],
-    loading: false,
-    error: null,
-  });
+  setupEnvironments();
 });
 
 // ---- Tests ----------------------------------------------------------------
@@ -180,7 +203,7 @@ describe('ObservabilityWirelogsPage', () => {
   });
 
   it('renders the env error alert when environments fail to load', () => {
-    mockUseProjectEnvironments.mockReturnValueOnce({
+    mockUseWirelogsEnvironments.mockReturnValueOnce({
       environments: [],
       loading: false,
       error: 'broken',
@@ -190,7 +213,7 @@ describe('ObservabilityWirelogsPage', () => {
   });
 
   it('renders the no-envs alert when env list is empty (not loading)', () => {
-    mockUseProjectEnvironments.mockReturnValueOnce({
+    mockUseWirelogsEnvironments.mockReturnValueOnce({
       environments: [],
       loading: false,
       error: null,
@@ -298,5 +321,53 @@ describe('ObservabilityWirelogsPage', () => {
     createSpy.mockRestore();
     appendSpy.mockRestore();
     removeSpy.mockRestore();
+  });
+
+  it('disables the toolbar and shows a Cilium warning when no environment supports wirelogs', async () => {
+    setupEnvironments({
+      environments: [
+        { ...dev, hasWirelogs: false },
+        { ...stg, hasWirelogs: false },
+      ],
+    });
+    render(<ObservabilityWirelogsPage />);
+    await waitFor(() =>
+      expect(screen.getByTestId('filter')).toHaveAttribute(
+        'data-disabled',
+        'true',
+      ),
+    );
+    expect(
+      screen.getByText(/any of this project's environments/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('table')).not.toBeInTheDocument();
+  });
+
+  it('warns and disables Start (but not the env selector) when the selected env cannot stream but another can', async () => {
+    setupEnvironments({
+      environments: [{ ...dev, hasWirelogs: false }, stg],
+    });
+    render(<ObservabilityWirelogsPage />);
+    await waitFor(() =>
+      expect(screen.getByTestId('filter')).toHaveAttribute(
+        'data-start-disabled',
+        'true',
+      ),
+    );
+    expect(screen.getByTestId('filter')).toHaveAttribute(
+      'data-disabled',
+      'false',
+    );
+    expect(screen.getByText(/unavailable in the/i).textContent).toMatch(/Dev/);
+    expect(screen.queryByTestId('table')).not.toBeInTheDocument();
+  });
+
+  it('stops an in-flight stream when the selected environment cannot stream wirelogs', async () => {
+    setupStream({ status: 'streaming' });
+    setupEnvironments({
+      environments: [{ ...dev, hasWirelogs: false }, stg],
+    });
+    render(<ObservabilityWirelogsPage />);
+    await waitFor(() => expect(stopMock).toHaveBeenCalled());
   });
 });

@@ -72,6 +72,19 @@ describe('WirelogsFilter', () => {
     expect(screen.getByText('Start stream').closest('button')).toBeDisabled();
   });
 
+  it('disables Start (but leaves the env selector usable) when startDisabled is set', () => {
+    const props = defaults();
+    render(<WirelogsFilter {...props} startDisabled />);
+    expect(screen.getByText('Start stream').closest('button')).toBeDisabled();
+    expect(screen.getByTestId('env')).not.toBeDisabled();
+  });
+
+  it('disables the env selector when the whole toolbar is disabled', () => {
+    const props = defaults();
+    render(<WirelogsFilter {...props} disabled />);
+    expect(screen.getByTestId('env')).toBeDisabled();
+  });
+
   it('renders Stop while streaming and fires onStop', () => {
     const props = defaults();
     render(<WirelogsFilter {...props} status="streaming" />);

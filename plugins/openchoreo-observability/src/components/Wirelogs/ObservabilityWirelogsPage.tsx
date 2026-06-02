@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '@material-ui/lab';
-import { Box, Typography } from '@material-ui/core';
+import { Box, Tooltip, Typography } from '@material-ui/core';
 import { Progress } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   ForbiddenState,
-  useProjectEnvironments,
   useWirelogsPermission,
 } from '@openchoreo/backstage-plugin-react';
-import { useGetNamespaceAndProjectByEntity } from '../../hooks';
+import {
+  useGetNamespaceAndProjectByEntity,
+  useWirelogsEnvironments,
+} from '../../hooks';
 import { WirelogsFilter } from './WirelogsFilter';
 import { WirelogsStats } from './WirelogsStats';
 import { WirelogsTable, matchesSearch } from './WirelogsTable';
@@ -29,7 +31,7 @@ const ObservabilityWirelogsContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useProjectEnvironments(project, namespace);
+  } = useWirelogsEnvironments(project, namespace);
 
   const [filters, setFilters] = useState<WirelogsFilters>({
     environment: null,
@@ -42,6 +44,14 @@ const ObservabilityWirelogsContent = () => {
       setFilters(prev => ({ ...prev, environment: environments[0] }));
     }
   }, [environments, filters.environment]);
+
+  const anyEnvHasWirelogs = useMemo(
+    () => environments.some(e => e.hasWirelogs),
+    [environments],
+  );
+  const selectedEnvHasWirelogs =
+    environments.find(e => e.name === filters.environment?.name)?.hasWirelogs ??
+    false;
 
   const {
     canViewWirelogs: canViewForEnv,
@@ -58,6 +68,24 @@ const ObservabilityWirelogsContent = () => {
       : filters.environment?.name,
     componentName,
   });
+
+  const { status: streamStatus, stop: stopStream } = stream;
+  useEffect(() => {
+    if (
+      !environmentsLoading &&
+      filters.environment &&
+      !selectedEnvHasWirelogs &&
+      (streamStatus === 'streaming' || streamStatus === 'connecting')
+    ) {
+      stopStream();
+    }
+  }, [
+    environmentsLoading,
+    filters.environment,
+    selectedEnvHasWirelogs,
+    streamStatus,
+    stopStream,
+  ]);
 
   // Component scoping is applied upstream via the Hubble filter; only the
   // free-text search box is applied client-side here.
@@ -122,19 +150,39 @@ const ObservabilityWirelogsContent = () => {
   const isStreaming =
     stream.status === 'streaming' || stream.status === 'connecting';
 
+  const noEnvSupportsWirelogs =
+    !environmentsLoading && environments.length > 0 && !anyEnvHasWirelogs;
+  const selectedEnvUnsupported =
+    !!filters.environment &&
+    !environmentsLoading &&
+    !selectedEnvHasWirelogs &&
+    !noEnvSupportsWirelogs;
+
+  const toolbar = (
+    <WirelogsFilter
+      filters={filters}
+      onFiltersChange={handleFiltersChange}
+      environments={environments}
+      environmentsLoading={environmentsLoading}
+      status={stream.status}
+      onStart={stream.start}
+      onStop={stream.stop}
+      onClear={stream.clear}
+      onDownload={handleDownload}
+      disabled={noEnvSupportsWirelogs}
+      startDisabled={selectedEnvUnsupported}
+    />
+  );
+
   return (
     <Box>
-      <WirelogsFilter
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        environments={environments}
-        environmentsLoading={environmentsLoading}
-        status={stream.status}
-        onStart={stream.start}
-        onStop={stream.stop}
-        onClear={stream.clear}
-        onDownload={handleDownload}
-      />
+      {noEnvSupportsWirelogs ? (
+        <Tooltip title="Wirelogs are unavailable in all environments. Configure the Cilium module to enable network observability.">
+          <span>{toolbar}</span>
+        </Tooltip>
+      ) : (
+        toolbar
+      )}
 
       {stream.error && (
         <Alert severity="error" className={classes.errorContainer}>
@@ -160,7 +208,30 @@ const ObservabilityWirelogsContent = () => {
         />
       )}
 
-      {filters.environment && canViewForEnv && (
+      {canViewForEnv && noEnvSupportsWirelogs && (
+        <Alert severity="warning" className={classes.errorContainer}>
+          <Typography variant="body1">
+            Wirelogs require the Cilium network observability module, which
+            isn't configured on any of this project's environments. Configure
+            the Cilium module on a DataPlane to stream wirelogs.
+          </Typography>
+        </Alert>
+      )}
+
+      {canViewForEnv && selectedEnvUnsupported && filters.environment && (
+        <Alert severity="warning" className={classes.errorContainer}>
+          <Typography variant="body1">
+            Wirelogs are unavailable in the{' '}
+            <strong>
+              {filters.environment.displayName || filters.environment.name}
+            </strong>{' '}
+            environment. Configure the Cilium module on its DataPlane to enable
+            network observability.
+          </Typography>
+        </Alert>
+      )}
+
+      {filters.environment && canViewForEnv && selectedEnvHasWirelogs && (
         <>
           <WirelogsStats
             visibleCount={visibleFlows.length}

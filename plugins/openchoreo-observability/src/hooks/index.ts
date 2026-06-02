@@ -1,5 +1,10 @@
 export { useGetNamespaceAndProjectByEntity } from './useGetNamespaceAndProjectByEntity';
 export { useDataPlaneNetPolProvider } from './useDataPlaneNetPolProvider';
+export { useWirelogsEnvironments } from './useWirelogsEnvironments';
+export type {
+  WirelogsEnvironment,
+  UseWirelogsEnvironmentsResult,
+} from './useWirelogsEnvironments';
 export { useFilters } from './useFilters';
 export { useUrlFilters } from './useUrlFilters';
 export { useMetrics } from './useMetrics';

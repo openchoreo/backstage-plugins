@@ -24,6 +24,7 @@ interface WirelogsFilterProps {
   onClear: () => void;
   onDownload: () => void;
   disabled?: boolean;
+  startDisabled?: boolean;
 }
 
 export const WirelogsFilter: FC<WirelogsFilterProps> = ({
@@ -37,6 +38,7 @@ export const WirelogsFilter: FC<WirelogsFilterProps> = ({
   onClear,
   onDownload,
   disabled = false,
+  startDisabled = false,
 }) => {
   const classes = useWirelogsStyles();
   const [searchInput, handleSearchChange] = useDebouncedSearch(
@@ -93,7 +95,7 @@ export const WirelogsFilter: FC<WirelogsFilterProps> = ({
           className={classes.startButton}
           onClick={onStart}
           disableElevation
-          disabled={disabled || !filters.environment}
+          disabled={disabled || startDisabled || !filters.environment}
           startIcon={<PlayArrowIcon />}
         >
           Start stream
