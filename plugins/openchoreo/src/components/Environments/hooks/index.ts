@@ -16,6 +16,7 @@ export {
 } from './computeReleaseDrift';
 export {
   useEnvironmentStatusVariant,
+  getEnvironmentStatusVariant,
   type EnvironmentStatusVariant,
 } from './useEnvironmentStatusVariant';
 export {
