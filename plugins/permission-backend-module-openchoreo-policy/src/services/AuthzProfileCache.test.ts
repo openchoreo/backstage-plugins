@@ -221,6 +221,7 @@ describe('AuthzProfileCache', () => {
         undefined, // environment
         'team-shop/build-go', // workflow
         undefined, // componentType
+        undefined, // resourceType
         true,
         60000,
       );
@@ -240,6 +241,7 @@ describe('AuthzProfileCache', () => {
         undefined,
         'team-shop/build-go',
         undefined,
+        undefined,
         true,
         1000,
       );
@@ -250,6 +252,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-go',
+        undefined,
         undefined,
       );
 
@@ -269,6 +272,7 @@ describe('AuthzProfileCache', () => {
         'team-shop/production', // env set, workflow absent
         undefined,
         undefined,
+        undefined,
       );
       await authzCache.getEvaluation(
         USER,
@@ -277,6 +281,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-go', // workflow set, env absent
+        undefined,
         undefined,
       );
 
@@ -294,6 +299,7 @@ describe('AuthzProfileCache', () => {
         undefined,
         'team-shop/build-go',
         undefined,
+        undefined,
       );
       await authzCache.getEvaluation(
         USER,
@@ -302,6 +308,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-node',
+        undefined,
         undefined,
       );
 
@@ -319,6 +326,7 @@ describe('AuthzProfileCache', () => {
         undefined,
         'team-shop/build-go',
         undefined,
+        undefined,
       );
       await authzCache.getEvaluation(
         USER,
@@ -327,6 +335,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-go',
+        undefined,
         undefined,
       );
 
@@ -344,6 +353,7 @@ describe('AuthzProfileCache', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
       );
       await authzCache.getEvaluation(
         USER,
@@ -352,6 +362,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-go',
+        undefined,
         undefined,
       );
 
@@ -369,6 +380,7 @@ describe('AuthzProfileCache', () => {
         'team-shop/production',
         undefined,
         undefined,
+        undefined,
       );
       await authzCache.getEvaluation(
         USER,
@@ -377,6 +389,7 @@ describe('AuthzProfileCache', () => {
         PATH,
         undefined,
         'team-shop/build-go',
+        undefined,
         undefined,
       );
       await authzCache.getEvaluation(
@@ -387,6 +400,7 @@ describe('AuthzProfileCache', () => {
         undefined,
         undefined,
         'team-shop/service',
+        undefined,
       );
 
       const envKey = mockCache.get.mock.calls[0][0] as string;
@@ -405,6 +419,7 @@ describe('AuthzProfileCache', () => {
         undefined,
         undefined,
         'team-shop/service',
+        undefined,
       );
       await authzCache.getEvaluation(
         USER,
@@ -414,6 +429,7 @@ describe('AuthzProfileCache', () => {
         undefined,
         undefined,
         'team-shop/web',
+        undefined,
       );
 
       expect(mockCache.get.mock.calls[0][0]).not.toBe(
@@ -430,6 +446,7 @@ describe('AuthzProfileCache', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
       );
       await authzCache.getEvaluation(
         USER,
@@ -439,6 +456,112 @@ describe('AuthzProfileCache', () => {
         undefined,
         undefined,
         'team-shop/service',
+        undefined,
+      );
+
+      expect(mockCache.get.mock.calls[0][0]).not.toBe(
+        mockCache.get.mock.calls[1][0],
+      );
+    });
+
+    it('isolates a resourceType-gated decision from env-, workflow-, and componentType-gated ones', async () => {
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        'team-shop/production',
+        undefined,
+        undefined,
+        undefined,
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        'team-shop/build-go',
+        undefined,
+        undefined,
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+        'team-shop/service',
+        undefined,
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+        undefined,
+        'team-shop/postgres',
+      );
+
+      const envKey = mockCache.get.mock.calls[0][0] as string;
+      const workflowKey = mockCache.get.mock.calls[1][0] as string;
+      const ctKey = mockCache.get.mock.calls[2][0] as string;
+      const rtKey = mockCache.get.mock.calls[3][0] as string;
+      expect(rtKey).not.toBe(envKey);
+      expect(rtKey).not.toBe(workflowKey);
+      expect(rtKey).not.toBe(ctKey);
+    });
+
+    it('produces different keys for different resourceTypes', async () => {
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+        undefined,
+        'team-shop/postgres',
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+        undefined,
+        'team-shop/redis',
+      );
+
+      expect(mockCache.get.mock.calls[0][0]).not.toBe(
+        mockCache.get.mock.calls[1][0],
+      );
+    });
+
+    it('treats an absent resourceType distinctly from a present one', async () => {
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      );
+      await authzCache.getEvaluation(
+        USER,
+        HASH,
+        ACTION,
+        PATH,
+        undefined,
+        undefined,
+        undefined,
+        'team-shop/postgres',
       );
 
       expect(mockCache.get.mock.calls[0][0]).not.toBe(

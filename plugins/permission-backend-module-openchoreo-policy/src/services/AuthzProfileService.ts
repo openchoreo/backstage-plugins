@@ -39,9 +39,23 @@ export interface ComponentTypeContext {
 const CLUSTER_SCOPED_COMPONENT_TYPE_KIND = 'clustercomponenttype';
 
 /**
+ * ResourceType attribute for `resource.resourceType` CEL conditions.
+ * Dual-scoped: `kind` is `ResourceType` (namespace-scoped, default) or
+ * `ClusterResourceType` (cluster-scoped).
+ */
+export interface ResourceTypeContext {
+  name: string;
+  kind?: string;
+}
+
+/** ResourceType kind string the OpenChoreo authz core treats as cluster-scoped. */
+const CLUSTER_SCOPED_RESOURCE_TYPE_KIND = 'clusterresourcetype';
+
+/**
  * Inputs the policy needs to evaluate one capability entry at runtime.
- * `environment`, `workflow`, and `componentType` feed ABAC CEL attributes
- * `resource.environment`, `resource.workflow`, and `resource.componentType`.
+ * `environment`, `workflow`, `componentType`, and `resourceType` feed ABAC CEL
+ * attributes `resource.environment`, `resource.workflow`,
+ * `resource.componentType`, and `resource.resourceType`.
  * Each is independent — supply any subset, including none.
  */
 export interface EvaluateInput {
@@ -50,6 +64,7 @@ export interface EvaluateInput {
   environment?: string;
   workflow?: WorkflowContext;
   componentType?: ComponentTypeContext;
+  resourceType?: ResourceTypeContext;
 }
 
 /** Default TTL in milliseconds when token expiration cannot be determined */
@@ -405,6 +420,20 @@ export class AuthzProfileService {
       return encoded || undefined;
     });
 
+    const encodedResourceTypes: (string | undefined)[] = inputs.map(input => {
+      const rt = input.resourceType;
+      if (!rt?.name) return undefined;
+      const parsed = parseCapabilityPath(input.resourcePath);
+      const ns =
+        parsed?.namespace && parsed.namespace !== '*'
+          ? parsed.namespace
+          : undefined;
+      const kind = rt.kind?.toLowerCase();
+      const isClusterScoped = kind === CLUSTER_SCOPED_RESOURCE_TYPE_KIND;
+      const encoded = formatDualScopedName(ns, rt.name, isClusterScoped);
+      return encoded || undefined;
+    });
+
     // Include a token-derived component in the cache key so that signing out
     // and back in produces a new key and forces a re-evaluation. Without this,
     // a stale `false` from before an authz binding change would survive
@@ -428,6 +457,7 @@ export class AuthzProfileService {
           encodedEnvs[i],
           encodedWorkflows[i],
           encodedComponentTypes[i],
+          encodedResourceTypes[i],
         );
         if (results[i] === undefined) missingIdx.push(i);
       }
@@ -500,16 +530,26 @@ export class AuthzProfileService {
       const encodedEnv = encodedEnvs[i];
       const encodedWorkflow = encodedWorkflows[i];
       const encodedComponentType = encodedComponentTypes[i];
-      if (encodedEnv || encodedWorkflow || encodedComponentType) {
+      const encodedResourceType = encodedResourceTypes[i];
+      if (
+        encodedEnv ||
+        encodedWorkflow ||
+        encodedComponentType ||
+        encodedResourceType
+      ) {
         const resourceContext: {
           environment?: string;
           workflow?: string;
           componentType?: string;
+          resourceType?: string;
         } = {};
         if (encodedEnv) resourceContext.environment = encodedEnv;
         if (encodedWorkflow) resourceContext.workflow = encodedWorkflow;
         if (encodedComponentType) {
           resourceContext.componentType = encodedComponentType;
+        }
+        if (encodedResourceType) {
+          resourceContext.resourceType = encodedResourceType;
         }
         req.context = { resource: resourceContext };
       }
@@ -543,6 +583,7 @@ export class AuthzProfileService {
             encodedEnvs[i],
             encodedWorkflows[i],
             encodedComponentTypes[i],
+            encodedResourceTypes[i],
             allowed,
             ttlMs,
           );

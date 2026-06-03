@@ -172,6 +172,7 @@ export class AuthzProfileCache {
     environment: string | undefined,
     workflow: string | undefined,
     componentType: string | undefined,
+    resourceType: string | undefined,
   ): string {
     // JSON-encode the tuple so a component containing the separator (or any
     // other character) cannot collide with another distinct tuple.
@@ -183,6 +184,7 @@ export class AuthzProfileCache {
       environment ?? null,
       workflow ?? null,
       componentType ?? null,
+      resourceType ?? null,
     ])}`;
   }
 
@@ -207,6 +209,7 @@ export class AuthzProfileCache {
     environment: string | undefined,
     workflow: string | undefined,
     componentType: string | undefined,
+    resourceType: string | undefined,
   ): Promise<boolean | undefined> {
     const key = this.buildEvaluationKey(
       userEntityRef,
@@ -216,6 +219,7 @@ export class AuthzProfileCache {
       environment,
       workflow,
       componentType,
+      resourceType,
     );
     return this.cache.get<boolean>(key);
   }
@@ -228,6 +232,7 @@ export class AuthzProfileCache {
     environment: string | undefined,
     workflow: string | undefined,
     componentType: string | undefined,
+    resourceType: string | undefined,
     allowed: boolean,
     ttlMs: number,
   ): Promise<void> {
@@ -239,6 +244,7 @@ export class AuthzProfileCache {
       environment,
       workflow,
       componentType,
+      resourceType,
     );
     await this.cache.set(key, allowed, { ttl: ttlMs });
   }

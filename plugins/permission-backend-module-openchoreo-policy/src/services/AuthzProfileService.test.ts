@@ -402,6 +402,7 @@ describe('AuthzProfileService', () => {
         'team-shop/production',
         undefined, // no workflow on this input
         undefined, // no componentType on this input
+        undefined, // no resourceType on this input
         false,
         expect.any(Number),
       );
@@ -632,6 +633,7 @@ describe('AuthzProfileService', () => {
         undefined, // no environment on this input
         'team-shop/build-go', // encoded workflow
         undefined, // no componentType on this input
+        undefined, // no resourceType on this input
         true,
         expect.any(Number),
       );
@@ -772,6 +774,112 @@ describe('AuthzProfileService', () => {
         undefined,
         undefined,
         'team-shop/service',
+        undefined, // no resourceType on this input
+        true,
+        expect.any(Number),
+      );
+    });
+  });
+
+  describe('evaluate — resourceType encoding', () => {
+    const subjectProfile = {
+      user: {
+        type: 'user',
+        entitlement_claim: 'groups',
+        entitlement_values: ['developers'],
+      },
+      capabilities: {},
+    } as unknown as UserCapabilitiesResponse;
+
+    const NS_PATH = 'ns/team-shop/project/team-shop/component/snip-api-service';
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    function setupService() {
+      const cache = createMockCache();
+      cache.getByUser.mockResolvedValue(subjectProfile);
+      cache.getEvaluation.mockResolvedValue(undefined);
+      mockPOST.mockResolvedValue(createOkResponse([{ decision: true }]));
+      return { cache, service: createService(cache) };
+    }
+
+    it('encodes resourceType as `{namespace}/{name}` for a namespace-scoped ResourceType', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'resource:create',
+          resourcePath: NS_PATH,
+          resourceType: { name: 'postgres', kind: 'ResourceType' },
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: { resourceType: 'team-shop/postgres' },
+      });
+    });
+
+    it('encodes resourceType as the bare `{name}` for a cluster-scoped ClusterResourceType', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'resource:create',
+          resourcePath: NS_PATH,
+          resourceType: { name: 'postgres', kind: 'ClusterResourceType' },
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: { resourceType: 'postgres' },
+      });
+    });
+
+    it('treats an absent kind as namespace-scoped (`ResourceType` is the default)', async () => {
+      const { service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'resource:create',
+          resourcePath: NS_PATH,
+          resourceType: { name: 'postgres' }, // no kind
+        },
+      ]);
+
+      const body = mockPOST.mock.calls[0][1].body;
+      expect(body[0].context).toEqual({
+        resource: { resourceType: 'team-shop/postgres' },
+      });
+    });
+
+    it('caches the decision under the encoded resourceType value', async () => {
+      const { cache, service } = setupService();
+      const exp = Math.floor(Date.now() / 1000) + 3600;
+
+      await service.evaluate(buildJwt(exp), 'user:default/alice', [
+        {
+          action: 'resource:create',
+          resourcePath: NS_PATH,
+          resourceType: { name: 'postgres', kind: 'ResourceType' },
+        },
+      ]);
+
+      expect(cache.setEvaluation).toHaveBeenCalledWith(
+        'user:default/alice',
+        expect.any(String),
+        'resource:create',
+        NS_PATH,
+        undefined,
+        undefined,
+        undefined, // no componentType on this input
+        'team-shop/postgres', // encoded resourceType
         true,
         expect.any(Number),
       );
