@@ -4,6 +4,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { useNotification } from '../../hooks';
 import {
   useAutoDeploy,
+  useAwaitNewRelease,
   useEnvironmentData,
   useStaleEnvironments,
   useEnvironmentPolling,
@@ -44,9 +45,20 @@ export const Environments = () => {
   // child pages don't flicker on their own defaults during initial fetch.
   const {
     autoDeploy,
+    latestReleaseName,
     loading: autoDeployLoading,
     refetch: refetchAutoDeploy,
+    setAutoDeployOptimistic,
   } = useAutoDeploy(entity);
+
+  // Drives the "Deploying…" pill on the Setup card after a UI save.
+  // Polls Component.status.latestRelease.name and the env list until
+  // either advances to the new release, or 30s passes.
+  const { awaitingNewRelease, beginAwaitingNewRelease } = useAwaitNewRelease({
+    latestReleaseName,
+    refetchAutoDeploy,
+    refetchEnvironments: refetch,
+  });
 
   // Notifications
   const notification = useNotification();
@@ -112,6 +124,10 @@ export const Environments = () => {
       autoDeploy,
       autoDeployLoading,
       refetchAutoDeploy,
+      setAutoDeployOptimistic,
+      latestReleaseName,
+      awaitingNewRelease,
+      beginAwaitingNewRelease,
       selection,
       setSelection,
     }),
@@ -129,6 +145,10 @@ export const Environments = () => {
       autoDeploy,
       autoDeployLoading,
       refetchAutoDeploy,
+      setAutoDeployOptimistic,
+      latestReleaseName,
+      awaitingNewRelease,
+      beginAwaitingNewRelease,
       selection,
     ],
   );

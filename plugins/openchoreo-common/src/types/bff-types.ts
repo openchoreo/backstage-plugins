@@ -106,6 +106,16 @@ export interface ComponentResponse {
   deletionTimestamp?: string | null;
   status?: string;
   autoDeploy?: boolean;
+  /**
+   * Controller-managed pointer to the latest ComponentRelease created for
+   * this component. Authoritative for "what's currently bound under
+   * auto-deploy"; prefer this over sorting the ComponentRelease list
+   * client-side by creation timestamp (which mis-picks orphan releases).
+   */
+  latestRelease?: {
+    name?: string;
+    releaseHash?: string;
+  };
   service?: {
     [key: string]: unknown;
   };

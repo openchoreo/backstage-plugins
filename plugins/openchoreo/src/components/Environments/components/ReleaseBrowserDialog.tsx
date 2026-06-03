@@ -32,7 +32,7 @@ import { YamlDiffViewer } from '@openchoreo/backstage-plugin-react';
 import YAML from 'yaml';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
-import type { ReleaseDeployments } from './ReleasePicker';
+import type { ReleaseDeployments } from './releaseFormatters';
 import { DeployedEnvBadges } from './DeployedEnvBadges';
 
 const useStyles = makeStyles(theme => ({

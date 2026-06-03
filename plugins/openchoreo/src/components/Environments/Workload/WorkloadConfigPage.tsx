@@ -93,6 +93,7 @@ export const WorkloadConfigPage = ({
     lowestEnvironment,
     autoDeploy: autoDeployEnabled,
     autoDeployLoading,
+    beginAwaitingNewRelease,
   } = useEnvironmentsContext();
   const { releases, refetch: refetchReleases } = useReleases(entity);
   const notification = useNotification();
@@ -484,7 +485,11 @@ export const WorkloadConfigPage = ({
         notification.showSuccess(
           `Component saved. Auto-deploy will create a release and roll it out to ${lowestEnvironment} shortly.`,
         );
-        refetchReleases();
+        // Kick off the post-save poll. The controller updates
+        // Component.status.latestRelease.name asynchronously (a few
+        // seconds); the hook polls until it sees a different value
+        // (then clears the "Deploying…" pill) or 30s elapses.
+        beginAwaitingNewRelease();
         onReleaseCreated();
       } else {
         // Manual-release path: keep the guard armed — the user stays on the
@@ -555,8 +560,9 @@ export const WorkloadConfigPage = ({
 
   const getButtonText = () => {
     if (isProcessing) return 'Saving...';
-    if (hasAnyChanges) return autoDeployEnabled ? 'Save' : 'Save & continue';
-    return autoDeployEnabled ? 'Done' : 'Continue';
+    if (hasAnyChanges)
+      return autoDeployEnabled ? 'Save & deploy' : 'Save & continue';
+    return autoDeployEnabled ? 'Close' : 'Continue';
   };
 
   const totalChanges =
@@ -713,6 +719,8 @@ export const WorkloadConfigPage = ({
         saving={isProcessing}
         traitsState={hasTraitChanges ? traitsState : undefined}
         parameterChanges={parameterChanges}
+        autoDeploy={autoDeployEnabled}
+        lowestEnvironmentName={lowestEnvironment}
       />
 
       <UnsavedChangesDialog

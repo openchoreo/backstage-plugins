@@ -24,6 +24,7 @@ import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
+import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   formatRelativeTime,
   useReleaseBindingUpdatePermission,
@@ -33,13 +34,17 @@ import {
 import { useEnvironmentDetailPanelStyles } from '../styles';
 import { useEnvironmentStatusVariant } from '../hooks/useEnvironmentStatusVariant';
 import { NO_DRIFT, type ReleaseDriftInfo } from '../hooks/computeReleaseDrift';
+import { useReleases } from '../hooks/useReleases';
+import { useEnvironmentsContext } from '../EnvironmentsContext';
 import { derivePrimaryUrl } from '../utils/invokeUrlUtils';
 import { ComponentReleaseDiffDialog } from './ComponentReleaseDiffDialog';
 import { EnvironmentActions } from './EnvironmentActions';
 import { IncidentsBanner } from './IncidentsBanner';
 import { InvokeUrlsDialog } from './InvokeUrlsDialog';
 import { PromotePrimaryAction } from './PromotePrimaryAction';
+import { ReleaseBrowserDialog } from './ReleaseBrowserDialog';
 import { ReleaseManifestDialog } from './ReleaseManifestDialog';
+import type { ReleaseDeployments } from './releaseFormatters';
 import { RemoveDeploymentConfirmationDialog } from './RemoveDeploymentConfirmationDialog';
 import { SetupDetailPane } from './SetupDetailPane';
 import type { ActionTrackers, Environment } from '../types';
@@ -128,7 +133,21 @@ export const EnvironmentDetailPanel = ({
     deniedTooltip: viewDeniedTooltip,
   } = useReleaseBindingViewPermission(envResourceName);
   const [manifestOpen, setManifestOpen] = useState(false);
+  const [browserOpen, setBrowserOpen] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
+  const { entity } = useEntity();
+  const { environments } = useEnvironmentsContext();
+  const { releases, loading: releasesLoading } = useReleases(entity);
+  const deployments: ReleaseDeployments = useMemo(() => {
+    const map: ReleaseDeployments = {};
+    for (const env of environments) {
+      const name = env.deployment?.releaseName;
+      if (!name) continue;
+      if (!map[name]) map[name] = [];
+      map[name].push(env.name);
+    }
+    return map;
+  }, [environments]);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [invokeUrlsOpen, setInvokeUrlsOpen] = useState(false);
   const [dangerExpanded, setDangerExpanded] = useState(false);
@@ -598,6 +617,19 @@ export const EnvironmentDetailPanel = ({
         onClose={() => setManifestOpen(false)}
         releaseName={environment.deployment.releaseName}
         environmentName={environment.name}
+        onOpenReleaseBrowser={() => setBrowserOpen(true)}
+      />
+
+      <ReleaseBrowserDialog
+        open={browserOpen}
+        onClose={() => setBrowserOpen(false)}
+        releases={releases}
+        deployments={deployments}
+        selectedReleaseName={environment.deployment.releaseName ?? null}
+        onConfirm={() => {}}
+        environmentName={environment.name}
+        loading={releasesLoading}
+        readOnly
       />
 
       <ComponentReleaseDiffDialog

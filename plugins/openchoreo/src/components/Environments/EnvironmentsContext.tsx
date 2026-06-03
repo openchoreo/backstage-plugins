@@ -42,6 +42,31 @@ interface EnvironmentsContextValue {
   autoDeployLoading: boolean;
   /** Re-read the auto-deploy value from the server (e.g. after toggling it). */
   refetchAutoDeploy: () => void;
+  /**
+   * Optimistic setter for the auto-deploy flag. The Setup card toggle
+   * calls this on Confirm so the switch flips instantly; the PATCH runs
+   * in the background and we snap back on failure. No refetch is
+   * triggered (and so no card-wide skeleton).
+   */
+  setAutoDeployOptimistic: (next: boolean) => void;
+  /**
+   * Controller-managed pointer to the latest ComponentRelease, mirrored
+   * from `Component.status.latestRelease.name`. Used by the Setup card
+   * auto-deploy ON row instead of picking newest-by-creation-timestamp
+   * (which would pick up orphan releases).
+   */
+  latestReleaseName: string | null;
+  /**
+   * True while we're polling the controller after a UI-driven auto-deploy
+   * save. Drives the "Deploying…" pill on the Setup card.
+   */
+  awaitingNewRelease: boolean;
+  /**
+   * Call right after a UI-driven save to start the post-save poll. The
+   * hook captures the current latestReleaseName as the baseline; once
+   * the controller updates status to a different name, the pill clears.
+   */
+  beginAwaitingNewRelease: () => void;
   /** Currently selected canvas tile (env or setup). Null = nothing selected. */
   selection: Selection;
   /** Setter for the canvas selection. */

@@ -10,6 +10,7 @@ import {
   Typography,
 } from '@material-ui/core';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
+import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { YamlViewer } from '@openchoreo/backstage-design-system';
@@ -21,6 +22,12 @@ export interface ReleaseManifestDialogProps {
   onClose: () => void;
   releaseName?: string;
   environmentName: string;
+  /**
+   * When provided, render an "Open Release Browser" action that closes
+   * this dialog and invokes the callback. The caller is responsible for
+   * opening the browser (and choosing its readOnly state).
+   */
+  onOpenReleaseBrowser?: () => void;
 }
 
 /**
@@ -36,6 +43,7 @@ export const ReleaseManifestDialog = ({
   onClose,
   releaseName,
   environmentName,
+  onOpenReleaseBrowser,
 }: ReleaseManifestDialogProps) => {
   const api = useApi(openChoreoClientApiRef);
   const { entity } = useEntity();
@@ -117,6 +125,19 @@ export const ReleaseManifestDialog = ({
         )}
       </DialogContent>
       <DialogActions>
+        {onOpenReleaseBrowser && (
+          <Button
+            startIcon={<OpenInNewIcon />}
+            onClick={() => {
+              // Close the manifest dialog before opening the browser so we
+              // don't stack modals — users get one focused view at a time.
+              onClose();
+              onOpenReleaseBrowser();
+            }}
+          >
+            Open Release Browser
+          </Button>
+        )}
         <Button
           startIcon={<FileCopyOutlinedIcon />}
           onClick={handleCopy}

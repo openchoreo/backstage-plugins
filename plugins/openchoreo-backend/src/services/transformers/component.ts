@@ -25,6 +25,8 @@ export function transformComponent(component: Component): ComponentResponse {
       ? componentTypeRef
       : componentTypeRef?.name ?? '';
 
+  const latestRelease = component.status?.latestRelease;
+
   return {
     uid: getUid(component) ?? '',
     name: getName(component) ?? '',
@@ -36,6 +38,12 @@ export function transformComponent(component: Component): ComponentResponse {
     createdAt: getCreatedAt(component) ?? '',
     status: deriveStatus(component),
     autoDeploy: component.spec?.autoDeploy,
+    latestRelease: latestRelease
+      ? {
+          name: latestRelease.name,
+          releaseHash: latestRelease.releaseHash,
+        }
+      : undefined,
     componentWorkflow: workflow
       ? transformComponentWorkflowConfig(workflow)
       : undefined,
