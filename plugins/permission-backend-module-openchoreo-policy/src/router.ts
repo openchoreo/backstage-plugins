@@ -150,6 +150,7 @@ export async function createRouter(
    *   - environment?: string    (e.g. "dev")
    *   - workflow?: { name: string; kind?: string }
    *   - componentType?: { name: string; kind?: string }
+   *   - resourceType?: { name: string; kind?: string }
    *
    * Response:
    *   - 200: { allowed: boolean }
@@ -167,6 +168,7 @@ export async function createRouter(
       environment,
       workflow,
       componentType,
+      resourceType,
     } = req.body ?? {};
     if (typeof permissionName !== 'string' || !permissionName) {
       return res
@@ -190,6 +192,7 @@ export async function createRouter(
         : undefined;
     const workflowValue = parseDualScopedAttr(workflow);
     const componentTypeValue = parseDualScopedAttr(componentType);
+    const resourceTypeValue = parseDualScopedAttr(resourceType);
 
     const action = OPENCHOREO_PERMISSION_TO_ACTION[permissionName];
     if (!action) {
@@ -319,6 +322,7 @@ export async function createRouter(
           environment: envValue,
           workflow: workflowValue,
           componentType: componentTypeValue,
+          resourceType: resourceTypeValue,
         },
       ]);
       return res.status(200).json({ allowed: decisions[0] === true });

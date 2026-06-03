@@ -14,7 +14,9 @@ import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   useComponentCreateContextPermission,
+  useResourceCreateContextPermission,
   type ComponentTypeContext,
+  type ResourceTypeContext,
 } from '@openchoreo/backstage-plugin-react';
 import { useScaffolderPreselection } from '../ScaffolderPreselectionContext';
 
@@ -109,11 +111,15 @@ export const ProjectNamespaceField = ({
   const [componentTypeCtx, setComponentTypeCtx] = useState<
     ComponentTypeContext | undefined
   >(undefined);
+  const [resourceTypeCtx, setResourceTypeCtx] = useState<
+    ResourceTypeContext | undefined
+  >(undefined);
 
   useEffect(() => {
     let cancelled = false;
     if (!templateName || !templateNamespace) {
       setComponentTypeCtx(undefined);
+      setResourceTypeCtx(undefined);
       return undefined;
     }
     const fetchTemplate = async () => {
@@ -124,19 +130,37 @@ export const ProjectNamespaceField = ({
           name: templateName,
         });
         if (cancelled || !tpl) return;
+        // A template is either a CTD or an RTD, never both.
         const ctdName = tpl.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_NAME];
-        if (!ctdName) {
-          // Non-component template — ABAC check doesn't apply.
+        if (ctdName) {
+          const ctdKind =
+            tpl.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_KIND];
+          setComponentTypeCtx({
+            name: ctdName,
+            ...(ctdKind ? { kind: ctdKind } : {}),
+          });
+          setResourceTypeCtx(undefined);
+          return;
+        }
+        const rtdName = tpl.metadata.annotations?.[CHOREO_ANNOTATIONS.RTD_NAME];
+        if (rtdName) {
+          const rtdKind =
+            tpl.metadata.annotations?.[CHOREO_ANNOTATIONS.RTD_KIND];
+          setResourceTypeCtx({
+            name: rtdName,
+            ...(rtdKind ? { kind: rtdKind } : {}),
+          });
           setComponentTypeCtx(undefined);
           return;
         }
-        const ctdKind = tpl.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_KIND];
-        setComponentTypeCtx({
-          name: ctdName,
-          ...(ctdKind ? { kind: ctdKind } : {}),
-        });
+        // Neither — ABAC check doesn't apply.
+        setComponentTypeCtx(undefined);
+        setResourceTypeCtx(undefined);
       } catch {
-        if (!cancelled) setComponentTypeCtx(undefined);
+        if (!cancelled) {
+          setComponentTypeCtx(undefined);
+          setResourceTypeCtx(undefined);
+        }
       }
     };
     fetchTemplate();
@@ -150,30 +174,47 @@ export const ProjectNamespaceField = ({
     ? projectName.split('/').pop() ?? ''
     : projectName;
 
-  const { allowed: ctxAllowed, loading: ctxLoading } =
+  const { allowed: componentCtxAllowed, loading: componentCtxLoading } =
     useComponentCreateContextPermission({
       namespace: namespaceName || undefined,
       project: bareProjectName || undefined,
       componentType: componentTypeCtx,
     });
 
+  const { allowed: resourceCtxAllowed, loading: resourceCtxLoading } =
+    useResourceCreateContextPermission({
+      namespace: namespaceName || undefined,
+      project: bareProjectName || undefined,
+      resourceType: resourceTypeCtx,
+    });
+
+  // A template is either a CTD or an RTD; pick whichever check is active.
+  const ctxLoading = componentTypeCtx
+    ? componentCtxLoading
+    : resourceCtxLoading;
+  const ctxAllowed = componentTypeCtx
+    ? componentCtxAllowed
+    : resourceCtxAllowed;
+  const activeTypeCtx = componentTypeCtx ?? resourceTypeCtx;
+
   // Sync the deny decision into the module ref so validate() can block submit.
   const authzCheckActive = Boolean(
-    componentTypeCtx && namespaceName && bareProjectName,
+    activeTypeCtx && namespaceName && bareProjectName,
   );
   const authzDenied = authzCheckActive && !ctxLoading && !ctxAllowed;
+  const deniedKind = componentTypeCtx ? 'component' : 'resource';
   const authzDeniedReason = authzDenied
-    ? `You do not have permission to create a '${componentTypeCtx?.name}' component.`
+    ? `You do not have permission to create a '${activeTypeCtx?.name}' ${deniedKind}.`
     : undefined;
 
   useEffect(() => {
-    if (authzDenied && componentTypeCtx) {
+    if (authzDenied && activeTypeCtx) {
       lastAuthzDenialRef.current = {
         namespace: namespaceName,
         project: bareProjectName,
         reason:
           authzDeniedReason ??
-          'You do not have permission to create this component.',
+          `You do not have permission to create this ${deniedKind}.`,
       };
     } else if (
       lastAuthzDenialRef.current &&
@@ -188,7 +229,8 @@ export const ProjectNamespaceField = ({
     namespaceName,
     bareProjectName,
     authzDeniedReason,
-    componentTypeCtx,
+    activeTypeCtx,
+    deniedKind,
   ]);
 
   // Fetch available namespaces (Domain entities) for cluster-scoped templates

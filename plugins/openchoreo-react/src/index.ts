@@ -260,6 +260,19 @@ export {
   type UseComponentCreateContextPermissionsResult,
 } from './hooks/useComponentCreateContextPermissions';
 export {
+  useResourceCreateContextPermission,
+  type ResourceTypeContext,
+  type UseResourceCreateContextPermissionOptions,
+  type UseResourceCreateContextPermissionResult,
+} from './hooks/useResourceCreateContextPermission';
+export {
+  useResourceCreateContextPermissions,
+  type ResourceCreateContextItem,
+  type ResourceCreateContextDecision,
+  type UseResourceCreateContextPermissionsOptions,
+  type UseResourceCreateContextPermissionsResult,
+} from './hooks/useResourceCreateContextPermissions';
+export {
   useDeployPermission,
   type UseDeployPermissionResult,
 } from './hooks/useDeployPermission';

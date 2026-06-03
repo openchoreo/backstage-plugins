@@ -57,7 +57,9 @@ import {
   useNamespacePermission,
   useDeploymentPipelinePermission,
   useComponentCreateContextPermissions,
+  useResourceCreateContextPermissions,
   type ComponentCreateContextItem,
+  type ResourceCreateContextItem,
 } from '@openchoreo/backstage-plugin-react';
 import { ScaffolderStarredFilter } from './ScaffolderStarredFilter';
 import { ScaffolderCategoryPicker } from './ScaffolderCategoryPicker';
@@ -348,6 +350,70 @@ const TemplateListContent = (props: TemplateListPageProps) => {
         e.metadata?.annotations?.[CHOREO_ANNOTATIONS.RTD_GENERATED] === 'true',
     },
   ];
+
+  const resourceTemplates = useMemo(
+    () =>
+      templates.filter(
+        t =>
+          t.spec?.type === 'Resource' &&
+          t.metadata.annotations?.[CHOREO_ANNOTATIONS.RTD_GENERATED] === 'true',
+      ),
+    [templates],
+  );
+
+  const resourceTypeItems = useMemo<ResourceCreateContextItem[]>(() => {
+    const items: ResourceCreateContextItem[] = [];
+    for (const t of resourceTemplates) {
+      const rtdName = t.metadata.annotations?.[CHOREO_ANNOTATIONS.RTD_NAME];
+      if (!rtdName) continue;
+      const rtdKind = t.metadata.annotations?.[CHOREO_ANNOTATIONS.RTD_KIND];
+      items.push({
+        key: stringifyEntityRef(t as any),
+        resourceType: {
+          name: rtdName,
+          ...(rtdKind ? { kind: rtdKind } : {}),
+        },
+      });
+    }
+    return items;
+  }, [resourceTemplates]);
+
+  const { decisions: resourceTypeDecisions } =
+    useResourceCreateContextPermissions({
+      items: resourceTypeItems,
+      namespace: namespaceParam,
+      project: projectParam,
+    });
+
+  const resourceTypeContextActive = Boolean(namespaceParam && projectParam);
+
+  const getResourceTemplateCardState = useCallback(
+    (
+      template: TemplateEntityV1beta3,
+    ): { disabled: boolean; reason?: string } => {
+      // Without a concrete (namespace, project), the per-resourceType call
+      // hasn't fired — keep today's boolean (soft-allow).
+      if (!resourceTypeContextActive) {
+        return { disabled: isTemplateDisabled('Resource') };
+      }
+      const key = stringifyEntityRef(template as any);
+      const decision = resourceTypeDecisions[key];
+      if (!decision || decision.loading) {
+        return {
+          disabled: true,
+          reason: 'Checking your permissions to create this resource…',
+        };
+      }
+      if (decision.allowed) return { disabled: false };
+      const rtdName =
+        template.metadata.annotations?.[CHOREO_ANNOTATIONS.RTD_NAME] ?? 'this';
+      return {
+        disabled: true,
+        reason: `You do not have permission to create a '${rtdName}' resource.`,
+      };
+    },
+    [resourceTypeContextActive, resourceTypeDecisions, isTemplateDisabled],
+  );
 
   const scaffolderPageContextMenuProps = {
     onEditorClicked:
@@ -648,14 +714,22 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   }, [getTemplateCardState]);
 
   const ResourceTemplateCard = useMemo(() => {
-    const disabled = isTemplateDisabled('Resource');
     const Card = (cardProps: {
       template: TemplateEntityV1beta3;
       onSelected?: (template: TemplateEntityV1beta3) => void;
-    }) => <CustomTemplateCard {...cardProps} disabled={disabled} />;
+    }) => {
+      const cardState = getResourceTemplateCardState(cardProps.template);
+      return (
+        <CustomTemplateCard
+          {...cardProps}
+          disabled={cardState.disabled}
+          disabledReason={cardState.reason}
+        />
+      );
+    };
     Card.displayName = 'ResourceTemplateCard';
     return Card;
-  }, [isTemplateDisabled]);
+  }, [getResourceTemplateCardState]);
 
   const renderComponentsView = () => (
     <>
