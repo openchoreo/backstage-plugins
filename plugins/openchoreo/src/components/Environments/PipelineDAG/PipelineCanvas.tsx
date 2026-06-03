@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, type FC } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type FC } from 'react';
 import { Box } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -160,21 +160,29 @@ export const PipelineCanvas: FC = () => {
     return map;
   }, [displayEnvironments]);
 
+  // One-shot guard so the default-selection effect below doesn't override a
+  // user's explicit Close/Clear (both of which set selection back to null).
+  const didAutoSelectRef = useRef(false);
+
   useEffect(() => {
     if (selection?.kind === 'env' && !envMap.has(selection.name)) {
       setSelection(null);
+      // The selected env vanished — allow a fresh default to be picked.
+      didAutoSelectRef.current = false;
     }
   }, [selection, envMap, setSelection]);
 
   // Auto-select a sensible default card once data has loaded, so users don't
-  // land on an empty detail panel. Only acts while nothing is selected, so it
-  // never overrides a manual choice and cooperates with the clear-effect above
-  // (which re-nulls selection when the selected env disappears).
+  // land on an empty detail panel. Runs only once after the initial load (or
+  // again after the selected env disappears, via the ref reset above), so it
+  // never overrides a manual Close/Clear back to an empty panel.
   useEffect(() => {
+    if (didAutoSelectRef.current) return;
     if (selection !== null) return;
     if (loading) return;
     if (displayEnvironments.length === 0) return;
 
+    didAutoSelectRef.current = true;
     setSelection(resolveDefaultSelection(displayEnvironments));
   }, [selection, loading, displayEnvironments, setSelection]);
 
