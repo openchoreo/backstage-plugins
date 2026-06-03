@@ -39,8 +39,6 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
-          # Do not re-fetch the base ref with --depth — it would shallow-ify
-          # origin/$BASE_REF and break merge-base. Checkout already fetched full history.
           DIFF_OUTPUT=$(git diff --name-only --diff-filter=AM "origin/${BASE_REF}...HEAD" -- '.changeset/*.md')
           # Drop the permanent README and blank lines (sed, not `grep -v || true`,
           # so a real git failure surfaces instead of silently reporting "no changeset").
