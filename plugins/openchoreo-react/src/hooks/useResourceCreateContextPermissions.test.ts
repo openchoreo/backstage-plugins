@@ -106,10 +106,10 @@ describe('useResourceCreateContextPermissions', () => {
           permissionName: 'openchoreo.resource.create',
           namespace: 'acme',
           project: 'payments',
-          resourceType: { name: 'postgres', kind: undefined },
+          resourceType: { name: 'postgres' },
         }),
         expect.objectContaining({
-          resourceType: { name: 'redis', kind: undefined },
+          resourceType: { name: 'redis' },
         }),
       ]),
     );

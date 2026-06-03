@@ -399,7 +399,10 @@ const TemplateListContent = (props: TemplateListPageProps) => {
       const key = stringifyEntityRef(template as any);
       const decision = resourceTypeDecisions[key];
       if (!decision || decision.loading) {
-        return { disabled: false };
+        return {
+          disabled: true,
+          reason: 'Checking your permissions to create this resource…',
+        };
       }
       if (decision.allowed) return { disabled: false };
       const rtdName =

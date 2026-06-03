@@ -86,7 +86,7 @@ describe('useResourceCreateContextPermission', () => {
       permissionName: 'openchoreo.resource.create',
       namespace: 'acme',
       project: 'payments',
-      resourceType: { name: 'postgres', kind: undefined },
+      resourceType: { name: 'postgres' },
     });
   });
 
