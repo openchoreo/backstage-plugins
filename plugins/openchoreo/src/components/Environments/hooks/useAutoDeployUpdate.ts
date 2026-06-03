@@ -12,20 +12,19 @@ export const useAutoDeployUpdate = (entity: Entity) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const updateAutoDeploy = async (autoDeploy: boolean): Promise<boolean> => {
+  const updateAutoDeploy = async (autoDeploy: boolean): Promise<void> => {
     setIsUpdating(true);
     setError(null);
 
     try {
       await client.patchComponent(entity, autoDeploy);
-      setIsUpdating(false);
-      return true;
     } catch (err: any) {
       const errorMessage =
         err.message || 'Failed to update auto deploy setting';
       setError(errorMessage);
+      throw err;
+    } finally {
       setIsUpdating(false);
-      return false;
     }
   };
 
