@@ -1,7 +1,13 @@
 name: Changeset Check
 
+# Uses pull_request_target (not pull_request) so PRs from forks have the
+# pull-requests:write permission needed to post the sticky comment.
+# SAFETY: do NOT add any step that executes code from the PR
+# (yarn install, yarn build, yarn test, etc.) — this workflow only reads
+# the PR's filenames via `git diff --name-only` and posts a fixed-template
+# comment. Adding code execution opens a "pwn request" path to secrets.
 on:
-  pull_request:
+  pull_request_target:
     branches:
       - main
       - 'release-v*'
@@ -19,9 +25,10 @@ jobs:
     name: Check for changeset
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout
+      - name: Checkout PR head (read-only — no PR code is executed below)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
 
