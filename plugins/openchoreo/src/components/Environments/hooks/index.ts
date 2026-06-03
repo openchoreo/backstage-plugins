@@ -28,6 +28,7 @@ export {
 export { useInvokeUrl } from './useInvokeUrl';
 export { useReleases, type UseReleasesResult } from './useReleases';
 export { useAutoDeploy } from './useAutoDeploy';
+export { useAwaitNewRelease } from './useAwaitNewRelease';
 export {
   useReleaseReadiness,
   type UseReleaseReadinessResult,

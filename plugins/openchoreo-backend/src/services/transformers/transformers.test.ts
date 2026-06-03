@@ -151,6 +151,24 @@ describe('transformComponent', () => {
     };
     expect(transformComponent(noWorkflow).componentWorkflow).toBeUndefined();
   });
+
+  it('passes status.latestRelease through when present', () => {
+    const withLatest = {
+      ...component,
+      status: {
+        ...component.status!,
+        latestRelease: { name: 'api-service-abc123', releaseHash: 'abc123' },
+      },
+    };
+    expect(transformComponent(withLatest).latestRelease).toEqual({
+      name: 'api-service-abc123',
+      releaseHash: 'abc123',
+    });
+  });
+
+  it('omits latestRelease when the controller has not set it', () => {
+    expect(transformComponent(component).latestRelease).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------

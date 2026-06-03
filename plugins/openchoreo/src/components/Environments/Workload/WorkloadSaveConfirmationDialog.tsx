@@ -8,6 +8,7 @@ import {
   Box,
   Typography,
 } from '@material-ui/core';
+import { Alert } from '@material-ui/lab';
 import { makeStyles } from '@material-ui/core/styles';
 import {
   ChangesList,
@@ -30,6 +31,9 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(1),
   },
   groupSection: {
+    marginBottom: theme.spacing(2),
+  },
+  autoDeployAlert: {
     marginBottom: theme.spacing(2),
   },
 }));
@@ -97,6 +101,10 @@ interface WorkloadSaveConfirmationDialogProps {
   saving: boolean;
   traitsState?: TraitWithState[];
   parameterChanges?: Change[];
+  /** When true, surface that saving will trigger an auto-deploy. */
+  autoDeploy?: boolean;
+  /** Env name shown in the auto-deploy warning. Required when autoDeploy is true. */
+  lowestEnvironmentName?: string;
 }
 
 export const WorkloadSaveConfirmationDialog: FC<
@@ -109,6 +117,8 @@ export const WorkloadSaveConfirmationDialog: FC<
   saving,
   traitsState = [],
   parameterChanges = [],
+  autoDeploy = false,
+  lowestEnvironmentName,
 }) => {
   const classes = useStyles();
 
@@ -158,6 +168,11 @@ export const WorkloadSaveConfirmationDialog: FC<
   const hasWorkloadChanges = workloadSections.length > 0;
   const hasComponentChanges = componentSections.length > 0;
 
+  const confirmLabel = (() => {
+    if (autoDeploy) return saving ? 'Deploying...' : 'Save & deploy';
+    return saving ? 'Saving...' : 'Save & Continue';
+  })();
+
   return (
     <Dialog
       open={open}
@@ -172,6 +187,12 @@ export const WorkloadSaveConfirmationDialog: FC<
       </DialogTitle>
 
       <DialogContent dividers>
+        {autoDeploy && (
+          <Alert severity="warning" className={classes.autoDeployAlert}>
+            Auto-deploy is on — saving will roll this release out to{' '}
+            {lowestEnvironmentName ?? 'the lowest environment'} automatically.
+          </Alert>
+        )}
         {hasWorkloadChanges && (
           <Box className={classes.groupSection}>
             <Typography className={classes.groupHeader}>Workload</Typography>
@@ -209,7 +230,7 @@ export const WorkloadSaveConfirmationDialog: FC<
           variant="contained"
           disabled={saving}
         >
-          {saving ? 'Saving...' : 'Save & Continue'}
+          {confirmLabel}
         </Button>
       </DialogActions>
     </Dialog>

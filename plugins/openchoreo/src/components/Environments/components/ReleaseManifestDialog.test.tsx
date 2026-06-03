@@ -135,4 +135,50 @@ describe('ReleaseManifestDialog', () => {
     await user.click(screen.getByRole('button', { name: /close/i }));
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('hides the Open Release Browser button when onOpenReleaseBrowser is absent', () => {
+    // Set the fetch mock explicitly so this test doesn't rely on a prior
+    // test's mockImplementation — `ReleaseManifestDialog` always calls
+    // `api.fetchComponentRelease(...).then(...)` whenever it has an
+    // `open` + `releaseName`.
+    mockFetchComponentRelease.mockResolvedValue({});
+    render(
+      <ReleaseManifestDialog
+        open
+        onClose={jest.fn()}
+        environmentName="staging"
+        releaseName="my-comp-rel-7"
+      />,
+    );
+    expect(
+      screen.queryByRole('button', { name: /open release browser/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('closes the dialog and invokes the pivot when Open Release Browser is clicked', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    const onOpenReleaseBrowser = jest.fn();
+    mockFetchComponentRelease.mockResolvedValue({});
+
+    render(
+      <ReleaseManifestDialog
+        open
+        onClose={onClose}
+        onOpenReleaseBrowser={onOpenReleaseBrowser}
+        environmentName="staging"
+        releaseName="my-comp-rel-7"
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /open release browser/i }),
+    );
+    expect(onClose).toHaveBeenCalled();
+    expect(onOpenReleaseBrowser).toHaveBeenCalled();
+    // Close must fire before the pivot so the next dialog doesn't stack.
+    const closeOrder = onClose.mock.invocationCallOrder[0];
+    const pivotOrder = onOpenReleaseBrowser.mock.invocationCallOrder[0];
+    expect(closeOrder).toBeLessThan(pivotOrder);
+  });
 });

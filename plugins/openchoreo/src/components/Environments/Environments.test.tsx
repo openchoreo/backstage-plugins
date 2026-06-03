@@ -27,8 +27,14 @@ jest.mock('./hooks', () => ({
   useEnvironmentPolling: jest.fn(),
   useAutoDeploy: () => ({
     autoDeploy: false,
+    latestReleaseName: null,
     loading: false,
     refetch: jest.fn(),
+    setAutoDeployOptimistic: jest.fn(),
+  }),
+  useAwaitNewRelease: () => ({
+    awaitingNewRelease: false,
+    beginAwaitingNewRelease: jest.fn(),
   }),
   useEnvironmentRouting: () => ({
     state: { view: 'list' as const },

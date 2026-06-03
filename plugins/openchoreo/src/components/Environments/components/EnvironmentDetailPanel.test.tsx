@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   EnvironmentDetailPanel,
@@ -63,8 +63,42 @@ jest.mock('./SetupDetailPane', () => ({
 
 // ReleaseManifestDialog uses useApi/useEntity which need provider context
 // these tests don't supply. The dialog has its own focused test file.
+// We capture the onOpenReleaseBrowser prop so tests can drive the pivot
+// without needing the real dialog.
+let manifestPivot: (() => void) | undefined;
 jest.mock('./ReleaseManifestDialog', () => ({
-  ReleaseManifestDialog: () => null,
+  ReleaseManifestDialog: ({
+    open,
+    onOpenReleaseBrowser,
+  }: {
+    open: boolean;
+    onOpenReleaseBrowser?: () => void;
+  }) => {
+    manifestPivot = onOpenReleaseBrowser;
+    return open ? <div role="dialog" data-testid="manifest-dialog" /> : null;
+  },
+}));
+
+jest.mock('./ReleaseBrowserDialog', () => ({
+  ReleaseBrowserDialog: ({ open }: { open: boolean }) =>
+    open ? <div role="dialog" data-testid="browser-dialog" /> : null,
+}));
+
+jest.mock('@backstage/plugin-catalog-react', () => ({
+  useEntity: () => ({ entity: { metadata: { name: 'my-component' } } }),
+}));
+
+jest.mock('../hooks/useReleases', () => ({
+  useReleases: () => ({
+    releases: [],
+    loading: false,
+    error: null,
+    refetch: jest.fn(),
+  }),
+}));
+
+jest.mock('../EnvironmentsContext', () => ({
+  useEnvironmentsContext: () => ({ environments: [] }),
 }));
 
 jest.mock('./ComponentReleaseDiffDialog', () => ({
@@ -624,5 +658,29 @@ describe('EnvironmentDetailPanel', () => {
     ) as HTMLElement | null;
     expect(sectionAncestor).not.toBeNull();
     expect(sectionAncestor!.contains(actionsHeading)).toBe(true);
+  });
+
+  it('routes the manifest dialog pivot to the release browser', async () => {
+    const user = userEvent.setup();
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: makeEnv({
+          name: 'development',
+          deployment: { status: 'Ready', releaseName: 'rel-newest' },
+        }),
+      },
+      hasAnyDeployedEnv: true,
+    });
+    // Open the manifest dialog via the View release button.
+    await user.click(screen.getByLabelText('View release'));
+    expect(screen.getByTestId('manifest-dialog')).toBeInTheDocument();
+    // Manifest dialog captured the pivot callback at render time; firing it
+    // should swap the manifest for the browser dialog.
+    expect(manifestPivot).toBeDefined();
+    await act(async () => {
+      manifestPivot!();
+    });
+    expect(screen.getByTestId('browser-dialog')).toBeInTheDocument();
   });
 });
