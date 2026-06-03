@@ -208,61 +208,7 @@ yarn start          # Start full application
 
 **Note:** If you access `http://localhost:7007` directly in development mode (without building first), you'll see a 403 error because the `@backstage/plugin-app-backend` has no built frontend assets to serve. Always access `http://localhost:3000` during development.
 
-### 5. Development Workflow
-
-```bash
-# Run tests
-yarn test           # Changed files only
-yarn test:all       # All tests with coverage
-
-# Code quality
-yarn lint           # Lint changed files
-yarn lint:all       # Lint all files
-yarn fix            # Auto-fix issues
-
-# Build
-yarn build:all      # Build all packages
-yarn tsc            # TypeScript check
-```
-
-### 6. Testing with Production Build
-
-Some issues only appear in production builds. It's recommended to periodically test with a production build to catch these early:
-
-- **CSS class name mangling**: Material-UI generates descriptive class names in development (e.g., `makeStyles-root-123`) but short, mangled names in production (e.g., `jss1`). Any custom CSS selectors that rely on development class name patterns will silently break in production.
-- **Stricter plugin initialization**: Some plugins start without issues when their configuration is missing in development mode, but fail at startup in production mode. For example, the Jenkins plugin tolerates missing config in dev but throws errors in production.
-
-```bash
-# Build all packages with production optimizations
-yarn build:all
-
-# Start the backend serving the production frontend bundle
-NODE_ENV=production yarn workspace backend start
-
-# Access at http://localhost:7007
-```
-
-**Note:** This still uses your local development config files (`app-config.yaml` + `app-config.local.yaml`), not `app-config.production.yaml`. The production build behavior (CSS minification, stricter plugin initialization) is determined by `NODE_ENV=production`, not by which config file is loaded.
-
-## Plugin Development
-
-To develop individual plugins in isolation:
-
-```bash
-yarn workspace {plugin-name} start
-```
-
-example
-
-```bash
-yarn workspace @openchoreo/backstage-plugin-backend start
-```
-
-Create new plugins:
-
-```bash
-yarn new
-```
+For day-to-day development commands (test, lint, build, plugin development workflows) and the contribution workflow (changesets, releases), see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Available Plugins
 
@@ -467,78 +413,9 @@ When annotations are present, you'll see:
 
 For detailed setup instructions, see the [External CI Integration Guide](https://openchoreo.dev/docs/platform-engineer-guide/workflows/external-ci/).
 
-## Releasing
+## Contributing
 
-Releases are tag-driven. Pushing a `v*.*.*` tag triggers the [release workflow](.github/workflows/release.yml), which retags the Docker image in GHCR **and** publishes every public `@openchoreo/*` package to GitHub Packages (`https://npm.pkg.github.com`). Authentication uses the auto-issued `GITHUB_TOKEN` — no extra secrets needed.
-
-### Cutting a release
-
-1. **Accumulate changesets** as PRs land on `main`. Run `yarn changeset` whenever a PR introduces a user-visible change; commit the generated `.changeset/*.md` file.
-
-2. **Open a "Version Packages" PR** when ready to release:
-
-   ```bash
-   git checkout -b release/version-bump
-   yarn release:version   # consumes .changeset/*.md, bumps versions, regenerates CHANGELOGs
-   git add -A && git commit -m "chore: version packages"
-   git push -u origin release/version-bump
-   ```
-
-   The 13 packages in the `linked` group in `.changeset/config.json` bump together. Review the PR carefully — version bumps are inferred from the changeset bump types (`patch` / `minor` / `major`).
-
-3. **Merge** the version PR to `main`.
-
-4. **Tag the merge commit and push**:
-
-   ```bash
-   git checkout main && git pull
-   git tag v0.4.0           # stable release
-   # or: git tag v0.4.0-rc.1  # prerelease
-   git push origin v0.4.0
-   ```
-
-5. **CI publishes**. The release workflow:
-   - Retags the existing Docker image (built earlier on the `main` push) to `vX.Y.Z` in GHCR.
-   - Runs `yarn install --immutable && yarn tsc && yarn build:all`, then `yarn workspaces foreach --all --no-private --topological --verbose npm publish --tolerate-republish --access public --tag <latest|next>` to publish npm packages to GitHub Packages.
-   - On **stable** tags (`vX.Y.Z`) publishes under the `latest` npm dist-tag.
-   - On **prerelease** tags (`vX.Y.Z-rc.N`, `vX.Y.Z-test.N`, etc. — any tag containing a hyphen) publishes under the `next` dist-tag, leaving `latest` untouched.
-
-`yarn npm publish` (not `npm publish` or `changeset publish`) is required so that Yarn Berry rewrites `workspace:^` deps to concrete versions at pack time. `npm publish` and `changeset publish` (which shells out to `npm publish` on non-pnpm repos) leak `workspace:^` strings into the tarball and break installs for external consumers.
-
-### Verifying a release
-
-```bash
-yarn npm info @openchoreo/backstage-plugin --registry=https://npm.pkg.github.com
-yarn npm info @openchoreo/backstage-design-system --registry=https://npm.pkg.github.com
-```
-
-Both should show the new version. Confirm under `dist-tags` that stable releases moved `latest` and prereleases moved `next`. To confirm `workspace:^` rewriting worked, inspect the `dependencies` field of any published `@openchoreo/*` package — every version specifier should be a concrete range (e.g. `^1.1.0`), never `workspace:^`.
-
-### Re-running a tag
-
-The publish step is idempotent — `--tolerate-republish` makes `yarn npm publish` skip packages whose versions already exist on the registry and exit cleanly. Useful when a transient failure leaves some packages published and others not.
-
-### One-time local dry run
-
-Before the first real release, validate the publish path locally. Yarn Berry's `yarn npm publish` does not accept a `--dry-run` flag, so the equivalent offline check is `yarn pack` on every public workspace — `yarn pack` runs the same workspace-protocol rewriter that `yarn npm publish` does, just stopping before the upload:
-
-```bash
-yarn install --immutable
-yarn tsc
-yarn build:all
-yarn workspaces foreach --all --no-private --topological --verbose pack
-```
-
-Then confirm a sample tarball has no `workspace:` leaks in its `dependencies`:
-
-```bash
-cd plugins/openchoreo
-tar -xzf package.tgz package/package.json -O | \
-  python3 -c "import json,sys; d=json.load(sys.stdin).get('dependencies',{}); leaks={k:v for k,v in d.items() if str(v).startswith('workspace:')}; print('workspace: leaks:', leaks if leaks else 'NONE')"
-rm package.tgz
-```
-
-Expected output: `workspace: leaks: NONE`. Repeat for any other plugin to spot-check. `yarn pack` writes a `package.tgz` next to each workspace's `package.json`; clean them up with `find packages plugins -maxdepth 2 -name package.tgz -delete` when done.
+Development workflow, changeset conventions, and the release process are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Documentation
 

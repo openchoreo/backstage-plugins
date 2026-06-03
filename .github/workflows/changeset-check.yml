@@ -1,0 +1,139 @@
+name: Changeset Check
+
+# Uses pull_request_target (not pull_request) so PRs from forks have the
+# pull-requests:write permission needed to post the sticky comment.
+# SAFETY: do NOT add any step that executes code from the PR
+# (yarn install, yarn build, yarn test, etc.) — this workflow only reads
+# the PR's filenames via `git diff --name-only` and posts a fixed-template
+# comment. Adding code execution opens a "pwn request" path to secrets.
+on:
+  pull_request_target:
+    branches:
+      - main
+      - 'release-v*'
+
+concurrency:
+  group: changeset-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check:
+    name: Check for changeset
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout PR head (read-only — no PR code is executed below)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Detect changeset in PR diff
+        id: detect
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          ADDED=$(git diff --name-only --diff-filter=AM "origin/${BASE_REF}...HEAD" -- '.changeset/*.md' | grep -v '^\.changeset/README\.md$' || true)
+          if [ -z "$ADDED" ]; then
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No changeset file detected on this PR. If your change affects a published package, run 'yarn changeset' and commit the generated .changeset/*.md file."
+          else
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "files<<CHANGESET_FILES_EOF"
+              echo "$ADDED"
+              echo "CHANGESET_FILES_EOF"
+            } >> "$GITHUB_OUTPUT"
+            echo "Found changeset file(s):"
+            echo "$ADDED"
+          fi
+
+      - name: Comment on PR when changeset missing
+        if: steps.detect.outputs.found == 'false'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const marker = '<!-- changeset-check -->';
+            const body = [
+              marker,
+              '**No changeset detected**',
+              '',
+              'This PR does not add a file under `.changeset/`. If your change affects a published package, please add a changeset:',
+              '',
+              '```bash',
+              'yarn changeset',
+              '```',
+              '',
+              'and commit the generated `.changeset/*.md` file alongside your code change.',
+              '',
+              'For repo-only changes (docs, internal refactor, CI tweaks) run `yarn changeset --empty` to record the decision.',
+              '',
+              '_This check is informational and is not a required status check._',
+            ].join('\n');
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Resolve sticky comment when changeset present
+        if: steps.detect.outputs.found == 'true'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        env:
+          FILES: ${{ steps.detect.outputs.files }}
+        with:
+          script: |
+            const marker = '<!-- changeset-check -->';
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (!existing) return;
+            const files = (process.env.FILES || '').trim();
+            const body = [
+              marker,
+              '**Changeset detected** — the following file(s) will be released with this PR:',
+              '',
+              '```',
+              files,
+              '```',
+            ].join('\n');
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });
+
+      - name: Fail if no changeset
+        if: steps.detect.outputs.found == 'false'
+        run: |
+          echo "::error::No changeset file detected on this PR. Run 'yarn changeset' and commit the generated .changeset/*.md file. If the change does not need a release entry, run 'yarn changeset --empty'."
+          exit 1
