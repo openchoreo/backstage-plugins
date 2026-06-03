@@ -29,6 +29,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          # Must stay 0 — merge-base needs full history of both sides.
           fetch-depth: 0
           persist-credentials: false
 
@@ -38,8 +39,10 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
-          git fetch --no-tags --depth=1 origin "$BASE_REF"
-          ADDED=$(git diff --name-only --diff-filter=AM "origin/${BASE_REF}...HEAD" -- '.changeset/*.md' | grep -v '^\.changeset/README\.md$' || true)
+          DIFF_OUTPUT=$(git diff --name-only --diff-filter=AM "origin/${BASE_REF}...HEAD" -- '.changeset/*.md')
+          # Drop the permanent README and blank lines (sed, not `grep -v || true`,
+          # so a real git failure surfaces instead of silently reporting "no changeset").
+          ADDED=$(printf '%s\n' "$DIFF_OUTPUT" | sed -e '/^\.changeset\/README\.md$/d' -e '/^$/d')
           if [ -z "$ADDED" ]; then
             echo "found=false" >> "$GITHUB_OUTPUT"
             echo "::warning::No changeset file detected on this PR. If your change affects a published package, run 'yarn changeset' and commit the generated .changeset/*.md file."
