@@ -33,10 +33,8 @@ import {
   EntityOwnershipCard,
 } from '@backstage/plugin-org';
 import { EntityTechdocsContent } from '@backstage/plugin-techdocs';
-import {
-  Direction,
-  EntityCatalogGraphCard,
-} from '@backstage/plugin-catalog-graph';
+import { Direction } from '@backstage/plugin-catalog-graph';
+import { ContainedCatalogGraphCard as EntityCatalogGraphCard } from './ContainedCatalogGraphCard';
 import {
   ApiEntity,
   ComponentEntity,
