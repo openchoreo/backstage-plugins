@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, type FC } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type FC } from 'react';
 import { Box } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -9,12 +9,13 @@ import {
   isAlreadyPromoted as isAlreadyPromotedUtil,
   useEnvironmentRouting,
   computeReleaseDrift,
+  getEnvironmentStatusVariant,
   NO_DRIFT,
 } from '../hooks';
 import type { Environment, ReleaseDriftInfo } from '../hooks';
 import type { PendingAction } from '../types';
 import { EnvironmentDetailPanel, NotificationBanner } from '../components';
-import { useEnvironmentsContext } from '../EnvironmentsContext';
+import { useEnvironmentsContext, type Selection } from '../EnvironmentsContext';
 import { useIncidentsSummary } from '../hooks/useIncidentsSummary';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { EmptyState, ForbiddenState } from '@openchoreo/backstage-plugin-react';
@@ -85,6 +86,36 @@ const DetailPanelSkeleton: FC = () => {
 };
 
 /**
+ * Picks the card to select by default when the user hasn't chosen one.
+ * Priority: first env with an active (or pending) deployment → first failed
+ * → first undeployed (was deployed, torn down). If only never-deployed envs
+ * remain, fall back to the Setup card. Uses the same classifier as the cards
+ * so selection can't drift from what's displayed.
+ */
+function resolveDefaultSelection(envs: Environment[]): Selection {
+  if (envs.length === 0) return null;
+
+  const variantOf = (e: Environment) =>
+    getEnvironmentStatusVariant(e.deployment.status, e.deployment.statusReason)
+      .variant;
+
+  const active = envs.find(e => {
+    const v = variantOf(e);
+    return v === 'active' || v === 'pending';
+  });
+  if (active) return { kind: 'env', name: active.name };
+
+  const failed = envs.find(e => variantOf(e) === 'failed');
+  if (failed) return { kind: 'env', name: failed.name };
+
+  const undeployed = envs.find(e => variantOf(e) === 'undeployed');
+  if (undeployed) return { kind: 'env', name: undeployed.name };
+
+  // Only never-deployed envs remain — point the user at Setup.
+  return { kind: 'setup' };
+}
+
+/**
  * Deploy tab orchestrator. Owns selection state and wires action
  * callbacks; renders the minimap canvas (left) + detail panel (right)
  * once at least one environment is loaded.
@@ -129,11 +160,31 @@ export const PipelineCanvas: FC = () => {
     return map;
   }, [displayEnvironments]);
 
+  // One-shot guard so the default-selection effect below doesn't override a
+  // user's explicit Close/Clear (both of which set selection back to null).
+  const didAutoSelectRef = useRef(false);
+
   useEffect(() => {
     if (selection?.kind === 'env' && !envMap.has(selection.name)) {
       setSelection(null);
+      // The selected env vanished — allow a fresh default to be picked.
+      didAutoSelectRef.current = false;
     }
   }, [selection, envMap, setSelection]);
+
+  // Auto-select a sensible default card once data has loaded, so users don't
+  // land on an empty detail panel. Runs only once after the initial load (or
+  // again after the selected env disappears, via the ref reset above), so it
+  // never overrides a manual Close/Clear back to an empty panel.
+  useEffect(() => {
+    if (didAutoSelectRef.current) return;
+    if (selection !== null) return;
+    if (loading) return;
+    if (displayEnvironments.length === 0) return;
+
+    didAutoSelectRef.current = true;
+    setSelection(resolveDefaultSelection(displayEnvironments));
+  }, [selection, loading, displayEnvironments, setSelection]);
 
   const selectedEnvName = selection?.kind === 'env' ? selection.name : null;
   const selectedSetup = selection?.kind === 'setup';

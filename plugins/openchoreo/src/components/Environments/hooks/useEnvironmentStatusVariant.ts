@@ -5,7 +5,10 @@ export interface EnvironmentStatusVariant {
   label: string;
 }
 
-export function useEnvironmentStatusVariant(
+// Pure classifier shared by the hook and by non-render callers (e.g. default
+// selection resolution). Keep this as the single source of truth so card
+// display and selection logic can never drift apart.
+export function getEnvironmentStatusVariant(
   status?: 'Ready' | 'NotReady' | 'Failed',
   statusReason?: string,
 ): EnvironmentStatusVariant {
@@ -22,4 +25,11 @@ export function useEnvironmentStatusVariant(
     return { variant: 'failed', label: 'Failed' };
   }
   return { variant: 'not-deployed', label: 'Not Deployed' };
+}
+
+export function useEnvironmentStatusVariant(
+  status?: 'Ready' | 'NotReady' | 'Failed',
+  statusReason?: string,
+): EnvironmentStatusVariant {
+  return getEnvironmentStatusVariant(status, statusReason);
 }

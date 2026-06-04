@@ -142,6 +142,14 @@ jest.mock('../hooks', () => ({
   isAlreadyPromoted: () => false,
   computeReleaseDrift: () => ({ isBehind: false, aheadUpstreams: [] }),
   NO_DRIFT: { isBehind: false, aheadUpstreams: [] },
+  getEnvironmentStatusVariant: (status?: string, statusReason?: string) => {
+    if (statusReason === 'ResourcesUndeployed')
+      return { variant: 'undeployed', label: 'Undeployed' };
+    if (status === 'Ready') return { variant: 'active', label: 'Active' };
+    if (status === 'NotReady') return { variant: 'pending', label: 'Pending' };
+    if (status === 'Failed') return { variant: 'failed', label: 'Failed' };
+    return { variant: 'not-deployed', label: 'Not Deployed' };
+  },
 }));
 
 jest.mock('../hooks/useIncidentsSummary', () => ({
@@ -245,7 +253,7 @@ describe('PipelineCanvas (deploy split view)', () => {
     expect(screen.getByTestId('deploy-flow-canvas')).toBeInTheDocument();
   });
 
-  it('renders the split view with the canvas and detail panel when envs exist', () => {
+  it('renders the split view and auto-selects the first active env when envs exist', () => {
     const envs = [
       makeEnv({ name: 'development' }),
       makeEnv({ name: 'staging' }),
@@ -258,9 +266,14 @@ describe('PipelineCanvas (deploy split view)', () => {
     expect(screen.getByTestId('deploy-flow-canvas')).toBeInTheDocument();
     expect(screen.getByTestId('env-detail-panel')).toBeInTheDocument();
     expect(capturedFlowCanvasProps?.environments).toHaveLength(2);
-    expect(capturedFlowCanvasProps?.selectedEnvName).toBeNull();
+    // Both envs default to a Ready deployment, so the first one is selected.
+    expect(capturedFlowCanvasProps?.selectedEnvName).toBe('development');
     expect(capturedFlowCanvasProps?.selectedSetup).toBe(false);
-    expect(capturedDetailPanelProps?.selection).toBeNull();
+    const panelSelection = capturedDetailPanelProps?.selection;
+    expect(panelSelection?.kind).toBe('env');
+    expect(
+      panelSelection?.kind === 'env' ? panelSelection.environment.name : null,
+    ).toBe('development');
   });
 
   it('passes selection.kind=setup to the panel when Setup is selected on the canvas', () => {
