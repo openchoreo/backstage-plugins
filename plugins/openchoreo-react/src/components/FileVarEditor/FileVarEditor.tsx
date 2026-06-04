@@ -496,6 +496,7 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
               <Grid container spacing={1}>
                 <Grid item xs={5}>
                   <TextField
+                    id={`filevar-name-${id}`}
                     label="File Name"
                     value={fileVar.key || ''}
                     onChange={e => onChange('key', e.target.value)}
@@ -507,6 +508,7 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
                 </Grid>
                 <Grid item xs={5}>
                   <TextField
+                    id={`filevar-mountpath-${id}`}
                     label="Mount Path"
                     value={fileVar.mountPath || ''}
                     onChange={e => onChange('mountPath', e.target.value)}
@@ -619,6 +621,7 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
                   multiline
                   minRows={hasContent ? 6 : 3}
                   placeholder="Enter file content or upload a file"
+                  id={`filevar-content-${id}`}
                   InputProps={{
                     style: {
                       fontFamily: 'monospace',

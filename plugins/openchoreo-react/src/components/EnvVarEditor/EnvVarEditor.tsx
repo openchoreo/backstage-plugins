@@ -282,6 +282,7 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
     <Grid container spacing={1} alignItems="center">
       <Grid item xs={4}>
         <TextField
+          id="envvar-name"
           label="Name"
           value={envVar.key || ''}
           onChange={e => onChange('key', e.target.value)}
@@ -293,6 +294,7 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
       </Grid>
       <Grid item xs={8}>
         <TextField
+          id="envvar-value"
           label="Value"
           value={envVar.value || ''}
           onChange={e => handleValueChange(e.target.value)}
@@ -309,6 +311,7 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
     <Grid container spacing={1} alignItems="center">
       <Grid item xs={4}>
         <TextField
+          id="envvar-name-secret"
           label="Name"
           value={envVar.key || ''}
           onChange={e => onChange('key', e.target.value)}
