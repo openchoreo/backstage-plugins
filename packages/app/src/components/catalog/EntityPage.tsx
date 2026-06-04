@@ -651,10 +651,7 @@ const systemPage = (
 
         {/* Row 3: Catalog Relations, full width */}
         <Grid item xs={12}>
-          <EntityCatalogGraphCard
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
       </Grid>
     </EntityLayout.Route>
