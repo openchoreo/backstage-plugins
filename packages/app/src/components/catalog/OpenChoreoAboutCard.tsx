@@ -145,110 +145,124 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
 
   return (
     <Grid container>
-      <AboutField label="Description">
-        <MarkdownContent
-          className={classes.description}
-          content={entity?.metadata?.description || 'No description'}
-        />
-      </AboutField>
-      <AboutField
-        label="Owner"
-        value="No Owner"
-        className={classes.description}
-      >
-        {ownedByRelations.length > 0 && (
-          <EntityRefLinks entityRefs={ownedByRelations} defaultKind="group" />
-        )}
-      </AboutField>
-      {(isSystem || partOfDomainRelations.length > 0) && (
+      {/*
+        Note: in v1.51 `@backstage/plugin-catalog` dropped `gridSizes` from
+        the public `AboutFieldProps` (though upstream's internal AboutContent
+        still uses it). To keep the same responsive 3-up layout
+        (xs: full-width, sm: 2-up, lg: 3-up), each AboutField is wrapped in
+        our own `<Grid item>` here.
+      */}
+      <Grid item xs={12}>
+        <AboutField label="Description">
+          <MarkdownContent
+            className={classes.description}
+            content={entity?.metadata?.description || 'No description'}
+          />
+        </AboutField>
+      </Grid>
+      <Grid item xs={12} sm={6} lg={4}>
         <AboutField
-          label="Namespace"
-          value="No Namespace"
-          >
-          {partOfDomainRelations.length > 0 && (
-            <EntityRefLinks
-              entityRefs={partOfDomainRelations}
-              defaultKind="domain"
-            />
+          label="Owner"
+          value="No Owner"
+          className={classes.description}
+        >
+          {ownedByRelations.length > 0 && (
+            <EntityRefLinks entityRefs={ownedByRelations} defaultKind="group" />
           )}
         </AboutField>
+      </Grid>
+      {(isSystem || partOfDomainRelations.length > 0) && (
+        <Grid item xs={12} sm={6} lg={4}>
+          <AboutField label="Namespace" value="No Namespace">
+            {partOfDomainRelations.length > 0 && (
+              <EntityRefLinks
+                entityRefs={partOfDomainRelations}
+                defaultKind="domain"
+              />
+            )}
+          </AboutField>
+        </Grid>
       )}
       {(isAPI ||
         isComponent ||
         isResource ||
         partOfSystemRelations.length > 0) && (
-        <AboutField
-          label="Project"
-          value="No Project"
-          >
-          {partOfSystemRelations.length > 0 && (
-            <EntityRefLinks
-              entityRefs={partOfSystemRelations}
-              defaultKind="system"
-            />
-          )}
-        </AboutField>
+        <Grid item xs={12} sm={6} lg={4}>
+          <AboutField label="Project" value="No Project">
+            {partOfSystemRelations.length > 0 && (
+              <EntityRefLinks
+                entityRefs={partOfSystemRelations}
+                defaultKind="system"
+              />
+            )}
+          </AboutField>
+        </Grid>
       )}
       {isComponent && partOfComponentRelations.length > 0 && (
-        <AboutField
-          label="Parent Component"
-          value="No Parent Component"
-          >
-          <EntityRefLinks
-            entityRefs={partOfComponentRelations}
-            defaultKind="component"
-          />
-        </AboutField>
+        <Grid item xs={12} sm={6} lg={4}>
+          <AboutField label="Parent Component" value="No Parent Component">
+            <EntityRefLinks
+              entityRefs={partOfComponentRelations}
+              defaultKind="component"
+            />
+          </AboutField>
+        </Grid>
       )}
       {isResource && typeof entity?.spec?.type === 'string' && (
-        <AboutField label="Type">
-          {(() => {
-            const typeName = entity.spec.type as string;
-            const typeKind =
-              entity.metadata.annotations?.['openchoreo.io/resource-type-kind'];
-            const namespaceName = entity.metadata.namespace ?? 'default';
-            if (typeKind === 'ClusterResourceType') {
-              return (
-                <Link
-                  to={`/catalog/openchoreo-cluster/clusterresourcetype/${typeName}`}
-                >
-                  {typeName}
-                </Link>
-              );
-            }
-            if (typeKind === 'ResourceType') {
-              return (
-                <Link to={`/catalog/${namespaceName}/resourcetype/${typeName}`}>
-                  {typeName}
-                </Link>
-              );
-            }
-            return typeName;
-          })()}
-        </AboutField>
+        <Grid item xs={12} sm={6} lg={4}>
+          <AboutField label="Type">
+            {(() => {
+              const typeName = entity.spec.type as string;
+              const typeKind =
+                entity.metadata.annotations?.[
+                  'openchoreo.io/resource-type-kind'
+                ];
+              const namespaceName = entity.metadata.namespace ?? 'default';
+              if (typeKind === 'ClusterResourceType') {
+                return (
+                  <Link
+                    to={`/catalog/openchoreo-cluster/clusterresourcetype/${typeName}`}
+                  >
+                    {typeName}
+                  </Link>
+                );
+              }
+              if (typeKind === 'ResourceType') {
+                return (
+                  <Link
+                    to={`/catalog/${namespaceName}/resourcetype/${typeName}`}
+                  >
+                    {typeName}
+                  </Link>
+                );
+              }
+              return typeName;
+            })()}
+          </AboutField>
+        </Grid>
       )}
       {!isResource && typeof entity?.spec?.type === 'string' && (
-        <AboutField
-          label="Type"
-          value={entity.spec.type as string}
-          />
+        <Grid item xs={12} sm={6} lg={4}>
+          <AboutField label="Type" value={entity.spec.type as string} />
+        </Grid>
       )}
       {(isAPI ||
         isComponent ||
         typeof entity?.spec?.lifecycle === 'string') && (
-        <AboutField
-          label="Lifecycle"
-          value={entity?.spec?.lifecycle as string}
+        <Grid item xs={12} sm={6} lg={4}>
+          <AboutField
+            label="Lifecycle"
+            value={entity?.spec?.lifecycle as string}
           />
+        </Grid>
       )}
-      <AboutField
-        label="Tags"
-        value="No Tags"
-      >
-        {(entity?.metadata?.tags || []).map(tag => (
-          <Chip key={tag} size="small" label={tag} />
-        ))}
-      </AboutField>
+      <Grid item xs={12} sm={6} lg={4}>
+        <AboutField label="Tags" value="No Tags">
+          {(entity?.metadata?.tags || []).map(tag => (
+            <Chip key={tag} size="small" label={tag} />
+          ))}
+        </AboutField>
+      </Grid>
     </Grid>
   );
 }
