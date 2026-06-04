@@ -285,6 +285,10 @@ export {
   type UseComponentUpdateContextPermissionResult,
 } from './hooks/useComponentUpdateContextPermission';
 export {
+  useResourceUpdateContextPermission,
+  type UseResourceUpdateContextPermissionResult,
+} from './hooks/useResourceUpdateContextPermission';
+export {
   useWorkloadUpdatePermission,
   type UseWorkloadUpdatePermissionResult,
 } from './hooks/useWorkloadUpdatePermission';

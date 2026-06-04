@@ -28,6 +28,15 @@ jest.mock('./useComponentUpdateContextPermission', () => ({
     mockUseComponentUpdateContextPermission(),
 }));
 
+// resourceType-aware update hook. By default it passes through the base
+// `usePermission` result for resources. Individual tests override it to
+// simulate an ABAC resourceType deny.
+const mockUseResourceUpdateContextPermission = jest.fn();
+jest.mock('./useResourceUpdateContextPermission', () => ({
+  useResourceUpdateContextPermission: () =>
+    mockUseResourceUpdateContextPermission(),
+}));
+
 const makeEntity = (kind: string) => ({
   entity: {
     apiVersion: 'backstage.io/v1alpha1',
@@ -47,6 +56,14 @@ describe('useResourceDefinitionPermission', () => {
       const base = results[results.length - 1]?.value;
       return {
         canUpdateComponent: base?.allowed ?? false,
+        loading: base?.loading ?? false,
+      };
+    });
+    mockUseResourceUpdateContextPermission.mockImplementation(() => {
+      const { results } = mockUsePermission.mock;
+      const base = results[results.length - 1]?.value;
+      return {
+        canUpdateResource: base?.allowed ?? false,
         loading: base?.loading ?? false,
       };
     });
@@ -151,6 +168,38 @@ describe('useResourceDefinitionPermission', () => {
     // Even if the context hook would deny, a non-component kind ignores it.
     mockUseComponentUpdateContextPermission.mockReturnValue({
       canUpdateComponent: false,
+      loading: false,
+    });
+
+    const { result } = renderHook(() => useResourceDefinitionPermission());
+
+    expect(result.current.canUpdate).toBe(true);
+    expect(result.current.canDelete).toBe(true);
+  });
+
+  it('flips canUpdate to false for a resource when resourceType ABAC denies', () => {
+    mockUseEntity.mockReturnValue(makeEntity('Resource'));
+    // Base RBAC allows, but the resourceType-aware hook denies (ABAC condition).
+    mockUsePermission.mockReturnValue({ allowed: true, loading: false });
+    mockUseResourceUpdateContextPermission.mockReturnValue({
+      canUpdateResource: false,
+      loading: false,
+    });
+
+    const { result } = renderHook(() => useResourceDefinitionPermission());
+
+    expect(result.current.canUpdate).toBe(false);
+    expect(result.current.updateDeniedTooltip).toBeTruthy();
+    // Delete is unaffected by the resourceType condition.
+    expect(result.current.canDelete).toBe(true);
+  });
+
+  it('does not apply the resourceType condition to non-resource kinds', () => {
+    mockUseEntity.mockReturnValue(makeEntity('TraitType'));
+    mockUsePermission.mockReturnValue({ allowed: true, loading: false });
+    // Even if the context hook would deny, a non-resource kind ignores it.
+    mockUseResourceUpdateContextPermission.mockReturnValue({
+      canUpdateResource: false,
       loading: false,
     });
 
