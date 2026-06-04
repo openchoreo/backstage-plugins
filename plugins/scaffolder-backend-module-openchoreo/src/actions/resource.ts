@@ -83,8 +83,7 @@ export const createResourceAction = (
         parameters: z =>
           z
             .record(z.unknown(), {
-              description:
-                "Parameter values bound to the picked type's schema",
+              description: "Parameter values bound to the picked type's schema",
             })
             .optional(),
       },

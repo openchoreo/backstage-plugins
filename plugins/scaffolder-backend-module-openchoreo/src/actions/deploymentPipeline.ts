@@ -70,8 +70,7 @@ export const createDeploymentPipelineAction = (
           }),
         entityRef: z =>
           z.string({
-            description:
-              'Entity reference for the created deployment pipeline',
+            description: 'Entity reference for the created deployment pipeline',
           }),
       },
     },

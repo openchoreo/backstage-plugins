@@ -32,8 +32,7 @@ export const createClusterResourceTypeDefinitionAction = (
           }),
         entityRef: z =>
           z.string({
-            description:
-              'Entity reference for the created ClusterResourceType',
+            description: 'Entity reference for the created ClusterResourceType',
           }),
       },
     },
