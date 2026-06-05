@@ -48,6 +48,7 @@ import {
   openchoreoNamespaceDeletePermission,
 } from '@openchoreo/backstage-plugin-common';
 import { useComponentUpdateContextPermission } from './useComponentUpdateContextPermission';
+import { useResourceUpdateContextPermission } from './useResourceUpdateContextPermission';
 
 /**
  * Result of the useResourceDefinitionPermission hook.
@@ -235,14 +236,19 @@ export const useResourceDefinitionPermission =
       usePermission(deleteInput);
 
     const componentCtx = useComponentUpdateContextPermission();
-    const isComponent = entity.kind.toLowerCase() === 'component';
+    const resourceCtx = useResourceUpdateContextPermission();
+    const kindLower = entity.kind.toLowerCase();
+    const isComponent = kindLower === 'component';
+    const isResource = kindLower === 'resource';
 
-    // For components, fold the `resource.componentType` ABAC condition into the
-    // update decision. For every other kind, keep today's behavior exactly
-    // (and deny by default when the kind is not in the map).
+    // For components/resources, fold the matching `resource.*Type` ABAC
+    // condition into the update decision. For every other kind, keep today's
+    // behavior exactly (and deny by default when the kind is not in the map).
     let effectiveCanUpdate: boolean;
     if (isComponent) {
       effectiveCanUpdate = componentCtx.canUpdateComponent;
+    } else if (isResource) {
+      effectiveCanUpdate = resourceCtx.canUpdateResource;
     } else {
       effectiveCanUpdate = permissions ? canUpdate : false;
     }
@@ -251,7 +257,8 @@ export const useResourceDefinitionPermission =
     const loading =
       updateLoading ||
       deleteLoading ||
-      (isComponent ? componentCtx.loading : false);
+      (isComponent ? componentCtx.loading : false) ||
+      (isResource ? resourceCtx.loading : false);
 
     return {
       canUpdate: effectiveCanUpdate,
