@@ -4,7 +4,6 @@ import {
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
-import { z } from 'zod';
 import {
   type ImmediateCatalogService,
   translateProjectToEntity,
@@ -18,38 +17,38 @@ export const createProjectAction = (
     id: 'openchoreo:project:create',
     description: 'Create OpenChoreo Project',
     schema: {
-      input: (zImpl: typeof z) =>
-        zImpl.object({
-          namespaceName: zImpl
-            .string()
-            .describe('The name of the namespace to create the project in'),
-          projectName: zImpl
-            .string()
-            .describe('The name of the project to create'),
-          displayName: zImpl
-            .string()
-            .optional()
-            .describe('The display name of the project'),
-          description: zImpl
-            .string()
-            .optional()
-            .describe('The description of the project'),
-          deploymentPipeline: zImpl
-            .string()
-            .describe('The deployment pipeline for the project'),
-        }),
-      output: (zImpl: typeof z) =>
-        zImpl.object({
-          projectName: zImpl
-            .string()
-            .describe('The name of the created project'),
-          namespaceName: zImpl
-            .string()
-            .describe('The namespace where the project was created'),
-          entityRef: zImpl
-            .string()
-            .describe('Entity reference for the created project'),
-        }),
+      input: {
+        namespaceName: z =>
+          z.string({
+            description: 'The name of the namespace to create the project in',
+          }),
+        projectName: z =>
+          z.string({ description: 'The name of the project to create' }),
+        displayName: z =>
+          z
+            .string({ description: 'The display name of the project' })
+            .optional(),
+        description: z =>
+          z
+            .string({ description: 'The description of the project' })
+            .optional(),
+        deploymentPipeline: z =>
+          z.string({
+            description: 'The deployment pipeline for the project',
+          }),
+      },
+      output: {
+        projectName: z =>
+          z.string({ description: 'The name of the created project' }),
+        namespaceName: z =>
+          z.string({
+            description: 'The namespace where the project was created',
+          }),
+        entityRef: z =>
+          z.string({
+            description: 'Entity reference for the created project',
+          }),
+      },
     },
     async handler(ctx) {
       ctx.logger.debug(

@@ -5,7 +5,6 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 import type { ComponentResponse } from '@openchoreo/backstage-plugin-common';
 import { Config } from '@backstage/config';
-import { z } from 'zod';
 import {
   buildComponentResource,
   buildWorkloadResource,
@@ -61,91 +60,102 @@ export const createComponentAction = (
   return createTemplateAction({
     id: 'openchoreo:component:create',
     description: 'Create OpenChoreo Component',
+    // Note on .passthrough(): the legacy v2 input schema wrapped the
+    // whole object in zImpl.object({...}).passthrough(), allowing CTD
+    // params, workflow params, traits, etc. to pass through. The v4
+    // field-per-arrow shape has no equivalent — each declared field is
+    // strongly typed, but extra fields on ctx.input still work at
+    // runtime since the handler reads ctx.input as Record-like.
     schema: {
-      input: (zImpl: typeof z) =>
-        zImpl
-          .object({
-            // Keep existing validation for required fields
-            namespaceName: zImpl
-              .string()
-              .describe(
-                'The name of the namespace where the component will be created',
-              ),
-            projectName: zImpl
-              .string()
-              .describe(
-                'The name of the project where the component will be created',
-              ),
-            componentName: zImpl
-              .string()
-              .max(
-                MAX_NAME_LENGTH,
-                `Component name must not exceed ${MAX_NAME_LENGTH} characters`,
-              )
-              .regex(
-                K8S_NAME_PATTERN,
-                'Component name must be a valid Kubernetes name: lowercase letters, numbers, hyphens, or dots only. Must start and end with an alphanumeric character.',
-              )
-              .describe('The name of the component to create'),
-            displayName: zImpl
-              .string()
-              .optional()
-              .describe('The display name of the component'),
-            description: zImpl
-              .string()
-              .optional()
-              .describe('The description of the component'),
-            componentType: zImpl.string().describe('The type of the component'),
-            component_type_kind: zImpl
-              .enum(['ComponentType', 'ClusterComponentType'])
-              .optional()
-              .describe(
+      input: {
+        namespaceName: z =>
+          z.string({
+            description:
+              'The name of the namespace where the component will be created',
+          }),
+        projectName: z =>
+          z.string({
+            description:
+              'The name of the project where the component will be created',
+          }),
+        componentName: z =>
+          z
+            .string({ description: 'The name of the component to create' })
+            .max(
+              MAX_NAME_LENGTH,
+              `Component name must not exceed ${MAX_NAME_LENGTH} characters`,
+            )
+            .regex(
+              K8S_NAME_PATTERN,
+              'Component name must be a valid Kubernetes name: lowercase letters, numbers, hyphens, or dots only. Must start and end with an alphanumeric character.',
+            ),
+        displayName: z =>
+          z
+            .string({ description: 'The display name of the component' })
+            .optional(),
+        description: z =>
+          z
+            .string({ description: 'The description of the component' })
+            .optional(),
+        componentType: z =>
+          z.string({ description: 'The type of the component' }),
+        component_type_kind: z =>
+          z
+            .enum(['ComponentType', 'ClusterComponentType'], {
+              description:
                 'The kind of component type (ComponentType or ClusterComponentType)',
-              ),
-
-            // Deployment source and optional fields
-            deploymentSource: zImpl
-              .enum(['build-from-source', 'deploy-from-image', 'external-ci'])
-              .optional()
-              .describe(
+            })
+            .optional(),
+        deploymentSource: z =>
+          z
+            .enum(['build-from-source', 'deploy-from-image', 'external-ci'], {
+              description:
                 'How the component will be built and deployed (build-from-source, deploy-from-image, or external-ci)',
-              ),
-            autoDeploy: zImpl.boolean().optional(),
-            containerImage: zImpl
-              .string()
-              .optional()
-              .describe('Container image for deploy-from-image deployment'),
-            ciPlatform: zImpl
-              .enum(['none', 'jenkins', 'github-actions', 'gitlab-ci'])
-              .optional()
-              .describe('CI platform for external-ci deployment'),
-            ciIdentifier: zImpl
-              .string()
-              .optional()
-              .describe(
+            })
+            .optional(),
+        autoDeploy: z => z.boolean().optional(),
+        containerImage: z =>
+          z
+            .string({
+              description: 'Container image for deploy-from-image deployment',
+            })
+            .optional(),
+        ciPlatform: z =>
+          z
+            .enum(['none', 'jenkins', 'github-actions', 'gitlab-ci'], {
+              description: 'CI platform for external-ci deployment',
+            })
+            .optional(),
+        ciIdentifier: z =>
+          z
+            .string({
+              description:
                 'CI job/project identifier (e.g., Jenkins job path, GitHub repo slug)',
-              ),
-            workflow: zImpl
-              .object({
-                kind: zImpl.string().optional(),
-                name: zImpl.string(),
-              })
-              .optional()
-              .describe('Selected build workflow (kind + name)'),
-          })
-          .passthrough(), // Allow any additional fields (CTD params, workflow params, traits, etc.)
-      output: (zImpl: typeof z) =>
-        zImpl.object({
-          componentName: zImpl
-            .string()
-            .describe('The name of the created component'),
-          projectName: zImpl
-            .string()
-            .describe('The project where the component was created'),
-          namespaceName: zImpl
-            .string()
-            .describe('The namespace where the component was created'),
-        }),
+            })
+            .optional(),
+        workflow: z =>
+          z
+            .object(
+              {
+                kind: z.string().optional(),
+                name: z.string(),
+              },
+              { description: 'Selected build workflow (kind + name)' },
+            )
+            .optional(),
+      },
+      output: {
+        componentName: z =>
+          z.string({ description: 'The name of the created component' }),
+        projectName: z =>
+          z.string({
+            description: 'The project where the component was created',
+          }),
+        namespaceName: z =>
+          z.string({
+            description: 'The namespace where the component was created',
+          }),
+      },
     },
     async handler(ctx) {
       ctx.logger.info(

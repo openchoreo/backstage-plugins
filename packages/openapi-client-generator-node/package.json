@@ -32,7 +32,7 @@
     "openapi-fetch": "0.13.8"
   },
   "devDependencies": {
-    "@backstage/cli": "0.34.3",
+    "@backstage/cli": "^0.36.2",
     "openapi-typescript": "7.10.1",
     "rimraf": "5.0.10"
   },

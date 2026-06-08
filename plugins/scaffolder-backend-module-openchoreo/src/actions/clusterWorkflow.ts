@@ -4,7 +4,6 @@ import {
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
-import { z } from 'zod';
 import YAML from 'yaml';
 import {
   type ImmediateCatalogService,
@@ -20,21 +19,22 @@ export const createClusterWorkflowDefinitionAction = (
     id: 'openchoreo:clusterworkflow-definition:create',
     description: 'Create OpenChoreo ClusterWorkflow',
     schema: {
-      input: (zImpl: typeof z) =>
-        zImpl.object({
-          yamlContent: zImpl
-            .string()
-            .describe('The YAML content of the ClusterWorkflow definition'),
-        }),
-      output: (zImpl: typeof z) =>
-        zImpl.object({
-          clusterWorkflowName: zImpl
-            .string()
-            .describe('The name of the created ClusterWorkflow'),
-          entityRef: zImpl
-            .string()
-            .describe('Entity reference for the created ClusterWorkflow'),
-        }),
+      input: {
+        yamlContent: z =>
+          z.string({
+            description: 'The YAML content of the ClusterWorkflow definition',
+          }),
+      },
+      output: {
+        clusterWorkflowName: z =>
+          z.string({
+            description: 'The name of the created ClusterWorkflow',
+          }),
+        entityRef: z =>
+          z.string({
+            description: 'Entity reference for the created ClusterWorkflow',
+          }),
+      },
     },
     async handler(ctx) {
       ctx.logger.debug(

@@ -4,7 +4,6 @@ import {
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
-import { z } from 'zod';
 import YAML from 'yaml';
 import {
   type ImmediateCatalogService,
@@ -19,29 +18,29 @@ export const createResourceTypeDefinitionAction = (
     id: 'openchoreo:resourcetype-definition:create',
     description: 'Create OpenChoreo ResourceType',
     schema: {
-      input: (zImpl: typeof z) =>
-        zImpl.object({
-          namespaceName: zImpl
-            .string()
-            .describe(
+      input: {
+        namespaceName: z =>
+          z.string({
+            description:
               'The name of the namespace to create the ResourceType in',
-            ),
-          yamlContent: zImpl
-            .string()
-            .describe('The YAML content of the ResourceType definition'),
-        }),
-      output: (zImpl: typeof z) =>
-        zImpl.object({
-          resourceTypeName: zImpl
-            .string()
-            .describe('The name of the created ResourceType'),
-          namespaceName: zImpl
-            .string()
-            .describe('The namespace where the ResourceType was created'),
-          entityRef: zImpl
-            .string()
-            .describe('Entity reference for the created ResourceType'),
-        }),
+          }),
+        yamlContent: z =>
+          z.string({
+            description: 'The YAML content of the ResourceType definition',
+          }),
+      },
+      output: {
+        resourceTypeName: z =>
+          z.string({ description: 'The name of the created ResourceType' }),
+        namespaceName: z =>
+          z.string({
+            description: 'The namespace where the ResourceType was created',
+          }),
+        entityRef: z =>
+          z.string({
+            description: 'Entity reference for the created ResourceType',
+          }),
+      },
     },
     async handler(ctx) {
       ctx.logger.debug(

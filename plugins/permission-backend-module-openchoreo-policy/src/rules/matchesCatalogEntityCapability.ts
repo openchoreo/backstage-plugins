@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { Entity } from '@backstage/catalog-model';
 import { RESOURCE_TYPE_CATALOG_ENTITY } from '@backstage/plugin-catalog-common/alpha';
 import { EntitiesSearchFilter } from '@backstage/plugin-catalog-node';
@@ -32,23 +32,24 @@ export interface KindCapability {
 export type KindCapabilities = Record<string, KindCapability>;
 
 /**
- * Params schema for the matchesCatalogEntityCapability rule.
+ * Params for the `matchesCatalogEntityCapability` rule. Hand-written rather
+ * than `z.infer<typeof schema>` so the Zod schema can be inlined at the
+ * `createCatalogPermissionRule` call site below — required for the v1.51
+ * `TParams` inference to flow through to call sites.
  *
  * Note: Backstage permission rules only support primitive types in params.
  * We use JSON serialization for the complex kindCapabilities structure.
  */
-const paramsSchema = z.object({
+export type MatchesCatalogEntityCapabilityParams = {
   /**
    * JSON-serialized kind-specific capability mappings.
    * Keys are lowercase entity kinds (e.g., 'component', 'system', 'domain').
    * Values contain the action and paths for that kind.
    */
-  kindCapabilitiesJson: z.string(),
+  kindCapabilitiesJson: string;
   /** Entity kinds this rule applies to (e.g., ['Component', 'System', 'Domain']) */
-  kinds: z.array(z.string()),
-});
-
-export type MatchesCatalogEntityCapabilityParams = z.infer<typeof paramsSchema>;
+  kinds: string[];
+};
 
 /**
  * Parsed capability path with `ns` field (catalog rule convention).
@@ -365,8 +366,11 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
   description:
     'Allow if entity kind matches and user has OpenChoreo capability for this resource scope',
   resourceType: RESOURCE_TYPE_CATALOG_ENTITY,
-  paramsSchema,
-  apply: (entity: Entity, params: MatchesCatalogEntityCapabilityParams) => {
+  paramsSchema: z.object({
+    kindCapabilitiesJson: z.string(),
+    kinds: z.array(z.string()),
+  }),
+  apply: (entity, params) => {
     const { kindCapabilitiesJson, kinds } = params;
 
     // Parse the JSON-serialized kindCapabilities

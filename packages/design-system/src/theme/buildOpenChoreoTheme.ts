@@ -154,7 +154,12 @@ export function buildOpenChoreoTheme(t: ThemeTokens): UnifiedTheme {
       BackstageHeader: {
         styleOverrides: {
           header: {
-            backgroundColor: t.primary.main,
+            // In light mode `t.primary.main` is dark navy and works as the
+            // base color under the gradient. In dark mode `t.primary.main` is
+            // a light lavender accent (`#8fa0ea`) — wrong as a header fill.
+            // `t.indigo[200]` resolves to `#2a2f5a` in dark, matching the
+            // gradient's first stop.
+            backgroundColor: isDark ? t.indigo[200] : t.primary.main,
             backgroundImage: t.gradient.header,
             minHeight: spacing(6),
             // Original: `0 1px 3px 0 rgba(0, 0, 0, 0.05)` — 3px blur.
@@ -175,7 +180,8 @@ export function buildOpenChoreoTheme(t: ThemeTokens): UnifiedTheme {
       BackstageItemCardHeader: {
         styleOverrides: {
           root: {
-            backgroundColor: t.primary.main,
+            // Same dark-mode swap as BackstageHeader above.
+            backgroundColor: isDark ? t.indigo[200] : t.primary.main,
             backgroundImage: `${t.gradient.cardHeader}!important`,
           },
         },

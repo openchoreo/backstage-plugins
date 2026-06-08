@@ -8,7 +8,6 @@ import {
   getCreatedAt,
 } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
-import { z } from 'zod';
 import {
   type ImmediateCatalogService,
   translateNamespaceToDomainEntity,
@@ -22,29 +21,26 @@ export const createNamespaceAction = (
     id: 'openchoreo:namespace:create',
     description: 'Create OpenChoreo Namespace',
     schema: {
-      input: (zImpl: typeof z) =>
-        zImpl.object({
-          namespaceName: zImpl
-            .string()
-            .describe('The name of the namespace to create'),
-          displayName: zImpl
-            .string()
-            .optional()
-            .describe('The display name of the namespace'),
-          description: zImpl
-            .string()
-            .optional()
-            .describe('The description of the namespace'),
-        }),
-      output: (zImpl: typeof z) =>
-        zImpl.object({
-          namespaceName: zImpl
-            .string()
-            .describe('The name of the created namespace'),
-          entityRef: zImpl
-            .string()
-            .describe('Entity reference for the created namespace'),
-        }),
+      input: {
+        namespaceName: z =>
+          z.string({ description: 'The name of the namespace to create' }),
+        displayName: z =>
+          z
+            .string({ description: 'The display name of the namespace' })
+            .optional(),
+        description: z =>
+          z
+            .string({ description: 'The description of the namespace' })
+            .optional(),
+      },
+      output: {
+        namespaceName: z =>
+          z.string({ description: 'The name of the created namespace' }),
+        entityRef: z =>
+          z.string({
+            description: 'Entity reference for the created namespace',
+          }),
+      },
     },
     async handler(ctx) {
       ctx.logger.debug(

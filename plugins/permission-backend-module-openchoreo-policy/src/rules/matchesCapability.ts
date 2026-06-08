@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import {
   createPermissionRule,
   createPermissionResourceRef,
@@ -55,16 +55,20 @@ export const openchoreoNamespacedResourceRef = createPermissionResourceRef<
  * async /authz/evaluates endpoint from here. Per-environment ABAC gating
  * happens via the env-aware permission hooks + /evaluate-with-context route.
  */
-const paramsSchema = z.object({
+/**
+ * Params for the `matchesCapability` rule. Hand-written rather than
+ * `z.infer<typeof schema>` so the Zod schema can be inlined at the
+ * `createPermissionRule` call site below — required for the v1.51
+ * `TParams` inference to flow through to call sites.
+ */
+export type MatchesCapabilityParams = {
   /** The OpenChoreo action to check (e.g., 'releasebinding:create') */
-  action: z.string(),
+  action: string;
   /** JSON-encoded `CapabilityResource[]` for allowed entries */
-  allowedJson: z.string(),
+  allowedJson: string;
   /** JSON-encoded `CapabilityResource[]` for denied entries */
-  deniedJson: z.string(),
-});
-
-export type MatchesCapabilityParams = z.infer<typeof paramsSchema>;
+  deniedJson: string;
+};
 
 interface CapabilityEntry {
   path: string;
@@ -186,8 +190,12 @@ export const matchesCapability = createPermissionRule({
   description:
     'Allow if user has OpenChoreo capability for this resource scope',
   resourceRef: openchoreoNamespacedResourceRef,
-  paramsSchema,
-  apply: (entity: Entity, params: MatchesCapabilityParams) => {
+  paramsSchema: z.object({
+    action: z.string(),
+    allowedJson: z.string(),
+    deniedJson: z.string(),
+  }),
+  apply: (entity, params) => {
     const allowedEntries = parseEntries(params.allowedJson);
     const deniedEntries = parseEntries(params.deniedJson);
 

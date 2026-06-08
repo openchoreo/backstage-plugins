@@ -4,7 +4,6 @@ import {
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
-import { z } from 'zod';
 import YAML from 'yaml';
 import {
   type ImmediateCatalogService,
@@ -19,23 +18,24 @@ export const createClusterComponentTypeDefinitionAction = (
     id: 'openchoreo:clustercomponenttype-definition:create',
     description: 'Create OpenChoreo ClusterComponentType',
     schema: {
-      input: (zImpl: typeof z) =>
-        zImpl.object({
-          yamlContent: zImpl
-            .string()
-            .describe(
+      input: {
+        yamlContent: z =>
+          z.string({
+            description:
               'The YAML content of the ClusterComponentType definition',
-            ),
-        }),
-      output: (zImpl: typeof z) =>
-        zImpl.object({
-          clusterComponentTypeName: zImpl
-            .string()
-            .describe('The name of the created ClusterComponentType'),
-          entityRef: zImpl
-            .string()
-            .describe('Entity reference for the created ClusterComponentType'),
-        }),
+          }),
+      },
+      output: {
+        clusterComponentTypeName: z =>
+          z.string({
+            description: 'The name of the created ClusterComponentType',
+          }),
+        entityRef: z =>
+          z.string({
+            description:
+              'Entity reference for the created ClusterComponentType',
+          }),
+      },
     },
     async handler(ctx) {
       ctx.logger.debug(

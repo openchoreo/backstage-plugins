@@ -54,7 +54,11 @@ backend:
   # The production database configuration is stored in app-config.production.yaml
   database:
     client: better-sqlite3
-    connection: ':memory:'
+    # v1.51 config schema rejects bare-string connection; use object form.
+    # filename: ':memory:' produces an in-memory SQLite database, identical
+    # behavior to the legacy connection: ':memory:' bare-string form.
+    connection:
+      filename: ':memory:'
   # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
 
 integrations:

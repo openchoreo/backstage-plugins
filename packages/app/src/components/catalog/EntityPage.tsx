@@ -33,10 +33,8 @@ import {
   EntityOwnershipCard,
 } from '@backstage/plugin-org';
 import { EntityTechdocsContent } from '@backstage/plugin-techdocs';
-import {
-  Direction,
-  EntityCatalogGraphCard,
-} from '@backstage/plugin-catalog-graph';
+import { Direction } from '@backstage/plugin-catalog-graph';
+import { ContainedCatalogGraphCard as EntityCatalogGraphCard } from './ContainedCatalogGraphCard';
 import {
   ApiEntity,
   ComponentEntity,
@@ -301,16 +299,12 @@ function OverviewContent() {
         </EntitySwitch.Case>
         <EntitySwitch.Case>
           <Grid item md={6} xs={12}>
-            <EntityAboutCard variant="gridItem" />
+            <EntityAboutCard />
           </Grid>
         </EntitySwitch.Case>
       </EntitySwitch>
       <Grid item md={6} xs={12}>
-        <EntityCatalogGraphCard
-          variant="gridItem"
-          height={400}
-          renderNode={CustomGraphNode}
-        />
+        <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
       </Grid>
     </Grid>
   );
@@ -592,11 +586,7 @@ const apiPage = (
           <EntityAboutCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -617,10 +607,10 @@ const userPage = (
       <Grid container spacing={3}>
         {entityWarningContent}
         <Grid item xs={12} md={6}>
-          <EntityUserProfileCard variant="gridItem" />
+          <EntityUserProfileCard />
         </Grid>
         <Grid item xs={12} md={6}>
-          <EntityOwnershipCard variant="gridItem" />
+          <EntityOwnershipCard />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -633,10 +623,10 @@ const groupPage = (
       <Grid container spacing={3}>
         {entityWarningContent}
         <Grid item xs={12} md={6}>
-          <EntityGroupProfileCard variant="gridItem" />
+          <EntityGroupProfileCard />
         </Grid>
         <Grid item xs={12} md={6}>
-          <EntityOwnershipCard variant="gridItem" />
+          <EntityOwnershipCard />
         </Grid>
         <Grid item xs={12} md={6}>
           <EntityMembersListCard />
@@ -674,11 +664,7 @@ const systemPage = (
 
         {/* Row 3: Catalog Relations, full width */}
         <Grid item xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -690,7 +676,6 @@ const systemPage = (
     </EntityLayout.Route>
     <EntityLayout.Route path="/diagram" title="Diagram">
       <EntityCatalogGraphCard
-        variant="gridItem"
         direction={Direction.TOP_BOTTOM}
         title="System Diagram"
         height={700}
@@ -758,7 +743,6 @@ const domainPage = (
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
-            variant="gridItem"
             height={500}
             zoom="enabled"
             maxDepth={1}
@@ -779,20 +763,16 @@ const defaultResourcePage = (
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
         <Grid item md={6}>
-          <EntityAboutCard variant="gridItem" />
+          <EntityAboutCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
         <Grid item md={4} xs={12}>
           <EntityLinksCard />
         </Grid>
         <Grid item md={8}>
-          <EntityHasComponentsCard variant="gridItem" />
+          <EntityHasComponentsCard />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -822,11 +802,7 @@ const openchoreoResourcePage = (
           <OpenChoreoAboutCard variant="gridItem" showEditIcon />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -877,7 +853,6 @@ const environmentPage = (
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
-            variant="gridItem"
             height={400}
             relations={[
               RELATION_PART_OF,
@@ -923,7 +898,6 @@ const dataplanePage = (
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
-            variant="gridItem"
             height={400}
             relations={[
               RELATION_PART_OF,
@@ -966,7 +940,6 @@ const clusterDataplanePage = (
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
-            variant="gridItem"
             height={400}
             relations={[
               RELATION_HOSTED_ON,
@@ -999,7 +972,6 @@ const workflowPlanePage = (
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
-            variant="gridItem"
             height={400}
             relations={[
               RELATION_PART_OF,
@@ -1034,7 +1006,6 @@ const clusterWorkflowPlanePage = (
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
-            variant="gridItem"
             height={400}
             relations={[
               RELATION_OBSERVED_BY,
@@ -1077,7 +1048,6 @@ const observabilityPlanePage = (
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
-            variant="gridItem"
             height={400}
             relations={[
               RELATION_PART_OF,
@@ -1115,7 +1085,6 @@ const clusterObservabilityPlanePage = (
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
-            variant="gridItem"
             height={400}
             relations={[RELATION_OBSERVED_BY, RELATION_OBSERVES]}
             renderNode={CustomGraphNode}
@@ -1150,7 +1119,6 @@ const deploymentPipelinePage = (
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
-            variant="gridItem"
             height={400}
             relations={[
               RELATION_PART_OF,
@@ -1183,11 +1151,7 @@ const componentTypePage = (
           <ComponentTypeOverviewCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
         <Grid item md={12} xs={12}>
           <OpenChoreoAboutCard variant="gridItem" showEditIcon />
@@ -1209,11 +1173,7 @@ const resourceTypePage = (
           <ResourceTypeOverviewCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
         <Grid item md={12} xs={12}>
           <OpenChoreoAboutCard variant="gridItem" showEditIcon />
@@ -1238,11 +1198,7 @@ const traitTypePage = (
           <TraitTypeOverviewCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
         <Grid item md={12} xs={12}>
           <OpenChoreoAboutCard variant="gridItem" showEditIcon />
@@ -1264,11 +1220,7 @@ const clusterComponentTypePage = (
           <ComponentTypeOverviewCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
         <Grid item md={12} xs={12}>
           <OpenChoreoAboutCard variant="gridItem" showEditIcon />
@@ -1290,11 +1242,7 @@ const clusterResourceTypePage = (
           <ResourceTypeOverviewCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
         <Grid item md={12} xs={12}>
           <OpenChoreoAboutCard variant="gridItem" showEditIcon />
@@ -1316,11 +1264,7 @@ const clusterTraitTypePage = (
           <TraitTypeOverviewCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
         <Grid item md={12} xs={12}>
           <OpenChoreoAboutCard variant="gridItem" showEditIcon />
@@ -1345,11 +1289,7 @@ const workflowPage = (
           <WorkflowOverviewCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
         <Grid item md={12} xs={12}>
           <OpenChoreoAboutCard variant="gridItem" showEditIcon />
@@ -1380,11 +1320,7 @@ const clusterWorkflowPage = (
           <WorkflowOverviewCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+          <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
         <Grid item md={12} xs={12}>
           <OpenChoreoAboutCard variant="gridItem" showEditIcon />
@@ -1419,7 +1355,6 @@ const componentWorkflowPage = (
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
-            variant="gridItem"
             height={400}
             relations={[
               RELATION_PART_OF,

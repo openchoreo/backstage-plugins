@@ -1,0 +1,70 @@
+/*
+ * Plain-CSS overrides for surfaces we can't reach through MUI/Backstage
+ * theme overrides. The Backstage v1.51 setup in this repo does not run
+ * `<CssBaseline>`, so `MuiCssBaseline.styleOverrides` is inert, and some
+ * upstream styled-components (e.g. `BackstageSidebarDivider`) hardcode
+ * dark-mode-only colors that look wrong on our light-mode sidebar.
+ *
+ * Stable class-prefix selectors are used because JSS appends a numeric
+ * counter (`BackstageSidebarDivider-root-36`) that varies across builds.
+ */
+
+/* --- BUI Card (EntityCatalogGraphCard "Relations", etc.) ---------------
+ *
+ * Backstage v1.49 migrated several entity cards from MUI v4 to BUI. They
+ * ship with a translucent background and no border/shadow, which stands out
+ * against our themed MUI cards. Paint them to match.
+ */
+article.bui-Card {
+  background-color: #ffffff;
+  border: 1px solid #f3f4f6;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+[data-theme-mode='dark'] article.bui-Card {
+  background-color: #1a1d26;
+  border-color: #242836;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* --- Sidebar divider ----------------------------------------------------
+ *
+ * Upstream `SidebarDivider` (core-components) hardcodes
+ * `background: '#383838'` — designed for a dark sidebar. Our sidebar is
+ * white in light mode, so #383838 reads as hard near-black lines. Soften
+ * to a subtle grey in light mode; keep #383838 in dark mode where it
+ * blends correctly with the dark sidebar.
+ */
+[class*='BackstageSidebarDivider-root'] {
+  background-color: #f3f4f6 !important;
+}
+
+[data-theme-mode='dark'] [class*='BackstageSidebarDivider-root'] {
+  background-color: #383838 !important;
+}
+
+/* --- Header current-page breadcrumb crumb ------------------------------
+ *
+ * Upstream `core-components/Header.tsx` renders the current crumb as a
+ * bare `<Typography>` with no className, so MUI's body1 color (our
+ * `t.secondary.dark` = #374151) wins over the breadcrumb wrapper's white
+ * page foreground. Force it to inherit so the wrapper's color cascades.
+ */
+[class*='BackstageHeader-breadcrumb'] [class*='MuiTypography-root'] {
+  color: inherit;
+}
+
+/* --- Scaffolder Templating Extensions code labels ----------------------
+ *
+ * Upstream `TemplatingExtensionsPage` paints code-style headings (e.g.
+ * `parseRepoUrl`) with `theme.palette.grey[700]` as the background. Our
+ * dark palette has an inverted grey ramp where `grey[700]` is a light
+ * foreground color — so in dark mode the heading bg ends up the same as
+ * the text color, rendering the labels invisible. Force a dark surface in
+ * dark mode. Light mode is fine as-is.
+ */
+[data-theme-mode='dark'] [class*='makeStyles-code-'] {
+  background-color: #242836 !important;
+  border-color: #3a414f !important;
+}

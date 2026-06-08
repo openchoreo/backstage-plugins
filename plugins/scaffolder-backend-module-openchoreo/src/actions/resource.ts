@@ -4,7 +4,6 @@ import {
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
-import { z } from 'zod';
 import {
   type ImmediateCatalogService,
   translateResourceToEntity,
@@ -41,16 +40,16 @@ export const createResourceAction = (
     id: 'openchoreo:resource:create',
     description: 'Create OpenChoreo Resource',
     schema: {
-      input: (zImpl: typeof z) =>
-        zImpl.object({
-          namespaceName: zImpl
-            .string()
-            .describe('Namespace where the Resource will be created'),
-          projectName: zImpl
-            .string()
-            .describe('Project that will own the Resource'),
-          resourceName: zImpl
-            .string()
+      input: {
+        namespaceName: z =>
+          z.string({
+            description: 'Namespace where the Resource will be created',
+          }),
+        projectName: z =>
+          z.string({ description: 'Project that will own the Resource' }),
+        resourceName: z =>
+          z
+            .string({ description: 'Unique name for the Resource' })
             .max(
               MAX_NAME_LENGTH,
               `Resource name must not exceed ${MAX_NAME_LENGTH} characters`,
@@ -58,46 +57,52 @@ export const createResourceAction = (
             .regex(
               K8S_NAME_PATTERN,
               'Resource name must be a valid Kubernetes name: lowercase letters, numbers, hyphens, or dots only. Must start and end with an alphanumeric character.',
-            )
-            .describe('Unique name for the Resource'),
-          displayName: zImpl
-            .string()
-            .optional()
-            .describe('Human-readable display name for the Resource'),
-          description: zImpl
-            .string()
-            .optional()
-            .describe('Description of what this Resource is for'),
-          typeKind: zImpl
-            .enum(['ResourceType', 'ClusterResourceType'])
-            .describe(
+            ),
+        displayName: z =>
+          z
+            .string({
+              description: 'Human-readable display name for the Resource',
+            })
+            .optional(),
+        description: z =>
+          z
+            .string({
+              description: 'Description of what this Resource is for',
+            })
+            .optional(),
+        typeKind: z =>
+          z.enum(['ResourceType', 'ClusterResourceType'], {
+            description:
               'Whether the picked type is namespace-scoped (ResourceType) or cluster-scoped (ClusterResourceType)',
-            ),
-          typeName: zImpl
-            .string()
-            .describe(
+          }),
+        typeName: z =>
+          z.string({
+            description:
               'Name of the (Cluster)ResourceType template the Resource consumes',
-            ),
-          parameters: zImpl
-            .record(zImpl.unknown())
-            .optional()
-            .describe("Parameter values bound to the picked type's schema"),
-        }),
-      output: (zImpl: typeof z) =>
-        zImpl.object({
-          resourceName: zImpl
-            .string()
-            .describe('The name of the created Resource'),
-          namespaceName: zImpl
-            .string()
-            .describe('The namespace where the Resource was created'),
-          projectName: zImpl
-            .string()
-            .describe('The project that owns the created Resource'),
-          entityRef: zImpl
-            .string()
-            .describe('Entity reference for the created Resource'),
-        }),
+          }),
+        parameters: z =>
+          z
+            .record(z.unknown(), {
+              description: "Parameter values bound to the picked type's schema",
+            })
+            .optional(),
+      },
+      output: {
+        resourceName: z =>
+          z.string({ description: 'The name of the created Resource' }),
+        namespaceName: z =>
+          z.string({
+            description: 'The namespace where the Resource was created',
+          }),
+        projectName: z =>
+          z.string({
+            description: 'The project that owns the created Resource',
+          }),
+        entityRef: z =>
+          z.string({
+            description: 'Entity reference for the created Resource',
+          }),
+      },
     },
     async handler(ctx) {
       ctx.logger.debug(
