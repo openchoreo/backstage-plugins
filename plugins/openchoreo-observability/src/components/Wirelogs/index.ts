@@ -1,0 +1,1 @@
+export { ObservabilityWirelogsPage } from './ObservabilityWirelogsPage';

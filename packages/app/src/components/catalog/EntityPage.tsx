@@ -132,6 +132,7 @@ import {
   ObservabilityRuntimeLogs,
   ObservabilityProjectRuntimeLogs,
   ObservabilityAlerts,
+  ObservabilityWirelogs,
   ObservabilityProjectIncidents,
   ObservabilityCostAnalysis,
   type RenderLogRowAction,
@@ -364,6 +365,12 @@ const serviceEntityPage = (
       </FeatureGatedContent>
     </EntityLayout.Route>
 
+    <EntityLayout.Route path="/wirelogs" title="Wirelogs">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityWirelogs />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+
     <EntityLayout.Route
       path="/kubernetes"
       title="Kubernetes"
@@ -456,6 +463,12 @@ const genericComponentEntityPage = (
     <EntityLayout.Route path="/alerts" title="Alerts">
       <FeatureGatedContent feature="observability">
         <ObservabilityAlerts />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/wirelogs" title="Wirelogs">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityWirelogs />
       </FeatureGatedContent>
     </EntityLayout.Route>
 

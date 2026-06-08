@@ -23,6 +23,7 @@ import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
 import { ClusterDataPlaneInfoService } from './services/ClusterDataPlaneService/ClusterDataPlaneInfoService';
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
+import { WirelogsInfoService } from './services/WirelogsService/WirelogsInfoService';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { openchoreoPermissions } from '@openchoreo/backstage-plugin-common';
 import {
@@ -144,6 +145,8 @@ export const choreoPlugin = createBackendPlugin({
           baseUrl,
         );
 
+        const wirelogsInfoService = new WirelogsInfoService(logger, baseUrl);
+
         // Register OpenChoreo component permissions with the permissions registry
         // This enables CONDITIONAL permission checks against catalog entities
         const namespacedResourcePermissions = openchoreoPermissions.filter(
@@ -199,6 +202,7 @@ export const choreoPlugin = createBackendPlugin({
             dataPlaneInfoService,
             clusterDataPlaneInfoService,
             platformResourceService,
+            wirelogsInfoService,
             annotationStore,
             catalogService: catalog,
             auth,

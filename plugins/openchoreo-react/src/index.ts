@@ -329,6 +329,10 @@ export {
   type UseAlertsPermissionResult,
 } from './hooks/useAlertsPermission';
 export {
+  useWirelogsPermission,
+  type UseWirelogsPermissionResult,
+} from './hooks/useWirelogsPermission';
+export {
   useIncidentsPermission,
   type UseIncidentsPermissionResult,
 } from './hooks/useIncidentsPermission';

@@ -110,6 +110,9 @@ function createMockServices() {
       updateResource: jest.fn(),
       deleteResource: jest.fn(),
     },
+    wirelogsInfoService: {
+      openStream: jest.fn(),
+    },
     annotationStore: {
       getAnnotations: jest.fn(),
       setAnnotations: jest.fn(),
@@ -1034,6 +1037,123 @@ describe('createRouter', () => {
           ),
         }),
       });
+    });
+  });
+
+  describe('GET /wirelogs/stream', () => {
+    /**
+     * Build a Response-like object whose body.getReader() yields the supplied
+     * chunks. Mirrors what `fetch` returns for an upstream SSE stream.
+     */
+    function makeUpstream(chunks: Array<string>, ok = true, status = 200) {
+      const encoder = new TextEncoder();
+      let i = 0;
+      const reader = {
+        read: jest.fn(async () => {
+          if (i >= chunks.length) {
+            return { value: undefined, done: true } as const;
+          }
+          return {
+            value: encoder.encode(chunks[i++]),
+            done: false,
+          } as const;
+        }),
+        cancel: jest.fn().mockResolvedValue(undefined),
+      };
+      return {
+        ok,
+        status,
+        body: { getReader: () => reader },
+        text: jest.fn().mockResolvedValue(''),
+      } as unknown as Response;
+    }
+
+    it('returns 400 when required query params are missing', async () => {
+      const response = await request(app).get('/wirelogs/stream').query({
+        projectName: 'p',
+      });
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          message: expect.stringContaining(
+            'namespaceName, environmentName and projectName are required',
+          ),
+        }),
+      });
+      expect(services.wirelogsInfoService.openStream).not.toHaveBeenCalled();
+    });
+
+    it('streams upstream chunks through as text/event-stream', async () => {
+      services.wirelogsInfoService.openStream.mockResolvedValue(
+        makeUpstream([
+          'data: {"flow":{"uuid":"a"}}\n\n',
+          'data: {"flow":{"uuid":"b"}}\n\n',
+        ]),
+      );
+
+      const response = await request(app).get('/wirelogs/stream').query({
+        namespaceName: 'ns',
+        environmentName: 'dev',
+        projectName: 'proj',
+        componentName: 'svc',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toMatch(/text\/event-stream/);
+      expect(response.headers['cache-control']).toMatch(/no-cache/);
+      expect(response.text).toContain('"uuid":"a"');
+      expect(response.text).toContain('"uuid":"b"');
+
+      // Service was called with the parsed query string + the mock token.
+      expect(services.wirelogsInfoService.openStream).toHaveBeenCalledWith(
+        {
+          namespaceName: 'ns',
+          environmentName: 'dev',
+          projectName: 'proj',
+          componentName: 'svc',
+        },
+        'mock-user-token',
+        expect.any(AbortSignal),
+      );
+    });
+
+    it('writes an SSE error frame when openStream rejects', async () => {
+      services.wirelogsInfoService.openStream.mockRejectedValue(
+        new Error('connect refused'),
+      );
+
+      const response = await request(app).get('/wirelogs/stream').query({
+        namespaceName: 'ns',
+        environmentName: 'dev',
+        projectName: 'proj',
+      });
+
+      // The SSE headers were already flushed, so the status is 200 even on
+      // an upstream failure — the error rides in the body as an SSE event.
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('event: error');
+      expect(response.text).toContain('Failed to open wirelogs stream');
+      expect(services.logger.error).toHaveBeenCalled();
+    });
+
+    it('emits an SSE error frame when the upstream returns non-ok', async () => {
+      services.wirelogsInfoService.openStream.mockResolvedValue({
+        ok: false,
+        status: 502,
+        body: null,
+        text: jest.fn().mockResolvedValue('bad gateway'),
+      } as unknown as Response);
+
+      const response = await request(app).get('/wirelogs/stream').query({
+        namespaceName: 'ns',
+        environmentName: 'dev',
+        projectName: 'proj',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('event: error');
+      expect(response.text).toContain('"status":502');
+      expect(response.text).toContain('bad gateway');
     });
   });
 });
