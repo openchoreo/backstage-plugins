@@ -3,6 +3,7 @@ import { ActionInfo } from '../../hooks';
 import {
   buildScopePath,
   expandWildcardRoleActions,
+  getCompatibleConditionActions,
   getConditionableActions,
   getK8sNameError,
   toK8sName,
@@ -92,6 +93,89 @@ describe('getConditionableActions', () => {
     expect(getConditionableActions(['releasebindings:view'], catalog)).toEqual(
       [],
     );
+  });
+});
+
+describe('getCompatibleConditionActions', () => {
+  const compatCatalog: ActionInfo[] = [
+    {
+      name: 'releasebindings:create',
+      conditions: [
+        { key: 'resource.env', description: '' },
+        { key: 'resource.project', description: '' },
+      ],
+    },
+    {
+      name: 'releasebindings:delete',
+      conditions: [{ key: 'resource.env', description: '' }],
+    },
+    {
+      name: 'roles:create',
+      conditions: [{ key: 'resource.scope', description: '' }],
+    },
+    {
+      name: 'releasebindings:view',
+      conditions: [],
+    },
+  ] as unknown as ActionInfo[];
+
+  const roleActions = [
+    'releasebindings:create',
+    'releasebindings:delete',
+    'roles:create',
+    'releasebindings:view',
+  ];
+
+  it('returns all conditionable actions when nothing is selected', () => {
+    expect(
+      getCompatibleConditionActions([], roleActions, compatCatalog),
+    ).toEqual([
+      'releasebindings:create',
+      'releasebindings:delete',
+      'roles:create',
+    ]);
+  });
+
+  it('keeps only actions sharing a condition with the selection', () => {
+    expect(
+      getCompatibleConditionActions(
+        ['releasebindings:create'],
+        roleActions,
+        compatCatalog,
+      ),
+    ).toEqual(['releasebindings:create', 'releasebindings:delete']);
+  });
+
+  it('always retains the selected actions', () => {
+    expect(
+      getCompatibleConditionActions(
+        ['roles:create'],
+        roleActions,
+        compatCatalog,
+      ),
+    ).toEqual(['roles:create']);
+  });
+
+  it('narrows to the shared-condition intersection across the selection', () => {
+    // create has {env, project}, delete has {env}; intersection is {env},
+    // so roles:create (scope only) stays excluded.
+    expect(
+      getCompatibleConditionActions(
+        ['releasebindings:create', 'releasebindings:delete'],
+        roleActions,
+        compatCatalog,
+      ),
+    ).toEqual(['releasebindings:create', 'releasebindings:delete']);
+  });
+
+  it('returns just the selection when the actions share no condition', () => {
+    expect(
+      getCompatibleConditionActions(
+        ['releasebindings:delete', 'roles:create'],
+        roleActions,
+        compatCatalog,
+      ),
+    ).toEqual(['releasebindings:delete', 'roles:create']);
   });
 });
 
