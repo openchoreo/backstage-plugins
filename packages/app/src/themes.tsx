@@ -3,6 +3,7 @@ import type { AppTheme } from '@backstage/core-plugin-api';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import {
   darkTokens,
+  lightTokens,
   OpenChoreoIcon,
   openChoreoDarkTheme,
   openChoreoTheme,
@@ -33,16 +34,31 @@ function BuiThemeBridge({
   children?: ReactNode;
 }) {
   useEffect(() => {
-    if (mode !== 'dark') return undefined;
     const body = document.body;
-    const t: ThemeTokens = darkTokens;
-    const overrides: Record<string, string> = {
-      '--bui-bg-app': t.surface.default,
-      '--bui-bg-surface-1': t.surface.paper,
-      '--bui-bg-surface-2': t.surface.raised,
-      '--bui-fg-primary': t.text.primary,
-      '--bui-fg-secondary': t.text.secondary,
+    const t: ThemeTokens = mode === 'dark' ? darkTokens : lightTokens;
+    // Align BUI primary buttons (e.g. Scaffolder Review) with our MUI
+    // `containedPrimary` fill (used by Scaffolder Create). Applied in both
+    // modes so the two button systems read as one.
+    const solidOverrides: Record<string, string> = {
+      '--bui-bg-solid': t.primary.main,
+      '--bui-bg-solid-hover': t.primary.dark,
+      '--bui-bg-solid-pressed': t.primary.dark,
+      '--bui-bg-solid-disabled': t.primary.light,
     };
+    // Surface/foreground overrides are dark-mode-only: BUI's light defaults
+    // (`#f8f8f8` page surround etc.) already match the pre-migration look,
+    // and forcing `surface.default` (`#ffffff`) in light flattens the page.
+    const surfaceOverrides: Record<string, string> =
+      mode === 'dark'
+        ? {
+            '--bui-bg-app': t.surface.default,
+            '--bui-bg-surface-1': t.surface.paper,
+            '--bui-bg-surface-2': t.surface.raised,
+            '--bui-fg-primary': t.text.primary,
+            '--bui-fg-secondary': t.text.secondary,
+          }
+        : {};
+    const overrides = { ...solidOverrides, ...surfaceOverrides };
     const previous: Record<string, string> = {};
     for (const [name, value] of Object.entries(overrides)) {
       previous[name] = body.style.getPropertyValue(name);

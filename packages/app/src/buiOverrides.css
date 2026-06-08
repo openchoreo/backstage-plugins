@@ -44,6 +44,17 @@ article.bui-Card {
   background-color: #383838 !important;
 }
 
+/* --- Header current-page breadcrumb crumb ------------------------------
+ *
+ * Upstream `core-components/Header.tsx` renders the current crumb as a
+ * bare `<Typography>` with no className, so MUI's body1 color (our
+ * `t.secondary.dark` = #374151) wins over the breadcrumb wrapper's white
+ * page foreground. Force it to inherit so the wrapper's color cascades.
+ */
+[class*='BackstageHeader-breadcrumb'] [class*='MuiTypography-root'] {
+  color: inherit;
+}
+
 /* --- Scaffolder Templating Extensions code labels ----------------------
  *
  * Upstream `TemplatingExtensionsPage` paints code-style headings (e.g.

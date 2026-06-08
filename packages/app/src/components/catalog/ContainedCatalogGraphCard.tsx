@@ -77,8 +77,11 @@ export function ContainedCatalogGraphCard(
       frame = requestAnimationFrame(sync);
     };
 
+    // `host` is `display: contents` and has no layout box, so observing it
+    // never fires. Watch the parent layout box (the card) instead.
     const ro = new ResizeObserver(schedule);
-    ro.observe(host);
+    const resizeTarget = host.parentElement;
+    if (resizeTarget) ro.observe(resizeTarget);
     const mo = new MutationObserver(schedule);
     mo.observe(host, { childList: true, subtree: true, attributes: true });
     schedule();
