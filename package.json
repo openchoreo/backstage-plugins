@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@backstage/cli": "^0.36.2",
+    "@backstage/cli-defaults": "^0.1.2",
     "@backstage/e2e-test-utils": "^0.1.2",
     "@changesets/cli": "2.29.7",
     "@playwright/test": "1.56.0",

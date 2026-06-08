@@ -31798,6 +31798,7 @@ __metadata:
   resolution: "root@workspace:."
   dependencies:
     "@backstage/cli": "npm:^0.36.2"
+    "@backstage/cli-defaults": "npm:^0.1.2"
     "@backstage/e2e-test-utils": "npm:^0.1.2"
     "@changesets/cli": "npm:2.29.7"
     "@playwright/test": "npm:1.56.0"
