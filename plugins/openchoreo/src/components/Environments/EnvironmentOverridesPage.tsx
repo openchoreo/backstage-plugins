@@ -116,6 +116,10 @@ export const EnvironmentOverridesPage = ({
     useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [diffOpen, setDiffOpen] = useState(false);
+  // True while an env var or file mount row is in edit mode in the
+  // Workload tab. Blocks the primary action so users can't submit a
+  // half-typed row with empty key/value.
+  const [isWorkloadRowEditing, setIsWorkloadRowEditing] = useState(false);
 
   // Check deploy permission for the final Deploy/Promote button. Pass the
   // target environment so ABAC `resource.environment` CEL constraints are
@@ -768,6 +772,7 @@ export const EnvironmentOverridesPage = ({
           loading ||
           !!error ||
           missingRequiredFields.length > 0 ||
+          isWorkloadRowEditing ||
           (!pendingAction && totalChanges === 0) ||
           (!!pendingAction && (deployPermissionLoading || !canDeploy))
         }
@@ -888,6 +893,7 @@ export const EnvironmentOverridesPage = ({
               onStartOverride={handleStartOverride}
               onStartFileOverride={handleStartFileOverride}
               environmentName={environment.name}
+              onEditingChange={setIsWorkloadRowEditing}
             />
           }
         />

@@ -207,8 +207,12 @@ export function WorkloadEditor({
   parameterChangesCount = 0,
 }: WorkloadEditorProps) {
   const classes = useStyles();
-  const { workloadResource, setWorkloadResource, isDeploying } =
-    useWorkloadContext();
+  const {
+    workloadResource,
+    setWorkloadResource,
+    isDeploying,
+    setEditingSection,
+  } = useWorkloadContext();
   const { secretReferences: allSecretReferences } = useSecretReferences();
   const secretReferences = useMemo(
     () =>
@@ -305,6 +309,13 @@ export function WorkloadEditor({
     if (!formData.container) return;
     updateContainer({ ...formData.container, [field]: value } as Container);
   };
+
+  const handleContainerEditingChange = useCallback(
+    (editing: boolean) => {
+      setEditingSection('container', editing);
+    },
+    [setEditingSection],
+  );
 
   const handleEnvVarChange = (
     envIndex: number,
@@ -736,6 +747,7 @@ export function WorkloadEditor({
                       onRemoveFileVar={removeFileVar}
                       onArrayFieldChange={handleArrayFieldChange}
                       secretReferences={secretReferences}
+                      onEditingChange={handleContainerEditingChange}
                     />
                   )}
                   {activeTab === 'endpoints' && (
