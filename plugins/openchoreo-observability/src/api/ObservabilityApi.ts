@@ -18,6 +18,7 @@ import {
   FinOpsReportDetailed,
 } from '../types';
 import { LogsResponse } from '../components/RuntimeLogs/types';
+import { EventsResponse } from '../components/RuntimeEvents/types';
 import { ObserverUrlCache } from './ObserverUrlCache';
 
 export interface ObservabilityApi {
@@ -35,6 +36,19 @@ export interface ObservabilityApi {
       sortOrder?: 'asc' | 'desc';
     },
   ): Promise<LogsResponse>;
+
+  getRuntimeEvents(
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName?: string,
+    options?: {
+      limit?: number;
+      startTime?: string;
+      endTime?: string;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<EventsResponse>;
 
   getMetrics(
     environmentName: string,
@@ -786,6 +800,60 @@ export class ObservabilityClient implements ObservabilityApi {
       throw new Error(
         error ||
           `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    return data;
+  }
+
+  async getRuntimeEvents(
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName?: string,
+    options?: {
+      limit?: number;
+      startTime?: string;
+      endTime?: string;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<EventsResponse> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1/events/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          startTime:
+            options?.startTime ||
+            new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+          endTime: options?.endTime || new Date().toISOString(),
+          limit: options?.limit || 100,
+          sortOrder: options?.sortOrder || 'desc',
+          searchScope: {
+            namespace: namespaceName,
+            project: projectName,
+            ...(componentName ? { component: componentName } : {}),
+            environment: environmentName,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      if (error.includes('Observability is not configured for component')) {
+        throw new Error('Observability is not enabled for this component');
+      }
+      throw new Error(
+        error ||
+          `Failed to fetch events: ${response.status} ${response.statusText}`,
       );
     }
 

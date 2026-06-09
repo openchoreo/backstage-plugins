@@ -314,3 +314,88 @@ describe('ObservabilityClient.getFinOpsReport', () => {
     expect(url).toContain('r1%2Fspecial');
   });
 });
+
+describe('ObservabilityClient.getRuntimeEvents', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resolveUrls.mockResolvedValue({ observerUrl: 'http://observer' });
+  });
+
+  it('POSTs to the events query endpoint with the search scope and options', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({
+        events: [{ timestamp: 't1', message: 'm1' }],
+        total: 1,
+      }),
+    );
+
+    const client = createClient();
+    const result = await client.getRuntimeEvents(
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+      { limit: 25, sortOrder: 'asc', startTime: 's', endTime: 'e' },
+    );
+
+    expect(mockFetchApi.fetch).toHaveBeenCalledTimes(1);
+    const [url, options] = mockFetchApi.fetch.mock.calls[0];
+    expect(url).toBe('http://observer/api/v1/events/query');
+    const payload = JSON.parse(options.body);
+    expect(payload.limit).toBe(25);
+    expect(payload.sortOrder).toBe('asc');
+    expect(payload.startTime).toBe('s');
+    expect(payload.endTime).toBe('e');
+    expect(payload.searchScope).toEqual({
+      namespace: 'ns1',
+      project: 'project-a',
+      component: 'component-a',
+      environment: 'dev',
+    });
+    expect(result).toEqual({
+      events: [{ timestamp: 't1', message: 'm1' }],
+      total: 1,
+    });
+  });
+
+  it('omits the component from scope when not provided and defaults options', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({ events: [] }));
+
+    const client = createClient();
+    await client.getRuntimeEvents('ns1', 'project-a', 'dev');
+
+    const payload = JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body);
+    expect(payload.searchScope.component).toBeUndefined();
+    expect(payload.limit).toBe(100);
+    expect(payload.sortOrder).toBe('desc');
+  });
+
+  it('maps the not-configured error to an observability-disabled message', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce({
+      ok: false,
+      json: () =>
+        Promise.resolve({
+          error: 'Observability is not configured for component foo',
+        }),
+    });
+
+    const client = createClient();
+    await expect(
+      client.getRuntimeEvents('ns1', 'project-a', 'dev', 'c'),
+    ).rejects.toThrow('Observability is not enabled for this component');
+  });
+
+  it('throws the parsed error for other failures', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Server Error',
+      json: () => Promise.resolve({ error: 'kaboom' }),
+    });
+
+    const client = createClient();
+    await expect(
+      client.getRuntimeEvents('ns1', 'project-a', 'dev', 'c'),
+    ).rejects.toThrow('kaboom');
+  });
+});

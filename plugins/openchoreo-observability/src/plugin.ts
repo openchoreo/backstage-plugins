@@ -91,6 +91,17 @@ export const ObservabilityRuntimeLogs = openchoreoObservabilityPlugin.provide(
   }),
 );
 
+export const ObservabilityRuntimeEvents = openchoreoObservabilityPlugin.provide(
+  createRoutableExtension({
+    name: 'ObservabilityRuntimeEvents',
+    component: () =>
+      import('./components/RuntimeEvents/ObservabilityRuntimeEventsPage').then(
+        m => m.ObservabilityRuntimeEventsPage,
+      ),
+    mountPoint: rootRouteRef,
+  }),
+);
+
 export const ObservabilityProjectRuntimeLogs =
   openchoreoObservabilityPlugin.provide(
     createRoutableExtension({

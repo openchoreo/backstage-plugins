@@ -4,6 +4,7 @@ export {
   ObservabilityTraces,
   ObservabilityRCA,
   ObservabilityRuntimeLogs,
+  ObservabilityRuntimeEvents,
   ObservabilityProjectRuntimeLogs,
   ObservabilityAlerts,
   ObservabilityWirelogs,
