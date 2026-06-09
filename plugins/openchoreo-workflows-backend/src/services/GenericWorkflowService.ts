@@ -285,14 +285,9 @@ export class GenericWorkflowService {
           }),
       );
 
-      // Filter by workflowName before transforming (check both flat and K8s fields)
       // TODO: If upstream API supports filtering, pass workflowName as query param instead
       let filtered = workflowName
-        ? rawItems.filter(
-            run =>
-              run.spec?.workflow?.name === workflowName ||
-              run.workflowName === workflowName,
-          )
+        ? rawItems.filter(run => run.spec?.workflow?.name === workflowName)
         : rawItems;
 
       // Filter by project and component labels if provided
