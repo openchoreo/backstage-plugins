@@ -25,21 +25,8 @@ import { UserSettingsStorage } from '@backstage/plugin-user-settings';
 import { permissionApiRef } from '@backstage/plugin-permission-react';
 import { OpenChoreoFetchApi } from './apis/OpenChoreoFetchApi';
 import { OpenChoreoPermissionApi } from './apis/OpenChoreoPermissionApi';
-import {
-  formDecoratorsApiRef,
-  DefaultScaffolderFormDecoratorsApi,
-} from '@backstage/plugin-scaffolder/alpha';
-import { openChoreoTokenDecorator } from './scaffolder/openChoreoTokenDecorator';
 // Import from separate file to avoid circular dependency with form decorators
 import { openChoreoAuthApiRef } from './apis/authRefs';
-import {
-  openChoreoCiClientApiRef,
-  OpenChoreoCiClient,
-} from '@openchoreo/backstage-plugin-openchoreo-ci';
-import {
-  genericWorkflowsClientApiRef,
-  GenericWorkflowsClient,
-} from '@openchoreo/backstage-plugin-openchoreo-workflows';
 // NOTE: ``perchAgentApiRef`` is also declared on
 // ``openchoreoPerchPlugin.apis`` in plugins/openchoreo-portal-assistant/src/plugin.ts.
 // That declaration is NOT picked up by the app at runtime because the plugin
@@ -140,27 +127,17 @@ export const apis: AnyApiFactory[] = [
     factory: deps => UserSettingsStorage.create(deps),
   }),
 
-  // Form decorators for scaffolder - injects user's OpenChoreo token as a secret
-  // This enables user-based authorization in scaffolder actions
-  createApiFactory({
-    api: formDecoratorsApiRef,
-    deps: {},
-    factory: () =>
-      DefaultScaffolderFormDecoratorsApi.create({
-        decorators: [openChoreoTokenDecorator],
-      }),
-  }),
+  // DEFERRED to Step 3c: Scaffolder form decorators that inject the user's
+  // OpenChoreo token as a secret (used by scaffolder actions for user-based
+  // authorization). Under NFS this collides with the scaffolder plugin's
+  // own default factory (API_FACTORY_CONFLICT). Will reinstate via
+  // scaffolderPlugin.withOverrides so it lives under pluginId `scaffolder`.
 
-  // OpenChoreo CI client - provides API for workflow/build operations
-  createApiFactory({
-    api: openChoreoCiClientApiRef,
-    deps: {
-      discoveryApi: discoveryApiRef,
-      fetchApi: fetchApiRef,
-    },
-    factory: ({ discoveryApi, fetchApi }) =>
-      new OpenChoreoCiClient(discoveryApi, fetchApi),
-  }),
+  // openChoreoCiClientApiRef and genericWorkflowsClientApiRef are now
+  // provided by their respective NFS plugins via `ApiBlueprint` (see
+  // plugins/openchoreo-ci/src/alpha.tsx and
+  // plugins/openchoreo-workflows/src/alpha.tsx). Registering them here
+  // would collide with the plugin-scoped factories under NFS.
 
   // DEFERRED to Step 3c: Catalog graph API override with custom OpenChoreo
   // relations. The legacy `app`-scoped registration of `catalogGraphApiRef`
@@ -170,17 +147,6 @@ export const apis: AnyApiFactory[] = [
   // and provides our augmented one under the same pluginId. Until then,
   // custom relations (deploysTo, hostedOn, instanceOf, …) won't render in
   // entity Relations cards or the catalog graph.
-
-  // Generic Workflows client - provides API for org-level workflow operations
-  createApiFactory({
-    api: genericWorkflowsClientApiRef,
-    deps: {
-      discoveryApi: discoveryApiRef,
-      fetchApi: fetchApiRef,
-    },
-    factory: ({ discoveryApi, fetchApi }) =>
-      new GenericWorkflowsClient(discoveryApi, fetchApi),
-  }),
 
   // Assistant Agent client (Perch). Mirrors the registration on
   // openchoreoPerchPlugin.apis — see the import-site comment for why

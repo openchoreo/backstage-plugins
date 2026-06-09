@@ -73,6 +73,22 @@ import {
   convertLegacyAppRoot,
 } from '@backstage/core-compat-api';
 import { AppRouter, FlatRoutes } from '@backstage/core-app-api';
+
+// NFS plugin features (created in Step 2 — each plugin's `/alpha` exports a
+// `createFrontendPlugin` instance). These replace the API factory entries
+// that previously lived in `apis.ts`.
+import openchoreoPluginAlpha from '@openchoreo/backstage-plugin/alpha';
+import openchoreoCiPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-ci/alpha';
+import openchoreoObservabilityPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
+import openchoreoWorkflowsPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-workflows/alpha';
+import platformEngineerCorePluginAlpha from '@openchoreo/backstage-plugin-platform-engineer-core/alpha';
+
+// Upstream NFS plugin features. These register the route refs used by the
+// legacy `bindRoutes` calls (scaffolder.routes.root, catalog.routes.catalogIndex,
+// techdocs.routes.docRoot, catalogImport.routes.importPage). Their auto-mounted
+// pages are deferred to Step 3c — for now the legacy `<FlatRoutes>` mounts via
+// `convertLegacyAppRoot` win.
+import upstreamScaffolderPluginAlpha from '@backstage/plugin-scaffolder/alpha';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
@@ -289,7 +305,16 @@ const legacyRoot = convertLegacyAppRoot(
 );
 
 const app = createApp({
-  features: [legacyAppOptions, ...legacyRoot],
+  features: [
+    legacyAppOptions,
+    upstreamScaffolderPluginAlpha,
+    openchoreoPluginAlpha,
+    openchoreoCiPluginAlpha,
+    openchoreoObservabilityPluginAlpha,
+    openchoreoWorkflowsPluginAlpha,
+    platformEngineerCorePluginAlpha,
+    ...legacyRoot,
+  ],
   bindRoutes({ bind }) {
     bind(catalogPlugin.externalRoutes, {
       createComponent: scaffolderPlugin.routes.root,
