@@ -259,7 +259,11 @@ function ComponentReview({ data }: { data: Record<string, unknown> }) {
   }
 
   if (buildAndDeploy.containerImage) {
-    setMeta(buildMeta, 'Container Image', String(buildAndDeploy.containerImage));
+    setMeta(
+      buildMeta,
+      'Container Image',
+      String(buildAndDeploy.containerImage),
+    );
   }
   if (buildAndDeploy.autoDeploy !== undefined) {
     setMeta(buildMeta, 'Auto Deploy', buildAndDeploy.autoDeploy ? 'Yes' : 'No');
