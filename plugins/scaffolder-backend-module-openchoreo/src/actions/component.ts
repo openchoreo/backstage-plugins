@@ -138,10 +138,65 @@ export const createComponentAction = (
             .object(
               {
                 kind: z.string().optional(),
-                name: z.string(),
+                // Optional because non-build-from-source deployments leave
+                // workflow_name unset; the handler only reads `workflow` when
+                // deploymentSource === 'build-from-source'.
+                name: z.string().optional(),
               },
               { description: 'Selected build workflow (kind + name)' },
             )
+            .optional(),
+        component_type_workload_type: z =>
+          z
+            .string({
+              description: 'Workload type of the selected component type',
+            })
+            .optional(),
+        workloadDetails: z =>
+          z
+            .record(z.unknown(), {
+              description:
+                'Workload details (CTD parameters, endpoints, env vars, file mounts, traits) collected by WorkloadDetailsField',
+            })
+            .optional(),
+        repo_url: z =>
+          z
+            .string({ description: 'Git repository URL for build-from-source' })
+            .optional(),
+        branch: z =>
+          z
+            .string({ description: 'Git branch for build-from-source' })
+            .optional(),
+        component_path: z =>
+          z
+            .string({
+              description: 'Path within the repository for build-from-source',
+            })
+            .optional(),
+        gitSecretRef: z =>
+          z
+            .string({
+              description: 'Reference to the git credentials secret',
+            })
+            .optional(),
+        workflow_parameters: z =>
+          z
+            .record(z.unknown(), {
+              description: 'Parameter values for the selected build workflow',
+            })
+            .optional(),
+        traits: z =>
+          z
+            .array(z.record(z.unknown()), {
+              description:
+                'Trait instances (backward-compat; normally nested under workloadDetails)',
+            })
+            .optional(),
+        external_ci_info: z =>
+          z
+            .record(z.unknown(), {
+              description: 'External CI configuration details',
+            })
             .optional(),
       },
       output: {
