@@ -21,7 +21,11 @@ import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { ActionInfo, ConditionAttribute } from '../../hooks';
 import { WizardCondition } from './types';
-import { expandWildcardRoleActions, getConditionableActions } from './utils';
+import {
+  expandWildcardRoleActions,
+  getCompatibleConditionActions,
+  getConditionableActions,
+} from './utils';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -312,8 +316,8 @@ const ConditionEditingCard = ({
   classes,
   cond,
   index,
+  roleActions,
   allRoleActions,
-  conditionableActions,
   actionCatalog,
   onUpdate,
   onConfirm,
@@ -322,8 +326,8 @@ const ConditionEditingCard = ({
   classes: Classes;
   cond: WizardCondition;
   index: number;
+  roleActions: string[];
   allRoleActions: string[];
-  conditionableActions: string[];
   actionCatalog: ActionInfo[];
   onUpdate: (patch: Partial<WizardCondition>) => void;
   onConfirm: () => void;
@@ -346,7 +350,7 @@ const ConditionEditingCard = ({
   const options =
     cond.actions.length === 0 || attrs.length === 0
       ? allRoleActions
-      : conditionableActions;
+      : getCompatibleConditionActions(cond.actions, roleActions, actionCatalog);
 
   return (
     <Paper
@@ -737,8 +741,8 @@ export const ConditionsEditor = ({
               classes={classes}
               cond={cond}
               index={index}
+              roleActions={roleActions}
               allRoleActions={allRoleActions}
-              conditionableActions={conditionableActions}
               actionCatalog={actionCatalog}
               onUpdate={patch => updateField(cond.id, patch)}
               onConfirm={() => handleConfirm(cond.id)}

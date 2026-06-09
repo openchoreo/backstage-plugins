@@ -37,6 +37,46 @@ export function getConditionableActions(
   });
 }
 
+/** Attribute keys an action supports for conditions. */
+function supportedConditions(
+  name: string,
+  actionCatalog: ActionInfo[],
+): string[] {
+  const info = actionCatalog.find(ac => ac.name === name);
+  return (info?.conditions ?? []).map(c => c.key);
+}
+
+/**
+ * Conditionable actions compatible with the current selection — those sharing
+ * at least one attribute key, since a condition's expression may only use
+ * attributes common to every action it covers. Selected actions are retained.
+ */
+export function getCompatibleConditionActions(
+  selectedActions: string[],
+  roleActions: string[],
+  actionCatalog: ActionInfo[],
+): string[] {
+  const conditionable = getConditionableActions(roleActions, actionCatalog);
+  if (selectedActions.length === 0) return conditionable;
+
+  let sharedConds = new Set(
+    supportedConditions(selectedActions[0], actionCatalog),
+  );
+  for (const name of selectedActions.slice(1)) {
+    const keys = new Set(supportedConditions(name, actionCatalog));
+    sharedConds = new Set([...sharedConds].filter(k => keys.has(k)));
+  }
+
+  if (sharedConds.size === 0) return [...selectedActions];
+
+  const hasSharedCondition = (name: string) =>
+    supportedConditions(name, actionCatalog).some(k => sharedConds.has(k));
+
+  return conditionable.filter(
+    name => selectedActions.includes(name) || hasSharedCondition(name),
+  );
+}
+
 /**
  * Build a human-readable scope path like `ns:default/proj:myproj/*` from a wizard role mapping.
  */
