@@ -19,6 +19,8 @@ export { useFinOpsReports } from './useFinOpsReports';
 export { useRuntimeLogs } from './useRuntimeLogs';
 export { useProjectRuntimeLogs } from './useProjectRuntimeLogs';
 export { useUrlFiltersForRuntimeLogs } from './useUrlFiltersForRuntimeLogs';
+export { useRuntimeEvents } from './useRuntimeEvents';
+export { useUrlFiltersForRuntimeEvents } from './useUrlFiltersForRuntimeEvents';
 export { useUrlFiltersForAlerts } from './useUrlFiltersForAlerts';
 export { useComponentAlerts } from './useComponentAlerts';
 export { useUrlFiltersForIncidents } from './useUrlFiltersForIncidents';

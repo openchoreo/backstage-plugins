@@ -67,6 +67,7 @@ export {
   openchoreoClusterRoleMappingUpdatePermission,
   openchoreoClusterRoleMappingDeletePermission,
   openchoreoLogsViewPermission,
+  openchoreoEventsViewPermission,
   openchoreoAlertsViewPermission,
   openchoreoWirelogsViewPermission,
   openchoreoIncidentsViewPermission,
@@ -299,6 +300,14 @@ export type WorkflowLogEntry =
  */
 export type LogsQueryResponse =
   ObservabilityComponents['schemas']['LogsQueryResponse'];
+
+/** A single Kubernetes event entry returned by the /api/v1/events/query endpoint */
+export type ComponentEventEntry =
+  ObservabilityComponents['schemas']['EventEntry'];
+
+/** Response from the /api/v1/events/query endpoint. */
+export type EventsQueryResponse =
+  ObservabilityComponents['schemas']['EventsQueryResponse'];
 
 /**
  * @deprecated Use ComponentLogEntry or WorkflowLogEntry instead.

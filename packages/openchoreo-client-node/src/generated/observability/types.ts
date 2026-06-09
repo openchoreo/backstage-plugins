@@ -44,6 +44,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/events/query': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Query events
+     * @description Query Kubernetes events from the observer service
+     */
+    post: operations['queryEvents'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/metrics/query': {
     parameters: {
       query?: never;
@@ -390,6 +410,85 @@ export interface components {
       /** @description The total number of matching log entries, capped at 1000 */
       total?: number;
       /** @description The time taken to query the logs in milliseconds */
+      tookMs?: number;
+    };
+    EventsQueryRequest: {
+      /**
+       * Format: date-time
+       * @description The start time of the query
+       */
+      startTime: string;
+      /**
+       * Format: date-time
+       * @description The end time of the query
+       */
+      endTime: string;
+      /**
+       * @description The maximum number of items to return
+       * @default 100
+       */
+      limit: number;
+      /**
+       * @description The sort order of the query
+       * @default desc
+       * @enum {string}
+       */
+      sortOrder: 'asc' | 'desc';
+      searchScope:
+        | components['schemas']['ComponentSearchScope']
+        | components['schemas']['WorkflowSearchScope'];
+    };
+    EventEntry: {
+      /**
+       * Format: date-time
+       * @description The timestamp of the event
+       */
+      timestamp?: string;
+      /** @description The event message */
+      message?: string;
+      /** @description The event type (e.g. Normal, Warning) */
+      type?: string;
+      /** @description The short, machine-readable reason for the event (e.g. SawCompletedJob) */
+      reason?: string;
+      /** @description The metadata of the event */
+      metadata?: {
+        /** @description The OpenChoreo component name the event is associated with */
+        componentName?: string;
+        /** @description The OpenChoreo project name the event is associated with */
+        projectName?: string;
+        /** @description The OpenChoreo environment name the event is associated with */
+        environmentName?: string;
+        /** @description The OpenChoreo namespace name the event is associated with */
+        namespaceName?: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo component UID the event is associated with
+         */
+        componentUid?: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo project UID the event is associated with
+         */
+        projectUid?: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo environment UID the event is associated with
+         */
+        environmentUid?: string;
+        /** @description The kind of the Kubernetes object the event involves (e.g. CronJob) */
+        objectKind?: string;
+        /** @description The name of the Kubernetes object the event involves */
+        objectName?: string;
+        /** @description The namespace of the Kubernetes object the event involves */
+        objectNamespace?: string;
+      };
+    };
+    EventsQueryResponse: {
+      /** @description The events queried successfully */
+      events?: components['schemas']['EventEntry'][];
+      /** @description The total number of matching events, capped at 1000 */
+      total?: number;
+      /** @description The time taken to query the events in milliseconds */
       tookMs?: number;
     };
     MetricsQueryRequest: {
@@ -1313,6 +1412,94 @@ export interface operations {
            * @example {
            *       "title": "internalServerError",
            *       "errorCode": "OBS-V1-L-29",
+           *       "message": ""
+           *     }
+           */
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  queryEvents: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EventsQueryRequest'];
+      };
+    };
+    responses: {
+      /** @description Events queried successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventsQueryResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "title": "badRequest",
+           *       "errorCode": "",
+           *       "message": "Missing required fields 'startTime' and 'endTime'"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "title": "unauthorized",
+           *       "errorCode": "",
+           *       "message": "Invalid or missing token"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "title": "forbidden",
+           *       "errorCode": "",
+           *       "message": "Subject <xyz> has no permission to view events of Namespace foo, Project bar, Component baz in Environment development"
+           *     }
+           */
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "title": "internalServerError",
+           *       "errorCode": "OBS-V1-E-01",
            *       "message": ""
            *     }
            */

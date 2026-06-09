@@ -128,6 +128,7 @@ import {
   ObservabilityTraces,
   ObservabilityRCA,
   ObservabilityRuntimeLogs,
+  ObservabilityRuntimeEvents,
   ObservabilityProjectRuntimeLogs,
   ObservabilityAlerts,
   ObservabilityWirelogs,
@@ -347,6 +348,12 @@ const serviceEntityPage = (
       </FeatureGatedContent>
     </EntityLayout.Route>
 
+    <EntityLayout.Route path="/runtime-events" title="Events">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityRuntimeEvents />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+
     <EntityLayout.Route path="/metrics" title="Metrics">
       <FeatureGatedContent feature="observability">
         <ObservabilityMetrics />
@@ -445,6 +452,12 @@ const genericComponentEntityPage = (
         <ObservabilityRuntimeLogs
           renderRowAction={renderInvestigateLogAction}
         />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/runtime-events" title="Events">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityRuntimeEvents />
       </FeatureGatedContent>
     </EntityLayout.Route>
 

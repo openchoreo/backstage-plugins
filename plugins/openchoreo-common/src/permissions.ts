@@ -886,6 +886,16 @@ export const openchoreoLogsViewPermission = createPermission({
 });
 
 /**
+ * Permission to view Kubernetes events for a component.
+ * Resource-based: requires the specific component context.
+ */
+export const openchoreoEventsViewPermission = createPermission({
+  name: 'openchoreo.events.view',
+  attributes: { action: 'read' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
  * Permission to view metrics for a component.
  * Resource-based: requires the specific component context.
  */
@@ -1023,6 +1033,7 @@ export const openchoreoPermissions = [
   openchoreoClusterRoleMappingUpdatePermission,
   openchoreoClusterRoleMappingDeletePermission,
   openchoreoLogsViewPermission,
+  openchoreoEventsViewPermission,
   openchoreoMetricsViewPermission,
   openchoreoTracesViewPermission,
   openchoreoRcaViewPermission,
@@ -1135,6 +1146,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.clusterrolemapping.update': 'clusterauthzrolebinding:update',
   'openchoreo.clusterrolemapping.delete': 'clusterauthzrolebinding:delete',
   'openchoreo.logs.view': 'logs:view',
+  'openchoreo.events.view': 'events:view',
   'openchoreo.alerts.view': 'alerts:view',
   'openchoreo.wirelogs.view': 'wirelogs:view',
   'openchoreo.incidents.view': 'incidents:view',

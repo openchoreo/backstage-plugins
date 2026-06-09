@@ -301,6 +301,10 @@ export {
   type UseLogsPermissionResult,
 } from './hooks/useLogsPermission';
 export {
+  useEventsPermission,
+  type UseEventsPermissionResult,
+} from './hooks/useEventsPermission';
+export {
   useMetricsPermission,
   type UseMetricsPermissionResult,
 } from './hooks/useMetricsPermission';
