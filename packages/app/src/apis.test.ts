@@ -9,6 +9,12 @@
  *
  * We only assert "factory returned an instance" — full client behavior
  * is covered by each plugin's own tests.
+ *
+ * Under NFS, `openchoreo-ci`, `openchoreo-workflows`, and the
+ * `catalog-graph` override own their API factories via `ApiBlueprint`
+ * inside their `/alpha` plugins / `customOverrides.tsx`, so they are
+ * NOT in this app-scoped `apis` array. Their factory bodies are covered
+ * by the plugins' own tests.
  */
 import {
   AnyApiFactory,
@@ -18,15 +24,6 @@ import {
 import { permissionApiRef } from '@backstage/plugin-permission-react';
 import { visitsApiRef } from '@backstage/plugin-home';
 import { scmIntegrationsApiRef } from '@backstage/integration-react';
-import { catalogGraphApiRef } from '@backstage/plugin-catalog-graph';
-import {
-  openChoreoCiClientApiRef,
-  OpenChoreoCiClient,
-} from '@openchoreo/backstage-plugin-openchoreo-ci';
-import {
-  genericWorkflowsClientApiRef,
-  GenericWorkflowsClient,
-} from '@openchoreo/backstage-plugin-openchoreo-workflows';
 import {
   perchAgentApiRef,
   PerchAgentClient,
@@ -72,30 +69,10 @@ describe('apis registry', () => {
       openChoreoAuthApiRef,
       visitsApiRef,
       storageApiRef,
-      openChoreoCiClientApiRef,
-      genericWorkflowsClientApiRef,
       perchAgentApiRef,
     ]) {
       expect(ids).toContain(ref.id);
     }
-  });
-
-  it('builds the OpenChoreoCiClient via its factory', () => {
-    const f = findFactory(apis, openChoreoCiClientApiRef);
-    const instance = invoke(f, {
-      discoveryApi: stubDiscovery,
-      fetchApi: stubFetch,
-    });
-    expect(instance).toBeInstanceOf(OpenChoreoCiClient);
-  });
-
-  it('builds the GenericWorkflowsClient via its factory', () => {
-    const f = findFactory(apis, genericWorkflowsClientApiRef);
-    const instance = invoke(f, {
-      discoveryApi: stubDiscovery,
-      fetchApi: stubFetch,
-    });
-    expect(instance).toBeInstanceOf(GenericWorkflowsClient);
   });
 
   it('builds the PerchAgentClient via its factory', () => {
@@ -113,12 +90,6 @@ describe('apis registry', () => {
       identityApi: stubIdentity,
       errorApi: stubError,
     });
-    expect(instance).toBeDefined();
-  });
-
-  it('builds the catalog graph api with custom OpenChoreo relations', () => {
-    const f = findFactory(apis, catalogGraphApiRef);
-    const instance = invoke(f, {});
     expect(instance).toBeDefined();
   });
 });
