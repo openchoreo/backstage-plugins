@@ -222,17 +222,19 @@ function ComponentReview({ data }: { data: Record<string, unknown> }) {
     setMeta(componentMeta, 'Description', String(data.description));
   }
 
-  // Section: Build & Deploy
+  // Section: Build & Deploy — values live under data.buildAndDeploy after the
+  // BuildAndDeployField composite restructure.
+  const buildAndDeploy = (data.buildAndDeploy ?? {}) as Record<string, unknown>;
   const buildMeta: Record<string, string> = {};
-  if (data.deploymentSource) {
+  if (buildAndDeploy.deploymentSource) {
     setMeta(
       buildMeta,
       'Deployment Source',
-      sanitizeLabel(String(data.deploymentSource)),
+      sanitizeLabel(String(buildAndDeploy.deploymentSource)),
     );
   }
 
-  const workflow = data.workflow_name as
+  const workflow = buildAndDeploy.workflow_name as
     | { kind?: string; name?: string }
     | undefined;
   if (workflow?.name) {
@@ -242,7 +244,9 @@ function ComponentReview({ data }: { data: Record<string, unknown> }) {
     }
   }
 
-  const gitSource = data.git_source as Record<string, unknown> | undefined;
+  const gitSource = buildAndDeploy.git_source as
+    | Record<string, unknown>
+    | undefined;
   if (gitSource) {
     if (gitSource.repo_url)
       setMeta(buildMeta, 'Repository URL', String(gitSource.repo_url));
@@ -254,21 +258,21 @@ function ComponentReview({ data }: { data: Record<string, unknown> }) {
       setMeta(buildMeta, 'Git Secret', String(gitSource.git_secret_ref));
   }
 
-  if (data.containerImage) {
-    setMeta(buildMeta, 'Container Image', String(data.containerImage));
+  if (buildAndDeploy.containerImage) {
+    setMeta(buildMeta, 'Container Image', String(buildAndDeploy.containerImage));
   }
-  if (data.autoDeploy !== undefined) {
-    setMeta(buildMeta, 'Auto Deploy', data.autoDeploy ? 'Yes' : 'No');
+  if (buildAndDeploy.autoDeploy !== undefined) {
+    setMeta(buildMeta, 'Auto Deploy', buildAndDeploy.autoDeploy ? 'Yes' : 'No');
   }
-  if (data.ciPlatform) {
-    setMeta(buildMeta, 'CI Platform', String(data.ciPlatform));
+  if (buildAndDeploy.ciPlatform) {
+    setMeta(buildMeta, 'CI Platform', String(buildAndDeploy.ciPlatform));
   }
-  if (data.ciIdentifier) {
-    setMeta(buildMeta, 'CI Identifier', String(data.ciIdentifier));
+  if (buildAndDeploy.ciIdentifier) {
+    setMeta(buildMeta, 'CI Identifier', String(buildAndDeploy.ciIdentifier));
   }
 
   // Section: Workflow Parameters — split key-value arrays into own sub-sections
-  const workflowParams = data.workflow_parameters as
+  const workflowParams = buildAndDeploy.workflow_parameters as
     | { parameters?: Record<string, unknown>; schema?: unknown }
     | undefined;
   let workflowScalarMeta: Record<string, string> | undefined;
