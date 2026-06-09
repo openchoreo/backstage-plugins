@@ -60,10 +60,7 @@ import { HomePage } from './components/Home';
 import { CustomGraphNode } from '@openchoreo/backstage-plugin-react';
 import { PlatformOverviewPage } from './components/platformOverview';
 
-import {
-  AlertDisplay,
-  OAuthRequestDialog,
-} from '@backstage/core-components';
+import { AlertDisplay, OAuthRequestDialog } from '@backstage/core-components';
 import { createApp } from '@backstage/frontend-defaults';
 import {
   convertLegacyAppOptions,

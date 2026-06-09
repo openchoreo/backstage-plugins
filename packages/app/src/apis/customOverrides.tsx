@@ -67,8 +67,8 @@ import { openChoreoTokenDecorator } from '../scaffolder/openChoreoTokenDecorator
  * this, custom relations don't render in entity Relations cards or the
  * catalog graph.
  */
-export const catalogGraphPluginAlpha = catalogGraphPluginAlphaBase.withOverrides(
-  {
+export const catalogGraphPluginAlpha =
+  catalogGraphPluginAlphaBase.withOverrides({
     extensions: [
       catalogGraphPluginAlphaBase.getExtension('api:catalog-graph').override({
         params: defineParams =>
@@ -109,8 +109,7 @@ export const catalogGraphPluginAlpha = catalogGraphPluginAlphaBase.withOverrides
           }),
       }),
     ],
-  },
-);
+  });
 
 /**
  * Override `catalog`'s default `api:catalog/entity-presentation` to provide
@@ -186,7 +185,8 @@ export const customAppModule = createFrontendModule({
           ref: catalogImportTranslationRef,
           full: false,
           messages: {
-            'defaultImportPage.headerTitle': 'Register an existing catalog entity',
+            'defaultImportPage.headerTitle':
+              'Register an existing catalog entity',
             'defaultImportPage.contentHeaderTitle':
               'Start tracking your entity in {{appTitle}}',
             'defaultImportPage.supportTitle':
