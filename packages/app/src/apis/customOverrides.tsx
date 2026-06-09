@@ -145,6 +145,7 @@ export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
                   traittype: ExtensionIcon,
                   clustertraittype: ExtensionIcon,
                   workflow: PlayCircleOutlineIcon,
+                  clusterworkflow: PlayCircleOutlineIcon,
                   componentworkflow: SettingsApplicationsIcon,
                 },
               }),
