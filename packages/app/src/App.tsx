@@ -50,7 +50,7 @@ import {
 } from '@backstage/plugin-techdocs';
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
 import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
-import { apis, openChoreoAuthApiRef } from './apis';
+import { apis } from './apis';
 import { entityPage } from './components/catalog/EntityPage';
 import { CustomCatalogPage } from './components/catalog/CustomCatalogPage';
 import { CustomApiExplorerPage } from './components/catalog/CustomApiExplorerPage';
@@ -63,7 +63,6 @@ import { PlatformOverviewPage } from './components/platformOverview';
 import {
   AlertDisplay,
   OAuthRequestDialog,
-  SignInPage,
 } from '@backstage/core-components';
 import { createApp } from '@backstage/frontend-defaults';
 import {
@@ -91,7 +90,7 @@ import platformEngineerCorePluginAlpha from '@openchoreo/backstage-plugin-platfo
 import {
   catalogGraphPluginAlpha,
   catalogPluginAlpha,
-  customTranslationsModule,
+  customAppModule,
   scaffolderPluginAlpha as upstreamScaffolderPluginAlpha,
 } from './apis/customOverrides';
 
@@ -124,45 +123,7 @@ import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
 import { VisitListener } from '@backstage/plugin-home';
-import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { DependencyGraphZoomOverrides } from './components/graph/DependencyGraphZoomOverrides';
-
-/**
- * Dynamic SignInPage that switches between OAuth and Guest mode
- * based on openchoreo.features.auth.enabled configuration.
- *
- * When auth is enabled (default): Uses OpenChoreo IDP OAuth flow
- * When auth is disabled: Auto-signs in as guest user using Backstage's built-in guest provider
- */
-function DynamicSignInPage(props: any) {
-  const configApi = useApi(configApiRef);
-
-  // Check if auth feature is enabled (defaults to true)
-  const authEnabled =
-    configApi.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
-
-  if (!authEnabled) {
-    // Guest mode: use Backstage's built-in guest provider
-    // This uses ProxiedSignInIdentity with the backend guest module
-    // and falls back to GuestUserIdentity (legacy) if not available
-    return <SignInPage {...props} auto providers={['guest']} />;
-  }
-
-  // Default: OpenChoreo Auth (works with any OIDC-compliant IDP).
-  // The sign-in page is always shown with a login button. The OAuth2 provider
-  // handles popup vs. redirect based on the enableExperimentalRedirectFlow config.
-  return (
-    <SignInPage
-      {...props}
-      provider={{
-        id: 'openchoreo-auth',
-        title: 'OpenChoreo',
-        message: 'Sign in using OpenChoreo',
-        apiRef: openChoreoAuthApiRef,
-      }}
-    />
-  );
-}
 
 const legacyAppOptions = convertLegacyAppOptions({
   apis,
@@ -185,9 +146,6 @@ const legacyAppOptions = convertLegacyAppOptions({
     'kind:workflow': PlayCircleOutlineIcon,
     'kind:clusterworkflow': PlayCircleOutlineIcon,
     'kind:componentworkflow': SettingsApplicationsIcon,
-  },
-  components: {
-    SignInPage: DynamicSignInPage,
   },
   themes: appThemes,
 });
@@ -308,7 +266,7 @@ const legacyRoot = convertLegacyAppRoot(
 const app = createApp({
   features: [
     legacyAppOptions,
-    customTranslationsModule,
+    customAppModule,
     upstreamScaffolderPluginAlpha,
     catalogGraphPluginAlpha,
     catalogPluginAlpha,

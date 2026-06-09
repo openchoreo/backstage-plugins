@@ -12,7 +12,10 @@ import catalogPluginAlphaBase from '@backstage/plugin-catalog/alpha';
 import scaffolderPluginAlphaBase from '@backstage/plugin-scaffolder/alpha';
 import { createFrontendModule } from '@backstage/frontend-plugin-api';
 import { createTranslationMessages } from '@backstage/frontend-plugin-api';
-import { TranslationBlueprint } from '@backstage/plugin-app-react';
+import {
+  SignInPageBlueprint,
+  TranslationBlueprint,
+} from '@backstage/plugin-app-react';
 import { catalogImportTranslationRef } from '@backstage/plugin-catalog-import/alpha';
 import {
   catalogGraphApiRef,
@@ -158,14 +161,24 @@ export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
  * a secret for user-based authorization in scaffolder actions.
  */
 /**
- * App-scoped translation overrides that previously rode in via
- * `createApp.__experimentalTranslations`. The catalog-import header strings
- * are customized to read "Register an existing catalog entity" rather than
- * the upstream default "Register Software".
+ * App-scoped extensions:
+ * - SignInPage: lazy-loaded DynamicSignInPage that switches between
+ *   OpenChoreo OIDC and guest mode based on `openchoreo.features.auth.enabled`.
+ *   Replaces the legacy `createApp.components.SignInPage` slot.
+ * - Translation overrides for catalog-import that previously rode via
+ *   `createApp.__experimentalTranslations`. Customizes the header strings to
+ *   read "Register an existing catalog entity" rather than the upstream
+ *   default "Register Software".
  */
-export const customTranslationsModule = createFrontendModule({
+export const customAppModule = createFrontendModule({
   pluginId: 'app',
   extensions: [
+    SignInPageBlueprint.make({
+      params: {
+        loader: () =>
+          import('../components/DynamicSignInPage').then(m => m.default),
+      },
+    }),
     TranslationBlueprint.make({
       name: 'catalog-import-overrides',
       params: {
