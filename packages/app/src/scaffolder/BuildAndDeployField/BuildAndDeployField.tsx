@@ -48,7 +48,10 @@ export const BuildAndDeployField = (
   const currentSource = formData.deploymentSource as string | undefined;
   const currentCiPlatform = formData.ciPlatform as string | undefined;
 
-  const visibleFields = ['deploymentSource', ...(BRANCH_FIELDS[currentSource ?? ''] ?? [])]
+  const visibleFields = [
+    'deploymentSource',
+    ...(BRANCH_FIELDS[currentSource ?? ''] ?? []),
+  ]
     .filter(field => {
       if (field === 'ciIdentifier') {
         return (

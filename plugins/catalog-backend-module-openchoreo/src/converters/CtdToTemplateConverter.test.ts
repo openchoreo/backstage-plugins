@@ -325,8 +325,7 @@ describe('CtdToTemplateConverter', () => {
       expect(buildDeploySection.title).toBe('Build & Deploy');
       expect(buildDeploySection.required).toEqual(['buildAndDeploy']);
 
-      const buildAndDeploy =
-        buildDeploySection.properties.buildAndDeploy;
+      const buildAndDeploy = buildDeploySection.properties.buildAndDeploy;
       expect(buildAndDeploy).toBeDefined();
       expect(buildAndDeploy.type).toBe('object');
       expect(buildAndDeploy['ui:field']).toBe('BuildAndDeployField');
@@ -368,8 +367,7 @@ describe('CtdToTemplateConverter', () => {
 
       // workflow_name still passes allowedWorkflows via ui:options
       expect(
-        buildAndDeploy.properties.workflow_name['ui:options']
-          .allowedWorkflows,
+        buildAndDeploy.properties.workflow_name['ui:options'].allowedWorkflows,
       ).toEqual([
         { kind: 'Workflow', name: 'nodejs-build' },
         { kind: 'Workflow', name: 'docker-build' },
