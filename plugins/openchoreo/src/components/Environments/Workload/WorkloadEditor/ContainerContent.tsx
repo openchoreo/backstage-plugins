@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { TextField, Grid, Typography, Box } from '@material-ui/core';
 import {
   Container,
@@ -76,6 +77,12 @@ export interface ContainerContentProps {
   onFileVarReplace?: (fileIndex: number, fileVar: FileVar) => void;
   /** Environment name for display in override section titles */
   environmentName?: string;
+  /**
+   * Fired when an env var or file mount row enters or leaves edit mode.
+   * Callers gate their main action (Create Release / Save Overrides /
+   * Deploy) on this so users can't submit a half-typed row.
+   */
+  onEditingChange?: (isEditing: boolean) => void;
 }
 
 /**
@@ -106,6 +113,7 @@ export function ContainerContent({
   onEnvVarReplace,
   onFileVarReplace,
   environmentName,
+  onEditingChange,
 }: ContainerContentProps) {
   // Wrap the single container in a map for hooks that expect the map format.
   const containerMap: Record<string, Container> = container
@@ -162,6 +170,15 @@ export function ContainerContent({
     onFileVarChange: internalOnFileVarChange,
     onRemoveFileVar: internalOnRemoveFileVar,
   });
+
+  const isAnyRowEditing =
+    envEditBuffer.isAnyRowEditing || fileEditBuffer.isAnyRowEditing;
+  useEffect(() => {
+    onEditingChange?.(isAnyRowEditing);
+    // Clear on unmount so a stuck "editing" flag doesn't leak into the
+    // parent's main-action gate when the user navigates away mid-edit.
+    return () => onEditingChange?.(false);
+  }, [isAnyRowEditing, onEditingChange]);
 
   // Convert secret references to SecretOption format
   const secretOptions: SecretOption[] = secretReferences.map(ref => ({
