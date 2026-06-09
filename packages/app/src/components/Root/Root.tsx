@@ -39,6 +39,7 @@ import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
 import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
+import { ScaffolderPreselectionProvider } from '../../scaffolder/ScaffolderPreselectionContext';
 
 const isMac =
   typeof navigator !== 'undefined' &&
@@ -168,6 +169,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
   useSearchModalStyles();
   const a11yClasses = useA11yStyles();
   return (
+    <ScaffolderPreselectionProvider>
     <AssistantDrawerProvider>
       <a href="#main-content" className={a11yClasses.skipLink}>
         Skip to main content
@@ -238,5 +240,6 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
         </main>
       </SidebarPage>
     </AssistantDrawerProvider>
+    </ScaffolderPreselectionProvider>
   );
 };

@@ -41,8 +41,6 @@ import { DeploymentPipelineFormWithYamlFieldExtension } from './scaffolder/Deplo
 import { WorkloadDetailsFieldExtension } from './scaffolder/WorkloadDetailsField';
 import { CustomTemplateListPage } from './components/scaffolder/CustomTemplateListPage';
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
-import { ScaffolderPreselectionProvider } from './scaffolder/ScaffolderPreselectionContext';
-import { ScaffolderLayout } from './scaffolder/ScaffolderLayout';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
 import {
@@ -83,12 +81,24 @@ import openchoreoObservabilityPluginAlpha from '@openchoreo/backstage-plugin-ope
 import openchoreoWorkflowsPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-workflows/alpha';
 import platformEngineerCorePluginAlpha from '@openchoreo/backstage-plugin-platform-engineer-core/alpha';
 
-// Upstream NFS plugin features. These register the route refs used by the
-// legacy `bindRoutes` calls (scaffolder.routes.root, catalog.routes.catalogIndex,
-// techdocs.routes.docRoot, catalogImport.routes.importPage). Their auto-mounted
-// pages are deferred to Step 3c — for now the legacy `<FlatRoutes>` mounts via
-// `convertLegacyAppRoot` win.
-import upstreamScaffolderPluginAlpha from '@backstage/plugin-scaffolder/alpha';
+// Upstream NFS plugin features. These register the route refs used by
+// legacy `useRouteRef(scaffolderPlugin.routes.root)` calls (e.g. in
+// useKindCreateConfig). We disable the upstream `scaffolderPage` extension
+// because our legacy `<ScaffolderPage>` mount at `/create` in the FlatRoutes
+// block — preserved via `convertLegacyAppRoot` — owns the page with all our
+// customizations (CustomTemplateListPage, CustomReviewStep, ScaffolderLayout,
+// 27 field extensions).
+import upstreamScaffolderPluginAlphaBase from '@backstage/plugin-scaffolder/alpha';
+
+const upstreamScaffolderPluginAlpha = upstreamScaffolderPluginAlphaBase.withOverrides(
+  {
+    extensions: [
+      upstreamScaffolderPluginAlphaBase
+        .getExtension('page:scaffolder')
+        .override({ disabled: true }),
+    ],
+  },
+);
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
@@ -211,21 +221,17 @@ const routes = (
     <Route
       path="/create"
       element={
-        <ScaffolderLayout>
-          <ScaffolderPreselectionProvider>
-            <ScaffolderPage
-              headerOptions={{
-                title: 'Create a new resource',
-                subtitle:
-                  'Create new resources using standard templates in your organization',
-              }}
-              components={{
-                EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
-                ReviewStepComponent: CustomReviewStep,
-              }}
-            />
-          </ScaffolderPreselectionProvider>
-        </ScaffolderLayout>
+        <ScaffolderPage
+          headerOptions={{
+            title: 'Create a new resource',
+            subtitle:
+              'Create new resources using standard templates in your organization',
+          }}
+          components={{
+            EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
+            ReviewStepComponent: CustomReviewStep,
+          }}
+        />
       }
     >
       <ScaffolderFieldExtensions>
