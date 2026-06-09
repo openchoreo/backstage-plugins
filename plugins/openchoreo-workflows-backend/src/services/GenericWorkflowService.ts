@@ -3,6 +3,7 @@ import {
   createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
   assertApiResponse,
+  fetchAllPages,
   ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
@@ -270,27 +271,23 @@ export class GenericWorkflowService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/workflowruns',
-        {
-          params: {
-            path: { namespaceName },
-          },
-        },
+      const rawItems = await fetchAllPages(cursor =>
+        client
+          .GET('/api/v1/namespaces/{namespaceName}/workflowruns', {
+            params: {
+              path: { namespaceName },
+              query: { limit: 100, cursor },
+            },
+          })
+          .then(res => {
+            assertApiResponse(res, 'fetch workflow runs');
+            return res.data;
+          }),
       );
 
-      assertApiResponse({ data, error, response }, 'fetch workflow runs');
-
-      const rawItems = ((data as any)?.items || []) as any[];
-
-      // Filter by workflowName before transforming (check both flat and K8s fields)
       // TODO: If upstream API supports filtering, pass workflowName as query param instead
       let filtered = workflowName
-        ? rawItems.filter(
-            run =>
-              run.spec?.workflow?.name === workflowName ||
-              run.workflowName === workflowName,
-          )
+        ? rawItems.filter(run => run.spec?.workflow?.name === workflowName)
         : rawItems;
 
       // Filter by project and component labels if provided
@@ -319,12 +316,7 @@ export class GenericWorkflowService {
         }`,
       );
 
-      return {
-        items,
-        pagination: (data as any)?.pagination as
-          | { nextCursor?: string }
-          | undefined,
-      };
+      return { items };
     } catch (error) {
       this.logger.error(
         `Failed to fetch workflow runs for namespace ${namespaceName}: ${error}`,
