@@ -116,19 +116,22 @@ export class GenericWorkflowService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/workflows',
-        {
-          params: {
-            path: { namespaceName },
-          },
-        },
+      const rawItems = await fetchAllPages(cursor =>
+        client
+          .GET('/api/v1/namespaces/{namespaceName}/workflows', {
+            params: {
+              path: { namespaceName },
+              query: { limit: 100, cursor },
+            },
+          })
+          .then(res => {
+            assertApiResponse(res, 'fetch workflows');
+            return res.data;
+          }),
       );
 
-      assertApiResponse({ data, error, response }, 'fetch workflows');
-
       // Map K8s-style Workflow to the local flat Workflow interface
-      const items: Workflow[] = ((data as any)?.items || []).map((wf: any) => {
+      const items: Workflow[] = rawItems.map((wf: any) => {
         const name: string = wf.metadata?.name ?? '';
         const isCI =
           wf.metadata?.labels?.[CHOREO_LABELS.WORKFLOW_TYPE] === 'component';
@@ -148,9 +151,6 @@ export class GenericWorkflowService {
 
       return {
         items,
-        pagination: (data as any)?.pagination as
-          | { nextCursor?: string }
-          | undefined,
       };
     } catch (error) {
       this.logger.error(
