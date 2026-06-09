@@ -316,109 +316,79 @@ describe('CtdToTemplateConverter', () => {
       // Should have 3 sections
       expect(parameters).toHaveLength(3);
 
-      // Check Build & Deploy section (second section)
+      // Check Build & Deploy section (second section). All branch-specific
+      // fields now live as siblings of `deploymentSource` under a single
+      // `buildAndDeploy` object owned by BuildAndDeployField — the composite
+      // field is the only way to atomically clear the inactive branch's data
+      // on source change.
       const buildDeploySection = parameters[1];
       expect(buildDeploySection.title).toBe('Build & Deploy');
-      expect(buildDeploySection.required).toEqual(['deploymentSource']);
+      expect(buildDeploySection.required).toEqual(['buildAndDeploy']);
 
-      // Check deploymentSource property
-      expect(buildDeploySection.properties.deploymentSource).toBeDefined();
-      expect(buildDeploySection.properties.deploymentSource.type).toBe(
-        'string',
-      );
-      expect(buildDeploySection.properties.deploymentSource.enum).toEqual([
+      const buildAndDeploy =
+        buildDeploySection.properties.buildAndDeploy;
+      expect(buildAndDeploy).toBeDefined();
+      expect(buildAndDeploy.type).toBe('object');
+      expect(buildAndDeploy['ui:field']).toBe('BuildAndDeployField');
+      expect(buildAndDeploy.required).toEqual(['deploymentSource']);
+
+      // deploymentSource still rendered by DeploymentSourcePicker
+      expect(buildAndDeploy.properties.deploymentSource).toBeDefined();
+      expect(buildAndDeploy.properties.deploymentSource.type).toBe('string');
+      expect(buildAndDeploy.properties.deploymentSource.enum).toEqual([
         'build-from-source',
         'deploy-from-image',
         'external-ci',
       ]);
-      expect(buildDeploySection.properties.deploymentSource['ui:field']).toBe(
+      expect(buildAndDeploy.properties.deploymentSource['ui:field']).toBe(
         'DeploymentSourcePicker',
       );
 
-      // autoDeploy is NOT a top-level property — it's only in the deploy-from-image branch
-      expect(buildDeploySection.properties.autoDeploy).toBeUndefined();
-
-      // Check dependencies structure uses oneOf
-      expect(buildDeploySection.dependencies.deploymentSource).toBeDefined();
-      expect(
-        buildDeploySection.dependencies.deploymentSource.oneOf,
-      ).toBeDefined();
-      expect(
-        buildDeploySection.dependencies.deploymentSource.oneOf,
-      ).toHaveLength(3);
-
-      // Check build-from-source branch
-      const buildFromSourceBranch =
-        buildDeploySection.dependencies.deploymentSource.oneOf[0];
-      expect(buildFromSourceBranch.properties.deploymentSource.const).toBe(
-        'build-from-source',
-      );
-
-      // Check git_source composite field
-      expect(buildFromSourceBranch.properties.git_source).toBeDefined();
-      expect(buildFromSourceBranch.properties.git_source.type).toBe('object');
-      expect(buildFromSourceBranch.properties.git_source['ui:field']).toBe(
+      // Build-from-source siblings
+      expect(buildAndDeploy.properties.git_source).toBeDefined();
+      expect(buildAndDeploy.properties.git_source.type).toBe('object');
+      expect(buildAndDeploy.properties.git_source['ui:field']).toBe(
         'GitSourceField',
       );
       expect(
-        buildFromSourceBranch.properties.git_source.properties.repo_url,
+        buildAndDeploy.properties.git_source.properties.repo_url,
       ).toBeDefined();
       expect(
-        buildFromSourceBranch.properties.git_source.properties.branch,
+        buildAndDeploy.properties.git_source.properties.branch,
       ).toBeDefined();
       expect(
-        buildFromSourceBranch.properties.git_source.properties.component_path,
+        buildAndDeploy.properties.git_source.properties.component_path,
       ).toBeDefined();
       expect(
-        buildFromSourceBranch.properties.git_source.properties.git_secret_ref,
-      ).toBeDefined();
-
-      expect(buildFromSourceBranch.properties.workflow_name).toBeDefined();
-      expect(
-        buildFromSourceBranch.properties.workflow_parameters,
+        buildAndDeploy.properties.git_source.properties.git_secret_ref,
       ).toBeDefined();
 
-      // Check workflow_name passes allowedWorkflows via ui:options
+      expect(buildAndDeploy.properties.workflow_name).toBeDefined();
+      expect(buildAndDeploy.properties.workflow_parameters).toBeDefined();
+
+      // workflow_name still passes allowedWorkflows via ui:options
       expect(
-        buildFromSourceBranch.properties.workflow_name['ui:options']
+        buildAndDeploy.properties.workflow_name['ui:options']
           .allowedWorkflows,
       ).toEqual([
         { kind: 'Workflow', name: 'nodejs-build' },
         { kind: 'Workflow', name: 'docker-build' },
       ]);
-      expect(buildFromSourceBranch.properties.workflow_name['ui:field']).toBe(
+      expect(buildAndDeploy.properties.workflow_name['ui:field']).toBe(
         'BuildWorkflowPicker',
       );
 
-      // Check workflow_parameters uses custom UI field
-      expect(
-        buildFromSourceBranch.properties.workflow_parameters['ui:field'],
-      ).toBe('BuildWorkflowParameters');
-
-      // autoDeploy should NOT appear in build-from-source branch (only in deploy-from-image)
-      expect(buildFromSourceBranch.properties.autoDeploy).toBeUndefined();
-
-      // Check required fields for build-from-source
-      expect(buildFromSourceBranch.required).toEqual([
-        'workflow_name',
-        'workflow_parameters',
-      ]);
-
-      // Check deploy-from-image branch
-      const deployFromImageBranch =
-        buildDeploySection.dependencies.deploymentSource.oneOf[1];
-      expect(deployFromImageBranch.properties.deploymentSource.const).toBe(
-        'deploy-from-image',
+      // workflow_parameters still uses custom UI field
+      expect(buildAndDeploy.properties.workflow_parameters['ui:field']).toBe(
+        'BuildWorkflowParameters',
       );
-      expect(deployFromImageBranch.properties.containerImage).toBeDefined();
-      expect(deployFromImageBranch.properties.containerImage['ui:field']).toBe(
+
+      // Deploy-from-image siblings
+      expect(buildAndDeploy.properties.containerImage).toBeDefined();
+      expect(buildAndDeploy.properties.containerImage['ui:field']).toBe(
         'ContainerImageField',
       );
-      // Check autoDeploy appears in deploy-from-image branch
-      expect(deployFromImageBranch.properties.autoDeploy).toBeDefined();
-
-      // Check required fields for deploy-from-image
-      expect(deployFromImageBranch.required).toEqual(['containerImage']);
+      expect(buildAndDeploy.properties.autoDeploy).toBeDefined();
     });
 
     it('should encode mixed Workflow and ClusterWorkflow allowedWorkflows with correct kind', () => {
@@ -443,13 +413,10 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const buildDeploySection = parameters[1];
-      const buildFromSourceBranch =
-        buildDeploySection.dependencies.deploymentSource.oneOf[0];
+      const buildAndDeploy = parameters[1].properties.buildAndDeploy;
 
       expect(
-        buildFromSourceBranch.properties.workflow_name['ui:options']
-          .allowedWorkflows,
+        buildAndDeploy.properties.workflow_name['ui:options'].allowedWorkflows,
       ).toEqual([
         { kind: 'Workflow', name: 'nodejs-build' },
         { kind: 'ClusterWorkflow', name: 'dockerfile-builder' },
@@ -581,13 +548,18 @@ describe('CtdToTemplateConverter', () => {
       expect(input.workloadDetails).toBe('${{ parameters.workloadDetails }}');
 
       // CI/CD parameters including git secret ref (from git_source composite field)
+      // All CI/CD fields are nested under buildAndDeploy after the BuildAndDeployField restructure.
       expect(input.gitSecretRef).toBe(
-        '${{ parameters.git_source.git_secret_ref }}',
+        '${{ parameters.buildAndDeploy.git_source.git_secret_ref }}',
       );
-      expect(input.repo_url).toBe('${{ parameters.git_source.repo_url }}');
-      expect(input.branch).toBe('${{ parameters.git_source.branch }}');
+      expect(input.repo_url).toBe(
+        '${{ parameters.buildAndDeploy.git_source.repo_url }}',
+      );
+      expect(input.branch).toBe(
+        '${{ parameters.buildAndDeploy.git_source.branch }}',
+      );
       expect(input.component_path).toBe(
-        '${{ parameters.git_source.component_path }}',
+        '${{ parameters.buildAndDeploy.git_source.component_path }}',
       );
     });
   });
@@ -668,59 +640,25 @@ describe('CtdToTemplateConverter', () => {
       },
     };
 
-    it('should include external-ci branch in oneOf', () => {
+    it('should expose external-ci as an option with a ciPlatform sibling', () => {
       const result = converter.convertCtdToTemplateEntity(baseCtd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const buildSection = parameters[1];
-      const externalCIBranch =
-        buildSection.dependencies.deploymentSource.oneOf[2];
+      const buildAndDeploy = parameters[1].properties.buildAndDeploy;
 
-      expect(externalCIBranch.properties.deploymentSource.const).toBe(
+      expect(buildAndDeploy.properties.deploymentSource.enum).toContain(
         'external-ci',
       );
-      expect(externalCIBranch.properties.ciPlatform).toBeDefined();
-      expect(externalCIBranch.properties.ciPlatform.enum).toEqual([
+      expect(buildAndDeploy.properties.ciPlatform).toBeDefined();
+      expect(buildAndDeploy.properties.ciPlatform.enum).toEqual([
         'none',
         'jenkins',
         'github-actions',
         'gitlab-ci',
       ]);
-    });
-
-    it('should include ciPlatform conditional dependencies for each platform', () => {
-      const result = converter.convertCtdToTemplateEntity(baseCtd, 'test-org');
-      const parameters = result.spec?.parameters as any[];
-      const buildSection = parameters[1];
-
-      const ciPlatformDeps = buildSection.dependencies.ciPlatform;
-      expect(ciPlatformDeps).toBeDefined();
-      expect(ciPlatformDeps.oneOf).toHaveLength(4);
-
-      // none, jenkins, github-actions, gitlab-ci
-      const platforms = ciPlatformDeps.oneOf.map(
-        (o: any) => o.properties.ciPlatform.const,
-      );
-      expect(platforms).toEqual([
-        'none',
-        'jenkins',
-        'github-actions',
-        'gitlab-ci',
-      ]);
-    });
-
-    it('should require ciIdentifier for jenkins but not for none', () => {
-      const result = converter.convertCtdToTemplateEntity(baseCtd, 'test-org');
-      const parameters = result.spec?.parameters as any[];
-      const ciPlatformDeps = parameters[1].dependencies.ciPlatform;
-
-      const noneBranch = ciPlatformDeps.oneOf[0];
-      const jenkinsBranch = ciPlatformDeps.oneOf[1];
-
-      expect(noneBranch.properties.ciIdentifier).toBeUndefined();
-      expect(jenkinsBranch.properties.ciIdentifier).toBeDefined();
-      expect(jenkinsBranch.properties.ciIdentifier.title).toBe(
-        'Jenkins Job Path',
-      );
+      // The composite renders ciIdentifier only when ciPlatform requires it;
+      // the schema carries a generic shape and the picker labels it per platform.
+      expect(buildAndDeploy.properties.ciIdentifier).toBeDefined();
+      expect(buildAndDeploy.properties.ciIdentifier.type).toBe('string');
     });
   });
 
