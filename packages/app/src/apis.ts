@@ -52,45 +52,6 @@ import {
   perchAgentApiRef,
   PerchAgentClient,
 } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
-import {
-  catalogApiRef,
-  entityPresentationApiRef,
-} from '@backstage/plugin-catalog-react';
-import { DefaultEntityPresentationApi } from '@backstage/plugin-catalog';
-import {
-  catalogGraphApiRef,
-  DefaultCatalogGraphApi,
-  ALL_RELATIONS,
-  ALL_RELATION_PAIRS,
-} from '@backstage/plugin-catalog-graph';
-import {
-  RELATION_DEPLOYS_TO,
-  RELATION_DEPLOYED_BY,
-  RELATION_USES_PIPELINE,
-  RELATION_PIPELINE_USED_BY,
-  RELATION_HOSTED_ON,
-  RELATION_HOSTS,
-  RELATION_OBSERVED_BY,
-  RELATION_OBSERVES,
-  RELATION_INSTANCE_OF,
-  RELATION_HAS_INSTANCE,
-  RELATION_USES_WORKFLOW,
-  RELATION_WORKFLOW_USED_BY,
-  RELATION_BUILDS_ON,
-  RELATION_BUILDS,
-} from '@openchoreo/backstage-plugin-common';
-import CloudIcon from '@material-ui/icons/Cloud';
-import DnsIcon from '@material-ui/icons/Dns';
-import AccountTreeIcon from '@material-ui/icons/AccountTree';
-import VisibilityIcon from '@material-ui/icons/Visibility';
-import BuildIcon from '@material-ui/icons/Build';
-import CategoryIcon from '@material-ui/icons/Category';
-import LayersIcon from '@material-ui/icons/Layers';
-import StorageIcon from '@material-ui/icons/Storage';
-import ExtensionIcon from '@material-ui/icons/Extension';
-import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
-import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
-
 // Re-export for use by App.tsx and other components
 export { openChoreoAuthApiRef };
 
@@ -201,44 +162,14 @@ export const apis: AnyApiFactory[] = [
       new OpenChoreoCiClient(discoveryApi, fetchApi),
   }),
 
-  // Catalog graph API with custom OpenChoreo relations
-  // Without this, custom relations (deploysTo, hostedOn, instanceOf, etc.)
-  // won't appear in entity Relations cards or the catalog graph
-  createApiFactory({
-    api: catalogGraphApiRef,
-    deps: {},
-    factory: () =>
-      new DefaultCatalogGraphApi({
-        knownRelations: [
-          ...ALL_RELATIONS,
-          RELATION_DEPLOYS_TO,
-          RELATION_DEPLOYED_BY,
-          RELATION_USES_PIPELINE,
-          RELATION_PIPELINE_USED_BY,
-          RELATION_HOSTED_ON,
-          RELATION_HOSTS,
-          RELATION_OBSERVED_BY,
-          RELATION_OBSERVES,
-          RELATION_INSTANCE_OF,
-          RELATION_HAS_INSTANCE,
-          RELATION_USES_WORKFLOW,
-          RELATION_WORKFLOW_USED_BY,
-          RELATION_BUILDS_ON,
-          RELATION_BUILDS,
-        ],
-        knownRelationPairs: [
-          ...ALL_RELATION_PAIRS,
-          [RELATION_DEPLOYS_TO, RELATION_DEPLOYED_BY],
-          [RELATION_USES_PIPELINE, RELATION_PIPELINE_USED_BY],
-          [RELATION_HOSTED_ON, RELATION_HOSTS],
-          [RELATION_OBSERVED_BY, RELATION_OBSERVES],
-          [RELATION_INSTANCE_OF, RELATION_HAS_INSTANCE],
-          [RELATION_USES_WORKFLOW, RELATION_WORKFLOW_USED_BY],
-          [RELATION_BUILDS_ON, RELATION_BUILDS],
-        ],
-        defaultRelationTypes: { exclude: [] },
-      }),
-  }),
+  // DEFERRED to Step 3c: Catalog graph API override with custom OpenChoreo
+  // relations. The legacy `app`-scoped registration of `catalogGraphApiRef`
+  // collides with `@backstage/plugin-catalog-graph`'s own default factory
+  // under NFS (API_FACTORY_CONFLICT). The proper fix is a plugin override
+  // (catalogGraphPlugin.withOverrides) that disables the upstream default
+  // and provides our augmented one under the same pluginId. Until then,
+  // custom relations (deploysTo, hostedOn, instanceOf, …) won't render in
+  // entity Relations cards or the catalog graph.
 
   // Generic Workflows client - provides API for org-level workflow operations
   createApiFactory({
@@ -264,33 +195,9 @@ export const apis: AnyApiFactory[] = [
       new PerchAgentClient({ discoveryApi, fetchApi }),
   }),
 
-  // Custom EntityPresentationApi with icons for custom entity kinds
-  // This enables icons for Environment, DataPlane, and DeploymentPipeline in the catalog graph
-  createApiFactory({
-    api: entityPresentationApiRef,
-    deps: { catalogApi: catalogApiRef },
-    factory: ({ catalogApi }) =>
-      DefaultEntityPresentationApi.create({
-        catalogApi,
-        kindIcons: {
-          environment: CloudIcon,
-          dataplane: DnsIcon,
-          clusterdataplane: DnsIcon,
-          deploymentpipeline: AccountTreeIcon,
-          observabilityplane: VisibilityIcon,
-          clusterobservabilityplane: VisibilityIcon,
-          workflowplane: BuildIcon,
-          clusterworkflowplane: BuildIcon,
-          componenttype: CategoryIcon,
-          clustercomponenttype: CategoryIcon,
-          resourcetype: LayersIcon,
-          clusterresourcetype: LayersIcon,
-          resource: StorageIcon,
-          traittype: ExtensionIcon,
-          clustertraittype: ExtensionIcon,
-          workflow: PlayCircleOutlineIcon,
-          componentworkflow: SettingsApplicationsIcon,
-        },
-      }),
-  }),
+  // DEFERRED to Step 3c: Custom EntityPresentationApi with kind icons for
+  // Environment, DataPlane, DeploymentPipeline, etc. Same conflict shape as
+  // catalogGraphApiRef above — the override needs to come from a catalog
+  // plugin module so it sits under pluginId `catalog`, not `app`. Until
+  // then, those kinds get the default upstream icon in the catalog graph.
 ];

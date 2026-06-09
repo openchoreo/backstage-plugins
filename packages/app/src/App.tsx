@@ -9,8 +9,6 @@ import {
   CatalogImportPage,
   catalogImportPlugin,
 } from '@backstage/plugin-catalog-import';
-import { catalogImportTranslationRef } from '@backstage/plugin-catalog-import/alpha';
-import { createTranslationMessages } from '@backstage/core-plugin-api/alpha';
 import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { ComponentNamePickerFieldExtension } from './scaffolder/ComponentNamePicker';
@@ -69,7 +67,11 @@ import {
   OAuthRequestDialog,
   SignInPage,
 } from '@backstage/core-components';
-import { createApp } from '@backstage/app-defaults';
+import { createApp } from '@backstage/frontend-defaults';
+import {
+  convertLegacyAppOptions,
+  convertLegacyAppRoot,
+} from '@backstage/core-compat-api';
 import { AppRouter, FlatRoutes } from '@backstage/core-app-api';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
@@ -136,23 +138,12 @@ function DynamicSignInPage(props: any) {
   );
 }
 
-const catalogImportTranslations = createTranslationMessages({
-  ref: catalogImportTranslationRef,
-  full: false,
-  messages: {
-    'defaultImportPage.headerTitle': 'Register an existing catalog entity',
-    'defaultImportPage.contentHeaderTitle':
-      'Start tracking your entity in {{appTitle}}',
-    'defaultImportPage.supportTitle':
-      'Start tracking your entity in {{appTitle}} by adding it to the software catalog.',
-    'importInfoCard.title': 'Register an existing catalog entity',
-    'stepInitAnalyzeUrl.urlHelperText':
-      'Enter the full path to your entity file to start tracking',
-    'stepFinishImportLocation.locations.viewButtonText': 'View Entity',
-  },
-});
+// NOTE: catalog-import translation overrides (previously passed via
+// `__experimentalTranslations`) are deferred to Step 3c — they'll move into a
+// `TranslationBlueprint.make({...})` module. Until then, catalog-import shows
+// upstream's default header strings.
 
-const app = createApp({
+const legacyAppOptions = convertLegacyAppOptions({
   apis,
   icons: {
     'kind:environment': CloudIcon,
@@ -174,30 +165,10 @@ const app = createApp({
     'kind:clusterworkflow': PlayCircleOutlineIcon,
     'kind:componentworkflow': SettingsApplicationsIcon,
   },
-  bindRoutes({ bind }) {
-    bind(catalogPlugin.externalRoutes, {
-      createComponent: scaffolderPlugin.routes.root,
-      viewTechDoc: techdocsPlugin.routes.docRoot,
-      createFromTemplate: scaffolderPlugin.routes.selectedTemplate,
-    });
-    bind(apiDocsPlugin.externalRoutes, {
-      registerApi: catalogImportPlugin.routes.importPage,
-    });
-    bind(scaffolderPlugin.externalRoutes, {
-      registerComponent: catalogImportPlugin.routes.importPage,
-      viewTechDoc: techdocsPlugin.routes.docRoot,
-    });
-    bind(orgPlugin.externalRoutes, {
-      catalogIndex: catalogPlugin.routes.catalogIndex,
-    });
-  },
   components: {
     SignInPage: DynamicSignInPage,
   },
   themes: appThemes,
-  __experimentalTranslations: {
-    resources: [catalogImportTranslations],
-  },
 });
 
 const routes = (
@@ -305,7 +276,7 @@ const routes = (
   </FlatRoutes>
 );
 
-export default app.createRoot(
+const legacyRoot = convertLegacyAppRoot(
   <>
     <AlertDisplay />
     <OAuthRequestDialog />
@@ -316,3 +287,26 @@ export default app.createRoot(
     </AppRouter>
   </>,
 );
+
+const app = createApp({
+  features: [legacyAppOptions, ...legacyRoot],
+  bindRoutes({ bind }) {
+    bind(catalogPlugin.externalRoutes, {
+      createComponent: scaffolderPlugin.routes.root,
+      viewTechDoc: techdocsPlugin.routes.docRoot,
+      createFromTemplate: scaffolderPlugin.routes.selectedTemplate,
+    });
+    bind(apiDocsPlugin.externalRoutes, {
+      registerApi: catalogImportPlugin.routes.importPage,
+    });
+    bind(scaffolderPlugin.externalRoutes, {
+      registerComponent: catalogImportPlugin.routes.importPage,
+      viewTechDoc: techdocsPlugin.routes.docRoot,
+    });
+    bind(orgPlugin.externalRoutes, {
+      catalogIndex: catalogPlugin.routes.catalogIndex,
+    });
+  },
+});
+
+export default app.createRoot();
