@@ -54,6 +54,11 @@ export function useRuntimeEvents(
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const inFlightRef = useRef<boolean>(false);
   const fetchGenerationRef = useRef<number>(0);
+  const eventsRef = useRef<EventEntry[]>([]);
+
+  useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
 
   const fetchEvents = useCallback(
     async (reset: boolean = false) => {
@@ -89,10 +94,10 @@ export function useRuntimeEvents(
         // Use timestamp-based pagination instead of offset
         let endTime = initialEndTime;
         let startTime = initialStartTime;
-        if (!reset && events.length > 0) {
+        if (!reset && eventsRef.current.length > 0) {
           // For load more, use the timestamp of the last event as the new
           // endTime or startTime based on the sort order
-          const lastEvent = events[events.length - 1];
+          const lastEvent = eventsRef.current[eventsRef.current.length - 1];
           const sortOrder = options.sortOrder || 'asc';
           if (sortOrder === 'desc') {
             endTime = lastEvent.timestamp ?? endTime;
@@ -143,7 +148,6 @@ export function useRuntimeEvents(
       options.customEndTime,
       options.limit,
       options.sortOrder,
-      events,
       namespaceName,
       project,
       entity,

@@ -42,8 +42,8 @@ const columnWidth = (
     default: {
       // Message takes whatever the other selected columns leave behind.
       const used =
-        15 + // Timestamp
-        12 + // Reason
+        (selectedFields.includes(EventEntryField.Timestamp) ? 15 : 0) +
+        (selectedFields.includes(EventEntryField.Reason) ? 12 : 0) +
         (selectedFields.includes(EventEntryField.Type) ? 10 : 0) +
         (selectedFields.includes(EventEntryField.Object) ? 20 : 0);
       return `${100 - used}%`;

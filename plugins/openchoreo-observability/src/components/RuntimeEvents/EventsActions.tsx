@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Box, Typography, Button, Tooltip } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
 import FiberManualRecord from '@material-ui/icons/FiberManualRecord';
@@ -45,7 +46,8 @@ export const EventsActions = ({
     onFiltersChange({ isLive: !filters.isLive });
   };
 
-  const displayDate = lastUpdated || new Date();
+  const fallbackDate = useMemo(() => new Date(), []);
+  const displayDate = lastUpdated ?? fallbackDate;
 
   return (
     <Box className={classes.statsContainer}>
