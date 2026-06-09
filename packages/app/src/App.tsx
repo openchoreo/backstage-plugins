@@ -86,11 +86,19 @@ import platformEngineerCorePluginAlpha from '@openchoreo/backstage-plugin-platfo
 // - catalog entity-presentation default API replaced to add custom kind icons
 // - scaffolder `page:scaffolder` disabled (our legacy <ScaffolderPage> wins)
 //   and form-decorators API replaced to inject the openChoreoTokenDecorator
+// - customTranslationsModule reinstates the catalog-import header overrides
+//   that previously rode via createApp.__experimentalTranslations
 import {
   catalogGraphPluginAlpha,
   catalogPluginAlpha,
+  customTranslationsModule,
   scaffolderPluginAlpha as upstreamScaffolderPluginAlpha,
 } from './apis/customOverrides';
+
+// catalog-import NFS plugin — registered so the `/catalog-import` route ref
+// resolves under NFS. Our legacy `<RequirePermission><CatalogImportPage /></...>`
+// mount in `<FlatRoutes>` provides the actual page rendering.
+import catalogImportPluginAlpha from '@backstage/plugin-catalog-import/alpha';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
@@ -155,11 +163,6 @@ function DynamicSignInPage(props: any) {
     />
   );
 }
-
-// NOTE: catalog-import translation overrides (previously passed via
-// `__experimentalTranslations`) are deferred to Step 3c — they'll move into a
-// `TranslationBlueprint.make({...})` module. Until then, catalog-import shows
-// upstream's default header strings.
 
 const legacyAppOptions = convertLegacyAppOptions({
   apis,
@@ -305,9 +308,11 @@ const legacyRoot = convertLegacyAppRoot(
 const app = createApp({
   features: [
     legacyAppOptions,
+    customTranslationsModule,
     upstreamScaffolderPluginAlpha,
     catalogGraphPluginAlpha,
     catalogPluginAlpha,
+    catalogImportPluginAlpha,
     openchoreoPluginAlpha,
     openchoreoCiPluginAlpha,
     openchoreoObservabilityPluginAlpha,

@@ -10,6 +10,10 @@
 import catalogGraphPluginAlphaBase from '@backstage/plugin-catalog-graph/alpha';
 import catalogPluginAlphaBase from '@backstage/plugin-catalog/alpha';
 import scaffolderPluginAlphaBase from '@backstage/plugin-scaffolder/alpha';
+import { createFrontendModule } from '@backstage/frontend-plugin-api';
+import { createTranslationMessages } from '@backstage/frontend-plugin-api';
+import { TranslationBlueprint } from '@backstage/plugin-app-react';
+import { catalogImportTranslationRef } from '@backstage/plugin-catalog-import/alpha';
 import {
   catalogGraphApiRef,
   DefaultCatalogGraphApi,
@@ -153,6 +157,38 @@ export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
  * `api:scaffolder/form-decorators` to inject the user's OpenChoreo token as
  * a secret for user-based authorization in scaffolder actions.
  */
+/**
+ * App-scoped translation overrides that previously rode in via
+ * `createApp.__experimentalTranslations`. The catalog-import header strings
+ * are customized to read "Register an existing catalog entity" rather than
+ * the upstream default "Register Software".
+ */
+export const customTranslationsModule = createFrontendModule({
+  pluginId: 'app',
+  extensions: [
+    TranslationBlueprint.make({
+      name: 'catalog-import-overrides',
+      params: {
+        resource: createTranslationMessages({
+          ref: catalogImportTranslationRef,
+          full: false,
+          messages: {
+            'defaultImportPage.headerTitle': 'Register an existing catalog entity',
+            'defaultImportPage.contentHeaderTitle':
+              'Start tracking your entity in {{appTitle}}',
+            'defaultImportPage.supportTitle':
+              'Start tracking your entity in {{appTitle}} by adding it to the software catalog.',
+            'importInfoCard.title': 'Register an existing catalog entity',
+            'stepInitAnalyzeUrl.urlHelperText':
+              'Enter the full path to your entity file to start tracking',
+            'stepFinishImportLocation.locations.viewButtonText': 'View Entity',
+          },
+        }),
+      },
+    }),
+  ],
+});
+
 export const scaffolderPluginAlpha = scaffolderPluginAlphaBase.withOverrides({
   extensions: [
     scaffolderPluginAlphaBase
