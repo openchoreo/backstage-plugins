@@ -345,7 +345,8 @@ export const WorkloadDetailsField = ({
   // Env vars and file mounts require a container with an image.
   // For build-from-source and external-ci the image isn't known yet,
   // so we hide these sections.
-  const deploymentSource = (formContext as any)?.formData?.deploymentSource;
+  const deploymentSource = (formContext as any)?.formData?.buildAndDeploy
+    ?.deploymentSource;
   const isFromImage = deploymentSource === 'deploy-from-image';
   const isBuildFromSource = deploymentSource === 'build-from-source';
   const isExternalCi = deploymentSource === 'external-ci';

@@ -293,8 +293,16 @@ export class CtdToTemplateConverter {
       'ui:field': 'SwitchField',
     };
 
-    return {
-      title: 'Build & Deploy',
+    // All branch-specific fields live as siblings of `deploymentSource` under a
+    // single `buildAndDeploy` object owned by `BuildAndDeployField`. The
+    // composite renders only the fields belonging to the current
+    // deploymentSource, and replaces its entire object atomically on source
+    // change — siblings from the previous branch disappear in one onChange.
+    // This avoids RJSF's stale-data-on-oneOf-switch behaviour, which Backstage's
+    // Stepper blocks from being fixed via omitExtraData/liveOmit.
+    const buildAndDeployObject: any = {
+      type: 'object',
+      'ui:field': 'BuildAndDeployField',
       required: ['deploymentSource'],
       properties: {
         deploymentSource: {
@@ -304,124 +312,72 @@ export class CtdToTemplateConverter {
           enum: ['build-from-source', 'deploy-from-image', 'external-ci'],
           'ui:field': 'DeploymentSourcePicker',
         },
-      },
-      dependencies: {
-        deploymentSource: {
-          oneOf: [
-            // Build from source branch
-            {
-              properties: {
-                deploymentSource: {
-                  const: 'build-from-source',
-                },
-                workflow_name: workflowField,
-                git_source: {
-                  title: 'Source Repository',
-                  type: 'object',
-                  'ui:field': 'GitSourceField',
-                  'ui:options': {
-                    namespaceName: namespaceName,
-                  },
-                  properties: {
-                    repo_url: { type: 'string' },
-                    branch: { type: 'string' },
-                    component_path: { type: 'string' },
-                    git_secret_ref: { type: 'string' },
-                  },
-                },
-                workflow_parameters: {
-                  title: 'Workflow Parameters',
-                  type: 'object',
-                  'ui:field': 'BuildWorkflowParameters',
-                  'ui:options': {
-                    namespaceName: namespaceName,
-                    ctdKind: ctdKind,
-                  },
-                },
-              },
-              required: ['workflow_name', 'workflow_parameters'],
-            },
-            // Deploy from image branch
-            {
-              properties: {
-                deploymentSource: {
-                  const: 'deploy-from-image',
-                },
-                containerImage: {
-                  title: 'Container Image',
-                  type: 'string',
-                  description:
-                    'Full image reference (e.g., ghcr.io/org/app:v1.0.0 or nginx:latest)',
-                  'ui:field': 'ContainerImageField',
-                },
-                autoDeploy: autoDeployField,
-              },
-              required: ['containerImage'],
-            },
-            // External CI branch
-            {
-              properties: {
-                deploymentSource: {
-                  const: 'external-ci',
-                },
-                ciPlatform: {
-                  title: 'CI Platform (Optional)',
-                  type: 'string',
-                  description:
-                    'Select your CI platform to enable build visibility in Backstage. You can configure this later via the annotation editor.',
-                  enum: ['none', 'jenkins', 'github-actions', 'gitlab-ci'],
-                  enumNames: [
-                    "Skip - I'll configure this later",
-                    'Jenkins',
-                    'GitHub Actions',
-                    'GitLab CI',
-                  ],
-                  default: 'none',
-                },
-              },
-            },
-          ],
+        // build-from-source branch
+        workflow_name: workflowField,
+        git_source: {
+          title: 'Source Repository',
+          type: 'object',
+          'ui:field': 'GitSourceField',
+          'ui:options': {
+            namespaceName: namespaceName,
+          },
+          properties: {
+            repo_url: { type: 'string' },
+            branch: { type: 'string' },
+            component_path: { type: 'string' },
+            git_secret_ref: { type: 'string' },
+          },
         },
+        workflow_parameters: {
+          title: 'Workflow Parameters',
+          type: 'object',
+          'ui:field': 'BuildWorkflowParameters',
+          'ui:options': {
+            namespaceName: namespaceName,
+            ctdKind: ctdKind,
+          },
+        },
+        // deploy-from-image branch
+        containerImage: {
+          title: 'Container Image',
+          type: 'string',
+          description:
+            'Full image reference (e.g., ghcr.io/org/app:v1.0.0 or nginx:latest)',
+          'ui:field': 'ContainerImageField',
+        },
+        autoDeploy: autoDeployField,
+        // external-ci branch
         ciPlatform: {
-          oneOf: [
-            {
-              properties: {
-                ciPlatform: { const: 'none' },
-              },
-            },
-            {
-              properties: {
-                ciPlatform: { const: 'jenkins' },
-                ciIdentifier: {
-                  title: 'Jenkins Job Path',
-                  type: 'string',
-                  description:
-                    'Full job path (e.g., /job/my-org/job/my-service or folder/job-name)',
-                },
-              },
-            },
-            {
-              properties: {
-                ciPlatform: { const: 'github-actions' },
-                ciIdentifier: {
-                  title: 'GitHub Repository Slug',
-                  type: 'string',
-                  description: 'Repository slug (e.g., my-org/my-repo)',
-                },
-              },
-            },
-            {
-              properties: {
-                ciPlatform: { const: 'gitlab-ci' },
-                ciIdentifier: {
-                  title: 'GitLab Project ID',
-                  type: 'string',
-                  description: 'Numeric project ID from GitLab',
-                },
-              },
-            },
+          title: 'CI Platform (Optional)',
+          type: 'string',
+          description:
+            'Select your CI platform to enable build visibility in Backstage. You can configure this later via the annotation editor.',
+          enum: ['none', 'jenkins', 'github-actions', 'gitlab-ci'],
+          enumNames: [
+            "Skip - I'll configure this later",
+            'Jenkins',
+            'GitHub Actions',
+            'GitLab CI',
           ],
+          default: 'none',
         },
+        // Rendered by BuildAndDeployField only when ciPlatform requires it.
+        // Title/description are platform-specific, so this field carries a
+        // generic shape and the picker UI provides the specific labelling.
+        ciIdentifier: {
+          title: 'CI Job / Project Identifier',
+          type: 'string',
+          description:
+            'Identifier for the external CI job (e.g., Jenkins job path, GitHub repo slug, or GitLab project ID).',
+        },
+      },
+    };
+
+    return {
+      title: 'Build & Deploy',
+      required: ['buildAndDeploy'],
+      properties: {
+        buildAndDeploy: buildAndDeployObject,
       },
     };
   }
@@ -521,19 +477,22 @@ export class CtdToTemplateConverter {
           // Workload Details (from section 2 — nested under workloadDetails)
           workloadDetails: '${{ parameters.workloadDetails }}',
 
-          // CI/CD Setup (from section 1)
-          deploymentSource: '${{ parameters.deploymentSource }}',
-          autoDeploy: '${{ parameters.autoDeploy }}',
-          containerImage: '${{ parameters.containerImage }}',
-          repo_url: '${{ parameters.git_source.repo_url }}',
-          branch: '${{ parameters.git_source.branch }}',
-          component_path: '${{ parameters.git_source.component_path }}',
-          gitSecretRef: '${{ parameters.git_source.git_secret_ref }}',
-          workflow: '${{ parameters.workflow_name }}',
-          workflow_parameters: '${{ parameters.workflow_parameters }}',
+          // CI/CD Setup (from section 1 — nested under buildAndDeploy)
+          deploymentSource: '${{ parameters.buildAndDeploy.deploymentSource }}',
+          autoDeploy: '${{ parameters.buildAndDeploy.autoDeploy }}',
+          containerImage: '${{ parameters.buildAndDeploy.containerImage }}',
+          repo_url: '${{ parameters.buildAndDeploy.git_source.repo_url }}',
+          branch: '${{ parameters.buildAndDeploy.git_source.branch }}',
+          component_path:
+            '${{ parameters.buildAndDeploy.git_source.component_path }}',
+          gitSecretRef:
+            '${{ parameters.buildAndDeploy.git_source.git_secret_ref }}',
+          workflow: '${{ parameters.buildAndDeploy.workflow_name }}',
+          workflow_parameters:
+            '${{ parameters.buildAndDeploy.workflow_parameters }}',
           // External CI parameters
-          ciPlatform: '${{ parameters.ciPlatform }}',
-          ciIdentifier: '${{ parameters.ciIdentifier }}',
+          ciPlatform: '${{ parameters.buildAndDeploy.ciPlatform }}',
+          ciIdentifier: '${{ parameters.buildAndDeploy.ciIdentifier }}',
         },
       },
     ];

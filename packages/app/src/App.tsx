@@ -23,6 +23,7 @@ import { TraitsFieldExtension } from './scaffolder/TraitsField';
 import { SwitchFieldExtension } from './scaffolder/SwitchField';
 import { AdvancedConfigurationFieldExtension } from './scaffolder/AdvancedConfigurationField';
 import { DeploymentSourcePickerFieldExtension } from './scaffolder/DeploymentSourcePicker';
+import { BuildAndDeployFieldExtension } from './scaffolder/BuildAndDeployField';
 import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
 import { ComponentTypeYamlEditorFieldExtension } from './scaffolder/ComponentTypeYamlEditor';
 import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
@@ -254,6 +255,7 @@ const routes = (
         <SwitchFieldExtension />
         <AdvancedConfigurationFieldExtension />
         <DeploymentSourcePickerFieldExtension />
+        <BuildAndDeployFieldExtension />
         <ContainerImageFieldExtension />
         <ComponentTypeYamlEditorFieldExtension />
         <TraitYamlEditorFieldExtension />

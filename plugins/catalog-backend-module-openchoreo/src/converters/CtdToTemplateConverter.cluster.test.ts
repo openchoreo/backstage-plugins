@@ -142,11 +142,10 @@ describe('CtdToTemplateConverter – convertClusterCtdToTemplateEntity', () => {
     };
     const result = converter.convertClusterCtdToTemplateEntity(ctd);
     const parameters = result.spec?.parameters as any[];
-    const buildSection = parameters[1];
-    const buildBranch = buildSection.dependencies.deploymentSource.oneOf[0];
+    const buildAndDeploy = parameters[1].properties.buildAndDeploy;
 
     expect(
-      buildBranch.properties.workflow_name['ui:options'].allowedWorkflows,
+      buildAndDeploy.properties.workflow_name['ui:options'].allowedWorkflows,
     ).toEqual([
       { kind: 'ClusterWorkflow', name: 'docker-build' },
       { kind: 'ClusterWorkflow', name: 'buildpacks' },
@@ -166,10 +165,10 @@ describe('CtdToTemplateConverter – convertClusterCtdToTemplateEntity', () => {
     };
     const result = converter.convertClusterCtdToTemplateEntity(ctd);
     const parameters = result.spec?.parameters as any[];
-    const buildBranch = parameters[1].dependencies.deploymentSource.oneOf[0];
+    const buildAndDeploy = parameters[1].properties.buildAndDeploy;
 
     expect(
-      buildBranch.properties.workflow_name['ui:options'].allowedWorkflows,
+      buildAndDeploy.properties.workflow_name['ui:options'].allowedWorkflows,
     ).toEqual([
       { kind: 'ClusterWorkflow', name: 'default-build' },
       { kind: 'Workflow', name: 'ns-build' },
