@@ -81,24 +81,16 @@ import openchoreoObservabilityPluginAlpha from '@openchoreo/backstage-plugin-ope
 import openchoreoWorkflowsPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-workflows/alpha';
 import platformEngineerCorePluginAlpha from '@openchoreo/backstage-plugin-platform-engineer-core/alpha';
 
-// Upstream NFS plugin features. These register the route refs used by
-// legacy `useRouteRef(scaffolderPlugin.routes.root)` calls (e.g. in
-// useKindCreateConfig). We disable the upstream `scaffolderPage` extension
-// because our legacy `<ScaffolderPage>` mount at `/create` in the FlatRoutes
-// block — preserved via `convertLegacyAppRoot` — owns the page with all our
-// customizations (CustomTemplateListPage, CustomReviewStep, ScaffolderLayout,
-// 27 field extensions).
-import upstreamScaffolderPluginAlphaBase from '@backstage/plugin-scaffolder/alpha';
-
-const upstreamScaffolderPluginAlpha = upstreamScaffolderPluginAlphaBase.withOverrides(
-  {
-    extensions: [
-      upstreamScaffolderPluginAlphaBase
-        .getExtension('page:scaffolder')
-        .override({ disabled: true }),
-    ],
-  },
-);
+// Upstream NFS plugin features with our overrides:
+// - catalog graph default API replaced to include OpenChoreo custom relations
+// - catalog entity-presentation default API replaced to add custom kind icons
+// - scaffolder `page:scaffolder` disabled (our legacy <ScaffolderPage> wins)
+//   and form-decorators API replaced to inject the openChoreoTokenDecorator
+import {
+  catalogGraphPluginAlpha,
+  catalogPluginAlpha,
+  scaffolderPluginAlpha as upstreamScaffolderPluginAlpha,
+} from './apis/customOverrides';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
@@ -314,6 +306,8 @@ const app = createApp({
   features: [
     legacyAppOptions,
     upstreamScaffolderPluginAlpha,
+    catalogGraphPluginAlpha,
+    catalogPluginAlpha,
     openchoreoPluginAlpha,
     openchoreoCiPluginAlpha,
     openchoreoObservabilityPluginAlpha,
