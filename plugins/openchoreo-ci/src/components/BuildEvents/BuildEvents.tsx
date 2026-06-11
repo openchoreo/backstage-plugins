@@ -147,15 +147,6 @@ export const EventsContent = ({ build }: EventsContentProps) => {
       return;
     }
 
-    // TODO: Remove this once the endpoint is implemented in observability plane
-    if (!statusState.hasLiveObservability) {
-      setIsObservabilityNotConfigured(true);
-      setEventsError(
-        'Events are not available for past workflow runs. This feature will be available soon.',
-      );
-      return;
-    }
-
     let cancelled = false;
     let intervalId: number | undefined;
 
@@ -214,15 +205,6 @@ export const EventsContent = ({ build }: EventsContentProps) => {
               'Observability is not enabled for this component. Enable observability to view workflow events.',
             );
           }
-        } else if (
-          errorMessage.includes('HttpNotImplemented') ||
-          errorMessage.includes('501 Not Implemented')
-        ) {
-          // TODO: Remove this once the endpoint is implemented in observability plane
-          setIsObservabilityNotConfigured(true);
-          setEventsError(
-            'Events are not available for past workflow runs. This feature will be available soon.',
-          );
         } else {
           setEventsError(errorMessage);
         }

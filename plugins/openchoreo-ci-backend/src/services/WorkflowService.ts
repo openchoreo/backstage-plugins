@@ -637,8 +637,76 @@ export class WorkflowService {
         );
         return entries;
       }
-      return [];
+
+      // Use observer API for older workflow runs
+      const { observerUrl } = await this.resolver.resolveForBuild(
+        namespaceName,
+        projectName,
+        token,
+      );
+
+      if (!observerUrl) {
+        throw new ObservabilityNotConfiguredError(componentName);
+      }
+
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        token,
+        this.logger,
+      );
+
+      this.logger.debug(
+        `Sending workflow run events request for component ${componentName} with run: ${runName}`,
+      );
+
+      // The observer rejects queries where the time range exceeds 30 days.
+      // Cap the window at 29 days to stay safely within that limit regardless
+      // of clock skew or boundary-comparison behaviour on the observer side.
+      const maxAllowedMs = 29 * 24 * 60 * 60 * 1000;
+      const startTime = new Date(Date.now() - maxAllowedMs).toISOString();
+      const endTime = new Date().toISOString();
+
+      const { data, error, response } = await obsClient.POST(
+        '/api/v1/events/query',
+        {
+          body: {
+            startTime,
+            endTime,
+            limit: 1000,
+            sortOrder: 'asc',
+            searchScope: {
+              namespace: namespaceName,
+              workflowRunName: runName,
+              ...(step ? { taskName: step } : {}),
+            },
+          },
+        },
+      );
+
+      assertApiResponse({ data, error, response }, 'fetch workflow run events');
+
+      const entries: ComponentWorkflowRunEventEntry[] = (
+        (data?.events || []) as any[]
+      ).map((entry: any) => ({
+        timestamp: entry.timestamp ?? '',
+        type: entry.type ?? '',
+        reason: entry.reason ?? '',
+        message: entry.message ?? '',
+      }));
+
+      this.logger.debug(
+        `Successfully fetched ${entries.length} workflow run events from observer-api`,
+      );
+
+      return entries;
     } catch (error: unknown) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        this.logger.info(
+          `Observability not configured for component ${componentName}`,
+        );
+        throw error;
+      }
+
       this.logger.error(
         `Error fetching workflow run events for component ${componentName}:`,
         error as Error,
