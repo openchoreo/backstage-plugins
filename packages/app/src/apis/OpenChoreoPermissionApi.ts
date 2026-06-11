@@ -63,8 +63,16 @@ export class OpenChoreoPermissionApi {
     if (this.authEnabled) {
       try {
         idpToken = await this.oauthApi.getAccessToken();
-      } catch {
-        // Continue without IDP token if not available
+      } catch (error) {
+        throw new Error(
+          `Failed to acquire an identity token for permission evaluation: ${error}`,
+          { cause: error },
+        );
+      }
+      if (!idpToken) {
+        throw new Error(
+          'Failed to acquire an identity token for permission evaluation: token resolution returned an empty token',
+        );
       }
     }
 
