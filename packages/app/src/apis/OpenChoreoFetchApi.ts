@@ -61,14 +61,21 @@ export class OpenChoreoFetchApi implements FetchApi {
     if (isDirect) {
       // Direct mode: IDP token in Authorization header, no Backstage token
       if (this.authEnabled) {
+        let idpToken: string | undefined;
         try {
-          const idpToken = await this.oauthApi.getAccessToken();
-          if (idpToken) {
-            headers.set('Authorization', `Bearer ${idpToken}`);
-          }
-        } catch {
-          // Continue without IDP token if not available
+          idpToken = await this.oauthApi.getAccessToken();
+        } catch (error) {
+          throw new Error(
+            `Failed to acquire an identity token for a direct API call: ${error}`,
+            { cause: error },
+          );
         }
+        if (!idpToken) {
+          throw new Error(
+            'Failed to acquire an identity token for a direct API call: token resolution returned an empty token',
+          );
+        }
+        headers.set('Authorization', `Bearer ${idpToken}`);
       }
     } else {
       // Normal mode: Backstage token + IDP token in custom header

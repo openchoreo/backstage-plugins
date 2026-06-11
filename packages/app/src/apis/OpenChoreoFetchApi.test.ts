@@ -142,5 +142,46 @@ describe('OpenChoreoFetchApi', () => {
       const headers = mockFetch.mock.calls[0][1].headers as Headers;
       expect(headers.get('Authorization')).toBeNull();
     });
+
+    it('throws without sending the request when token acquisition fails', async () => {
+      const tokenError = new Error('consent_required');
+      mockOauthApi.getAccessToken.mockRejectedValue(tokenError);
+      const api = createApi();
+
+      await expect(
+        api.fetch('http://example.com', {
+          headers: { 'x-openchoreo-direct': 'true' },
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining('Failed to acquire an identity token'),
+        cause: tokenError,
+      });
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('throws when token resolution returns an empty token', async () => {
+      mockOauthApi.getAccessToken.mockResolvedValue('');
+      const api = createApi();
+
+      await expect(
+        api.fetch('http://example.com', {
+          headers: { 'x-openchoreo-direct': 'true' },
+        }),
+      ).rejects.toThrow(/empty token/);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('sends the request without a token when auth is disabled, even if acquisition would fail', async () => {
+      mockOauthApi.getAccessToken.mockRejectedValue(new Error('no token'));
+      const api = createApi(false);
+
+      await api.fetch('http://example.com', {
+        headers: { 'x-openchoreo-direct': 'true' },
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const headers = mockFetch.mock.calls[0][1].headers as Headers;
+      expect(headers.get('Authorization')).toBeNull();
+    });
   });
 });
