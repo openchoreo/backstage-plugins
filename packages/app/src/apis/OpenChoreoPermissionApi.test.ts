@@ -133,6 +133,43 @@ describe('OpenChoreoPermissionApi', () => {
     expect(headers['x-openchoreo-token']).toBeUndefined();
   });
 
+  it('throws without calling the backend when token acquisition fails', async () => {
+    const tokenError = new Error('consent_required');
+    mockOauthApi.getAccessToken.mockRejectedValue(tokenError);
+    const api = createApi();
+
+    await expect(
+      api.authorize({ permission: { name: 'test.read' } }),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('Failed to acquire an identity token'),
+      cause: tokenError,
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('throws when token resolution returns an empty token', async () => {
+    mockOauthApi.getAccessToken.mockResolvedValue('');
+    const api = createApi();
+
+    await expect(
+      api.authorize({ permission: { name: 'test.read' } }),
+    ).rejects.toThrow(/empty token/);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('does not throw on token acquisition failure when auth is disabled', async () => {
+    mockOauthApi.getAccessToken.mockRejectedValue(new Error('no token'));
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [{ result: AuthorizeResult.ALLOW }] }),
+    });
+    const api = createApi({ authEnabled: false });
+
+    await expect(
+      api.authorize({ permission: { name: 'test.read' } }),
+    ).resolves.toEqual({ result: AuthorizeResult.ALLOW });
+  });
+
   it('throws on non-OK response', async () => {
     mockFetch.mockResolvedValue({
       ok: false,
