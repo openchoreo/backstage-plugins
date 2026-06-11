@@ -77,6 +77,25 @@ export function getAnnotation(
   return resource.metadata?.annotations?.[key];
 }
 
+/**
+ * Annotation that opts a (Cluster)ComponentType or (Cluster)ResourceType out
+ * of auto-generated scaffolder Template (create card) emission. Set it to
+ * `"true"` on the resource to hide its create card, e.g. when the type is
+ * served by a hand-authored template or is not meant to be user-creatable.
+ */
+export const SKIP_TEMPLATE_GENERATION_ANNOTATION =
+  'openchoreo.dev/skip-template-generation';
+
+/**
+ * Returns true when the resource carries
+ * {@link SKIP_TEMPLATE_GENERATION_ANNOTATION} set to `"true"`.
+ */
+export function isTemplateGenerationSkipped(resource: HasMetadata): boolean {
+  return (
+    getAnnotation(resource, SKIP_TEMPLATE_GENERATION_ANNOTATION) === 'true'
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Display helpers
 // ---------------------------------------------------------------------------

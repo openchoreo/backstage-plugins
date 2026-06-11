@@ -9,6 +9,8 @@ import {
   getAnnotation,
   getDisplayName,
   getDescription,
+  isTemplateGenerationSkipped,
+  SKIP_TEMPLATE_GENERATION_ANNOTATION,
   getConditions,
   getCondition,
   getConditionStatus,
@@ -173,6 +175,40 @@ describe('getDisplayName', () => {
 
   it('returns empty string for empty resource', () => {
     expect(getDisplayName(emptyResource)).toBe('');
+  });
+});
+
+describe('isTemplateGenerationSkipped', () => {
+  it('returns true when the annotation is "true"', () => {
+    const skipped = {
+      metadata: {
+        name: 'api-proxy',
+        annotations: { [SKIP_TEMPLATE_GENERATION_ANNOTATION]: 'true' },
+      },
+    };
+    expect(isTemplateGenerationSkipped(skipped)).toBe(true);
+  });
+
+  it('returns false for any other value', () => {
+    const explicitFalse = {
+      metadata: {
+        name: 'api-proxy',
+        annotations: { [SKIP_TEMPLATE_GENERATION_ANNOTATION]: 'false' },
+      },
+    };
+    expect(isTemplateGenerationSkipped(explicitFalse)).toBe(false);
+    const nonBoolean = {
+      metadata: {
+        name: 'api-proxy',
+        annotations: { [SKIP_TEMPLATE_GENERATION_ANNOTATION]: 'yes' },
+      },
+    };
+    expect(isTemplateGenerationSkipped(nonBoolean)).toBe(false);
+  });
+
+  it('returns false when the annotation is absent', () => {
+    expect(isTemplateGenerationSkipped(fullResource)).toBe(false);
+    expect(isTemplateGenerationSkipped(emptyResource)).toBe(false);
   });
 });
 

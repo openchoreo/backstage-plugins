@@ -17,6 +17,8 @@ import {
   getDescription,
   getDisplayName,
   getName,
+  isTemplateGenerationSkipped,
+  SKIP_TEMPLATE_GENERATION_ANNOTATION,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
@@ -786,6 +788,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             componentTypes.map(async ct => {
               const ctName = getName(ct);
               if (!ctName) return null;
+              if (isTemplateGenerationSkipped(ct)) {
+                this.logger.debug(
+                  `Skipping template generation for CTD ${ctName} in namespace ${nsName} (${SKIP_TEMPLATE_GENERATION_ANNOTATION})`,
+                );
+                return null;
+              }
               try {
                 const { data: schemaData, error: schemaError } =
                   await client.GET(
@@ -977,6 +985,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             resourceTypes.map(async rt => {
               const rtName = getName(rt);
               if (!rtName) return null;
+              if (isTemplateGenerationSkipped(rt)) {
+                this.logger.debug(
+                  `Skipping template generation for ResourceType ${rtName} in namespace ${nsName} (${SKIP_TEMPLATE_GENERATION_ANNOTATION})`,
+                );
+                return null;
+              }
               try {
                 const { data: schemaData, error: schemaError } =
                   await client.GET(
@@ -1182,6 +1196,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           clusterComponentTypes.map(async cct => {
             const cctName = getName(cct);
             if (!cctName) return null;
+            if (isTemplateGenerationSkipped(cct)) {
+              this.logger.debug(
+                `Skipping template generation for ClusterComponentType ${cctName} (${SKIP_TEMPLATE_GENERATION_ANNOTATION})`,
+              );
+              return null;
+            }
             try {
               const { data: schemaData, error: schemaError } = await client.GET(
                 '/api/v1/clustercomponenttypes/{cctName}/schema',
@@ -1307,6 +1327,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           clusterResourceTypes.map(async crt => {
             const crtName = getName(crt);
             if (!crtName) return null;
+            if (isTemplateGenerationSkipped(crt)) {
+              this.logger.debug(
+                `Skipping template generation for ClusterResourceType ${crtName} (${SKIP_TEMPLATE_GENERATION_ANNOTATION})`,
+              );
+              return null;
+            }
             try {
               const { data: schemaData, error: schemaError } = await client.GET(
                 '/api/v1/clusterresourcetypes/{crtName}/schema',
