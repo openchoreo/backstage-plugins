@@ -229,17 +229,6 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
     if (!response.ok) {
       const errorText = await response.text();
 
-      if (response.status === 501) {
-        // Workflow run events endpoint not implemented in the backend/environment
-        // TODO: Remove this once the endpoint is implemented in observability plane
-        throw new Error(
-          `HttpNotImplemented: ${
-            errorText ||
-            'Events are not available for past workflow runs. This feature will be available soon.'
-          }`,
-        );
-      }
-
       throw new Error(
         `Failed to fetch workflow run events (${response.status}): ${errorText}`,
       );
