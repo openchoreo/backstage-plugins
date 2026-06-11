@@ -117,6 +117,16 @@ export type ChatScope = {
   pinnedLogTimestamp?: string;
   pinnedLogMessage?: string;
   pinnedLogTraceId?: string;
+
+  /**
+   * Git repository URL pulled off the component's workflow schema by the
+   * Backstage launcher. The portal-assistant prompt uses this to drop the
+   * URL into the ``fix_prompt`` it emits on build_failure turns — so the
+   * external coding bot (CodeRabbit / Cursor / Claude Code) knows where
+   * to look without the user pasting it manually. The agent never reads
+   * the URL itself; it just passes it through into the generated prompt.
+   */
+  repoUrl?: string;
 };
 
 export type ChatRequest = {
@@ -131,7 +141,20 @@ export type ChatRequest = {
 export type StreamEvent =
   | { type: 'tool_call'; tool: string; activeForm?: string; args?: string }
   | { type: 'message_chunk'; content: string }
-  | { type: 'done'; message: string }
+  | {
+      type: 'done';
+      message: string;
+      /**
+       * Paste-ready prompt for an external coding bot, produced by the
+       * agent on build_failure turns that name a code-level cause. The
+       * drawer renders a per-message "Copy as prompt" affordance iff
+       * this is set — the frontend never synthesises the prompt; it
+       * just exposes whatever the backend supplied. Snake_case to
+       * match the wire format emitted by perch-agent's DoneEvent
+       * (``model_dump_json`` uses field names, not aliases).
+       */
+      fix_prompt?: string;
+    }
   | { type: 'error'; message: string };
 
 export interface PerchAgentApi {

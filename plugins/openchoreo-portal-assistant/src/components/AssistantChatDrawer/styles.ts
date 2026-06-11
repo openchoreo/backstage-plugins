@@ -172,6 +172,95 @@ export const useStyles = makeStyles(theme => ({
       paddingLeft: theme.spacing(2),
     },
   },
+  // Discoverable banner that surfaces the agent-generated fix prompt
+  // between the diagnosis summary and the optional "Show details"
+  // expander. Tinted background + explicit Copy button — far harder
+  // to miss than the previous bottom-right icon, which was easy to
+  // confuse with chrome on the bubble itself.
+  fixPromptBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing(1),
+    marginTop: theme.spacing(0.75),
+    padding: theme.spacing(0.5, 0.75, 0.5, 1),
+    borderRadius: theme.shape.borderRadius,
+    backgroundColor: theme.palette.action.hover,
+    border: `1px solid ${theme.palette.divider}`,
+  },
+  // Squared-off bottom corners when the preview is expanded below,
+  // so the banner + preview read as one continuous tinted block
+  // instead of two stacked pills with a notch between them.
+  fixPromptBannerOpen: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  fixPromptBannerLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.75),
+    minWidth: 0,
+    flex: 1,
+  },
+  fixPromptBannerIcon: {
+    fontSize: 16,
+    color: theme.palette.text.secondary,
+    flexShrink: 0,
+  },
+  fixPromptBannerText: {
+    color: theme.palette.text.secondary,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    fontSize: 12,
+  },
+  fixPromptBannerButton: {
+    // Compact CTA — keeps the banner one row tall on a 340 px drawer
+    // even when the label is at full width.
+    minWidth: 0,
+    padding: theme.spacing(0.25, 1),
+    fontWeight: 600,
+    fontSize: 12,
+    textTransform: 'none',
+    flexShrink: 0,
+  },
+  // Wraps the chevron toggle + Copy button on the right of the banner
+  // so they share alignment and gap, without pushing the label off the
+  // left when the drawer is narrow.
+  fixPromptBannerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.25),
+    flexShrink: 0,
+  },
+  fixPromptBannerExpand: {
+    padding: theme.spacing(0.25),
+    color: theme.palette.text.secondary,
+  },
+  // Inline preview revealed by the chevron. Visually continuous with
+  // the banner above (same hover-tint background, square top corners,
+  // matching border) so the two read as one expandable unit.
+  // pre-wrap keeps the agent's paragraph breaks intact while allowing
+  // long lines (stack-trace excerpts, repo URLs) to wrap inside the
+  // narrow drawer instead of introducing horizontal scroll.
+  fixPromptPreview: {
+    margin: 0,
+    padding: theme.spacing(1),
+    backgroundColor: theme.palette.action.hover,
+    border: `1px solid ${theme.palette.divider}`,
+    borderTop: 'none',
+    borderBottomLeftRadius: theme.shape.borderRadius,
+    borderBottomRightRadius: theme.shape.borderRadius,
+    fontFamily:
+      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+    fontSize: 11.5,
+    lineHeight: 1.45,
+    color: theme.palette.text.primary,
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    maxHeight: 280,
+    overflowY: 'auto',
+  },
   evidenceSummary: {
     cursor: 'pointer',
     fontSize: 12,

@@ -1,4 +1,4 @@
-import { splitForCollapse } from './splitForCollapse';
+import { splitForCollapse, splitForStreaming } from './splitForCollapse';
 
 describe('splitForCollapse', () => {
   it('splits a runtime_debug response on Evidence … Next action', () => {
@@ -120,6 +120,78 @@ describe('splitForCollapse', () => {
     const result = splitForCollapse(msg);
     expect(result.details).toBeUndefined();
     expect(result.summary).toBe(msg);
+  });
+
+  // Why these tests exist: if the streaming-time hider stopped working,
+  // the chat drawer would re-introduce the flash-then-collapse flicker
+  // — Evidence content streams in, then snaps under "Show details" the
+  // moment ``done`` lands. The visible jump is jarring; preserving the
+  // streaming/timeline-shape equivalence is the goal these pin down.
+
+  describe('splitForStreaming', () => {
+    it('returns the full text when no Evidence opener has streamed', () => {
+      // Early-stream state: the model is still writing the diagnosis. We
+      // want every token visible — there's nothing to hide yet.
+      const msg = '**What happened**\n\nThe build failed in `checkout-source`.';
+      expect(splitForStreaming(msg)).toEqual({ summary: msg });
+    });
+
+    it('hides everything from the opener onwards while the closer is still pending', () => {
+      // Mid-stream: opener landed, closer hasn't yet. Without this hider
+      // the user would see the Evidence section render, then disappear
+      // a beat later when the closer arrives and splitForCollapse splits.
+      const msg = [
+        '**What happened**',
+        'Diagnosis sentence.',
+        '',
+        '**Evidence**',
+        '- partial bullet that is currently arriving token-by-token',
+      ].join('\n');
+      const { summary } = splitForStreaming(msg);
+      expect(summary).toContain('What happened');
+      expect(summary).toContain('Diagnosis sentence');
+      expect(summary).not.toContain('Evidence');
+      expect(summary).not.toContain('partial bullet');
+    });
+
+    it('matches the timeline summary once both markers are present', () => {
+      // End-of-stream state: both markers in place. The streaming render
+      // and the final timeline render must show identical content so the
+      // ``done`` transition is silent.
+      const msg = [
+        '**What happened**',
+        'Build failed in checkout-source.',
+        '',
+        '**Evidence**',
+        '- `checkout-source` at 10:42:13 — "exit status 1; cannot save parameter /tmp/x"',
+        '- `checkout-source` at 10:42:13 — "no such file or directory"',
+        '',
+        '**What to do**',
+        '- Re-run the build; if it repeats, inspect the checkout image setup.',
+      ].join('\n');
+      const stream = splitForStreaming(msg).summary;
+      const final = splitForCollapse(msg).summary;
+      expect(stream).toBe(final);
+    });
+
+    it('hides Evidence even for tiny middles, to avoid an end-of-stream reveal flicker', () => {
+      // splitForCollapse keeps near-empty Evidence inline (>=60 char cap
+      // is intentional UI clutter avoidance). The streaming variant
+      // hides it anyway — a brief reveal of <60 chars after done is much
+      // less jarring than a flash-then-collapse during streaming.
+      const msg = [
+        'Diagnosis.',
+        '',
+        'Evidence',
+        'tiny.',
+        '',
+        'Next action: do the thing.',
+      ].join('\n');
+      const { summary } = splitForStreaming(msg);
+      expect(summary).not.toContain('Evidence');
+      expect(summary).not.toContain('tiny');
+      expect(summary).toContain('Next action');
+    });
   });
 
   it('matches the Evidence marker case-insensitively', () => {

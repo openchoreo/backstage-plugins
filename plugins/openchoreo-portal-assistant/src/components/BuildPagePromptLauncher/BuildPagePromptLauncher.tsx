@@ -7,6 +7,7 @@ import ChatOutlinedIcon from '@material-ui/icons/ChatOutlined';
 import { useLatestFailedRun } from '@openchoreo/backstage-plugin-openchoreo-ci';
 import {
   CHOREO_ANNOTATIONS,
+  getRepositoryInfo,
   type ModelsBuild,
 } from '@openchoreo/backstage-plugin-common';
 import {
@@ -121,6 +122,10 @@ export const BuildPagePromptLauncher = () => {
         // Fall back to entity metadata if relationship resolution fails.
       }
 
+      const repoUrl = componentDetails
+        ? getRepositoryInfo(componentDetails).url
+        : undefined;
+
       openDrawer({
         initialMessage: isRunDetails
           ? `Why did this build fail?`
@@ -136,6 +141,7 @@ export const BuildPagePromptLauncher = () => {
           workflowName: componentDetails?.componentWorkflow?.name,
           workflowKind: componentDetails?.componentWorkflow?.kind,
           caseType: 'build_failure',
+          repoUrl,
         },
         conversationKey,
         resetConversation,

@@ -2,7 +2,10 @@ import { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useLatestFailedRun } from '@openchoreo/backstage-plugin-openchoreo-ci';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  getRepositoryInfo,
+} from '@openchoreo/backstage-plugin-common';
 import {
   useAssistantEnabled,
   useComponentEntityDetails,
@@ -83,6 +86,10 @@ export const FailedBuildSnackbar = () => {
       // Fall back to entity metadata if relationship resolution fails.
     }
 
+    const repoUrl = componentDetails
+      ? getRepositoryInfo(componentDetails).url
+      : undefined;
+
     openDrawer({
       initialMessage: `Why did the latest build fail?`,
       pin: {
@@ -96,6 +103,7 @@ export const FailedBuildSnackbar = () => {
         workflowName: componentDetails?.componentWorkflow?.name,
         workflowKind: componentDetails?.componentWorkflow?.kind,
         caseType: 'build_failure',
+        repoUrl,
       },
       // Shared with BuildPagePromptLauncher so opening from either
       // surface continues the same conversation.
