@@ -83,10 +83,11 @@ export const BuildWorkflowParameters = ({
   const fetchApi = useApi(fetchApiRef);
   const catalogApi = useApi(catalogApiRef);
 
-  // Get the selected workflow from sibling field in the same section
-  const selectedWorkflowValue = formContext?.formData?.workflow_name as
-    | { kind?: WorkflowKind; name?: string }
-    | undefined;
+  // Get the selected workflow from sibling field in the same section.
+  // Build & Deploy fields are nested under `buildAndDeploy` (owned by
+  // BuildAndDeployField), so the sibling workflow lives there, not at the root.
+  const selectedWorkflowValue = (formContext?.formData as any)?.buildAndDeploy
+    ?.workflow_name as { kind?: WorkflowKind; name?: string } | undefined;
 
   // Determine CTD kind from ui:options so we can treat all workflows for
   // ClusterComponentType as ClusterWorkflows.
