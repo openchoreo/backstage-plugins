@@ -84,17 +84,75 @@ jobs:
           fi
           echo "VERSION=${VER}" >> $GITHUB_ENV
 
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: 'yarn'
+
       - name: Create version bump branch and PR
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PRE_RELEASE_ID: ${{ github.event.inputs.pre_release_id }}
         run: |
           BRANCH="release-next-v${{ env.VERSION }}"
 
           git fetch origin "${{ env.TARGET }}"
           git checkout -b "${BRANCH}" "origin/${{ env.TARGET }}"
 
+          # 1. Write VERSION (source of truth validated by release-orchestrator)
           echo "${{ env.VERSION }}" > VERSION
-          git add VERSION
+
+          # 2. Install so changeset + scripts can run
+          yarn install --immutable
+
+          # 3. Pre-release mode lifecycle. A single `pre enter` (constant tag
+          #    'next') spans every milestone of a release line; the milestone
+          #    identifier (m1, m2, ...) comes from the clean VERSION override
+          #    below, not from the changesets tag. pre.json keeps the queued
+          #    .changeset/*.md files on disk until the stable cut.
+          PRE_JSON=".changeset/pre.json"
+          IN_PRE_MODE="false"
+          if [ -f "$PRE_JSON" ] && [ "$(jq -r '.mode' "$PRE_JSON" 2>/dev/null)" = "pre" ]; then
+            IN_PRE_MODE="true"
+          fi
+          if [ -n "${PRE_RELEASE_ID}" ]; then
+            if [ "$IN_PRE_MODE" = "false" ]; then
+              echo "Entering pre-release mode (tag: next)"
+              yarn changeset pre enter next
+            else
+              echo "Already in pre-release mode; skipping 'pre enter'"
+            fi
+          else
+            if [ "$IN_PRE_MODE" = "true" ]; then
+              echo "Exiting pre-release mode before stable consume"
+              yarn changeset pre exit
+            fi
+          fi
+
+          # 4. Consume changesets: writes CHANGELOG entries and maintains
+          #    pre.json bookkeeping (so the same changeset isn't re-applied next
+          #    milestone). The version string it emits (e.g. 1.2.0-next.N) is
+          #    intentionally discarded by the override in step 5.
+          yarn changeset version
+
+          # 5. Override every package.json (+ private root) to the exact clean
+          #    VERSION so the tag, VERSION file, and published versions all match.
+          node scripts/set-version.js "${{ env.VERSION }}"
+
+          # 6. On the stable cut, drop pre.json so the next line starts fresh.
+          if [ -z "${PRE_RELEASE_ID}" ] && [ -f "$PRE_JSON" ]; then
+            rm -f "$PRE_JSON"
+          fi
+
+          # 7. Normalize formatting (matches release:version) + refresh lockfile.
+          yarn prettier --write '{packages,plugins}/*/{package.json,CHANGELOG.md}' 'package.json' || true
+          yarn install --mode=update-lockfile
+
+          # 8. Stage everything: VERSION, all package.json, CHANGELOGs, .changeset
+          #    changes (pre.json create/update/remove, .md removals at the stable
+          #    cut), and the lockfile.
+          git add -A VERSION package.json yarn.lock .changeset packages plugins
           git diff --staged --quiet || git commit -s -m "chore: bump version to ${{ env.VERSION }}"
 
           git push --force-with-lease origin "${BRANCH}"
@@ -109,6 +167,6 @@ jobs:
               --base "${{ env.TARGET }}" \
               --head "${BRANCH}" \
               --title "${PR_TITLE}" \
-              --body "Bump to next development version ${{ env.VERSION }}. Before merging, add a \`${{ env.VERSION }}\` section header to \`CHANGELOG.md\` if this is a new release." \
+              --body "Bump to ${{ env.VERSION }}. The \`VERSION\` file, every \`package.json\` (including the root), and the \`CHANGELOG.md\` files were updated automatically. For pre-releases the queued \`.changeset/*.md\` files stay in place (tracked in \`.changeset/pre.json\`) and are consumed only at the stable cut, which writes the consolidated changelog." \
               --label "type/release"
           fi
