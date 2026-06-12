@@ -93,10 +93,11 @@ export const GitSourceField = ({
   const catalogApi = useApi(catalogApiRef);
   const secretManagementEnabled = useSecretManagementEnabled();
 
-  // Read the selected workflow from formContext (object with kind and name)
-  const selectedWorkflow = formContext?.formData?.workflow_name as
-    | { kind?: string; name?: string }
-    | undefined;
+  // Read the selected workflow from formContext (object with kind and name).
+  // Build & Deploy fields are nested under `buildAndDeploy` (owned by
+  // BuildAndDeployField), so the sibling workflow lives there, not at the root.
+  const selectedWorkflow = (formContext?.formData as any)?.buildAndDeploy
+    ?.workflow_name as { kind?: string; name?: string } | undefined;
   const selectedWorkflowName =
     selectedWorkflow &&
     typeof selectedWorkflow === 'object' &&
