@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users",
-  "version": "1.1.1",
+  "version": "1.2.0-m.1",
   "license": "Apache-2.0",
   "description": "The openchoreo-users backend module for the catalog plugin.",
   "main": "src/index.ts",
