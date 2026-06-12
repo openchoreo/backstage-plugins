@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend",
-  "version": "0.1.0",
+  "version": "1.2.0-m.1",
   "license": "Apache-2.0",
   "private": true,
   "main": "src/index.ts",
