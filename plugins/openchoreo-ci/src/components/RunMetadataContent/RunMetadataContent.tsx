@@ -126,8 +126,7 @@ export const RunMetadataContent = ({
   const commitDisplay = gitValues.commit || workflowData.commit || 'N/A';
 
   const isTerminal =
-    !!workflowRunDetails?.completedAt ||
-    isTerminalStatus(workflowData.status);
+    !!workflowRunDetails?.completedAt || isTerminalStatus(workflowData.status);
   const parsedWorkload = parseWorkloadCr(workflowRunDetails?.workloadCr);
   const workloadImage = parsedWorkload?.spec?.container?.image ?? null;
   const duration = calculateDuration(

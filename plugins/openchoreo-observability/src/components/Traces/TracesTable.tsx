@@ -223,11 +223,7 @@ export const TracesTable: FC<TracesTableProps> = ({
   };
 
   return (
-    <Paper
-      className={classes.tablePaper}
-      role="table"
-      aria-label="Traces"
-    >
+    <Paper className={classes.tablePaper} role="table" aria-label="Traces">
       {traces.length === 0 ? (
         <>
           {header}
