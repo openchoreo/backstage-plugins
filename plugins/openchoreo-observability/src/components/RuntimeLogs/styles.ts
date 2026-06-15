@@ -27,6 +27,10 @@ export const useLogsTableStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(0),
     paddingBottom: theme.spacing(1),
   },
+  // Legacy MUI table styles still used by sibling tables (AlertsTable,
+  // IncidentsTable) that cross-import this hook. The runtime logs view itself
+  // no longer renders an MUI <Table> — it uses the headerRow / headerColumn /
+  // cell / skeletonRow div styles below.
   tableContainer: {
     maxHeight: 'calc(100vh - 320px)',
     overflowY: 'auto',
@@ -46,6 +50,41 @@ export const useLogsTableStyles = makeStyles(theme => ({
     fontSize: '0.75rem',
     padding: '4px 8px !important',
   },
+  // Div-based header row that sits *inside* the virtualized scroll container
+  // so it shares the rows' content width (no scrollbar-gutter misalignment).
+  // `position: sticky` keeps it visible while the rows scroll beneath it,
+  // matching the original `<TableHead stickyHeader>` behaviour. The border
+  // colour matches MUI's hardcoded `<TableCell>` colour (light grey) rather
+  // than `palette.divider` (which is alpha-based and blends darker against
+  // Backstage's Paper background).
+  headerRow: {
+    display: 'flex',
+    alignItems: 'center',
+    position: 'sticky',
+    top: 0,
+    zIndex: 1,
+    backgroundColor: theme.palette.background.paper,
+    borderBottom: `1px solid ${theme.palette.grey[100]}`,
+  },
+  headerColumn: {
+    fontWeight: 'bold',
+    fontSize: '0.75rem',
+    // More vertical breathing than the row cells — matches the visual weight
+    // the original `<TableHead>` had over the bare `padding: 4px 8px` value.
+    padding: '12px 8px',
+    minWidth: 0,
+    boxSizing: 'border-box',
+  },
+  skeletonRow: {
+    display: 'flex',
+    alignItems: 'center',
+    borderBottom: `1px solid ${theme.palette.grey[100]}`,
+  },
+  cell: {
+    padding: '4px 8px',
+    minWidth: 0,
+    boxSizing: 'border-box',
+  },
   emptyState: {
     textAlign: 'center',
     padding: theme.spacing(4),
@@ -61,18 +100,35 @@ export const useLogsTableStyles = makeStyles(theme => ({
 
 export const useLogEntryStyles = makeStyles(theme => ({
   logRow: {
+    cursor: 'pointer',
+    // Match MUI `<TableCell>`'s hardcoded light grey rather than
+    // `palette.divider`, which is alpha-based and blends darker against
+    // Backstage's Paper background.
+    borderBottom: `1px solid ${theme.palette.grey[100]}`,
     '&:hover': {
       backgroundColor: theme.palette.action.hover,
-    },
-    cursor: 'pointer',
-    '& > td': {
-      padding: '4px 8px !important',
     },
     // Reveal the hover-action button when this row is hovered
     '&:hover $hoverActionButton': {
       opacity: 1,
       pointerEvents: 'auto',
     },
+  },
+  // Flex container replacing the former <TableRow>; columns are sized via
+  // getColumnStyle so they align with the sticky header row. `alignItems:
+  // 'center'` mirrors the default `vertical-align: middle` of MUI table cells,
+  // so the LogLevel chip and timestamp stay centered when the Log column wraps
+  // to multiple lines.
+  logRowMain: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
+  },
+  // Replaces the former <TableCell>; keeps the 4px/8px padding.
+  cell: {
+    padding: '4px 8px',
+    minWidth: 0,
+    boxSizing: 'border-box',
   },
   hoverActionButton: {
     opacity: 0,

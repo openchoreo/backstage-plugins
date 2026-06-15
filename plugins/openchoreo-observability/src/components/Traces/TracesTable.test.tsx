@@ -3,6 +3,27 @@ import userEvent from '@testing-library/user-event';
 import { TracesTable } from './TracesTable';
 import { Trace } from '../../types';
 
+// @tanstack/react-virtual needs real DOM layout (absent in jsdom) to decide
+// what to render, so mock useVirtualizer with a stand-in that returns every
+// item. Real windowing is the library's concern and is covered by the
+// VirtualizedLogList tests in the react plugin.
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: (args: any) => {
+    const items = Array.from({ length: args.count }).map((_, index) => ({
+      index,
+      key: args.getItemKey ? args.getItemKey(index) : index,
+      start: 0,
+      size: 28,
+    }));
+    return {
+      getVirtualItems: () => items,
+      getTotalSize: () => args.count * 28,
+      measureElement: () => {},
+      scrollToIndex: () => {},
+    };
+  },
+}));
+
 // ---- Helpers ----
 
 const sampleTrace: Trace = {

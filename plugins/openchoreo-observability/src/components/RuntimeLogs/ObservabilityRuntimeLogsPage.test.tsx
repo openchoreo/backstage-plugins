@@ -9,7 +9,6 @@ const mockUseLogsPermission = jest.fn();
 const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useLogsPermission: () => mockUseLogsPermission(),
-  useInfiniteScroll: () => ({ loadingRef: { current: null } }),
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden-state">{message}</div>
   ),

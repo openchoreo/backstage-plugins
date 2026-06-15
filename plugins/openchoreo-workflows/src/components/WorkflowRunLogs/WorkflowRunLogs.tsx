@@ -2,7 +2,10 @@ import { Progress } from '@backstage/core-components';
 import { Alert, AlertTitle } from '@material-ui/lab';
 import { Box, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import { VirtualizedLogList } from '@openchoreo/backstage-plugin-react';
 import type { LogsResponse } from '../../types';
+
+const MAX_LOGS_HEIGHT = 600;
 
 const useStyles = makeStyles(theme => ({
   logsContainer: {
@@ -11,8 +14,6 @@ const useStyles = makeStyles(theme => ({
     padding: theme.spacing(2),
     fontFamily: 'monospace',
     fontSize: '0.875rem',
-    maxHeight: '600px',
-    overflow: 'auto',
     marginTop: theme.spacing(2),
   },
   logEntry: {
@@ -102,14 +103,22 @@ export const WorkflowRunLogs = ({
         {logs.tookMs !== undefined && ` (fetched in ${logs.tookMs}ms)`}
       </Typography>
       <Box className={classes.logsContainer}>
-        {logs.logs.map((entry, index) => (
-          <Box key={index} className={classes.logEntry}>
-            <span className={classes.timestamp}>
-              {new Date(entry.timestamp).toLocaleString()}
-            </span>
-            <span className={classes.message}>{entry.log}</span>
-          </Box>
-        ))}
+        <VirtualizedLogList
+          itemCount={logs.logs.length}
+          maxHeight={MAX_LOGS_HEIGHT}
+          estimatedRowHeight={32}
+          renderRow={index => {
+            const entry = logs.logs[index];
+            return (
+              <Box className={classes.logEntry}>
+                <span className={classes.timestamp}>
+                  {new Date(entry.timestamp).toLocaleString()}
+                </span>
+                <span className={classes.message}>{entry.log}</span>
+              </Box>
+            );
+          }}
+        />
       </Box>
     </Box>
   );

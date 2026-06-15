@@ -4,6 +4,7 @@ import {
   UIEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from 'react';
@@ -52,14 +53,14 @@ export interface VirtualizedLogListProps {
    * Rendered as a footer pinned to the end of the scrollable list (inside the
    * scroll area). Use for a "loading more…" indicator.
    */
-  renderFooter?: () => ReactNode;
+  footer?: ReactNode;
   /**
    * Rendered as the first child inside the scroll container. Style it as
    * `position: sticky; top: 0` to keep it visible while the rows scroll. Placed
    * inside the scroller so it shares the rows' content width (i.e. it doesn't
    * misalign when the scrollbar takes width away from the rows).
    */
-  renderHeader?: () => ReactNode;
+  header?: ReactNode;
   /** Applied to the outer scroll container. */
   className?: string;
 }
@@ -69,9 +70,11 @@ const DEFAULT_MAX_HEIGHT = 600;
 const DEFAULT_OVERSCAN = 8;
 // How many rows from the end counts as "near the end" for load-more.
 const REACH_END_THRESHOLD = 5;
-// Pixels of slack when deciding whether the user is "at the bottom" — covers
-// sub-pixel rounding so follow-tail isn't disabled by an off-by-one.
-const AT_BOTTOM_EPSILON = 4;
+// Pixels of slack when deciding whether the user is "at the bottom". 40px
+// matches the threshold the original `WirelogsTable` used for its hand-rolled
+// stickToBottom logic — small enough to feel deliberate, large enough that a
+// stray trackpad nudge or sub-pixel layout shift doesn't disengage tailing.
+const AT_BOTTOM_EPSILON = 40;
 
 /**
  * Headless windowed list for log-style data, built on `@tanstack/react-virtual`.
@@ -91,8 +94,8 @@ export const VirtualizedLogList = ({
   onReachEnd,
   hasMore = false,
   loading = false,
-  renderFooter,
-  renderHeader,
+  footer,
+  header,
   className,
 }: VirtualizedLogListProps) => {
   const classes = useVirtualizedLogListStyles();
@@ -129,8 +132,25 @@ export const VirtualizedLogList = ({
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
 
+  // Reset the load-more pending guard only when itemCount actually grows
+  // (i.e. the server returned new rows). Resetting on every `loading=false`
+  // transition would loop forever if the server keeps responding
+  // `hasMore: true` with no new rows. Placed *before* the onReachEnd effect
+  // so a same-commit "growth + threshold satisfied" sequence works.
+  const prevCountForLoadMoreRef = useRef(itemCount);
+  useEffect(() => {
+    if (itemCount > prevCountForLoadMoreRef.current) {
+      reachEndPendingRef.current = false;
+    }
+    prevCountForLoadMoreRef.current = itemCount;
+  }, [itemCount]);
+
   // Fire onReachEnd when the user scrolls near the last item, gated by
-  // hasMore/loading and de-duplicated with a pending flag.
+  // hasMore/loading and de-duplicated with a pending flag. `virtualItems.length
+  // > 0` skips the transient first-paint frame where tanstack hasn't measured
+  // anything yet — without it, lastRenderedIndex=-1 satisfies the threshold
+  // check for any small list and fires before any row exists. The empty-list
+  // case (itemCount=0) is handled by `useAutoLoadWhenEmpty` in the consumer.
   const lastRenderedIndex =
     virtualItems.length > 0 ? virtualItems[virtualItems.length - 1].index : -1;
 
@@ -138,40 +158,67 @@ export const VirtualizedLogList = ({
     if (!onReachEnd || !hasMore || loading) {
       return;
     }
-    if (lastRenderedIndex >= itemCount - 1 - REACH_END_THRESHOLD) {
+    if (
+      virtualItems.length > 0 &&
+      lastRenderedIndex >= itemCount - 1 - REACH_END_THRESHOLD
+    ) {
       if (!reachEndPendingRef.current) {
         reachEndPendingRef.current = true;
         onReachEnd();
       }
     }
-  }, [onReachEnd, hasMore, loading, lastRenderedIndex, itemCount]);
+  }, [
+    onReachEnd,
+    hasMore,
+    loading,
+    lastRenderedIndex,
+    itemCount,
+    virtualItems.length,
+  ]);
 
-  // Once loading flips off we can fire onReachEnd again for the next batch.
-  useEffect(() => {
-    if (!loading) {
-      reachEndPendingRef.current = false;
-    }
-  }, [loading]);
+  // Follow-tail: when the data's last item changes (append OR same-length
+  // replace/dedupe/cap-shift) and the user was at the bottom, pin the viewport
+  // to the newest row. Tracking by last-item key (not just count) catches
+  // streaming updates that don't change length — e.g. a capped buffer that
+  // drops the oldest row as a new one arrives. The null→key transition on
+  // first mount also covers "open a populated live stream and scroll to tail".
+  //
+  // `useLayoutEffect` (not `useEffect`) so the scroll commits before the
+  // browser paints — otherwise the new row paints at the previous scrollTop
+  // for one frame, producing a visible flash during high-frequency streaming.
+  const lastItemKeyRef = useRef<string | number | null>(null);
+  useLayoutEffect(() => {
+    const nextLastKey = itemCount > 0 ? itemKeyFn(itemCount - 1) : null;
+    const changed = nextLastKey !== lastItemKeyRef.current;
+    lastItemKeyRef.current = nextLastKey;
 
-  // Follow-tail: when rows are appended and the user was at the bottom, pin
-  // the viewport to the newest row. Fires only on itemCount growth.
-  const prevCountRef = useRef(itemCount);
-  useEffect(() => {
-    const prev = prevCountRef.current;
-    prevCountRef.current = itemCount;
-    if (followTail && atBottomRef.current && itemCount > prev) {
+    if (changed && followTail && atBottomRef.current && itemCount > 0) {
       virtualizer.scrollToIndex(itemCount - 1, { align: 'end' });
     }
-  }, [followTail, itemCount, virtualizer]);
+  }, [followTail, itemCount, itemKeyFn, virtualizer]);
 
   const handleScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
     const el = event.currentTarget;
-    atBottomRef.current =
+    const wasAtBottom = atBottomRef.current;
+    const isAtBottom =
       el.scrollHeight - el.scrollTop - el.clientHeight <= AT_BOTTOM_EPSILON;
+    atBottomRef.current = isAtBottom;
+
+    // Re-arm the load-more pending guard when the user re-engages the bottom
+    // after scrolling away. Without this, a server response of
+    // `hasMore: true` with no new rows would leave `reachEndPendingRef`
+    // stuck on, and the user couldn't retry by scrolling up and back.
+    if (isAtBottom && !wasAtBottom) {
+      reachEndPendingRef.current = false;
+    }
   }, []);
 
+  // `maxHeight` (not `height`) so the scroll container grows with its content
+  // and only caps once items spill past the limit. Short lists fit snugly
+  // without reserving the full max area; long lists scroll within it. tanstack
+  // reads `clientHeight` for its viewport math, so this works in both cases.
   const containerStyle = useMemo<CSSProperties>(
-    () => ({ height: maxHeight, overflow: 'auto', width: '100%' }),
+    () => ({ maxHeight, overflow: 'auto', width: '100%' }),
     [maxHeight],
   );
 
@@ -188,7 +235,7 @@ export const VirtualizedLogList = ({
       className={className ? `${classes.root} ${className}` : classes.root}
       style={containerStyle}
     >
-      {renderHeader ? renderHeader() : null}
+      {header}
       <div style={sizerStyle}>
         {virtualItems.map(item => (
           <div
@@ -207,7 +254,7 @@ export const VirtualizedLogList = ({
           </div>
         ))}
       </div>
-      {renderFooter ? renderFooter() : null}
+      {footer}
     </div>
   );
 };

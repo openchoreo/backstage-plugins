@@ -13,7 +13,6 @@ import {
   useUrlFiltersForRuntimeEvents,
 } from '../../hooks';
 import {
-  useInfiniteScroll,
   useEventsPermission,
   ForbiddenState,
   useProjectEnvironments,
@@ -77,8 +76,6 @@ const ObservabilityRuntimeEventsContent = () => {
     sortOrder: filters.sortOrder || 'asc',
     isLive: filters.isLive,
   });
-
-  const { loadingRef } = useInfiniteScroll(loadMore, hasMore, eventsLoading);
 
   // Track previous filter values to detect changes.
   // Initialize with null to ensure initial fetch happens when ready.
@@ -223,7 +220,7 @@ const ObservabilityRuntimeEventsContent = () => {
             events={events}
             loading={eventsLoading}
             hasMore={hasMore}
-            loadingRef={loadingRef}
+            onLoadMore={loadMore}
             environmentName={
               selectedEnvironment?.displayName || selectedEnvironment?.name
             }

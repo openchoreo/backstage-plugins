@@ -1,7 +1,27 @@
 import { render, screen } from '@testing-library/react';
-import { createRef } from 'react';
 import { EventsTable } from './EventsTable';
 import { EventEntryField, EventEntry as EventEntryType } from './types';
+
+// @tanstack/react-virtual needs real DOM layout (absent in jsdom) to decide
+// what to render, so mock useVirtualizer with a stand-in that returns every
+// item. Real windowing is the library's concern and is covered by the
+// VirtualizedLogList tests in the react plugin.
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: (args: any) => {
+    const items = Array.from({ length: args.count }).map((_, index) => ({
+      index,
+      key: args.getItemKey ? args.getItemKey(index) : index,
+      start: 0,
+      size: 28,
+    }));
+    return {
+      getVirtualItems: () => items,
+      getTotalSize: () => args.count * 28,
+      measureElement: () => {},
+      scrollToIndex: () => {},
+    };
+  },
+}));
 
 // ---- Helpers ----
 
@@ -33,13 +53,12 @@ const sampleEvents: EventEntryType[] = [
 function renderTable(
   overrides: Partial<React.ComponentProps<typeof EventsTable>> = {},
 ) {
-  const loadingRef = createRef<HTMLDivElement>();
   const defaultProps = {
     selectedFields: allFields,
     events: sampleEvents,
     loading: false,
     hasMore: false,
-    loadingRef,
+    onLoadMore: jest.fn(),
     environmentName: 'development',
     projectName: 'my-project',
     componentName: 'api-service',

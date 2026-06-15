@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Typography,
   Box,
@@ -9,12 +9,17 @@ import {
 } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { Alert } from '@material-ui/lab';
+import {
+  isStepLive,
+  isTerminalStatus,
+} from '@openchoreo/backstage-plugin-common';
 import type {
   ModelsBuild,
   LogEntry,
   WorkflowRunStatusResponse,
   WorkflowStepStatus,
 } from '@openchoreo/backstage-plugin-common';
+import { VirtualizedLogList } from '@openchoreo/backstage-plugin-react';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import { BuildStatusChip } from '../BuildStatusChip';
 import { useStyles } from './styles';
@@ -48,14 +53,6 @@ export const LogsContent = ({ build }: LogsContentProps) => {
   const [logsError, setLogsError] = useState<string | null>(null);
   const [isObservabilityNotConfigured, setIsObservabilityNotConfigured] =
     useState(false);
-
-  const terminalStatuses = useMemo(
-    () => ['completed', 'failed', 'succeeded', 'error'],
-    [],
-  );
-
-  const isTerminalStatus = (status?: string) =>
-    status ? terminalStatuses.includes(status.toLowerCase()) : false;
 
   const hasAutoSelectedStepRef = useRef(false);
 
@@ -296,6 +293,13 @@ export const LogsContent = ({ build }: LogsContentProps) => {
   const activeLogs: LogEntry[] =
     (activeStepName && logsByStep[activeStepName]) || [];
 
+  // The active step's logs grow while it is running, so pin the viewport to
+  // the newest line (follow-tail) only for a live step.
+  const activeStep = statusState.steps.find(
+    step => step.name === activeStepName,
+  );
+  const isActiveStepLive = isStepLive(activeStep, statusState.status);
+
   return (
     <Box>
       <Box className={classes.stepsContainer}>
@@ -338,13 +342,24 @@ export const LogsContent = ({ build }: LogsContentProps) => {
                     </Typography>
                   )}
 
-                  {activeLogs.map((logEntry, index) => (
-                    <Box key={index} style={{ marginBottom: '4px' }}>
-                      <Typography variant="body2" className={classes.logText}>
-                        {logEntry.log}
-                      </Typography>
-                    </Box>
-                  ))}
+                  {activeLogs.length > 0 && (
+                    <VirtualizedLogList
+                      itemCount={activeLogs.length}
+                      maxHeight={600}
+                      estimatedRowHeight={20}
+                      followTail={isActiveStepLive}
+                      // Include the step name so switching steps invalidates
+                      // tanstack's per-key measurement cache — otherwise a
+                      // short-line step's cached row heights would be reused
+                      // for the next step's wrapped tracebacks.
+                      getItemKey={index => `${activeStepName}:${index}`}
+                      renderRow={index => (
+                        <Typography variant="body2" className={classes.logText}>
+                          {activeLogs[index].log}
+                        </Typography>
+                      )}
+                    />
+                  )}
                 </Box>
               ) : (
                 <Typography variant="body2" className={classes.noLogsText}>
