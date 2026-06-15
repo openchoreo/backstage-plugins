@@ -144,8 +144,17 @@ export const apis: AnyApiFactory[] = [
       oauthRequestApi: oauthRequestApiRef,
       configApi: configApiRef,
     },
-    factory: ({ discoveryApi, oauthRequestApi, configApi }) =>
-      OAuth2.create({
+    factory: ({ discoveryApi, oauthRequestApi, configApi }) => {
+      const env =
+        configApi.getOptionalString('auth.environment') ?? 'development';
+      const scopeStr = configApi.getOptionalString(
+        'openchoreo.features.auth.scope',
+      );
+      const scopes = scopeStr?.split(/\s+/).filter(Boolean) ?? [];
+      const defaultScopes = scopes.length
+        ? scopes
+        : ['openid', 'profile', 'email'];
+      return OAuth2.create({
         discoveryApi,
         oauthRequestApi,
         configApi,
@@ -154,9 +163,10 @@ export const apis: AnyApiFactory[] = [
           title: 'OpenChoreo',
           icon: () => null,
         },
-        environment: configApi.getOptionalString('auth.environment'),
-        defaultScopes: ['openid', 'profile', 'email'],
-      }),
+        environment: env,
+        defaultScopes,
+      });
+    },
   }),
   createApiFactory({
     api: visitsApiRef,

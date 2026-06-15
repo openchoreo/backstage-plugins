@@ -216,6 +216,8 @@ openchoreo:
     # When disabled (false), users are automatically logged in as guests (no OAuth required)
     auth:
       enabled: ${OPENCHOREO_FEATURES_AUTH_ENABLED}
+      # Must match auth.providers.openchoreo-auth.development.scope
+      scope: ${OPENCHOREO_AUTH_OIDC_SCOPE}
     # Authorization configuration (Access Control)
     # When disabled, hides Access Control sidebar item and pages
     authz:

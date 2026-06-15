@@ -236,6 +236,22 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
       },
     );
 
+    // passport-oauth2 omits scope from the authorization-code token exchange by default.
+    // Some IdPs require it; without it they return a token scoped to the client defaults
+    // rather than what was requested in /authorize.
+    const oauth2 = (strategy as any)._oauth2;
+    const origGetOAuthAccessToken = oauth2.getOAuthAccessToken.bind(oauth2);
+    oauth2.getOAuthAccessToken = function getOAuthAccessToken(
+      code: string,
+      params: any,
+      callback: any,
+    ) {
+      if (params?.grant_type === 'authorization_code') {
+        params.scope = scope;
+      }
+      return origGetOAuthAccessToken(code, params, callback);
+    };
+
     return { helper: PassportOAuthAuthenticatorHelper.from(strategy), scope };
   },
 
@@ -255,7 +271,7 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
     return { fullProfile, session };
   },
 
-  async refresh(input, { helper }) {
+  async refresh(input, { helper, scope }) {
     const { refreshToken } = input;
 
     // Check if this is our pseudo-refresh token
@@ -313,7 +329,9 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
       return result;
     }
 
-    // Fallback to default refresh behavior
-    return helper.refresh(input);
+    // Use config scope directly, same as start() does.
+    // The frontend always sends hardcoded 'openid profile email' which doesn't
+    // reflect the full scope configured for this provider.
+    return helper.refresh({ ...input, scope });
   },
 });
