@@ -5,6 +5,7 @@ import {
   fetchApiRef,
   PageBlueprint,
 } from '@backstage/frontend-plugin-api';
+import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
 
 import { rootRouteRef } from './routes';
 import { genericWorkflowsClientApiRef } from './api/GenericWorkflowsClientApi';
@@ -34,10 +35,40 @@ const genericWorkflowsPage = PageBlueprint.make({
 });
 
 /**
+ * Workflow Runs entity tab — mounts under workflow and clusterworkflow
+ * kinds, but only for entries with `spec.type === 'Generic'`. The
+ * EntityNamespaceProvider supplies the entity's namespace to the runs
+ * table via React context, matching the legacy `EntityPage.tsx` mount.
+ */
+const workflowRunsEntityContent = EntityContentBlueprint.make({
+  name: 'workflow-runs',
+  params: {
+    path: '/runs',
+    title: 'Runs',
+    filter: entity =>
+      ['workflow', 'clusterworkflow'].includes(entity.kind.toLowerCase()) &&
+      (entity.spec as { type?: string } | undefined)?.type === 'Generic',
+    loader: () =>
+      Promise.all([
+        import('./components/WorkflowRunsContent'),
+        import('./components/EntityNamespaceProvider'),
+      ]).then(([runs, provider]) => (
+        <provider.EntityNamespaceProvider>
+          <runs.WorkflowRunsContent />
+        </provider.EntityNamespaceProvider>
+      )),
+  },
+});
+
+/**
  * NFS entry point for the OpenChoreo generic-workflows plugin.
  */
 export default createFrontendPlugin({
   pluginId: 'openchoreo-workflows',
   routes: { root: rootRouteRef },
-  extensions: [genericWorkflowsClientApi, genericWorkflowsPage],
+  extensions: [
+    genericWorkflowsClientApi,
+    genericWorkflowsPage,
+    workflowRunsEntityContent,
+  ],
 });
