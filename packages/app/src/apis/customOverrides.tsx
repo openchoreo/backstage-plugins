@@ -62,6 +62,8 @@ import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
 import { openChoreoTokenDecorator } from '../scaffolder/openChoreoTokenDecorator';
 import { LogRowActionBlueprint } from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
 import { InvestigateLogButton } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
+import { EntityCardBlueprint } from '@backstage/plugin-catalog-react/alpha';
+import type { Entity } from '@backstage/catalog-model';
 
 /**
  * Override `catalog-graph`'s default `api:catalog-graph` to include the
@@ -214,6 +216,59 @@ export const customAppModule = createFrontendModule({
         renderer: (log, getLogsSnapshot) => (
           <InvestigateLogButton log={log} getLogsSnapshot={getLogsSnapshot} />
         ),
+      },
+    }),
+    // OpenChoreoAboutCard sits in the Overview "info" slot on every
+    // OpenChoreo-relevant entity kind. Lives in `packages/app` (not in
+    // the openchoreo plugin) because the About card is the host's
+    // composition of upstream's About metadata + OpenChoreo-specific
+    // edit affordances — a host concern, not a plugin one.
+    EntityCardBlueprint.make({
+      name: 'openchoreo-about',
+      params: {
+        type: 'info',
+        filter: (entity: Entity) =>
+          [
+            'component',
+            'system',
+            'domain',
+            'resource',
+            'environment',
+            'dataplane',
+            'clusterdataplane',
+            'workflowplane',
+            'clusterworkflowplane',
+            'observabilityplane',
+            'clusterobservabilityplane',
+            'deploymentpipeline',
+            'componenttype',
+            'resourcetype',
+            'clustercomponenttype',
+            'clusterresourcetype',
+            'traittype',
+            'clustertraittype',
+            'workflow',
+            'clusterworkflow',
+            'componentworkflow',
+          ].includes(entity.kind.toLowerCase()),
+        loader: () =>
+          import('../components/catalog/OpenChoreoAboutCard').then(m => (
+            <m.OpenChoreoAboutCard variant="gridItem" showEditIcon />
+          )),
+      },
+    }),
+    // CI status card — internally branches between the OpenChoreo
+    // WorkflowsOverviewCard and an external-CI card (Jenkins / GitHub
+    // Actions / GitLab) based on the entity's CI annotation. Component
+    // pages only.
+    EntityCardBlueprint.make({
+      name: 'workflows-or-external-ci',
+      params: {
+        filter: 'kind:component',
+        loader: () =>
+          import('../components/catalog/WorkflowsOrExternalCICard').then(m => (
+            <m.WorkflowsOrExternalCICard />
+          )),
       },
     }),
   ],
