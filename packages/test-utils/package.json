@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/test-utils",
-  "version": "1.2.0-m.1",
+  "version": "1.2.0-m.2",
   "license": "Apache-2.0",
   "description": "Shared test utilities for OpenChoreo Backstage plugins",
   "main": "src/index.ts",
