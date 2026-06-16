@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography, Button } from '@material-ui/core';
 import { Progress } from '@backstage/core-components';
+import { useApiHolder } from '@backstage/core-plugin-api';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
@@ -20,6 +21,7 @@ import {
 import { useRuntimeLogsStyles } from './styles';
 import { LogEntryField } from './types';
 import type { RenderLogRowAction } from './LogEntry';
+import { logRowActionRendererApiRef } from '../../api/LogRowActionRendererApi';
 
 export interface ObservabilityProjectRuntimeLogsPageProps {
   renderRowAction?: RenderLogRowAction;
@@ -259,6 +261,14 @@ export const ObservabilityProjectRuntimeLogsPage = ({
     permissionName,
   } = useLogsPermission();
 
+  // Prop wins for legacy callers; under NFS, fall back to the
+  // host-registered renderer collected by the alpha plugin's
+  // logRowActionRendererApi. useApiHolder + get returns undefined when
+  // the API isn't registered, so legacy-only hosts stay no-op.
+  const apiHolder = useApiHolder();
+  const effectiveRenderRowAction: RenderLogRowAction | undefined =
+    renderRowAction ?? apiHolder.get(logRowActionRendererApiRef)?.render;
+
   if (permissionLoading) {
     return <Progress />;
   }
@@ -274,6 +284,8 @@ export const ObservabilityProjectRuntimeLogsPage = ({
   }
 
   return (
-    <ObservabilityProjectRuntimeLogsContent renderRowAction={renderRowAction} />
+    <ObservabilityProjectRuntimeLogsContent
+      renderRowAction={effectiveRenderRowAction}
+    />
   );
 };

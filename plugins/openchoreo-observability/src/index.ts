@@ -12,3 +12,7 @@ export {
   ObservabilityCostAnalysis,
 } from './plugin';
 export type { RenderLogRowAction } from './components/RuntimeLogs/LogEntry';
+export {
+  logRowActionRendererApiRef,
+  type LogRowActionRendererApi,
+} from './api/LogRowActionRendererApi';
