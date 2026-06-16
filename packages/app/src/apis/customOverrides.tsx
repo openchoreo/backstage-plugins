@@ -32,6 +32,7 @@ import {
   formDecoratorsApiRef,
   DefaultScaffolderFormDecoratorsApi,
 } from '@backstage/plugin-scaffolder/alpha';
+import { FormDecoratorBlueprint } from '@backstage/plugin-scaffolder-react/alpha';
 import {
   RELATION_DEPLOYS_TO,
   RELATION_DEPLOYED_BY,
@@ -305,18 +306,31 @@ export const scaffolderPluginAlpha = scaffolderPluginAlphaBase.withOverrides({
           ),
       },
     }),
+    // Inject the OpenChoreo IDP-token decorator alongside any other
+    // FormDecoratorBlueprint extensions plugins may contribute. The
+    // earlier shape (`params: defineParams => defineParams({ factory: () => create({decorators: [openChoreoTokenDecorator]}) })`)
+    // discarded `inputs.formDecorators`, silently dropping every other
+    // plugin's decorator. Using `factory(originalFactory, { inputs })`
+    // preserves the upstream accumulation and then concats ours.
     scaffolderPluginAlphaBase
       .getExtension('api:scaffolder/form-decorators')
       .override({
-        params: defineParams =>
-          defineParams({
-            api: formDecoratorsApiRef,
-            deps: {},
-            factory: () =>
-              DefaultScaffolderFormDecoratorsApi.create({
-                decorators: [openChoreoTokenDecorator],
+        factory(originalFactory, { inputs }) {
+          const contributed = inputs.formDecorators.map(e =>
+            e.get(FormDecoratorBlueprint.dataRefs.formDecoratorLoader),
+          );
+          return originalFactory({
+            params: defineParams =>
+              defineParams({
+                api: formDecoratorsApiRef,
+                deps: {},
+                factory: () =>
+                  DefaultScaffolderFormDecoratorsApi.create({
+                    decorators: [openChoreoTokenDecorator, ...contributed],
+                  }),
               }),
-          }),
+          });
+        },
       }),
   ],
 });
