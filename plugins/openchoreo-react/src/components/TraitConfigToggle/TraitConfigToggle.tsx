@@ -3,97 +3,8 @@ import { FormYamlToggle } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
 import YAML from 'yaml';
 import { YamlEditor } from '../YamlEditor';
+import { buildYamlString } from '../../utils/jsonSchemaYaml';
 import { useStyles } from './styles';
-
-/**
- * Generate a default object from a JSON Schema by walking its properties
- * and using `default` values where specified, or type-appropriate placeholders.
- */
-function generateDefaults(schema: JSONSchema7): Record<string, any> {
-  if (schema.type !== 'object' || !schema.properties) {
-    return {};
-  }
-
-  const result: Record<string, any> = {};
-
-  for (const [key, propDef] of Object.entries(schema.properties)) {
-    if (typeof propDef === 'boolean') continue;
-
-    if (propDef.default !== undefined) {
-      result[key] = propDef.default;
-    } else {
-      switch (propDef.type) {
-        case 'string':
-          result[key] = '';
-          break;
-        case 'number':
-        case 'integer':
-          result[key] = 0;
-          break;
-        case 'boolean':
-          result[key] = false;
-          break;
-        case 'array':
-          result[key] = [];
-          break;
-        case 'object':
-          result[key] = generateDefaults(propDef);
-          break;
-        default:
-          result[key] = null;
-          break;
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
- * Merge schema defaults with actual form data so that every schema property
- * appears in the YAML, but user-provided values take precedence.
- * Strips undefined values from formData so that cleared fields fall back
- * to schema defaults rather than overwriting them with undefined.
- */
-function buildYamlData(
-  schema: JSONSchema7 | undefined,
-  formData: Record<string, any>,
-): Record<string, any> {
-  if (!schema) return formData || {};
-  const defaults = generateDefaults(schema);
-  const cleanData = Object.fromEntries(
-    Object.entries(formData || {}).filter(([_, v]) => v !== undefined),
-  );
-  return { ...defaults, ...cleanData };
-}
-
-/**
- * Build a YAML string from merged data, annotating required fields with
- * an inline `# required` comment so the user knows what must be filled in.
- */
-function buildYamlString(
-  schema: JSONSchema7 | undefined,
-  formData: Record<string, any>,
-): string {
-  const data = buildYamlData(schema, formData);
-  const doc = new YAML.Document(data);
-
-  if (schema?.required && doc.contents && 'items' in doc.contents) {
-    const requiredSet = new Set(schema.required);
-    for (const item of (doc.contents as YAML.YAMLMap).items) {
-      if (
-        YAML.isScalar(item.key) &&
-        typeof item.key.value === 'string' &&
-        requiredSet.has(item.key.value) &&
-        YAML.isScalar(item.value)
-      ) {
-        item.value.comment = ' required';
-      }
-    }
-  }
-
-  return doc.toString({ indent: 2 });
-}
 
 export interface TraitConfigToggleProps {
   schema?: JSONSchema7;
@@ -174,14 +85,16 @@ export const TraitConfigToggle = ({
       if (parsed) {
         setYamlError(undefined);
         onValidityChange?.(true);
-        // Don't call onChange here — propagate only on blur to avoid
-        // re-rendering the entire parent form on every keystroke.
+        // Propagate per keystroke so the parent can recompute schema validity
+        // (e.g. enabling Save/Add when required fields become non-empty).
+        // The RjsfForm child is unmounted in YAML mode, so this is cheap.
+        onChange(parsed);
       } else {
         setYamlError('Invalid YAML: must be a valid YAML object');
         onValidityChange?.(false);
       }
     },
-    [onValidityChange, parseYaml],
+    [onChange, onValidityChange, parseYaml],
   );
 
   /** Flush valid YAML to the parent when focus leaves the editor container. */
