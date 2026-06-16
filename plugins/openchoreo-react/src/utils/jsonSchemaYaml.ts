@@ -11,17 +11,68 @@ import { JSONSchema7 } from 'json-schema';
 import YAML from 'yaml';
 
 /**
+ * True when `value` is a plain object (not null, not an array).  Used to
+ * decide whether a value can be deep-merged or recursed into.
+ */
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * True when `schema.type` permits `type` — either as a bare string or as a
+ * member of a `["object", "null"]`-style array (nullable schemas, common in
+ * generated CRD / OpenAPI schemas).
+ */
+function schemaAllowsType(schema: JSONSchema7, type: string): boolean {
+  if (schema.type === type) return true;
+  return Array.isArray(schema.type) && (schema.type as string[]).includes(type);
+}
+
+/**
+ * Best-effort flattening of `allOf` composition: merges sub-schema properties
+ * and required keys into the parent so the rest of the walk can treat the
+ * result as a flat object schema.  `$ref`, `oneOf`, and `anyOf` are out of
+ * scope — schemas reaching this module are expected to be $ref-resolved.
+ */
+function flattenAllOf(schema: JSONSchema7): JSONSchema7 {
+  if (!schema.allOf || schema.allOf.length === 0) return schema;
+  let merged: JSONSchema7 = { ...schema };
+  for (const sub of schema.allOf) {
+    if (typeof sub !== 'object') continue;
+    const subFlat = flattenAllOf(sub);
+    merged = {
+      ...merged,
+      type: merged.type ?? subFlat.type,
+      properties: { ...subFlat.properties, ...merged.properties },
+      required: [...(merged.required ?? []), ...(subFlat.required ?? [])],
+    };
+  }
+  return merged;
+}
+
+/** Pick the first non-`null` type when the schema declares a type array. */
+function primaryType(schema: JSONSchema7): string | undefined {
+  if (typeof schema.type === 'string') return schema.type;
+  if (Array.isArray(schema.type)) {
+    return (schema.type as string[]).find(t => t !== 'null');
+  }
+  return undefined;
+}
+
+/**
  * Generate a default object from a JSON Schema by walking its properties and
  * using `default` values where specified, or type-appropriate placeholders.
+ * `allOf` branches are folded in so inherited properties get defaults too.
  */
 export function generateDefaults(schema: JSONSchema7): Record<string, any> {
-  if (schema.type !== 'object' || !schema.properties) {
+  const flat = flattenAllOf(schema);
+  if (!schemaAllowsType(flat, 'object') || !flat.properties) {
     return {};
   }
 
   const result: Record<string, any> = {};
 
-  for (const [key, propDef] of Object.entries(schema.properties)) {
+  for (const [key, propDef] of Object.entries(flat.properties)) {
     if (typeof propDef === 'boolean') continue;
 
     if (propDef.default !== undefined) {
@@ -29,7 +80,7 @@ export function generateDefaults(schema: JSONSchema7): Record<string, any> {
       continue;
     }
 
-    switch (propDef.type) {
+    switch (primaryType(propDef)) {
       case 'string':
         result[key] = '';
         break;
@@ -56,28 +107,53 @@ export function generateDefaults(schema: JSONSchema7): Record<string, any> {
 }
 
 /**
- * Merge schema defaults with form data so every schema property appears in
- * the YAML, but user-provided values take precedence.  Strips `undefined`
- * from form data so cleared fields fall back to defaults instead of
- * overwriting them with `undefined`.
+ * Recursively merge form data on top of schema defaults so every required
+ * schema property appears in the YAML, even when the user has provided only
+ * a partial nested object.  Plain objects deep-merge; arrays are atomic
+ * (user data replaces the default empty array).  `undefined` at any depth
+ * falls back to the corresponding default.
+ */
+function deepMergeDefaults(
+  defaults: Record<string, any>,
+  data: Record<string, any>,
+): Record<string, any> {
+  const result: Record<string, any> = { ...defaults };
+  for (const [key, value] of Object.entries(data)) {
+    if (value === undefined) continue;
+    const defaultValue = result[key];
+    if (isPlainObject(defaultValue) && isPlainObject(value)) {
+      result[key] = deepMergeDefaults(defaultValue, value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+/**
+ * Build the data tree that will be serialized to YAML: schema defaults
+ * deep-merged with `formData` so every schema property is represented,
+ * but user-provided values take precedence at every depth.
  */
 export function buildYamlData(
   schema: JSONSchema7 | undefined,
   formData: Record<string, any>,
 ): Record<string, any> {
   if (!schema) return formData ?? {};
-  const defaults = generateDefaults(schema);
-  const cleanData = Object.fromEntries(
-    Object.entries(formData ?? {}).filter(([, v]) => v !== undefined),
-  );
-  return { ...defaults, ...cleanData };
+  return deepMergeDefaults(generateDefaults(schema), formData ?? {});
 }
 
-/** Format a single enum value for the `# allowed: ...` comment. */
+/**
+ * Format a single enum value for the `# allowed: ...` comment.  Non-string
+ * values go through `JSON.stringify` so objects/arrays render legibly;
+ * strings containing list separators (`,`, `#`) get quoted so the comment
+ * stays unambiguous.
+ */
 function formatEnumValue(value: unknown): string {
-  if (value === null) return 'null';
-  if (typeof value === 'string') return value;
-  return String(value);
+  if (typeof value === 'string') {
+    return /[,#"]/.test(value) ? JSON.stringify(value) : value;
+  }
+  return JSON.stringify(value);
 }
 
 /**
@@ -99,7 +175,7 @@ function buildPropertyComment(
 
 /** True when `items` is a single sub-schema we can recurse into. */
 function isObjectSchema(value: unknown): value is JSONSchema7 {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+  return isPlainObject(value);
 }
 
 /**
@@ -111,14 +187,15 @@ function isObjectSchema(value: unknown): value is JSONSchema7 {
  * still reached.
  */
 function annotateMap(map: YAML.YAMLMap, schema: JSONSchema7): void {
-  if (!schema.properties) return;
-  const requiredSet = new Set(schema.required ?? []);
+  const flat = flattenAllOf(schema);
+  if (!flat.properties) return;
+  const requiredSet = new Set(flat.required ?? []);
 
   for (const pair of map.items) {
     if (!YAML.isScalar(pair.key) || typeof pair.key.value !== 'string') {
       continue;
     }
-    const propSchema = schema.properties[pair.key.value];
+    const propSchema = flat.properties[pair.key.value];
     if (!propSchema || typeof propSchema === 'boolean') continue;
 
     if (YAML.isScalar(pair.value)) {
@@ -127,11 +204,14 @@ function annotateMap(map: YAML.YAMLMap, schema: JSONSchema7): void {
         requiredSet.has(pair.key.value),
       );
       if (comment) pair.value.comment = comment;
-    } else if (YAML.isMap(pair.value) && propSchema.type === 'object') {
+    } else if (
+      YAML.isMap(pair.value) &&
+      schemaAllowsType(propSchema, 'object')
+    ) {
       annotateMap(pair.value, propSchema);
     } else if (
       YAML.isSeq(pair.value) &&
-      propSchema.type === 'array' &&
+      schemaAllowsType(propSchema, 'array') &&
       isObjectSchema(propSchema.items)
     ) {
       annotateSeq(pair.value, propSchema.items);
@@ -142,11 +222,11 @@ function annotateMap(map: YAML.YAMLMap, schema: JSONSchema7): void {
 /** Recursively annotate items in a YAML sequence against the array item schema. */
 function annotateSeq(seq: YAML.YAMLSeq, itemsSchema: JSONSchema7): void {
   for (const item of seq.items) {
-    if (YAML.isMap(item) && itemsSchema.type === 'object') {
+    if (YAML.isMap(item) && schemaAllowsType(itemsSchema, 'object')) {
       annotateMap(item, itemsSchema);
     } else if (
       YAML.isSeq(item) &&
-      itemsSchema.type === 'array' &&
+      schemaAllowsType(itemsSchema, 'array') &&
       isObjectSchema(itemsSchema.items)
     ) {
       annotateSeq(item, itemsSchema.items);

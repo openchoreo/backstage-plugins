@@ -1,10 +1,20 @@
-import { useState, useCallback, useRef, ReactNode } from 'react';
+import { useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { FormYamlToggle } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
 import YAML from 'yaml';
 import { YamlEditor } from '../YamlEditor';
 import { buildYamlString } from '../../utils/jsonSchemaYaml';
 import { useStyles } from './styles';
+
+/**
+ * How long to coalesce keystrokes before pushing the parsed YAML to the
+ * parent.  The parent typically re-runs ajv schema validation in a
+ * useEffect keyed on `parameters`, which is non-trivial for big schemas —
+ * debouncing keeps typing responsive while still flushing well before the
+ * user can act on a disabled Save/Add button (focus loss flushes
+ * immediately, see `handleYamlBlur`).
+ */
+const FLUSH_DEBOUNCE_MS = 150;
 
 export interface TraitConfigToggleProps {
   schema?: JSONSchema7;
@@ -29,6 +39,10 @@ export const TraitConfigToggle = ({
   );
   const [yamlError, setYamlError] = useState<string | undefined>();
 
+  /** Pending debounced flush — timer id and the parsed value waiting to ship. */
+  const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingParsed = useRef<Record<string, any> | null>(null);
+
   /** Try to parse YAML content; returns the parsed object or undefined on failure. */
   const parseYaml = useCallback(
     (content: string): Record<string, any> | undefined => {
@@ -45,6 +59,38 @@ export const TraitConfigToggle = ({
     [],
   );
 
+  /**
+   * Send the latest parsed YAML to the parent right now, skipping the
+   * debounce wait.
+   *
+   * Normally `handleYamlChange` waits FLUSH_DEBOUNCE_MS after the last
+   * keystroke before calling `onChange`.  At certain moments — focus
+   * leaving the editor (the user is about to click Save/Add), switching
+   * to form view (the form reads from parent state) — that wait is too
+   * long, so we cancel the timer and call `onChange` immediately with
+   * whatever the latest parse produced.  If no edit is pending, this is
+   * a no-op.
+   */
+  const sendPendingChangeNow = useCallback(() => {
+    if (flushTimer.current !== null) {
+      clearTimeout(flushTimer.current);
+      flushTimer.current = null;
+    }
+    const buffered = pendingParsed.current;
+    if (buffered !== null) {
+      pendingParsed.current = null;
+      onChange(buffered);
+    }
+  }, [onChange]);
+
+  // Clear the debounce timer on unmount so we don't onChange into a
+  // gone-away parent.
+  useEffect(() => {
+    return () => {
+      if (flushTimer.current !== null) clearTimeout(flushTimer.current);
+    };
+  }, []);
+
   const handleModeChange = useCallback(
     (newMode: 'form' | 'yaml') => {
       if (newMode === mode) return;
@@ -57,7 +103,8 @@ export const TraitConfigToggle = ({
         // Switching to form — block if YAML is invalid
         const parsed = parseYaml(yamlContent);
         if (parsed) {
-          onChange(parsed);
+          pendingParsed.current = parsed;
+          sendPendingChangeNow();
           setYamlError(undefined);
           onValidityChange?.(true);
         } else {
@@ -72,9 +119,9 @@ export const TraitConfigToggle = ({
       schema,
       formData,
       yamlContent,
-      onChange,
       onValidityChange,
       parseYaml,
+      sendPendingChangeNow,
     ],
   );
 
@@ -85,10 +132,19 @@ export const TraitConfigToggle = ({
       if (parsed) {
         setYamlError(undefined);
         onValidityChange?.(true);
-        // Propagate per keystroke so the parent can recompute schema validity
-        // (e.g. enabling Save/Add when required fields become non-empty).
-        // The RjsfForm child is unmounted in YAML mode, so this is cheap.
-        onChange(parsed);
+        // Coalesce keystrokes — see FLUSH_DEBOUNCE_MS doc.  Blur and mode
+        // switch flush synchronously so disabled-button state can't lag
+        // behind the user.
+        pendingParsed.current = parsed;
+        if (flushTimer.current !== null) clearTimeout(flushTimer.current);
+        flushTimer.current = setTimeout(() => {
+          flushTimer.current = null;
+          if (pendingParsed.current !== null) {
+            const next = pendingParsed.current;
+            pendingParsed.current = null;
+            onChange(next);
+          }
+        }, FLUSH_DEBOUNCE_MS);
       } else {
         setYamlError('Invalid YAML: must be a valid YAML object');
         onValidityChange?.(false);
@@ -110,12 +166,9 @@ export const TraitConfigToggle = ({
       ) {
         return;
       }
-      const parsed = parseYaml(yamlContent);
-      if (parsed) {
-        onChange(parsed);
-      }
+      sendPendingChangeNow();
     },
-    [yamlContent, parseYaml, onChange],
+    [sendPendingChangeNow],
   );
 
   return (
