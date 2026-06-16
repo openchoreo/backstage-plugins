@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-common",
-  "version": "1.2.0-m.1",
+  "version": "1.2.0-m.2",
   "license": "Apache-2.0",
   "description": "Common package for shared types and constants",
   "main": "src/index.ts",
