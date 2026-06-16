@@ -1,7 +1,7 @@
 import { SignInPage } from '@backstage/core-components';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import type { SignInPageProps } from '@backstage/plugin-app-react';
-import { openChoreoAuthApiRef } from '../apis';
+import { openChoreoAuthApiRef } from '../apis/authRefs';
 
 /**
  * Dynamic SignInPage that switches between OpenChoreo OIDC and guest mode

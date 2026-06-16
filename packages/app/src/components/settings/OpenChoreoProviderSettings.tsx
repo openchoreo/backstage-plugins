@@ -1,6 +1,6 @@
 import List from '@material-ui/core/List';
 import { ProviderSettingsItem } from '@backstage/plugin-user-settings';
-import { openChoreoAuthApiRef } from '../../apis';
+import { openChoreoAuthApiRef } from '../../apis/authRefs';
 import { OpenChoreoIcon } from '@openchoreo/backstage-design-system';
 
 export const OpenChoreoProviderSettings = () => {

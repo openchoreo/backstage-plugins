@@ -29,7 +29,8 @@ import {
   PerchAgentClient,
 } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 
-import { apis, openChoreoAuthApiRef } from './apis';
+import { apis } from './apis';
+import { openChoreoAuthApiRef } from './apis/authRefs';
 
 // Minimal stubs — none of the factories under test inspect dep state at
 // construction time beyond holding the reference.

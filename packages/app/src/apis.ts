@@ -25,7 +25,6 @@ import { UserSettingsStorage } from '@backstage/plugin-user-settings';
 import { permissionApiRef } from '@backstage/plugin-permission-react';
 import { OpenChoreoFetchApi } from './apis/OpenChoreoFetchApi';
 import { OpenChoreoPermissionApi } from './apis/OpenChoreoPermissionApi';
-// Import from separate file to avoid circular dependency with form decorators
 import { openChoreoAuthApiRef } from './apis/authRefs';
 // NOTE: ``perchAgentApiRef`` is also declared on
 // ``openchoreoPerchPlugin.apis`` in plugins/openchoreo-portal-assistant/src/plugin.ts.
@@ -39,8 +38,6 @@ import {
   perchAgentApiRef,
   PerchAgentClient,
 } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
-// Re-export for use by App.tsx and other components
-export { openChoreoAuthApiRef };
 
 export const apis: AnyApiFactory[] = [
   createApiFactory({
@@ -127,27 +124,6 @@ export const apis: AnyApiFactory[] = [
     factory: deps => UserSettingsStorage.create(deps),
   }),
 
-  // DEFERRED to Step 3c: Scaffolder form decorators that inject the user's
-  // OpenChoreo token as a secret (used by scaffolder actions for user-based
-  // authorization). Under NFS this collides with the scaffolder plugin's
-  // own default factory (API_FACTORY_CONFLICT). Will reinstate via
-  // scaffolderPlugin.withOverrides so it lives under pluginId `scaffolder`.
-
-  // openChoreoCiClientApiRef and genericWorkflowsClientApiRef are now
-  // provided by their respective NFS plugins via `ApiBlueprint` (see
-  // plugins/openchoreo-ci/src/alpha.tsx and
-  // plugins/openchoreo-workflows/src/alpha.tsx). Registering them here
-  // would collide with the plugin-scoped factories under NFS.
-
-  // DEFERRED to Step 3c: Catalog graph API override with custom OpenChoreo
-  // relations. The legacy `app`-scoped registration of `catalogGraphApiRef`
-  // collides with `@backstage/plugin-catalog-graph`'s own default factory
-  // under NFS (API_FACTORY_CONFLICT). The proper fix is a plugin override
-  // (catalogGraphPlugin.withOverrides) that disables the upstream default
-  // and provides our augmented one under the same pluginId. Until then,
-  // custom relations (deploysTo, hostedOn, instanceOf, …) won't render in
-  // entity Relations cards or the catalog graph.
-
   // Assistant Agent client (Perch). Mirrors the registration on
   // openchoreoPerchPlugin.apis — see the import-site comment for why
   // both exist.
@@ -161,9 +137,4 @@ export const apis: AnyApiFactory[] = [
       new PerchAgentClient({ discoveryApi, fetchApi }),
   }),
 
-  // DEFERRED to Step 3c: Custom EntityPresentationApi with kind icons for
-  // Environment, DataPlane, DeploymentPipeline, etc. Same conflict shape as
-  // catalogGraphApiRef above — the override needs to come from a catalog
-  // plugin module so it sits under pluginId `catalog`, not `app`. Until
-  // then, those kinds get the default upstream icon in the catalog graph.
 ];

@@ -49,17 +49,7 @@ import {
   RELATION_BUILDS_ON,
   RELATION_BUILDS,
 } from '@openchoreo/backstage-plugin-common';
-import CloudIcon from '@material-ui/icons/Cloud';
-import DnsIcon from '@material-ui/icons/Dns';
-import AccountTreeIcon from '@material-ui/icons/AccountTree';
-import VisibilityIcon from '@material-ui/icons/Visibility';
-import BuildIcon from '@material-ui/icons/Build';
-import CategoryIcon from '@material-ui/icons/Category';
-import LayersIcon from '@material-ui/icons/Layers';
-import StorageIcon from '@material-ui/icons/Storage';
-import ExtensionIcon from '@material-ui/icons/Extension';
-import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
-import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
+import { KIND_ICONS } from '../kindIcons';
 import { openChoreoTokenDecorator } from '../scaffolder/openChoreoTokenDecorator';
 import { LogRowActionBlueprint } from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
 import { InvestigateLogButton } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
@@ -148,26 +138,7 @@ export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
             factory: ({ catalogApi }) =>
               DefaultEntityPresentationApi.create({
                 catalogApi,
-                kindIcons: {
-                  environment: CloudIcon,
-                  dataplane: DnsIcon,
-                  clusterdataplane: DnsIcon,
-                  deploymentpipeline: AccountTreeIcon,
-                  observabilityplane: VisibilityIcon,
-                  clusterobservabilityplane: VisibilityIcon,
-                  workflowplane: BuildIcon,
-                  clusterworkflowplane: BuildIcon,
-                  componenttype: CategoryIcon,
-                  clustercomponenttype: CategoryIcon,
-                  resourcetype: LayersIcon,
-                  clusterresourcetype: LayersIcon,
-                  resource: StorageIcon,
-                  traittype: ExtensionIcon,
-                  clustertraittype: ExtensionIcon,
-                  workflow: PlayCircleOutlineIcon,
-                  clusterworkflow: PlayCircleOutlineIcon,
-                  componentworkflow: SettingsApplicationsIcon,
-                },
+                kindIcons: KIND_ICONS,
               }),
           }),
       }),

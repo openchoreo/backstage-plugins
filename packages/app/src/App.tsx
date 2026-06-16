@@ -1,5 +1,4 @@
 import { Route } from 'react-router-dom';
-import { apiDocsPlugin } from '@backstage/plugin-api-docs';
 import {
   CatalogEntityPage,
   CatalogIndexPage,
@@ -41,7 +40,6 @@ import { DeploymentPipelineFormWithYamlFieldExtension } from './scaffolder/Deplo
 import { WorkloadDetailsFieldExtension } from './scaffolder/WorkloadDetailsField';
 import { CustomTemplateListPage } from './components/scaffolder/CustomTemplateListPage';
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
-import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
 import {
   TechDocsIndexPage,
@@ -99,11 +97,7 @@ import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import { appThemes } from './themes';
-import CloudIcon from '@material-ui/icons/Cloud';
-import DnsIcon from '@material-ui/icons/Dns';
-import AccountTreeIcon from '@material-ui/icons/AccountTree';
-import VisibilityIcon from '@material-ui/icons/Visibility';
-import BuildIcon from '@material-ui/icons/Build';
+import { LEGACY_KIND_ICONS } from './kindIcons';
 import {
   AccessControlContent,
   SecretsContent,
@@ -113,36 +107,11 @@ import {
   SettingsLayout,
   UserSettingsGeneral,
 } from '@backstage/plugin-user-settings';
-import CategoryIcon from '@material-ui/icons/Category';
-import LayersIcon from '@material-ui/icons/Layers';
-import StorageIcon from '@material-ui/icons/Storage';
-import ExtensionIcon from '@material-ui/icons/Extension';
-import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
-import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
 import { VisitListener } from '@backstage/plugin-home';
 
 const legacyAppOptions = convertLegacyAppOptions({
   apis,
-  icons: {
-    'kind:environment': CloudIcon,
-    'kind:dataplane': DnsIcon,
-    'kind:clusterdataplane': DnsIcon,
-    'kind:deploymentpipeline': AccountTreeIcon,
-    'kind:observabilityplane': VisibilityIcon,
-    'kind:clusterobservabilityplane': VisibilityIcon,
-    'kind:workflowplane': BuildIcon,
-    'kind:clusterworkflowplane': BuildIcon,
-    'kind:componenttype': CategoryIcon,
-    'kind:clustercomponenttype': CategoryIcon,
-    'kind:resourcetype': LayersIcon,
-    'kind:clusterresourcetype': LayersIcon,
-    'kind:resource': StorageIcon,
-    'kind:traittype': ExtensionIcon,
-    'kind:clustertraittype': ExtensionIcon,
-    'kind:workflow': PlayCircleOutlineIcon,
-    'kind:clusterworkflow': PlayCircleOutlineIcon,
-    'kind:componentworkflow': SettingsApplicationsIcon,
-  },
+  icons: LEGACY_KIND_ICONS,
   themes: appThemes,
 });
 
@@ -287,15 +256,9 @@ const app = createApp({
       viewTechDoc: techdocsPlugin.routes.docRoot,
       createFromTemplate: scaffolderPlugin.routes.selectedTemplate,
     });
-    bind(apiDocsPlugin.externalRoutes, {
-      registerApi: catalogImportPlugin.routes.importPage,
-    });
     bind(scaffolderPlugin.externalRoutes, {
       registerComponent: catalogImportPlugin.routes.importPage,
       viewTechDoc: techdocsPlugin.routes.docRoot,
-    });
-    bind(orgPlugin.externalRoutes, {
-      catalogIndex: catalogPlugin.routes.catalogIndex,
     });
   },
 });
