@@ -291,6 +291,20 @@ export const customAppModule = createFrontendModule({
 
 export const scaffolderPluginAlpha = scaffolderPluginAlphaBase.withOverrides({
   extensions: [
+    // Override `page:scaffolder`'s loader to render the host's
+    // `<ScaffolderPage>` composition (CustomTemplateListPage,
+    // CustomReviewStep, and 27 field extensions). Same reason as the
+    // `page:catalog` override above: the createApp feature reorder lets
+    // upstream's NFS scaffolder page win by default, which would drop
+    // every host customization.
+    scaffolderPluginAlphaBase.getExtension('page:scaffolder').override({
+      params: {
+        loader: () =>
+          import('../components/scaffolder/OpenChoreoScaffolderPage').then(
+            m => <m.OpenChoreoScaffolderPage />,
+          ),
+      },
+    }),
     scaffolderPluginAlphaBase
       .getExtension('api:scaffolder/form-decorators')
       .override({
