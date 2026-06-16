@@ -120,7 +120,6 @@ import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
 import { VisitListener } from '@backstage/plugin-home';
-import { DependencyGraphZoomOverrides } from './components/graph/DependencyGraphZoomOverrides';
 
 const legacyAppOptions = convertLegacyAppOptions({
   apis,
@@ -252,7 +251,6 @@ const legacyRoot = convertLegacyAppRoot(
   <>
     <AlertDisplay />
     <OAuthRequestDialog />
-    <DependencyGraphZoomOverrides />
     <AppRouter>
       <VisitListener />
       <Root>{routes}</Root>

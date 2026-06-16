@@ -1,5 +1,6 @@
 import { ScaffolderPage } from '@backstage/plugin-scaffolder';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
+import { ScaffolderLayout } from '../../scaffolder/ScaffolderLayout';
 import { ComponentNamePickerFieldExtension } from '../../scaffolder/ComponentNamePicker';
 import { ResourceNamePickerFieldExtension } from '../../scaffolder/ResourceNamePicker';
 import { BuildTemplatePickerFieldExtension } from '../../scaffolder/BuildTemplatePicker';
@@ -41,17 +42,18 @@ import { CustomReviewStep } from '../../scaffolder/CustomReviewState';
  */
 export function OpenChoreoScaffolderPage() {
   return (
-    <ScaffolderPage
-      headerOptions={{
-        title: 'Create a new resource',
-        subtitle:
-          'Create new resources using standard templates in your organization',
-      }}
-      components={{
-        EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
-        ReviewStepComponent: CustomReviewStep,
-      }}
-    >
+    <ScaffolderLayout>
+      <ScaffolderPage
+        headerOptions={{
+          title: 'Create a new resource',
+          subtitle:
+            'Create new resources using standard templates in your organization',
+        }}
+        components={{
+          EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
+          ReviewStepComponent: CustomReviewStep,
+        }}
+      >
       <ScaffolderFieldExtensions>
         <ComponentNamePickerFieldExtension />
         <ResourceNamePickerFieldExtension />
@@ -82,6 +84,7 @@ export function OpenChoreoScaffolderPage() {
         <GitSourceFieldExtension />
         <WorkloadDetailsFieldExtension />
       </ScaffolderFieldExtensions>
-    </ScaffolderPage>
+      </ScaffolderPage>
+    </ScaffolderLayout>
   );
 }

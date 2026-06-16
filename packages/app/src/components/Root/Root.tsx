@@ -40,6 +40,7 @@ import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
 import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 import { ScaffolderPreselectionProvider } from '../../scaffolder/ScaffolderPreselectionContext';
+import { DependencyGraphZoomOverrides } from '../graph/DependencyGraphZoomOverrides';
 
 const isMac =
   typeof navigator !== 'undefined' &&
@@ -171,6 +172,14 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
   return (
     <ScaffolderPreselectionProvider>
       <AssistantDrawerProvider>
+        {/*
+          Mounted inside <Root> (which lives under <AppRouter> per
+          convertLegacyAppRoot's children-recognition rules) so the
+          component's MutationObserver runs in the routed subtree. The
+          previous placement as an <AppRouter> sibling was silently
+          dropped by convertLegacyAppRoot during the NFS migration.
+        */}
+        <DependencyGraphZoomOverrides />
         <a href="#main-content" className={a11yClasses.skipLink}>
           Skip to main content
         </a>
