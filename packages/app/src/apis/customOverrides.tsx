@@ -119,9 +119,24 @@ export const catalogGraphPluginAlpha =
  * Override `catalog`'s default `api:catalog/entity-presentation` to provide
  * kind icons for OpenChoreo-specific entity kinds (Environment, DataPlane,
  * DeploymentPipeline, etc.) in the catalog graph and entity views.
+ *
+ * Also overrides `page:catalog` so /catalog renders the host's
+ * `CustomCatalogPage` (kind-grouped picker + card grid layout) instead of
+ * upstream's `DefaultCatalogPage`. Before the createApp feature reorder
+ * landed, the legacy `<Route path="/catalog">` mount won; under the
+ * reorder, upstream's NFS extension wins by default — so we override its
+ * loader explicitly.
  */
 export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
   extensions: [
+    catalogPluginAlphaBase.getExtension('page:catalog').override({
+      params: {
+        loader: () =>
+          import('../components/catalog/CustomCatalogPage').then(m => (
+            <m.CustomCatalogPage initialKind="system" />
+          )),
+      },
+    }),
     catalogPluginAlphaBase
       .getExtension('api:catalog/entity-presentation')
       .override({
@@ -276,9 +291,6 @@ export const customAppModule = createFrontendModule({
 
 export const scaffolderPluginAlpha = scaffolderPluginAlphaBase.withOverrides({
   extensions: [
-    scaffolderPluginAlphaBase
-      .getExtension('page:scaffolder')
-      .override({ disabled: true }),
     scaffolderPluginAlphaBase
       .getExtension('api:scaffolder/form-decorators')
       .override({
