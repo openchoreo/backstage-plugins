@@ -10,12 +10,8 @@
 import catalogGraphPluginAlphaBase from '@backstage/plugin-catalog-graph/alpha';
 import catalogPluginAlphaBase from '@backstage/plugin-catalog/alpha';
 import scaffolderPluginAlphaBase from '@backstage/plugin-scaffolder/alpha';
-import {
-  coreExtensionData,
-  createFrontendModule,
-  createTranslationMessages,
-} from '@backstage/frontend-plugin-api';
-import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
+import { createFrontendModule } from '@backstage/frontend-plugin-api';
+import { createTranslationMessages } from '@backstage/frontend-plugin-api';
 import {
   SignInPageBlueprint,
   TranslationBlueprint,
@@ -123,15 +119,6 @@ export const catalogGraphPluginAlpha =
  * Override `catalog`'s default `api:catalog/entity-presentation` to provide
  * kind icons for OpenChoreo-specific entity kinds (Environment, DataPlane,
  * DeploymentPipeline, etc.) in the catalog graph and entity views.
- *
- * Also overrides `page:catalog/entity` so the entity page rides through our
- * `EntityLayoutWithDelete` (which wraps `OpenChoreoEntityLayout` with the
- * delete + edit-annotations menu items and the OpenChoreo existence-check
- * empty states) instead of upstream's default `EntityLayout`. The NFS
- * `inputs.contents` accumulation is preserved — every `EntityContentBlueprint`
- * we registered in Step 2 still becomes a tab — just rendered as
- * `<OpenChoreoEntityLayout.Route>` children rather than upstream's
- * `<EntityLayout.Route>`.
  */
 export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
   extensions: [
@@ -168,67 +155,6 @@ export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
               }),
           }),
       }),
-    catalogPluginAlphaBase.getExtension('page:catalog/entity').override({
-      factory(originalFactory, { inputs }) {
-        return originalFactory({
-          params: {
-            loader: async () => {
-            const [{ OpenChoreoCatalogEntityPage, OpenChoreoEntityLayout }] =
-              await Promise.all([
-                import('../components/catalog/OpenChoreoCatalogEntityPage'),
-              ]);
-            const buildFilterFn = (
-              fn: ((entity: Entity) => boolean) | undefined,
-              expr: string | undefined,
-            ) => {
-              if (fn) return fn;
-              if (expr) {
-                // Minimal "kind:foo" / "kind:foo,kind:bar" parser to keep the
-                // override self-contained; matches upstream's
-                // `buildFilterFn` semantics for the only expression shapes
-                // we emit in our Step 2 blueprints.
-                const kinds = expr
-                  .split(',')
-                  .map(p => p.trim())
-                  .filter(p => p.startsWith('kind:'))
-                  .map(p => p.slice('kind:'.length).toLowerCase());
-                return (entity: Entity) =>
-                  kinds.includes(entity.kind.toLowerCase());
-              }
-              return undefined;
-            };
-            const Component = () => (
-              <OpenChoreoCatalogEntityPage>
-                {inputs.contents.map(output => {
-                  const path = output.get(coreExtensionData.routePath);
-                  return (
-                    <OpenChoreoEntityLayout.Route
-                      key={path}
-                      path={path}
-                      title={output.get(
-                        EntityContentBlueprint.dataRefs.title,
-                      )}
-                      if={buildFilterFn(
-                        output.get(
-                          EntityContentBlueprint.dataRefs.filterFunction,
-                        ),
-                        output.get(
-                          EntityContentBlueprint.dataRefs.filterExpression,
-                        ),
-                      )}
-                    >
-                      {output.get(coreExtensionData.reactElement)}
-                    </OpenChoreoEntityLayout.Route>
-                  );
-                })}
-              </OpenChoreoCatalogEntityPage>
-            );
-            return <Component />;
-          },
-          },
-        });
-      },
-    }),
   ],
 });
 

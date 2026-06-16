@@ -1,6 +1,10 @@
 import { Route } from 'react-router-dom';
 import { apiDocsPlugin } from '@backstage/plugin-api-docs';
-import { CatalogIndexPage, catalogPlugin } from '@backstage/plugin-catalog';
+import {
+  CatalogEntityPage,
+  CatalogIndexPage,
+  catalogPlugin,
+} from '@backstage/plugin-catalog';
 import {
   CatalogImportPage,
   catalogImportPlugin,
@@ -47,6 +51,7 @@ import {
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
 import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
 import { apis } from './apis';
+import { entityPage } from './components/catalog/EntityPage';
 import { CustomCatalogPage } from './components/catalog/CustomCatalogPage';
 import { CustomApiExplorerPage } from './components/catalog/CustomApiExplorerPage';
 import { searchPage } from './components/search/SearchPage';
@@ -148,13 +153,12 @@ const routes = (
     <Route path="/catalog" element={<CatalogIndexPage />}>
       <CustomCatalogPage initialKind="system" />
     </Route>
-    {/*
-      The entity route (`/catalog/:namespace/:kind/:name`) is owned by the
-      NFS `page:catalog/entity` extension — see customOverrides.tsx where
-      we override its loader to wrap upstream's NFS `inputs.contents`
-      accumulation in `<EntityLayoutWithDelete>` for the OpenChoreo
-      header, menus, and existence checks.
-    */}
+    <Route
+      path="/catalog/:namespace/:kind/:name"
+      element={<CatalogEntityPage />}
+    >
+      {entityPage}
+    </Route>
     <Route path="/docs" element={<TechDocsIndexPage />} />
     <Route
       path="/docs/:namespace/:kind/:name/*"
