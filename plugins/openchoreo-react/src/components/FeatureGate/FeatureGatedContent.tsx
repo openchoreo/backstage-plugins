@@ -1,21 +1,17 @@
 import { ReactNode } from 'react';
-import { useOpenChoreoFeatures } from '@openchoreo/backstage-plugin-react';
-import type { FeatureName } from '@openchoreo/backstage-plugin-common';
 import { EmptyState } from '@backstage/core-components';
+import type { FeatureName } from '@openchoreo/backstage-plugin-common';
+import { useOpenChoreoFeatures } from '../../hooks/useOpenChoreoFeatures';
 
-interface FeatureGatedContentProps {
+export interface FeatureGatedContentProps {
   feature: FeatureName;
   children: ReactNode;
 }
 
 /**
- * Wrapper component for feature-gated route content.
- *
- * Unlike FeatureGate which conditionally renders children,
- * this component always renders something (either the children or an empty state).
- * This is required for routable extensions that must be present in the element tree.
- *
- * When the feature is disabled, shows an empty state message instead of the content.
+ * Routable variant of {@link FeatureGate}. Returns an {@link EmptyState} when
+ * the feature is disabled instead of `null`, so it remains valid as the body
+ * of a routable extension (`EntityContentBlueprint` loader, etc.).
  */
 export function FeatureGatedContent({
   feature,
