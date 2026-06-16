@@ -1,8 +1,30 @@
 import { render, screen } from '@testing-library/react';
-import { createRef } from 'react';
 import { LogsTable } from './LogsTable';
 import { LogEntryField } from './types';
 import { LogEntry as LogEntryType } from './types';
+
+// @tanstack/react-virtual needs real DOM layout (absent in jsdom) to decide
+// what to render, so mock useVirtualizer with a stand-in that returns every
+// item. The footer slot in VirtualizedLogList renders outside the
+// virtualizer, so it appears naturally in the rendered tree. Real windowing
+// is the library's concern and is covered by the VirtualizedLogList tests in
+// the react plugin.
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: (args: any) => {
+    const items = Array.from({ length: args.count }).map((_, index) => ({
+      index,
+      key: args.getItemKey ? args.getItemKey(index) : index,
+      start: 0,
+      size: 28,
+    }));
+    return {
+      getVirtualItems: () => items,
+      getTotalSize: () => args.count * 28,
+      measureElement: () => {},
+      scrollToIndex: () => {},
+    };
+  },
+}));
 
 // ---- Helpers ----
 
@@ -52,13 +74,12 @@ const sampleLogs: LogEntryType[] = [
 function renderTable(
   overrides: Partial<React.ComponentProps<typeof LogsTable>> = {},
 ) {
-  const loadingRef = createRef<HTMLDivElement>();
   const defaultProps = {
     selectedFields: allFields,
     logs: sampleLogs,
     loading: false,
     hasMore: false,
-    loadingRef,
+    onLoadMore: jest.fn(),
     environmentName: 'development',
     projectName: 'my-project',
   };

@@ -27,24 +27,34 @@ export const useEventsTableStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(0),
     paddingBottom: theme.spacing(1),
   },
-  tableContainer: {
-    maxHeight: 'calc(100vh - 320px)',
-    overflowY: 'auto',
-    overflowX: 'hidden',
-    width: '100%',
-  },
-  table: {
-    width: '100%',
-    tableLayout: 'fixed',
-  },
-  headerCell: {
-    fontWeight: 'bold',
-    backgroundColor: theme.palette.background.paper,
+  // Div-based header row, rendered inside the virtualized scroll container so
+  // it shares the rows' content width. Sticky positioning replicates the
+  // original `<TableHead stickyHeader>` behaviour.
+  headerRow: {
+    display: 'flex',
+    alignItems: 'center',
     position: 'sticky',
     top: 0,
     zIndex: 1,
+    backgroundColor: theme.palette.background.paper,
+    borderBottom: `1px solid ${theme.palette.grey[100]}`,
+  },
+  headerColumn: {
+    fontWeight: 'bold',
     fontSize: '0.75rem',
-    padding: '4px 8px !important',
+    padding: '12px 8px',
+    minWidth: 0,
+    boxSizing: 'border-box',
+  },
+  skeletonRow: {
+    display: 'flex',
+    alignItems: 'center',
+    borderBottom: `1px solid ${theme.palette.grey[100]}`,
+  },
+  cell: {
+    padding: '4px 8px',
+    minWidth: 0,
+    boxSizing: 'border-box',
   },
   emptyState: {
     textAlign: 'center',
@@ -61,18 +71,28 @@ export const useEventsTableStyles = makeStyles(theme => ({
 
 export const useEventEntryStyles = makeStyles(theme => ({
   eventRow: {
+    cursor: 'pointer',
+    borderBottom: `1px solid ${theme.palette.grey[100]}`,
     '&:hover': {
       backgroundColor: theme.palette.action.hover,
-    },
-    cursor: 'pointer',
-    '& > td': {
-      padding: '4px 8px !important',
     },
     // Reveal the hover-action button when this row is hovered
     '&:hover $hoverActionButton': {
       opacity: 1,
       pointerEvents: 'auto',
     },
+  },
+  // Flex container replacing the former <TableRow>. `alignItems: 'center'`
+  // mirrors the default `vertical-align: middle` of MUI table cells.
+  eventRowMain: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
+  },
+  cell: {
+    padding: '4px 8px',
+    minWidth: 0,
+    boxSizing: 'border-box',
   },
   hoverActionButton: {
     opacity: 0,

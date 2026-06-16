@@ -1,16 +1,8 @@
-import { FC, UIEvent, useLayoutEffect, useRef, useState } from 'react';
-import {
-  Box,
-  Chip,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@material-ui/core';
+import { FC, useState } from 'react';
+import { Box, Chip, Paper, Typography } from '@material-ui/core';
+import { VirtualizedLogList } from '@openchoreo/backstage-plugin-react';
 import { useWirelogsTableStyles } from './styles';
+import { getColumnStyle, WirelogsColumn } from './columns';
 import { WirelogsFlowDrawer } from './WirelogsFlowDrawer';
 import {
   directionInfo,
@@ -33,6 +25,19 @@ interface WirelogsTableProps {
   isStreaming: boolean;
 }
 
+// Matches the height the table scroll area used to have.
+const WIRELOGS_HEIGHT = 'calc(100vh - 320px)';
+
+const HEADER_COLUMNS: { key: WirelogsColumn; label: string }[] = [
+  { key: 'time', label: 'Time' },
+  { key: 'verdict', label: 'Verdict' },
+  { key: 'type', label: 'Type' },
+  { key: 'direction', label: 'Direction' },
+  { key: 'source', label: 'Source' },
+  { key: 'destination', label: 'Destination' },
+  { key: 'summary', label: 'Summary' },
+];
+
 function rowKey(event: WirelogEvent): string {
   if (event.flow.uuid) return event.flow.uuid;
   if (event.__id) return event.__id;
@@ -41,10 +46,17 @@ function rowKey(event: WirelogEvent): string {
   }`;
 }
 
-const VerdictCell: FC<{ verdict: WirelogVerdict | undefined }> = ({
-  verdict,
-}) => {
-  const classes = useWirelogsTableStyles();
+// The cell helpers below take a `classes` prop instead of calling
+// useWirelogsTableStyles themselves. Calling makeStyles once per cell per row
+// (verdict + direction + endpoint × 2 + summary = 5 calls per row, on top of
+// WirelogsRow's own call) adds up under tail -f streaming; passing the
+// already-resolved classes object keeps it to one hook call per row.
+type WirelogsClasses = ReturnType<typeof useWirelogsTableStyles>;
+
+const VerdictCell: FC<{
+  verdict: WirelogVerdict | undefined;
+  classes: WirelogsClasses;
+}> = ({ verdict, classes }) => {
   const labels: Record<string, string> = {
     DROPPED: 'Dropped',
     FORWARDED: 'Forwarded',
@@ -70,8 +82,10 @@ const VerdictCell: FC<{ verdict: WirelogVerdict | undefined }> = ({
   );
 };
 
-const DirCell: FC<{ flow: WirelogFlow }> = ({ flow }) => {
-  const classes = useWirelogsTableStyles();
+const DirCell: FC<{ flow: WirelogFlow; classes: WirelogsClasses }> = ({
+  flow,
+  classes,
+}) => {
   const { label, direction } = directionInfo(flow);
   if (direction === 'unknown') {
     return <span className={classes.dirCell}>—</span>;
@@ -86,10 +100,10 @@ const DirCell: FC<{ flow: WirelogFlow }> = ({ flow }) => {
   );
 };
 
-const EndpointCell: FC<{ endpoint: WirelogEndpoint | undefined }> = ({
-  endpoint,
-}) => {
-  const classes = useWirelogsTableStyles();
+const EndpointCell: FC<{
+  endpoint: WirelogEndpoint | undefined;
+  classes: WirelogsClasses;
+}> = ({ endpoint, classes }) => {
   const meta = endpointMeta(endpoint);
   return (
     <Box>
@@ -107,7 +121,7 @@ const EndpointCell: FC<{ endpoint: WirelogEndpoint | undefined }> = ({
 
 function methodClass(
   method: string | undefined,
-  classes: ReturnType<typeof useWirelogsTableStyles>,
+  classes: WirelogsClasses,
 ): string {
   switch ((method ?? '').toUpperCase()) {
     case 'GET':
@@ -126,7 +140,7 @@ function methodClass(
 
 function statusClass(
   code: number | undefined,
-  classes: ReturnType<typeof useWirelogsTableStyles>,
+  classes: WirelogsClasses,
 ): string {
   const bucket = code ? Math.floor(code / 100) : 0;
   switch (bucket) {
@@ -143,8 +157,10 @@ function statusClass(
   }
 }
 
-const SummaryCell: FC<{ flow: WirelogFlow }> = ({ flow }) => {
-  const classes = useWirelogsTableStyles();
+const SummaryCell: FC<{ flow: WirelogFlow; classes: WirelogsClasses }> = ({
+  flow,
+  classes,
+}) => {
   const summary = flowSummary(flow);
 
   if (summary.kind === 'l7-request') {
@@ -209,42 +225,55 @@ const SummaryCell: FC<{ flow: WirelogFlow }> = ({ flow }) => {
   );
 };
 
-const WirelogsRow: FC<{
+interface WirelogsRowProps {
   event: WirelogEvent;
   selected: boolean;
   onSelect: () => void;
-}> = ({ event, selected, onSelect }) => {
+}
+
+const WirelogsRow: FC<WirelogsRowProps> = ({ event, selected, onSelect }) => {
   const classes = useWirelogsTableStyles();
   const flow = event.flow;
 
   return (
-    <TableRow
+    <Box
       className={`${classes.row} ${selected ? classes.rowSelected : ''}`}
       onClick={onSelect}
-      hover
+      role="row"
     >
-      <TableCell className={`${classes.bodyCell} ${classes.timeCell}`}>
-        {formatTime(flow.time)}
-      </TableCell>
-      <TableCell className={classes.bodyCell}>
-        <VerdictCell verdict={flow.verdict} />
-      </TableCell>
-      <TableCell className={classes.bodyCell}>
-        <span className={classes.typeBadge}>{typeLabel(flow)}</span>
-      </TableCell>
-      <TableCell className={classes.bodyCell}>
-        <DirCell flow={flow} />
-      </TableCell>
-      <TableCell className={classes.bodyCell}>
-        <EndpointCell endpoint={flow.source} />
-      </TableCell>
-      <TableCell className={classes.bodyCell}>
-        <EndpointCell endpoint={flow.destination} />
-      </TableCell>
-      <TableCell className={classes.bodyCell}>
-        <SummaryCell flow={flow} />
-      </TableCell>
-    </TableRow>
+      <Box className={classes.rowMain}>
+        <Box
+          style={getColumnStyle('time')}
+          className={`${classes.bodyCellDiv} ${classes.timeCell}`}
+        >
+          {formatTime(flow.time)}
+        </Box>
+        <Box style={getColumnStyle('verdict')} className={classes.bodyCellDiv}>
+          <VerdictCell verdict={flow.verdict} classes={classes} />
+        </Box>
+        <Box style={getColumnStyle('type')} className={classes.bodyCellDiv}>
+          <span className={classes.typeBadge}>{typeLabel(flow)}</span>
+        </Box>
+        <Box
+          style={getColumnStyle('direction')}
+          className={classes.bodyCellDiv}
+        >
+          <DirCell flow={flow} classes={classes} />
+        </Box>
+        <Box style={getColumnStyle('source')} className={classes.bodyCellDiv}>
+          <EndpointCell endpoint={flow.source} classes={classes} />
+        </Box>
+        <Box
+          style={getColumnStyle('destination')}
+          className={classes.bodyCellDiv}
+        >
+          <EndpointCell endpoint={flow.destination} classes={classes} />
+        </Box>
+        <Box style={getColumnStyle('summary')} className={classes.bodyCellDiv}>
+          <SummaryCell flow={flow} classes={classes} />
+        </Box>
+      </Box>
+    </Box>
   );
 };
 
@@ -256,28 +285,29 @@ export const WirelogsTable: FC<WirelogsTableProps> = ({
   const [selected, setSelected] = useState<WirelogEvent | null>(null);
   const selectedKey = selected ? rowKey(selected) : null;
 
-  // tail -f-style auto-scroll: stick to the bottom while the user is at (or
-  // near) the bottom; leave them alone once they scroll up to read older rows.
-  const containerRef = useRef<HTMLDivElement>(null);
-  const stickToBottomRef = useRef(true);
-
-  const handleScroll = (e: UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    stickToBottomRef.current = distanceFromBottom < 40;
-  };
-
-  useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    if (stickToBottomRef.current) {
-      el.scrollTop = el.scrollHeight;
-    }
-  }, [flows]);
+  const header = (
+    <Box className={classes.headerRow} role="row">
+      {HEADER_COLUMNS.map(col => (
+        <Box
+          key={col.key}
+          role="columnheader"
+          style={getColumnStyle(col.key)}
+          className={classes.headerColumn}
+        >
+          {col.label}
+        </Box>
+      ))}
+    </Box>
+  );
 
   return (
     <>
-      <Paper variant="outlined" className={classes.tablePaper}>
+      <Paper
+        variant="outlined"
+        className={classes.tablePaper}
+        role="table"
+        aria-label="Wirelogs"
+      >
         {flows.length === 0 ? (
           <Box className={classes.emptyState}>
             <Typography variant="body2">
@@ -287,42 +317,29 @@ export const WirelogsTable: FC<WirelogsTableProps> = ({
             </Typography>
           </Box>
         ) : (
-          <div
-            ref={containerRef}
-            className={classes.tableContainer}
-            onScroll={handleScroll}
-          >
-            <Table stickyHeader size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell className={classes.headerCell}>Time</TableCell>
-                  <TableCell className={classes.headerCell}>Verdict</TableCell>
-                  <TableCell className={classes.headerCell}>Type</TableCell>
-                  <TableCell className={classes.headerCell}>
-                    Direction
-                  </TableCell>
-                  <TableCell className={classes.headerCell}>Source</TableCell>
-                  <TableCell className={classes.headerCell}>
-                    Destination
-                  </TableCell>
-                  <TableCell className={classes.headerCell}>Summary</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {flows.map(event => {
-                  const key = rowKey(event);
-                  return (
-                    <WirelogsRow
-                      key={key}
-                      event={event}
-                      selected={key === selectedKey}
-                      onSelect={() => setSelected(event)}
-                    />
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          <VirtualizedLogList
+            itemCount={flows.length}
+            maxHeight={WIRELOGS_HEIGHT}
+            estimatedRowHeight={36}
+            // `followTail` replaces the previous manual `stickToBottom` logic
+            // — when streaming and the user is already at the bottom, new
+            // rows auto-scroll the viewport (tail -f style); the moment the
+            // user scrolls up to read older rows, follow pauses.
+            followTail={isStreaming}
+            getItemKey={index => rowKey(flows[index])}
+            header={header}
+            renderRow={index => {
+              const event = flows[index];
+              const key = rowKey(event);
+              return (
+                <WirelogsRow
+                  event={event}
+                  selected={key === selectedKey}
+                  onSelect={() => setSelected(event)}
+                />
+              );
+            }}
+          />
         )}
       </Paper>
 

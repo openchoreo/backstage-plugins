@@ -159,9 +159,21 @@ export {
   type OpenChoreoEntityLayoutProps,
   type ExtraContextMenuItem,
 } from './components/OpenChoreoEntityLayout';
+export {
+  VirtualizedLogList,
+  type VirtualizedLogListProps,
+} from './components/VirtualizedLogList';
+export { makeColumnStyle } from './components/VirtualizedLogList/columnStyle';
 
 // Hooks
-export { useInfiniteScroll } from './hooks/useInfiniteScroll';
+export {
+  useRowExpansion,
+  type UseRowExpansionResult,
+} from './hooks/useRowExpansion';
+export {
+  useAutoLoadWhenEmpty,
+  type UseAutoLoadWhenEmptyOptions,
+} from './hooks/useAutoLoadWhenEmpty';
 export {
   useEntityAnnotation,
   useHasAnnotation,

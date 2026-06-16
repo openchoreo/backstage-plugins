@@ -52,6 +52,7 @@
     "@openchoreo/backstage-design-system": "workspace:^",
     "@openchoreo/backstage-plugin-common": "workspace:^",
     "@react-hookz/web": "^24.0.0",
+    "@tanstack/react-virtual": "^3.13.0",
     "@uiw/react-codemirror": "^4.9.3",
     "clsx": "^2.1.1",
     "codemirror-graphql": "^2.2.4",

@@ -33,7 +33,6 @@ export const useStyles = makeStyles(theme => ({
     fontSize: '12px',
     lineHeight: '1.6',
     minHeight: '300px',
-    overflow: 'auto',
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: theme.shape.borderRadius,
     whiteSpace: 'pre-wrap',
@@ -45,7 +44,10 @@ export const useStyles = makeStyles(theme => ({
     fontFamily:
       'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
     lineHeight: '1.6',
-    marginBottom: theme.spacing(0.5),
+    // Padding (not margin) so the row's spacing is included in the height
+    // measured by VirtualizedLogList.
+    paddingBottom: theme.spacing(0.5),
+    whiteSpace: 'pre-wrap',
   },
   noLogsText: {
     fontSize: '12px',

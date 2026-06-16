@@ -12,12 +12,13 @@ import CheckIcon from '@material-ui/icons/Check';
 import { stringify as yamlStringify } from 'yaml';
 import { BuildStatusChip } from '../BuildStatusChip';
 import { useWorkflowRun } from '../../hooks';
-import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
+import {
+  isTerminalStatus,
+  type ModelsBuild,
+} from '@openchoreo/backstage-plugin-common';
 import { extractGitFieldValues } from '../../utils/schemaExtensions';
 import type { GitFieldMapping } from '../../utils/schemaExtensions';
 import { useStyles } from './styles';
-
-const TERMINAL_STATUSES = ['Succeeded', 'Failed', 'Error'];
 
 interface RunMetadataContentProps {
   build: ModelsBuild;
@@ -125,8 +126,7 @@ export const RunMetadataContent = ({
   const commitDisplay = gitValues.commit || workflowData.commit || 'N/A';
 
   const isTerminal =
-    !!workflowRunDetails?.completedAt ||
-    TERMINAL_STATUSES.includes(workflowData.status || '');
+    !!workflowRunDetails?.completedAt || isTerminalStatus(workflowData.status);
   const parsedWorkload = parseWorkloadCr(workflowRunDetails?.workloadCr);
   const workloadImage = parsedWorkload?.spec?.container?.image ?? null;
   const duration = calculateDuration(

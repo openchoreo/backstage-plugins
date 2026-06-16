@@ -9,7 +9,6 @@ const mockUseEventsPermission = jest.fn();
 const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useEventsPermission: (...args: any[]) => mockUseEventsPermission(...args),
-  useInfiniteScroll: () => ({ loadingRef: { current: null } }),
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden-state">{message}</div>
   ),

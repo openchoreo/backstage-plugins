@@ -13,7 +13,6 @@ import {
   useUrlFiltersForRuntimeLogs,
 } from '../../hooks';
 import {
-  useInfiniteScroll,
   useLogsPermission,
   ForbiddenState,
   useProjectEnvironments,
@@ -91,8 +90,6 @@ const ObservabilityRuntimeLogsContent = ({
     sortOrder: filters.sortOrder || 'asc',
     isLive: filters.isLive && !noLogLevelSelected,
   });
-
-  const { loadingRef } = useInfiniteScroll(loadMore, hasMore, logsLoading);
 
   // Track previous filter values to detect changes
   // Initialize with null to ensure initial fetch happens when all conditions are ready
@@ -254,7 +251,7 @@ const ObservabilityRuntimeLogsContent = ({
             logs={logs}
             loading={logsLoading}
             hasMore={hasMore}
-            loadingRef={loadingRef}
+            onLoadMore={loadMore}
             environmentName={
               selectedEnvironment?.displayName || selectedEnvironment?.name
             }

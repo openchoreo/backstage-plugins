@@ -83,27 +83,9 @@ export const useWirelogsTableStyles = makeStyles(theme => ({
     borderRadius: theme.shape.borderRadius,
     overflow: 'hidden',
   },
-  tableContainer: {
-    maxHeight: 'calc(100vh - 320px)',
-    overflowY: 'auto',
-    overflowX: 'auto',
-  },
-  headerCell: {
-    fontWeight: 700,
-    fontSize: '0.65rem',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    color: theme.palette.text.secondary,
-    backgroundColor: theme.palette.background.default,
-    position: 'sticky',
-    top: 0,
-    zIndex: 1,
-    padding: theme.spacing(0.75, 1.5),
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    whiteSpace: 'nowrap',
-  },
   row: {
     cursor: 'pointer',
+    borderBottom: `1px solid ${theme.palette.grey[100]}`,
     '&:hover': {
       backgroundColor: theme.palette.action.hover,
     },
@@ -111,10 +93,40 @@ export const useWirelogsTableStyles = makeStyles(theme => ({
   rowSelected: {
     backgroundColor: theme.palette.action.selected,
   },
-  bodyCell: {
+  rowMain: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    width: '100%',
+  },
+  // Div equivalent of bodyCell — borderBottom moved to the row, so the cell
+  // just carries padding and min-width for ellipsis.
+  bodyCellDiv: {
     padding: theme.spacing(0.75, 1.5),
-    verticalAlign: 'top',
-    borderBottom: `1px solid ${theme.palette.divider}`,
+    minWidth: 0,
+    boxSizing: 'border-box',
+  },
+  // Div-based header row, rendered inside the virtualized scroll container
+  // so it shares the rows' content width. Sticky positioning replicates the
+  // original `<TableHead stickyHeader>` behaviour.
+  headerRow: {
+    display: 'flex',
+    alignItems: 'center',
+    position: 'sticky',
+    top: 0,
+    zIndex: 1,
+    backgroundColor: theme.palette.background.default,
+    borderBottom: `1px solid ${theme.palette.grey[100]}`,
+  },
+  headerColumn: {
+    fontWeight: 700,
+    fontSize: '0.65rem',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: theme.palette.text.secondary,
+    padding: theme.spacing(0.75, 1.5),
+    whiteSpace: 'nowrap',
+    minWidth: 0,
+    boxSizing: 'border-box',
   },
   timeCell: {
     fontFamily: 'monospace',

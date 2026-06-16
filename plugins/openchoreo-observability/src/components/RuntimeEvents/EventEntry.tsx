@@ -1,7 +1,5 @@
 import { FC, MouseEvent, useState } from 'react';
 import {
-  TableRow,
-  TableCell,
   Typography,
   Chip,
   Box,
@@ -12,6 +10,7 @@ import {
 import FileCopyOutlined from '@material-ui/icons/FileCopyOutlined';
 import { EventEntry as EventEntryType, EventEntryField } from './types';
 import { useEventEntryStyles } from './styles';
+import { getColumnStyle } from './columns';
 
 interface EventEntryProps {
   event: EventEntryType;
@@ -19,6 +18,13 @@ interface EventEntryProps {
   environmentName?: string;
   projectName?: string;
   componentName?: string;
+  /**
+   * Whether this row is currently expanded. Controlled by the parent so that
+   * expansion survives the virtualizer unmounting the row off-screen.
+   */
+  expanded: boolean;
+  /** Called when the user clicks the row to expand or collapse it. */
+  onToggleExpand: () => void;
 }
 
 export const EventEntry: FC<EventEntryProps> = ({
@@ -27,14 +33,11 @@ export const EventEntry: FC<EventEntryProps> = ({
   environmentName,
   projectName,
   componentName,
+  expanded,
+  onToggleExpand,
 }) => {
   const classes = useEventEntryStyles();
-  const [expanded, setExpanded] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-
-  const handleRowClick = () => {
-    setExpanded(!expanded);
-  };
 
   const handleCopyEvent = async (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -64,23 +67,32 @@ export const EventEntry: FC<EventEntryProps> = ({
     .join('/');
 
   return (
-    <>
-      <TableRow
-        className={`${classes.eventRow} ${expanded ? classes.expandedRow : ''}`}
-        onClick={handleRowClick}
-      >
+    <Box
+      className={`${classes.eventRow} ${expanded ? classes.expandedRow : ''}`}
+      onClick={onToggleExpand}
+      role="row"
+    >
+      <Box className={classes.eventRowMain}>
         {selectedFields.map(field => {
           if (field === EventEntryField.Timestamp) {
             return (
-              <TableCell key={field} className={classes.monospaceCell}>
+              <Box
+                key={field}
+                style={getColumnStyle(field)}
+                className={`${classes.cell} ${classes.monospaceCell}`}
+              >
                 {formatTimestamp(event.timestamp ?? '')}
-              </TableCell>
+              </Box>
             );
           }
 
           if (field === EventEntryField.Type) {
             return (
-              <TableCell key={field}>
+              <Box
+                key={field}
+                style={getColumnStyle(field)}
+                className={classes.cell}
+              >
                 {event.type ? (
                   <Chip
                     label={event.type}
@@ -88,28 +100,40 @@ export const EventEntry: FC<EventEntryProps> = ({
                     className={`${classes.typeChip} ${getTypeChipClass()}`}
                   />
                 ) : null}
-              </TableCell>
+              </Box>
             );
           }
 
           if (field === EventEntryField.Reason) {
             return (
-              <TableCell key={field} className={classes.monospaceCell}>
+              <Box
+                key={field}
+                style={getColumnStyle(field)}
+                className={`${classes.cell} ${classes.monospaceCell}`}
+              >
                 {event.reason}
-              </TableCell>
+              </Box>
             );
           }
 
           if (field === EventEntryField.Object) {
             return (
-              <TableCell key={field} className={classes.monospaceCell}>
+              <Box
+                key={field}
+                style={getColumnStyle(field)}
+                className={`${classes.cell} ${classes.monospaceCell}`}
+              >
                 {objectRef}
-              </TableCell>
+              </Box>
             );
           }
 
           return (
-            <TableCell key={field} className={classes.messageCell}>
+            <Box
+              key={field}
+              style={getColumnStyle(field)}
+              className={`${classes.cell} ${classes.messageCell}`}
+            >
               <Box className={classes.messageCellContent}>
                 <Box className={classes.messageTextContainer}>
                   <Typography
@@ -136,145 +160,121 @@ export const EventEntry: FC<EventEntryProps> = ({
                   </Tooltip>
                 </Box>
               </Box>
-            </TableCell>
+            </Box>
           );
         })}
-      </TableRow>
+      </Box>
 
       {expanded && (
-        <TableRow>
-          <TableCell
-            colSpan={selectedFields.length}
-            style={{ paddingBottom: 0, paddingTop: 0 }}
-          >
-            <Collapse in={expanded} timeout="auto" unmountOnExit>
-              <Box className={classes.expandedContent}>
-                <Typography
-                  className={classes.expandedSectionTitle}
-                  gutterBottom
-                >
-                  Event Message
-                </Typography>
-                <Box className={classes.fullEventMessage}>{event.message}</Box>
+        <Collapse in={expanded} timeout="auto" unmountOnExit>
+          <Box className={classes.expandedContent}>
+            <Typography className={classes.expandedSectionTitle} gutterBottom>
+              Event Message
+            </Typography>
+            <Box className={classes.fullEventMessage}>{event.message}</Box>
 
-                <Box className={classes.metadataSection}>
-                  <Typography
-                    className={`${classes.metadataTitle} ${classes.expandedSectionTitle}`}
-                  >
-                    Metadata
-                  </Typography>
+            <Box className={classes.metadataSection}>
+              <Typography
+                className={`${classes.metadataTitle} ${classes.expandedSectionTitle}`}
+              >
+                Metadata
+              </Typography>
 
-                  <Box className={classes.metadataBox}>
-                    <Box className={classes.metadataGrid}>
-                      <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>Type:</span>
-                        <span className={classes.metadataValue}>
-                          {event.type}
-                        </span>
-                      </Box>
+              <Box className={classes.metadataBox}>
+                <Box className={classes.metadataGrid}>
+                  <Box className={classes.metadataItem}>
+                    <span className={classes.metadataKey}>Type:</span>
+                    <span className={classes.metadataValue}>{event.type}</span>
+                  </Box>
 
-                      <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>Reason:</span>
-                        <span className={classes.metadataValue}>
-                          {event.reason}
-                        </span>
-                      </Box>
+                  <Box className={classes.metadataItem}>
+                    <span className={classes.metadataKey}>Reason:</span>
+                    <span className={classes.metadataValue}>
+                      {event.reason}
+                    </span>
+                  </Box>
 
-                      <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>
-                          Object Kind:
-                        </span>
-                        <span className={classes.metadataValue}>
-                          {event.metadata?.objectKind}
-                        </span>
-                      </Box>
+                  <Box className={classes.metadataItem}>
+                    <span className={classes.metadataKey}>Object Kind:</span>
+                    <span className={classes.metadataValue}>
+                      {event.metadata?.objectKind}
+                    </span>
+                  </Box>
 
-                      <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>
-                          Object Name:
-                        </span>
-                        <span className={classes.metadataValue}>
-                          {event.metadata?.objectName}
-                        </span>
-                      </Box>
+                  <Box className={classes.metadataItem}>
+                    <span className={classes.metadataKey}>Object Name:</span>
+                    <span className={classes.metadataValue}>
+                      {event.metadata?.objectName}
+                    </span>
+                  </Box>
 
-                      <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>
-                          Object Namespace:
-                        </span>
-                        <span className={classes.metadataValue}>
-                          {event.metadata?.objectNamespace}
-                        </span>
-                      </Box>
+                  <Box className={classes.metadataItem}>
+                    <span className={classes.metadataKey}>
+                      Object Namespace:
+                    </span>
+                    <span className={classes.metadataValue}>
+                      {event.metadata?.objectNamespace}
+                    </span>
+                  </Box>
 
-                      <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>
-                          Component Name:
-                        </span>
-                        <span className={classes.metadataValue}>
-                          {event.metadata?.componentName ?? componentName}
-                        </span>
-                      </Box>
+                  <Box className={classes.metadataItem}>
+                    <span className={classes.metadataKey}>Component Name:</span>
+                    <span className={classes.metadataValue}>
+                      {event.metadata?.componentName ?? componentName}
+                    </span>
+                  </Box>
 
-                      <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>
-                          Component UID:
-                        </span>
-                        <span className={classes.metadataValue}>
-                          {event.metadata?.componentUid}
-                        </span>
-                      </Box>
+                  <Box className={classes.metadataItem}>
+                    <span className={classes.metadataKey}>Component UID:</span>
+                    <span className={classes.metadataValue}>
+                      {event.metadata?.componentUid}
+                    </span>
+                  </Box>
 
-                      <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>
-                          Project Name:
-                        </span>
-                        <span className={classes.metadataValue}>
-                          {event.metadata?.projectName ?? projectName}
-                        </span>
-                      </Box>
+                  <Box className={classes.metadataItem}>
+                    <span className={classes.metadataKey}>Project Name:</span>
+                    <span className={classes.metadataValue}>
+                      {event.metadata?.projectName ?? projectName}
+                    </span>
+                  </Box>
 
-                      <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>
-                          Project UID:
-                        </span>
-                        <span className={classes.metadataValue}>
-                          {event.metadata?.projectUid}
-                        </span>
-                      </Box>
+                  <Box className={classes.metadataItem}>
+                    <span className={classes.metadataKey}>Project UID:</span>
+                    <span className={classes.metadataValue}>
+                      {event.metadata?.projectUid}
+                    </span>
+                  </Box>
 
-                      <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>
-                          Environment Name:
-                        </span>
-                        <span className={classes.metadataValue}>
-                          {event.metadata?.environmentName ?? environmentName}
-                        </span>
-                      </Box>
+                  <Box className={classes.metadataItem}>
+                    <span className={classes.metadataKey}>
+                      Environment Name:
+                    </span>
+                    <span className={classes.metadataValue}>
+                      {event.metadata?.environmentName ?? environmentName}
+                    </span>
+                  </Box>
 
-                      <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>
-                          Environment UID:
-                        </span>
-                        <span className={classes.metadataValue}>
-                          {event.metadata?.environmentUid}
-                        </span>
-                      </Box>
+                  <Box className={classes.metadataItem}>
+                    <span className={classes.metadataKey}>
+                      Environment UID:
+                    </span>
+                    <span className={classes.metadataValue}>
+                      {event.metadata?.environmentUid}
+                    </span>
+                  </Box>
 
-                      <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>Namespace:</span>
-                        <span className={classes.metadataValue}>
-                          {event.metadata?.namespaceName}
-                        </span>
-                      </Box>
-                    </Box>
+                  <Box className={classes.metadataItem}>
+                    <span className={classes.metadataKey}>Namespace:</span>
+                    <span className={classes.metadataValue}>
+                      {event.metadata?.namespaceName}
+                    </span>
                   </Box>
                 </Box>
               </Box>
-            </Collapse>
-          </TableCell>
-        </TableRow>
+            </Box>
+          </Box>
+        </Collapse>
       )}
-    </>
+    </Box>
   );
 };

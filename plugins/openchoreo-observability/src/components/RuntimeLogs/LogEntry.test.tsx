@@ -1,6 +1,6 @@
+import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Table, TableBody } from '@material-ui/core';
 import { LogEntry } from './LogEntry';
 import { LogEntryField } from './types';
 import { LogEntry as LogEntryType } from './types';
@@ -34,21 +34,23 @@ const sampleLog: LogEntryType = {
 function renderLogEntry(
   overrides: Partial<React.ComponentProps<typeof LogEntry>> = {},
 ) {
-  const defaultProps = {
-    log: sampleLog,
-    selectedFields: allFields,
-    environmentName: 'development',
-    projectName: 'my-project',
-    componentName: 'api-service',
+  // Expansion is now controlled by the parent (via useRowExpansion in the
+  // real LogsTable); this tiny harness mimics that so the click-to-expand
+  // tests below still exercise the round-trip.
+  const Harness = () => {
+    const [expanded, setExpanded] = useState(false);
+    const defaultProps = {
+      log: sampleLog,
+      selectedFields: allFields,
+      environmentName: 'development',
+      projectName: 'my-project',
+      componentName: 'api-service',
+      expanded,
+      onToggleExpand: () => setExpanded(prev => !prev),
+    };
+    return <LogEntry {...defaultProps} {...overrides} />;
   };
-
-  return render(
-    <Table>
-      <TableBody>
-        <LogEntry {...defaultProps} {...overrides} />
-      </TableBody>
-    </Table>,
-  );
+  return render(<Harness />);
 }
 
 // ---- Tests ----

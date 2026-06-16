@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Accordion,
   AccordionDetails,
@@ -11,6 +11,11 @@ import { makeStyles } from '@material-ui/core/styles';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { Alert } from '@material-ui/lab';
 import { useApi } from '@backstage/core-plugin-api';
+import { VirtualizedLogList } from '@openchoreo/backstage-plugin-react';
+import {
+  isStepLive,
+  isTerminalStatus,
+} from '@openchoreo/backstage-plugin-common';
 import { genericWorkflowsClientApiRef } from '../../api';
 import { useSelectedNamespace } from '../../context';
 import { WorkflowRunStatusChip } from '../WorkflowRunStatusChip';
@@ -52,7 +57,6 @@ const useStyles = makeStyles(theme => ({
     fontSize: '12px',
     lineHeight: '1.6',
     minHeight: '300px',
-    overflow: 'auto',
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: theme.shape.borderRadius,
     whiteSpace: 'pre-wrap',
@@ -64,7 +68,10 @@ const useStyles = makeStyles(theme => ({
     fontFamily:
       'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
     lineHeight: '1.6',
-    marginBottom: theme.spacing(0.5),
+    // Padding (not margin) so the row's spacing is included in the height
+    // measured by VirtualizedLogList.
+    paddingBottom: theme.spacing(0.5),
+    whiteSpace: 'pre-wrap',
   },
   noLogsText: {
     fontSize: '12px',
@@ -109,14 +116,6 @@ export const WorkflowRunStepLogs = ({
   const [logsByStep, setLogsByStep] = useState<Record<string, string[]>>({});
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState<string | null>(null);
-
-  const terminalStatuses = useMemo(
-    () => ['completed', 'failed', 'succeeded', 'error'],
-    [],
-  );
-
-  const isTerminalStatus = (status?: string) =>
-    status ? terminalStatuses.includes(status.toLowerCase()) : false;
 
   // Fetch workflow run status with polling
   useEffect(() => {
@@ -269,6 +268,13 @@ export const WorkflowRunStepLogs = ({
   const activeLogs: string[] =
     (activeStepName && logsByStep[activeStepName]) || [];
 
+  // The active step's logs grow while it is running, so pin the viewport to
+  // the newest line (follow-tail) only for a live step.
+  const activeStep = statusState.steps.find(
+    step => step.name === activeStepName,
+  );
+  const isActiveStepLive = isStepLive(activeStep, statusState.status);
+
   return (
     <Box>
       <Box className={classes.stepsContainer}>
@@ -313,13 +319,24 @@ export const WorkflowRunStepLogs = ({
                     </Typography>
                   )}
 
-                  {activeLogs.map((line, index) => (
-                    <Box key={index} style={{ marginBottom: '4px' }}>
-                      <Typography variant="body2" className={classes.logText}>
-                        {line}
-                      </Typography>
-                    </Box>
-                  ))}
+                  {activeLogs.length > 0 && (
+                    <VirtualizedLogList
+                      itemCount={activeLogs.length}
+                      maxHeight={600}
+                      estimatedRowHeight={20}
+                      followTail={isActiveStepLive}
+                      // Include the step name so switching steps invalidates
+                      // tanstack's per-key measurement cache — otherwise a
+                      // short-line step's cached row heights would be reused
+                      // for the next step's wrapped output.
+                      getItemKey={index => `${activeStepName}:${index}`}
+                      renderRow={index => (
+                        <Typography variant="body2" className={classes.logText}>
+                          {activeLogs[index]}
+                        </Typography>
+                      )}
+                    />
+                  )}
                 </Box>
               ) : (
                 <Typography variant="body2" className={classes.noLogsText}>

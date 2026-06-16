@@ -20,34 +20,44 @@ export const useTracesTableStyles = makeStyles((theme: Theme) => ({
     marginBottom: theme.spacing(0),
     paddingBottom: theme.spacing(1),
   },
-  tableContainer: {
-    maxHeight: 'calc(100vh - 320px)',
-    overflowY: 'auto',
-    overflowX: 'hidden',
-    width: '100%',
-  },
-  table: {
-    width: '100%',
-    tableLayout: 'fixed',
-  },
-  headerCell: {
-    fontWeight: 'bold',
-    backgroundColor: theme.palette.background.paper,
+  // Div-based header row, rendered inside the virtualized scroll container so
+  // it shares the rows' content width (no scrollbar-gutter misalignment).
+  // Sticky positioning replicates the original `<TableHead stickyHeader>`.
+  headerRow: {
+    display: 'flex',
+    alignItems: 'center',
     position: 'sticky',
     top: 0,
     zIndex: 1,
+    backgroundColor: theme.palette.background.paper,
+    borderBottom: `1px solid ${theme.palette.grey[100]}`,
+  },
+  headerColumn: {
+    fontWeight: 'bold',
     fontSize: '0.75rem',
-    padding: '4px 8px !important',
+    padding: '12px 8px',
+    minWidth: 0,
+    boxSizing: 'border-box',
   },
   traceRow: {
     cursor: 'pointer',
+    borderBottom: `1px solid ${theme.palette.grey[100]}`,
     '&:hover': {
       backgroundColor: theme.palette.action.hover,
     },
-    '& > td': {
-      padding: '4px 8px !important',
-      fontSize: '0.75rem',
-    },
+  },
+  // Flex container replacing the former <TableRow>. `alignItems: 'center'`
+  // mirrors the default `vertical-align: middle` of MUI table cells.
+  traceRowMain: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
+  },
+  cell: {
+    padding: '4px 8px',
+    minWidth: 0,
+    boxSizing: 'border-box',
+    fontSize: '0.75rem',
   },
   expandedRow: {
     backgroundColor: theme.palette.action.selected,

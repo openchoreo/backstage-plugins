@@ -282,6 +282,9 @@ export type {
   AIRCAAgentComponents,
 } from '@openchoreo/openchoreo-client-node';
 
+// Workflow status helpers (shared by build/workflow log + event tabs)
+export { isTerminalStatus, isStepLive } from './workflowStatus';
+
 // Observability types — aligned with /api/v1/logs/query response schema
 import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
 

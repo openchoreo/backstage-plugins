@@ -10,6 +10,27 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
   ),
 }));
 
+// @tanstack/react-virtual needs real DOM layout (absent in jsdom) to decide
+// what to render, so mock useVirtualizer with a stand-in that returns every
+// item. Real windowing is the library's concern and is covered by the
+// VirtualizedLogList tests in the react plugin.
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: (args: any) => {
+    const items = Array.from({ length: args.count }).map((_, index) => ({
+      index,
+      key: args.getItemKey ? args.getItemKey(index) : index,
+      start: 0,
+      size: 36,
+    }));
+    return {
+      getVirtualItems: () => items,
+      getTotalSize: () => args.count * 36,
+      measureElement: () => {},
+      scrollToIndex: () => {},
+    };
+  },
+}));
+
 function makeEvent(
   overrides: Partial<WirelogEvent['flow']> = {},
 ): WirelogEvent {

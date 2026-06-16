@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Accordion,
   AccordionDetails,
@@ -15,6 +15,7 @@ import {
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { Alert } from '@material-ui/lab';
 import { useApi } from '@backstage/core-plugin-api';
+import { isTerminalStatus } from '@openchoreo/backstage-plugin-common';
 import type {
   ModelsBuild,
   WorkflowRunStatusResponse,
@@ -48,14 +49,6 @@ export const EventsContent = ({ build }: EventsContentProps) => {
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [isObservabilityNotConfigured, setIsObservabilityNotConfigured] =
     useState(false);
-
-  const terminalStatuses = useMemo(
-    () => ['completed', 'failed', 'succeeded', 'error'],
-    [],
-  );
-
-  const isTerminalStatus = (status?: string) =>
-    status ? terminalStatuses.includes(status.toLowerCase()) : false;
 
   // Fetch workflow run status (including steps and logURL) with polling
   useEffect(() => {
