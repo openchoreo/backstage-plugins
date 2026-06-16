@@ -177,12 +177,97 @@ const wirelogsEntityContent = EntityContentBlueprint.make({
 });
 
 /**
+ * System-page (Project) entity tabs (kind:system). Same gating pattern
+ * as component-page tabs: lazy load + observability feature gate. The
+ * `/logs` tab uses `ObservabilityProjectRuntimeLogsPage` rather than the
+ * component-scoped runtime-logs page.
+ */
+const projectRuntimeLogsEntityContent = EntityContentBlueprint.make({
+  name: 'project-runtime-logs',
+  params: {
+    path: '/logs',
+    title: 'Logs',
+    filter: 'kind:system',
+    loader: () =>
+      import(
+        './components/RuntimeLogs/ObservabilityProjectRuntimeLogsPage'
+      ).then(m => (
+        <FeatureGatedContent feature="observability">
+          <m.ObservabilityProjectRuntimeLogsPage />
+        </FeatureGatedContent>
+      )),
+  },
+});
+
+const tracesEntityContent = EntityContentBlueprint.make({
+  name: 'traces',
+  params: {
+    path: '/traces',
+    title: 'Traces',
+    filter: 'kind:system',
+    loader: () =>
+      import('./components/Traces/ObservabilityTracesPage').then(m => (
+        <FeatureGatedContent feature="observability">
+          <m.ObservabilityTracesPage />
+        </FeatureGatedContent>
+      )),
+  },
+});
+
+const projectIncidentsEntityContent = EntityContentBlueprint.make({
+  name: 'project-incidents',
+  params: {
+    path: '/incidents',
+    title: 'Incidents',
+    filter: 'kind:system',
+    loader: () =>
+      import('./components/Incidents/ObservabilityProjectIncidentsPage').then(
+        m => (
+          <FeatureGatedContent feature="observability">
+            <m.ObservabilityProjectIncidentsPage />
+          </FeatureGatedContent>
+        ),
+      ),
+  },
+});
+
+const rcaReportsEntityContent = EntityContentBlueprint.make({
+  name: 'rca-reports',
+  params: {
+    path: '/rca-reports',
+    title: 'RCA Reports',
+    filter: 'kind:system',
+    loader: () =>
+      import('./components/RCA/RCAPage').then(m => (
+        <FeatureGatedContent feature="observability">
+          <m.RCAPage />
+        </FeatureGatedContent>
+      )),
+  },
+});
+
+const costAnalysisEntityContent = EntityContentBlueprint.make({
+  name: 'cost-analysis',
+  params: {
+    path: '/cost-analysis',
+    title: 'Cost Analysis',
+    filter: 'kind:system',
+    loader: () =>
+      import('./components/CostAnalysis').then(m => (
+        <FeatureGatedContent feature="observability">
+          <m.CostAnalysisPage />
+        </FeatureGatedContent>
+      )),
+  },
+});
+
+/**
  * NFS entry point for the OpenChoreo Observability plugin.
  *
  * Registers the three observability backend clients, the log-row-action
- * registry API, and the component-page entity tabs (Logs, Events,
- * Metrics, Alerts, Wirelogs). System-page tabs (ProjectRuntimeLogs,
- * Traces, Incidents, RCA, CostAnalysis) follow in a separate commit.
+ * registry API, the component-page entity tabs (Logs, Events, Metrics,
+ * Alerts, Wirelogs) and the system-page entity tabs (Logs, Traces,
+ * Incidents, RCA Reports, Cost Analysis).
  */
 export default createFrontendPlugin({
   pluginId: 'openchoreo-observability',
@@ -197,5 +282,10 @@ export default createFrontendPlugin({
     metricsEntityContent,
     alertsEntityContent,
     wirelogsEntityContent,
+    projectRuntimeLogsEntityContent,
+    tracesEntityContent,
+    projectIncidentsEntityContent,
+    rcaReportsEntityContent,
+    costAnalysisEntityContent,
   ],
 });
