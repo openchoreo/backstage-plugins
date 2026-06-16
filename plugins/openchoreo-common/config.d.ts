@@ -77,6 +77,15 @@ export interface Config {
          * @visibility frontend
          */
         enabled?: boolean;
+
+        /**
+         * OAuth scopes to request during sign-in and session refresh.
+         * Must match the scopes configured in auth.providers.openchoreo-auth.<env>.scope.
+         * Exposed here so the frontend OAuth2 client uses the same scope set as the backend.
+         * Example: 'openid profile email groups offline_access'
+         * @visibility frontend
+         */
+        scope?: string;
       };
 
       /**

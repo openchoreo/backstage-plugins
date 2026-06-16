@@ -21,6 +21,7 @@
     "pluginId": "auth",
     "pluginPackage": "@backstage/plugin-auth-backend"
   },
+  "configSchema": "config.d.ts",
   "scripts": {
     "start": "backstage-cli package start",
     "build": "backstage-cli package build",
@@ -47,6 +48,7 @@
     "@types/passport-oauth2": "1.8.0"
   },
   "files": [
-    "dist"
+    "dist",
+    "config.d.ts"
   ]
 }
