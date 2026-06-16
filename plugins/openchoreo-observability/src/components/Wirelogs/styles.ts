@@ -123,7 +123,7 @@ export const useWirelogsTableStyles = makeStyles(theme => ({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     color: theme.palette.text.secondary,
-    padding: theme.spacing(0.75, 1.5),
+    padding: theme.spacing(1.5),
     whiteSpace: 'nowrap',
     minWidth: 0,
     boxSizing: 'border-box',
