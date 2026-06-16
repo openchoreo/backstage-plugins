@@ -262,7 +262,16 @@ const legacyRoot = convertLegacyAppRoot(
 
 const app = createApp({
   features: [
+    // `...legacyRoot` re-emits each legacy plugin's `apis: [...]` array as
+    // ApiBlueprint extensions under the legacy plugin's own pluginId
+    // (collectLegacyRoutes). The NFS api-factory registry resolves
+    // same-pluginId factories last-write-wins, so the override features
+    // below MUST come after `...legacyRoot` to win the contest. Otherwise
+    // our custom catalog-graph relations, entity-presentation kind icons,
+    // and scaffolder form-decorator override get silently overwritten by
+    // upstream defaults at startup.
     legacyAppOptions,
+    ...legacyRoot,
     customAppModule,
     upstreamScaffolderPluginAlpha,
     catalogGraphPluginAlpha,
@@ -273,7 +282,6 @@ const app = createApp({
     openchoreoObservabilityPluginAlpha,
     openchoreoWorkflowsPluginAlpha,
     platformEngineerCorePluginAlpha,
-    ...legacyRoot,
   ],
   bindRoutes({ bind }) {
     bind(catalogPlugin.externalRoutes, {
