@@ -509,6 +509,11 @@ export {
   pickRangeForAge,
 } from './utils/timeUtils';
 export {
+  buildYamlString,
+  buildYamlData,
+  generateDefaults,
+} from './utils/jsonSchemaYaml';
+export {
   deepCompareObjects,
   formatChangeValue,
   getChangeStats,
