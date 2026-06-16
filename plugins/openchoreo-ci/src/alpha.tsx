@@ -26,6 +26,7 @@ const workflowsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/workflows',
     title: 'Build',
+    filter: 'kind:component',
     loader: () => import('./components/Workflows').then(m => <m.Workflows />),
   },
 });
