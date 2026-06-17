@@ -60,6 +60,20 @@ export const TraitConfigToggle = ({
   );
 
   /**
+   * Drop any scheduled debounced flush and forget the buffered parse
+   * result.  Called when we no longer want the pending value to reach
+   * the parent — e.g. when the YAML has just become invalid, so the
+   * last-known-good parse no longer represents the editor's content.
+   */
+  const cancelPendingFlush = useCallback(() => {
+    if (flushTimer.current !== null) {
+      clearTimeout(flushTimer.current);
+      flushTimer.current = null;
+    }
+    pendingParsed.current = null;
+  }, []);
+
+  /**
    * Send the latest parsed YAML to the parent right now, skipping the
    * debounce wait.
    *
@@ -72,16 +86,12 @@ export const TraitConfigToggle = ({
    * a no-op.
    */
   const sendPendingChangeNow = useCallback(() => {
-    if (flushTimer.current !== null) {
-      clearTimeout(flushTimer.current);
-      flushTimer.current = null;
-    }
     const buffered = pendingParsed.current;
+    cancelPendingFlush();
     if (buffered !== null) {
-      pendingParsed.current = null;
       onChange(buffered);
     }
-  }, [onChange]);
+  }, [onChange, cancelPendingFlush]);
 
   // Clear the debounce timer on unmount so we don't onChange into a
   // gone-away parent.
@@ -148,9 +158,12 @@ export const TraitConfigToggle = ({
       } else {
         setYamlError('Invalid YAML: must be a valid YAML object');
         onValidityChange?.(false);
+        // The last valid parse no longer matches the editor text — drop
+        // it so a pending debounce can't push stale data to the parent.
+        cancelPendingFlush();
       }
     },
-    [onChange, onValidityChange, parseYaml],
+    [onChange, onValidityChange, parseYaml, cancelPendingFlush],
   );
 
   /** Flush valid YAML to the parent when focus leaves the editor container. */
