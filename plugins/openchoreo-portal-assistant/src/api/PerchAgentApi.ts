@@ -28,7 +28,6 @@ export type PrefetchedLogEntry = {
 };
 
 /**
-/**
  * Discriminator the frontend launchers send to the agent so it can
  * layer in case-specific guidance.
  *
@@ -38,8 +37,16 @@ export type PrefetchedLogEntry = {
  *   up in returned log rows (or when ``pinnedLogTraceId`` is set
  *   from the row-level Investigate button) — there is no
  *   trace-page launcher; users start from the Logs tab.
+ * - ``dependency_pending``: Deploy tab / K8s-artifacts investigation
+ *   of a component stuck NotReady because an outbound endpoint
+ *   connection can't resolve (the depended-on component is undeployed
+ *   or not ready). The agent reads the binding's pending connections
+ *   and explains why each named dependency is down plus how to recover.
  */
-export type ChatCaseType = 'build_failure' | 'runtime_debug';
+export type ChatCaseType =
+  | 'build_failure'
+  | 'runtime_debug'
+  | 'dependency_pending';
 
 export type ChatScope = {
   namespace?: string;

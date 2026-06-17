@@ -13,6 +13,35 @@ export type Selection =
   | { kind: 'setup' }
   | null;
 
+/**
+ * Scope handed to the host-app-supplied "investigate" slot when a
+ * deployment is in a problem state. Mirrors the render-prop pattern used
+ * for runtime-log debugging (``RenderLogRowAction`` in the observability
+ * plugin): this plugin owns the shape and decides *where* the affordance
+ * renders, while ``packages/app`` injects the actual assistant button —
+ * so the openchoreo plugin keeps no dependency on portal-assistant.
+ */
+export interface InvestigateScope {
+  /** Control-plane namespace of the component. */
+  namespace?: string;
+  /** Project the component belongs to. */
+  project?: string;
+  /** The component whose deployment is in trouble. */
+  component: string;
+  /** Environment resource name the binding is in. */
+  environment?: string;
+  /**
+   * Which assistant flow to launch: ``dependency_pending`` when the cause
+   * is an unresolved connection, otherwise ``runtime_debug``.
+   */
+  caseType: 'dependency_pending' | 'runtime_debug';
+  /** Human-readable deployment status, e.g. ``Pending`` / ``Failed``. */
+  status: string;
+}
+
+/** Render-prop slot for the deploy-panel investigate affordance. */
+export type RenderInvestigateAction = (scope: InvestigateScope) => ReactNode;
+
 interface EnvironmentsContextValue {
   /** All environments loaded from the API */
   environments: Environment[];
@@ -71,6 +100,13 @@ interface EnvironmentsContextValue {
   selection: Selection;
   /** Setter for the canvas selection. */
   setSelection: (next: Selection) => void;
+  /**
+   * Optional host-app slot rendered next to the status badge when a
+   * deployment is pending/failed. Supplied by ``packages/app`` so the
+   * plugin stays free of any portal-assistant coupling. Undefined → no
+   * button is shown.
+   */
+  renderInvestigateAction?: RenderInvestigateAction;
 }
 
 const EnvironmentsContext = createContext<EnvironmentsContextValue | null>(

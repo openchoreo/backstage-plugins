@@ -75,6 +75,7 @@ import {
 
 import {
   Environments,
+  type RenderInvestigateAction,
   CellDiagram,
   DeploymentStatusCard,
   RuntimeHealthCard,
@@ -117,6 +118,7 @@ import { Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
 import {
   FailedBuildSnackbar,
   InvestigateLogButton,
+  InvestigateDependencyButton,
 } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 import {
   WorkflowRunsContent,
@@ -158,6 +160,14 @@ const renderInvestigateLogAction: RenderLogRowAction = (
   log,
   getLogsSnapshot,
 ) => <InvestigateLogButton log={log} getLogsSnapshot={getLogsSnapshot} />;
+
+// Same pattern for the deploy panel: the openchoreo plugin exposes a
+// render-prop slot for a status-aware "Investigate with AI" button and the
+// shell injects perch's button here, so the openchoreo plugin owns no
+// dependency on perch.
+const renderInvestigateDependencyAction: RenderInvestigateAction = scope => (
+  <InvestigateDependencyButton {...scope} />
+);
 
 const PLATFORM_KIND_DISPLAY_NAMES: Record<string, string> = {
   domain: 'Namespace',
@@ -337,7 +347,9 @@ const serviceEntityPage = (
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/environments" title="Deploy">
-      <Environments />
+      <Environments
+        renderInvestigateAction={renderInvestigateDependencyAction}
+      />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/runtime-logs" title="Logs">
@@ -444,7 +456,9 @@ const genericComponentEntityPage = (
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/environments" title="Deploy">
-      <Environments />
+      <Environments
+        renderInvestigateAction={renderInvestigateDependencyAction}
+      />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/runtime-logs" title="Logs">

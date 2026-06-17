@@ -6,6 +6,13 @@ export { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
 // at runtime when entity tabs (Environments, CellDiagram) try to useApi.
 export { OpenChoreoClient } from './api/OpenChoreoClient';
 export { Environments } from './components/Environments/Environments';
+// Render-prop slot for injecting the assistant "Investigate" button into
+// the deploy panel from the host app (keeps this plugin free of any
+// portal-assistant dependency).
+export type {
+  RenderInvestigateAction,
+  InvestigateScope,
+} from './components/Environments/EnvironmentsContext';
 export { ResourceEnvironments } from './components/ResourceEnvironments';
 export { CellDiagram } from './components/CellDiagram/CellDiagram';
 export {
