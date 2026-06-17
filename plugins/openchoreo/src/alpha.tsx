@@ -122,7 +122,9 @@ const cellDiagramEntityContent = EntityContentBlueprint.make({
     title: 'Cell Diagram',
     filter: 'kind:system',
     loader: () =>
-      import('./components/CellDiagram/CellDiagram').then(m => <m.CellDiagram />),
+      import('./components/CellDiagram/CellDiagram').then(m => (
+        <m.CellDiagram />
+      )),
   },
 });
 

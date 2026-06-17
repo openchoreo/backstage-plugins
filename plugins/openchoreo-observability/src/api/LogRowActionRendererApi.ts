@@ -33,8 +33,7 @@ export class DefaultLogRowActionRendererApi implements LogRowActionRendererApi {
   }
 
   static create(options: { renderers: RenderLogRowAction[] }) {
-    const render: RenderLogRowAction =
-      options.renderers[0] ?? (() => null);
+    const render: RenderLogRowAction = options.renderers[0] ?? (() => null);
     return new DefaultLogRowActionRendererApi(render);
   }
 }

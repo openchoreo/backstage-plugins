@@ -54,36 +54,36 @@ export function OpenChoreoScaffolderPage() {
           ReviewStepComponent: CustomReviewStep,
         }}
       >
-      <ScaffolderFieldExtensions>
-        <ComponentNamePickerFieldExtension />
-        <ResourceNamePickerFieldExtension />
-        <ProjectNamespaceFieldExtension />
-        <NamespaceEntityPickerFieldExtension />
-        <DeploymentPipelinePickerFieldExtension />
-        <BuildTemplatePickerFieldExtension />
-        <BuildTemplateParametersFieldExtension />
-        <BuildWorkflowPickerFieldExtension />
-        <BuildWorkflowParametersFieldExtension />
-        <TraitsFieldExtension />
-        <SwitchFieldExtension />
-        <AdvancedConfigurationFieldExtension />
-        <DeploymentSourcePickerFieldExtension />
-        <BuildAndDeployFieldExtension />
-        <ContainerImageFieldExtension />
-        <ComponentTypeYamlEditorFieldExtension />
-        <TraitYamlEditorFieldExtension />
-        <ClusterComponentTypeYamlEditorFieldExtension />
-        <ClusterResourceTypeYamlEditorFieldExtension />
-        <ResourceTypeYamlEditorFieldExtension />
-        <ResourceParametersFieldExtension />
-        <ClusterTraitYamlEditorFieldExtension />
-        <ComponentWorkflowYamlEditorFieldExtension />
-        <ClusterWorkflowYamlEditorFieldExtension />
-        <EnvironmentFormWithYamlFieldExtension />
-        <DeploymentPipelineFormWithYamlFieldExtension />
-        <GitSourceFieldExtension />
-        <WorkloadDetailsFieldExtension />
-      </ScaffolderFieldExtensions>
+        <ScaffolderFieldExtensions>
+          <ComponentNamePickerFieldExtension />
+          <ResourceNamePickerFieldExtension />
+          <ProjectNamespaceFieldExtension />
+          <NamespaceEntityPickerFieldExtension />
+          <DeploymentPipelinePickerFieldExtension />
+          <BuildTemplatePickerFieldExtension />
+          <BuildTemplateParametersFieldExtension />
+          <BuildWorkflowPickerFieldExtension />
+          <BuildWorkflowParametersFieldExtension />
+          <TraitsFieldExtension />
+          <SwitchFieldExtension />
+          <AdvancedConfigurationFieldExtension />
+          <DeploymentSourcePickerFieldExtension />
+          <BuildAndDeployFieldExtension />
+          <ContainerImageFieldExtension />
+          <ComponentTypeYamlEditorFieldExtension />
+          <TraitYamlEditorFieldExtension />
+          <ClusterComponentTypeYamlEditorFieldExtension />
+          <ClusterResourceTypeYamlEditorFieldExtension />
+          <ResourceTypeYamlEditorFieldExtension />
+          <ResourceParametersFieldExtension />
+          <ClusterTraitYamlEditorFieldExtension />
+          <ComponentWorkflowYamlEditorFieldExtension />
+          <ClusterWorkflowYamlEditorFieldExtension />
+          <EnvironmentFormWithYamlFieldExtension />
+          <DeploymentPipelineFormWithYamlFieldExtension />
+          <GitSourceFieldExtension />
+          <WorkloadDetailsFieldExtension />
+        </ScaffolderFieldExtensions>
       </ScaffolderPage>
     </ScaffolderLayout>
   );

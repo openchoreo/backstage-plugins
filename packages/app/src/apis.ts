@@ -136,5 +136,4 @@ export const apis: AnyApiFactory[] = [
     factory: ({ discoveryApi, fetchApi }) =>
       new PerchAgentClient({ discoveryApi, fetchApi }),
   }),
-
 ];
