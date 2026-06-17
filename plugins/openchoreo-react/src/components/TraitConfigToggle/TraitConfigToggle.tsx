@@ -1,99 +1,20 @@
-import { useState, useCallback, useRef, ReactNode } from 'react';
+import { useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { FormYamlToggle } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
 import YAML from 'yaml';
 import { YamlEditor } from '../YamlEditor';
+import { buildYamlString } from '../../utils/jsonSchemaYaml';
 import { useStyles } from './styles';
 
 /**
- * Generate a default object from a JSON Schema by walking its properties
- * and using `default` values where specified, or type-appropriate placeholders.
+ * How long to coalesce keystrokes before pushing the parsed YAML to the
+ * parent.  The parent typically re-runs ajv schema validation in a
+ * useEffect keyed on `parameters`, which is non-trivial for big schemas —
+ * debouncing keeps typing responsive while still flushing well before the
+ * user can act on a disabled Save/Add button (focus loss flushes
+ * immediately, see `handleYamlBlur`).
  */
-function generateDefaults(schema: JSONSchema7): Record<string, any> {
-  if (schema.type !== 'object' || !schema.properties) {
-    return {};
-  }
-
-  const result: Record<string, any> = {};
-
-  for (const [key, propDef] of Object.entries(schema.properties)) {
-    if (typeof propDef === 'boolean') continue;
-
-    if (propDef.default !== undefined) {
-      result[key] = propDef.default;
-    } else {
-      switch (propDef.type) {
-        case 'string':
-          result[key] = '';
-          break;
-        case 'number':
-        case 'integer':
-          result[key] = 0;
-          break;
-        case 'boolean':
-          result[key] = false;
-          break;
-        case 'array':
-          result[key] = [];
-          break;
-        case 'object':
-          result[key] = generateDefaults(propDef);
-          break;
-        default:
-          result[key] = null;
-          break;
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
- * Merge schema defaults with actual form data so that every schema property
- * appears in the YAML, but user-provided values take precedence.
- * Strips undefined values from formData so that cleared fields fall back
- * to schema defaults rather than overwriting them with undefined.
- */
-function buildYamlData(
-  schema: JSONSchema7 | undefined,
-  formData: Record<string, any>,
-): Record<string, any> {
-  if (!schema) return formData || {};
-  const defaults = generateDefaults(schema);
-  const cleanData = Object.fromEntries(
-    Object.entries(formData || {}).filter(([_, v]) => v !== undefined),
-  );
-  return { ...defaults, ...cleanData };
-}
-
-/**
- * Build a YAML string from merged data, annotating required fields with
- * an inline `# required` comment so the user knows what must be filled in.
- */
-function buildYamlString(
-  schema: JSONSchema7 | undefined,
-  formData: Record<string, any>,
-): string {
-  const data = buildYamlData(schema, formData);
-  const doc = new YAML.Document(data);
-
-  if (schema?.required && doc.contents && 'items' in doc.contents) {
-    const requiredSet = new Set(schema.required);
-    for (const item of (doc.contents as YAML.YAMLMap).items) {
-      if (
-        YAML.isScalar(item.key) &&
-        typeof item.key.value === 'string' &&
-        requiredSet.has(item.key.value) &&
-        YAML.isScalar(item.value)
-      ) {
-        item.value.comment = ' required';
-      }
-    }
-  }
-
-  return doc.toString({ indent: 2 });
-}
+const FLUSH_DEBOUNCE_MS = 150;
 
 export interface TraitConfigToggleProps {
   schema?: JSONSchema7;
@@ -118,6 +39,10 @@ export const TraitConfigToggle = ({
   );
   const [yamlError, setYamlError] = useState<string | undefined>();
 
+  /** Pending debounced flush — timer id and the parsed value waiting to ship. */
+  const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingParsed = useRef<Record<string, any> | null>(null);
+
   /** Try to parse YAML content; returns the parsed object or undefined on failure. */
   const parseYaml = useCallback(
     (content: string): Record<string, any> | undefined => {
@@ -134,6 +59,48 @@ export const TraitConfigToggle = ({
     [],
   );
 
+  /**
+   * Drop any scheduled debounced flush and forget the buffered parse
+   * result.  Called when we no longer want the pending value to reach
+   * the parent — e.g. when the YAML has just become invalid, so the
+   * last-known-good parse no longer represents the editor's content.
+   */
+  const cancelPendingFlush = useCallback(() => {
+    if (flushTimer.current !== null) {
+      clearTimeout(flushTimer.current);
+      flushTimer.current = null;
+    }
+    pendingParsed.current = null;
+  }, []);
+
+  /**
+   * Send the latest parsed YAML to the parent right now, skipping the
+   * debounce wait.
+   *
+   * Normally `handleYamlChange` waits FLUSH_DEBOUNCE_MS after the last
+   * keystroke before calling `onChange`.  At certain moments — focus
+   * leaving the editor (the user is about to click Save/Add), switching
+   * to form view (the form reads from parent state) — that wait is too
+   * long, so we cancel the timer and call `onChange` immediately with
+   * whatever the latest parse produced.  If no edit is pending, this is
+   * a no-op.
+   */
+  const sendPendingChangeNow = useCallback(() => {
+    const buffered = pendingParsed.current;
+    cancelPendingFlush();
+    if (buffered !== null) {
+      onChange(buffered);
+    }
+  }, [onChange, cancelPendingFlush]);
+
+  // Clear the debounce timer on unmount so we don't onChange into a
+  // gone-away parent.
+  useEffect(() => {
+    return () => {
+      if (flushTimer.current !== null) clearTimeout(flushTimer.current);
+    };
+  }, []);
+
   const handleModeChange = useCallback(
     (newMode: 'form' | 'yaml') => {
       if (newMode === mode) return;
@@ -146,7 +113,8 @@ export const TraitConfigToggle = ({
         // Switching to form — block if YAML is invalid
         const parsed = parseYaml(yamlContent);
         if (parsed) {
-          onChange(parsed);
+          pendingParsed.current = parsed;
+          sendPendingChangeNow();
           setYamlError(undefined);
           onValidityChange?.(true);
         } else {
@@ -161,9 +129,9 @@ export const TraitConfigToggle = ({
       schema,
       formData,
       yamlContent,
-      onChange,
       onValidityChange,
       parseYaml,
+      sendPendingChangeNow,
     ],
   );
 
@@ -174,14 +142,28 @@ export const TraitConfigToggle = ({
       if (parsed) {
         setYamlError(undefined);
         onValidityChange?.(true);
-        // Don't call onChange here — propagate only on blur to avoid
-        // re-rendering the entire parent form on every keystroke.
+        // Coalesce keystrokes — see FLUSH_DEBOUNCE_MS doc.  Blur and mode
+        // switch flush synchronously so disabled-button state can't lag
+        // behind the user.
+        pendingParsed.current = parsed;
+        if (flushTimer.current !== null) clearTimeout(flushTimer.current);
+        flushTimer.current = setTimeout(() => {
+          flushTimer.current = null;
+          if (pendingParsed.current !== null) {
+            const next = pendingParsed.current;
+            pendingParsed.current = null;
+            onChange(next);
+          }
+        }, FLUSH_DEBOUNCE_MS);
       } else {
         setYamlError('Invalid YAML: must be a valid YAML object');
         onValidityChange?.(false);
+        // The last valid parse no longer matches the editor text — drop
+        // it so a pending debounce can't push stale data to the parent.
+        cancelPendingFlush();
       }
     },
-    [onValidityChange, parseYaml],
+    [onChange, onValidityChange, parseYaml, cancelPendingFlush],
   );
 
   /** Flush valid YAML to the parent when focus leaves the editor container. */
@@ -197,12 +179,9 @@ export const TraitConfigToggle = ({
       ) {
         return;
       }
-      const parsed = parseYaml(yamlContent);
-      if (parsed) {
-        onChange(parsed);
-      }
+      sendPendingChangeNow();
     },
-    [yamlContent, parseYaml, onChange],
+    [sendPendingChangeNow],
   );
 
   return (
