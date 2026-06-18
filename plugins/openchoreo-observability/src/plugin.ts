@@ -1,6 +1,6 @@
+import { lazy } from 'react';
 import {
   createPlugin,
-  createRoutableExtension,
   createApiFactory,
   discoveryApiRef,
   fetchApiRef,
@@ -50,109 +50,69 @@ export const openchoreoObservabilityPlugin = createPlugin({
   ],
 });
 
-export const ObservabilityMetrics = openchoreoObservabilityPlugin.provide(
-  createRoutableExtension({
-    name: 'ObservabilityMetrics',
-    component: () =>
-      import('./components/Metrics/ObservabilityMetricsPage').then(
-        m => m.ObservabilityMetricsPage,
-      ),
-    mountPoint: rootRouteRef,
-  }),
+/**
+ * Entity-page tab components. Previously wrapped in
+ * `createRoutableExtension({ mountPoint: rootRouteRef })`, but `rootRouteRef`
+ * is never bound to a real mounted path — these are tab content, not
+ * standalone pages, so the routable wrapper would throw
+ * "Routable extension component was not discovered in the app element tree"
+ * at render time. Exported as `React.lazy` components so the page bundle
+ * still code-splits.
+ */
+export const ObservabilityMetrics = lazy(() =>
+  import('./components/Metrics/ObservabilityMetricsPage').then(m => ({
+    default: m.ObservabilityMetricsPage,
+  })),
 );
 
-export const ObservabilityTraces = openchoreoObservabilityPlugin.provide(
-  createRoutableExtension({
-    name: 'ObservabilityTraces',
-    component: () =>
-      import('./components/Traces/ObservabilityTracesPage').then(
-        m => m.ObservabilityTracesPage,
-      ),
-    mountPoint: rootRouteRef,
-  }),
+export const ObservabilityTraces = lazy(() =>
+  import('./components/Traces/ObservabilityTracesPage').then(m => ({
+    default: m.ObservabilityTracesPage,
+  })),
 );
 
-export const ObservabilityRCA = openchoreoObservabilityPlugin.provide(
-  createRoutableExtension({
-    name: 'ObservabilityRCA',
-    component: () => import('./components/RCA/RCAPage').then(m => m.RCAPage),
-    mountPoint: rootRouteRef,
-  }),
+export const ObservabilityRCA = lazy(() =>
+  import('./components/RCA/RCAPage').then(m => ({ default: m.RCAPage })),
 );
 
-export const ObservabilityRuntimeLogs = openchoreoObservabilityPlugin.provide(
-  createRoutableExtension({
-    name: 'ObservabilityRuntimeLogs',
-    component: () =>
-      import('./components/RuntimeLogs/ObservabilityRuntimeLogsPage').then(
-        m => m.ObservabilityRuntimeLogsPage,
-      ),
-    mountPoint: rootRouteRef,
-  }),
+export const ObservabilityRuntimeLogs = lazy(() =>
+  import('./components/RuntimeLogs/ObservabilityRuntimeLogsPage').then(m => ({
+    default: m.ObservabilityRuntimeLogsPage,
+  })),
 );
 
-export const ObservabilityRuntimeEvents = openchoreoObservabilityPlugin.provide(
-  createRoutableExtension({
-    name: 'ObservabilityRuntimeEvents',
-    component: () =>
-      import('./components/RuntimeEvents/ObservabilityRuntimeEventsPage').then(
-        m => m.ObservabilityRuntimeEventsPage,
-      ),
-    mountPoint: rootRouteRef,
-  }),
+export const ObservabilityRuntimeEvents = lazy(() =>
+  import('./components/RuntimeEvents/ObservabilityRuntimeEventsPage').then(
+    m => ({ default: m.ObservabilityRuntimeEventsPage }),
+  ),
 );
 
-export const ObservabilityProjectRuntimeLogs =
-  openchoreoObservabilityPlugin.provide(
-    createRoutableExtension({
-      name: 'ObservabilityProjectRuntimeLogs',
-      component: () =>
-        import(
-          './components/RuntimeLogs/ObservabilityProjectRuntimeLogsPage'
-        ).then(m => m.ObservabilityProjectRuntimeLogsPage),
-      mountPoint: rootRouteRef,
-    }),
-  );
-
-export const ObservabilityAlerts = openchoreoObservabilityPlugin.provide(
-  createRoutableExtension({
-    name: 'ObservabilityAlerts',
-    component: () =>
-      import('./components/Alerts/ObservabilityAlertsPage').then(
-        m => m.ObservabilityAlertsPage,
-      ),
-    mountPoint: rootRouteRef,
-  }),
+export const ObservabilityProjectRuntimeLogs = lazy(() =>
+  import('./components/RuntimeLogs/ObservabilityProjectRuntimeLogsPage').then(
+    m => ({ default: m.ObservabilityProjectRuntimeLogsPage }),
+  ),
 );
 
-export const ObservabilityWirelogs = openchoreoObservabilityPlugin.provide(
-  createRoutableExtension({
-    name: 'ObservabilityWirelogs',
-    component: () =>
-      import('./components/Wirelogs/ObservabilityWirelogsPage').then(
-        m => m.ObservabilityWirelogsPage,
-      ),
-    mountPoint: rootRouteRef,
-  }),
+export const ObservabilityAlerts = lazy(() =>
+  import('./components/Alerts/ObservabilityAlertsPage').then(m => ({
+    default: m.ObservabilityAlertsPage,
+  })),
 );
 
-export const ObservabilityProjectIncidents =
-  openchoreoObservabilityPlugin.provide(
-    createRoutableExtension({
-      name: 'ObservabilityProjectIncidents',
-      component: () =>
-        import('./components/Incidents/ObservabilityProjectIncidentsPage').then(
-          m => m.ObservabilityProjectIncidentsPage,
-        ),
-      mountPoint: rootRouteRef,
-    }),
-  );
+export const ObservabilityWirelogs = lazy(() =>
+  import('./components/Wirelogs/ObservabilityWirelogsPage').then(m => ({
+    default: m.ObservabilityWirelogsPage,
+  })),
+);
 
-export const ObservabilityCostAnalysis = openchoreoObservabilityPlugin.provide(
-  createRoutableExtension({
-    name: 'ObservabilityCostAnalysis',
-    component: () =>
-      import('./components/CostAnalysis').then(m => m.CostAnalysisPage),
-    mountPoint: rootRouteRef,
-  }),
+export const ObservabilityProjectIncidents = lazy(() =>
+  import('./components/Incidents/ObservabilityProjectIncidentsPage').then(
+    m => ({ default: m.ObservabilityProjectIncidentsPage }),
+  ),
+);
+
+export const ObservabilityCostAnalysis = lazy(() =>
+  import('./components/CostAnalysis').then(m => ({
+    default: m.CostAnalysisPage,
+  })),
 );

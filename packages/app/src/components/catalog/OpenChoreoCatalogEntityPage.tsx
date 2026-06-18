@@ -14,7 +14,6 @@ import {
   entityRouteRef,
   type EntityLoadingStatus,
 } from '@backstage/plugin-catalog-react';
-import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
 
 /**
  * Local copy of upstream's internal `useEntityFromUrl` hook (not part of
@@ -54,9 +53,12 @@ function useEntityFromUrl(): EntityLoadingStatus {
 
 interface OpenChoreoCatalogEntityPageProps {
   /**
-   * Layout children — the legacy `entityPage` `<EntitySwitch>` plus any
-   * dynamic NFS-contributed `<OpenChoreoEntityLayout.Route>` entries from
-   * `inputs.contents`.
+   * The legacy `entityPage` `<EntitySwitch>`. Each per-kind branch
+   * (`componentPage`, `dataplanePage`, etc.) already opens with its own
+   * `<EntityLayoutWithDelete>` + `<OpenChoreoEntityLayout.Route>` children,
+   * so we only need to provide the `AsyncEntityProvider` here — wrapping
+   * the switch in another `EntityLayoutWithDelete` would double-wrap and
+   * fail `OpenChoreoEntityLayout`'s strict Route-child check.
    */
   children: ReactNode;
 }
@@ -64,17 +66,17 @@ interface OpenChoreoCatalogEntityPageProps {
 /**
  * Replacement for the legacy `<CatalogEntityPage>` mount, used by the NFS
  * `page:catalog/entity` extension override in `customOverrides.tsx`. Owns
- * the `AsyncEntityProvider` (so descendant `useEntity()` calls work) and
- * delegates layout to `EntityLayoutWithDelete`, which wraps
- * `OpenChoreoEntityLayout` with the OpenChoreo header, delete +
- * edit-annotations menu items, and existence-check empty states.
+ * the `AsyncEntityProvider` so descendant `useAsyncEntity()` /
+ * `useEntity()` calls in the per-kind layouts work; layout/header/tab
+ * styling lives inside each per-kind page's own `EntityLayoutWithDelete` →
+ * `OpenChoreoEntityLayout`.
  */
 export function OpenChoreoCatalogEntityPage({
   children,
 }: OpenChoreoCatalogEntityPageProps) {
   return (
     <AsyncEntityProvider {...useEntityFromUrl()}>
-      <EntityLayoutWithDelete>{children}</EntityLayoutWithDelete>
+      {children}
     </AsyncEntityProvider>
   );
 }
