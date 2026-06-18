@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LogEntry } from './LogEntry';
@@ -48,7 +49,11 @@ function renderLogEntry(
       expanded,
       onToggleExpand: () => setExpanded(prev => !prev),
     };
-    return <LogEntry {...defaultProps} {...overrides} />;
+    return (
+      <MemoryRouter>
+        <LogEntry {...defaultProps} {...overrides} />
+      </MemoryRouter>
+    );
   };
   return render(<Harness />);
 }
