@@ -1,41 +1,10 @@
 import { Route } from 'react-router-dom';
-import { CatalogIndexPage, catalogPlugin } from '@backstage/plugin-catalog';
+import { catalogPlugin } from '@backstage/plugin-catalog';
 import {
   CatalogImportPage,
   catalogImportPlugin,
 } from '@backstage/plugin-catalog-import';
-import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
-import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
-import { ComponentNamePickerFieldExtension } from './scaffolder/ComponentNamePicker';
-import { ResourceNamePickerFieldExtension } from './scaffolder/ResourceNamePicker';
-import { BuildTemplatePickerFieldExtension } from './scaffolder/BuildTemplatePicker';
-import { BuildTemplateParametersFieldExtension } from './scaffolder/BuildTemplateParameters';
-import { BuildWorkflowPickerFieldExtension } from './scaffolder/BuildWorkflowPicker';
-import { BuildWorkflowParametersFieldExtension } from './scaffolder/BuildWorkflowParameters';
-import { TraitsFieldExtension } from './scaffolder/TraitsField';
-import { SwitchFieldExtension } from './scaffolder/SwitchField';
-import { AdvancedConfigurationFieldExtension } from './scaffolder/AdvancedConfigurationField';
-import { DeploymentSourcePickerFieldExtension } from './scaffolder/DeploymentSourcePicker';
-import { BuildAndDeployFieldExtension } from './scaffolder/BuildAndDeployField';
-import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
-import { ComponentTypeYamlEditorFieldExtension } from './scaffolder/ComponentTypeYamlEditor';
-import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
-import { ClusterComponentTypeYamlEditorFieldExtension } from './scaffolder/ClusterComponentTypeYamlEditor';
-import { ClusterResourceTypeYamlEditorFieldExtension } from './scaffolder/ClusterResourceTypeYamlEditor';
-import { ResourceTypeYamlEditorFieldExtension } from './scaffolder/ResourceTypeYamlEditor';
-import { ResourceParametersFieldExtension } from './scaffolder/ResourceParametersField';
-import { ClusterTraitYamlEditorFieldExtension } from './scaffolder/ClusterTraitYamlEditor';
-import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
-import { ClusterWorkflowYamlEditorFieldExtension } from './scaffolder/ClusterWorkflowYamlEditor';
-import { GitSourceFieldExtension } from './scaffolder/GitSourceField';
-import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
-import { NamespaceEntityPickerFieldExtension } from './scaffolder/NamespaceEntityPicker';
-import { DeploymentPipelinePickerFieldExtension } from './scaffolder/DeploymentPipelinePicker';
-import { EnvironmentFormWithYamlFieldExtension } from './scaffolder/EnvironmentFormWithYaml';
-import { DeploymentPipelineFormWithYamlFieldExtension } from './scaffolder/DeploymentPipelineFormWithYaml';
-import { WorkloadDetailsFieldExtension } from './scaffolder/WorkloadDetailsField';
-import { CustomTemplateListPage } from './components/scaffolder/CustomTemplateListPage';
-import { CustomReviewStep } from './scaffolder/CustomReviewState';
+import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { SearchPage } from '@backstage/plugin-search';
 import {
   TechDocsIndexPage,
@@ -45,7 +14,6 @@ import {
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
 import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
 import { apis } from './apis';
-import { CustomCatalogPage } from './components/catalog/CustomCatalogPage';
 import { CustomApiExplorerPage } from './components/catalog/CustomApiExplorerPage';
 import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
@@ -120,15 +88,14 @@ const legacyAppOptions = convertLegacyAppOptions({
 const routes = (
   <FlatRoutes>
     <Route path="/" element={<HomePage />} />
-    <Route path="/catalog" element={<CatalogIndexPage />}>
-      <CustomCatalogPage initialKind="system" />
-    </Route>
     {/*
-      The entity route (`/catalog/:namespace/:kind/:name`) is owned by the
-      NFS `page:catalog/entity` extension — see customOverrides.tsx where
-      we override its loader to wrap the legacy `entityPage` JSX in
-      `OpenChoreoCatalogEntityPage` so the custom header, tab styles, and
-      hand-authored per-kind Overview layouts are preserved.
+      `/catalog` is owned by the NFS `page:catalog` extension and
+      `/catalog/:namespace/:kind/:name` by `page:catalog/entity` — see
+      customOverrides.tsx, which overrides each loader to render the
+      host's `<CustomCatalogPage>` and the legacy `entityPage` JSX
+      respectively. The legacy `<Route path="/catalog">` mount used to
+      live here but double-rendered the catalog header under the NFS
+      compat shim.
     */}
     <Route path="/docs" element={<TechDocsIndexPage />} />
     <Route
@@ -139,53 +106,15 @@ const routes = (
         <ReportIssue />
       </TechDocsAddons>
     </Route>
-    <Route
-      path="/create"
-      element={
-        <ScaffolderPage
-          headerOptions={{
-            title: 'Create a new resource',
-            subtitle:
-              'Create new resources using standard templates in your organization',
-          }}
-          components={{
-            EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
-            ReviewStepComponent: CustomReviewStep,
-          }}
-        />
-      }
-    >
-      <ScaffolderFieldExtensions>
-        <ComponentNamePickerFieldExtension />
-        <ResourceNamePickerFieldExtension />
-        <ProjectNamespaceFieldExtension />
-        <NamespaceEntityPickerFieldExtension />
-        <DeploymentPipelinePickerFieldExtension />
-        <BuildTemplatePickerFieldExtension />
-        <BuildTemplateParametersFieldExtension />
-        <BuildWorkflowPickerFieldExtension />
-        <BuildWorkflowParametersFieldExtension />
-        <TraitsFieldExtension />
-        <SwitchFieldExtension />
-        <AdvancedConfigurationFieldExtension />
-        <DeploymentSourcePickerFieldExtension />
-        <BuildAndDeployFieldExtension />
-        <ContainerImageFieldExtension />
-        <ComponentTypeYamlEditorFieldExtension />
-        <TraitYamlEditorFieldExtension />
-        <ClusterComponentTypeYamlEditorFieldExtension />
-        <ClusterResourceTypeYamlEditorFieldExtension />
-        <ResourceTypeYamlEditorFieldExtension />
-        <ResourceParametersFieldExtension />
-        <ClusterTraitYamlEditorFieldExtension />
-        <ComponentWorkflowYamlEditorFieldExtension />
-        <ClusterWorkflowYamlEditorFieldExtension />
-        <EnvironmentFormWithYamlFieldExtension />
-        <DeploymentPipelineFormWithYamlFieldExtension />
-        <GitSourceFieldExtension />
-        <WorkloadDetailsFieldExtension />
-      </ScaffolderFieldExtensions>
-    </Route>
+    {/*
+      `/create` is owned by the NFS `page:scaffolder` extension — see
+      customOverrides.tsx, which overrides its loader to render
+      `<OpenChoreoScaffolderPage>` (the host's `<ScaffolderPage>` with
+      the 27 field-extension children and `CustomTemplateListPage` /
+      `CustomReviewStep` components). The legacy `<Route path="/create">`
+      mount used to live here but double-rendered the scaffolder header
+      under the NFS compat shim.
+    */}
     <Route path="/api-docs" element={<CustomApiExplorerPage />} />
     <Route
       path="/catalog-import"

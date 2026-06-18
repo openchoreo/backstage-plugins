@@ -136,6 +136,11 @@ export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
   extensions: [
     catalogPluginAlphaBase.getExtension('page:catalog').override({
       params: {
+        // `noHeader: true` suppresses the NFS `PageLayout`'s built-in title
+        // bar ("Catalog" link). The host's `CustomCatalogPage` mounts its own
+        // `<PageWithHeader title="Catalog">`; without this we render two
+        // page headers, one above the other.
+        noHeader: true,
         loader: () =>
           import('../components/catalog/CustomCatalogPage').then(m => (
             <m.CustomCatalogPage initialKind="system" />
@@ -248,6 +253,11 @@ export const scaffolderPluginAlpha = scaffolderPluginAlphaBase.withOverrides({
     // every host customization.
     scaffolderPluginAlphaBase.getExtension('page:scaffolder').override({
       params: {
+        // Same `noHeader: true` reason as the `page:catalog` override above
+        // — `OpenChoreoScaffolderPage` mounts a `<ScaffolderPage
+        // headerOptions={{ title: 'Create a new resource', ... }}>` that
+        // renders its own page header.
+        noHeader: true,
         loader: () =>
           import('../components/scaffolder/OpenChoreoScaffolderPage').then(
             m => <m.OpenChoreoScaffolderPage />,
