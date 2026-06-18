@@ -21,6 +21,8 @@ interface LogsTableProps {
   environmentName?: string;
   projectName?: string;
   componentName?: string;
+  entityNamespace?: string;
+  entityKind?: string;
   renderRowAction?: RenderLogRowAction;
 }
 
@@ -37,6 +39,8 @@ export const LogsTable: FC<LogsTableProps> = ({
   environmentName,
   projectName,
   componentName,
+  entityNamespace,
+  entityKind,
   renderRowAction,
 }) => {
   const classes = useLogsTableStyles();
@@ -164,6 +168,8 @@ export const LogsTable: FC<LogsTableProps> = ({
                 environmentName={environmentName}
                 projectName={projectName}
                 componentName={componentName}
+                entityNamespace={entityNamespace}
+                entityKind={entityKind}
                 expanded={expanded.has(key)}
                 onToggleExpand={() => toggle(key)}
                 getLogsSnapshot={getLogsSnapshot}

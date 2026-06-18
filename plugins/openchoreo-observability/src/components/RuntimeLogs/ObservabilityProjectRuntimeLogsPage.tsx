@@ -241,6 +241,8 @@ const ObservabilityProjectRuntimeLogsContent = ({
               selectedEnvironment?.displayName || selectedEnvironment?.name
             }
             projectName={projectName}
+            entityNamespace={entity.metadata.namespace}
+            entityKind="component"
             renderRowAction={renderRowAction}
           />
         </>

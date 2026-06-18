@@ -31,6 +31,8 @@ interface LogEntryProps {
   environmentName?: string;
   projectName?: string;
   componentName?: string;
+  entityNamespace?: string;
+  entityKind?: string;
   /**
    * Whether this row is currently expanded. Controlled by the parent so that
    * expansion survives the virtualizer unmounting the row off-screen.
@@ -55,6 +57,8 @@ export const LogEntry: FC<LogEntryProps> = ({
   environmentName,
   projectName,
   componentName,
+  entityNamespace,
+  entityKind,
   expanded,
   onToggleExpand,
   getLogsSnapshot,
@@ -152,7 +156,7 @@ export const LogEntry: FC<LogEntryProps> = ({
               >
                 {compName ? (
                   <Link
-                    to={`/catalog/default/component/${compName}/runtime-logs${location.search}`}
+                    to={`/catalog/${entityNamespace?.toLocaleLowerCase() || 'default'}/${entityKind?.toLocaleLowerCase() || 'component'}/${compName}/runtime-logs${location.search}`}
                     onClick={e => e.stopPropagation()}
                   >
                     {compName}
