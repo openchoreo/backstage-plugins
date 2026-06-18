@@ -9,6 +9,8 @@ import {
 } from '@material-ui/core';
 import FileCopyOutlined from '@material-ui/icons/FileCopyOutlined';
 import { LogEntry as LogEntryType, LogEntryField } from './types';
+import { Link } from '@backstage/core-components';
+import { useLocation } from 'react-router-dom';
 import { useLogEntryStyles } from './styles';
 import { getColumnStyle } from './columns';
 
@@ -59,6 +61,7 @@ export const LogEntry: FC<LogEntryProps> = ({
   renderRowAction,
 }) => {
   const classes = useLogEntryStyles();
+  const location = useLocation();
   const [copySuccess, setCopySuccess] = useState(false);
 
   const handleCopyLog = async (event: MouseEvent<HTMLButtonElement>) => {
@@ -140,13 +143,23 @@ export const LogEntry: FC<LogEntryProps> = ({
           }
 
           if (field === LogEntryField.ComponentName) {
+            const compName = log.metadata?.componentName ?? componentName ?? '';
             return (
               <Box
                 key={field}
                 style={getColumnStyle(field)}
                 className={`${classes.cell} ${classes.monospaceCell}`}
               >
-                {log.metadata?.componentName ?? componentName ?? ''}
+                {compName ? (
+                  <Link
+                    to={`/catalog/default/component/${compName}/runtime-logs${location.search}`}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {compName}
+                  </Link>
+                ) : (
+                  ''
+                )}
               </Box>
             );
           }
