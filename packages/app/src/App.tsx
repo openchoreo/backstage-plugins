@@ -88,6 +88,13 @@ import {
 // resolves under NFS. Our legacy `<RequirePermission><CatalogImportPage /></...>`
 // mount in `<FlatRoutes>` provides the actual page rendering.
 import catalogImportPluginAlpha from '@backstage/plugin-catalog-import/alpha';
+// api-docs and kubernetes NFS plugins — registered so that `apiDocsConfigRef`,
+// `kubernetesApiRef`, etc. are present in the api holder. The host owns the
+// `/api-docs` route (CustomApiExplorerPage) and the Kubernetes entity tab
+// reuses upstream `EntityKubernetesContent`; without these features the apis
+// they depend on are absent and the tabs throw `NotImplementedError`.
+import apiDocsPluginAlpha from '@backstage/plugin-api-docs/alpha';
+import kubernetesPluginAlpha from '@backstage/plugin-kubernetes/alpha';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
@@ -240,6 +247,8 @@ const app = createApp({
     catalogGraphPluginAlpha,
     catalogPluginAlpha,
     catalogImportPluginAlpha,
+    apiDocsPluginAlpha,
+    kubernetesPluginAlpha,
     openchoreoPluginAlpha,
     openchoreoCiPluginAlpha,
     openchoreoObservabilityPluginAlpha,
