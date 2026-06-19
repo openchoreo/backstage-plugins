@@ -109,5 +109,11 @@ ENV NODE_ENV=production \
 
 USER nonroot
 
-# Distroless ENTRYPOINT is already ["/nodejs/bin/node"].
-CMD ["packages/backend"]
+# Distroless's default ENTRYPOINT is ["/nodejs/bin/node"], which makes
+# the OpenChoreo Helm chart's `args: ["node", ...]` break because the
+# leading `node` is treated as the first script-name argument. Drop
+# the entrypoint and put /nodejs/bin on PATH so the chart's literal
+# `node` argv[0] resolves via PATH lookup.
+ENV PATH=/nodejs/bin:$PATH
+ENTRYPOINT []
+CMD ["node", "packages/backend"]
