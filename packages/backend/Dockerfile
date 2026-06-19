@@ -1,124 +1,121 @@
-# Stage 1 - Create yarn install skeleton layer
-FROM --platform=linux/amd64 node:22-bookworm-slim AS packages
+ARG BUILD_IMAGE=docker.io/node:22-bookworm-slim@sha256:d9f850096136edbc402debdd8729579a288aac64574ada0ff4db26b6ae58b0b2
+# Google distroless doesn't have tags for minor and patches which forces to float
+# creating the same possible regression scenarios introduced in 22.23.0 
+# as a result of a patch for CVE-2026-48931 which broke OpenChoreo
+# see https://github.com/openchoreo/backstage-plugins/pull/657
+# To solve this Minimus distroless can be used instead of Google distroless
+ARG RUNTIME_IMAGE=reg.mini.dev/node:v22.23.1@sha256:0da07560ce5c76bbedfc20f26ad14f27b063c705e9c906981b8c4ecde0f7daf7
 
-WORKDIR /app
-COPY backstage.json package.json yarn.lock ./
-COPY .yarn ./.yarn
-COPY .yarnrc.yml ./
+# ---------------------------------------------------------------------------
+# Stage 1 - Install all dependencies, compile TypeScript, build backend
+# ---------------------------------------------------------------------------
+FROM ${BUILD_IMAGE} AS build
 
-COPY packages packages
+ENV PYTHON=/usr/bin/python3 \
+    JOBS=max
 
-# Comment this out if you don't have any internal plugins
-COPY plugins plugins
-
-RUN find packages \! -name "package.json" -mindepth 2 -maxdepth 2 -exec rm -rf {} \+
-
-# Stage 2 - Install dependencies and build packages
-FROM --platform=linux/amd64 node:22-bookworm-slim AS build
-
-# Set Python interpreter for `node-gyp` to use
-ENV PYTHON=/usr/bin/python3
-
-# Install isolate-vm dependencies, these are needed by the @backstage/plugin-scaffolder-backend.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && \
-    apt-get install -y --no-install-recommends python3 g++ build-essential && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install sqlite3 dependencies. You can skip this if you don't use sqlite3 in the image,
-# in which case you should also move better-sqlite3 to "devDependencies" in package.json.
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && \
-    apt-get install -y --no-install-recommends libsqlite3-dev && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get update && apt-get install -y --no-install-recommends \
+    python3 g++ build-essential libsqlite3-dev
 
 USER node
 WORKDIR /app
 
-COPY --from=packages --chown=node:node /app .
+# Copy package manifests and yarn config first so the install layer
+# caches until a dependency actually changes.
+COPY --chown=node:node backstage.json package.json yarn.lock .yarnrc.yml ./
+COPY --chown=node:node .yarn ./.yarn
+COPY --chown=node:node packages packages
+COPY --chown=node:node plugins plugins
+RUN find packages \! -name "package.json" -mindepth 2 -maxdepth 2 -exec rm -rf {} \+
 
-RUN --mount=type=cache,target=/home/node/.cache/yarn,sharing=locked,uid=1000,gid=1000 \
+RUN --mount=type=cache,target=/app/.yarn/cache,sharing=locked,uid=1000,gid=1000 \
     yarn install --immutable
 
 COPY --chown=node:node . .
 
-RUN yarn --cwd packages/backend build
+RUN yarn tsc && yarn --cwd packages/backend build
 
 RUN mkdir packages/backend/dist/skeleton packages/backend/dist/bundle \
     && tar xzf packages/backend/dist/skeleton.tar.gz -C packages/backend/dist/skeleton \
     && tar xzf packages/backend/dist/bundle.tar.gz -C packages/backend/dist/bundle
 
-# Stage 3 - Build the actual backend image and install production dependencies
-#
-# Floating node:22 requires >= 22.23.1, which ships the fix for the regression
-# that Node 22.23.0 / 24.17.0 introduced via the CVE-2026-48931 ("response queue
-# poisoning in http.Agent") security patch. That patch changed keep-alive
-# socket-reuse behaviour and tripped a latent node-fetch@2 bug, throwing
-# false-positive ERR_STREAM_PREMATURE_CLOSE on reused pooled sockets and breaking
-# Backstage's internal service-to-service calls (e.g. catalog -> permission) with
-# "Premature close" whenever authz is enabled. We temporarily pinned to 22.22 to
-# avoid it; Node 22.23.1 reverted the bad behaviour, so we float again.
-#   - Node.js fix: https://github.com/nodejs/node/pull/64004 (in 22.23.1+)
-FROM node:22-bookworm-slim
 
-# Set Python interpreter for `node-gyp` to use
+# ---------------------------------------------------------------------------
+# Stage 2 - Production-only dependencies from the skeleton
+# ---------------------------------------------------------------------------
+# Native addons (better-sqlite3, isolated-vm) recompile during focus,
+# so build tooling is needed here too.
+FROM ${BUILD_IMAGE} AS deps
+
 ENV PYTHON=/usr/bin/python3
 
-# Install isolate-vm dependencies, these are needed by the @backstage/plugin-scaffolder-backend.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && \
-    apt-get install -y --no-install-recommends python3 g++ build-essential && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get update && apt-get install -y --no-install-recommends \
+    python3 g++ build-essential libsqlite3-dev
 
-# Install sqlite3 dependencies. You can skip this if you don't use sqlite3 in the image,
-# in which case you should also move better-sqlite3 to "devDependencies" in package.json.
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && \
-    apt-get install -y --no-install-recommends libsqlite3-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-# From here on we use the least-privileged `node` user to run the backend.
 USER node
-
-# This should create the app dir as `node`.
-# If it is instead created as `root` then the `tar` command below will
-# fail: `can't create directory 'packages/': Permission denied`.
-# If this occurs, then ensure BuildKit is enabled (`DOCKER_BUILDKIT=1`)
-# so the app dir is correctly created as `node`.
 WORKDIR /app
 
-# Copy the install dependencies from the build stage and context
 COPY --from=build --chown=node:node /app/.yarn ./.yarn
-COPY --from=build --chown=node:node /app/.yarnrc.yml  ./
+COPY --from=build --chown=node:node /app/.yarnrc.yml ./
 COPY --from=build --chown=node:node /app/backstage.json ./
 COPY --from=build --chown=node:node /app/yarn.lock /app/package.json /app/packages/backend/dist/skeleton/ ./
 
-# Note: The skeleton bundle only includes package.json files -- if your app has
-# plugins that define a `bin` export, the bin files need to be copied as well to
-# be linked in node_modules/.bin during yarn install.
-
-RUN --mount=type=cache,target=/home/node/.cache/yarn,sharing=locked,uid=1000,gid=1000 \
-    yarn workspaces focus --all --production && rm -rf "$(yarn cache clean)"
-
-# Copy the built packages from the build stage
-COPY --from=build --chown=node:node /app/packages/backend/dist/bundle/ ./
-
-# Copy any other files that we need at runtime
-COPY --chown=node:node app-config.production.yaml ./app-config.yaml
-COPY --chown=node:node templates/ /app/templates
-COPY --chown=node:node catalog-entities/ /app/catalog-entities
-
-# This will include the examples, if you don't need these simply remove this line
-COPY --chown=node:node examples ./examples
-
-# This switches many Node.js dependencies to production mode.
 ENV NODE_ENV=production
 
-# This disables node snapshot for Node 20 to work with the Scaffolder
-ENV NODE_OPTIONS="--no-node-snapshot"
+# Yarn berry non-global cache is at ./.yarn/cache by default
+# workspaces focus --production replaces the removed yarn install --production.
+RUN --mount=type=cache,target=/app/.yarn/cache,sharing=locked,uid=1000,gid=1000 \
+    yarn workspaces focus --all --production
 
-CMD ["node", "packages/backend"]
+# Strip tests, docs, sourcemaps and config lint from node_modules.
+RUN find . -type d -name node_modules -prune | xargs -I NM \
+    find NM \( \
+    -type d \( \
+    -name test -o -name tests -o -name __tests__ -o -name powered-test \
+    -o -name spec -o -name docs -o -name doc -o -name website \
+    -o -name examples -o -name example -o -name benchmark -o -name benchmarks \
+    -o -name fixtures -o -name __fixtures__ -o -name __mocks__ \
+    -o -name images -o -name assets -o -name media \
+    -o -name coverage -o -name .nyc_output \
+    -o -name .idea -o -name .vscode -o -name .github \
+    -o -name .circleci -o -name .husky \
+    \) \
+    -o -type f \( \
+    -name '*.md' -o -name '*.ts' -o -name '*.tsx' -o -name '*.map' \
+    -o -name '*.tgz' -o -name '*.swp' \
+    -o -name 'CHANGELOG*' -o -name 'AUTHORS*' -o -name 'CONTRIBUTORS*' \
+    -o -name 'Makefile' -o -name 'Gulpfile.js' -o -name 'Gruntfile.js' \
+    -o -name '.DS_Store' -o -name 'tsconfig*.json' -o -name '*.tsbuildinfo' \
+    -o -name '.eslintrc*' -o -name '.eslintignore' \
+    -o -name '.prettierrc*' -o -name '.prettierignore' \
+    -o -name '.babelrc*' -o -name 'jest.config.*' \
+    -o -name '.gitignore' -o -name '.npmignore' -o -name '.npmrc' \
+    -o -name '.yarn-integrity' -o -name '.yarn-metadata.json' \
+    \) \
+    \) -prune -exec rm -rf {} \+
+
+# ---------------------------------------------------------------------------
+# Stage 3 - Distroless runtime
+# ---------------------------------------------------------------------------
+FROM ${RUNTIME_IMAGE} AS final
+
+WORKDIR /app
+
+COPY --from=deps --chown=1000:1000 /app/package.json ./
+COPY --from=deps --chown=1000:1000 /app/node_modules ./node_modules
+COPY --from=deps --chown=1000:1000 /app/packages ./packages
+COPY --from=build --chown=1000:1000 /app/packages/backend/dist/bundle/ ./
+COPY --chown=1000:1000 app-config.production.yaml ./app-config.yaml
+COPY --chown=1000:1000 templates/ ./templates
+COPY --chown=1000:1000 catalog-entities/ ./catalog-entities
+
+ENV NODE_ENV=production \
+    NODE_OPTIONS="--no-node-snapshot"
+
+USER 1000
+
+CMD ["packages/backend"]
