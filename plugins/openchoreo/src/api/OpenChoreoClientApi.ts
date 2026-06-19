@@ -483,6 +483,7 @@ export type PlatformResourceKind =
   | 'namespaces'
   | 'componenttypes'
   | 'resourcetypes'
+  | 'projecttypes'
   | 'resources'
   | 'traits'
   | 'workflows'
@@ -495,6 +496,7 @@ export type PlatformResourceKind =
   | 'deploymentpipelines'
   | 'clustercomponenttypes'
   | 'clusterresourcetypes'
+  | 'clusterprojecttypes'
   | 'clustertraits'
   | 'clusterworkflows'
   | 'clusterdataplanes'
@@ -507,6 +509,7 @@ export const CLUSTER_SCOPED_RESOURCE_KINDS: ReadonlySet<PlatformResourceKind> =
   new Set([
     'clustercomponenttypes',
     'clusterresourcetypes',
+    'clusterprojecttypes',
     'clustertraits',
     'clusterworkflows',
     'clusterdataplanes',

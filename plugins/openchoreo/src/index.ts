@@ -70,6 +70,7 @@ export {
 export { SecretsPage } from './components/Secrets';
 export { ComponentTypeOverviewCard } from './components/ComponentTypeOverview';
 export { ResourceTypeOverviewCard } from './components/ResourceTypeOverview';
+export { ProjectTypeOverviewCard } from './components/ProjectTypeOverview';
 export {
   ResourceParametersCard,
   ResourceDeploymentsCard,

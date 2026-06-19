@@ -165,6 +165,44 @@ describe('PlatformResourceService', () => {
       expect(result.data).toEqual(rt);
     });
 
+    it('fetches projecttype via new API', async () => {
+      const pt = {
+        metadata: { name: 'standard-project', namespace: 'test-ns' },
+        spec: { resources: [] },
+      };
+      mockGET.mockResolvedValueOnce(createOkResponse(pt));
+
+      const service = createService();
+      const result = await service.getResourceDefinition(
+        'projecttypes' as any,
+        'test-ns',
+        'standard-project',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(pt);
+    });
+
+    it('fetches clusterprojecttype via new API', async () => {
+      const cpt = {
+        metadata: { name: 'global-project' },
+        spec: { resources: [] },
+      };
+      mockGET.mockResolvedValueOnce(createOkResponse(cpt));
+
+      const service = createService();
+      const result = await service.getResourceDefinition(
+        'clusterprojecttypes' as any,
+        '',
+        'global-project',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(cpt);
+    });
+
     it('fetches resource via new API', async () => {
       const resource = {
         metadata: { name: 'analytics-db', namespace: 'test-ns' },

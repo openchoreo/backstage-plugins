@@ -52,3 +52,47 @@ describe('ResourceDefinition utils — ResourceType wiring', () => {
     expect(isSupportedKind('ResourceType')).toBe(true);
   });
 });
+
+describe('ResourceDefinition utils — ProjectType wiring', () => {
+  it('maps the Backstage entity kind to the API path kind', () => {
+    expect(mapKindToApiKind('projecttype')).toBe('projecttypes');
+    expect(mapKindToApiKind('ProjectType')).toBe('projecttypes');
+  });
+
+  it('maps the Backstage entity kind to the CRD kind', () => {
+    expect(mapKindToCrdKind('projecttype')).toBe('ProjectType');
+    expect(mapKindToCrdKind('ProjectType')).toBe('ProjectType');
+  });
+
+  it('does not mark ProjectType as cluster-scoped', () => {
+    expect(isClusterScopedKind('projecttype')).toBe(false);
+    expect(isClusterScopedKind('ProjectType')).toBe(false);
+  });
+
+  it('marks ProjectType as supported', () => {
+    expect(isSupportedKind('projecttype')).toBe(true);
+    expect(isSupportedKind('ProjectType')).toBe(true);
+  });
+});
+
+describe('ResourceDefinition utils — ClusterProjectType wiring', () => {
+  it('maps the Backstage entity kind to the API path kind', () => {
+    expect(mapKindToApiKind('clusterprojecttype')).toBe('clusterprojecttypes');
+    expect(mapKindToApiKind('ClusterProjectType')).toBe('clusterprojecttypes');
+  });
+
+  it('maps the Backstage entity kind to the CRD kind', () => {
+    expect(mapKindToCrdKind('clusterprojecttype')).toBe('ClusterProjectType');
+    expect(mapKindToCrdKind('ClusterProjectType')).toBe('ClusterProjectType');
+  });
+
+  it('marks ClusterProjectType as cluster-scoped', () => {
+    expect(isClusterScopedKind('clusterprojecttype')).toBe(true);
+    expect(isClusterScopedKind('ClusterProjectType')).toBe(true);
+  });
+
+  it('marks ClusterProjectType as supported', () => {
+    expect(isSupportedKind('clusterprojecttype')).toBe(true);
+    expect(isSupportedKind('ClusterProjectType')).toBe(true);
+  });
+});
