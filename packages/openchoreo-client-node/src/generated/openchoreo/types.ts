@@ -1872,6 +1872,250 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clusterprojecttypes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List cluster project types
+     * @description Returns a list of cluster-scoped project types.
+     */
+    get: operations['listClusterProjectTypes'];
+    put?: never;
+    /**
+     * Create cluster project type
+     * @description Creates a new cluster-scoped project type.
+     */
+    post: operations['createClusterProjectType'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterprojecttypes/{cptName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a cluster project type
+     * @description Returns details of a specific cluster-scoped project type.
+     */
+    get: operations['getClusterProjectType'];
+    /**
+     * Update cluster project type
+     * @description Replaces an existing cluster-scoped project type (full update).
+     */
+    put: operations['updateClusterProjectType'];
+    post?: never;
+    /**
+     * Delete cluster project type
+     * @description Deletes a cluster-scoped project type by name.
+     */
+    delete: operations['deleteClusterProjectType'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterprojecttypes/{cptName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get cluster project type schema
+     * @description Returns the parameter schema for a specific cluster-scoped project type.
+     */
+    get: operations['getClusterProjectTypeSchema'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/projecttypes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List project types
+     * @description Returns a paginated list of project types within a namespace.
+     */
+    get: operations['listProjectTypes'];
+    put?: never;
+    /**
+     * Create project type
+     * @description Creates a new project type within a namespace.
+     */
+    post: operations['createProjectType'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/projecttypes/{ptName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a project type
+     * @description Returns details of a specific project type.
+     */
+    get: operations['getProjectType'];
+    /**
+     * Update project type
+     * @description Replaces an existing project type (full update).
+     */
+    put: operations['updateProjectType'];
+    post?: never;
+    /**
+     * Delete project type
+     * @description Deletes a project type by name.
+     */
+    delete: operations['deleteProjectType'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/projecttypes/{ptName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get project type schema
+     * @description Returns the parameter schema for a specific project type.
+     */
+    get: operations['getProjectTypeSchema'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/projectreleases': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List project releases
+     * @description Returns a paginated list of project releases within a namespace, optionally filtered by project.
+     */
+    get: operations['listProjectReleases'];
+    put?: never;
+    /**
+     * Create project release
+     * @description Creates a new project release within a namespace. Normally cut by the Project controller; exposed here for offline emit parity.
+     */
+    post: operations['createProjectRelease'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/projectreleases/{projectReleaseName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get project release
+     * @description Returns details of a specific project release.
+     */
+    get: operations['getProjectRelease'];
+    put?: never;
+    post?: never;
+    /**
+     * Delete project release
+     * @description Deletes a project release by name.
+     */
+    delete: operations['deleteProjectRelease'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/projectreleasebindings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List project release bindings
+     * @description Returns a paginated list of project release bindings within a namespace, optionally filtered by project.
+     */
+    get: operations['listProjectReleaseBindings'];
+    put?: never;
+    /**
+     * Create project release binding
+     * @description Creates a new project release binding within a namespace.
+     */
+    post: operations['createProjectReleaseBinding'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/projectreleasebindings/{projectReleaseBindingName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get project release binding
+     * @description Returns details of a specific project release binding.
+     */
+    get: operations['getProjectReleaseBinding'];
+    /**
+     * Update project release binding
+     * @description Replaces an existing project release binding (full update). Used to advance `spec.projectRelease` (the promote flow) or change `spec.environmentConfigs`. `spec.owner` and `spec.environment` are immutable.
+     */
+    put: operations['updateProjectReleaseBinding'];
+    post?: never;
+    /**
+     * Delete project release binding
+     * @description Deletes a project release binding by name.
+     */
+    delete: operations['deleteProjectReleaseBinding'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/namespaces/{namespaceName}/resourcetypes': {
     parameters: {
       query?: never;
@@ -2638,6 +2882,33 @@ export interface components {
          */
         name: string;
       };
+      type?: components['schemas']['ProjectTypeRef'];
+      /**
+       * @description Values for the parameter schema declared on the referenced
+       *     (Cluster)ProjectType. Validated by the controller and inlined into
+       *     each ProjectRelease snapshot.
+       */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    /**
+     * @description Reference to a ProjectType or ClusterProjectType template. Immutable
+     *     after the Project is created. When omitted on create, the API defaults
+     *     to the cluster-scoped `default` ClusterProjectType.
+     */
+    ProjectTypeRef: {
+      /**
+       * @description Project type kind. Defaults to ProjectType (namespaced).
+       * @default ProjectType
+       * @enum {string}
+       */
+      kind: 'ProjectType' | 'ClusterProjectType';
+      /**
+       * @description Template name.
+       * @example default
+       */
+      name: string;
     };
     /** @description Observed state of a Project */
     ProjectStatus: {
@@ -2648,6 +2919,19 @@ export interface components {
       observedGeneration?: number;
       /** @description Current state conditions of the Project */
       conditions?: components['schemas']['Condition'][];
+      /** @description Most recent ProjectRelease cut for this Project. ProjectReleaseBindings pin spec.projectRelease to a value here (or an older release for rollback). */
+      latestRelease?: {
+        /**
+         * @description Name of the ProjectRelease resource
+         * @example my-app-abc123
+         */
+        name: string;
+        /**
+         * @description Content hash of Project.spec + (Cluster)ProjectType.spec captured at release time
+         * @example abc123
+         */
+        hash: string;
+      };
     };
     /**
      * @description Project resource.
@@ -4555,6 +4839,210 @@ export interface components {
       /** @description ClusterResourceType status (currently empty) */
       readonly status?: Record<string, never>;
     };
+    /** @description Desired state of a (Cluster)ProjectType. */
+    ProjectTypeSpec: {
+      parameters?: components['schemas']['SchemaSection'];
+      environmentConfigs?: components['schemas']['SchemaSection'];
+      /** @description CEL-based validation rules evaluated during rendering. */
+      validations?: components['schemas']['ValidationRule'][];
+      /** @description Templates that generate namespace-scoped Kubernetes manifests applied to the namespace owned by every ProjectReleaseBinding of this type. */
+      resources: {
+        /** @description Unique identifier for this resource within the project type. */
+        id: string;
+        /**
+         * @description Target plane for deployment.
+         * @default dataplane
+         * @enum {string}
+         */
+        targetPlane: 'dataplane' | 'observabilityplane';
+        /** @description CEL expression determining if this resource should be created. */
+        includeWhen?: string;
+        /** @description CEL expression for generating multiple resources from a list. */
+        forEach?: string;
+        /** @description Loop variable name when using forEach. */
+        var?: string;
+        /** @description Kubernetes resource template with CEL expressions. */
+        template: {
+          [key: string]: unknown;
+        };
+      }[];
+    };
+    /** @description Paginated list of cluster project types */
+    ClusterProjectTypeList: {
+      items: components['schemas']['ClusterProjectType'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description ClusterProjectType resource.
+     *     Cluster-scoped sibling of ProjectType. Projects in any namespace can reference it.
+     */
+    ClusterProjectType: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ClusterProjectType
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ProjectTypeSpec'];
+      /** @description ClusterProjectType status (currently empty) */
+      readonly status?: Record<string, never>;
+    };
+    /** @description Paginated list of project types */
+    ProjectTypeList: {
+      items: components['schemas']['ProjectType'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description ProjectType resource.
+     *     PE-published template scoped to a namespace. Developers reference it from Project.spec.type.
+     */
+    ProjectType: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ProjectType
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ProjectTypeSpec'];
+      /** @description ProjectType status (currently empty) */
+      readonly status?: Record<string, never>;
+    };
+    /** @description Paginated list of project releases */
+    ProjectReleaseList: {
+      items: components['schemas']['ProjectRelease'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description ProjectRelease resource.
+     *     Immutable snapshot of Project.spec and the referenced (Cluster)ProjectType.spec
+     *     at the time it was cut. Normally cut by the Project controller; the create
+     *     endpoint is exposed only for offline-emit parity. Spec is immutable.
+     */
+    ProjectRelease: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ProjectRelease
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ProjectReleaseSpec'];
+      /** @description ProjectRelease status (currently empty, immutable after creation) */
+      readonly status?: Record<string, never>;
+    };
+    /** @description Desired state of a ProjectRelease. Immutable after creation. */
+    ProjectReleaseSpec: {
+      /** @description Identifies the project this ProjectRelease belongs to. */
+      owner: {
+        /**
+         * @description Parent project name
+         * @example my-app
+         */
+        projectName: string;
+      };
+      /** @description Frozen snapshot of the referenced (Cluster)ProjectType. */
+      projectType: {
+        /**
+         * @description Source kind (ProjectType or ClusterProjectType)
+         * @enum {string}
+         */
+        kind: 'ProjectType' | 'ClusterProjectType';
+        /**
+         * @description Source project type name
+         * @example standard-project
+         */
+        name: string;
+        spec: components['schemas']['ProjectTypeSpec'];
+      };
+      /** @description Snapshot of parameter values from Project.spec at release time. */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description Paginated list of project release bindings */
+    ProjectReleaseBindingList: {
+      items: components['schemas']['ProjectReleaseBinding'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description ProjectReleaseBinding resource.
+     *     Pins a ProjectRelease to an Environment, owns the namespace for the
+     *     (Project, Environment) tuple, and applies the inlined
+     *     (Cluster)ProjectType resources to that namespace. Authored externally.
+     */
+    ProjectReleaseBinding: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ProjectReleaseBinding
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ProjectReleaseBindingSpec'];
+      readonly status?: components['schemas']['ProjectReleaseBindingStatus'];
+    };
+    /**
+     * @description Desired state of a ProjectReleaseBinding. spec.owner and spec.environment
+     *     are immutable after creation. spec.projectRelease is the promote pin and is
+     *     advanced manually via `occ project promote` or kubectl edit.
+     */
+    ProjectReleaseBindingSpec: {
+      /** @description Identifies the project this binding belongs to. */
+      owner: {
+        /**
+         * @description Parent project name
+         * @example my-app
+         */
+        projectName: string;
+      };
+      /**
+       * @description Target environment name. Immutable after creation.
+       * @example dev
+       */
+      environment: string;
+      /**
+       * @description Pinned ProjectRelease name. Advanced manually (e.g. via `occ project promote`).
+       * @example my-app-abc123
+       */
+      projectRelease?: string;
+      /** @description Per-environment values for the inlined (Cluster)ProjectType.spec.environmentConfigs. */
+      environmentConfigs?: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description Observed state of a ProjectReleaseBinding. */
+    ProjectReleaseBindingStatus: {
+      /**
+       * Format: int64
+       * @description Most recent generation observed by the controller.
+       */
+      observedGeneration?: number;
+      /** @description Latest available observations of the binding's state. Includes Synced, NamespaceReady, ResourcesReady, and Ready (aggregate). */
+      conditions?: components['schemas']['Condition'][];
+      /**
+       * @description The data-plane namespace owned by this binding.
+       * @example dp-default-org-my-app-dev-7a3f9b
+       */
+      namespace?: string;
+    };
     /** @description Paginated list of resource types */
     ResourceTypeList: {
       items: components['schemas']['ResourceType'][];
@@ -5353,13 +5841,23 @@ export interface components {
       /** @description Resource-level attributes for condition evaluation */
       resource?: {
         /**
-         * @description Target deployment environment (e.g. "dev", "staging", "prod")
-         * @example dev
+         * @description Namespace-prefixed target deployment Environment name (e.g. "acme/dev").
+         * @example acme/dev
          */
         environment?: string;
         /**
-         * @description Target workflow, dual-scope encoded the same way as environment: "{namespace}/{name}" for namespace-scoped workflows (Workflow, ComponentWorkflow) or the bare "{name}" for cluster-scoped workflows (ClusterWorkflow). Used by ABAC conditions on `resource.workflow`.
-         * @example team-shop/build-go
+         * @description ComponentType referenced by the Component as an authz identifier. Namespace-scoped ComponentTypes are namespace-prefixed (e.g. "acme/web-app"); cluster-scoped ClusterComponentTypes are unprefixed (e.g. "web-app").
+         * @example acme/web-app
+         */
+        componentType?: string;
+        /**
+         * @description ResourceType referenced by the Resource as an authz identifier. Namespace-scoped ResourceTypes are namespace-prefixed (e.g. "acme/postgres"); cluster-scoped ClusterResourceTypes are unprefixed (e.g. "postgres").
+         * @example acme/postgres
+         */
+        resourceType?: string;
+        /**
+         * @description Workflow referenced by the WorkflowRun as an authz identifier. Namespace-scoped Workflows are namespace-prefixed (e.g. "acme/build-go"); cluster-scoped ClusterWorkflows are unprefixed (e.g. "build-go").
+         * @example acme/build-go
          */
         workflow?: string;
       };
@@ -5402,7 +5900,8 @@ export interface components {
     };
     /** @description Single authorization evaluation request */
     EvaluateRequest: {
-      subject_context: components['schemas']['SubjectContext'];
+      /** @description Subject to evaluate. Optional; defaults to the authenticated caller when omitted. */
+      subject_context?: components['schemas']['SubjectContext'];
       resource: components['schemas']['Resource'];
       /**
        * @description Action to evaluate
@@ -6403,6 +6902,14 @@ export interface components {
     ComponentReleaseNameParam: string;
     /** @description ClusterResourceType name */
     ClusterResourceTypeNameParam: string;
+    /** @description ClusterProjectType name */
+    ClusterProjectTypeNameParam: string;
+    /** @description ProjectType name */
+    ProjectTypeNameParam: string;
+    /** @description Project release name */
+    ProjectReleaseNameParam: string;
+    /** @description Project release binding name */
+    ProjectReleaseBindingNameParam: string;
     /** @description ResourceType name */
     ResourceTypeNameParam: string;
     /** @description Resource name */
@@ -11360,6 +11867,682 @@ export interface operations {
         content: {
           'application/json': components['schemas']['SchemaResponse'];
         };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listClusterProjectTypes: {
+    parameters: {
+      query?: {
+        /**
+         * @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of cluster project types */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterProjectTypeList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createClusterProjectType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterProjectType'];
+      };
+    };
+    responses: {
+      /** @description Cluster project type created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterProjectType'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterProjectType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterProjectType name */
+        cptName: components['parameters']['ClusterProjectTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster project type details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterProjectType'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateClusterProjectType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterProjectType name */
+        cptName: components['parameters']['ClusterProjectTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterProjectType'];
+      };
+    };
+    responses: {
+      /** @description Cluster project type updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterProjectType'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteClusterProjectType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterProjectType name */
+        cptName: components['parameters']['ClusterProjectTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterProjectType deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterProjectTypeSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterProjectType name */
+        cptName: components['parameters']['ClusterProjectTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster project type schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listProjectTypes: {
+    parameters: {
+      query?: {
+        /**
+         * @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of project types */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProjectTypeList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createProjectType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProjectType'];
+      };
+    };
+    responses: {
+      /** @description Project type created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProjectType'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getProjectType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ProjectType name */
+        ptName: components['parameters']['ProjectTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Project type details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProjectType'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateProjectType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ProjectType name */
+        ptName: components['parameters']['ProjectTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProjectType'];
+      };
+    };
+    responses: {
+      /** @description Project type updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProjectType'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteProjectType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ProjectType name */
+        ptName: components['parameters']['ProjectTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ProjectType deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getProjectTypeSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ProjectType name */
+        ptName: components['parameters']['ProjectTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Project type schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listProjectReleases: {
+    parameters: {
+      query?: {
+        /** @description Filter resources by project name */
+        project?: components['parameters']['ProjectQueryParam'];
+        /**
+         * @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of project releases */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProjectReleaseList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createProjectRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProjectRelease'];
+      };
+    };
+    responses: {
+      /** @description Project release created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProjectRelease'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getProjectRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Project release name */
+        projectReleaseName: components['parameters']['ProjectReleaseNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Project release details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProjectRelease'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteProjectRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Project release name */
+        projectReleaseName: components['parameters']['ProjectReleaseNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Project release deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listProjectReleaseBindings: {
+    parameters: {
+      query?: {
+        /** @description Filter resources by project name */
+        project?: components['parameters']['ProjectQueryParam'];
+        /**
+         * @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of project release bindings */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProjectReleaseBindingList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createProjectReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProjectReleaseBinding'];
+      };
+    };
+    responses: {
+      /** @description Project release binding created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProjectReleaseBinding'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getProjectReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Project release binding name */
+        projectReleaseBindingName: components['parameters']['ProjectReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Project release binding details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProjectReleaseBinding'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateProjectReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Project release binding name */
+        projectReleaseBindingName: components['parameters']['ProjectReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProjectReleaseBinding'];
+      };
+    };
+    responses: {
+      /** @description Project release binding updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProjectReleaseBinding'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteProjectReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Project release binding name */
+        projectReleaseBindingName: components['parameters']['ProjectReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Project release binding deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
