@@ -34,6 +34,8 @@ import type {
   ClusterWorkflowPlaneEntityV1alpha1,
   ClusterResourceTypeEntityV1alpha1,
   ResourceTypeEntityV1alpha1,
+  ClusterProjectTypeEntityV1alpha1,
+  ProjectTypeEntityV1alpha1,
   DeploymentPipelineEntityV1alpha1,
 } from '../kinds';
 import { normalizeObservabilityPlaneRef, resolveProjectOwner } from './helpers';
@@ -65,6 +67,9 @@ type NewClusterWorkflowPlane =
 type NewClusterResourceType =
   OpenChoreoComponents['schemas']['ClusterResourceType'];
 type NewResourceType = OpenChoreoComponents['schemas']['ResourceType'];
+type NewClusterProjectType =
+  OpenChoreoComponents['schemas']['ClusterProjectType'];
+type NewProjectType = OpenChoreoComponents['schemas']['ProjectType'];
 type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
 type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];
 type NewAgentConnectionStatus =
@@ -911,6 +916,90 @@ export function translateClusterResourceTypeToEntity(
 }
 
 /**
+ * Translates an OpenChoreo ProjectType to a Backstage ProjectType entity.
+ * Namespaced platform-engineer template; emits partOf Domain via spec.domain
+ * (handled by ProjectTypeEntityProcessor), mirroring ResourceType.
+ */
+export function translateProjectTypeToEntity(
+  pt: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    createdAt?: string;
+    deletionTimestamp?: string;
+  },
+  namespaceName: string,
+  config: EntityTranslationConfig,
+): ProjectTypeEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ProjectType',
+    metadata: {
+      name: pt.name,
+      namespace: namespaceName,
+      title: pt.displayName || pt.name,
+      description: pt.description || `${pt.name} project type`,
+      tags: ['openchoreo', 'project-type', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: pt.createdAt || '',
+        ...(pt.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: pt.deletionTimestamp,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      domain: `default/${namespaceName}`,
+    },
+  } as ProjectTypeEntityV1alpha1;
+}
+
+/**
+ * Translates an OpenChoreo ClusterProjectType to a Backstage ClusterProjectType
+ * entity. Cluster-scoped: no namespace param, entity namespace is
+ * 'openchoreo-cluster', no domain.
+ */
+export function translateClusterProjectTypeToEntity(
+  cpt: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    createdAt?: string;
+    deletionTimestamp?: string;
+  },
+  config: EntityTranslationConfig,
+): ClusterProjectTypeEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ClusterProjectType',
+    metadata: {
+      name: cpt.name,
+      namespace: 'openchoreo-cluster',
+      title: cpt.displayName || cpt.name,
+      description: cpt.description || `${cpt.name} cluster project type`,
+      tags: ['openchoreo', 'cluster-project-type', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: cpt.createdAt || '',
+        ...(cpt.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: cpt.deletionTimestamp,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {},
+  } as ClusterProjectTypeEntityV1alpha1;
+}
+
+/**
  * Translates an OpenChoreo ClusterTrait to a Backstage ClusterTraitType entity.
  * Cluster-scoped: no namespace param, entity namespace is 'openchoreo-cluster', no domain.
  */
@@ -1731,6 +1820,47 @@ export function translateNewResourceTypeToEntity(
       retainPolicy: rt.spec?.retainPolicy,
       createdAt: getCreatedAt(rt),
       deletionTimestamp: getDeletionTimestamp(rt),
+    },
+    namespaceName,
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API ClusterProjectType into a Backstage ClusterProjectType
+ * entity.
+ */
+export function translateNewClusterProjectTypeToEntity(
+  cpt: NewClusterProjectType,
+  ctx: NewApiTranslatorContext,
+): ClusterProjectTypeEntityV1alpha1 {
+  return translateClusterProjectTypeToEntity(
+    {
+      name: getName(cpt)!,
+      displayName: getDisplayName(cpt),
+      description: getDescription(cpt),
+      createdAt: getCreatedAt(cpt),
+      deletionTimestamp: getDeletionTimestamp(cpt),
+    },
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API ProjectType into a Backstage ProjectType entity.
+ */
+export function translateNewProjectTypeToEntity(
+  pt: NewProjectType,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): ProjectTypeEntityV1alpha1 {
+  return translateProjectTypeToEntity(
+    {
+      name: getName(pt)!,
+      displayName: getDisplayName(pt),
+      description: getDescription(pt),
+      createdAt: getCreatedAt(pt),
+      deletionTimestamp: getDeletionTimestamp(pt),
     },
     namespaceName,
     { locationKey: ctx.providerName },

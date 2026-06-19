@@ -20,6 +20,8 @@ import {
 import { ClusterComponentTypeEntityProcessor } from './ClusterComponentTypeEntityProcessor';
 import { ClusterResourceTypeEntityProcessor } from './ClusterResourceTypeEntityProcessor';
 import { ResourceTypeEntityProcessor } from './ResourceTypeEntityProcessor';
+import { ClusterProjectTypeEntityProcessor } from './ClusterProjectTypeEntityProcessor';
+import { ProjectTypeEntityProcessor } from './ProjectTypeEntityProcessor';
 import { ClusterDataplaneEntityProcessor } from './ClusterDataplaneEntityProcessor';
 import { ClusterObservabilityPlaneEntityProcessor } from './ClusterObservabilityPlaneEntityProcessor';
 import { ClusterTraitTypeEntityProcessor } from './ClusterTraitTypeEntityProcessor';
@@ -591,6 +593,80 @@ describe('ResourceTypeEntityProcessor', () => {
       processingResult.relation({
         source: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
         target: { kind: 'resourcetype', namespace: 'my-ns', name: 'r' },
+        type: RELATION_HAS_PART,
+      }),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ClusterProjectTypeEntityProcessor
+// ---------------------------------------------------------------------------
+describe('ClusterProjectTypeEntityProcessor', () => {
+  const processor = new ClusterProjectTypeEntityProcessor();
+
+  it('validateEntityKind returns true for ClusterProjectType', async () => {
+    expect(
+      await processor.validateEntityKind({
+        kind: 'ClusterProjectType',
+      } as any),
+    ).toBe(true);
+    expect(
+      await processor.validateEntityKind({ kind: 'ProjectType' } as any),
+    ).toBe(false);
+  });
+
+  it('postProcessEntity emits no relations', async () => {
+    const emit = jest.fn();
+    await processor.postProcessEntity(
+      {
+        kind: 'ClusterProjectType',
+        metadata: { name: 'p' },
+        spec: {},
+      } as any,
+      mockLocation,
+      emit,
+    );
+    expect(emit).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ProjectTypeEntityProcessor
+// ---------------------------------------------------------------------------
+describe('ProjectTypeEntityProcessor', () => {
+  const processor = new ProjectTypeEntityProcessor();
+
+  it('validateEntityKind returns true for ProjectType', async () => {
+    expect(
+      await processor.validateEntityKind({ kind: 'ProjectType' } as any),
+    ).toBe(true);
+    expect(
+      await processor.validateEntityKind({
+        kind: 'ClusterProjectType',
+      } as any),
+    ).toBe(false);
+  });
+
+  it('emits partOf domain relation', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'ProjectType',
+      metadata: { name: 'p', namespace: 'my-ns' },
+      spec: { domain: 'my-ns' },
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'projecttype', namespace: 'my-ns', name: 'p' },
+        target: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
+        type: RELATION_PART_OF,
+      }),
+    );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
+        target: { kind: 'projecttype', namespace: 'my-ns', name: 'p' },
         type: RELATION_HAS_PART,
       }),
     );

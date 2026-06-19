@@ -105,6 +105,9 @@ describe('EventDeltaApplier.handleEvent', () => {
         'template:test-ns/template-resource-order',
       ],
     },
+    // ProjectType has no derived scaffolder Template, so only the type
+    // entity itself is removed.
+    { kind: 'ProjectType', expectedRefs: ['projecttype:test-ns/order'] },
     { kind: 'Resource', expectedRefs: ['resource:test-ns/order'] },
     { kind: 'Workflow', expectedRefs: ['workflow:test-ns/order'] },
   ];
@@ -151,6 +154,10 @@ describe('EventDeltaApplier.handleEvent', () => {
         'clusterresourcetype:openchoreo-cluster/global',
         'template:openchoreo-cluster/template-resource-global',
       ],
+    },
+    {
+      kind: 'ClusterProjectType',
+      expectedRefs: ['clusterprojecttype:openchoreo-cluster/global'],
     },
     {
       kind: 'ClusterTrait',

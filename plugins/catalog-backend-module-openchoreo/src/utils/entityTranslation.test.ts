@@ -1,10 +1,14 @@
 import {
+  translateClusterProjectTypeToEntity,
   translateClusterResourceTypeToEntity,
   translateComponentToEntity,
+  translateNewClusterProjectTypeToEntity,
   translateNewClusterResourceTypeToEntity,
   translateNewComponentToEntity,
+  translateNewProjectTypeToEntity,
   translateNewResourceToEntity,
   translateNewResourceTypeToEntity,
+  translateProjectTypeToEntity,
   translateResourceToEntity,
   translateResourceTypeToEntity,
 } from './entityTranslation';
@@ -107,6 +111,169 @@ describe('translateNewClusterResourceTypeToEntity', () => {
     expect(entity.metadata.annotations).toMatchObject({
       'backstage.io/managed-by-location': 'provider:openchoreo-provider',
     });
+  });
+});
+
+describe('translateClusterProjectTypeToEntity', () => {
+  const config = { locationKey: 'openchoreo-provider' };
+
+  it('emits a ClusterProjectType entity with cluster-scoped metadata', () => {
+    const entity = translateClusterProjectTypeToEntity(
+      {
+        name: 'standard-project',
+        displayName: 'Standard Project',
+        description: 'Baseline project infra',
+        createdAt: '2026-06-14T10:00:00Z',
+      },
+      config,
+    );
+
+    expect(entity.apiVersion).toBe('backstage.io/v1alpha1');
+    expect(entity.kind).toBe('ClusterProjectType');
+    expect(entity.metadata.name).toBe('standard-project');
+    expect(entity.metadata.namespace).toBe('openchoreo-cluster');
+    expect(entity.metadata.title).toBe('Standard Project');
+    expect(entity.metadata.description).toBe('Baseline project infra');
+    expect(entity.metadata.tags).toEqual(
+      expect.arrayContaining([
+        'openchoreo',
+        'cluster-project-type',
+        'platform-engineering',
+      ]),
+    );
+    expect(entity.metadata.annotations).toMatchObject({
+      'backstage.io/managed-by-location': 'provider:openchoreo-provider',
+      'backstage.io/managed-by-origin-location': 'provider:openchoreo-provider',
+    });
+  });
+
+  it('falls back to name when displayName is missing and synthesises a description', () => {
+    const entity = translateClusterProjectTypeToEntity(
+      { name: 'regulated' },
+      config,
+    );
+    expect(entity.metadata.title).toBe('regulated');
+    expect(entity.metadata.description).toBe('regulated cluster project type');
+  });
+
+  it('sets the deletion-timestamp annotation only when the input carries one', () => {
+    const without = translateClusterProjectTypeToEntity({ name: 'a' }, config);
+    expect(Object.keys(without.metadata.annotations ?? {})).not.toContain(
+      'openchoreo.io/deletion-timestamp',
+    );
+
+    const withTs = translateClusterProjectTypeToEntity(
+      { name: 'b', deletionTimestamp: '2026-06-14T11:00:00Z' },
+      config,
+    );
+    expect(withTs.metadata.annotations).toMatchObject({
+      'openchoreo.io/deletion-timestamp': '2026-06-14T11:00:00Z',
+    });
+  });
+});
+
+describe('translateNewClusterProjectTypeToEntity', () => {
+  it('unwraps the typed-client shape and delegates to the inner translator', () => {
+    const entity = translateNewClusterProjectTypeToEntity(
+      {
+        apiVersion: 'openchoreo.dev/v1alpha1',
+        kind: 'ClusterProjectType',
+        metadata: {
+          name: 'standard-project',
+          annotations: {
+            'openchoreo.dev/display-name': 'Standard Project',
+            'openchoreo.dev/description': 'Baseline project infra',
+          },
+          creationTimestamp: '2026-06-14T10:00:00Z',
+        } as any,
+        spec: {
+          resources: [],
+        } as any,
+      } as any,
+      { providerName: 'openchoreo-provider' } as any,
+    );
+
+    expect(entity.kind).toBe('ClusterProjectType');
+    expect(entity.metadata.name).toBe('standard-project');
+    expect(entity.metadata.namespace).toBe('openchoreo-cluster');
+    expect(entity.metadata.title).toBe('Standard Project');
+    expect(entity.metadata.annotations).toMatchObject({
+      'backstage.io/managed-by-location': 'provider:openchoreo-provider',
+    });
+  });
+});
+
+describe('translateProjectTypeToEntity', () => {
+  const config = { locationKey: 'openchoreo-provider' };
+
+  it('emits a ProjectType entity scoped to its namespace with domain set', () => {
+    const entity = translateProjectTypeToEntity(
+      {
+        name: 'standard-project',
+        displayName: 'Standard Project',
+        description: 'Baseline project infra',
+        createdAt: '2026-06-14T10:00:00Z',
+      },
+      'default-org',
+      config,
+    );
+
+    expect(entity.apiVersion).toBe('backstage.io/v1alpha1');
+    expect(entity.kind).toBe('ProjectType');
+    expect(entity.metadata.name).toBe('standard-project');
+    expect(entity.metadata.namespace).toBe('default-org');
+    expect(entity.metadata.title).toBe('Standard Project');
+    expect(entity.metadata.tags).toEqual(
+      expect.arrayContaining([
+        'openchoreo',
+        'project-type',
+        'platform-engineering',
+      ]),
+    );
+    expect(entity.spec.domain).toBe('default/default-org');
+    expect(entity.metadata.annotations).toMatchObject({
+      'openchoreo.io/namespace': 'default-org',
+    });
+  });
+
+  it('falls back to name when displayName is missing and synthesises a description', () => {
+    const entity = translateProjectTypeToEntity(
+      { name: 'regulated' },
+      'default-org',
+      config,
+    );
+    expect(entity.metadata.title).toBe('regulated');
+    expect(entity.metadata.description).toBe('regulated project type');
+  });
+});
+
+describe('translateNewProjectTypeToEntity', () => {
+  it('unwraps the typed-client shape and delegates to the inner translator', () => {
+    const entity = translateNewProjectTypeToEntity(
+      {
+        apiVersion: 'openchoreo.dev/v1alpha1',
+        kind: 'ProjectType',
+        metadata: {
+          name: 'standard-project',
+          namespace: 'default-org',
+          annotations: {
+            'openchoreo.dev/display-name': 'Standard Project',
+          },
+          creationTimestamp: '2026-06-14T10:00:00Z',
+        } as any,
+        spec: {
+          resources: [],
+        } as any,
+      } as any,
+      'default-org',
+      { providerName: 'openchoreo-provider' } as any,
+    );
+
+    expect(entity.kind).toBe('ProjectType');
+    expect(entity.metadata.name).toBe('standard-project');
+    expect(entity.metadata.namespace).toBe('default-org');
+    expect(entity.metadata.title).toBe('Standard Project');
+    expect(entity.spec.domain).toBe('default/default-org');
   });
 });
 
