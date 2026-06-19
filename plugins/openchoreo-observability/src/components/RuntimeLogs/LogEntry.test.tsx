@@ -102,6 +102,21 @@ describe('LogEntry', () => {
     expect(screen.getByText('api-service')).toBeInTheDocument();
   });
 
+  it('renders component name link with correct path', () => {
+    renderLogEntry({
+      selectedFields: [...allFields, LogEntryField.ComponentName],
+      entityNamespace: 'my-namespace',
+      entityKind: 'Component',
+    });
+
+    const link = screen.getByRole('link', { name: 'api-service' });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute(
+      'href',
+      '/catalog/my-namespace/component/api-service/runtime-logs',
+    );
+  });
+
   it('expands to show metadata on row click', async () => {
     const user = userEvent.setup();
     renderLogEntry();

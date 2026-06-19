@@ -13,6 +13,8 @@ import { Link } from '@backstage/core-components';
 import { useLocation } from 'react-router-dom';
 import { useLogEntryStyles } from './styles';
 import { getColumnStyle } from './columns';
+import { Entity } from '@backstage/catalog-model';
+import { buildRuntimeLogsBasePath } from '@openchoreo/backstage-plugin-react';
 
 /**
  * Render-prop slot for a per-row action button (assistant integration,
@@ -148,6 +150,15 @@ export const LogEntry: FC<LogEntryProps> = ({
 
           if (field === LogEntryField.ComponentName) {
             const compName = log.metadata?.componentName ?? componentName ?? '';
+            const entity: Entity = {
+              apiVersion: 'backstage.io/v1alpha1',
+              kind: entityKind || 'Component',
+              metadata: {
+                name: compName,
+                namespace: entityNamespace,
+              },
+            };
+            const basePath = buildRuntimeLogsBasePath(entity);
             return (
               <Box
                 key={field}
@@ -156,7 +167,7 @@ export const LogEntry: FC<LogEntryProps> = ({
               >
                 {compName ? (
                   <Link
-                    to={`/catalog/${entityNamespace?.toLocaleLowerCase() || 'default'}/${entityKind?.toLocaleLowerCase() || 'component'}/${compName}/runtime-logs${location.search}`}
+                    to={`${basePath}${location.search}`}
                     onClick={e => e.stopPropagation()}
                   >
                     {compName}
