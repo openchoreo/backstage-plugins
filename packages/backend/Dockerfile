@@ -1,4 +1,4 @@
-ARG BUILD_IMAGE=docker.io/node:22-bookworm-slim@sha256:d9f850096136edbc402debdd8729579a288aac64574ada0ff4db26b6ae58b0b2
+ARG BUILD_IMAGE=docker.io/node:22-bookworm-slim@sha256:813a7480f28fdadac1f7f5c824bcdad435b5bc1322a5968bbbdef8d058f9dff4
 # Google distroless doesn't have tags for minor and patches which forces to float
 # creating the same possible regression scenarios introduced in 22.23.0 
 # as a result of a patch for CVE-2026-48931 which broke OpenChoreo
@@ -71,21 +71,18 @@ ENV NODE_ENV=production
 RUN --mount=type=cache,target=/app/.yarn/cache,sharing=locked,uid=1000,gid=1000 \
     yarn workspaces focus --all --production
 
-# Strip tests, docs, sourcemaps and config lint from node_modules.
+# Strip tests, sourcemaps, config lint and other miscellaneous files from node_modules.
 RUN find . -type d -name node_modules -prune | xargs -I NM \
     find NM \( \
     -type d \( \
     -name test -o -name tests -o -name __tests__ -o -name powered-test \
-    -o -name spec -o -name docs -o -name doc -o -name website \
     -o -name examples -o -name example -o -name benchmark -o -name benchmarks \
-    -o -name fixtures -o -name __fixtures__ -o -name __mocks__ \
-    -o -name images -o -name assets -o -name media \
     -o -name coverage -o -name .nyc_output \
     -o -name .idea -o -name .vscode -o -name .github \
     -o -name .circleci -o -name .husky \
     \) \
     -o -type f \( \
-    -name '*.md' -o -name '*.ts' -o -name '*.tsx' -o -name '*.map' \
+    -name '*.md' -o -name '*.map' \
     -o -name '*.tgz' -o -name '*.swp' \
     -o -name 'CHANGELOG*' -o -name 'AUTHORS*' -o -name 'CONTRIBUTORS*' \
     -o -name 'Makefile' -o -name 'Gulpfile.js' -o -name 'Gruntfile.js' \
