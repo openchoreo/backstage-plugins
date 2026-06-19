@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LogEntry } from './LogEntry';
@@ -195,5 +195,44 @@ describe('LogEntry', () => {
     expect(screen.getByText('staging')).toBeInTheDocument();
     expect(screen.getByText('fallback-project')).toBeInTheDocument();
     expect(screen.getByText('fallback-component')).toBeInTheDocument();
+  });
+
+  it('navigates to component runtime logs and stops propagation on component name link click', async () => {
+    const user = userEvent.setup();
+    const onToggleExpand = jest.fn();
+
+    const LocationDisplay = () => {
+      const location = useLocation();
+      return <span data-testid="location-path">{location.pathname}</span>;
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <LogEntry
+          log={sampleLog}
+          selectedFields={[...allFields, LogEntryField.ComponentName]}
+          environmentName="development"
+          projectName="my-project"
+          componentName="api-service"
+          expanded={false}
+          onToggleExpand={onToggleExpand}
+        />
+        <LocationDisplay />
+      </MemoryRouter>,
+    );
+
+    // Assert initial location is '/'
+    expect(screen.getByTestId('location-path')).toHaveTextContent('/');
+
+    const link = screen.getByRole('link', { name: 'api-service' });
+    await user.click(link);
+
+    // Assert the location updated to runtime-logs path
+    expect(screen.getByTestId('location-path')).toHaveTextContent(
+      '/catalog/default/component/api-service/runtime-logs',
+    );
+
+    // Assert propagation was stopped (onToggleExpand was NOT called)
+    expect(onToggleExpand).not.toHaveBeenCalled();
   });
 });
