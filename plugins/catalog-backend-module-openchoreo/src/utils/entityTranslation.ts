@@ -330,6 +330,19 @@ export function translateProjectToEntity(
      * `projectRefs` array.
      */
     deploymentPipelineRef?: string;
+    /**
+     * Name of the (Cluster)ProjectType this project references
+     * (`Project.spec.type.name` on the OC CR). Surfaced as the
+     * `openchoreo.io/project-type` annotation so SystemEntityProcessor can
+     * emit the `instanceOf` / `hasInstance` relation pair to the type,
+     * mirroring how Resources link to their (Cluster)ResourceType.
+     */
+    projectTypeName?: string;
+    /**
+     * Kind disambiguation for the project-type ref — `ProjectType`
+     * (namespaced) or `ClusterProjectType` (cluster-scoped).
+     */
+    projectTypeKind?: 'ProjectType' | 'ClusterProjectType';
   },
   namespaceName: string,
   config: ProjectEntityTranslationConfig,
@@ -351,6 +364,11 @@ export function translateProjectToEntity(
           [CHOREO_ANNOTATIONS.PROJECT_UID]: project.uid,
         }),
         [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        ...(project.projectTypeName && {
+          [CHOREO_ANNOTATIONS.PROJECT_TYPE]: project.projectTypeName,
+          [CHOREO_ANNOTATIONS.PROJECT_TYPE_KIND]:
+            project.projectTypeKind ?? 'ProjectType',
+        }),
         ...(project.deletionTimestamp && {
           [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: project.deletionTimestamp,
         }),
@@ -1275,6 +1293,11 @@ export function translateNewProjectToEntity(
       uid: getUid(project),
       deletionTimestamp: getDeletionTimestamp(project),
       deploymentPipelineRef: project.spec?.deploymentPipelineRef?.name,
+      projectTypeName: project.spec?.type?.name,
+      projectTypeKind: project.spec?.type?.kind as
+        | 'ProjectType'
+        | 'ClusterProjectType'
+        | undefined,
     },
     namespaceName,
     {

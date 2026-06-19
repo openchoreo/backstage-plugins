@@ -1320,6 +1320,93 @@ describe('SystemEntityProcessor', () => {
     expect(call.relation.source.namespace).toBe('default');
     expect(call.relation.target.namespace).toBe('default');
   });
+
+  it('emits instanceOf/hasInstance to a namespaced ProjectType', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'System',
+      metadata: {
+        name: 'proj-1',
+        namespace: 'my-ns',
+        annotations: {
+          'openchoreo.io/project-type': 'standard-project',
+          'openchoreo.io/project-type-kind': 'ProjectType',
+        },
+      },
+      spec: {},
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'system', namespace: 'my-ns', name: 'proj-1' },
+        target: {
+          kind: 'projecttype',
+          namespace: 'my-ns',
+          name: 'standard-project',
+        },
+        type: RELATION_INSTANCE_OF,
+      }),
+    );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: {
+          kind: 'projecttype',
+          namespace: 'my-ns',
+          name: 'standard-project',
+        },
+        target: { kind: 'system', namespace: 'my-ns', name: 'proj-1' },
+        type: RELATION_HAS_INSTANCE,
+      }),
+    );
+    expect(emit).toHaveBeenCalledTimes(2);
+  });
+
+  it('targets the openchoreo-cluster namespace for a ClusterProjectType ref', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'System',
+      metadata: {
+        name: 'proj-1',
+        namespace: 'my-ns',
+        annotations: {
+          'openchoreo.io/project-type': 'global-project',
+          'openchoreo.io/project-type-kind': 'ClusterProjectType',
+        },
+      },
+      spec: {},
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'system', namespace: 'my-ns', name: 'proj-1' },
+        target: {
+          kind: 'clusterprojecttype',
+          namespace: 'openchoreo-cluster',
+          name: 'global-project',
+        },
+        type: RELATION_INSTANCE_OF,
+      }),
+    );
+  });
+
+  it('emits both pipeline and project-type relations when both are present', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'System',
+      metadata: {
+        name: 'proj-1',
+        namespace: 'my-ns',
+        annotations: {
+          'openchoreo.io/project-type': 'standard-project',
+          'openchoreo.io/project-type-kind': 'ProjectType',
+        },
+      },
+      spec: { deploymentPipelineRef: 'pipe' },
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    // 2 pipeline + 2 project-type
+    expect(emit).toHaveBeenCalledTimes(4);
+  });
 });
 
 // ---------------------------------------------------------------------------

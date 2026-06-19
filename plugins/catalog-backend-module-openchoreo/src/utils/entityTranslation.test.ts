@@ -5,6 +5,7 @@ import {
   translateNewClusterProjectTypeToEntity,
   translateNewClusterResourceTypeToEntity,
   translateNewComponentToEntity,
+  translateNewProjectToEntity,
   translateNewProjectTypeToEntity,
   translateNewResourceToEntity,
   translateNewResourceTypeToEntity,
@@ -111,6 +112,68 @@ describe('translateNewClusterResourceTypeToEntity', () => {
     expect(entity.metadata.annotations).toMatchObject({
       'backstage.io/managed-by-location': 'provider:openchoreo-provider',
     });
+  });
+});
+
+describe('translateNewProjectToEntity (project-type linkage)', () => {
+  const ctx = {
+    providerName: 'openchoreo-provider',
+    defaultOwner: 'group:default/team',
+  } as any;
+
+  it('stamps project-type / project-type-kind annotations from spec.type', () => {
+    const entity = translateNewProjectToEntity(
+      {
+        apiVersion: 'openchoreo.dev/v1alpha1',
+        kind: 'Project',
+        metadata: { name: 'payments', namespace: 'default-org' } as any,
+        spec: {
+          deploymentPipelineRef: { kind: 'DeploymentPipeline', name: 'dp' },
+          type: { kind: 'ClusterProjectType', name: 'standard-project' },
+        } as any,
+      } as any,
+      'default-org',
+      ctx,
+    );
+
+    expect(entity.kind).toBe('System');
+    expect(entity.metadata.annotations).toMatchObject({
+      'openchoreo.io/project-type': 'standard-project',
+      'openchoreo.io/project-type-kind': 'ClusterProjectType',
+    });
+  });
+
+  it('defaults the kind annotation to ProjectType when only a name is given', () => {
+    const entity = translateNewProjectToEntity(
+      {
+        apiVersion: 'openchoreo.dev/v1alpha1',
+        kind: 'Project',
+        metadata: { name: 'payments', namespace: 'default-org' } as any,
+        spec: { type: { name: 'team-project' } } as any,
+      } as any,
+      'default-org',
+      ctx,
+    );
+    expect(entity.metadata.annotations).toMatchObject({
+      'openchoreo.io/project-type': 'team-project',
+      'openchoreo.io/project-type-kind': 'ProjectType',
+    });
+  });
+
+  it('omits the project-type annotations when spec.type is absent', () => {
+    const entity = translateNewProjectToEntity(
+      {
+        apiVersion: 'openchoreo.dev/v1alpha1',
+        kind: 'Project',
+        metadata: { name: 'legacy', namespace: 'default-org' } as any,
+        spec: {} as any,
+      } as any,
+      'default-org',
+      ctx,
+    );
+    const keys = Object.keys(entity.metadata.annotations ?? {});
+    expect(keys).not.toContain('openchoreo.io/project-type');
+    expect(keys).not.toContain('openchoreo.io/project-type-kind');
   });
 });
 
