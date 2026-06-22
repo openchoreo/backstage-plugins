@@ -21,7 +21,7 @@ import {
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { ActionSelectionDialog } from './ActionSelectionDialog';
-import { getActionDisplayLabel } from './actionUtils';
+import { getActionDisplayLabel, normalizeActions } from './actionUtils';
 
 const useStyles = makeStyles(theme => ({
   formField: {
@@ -309,20 +309,22 @@ export const RoleDialog = ({
   useEffect(() => {
     if (editingRole) {
       setName(editingRole.name);
-      setSelectedActions(editingRole.actions);
+      setSelectedActions(
+        normalizeActions(editingRole.actions, availableActions),
+      );
     } else {
       setName('');
       setSelectedActions([]);
     }
     setError(null);
-  }, [editingRole, open]);
+  }, [editingRole, open, availableActions]);
 
   const handleApplyTemplate = (templateKey: keyof typeof ROLE_TEMPLATES) => {
     const template = ROLE_TEMPLATES[templateKey];
     if (!editingRole) {
       setName(template.name);
     }
-    setSelectedActions(template.actions);
+    setSelectedActions(normalizeActions(template.actions, availableActions));
   };
 
   const handleSave = async () => {

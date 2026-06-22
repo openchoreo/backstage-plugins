@@ -32,6 +32,8 @@ import WarningIcon from '@material-ui/icons/Warning';
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { useStyles } from './styles';
 import { SCOPE_CLUSTER, type BindingScope } from '../constants';
+import { useActions } from '../hooks';
+import { normalizeActions, getActionDisplayLabel } from './actionUtils';
 
 interface RoleRow {
   name: string;
@@ -74,6 +76,11 @@ export const RolesTable = ({
   onCheckBindings,
 }: RolesTableProps) => {
   const classes = useStyles();
+  const { actions: availableActionInfos } = useActions();
+  const availableActions = useMemo(
+    () => availableActionInfos.map(a => a.name),
+    [availableActionInfos],
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
@@ -158,86 +165,92 @@ export const RolesTable = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredRoles.map(role => (
-                <TableRow key={role.name}>
-                  <TableCell>
-                    <Typography variant="body1">
-                      {role.name}
-                      {role.labels?.[CHOREO_LABELS.SYSTEM] === 'true' && (
+              {filteredRoles.map(role => {
+                const displayActions = normalizeActions(
+                  role.actions,
+                  availableActions,
+                );
+                return (
+                  <TableRow key={role.name}>
+                    <TableCell>
+                      <Typography variant="body1">
+                        {role.name}
+                        {role.labels?.[CHOREO_LABELS.SYSTEM] === 'true' && (
+                          <Chip
+                            label="System"
+                            size="small"
+                            variant="outlined"
+                            style={{
+                              marginLeft: 8,
+                              fontSize: '0.7rem',
+                              height: 20,
+                            }}
+                          />
+                        )}
+                      </Typography>
+                      {role.description && (
+                        <Typography variant="body2" color="textSecondary">
+                          {role.description}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell className={classes.actionsCell}>
+                      {displayActions.length === 0 ? (
+                        <Typography variant="body2" color="textSecondary">
+                          No actions
+                        </Typography>
+                      ) : (
+                        displayActions
+                          .slice(0, 5)
+                          .map(action => (
+                            <Chip
+                              key={action}
+                              label={getActionDisplayLabel(action)}
+                              size="small"
+                              className={classes.actionsChip}
+                            />
+                          ))
+                      )}
+                      {displayActions.length > 5 && (
                         <Chip
-                          label="System"
+                          label={`+${displayActions.length - 5} more`}
                           size="small"
                           variant="outlined"
-                          style={{
-                            marginLeft: 8,
-                            fontSize: '0.7rem',
-                            height: 20,
-                          }}
+                          className={classes.actionsChip}
                         />
                       )}
-                    </Typography>
-                    {role.description && (
-                      <Typography variant="body2" color="textSecondary">
-                        {role.description}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell className={classes.actionsCell}>
-                    {role.actions.length === 0 ? (
-                      <Typography variant="body2" color="textSecondary">
-                        No actions
-                      </Typography>
-                    ) : (
-                      role.actions
-                        .slice(0, 5)
-                        .map(action => (
-                          <Chip
-                            key={action}
-                            label={action}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title={updateDeniedTooltip || 'Edit'}>
+                        <span>
+                          <IconButton
                             size="small"
-                            className={classes.actionsChip}
-                          />
-                        ))
-                    )}
-                    {role.actions.length > 5 && (
-                      <Chip
-                        label={`+${role.actions.length - 5} more`}
-                        size="small"
-                        variant="outlined"
-                        className={classes.actionsChip}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title={updateDeniedTooltip || 'Edit'}>
-                      <span>
-                        <IconButton
-                          size="small"
-                          onClick={() => onEdit(role)}
-                          disabled={!canUpdate}
-                          color="primary"
-                          aria-label={`Edit role ${role.name}`}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                    <Tooltip title={deleteDeniedTooltip || 'Delete'}>
-                      <span>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteRole(role.name)}
-                          disabled={!canDelete}
-                          className={classes.deleteIconButton}
-                          aria-label={`Delete role ${role.name}`}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
+                            onClick={() => onEdit(role)}
+                            disabled={!canUpdate}
+                            color="primary"
+                            aria-label={`Edit role ${role.name}`}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title={deleteDeniedTooltip || 'Delete'}>
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteRole(role.name)}
+                            disabled={!canDelete}
+                            className={classes.deleteIconButton}
+                            aria-label={`Delete role ${role.name}`}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
