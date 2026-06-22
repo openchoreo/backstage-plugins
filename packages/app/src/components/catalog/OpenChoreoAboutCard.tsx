@@ -241,7 +241,39 @@ function OpenChoreoAboutContent({ entity }: { entity: Entity }) {
           </AboutField>
         </Grid>
       )}
-      {!isResource && typeof entity?.spec?.type === 'string' && (
+      {isSystem &&
+        entity.metadata.annotations?.['openchoreo.io/project-type'] && (
+          <Grid item xs={12} sm={6} lg={4}>
+            <AboutField label="Type">
+              {(() => {
+                const typeName =
+                  entity.metadata.annotations['openchoreo.io/project-type'];
+                const typeKind =
+                  entity.metadata.annotations[
+                    'openchoreo.io/project-type-kind'
+                  ];
+                const namespaceName = entity.metadata.namespace ?? 'default';
+                if (typeKind === 'ClusterProjectType') {
+                  return (
+                    <Link
+                      to={`/catalog/openchoreo-cluster/clusterprojecttype/${typeName}`}
+                    >
+                      {typeName}
+                    </Link>
+                  );
+                }
+                return (
+                  <Link
+                    to={`/catalog/${namespaceName}/projecttype/${typeName}`}
+                  >
+                    {typeName}
+                  </Link>
+                );
+              })()}
+            </AboutField>
+          </Grid>
+        )}
+      {!isResource && !isSystem && typeof entity?.spec?.type === 'string' && (
         <Grid item xs={12} sm={6} lg={4}>
           <AboutField label="Type" value={entity.spec.type as string} />
         </Grid>
