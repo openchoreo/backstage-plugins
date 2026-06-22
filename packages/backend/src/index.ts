@@ -23,17 +23,16 @@ const backend = createBackend();
 // system to access the user's IDP token when making authorization decisions.
 backend.add(
   rootHttpRouterServiceFactory({
-    configure: ({ app, applyDefaults, middleware }) => {
-      // Apply standard middleware first
-      app.use(middleware.helmet());
-      app.use(middleware.cors());
-      app.use(middleware.compression());
-
-      // IDP token middleware - reads token from header and establishes
-      // AsyncLocalStorage context so getUserTokenFromContext() works everywhere
+    configure: ({ app, applyDefaults }) => {
+      // IDP token middleware — reads the IDP token from the x-openchoreo-token
+      // header and establishes the AsyncLocalStorage context so
+      // getUserTokenFromContext() works in the permission policy and elsewhere.
+      // Registered before applyDefaults() so it wraps all route handlers.
       app.use(createIdpTokenHeaderMiddleware());
 
-      // Apply remaining defaults (routes, error handling, etc.)
+      // applyDefaults() applies the standard middleware stack ONCE:
+      // helmet, cors, compression, logging, rateLimit, then routes + error
+      // handling. Do NOT re-apply any of these manually here.
       applyDefaults();
     },
   }),
