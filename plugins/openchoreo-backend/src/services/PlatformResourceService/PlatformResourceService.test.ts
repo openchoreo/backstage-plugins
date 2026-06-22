@@ -342,6 +342,48 @@ describe('PlatformResourceService', () => {
       expect(mockPUT).toHaveBeenCalledTimes(1);
     });
 
+    it('updates projecttype via new API PUT', async () => {
+      const pt = {
+        metadata: { name: 'standard-project', namespace: 'test-ns' },
+        spec: { resources: [] },
+      };
+      mockPUT.mockResolvedValueOnce(createOkResponse(pt));
+
+      const service = createService();
+      const result = await service.updateResourceDefinition(
+        'projecttypes' as any,
+        'test-ns',
+        'standard-project',
+        pt,
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ProjectType');
+      expect(mockPUT).toHaveBeenCalledTimes(1);
+    });
+
+    it('updates clusterprojecttype via new API PUT', async () => {
+      const cpt = {
+        metadata: { name: 'global-project' },
+        spec: { resources: [] },
+      };
+      mockPUT.mockResolvedValueOnce(createOkResponse(cpt));
+
+      const service = createService();
+      const result = await service.updateResourceDefinition(
+        'clusterprojecttypes' as any,
+        '',
+        'global-project',
+        cpt,
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ClusterProjectType');
+      expect(mockPUT).toHaveBeenCalledTimes(1);
+    });
+
     it('throws on API error', async () => {
       mockPUT.mockResolvedValueOnce(createErrorResponse());
 
@@ -449,6 +491,42 @@ describe('PlatformResourceService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.kind).toBe('Resource');
+    });
+
+    it('deletes projecttype via new API', async () => {
+      mockDELETE.mockResolvedValueOnce({
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
+
+      const service = createService();
+      const result = await service.deleteResourceDefinition(
+        'projecttypes' as any,
+        'test-ns',
+        'standard-project',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ProjectType');
+    });
+
+    it('deletes clusterprojecttype via new API', async () => {
+      mockDELETE.mockResolvedValueOnce({
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
+
+      const service = createService();
+      const result = await service.deleteResourceDefinition(
+        'clusterprojecttypes' as any,
+        '',
+        'global-project',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ClusterProjectType');
     });
 
     it('throws on API error', async () => {

@@ -629,6 +629,46 @@ describe('ClusterProjectTypeEntityProcessor', () => {
     );
     expect(emit).not.toHaveBeenCalled();
   });
+
+  it('getProcessorName returns the processor name', () => {
+    expect(processor.getProcessorName()).toBe(
+      'ClusterProjectTypeEntityProcessor',
+    );
+  });
+
+  it('processEntity emits the entity for a ClusterProjectType', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'ClusterProjectType',
+      metadata: { name: 'p' },
+      spec: {},
+    } as any;
+    const result = await processor.processEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.entity(mockLocation, entity),
+    );
+    expect(result).toBe(entity);
+  });
+
+  it('processEntity passes through entities of other kinds without emitting', async () => {
+    const emit = jest.fn();
+    const entity = { kind: 'ProjectType', metadata: { name: 'p' } } as any;
+    await processor.processEntity(entity, mockLocation, emit);
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('preProcessEntity returns the entity unchanged', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'ClusterProjectType',
+      metadata: { name: 'p' },
+      spec: {},
+    } as any;
+    expect(await processor.preProcessEntity(entity, mockLocation, emit)).toBe(
+      entity,
+    );
+    expect(emit).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -650,26 +690,98 @@ describe('ProjectTypeEntityProcessor', () => {
 
   it('emits partOf domain relation', async () => {
     const emit = jest.fn();
+    // Real translation sets spec.domain to `default/<namespace>`, so the Domain
+    // target always resolves to the `default` namespace (where Domain entities
+    // live), regardless of the ProjectType's own namespace.
     const entity = {
       kind: 'ProjectType',
       metadata: { name: 'p', namespace: 'my-ns' },
-      spec: { domain: 'my-ns' },
+      spec: { domain: 'default/my-ns' },
     } as any;
     await processor.postProcessEntity(entity, mockLocation, emit);
     expect(emit).toHaveBeenCalledWith(
       processingResult.relation({
         source: { kind: 'projecttype', namespace: 'my-ns', name: 'p' },
-        target: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
+        target: { kind: 'domain', namespace: 'default', name: 'my-ns' },
         type: RELATION_PART_OF,
       }),
     );
     expect(emit).toHaveBeenCalledWith(
       processingResult.relation({
-        source: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
+        source: { kind: 'domain', namespace: 'default', name: 'my-ns' },
         target: { kind: 'projecttype', namespace: 'my-ns', name: 'p' },
         type: RELATION_HAS_PART,
       }),
     );
+  });
+
+  it('postProcessEntity emits no relations when spec.domain is absent', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'ProjectType',
+      metadata: { name: 'p', namespace: 'my-ns' },
+      spec: {},
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('postProcessEntity defaults the source namespace to "default" when unset', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'ProjectType',
+      metadata: { name: 'p' },
+      spec: { domain: 'web' },
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'projecttype', namespace: 'default', name: 'p' },
+        target: { kind: 'domain', namespace: 'default', name: 'web' },
+        type: RELATION_PART_OF,
+      }),
+    );
+  });
+
+  it('getProcessorName returns the processor name', () => {
+    expect(processor.getProcessorName()).toBe('ProjectTypeEntityProcessor');
+  });
+
+  it('processEntity emits the entity for a ProjectType', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'ProjectType',
+      metadata: { name: 'p', namespace: 'my-ns' },
+      spec: {},
+    } as any;
+    const result = await processor.processEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.entity(mockLocation, entity),
+    );
+    expect(result).toBe(entity);
+  });
+
+  it('processEntity passes through entities of other kinds without emitting', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'ClusterProjectType',
+      metadata: { name: 'p' },
+    } as any;
+    await processor.processEntity(entity, mockLocation, emit);
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('preProcessEntity returns the entity unchanged', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'ProjectType',
+      metadata: { name: 'p', namespace: 'my-ns' },
+      spec: {},
+    } as any;
+    expect(await processor.preProcessEntity(entity, mockLocation, emit)).toBe(
+      entity,
+    );
+    expect(emit).not.toHaveBeenCalled();
   });
 });
 
