@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { Box } from '@material-ui/core';
-import { useEntity } from '@backstage/plugin-catalog-react';
+import { useAsyncEntity, useEntity } from '@backstage/plugin-catalog-react';
 import { EmptyState, Progress } from '@backstage/core-components';
 import { VisuallyHidden } from '@openchoreo/backstage-design-system';
 import {
@@ -59,15 +59,15 @@ interface EntityLayoutWithDeleteProps {
 }
 
 /**
- * Wrapper component that adds delete menu functionality to OpenChoreoEntityLayout.
- * Children (OpenChoreoEntityLayout.Route elements) are passed through, keeping them
- * in static JSX so Backstage can discover routable extensions.
- *
- * Also checks if the entity exists in OpenChoreo:
- * - If not found (404), shows empty state with "Not Found" message
- * - If marked for deletion, shows empty state with "Marked for Deletion" message
+ * Inner content component that does the actual rendering once the entity is
+ * known to be loaded. Called by the gating `EntityLayoutWithDelete` wrapper
+ * below — must NEVER be rendered when `useAsyncEntity()` is still loading,
+ * because `useEntity()` throws on undefined entity and the four custom hooks
+ * (`useResourceDefinitionPermission`, `useDeleteEntityMenuItems`,
+ * `useAnnotationEditorMenuItems`, `useEntityExistsCheck`) all access
+ * `entity.kind` / `entity.metadata` unconditionally.
  */
-export function EntityLayoutWithDelete({
+function EntityLayoutWithDeleteContent({
   children,
   kindDisplayNames,
   parentEntityRelations = ['partOf'],
@@ -193,4 +193,48 @@ export function EntityLayoutWithDelete({
       <AnnotationEditorDialog />
     </>
   );
+}
+
+/**
+ * Gating wrapper. Lives directly under `AsyncEntityProvider` (see
+ * `OpenChoreoCatalogEntityPage`) and handles the loading / error / missing
+ * states upstream `EntityLayout` would normally handle. Once the entity is
+ * loaded, defers to `EntityLayoutWithDeleteContent` for the real rendering.
+ *
+ * Necessary because `EntityLayoutWithDeleteContent` calls `useEntity()` and
+ * several entity-dependent hooks unconditionally — calling them during the
+ * loading window throws (`useEntity` rejects undefined entity).
+ */
+export function EntityLayoutWithDelete(props: EntityLayoutWithDeleteProps) {
+  const { entity, loading, error } = useAsyncEntity();
+
+  if (loading) {
+    return <Progress />;
+  }
+
+  if (error) {
+    return (
+      <Box py={4}>
+        <EmptyState
+          missing="data"
+          title="Failed to load entity"
+          description={error.message}
+        />
+      </Box>
+    );
+  }
+
+  if (!entity) {
+    return (
+      <Box py={4}>
+        <EmptyState
+          missing="data"
+          title="Entity not found"
+          description="The requested entity could not be found."
+        />
+      </Box>
+    );
+  }
+
+  return <EntityLayoutWithDeleteContent {...props} />;
 }

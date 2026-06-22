@@ -8,8 +8,10 @@
 export { SummaryWidgetWrapper } from './components/SummaryWidgetWrapper';
 export {
   FeatureGate,
+  FeatureGatedContent,
   withFeatureGate,
   type FeatureGateProps,
+  type FeatureGatedContentProps,
 } from './components/FeatureGate';
 export {
   AnnotationGate,

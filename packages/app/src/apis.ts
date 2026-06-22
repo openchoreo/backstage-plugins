@@ -25,21 +25,7 @@ import { UserSettingsStorage } from '@backstage/plugin-user-settings';
 import { permissionApiRef } from '@backstage/plugin-permission-react';
 import { OpenChoreoFetchApi } from './apis/OpenChoreoFetchApi';
 import { OpenChoreoPermissionApi } from './apis/OpenChoreoPermissionApi';
-import {
-  formDecoratorsApiRef,
-  DefaultScaffolderFormDecoratorsApi,
-} from '@backstage/plugin-scaffolder/alpha';
-import { openChoreoTokenDecorator } from './scaffolder/openChoreoTokenDecorator';
-// Import from separate file to avoid circular dependency with form decorators
 import { openChoreoAuthApiRef } from './apis/authRefs';
-import {
-  openChoreoCiClientApiRef,
-  OpenChoreoCiClient,
-} from '@openchoreo/backstage-plugin-openchoreo-ci';
-import {
-  genericWorkflowsClientApiRef,
-  GenericWorkflowsClient,
-} from '@openchoreo/backstage-plugin-openchoreo-workflows';
 // NOTE: ``perchAgentApiRef`` is also declared on
 // ``openchoreoPerchPlugin.apis`` in plugins/openchoreo-portal-assistant/src/plugin.ts.
 // That declaration is NOT picked up by the app at runtime because the plugin
@@ -52,47 +38,6 @@ import {
   perchAgentApiRef,
   PerchAgentClient,
 } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
-import {
-  catalogApiRef,
-  entityPresentationApiRef,
-} from '@backstage/plugin-catalog-react';
-import { DefaultEntityPresentationApi } from '@backstage/plugin-catalog';
-import {
-  catalogGraphApiRef,
-  DefaultCatalogGraphApi,
-  ALL_RELATIONS,
-  ALL_RELATION_PAIRS,
-} from '@backstage/plugin-catalog-graph';
-import {
-  RELATION_DEPLOYS_TO,
-  RELATION_DEPLOYED_BY,
-  RELATION_USES_PIPELINE,
-  RELATION_PIPELINE_USED_BY,
-  RELATION_HOSTED_ON,
-  RELATION_HOSTS,
-  RELATION_OBSERVED_BY,
-  RELATION_OBSERVES,
-  RELATION_INSTANCE_OF,
-  RELATION_HAS_INSTANCE,
-  RELATION_USES_WORKFLOW,
-  RELATION_WORKFLOW_USED_BY,
-  RELATION_BUILDS_ON,
-  RELATION_BUILDS,
-} from '@openchoreo/backstage-plugin-common';
-import CloudIcon from '@material-ui/icons/Cloud';
-import DnsIcon from '@material-ui/icons/Dns';
-import AccountTreeIcon from '@material-ui/icons/AccountTree';
-import VisibilityIcon from '@material-ui/icons/Visibility';
-import BuildIcon from '@material-ui/icons/Build';
-import CategoryIcon from '@material-ui/icons/Category';
-import LayersIcon from '@material-ui/icons/Layers';
-import StorageIcon from '@material-ui/icons/Storage';
-import ExtensionIcon from '@material-ui/icons/Extension';
-import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
-import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
-
-// Re-export for use by App.tsx and other components
-export { openChoreoAuthApiRef };
 
 export const apis: AnyApiFactory[] = [
   createApiFactory({
@@ -189,78 +134,6 @@ export const apis: AnyApiFactory[] = [
     factory: deps => UserSettingsStorage.create(deps),
   }),
 
-  // Form decorators for scaffolder - injects user's OpenChoreo token as a secret
-  // This enables user-based authorization in scaffolder actions
-  createApiFactory({
-    api: formDecoratorsApiRef,
-    deps: {},
-    factory: () =>
-      DefaultScaffolderFormDecoratorsApi.create({
-        decorators: [openChoreoTokenDecorator],
-      }),
-  }),
-
-  // OpenChoreo CI client - provides API for workflow/build operations
-  createApiFactory({
-    api: openChoreoCiClientApiRef,
-    deps: {
-      discoveryApi: discoveryApiRef,
-      fetchApi: fetchApiRef,
-    },
-    factory: ({ discoveryApi, fetchApi }) =>
-      new OpenChoreoCiClient(discoveryApi, fetchApi),
-  }),
-
-  // Catalog graph API with custom OpenChoreo relations
-  // Without this, custom relations (deploysTo, hostedOn, instanceOf, etc.)
-  // won't appear in entity Relations cards or the catalog graph
-  createApiFactory({
-    api: catalogGraphApiRef,
-    deps: {},
-    factory: () =>
-      new DefaultCatalogGraphApi({
-        knownRelations: [
-          ...ALL_RELATIONS,
-          RELATION_DEPLOYS_TO,
-          RELATION_DEPLOYED_BY,
-          RELATION_USES_PIPELINE,
-          RELATION_PIPELINE_USED_BY,
-          RELATION_HOSTED_ON,
-          RELATION_HOSTS,
-          RELATION_OBSERVED_BY,
-          RELATION_OBSERVES,
-          RELATION_INSTANCE_OF,
-          RELATION_HAS_INSTANCE,
-          RELATION_USES_WORKFLOW,
-          RELATION_WORKFLOW_USED_BY,
-          RELATION_BUILDS_ON,
-          RELATION_BUILDS,
-        ],
-        knownRelationPairs: [
-          ...ALL_RELATION_PAIRS,
-          [RELATION_DEPLOYS_TO, RELATION_DEPLOYED_BY],
-          [RELATION_USES_PIPELINE, RELATION_PIPELINE_USED_BY],
-          [RELATION_HOSTED_ON, RELATION_HOSTS],
-          [RELATION_OBSERVED_BY, RELATION_OBSERVES],
-          [RELATION_INSTANCE_OF, RELATION_HAS_INSTANCE],
-          [RELATION_USES_WORKFLOW, RELATION_WORKFLOW_USED_BY],
-          [RELATION_BUILDS_ON, RELATION_BUILDS],
-        ],
-        defaultRelationTypes: { exclude: [] },
-      }),
-  }),
-
-  // Generic Workflows client - provides API for org-level workflow operations
-  createApiFactory({
-    api: genericWorkflowsClientApiRef,
-    deps: {
-      discoveryApi: discoveryApiRef,
-      fetchApi: fetchApiRef,
-    },
-    factory: ({ discoveryApi, fetchApi }) =>
-      new GenericWorkflowsClient(discoveryApi, fetchApi),
-  }),
-
   // Assistant Agent client (Perch). Mirrors the registration on
   // openchoreoPerchPlugin.apis — see the import-site comment for why
   // both exist.
@@ -272,35 +145,5 @@ export const apis: AnyApiFactory[] = [
     },
     factory: ({ discoveryApi, fetchApi }) =>
       new PerchAgentClient({ discoveryApi, fetchApi }),
-  }),
-
-  // Custom EntityPresentationApi with icons for custom entity kinds
-  // This enables icons for Environment, DataPlane, and DeploymentPipeline in the catalog graph
-  createApiFactory({
-    api: entityPresentationApiRef,
-    deps: { catalogApi: catalogApiRef },
-    factory: ({ catalogApi }) =>
-      DefaultEntityPresentationApi.create({
-        catalogApi,
-        kindIcons: {
-          environment: CloudIcon,
-          dataplane: DnsIcon,
-          clusterdataplane: DnsIcon,
-          deploymentpipeline: AccountTreeIcon,
-          observabilityplane: VisibilityIcon,
-          clusterobservabilityplane: VisibilityIcon,
-          workflowplane: BuildIcon,
-          clusterworkflowplane: BuildIcon,
-          componenttype: CategoryIcon,
-          clustercomponenttype: CategoryIcon,
-          resourcetype: LayersIcon,
-          clusterresourcetype: LayersIcon,
-          resource: StorageIcon,
-          traittype: ExtensionIcon,
-          clustertraittype: ExtensionIcon,
-          workflow: PlayCircleOutlineIcon,
-          componentworkflow: SettingsApplicationsIcon,
-        },
-      }),
   }),
 ];

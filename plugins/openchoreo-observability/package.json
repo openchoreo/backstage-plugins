@@ -4,10 +4,26 @@
   "license": "Apache-2.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./alpha": "./src/alpha.tsx",
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "alpha": [
+        "src/alpha.tsx"
+      ],
+      "package.json": [
+        "package.json"
+      ]
+    }
+  },
   "publishConfig": {
     "access": "public",
     "main": "dist/index.esm.js",
     "types": "dist/index.d.ts",
+    "alpha": "dist/alpha.esm.js",
     "registry": "https://npm.pkg.github.com"
   },
   "repository": {
@@ -36,6 +52,7 @@
     "@backstage/catalog-model": "^1.9.0",
     "@backstage/core-components": "^0.18.10",
     "@backstage/core-plugin-api": "^1.12.6",
+    "@backstage/frontend-plugin-api": "^0.17.0",
     "@backstage/plugin-catalog-react": "^3.0.0",
     "@backstage/theme": "^0.7.3",
     "@date-io/date-fns": "1.3.13",

@@ -47,16 +47,15 @@ export const ScaffolderPreselectionProvider = ({
     string | null
   >(null);
 
-  // Capture params on mount or when URL changes
+  // Capture params on mount or when URL changes. Reset to null when the
+  // param disappears so stale state doesn't leak across routes (the
+  // provider now lives at whole-app scope under Root). Without the
+  // explicit reset, visiting `?namespace=foo` anywhere in the app would
+  // seed a preselection that persisted into a later `/create` visit
+  // with no namespace query.
   useEffect(() => {
-    const projectParam = searchParams.get('project');
-    if (projectParam) {
-      setPreselectedProject(projectParam);
-    }
-    const namespaceParam = searchParams.get('namespace');
-    if (namespaceParam) {
-      setPreselectedNamespace(namespaceParam);
-    }
+    setPreselectedProject(searchParams.get('project'));
+    setPreselectedNamespace(searchParams.get('namespace'));
   }, [searchParams]);
 
   const clearPreselectedProject = () => {

@@ -19,3 +19,9 @@ export {
   type FinOpsAgentApi,
   type FinOpsRoutingContext,
 } from './FinOpsAgentApi';
+
+export {
+  logRowActionRendererApiRef,
+  DefaultLogRowActionRendererApi,
+  type LogRowActionRendererApi,
+} from './LogRowActionRendererApi';

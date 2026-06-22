@@ -139,10 +139,10 @@ import {
 
 import {
   FeatureGate,
+  FeatureGatedContent,
   CustomGraphNode,
   OpenChoreoEntityLayout,
 } from '@openchoreo/backstage-plugin-react';
-import { FeatureGatedContent } from './FeatureGatedContent';
 import { WorkflowsOrExternalCICard } from './WorkflowsOrExternalCICard';
 
 // External CI Platform imports

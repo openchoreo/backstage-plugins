@@ -1,51 +1,10 @@
 import { Route } from 'react-router-dom';
-import { apiDocsPlugin } from '@backstage/plugin-api-docs';
-import {
-  CatalogEntityPage,
-  CatalogIndexPage,
-  catalogPlugin,
-} from '@backstage/plugin-catalog';
+import { catalogPlugin } from '@backstage/plugin-catalog';
 import {
   CatalogImportPage,
   catalogImportPlugin,
 } from '@backstage/plugin-catalog-import';
-import { catalogImportTranslationRef } from '@backstage/plugin-catalog-import/alpha';
-import { createTranslationMessages } from '@backstage/core-plugin-api/alpha';
-import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
-import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
-import { ComponentNamePickerFieldExtension } from './scaffolder/ComponentNamePicker';
-import { ResourceNamePickerFieldExtension } from './scaffolder/ResourceNamePicker';
-import { BuildTemplatePickerFieldExtension } from './scaffolder/BuildTemplatePicker';
-import { BuildTemplateParametersFieldExtension } from './scaffolder/BuildTemplateParameters';
-import { BuildWorkflowPickerFieldExtension } from './scaffolder/BuildWorkflowPicker';
-import { BuildWorkflowParametersFieldExtension } from './scaffolder/BuildWorkflowParameters';
-import { TraitsFieldExtension } from './scaffolder/TraitsField';
-import { SwitchFieldExtension } from './scaffolder/SwitchField';
-import { AdvancedConfigurationFieldExtension } from './scaffolder/AdvancedConfigurationField';
-import { DeploymentSourcePickerFieldExtension } from './scaffolder/DeploymentSourcePicker';
-import { BuildAndDeployFieldExtension } from './scaffolder/BuildAndDeployField';
-import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
-import { ComponentTypeYamlEditorFieldExtension } from './scaffolder/ComponentTypeYamlEditor';
-import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
-import { ClusterComponentTypeYamlEditorFieldExtension } from './scaffolder/ClusterComponentTypeYamlEditor';
-import { ClusterResourceTypeYamlEditorFieldExtension } from './scaffolder/ClusterResourceTypeYamlEditor';
-import { ResourceTypeYamlEditorFieldExtension } from './scaffolder/ResourceTypeYamlEditor';
-import { ResourceParametersFieldExtension } from './scaffolder/ResourceParametersField';
-import { ClusterTraitYamlEditorFieldExtension } from './scaffolder/ClusterTraitYamlEditor';
-import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
-import { ClusterWorkflowYamlEditorFieldExtension } from './scaffolder/ClusterWorkflowYamlEditor';
-import { GitSourceFieldExtension } from './scaffolder/GitSourceField';
-import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
-import { NamespaceEntityPickerFieldExtension } from './scaffolder/NamespaceEntityPicker';
-import { DeploymentPipelinePickerFieldExtension } from './scaffolder/DeploymentPipelinePicker';
-import { EnvironmentFormWithYamlFieldExtension } from './scaffolder/EnvironmentFormWithYaml';
-import { DeploymentPipelineFormWithYamlFieldExtension } from './scaffolder/DeploymentPipelineFormWithYaml';
-import { WorkloadDetailsFieldExtension } from './scaffolder/WorkloadDetailsField';
-import { CustomTemplateListPage } from './components/scaffolder/CustomTemplateListPage';
-import { CustomReviewStep } from './scaffolder/CustomReviewState';
-import { ScaffolderPreselectionProvider } from './scaffolder/ScaffolderPreselectionContext';
-import { ScaffolderLayout } from './scaffolder/ScaffolderLayout';
-import { orgPlugin } from '@backstage/plugin-org';
+import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { SearchPage } from '@backstage/plugin-search';
 import {
   TechDocsIndexPage,
@@ -54,9 +13,7 @@ import {
 } from '@backstage/plugin-techdocs';
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
 import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
-import { apis, openChoreoAuthApiRef } from './apis';
-import { entityPage } from './components/catalog/EntityPage';
-import { CustomCatalogPage } from './components/catalog/CustomCatalogPage';
+import { apis } from './apis';
 import { CustomApiExplorerPage } from './components/catalog/CustomApiExplorerPage';
 import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
@@ -64,22 +21,53 @@ import { HomePage } from './components/Home';
 import { CustomGraphNode } from '@openchoreo/backstage-plugin-react';
 import { PlatformOverviewPage } from './components/platformOverview';
 
+import { AlertDisplay, OAuthRequestDialog } from '@backstage/core-components';
+import { createApp } from '@backstage/frontend-defaults';
 import {
-  AlertDisplay,
-  OAuthRequestDialog,
-  SignInPage,
-} from '@backstage/core-components';
-import { createApp } from '@backstage/app-defaults';
+  convertLegacyAppOptions,
+  convertLegacyAppRoot,
+} from '@backstage/core-compat-api';
 import { AppRouter, FlatRoutes } from '@backstage/core-app-api';
+
+// NFS plugin features (created in Step 2 — each plugin's `/alpha` exports a
+// `createFrontendPlugin` instance). These replace the API factory entries
+// that previously lived in `apis.ts`.
+import openchoreoPluginAlpha from '@openchoreo/backstage-plugin/alpha';
+import openchoreoCiPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-ci/alpha';
+import openchoreoObservabilityPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
+import openchoreoWorkflowsPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-workflows/alpha';
+import platformEngineerCorePluginAlpha from '@openchoreo/backstage-plugin-platform-engineer-core/alpha';
+
+// Upstream NFS plugin features with our overrides:
+// - catalog graph default API replaced to include OpenChoreo custom relations
+// - catalog entity-presentation default API replaced to add custom kind icons
+// - scaffolder `page:scaffolder` disabled (our legacy <ScaffolderPage> wins)
+//   and form-decorators API replaced to inject the openChoreoTokenDecorator
+// - customTranslationsModule reinstates the catalog-import header overrides
+//   that previously rode via createApp.__experimentalTranslations
+import {
+  catalogGraphPluginAlpha,
+  catalogPluginAlpha,
+  customAppModule,
+  scaffolderPluginAlpha as upstreamScaffolderPluginAlpha,
+} from './apis/customOverrides';
+
+// catalog-import NFS plugin — registered so the `/catalog-import` route ref
+// resolves under NFS. Our legacy `<RequirePermission><CatalogImportPage /></...>`
+// mount in `<FlatRoutes>` provides the actual page rendering.
+import catalogImportPluginAlpha from '@backstage/plugin-catalog-import/alpha';
+// api-docs and kubernetes NFS plugins — registered so that `apiDocsConfigRef`,
+// `kubernetesApiRef`, etc. are present in the api holder. The host owns the
+// `/api-docs` route (CustomApiExplorerPage) and the Kubernetes entity tab
+// reuses upstream `EntityKubernetesContent`; without these features the apis
+// they depend on are absent and the tabs throw `NotImplementedError`.
+import apiDocsPluginAlpha from '@backstage/plugin-api-docs/alpha';
+import kubernetesPluginAlpha from '@backstage/plugin-kubernetes/alpha';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import { appThemes } from './themes';
-import CloudIcon from '@material-ui/icons/Cloud';
-import DnsIcon from '@material-ui/icons/Dns';
-import AccountTreeIcon from '@material-ui/icons/AccountTree';
-import VisibilityIcon from '@material-ui/icons/Visibility';
-import BuildIcon from '@material-ui/icons/Build';
+import { LEGACY_KIND_ICONS } from './kindIcons';
 import {
   AccessControlContent,
   SecretsContent,
@@ -89,129 +77,26 @@ import {
   SettingsLayout,
   UserSettingsGeneral,
 } from '@backstage/plugin-user-settings';
-import CategoryIcon from '@material-ui/icons/Category';
-import LayersIcon from '@material-ui/icons/Layers';
-import StorageIcon from '@material-ui/icons/Storage';
-import ExtensionIcon from '@material-ui/icons/Extension';
-import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
-import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
 import { VisitListener } from '@backstage/plugin-home';
-import { configApiRef, useApi } from '@backstage/core-plugin-api';
-import { DependencyGraphZoomOverrides } from './components/graph/DependencyGraphZoomOverrides';
 
-/**
- * Dynamic SignInPage that switches between OAuth and Guest mode
- * based on openchoreo.features.auth.enabled configuration.
- *
- * When auth is enabled (default): Uses OpenChoreo IDP OAuth flow
- * When auth is disabled: Auto-signs in as guest user using Backstage's built-in guest provider
- */
-function DynamicSignInPage(props: any) {
-  const configApi = useApi(configApiRef);
-
-  // Check if auth feature is enabled (defaults to true)
-  const authEnabled =
-    configApi.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
-
-  if (!authEnabled) {
-    // Guest mode: use Backstage's built-in guest provider
-    // This uses ProxiedSignInIdentity with the backend guest module
-    // and falls back to GuestUserIdentity (legacy) if not available
-    return <SignInPage {...props} auto providers={['guest']} />;
-  }
-
-  // Default: OpenChoreo Auth (works with any OIDC-compliant IDP).
-  // The sign-in page is always shown with a login button. The OAuth2 provider
-  // handles popup vs. redirect based on the enableExperimentalRedirectFlow config.
-  return (
-    <SignInPage
-      {...props}
-      provider={{
-        id: 'openchoreo-auth',
-        title: 'OpenChoreo',
-        message: 'Sign in using OpenChoreo',
-        apiRef: openChoreoAuthApiRef,
-      }}
-    />
-  );
-}
-
-const catalogImportTranslations = createTranslationMessages({
-  ref: catalogImportTranslationRef,
-  full: false,
-  messages: {
-    'defaultImportPage.headerTitle': 'Register an existing catalog entity',
-    'defaultImportPage.contentHeaderTitle':
-      'Start tracking your entity in {{appTitle}}',
-    'defaultImportPage.supportTitle':
-      'Start tracking your entity in {{appTitle}} by adding it to the software catalog.',
-    'importInfoCard.title': 'Register an existing catalog entity',
-    'stepInitAnalyzeUrl.urlHelperText':
-      'Enter the full path to your entity file to start tracking',
-    'stepFinishImportLocation.locations.viewButtonText': 'View Entity',
-  },
-});
-
-const app = createApp({
+const legacyAppOptions = convertLegacyAppOptions({
   apis,
-  icons: {
-    'kind:environment': CloudIcon,
-    'kind:dataplane': DnsIcon,
-    'kind:clusterdataplane': DnsIcon,
-    'kind:deploymentpipeline': AccountTreeIcon,
-    'kind:observabilityplane': VisibilityIcon,
-    'kind:clusterobservabilityplane': VisibilityIcon,
-    'kind:workflowplane': BuildIcon,
-    'kind:clusterworkflowplane': BuildIcon,
-    'kind:componenttype': CategoryIcon,
-    'kind:clustercomponenttype': CategoryIcon,
-    'kind:resourcetype': LayersIcon,
-    'kind:clusterresourcetype': LayersIcon,
-    'kind:resource': StorageIcon,
-    'kind:traittype': ExtensionIcon,
-    'kind:clustertraittype': ExtensionIcon,
-    'kind:workflow': PlayCircleOutlineIcon,
-    'kind:clusterworkflow': PlayCircleOutlineIcon,
-    'kind:componentworkflow': SettingsApplicationsIcon,
-  },
-  bindRoutes({ bind }) {
-    bind(catalogPlugin.externalRoutes, {
-      createComponent: scaffolderPlugin.routes.root,
-      viewTechDoc: techdocsPlugin.routes.docRoot,
-      createFromTemplate: scaffolderPlugin.routes.selectedTemplate,
-    });
-    bind(apiDocsPlugin.externalRoutes, {
-      registerApi: catalogImportPlugin.routes.importPage,
-    });
-    bind(scaffolderPlugin.externalRoutes, {
-      registerComponent: catalogImportPlugin.routes.importPage,
-      viewTechDoc: techdocsPlugin.routes.docRoot,
-    });
-    bind(orgPlugin.externalRoutes, {
-      catalogIndex: catalogPlugin.routes.catalogIndex,
-    });
-  },
-  components: {
-    SignInPage: DynamicSignInPage,
-  },
+  icons: LEGACY_KIND_ICONS,
   themes: appThemes,
-  __experimentalTranslations: {
-    resources: [catalogImportTranslations],
-  },
 });
 
 const routes = (
   <FlatRoutes>
     <Route path="/" element={<HomePage />} />
-    <Route path="/catalog" element={<CatalogIndexPage />}>
-      <CustomCatalogPage initialKind="system" />
-    </Route>
-    <Route
-      path="/catalog/:namespace/:kind/:name"
-      element={<CatalogEntityPage />}
-    >
-      {entityPage}
-    </Route>
+    {/*
+      `/catalog` is owned by the NFS `page:catalog` extension and
+      `/catalog/:namespace/:kind/:name` by `page:catalog/entity` — see
+      customOverrides.tsx, which overrides each loader to render the
+      host's `<CustomCatalogPage>` and the legacy `entityPage` JSX
+      respectively. The legacy `<Route path="/catalog">` mount used to
+      live here but double-rendered the catalog header under the NFS
+      compat shim.
+    */}
     <Route path="/docs" element={<TechDocsIndexPage />} />
     <Route
       path="/docs/:namespace/:kind/:name/*"
@@ -221,57 +106,15 @@ const routes = (
         <ReportIssue />
       </TechDocsAddons>
     </Route>
-    <Route
-      path="/create"
-      element={
-        <ScaffolderLayout>
-          <ScaffolderPreselectionProvider>
-            <ScaffolderPage
-              headerOptions={{
-                title: 'Create a new resource',
-                subtitle:
-                  'Create new resources using standard templates in your organization',
-              }}
-              components={{
-                EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
-                ReviewStepComponent: CustomReviewStep,
-              }}
-            />
-          </ScaffolderPreselectionProvider>
-        </ScaffolderLayout>
-      }
-    >
-      <ScaffolderFieldExtensions>
-        <ComponentNamePickerFieldExtension />
-        <ResourceNamePickerFieldExtension />
-        <ProjectNamespaceFieldExtension />
-        <NamespaceEntityPickerFieldExtension />
-        <DeploymentPipelinePickerFieldExtension />
-        <BuildTemplatePickerFieldExtension />
-        <BuildTemplateParametersFieldExtension />
-        <BuildWorkflowPickerFieldExtension />
-        <BuildWorkflowParametersFieldExtension />
-        <TraitsFieldExtension />
-        <SwitchFieldExtension />
-        <AdvancedConfigurationFieldExtension />
-        <DeploymentSourcePickerFieldExtension />
-        <BuildAndDeployFieldExtension />
-        <ContainerImageFieldExtension />
-        <ComponentTypeYamlEditorFieldExtension />
-        <TraitYamlEditorFieldExtension />
-        <ClusterComponentTypeYamlEditorFieldExtension />
-        <ClusterResourceTypeYamlEditorFieldExtension />
-        <ResourceTypeYamlEditorFieldExtension />
-        <ResourceParametersFieldExtension />
-        <ClusterTraitYamlEditorFieldExtension />
-        <ComponentWorkflowYamlEditorFieldExtension />
-        <ClusterWorkflowYamlEditorFieldExtension />
-        <EnvironmentFormWithYamlFieldExtension />
-        <DeploymentPipelineFormWithYamlFieldExtension />
-        <GitSourceFieldExtension />
-        <WorkloadDetailsFieldExtension />
-      </ScaffolderFieldExtensions>
-    </Route>
+    {/*
+      `/create` is owned by the NFS `page:scaffolder` extension — see
+      customOverrides.tsx, which overrides its loader to render
+      `<OpenChoreoScaffolderPage>` (the host's `<ScaffolderPage>` with
+      the 27 field-extension children and `CustomTemplateListPage` /
+      `CustomReviewStep` components). The legacy `<Route path="/create">`
+      mount used to live here but double-rendered the scaffolder header
+      under the NFS compat shim.
+    */}
     <Route path="/api-docs" element={<CustomApiExplorerPage />} />
     <Route
       path="/catalog-import"
@@ -305,14 +148,53 @@ const routes = (
   </FlatRoutes>
 );
 
-export default app.createRoot(
+const legacyRoot = convertLegacyAppRoot(
   <>
     <AlertDisplay />
     <OAuthRequestDialog />
-    <DependencyGraphZoomOverrides />
     <AppRouter>
       <VisitListener />
       <Root>{routes}</Root>
     </AppRouter>
   </>,
 );
+
+const app = createApp({
+  features: [
+    // `...legacyRoot` re-emits each legacy plugin's `apis: [...]` array as
+    // ApiBlueprint extensions under the legacy plugin's own pluginId
+    // (collectLegacyRoutes). The NFS api-factory registry resolves
+    // same-pluginId factories last-write-wins, so the override features
+    // below MUST come after `...legacyRoot` to win the contest. Otherwise
+    // our custom catalog-graph relations, entity-presentation kind icons,
+    // and scaffolder form-decorator override get silently overwritten by
+    // upstream defaults at startup.
+    legacyAppOptions,
+    ...legacyRoot,
+    customAppModule,
+    upstreamScaffolderPluginAlpha,
+    catalogGraphPluginAlpha,
+    catalogPluginAlpha,
+    catalogImportPluginAlpha,
+    apiDocsPluginAlpha,
+    kubernetesPluginAlpha,
+    openchoreoPluginAlpha,
+    openchoreoCiPluginAlpha,
+    openchoreoObservabilityPluginAlpha,
+    openchoreoWorkflowsPluginAlpha,
+    platformEngineerCorePluginAlpha,
+  ],
+  bindRoutes({ bind }) {
+    bind(catalogPlugin.externalRoutes, {
+      createComponent: scaffolderPlugin.routes.root,
+      viewTechDoc: techdocsPlugin.routes.docRoot,
+      createFromTemplate: scaffolderPlugin.routes.selectedTemplate,
+    });
+    bind(scaffolderPlugin.externalRoutes, {
+      registerComponent: catalogImportPlugin.routes.importPage,
+      viewTechDoc: techdocsPlugin.routes.docRoot,
+    });
+  },
+});
+
+export default app.createRoot();
