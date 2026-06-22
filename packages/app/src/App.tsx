@@ -1,9 +1,6 @@
 import { Route } from 'react-router-dom';
 import { catalogPlugin } from '@backstage/plugin-catalog';
-import {
-  CatalogImportPage,
-  catalogImportPlugin,
-} from '@backstage/plugin-catalog-import';
+import { catalogImportPlugin } from '@backstage/plugin-catalog-import';
 import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { SearchPage } from '@backstage/plugin-search';
 import {
@@ -15,6 +12,7 @@ import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
 import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
 import { apis } from './apis';
 import { CustomApiExplorerPage } from './components/catalog/CustomApiExplorerPage';
+import { CustomCatalogImportPage } from './components/catalog/CustomCatalogImportPage';
 import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
 import { HomePage } from './components/Home';
@@ -53,7 +51,7 @@ import {
 } from './apis/customOverrides';
 
 // catalog-import NFS plugin — registered so the `/catalog-import` route ref
-// resolves under NFS. Our legacy `<RequirePermission><CatalogImportPage /></...>`
+// resolves under NFS. Our legacy `<RequirePermission><CustomCatalogImportPage /></...>`
 // mount in `<FlatRoutes>` provides the actual page rendering.
 import catalogImportPluginAlpha from '@backstage/plugin-catalog-import/alpha';
 // api-docs and kubernetes NFS plugins — registered so that `apiDocsConfigRef`,
@@ -120,7 +118,7 @@ const routes = (
       path="/catalog-import"
       element={
         <RequirePermission permission={catalogEntityCreatePermission}>
-          <CatalogImportPage />
+          <CustomCatalogImportPage />
         </RequirePermission>
       }
     />
