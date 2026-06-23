@@ -12,12 +12,16 @@ import {
   IconButton,
   TextField,
   InputAdornment,
+  Drawer,
+  Fab,
+  Tooltip,
+  makeStyles,
 } from '@material-ui/core';
 import ChatOutlinedIcon from '@material-ui/icons/ChatOutlined';
 import SendIcon from '@material-ui/icons/Send';
 import StopIcon from '@material-ui/icons/Stop';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
-import { InfoCard } from '@backstage/core-components';
+import CloseIcon from '@material-ui/icons/Close';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remend from 'remend';
@@ -88,6 +92,57 @@ const markdownComponents = {
   ),
 };
 
+const DRAWER_WIDTH = 440;
+
+const useStyles = makeStyles(theme => ({
+  fabRoot: {
+    position: 'fixed',
+    right: theme.spacing(3),
+    bottom: theme.spacing(3),
+    // One step below ``theme.zIndex.snackbar`` so real snackbars always
+    // render above this launcher, matching the portal assistant FAB.
+    zIndex: theme.zIndex.snackbar - 1,
+  },
+  fab: {
+    boxShadow: theme.shadows[6],
+  },
+  drawerPaper: {
+    width: DRAWER_WIDTH,
+    maxWidth: '90vw',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  drawerHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: theme.spacing(1.5, 2),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+  },
+  drawerHeaderActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+  },
+  headerTitle: {
+    fontWeight: 600,
+  },
+  composer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    padding: theme.spacing(1.5, 2),
+    borderTop: `1px solid ${theme.palette.divider}`,
+  },
+  // Tool-call / "Thinking..." status. Right-aligned (under the user's
+  // latest turn) rather than centered, so the agent's progress reads as
+  // a continuation of the conversation flow on the user side.
+  statusStrip: {
+    padding: theme.spacing(0.25, 2, 0, 2),
+    textAlign: 'left',
+  },
+}));
+
 interface ChatContext {
   namespaceName: string;
   environmentName: string;
@@ -95,13 +150,25 @@ interface ChatContext {
   rcaAgentApi: RCAAgentApi;
 }
 
-interface ChatPanelProps {
+interface RCAChatDrawerProps {
   reportId: string;
   chatContext: ChatContext;
 }
 
-export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
+/**
+ * Floating chat-icon launcher (bottom-right) that opens a right-anchored
+ * drawer holding the RCA agent chat — mirroring the portal assistant's
+ * FAB → drawer experience, but wired to {@link RCAAgentApi} and scoped to
+ * a single RCA report. The conversation persists to localStorage per
+ * report so closing/reopening the drawer keeps the timeline.
+ */
+export const RCAChatDrawer = ({
+  reportId,
+  chatContext,
+}: RCAChatDrawerProps) => {
   const classes = useRCAReportStyles();
+  const drawerClasses = useStyles();
+  const [open, setOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
@@ -130,12 +197,13 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
     }
   }, [messages, chatStorageKey]);
 
-  // Auto-scroll chat pane to bottom when messages change or streaming content updates
+  // Auto-scroll chat pane to bottom when messages change or streaming content
+  // updates — only meaningful while the drawer is open and the ref is mounted.
   useEffect(() => {
     if (chatMessagesRef.current) {
       chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
     }
-  }, [messages, streamingContent]);
+  }, [messages, streamingContent, open]);
 
   const handleSendMessage = useCallback(async () => {
     if (!chatMessage.trim() || isSending) return;
@@ -161,6 +229,12 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    // Local mirror of the streamed text. The streamingContent STATE can't
+    // be read back inside this same invocation (the closure captured its
+    // value — '' — at send time), so accumulate here to preserve partial
+    // output if the user cancels mid-stream.
+    let assembled = '';
+
     try {
       await chatContext.rcaAgentApi.streamRCAChat(
         {
@@ -177,6 +251,7 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
         (event: StreamEvent) => {
           switch (event.type) {
             case 'message_chunk':
+              assembled += event.content;
               setStreamingContent(prev => prev + event.content);
               setToolStatus(null);
               break;
@@ -210,10 +285,10 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         // User cancelled - add partial content as message if any
-        if (streamingContent) {
+        if (assembled) {
           setMessages(prev => [
             ...prev,
-            { role: 'assistant', content: `${streamingContent} (cancelled)` },
+            { role: 'assistant', content: `${assembled} (cancelled)` },
           ]);
         }
       } else {
@@ -227,14 +302,7 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
       setToolStatus(null);
       abortControllerRef.current = null;
     }
-  }, [
-    chatMessage,
-    isSending,
-    messages,
-    chatContext,
-    reportId,
-    streamingContent,
-  ]);
+  }, [chatMessage, isSending, messages, chatContext, reportId]);
 
   const handleCancelSend = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -253,7 +321,7 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
     localStorage.removeItem(chatStorageKey);
   }, [chatStorageKey]);
 
-  const handleKeyPress = useCallback(
+  const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -264,28 +332,58 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
   );
 
   return (
-    <Box className={classes.chatPanelWrapper}>
-      <InfoCard
-        title={
-          <span className={classes.cardTitle}>
-            <ChatOutlinedIcon className={classes.cardTitleIcon} />
+    <>
+      {/* Only mount the launcher while the drawer is closed. Its z-index
+          (snackbar - 1) sits above the temporary drawer's modal layer, so
+          leaving it mounted would overlap the composer and intercept
+          clicks at the bottom-right. The header close button handles
+          dismissal. */}
+      {!open && (
+        <Tooltip title="Chat with RCA Agent" placement="left">
+          <Fab
+            color="primary"
+            size="medium"
+            className={drawerClasses.fab}
+            classes={{ root: drawerClasses.fabRoot }}
+            onClick={() => setOpen(true)}
+            aria-label="Chat with RCA Agent"
+          >
+            <ChatOutlinedIcon />
+          </Fab>
+        </Tooltip>
+      )}
+      <Drawer
+        anchor="right"
+        open={open}
+        onClose={() => setOpen(false)}
+        classes={{ paper: drawerClasses.drawerPaper }}
+      >
+        <Box className={drawerClasses.drawerHeader}>
+          <Typography variant="subtitle1" className={drawerClasses.headerTitle}>
             Chat with RCA Agent
-          </span>
-        }
-        action={
-          <Box display="flex" alignItems="center" height="100%">
+          </Typography>
+          <Box className={drawerClasses.drawerHeaderActions}>
+            <Tooltip title="Clear conversation">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={handleClearChat}
+                  aria-label="Clear conversation"
+                  disabled={isSending || messages.length === 0}
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
             <IconButton
               size="small"
-              onClick={handleClearChat}
-              title="Clear chat"
-              style={{ padding: 4 }}
+              onClick={() => setOpen(false)}
+              aria-label="Close RCA Agent chat"
             >
-              <DeleteOutlineIcon fontSize="small" />
+              <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
-        }
-        className={classes.chatPanel}
-      >
+        </Box>
         <Box className={classes.chatContent}>
           <div className={classes.chatMessages} ref={chatMessagesRef}>
             {/* To push messages to bottom */}
@@ -338,21 +436,23 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
             </Box>
           )}
           {isSending && !streamingContent && (
-            <Box className={classes.statusStrip}>
+            <Box className={drawerClasses.statusStrip}>
               <Typography variant="caption" className={classes.statusText}>
                 {toolStatus || 'Thinking...'}
               </Typography>
             </Box>
           )}
-          <Box className={classes.chatInputArea}>
+          <Box className={drawerClasses.composer}>
             <TextField
               fullWidth
+              multiline
+              maxRows={4}
               variant="outlined"
               size="small"
-              placeholder="Type your question..."
+              placeholder="Message RCA Agent"
               value={chatMessage}
               onChange={e => setChatMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyDown}
               disabled={isSending}
               className={
                 isSending && !streamingContent
@@ -363,27 +463,34 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
                 endAdornment: (
                   <InputAdornment position="end">
                     {isSending ? (
-                      <IconButton
-                        size="small"
-                        onClick={handleCancelSend}
-                        title="Cancel"
-                        className={
-                          isSending && !streamingContent
-                            ? classes.buttonPulsing
-                            : undefined
-                        }
-                      >
-                        <StopIcon fontSize="small" />
-                      </IconButton>
+                      <Tooltip title="Stop">
+                        <IconButton
+                          size="small"
+                          onClick={handleCancelSend}
+                          aria-label="Stop"
+                          className={
+                            isSending && !streamingContent
+                              ? classes.buttonPulsing
+                              : undefined
+                          }
+                        >
+                          <StopIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     ) : (
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        disabled={!chatMessage.trim()}
-                        onClick={handleSendMessage}
-                      >
-                        <SendIcon />
-                      </IconButton>
+                      <Tooltip title="Send (Enter)">
+                        <span>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            disabled={!chatMessage.trim()}
+                            onClick={handleSendMessage}
+                            aria-label="Send message"
+                          >
+                            <SendIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
                     )}
                   </InputAdornment>
                 ),
@@ -391,7 +498,7 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
             />
           </Box>
         </Box>
-      </InfoCard>
-    </Box>
+      </Drawer>
+    </>
   );
 };
