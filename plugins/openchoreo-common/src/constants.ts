@@ -39,6 +39,14 @@ export const CHOREO_ANNOTATIONS = {
   RTD_DISPLAY_NAME: 'openchoreo.io/rtd-display-name',
   RTD_GENERATED: 'openchoreo.io/rtd-generated',
   RTD_KIND: 'openchoreo.io/rtd-kind',
+  // (Cluster)ProjectType Definition (PTD) annotations
+  // Umbrella prefix `PTD` mirrors `RTD`/`CTD`: marks scaffolder Templates
+  // generated per (Cluster)ProjectType so the Project-creation browse view
+  // (`?view=projects`) can list them. The kind is carried in PTD_KIND.
+  PTD_NAME: 'openchoreo.io/ptd-name',
+  PTD_DISPLAY_NAME: 'openchoreo.io/ptd-display-name',
+  PTD_GENERATED: 'openchoreo.io/ptd-generated',
+  PTD_KIND: 'openchoreo.io/ptd-kind',
   // Deletion tracking
   DELETION_TIMESTAMP: 'openchoreo.io/deletion-timestamp',
   // Agent connection status

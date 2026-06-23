@@ -3,6 +3,7 @@ import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
 import { ConfigReader } from '@backstage/config';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
+import { PtdToTemplateConverter } from '../converters/PtdToTemplateConverter';
 import { EventDeltaApplier } from './EventDeltaApplier';
 
 // ---------------------------------------------------------------------------
@@ -52,6 +53,7 @@ function newApplier(connection: EntityProviderConnection) {
     getConnection: () => connection,
     ctdConverter: new CtdToTemplateConverter(mkLogger()),
     rtdConverter: new RtdToTemplateConverter(mkLogger()),
+    ptdConverter: new PtdToTemplateConverter(mkLogger()),
   });
 }
 
@@ -105,9 +107,13 @@ describe('EventDeltaApplier.handleEvent', () => {
         'template:test-ns/template-resource-order',
       ],
     },
-    // ProjectType has no derived scaffolder Template, so only the type
-    // entity itself is removed.
-    { kind: 'ProjectType', expectedRefs: ['projecttype:test-ns/order'] },
+    {
+      kind: 'ProjectType',
+      expectedRefs: [
+        'projecttype:test-ns/order',
+        'template:test-ns/template-project-order',
+      ],
+    },
     { kind: 'Resource', expectedRefs: ['resource:test-ns/order'] },
     { kind: 'Workflow', expectedRefs: ['workflow:test-ns/order'] },
   ];
@@ -157,7 +163,10 @@ describe('EventDeltaApplier.handleEvent', () => {
     },
     {
       kind: 'ClusterProjectType',
-      expectedRefs: ['clusterprojecttype:openchoreo-cluster/global'],
+      expectedRefs: [
+        'clusterprojecttype:openchoreo-cluster/global',
+        'template:openchoreo-cluster/template-project-global',
+      ],
     },
     {
       kind: 'ClusterTrait',
@@ -240,6 +249,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
       rtdConverter: new RtdToTemplateConverter(logger),
+      ptdConverter: new PtdToTemplateConverter(logger),
     });
 
     await applier.handleEvent('NotARealKind', 'foo', 'ns', 'created');
@@ -271,6 +281,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => undefined,
       ctdConverter: new CtdToTemplateConverter(mkLogger()),
       rtdConverter: new RtdToTemplateConverter(mkLogger()),
+      ptdConverter: new PtdToTemplateConverter(mkLogger()),
     });
 
     await expect(
@@ -495,6 +506,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
       rtdConverter: new RtdToTemplateConverter(logger),
+      ptdConverter: new PtdToTemplateConverter(logger),
     });
 
     await applier.handleEvent('Workload', 'orphan', 'test-ns', 'created');
@@ -524,6 +536,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
       rtdConverter: new RtdToTemplateConverter(logger),
+      ptdConverter: new PtdToTemplateConverter(logger),
     });
 
     await applier.handleEvent('Workload', 'gone', 'test-ns', 'created');
@@ -570,6 +583,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(mkLogger()),
       rtdConverter: new RtdToTemplateConverter(mkLogger()),
+      ptdConverter: new PtdToTemplateConverter(mkLogger()),
       catalogService,
       auth,
     });
@@ -651,6 +665,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
       rtdConverter: new RtdToTemplateConverter(logger),
+      ptdConverter: new PtdToTemplateConverter(logger),
       catalogService,
       auth: makeAuth(),
     });
@@ -709,6 +724,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
       rtdConverter: new RtdToTemplateConverter(logger),
+      ptdConverter: new PtdToTemplateConverter(logger),
       // No catalogService / auth — production always wires them, but
       // tests/legacy callers may not.
     });

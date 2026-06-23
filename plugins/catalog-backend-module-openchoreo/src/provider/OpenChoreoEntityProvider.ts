@@ -24,6 +24,10 @@ import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
 import { DeploymentPipelineEntityV1alpha1 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
+import {
+  PtdToTemplateConverter,
+  ProjectTypeCRD,
+} from '../converters/PtdToTemplateConverter';
 import { ComponentWorkloadData } from '../utils/types';
 import {
   buildComponentDependsOnRefs,
@@ -107,6 +111,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly defaultOwner: string;
   private readonly ctdConverter: CtdToTemplateConverter;
   private readonly rtdConverter: RtdToTemplateConverter;
+  private readonly ptdConverter: PtdToTemplateConverter;
   private readonly componentTypeUtils: ComponentTypeUtils;
   private readonly tokenService?: OpenChoreoTokenService;
   private readonly events?: EventsService;
@@ -144,6 +149,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     this.rtdConverter = new RtdToTemplateConverter({
       defaultOwner: this.defaultOwner,
     });
+    // Initialize PTD to Template converter — generates per-type Project
+    // wizards from (Cluster)ProjectType entities.
+    this.ptdConverter = new PtdToTemplateConverter({
+      defaultOwner: this.defaultOwner,
+    });
     // Initialize component type utilities from config
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
 
@@ -162,6 +172,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       getConnection: () => this.connection,
       ctdConverter: this.ctdConverter,
       rtdConverter: this.rtdConverter,
+      ptdConverter: this.ptdConverter,
       catalogService,
       auth,
     });
@@ -169,6 +180,42 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
   getProviderName(): string {
     return 'OpenChoreoEntityProvider';
+  }
+
+  /**
+   * Map a fetched (Cluster)ProjectType list item to the `ProjectTypeCRD` shape
+   * consumed by `PtdToTemplateConverter`. The list endpoint returns the full
+   * `spec.parameters.openAPIV3Schema` inline, so no extra fetch is required.
+   */
+  private toProjectTypeCRD(
+    pt: NewProjectType | NewClusterProjectType,
+  ): ProjectTypeCRD {
+    return {
+      metadata: {
+        name: getName(pt)!,
+        displayName: getDisplayName(pt),
+        description: getDescription(pt),
+        createdAt: getCreatedAt(pt) || '',
+      },
+      spec: {
+        parameters: pt.spec?.parameters?.openAPIV3Schema
+          ? { openAPIV3Schema: pt.spec.parameters.openAPIV3Schema as any }
+          : undefined,
+      },
+    };
+  }
+
+  /** Stamp the provider's managed-by-location annotations on a generated entity. */
+  private stampManagedByLocation(entity: Entity): void {
+    if (!entity.metadata.annotations) {
+      entity.metadata.annotations = {};
+    }
+    entity.metadata.annotations[
+      'backstage.io/managed-by-location'
+    ] = `provider:${this.getProviderName()}`;
+    entity.metadata.annotations[
+      'backstage.io/managed-by-origin-location'
+    ] = `provider:${this.getProviderName()}`;
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
@@ -1107,6 +1154,34 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             })
             .filter((e): e is Entity => e !== null);
           allEntities.push(...ptEntities);
+
+          // Generate per-type Project-creation Template entities. The
+          // (Cluster)ProjectType list returns the full parameters schema
+          // inline, so no extra /schema fetch is needed.
+          const ptTemplateEntities: Entity[] = projectTypes
+            .map(pt => {
+              try {
+                const templateEntity =
+                  this.ptdConverter.convertPtdToTemplateEntity(
+                    this.toProjectTypeCRD(pt),
+                    nsName,
+                  );
+                this.stampManagedByLocation(templateEntity);
+                return templateEntity;
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to convert ProjectType ${getName(
+                    pt,
+                  )} to template: ${error}`,
+                );
+                return null;
+              }
+            })
+            .filter((entity): entity is Entity => entity !== null);
+          allEntities.push(...ptTemplateEntities);
+          this.logger.debug(
+            `Generated ${ptTemplateEntities.length} template entities from ProjectTypes in namespace: ${nsName}`,
+          );
         } catch (error) {
           this.logger.warn(
             `Failed to fetch project types for namespace ${nsName}: ${error}`,
@@ -1477,6 +1552,31 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           })
           .filter((e): e is Entity => e !== null);
         allEntities.push(...cptEntities);
+
+        // Generate per-type Project-creation Template entities (cluster scope).
+        const cptTemplateEntities: Entity[] = clusterProjectTypes
+          .map(cpt => {
+            try {
+              const templateEntity =
+                this.ptdConverter.convertClusterPtdToTemplateEntity(
+                  this.toProjectTypeCRD(cpt),
+                );
+              this.stampManagedByLocation(templateEntity);
+              return templateEntity;
+            } catch (error) {
+              this.logger.warn(
+                `Failed to convert ClusterProjectType ${getName(
+                  cpt,
+                )} to template: ${error}`,
+              );
+              return null;
+            }
+          })
+          .filter((entity): entity is Entity => entity !== null);
+        allEntities.push(...cptTemplateEntities);
+        this.logger.info(
+          `Successfully generated ${cptTemplateEntities.length} template entities from ClusterProjectTypes`,
+        );
       } catch (error) {
         this.logger.warn(`Failed to fetch cluster project types: ${error}`);
       }
