@@ -1,3 +1,4 @@
+import { translateProjectToEntity } from '@openchoreo/backstage-plugin-catalog-backend-module';
 import { createProjectAction } from './project';
 
 const mockPOST = jest.fn();
@@ -109,6 +110,93 @@ describe('createProjectAction', () => {
     });
     await action.handler(ctx as any);
     expect(ctx.output).toHaveBeenCalledWith('namespaceName', 'extracted-ns');
+  });
+
+  it('includes type and parameters in the request body when provided', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
+    const action = createProjectAction(
+      buildConfig(),
+      mockImmediateCatalog as any,
+    );
+    const ctx = buildCtx({
+      input: {
+        typeKind: 'ClusterProjectType',
+        typeName: 'web-app',
+        parameters: { replicas: 3 },
+      },
+    });
+    await action.handler(ctx as any);
+
+    const body = mockPOST.mock.calls[0][1].body;
+    expect(body.spec.type).toEqual({
+      kind: 'ClusterProjectType',
+      name: 'web-app',
+    });
+    expect(body.spec.parameters).toEqual({ replicas: 3 });
+    expect(body.spec.deploymentPipelineRef).toEqual({
+      kind: 'DeploymentPipeline',
+      name: 'default-pipeline',
+    });
+  });
+
+  it('omits type and parameters when not provided (legacy path)', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
+    const action = createProjectAction(
+      buildConfig(),
+      mockImmediateCatalog as any,
+    );
+    await action.handler(buildCtx() as any);
+
+    const body = mockPOST.mock.calls[0][1].body;
+    expect(body.spec.type).toBeUndefined();
+    expect(body.spec.parameters).toBeUndefined();
+    expect(body.spec.deploymentPipelineRef.name).toBe('default-pipeline');
+  });
+
+  it('defaults type kind to ProjectType when only typeName is given', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
+    const action = createProjectAction(
+      buildConfig(),
+      mockImmediateCatalog as any,
+    );
+    await action.handler(buildCtx({ input: { typeName: 'standard' } }) as any);
+    expect(mockPOST.mock.calls[0][1].body.spec.type).toEqual({
+      kind: 'ProjectType',
+      name: 'standard',
+    });
+  });
+
+  it('omits an empty parameters object from the body', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
+    const action = createProjectAction(
+      buildConfig(),
+      mockImmediateCatalog as any,
+    );
+    await action.handler(
+      buildCtx({ input: { typeName: 'standard', parameters: {} } }) as any,
+    );
+    expect(mockPOST.mock.calls[0][1].body.spec.parameters).toBeUndefined();
+  });
+
+  it('passes project type into the catalog translation', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
+    const action = createProjectAction(
+      buildConfig(),
+      mockImmediateCatalog as any,
+    );
+    await action.handler(
+      buildCtx({
+        input: { typeKind: 'ProjectType', typeName: 'web-app' },
+      }) as any,
+    );
+    expect(translateProjectToEntity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectTypeName: 'web-app',
+        projectTypeKind: 'ProjectType',
+      }),
+      expect.anything(),
+      expect.anything(),
+    );
   });
 
   it('throws on API error', async () => {
