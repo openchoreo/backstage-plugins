@@ -120,10 +120,25 @@ export function normalizeActions(
   if (availableActions.length === 0) {
     return actions;
   }
-  return convertToWildcards(
+  const normalizedKnown = convertToWildcards(
     expandWildcards(actions, availableActions),
     availableActions,
   );
+
+  // convertToWildcards only re-emits actions whose category exists in the
+  // catalog, so any unknown/stale action (e.g. a renamed or removed catalog
+  // entry) would be silently dropped here, losing that permission on save.
+  // Preserve such actions alongside the normalized, catalog-backed ones.
+  const unknownOrStale = actions.filter(action => {
+    if (action === '*') return false;
+    if (action.endsWith(':*')) {
+      const category = action.slice(0, -2);
+      return !availableActions.some(a => a.startsWith(`${category}:`));
+    }
+    return !availableActions.includes(action);
+  });
+
+  return Array.from(new Set([...normalizedKnown, ...unknownOrStale]));
 }
 
 /**

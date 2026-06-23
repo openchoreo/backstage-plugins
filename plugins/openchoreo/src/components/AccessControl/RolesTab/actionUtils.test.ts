@@ -49,6 +49,32 @@ describe('normalizeActions', () => {
     expect(normalizeActions(['*'], AVAILABLE_ACTIONS)).toEqual(['*']);
   });
 
+  it('preserves stale actions absent from the catalog instead of dropping them', () => {
+    // Unknown category and unknown action within a known category must survive
+    // the normalization round-trip so saving an edited role keeps them.
+    expect(
+      normalizeActions(
+        ['component:view', 'component:frobnicate', 'foo:bar', 'foo:*'],
+        AVAILABLE_ACTIONS,
+      ),
+    ).toEqual(['component:view', 'component:frobnicate', 'foo:bar', 'foo:*']);
+  });
+
+  it('does not duplicate a known category wildcard when preserving', () => {
+    expect(
+      normalizeActions(
+        [
+          'component:view',
+          'component:create',
+          'component:update',
+          'component:delete',
+          'foo:bar',
+        ],
+        AVAILABLE_ACTIONS,
+      ),
+    ).toEqual(['component:*', 'foo:bar']);
+  });
+
   it('collapses some categories while leaving partial ones expanded', () => {
     const actions = [
       'component:view',

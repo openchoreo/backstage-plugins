@@ -316,17 +316,21 @@ export const RoleDialog = ({
   );
 
   useEffect(() => {
+    if (!open) return;
     if (editingRole) {
       setName(editingRole.name);
-      setSelectedActions(
-        normalizeActions(editingRole.actions, availableActions),
-      );
+      setSelectedActions(editingRole.actions);
     } else {
       setName('');
       setSelectedActions([]);
     }
     setError(null);
-  }, [editingRole, open, availableActions]);
+  }, [editingRole, open]);
+
+  useEffect(() => {
+    if (!open || availableActions.length === 0) return;
+    setSelectedActions(prev => normalizeActions(prev, availableActions));
+  }, [open, availableActions]);
 
   const handleApplyTemplate = (templateKey: keyof typeof ROLE_TEMPLATES) => {
     const template = ROLE_TEMPLATES[templateKey];
