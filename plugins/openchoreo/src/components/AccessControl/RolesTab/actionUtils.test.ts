@@ -75,6 +75,15 @@ describe('normalizeActions', () => {
     ).toEqual(['component:*', 'foo:bar']);
   });
 
+  it('keeps the global wildcard collapsed when a stale action is also present', () => {
+    // The stale token must not inflate the size gate and force per-category
+    // wildcards when the role already grants everything via `*`.
+    expect(normalizeActions(['*', 'foo:bar'], AVAILABLE_ACTIONS)).toEqual([
+      '*',
+      'foo:bar',
+    ]);
+  });
+
   it('collapses some categories while leaving partial ones expanded', () => {
     const actions = [
       'component:view',

@@ -120,10 +120,18 @@ export function normalizeActions(
   if (availableActions.length === 0) {
     return actions;
   }
-  const normalizedKnown = convertToWildcards(
-    expandWildcards(actions, availableActions),
-    availableActions,
+  const availableSet = new Set(availableActions);
+
+  // Drop stale tokens before collapsing: a stale individual action left in the
+  // expanded set inflates its size past availableActions.length, which defeats
+  // convertToWildcards' global-`*` gate and forces per-category wildcards even
+  // when the role grants everything (e.g. `['*', 'foo:bar']`).
+  const knownExpanded = new Set(
+    [...expandWildcards(actions, availableActions)].filter(action =>
+      availableSet.has(action),
+    ),
   );
+  const normalizedKnown = convertToWildcards(knownExpanded, availableActions);
 
   // convertToWildcards only re-emits actions whose category exists in the
   // catalog, so any unknown/stale action (e.g. a renamed or removed catalog
@@ -135,7 +143,7 @@ export function normalizeActions(
       const category = action.slice(0, -2);
       return !availableActions.some(a => a.startsWith(`${category}:`));
     }
-    return !availableActions.includes(action);
+    return !availableSet.has(action);
   });
 
   return Array.from(new Set([...normalizedKnown, ...unknownOrStale]));
