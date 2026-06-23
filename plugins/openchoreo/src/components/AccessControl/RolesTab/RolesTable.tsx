@@ -33,7 +33,11 @@ import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { useStyles } from './styles';
 import { SCOPE_CLUSTER, type BindingScope } from '../constants';
 import { useActions } from '../hooks';
-import { normalizeActions, getActionDisplayLabel } from './actionUtils';
+import {
+  normalizeActions,
+  getActionDisplayLabel,
+  expandWildcards,
+} from './actionUtils';
 
 interface RoleRow {
   name: string;
@@ -170,6 +174,12 @@ export const RolesTable = ({
                   role.actions,
                   availableActions,
                 );
+                const visibleActions = displayActions.slice(0, 5);
+                const hiddenActionCount =
+                  availableActions.length === 0
+                    ? 0
+                    : expandWildcards(displayActions, availableActions).size -
+                      expandWildcards(visibleActions, availableActions).size;
                 return (
                   <TableRow key={role.name}>
                     <TableCell>
@@ -200,20 +210,18 @@ export const RolesTable = ({
                           No actions
                         </Typography>
                       ) : (
-                        displayActions
-                          .slice(0, 5)
-                          .map(action => (
-                            <Chip
-                              key={action}
-                              label={getActionDisplayLabel(action)}
-                              size="small"
-                              className={classes.actionsChip}
-                            />
-                          ))
+                        visibleActions.map(action => (
+                          <Chip
+                            key={action}
+                            label={getActionDisplayLabel(action)}
+                            size="small"
+                            className={classes.actionsChip}
+                          />
+                        ))
                       )}
-                      {displayActions.length > 5 && (
+                      {hiddenActionCount > 0 && (
                         <Chip
-                          label={`+${displayActions.length - 5} more`}
+                          label={`+${hiddenActionCount} more`}
                           size="small"
                           variant="outlined"
                           className={classes.actionsChip}
