@@ -1,5 +1,6 @@
 ---
 '@openchoreo/backstage-plugin': patch
+'@openchoreo/backstage-design-system': patch
 ---
 
 Replace the small icon-only save/discard/delete controls in the Workload
