@@ -1,0 +1,184 @@
+import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
+import {
+  createOpenChoreoApiClient,
+  assertApiResponse,
+} from '@openchoreo/openchoreo-client-node';
+import { Config } from '@backstage/config';
+import YAML from 'yaml';
+import {
+  type ImmediateCatalogService,
+  translateClusterProjectTypeToEntity,
+} from '@openchoreo/backstage-plugin-catalog-backend-module';
+
+export const createClusterProjectTypeDefinitionAction = (
+  config: Config,
+  immediateCatalog: ImmediateCatalogService,
+) => {
+  return createTemplateAction({
+    id: 'openchoreo:clusterprojecttype-definition:create',
+    description: 'Create OpenChoreo ClusterProjectType',
+    schema: {
+      input: {
+        yamlContent: z =>
+          z.string({
+            description:
+              'The YAML content of the ClusterProjectType definition',
+          }),
+      },
+      output: {
+        clusterProjectTypeName: z =>
+          z.string({
+            description: 'The name of the created ClusterProjectType',
+          }),
+        entityRef: z =>
+          z.string({
+            description: 'Entity reference for the created ClusterProjectType',
+          }),
+      },
+    },
+    async handler(ctx) {
+      ctx.logger.debug('Creating ClusterProjectType');
+
+      // Parse and validate YAML content
+      let resourceObj: Record<string, unknown>;
+      try {
+        resourceObj = YAML.parse(ctx.input.yamlContent);
+      } catch (parseError) {
+        throw new Error(`Invalid YAML content: ${parseError}`);
+      }
+
+      if (!resourceObj || typeof resourceObj !== 'object') {
+        throw new Error('YAML content must be a valid object');
+      }
+
+      // Validate required fields
+      if (resourceObj.kind !== 'ClusterProjectType') {
+        throw new Error(
+          `Kind must be ClusterProjectType, got: ${resourceObj.kind}`,
+        );
+      }
+
+      if (!resourceObj.apiVersion) {
+        throw new Error('apiVersion is required in the YAML content');
+      }
+
+      // Get the base URL from configuration
+      const baseUrl = config.getString('openchoreo.baseUrl');
+
+      // Check if authorization is enabled (defaults to true)
+      const authzEnabled =
+        config.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
+
+      // Get user token from secrets (injected by form decorator) when authz is enabled
+      const token = authzEnabled
+        ? ctx.secrets?.OPENCHOREO_USER_TOKEN
+        : undefined;
+
+      if (authzEnabled && !token) {
+        throw new Error(
+          'User authentication token not available. Ensure you are logged in.',
+        );
+      }
+
+      if (token) {
+        ctx.logger.debug('Using user token from secrets for OpenChoreo API');
+      } else {
+        ctx.logger.debug(
+          'Authorization disabled - calling OpenChoreo API without auth',
+        );
+      }
+
+      const client = createOpenChoreoApiClient({
+        baseUrl,
+        token,
+        logger: ctx.logger,
+      });
+
+      try {
+        // Strip Kubernetes-level fields not expected by the API schema
+        const {
+          apiVersion: _apiVersion,
+          kind: _kind,
+          ...apiBody
+        } = resourceObj;
+
+        ctx.logger.info('Sending ClusterProjectType creation request');
+
+        const { data, error, response } = await client.POST(
+          '/api/v1/clusterprojecttypes',
+          {
+            body: apiBody as any,
+          },
+        );
+
+        assertApiResponse(
+          { data, error, response },
+          'create ClusterProjectType',
+        );
+
+        const resultData = data as Record<string, unknown>;
+        const metadata = resultData.metadata as
+          | Record<string, unknown>
+          | undefined;
+        const resultName = (metadata?.name as string) || '';
+
+        ctx.logger.debug(
+          `ClusterProjectType created successfully: ${JSON.stringify(
+            resultData,
+          )}`,
+        );
+
+        // Immediately insert the ClusterProjectType into the catalog
+        try {
+          ctx.logger.info(
+            `Inserting ClusterProjectType '${resultName}' into catalog immediately...`,
+          );
+
+          // Extract metadata from the parsed YAML
+          const yamlMetadata = resourceObj.metadata as
+            | Record<string, unknown>
+            | undefined;
+          const annotations = (yamlMetadata?.annotations || {}) as Record<
+            string,
+            string
+          >;
+
+          const entity = translateClusterProjectTypeToEntity(
+            {
+              name: resultName || (yamlMetadata?.name as string),
+              displayName: annotations['openchoreo.dev/display-name'],
+              description: annotations['openchoreo.dev/description'],
+              createdAt: new Date().toISOString(),
+            },
+            {
+              locationKey: 'OpenChoreoEntityProvider',
+            },
+          );
+
+          await immediateCatalog.insertEntity(entity);
+
+          ctx.logger.info(
+            `ClusterProjectType '${resultName}' successfully added to catalog`,
+          );
+        } catch (catalogError) {
+          ctx.logger.error(
+            `Failed to immediately add ClusterProjectType to catalog: ${catalogError}. ` +
+              `ClusterProjectType will be visible after the next scheduled catalog sync.`,
+          );
+        }
+
+        // Set outputs for the scaffolder
+        ctx.output('clusterProjectTypeName', resultName);
+        ctx.output(
+          'entityRef',
+          `clusterprojecttype:openchoreo-cluster/${resultName}`,
+        );
+      } catch (err) {
+        ctx.logger.error(`Error creating ClusterProjectType: ${err}`);
+        throw err instanceof Error
+          ? err
+          : new Error(`Failed to create ClusterProjectType: ${err}`);
+      }
+    },
+  });
+};

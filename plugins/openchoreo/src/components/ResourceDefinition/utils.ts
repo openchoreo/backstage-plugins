@@ -18,6 +18,8 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'componenttypes';
     case 'resourcetype':
       return 'resourcetypes';
+    case 'projecttype':
+      return 'projecttypes';
     case 'traittype':
       return 'traits';
     case 'workflow':
@@ -38,6 +40,8 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'clustercomponenttypes';
     case 'clusterresourcetype':
       return 'clusterresourcetypes';
+    case 'clusterprojecttype':
+      return 'clusterprojecttypes';
     case 'clustertraittype':
       return 'clustertraits';
     case 'clusterworkflow':
@@ -72,6 +76,8 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'ComponentType';
     case 'resourcetype':
       return 'ResourceType';
+    case 'projecttype':
+      return 'ProjectType';
     case 'traittype':
       return 'Trait'; // TraitType in Backstage maps to Trait CRD
     case 'workflow':
@@ -92,6 +98,8 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'ClusterComponentType';
     case 'clusterresourcetype':
       return 'ClusterResourceType';
+    case 'clusterprojecttype':
+      return 'ClusterProjectType';
     case 'clustertraittype':
       return 'ClusterTrait'; // ClusterTraitType in Backstage maps to ClusterTrait CRD
     case 'clusterworkflow':
@@ -115,6 +123,7 @@ export function isClusterScopedKind(kind: string): boolean {
   return [
     'clustercomponenttype',
     'clusterresourcetype',
+    'clusterprojecttype',
     'clustertraittype',
     'clusterworkflow',
     'clusterdataplane',
@@ -160,6 +169,7 @@ export function isSupportedKind(kind: string): boolean {
     'resource',
     'componenttype',
     'resourcetype',
+    'projecttype',
     'traittype',
     'workflow',
     'componentworkflow',
@@ -170,6 +180,7 @@ export function isSupportedKind(kind: string): boolean {
     'deploymentpipeline',
     'clustercomponenttype',
     'clusterresourcetype',
+    'clusterprojecttype',
     'clustertraittype',
     'clusterworkflow',
     'clusterdataplane',

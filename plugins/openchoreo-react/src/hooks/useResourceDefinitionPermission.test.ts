@@ -2,6 +2,10 @@ import { renderHook } from '@testing-library/react';
 import {
   openchoreoResourceUpdatePermission,
   openchoreoResourceDeletePermission,
+  openchoreoProjectTypeUpdatePermission,
+  openchoreoProjectTypeDeletePermission,
+  openchoreoClusterProjectTypeUpdatePermission,
+  openchoreoClusterProjectTypeDeletePermission,
 } from '@openchoreo/backstage-plugin-common';
 import { useResourceDefinitionPermission } from './useResourceDefinitionPermission';
 
@@ -144,6 +148,42 @@ describe('useResourceDefinitionPermission', () => {
       .map(input => input.permission);
     expect(calls).toContain(openchoreoResourceUpdatePermission);
     expect(calls).toContain(openchoreoResourceDeletePermission);
+  });
+
+  it('wires ProjectType to resource-scoped update + delete permissions', () => {
+    mockUseEntity.mockReturnValue(makeEntity('ProjectType'));
+    mockUsePermission.mockReturnValue({ allowed: true, loading: false });
+    const { result } = renderHook(() => useResourceDefinitionPermission());
+
+    expect(result.current.canUpdate).toBe(true);
+    expect(result.current.canDelete).toBe(true);
+
+    const inputs = mockUsePermission.mock.calls.map(c => c[0]).filter(Boolean);
+    const perms = inputs.map(i => i.permission);
+    expect(perms).toContain(openchoreoProjectTypeUpdatePermission);
+    expect(perms).toContain(openchoreoProjectTypeDeletePermission);
+    // Namespace-scoped: resourceRef must be passed.
+    for (const input of inputs) {
+      expect(input).toHaveProperty('resourceRef');
+    }
+  });
+
+  it('wires ClusterProjectType to cluster-scoped update + delete permissions', () => {
+    mockUseEntity.mockReturnValue(makeEntity('ClusterProjectType'));
+    mockUsePermission.mockReturnValue({ allowed: true, loading: false });
+    const { result } = renderHook(() => useResourceDefinitionPermission());
+
+    expect(result.current.canUpdate).toBe(true);
+    expect(result.current.canDelete).toBe(true);
+
+    const inputs = mockUsePermission.mock.calls.map(c => c[0]).filter(Boolean);
+    const perms = inputs.map(i => i.permission);
+    expect(perms).toContain(openchoreoClusterProjectTypeUpdatePermission);
+    expect(perms).toContain(openchoreoClusterProjectTypeDeletePermission);
+    // Cluster-scoped: no resourceRef.
+    for (const input of inputs) {
+      expect(input).not.toHaveProperty('resourceRef');
+    }
   });
 
   it('flips canUpdate to false for a component when componentType ABAC denies', () => {

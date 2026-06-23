@@ -18,3 +18,5 @@ export type { ClusterWorkflowPlaneEntityV1alpha1 } from './ClusterWorkflowPlaneE
 export type { ClusterWorkflowEntityV1alpha1 } from './ClusterWorkflowEntityV1alpha1';
 export type { ClusterResourceTypeEntityV1alpha1 } from './ClusterResourceTypeEntityV1alpha1';
 export type { ResourceTypeEntityV1alpha1 } from './ResourceTypeEntityV1alpha1';
+export type { ClusterProjectTypeEntityV1alpha1 } from './ClusterProjectTypeEntityV1alpha1';
+export type { ProjectTypeEntityV1alpha1 } from './ProjectTypeEntityV1alpha1';

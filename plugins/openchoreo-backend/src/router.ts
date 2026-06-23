@@ -49,6 +49,7 @@ import {
 const CLUSTER_SCOPED_KINDS = [
   'clustercomponenttypes',
   'clusterresourcetypes',
+  'clusterprojecttypes',
   'clustertraits',
   'clusterworkflows',
   'clusterdataplanes',
@@ -61,6 +62,7 @@ const VALID_PLATFORM_RESOURCE_KINDS = [
   'projects',
   'componenttypes',
   'resourcetypes',
+  'projecttypes',
   'resources',
   'traits',
   'workflows',

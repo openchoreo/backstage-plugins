@@ -11,6 +11,8 @@ import {
   useClusterComponentTypePermission,
   useClusterResourceTypePermission,
   useResourceTypePermission,
+  useClusterProjectTypePermission,
+  useProjectTypePermission,
   useResourceCreatePermission,
   useTraitCreatePermission,
   useClusterTraitCreatePermission,
@@ -43,6 +45,8 @@ export function useKindCreateConfig(): KindCreateConfig | null {
   const clusterComponentTypePerm = useClusterComponentTypePermission();
   const clusterResourceTypePerm = useClusterResourceTypePermission();
   const resourceTypePerm = useResourceTypePermission();
+  const clusterProjectTypePerm = useClusterProjectTypePermission();
+  const projectTypePerm = useProjectTypePermission();
   const resourcePerm = useResourceCreatePermission();
   const traitPerm = useTraitCreatePermission();
   const clusterTraitPerm = useClusterTraitCreatePermission();
@@ -145,6 +149,28 @@ export function useKindCreateConfig(): KindCreateConfig | null {
         canCreate: resourceTypePerm.canCreate,
         loading: resourceTypePerm.loading,
         deniedTooltip: resourceTypePerm.createDeniedTooltip,
+      };
+    case 'clusterprojecttype':
+      return {
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-clusterprojecttype',
+        }),
+        buttonLabel: 'Create Cluster Project Type',
+        canCreate: clusterProjectTypePerm.canCreate,
+        loading: clusterProjectTypePerm.loading,
+        deniedTooltip: clusterProjectTypePerm.createDeniedTooltip,
+      };
+    case 'projecttype':
+      return {
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-projecttype',
+        }),
+        buttonLabel: 'Create Project Type',
+        canCreate: projectTypePerm.canCreate,
+        loading: projectTypePerm.loading,
+        deniedTooltip: projectTypePerm.createDeniedTooltip,
       };
     case 'resource':
       return {

@@ -40,6 +40,8 @@ import {
   translateNewNamespaceToDomainEntity,
   translateNewObservabilityPlaneToEntity,
   translateNewProjectToEntity,
+  translateNewClusterProjectTypeToEntity,
+  translateNewProjectTypeToEntity,
   translateNewResourceToEntity,
   translateNewResourceTypeToEntity,
   translateNewTraitToEntity,
@@ -67,6 +69,9 @@ type NewDeploymentPipeline =
   OpenChoreoComponents['schemas']['DeploymentPipeline'];
 type NewComponentType = OpenChoreoComponents['schemas']['ComponentType'];
 type NewResourceType = OpenChoreoComponents['schemas']['ResourceType'];
+type NewProjectType = OpenChoreoComponents['schemas']['ProjectType'];
+type NewClusterProjectType =
+  OpenChoreoComponents['schemas']['ClusterProjectType'];
 type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
@@ -428,6 +433,20 @@ export class EventDeltaApplier {
     );
   }
 
+  private fetchProjectType(
+    client: OpenChoreoApiClient,
+    ns: string,
+    name: string,
+  ) {
+    return this.fetchOne<NewProjectType>(
+      client.GET('/api/v1/namespaces/{namespaceName}/projecttypes/{ptName}', {
+        params: { path: { namespaceName: ns, ptName: name } },
+      }) as any,
+      'projecttype',
+      `${ns}/${name}`,
+    );
+  }
+
   private fetchResource(client: OpenChoreoApiClient, ns: string, name: string) {
     return this.fetchOne<NewResource>(
       client.GET(
@@ -487,6 +506,16 @@ export class EventDeltaApplier {
         params: { path: { crtName: name } },
       }) as any,
       'clusterresourcetype',
+      name,
+    );
+  }
+
+  private fetchClusterProjectType(client: OpenChoreoApiClient, name: string) {
+    return this.fetchOne<NewClusterProjectType>(
+      client.GET('/api/v1/clusterprojecttypes/{cptName}', {
+        params: { path: { cptName: name } },
+      }) as any,
+      'clusterprojecttype',
       name,
     );
   }
@@ -1116,6 +1145,20 @@ export class EventDeltaApplier {
     await this.upsertEntities(entities);
   }
 
+  private async refreshProjectType(ns: string, name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const pt = await this.fetchProjectType(client, ns, name);
+    if (!pt) {
+      await this.removeEntityRefs([
+        this.buildEntityRef('projecttype', ns, name),
+      ]);
+      return;
+    }
+    await this.upsertEntities([
+      translateNewProjectTypeToEntity(pt, ns, this.translatorContext) as Entity,
+    ]);
+  }
+
   private async refreshResource(ns: string, name: string): Promise<void> {
     const client = await this.createApiClient();
     const resource = await this.fetchResource(client, ns, name);
@@ -1219,6 +1262,23 @@ export class EventDeltaApplier {
       ? [crtEntity, templateEntity]
       : [crtEntity];
     await this.upsertEntities(entities);
+  }
+
+  private async refreshClusterProjectType(name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const cpt = await this.fetchClusterProjectType(client, name);
+    if (!cpt) {
+      await this.removeEntityRefs([
+        this.buildEntityRef('clusterprojecttype', 'openchoreo-cluster', name),
+      ]);
+      return;
+    }
+    await this.upsertEntities([
+      translateNewClusterProjectTypeToEntity(
+        cpt,
+        this.translatorContext,
+      ) as Entity,
+    ]);
   }
 
   private async refreshClusterTrait(name: string): Promise<void> {
@@ -1367,6 +1427,9 @@ export class EventDeltaApplier {
       case 'resourcetype':
         await this.refreshResourceType(ns, name);
         return;
+      case 'projecttype':
+        await this.refreshProjectType(ns, name);
+        return;
       case 'resource':
         await this.refreshResource(ns, name);
         return;
@@ -1378,6 +1441,9 @@ export class EventDeltaApplier {
         return;
       case 'clusterresourcetype':
         await this.refreshClusterResourceType(name);
+        return;
+      case 'clusterprojecttype':
+        await this.refreshClusterProjectType(name);
         return;
       case 'clustertrait':
         await this.refreshClusterTrait(name);

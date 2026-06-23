@@ -19,7 +19,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "0e735271",
-  "lastSyncDate": "2026-05-15T16:33:14+05:30",
-  "lastSyncDescription": "fix(api): expose workload.dependencies.resources in openapi schema (#3506)"
+  "lastSyncCommit": "8340b423",
+  "lastSyncDate": "2026-06-19T14:55:17+05:30",
+  "lastSyncDescription": "feat(api): add ProjectReleaseBinding endpoints (#3918)"
 }

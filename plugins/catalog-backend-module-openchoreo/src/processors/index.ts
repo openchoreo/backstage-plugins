@@ -17,4 +17,6 @@ export { ClusterWorkflowPlaneEntityProcessor } from './ClusterWorkflowPlaneEntit
 export { ClusterWorkflowEntityProcessor } from './ClusterWorkflowEntityProcessor';
 export { ClusterResourceTypeEntityProcessor } from './ClusterResourceTypeEntityProcessor';
 export { ResourceTypeEntityProcessor } from './ResourceTypeEntityProcessor';
+export { ClusterProjectTypeEntityProcessor } from './ClusterProjectTypeEntityProcessor';
+export { ProjectTypeEntityProcessor } from './ProjectTypeEntityProcessor';
 export { SystemEntityProcessor } from './SystemEntityProcessor';

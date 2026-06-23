@@ -471,6 +471,14 @@ export {
   type UseResourceTypePermissionResult,
 } from './hooks/useResourceTypePermission';
 export {
+  useClusterProjectTypePermission,
+  type UseClusterProjectTypePermissionResult,
+} from './hooks/useClusterProjectTypePermission';
+export {
+  useProjectTypePermission,
+  type UseProjectTypePermissionResult,
+} from './hooks/useProjectTypePermission';
+export {
   useResourceCreatePermission,
   type UseResourceCreatePermissionResult,
 } from './hooks/useResourceCreatePermission';

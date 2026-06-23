@@ -285,6 +285,10 @@ catalog:
       rules:
         - allow: [Template]
     - type: file
+      target: ../../templates/create-openchoreo-projecttype/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
       target: ../../templates/create-openchoreo-trait/template.yaml
       rules:
         - allow: [Template]
@@ -310,6 +314,10 @@ catalog:
         - allow: [Template]
     - type: file
       target: ../../templates/create-openchoreo-clusterresourcetype/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: ../../templates/create-openchoreo-clusterprojecttype/template.yaml
       rules:
         - allow: [Template]
     - type: file

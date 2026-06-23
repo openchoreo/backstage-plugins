@@ -20,6 +20,8 @@ export const CHOREO_ANNOTATIONS = {
   RESOURCE_UID: 'openchoreo.io/resource-uid',
   RESOURCE_TYPE: 'openchoreo.io/resource-type',
   RESOURCE_TYPE_KIND: 'openchoreo.io/resource-type-kind',
+  PROJECT_TYPE: 'openchoreo.io/project-type',
+  PROJECT_TYPE_KIND: 'openchoreo.io/project-type-kind',
   ENDPOINT_NAME: 'openchoreo.io/endpoint-name',
   ENDPOINT_TYPE: 'openchoreo.io/endpoint-type',
   ENDPOINT_PORT: 'openchoreo.io/endpoint-port',

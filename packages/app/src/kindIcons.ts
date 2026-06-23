@@ -30,6 +30,8 @@ export const KIND_ICONS: Record<string, IconComponent> = {
   clustercomponenttype: CategoryIcon,
   resourcetype: LayersIcon,
   clusterresourcetype: LayersIcon,
+  projecttype: CategoryIcon,
+  clusterprojecttype: CategoryIcon,
   resource: StorageIcon,
   traittype: ExtensionIcon,
   clustertraittype: ExtensionIcon,
