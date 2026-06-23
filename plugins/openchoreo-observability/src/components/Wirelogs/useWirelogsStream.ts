@@ -119,6 +119,7 @@ export function useWirelogsStream({
     setError(null);
     setClosedReason(null);
     setStartedAt(null);
+    setHardTimeoutMs(null);
 
     (async () => {
       try {

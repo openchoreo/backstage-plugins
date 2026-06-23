@@ -2271,6 +2271,28 @@ export async function createRouter({
     } catch (err) {
       clearTimeout(timeoutHandle);
       res.off('close', onClientClose);
+      // The abort fired before the upstream finished opening: either the hard
+      // timeout (emit a timeout frame, matching the mid-stream path) or a
+      // client disconnect (nothing to write to — just end quietly). Only a
+      // genuine open failure falls through to the error frame.
+      if (abortController.signal.aborted) {
+        if (timedOut && !res.writableEnded && !res.destroyed) {
+          try {
+            res.write(
+              `event: timeout\ndata: ${JSON.stringify({
+                hardTimeoutMs: wirelogsStreamTimeoutMs,
+                message: `Wirelogs stream stopped after ${Math.round(
+                  wirelogsStreamTimeoutMs / 60000,
+                )} minutes`,
+              })}\n\n`,
+            );
+          } catch {
+            // client vanished between the check and the write — nothing to do
+          }
+        }
+        res.end();
+        return;
+      }
       logger.error(
         `Failed to open wirelogs upstream: ${(err as Error).message}`,
       );

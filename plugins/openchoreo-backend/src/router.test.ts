@@ -1203,5 +1203,35 @@ describe('createRouter', () => {
       expect(response.text).toContain('event: timeout');
       expect(response.text).toContain('hardTimeoutMs');
     });
+
+    it('emits a timeout frame (not an error) when the cap is hit before the upstream opens', async () => {
+      const localServices = createMockServices();
+      localServices.wirelogsStreamTimeoutMs = 50;
+      // openStream never resolves; it rejects only once the hard-timeout abort
+      // fires — exercising the pre-open abort branch in the catch.
+      localServices.wirelogsInfoService.openStream.mockImplementation(
+        (_req: any, _token: any, signal: AbortSignal) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener(
+              'abort',
+              () => reject(new DOMException('aborted', 'AbortError')),
+              { once: true },
+            );
+          }),
+      );
+      const localApp = express();
+      localApp.use(await createRouter(localServices as any));
+      localApp.use(mockErrorHandler());
+
+      const response = await request(localApp).get('/wirelogs/stream').query({
+        namespaceName: 'ns',
+        environmentName: 'dev',
+        projectName: 'proj',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('event: timeout');
+      expect(response.text).not.toContain('Failed to open wirelogs stream');
+    });
   });
 });

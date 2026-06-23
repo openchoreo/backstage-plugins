@@ -81,10 +81,17 @@ export const choreoPlugin = createBackendPlugin({
         // Hard cap on a single wirelogs SSE stream. Wirelogs have no upstream
         // timeout (the openchoreo-api disables the write deadline for SSE), so
         // the backend proxy enforces one to stop runaway streams. Default 15m.
-        const wirelogsStreamTimeoutMs =
-          (config.getOptionalNumber(
+        // Guard against a non-positive value (would abort streams instantly)
+        // and against overflowing setTimeout's max delay.
+        const configuredWirelogsTimeoutSeconds =
+          config.getOptionalNumber(
             'openchoreo.observability.wirelogs.streamTimeoutSeconds',
-          ) ?? 900) * 1000;
+          ) ?? 900;
+        const wirelogsStreamTimeoutMs =
+          Number.isFinite(configuredWirelogsTimeoutSeconds) &&
+          configuredWirelogsTimeoutSeconds > 0
+            ? Math.min(configuredWirelogsTimeoutSeconds * 1000, 2_147_483_647)
+            : 900_000;
 
         // All services use user tokens forwarded from the frontend
         // No default token - services require token parameter for each API call
