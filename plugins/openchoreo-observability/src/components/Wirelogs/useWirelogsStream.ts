@@ -4,7 +4,11 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
-import type { WirelogEvent, WirelogStreamStatus } from './types';
+import type {
+  WirelogEvent,
+  WirelogStreamStatus,
+  WirelogStreamClosedReason,
+} from './types';
 
 interface UseWirelogsStreamArgs {
   namespaceName: string | undefined;
@@ -19,6 +23,12 @@ interface UseWirelogsStreamResult {
   status: WirelogStreamStatus;
   error: string | null;
   totalReceived: number;
+  /** Epoch ms when the current stream entered `streaming`, else null. */
+  startedAt: number | null;
+  /** Server-advertised hard cap (ms) for a single stream, from the `meta` frame. */
+  hardTimeoutMs: number | null;
+  /** Why the stream last reached a terminal state (null while active/idle). */
+  closedReason: WirelogStreamClosedReason | null;
   start: () => void;
   stop: () => void;
   clear: () => void;
@@ -34,6 +44,11 @@ const DEFAULT_MAX_BUFFER = 500;
  * middleware expects. The body is parsed as text/event-stream client-side:
  * SSE frames are separated by blank lines, and each `data:` line is a JSON
  * object matching the `WirelogEvent` shape.
+ *
+ * The backend also emits two control frames: `meta` (carries the hard stream
+ * timeout so the UI can warn before it hits) and `timeout` (sent right before
+ * the server ends a stream that reached the cap, so the UI can label the stop
+ * accurately rather than as a generic error).
  *
  * Older flows are evicted past `maxBuffer` to keep the table responsive on
  * busy clusters — Hubble can emit 100s of flows/sec in a steady state.
@@ -52,10 +67,21 @@ export function useWirelogsStream({
   const [status, setStatus] = useState<WirelogStreamStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [totalReceived, setTotalReceived] = useState(0);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [hardTimeoutMs, setHardTimeoutMs] = useState<number | null>(null);
+  const [closedReason, setClosedReason] =
+    useState<WirelogStreamClosedReason | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const stopRequestedRef = useRef(false);
   const eventCounterRef = useRef(0);
+
+  // First terminal reason wins for a given session (e.g. a server `timeout`
+  // frame shouldn't be overwritten by the `ended` that follows when the
+  // backend closes the connection, nor by an unmount-triggered stop()).
+  const markClosedReason = useCallback((reason: WirelogStreamClosedReason) => {
+    setClosedReason(prev => prev ?? reason);
+  }, []);
 
   const stop = useCallback(() => {
     stopRequestedRef.current = true;
@@ -66,12 +92,14 @@ export function useWirelogsStream({
     setStatus(prev =>
       prev === 'streaming' || prev === 'connecting' ? 'closed' : prev,
     );
-  }, []);
+    markClosedReason('user');
+  }, [markClosedReason]);
 
   const clear = useCallback(() => {
     setFlows([]);
     setTotalReceived(0);
     setError(null);
+    setClosedReason(null);
   }, []);
 
   const start = useCallback(() => {
@@ -89,6 +117,8 @@ export function useWirelogsStream({
 
     setStatus('connecting');
     setError(null);
+    setClosedReason(null);
+    setStartedAt(null);
 
     (async () => {
       try {
@@ -119,6 +149,7 @@ export function useWirelogsStream({
         }
 
         setStatus('streaming');
+        setStartedAt(Date.now());
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -157,6 +188,14 @@ export function useWirelogsStream({
             } else if (parsed?.kind === 'error') {
               setError(parsed.message);
               setStatus('error');
+              markClosedReason('error');
+            } else if (parsed?.kind === 'meta') {
+              setHardTimeoutMs(parsed.hardTimeoutMs);
+            } else if (parsed?.kind === 'timeout') {
+              // The server is about to end the stream because it hit the hard
+              // cap. Record the reason; status flips to `closed` when the
+              // backend closes and `done` fires below.
+              markClosedReason('timeout');
             }
 
             separatorIdx = buffer.indexOf('\n\n');
@@ -164,11 +203,13 @@ export function useWirelogsStream({
         }
         if (!stopRequestedRef.current) {
           setStatus('closed');
+          markClosedReason('ended');
         }
       } catch (err) {
         if (controller.signal.aborted) return;
         setError((err as Error).message || 'Stream failed');
         setStatus('error');
+        markClosedReason('error');
       } finally {
         if (abortRef.current === controller) {
           abortRef.current = null;
@@ -183,6 +224,7 @@ export function useWirelogsStream({
     environmentName,
     componentName,
     maxBuffer,
+    markClosedReason,
   ]);
 
   useEffect(() => () => stop(), [stop]);
@@ -201,6 +243,9 @@ export function useWirelogsStream({
     status,
     error,
     totalReceived,
+    startedAt,
+    hardTimeoutMs,
+    closedReason,
     start,
     stop,
     clear,
@@ -210,6 +255,8 @@ export function useWirelogsStream({
 type ParsedFrame =
   | { kind: 'data'; event: WirelogEvent }
   | { kind: 'error'; message: string }
+  | { kind: 'meta'; hardTimeoutMs: number | null }
+  | { kind: 'timeout'; message: string }
   | undefined;
 
 function parseSseFrame(frame: string): ParsedFrame {
@@ -225,16 +272,30 @@ function parseSseFrame(frame: string): ParsedFrame {
   }
   if (dataLines.length === 0) return undefined;
   const payload = dataLines.join('\n');
+  let parsed: any;
   try {
-    const parsed = JSON.parse(payload);
-    if (eventType === 'error') {
-      return { kind: 'error', message: parsed.message || 'Stream error' };
-    }
-    if (parsed && typeof parsed === 'object' && parsed.flow) {
-      return { kind: 'data', event: parsed as WirelogEvent };
-    }
+    parsed = JSON.parse(payload);
   } catch {
-    // ignore malformed frame
+    return undefined; // ignore malformed frame
+  }
+  if (eventType === 'error') {
+    return { kind: 'error', message: parsed.message || 'Stream error' };
+  }
+  if (eventType === 'meta') {
+    return {
+      kind: 'meta',
+      hardTimeoutMs:
+        typeof parsed.hardTimeoutMs === 'number' ? parsed.hardTimeoutMs : null,
+    };
+  }
+  if (eventType === 'timeout') {
+    return {
+      kind: 'timeout',
+      message: parsed.message || 'Stream stopped by server',
+    };
+  }
+  if (parsed && typeof parsed === 'object' && parsed.flow) {
+    return { kind: 'data', event: parsed as WirelogEvent };
   }
   return undefined;
 }

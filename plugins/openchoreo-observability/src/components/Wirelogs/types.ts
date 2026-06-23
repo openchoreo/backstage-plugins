@@ -79,3 +79,10 @@ export type WirelogStreamStatus =
   | 'streaming'
   | 'error'
   | 'closed';
+
+/**
+ * Why a stream reached a terminal (`closed`/`error`) state. Drives UI
+ * messaging — notably `'timeout'`, which the server signals via a `timeout`
+ * SSE frame when it hits the hard stream cap.
+ */
+export type WirelogStreamClosedReason = 'user' | 'timeout' | 'error' | 'ended';

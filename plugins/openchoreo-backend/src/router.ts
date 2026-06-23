@@ -105,6 +105,7 @@ export async function createRouter({
   auth,
   tokenService,
   authEnabled,
+  wirelogsStreamTimeoutMs,
   logger,
 }: {
   environmentInfoService: EnvironmentInfoService;
@@ -132,6 +133,8 @@ export async function createRouter({
   auth: AuthService;
   tokenService: OpenChoreoTokenService;
   authEnabled: boolean;
+  /** Hard cap (ms) on a single wirelogs SSE stream before the server ends it. */
+  wirelogsStreamTimeoutMs: number;
   logger: LoggerService;
 }): Promise<express.Router> {
   const router = Router();
@@ -2230,9 +2233,28 @@ export async function createRouter({
       res.flushHeaders();
     }
 
+    // A single AbortController ends the stream on either client disconnect or
+    // the hard timeout; `timedOut` records which, so on a timeout we can send
+    // the client an explicit `timeout` frame (the connection is still open),
+    // whereas on a client disconnect there's nothing to write to. Listen on
+    // `res` 'close' (not `req`) to avoid the race where the request stream
+    // closes before the upstream fetch is even established.
     const abortController = new AbortController();
+    let timedOut = false;
     const onClientClose = () => abortController.abort();
-    req.on('close', onClientClose);
+    res.on('close', onClientClose);
+    const timeoutHandle = setTimeout(() => {
+      timedOut = true;
+      abortController.abort();
+    }, wirelogsStreamTimeoutMs);
+
+    // Announce the hard cap up front so the UI can warn the user before it
+    // hits and label the eventual stop accurately.
+    res.write(
+      `event: meta\ndata: ${JSON.stringify({
+        hardTimeoutMs: wirelogsStreamTimeoutMs,
+      })}\n\n`,
+    );
 
     let upstream: Response;
     try {
@@ -2247,6 +2269,8 @@ export async function createRouter({
         abortController.signal,
       );
     } catch (err) {
+      clearTimeout(timeoutHandle);
+      res.off('close', onClientClose);
       logger.error(
         `Failed to open wirelogs upstream: ${(err as Error).message}`,
       );
@@ -2260,6 +2284,8 @@ export async function createRouter({
     }
 
     if (!upstream.ok || !upstream.body) {
+      clearTimeout(timeoutHandle);
+      res.off('close', onClientClose);
       const status = upstream.status;
       const errorText = await upstream.text().catch(() => '');
       logger.warn(
@@ -2286,16 +2312,18 @@ export async function createRouter({
         }
         if (!res.write(Buffer.from(value))) {
           await new Promise<void>(resolve => {
-            const cleanup = (handler: () => void) => {
-              res.off('drain', handler);
-              res.off('close', handler);
-            };
             const onSettled = () => {
-              cleanup(onSettled);
+              res.off('drain', onSettled);
+              res.off('close', onSettled);
+              abortController.signal.removeEventListener('abort', onSettled);
               resolve();
             };
             res.once('drain', onSettled);
             res.once('close', onSettled);
+            // Unblock a stalled backpressure wait when the hard timeout fires.
+            abortController.signal.addEventListener('abort', onSettled, {
+              once: true,
+            });
           });
           if (abortController.signal.aborted) {
             streaming = false;
@@ -2308,11 +2336,32 @@ export async function createRouter({
         logger.warn(`Wirelogs stream interrupted: ${(err as Error).message}`);
       }
     } finally {
-      req.off('close', onClientClose);
+      clearTimeout(timeoutHandle);
+      res.off('close', onClientClose);
       try {
         await reader.cancel();
       } catch {
         // ignore
+      }
+      // Hard timeout (client still connected): tell the UI explicitly so it
+      // can show a "stopped by server" message rather than a generic error.
+      if (timedOut && !res.writableEnded) {
+        logger.info(
+          `Wirelogs stream hit hard timeout after ${wirelogsStreamTimeoutMs}ms ` +
+            `(namespace=${namespaceName} environment=${environmentName})`,
+        );
+        try {
+          res.write(
+            `event: timeout\ndata: ${JSON.stringify({
+              hardTimeoutMs: wirelogsStreamTimeoutMs,
+              message: `Wirelogs stream stopped after ${Math.round(
+                wirelogsStreamTimeoutMs / 60000,
+              )} minutes`,
+            })}\n\n`,
+          );
+        } catch {
+          // client vanished between the check and the write — nothing to do
+        }
       }
       res.end();
     }
