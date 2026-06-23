@@ -24,6 +24,7 @@ import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   formatRelativeTime,
@@ -136,7 +137,7 @@ export const EnvironmentDetailPanel = ({
   const [browserOpen, setBrowserOpen] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
   const { entity } = useEntity();
-  const { environments } = useEnvironmentsContext();
+  const { environments, renderInvestigateAction } = useEnvironmentsContext();
   const { releases, loading: releasesLoading } = useReleases(entity);
   const deployments: ReleaseDeployments = useMemo(() => {
     const map: ReleaseDeployments = {};
@@ -294,6 +295,33 @@ export const EnvironmentDetailPanel = ({
         </Box>
         <Box className={classes.headerStatusRow}>
           <StatusBadge status={statusVariant.variant} />
+          {/* Offer an AI investigation when the environment is in a problem
+              state (pending or failed), pushed to the right of the status
+              row. The actual button is injected by the host app via
+              `renderInvestigateAction` (so this plugin keeps no
+              portal-assistant dependency). Route to the dependency_pending
+              flow when the cause is an unresolved connection; otherwise the
+              generic runtime_debug flow so a failed deploy isn't framed as
+              "stuck pending". */}
+          {renderInvestigateAction &&
+            (statusVariant.variant === 'pending' ||
+              statusVariant.variant === 'failed') && (
+              <Box ml="auto">
+                {renderInvestigateAction({
+                  namespace:
+                    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE],
+                  project:
+                    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT],
+                  component: entity.metadata.name,
+                  environment: environment.resourceName ?? environment.name,
+                  caseType:
+                    environment.deployment.statusReason === 'ConnectionsPending'
+                      ? 'dependency_pending'
+                      : 'runtime_debug',
+                  status: statusVariant.label,
+                })}
+              </Box>
+            )}
         </Box>
       </Box>
 

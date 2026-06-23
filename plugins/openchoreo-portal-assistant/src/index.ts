@@ -41,3 +41,4 @@ export {
   InvestigateLogButton,
   type LogRowForInvestigation,
 } from './components/InvestigateLogButton/InvestigateLogButton';
+export { InvestigateDependencyButton } from './components/InvestigateDependencyButton/InvestigateDependencyButton';

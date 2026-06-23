@@ -97,8 +97,28 @@ jest.mock('../hooks/useReleases', () => ({
   }),
 }));
 
+// Stub the context. The host app injects the Investigate button through
+// `renderInvestigateAction` (so the openchoreo plugin owns no
+// portal-assistant dependency); mirror that here with a probe element that
+// exposes the scope the panel passes, so the wiring assertions below hold.
 jest.mock('../EnvironmentsContext', () => ({
-  useEnvironmentsContext: () => ({ environments: [] }),
+  useEnvironmentsContext: () => ({
+    environments: [],
+    renderInvestigateAction: (scope: {
+      caseType?: string;
+      status?: string;
+      component?: string;
+      environment?: string;
+    }) => (
+      <div
+        data-testid="investigate-dependency-button"
+        data-casetype={scope.caseType}
+        data-status={scope.status}
+        data-component={scope.component}
+        data-environment={scope.environment}
+      />
+    ),
+  }),
 }));
 
 jest.mock('./ComponentReleaseDiffDialog', () => ({
@@ -658,6 +678,58 @@ describe('EnvironmentDetailPanel', () => {
     ) as HTMLElement | null;
     expect(sectionAncestor).not.toBeNull();
     expect(sectionAncestor!.contains(actionsHeading)).toBe(true);
+  });
+
+  describe('Investigate with AI', () => {
+    it('shows the button for a pending connection (dependency_pending case)', () => {
+      renderPanel({
+        selection: {
+          kind: 'env',
+          environment: makeEnv({
+            name: 'development',
+            deployment: {
+              status: 'NotReady',
+              statusReason: 'ConnectionsPending',
+            },
+          }),
+        },
+      });
+      const btn = screen.getByTestId('investigate-dependency-button');
+      expect(btn).toHaveAttribute('data-casetype', 'dependency_pending');
+      expect(btn).toHaveAttribute('data-status', 'Pending');
+      expect(btn).toHaveAttribute('data-component', 'my-component');
+      expect(btn).toHaveAttribute('data-environment', 'development');
+    });
+
+    it('shows the button for a failed deployment (runtime_debug case)', () => {
+      renderPanel({
+        selection: {
+          kind: 'env',
+          environment: makeEnv({
+            name: 'production',
+            deployment: { status: 'Failed' },
+          }),
+        },
+      });
+      const btn = screen.getByTestId('investigate-dependency-button');
+      expect(btn).toHaveAttribute('data-casetype', 'runtime_debug');
+      expect(btn).toHaveAttribute('data-status', 'Failed');
+    });
+
+    it('hides the button for a healthy (active) deployment', () => {
+      renderPanel({
+        selection: {
+          kind: 'env',
+          environment: makeEnv({
+            name: 'development',
+            deployment: { status: 'Ready' },
+          }),
+        },
+      });
+      expect(
+        screen.queryByTestId('investigate-dependency-button'),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('routes the manifest dialog pivot to the release browser', async () => {

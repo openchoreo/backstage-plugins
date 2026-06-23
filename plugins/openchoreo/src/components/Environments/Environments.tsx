@@ -13,7 +13,11 @@ import {
 import type { PendingAction } from './types';
 import { useEnvironmentsStyles } from './styles';
 import { EnvironmentsRouter } from './EnvironmentsRouter';
-import { EnvironmentsProvider, type Selection } from './EnvironmentsContext';
+import {
+  EnvironmentsProvider,
+  type Selection,
+  type RenderInvestigateAction,
+} from './EnvironmentsContext';
 import { NotificationBanner } from './components';
 import {
   ForbiddenState,
@@ -21,7 +25,19 @@ import {
   useEnvironmentReadPermission,
 } from '@openchoreo/backstage-plugin-react';
 
-export const Environments = () => {
+export interface EnvironmentsProps {
+  /**
+   * Host-app slot for the deploy-panel "investigate" button. Injected by
+   * ``packages/app`` (which owns the portal-assistant dependency) and
+   * forwarded to the detail panel via context. See
+   * ``EnvironmentsContextValue.renderInvestigateAction``.
+   */
+  renderInvestigateAction?: RenderInvestigateAction;
+}
+
+export const Environments = ({
+  renderInvestigateAction,
+}: EnvironmentsProps = {}) => {
   // Initialize global styles (includes keyframe animation)
   useEnvironmentsStyles();
 
@@ -130,6 +146,7 @@ export const Environments = () => {
       beginAwaitingNewRelease,
       selection,
       setSelection,
+      renderInvestigateAction,
     }),
     [
       environments,
@@ -150,6 +167,7 @@ export const Environments = () => {
       awaitingNewRelease,
       beginAwaitingNewRelease,
       selection,
+      renderInvestigateAction,
     ],
   );
 
