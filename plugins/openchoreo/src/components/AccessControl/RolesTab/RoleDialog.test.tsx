@@ -87,9 +87,10 @@ describe('RoleDialog', () => {
       },
     });
 
-    // The four component actions collapse to a single wildcard chip.
+    // The four component actions collapse to a single wildcard chip, but the
+    // count reflects the actual number of granular actions granted.
     expect(screen.getByText('All component actions')).toBeInTheDocument();
-    expect(screen.getByText('Select Actions (1 selected)')).toBeInTheDocument();
+    expect(screen.getByText('Select Actions (4 selected)')).toBeInTheDocument();
   });
 
   it('applies a quick-start template and normalizes its actions', async () => {
@@ -98,9 +99,14 @@ describe('RoleDialog', () => {
 
     await user.click(screen.getByRole('button', { name: 'Admin' }));
 
-    // The admin template grants every action -> collapses to the global wildcard.
+    // The admin template grants every action -> collapses to the global
+    // wildcard chip, but the count reflects all granular actions it expands to.
     expect(screen.getByText('All Actions')).toBeInTheDocument();
-    expect(screen.getByText('Select Actions (1 selected)')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        `Select Actions (${AVAILABLE_ACTIONS.length} selected)`,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('validates that a role name is required', async () => {

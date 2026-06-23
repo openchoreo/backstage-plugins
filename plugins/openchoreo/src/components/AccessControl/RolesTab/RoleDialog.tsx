@@ -21,7 +21,11 @@ import {
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { ActionSelectionDialog } from './ActionSelectionDialog';
-import { getActionDisplayLabel, normalizeActions } from './actionUtils';
+import {
+  getActionDisplayLabel,
+  normalizeActions,
+  expandWildcards,
+} from './actionUtils';
 
 const useStyles = makeStyles(theme => ({
   formField: {
@@ -306,6 +310,11 @@ export const RoleDialog = ({
   const [error, setError] = useState<string | null>(null);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
 
+  const granularActionCount = useMemo(
+    () => expandWildcards(selectedActions, availableActions).size,
+    [selectedActions, availableActions],
+  );
+
   useEffect(() => {
     if (editingRole) {
       setName(editingRole.name);
@@ -457,7 +466,7 @@ export const RoleDialog = ({
             >
               {actionsLoading
                 ? 'Loading actions...'
-                : `Select Actions (${selectedActions.length} selected)`}
+                : `Select Actions (${granularActionCount} selected)`}
             </Button>
 
             {selectedActions.length > 0 ? (
