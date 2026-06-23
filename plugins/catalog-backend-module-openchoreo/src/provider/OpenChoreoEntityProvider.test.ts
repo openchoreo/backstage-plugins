@@ -220,6 +220,35 @@ const k8sResourceType = {
   status: { conditions: [readyCondition] },
 };
 
+const k8sClusterProjectType = {
+  metadata: k8sMeta('web-application'),
+  spec: {
+    parameters: {
+      openAPIV3Schema: {
+        type: 'object',
+        properties: { replicas: { type: 'integer' } },
+        required: ['replicas'],
+      },
+    },
+    resources: [],
+  },
+  status: { conditions: [readyCondition] },
+};
+
+const k8sProjectType = {
+  metadata: k8sMeta('internal-service'),
+  spec: {
+    parameters: {
+      openAPIV3Schema: {
+        type: 'object',
+        properties: { port: { type: 'integer' } },
+      },
+    },
+    resources: [],
+  },
+  status: { conditions: [readyCondition] },
+};
+
 const k8sResource = {
   metadata: k8sMeta('analytics-db'),
   spec: {
@@ -435,6 +464,12 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/clusterresourcetypes': okData({
           items: [k8sClusterResourceType],
         }),
+        '/api/v1/namespaces/{namespaceName}/projecttypes': okData({
+          items: [k8sProjectType],
+        }),
+        '/api/v1/clusterprojecttypes': okData({
+          items: [k8sClusterProjectType],
+        }),
         '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
       });
     });
@@ -475,6 +510,41 @@ describe('OpenChoreoEntityProvider', () => {
           'platform-engineering',
         ]),
       );
+    });
+
+    it('creates ProjectType / ClusterProjectType entities and their per-type project templates', async () => {
+      const entities = await runProvider();
+
+      const pts = findEntities(entities, 'ProjectType');
+      expect(pts).toHaveLength(1);
+      expect(pts[0].metadata.name).toBe('internal-service');
+      expect(pts[0].metadata.namespace).toBe('test-ns');
+
+      const cpts = findEntities(entities, 'ClusterProjectType');
+      expect(cpts).toHaveLength(1);
+      expect(cpts[0].metadata.name).toBe('web-application');
+      expect(cpts[0].metadata.namespace).toBe('openchoreo-cluster');
+
+      // PtdToTemplateConverter emits one scaffolder Template per type.
+      const templates = findEntities(entities, 'Template');
+      const nsTemplate = templates.find(
+        t => t.metadata.name === 'template-project-internal-service',
+      );
+      expect(nsTemplate).toBeDefined();
+      expect(nsTemplate!.metadata.namespace).toBe('test-ns');
+      expect((nsTemplate!.spec as any).type).toBe('Project');
+
+      const clusterTemplate = templates.find(
+        t => t.metadata.name === 'template-project-web-application',
+      );
+      expect(clusterTemplate).toBeDefined();
+      expect(clusterTemplate!.metadata.namespace).toBe('openchoreo-cluster');
+      // The type's parameter schema is carried into the wizard field options.
+      expect(
+        (clusterTemplate!.spec as any).parameters[1].properties.parameters[
+          'ui:options'
+        ].ptdSchema.properties.replicas.type,
+      ).toBe('integer');
     });
 
     it('creates ResourceType entity in the owning namespace with a domain ref', async () => {
