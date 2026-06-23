@@ -112,10 +112,10 @@ describe('ResourceDependencyEditor', () => {
       expect(screen.getByTestId('binding-row-caCert')).toBeInTheDocument();
     });
 
-    it('renders Apply / Cancel buttons in the footer', () => {
+    it('renders Save / Cancel buttons in the footer', () => {
       renderEditor({ isEditing: true });
       expect(
-        screen.getByRole('button', { name: /Apply changes/i }),
+        screen.getByRole('button', { name: /Save changes/i }),
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: /Cancel editing/i }),
@@ -124,7 +124,7 @@ describe('ResourceDependencyEditor', () => {
 
     it('invokes onApply / onCancel via footer buttons', () => {
       const { onApply, onCancel } = renderEditor({ isEditing: true });
-      fireEvent.click(screen.getByRole('button', { name: /Apply changes/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Save changes/i }));
       fireEvent.click(screen.getByRole('button', { name: /Cancel editing/i }));
       expect(onApply).toHaveBeenCalledTimes(1);
       expect(onCancel).toHaveBeenCalledTimes(1);
@@ -326,7 +326,7 @@ describe('ResourceDependencyEditor', () => {
       });
     });
 
-    it('disables Apply when applyDisabled is true', () => {
+    it('disables Save when applyDisabled is true', () => {
       render(
         <ResourceDependencyEditor
           dependency={{ ref: 'orders-db' }}
@@ -341,7 +341,7 @@ describe('ResourceDependencyEditor', () => {
         />,
       );
       expect(
-        screen.getByRole('button', { name: /Apply changes/i }),
+        screen.getByRole('button', { name: /Save changes/i }),
       ).toBeDisabled();
     });
   });

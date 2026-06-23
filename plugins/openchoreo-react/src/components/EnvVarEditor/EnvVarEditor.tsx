@@ -1,21 +1,11 @@
 import type { FC } from 'react';
-import {
-  TextField,
-  IconButton,
-  Grid,
-  Box,
-  Typography,
-  Button,
-} from '@material-ui/core';
+import { TextField, Grid, Box, Typography } from '@material-ui/core';
 import { makeStyles, Theme } from '@material-ui/core/styles';
-import DeleteIcon from '@material-ui/icons/Delete';
-import EditIcon from '@material-ui/icons/Edit';
-import CheckIcon from '@material-ui/icons/Check';
-import CloseIcon from '@material-ui/icons/Close';
 import type { EnvVar } from '@openchoreo/backstage-plugin-common';
 import {
   DualModeInput,
   SecretSelector,
+  EditRowActions,
   type SecretOption,
 } from '@openchoreo/backstage-design-system';
 
@@ -34,9 +24,6 @@ const useStyles = makeStyles((theme: Theme) => ({
     marginBottom: theme.spacing(1),
     backgroundColor: theme.palette.background.default,
     boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
-  },
-  actionButton: {
-    marginLeft: theme.spacing(0.5),
   },
   readOnlyKey: {
     fontWeight: 600,
@@ -224,55 +211,44 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
   if (!isEditing) {
     return (
       <Box className={className || classes.container}>
-        <Box display="flex" alignItems="center">
-          <Box flex={1} className={classes.readOnlyContent}>
-            <Typography className={classes.readOnlyKey}>
-              {envVar.key || '(no name)'}
-            </Typography>
-            <Typography className={classes.readOnlyValue}>
-              = {getDisplayValue() || '(empty)'}
-            </Typography>
-            {mode === 'secret' && (
-              <Typography className={classes.secretIndicator}>🔒</Typography>
-            )}
-            {/* Inline diff for overridden values */}
-            {baseValue && (
-              <Box className={classes.inlineDiff}>
-                <Typography component="span" className={classes.diffArrow}>
-                  ←
-                </Typography>
-                <Typography
-                  component="span"
-                  className={classes.baseValueStruck}
-                >
-                  {formatDisplayValue(baseValue, baseValueMode)}
-                </Typography>
-              </Box>
-            )}
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={onEdit}
-            disabled={disabled || editDisabled}
-            className={classes.actionButton}
-          >
-            {editButtonLabel}
-          </Button>
-          {!hideDelete && (
-            <IconButton
-              onClick={onRemove}
-              color="secondary"
-              size="small"
-              disabled={disabled || deleteDisabled}
-              className={classes.actionButton}
-              aria-label="Remove environment variable"
-            >
-              <DeleteIcon />
-            </IconButton>
+        <Box flex={1} className={classes.readOnlyContent}>
+          <Typography className={classes.readOnlyKey}>
+            {envVar.key || '(no name)'}
+          </Typography>
+          <Typography className={classes.readOnlyValue}>
+            = {getDisplayValue() || '(empty)'}
+          </Typography>
+          {mode === 'secret' && (
+            <Typography className={classes.secretIndicator}>🔒</Typography>
+          )}
+          {/* Inline diff for overridden values */}
+          {baseValue && (
+            <Box className={classes.inlineDiff}>
+              <Typography component="span" className={classes.diffArrow}>
+                ←
+              </Typography>
+              <Typography component="span" className={classes.baseValueStruck}>
+                {formatDisplayValue(baseValue, baseValueMode)}
+              </Typography>
+            </Box>
           )}
         </Box>
+        <EditRowActions
+          isEditing={false}
+          itemLabel="environment variable"
+          editLabel={editButtonLabel}
+          editVariant={
+            editButtonLabel === 'Override' ? 'contained' : 'outlined'
+          }
+          onEdit={onEdit}
+          onApply={onApply}
+          onCancel={onCancel ?? (() => {})}
+          onRemove={onRemove}
+          disabled={disabled}
+          editDisabled={editDisabled}
+          deleteDisabled={deleteDisabled}
+          hideDelete={hideDelete}
+        />
       </Box>
     );
   }
@@ -336,58 +312,23 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
 
   return (
     <Box className={className || classes.containerEditing}>
-      <Box display="flex" alignItems="center">
-        <Box flex={1}>
-          <DualModeInput
-            mode={mode}
-            onModeChange={handleModeChange}
-            plainContent={plainContent}
-            secretContent={secretContent}
-            disabled={disabled || lockMode}
-            tooltipPlain={
-              lockMode
-                ? 'Mode cannot be changed for overrides'
-                : 'Click to switch to secret reference'
-            }
-            tooltipSecret={
-              lockMode
-                ? 'Mode cannot be changed for overrides'
-                : 'Click to switch to plain value'
-            }
-          />
-        </Box>
-        <IconButton
-          onClick={onApply}
-          color="primary"
-          size="small"
-          disabled={disabled || applyDisabled}
-          className={classes.actionButton}
-          aria-label="Apply changes"
-        >
-          <CheckIcon />
-        </IconButton>
-        {onCancel && (
-          <IconButton
-            onClick={onCancel}
-            size="small"
-            disabled={disabled}
-            className={classes.actionButton}
-            aria-label="Cancel editing"
-          >
-            <CloseIcon />
-          </IconButton>
-        )}
-        <IconButton
-          onClick={onRemove}
-          color="secondary"
-          size="small"
-          disabled={disabled}
-          className={classes.actionButton}
-          aria-label="Remove environment variable"
-        >
-          <DeleteIcon />
-        </IconButton>
-      </Box>
+      <DualModeInput
+        mode={mode}
+        onModeChange={handleModeChange}
+        plainContent={plainContent}
+        secretContent={secretContent}
+        disabled={disabled || lockMode}
+        tooltipPlain={
+          lockMode
+            ? 'Mode cannot be changed for overrides'
+            : 'Click to switch to secret reference'
+        }
+        tooltipSecret={
+          lockMode
+            ? 'Mode cannot be changed for overrides'
+            : 'Click to switch to plain value'
+        }
+      />
       {/* Show base value hint in edit mode for overridden items */}
       {baseValue && (
         <Box className={classes.baseValueInline}>
@@ -396,6 +337,17 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
           </Typography>
         </Box>
       )}
+      <EditRowActions
+        isEditing
+        itemLabel="environment variable"
+        onEdit={onEdit}
+        onApply={onApply}
+        onCancel={onCancel ?? (() => {})}
+        onRemove={onRemove}
+        disabled={disabled}
+        applyDisabled={applyDisabled}
+        hideCancel={!onCancel}
+      />
     </Box>
   );
 };

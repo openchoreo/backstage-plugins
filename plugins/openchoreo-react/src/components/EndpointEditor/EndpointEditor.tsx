@@ -20,10 +20,7 @@ import {
   DialogActions,
 } from '@material-ui/core';
 import { makeStyles, Theme } from '@material-ui/core/styles';
-import DeleteIcon from '@material-ui/icons/Delete';
 import EditIcon from '@material-ui/icons/Edit';
-import CheckIcon from '@material-ui/icons/Check';
-import CloseIcon from '@material-ui/icons/Close';
 import CodeMirror from '@uiw/react-codemirror';
 import { StreamLanguage } from '@codemirror/language';
 import type { StreamParser } from '@codemirror/language';
@@ -31,7 +28,10 @@ import { yaml as yamlMode } from '@codemirror/legacy-modes/mode/yaml';
 import { protobuf as protobufMode } from '@codemirror/legacy-modes/mode/protobuf';
 import { graphql as graphqlMode } from 'codemirror-graphql/cm6-legacy/mode';
 import type { WorkloadEndpoint } from '@openchoreo/backstage-plugin-common';
-import { useChoreoTokens } from '@openchoreo/backstage-design-system';
+import {
+  useChoreoTokens,
+  EditRowActions,
+} from '@openchoreo/backstage-design-system';
 
 const useStyles = makeStyles((theme: Theme) => ({
   container: {
@@ -48,9 +48,6 @@ const useStyles = makeStyles((theme: Theme) => ({
     marginBottom: theme.spacing(1),
     backgroundColor: theme.palette.background.default,
     boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
-  },
-  actionButton: {
-    marginLeft: theme.spacing(0.5),
   },
   readOnlyName: {
     fontWeight: 600,
@@ -296,49 +293,38 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   if (!isEditing) {
     return (
       <Box className={className || classes.container}>
-        <Box display="flex" alignItems="center">
-          <Box flex={1} className={classes.readOnlyContent}>
-            <Typography className={classes.readOnlyName}>
-              {endpointName || '(no name)'}
-            </Typography>
-            <Typography className={classes.readOnlyDetails}>
-              {endpoint.type} : {endpoint.port}
-              {(() => {
-                const vis = endpoint.visibility ?? [];
-                const displayVis = vis.includes('project')
-                  ? vis
-                  : ['project', ...vis];
-                return displayVis.length > 0 ? (
-                  <>
-                    {' '}
-                    &middot;{' '}
-                    {displayVis.map(v => VISIBILITY_LABELS[v] ?? v).join(', ')}
-                  </>
-                ) : null;
-              })()}
-            </Typography>
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={onEdit}
-            disabled={disabled || editDisabled}
-            className={classes.actionButton}
-          >
-            Edit
-          </Button>
-          <IconButton
-            onClick={onRemove}
-            color="secondary"
-            size="small"
-            disabled={disabled || deleteDisabled}
-            className={classes.actionButton}
-            aria-label="Remove endpoint"
-          >
-            <DeleteIcon />
-          </IconButton>
+        <Box flex={1} className={classes.readOnlyContent}>
+          <Typography className={classes.readOnlyName}>
+            {endpointName || '(no name)'}
+          </Typography>
+          <Typography className={classes.readOnlyDetails}>
+            {endpoint.type} : {endpoint.port}
+            {(() => {
+              const vis = endpoint.visibility ?? [];
+              const displayVis = vis.includes('project')
+                ? vis
+                : ['project', ...vis];
+              return displayVis.length > 0 ? (
+                <>
+                  {' '}
+                  &middot;{' '}
+                  {displayVis.map(v => VISIBILITY_LABELS[v] ?? v).join(', ')}
+                </>
+              ) : null;
+            })()}
+          </Typography>
         </Box>
+        <EditRowActions
+          isEditing={false}
+          itemLabel="endpoint"
+          onEdit={onEdit}
+          onApply={onApply}
+          onCancel={onCancel ?? (() => {})}
+          onRemove={onRemove}
+          disabled={disabled}
+          editDisabled={editDisabled}
+          deleteDisabled={deleteDisabled}
+        />
       </Box>
     );
   }
@@ -346,192 +332,164 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   // Edit mode
   return (
     <Box className={className || classes.containerEditing}>
-      <Box display="flex" alignItems="flex-start">
-        <Box flex={1}>
+      <TextField
+        label="Endpoint Name"
+        value={endpointName || ''}
+        onChange={e => onNameChange(e.target.value)}
+        fullWidth
+        variant="outlined"
+        size="small"
+        disabled={disabled}
+        className={classes.nameField}
+      />
+      <Grid container spacing={1} alignItems="center">
+        <Grid item xs={6}>
+          <FormControl fullWidth variant="outlined" size="small">
+            <InputLabel>Type</InputLabel>
+            <Select
+              value={endpoint.type || 'HTTP'}
+              onChange={e => {
+                const newType = e.target.value as string;
+                onChange('type', newType);
+                const suggestedSchemaType =
+                  ENDPOINT_TYPE_TO_SCHEMA_TYPE[newType];
+                if (suggestedSchemaType) {
+                  onChange('schema', {
+                    ...endpoint.schema,
+                    type: suggestedSchemaType,
+                  });
+                }
+              }}
+              label="Type"
+              disabled={disabled}
+            >
+              {PROTOCOL_TYPES.map(type => (
+                <MenuItem key={type} value={type}>
+                  {type}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={6}>
           <TextField
-            label="Endpoint Name"
-            value={endpointName || ''}
-            onChange={e => onNameChange(e.target.value)}
+            label="Port"
+            type="number"
+            value={endpoint.port || ''}
+            onChange={e => onChange('port', parseInt(e.target.value, 10) || 0)}
             fullWidth
             variant="outlined"
             size="small"
             disabled={disabled}
-            className={classes.nameField}
           />
-          <Grid container spacing={1} alignItems="center">
-            <Grid item xs={6}>
-              <FormControl fullWidth variant="outlined" size="small">
-                <InputLabel>Type</InputLabel>
-                <Select
-                  value={endpoint.type || 'HTTP'}
-                  onChange={e => {
-                    const newType = e.target.value as string;
-                    onChange('type', newType);
-                    const suggestedSchemaType =
-                      ENDPOINT_TYPE_TO_SCHEMA_TYPE[newType];
-                    if (suggestedSchemaType) {
-                      onChange('schema', {
-                        ...endpoint.schema,
-                        type: suggestedSchemaType,
-                      });
-                    }
-                  }}
-                  label="Type"
-                  disabled={disabled}
-                >
-                  {PROTOCOL_TYPES.map(type => (
-                    <MenuItem key={type} value={type}>
-                      {type}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                label="Port"
-                type="number"
-                value={endpoint.port || ''}
-                onChange={e =>
-                  onChange('port', parseInt(e.target.value, 10) || 0)
-                }
-                fullWidth
-                variant="outlined"
-                size="small"
-                disabled={disabled}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl
-                component="fieldset"
-                size="small"
-                fullWidth
-                disabled={disabled}
-                className={classes.visibilityFieldset}
-              >
-                <FormLabel
-                  component="legend"
-                  style={{ fontSize: '0.75rem', padding: '0 4px' }}
-                >
-                  Visibility
-                </FormLabel>
-                <FormGroup row>
-                  {VISIBILITY_OPTIONS.map(opt => {
-                    const currentVisibility = endpoint.visibility ?? [];
-                    const isChecked =
-                      opt.alwaysSelected ||
-                      (currentVisibility as string[]).includes(opt.value);
-                    return (
-                      <FormControlLabel
-                        key={opt.value}
-                        control={
-                          <Checkbox
-                            checked={isChecked}
-                            onChange={() => {
-                              if (opt.alwaysSelected || opt.disabled) return;
-                              const next = isChecked
-                                ? currentVisibility.filter(v => v !== opt.value)
-                                : [...currentVisibility, opt.value];
-                              onChange('visibility', next);
-                            }}
-                            size="small"
-                            color="primary"
-                          />
-                        }
-                        label={opt.label}
-                        disabled={disabled || opt.disabled}
-                      />
-                    );
-                  })}
-                </FormGroup>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <Box className={classes.schemaContentField}>
-                <TextField
-                  label="Schema Content"
-                  value={
-                    endpoint.schema?.content
-                      ? `${endpoint.schema.content.substring(0, 60)}${
-                          endpoint.schema.content.length > 60 ? '...' : ''
-                        }`
-                      : ''
-                  }
-                  fullWidth
-                  variant="outlined"
-                  size="small"
-                  disabled
-                  placeholder={
-                    schemaDisplayName
-                      ? `Paste your ${schemaDisplayName} schema`
-                      : 'Optional - click to add'
-                  }
-                  error={isSchemaRequired && !endpoint.schema?.content?.trim()}
-                  helperText={schemaHelperText}
-                  InputProps={{
-                    readOnly: true,
-                  }}
-                />
-                <IconButton
-                  size="small"
-                  onClick={() => setSchemaDialogOpen(true)}
-                  disabled={disabled}
-                  aria-label="Edit schema"
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Box>
-              <SchemaContentDialog
-                open={schemaDialogOpen}
-                content={endpoint.schema?.content || ''}
-                schemaType={endpoint.schema?.type}
-                required={isSchemaRequired}
-                onApply={content => {
-                  onChange('schema', {
-                    ...endpoint.schema,
-                    content,
-                  });
-                  setSchemaDialogOpen(false);
-                }}
-                onClose={() => setSchemaDialogOpen(false)}
-              />
-            </Grid>
-          </Grid>
-        </Box>
-        <Box display="flex" flexDirection="column" ml={1}>
-          <IconButton
-            onClick={onApply}
-            color="primary"
+        </Grid>
+        <Grid item xs={12}>
+          <FormControl
+            component="fieldset"
             size="small"
-            disabled={disabled || applyDisabled}
-            className={classes.actionButton}
-            aria-label="Apply changes"
-          >
-            <CheckIcon />
-          </IconButton>
-          {onCancel && (
-            <IconButton
-              onClick={onCancel}
-              size="small"
-              disabled={disabled}
-              className={classes.actionButton}
-              aria-label="Cancel editing"
-            >
-              <CloseIcon />
-            </IconButton>
-          )}
-          <IconButton
-            onClick={onRemove}
-            color="secondary"
-            size="small"
+            fullWidth
             disabled={disabled}
-            className={classes.actionButton}
-            aria-label="Remove endpoint"
+            className={classes.visibilityFieldset}
           >
-            <DeleteIcon />
-          </IconButton>
-        </Box>
-      </Box>
+            <FormLabel
+              component="legend"
+              style={{ fontSize: '0.75rem', padding: '0 4px' }}
+            >
+              Visibility
+            </FormLabel>
+            <FormGroup row>
+              {VISIBILITY_OPTIONS.map(opt => {
+                const currentVisibility = endpoint.visibility ?? [];
+                const isChecked =
+                  opt.alwaysSelected ||
+                  (currentVisibility as string[]).includes(opt.value);
+                return (
+                  <FormControlLabel
+                    key={opt.value}
+                    control={
+                      <Checkbox
+                        checked={isChecked}
+                        onChange={() => {
+                          if (opt.alwaysSelected || opt.disabled) return;
+                          const next = isChecked
+                            ? currentVisibility.filter(v => v !== opt.value)
+                            : [...currentVisibility, opt.value];
+                          onChange('visibility', next);
+                        }}
+                        size="small"
+                        color="primary"
+                      />
+                    }
+                    label={opt.label}
+                    disabled={disabled || opt.disabled}
+                  />
+                );
+              })}
+            </FormGroup>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12}>
+          <Box className={classes.schemaContentField}>
+            <TextField
+              label="Schema Content"
+              value={
+                endpoint.schema?.content
+                  ? `${endpoint.schema.content.substring(0, 60)}${
+                      endpoint.schema.content.length > 60 ? '...' : ''
+                    }`
+                  : ''
+              }
+              fullWidth
+              variant="outlined"
+              size="small"
+              disabled
+              placeholder={
+                schemaDisplayName
+                  ? `Paste your ${schemaDisplayName} schema`
+                  : 'Optional - click to add'
+              }
+              error={isSchemaRequired && !endpoint.schema?.content?.trim()}
+              helperText={schemaHelperText}
+              InputProps={{
+                readOnly: true,
+              }}
+            />
+            <IconButton
+              size="small"
+              onClick={() => setSchemaDialogOpen(true)}
+              disabled={disabled}
+              aria-label="Edit schema"
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <SchemaContentDialog
+            open={schemaDialogOpen}
+            content={endpoint.schema?.content || ''}
+            schemaType={endpoint.schema?.type}
+            required={isSchemaRequired}
+            onApply={content => {
+              onChange('schema', {
+                ...endpoint.schema,
+                content,
+              });
+              setSchemaDialogOpen(false);
+            }}
+            onClose={() => setSchemaDialogOpen(false)}
+          />
+        </Grid>
+      </Grid>
+      <EditRowActions
+        isEditing
+        itemLabel="endpoint"
+        onEdit={onEdit}
+        onApply={onApply}
+        onCancel={onCancel ?? (() => {})}
+        onRemove={onRemove}
+        disabled={disabled}
+        applyDisabled={applyDisabled}
+        hideCancel={!onCancel}
+      />
     </Box>
   );
 };

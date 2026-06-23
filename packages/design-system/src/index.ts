@@ -38,6 +38,8 @@ export type {
   FormYamlMode,
 } from './components/FormYamlToggle';
 export { SplitButton } from './components/SplitButton';
+export { EditRowActions } from './components/EditRowActions';
+export type { EditRowActionsProps } from './components/EditRowActions';
 export {
   ArrayFieldTemplate,
   DescriptionFieldTemplate,
