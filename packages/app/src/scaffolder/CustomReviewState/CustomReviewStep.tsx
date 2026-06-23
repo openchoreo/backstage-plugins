@@ -585,6 +585,65 @@ function ResourceReview({ data }: { data: Record<string, unknown> }) {
 }
 
 // ---------------------------------------------------------------------------
+// ProjectReview
+// ---------------------------------------------------------------------------
+
+function ProjectReview({ data }: { data: Record<string, unknown> }) {
+  const classes = useStyles();
+
+  // Section: Project Metadata
+  const projectMeta: Record<string, string> = {};
+  if (data.namespace_name) {
+    setMeta(projectMeta, 'Namespace', extractName(String(data.namespace_name)));
+  }
+  if (data.project_name) {
+    setMeta(projectMeta, 'Project Name', String(data.project_name));
+  }
+  if (data.displayName) {
+    setMeta(projectMeta, 'Display Name', String(data.displayName));
+  }
+  if (data.description) {
+    setMeta(projectMeta, 'Description', String(data.description));
+  }
+  if (data.deployment_pipeline) {
+    setMeta(
+      projectMeta,
+      'Deployment Pipeline',
+      String(data.deployment_pipeline),
+    );
+  }
+
+  // Section: Parameters — the per-type schema-driven form values flattened
+  // to label/value rows. Empty/missing fields are dropped by flattenToMetadata.
+  let parametersMeta: Record<string, string> | undefined;
+  const parameters = data.parameters as Record<string, unknown> | undefined;
+  if (parameters && Object.keys(parameters).length > 0) {
+    parametersMeta = {};
+    flattenToMetadata(parameters, '', parametersMeta);
+  }
+
+  return (
+    <>
+      {Object.keys(projectMeta).length > 0 && (
+        <>
+          <Typography className={classes.sectionTitle}>
+            Project Metadata
+          </Typography>
+          <StructuredMetadataTable metadata={projectMeta} />
+        </>
+      )}
+
+      {parametersMeta && Object.keys(parametersMeta).length > 0 && (
+        <>
+          <Typography className={classes.sectionTitle}>Parameters</Typography>
+          <StructuredMetadataTable metadata={parametersMeta} />
+        </>
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // DefaultReview (fallback using Backstage ReviewState)
 // ---------------------------------------------------------------------------
 
@@ -620,6 +679,7 @@ function detectTemplateType(
   | 'environment'
   | 'component'
   | 'resource'
+  | 'project'
   | 'default' {
   if ('deploymentPipelineConfig' in formData) return 'deployment-pipeline';
   if ('environmentConfig' in formData) return 'environment';
@@ -627,6 +687,8 @@ function detectTemplateType(
   // Per-type Resource templates emit `resource_name` at the top level
   // (vs Component's `component_name` which is paired with `workloadDetails`).
   if ('resource_name' in formData) return 'resource';
+  // Per-type Project templates emit `project_name` at the top level.
+  if ('project_name' in formData) return 'project';
   return 'default';
 }
 
@@ -655,6 +717,7 @@ export const CustomReviewStep = ({
         )}
         {templateType === 'component' && <ComponentReview data={formData} />}
         {templateType === 'resource' && <ResourceReview data={formData} />}
+        {templateType === 'project' && <ProjectReview data={formData} />}
         {templateType === 'default' && (
           <DefaultReview formData={formData} steps={steps} />
         )}
