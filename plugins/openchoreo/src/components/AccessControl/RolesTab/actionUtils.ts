@@ -101,6 +101,55 @@ export function convertToWildcards(
 }
 
 /**
+ * Collapse a role's stored actions into their wildcard form for display.
+ *
+ * Roles may be persisted with the fully expanded action list (e.g. every
+ * `component:*` operation listed individually). This re-applies the same
+ * wildcard collapsing the selection dialog performs on confirm, so a role
+ * with full access to a category shows as `category:*` (and full access to
+ * everything as `*`) consistently on load.
+ *
+ * When the action catalog has not loaded yet (`availableActions` is empty),
+ * the input is returned unchanged so nothing is dropped before we can tell
+ * which categories are complete.
+ */
+export function normalizeActions(
+  actions: string[],
+  availableActions: string[],
+): string[] {
+  if (availableActions.length === 0) {
+    return actions;
+  }
+  const availableSet = new Set(availableActions);
+
+  // Drop stale tokens before collapsing: a stale individual action left in the
+  // expanded set inflates its size past availableActions.length, which defeats
+  // convertToWildcards' global-`*` gate and forces per-category wildcards even
+  // when the role grants everything (e.g. `['*', 'foo:bar']`).
+  const knownExpanded = new Set(
+    [...expandWildcards(actions, availableActions)].filter(action =>
+      availableSet.has(action),
+    ),
+  );
+  const normalizedKnown = convertToWildcards(knownExpanded, availableActions);
+
+  // convertToWildcards only re-emits actions whose category exists in the
+  // catalog, so any unknown/stale action (e.g. a renamed or removed catalog
+  // entry) would be silently dropped here, losing that permission on save.
+  // Preserve such actions alongside the normalized, catalog-backed ones.
+  const unknownOrStale = actions.filter(action => {
+    if (action === '*') return false;
+    if (action.endsWith(':*')) {
+      const category = action.slice(0, -2);
+      return !availableActions.some(a => a.startsWith(`${category}:`));
+    }
+    return !availableSet.has(action);
+  });
+
+  return Array.from(new Set([...normalizedKnown, ...unknownOrStale]));
+}
+
+/**
  * Get a human-readable display label for an action.
  * - `*` -> "All Actions"
  * - `category:*` -> "All category actions"
