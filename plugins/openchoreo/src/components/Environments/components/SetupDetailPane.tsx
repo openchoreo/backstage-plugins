@@ -23,6 +23,7 @@ import { LoadingSkeleton } from './LoadingSkeleton';
 import { AutoDeployConfirmationDialog } from './AutoDeployConfirmationDialog';
 import { DeployReleasePanel } from './DeployReleasePanel';
 import { NotificationBanner } from './NotificationBanner';
+import { DeploymentFailureBanner } from './DeploymentFailureBanner';
 import { ReleaseBrowserDialog } from './ReleaseBrowserDialog';
 import { ReleaseManifestDialog } from './ReleaseManifestDialog';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
@@ -245,6 +246,7 @@ export const SetupDetailPane = ({
     setAutoDeployOptimistic,
     latestReleaseName,
     awaitingNewRelease,
+    componentError,
   } = useEnvironmentsContext();
   const { updateAutoDeploy, isUpdating: autoDeployUpdating } =
     useAutoDeployUpdate(entity);
@@ -449,6 +451,12 @@ export const SetupDetailPane = ({
                   <Alert severity={readiness.alertSeverity}>
                     {readiness.alertMessage}
                   </Alert>
+                )}
+                {componentError?.message && !awaitingNewRelease && (
+                  <DeploymentFailureBanner
+                    message={componentError.message}
+                    reason={componentError.reason}
+                  />
                 )}
                 <LatestReleaseRow
                   releases={releases}

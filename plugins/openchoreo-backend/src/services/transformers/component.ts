@@ -2,6 +2,7 @@ import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import type {
   ComponentResponse,
   ComponentWorkflowConfig,
+  ReleaseBindingCondition,
 } from '@openchoreo/backstage-plugin-common';
 import {
   getName,
@@ -12,6 +13,7 @@ import {
   getDescription,
   deriveStatus,
 } from './common';
+import { deriveComponentReadiness } from './component-readiness';
 
 type Component = OpenChoreoComponents['schemas']['Component'];
 
@@ -27,6 +29,24 @@ export function transformComponent(component: Component): ComponentResponse {
 
   const latestRelease = component.status?.latestRelease;
 
+  const rawConditions = component.status?.conditions;
+  const conditions: ReleaseBindingCondition[] | undefined = Array.isArray(
+    rawConditions,
+  )
+    ? rawConditions.map(
+        (c: any): ReleaseBindingCondition => ({
+          type: c.type,
+          status: c.status,
+          reason: c.reason,
+          message: c.message,
+          lastTransitionTime: c.lastTransitionTime,
+          observedGeneration: c.observedGeneration,
+        }),
+      )
+    : undefined;
+
+  const readiness = deriveComponentReadiness(component);
+
   return {
     uid: getUid(component) ?? '',
     name: getName(component) ?? '',
@@ -38,6 +58,10 @@ export function transformComponent(component: Component): ComponentResponse {
     createdAt: getCreatedAt(component) ?? '',
     status: deriveStatus(component),
     autoDeploy: component.spec?.autoDeploy,
+    conditions,
+    hasError: readiness.hasError,
+    errorReason: readiness.reason,
+    errorMessage: readiness.message,
     latestRelease: latestRelease
       ? {
           name: latestRelease.name,

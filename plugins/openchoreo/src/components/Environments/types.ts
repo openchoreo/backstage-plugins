@@ -71,6 +71,12 @@ export interface SetupCardProps {
   compact?: boolean;
   /** Selection chrome for compact mode (canvas tile selection). */
   selected?: boolean;
+  /**
+   * True when the component is in a controller error state (Ready=False, e.g.
+   * a failed auto-deploy). Renders an error marker on the compact tile so the
+   * failure is visible on the canvas, not just in the Setup detail pane.
+   */
+  hasError?: boolean;
 }
 
 /**

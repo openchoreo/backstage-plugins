@@ -1,6 +1,7 @@
 import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { useAsyncRetry } from 'react-use';
+import type { ReleaseBindingCondition } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError } from '../../../utils/errorUtils';
 
@@ -31,6 +32,9 @@ export interface Environment {
     status?: 'Ready' | 'NotReady' | 'Failed';
     statusReason?: string;
     statusMessage?: string;
+    /** Raw Ready/other conditions from the ReleaseBinding, surfaced so the
+     *  detail panel can show the controller's failure reason + message. */
+    conditions?: ReleaseBindingCondition[];
     lastDeployed?: string;
     image?: string;
     releaseName?: string;

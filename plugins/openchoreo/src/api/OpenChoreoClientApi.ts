@@ -3,6 +3,7 @@ import { Entity } from '@backstage/catalog-model';
 import type {
   WorkloadResource,
   ComponentRelease,
+  ReleaseBindingCondition,
 } from '@openchoreo/backstage-plugin-common';
 import type { Environment } from '../components/RuntimeLogs/types';
 
@@ -752,13 +753,18 @@ export interface OpenChoreoClientApi {
 
   // === Component & Environment Info ===
 
-  /** Get component details (including UID, deletionTimestamp, and parameters) */
+  /** Get component details (including UID, deletionTimestamp, parameters, and
+   *  the controller's Ready-condition error state). */
   getComponentDetails(entity: Entity): Promise<{
     uid?: string;
     deletionTimestamp?: string;
     parameters?: Record<string, unknown>;
     autoDeploy?: boolean;
     latestRelease?: { name?: string; releaseHash?: string };
+    conditions?: ReleaseBindingCondition[];
+    hasError?: boolean;
+    errorReason?: string;
+    errorMessage?: string;
   }>;
 
   /** Get project details (including UID and deletionTimestamp) */

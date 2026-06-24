@@ -169,6 +169,48 @@ describe('transformComponent', () => {
   it('omits latestRelease when the controller has not set it', () => {
     expect(transformComponent(component).latestRelease).toBeUndefined();
   });
+
+  it('maps status.conditions through to the response', () => {
+    const result = transformComponent(component);
+    expect(result.conditions).toEqual([
+      {
+        type: 'Ready',
+        status: 'True',
+        reason: 'Reconciled',
+        message: 'Resource is ready',
+        lastTransitionTime: '2025-01-06T10:00:05Z',
+        observedGeneration: undefined,
+      },
+    ]);
+  });
+
+  it('reports hasError=false for a healthy (Ready=True) component', () => {
+    const result = transformComponent(component);
+    expect(result.hasError).toBe(false);
+    expect(result.errorReason).toBeUndefined();
+    expect(result.errorMessage).toBeUndefined();
+  });
+
+  it('surfaces a Ready=False error reason + message as hasError', () => {
+    const autoDeployFailedCondition: OpenChoreoComponents['schemas']['Condition'] =
+      {
+        type: 'Ready',
+        status: 'False',
+        reason: 'AutoDeployFailed',
+        message: "Failed to handle autoDeploy: trait 'auth' not found",
+        lastTransitionTime: '2025-01-06T10:00:05Z',
+      };
+    const failing = {
+      ...component,
+      status: { conditions: [autoDeployFailedCondition] },
+    };
+    const result = transformComponent(failing);
+    expect(result.hasError).toBe(true);
+    expect(result.errorReason).toBe('AutoDeployFailed');
+    expect(result.errorMessage).toBe(
+      "Failed to handle autoDeploy: trait 'auth' not found",
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

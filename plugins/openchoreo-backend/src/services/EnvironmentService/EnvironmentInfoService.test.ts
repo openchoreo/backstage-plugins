@@ -193,6 +193,11 @@ describe('EnvironmentInfoService', () => {
       expect(result[0].dataPlaneKind).toBe('DataPlane');
       expect(result[0].deployment.status).toBe('Ready');
       expect(result[0].deployment.releaseName).toBe('release-1');
+      // Raw binding conditions flow through to the deployment so the detail
+      // panel can surface the controller's failure reason + message.
+      expect(result[0].deployment.conditions).toEqual(
+        k8sReleaseBinding.status.conditions,
+      );
     });
 
     it('returns environments even when bindings fetch fails', async () => {

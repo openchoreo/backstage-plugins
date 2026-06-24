@@ -101,9 +101,19 @@ jest.mock('../hooks/useReleases', () => ({
 // `renderInvestigateAction` (so the openchoreo plugin owns no
 // portal-assistant dependency); mirror that here with a probe element that
 // exposes the scope the panel passes, so the wiring assertions below hold.
+//
+// `componentError` / `lowestEnvironment` are mutable so individual tests can
+// exercise the pre-binding auto-deploy failure (Case A) path; reset in
+// beforeEach below.
+const contextOverrides: {
+  componentError?: { reason?: string; message?: string } | null;
+  lowestEnvironment?: string;
+} = {};
 jest.mock('../EnvironmentsContext', () => ({
   useEnvironmentsContext: () => ({
     environments: [],
+    componentError: contextOverrides.componentError ?? null,
+    lowestEnvironment: contextOverrides.lowestEnvironment ?? 'development',
     renderInvestigateAction: (scope: {
       caseType?: string;
       status?: string;
@@ -171,6 +181,99 @@ function renderPanel(overrides: Partial<EnvironmentDetailPanelProps> = {}) {
 }
 
 describe('EnvironmentDetailPanel', () => {
+  beforeEach(() => {
+    contextOverrides.componentError = null;
+    contextOverrides.lowestEnvironment = 'development';
+  });
+
+  describe('controller failure banner', () => {
+    it('shows the binding failure message for a Failed deployment (Case B)', () => {
+      renderPanel({
+        selection: {
+          kind: 'env',
+          environment: makeEnv({
+            name: 'staging',
+            bindingName: 'staging-binding',
+            deployment: {
+              status: 'Failed',
+              statusReason: 'RenderingFailed',
+              statusMessage: "Invalid trait configuration for 'auth'",
+            },
+          }),
+        },
+      });
+      expect(
+        screen.getByText(/Invalid trait configuration for 'auth'/),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Reason: RenderingFailed/)).toBeInTheDocument();
+    });
+
+    it('falls back to the Ready condition message when statusMessage is empty', () => {
+      renderPanel({
+        selection: {
+          kind: 'env',
+          environment: makeEnv({
+            name: 'staging',
+            bindingName: 'staging-binding',
+            deployment: {
+              status: 'Failed',
+              conditions: [
+                {
+                  type: 'Ready',
+                  status: 'False',
+                  reason: 'ResourceApplyFailed',
+                  message: 'could not apply Deployment',
+                },
+              ],
+            },
+          }),
+        },
+      });
+      expect(
+        screen.getByText(/could not apply Deployment/),
+      ).toBeInTheDocument();
+    });
+
+    it('does not render the banner for a healthy deployment', () => {
+      renderPanel({
+        selection: {
+          kind: 'env',
+          environment: makeEnv({
+            name: 'staging',
+            bindingName: 'staging-binding',
+            deployment: { status: 'Ready' },
+          }),
+        },
+      });
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('does NOT show a component-level error on the env card (it lives on the Setup card)', () => {
+      // A binding-less first env with a component-level controller error must
+      // stay a plain "Not Deployed" — the error is surfaced on the Setup card
+      // only, not duplicated onto the env detail.
+      contextOverrides.componentError = {
+        reason: 'AutoDeployFailed',
+        message: "trait 'auth' not found",
+      };
+      contextOverrides.lowestEnvironment = 'development';
+      renderPanel({
+        selection: {
+          kind: 'env',
+          environment: makeEnv({
+            name: 'development',
+            // no bindingName ⇒ controller never produced a ReleaseBinding
+          }),
+        },
+      });
+      expect(screen.queryByText(/trait 'auth' not found/)).toBeNull();
+      expect(screen.queryByRole('alert')).toBeNull();
+      // Badge is NOT flipped to failed — it reads the env's own (empty) status.
+      const badges = screen.getAllByTestId('status-badge');
+      expect(badges[0]).not.toHaveTextContent('failed');
+    });
+  });
+
   it('shows the "get started" empty state when nothing is deployed yet', () => {
     renderPanel({ selection: null, hasAnyDeployedEnv: false });
     expect(
