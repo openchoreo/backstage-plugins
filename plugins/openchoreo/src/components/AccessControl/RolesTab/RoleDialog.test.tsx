@@ -74,7 +74,7 @@ describe('RoleDialog', () => {
     });
   });
 
-  it('normalizes an editing role\'s actions into wildcard chips on open', () => {
+  it("normalizes an editing role's actions into wildcard chips on open", () => {
     renderDialog({
       editingRole: {
         name: 'editor',
@@ -103,9 +103,7 @@ describe('RoleDialog', () => {
     // wildcard chip, but the count reflects all granular actions it expands to.
     expect(screen.getByText('All Actions')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        `Select Actions (${AVAILABLE_ACTIONS.length} selected)`,
-      ),
+      screen.getByText(`Select Actions (${AVAILABLE_ACTIONS.length} selected)`),
     ).toBeInTheDocument();
   });
 

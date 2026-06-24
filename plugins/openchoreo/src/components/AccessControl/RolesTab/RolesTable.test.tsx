@@ -190,7 +190,9 @@ describe('RolesTable', () => {
   it('disables edit and delete buttons when permissions are denied', () => {
     renderTable({ canUpdate: false, canDelete: false });
 
-    expect(screen.getByRole('button', { name: /edit role admin/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /edit role admin/i }),
+    ).toBeDisabled();
     expect(
       screen.getByRole('button', { name: /delete role admin/i }),
     ).toBeDisabled();
@@ -207,9 +209,13 @@ describe('RolesTable', () => {
     );
     renderTable({ onCheckBindings });
 
-    await user.click(screen.getByRole('button', { name: /delete role admin/i }));
+    await user.click(
+      screen.getByRole('button', { name: /delete role admin/i }),
+    );
 
-    expect(screen.getByText('Checking for role bindings...')).toBeInTheDocument();
+    expect(
+      screen.getByText('Checking for role bindings...'),
+    ).toBeInTheDocument();
 
     resolveCheck([]);
     await waitFor(() =>
@@ -223,7 +229,9 @@ describe('RolesTable', () => {
     const user = userEvent.setup();
     const { onDelete } = renderTable();
 
-    await user.click(screen.getByRole('button', { name: /delete role admin/i }));
+    await user.click(
+      screen.getByRole('button', { name: /delete role admin/i }),
+    );
 
     const dialog = await screen.findByRole('dialog');
     expect(
@@ -239,7 +247,9 @@ describe('RolesTable', () => {
     const user = userEvent.setup();
     const { onDelete } = renderTable();
 
-    await user.click(screen.getByRole('button', { name: /delete role admin/i }));
+    await user.click(
+      screen.getByRole('button', { name: /delete role admin/i }),
+    );
 
     const dialog = await screen.findByRole('dialog');
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
@@ -269,9 +279,13 @@ describe('RolesTable', () => {
     ] as BindingSummary[]);
     const { onDelete } = renderTable({ onCheckBindings });
 
-    await user.click(screen.getByRole('button', { name: /delete role admin/i }));
+    await user.click(
+      screen.getByRole('button', { name: /delete role admin/i }),
+    );
 
-    expect(await screen.findByText('Cannot Delete Cluster Role')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Cannot Delete Cluster Role'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Binding: binding-a')).toBeInTheDocument();
     expect(screen.getByText('Type: Cluster')).toBeInTheDocument();
     expect(screen.getByText('Type: Namespace (team-a)')).toBeInTheDocument();
@@ -283,7 +297,9 @@ describe('RolesTable', () => {
     const onCheckBindings = jest.fn().mockRejectedValue(new Error('boom'));
     renderTable({ onCheckBindings });
 
-    await user.click(screen.getByRole('button', { name: /delete role admin/i }));
+    await user.click(
+      screen.getByRole('button', { name: /delete role admin/i }),
+    );
 
     expect(
       await screen.findByText(/are you sure you want to delete/i),
