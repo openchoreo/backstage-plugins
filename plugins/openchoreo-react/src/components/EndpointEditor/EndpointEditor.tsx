@@ -41,6 +41,11 @@ const useStyles = makeStyles((theme: Theme) => ({
     marginBottom: theme.spacing(1),
     backgroundColor: theme.palette.background.default,
   },
+  // Read-only row: content + inline actions share one line.
+  readOnlyContainer: {
+    display: 'flex',
+    alignItems: 'center',
+  },
   containerEditing: {
     padding: theme.spacing(1.5),
     border: `1px solid ${theme.palette.primary.main}`,
@@ -292,7 +297,11 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   // Read-only display
   if (!isEditing) {
     return (
-      <Box className={className || classes.container}>
+      <Box
+        className={
+          className || `${classes.container} ${classes.readOnlyContainer}`
+        }
+      >
         <Box flex={1} className={classes.readOnlyContent}>
           <Typography className={classes.readOnlyName}>
             {endpointName || '(no name)'}

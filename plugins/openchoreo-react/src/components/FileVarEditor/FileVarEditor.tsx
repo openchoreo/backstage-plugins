@@ -392,6 +392,19 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
                 </Typography>
               )}
             </Box>
+            <EditRowActions
+              isEditing={false}
+              itemLabel="file mount"
+              editLabel={editButtonLabel}
+              onEdit={onEdit}
+              onApply={onApply}
+              onCancel={onCancel ?? (() => {})}
+              onRemove={onRemove}
+              disabled={disabled}
+              editDisabled={editDisabled}
+              deleteDisabled={deleteDisabled}
+              hideDelete={hideDelete}
+            />
           </Box>
           {/* Inline diff for overridden values */}
           {baseValue && (
@@ -411,22 +424,6 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
               {getContentPreview(fileVar.value!)}
             </Box>
           )}
-          <EditRowActions
-            isEditing={false}
-            itemLabel="file mount"
-            editLabel={editButtonLabel}
-            editVariant={
-              editButtonLabel === 'Override' ? 'contained' : 'outlined'
-            }
-            onEdit={onEdit}
-            onApply={onApply}
-            onCancel={onCancel ?? (() => {})}
-            onRemove={onRemove}
-            disabled={disabled}
-            editDisabled={editDisabled}
-            deleteDisabled={deleteDisabled}
-            hideDelete={hideDelete}
-          />
         </Paper>
 
         <Snackbar

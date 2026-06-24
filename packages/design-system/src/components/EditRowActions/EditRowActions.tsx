@@ -36,17 +36,15 @@ export interface EditRowActionsProps {
   hideDelete?: boolean;
   /** Text for the read-only edit button, e.g. "Override". @default "Edit" */
   editLabel?: string;
-  /** Variant for the read-only edit button. @default "outlined" */
-  editVariant?: 'outlined' | 'contained';
 }
 
 /**
- * EditRowActions — the action footer for an inline-editable list row.
+ * EditRowActions — the action controls for an inline-editable list row.
  *
- * Renders a full-width bar at the bottom of an editor card. The destructive
- * Delete action sits on the left; the primary actions sit on the right. In edit
- * mode it shows labeled Save (contained) and Cancel (outlined) buttons so the
- * commit/discard choice is unmistakable; read-only it shows an Edit button.
+ * Read-only: a compact inline group (Edit/Override + Delete, both outlined) that
+ * sits on the same line as the row content. Edit mode: a full-width footer bar —
+ * destructive Delete on the left, labeled Save (contained) and Cancel (outlined)
+ * on the right — so the commit/discard choice is unmistakable.
  *
  * @example
  * ```tsx
@@ -75,67 +73,84 @@ export const EditRowActions: FC<EditRowActionsProps> = ({
   hideCancel = false,
   hideDelete = false,
   editLabel = 'Edit',
-  editVariant = 'outlined',
 }) => {
   const classes = useStyles();
 
-  return (
-    <Box className={classes.footer}>
-      {!hideDelete ? (
-        <Button
-          onClick={onRemove}
-          variant="text"
-          color="secondary"
-          size="small"
-          startIcon={<DeleteIcon />}
-          disabled={disabled || (!isEditing && deleteDisabled)}
-          aria-label={`Remove ${itemLabel}`}
-        >
-          Delete
-        </Button>
-      ) : (
-        <span />
-      )}
-      <Box className={classes.primaryActions}>
-        {isEditing ? (
-          <>
-            {!hideCancel && (
-              <Button
-                onClick={onCancel}
-                variant="outlined"
-                size="small"
-                startIcon={<CloseIcon />}
-                disabled={disabled}
-                aria-label="Cancel editing"
-              >
-                Cancel
-              </Button>
-            )}
-            <Button
-              onClick={onApply}
-              variant="contained"
-              color="primary"
-              size="small"
-              startIcon={<CheckIcon />}
-              disabled={disabled || applyDisabled}
-              aria-label="Save changes"
-            >
-              Save
-            </Button>
-          </>
-        ) : (
+  // Read-only: compact inline group (Delete + Edit/Override) on the row's line.
+  // Delete is leftmost so the destructive action is consistently positioned
+  // furthest from the primary action in both modes.
+  if (!isEditing) {
+    return (
+      <Box className={classes.inlineActions}>
+        {!hideDelete && (
           <Button
-            onClick={onEdit}
-            variant={editVariant}
-            color={editVariant === 'contained' ? 'primary' : undefined}
+            onClick={onRemove}
+            variant="outlined"
+            color="secondary"
             size="small"
-            startIcon={<EditIcon />}
-            disabled={disabled || editDisabled}
-            aria-label={`${editLabel} ${itemLabel}`}
+            startIcon={<DeleteIcon />}
+            disabled={disabled || deleteDisabled}
+            aria-label={`Remove ${itemLabel}`}
           >
-            {editLabel}
+            Delete
           </Button>
         )}
+        <Button
+          onClick={onEdit}
+          variant="outlined"
+          size="small"
+          startIcon={<EditIcon />}
+          disabled={disabled || editDisabled}
+          aria-label={`${editLabel} ${itemLabel}`}
+        >
+          {editLabel}
+        </Button>
+      </Box>
+    );
+  }
+
+  // Edit mode: full-width footer bar with all actions grouped on the right.
+  // Delete is leftmost of the group so the destructive action stays furthest
+  // from the primary Save.
+  return (
+    <Box className={classes.footer}>
+      <Box className={classes.primaryActions}>
+        {!hideDelete && (
+          <Button
+            onClick={onRemove}
+            variant="outlined"
+            color="secondary"
+            size="small"
+            startIcon={<DeleteIcon />}
+            disabled={disabled || deleteDisabled}
+            aria-label={`Remove ${itemLabel}`}
+          >
+            Delete
+          </Button>
+        )}
+        {!hideCancel && (
+          <Button
+            onClick={onCancel}
+            variant="outlined"
+            size="small"
+            startIcon={<CloseIcon />}
+            disabled={disabled}
+            aria-label="Cancel editing"
+          >
+            Cancel
+          </Button>
+        )}
+        <Button
+          onClick={onApply}
+          variant="contained"
+          color="primary"
+          size="small"
+          startIcon={<CheckIcon />}
+          disabled={disabled || applyDisabled}
+          aria-label="Save changes"
+        >
+          Save
+        </Button>
       </Box>
     </Box>
   );

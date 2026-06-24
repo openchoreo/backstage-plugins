@@ -36,6 +36,17 @@ describe('EditRowActions', () => {
       expect(h.onRemove).toHaveBeenCalledTimes(1);
     });
 
+    it('renders Edit and Delete as labeled inline buttons', () => {
+      render(<EditRowActions isEditing={false} {...handlers()} />);
+
+      expect(screen.getByRole('button', { name: /edit/i })).toHaveTextContent(
+        'Edit',
+      );
+      expect(screen.getByRole('button', { name: /remove/i })).toHaveTextContent(
+        'Delete',
+      );
+    });
+
     it('disables Edit when editDisabled and Delete when deleteDisabled', () => {
       render(
         <EditRowActions

@@ -30,6 +30,11 @@ const useStyles = makeStyles((theme: Theme) => ({
     marginBottom: theme.spacing(1),
     backgroundColor: theme.palette.background.default,
   },
+  // Read-only row: content + inline actions share one line.
+  readOnlyContainer: {
+    display: 'flex',
+    alignItems: 'center',
+  },
   containerEditing: {
     padding: theme.spacing(1.5),
     border: `1px solid ${theme.palette.primary.main}`,
@@ -283,7 +288,7 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
 
   if (!isEditing) {
     return (
-      <Box className={classes.container}>
+      <Box className={`${classes.container} ${classes.readOnlyContainer}`}>
         <Box flex={1} className={classes.readOnlyContent}>
           <Typography className={classes.readOnlyName}>
             {dependency.ref || '(no resource)'}

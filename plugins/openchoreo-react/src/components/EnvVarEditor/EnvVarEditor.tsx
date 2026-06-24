@@ -11,6 +11,8 @@ import {
 
 const useStyles = makeStyles((theme: Theme) => ({
   container: {
+    display: 'flex',
+    alignItems: 'center',
     padding: theme.spacing(1.5),
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: 6,
@@ -237,9 +239,6 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
           isEditing={false}
           itemLabel="environment variable"
           editLabel={editButtonLabel}
-          editVariant={
-            editButtonLabel === 'Override' ? 'contained' : 'outlined'
-          }
           onEdit={onEdit}
           onApply={onApply}
           onCancel={onCancel ?? (() => {})}
