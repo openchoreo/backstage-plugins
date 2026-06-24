@@ -56,6 +56,10 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
+import {
+  PtdToTemplateConverter,
+  ProjectTypeCRD,
+} from '../converters/PtdToTemplateConverter';
 
 type NewProject = OpenChoreoComponents['schemas']['Project'];
 type NewComponent = OpenChoreoComponents['schemas']['Component'];
@@ -114,6 +118,7 @@ export class EventDeltaApplier {
   private readonly getConnection: () => EntityProviderConnection | undefined;
   private readonly ctdConverter: CtdToTemplateConverter;
   private readonly rtdConverter: RtdToTemplateConverter;
+  private readonly ptdConverter: PtdToTemplateConverter;
   private readonly catalogService?: CatalogService;
   private readonly auth?: AuthService;
 
@@ -126,6 +131,7 @@ export class EventDeltaApplier {
     getConnection: () => EntityProviderConnection | undefined;
     ctdConverter: CtdToTemplateConverter;
     rtdConverter: RtdToTemplateConverter;
+    ptdConverter: PtdToTemplateConverter;
     /**
      * Optional catalog read-side. Used by the workload-deletion handler
      * to find entities annotated with the deleted workload's name and
@@ -146,6 +152,7 @@ export class EventDeltaApplier {
     this.translatorContext = opts.translatorContext;
     this.ctdConverter = opts.ctdConverter;
     this.rtdConverter = opts.rtdConverter;
+    this.ptdConverter = opts.ptdConverter;
     this.getConnection = opts.getConnection;
     this.catalogService = opts.catalogService;
     this.auth = opts.auth;
@@ -1077,6 +1084,88 @@ export class EventDeltaApplier {
     }
   }
 
+  /**
+   * Produces the derived Project-creation Template entity for a ProjectType
+   * via `PtdToTemplateConverter`. Unlike the Resource family, the
+   * (Cluster)ProjectType already carries its parameters schema inline, so the
+   * schema is read straight off the fetched CR (no extra `/schema` fetch).
+   */
+  private buildProjectTypeTemplateEntity(
+    ns: string,
+    pt: NewProjectType,
+  ): Entity | undefined {
+    const ptName = getName(pt);
+    if (!ptName) return undefined;
+    try {
+      const templateEntity = this.ptdConverter.convertPtdToTemplateEntity(
+        this.toProjectTypeCRD(pt, ptName),
+        ns,
+      );
+      this.stampManagedByLocation(templateEntity);
+      return templateEntity;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to build Template entity for ProjectType ${ns}/${ptName}: ${error}`,
+      );
+      return undefined;
+    }
+  }
+
+  /**
+   * Same as `buildProjectTypeTemplateEntity` but for a cluster-scoped
+   * ProjectType. Template entity lives in `openchoreo-cluster`.
+   */
+  private buildClusterProjectTypeTemplateEntity(
+    cpt: NewClusterProjectType,
+  ): Entity | undefined {
+    const cptName = getName(cpt);
+    if (!cptName) return undefined;
+    try {
+      const templateEntity =
+        this.ptdConverter.convertClusterPtdToTemplateEntity(
+          this.toProjectTypeCRD(cpt, cptName),
+        );
+      this.stampManagedByLocation(templateEntity);
+      return templateEntity;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to build Template entity for ClusterProjectType ${cptName}: ${error}`,
+      );
+      return undefined;
+    }
+  }
+
+  /** Map a fetched (Cluster)ProjectType to the converter's `ProjectTypeCRD` shape. */
+  private toProjectTypeCRD(
+    pt: NewProjectType | NewClusterProjectType,
+    name: string,
+  ): ProjectTypeCRD {
+    return {
+      metadata: {
+        name,
+        displayName: getDisplayName(pt),
+        description: getDescription(pt),
+        createdAt: getCreatedAt(pt) || '',
+      },
+      spec: {
+        parameters: pt.spec?.parameters?.openAPIV3Schema
+          ? { openAPIV3Schema: pt.spec.parameters.openAPIV3Schema as any }
+          : undefined,
+      },
+    };
+  }
+
+  /** Stamp the provider's managed-by-location annotations on a generated entity. */
+  private stampManagedByLocation(entity: Entity): void {
+    if (!entity.metadata.annotations) {
+      entity.metadata.annotations = {};
+    }
+    entity.metadata.annotations['backstage.io/managed-by-location'] =
+      this.locationKey();
+    entity.metadata.annotations['backstage.io/managed-by-origin-location'] =
+      this.locationKey();
+  }
+
   private async refreshComponentType(ns: string, name: string): Promise<void> {
     const client = await this.createApiClient();
     const ct = await this.fetchComponentType(client, ns, name);
@@ -1149,14 +1238,23 @@ export class EventDeltaApplier {
     const client = await this.createApiClient();
     const pt = await this.fetchProjectType(client, ns, name);
     if (!pt) {
+      // Both the ProjectType entity and its derived Template entity need to
+      // disappear. The Template name is `template-project-<ptName>`.
       await this.removeEntityRefs([
         this.buildEntityRef('projecttype', ns, name),
+        this.buildEntityRef('template', ns, `template-project-${name}`),
       ]);
       return;
     }
-    await this.upsertEntities([
-      translateNewProjectTypeToEntity(pt, ns, this.translatorContext) as Entity,
-    ]);
+    const ptEntity = translateNewProjectTypeToEntity(
+      pt,
+      ns,
+      this.translatorContext,
+    ) as Entity;
+    const templateEntity = this.buildProjectTypeTemplateEntity(ns, pt);
+    await this.upsertEntities(
+      templateEntity ? [ptEntity, templateEntity] : [ptEntity],
+    );
   }
 
   private async refreshResource(ns: string, name: string): Promise<void> {
@@ -1270,15 +1368,22 @@ export class EventDeltaApplier {
     if (!cpt) {
       await this.removeEntityRefs([
         this.buildEntityRef('clusterprojecttype', 'openchoreo-cluster', name),
+        this.buildEntityRef(
+          'template',
+          'openchoreo-cluster',
+          `template-project-${name}`,
+        ),
       ]);
       return;
     }
-    await this.upsertEntities([
-      translateNewClusterProjectTypeToEntity(
-        cpt,
-        this.translatorContext,
-      ) as Entity,
-    ]);
+    const cptEntity = translateNewClusterProjectTypeToEntity(
+      cpt,
+      this.translatorContext,
+    ) as Entity;
+    const templateEntity = this.buildClusterProjectTypeTemplateEntity(cpt);
+    await this.upsertEntities(
+      templateEntity ? [cptEntity, templateEntity] : [cptEntity],
+    );
   }
 
   private async refreshClusterTrait(name: string): Promise<void> {

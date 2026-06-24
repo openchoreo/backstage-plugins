@@ -3,6 +3,7 @@ import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
 import { ConfigReader } from '@backstage/config';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
+import { PtdToTemplateConverter } from '../converters/PtdToTemplateConverter';
 import { EventDeltaApplier } from './EventDeltaApplier';
 
 // ---------------------------------------------------------------------------
@@ -52,6 +53,7 @@ function newApplier(connection: EntityProviderConnection) {
     getConnection: () => connection,
     ctdConverter: new CtdToTemplateConverter(mkLogger()),
     rtdConverter: new RtdToTemplateConverter(mkLogger()),
+    ptdConverter: new PtdToTemplateConverter(mkLogger()),
   });
 }
 
@@ -105,9 +107,13 @@ describe('EventDeltaApplier.handleEvent', () => {
         'template:test-ns/template-resource-order',
       ],
     },
-    // ProjectType has no derived scaffolder Template, so only the type
-    // entity itself is removed.
-    { kind: 'ProjectType', expectedRefs: ['projecttype:test-ns/order'] },
+    {
+      kind: 'ProjectType',
+      expectedRefs: [
+        'projecttype:test-ns/order',
+        'template:test-ns/template-project-order',
+      ],
+    },
     { kind: 'Resource', expectedRefs: ['resource:test-ns/order'] },
     { kind: 'Workflow', expectedRefs: ['workflow:test-ns/order'] },
   ];
@@ -157,7 +163,10 @@ describe('EventDeltaApplier.handleEvent', () => {
     },
     {
       kind: 'ClusterProjectType',
-      expectedRefs: ['clusterprojecttype:openchoreo-cluster/global'],
+      expectedRefs: [
+        'clusterprojecttype:openchoreo-cluster/global',
+        'template:openchoreo-cluster/template-project-global',
+      ],
     },
     {
       kind: 'ClusterTrait',
@@ -197,6 +206,101 @@ describe('EventDeltaApplier.handleEvent', () => {
       expect(refs.sort()).toEqual([...expectedRefs].sort());
     },
   );
+
+  it('upserts the ProjectType entity and its generated project template on a create event', async () => {
+    mockGET.mockImplementation((path: string) => {
+      if (path.endsWith('/projecttypes/{ptName}')) {
+        return Promise.resolve(
+          okData({
+            metadata: {
+              name: 'web-app',
+              namespace: 'test-ns',
+              creationTimestamp: '2026-06-01T10:00:00Z',
+              annotations: {
+                'openchoreo.dev/display-name': 'Web Application',
+              },
+            },
+            spec: {
+              parameters: {
+                openAPIV3Schema: {
+                  type: 'object',
+                  properties: { replicas: { type: 'integer' } },
+                },
+              },
+              resources: [],
+            },
+          }),
+        );
+      }
+      return Promise.resolve(notFound());
+    });
+
+    const applier = newApplier(connection);
+    await applier.handleEvent('ProjectType', 'web-app', 'test-ns', 'created');
+
+    expect(applyMutation).toHaveBeenCalledTimes(1);
+    const call = applyMutation.mock.calls[0][0];
+    expect(call.removed).toEqual([]);
+    const added = call.added.map((a: any) => a.entity);
+    expect(
+      added.find((e: any) => e.kind === 'ProjectType')?.metadata.name,
+    ).toBe('web-app');
+    const tmpl = added.find(
+      (e: any) =>
+        e.kind === 'Template' && e.metadata.name === 'template-project-web-app',
+    );
+    expect(tmpl).toBeDefined();
+    expect(tmpl.metadata.namespace).toBe('test-ns');
+    expect(tmpl.spec.type).toBe('Project');
+    // Schema from the type round-trips into the wizard's parameters field.
+    expect(
+      tmpl.spec.parameters[1].properties.parameters['ui:options'].ptdSchema
+        .properties.replicas.type,
+    ).toBe('integer');
+  });
+
+  it('upserts the ClusterProjectType entity and its generated project template on a create event', async () => {
+    mockGET.mockImplementation((path: string) => {
+      if (path.endsWith('/clusterprojecttypes/{cptName}')) {
+        return Promise.resolve(
+          okData({
+            metadata: {
+              name: 'standard',
+              creationTimestamp: '2026-06-01T10:00:00Z',
+            },
+            spec: {
+              parameters: {
+                openAPIV3Schema: { type: 'object', properties: {} },
+              },
+              resources: [],
+            },
+          }),
+        );
+      }
+      return Promise.resolve(notFound());
+    });
+
+    const applier = newApplier(connection);
+    await applier.handleEvent(
+      'ClusterProjectType',
+      'standard',
+      undefined,
+      'updated',
+    );
+
+    const call = applyMutation.mock.calls[0][0];
+    const added = call.added.map((a: any) => a.entity);
+    expect(
+      added.find((e: any) => e.kind === 'ClusterProjectType')?.metadata.name,
+    ).toBe('standard');
+    const tmpl = added.find(
+      (e: any) =>
+        e.kind === 'Template' &&
+        e.metadata.name === 'template-project-standard',
+    );
+    expect(tmpl).toBeDefined();
+    expect(tmpl.metadata.namespace).toBe('openchoreo-cluster');
+  });
 
   it('routes Namespace events to a Domain entity in the "default" namespace', async () => {
     const applier = newApplier(connection);
@@ -240,6 +344,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
       rtdConverter: new RtdToTemplateConverter(logger),
+      ptdConverter: new PtdToTemplateConverter(logger),
     });
 
     await applier.handleEvent('NotARealKind', 'foo', 'ns', 'created');
@@ -271,6 +376,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => undefined,
       ctdConverter: new CtdToTemplateConverter(mkLogger()),
       rtdConverter: new RtdToTemplateConverter(mkLogger()),
+      ptdConverter: new PtdToTemplateConverter(mkLogger()),
     });
 
     await expect(
@@ -495,6 +601,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
       rtdConverter: new RtdToTemplateConverter(logger),
+      ptdConverter: new PtdToTemplateConverter(logger),
     });
 
     await applier.handleEvent('Workload', 'orphan', 'test-ns', 'created');
@@ -524,6 +631,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
       rtdConverter: new RtdToTemplateConverter(logger),
+      ptdConverter: new PtdToTemplateConverter(logger),
     });
 
     await applier.handleEvent('Workload', 'gone', 'test-ns', 'created');
@@ -570,6 +678,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(mkLogger()),
       rtdConverter: new RtdToTemplateConverter(mkLogger()),
+      ptdConverter: new PtdToTemplateConverter(mkLogger()),
       catalogService,
       auth,
     });
@@ -651,6 +760,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
       rtdConverter: new RtdToTemplateConverter(logger),
+      ptdConverter: new PtdToTemplateConverter(logger),
       catalogService,
       auth: makeAuth(),
     });
@@ -709,6 +819,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       getConnection: () => connection,
       ctdConverter: new CtdToTemplateConverter(logger),
       rtdConverter: new RtdToTemplateConverter(logger),
+      ptdConverter: new PtdToTemplateConverter(logger),
       // No catalogService / auth — production always wires them, but
       // tests/legacy callers may not.
     });

@@ -21,6 +21,7 @@ import { ResourceTypeYamlEditorFieldExtension } from '../../scaffolder/ResourceT
 import { ClusterProjectTypeYamlEditorFieldExtension } from '../../scaffolder/ClusterProjectTypeYamlEditor';
 import { ProjectTypeYamlEditorFieldExtension } from '../../scaffolder/ProjectTypeYamlEditor';
 import { ResourceParametersFieldExtension } from '../../scaffolder/ResourceParametersField';
+import { ProjectParametersFieldExtension } from '../../scaffolder/ProjectParametersField';
 import { ClusterTraitYamlEditorFieldExtension } from '../../scaffolder/ClusterTraitYamlEditor';
 import { ComponentWorkflowYamlEditorFieldExtension } from '../../scaffolder/ComponentWorkflowYamlEditor';
 import { ClusterWorkflowYamlEditorFieldExtension } from '../../scaffolder/ClusterWorkflowYamlEditor';
@@ -80,6 +81,7 @@ export function OpenChoreoScaffolderPage() {
           <ClusterProjectTypeYamlEditorFieldExtension />
           <ProjectTypeYamlEditorFieldExtension />
           <ResourceParametersFieldExtension />
+          <ProjectParametersFieldExtension />
           <ClusterTraitYamlEditorFieldExtension />
           <ComponentWorkflowYamlEditorFieldExtension />
           <ClusterWorkflowYamlEditorFieldExtension />

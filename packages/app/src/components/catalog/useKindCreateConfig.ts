@@ -67,10 +67,7 @@ export function useKindCreateConfig(): KindCreateConfig | null {
       };
     case 'system':
       return {
-        createPath: templateRoute({
-          namespace: 'default',
-          templateName: 'create-openchoreo-project',
-        }),
+        createPath: `${scaffolderRoot}?view=projects`,
         buttonLabel: 'Create Project',
         canCreate: projectPerm.canCreate,
         loading: projectPerm.loading,

@@ -36,6 +36,27 @@ export const createProjectAction = (
           z.string({
             description: 'The deployment pipeline for the project',
           }),
+        typeKind: z =>
+          z
+            .enum(['ProjectType', 'ClusterProjectType'], {
+              description:
+                'Whether the selected project type is namespace-scoped (ProjectType) or cluster-scoped (ClusterProjectType)',
+            })
+            .optional(),
+        typeName: z =>
+          z
+            .string({
+              description:
+                'Name of the (Cluster)ProjectType template the Project instantiates',
+            })
+            .optional(),
+        parameters: z =>
+          z
+            .record(z.unknown(), {
+              description:
+                "Parameter values bound to the selected project type's schema",
+            })
+            .optional(),
       },
       output: {
         projectName: z =>
@@ -98,6 +119,44 @@ export const createProjectAction = (
         logger: ctx.logger,
       });
 
+      const { typeKind, typeName, parameters } = ctx.input;
+      const hasParameters = parameters && Object.keys(parameters).length > 0;
+
+      // Build the Project spec. `type` (ProjectTypeRef) and `parameters` are
+      // populated when the Project is created from a per-ProjectType template;
+      // when omitted the OpenChoreo API defaults `type` to the cluster-scoped
+      // `default` ClusterProjectType, preserving back-compat with callers that
+      // don't pass a type (e.g. the legacy create path).
+      const spec: Record<string, unknown> = {
+        deploymentPipelineRef: {
+          kind: 'DeploymentPipeline' as const,
+          name: ctx.input.deploymentPipeline,
+        },
+        ...(typeName && {
+          type: { kind: typeKind ?? 'ProjectType', name: typeName },
+        }),
+        ...(hasParameters && { parameters }),
+      };
+
+      const apiBody: Record<string, unknown> = {
+        metadata: {
+          name: ctx.input.projectName,
+          annotations: {
+            ...(ctx.input.displayName
+              ? {
+                  'openchoreo.dev/display-name': ctx.input.displayName,
+                }
+              : {}),
+            ...(ctx.input.description
+              ? {
+                  'openchoreo.dev/description': ctx.input.description,
+                }
+              : {}),
+          },
+        },
+        spec,
+      };
+
       try {
         const { data, error, response } = await client.POST(
           '/api/v1/namespaces/{namespaceName}/projects',
@@ -105,29 +164,7 @@ export const createProjectAction = (
             params: {
               path: { namespaceName },
             },
-            body: {
-              metadata: {
-                name: ctx.input.projectName,
-                annotations: {
-                  ...(ctx.input.displayName
-                    ? {
-                        'openchoreo.dev/display-name': ctx.input.displayName,
-                      }
-                    : {}),
-                  ...(ctx.input.description
-                    ? {
-                        'openchoreo.dev/description': ctx.input.description,
-                      }
-                    : {}),
-                },
-              },
-              spec: {
-                deploymentPipelineRef: {
-                  kind: 'DeploymentPipeline' as const,
-                  name: ctx.input.deploymentPipeline,
-                },
-              },
-            },
+            body: apiBody as any,
           },
         );
 
@@ -161,6 +198,8 @@ export const createProjectAction = (
                 annotations['openchoreo.dev/description'],
               namespaceName: namespaceName,
               uid: data?.metadata?.uid,
+              ...(typeName && { projectTypeName: typeName }),
+              ...(typeKind && { projectTypeKind: typeKind }),
             },
             namespaceName,
             {
