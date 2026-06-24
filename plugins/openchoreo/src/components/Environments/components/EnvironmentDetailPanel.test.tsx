@@ -234,6 +234,30 @@ describe('EnvironmentDetailPanel', () => {
       ).toBeInTheDocument();
     });
 
+    it('shows the banner for a Failed binding with only a reason (no message)', () => {
+      renderPanel({
+        selection: {
+          kind: 'env',
+          environment: makeEnv({
+            name: 'staging',
+            bindingName: 'staging-binding',
+            // Failed with a reason but no statusMessage / condition message.
+            deployment: {
+              status: 'Failed',
+              statusReason: 'ResourceApplyFailed',
+            },
+          }),
+        },
+      });
+      // Generic headline + the reason — not dropped back to a bare badge.
+      expect(
+        screen.getByText(/could not roll out this release/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Reason: ResourceApplyFailed/),
+      ).toBeInTheDocument();
+    });
+
     it('does not render the banner for a healthy deployment', () => {
       renderPanel({
         selection: {

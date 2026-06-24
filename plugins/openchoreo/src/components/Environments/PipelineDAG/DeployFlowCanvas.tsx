@@ -229,7 +229,7 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
                 isWorkloadEditorSupported={isWorkloadEditorSupported}
                 onConfigureWorkload={onConfigureWorkload}
                 selected={selectedSetup}
-                hasError={!!componentError?.message}
+                hasError={!!componentError}
               />
             </Box>
           )}

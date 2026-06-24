@@ -62,23 +62,39 @@ export const useAwaitNewRelease = ({
   // Baseline lives in a ref because we never want a baseline change to
   // re-trigger the polling effect — only `awaiting` should.
   const baselineRef = useRef<string | null>(null);
+  // When a save happens while a *previous* error is still on the Component
+  // (the user is retrying a fix), we must NOT stop on that stale error — the
+  // controller hasn't re-reconciled yet. Arm error-stopping only once the
+  // controller has moved past the pre-save state: either it clears the error
+  // (hasError=false seen) or it advances the release. Until then a still-true
+  // `hasError` is treated as stale and ignored.
+  const errorArmedRef = useRef(false);
 
   const beginAwaitingNewRelease = useCallback(() => {
     baselineRef.current = latestReleaseName;
+    // If the component is already errored at save time, disarm so the stale
+    // error doesn't immediately cancel the new await cycle.
+    errorArmedRef.current = !hasError;
     setAwaiting(true);
-  }, [latestReleaseName]);
+  }, [latestReleaseName, hasError]);
 
   // Stop polling as soon as the controller's pointer moves away from
   // what we captured at save time (happy path), or as soon as the
-  // controller reports a Ready=False error (failure path — the pointer
-  // never advances, so this is the only way out short of the timeout).
+  // controller reports a *fresh* Ready=False error (failure path — the
+  // pointer never advances, so this is the only way out short of the timeout).
   useEffect(() => {
     if (!awaiting) return;
-    if (hasError) {
+    if (latestReleaseName && latestReleaseName !== baselineRef.current) {
       setAwaiting(false);
       return;
     }
-    if (latestReleaseName && latestReleaseName !== baselineRef.current) {
+    if (!hasError) {
+      // Controller has reconciled past the pre-save error → a subsequent error
+      // is genuinely new and should stop the poll.
+      errorArmedRef.current = true;
+      return;
+    }
+    if (errorArmedRef.current) {
       setAwaiting(false);
     }
   }, [awaiting, latestReleaseName, hasError]);

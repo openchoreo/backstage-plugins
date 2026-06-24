@@ -81,6 +81,31 @@ describe('useAwaitNewRelease', () => {
     expect(result.current.awaitingNewRelease).toBe(false);
   });
 
+  it('does not stop on a stale pre-save error, then stops on a fresh one (retry)', () => {
+    const { result, rerender } = renderHook(
+      (props: { latestReleaseName: string | null; hasError?: boolean }) =>
+        useAwaitNewRelease({
+          ...props,
+          refetchAutoDeploy: jest.fn(),
+          refetchEnvironments: jest.fn(),
+        }),
+      // User re-saves while the previous error is STILL set.
+      { initialProps: { latestReleaseName: 'rel-1', hasError: true } },
+    );
+
+    act(() => result.current.beginAwaitingNewRelease());
+    // Must keep polling — the stale error mustn't cancel the retry.
+    expect(result.current.awaitingNewRelease).toBe(true);
+
+    // Controller re-reconciles the new spec and clears the error...
+    rerender({ latestReleaseName: 'rel-1', hasError: false });
+    expect(result.current.awaitingNewRelease).toBe(true);
+
+    // ...then the retry also fails → a FRESH error now stops the poll.
+    rerender({ latestReleaseName: 'rel-1', hasError: true });
+    expect(result.current.awaitingNewRelease).toBe(false);
+  });
+
   it('stops awaiting after the 30s timeout when nothing changes', () => {
     const { result } = renderHook(() =>
       useAwaitNewRelease({

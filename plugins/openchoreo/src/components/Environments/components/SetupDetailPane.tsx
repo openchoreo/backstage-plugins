@@ -452,7 +452,7 @@ export const SetupDetailPane = ({
                     {readiness.alertMessage}
                   </Alert>
                 )}
-                {componentError?.message && !awaitingNewRelease && (
+                {componentError && !awaitingNewRelease && (
                   <DeploymentFailureBanner
                     message={componentError.message}
                     reason={componentError.reason}

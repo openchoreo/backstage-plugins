@@ -64,12 +64,15 @@ describe('deriveComponentReadiness', () => {
     expect(result.message).toBe(`controller said ${reason}`);
   });
 
-  it('does not flag a transient (progressing) Ready=False as an error', () => {
-    const component = makeComponent([
-      { type: 'Ready', status: 'False', reason: 'Progressing' },
-    ]);
-    expect(deriveComponentReadiness(component).hasError).toBe(false);
-  });
+  it.each(['Progressing', 'Reconciling', 'ResourcesProgressing'])(
+    'does not flag a transient (progressing) Ready=False reason %s as an error',
+    reason => {
+      const component = makeComponent([
+        { type: 'Ready', status: 'False', reason },
+      ]);
+      expect(deriveComponentReadiness(component).hasError).toBe(false);
+    },
+  );
 
   it('ignores conditions observed for a stale generation', () => {
     const component = makeComponent(

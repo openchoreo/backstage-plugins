@@ -184,28 +184,30 @@ export const EnvironmentDetailPanel = ({
   );
 
   // Per-env render/apply failure: the binding exists but the controller marked
-  // it Ready=False with an error reason; the BFF already derived
-  // `status: 'Failed'` + a message. Surface that message instead of a bare red
-  // badge. Fall back to scanning the Ready condition if the derived message is
-  // empty. Component-level failures (no binding) are NOT shown here — they live
+  // it Ready=False (BFF-derived `status: 'Failed'`). Surface the controller's
+  // message instead of a bare red badge — preferring the derived
+  // `statusMessage`, falling back to the Ready condition message. The message
+  // is optional: a reason-only failure still renders (DeploymentFailureBanner
+  // shows a generic headline + reason), so we don't drop back to a context-less
+  // badge. Component-level failures (no binding) are NOT shown here — they live
   // on the Setup card only, so a binding-less env reads a plain "Not Deployed".
+  const isBindingFailed =
+    !!environment && environment.deployment.status === 'Failed';
   const bindingFailureMessage = (() => {
-    if (!environment || environment.deployment.status !== 'Failed') {
-      return undefined;
+    if (!isBindingFailed) return undefined;
+    if (environment!.deployment.statusMessage) {
+      return environment!.deployment.statusMessage;
     }
-    if (environment.deployment.statusMessage) {
-      return environment.deployment.statusMessage;
-    }
-    const ready = environment.deployment.conditions?.find(
+    const ready = environment!.deployment.conditions?.find(
       c => c.type === 'Ready',
     );
     return ready?.message;
   })();
 
-  const failureBanner = bindingFailureMessage
+  const failureBanner = isBindingFailed
     ? {
         message: bindingFailureMessage,
-        reason: environment?.deployment.statusReason,
+        reason: environment!.deployment.statusReason,
       }
     : null;
   // Mirror the badge colour on the View K8s Artifacts button so it stops
