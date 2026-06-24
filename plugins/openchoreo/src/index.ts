@@ -14,6 +14,7 @@ export type {
   InvestigateScope,
 } from './components/Environments/EnvironmentsContext';
 export { ResourceEnvironments } from './components/ResourceEnvironments';
+export { ProjectEnvironments } from './components/ProjectEnvironments';
 export { CellDiagram } from './components/CellDiagram/CellDiagram';
 export {
   WorkflowsOverviewCard,
