@@ -12,7 +12,7 @@ import { ResourceKindIcon } from './ResourceKindIcon';
 import { ResourceDetailTabs } from './ResourceDetailTabs';
 import { ReleaseBindingDetailTabs } from './ReleaseBindingDetailTabs';
 import { useTreeStyles } from './treeStyles';
-import type { LayoutNode } from './treeTypes';
+import type { ExecContext, LayoutNode } from './treeTypes';
 import { getHealthChipClass } from '../utils';
 import { useReleaseInfoStyles } from '../styles';
 
@@ -22,6 +22,13 @@ interface ResourceDetailPanelProps {
   releaseBindingData: Record<string, unknown> | null;
   namespaceName: string;
   releaseBindingName: string;
+  /** Component/environment context for opening an exec terminal. */
+  execContext?: ExecContext;
+  /**
+   * Whether the rendered tree contains a Pod node. When false, the Terminal
+   * falls back to the ReleaseBinding (root) drawer.
+   */
+  hasPodNode?: boolean;
 }
 
 export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
@@ -30,6 +37,8 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
   releaseBindingData,
   namespaceName,
   releaseBindingName,
+  execContext,
+  hasPodNode,
 }) => {
   const classes = useTreeStyles();
   const releaseClasses = useReleaseInfoStyles();
@@ -83,7 +92,12 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
 
           {/* Content: root summary/definition tabs, release summary, or resource tabs */}
           {node.isRoot && (
-            <ReleaseBindingDetailTabs releaseBindingData={releaseBindingData} />
+            <ReleaseBindingDetailTabs
+              releaseBindingData={releaseBindingData}
+              // Fallback Terminal lives on the ReleaseBinding drawer only when
+              // no Pod node is rendered in the tree (pod managed elsewhere).
+              execContext={execContext && !hasPodNode ? execContext : undefined}
+            />
           )}
           {!node.isRoot && node.kind === 'RenderedRelease' && (
             <Box padding={2}>
@@ -108,6 +122,7 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
               node={node}
               namespaceName={namespaceName}
               releaseBindingName={releaseBindingName}
+              execContext={execContext}
             />
           )}
         </Box>

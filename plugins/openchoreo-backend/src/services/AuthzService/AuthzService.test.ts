@@ -149,6 +149,89 @@ describe('AuthzService', () => {
   });
 
   // =========================================================================
+  // Action Evaluation (ABAC)
+  // =========================================================================
+
+  describe('evaluateComponentAction', () => {
+    const profile = {
+      user: {
+        type: 'user',
+        entitlement_claim: 'groups',
+        entitlement_values: ['dev'],
+      },
+    };
+    const execParams = {
+      action: 'component:exec',
+      namespaceName: 'default',
+      projectName: 'default',
+      componentName: 'greeter-service',
+      environment: 'development',
+    };
+
+    it('returns true and sends the action + env context when allowed', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse(profile));
+      mockPOST.mockResolvedValueOnce(createOkResponse([{ decision: true }]));
+
+      const allowed = await createService().evaluateComponentAction(
+        execParams,
+        'token',
+      );
+
+      expect(allowed).toBe(true);
+      expect(mockPOST).toHaveBeenCalledWith('/api/v1/authz/evaluates', {
+        body: [
+          expect.objectContaining({
+            action: 'component:exec',
+            resource: expect.objectContaining({
+              type: 'component',
+              hierarchy: {
+                namespace: 'default',
+                project: 'default',
+                component: 'greeter-service',
+              },
+            }),
+            context: { resource: { environment: 'default/development' } },
+          }),
+        ],
+      });
+    });
+
+    it('returns false when the decision is deny', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse(profile));
+      mockPOST.mockResolvedValueOnce(createOkResponse([{ decision: false }]));
+
+      expect(
+        await createService().evaluateComponentAction(execParams, 'token'),
+      ).toBe(false);
+    });
+
+    it('fails closed when no token is supplied', async () => {
+      expect(
+        await createService().evaluateComponentAction(execParams, undefined),
+      ).toBe(false);
+      expect(mockGET).not.toHaveBeenCalled();
+      expect(mockPOST).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when the subject context is unavailable', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse({ user: {} }));
+
+      expect(
+        await createService().evaluateComponentAction(execParams, 'token'),
+      ).toBe(false);
+      expect(mockPOST).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when the profile request errors', async () => {
+      mockGET.mockResolvedValueOnce(createErrorResponse(500, 'boom'));
+
+      expect(
+        await createService().evaluateComponentAction(execParams, 'token'),
+      ).toBe(false);
+    });
+  });
+
+  // =========================================================================
   // Actions & User Types
   // =========================================================================
 

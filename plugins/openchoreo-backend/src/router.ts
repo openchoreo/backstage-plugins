@@ -38,6 +38,7 @@ import {
   getUserTokenFromRequest,
   createRequireAuthMiddleware,
 } from '@openchoreo/openchoreo-auth';
+import { execSessionStore } from './ExecSessionStore';
 import type { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
 import type { AnnotationStore } from '@openchoreo/backstage-plugin-catalog-backend-module';
@@ -2206,6 +2207,81 @@ export async function createRouter({
       );
     },
   );
+
+  // =====================
+  // Component Exec Endpoint
+  // =====================
+
+  // Creates a short-lived session so the frontend can open a WebSocket to
+  // /exec/ws?sessionId=<id> without needing custom headers (browsers cannot
+  // set custom headers on native WebSocket connections).
+  //
+  // Auth flow:
+  //   1. Frontend calls POST /exec/init  (HTTP, x-openchoreo-token forwarded)
+  //   2. Backend enforces the user has component:exec permission for the target
+  //      component + environment (per-environment ABAC) — so a direct API call
+  //      cannot bypass the UI permission gate.
+  //   3. Backend stores session → returns { sessionId, ttlSeconds }
+  //   4. Frontend opens ws://…/exec/ws?sessionId=<id>
+  //   5. WebSocket upgrade handler (packages/backend/src/index.ts) looks up
+  //      the session and proxies to the OpenChoreo API using the stored token.
+  //
+  // podName/containerName are optional: present when launched from a specific
+  // Pod node in the K8s resource tree, omitted for the component/environment
+  // fallback where the control plane resolves the pod.
+  router.post('/exec/init', requireAuth, async (req, res) => {
+    const {
+      namespaceName,
+      projectName,
+      componentName,
+      environment,
+      podName,
+      containerName,
+    } = req.body;
+
+    if (!namespaceName || !projectName || !componentName || !environment) {
+      throw new InputError(
+        'namespaceName, projectName, componentName and environment are required in request body',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+    if (!userToken) {
+      throw new InputError('User token is required for exec sessions');
+    }
+
+    // Enforce component:exec server-side. Skipped when auth is disabled
+    // (guest/demo mode), matching the frontend which auto-allows in that mode.
+    if (authEnabled) {
+      const allowed = await authzService.evaluateComponentAction(
+        {
+          action: 'component:exec',
+          namespaceName: namespaceName as string,
+          projectName: projectName as string,
+          componentName: componentName as string,
+          environment: environment as string,
+        },
+        userToken,
+      );
+      if (!allowed) {
+        throw new NotAllowedError(
+          `You do not have permission to exec into ${componentName} in ${environment}`,
+        );
+      }
+    }
+
+    const sessionId = execSessionStore.create({
+      token: userToken,
+      namespaceName: namespaceName as string,
+      projectName: projectName as string,
+      componentName: componentName as string,
+      environment: environment as string,
+      podName: podName ? (podName as string) : undefined,
+      containerName: containerName ? (containerName as string) : undefined,
+    });
+
+    res.json({ sessionId, ttlSeconds: 30 });
+  });
 
   // SSE proxy for Cilium Hubble wirelogs from openchoreo-api (PR #3571).
   // Frontend opens an EventSource against this route; we open the upstream

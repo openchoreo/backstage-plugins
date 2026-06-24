@@ -34,6 +34,99 @@ export class AuthzService {
   }
 
   // =====================
+  // Action Evaluation (ABAC)
+  // =====================
+
+  /**
+   * Evaluates whether the user may perform `action` on a component, optionally
+   * scoped to an environment (per-environment ABAC). Mirrors the env-aware
+   * decision the frontend obtains via the permission policy's
+   * `/evaluate-with-context` route, but performed server-side so that direct
+   * API calls cannot bypass the UI gate.
+   *
+   * Fails closed: returns `false` on any missing token, missing subject
+   * context, or upstream error.
+   */
+  async evaluateComponentAction(
+    params: {
+      action: string;
+      namespaceName: string;
+      projectName: string;
+      componentName: string;
+      environment?: string;
+    },
+    userToken?: string,
+  ): Promise<boolean> {
+    if (!userToken) {
+      this.logger.warn(
+        `No token available for ${params.action} evaluation — failing closed`,
+      );
+      return false;
+    }
+
+    try {
+      const client = this.createNewClient(userToken);
+
+      // Subject context is read from the authenticated user's authz profile —
+      // the only authenticated representation of the subject available here.
+      const profileRes = await client.GET('/api/v1/authz/profile');
+      assertApiResponse(profileRes, 'fetch authz profile');
+      const user = (profileRes.data as any)?.user;
+      if (
+        !user?.type ||
+        !user?.entitlement_claim ||
+        !user?.entitlement_values
+      ) {
+        this.logger.warn(
+          `No subject context available for ${params.action} — failing closed`,
+        );
+        return false;
+      }
+
+      const request: any = {
+        subject_context: {
+          type: user.type,
+          entitlement_claim: user.entitlement_claim,
+          entitlement_values: user.entitlement_values,
+        },
+        resource: {
+          type: 'component',
+          hierarchy: {
+            namespace: params.namespaceName,
+            project: params.projectName,
+            component: params.componentName,
+          },
+        },
+        action: params.action,
+      };
+      // Environment is namespace-scoped (`<namespace>/<env>`) — the same
+      // encoding the policy module uses for CEL `resource.environment` matching.
+      if (params.environment) {
+        request.context = {
+          resource: {
+            environment: `${params.namespaceName}/${params.environment}`,
+          },
+        };
+      }
+
+      const { data, error, response } = await client.POST(
+        '/api/v1/authz/evaluates',
+        { body: [request] },
+      );
+      assertApiResponse({ data, error, response }, `evaluate ${params.action}`);
+
+      const decisions = (data ?? []) as Array<{ decision?: boolean }>;
+      return decisions[0]?.decision === true;
+    } catch (err) {
+      this.logger.error(
+        `Failed to evaluate ${params.action} for ${params.namespaceName}/${params.projectName}/${params.componentName}: ${err}`,
+      );
+      // Fail closed
+      return false;
+    }
+  }
+
+  // =====================
   // Actions
   // =====================
 

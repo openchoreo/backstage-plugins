@@ -1645,6 +1645,23 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     return response.data;
   }
 
+  async execInit(params: {
+    namespaceName: string;
+    projectName: string;
+    componentName: string;
+    environment: string;
+    podName?: string;
+    containerName?: string;
+  }): Promise<{ sessionId: string; ttlSeconds: number }> {
+    return this.apiFetch<{ sessionId: string; ttlSeconds: number }>(
+      '/exec/init',
+      {
+        method: 'POST',
+        body: params,
+      },
+    );
+  }
+
   async deleteResourceDefinition(
     kind: PlatformResourceKind,
     namespaceName: string,

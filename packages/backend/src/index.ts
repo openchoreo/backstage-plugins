@@ -14,6 +14,7 @@ import {
   annotationStoreFactory,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
 import { createIdpTokenHeaderMiddleware } from '@openchoreo/openchoreo-auth';
+import { registerExecWebSocketProxy } from './execWebSocketProxy';
 
 const backend = createBackend();
 
@@ -23,7 +24,7 @@ const backend = createBackend();
 // system to access the user's IDP token when making authorization decisions.
 backend.add(
   rootHttpRouterServiceFactory({
-    configure: ({ app, applyDefaults }) => {
+    configure: ({ app, server, applyDefaults, config, logger }) => {
       // IDP token middleware — reads the IDP token from the x-openchoreo-token
       // header and establishes the AsyncLocalStorage context so
       // getUserTokenFromContext() works in the permission policy and elsewhere.
@@ -34,6 +35,9 @@ backend.add(
       // helmet, cors, compression, logging, rateLimit, then routes + error
       // handling. Do NOT re-apply any of these manually here.
       applyDefaults();
+
+      // WebSocket proxy for component exec sessions — see execWebSocketProxy.ts
+      registerExecWebSocketProxy(server, config, logger);
     },
   }),
 );

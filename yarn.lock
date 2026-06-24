@@ -8947,10 +8947,12 @@ __metadata:
     "@openchoreo/test-utils": "workspace:^"
     "@types/express": "npm:4.17.23"
     "@types/supertest": "npm:2.0.16"
+    "@types/ws": "npm:^8.5.14"
     "@wso2/cell-diagram": "npm:^0.3.1"
     express: "npm:4.21.2"
     express-promise-router: "npm:4.1.1"
     supertest: "npm:6.3.4"
+    ws: "npm:^8.18.0"
   languageName: unknown
   linkType: soft
 
@@ -9430,6 +9432,8 @@ __metadata:
     "@types/pathfinding": "npm:0.1.0"
     "@types/react": "npm:^18.0.0"
     "@wso2/cell-diagram": "npm:^0.3.1"
+    "@xterm/addon-fit": "npm:^0.10.0"
+    "@xterm/xterm": "npm:^5.5.0"
     clsx: "npm:^2.1.1"
     json-schema: "npm:0.4.0"
     msw: "npm:1.3.5"
@@ -14398,7 +14402,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/ws@npm:*, @types/ws@npm:^8.5.10":
+"@types/ws@npm:*, @types/ws@npm:^8.5.10, @types/ws@npm:^8.5.14":
   version: 8.18.1
   resolution: "@types/ws@npm:8.18.1"
   dependencies:
@@ -14886,6 +14890,15 @@ __metadata:
   version: 0.12.0
   resolution: "@xterm/addon-attach@npm:0.12.0"
   checksum: 10c0/afc8543d20172d18ac4777d70ed62d273e52033fbb859adac19f66b7f7658f4c0cecf400f46cb7befd4db12a75868f727a3ae0d492d8191ea7689db2f554ea67
+  languageName: node
+  linkType: hard
+
+"@xterm/addon-fit@npm:^0.10.0":
+  version: 0.10.0
+  resolution: "@xterm/addon-fit@npm:0.10.0"
+  peerDependencies:
+    "@xterm/xterm": ^5.0.0
+  checksum: 10c0/76926120fc940376afef2cb68b15aec2a99fc628b6e3cc84f2bcb1682ca9b87f982b3c10ff206faf4ebc5b410467b81a7b5e83be37b4ac386586f472e4fa1c61
   languageName: node
   linkType: hard
 
@@ -16006,6 +16019,7 @@ __metadata:
   dependencies:
     "@backstage-community/plugin-jenkins-backend": "npm:^0.24.1"
     "@backstage/backend-defaults": "npm:^0.17.1"
+    "@backstage/backend-plugin-api": "npm:^1.9.1"
     "@backstage/cli": "npm:^0.36.2"
     "@backstage/config": "npm:^1.3.8"
     "@backstage/plugin-app-backend": "npm:^0.5.14"
@@ -16046,12 +16060,14 @@ __metadata:
     "@openchoreo/openchoreo-auth": "workspace:^"
     "@types/cookie-parser": "npm:1.4.8"
     "@types/express-session": "npm:1.18.2"
+    "@types/ws": "npm:^8.5.14"
     app: "workspace:^"
     better-sqlite3: "npm:9.6.0"
     cookie-parser: "npm:1.4.7"
     express-session: "npm:1.18.2"
     node-gyp: "npm:10.3.1"
     pg: "npm:8.16.3"
+    ws: "npm:^8.18.0"
   languageName: unknown
   linkType: soft
 

@@ -63,3 +63,24 @@ export interface TreeLayout {
 
 /** View mode for release details page */
 export type ReleaseViewMode = 'list' | 'tree';
+
+/**
+ * Component/environment context needed to open an exec terminal from a resource
+ * node drawer. Resolved once in ReleaseDetailsPage (from entity annotations +
+ * the selected environment) and threaded down to the terminal viewer.
+ */
+export interface ExecContext {
+  namespaceName: string;
+  projectName: string;
+  componentName: string;
+  /** Environment identifier used for the exec session and per-env ABAC. */
+  environmentName: string;
+  /** Human-readable environment label for UI copy. */
+  environmentDisplayName: string;
+  /**
+   * Catalog entity ref of the component. Used as the resourceRef for the exec
+   * permission check, and to rebuild an EntityProvider in the standalone
+   * full-window terminal (which renders outside the component entity page).
+   */
+  entityRef: string;
+}

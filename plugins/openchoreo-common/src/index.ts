@@ -66,6 +66,7 @@ export {
   openchoreoClusterRoleMappingCreatePermission,
   openchoreoClusterRoleMappingUpdatePermission,
   openchoreoClusterRoleMappingDeletePermission,
+  openchoreoExecPermission,
   openchoreoLogsViewPermission,
   openchoreoEventsViewPermission,
   openchoreoAlertsViewPermission,

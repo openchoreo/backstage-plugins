@@ -17,6 +17,8 @@ import { YamlViewer } from '@openchoreo/backstage-design-system';
 import { useTreeStyles } from './treeStyles';
 import { useReleaseInfoStyles } from '../styles';
 import { formatTimestamp, getHealthChipClass } from '../utils';
+import { ResourcePodTerminalViewer } from './ResourcePodTerminalViewer';
+import type { ExecContext } from './treeTypes';
 
 /** Helper to extract a field from either flat (legacy) or nested (new API) format */
 function getBindingField(
@@ -57,10 +59,18 @@ function getBindingConditions(binding: Record<string, unknown>): any[] {
 
 interface ReleaseBindingDetailTabsProps {
   releaseBindingData: Record<string, unknown> | null;
+  /**
+   * When provided, a fallback Terminal tab is shown on the ReleaseBinding
+   * drawer (used when the workload pod is not rendered in the tree). The parent
+   * only supplies this when there is no Pod node; we additionally require the
+   * binding to be healthy (a running pod exists) before offering it.
+   */
+  execContext?: ExecContext;
 }
 
 export const ReleaseBindingDetailTabs: FC<ReleaseBindingDetailTabsProps> = ({
   releaseBindingData,
+  execContext,
 }) => {
   const classes = useTreeStyles();
   const releaseClasses = useReleaseInfoStyles();
@@ -89,6 +99,21 @@ export const ReleaseBindingDetailTabs: FC<ReleaseBindingDetailTabsProps> = ({
     ? getBindingStatus(releaseBindingData)
     : undefined;
 
+  // Offer the fallback Terminal only when the binding is healthy (i.e. a
+  // running pod exists for the environment) — pod presence is inferred from the
+  // binding state we already have, without an extra resource lookup.
+  const isBindingHealthy = status === 'Active' || status === 'Ready';
+  const showTerminal = Boolean(execContext) && isBindingHealthy;
+  const terminalTabIndex = 2;
+
+  // If the Terminal tab is removed while it's the active tab, fall back to the
+  // first tab so `Tabs` isn't left on an invalid index (blank drawer).
+  useEffect(() => {
+    if (activeTab === terminalTabIndex && !showTerminal) {
+      setActiveTab(0);
+    }
+  }, [showTerminal, activeTab]);
+
   return (
     <>
       <Tabs
@@ -100,6 +125,7 @@ export const ReleaseBindingDetailTabs: FC<ReleaseBindingDetailTabsProps> = ({
       >
         <Tab label="Summary" />
         <Tab label="Definition" />
+        {showTerminal && <Tab label="Terminal" />}
       </Tabs>
 
       <Box className={classes.drawerTabContent}>
@@ -251,6 +277,10 @@ export const ReleaseBindingDetailTabs: FC<ReleaseBindingDetailTabsProps> = ({
               </Box>
             )}
           </>
+        )}
+
+        {activeTab === terminalTabIndex && showTerminal && execContext && (
+          <ResourcePodTerminalViewer execContext={execContext} />
         )}
       </Box>
     </>
