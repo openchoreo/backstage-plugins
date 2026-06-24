@@ -639,6 +639,31 @@ export interface ResourceReleaseBindingResponse {
   outputs?: ResolvedResourceOutput[];
 }
 
+export interface ProjectReleaseBindingResponse {
+  name: string;
+  projectName: string;
+  namespaceName: string;
+  environment: string;
+  /** The pinned ProjectRelease name (spec.projectRelease). */
+  releaseName: string;
+  /**
+   * Per-environment values layered over the project-level parameters when
+   * the (Cluster)ProjectType resources are rendered for this environment
+   * (spec.environmentConfigs).
+   */
+  environmentConfigs?: Record<string, unknown>;
+  /** The data-plane namespace owned by this binding (status.namespace). */
+  namespace?: string;
+  /** Format: date-time */
+  createdAt: string;
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  /** The Ready condition's reason */
+  statusReason?: string;
+  /** The Ready condition's human-readable message */
+  statusMessage?: string;
+  conditions?: ReleaseBindingCondition[];
+}
+
 export interface WorkloadOverrides {
   container?: ContainerOverride;
 }

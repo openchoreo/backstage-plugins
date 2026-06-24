@@ -27,6 +27,10 @@ import {
   ResourceReleaseInfoService,
   type ResourceReleaseSchemaSection,
 } from './services/ResourceReleaseService/ResourceReleaseInfoService';
+import {
+  ProjectReleaseInfoService,
+  type ProjectReleaseSchemaSection,
+} from './services/ProjectReleaseService/ProjectReleaseInfoService';
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { WirelogsInfoService } from './services/WirelogsService/WirelogsInfoService';
 import { AuthzService } from './services/AuthzService/AuthzService';
@@ -44,6 +48,7 @@ import type { AnnotationStore } from '@openchoreo/backstage-plugin-catalog-backe
 import {
   transformReleaseBinding,
   transformResourceReleaseBinding,
+  transformProjectReleaseBinding,
 } from './services/transformers';
 
 const CLUSTER_SCOPED_KINDS = [
@@ -93,6 +98,7 @@ export async function createRouter({
   resourceTypeInfoService,
   clusterResourceTypeInfoService,
   resourceReleaseInfoService,
+  projectReleaseInfoService,
   secretReferencesInfoService,
   secretsService,
   authzService,
@@ -121,6 +127,7 @@ export async function createRouter({
   resourceTypeInfoService: ResourceTypeInfoService;
   clusterResourceTypeInfoService: ClusterResourceTypeInfoService;
   resourceReleaseInfoService: ResourceReleaseInfoService;
+  projectReleaseInfoService: ProjectReleaseInfoService;
   secretReferencesInfoService: SecretReferencesService;
   secretsService: SecretsService;
   authzService: AuthzService;
@@ -1144,6 +1151,125 @@ export async function createRouter({
           projectName: projectName as string,
           namespaceName: namespaceName as string,
         },
+        userToken,
+      ),
+    );
+  });
+
+  router.get('/project-environment-info', async (req, res) => {
+    const { projectName, namespaceName } = req.query;
+
+    if (!projectName || !namespaceName) {
+      throw new InputError(
+        'projectName and namespaceName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await environmentInfoService.fetchProjectEnvironmentInfo(
+        {
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+        },
+        userToken,
+      ),
+    );
+  });
+
+  router.get('/project-release-bindings', async (req, res) => {
+    const { projectName, namespaceName } = req.query;
+
+    if (!projectName || !namespaceName) {
+      throw new InputError(
+        'projectName and namespaceName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    const rawBindings =
+      await environmentInfoService.fetchProjectReleaseBindings(
+        {
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+        },
+        userToken,
+      );
+    const items = ((rawBindings as any)?.items ?? []).map((binding: any) =>
+      transformProjectReleaseBinding(binding),
+    );
+    res.json({ success: true, data: { items } });
+  });
+
+  router.put(
+    '/update-project-release-binding',
+    requireAuth,
+    async (req, res) => {
+      const {
+        projectName,
+        namespaceName,
+        environment,
+        releaseName,
+        environmentConfigs,
+      } = req.body;
+
+      if (!projectName || !namespaceName || !environment || !releaseName) {
+        throw new InputError(
+          'projectName, namespaceName, environment and releaseName are required in request body',
+        );
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+
+      res.json(
+        await environmentInfoService.updateProjectReleaseBinding(
+          {
+            projectName: projectName as string,
+            namespaceName: namespaceName as string,
+            environment: environment as string,
+            releaseName: releaseName as string,
+            environmentConfigs,
+          },
+          userToken,
+        ),
+      );
+    },
+  );
+
+  // Endpoint for fetching a frozen schema section snapshotted on a
+  // ProjectRelease. Pinned-release flows (the override wizard) use this so
+  // form validation matches what the release was actually cut against, not
+  // the live (Cluster)ProjectType which may have drifted.
+  router.get('/project-release-schema', async (req, res) => {
+    const { namespaceName, releaseName, section } = req.query;
+    const allowedSections: ProjectReleaseSchemaSection[] = [
+      'parameters',
+      'environmentConfigs',
+    ];
+
+    if (!namespaceName || !releaseName) {
+      throw new InputError(
+        'namespaceName and releaseName are required query parameters',
+      );
+    }
+    if (
+      !section ||
+      !allowedSections.includes(section as ProjectReleaseSchemaSection)
+    ) {
+      throw new InputError(
+        `section must be one of: ${allowedSections.join(', ')}`,
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await projectReleaseInfoService.fetchProjectReleaseSchema(
+        namespaceName as string,
+        releaseName as string,
+        section as ProjectReleaseSchemaSection,
         userToken,
       ),
     );

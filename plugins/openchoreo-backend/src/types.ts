@@ -66,6 +66,19 @@ export interface EnvironmentService {
     namespaceName: string;
     environment: string;
   }): Promise<unknown>;
+
+  fetchProjectEnvironmentInfo(request: {
+    projectName: string;
+    namespaceName: string;
+  }): Promise<ProjectEnvironment[]>;
+
+  updateProjectReleaseBinding(request: {
+    projectName: string;
+    namespaceName: string;
+    environment: string;
+    releaseName: string;
+    environmentConfigs?: any;
+  }): Promise<unknown>;
 }
 
 export interface EndpointURLDetails {
@@ -141,6 +154,35 @@ export interface ResourceEnvironment {
     resourceName?: string;
   }[];
   /** Latest ResourceRelease cut by the Resource controller, if any. */
+  latestRelease?: string;
+}
+
+/**
+ * Per-environment view of a Project's deploy state. One entry per environment
+ * in the project's deployment pipeline, including environments where no
+ * ProjectReleaseBinding exists yet (so the UI can render a Deploy affordance
+ * against them).
+ */
+export interface ProjectEnvironment {
+  uid?: string;
+  name: string;
+  resourceName?: string;
+  dataPlaneRef?: string;
+  dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';
+  bindingName?: string;
+  /** The ProjectRelease pinned to this environment (binding.spec.projectRelease). */
+  projectRelease?: string;
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  lastDeployed?: string;
+  /** The data-plane namespace owned by this binding (binding.status.namespace). */
+  namespace?: string;
+  promotionTargets?: {
+    name: string;
+    resourceName?: string;
+  }[];
+  /** Latest ProjectRelease cut by the Project controller, if any. */
   latestRelease?: string;
 }
 

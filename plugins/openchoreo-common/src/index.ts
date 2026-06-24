@@ -196,6 +196,7 @@ export type {
   ReleaseBindingResponse,
   ReleaseBindingCondition,
   ResourceReleaseBindingResponse,
+  ProjectReleaseBindingResponse,
   ResolvedResourceOutput,
   ResourceSecretKeyRef,
   ResourceConfigMapKeyRef,
