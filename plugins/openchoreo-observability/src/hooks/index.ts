@@ -5,6 +5,7 @@ export type {
   WirelogsEnvironment,
   UseWirelogsEnvironmentsResult,
 } from './useWirelogsEnvironments';
+export { useComponentHasAnyCiliumEnabledEnvironment } from './useComponentHasAnyCiliumEnabledEnvironment';
 export { useFilters } from './useFilters';
 export { useUrlFilters } from './useUrlFilters';
 export { useMetrics } from './useMetrics';

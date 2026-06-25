@@ -49,7 +49,7 @@ import {
   RELATION_PROVIDES_API,
 } from '@backstage/catalog-model';
 import { TableColumn } from '@backstage/core-components';
-import { EntityTable } from '@backstage/plugin-catalog-react';
+import { EntityTable, useEntity } from '@backstage/plugin-catalog-react';
 import {
   RELATION_DEPLOYS_TO,
   RELATION_DEPLOYED_BY,
@@ -137,6 +137,7 @@ import {
   ObservabilityWirelogs,
   ObservabilityProjectIncidents,
   ObservabilityCostAnalysis,
+  useComponentHasAnyCiliumEnabledEnvironment,
   type RenderLogRowAction,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
@@ -328,219 +329,247 @@ function OverviewContent() {
  * Service entity page with delete menu support.
  * Routes are defined as static JSX children so routable extensions are discoverable.
  */
-const serviceEntityPage = (
-  <EntityLayoutWithDelete>
-    <EntityLayout.Route path="/" title="Overview">
-      <OverviewContent />
-    </EntityLayout.Route>
+const ServiceEntityPage = () => {
+  const { entity } = useEntity();
+  const hasAnyCiliumEnabledEnvironment =
+    useComponentHasAnyCiliumEnabledEnvironment(entity);
 
-    <EntityLayout.Route path="/definition" title="Definition">
-      <ResourceDefinitionTab />
-    </EntityLayout.Route>
+  return (
+    <EntityLayoutWithDelete>
+      <EntityLayout.Route path="/" title="Overview">
+        <OverviewContent />
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/workflows" title="Build">
-      <FeatureGatedContent feature="workflows">
-        {/* Auto-popping launcher — renders nothing unless the latest
+      <EntityLayout.Route path="/definition" title="Definition">
+        <ResourceDefinitionTab />
+      </EntityLayout.Route>
+
+      <EntityLayout.Route path="/workflows" title="Build">
+        <FeatureGatedContent feature="workflows">
+          {/* Auto-popping launcher — renders nothing unless the latest
             run is in a failed state. The fixed pill on this tab was
             intentionally removed; the snackbar still fires so a user
             opening a failed build gets an "Investigate" prompt. */}
-        <FailedBuildSnackbar />
-        <Workflows />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
+          <FailedBuildSnackbar />
+          <Workflows />
+        </FeatureGatedContent>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/environments" title="Deploy">
-      <Environments
-        renderInvestigateAction={renderInvestigateDependencyAction}
-      />
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/runtime-logs" title="Logs">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityRuntimeLogs
-          renderRowAction={renderInvestigateLogAction}
+      <EntityLayout.Route path="/environments" title="Deploy">
+        <Environments
+          renderInvestigateAction={renderInvestigateDependencyAction}
         />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/runtime-events" title="Events">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityRuntimeEvents />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
+      <EntityLayout.Route path="/runtime-logs" title="Logs">
+        <FeatureGatedContent feature="observability">
+          <ObservabilityRuntimeLogs
+            renderRowAction={renderInvestigateLogAction}
+          />
+        </FeatureGatedContent>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/metrics" title="Metrics">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityMetrics />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
+      <EntityLayout.Route path="/runtime-events" title="Events">
+        <FeatureGatedContent feature="observability">
+          <ObservabilityRuntimeEvents />
+        </FeatureGatedContent>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/alerts" title="Alerts">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityAlerts />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
+      <EntityLayout.Route path="/metrics" title="Metrics">
+        <FeatureGatedContent feature="observability">
+          <ObservabilityMetrics />
+        </FeatureGatedContent>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/wirelogs" title="Wirelogs">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityWirelogs />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
+      <EntityLayout.Route path="/alerts" title="Alerts">
+        <FeatureGatedContent feature="observability">
+          <ObservabilityAlerts />
+        </FeatureGatedContent>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route
-      path="/kubernetes"
-      title="Kubernetes"
-      if={isKubernetesAvailable}
-    >
-      <EntityKubernetesContent />
-    </EntityLayout.Route>
+      <EntityLayout.Route
+        path="/wirelogs"
+        title="Wirelogs"
+        if={() => hasAnyCiliumEnabledEnvironment}
+      >
+        <FeatureGatedContent feature="observability">
+          <ObservabilityWirelogs />
+        </FeatureGatedContent>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/api" title="API" if={hasApis}>
-      <Grid container spacing={3} alignItems="stretch">
-        <Grid item md={6}>
-          <EntityProvidedApisCard columns={apiCardColumns} />
+      <EntityLayout.Route
+        path="/kubernetes"
+        title="Kubernetes"
+        if={isKubernetesAvailable}
+      >
+        <EntityKubernetesContent />
+      </EntityLayout.Route>
+
+      <EntityLayout.Route path="/api" title="API" if={hasApis}>
+        <Grid container spacing={3} alignItems="stretch">
+          <Grid item md={6}>
+            <EntityProvidedApisCard columns={apiCardColumns} />
+          </Grid>
+          <Grid item md={6}>
+            <EntityConsumedApisCard columns={apiCardColumns} />
+          </Grid>
         </Grid>
-        <Grid item md={6}>
-          <EntityConsumedApisCard columns={apiCardColumns} />
-        </Grid>
-      </Grid>
-    </EntityLayout.Route>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/docs" title="Docs" if={hasTechdocsAnnotation}>
-      {techdocsContent}
-    </EntityLayout.Route>
+      <EntityLayout.Route path="/docs" title="Docs" if={hasTechdocsAnnotation}>
+        {techdocsContent}
+      </EntityLayout.Route>
 
-    {/* External CI Platform Tabs - only shown when annotation is present */}
-    <EntityLayout.Route
-      path="/jenkins"
-      title="Jenkins"
-      if={hasJenkinsAnnotation}
-    >
-      <EntityJenkinsContent />
-    </EntityLayout.Route>
+      {/* External CI Platform Tabs - only shown when annotation is present */}
+      <EntityLayout.Route
+        path="/jenkins"
+        title="Jenkins"
+        if={hasJenkinsAnnotation}
+      >
+        <EntityJenkinsContent />
+      </EntityLayout.Route>
 
-    <EntityLayout.Route
-      path="/github-actions"
-      title="GitHub Actions"
-      if={hasGithubActionsAnnotation}
-    >
-      <EntityGithubActionsContent />
-    </EntityLayout.Route>
+      <EntityLayout.Route
+        path="/github-actions"
+        title="GitHub Actions"
+        if={hasGithubActionsAnnotation}
+      >
+        <EntityGithubActionsContent />
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/gitlab" title="GitLab" if={hasGitlabAnnotation}>
-      <EntityGitlabContent />
-    </EntityLayout.Route>
-  </EntityLayoutWithDelete>
-);
+      <EntityLayout.Route
+        path="/gitlab"
+        title="GitLab"
+        if={hasGitlabAnnotation}
+      >
+        <EntityGitlabContent />
+      </EntityLayout.Route>
+    </EntityLayoutWithDelete>
+  );
+};
 
 /**
  * Website entity page with delete menu support.
  * Routes are defined as static JSX children so routable extensions are discoverable.
  */
-const genericComponentEntityPage = (
-  <EntityLayoutWithDelete>
-    <EntityLayout.Route path="/" title="Overview">
-      <OverviewContent />
-    </EntityLayout.Route>
+const GenericComponentEntityPage = () => {
+  const { entity } = useEntity();
+  const hasAnyCiliumEnabledEnvironment =
+    useComponentHasAnyCiliumEnabledEnvironment(entity);
 
-    <EntityLayout.Route path="/definition" title="Definition">
-      <ResourceDefinitionTab />
-    </EntityLayout.Route>
+  return (
+    <EntityLayoutWithDelete>
+      <EntityLayout.Route path="/" title="Overview">
+        <OverviewContent />
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/workflows" title="Build">
-      <FeatureGatedContent feature="workflows">
-        {/* Auto-popping launcher — renders nothing unless the latest
+      <EntityLayout.Route path="/definition" title="Definition">
+        <ResourceDefinitionTab />
+      </EntityLayout.Route>
+
+      <EntityLayout.Route path="/workflows" title="Build">
+        <FeatureGatedContent feature="workflows">
+          {/* Auto-popping launcher — renders nothing unless the latest
             run is in a failed state. The fixed pill on this tab was
             intentionally removed; the snackbar still fires so a user
             opening a failed build gets an "Investigate" prompt. */}
-        <FailedBuildSnackbar />
-        <Workflows />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
+          <FailedBuildSnackbar />
+          <Workflows />
+        </FeatureGatedContent>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/environments" title="Deploy">
-      <Environments
-        renderInvestigateAction={renderInvestigateDependencyAction}
-      />
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/runtime-logs" title="Logs">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityRuntimeLogs
-          renderRowAction={renderInvestigateLogAction}
+      <EntityLayout.Route path="/environments" title="Deploy">
+        <Environments
+          renderInvestigateAction={renderInvestigateDependencyAction}
         />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/runtime-events" title="Events">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityRuntimeEvents />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
+      <EntityLayout.Route path="/runtime-logs" title="Logs">
+        <FeatureGatedContent feature="observability">
+          <ObservabilityRuntimeLogs
+            renderRowAction={renderInvestigateLogAction}
+          />
+        </FeatureGatedContent>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/metrics" title="Metrics">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityMetrics />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
+      <EntityLayout.Route path="/runtime-events" title="Events">
+        <FeatureGatedContent feature="observability">
+          <ObservabilityRuntimeEvents />
+        </FeatureGatedContent>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/alerts" title="Alerts">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityAlerts />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
+      <EntityLayout.Route path="/metrics" title="Metrics">
+        <FeatureGatedContent feature="observability">
+          <ObservabilityMetrics />
+        </FeatureGatedContent>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/wirelogs" title="Wirelogs">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityWirelogs />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
+      <EntityLayout.Route path="/alerts" title="Alerts">
+        <FeatureGatedContent feature="observability">
+          <ObservabilityAlerts />
+        </FeatureGatedContent>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route
-      path="/kubernetes"
-      title="Kubernetes"
-      if={isKubernetesAvailable}
-    >
-      <EntityKubernetesContent />
-    </EntityLayout.Route>
+      <EntityLayout.Route
+        path="/wirelogs"
+        title="Wirelogs"
+        if={() => hasAnyCiliumEnabledEnvironment}
+      >
+        <FeatureGatedContent feature="observability">
+          <ObservabilityWirelogs />
+        </FeatureGatedContent>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/api" title="API" if={hasApis}>
-      <Grid container spacing={3} alignItems="stretch">
-        <Grid item md={6}>
-          <EntityProvidedApisCard columns={apiCardColumns} />
+      <EntityLayout.Route
+        path="/kubernetes"
+        title="Kubernetes"
+        if={isKubernetesAvailable}
+      >
+        <EntityKubernetesContent />
+      </EntityLayout.Route>
+
+      <EntityLayout.Route path="/api" title="API" if={hasApis}>
+        <Grid container spacing={3} alignItems="stretch">
+          <Grid item md={6}>
+            <EntityProvidedApisCard columns={apiCardColumns} />
+          </Grid>
+          <Grid item md={6}>
+            <EntityConsumedApisCard columns={apiCardColumns} />
+          </Grid>
         </Grid>
-        <Grid item md={6}>
-          <EntityConsumedApisCard columns={apiCardColumns} />
-        </Grid>
-      </Grid>
-    </EntityLayout.Route>
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/docs" title="Docs" if={hasTechdocsAnnotation}>
-      {techdocsContent}
-    </EntityLayout.Route>
+      <EntityLayout.Route path="/docs" title="Docs" if={hasTechdocsAnnotation}>
+        {techdocsContent}
+      </EntityLayout.Route>
 
-    {/* External CI Platform Tabs - only shown when annotation is present */}
-    <EntityLayout.Route
-      path="/jenkins"
-      title="Jenkins"
-      if={hasJenkinsAnnotation}
-    >
-      <EntityJenkinsContent />
-    </EntityLayout.Route>
+      {/* External CI Platform Tabs - only shown when annotation is present */}
+      <EntityLayout.Route
+        path="/jenkins"
+        title="Jenkins"
+        if={hasJenkinsAnnotation}
+      >
+        <EntityJenkinsContent />
+      </EntityLayout.Route>
 
-    <EntityLayout.Route
-      path="/github-actions"
-      title="GitHub Actions"
-      if={hasGithubActionsAnnotation}
-    >
-      <EntityGithubActionsContent />
-    </EntityLayout.Route>
+      <EntityLayout.Route
+        path="/github-actions"
+        title="GitHub Actions"
+        if={hasGithubActionsAnnotation}
+      >
+        <EntityGithubActionsContent />
+      </EntityLayout.Route>
 
-    <EntityLayout.Route path="/gitlab" title="GitLab" if={hasGitlabAnnotation}>
-      <EntityGitlabContent />
-    </EntityLayout.Route>
-  </EntityLayoutWithDelete>
-);
+      <EntityLayout.Route
+        path="/gitlab"
+        title="GitLab"
+        if={hasGitlabAnnotation}
+      >
+        <EntityGitlabContent />
+      </EntityLayout.Route>
+    </EntityLayoutWithDelete>
+  );
+};
 
 /**
  * NOTE: This page is designed to work on small screens such as mobile devices.
@@ -589,11 +618,11 @@ const isGenericComponent = (entity: Entity) =>
 const componentPage = (
   <EntitySwitch>
     <EntitySwitch.Case if={isServiceComponent}>
-      {serviceEntityPage}
+      <ServiceEntityPage />
     </EntitySwitch.Case>
 
     <EntitySwitch.Case if={isGenericComponent}>
-      {genericComponentEntityPage}
+      <GenericComponentEntityPage />
     </EntitySwitch.Case>
 
     {/* Fallback for unknown component types or 'default' variant */}
