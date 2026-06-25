@@ -22,7 +22,15 @@ const POLL_TIMEOUT_MS = 30000;
 interface UseAwaitNewReleaseArgs {
   /** Current value of `Component.status.latestRelease.name` (or null). */
   latestReleaseName: string | null;
-  /** Re-read the Component (drives `latestReleaseName`). */
+  /**
+   * True when the Component's Ready condition is currently in an error state.
+   * A controller failure under auto-deploy never advances
+   * `latestRelease.name`, so without this the poll would spin to its 30s
+   * timeout. Stopping on error clears the "Deploying…" pill and lets the
+   * Setup card surface the failure immediately.
+   */
+  hasError?: boolean;
+  /** Re-read the Component (drives `latestReleaseName` + error state). */
   refetchAutoDeploy: () => void;
   /**
    * Re-read the environment list. The per-env card reads
@@ -46,6 +54,7 @@ interface UseAwaitNewReleaseResult {
 
 export const useAwaitNewRelease = ({
   latestReleaseName,
+  hasError,
   refetchAutoDeploy,
   refetchEnvironments,
 }: UseAwaitNewReleaseArgs): UseAwaitNewReleaseResult => {
@@ -53,20 +62,42 @@ export const useAwaitNewRelease = ({
   // Baseline lives in a ref because we never want a baseline change to
   // re-trigger the polling effect — only `awaiting` should.
   const baselineRef = useRef<string | null>(null);
+  // When a save happens while a *previous* error is still on the Component
+  // (the user is retrying a fix), we must NOT stop on that stale error — the
+  // controller hasn't re-reconciled yet. Arm error-stopping only once the
+  // controller has moved past the pre-save state: either it clears the error
+  // (hasError=false seen) or it advances the release. Until then a still-true
+  // `hasError` is treated as stale and ignored.
+  const errorArmedRef = useRef(false);
 
   const beginAwaitingNewRelease = useCallback(() => {
     baselineRef.current = latestReleaseName;
+    // If the component is already errored at save time, disarm so the stale
+    // error doesn't immediately cancel the new await cycle.
+    errorArmedRef.current = !hasError;
     setAwaiting(true);
-  }, [latestReleaseName]);
+  }, [latestReleaseName, hasError]);
 
   // Stop polling as soon as the controller's pointer moves away from
-  // what we captured at save time. This is the happy path.
+  // what we captured at save time (happy path), or as soon as the
+  // controller reports a *fresh* Ready=False error (failure path — the
+  // pointer never advances, so this is the only way out short of the timeout).
   useEffect(() => {
     if (!awaiting) return;
     if (latestReleaseName && latestReleaseName !== baselineRef.current) {
       setAwaiting(false);
+      return;
     }
-  }, [awaiting, latestReleaseName]);
+    if (!hasError) {
+      // Controller has reconciled past the pre-save error → a subsequent error
+      // is genuinely new and should stop the poll.
+      errorArmedRef.current = true;
+      return;
+    }
+    if (errorArmedRef.current) {
+      setAwaiting(false);
+    }
+  }, [awaiting, latestReleaseName, hasError]);
 
   // While awaiting, poll Component status + env list every 2s. The
   // setup card's row updates from status; the per-env card updates from

@@ -434,6 +434,15 @@ describe('MiniEnvironmentNode', () => {
     expect(screen.getByTestId('status-badge')).toHaveTextContent('active');
   });
 
+  it('reads not-deployed for a binding-less env (component errors live on the Setup card)', () => {
+    renderNode({
+      environment: makeEnv({ name: 'development', deployment: {} }),
+    });
+    expect(screen.getByTestId('status-badge')).toHaveTextContent(
+      'not-deployed',
+    );
+  });
+
   it('shows the active-incidents chip when activeIncidentCount > 0', () => {
     renderNode({
       environment: makeEnv({ name: 'staging' }),

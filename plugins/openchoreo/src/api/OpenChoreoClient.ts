@@ -4,6 +4,7 @@ import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   CHOREO_ANNOTATIONS,
   type WorkloadResource,
+  type ReleaseBindingCondition,
 } from '@openchoreo/backstage-plugin-common';
 import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
@@ -723,6 +724,10 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     parameters?: Record<string, unknown>;
     autoDeploy?: boolean;
     latestRelease?: { name?: string; releaseHash?: string };
+    conditions?: ReleaseBindingCondition[];
+    hasError?: boolean;
+    errorReason?: string;
+    errorMessage?: string;
   }> {
     const metadata = extractEntityMetadata(entity);
 

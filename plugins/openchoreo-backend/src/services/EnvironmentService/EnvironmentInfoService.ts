@@ -426,6 +426,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         status: deploymentStatus,
         statusReason: binding?.statusReason,
         statusMessage: binding?.statusMessage,
+        conditions: binding?.conditions,
         lastDeployed,
         image,
         releaseName,

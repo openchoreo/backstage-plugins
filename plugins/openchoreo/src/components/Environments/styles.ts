@@ -131,6 +131,18 @@ export const useSetupCardCompactStyles = makeStyles(theme => ({
       boxShadow: `0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[4]}`,
     },
   },
+  cardError: {
+    borderColor: theme.palette.error.main,
+    borderStyle: 'solid',
+    backgroundColor: alpha(theme.palette.error.main, 0.06),
+  },
+  errorMarker: {
+    position: 'absolute',
+    top: theme.spacing(1),
+    right: theme.spacing(1),
+    color: theme.palette.error.main,
+    fontSize: '1.1rem',
+  },
   titleRow: {
     display: 'flex',
     alignItems: 'center',

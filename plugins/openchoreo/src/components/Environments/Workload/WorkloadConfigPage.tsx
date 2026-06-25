@@ -486,9 +486,10 @@ export const WorkloadConfigPage = ({
           `Component saved. Auto-deploy will create a release and roll it out to ${lowestEnvironment} shortly.`,
         );
         // Kick off the post-save poll. The controller updates
-        // Component.status.latestRelease.name asynchronously (a few
-        // seconds); the hook polls until it sees a different value
-        // (then clears the "Deploying…" pill) or 30s elapses.
+        // Component.status asynchronously (a few seconds); the hook polls
+        // until latestRelease.name advances (success — clears the
+        // "Deploying…" pill), the Ready condition reports an error (the
+        // Setup card then surfaces the controller failure), or 30s elapses.
         beginAwaitingNewRelease();
         onReleaseCreated();
       } else {

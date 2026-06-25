@@ -1,6 +1,9 @@
 import { Project } from '@wso2/cell-diagram';
 import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
-import type { WorkloadResource } from '@openchoreo/backstage-plugin-common';
+import type {
+  WorkloadResource,
+  ReleaseBindingCondition,
+} from '@openchoreo/backstage-plugin-common';
 import type { ModelsSecretReferences } from './services/SecretReferencesService/SecretReferencesService';
 import type {
   SecretResponse,
@@ -92,6 +95,9 @@ export interface Environment {
     status?: 'Ready' | 'NotReady' | 'Failed' | undefined;
     statusReason?: string;
     statusMessage?: string;
+    /** Raw Ready/other conditions from the ReleaseBinding, for surfacing the
+     *  controller's failure reason + message in the deploy UI. */
+    conditions?: ReleaseBindingCondition[];
     lastDeployed?: string;
     image?: string;
     releaseName?: string;

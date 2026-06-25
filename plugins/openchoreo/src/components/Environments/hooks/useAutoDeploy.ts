@@ -3,6 +3,14 @@ import { useApi } from '@backstage/core-plugin-api';
 import type { Entity } from '@backstage/catalog-model';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
+/** Controller error pulled from `Component.status.conditions` (Ready=False with
+ *  an error reason). Surfaces the pre-binding auto-deploy failures (bad trait,
+ *  invalid config) that never produce a ReleaseBinding. */
+export interface ComponentError {
+  reason?: string;
+  message?: string;
+}
+
 /**
  * Loads component-level state via `getComponentDetails`:
  *  - `autoDeploy` flag (toggle source of truth)
@@ -10,8 +18,11 @@ import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
  *    managed pointer to the release currently bound under auto-deploy.
  *    Used by the Setup card so it doesn't fall back to picking
  *    newest-by-creation-timestamp, which picks up orphan releases.
+ *  - `componentError` from `status.conditions` (Ready=False) — the only
+ *    place pre-binding auto-deploy failures surface, since no ReleaseBinding
+ *    (and therefore no per-env status) is ever created in that case.
  *
- * Both come from the same fetch. Exposes a refetch handle so consumers
+ * All come from the same fetch. Exposes a refetch handle so consumers
  * (Setup card toggle, post-save in WorkloadConfigPage) can re-read after
  * mutations on the server.
  */
@@ -19,6 +30,9 @@ export const useAutoDeploy = (entity: Entity) => {
   const client = useApi(openChoreoClientApiRef);
   const [autoDeploy, setAutoDeploy] = useState(false);
   const [latestReleaseName, setLatestReleaseName] = useState<string | null>(
+    null,
+  );
+  const [componentError, setComponentError] = useState<ComponentError | null>(
     null,
   );
   const [loading, setLoading] = useState(true);
@@ -33,6 +47,14 @@ export const useAutoDeploy = (entity: Entity) => {
       const componentData = await client.getComponentDetails(entity);
       setAutoDeploy(!!componentData?.autoDeploy);
       setLatestReleaseName(componentData?.latestRelease?.name ?? null);
+      setComponentError(
+        componentData?.hasError
+          ? {
+              reason: componentData.errorReason,
+              message: componentData.errorMessage,
+            }
+          : null,
+      );
     } catch {
       // Leave at the previous value — toggle stays in its last-known state.
     } finally {
@@ -65,6 +87,7 @@ export const useAutoDeploy = (entity: Entity) => {
   return {
     autoDeploy,
     latestReleaseName,
+    componentError,
     loading,
     refetch: fetchOnce,
     setAutoDeployOptimistic,

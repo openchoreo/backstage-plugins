@@ -35,4 +35,33 @@ describe('SetupCard (compact canvas tile)', () => {
     expect(screen.getByText('Set up')).toBeInTheDocument();
     expect(screen.getByText('Releases & deployment')).toBeInTheDocument();
   });
+
+  it('renders an error marker when the component is in an error state', () => {
+    render(
+      <SetupCard
+        loading={false}
+        environmentsExist
+        isWorkloadEditorSupported
+        onConfigureWorkload={jest.fn()}
+        hasError
+      />,
+    );
+
+    expect(screen.getByLabelText('Auto-deploy failed')).toBeInTheDocument();
+  });
+
+  it('does not render the error marker when there is no error', () => {
+    render(
+      <SetupCard
+        loading={false}
+        environmentsExist
+        isWorkloadEditorSupported
+        onConfigureWorkload={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByLabelText('Auto-deploy failed'),
+    ).not.toBeInTheDocument();
+  });
 });

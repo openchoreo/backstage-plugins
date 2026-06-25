@@ -107,6 +107,22 @@ export interface ComponentResponse {
   status?: string;
   autoDeploy?: boolean;
   /**
+   * Raw Ready/other conditions from `Component.status.conditions`. Carries the
+   * controller's reconcile outcome — notably the pre-binding auto-deploy
+   * failures (bad trait, invalid config) that never produce a ReleaseBinding.
+   */
+  conditions?: ReleaseBindingCondition[];
+  /**
+   * True when the component's Ready condition is False with an error reason
+   * (e.g. AutoDeployFailed, TraitNotFound, RenderingFailed). Derived in the BFF
+   * from {@link conditions} so the frontend doesn't re-classify reasons.
+   */
+  hasError?: boolean;
+  /** The Ready condition's machine-readable reason when {@link hasError}. */
+  errorReason?: string;
+  /** The Ready condition's human-readable message when {@link hasError}. */
+  errorMessage?: string;
+  /**
    * Controller-managed pointer to the latest ComponentRelease created for
    * this component. Authoritative for "what's currently bound under
    * auto-deploy"; prefer this over sorting the ComponentRelease list

@@ -22,6 +22,7 @@ import {
 import { useDeployFlowCanvasStyles } from '../styles';
 import { MiniEnvironmentNode } from '../components/MiniEnvironmentNode';
 import { SetupCard } from '../components/SetupCard';
+import { useEnvironmentsContext } from '../EnvironmentsContext';
 import type { ActionTrackers, Environment } from '../types';
 
 const SETUP_NODE_ID = '__setup__';
@@ -76,6 +77,7 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
   const tokens = useChoreoTokens();
   const theme = useTheme();
   const isNarrow = useMediaQuery(theme.breakpoints.down('sm'));
+  const { componentError } = useEnvironmentsContext();
 
   const direction = isNarrow ? 'TB' : 'LR';
   const layout = useMemo(() => {
@@ -227,6 +229,7 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
                 isWorkloadEditorSupported={isWorkloadEditorSupported}
                 onConfigureWorkload={onConfigureWorkload}
                 selected={selectedSetup}
+                hasError={!!componentError}
               />
             </Box>
           )}

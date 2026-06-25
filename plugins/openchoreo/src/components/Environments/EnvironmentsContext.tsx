@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode } from 'react';
 import type { Environment } from './hooks/useEnvironmentData';
+import type { ComponentError } from './hooks/useAutoDeploy';
 import type { PendingAction } from './types';
 
 /**
@@ -85,6 +86,14 @@ interface EnvironmentsContextValue {
    * (which would pick up orphan releases).
    */
   latestReleaseName: string | null;
+  /**
+   * Controller error from `Component.status.conditions` (Ready=False with an
+   * error reason), or null when healthy. This is the only carrier for
+   * pre-binding auto-deploy failures (bad trait, invalid config) — they never
+   * produce a ReleaseBinding, so there is no per-env status to read. Surfaced
+   * on the Setup card and attributed to the first env in the deploy detail.
+   */
+  componentError: ComponentError | null;
   /**
    * True while we're polling the controller after a UI-driven auto-deploy
    * save. Drives the "Deploying…" pill on the Setup card.

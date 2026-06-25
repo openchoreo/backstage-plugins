@@ -9,6 +9,10 @@
 
 export { transformProject } from './project';
 export { transformComponent } from './component';
+export {
+  deriveComponentReadiness,
+  type ComponentReadiness,
+} from './component-readiness';
 export { transformEnvironment } from './environment';
 export { transformDataPlane } from './dataplane';
 export { transformWorkflowPlane } from './workflowplane';
