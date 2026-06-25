@@ -12,18 +12,15 @@ import {
   Snackbar,
 } from '@material-ui/core';
 import { makeStyles, Theme } from '@material-ui/core/styles';
-import DeleteIcon from '@material-ui/icons/Delete';
 import AttachFileIcon from '@material-ui/icons/AttachFile';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import LockIcon from '@material-ui/icons/Lock';
 import LockOpenIcon from '@material-ui/icons/LockOpen';
-import EditIcon from '@material-ui/icons/Edit';
-import CheckIcon from '@material-ui/icons/Check';
-import CloseIcon from '@material-ui/icons/Close';
 import { Alert } from '@material-ui/lab';
 import type { FileVar } from '@openchoreo/backstage-plugin-common';
 import {
   SecretSelector,
+  EditRowActions,
   type SecretOption,
   darkTokens,
 } from '@openchoreo/backstage-design-system';
@@ -97,9 +94,6 @@ const useStyles = makeStyles((theme: Theme) => ({
     textOverflow: 'ellipsis',
     marginTop: theme.spacing(1),
     maxHeight: 60,
-  },
-  actionButton: {
-    marginLeft: theme.spacing(0.5),
   },
   baseValueInline: {
     marginTop: theme.spacing(1),
@@ -398,28 +392,19 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
                 </Typography>
               )}
             </Box>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<EditIcon />}
-              onClick={onEdit}
-              disabled={disabled || editDisabled}
-              className={classes.actionButton}
-            >
-              {editButtonLabel}
-            </Button>
-            {!hideDelete && (
-              <IconButton
-                onClick={onRemove}
-                color="secondary"
-                size="small"
-                disabled={disabled || deleteDisabled}
-                className={classes.actionButton}
-                aria-label="Remove file mount"
-              >
-                <DeleteIcon />
-              </IconButton>
-            )}
+            <EditRowActions
+              isEditing={false}
+              itemLabel="file mount"
+              editLabel={editButtonLabel}
+              onEdit={onEdit}
+              onApply={onApply}
+              onCancel={onCancel ?? (() => {})}
+              onRemove={onRemove}
+              disabled={disabled}
+              editDisabled={editDisabled}
+              deleteDisabled={deleteDisabled}
+              hideDelete={hideDelete}
+            />
           </Box>
           {/* Inline diff for overridden values */}
           {baseValue && (
@@ -519,40 +504,6 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
                   />
                 </Grid>
               </Grid>
-            </Grid>
-
-            <Grid item style={{ display: 'flex', alignItems: 'center' }}>
-              <IconButton
-                onClick={onApply}
-                color="primary"
-                size="small"
-                disabled={disabled || applyDisabled}
-                className={classes.actionButton}
-                aria-label="Apply changes"
-              >
-                <CheckIcon />
-              </IconButton>
-              {onCancel && (
-                <IconButton
-                  onClick={onCancel}
-                  size="small"
-                  disabled={disabled}
-                  className={classes.actionButton}
-                  aria-label="Cancel editing"
-                >
-                  <CloseIcon />
-                </IconButton>
-              )}
-              <IconButton
-                onClick={onRemove}
-                color="secondary"
-                size="small"
-                disabled={disabled}
-                className={classes.actionButton}
-                aria-label="Remove file mount"
-              >
-                <DeleteIcon />
-              </IconButton>
             </Grid>
           </Grid>
         </Box>
@@ -670,6 +621,17 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
             </Typography>
           </Box>
         )}
+        <EditRowActions
+          isEditing
+          itemLabel="file mount"
+          onEdit={onEdit}
+          onApply={onApply}
+          onCancel={onCancel ?? (() => {})}
+          onRemove={onRemove}
+          disabled={disabled}
+          applyDisabled={applyDisabled}
+          hideCancel={!onCancel}
+        />
       </Paper>
 
       <Snackbar
