@@ -61,9 +61,6 @@ export const VerticalTabItem: React.FC<VerticalTabItemProps> = ({
   }
 
   const isGroup = tab.isGroup || (tab.children && tab.children.length > 0);
-  // const hasActiveChild = tab.children?.some(
-  //   child => child.id === activeTabId || child.children?.some(c => c.id === activeTabId)
-  // );
 
   const handleClick = () => {
     if (isGroup) {

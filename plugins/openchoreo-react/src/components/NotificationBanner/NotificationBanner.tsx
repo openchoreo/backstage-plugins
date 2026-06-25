@@ -74,7 +74,6 @@ export const NotificationBanner: React.FC<NotificationBannerProps> = ({
   const IconComponent = getIcon(variant);
 
   const variantClass = classes[variant];
-  // const iconContainerClass = classes[`iconContainer${variant.charAt(0).toUpperCase()}${variant.slice(1)}` as keyof typeof classes];
   const iconClass =
     classes[
       `icon${variant.charAt(0).toUpperCase()}${variant.slice(

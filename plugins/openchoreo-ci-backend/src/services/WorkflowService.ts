@@ -901,8 +901,7 @@ export class WorkflowService {
         logger: this.logger,
       });
 
-      // TODO: Remove 'as any' once OpenAPI client is regenerated with ClusterWorkflow types
-      const { data, error, response } = await (client as any).GET(
+      const { data, error, response } = await client.GET(
         '/api/v1/clusterworkflows',
         {
           params: {

@@ -15,7 +15,7 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 import type {
   ModelsBuild,
-  LogEntry,
+  ComponentLogEntry,
   WorkflowRunStatusResponse,
   WorkflowStepStatus,
 } from '@openchoreo/backstage-plugin-common';
@@ -29,7 +29,7 @@ interface LogsContentProps {
   build: ModelsBuild;
 }
 
-function deduplicateLogs(logs: LogEntry[]): LogEntry[] {
+function deduplicateLogs(logs: ComponentLogEntry[]): ComponentLogEntry[] {
   const seen = new Set<string>();
   return logs.filter(entry => {
     const key = `${entry.timestamp ?? ''}-${entry.log}`;
@@ -48,7 +48,9 @@ export const LogsContent = ({ build }: LogsContentProps) => {
   const [statusError, setStatusError] = useState<string | null>(null);
 
   const [activeStepName, setActiveStepName] = useState<string | null>(null);
-  const [logsByStep, setLogsByStep] = useState<Record<string, LogEntry[]>>({});
+  const [logsByStep, setLogsByStep] = useState<
+    Record<string, ComponentLogEntry[]>
+  >({});
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState<string | null>(null);
   const [isObservabilityNotConfigured, setIsObservabilityNotConfigured] =
@@ -290,7 +292,7 @@ export const LogsContent = ({ build }: LogsContentProps) => {
     );
   }
 
-  const activeLogs: LogEntry[] =
+  const activeLogs: ComponentLogEntry[] =
     (activeStepName && logsByStep[activeStepName]) || [];
 
   // The active step's logs grow while it is running, so pin the viewport to

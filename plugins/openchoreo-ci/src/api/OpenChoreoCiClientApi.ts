@@ -2,7 +2,7 @@ import { createApiRef } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import type {
   ModelsBuild,
-  LogEntry,
+  ComponentLogEntry,
   WorkflowRunStatusResponse,
 } from '@openchoreo/backstage-plugin-common';
 
@@ -73,7 +73,7 @@ export interface OpenChoreoCiClientApi {
    * @param runName - The name or ID of the workflow run.
    * @param hasLiveObservability - Whether live observability is enabled for this run.
    * @param options - Optional: step (for step-specific logs), sinceSeconds (to tail only recent logs).
-   * @returns An array of LogEntry objects following the observability log format.
+   * @returns An array of ComponentLogEntry objects following the observability log format.
    *
    * Notes:
    *   - This method proxies log retrieval through the CI backend, which in turn may fetch data either from
@@ -86,7 +86,7 @@ export interface OpenChoreoCiClientApi {
     runName: string,
     hasLiveObservability: boolean,
     options?: { step?: string; sinceSeconds?: number },
-  ): Promise<LogEntry[]>;
+  ): Promise<ComponentLogEntry[]>;
 
   /**
    * Fetch events for a workflow run using the provided namespaceName, projectName, componentName and runName.

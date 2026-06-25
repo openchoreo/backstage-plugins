@@ -173,9 +173,6 @@ export function getFilterPresets(clusterScopeActive: boolean): FilterPreset[] {
   ];
 }
 
-/** @deprecated Use getFilterPresets() instead */
-export const FILTER_PRESETS: FilterPreset[] = getFilterPresets(true);
-
 export const ALL_FILTERABLE_KINDS: {
   id: string;
   label: string;

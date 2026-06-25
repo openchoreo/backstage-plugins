@@ -4,12 +4,7 @@ import {
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
 import type { APIResponse } from '@openchoreo/backstage-plugin-common';
-
-type ResourceReleaseSchemaResponse = APIResponse & {
-  data?: {
-    [key: string]: unknown;
-  };
-};
+import type { ApiSchemaResponse } from '../types';
 
 export type ResourceReleaseSchemaSection = 'parameters' | 'environmentConfigs';
 
@@ -77,7 +72,7 @@ export class ResourceReleaseInfoService {
     releaseName: string,
     section: ResourceReleaseSchemaSection,
     token?: string,
-  ): Promise<ResourceReleaseSchemaResponse> {
+  ): Promise<ApiSchemaResponse> {
     this.logger.debug(
       `Fetching snapshot schema (${section}) for resource release: ${releaseName} in namespace: ${namespaceName}`,
     );
@@ -112,7 +107,7 @@ export class ResourceReleaseInfoService {
       success: true,
       // Empty schema when the section isn't defined — keeps the caller's
       // form code uniform; it renders an empty-state message in that case.
-      data: (schema ?? {}) as ResourceReleaseSchemaResponse['data'],
+      data: (schema ?? {}) as ApiSchemaResponse['data'],
     };
   }
 }
