@@ -1,13 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  CircularProgress,
-} from '@material-ui/core';
+import { Typography } from '@material-ui/core';
 import DeleteIcon from '@material-ui/icons/Delete';
 import { useNavigate } from 'react-router-dom';
 import { useApi, alertApiRef, IconComponent } from '@backstage/core-plugin-api';
@@ -18,8 +10,8 @@ import {
   CLUSTER_SCOPED_RESOURCE_KINDS,
 } from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
-import { useStyles } from '../styles';
 import { isMarkedForDeletion } from '../utils';
+import { DeleteEntityDialog } from '../components';
 import {
   isSupportedKind,
   mapKindToApiKind,
@@ -91,7 +83,6 @@ export function useDeleteEntityMenuItems(
   const openChoreoClient = useApi(openChoreoClientApiRef);
   const alertApi = useApi(alertApiRef);
   const navigate = useNavigate();
-  const classes = useStyles();
 
   const entityKind = entity.kind.toLowerCase();
   const entityName = entity.metadata.name;
@@ -216,82 +207,45 @@ export function useDeleteEntityMenuItems(
     ];
   }, [canDelete, entityDisplayType, handleOpenDialog, deletePermission]);
 
+  const cascadeNote = useMemo(() => {
+    if (isProject) {
+      return (
+        <Typography variant="h5">
+          Note: All components within this project will also be deleted.
+        </Typography>
+      );
+    }
+    if (isDomain) {
+      return (
+        <Typography variant="h5">
+          Note: All projects and components within this namespace will also be
+          deleted.
+        </Typography>
+      );
+    }
+    return undefined;
+  }, [isProject, isDomain]);
+
   const DeleteConfirmationDialog: React.FC = useCallback(
     () => (
-      <Dialog
+      <DeleteEntityDialog
         open={dialogOpen}
+        entityDisplayType={entityDisplayType}
+        entityName={entityName}
+        deleting={deleting}
+        error={error}
+        cascadeNote={cascadeNote}
         onClose={handleCloseDialog}
-        maxWidth="sm"
-        fullWidth
-        aria-labelledby="delete-entity-dialog-title"
-      >
-        <DialogTitle id="delete-entity-dialog-title" disableTypography>
-          <Typography variant="h4">Delete {entityDisplayType}</Typography>
-        </DialogTitle>
-
-        <DialogContent className={classes.deleteDialogContent}>
-          <Typography variant="body1">
-            Are you sure you want to delete the{' '}
-            {entityDisplayType.toLowerCase()}{' '}
-            <span className={classes.entityName}>{entityName}</span>?
-          </Typography>
-
-          <Typography variant="body2" className={classes.warningText}>
-            This action cannot be undone. The {entityDisplayType.toLowerCase()}{' '}
-            and all its associated resources will be permanently deleted.
-          </Typography>
-
-          {isProject && (
-            <Typography variant="h5">
-              Note: All components within this project will also be deleted.
-            </Typography>
-          )}
-
-          {isDomain && (
-            <Typography variant="h5">
-              Note: All projects and components within this namespace will also
-              be deleted.
-            </Typography>
-          )}
-
-          {error && (
-            <Typography variant="body2" color="error">
-              Error: {error}
-            </Typography>
-          )}
-        </DialogContent>
-
-        <DialogActions>
-          <Button
-            onClick={handleCloseDialog}
-            disabled={deleting}
-            variant="contained"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirmDelete}
-            className={classes.deleteButton}
-            variant="outlined"
-            disabled={deleting}
-            startIcon={
-              deleting ? <CircularProgress size={16} color="inherit" /> : null
-            }
-          >
-            {deleting ? 'Deleting...' : 'Delete'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleConfirmDelete}
+      />
     ),
     [
       dialogOpen,
       handleCloseDialog,
       handleConfirmDelete,
-      classes,
       entityDisplayType,
       entityName,
-      isProject,
-      isDomain,
+      cascadeNote,
       error,
       deleting,
     ],

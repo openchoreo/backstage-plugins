@@ -1,7 +1,16 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Entity } from '@backstage/catalog-model';
 import { Table } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useNavigate } from 'react-router-dom';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   Box,
   IconButton,
@@ -26,7 +35,10 @@ import {
   type ProjectContentKind,
   type ProjectContentsOrderBy,
 } from '../hooks';
-import { isMarkedForDeletion } from '../../DeleteEntity';
+import {
+  isMarkedForDeletion,
+  useDeleteComponentDialog,
+} from '../../DeleteEntity';
 import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import {
   MultiSelectFilter,
@@ -42,6 +54,37 @@ import { useProjectContentsCardStyles } from './styles';
 
 const PAGE_SIZE = 5;
 const KIND_ORDER: ProjectContentKind[] = ['component', 'resource'];
+
+/** Stable identity for a content row, independent of object reference. */
+const entityKey = (entity: Entity): string =>
+  `${entity.kind.toLowerCase()}:${entity.metadata.namespace || 'default'}/${
+    entity.metadata.name
+  }`;
+
+/**
+ * Mark a row as deleted in the UI immediately, before the catalog re-ingests
+ * the deletion. The listing reads "marked for deletion" from the catalog
+ * entity's annotation, but a delete only updates the control plane — the
+ * catalog lags by a sync/event. We inject the annotation locally so the badge
+ * shows right away (the entity page gets the same effect by querying the OC
+ * API directly).
+ */
+const withOptimisticDeletion = (item: ProjectContentItem): ProjectContentItem =>
+  isMarkedForDeletion(item.entity)
+    ? item
+    : {
+        ...item,
+        entity: {
+          ...item.entity,
+          metadata: {
+            ...item.entity.metadata,
+            annotations: {
+              ...(item.entity.metadata.annotations ?? {}),
+              [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: new Date().toISOString(),
+            },
+          },
+        },
+      };
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -72,6 +115,13 @@ export const ProjectContentsCard = () => {
   // Drives the Refresh icon's spin + disabled state while an explicit refresh
   // (page rows + facet counts) is in flight.
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Bumped after a component is marked for deletion to re-fetch the page.
+  const [refreshToken, setRefreshToken] = useState(0);
+  // Rows deleted from the listing this session — marked optimistically until
+  // the catalog catches up (keyed by entity identity, not object reference).
+  const [pendingDeletions, setPendingDeletions] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const resetToFirstPage = () => {
     setCursor(undefined);
@@ -94,6 +144,22 @@ export const ProjectContentsCard = () => {
     orderDir: sort.dir,
     cursor,
     limit: PAGE_SIZE,
+    refreshToken,
+  });
+
+  // Row-level component delete. On success we (1) optimistically mark the row
+  // so the "marked for deletion" badge shows immediately, and (2) re-fetch so
+  // the row eventually drops off once the catalog removes the component.
+  const handleDeleted = useCallback((deletedEntity: Entity) => {
+    setPendingDeletions(prev => {
+      const next = new Set(prev);
+      next.add(entityKey(deletedEntity));
+      return next;
+    });
+    setRefreshToken(token => token + 1);
+  }, []);
+  const { requestDelete, DeleteDialog } = useDeleteComponentDialog({
+    onDeleted: handleDeleted,
   });
 
   const {
@@ -167,8 +233,28 @@ export const ProjectContentsCard = () => {
         canViewBindings,
         pipelineError,
         environmentsLoading,
+        onDeleteComponent: item => requestDelete(item.entity),
       }),
-    [pipelineEnvironments, canViewBindings, pipelineError, environmentsLoading],
+    [
+      pipelineEnvironments,
+      canViewBindings,
+      pipelineError,
+      environmentsLoading,
+      requestDelete,
+    ],
+  );
+
+  // Apply optimistic deletion marks on top of the fetched page.
+  const displayItems = useMemo(
+    () =>
+      pendingDeletions.size === 0
+        ? page.items
+        : page.items.map(item =>
+            pendingDeletions.has(entityKey(item.entity))
+              ? withOptimisticDeletion(item)
+              : item,
+          ),
+    [page.items, pendingDeletions],
   );
 
   // --- Handlers ----------------------------------------------------------
@@ -350,7 +436,7 @@ export const ProjectContentsCard = () => {
           >
             <Table<ProjectContentItem>
               columns={columns}
-              data={page.items}
+              data={displayItems}
               isLoading={false}
               onOrderChange={handleOrderChange}
               onRowClick={(event, rowData) => {
@@ -421,6 +507,8 @@ export const ProjectContentsCard = () => {
           )}
         </>
       )}
+
+      <DeleteDialog />
     </Box>
   );
 };

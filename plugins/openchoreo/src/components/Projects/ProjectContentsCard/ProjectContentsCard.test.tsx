@@ -65,9 +65,14 @@ jest.mock('@backstage/core-components', () => ({
   TableColumn: {},
 }));
 
+const mockRequestDelete = jest.fn();
 jest.mock('../../DeleteEntity', () => ({
   isMarkedForDeletion: () => false,
   DeletionBadge: () => null,
+  useDeleteComponentDialog: () => ({
+    requestDelete: mockRequestDelete,
+    DeleteDialog: () => null,
+  }),
 }));
 jest.mock('../../../utils/errorUtils', () => ({
   isForbiddenError: () => false,

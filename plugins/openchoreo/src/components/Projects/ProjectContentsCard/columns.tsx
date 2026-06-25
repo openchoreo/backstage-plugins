@@ -9,6 +9,7 @@ import { isForbiddenError } from '../../../utils/errorUtils';
 import { type Environment, type ProjectContentItem } from '../hooks';
 import { KindCell } from './KindCell';
 import { DeploymentStatusCell } from './DeploymentStatusCell';
+import { RowActionsCell } from './RowActionsCell';
 import { useProjectContentsCardStyles } from './styles';
 
 const NameCell = ({ item }: { item: ProjectContentItem }) => {
@@ -123,6 +124,8 @@ interface BuildColumnsArgs {
   pipelineError: unknown;
   /** Pipeline environments / permission still loading — skeleton the column. */
   environmentsLoading: boolean;
+  /** Open the delete-confirmation dialog for a component row. */
+  onDeleteComponent: (item: ProjectContentItem) => void;
 }
 
 export function buildProjectContentColumns({
@@ -130,12 +133,13 @@ export function buildProjectContentColumns({
   canViewBindings,
   pipelineError,
   environmentsLoading,
+  onDeleteComponent,
 }: BuildColumnsArgs): TableColumn<ProjectContentItem>[] {
   return [
     {
       title: 'Name',
       field: 'displayName',
-      width: '16%',
+      width: '15%',
       highlight: true,
       // Ordering is server-side (see onOrderChange); the no-op keeps the
       // clickable header + arrow without reordering the current page locally.
@@ -174,7 +178,7 @@ export function buildProjectContentColumns({
     },
     {
       title: 'Deployment',
-      width: '30%',
+      width: '26%',
       sorting: false,
       render: item => (
         <DeploymentColumnCell
@@ -194,6 +198,16 @@ export function buildProjectContentColumns({
       defaultSort: 'desc',
       customSort: () => 0,
       render: item => <CreatedCell item={item} />,
+    },
+    {
+      title: '',
+      width: '5%',
+      sorting: false,
+      cellStyle: { textAlign: 'right', paddingRight: 8 },
+      headerStyle: { textAlign: 'right' },
+      render: item => (
+        <RowActionsCell item={item} onDelete={onDeleteComponent} />
+      ),
     },
   ];
 }
