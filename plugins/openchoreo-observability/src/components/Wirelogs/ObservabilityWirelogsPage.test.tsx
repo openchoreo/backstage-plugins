@@ -45,6 +45,29 @@ jest.mock('@openchoreo/backstage-plugin-common', () => ({
   CHOREO_ANNOTATIONS: { COMPONENT: 'openchoreo.io/component' },
 }));
 
+// The page calls useApi(alertApiRef); the plain `render` here has no
+// Backstage API context, so override only useApi (keeping the real module
+// otherwise, so core-components still loads) and expose the alert post spy.
+jest.mock('@backstage/core-plugin-api', () => {
+  const actual = jest.requireActual('@backstage/core-plugin-api');
+  const alertPost = jest.fn();
+  return {
+    ...actual,
+    useApi: jest.fn(() => ({ post: alertPost })),
+    __alertPost: alertPost,
+  };
+});
+
+// The soft-timeout dialog is covered by its own logic; render it as a no-op
+// here so the page test stays focused on layout/state.
+jest.mock('./WirelogsStreamTimeoutDialog', () => ({
+  __esModule: true,
+  WirelogsStreamTimeoutDialog: () => null,
+}));
+
+const alertPost = (jest.requireMock('@backstage/core-plugin-api') as any)
+  .__alertPost as jest.Mock;
+
 const mockUseGetNamespaceAndProjectByEntity = jest.fn().mockReturnValue({
   namespace: 'ns',
   project: 'proj',
@@ -110,6 +133,9 @@ interface StreamState {
   status: string;
   error: string | null;
   totalReceived: number;
+  startedAt: number | null;
+  hardTimeoutMs: number | null;
+  closedReason: 'user' | 'timeout' | 'error' | 'ended' | null;
   start: jest.Mock;
   stop: jest.Mock;
   clear: jest.Mock;
@@ -125,6 +151,9 @@ function defaultStream(): StreamState {
     status: 'idle',
     error: null,
     totalReceived: 0,
+    startedAt: null,
+    hardTimeoutMs: null,
+    closedReason: null,
     start: startMock,
     stop: stopMock,
     clear: clearMock,
@@ -226,6 +255,23 @@ describe('ObservabilityWirelogsPage', () => {
     setupStream({ status: 'error', error: 'kaboom' });
     render(<ObservabilityWirelogsPage />);
     expect(screen.getByText('kaboom')).toBeInTheDocument();
+  });
+
+  it('posts a toast when the stream closes due to the hard timeout', () => {
+    setupStream({ status: 'closed', closedReason: 'timeout' });
+    render(<ObservabilityWirelogsPage />);
+    expect(alertPost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        severity: 'info',
+        message: expect.stringContaining('maximum duration'),
+      }),
+    );
+  });
+
+  it('does not post the timeout toast for a user-stopped stream', () => {
+    setupStream({ status: 'closed', closedReason: 'user' });
+    render(<ObservabilityWirelogsPage />);
+    expect(alertPost).not.toHaveBeenCalled();
   });
 
   it('shows a compact forbidden state for the selected environment when scoped permission is denied', async () => {
