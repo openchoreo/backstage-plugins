@@ -59,7 +59,9 @@ export class AuthzService {
   // User Types
   // =====================
 
-  async listUserTypes(userToken?: string): Promise<{ data: SubjectTypeConfig[] }> {
+  async listUserTypes(
+    userToken?: string,
+  ): Promise<{ data: SubjectTypeConfig[] }> {
     this.logger.debug('Fetching all user types');
 
     try {

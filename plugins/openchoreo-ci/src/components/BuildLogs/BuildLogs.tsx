@@ -48,9 +48,9 @@ export const LogsContent = ({ build }: LogsContentProps) => {
   const [statusError, setStatusError] = useState<string | null>(null);
 
   const [activeStepName, setActiveStepName] = useState<string | null>(null);
-  const [logsByStep, setLogsByStep] = useState<Record<string, ComponentLogEntry[]>>(
-    {},
-  );
+  const [logsByStep, setLogsByStep] = useState<
+    Record<string, ComponentLogEntry[]>
+  >({});
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState<string | null>(null);
   const [isObservabilityNotConfigured, setIsObservabilityNotConfigured] =
