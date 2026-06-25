@@ -4,7 +4,7 @@ import {
   CHOREO_ANNOTATIONS,
   ModelsBuild,
   WorkflowRunStatusResponse,
-  LogEntry,
+  ComponentLogEntry,
 } from '@openchoreo/backstage-plugin-common';
 import type {
   OpenChoreoCiClientApi,
@@ -159,7 +159,7 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
     runName: string,
     hasLiveObservability: boolean,
     options?: { step?: string; sinceSeconds?: number },
-  ): Promise<LogEntry[]> {
+  ): Promise<ComponentLogEntry[]> {
     if (!namespaceName || !projectName || !componentName || !runName) {
       throw new Error(
         'namespaceName, projectName, componentName and runName are required fields for fetching workflow run logs',
@@ -193,7 +193,7 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
       );
     }
 
-    const entries = (await response.json()) as LogEntry[];
+    const entries = (await response.json()) as ComponentLogEntry[];
     return entries;
   }
 

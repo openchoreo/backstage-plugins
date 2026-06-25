@@ -13,8 +13,6 @@ export type ActionInfo = OpenChoreoComponents['schemas']['ActionInfo'];
 export type Entitlement = OpenChoreoComponents['schemas']['Entitlement'];
 export type SubjectTypeConfig =
   OpenChoreoComponents['schemas']['SubjectTypeConfig'];
-/** @deprecated Use SubjectTypeConfig instead */
-export type UserTypeConfig = SubjectTypeConfig;
 
 export class AuthzService {
   private readonly logger: LoggerService;
@@ -61,7 +59,7 @@ export class AuthzService {
   // User Types
   // =====================
 
-  async listUserTypes(userToken?: string): Promise<{ data: UserTypeConfig[] }> {
+  async listUserTypes(userToken?: string): Promise<{ data: SubjectTypeConfig[] }> {
     this.logger.debug('Fetching all user types');
 
     try {
@@ -74,8 +72,8 @@ export class AuthzService {
 
       this.logger.debug(`Successfully fetched ${data?.length || 0} user types`);
 
-      // New API returns UserTypeConfig[] directly, wrap for consistency
-      return { data: (data || []) as UserTypeConfig[] };
+      // New API returns SubjectTypeConfig[] directly, wrap for consistency
+      return { data: (data || []) as SubjectTypeConfig[] };
     } catch (err) {
       this.logger.error(`Failed to fetch user types: ${err}`);
       throw err;

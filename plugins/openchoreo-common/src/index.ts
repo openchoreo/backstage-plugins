@@ -317,19 +317,3 @@ export type ComponentEventEntry =
 /** Response from the /api/v1/events/query endpoint. */
 export type EventsQueryResponse =
   ObservabilityComponents['schemas']['EventsQueryResponse'];
-
-/**
- * @deprecated Use ComponentLogEntry or WorkflowLogEntry instead.
- * Kept for backwards compatibility — will be removed once all callers are migrated.
- */
-export type LogEntry = ComponentLogEntry;
-
-/**
- * @deprecated Use LogsQueryResponse instead.
- * Kept for backwards compatibility — will be removed once all callers are migrated.
- */
-export interface RuntimeLogsResponse {
-  logs: ComponentLogEntry[];
-  total?: number;
-  tookMs?: number;
-}

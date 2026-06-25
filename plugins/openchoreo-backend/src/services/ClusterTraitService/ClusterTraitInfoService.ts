@@ -4,29 +4,16 @@ import {
   assertApiResponse,
   fetchAllPages,
 } from '@openchoreo/openchoreo-client-node';
-import type {
-  APIResponse,
-  ListResponse,
-  ClusterTraitResponse,
-} from '@openchoreo/backstage-plugin-common';
+import type { ClusterTraitResponse } from '@openchoreo/backstage-plugin-common';
 import {
   getName,
   getDisplayName,
   getDescription,
   getCreatedAt,
 } from '../transformers/common';
+import type { ApiListResponse, ApiSchemaResponse } from '../types';
 
-type ClusterTraitListResponse = APIResponse & {
-  data?: ListResponse & {
-    items?: ClusterTraitResponse[];
-  };
-};
-
-type ClusterTraitSchemaResponse = APIResponse & {
-  data?: {
-    [key: string]: unknown;
-  };
-};
+type ClusterTraitListResponse = ApiListResponse<ClusterTraitResponse>;
 
 export class ClusterTraitInfoService {
   private logger: LoggerService;
@@ -85,7 +72,7 @@ export class ClusterTraitInfoService {
   async fetchClusterTraitSchema(
     clusterTraitName: string,
     token?: string,
-  ): Promise<ClusterTraitSchemaResponse> {
+  ): Promise<ApiSchemaResponse> {
     this.logger.debug(`Fetching schema for cluster trait: ${clusterTraitName}`);
 
     try {
@@ -116,7 +103,7 @@ export class ClusterTraitInfoService {
       return {
         success: true,
         data: data,
-      } as ClusterTraitSchemaResponse;
+      } as ApiSchemaResponse;
     } catch (error) {
       this.logger.error(
         `Failed to fetch schema for cluster trait ${clusterTraitName}: ${error}`,

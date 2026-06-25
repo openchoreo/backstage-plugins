@@ -12,7 +12,7 @@ export { useTraces } from './useTraces';
 export { useTraceSpans } from './useTraceSpans';
 export { useSpanDetails } from './useSpanDetails';
 export { useGetComponentsByProject } from './useGetComponentsByProject';
-export { useRCAReport, useRCAReportByAlert } from './useRCAReportByAlert';
+export { useRCAReport } from './useRCAReport';
 export { useRCAReports } from './useRCAReports';
 export { useFinOpsReport } from './useFinOpsReport';
 export { useFinOpsReports } from './useFinOpsReports';

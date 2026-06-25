@@ -65,6 +65,3 @@ export function useRCAReport(
     refresh: fetchReport,
   };
 }
-
-/** @deprecated Use useRCAReport instead */
-export const useRCAReportByAlert = useRCAReport;

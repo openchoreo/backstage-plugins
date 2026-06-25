@@ -25,8 +25,8 @@ export interface UseReleaseReadinessResult {
 /**
  * Determines whether a component is ready for a new release.
  *
- * Extracted from the old WorkloadButton so both the "Create release" and
- * "Edit workload" entry points share the same gating logic.
+ * Shared gating logic so the "Create release" and "Edit workload" entry points
+ * stay in sync.
  */
 export const useReleaseReadiness = (
   entity: Entity,

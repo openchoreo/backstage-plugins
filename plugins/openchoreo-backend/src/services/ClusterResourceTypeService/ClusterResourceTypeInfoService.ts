@@ -3,31 +3,11 @@ import {
   createOpenChoreoApiClient,
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
-import type { APIResponse } from '@openchoreo/backstage-plugin-common';
-
-type ClusterResourceTypeSchemaResponse = APIResponse & {
-  data?: {
-    [key: string]: unknown;
-  };
-};
-
-/** An output entry declared on a (Cluster)ResourceType. The "kind" is implicit
- * in which of value / secretKeyRef / configMapKeyRef is set. */
-type ResourceTypeOutput = {
-  name: string;
-  value?: string;
-  secretKeyRef?: { name: string; key: string };
-  configMapKeyRef?: { name: string; key: string };
-};
-
-/** APIResponse.data is record-shaped; outputs is array-shaped, so we
- * declare this as a sibling interface rather than extending APIResponse. */
-interface ClusterResourceTypeOutputsResponse {
-  success: boolean;
-  data?: ResourceTypeOutput[];
-  error?: string;
-  code?: string;
-}
+import type {
+  ApiSchemaResponse,
+  ResourceTypeOutput,
+  ResourceTypeOutputsResponse,
+} from '../types';
 
 /**
  * BFF service for cluster-scoped ClusterResourceType operations. Today
@@ -48,7 +28,7 @@ export class ClusterResourceTypeInfoService {
   async fetchClusterResourceTypeSchema(
     crtName: string,
     token?: string,
-  ): Promise<ClusterResourceTypeSchemaResponse> {
+  ): Promise<ApiSchemaResponse> {
     this.logger.debug(`Fetching schema for cluster resource type: ${crtName}`);
 
     try {
@@ -78,7 +58,7 @@ export class ClusterResourceTypeInfoService {
 
       return {
         success: true,
-        data: data as ClusterResourceTypeSchemaResponse['data'],
+        data: data as ApiSchemaResponse['data'],
       };
     } catch (error) {
       this.logger.error(
@@ -97,7 +77,7 @@ export class ClusterResourceTypeInfoService {
   async fetchClusterResourceTypeOutputs(
     crtName: string,
     token?: string,
-  ): Promise<ClusterResourceTypeOutputsResponse> {
+  ): Promise<ResourceTypeOutputsResponse> {
     this.logger.debug(`Fetching outputs for cluster resource type: ${crtName}`);
 
     try {

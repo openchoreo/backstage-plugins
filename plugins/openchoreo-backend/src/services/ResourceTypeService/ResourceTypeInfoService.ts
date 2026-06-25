@@ -3,31 +3,11 @@ import {
   createOpenChoreoApiClient,
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
-import type { APIResponse } from '@openchoreo/backstage-plugin-common';
-
-type ResourceTypeSchemaResponse = APIResponse & {
-  data?: {
-    [key: string]: unknown;
-  };
-};
-
-/** An output entry declared on a (Cluster)ResourceType. The "kind" is implicit
- * in which of value / secretKeyRef / configMapKeyRef is set. */
-type ResourceTypeOutput = {
-  name: string;
-  value?: string;
-  secretKeyRef?: { name: string; key: string };
-  configMapKeyRef?: { name: string; key: string };
-};
-
-/** APIResponse.data is record-shaped; outputs is array-shaped, so we
- * declare this as a sibling interface rather than extending APIResponse. */
-interface ResourceTypeOutputsResponse {
-  success: boolean;
-  data?: ResourceTypeOutput[];
-  error?: string;
-  code?: string;
-}
+import type {
+  ApiSchemaResponse,
+  ResourceTypeOutput,
+  ResourceTypeOutputsResponse,
+} from '../types';
 
 /**
  * BFF service for namespace-scoped ResourceType operations. Today the
@@ -49,7 +29,7 @@ export class ResourceTypeInfoService {
     namespaceName: string,
     rtName: string,
     token?: string,
-  ): Promise<ResourceTypeSchemaResponse> {
+  ): Promise<ApiSchemaResponse> {
     this.logger.debug(
       `Fetching schema for resource type: ${rtName} in namespace: ${namespaceName}`,
     );
@@ -81,7 +61,7 @@ export class ResourceTypeInfoService {
 
       return {
         success: true,
-        data: data as ResourceTypeSchemaResponse['data'],
+        data: data as ApiSchemaResponse['data'],
       };
     } catch (error) {
       this.logger.error(
