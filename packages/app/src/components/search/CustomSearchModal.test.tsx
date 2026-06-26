@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { renderInTestApp, TestApiProvider } from '@backstage/test-utils';
 import {
   searchApiRef,
@@ -63,8 +63,10 @@ describe('CustomSearchModal', () => {
   it('queries the backend with an empty term on open (no typing)', async () => {
     await renderModal();
 
-    expect(mockSearchApi.query).toHaveBeenCalledWith(
-      expect.objectContaining({ term: '' }),
+    await waitFor(() =>
+      expect(mockSearchApi.query).toHaveBeenCalledWith(
+        expect.objectContaining({ term: '' }),
+      ),
     );
   });
 
