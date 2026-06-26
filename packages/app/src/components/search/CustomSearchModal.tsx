@@ -94,6 +94,15 @@ export const CustomSearchModal = ({ toggleModal }: CustomSearchModalProps) => {
   const app = useApp();
   const { term } = useSearch();
 
+  // Drive <SearchResult> in controlled (query) mode so it queries the backend via
+  // SearchResultApi's own useAsync, bypassing plugin-search-react 1.11.x's
+  // `isFirstEmptyMount` guard — which otherwise hides the default results on every
+  // modal open until the user types and clears the box.
+  const searchQuery = useMemo(
+    () => ({ term: term ?? '', types: [], filters: {} }),
+    [term],
+  );
+
   const searchBarRef = (node: HTMLInputElement | null) => {
     if (node) {
       setTimeout(() => node.focus(), 0);
@@ -167,7 +176,7 @@ export const CustomSearchModal = ({ toggleModal }: CustomSearchModalProps) => {
             <Divider />
           </Box>
         )}
-        <SearchResult>
+        <SearchResult query={searchQuery}>
           {resultSet => {
             const templates = resultSet.results
               .filter(r => (r.document as any).kind === 'Template')
