@@ -1005,3 +1005,103 @@ describe('EventDeltaApplier custom scaffolder templates', () => {
     expect(addedKinds).toEqual(['ClusterComponentType']);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Removing a Component leaves the parent System's reverse `hasPart` relation
+// dangling until the System is re-processed. With a catalog read-side wired,
+// the applier resolves the owning System and forces a refresh so the stale
+// relation (and the "related entities could not be found" warning) clears.
+// ---------------------------------------------------------------------------
+describe('EventDeltaApplier component removal refreshes the parent System', () => {
+  let applyMutation: jest.Mock;
+  let connection: EntityProviderConnection;
+  let getEntityByRef: jest.Mock;
+  let refreshEntity: jest.Mock;
+
+  function newApplierWithCatalog(component: any) {
+    getEntityByRef = jest.fn().mockResolvedValue(component);
+    refreshEntity = jest.fn().mockResolvedValue(undefined);
+    return new EventDeltaApplier({
+      logger: mkLogger(),
+      baseUrl: 'http://test:8080',
+      defaultOwner: 'group:default/test-owner',
+      translatorContext: {
+        providerName: 'OpenChoreoEntityProvider',
+        defaultOwner: 'group:default/test-owner',
+        componentTypeUtils: ComponentTypeUtils.fromConfig(
+          new ConfigReader({
+            openchoreo: { componentTypes: { mappings: [] } },
+          }),
+        ),
+      },
+      getConnection: () => connection,
+      ctdConverter: new CtdToTemplateConverter(mkLogger()),
+      rtdConverter: new RtdToTemplateConverter(mkLogger()),
+      ptdConverter: new PtdToTemplateConverter(mkLogger()),
+      catalogService: { getEntityByRef, refreshEntity } as any,
+      auth: {
+        getOwnServiceCredentials: jest.fn().mockResolvedValue({}),
+      } as any,
+    });
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGET.mockResolvedValue(notFound());
+    applyMutation = jest.fn();
+    connection = { applyMutation, refresh: jest.fn() } as any;
+  });
+
+  it('refreshes the System from the component partOf relation', async () => {
+    const applier = newApplierWithCatalog({
+      kind: 'Component',
+      metadata: { name: 'order', namespace: 'test-ns' },
+      spec: { system: 'shop' },
+      relations: [
+        { type: 'partOf', targetRef: 'system:test-ns/shop' },
+        { type: 'ownedBy', targetRef: 'group:default/team' },
+      ],
+    });
+
+    await applier.handleEvent('Component', 'order', 'test-ns', 'deleted');
+
+    // Parent resolved before removal, component removed, parent refreshed.
+    expect(getEntityByRef).toHaveBeenCalledWith(
+      'component:test-ns/order',
+      expect.anything(),
+    );
+    expect(
+      applyMutation.mock.calls[0][0].removed.map((r: any) => r.entityRef),
+    ).toEqual(['component:test-ns/order']);
+    expect(refreshEntity).toHaveBeenCalledWith(
+      'system:test-ns/shop',
+      expect.anything(),
+    );
+  });
+
+  it('falls back to spec.system when there is no partOf relation', async () => {
+    const applier = newApplierWithCatalog({
+      kind: 'Component',
+      metadata: { name: 'order', namespace: 'test-ns' },
+      spec: { system: 'shop' },
+    });
+
+    await applier.handleEvent('Component', 'order', 'test-ns', 'deleted');
+
+    expect(refreshEntity).toHaveBeenCalledWith(
+      'system:test-ns/shop',
+      expect.anything(),
+    );
+  });
+
+  it('removes the component without refreshing when the owner cannot be resolved', async () => {
+    const applier = newApplierWithCatalog(undefined);
+
+    await applier.handleEvent('Component', 'order', 'test-ns', 'deleted');
+
+    expect(
+      applyMutation.mock.calls[0][0].removed.map((r: any) => r.entityRef),
+    ).toEqual(['component:test-ns/order']);
+    expect(refreshEntity).not.toHaveBeenCalled();
+  });
+});

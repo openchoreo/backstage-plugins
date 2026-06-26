@@ -1,4 +1,8 @@
-import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
+import {
+  Entity,
+  stringifyEntityRef,
+  RELATION_PART_OF,
+} from '@backstage/catalog-model';
 import { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import {
   CatalogService,
@@ -674,6 +678,69 @@ export class EventDeltaApplier {
     ]);
   }
 
+  /**
+   * Resolve the Backstage System (OC Project) ref a component belongs to, by
+   * reading the still-present catalog Component entity. Prefers the `partOf`
+   * relation (the exact ref Backstage assigned); falls back to `spec.system`.
+   * Returns undefined when the catalog read-side isn't wired or the owner
+   * can't be resolved — the caller then just skips the parent refresh.
+   */
+  private async findParentSystemRef(
+    ns: string,
+    name: string,
+  ): Promise<string | undefined> {
+    if (!this.catalogService || !this.auth) {
+      return undefined;
+    }
+    try {
+      const credentials = await this.auth.getOwnServiceCredentials();
+      const entity = await this.catalogService.getEntityByRef(
+        this.buildEntityRef('component', ns, name),
+        { credentials },
+      );
+      if (!entity) {
+        return undefined;
+      }
+      const partOf = entity.relations?.find(
+        rel =>
+          rel.type === RELATION_PART_OF && rel.targetRef.startsWith('system:'),
+      );
+      if (partOf) {
+        return partOf.targetRef;
+      }
+      const system = (entity.spec as { system?: string } | undefined)?.system;
+      return system
+        ? this.buildEntityRef(
+            'system',
+            entity.metadata.namespace ?? 'default',
+            system,
+          )
+        : undefined;
+    } catch (err) {
+      this.logger.warn(
+        `Could not resolve parent System for component ${ns}/${name}: ${err}`,
+      );
+      return undefined;
+    }
+  }
+
+  /**
+   * Force a re-process (and thus re-stitch) of a single entity. Best-effort:
+   * logs and continues on failure so it never blocks the mutation that
+   * triggered it.
+   */
+  private async refreshEntityRef(entityRef: string): Promise<void> {
+    if (!this.catalogService || !this.auth) {
+      return;
+    }
+    try {
+      const credentials = await this.auth.getOwnServiceCredentials();
+      await this.catalogService.refreshEntity(entityRef, { credentials });
+    } catch (err) {
+      this.logger.warn(`Failed to refresh ${entityRef}: ${err}`);
+    }
+  }
+
   private async refreshComponent(
     ns: string,
     name: string,
@@ -687,7 +754,19 @@ export class EventDeltaApplier {
     const client = await this.createApiClient();
     const component = await this.fetchComponent(client, ns, name);
     if (!component) {
+      // Resolve the owning System *before* removing the component — once the
+      // component entity is gone we can no longer read its `partOf` relation.
+      const parentSystemRef = await this.findParentSystemRef(ns, name);
       await this.removeEntityRefs([this.buildEntityRef('component', ns, name)]);
+      // Removing the component leaves the System's reverse `hasPart` relation
+      // dangling: the System's denormalized relations are only recomputed when
+      // it is itself re-processed, and the periodic full sync re-emits it
+      // unchanged (so it isn't). Until then the project page shows "Some
+      // related entities could not be found in the catalog". Force a refresh
+      // of the parent System so it re-stitches and drops the dangling edge.
+      if (parentSystemRef) {
+        await this.refreshEntityRef(parentSystemRef);
+      }
       return;
     }
 
