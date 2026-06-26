@@ -3,15 +3,15 @@ import { CellLinkModel } from './CellLinkModel';
 import { CellLinkWidget } from './CellLinkWidget';
 
 export class CellLinkFactory extends DefaultLinkFactory {
-    constructor() {
-        super('cellLink');
-    }
+  constructor() {
+    super('cellLink');
+  }
 
-    generateModel(event: { initialConfig: any }): CellLinkModel {
-        return new CellLinkModel(event.initialConfig.id);
-    }
+  generateModel(event: { initialConfig: any }): CellLinkModel {
+    return new CellLinkModel(event.initialConfig.id);
+  }
 
-    generateReactWidget(props: { model: CellLinkModel }): JSX.Element {
-        return <CellLinkWidget link={props.model} engine={this.engine} />;
-    }
+  generateReactWidget(props: { model: CellLinkModel }): JSX.Element {
+    return <CellLinkWidget link={props.model} engine={this.engine} />;
+  }
 }

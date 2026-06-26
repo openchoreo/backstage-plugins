@@ -7,51 +7,51 @@
  * override individual tokens by passing a `colors` prop to `<CellDiagram>`.
  */
 export type CellDiagramColors = {
-    PRIMARY: string;
-    ON_PRIMARY: string;
-    PRIMARY_CONTAINER: string;
-    /** Hover accent for primary-tinted clickable surfaces (e.g. project node title). */
-    PRIMARY_HOVER: string;
+  PRIMARY: string;
+  ON_PRIMARY: string;
+  PRIMARY_CONTAINER: string;
+  /** Hover accent for primary-tinted clickable surfaces (e.g. project node title). */
+  PRIMARY_HOVER: string;
 
-    SECONDARY: string;
-    ON_SECONDARY: string;
-    SECONDARY_CONTAINER: string;
+  SECONDARY: string;
+  ON_SECONDARY: string;
+  SECONDARY_CONTAINER: string;
 
-    SURFACE_BRIGHT: string;
-    SURFACE: string;
-    SURFACE_DIM: string;
-    SURFACE_CONTAINER: string;
-    ON_SURFACE: string;
-    ON_SURFACE_VARIANT: string;
+  SURFACE_BRIGHT: string;
+  SURFACE: string;
+  SURFACE_DIM: string;
+  SURFACE_CONTAINER: string;
+  ON_SURFACE: string;
+  ON_SURFACE_VARIANT: string;
 
-    OUTLINE: string;
-    OUTLINE_VARIANT: string;
+  OUTLINE: string;
+  OUTLINE_VARIANT: string;
 
-    ERROR: string;
+  ERROR: string;
 };
 
 /** Default light palette — byte-identical to the original `Colors` enum. */
 export const lightColors: Readonly<CellDiagramColors> = Object.freeze({
-    PRIMARY: '#5567D5',
-    ON_PRIMARY: '#FFF',
-    PRIMARY_CONTAINER: '#F0F1FB',
-    PRIMARY_HOVER: '#2c09ed',
+  PRIMARY: '#5567D5',
+  ON_PRIMARY: '#FFF',
+  PRIMARY_CONTAINER: '#F0F1FB',
+  PRIMARY_HOVER: '#2c09ed',
 
-    SECONDARY: '#ffaf4d',
-    ON_SECONDARY: '#FFF',
-    SECONDARY_CONTAINER: '#fffaf2',
+  SECONDARY: '#ffaf4d',
+  ON_SECONDARY: '#FFF',
+  SECONDARY_CONTAINER: '#fffaf2',
 
-    SURFACE_BRIGHT: '#FFF',
-    SURFACE: '#F7F8FB',
-    SURFACE_DIM: '#CBCEDB',
-    SURFACE_CONTAINER: '#cfd1f3',
-    ON_SURFACE: '#000',
-    ON_SURFACE_VARIANT: '#40404B',
+  SURFACE_BRIGHT: '#FFF',
+  SURFACE: '#F7F8FB',
+  SURFACE_DIM: '#CBCEDB',
+  SURFACE_CONTAINER: '#cfd1f3',
+  ON_SURFACE: '#000',
+  ON_SURFACE_VARIANT: '#40404B',
 
-    OUTLINE: '#393939',
-    OUTLINE_VARIANT: '#808080',
+  OUTLINE: '#393939',
+  OUTLINE_VARIANT: '#808080',
 
-    ERROR: '#ED2633',
+  ERROR: '#ED2633',
 });
 
 /**
@@ -71,39 +71,41 @@ export const lightColors: Readonly<CellDiagramColors> = Object.freeze({
  * sits at ~75% for medium-emphasis (labels, secondary chrome).
  */
 export const darkColors: Readonly<CellDiagramColors> = Object.freeze({
-    // Primary lifted one tone for dark surfaces per M3 guidance — the
-    // light-mode `#5567D5` reads as harsh "brand on light" when placed
-    // on a dark canvas. `#8FA0EA` still reads as the same hue family
-    // but meets WCAG AA against `SURFACE_BRIGHT`.
-    PRIMARY: '#8FA0EA',
-    ON_PRIMARY: '#1A1F3A',
-    PRIMARY_CONTAINER: '#3A4272',
-    PRIMARY_HOVER: '#B3BFF0',
+  // Primary lifted one tone for dark surfaces per M3 guidance — the
+  // light-mode `#5567D5` reads as harsh "brand on light" when placed
+  // on a dark canvas. `#8FA0EA` still reads as the same hue family
+  // but meets WCAG AA against `SURFACE_BRIGHT`.
+  PRIMARY: '#8FA0EA',
+  ON_PRIMARY: '#1A1F3A',
+  PRIMARY_CONTAINER: '#3A4272',
+  PRIMARY_HOVER: '#B3BFF0',
 
-    SECONDARY: '#FFC27A',
-    ON_SECONDARY: '#2B1C05',
-    SECONDARY_CONTAINER: '#4A3518',
+  SECONDARY: '#FFC27A',
+  ON_SECONDARY: '#2B1C05',
+  SECONDARY_CONTAINER: '#4A3518',
 
-    SURFACE_BRIGHT: '#12131A',
-    SURFACE: '#2F313C',
-    SURFACE_DIM: '#24252F',
-    SURFACE_CONTAINER: '#3A3C48',
-    ON_SURFACE: '#E8E8EE',
-    ON_SURFACE_VARIANT: '#D4D5DE',
+  SURFACE_BRIGHT: '#12131A',
+  SURFACE: '#2F313C',
+  SURFACE_DIM: '#24252F',
+  SURFACE_CONTAINER: '#3A3C48',
+  ON_SURFACE: '#E8E8EE',
+  ON_SURFACE_VARIANT: '#D4D5DE',
 
-    // Container chrome (cell boundary, default link strokes, port rims)
-    // recedes in dark mode so components remain the focal point. Text
-    // labels previously used this token too — they now read from
-    // `ON_SURFACE_VARIANT` so chrome can dim without dimming labels.
-    OUTLINE: '#6A6B76',
-    OUTLINE_VARIANT: '#45464F',
+  // Container chrome (cell boundary, default link strokes, port rims)
+  // recedes in dark mode so components remain the focal point. Text
+  // labels previously used this token too — they now read from
+  // `ON_SURFACE_VARIANT` so chrome can dim without dimming labels.
+  OUTLINE: '#6A6B76',
+  OUTLINE_VARIANT: '#45464F',
 
-    ERROR: '#F27580',
+  ERROR: '#F27580',
 });
 
 export type CellDiagramThemeMode = 'light' | 'dark';
 
 /** Resolves the preset palette for a mode. */
-export function presetForMode(mode: CellDiagramThemeMode): Readonly<CellDiagramColors> {
-    return mode === 'dark' ? darkColors : lightColors;
+export function presetForMode(
+  mode: CellDiagramThemeMode,
+): Readonly<CellDiagramColors> {
+  return mode === 'dark' ? darkColors : lightColors;
 }

@@ -12,7 +12,7 @@ import { CellDiagramColors } from './colors';
  * TypeScript at build time.
  */
 declare module '@emotion/react' {
-    export interface Theme {
-        colors: CellDiagramColors;
-    }
+  export interface Theme {
+    colors: CellDiagramColors;
+  }
 }

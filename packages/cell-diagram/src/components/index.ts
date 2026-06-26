@@ -56,12 +56,11 @@ export { ExternalLinkModel } from './External/ExternalLink/ExternalLinkModel';
 export { ExternalLinkWidget } from './External/ExternalLink/ExternalLinkWidget';
 
 export * from './OverlayLoader';
-export * from "./PromptScreen/PromptScreen";
-export * from "./Header/Header";
-export * from "./ObservationLabel/ObservationLabel";
-export * from "./MoreVertMenu/MoreVertMenu";
+export * from './PromptScreen/PromptScreen';
+export * from './Header/Header';
+export * from './ObservationLabel/ObservationLabel';
+export * from './MoreVertMenu/MoreVertMenu';
 
-export { DiagramControls } from "./Controls/DiagramControls";
+export { DiagramControls } from './Controls/DiagramControls';
 
-export * from "./DiagramContext/DiagramContext";
-
+export * from './DiagramContext/DiagramContext';

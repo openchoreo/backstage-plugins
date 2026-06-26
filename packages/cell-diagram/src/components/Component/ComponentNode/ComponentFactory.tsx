@@ -4,16 +4,19 @@ import { ComponentModel } from './ComponentModel';
 import { ComponentWidget } from './ComponentWidget';
 import { COMPONENT_NODE } from '../../../resources';
 
-export class ComponentFactory extends AbstractReactFactory<ComponentModel, DiagramEngine> {
-    constructor() {
-        super(COMPONENT_NODE);
-    }
+export class ComponentFactory extends AbstractReactFactory<
+  ComponentModel,
+  DiagramEngine
+> {
+  constructor() {
+    super(COMPONENT_NODE);
+  }
 
-    generateReactWidget(event: { model: ComponentModel }): JSX.Element {
-        return <ComponentWidget engine={this.engine} node={event.model} />;
-    }
+  generateReactWidget(event: { model: ComponentModel }): JSX.Element {
+    return <ComponentWidget engine={this.engine} node={event.model} />;
+  }
 
-    generateModel(event: { initialConfig: any }) {
-        return new ComponentModel(event.initialConfig.component);
-    }
+  generateModel(event: { initialConfig: any }) {
+    return new ComponentModel(event.initialConfig.component);
+  }
 }

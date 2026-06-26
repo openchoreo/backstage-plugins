@@ -1,13 +1,9 @@
 import { createContext, useContext } from 'react';
-import {
-    CellDiagramColors,
-    CellDiagramThemeMode,
-    lightColors,
-} from './colors';
+import { CellDiagramColors, CellDiagramThemeMode, lightColors } from './colors';
 
 export interface CellDiagramThemeContextValue {
-    mode: CellDiagramThemeMode;
-    colors: CellDiagramColors;
+  mode: CellDiagramThemeMode;
+  colors: CellDiagramColors;
 }
 
 /**
@@ -16,19 +12,19 @@ export interface CellDiagramThemeContextValue {
  * they did before dark-mode support landed.
  */
 const defaultValue: CellDiagramThemeContextValue = {
-    mode: 'light',
-    colors: lightColors,
+  mode: 'light',
+  colors: lightColors,
 };
 
 export const CellDiagramThemeContext =
-    createContext<CellDiagramThemeContextValue>(defaultValue);
+  createContext<CellDiagramThemeContextValue>(defaultValue);
 
 /** Returns the active color palette. */
 export function useColors(): CellDiagramColors {
-    return useContext(CellDiagramThemeContext).colors;
+  return useContext(CellDiagramThemeContext).colors;
 }
 
 /** Returns the active mode (`'light' | 'dark'`). */
 export function useThemeMode(): CellDiagramThemeMode {
-    return useContext(CellDiagramThemeContext).mode;
+  return useContext(CellDiagramThemeContext).mode;
 }

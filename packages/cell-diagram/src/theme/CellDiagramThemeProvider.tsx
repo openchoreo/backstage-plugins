@@ -1,29 +1,29 @@
 import { ReactNode, useMemo } from 'react';
 import {
-    ThemeProvider as EmotionThemeProvider,
-    useTheme as useEmotionTheme,
+  ThemeProvider as EmotionThemeProvider,
+  useTheme as useEmotionTheme,
 } from '@emotion/react';
 import { createTheme } from '@mui/material/styles';
 import {
-    CellDiagramColors,
-    CellDiagramThemeMode,
-    presetForMode,
+  CellDiagramColors,
+  CellDiagramThemeMode,
+  presetForMode,
 } from './colors';
 import {
-    CellDiagramThemeContext,
-    CellDiagramThemeContextValue,
+  CellDiagramThemeContext,
+  CellDiagramThemeContextValue,
 } from './ThemeContext';
 
 export interface CellDiagramThemeProviderProps {
-    /** Preset to start from. Defaults to `'light'`. */
-    mode?: CellDiagramThemeMode;
-    /**
-     * Optional per-token overrides merged on top of the preset. Use this to
-     * snap the diagram to a host brand palette without giving up the preset
-     * defaults for the rest of the tokens.
-     */
-    colors?: Partial<CellDiagramColors>;
-    children: ReactNode;
+  /** Preset to start from. Defaults to `'light'`. */
+  mode?: CellDiagramThemeMode;
+  /**
+   * Optional per-token overrides merged on top of the preset. Use this to
+   * snap the diagram to a host brand palette without giving up the preset
+   * defaults for the rest of the tokens.
+   */
+  colors?: Partial<CellDiagramColors>;
+  children: ReactNode;
 }
 
 /**
@@ -58,46 +58,46 @@ const muiDefaultDark = createTheme({ palette: { mode: 'dark' } });
  * field MUI v5 needs while adding `colors` for our own styled components.
  */
 export function CellDiagramThemeProvider({
-    mode = 'light',
-    colors,
-    children,
+  mode = 'light',
+  colors,
+  children,
 }: CellDiagramThemeProviderProps) {
-    const parentTheme = useEmotionTheme() as unknown as Record<string, unknown>;
+  const parentTheme = useEmotionTheme() as unknown as Record<string, unknown>;
 
-    const value = useMemo<CellDiagramThemeContextValue>(() => {
-        const preset = presetForMode(mode);
-        const merged: CellDiagramColors = colors
-            ? { ...preset, ...colors }
-            : preset;
-        return { mode, colors: merged };
-    }, [mode, colors]);
+  const value = useMemo<CellDiagramThemeContextValue>(() => {
+    const preset = presetForMode(mode);
+    const merged: CellDiagramColors = colors
+      ? { ...preset, ...colors }
+      : preset;
+    return { mode, colors: merged };
+  }, [mode, colors]);
 
-    const emotionTheme = useMemo(() => {
-        // Treat the parent theme as a base only if it looks like a MUI
-        // theme (has `palette`). Otherwise fall back to a fresh MUI default
-        // matching our active mode so MUI v5 components have what they
-        // need.
-        const hasMuiShape =
-            parentTheme &&
-            typeof parentTheme === 'object' &&
-            'palette' in parentTheme &&
-            'typography' in parentTheme;
-        let base;
-        if (hasMuiShape) {
-            base = parentTheme;
-        } else if (mode === 'dark') {
-            base = muiDefaultDark;
-        } else {
-            base = muiDefaultLight;
-        }
-        return { ...base, colors: value.colors };
-    }, [parentTheme, mode, value.colors]);
+  const emotionTheme = useMemo(() => {
+    // Treat the parent theme as a base only if it looks like a MUI
+    // theme (has `palette`). Otherwise fall back to a fresh MUI default
+    // matching our active mode so MUI v5 components have what they
+    // need.
+    const hasMuiShape =
+      parentTheme &&
+      typeof parentTheme === 'object' &&
+      'palette' in parentTheme &&
+      'typography' in parentTheme;
+    let base;
+    if (hasMuiShape) {
+      base = parentTheme;
+    } else if (mode === 'dark') {
+      base = muiDefaultDark;
+    } else {
+      base = muiDefaultLight;
+    }
+    return { ...base, colors: value.colors };
+  }, [parentTheme, mode, value.colors]);
 
-    return (
-        <CellDiagramThemeContext.Provider value={value}>
-            <EmotionThemeProvider theme={emotionTheme}>
-                {children}
-            </EmotionThemeProvider>
-        </CellDiagramThemeContext.Provider>
-    );
+  return (
+    <CellDiagramThemeContext.Provider value={value}>
+      <EmotionThemeProvider theme={emotionTheme}>
+        {children}
+      </EmotionThemeProvider>
+    </CellDiagramThemeContext.Provider>
+  );
 }

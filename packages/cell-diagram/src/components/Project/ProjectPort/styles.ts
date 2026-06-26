@@ -1,4 +1,4 @@
-import styled from "@emotion/styled";
+import styled from '@emotion/styled';
 
 interface PortNodeStyleProps {
   isSelected: boolean;
@@ -12,8 +12,9 @@ export const PortNode = styled.div<PortNodeStyleProps>`
   width: 10px;
   background-color: ${({ theme, isSelected }) =>
     isSelected ? theme.colors.SECONDARY_CONTAINER : theme.colors.SURFACE_DIM};
-  border: 2px solid ${({ theme, isSelected }) =>
-    isSelected ? theme.colors.OUTLINE_VARIANT : theme.colors.OUTLINE};
+  border: 2px solid
+    ${({ theme, isSelected }) =>
+      isSelected ? theme.colors.OUTLINE_VARIANT : theme.colors.OUTLINE};
   border-radius: 50%;
   margin: -6px 0;
 `;
