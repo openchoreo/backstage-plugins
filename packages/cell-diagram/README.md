@@ -5,6 +5,19 @@ A React component library that visualizes cell architectures.
 > Previously published as `@wso2/cell-diagram`. The exported API is unchanged;
 > only the package name has moved into the `@openchoreo` scope.
 
+## Provenance
+
+This package was imported into the monorepo from
+[`wso2/cell-diagram`](https://github.com/wso2/cell-diagram) at commit
+[`d590506`](https://github.com/wso2/cell-diagram/commit/d590506cecdc1eee478a057a5f535075d5f56dde)
+(last published as `@wso2/cell-diagram@0.3.1`), per
+[openchoreo/openchoreo#4003](https://github.com/openchoreo/openchoreo/issues/4003).
+The original repository's git history is preserved upstream; it is not
+reproduced here because the PR lands as a single squashed commit. The source is
+unchanged in behaviour — only adapted to the monorepo's strict TypeScript and
+lint settings, and the per-file Apache-2.0 headers were dropped to match repo
+convention (the package remains Apache-2.0 licensed; see `package.json`).
+
 ## Installation
 
 ```bash
