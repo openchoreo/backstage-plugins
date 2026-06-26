@@ -9,6 +9,12 @@ jest.mock('@backstage/plugin-catalog-react', () => ({
   catalogApiRef: { id: 'catalog' },
 }));
 
+// The component calls useNavigate() at render (for the node ⋮ menu's tab
+// navigation); the tests render <CellDiagram> without a Router, so stub it.
+jest.mock('react-router-dom', () => ({
+  useNavigate: () => jest.fn(),
+}));
+
 jest.mock('@backstage/core-plugin-api', () => ({
   useApi: jest.fn(),
   createApiRef: (def: { id: string }) => ({ id: def?.id ?? 'mock-api-ref' }),
