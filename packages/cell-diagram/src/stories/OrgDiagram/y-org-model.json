@@ -1,0 +1,279 @@
+{
+    "id": "kanushkagayan",
+    "name": "",
+    "projects": [
+        {
+            "id": "f2b610c6-44e6-45b1-9d0e-a618edbe6294",
+            "name": "TaskNest",
+            "components": [],
+            "connections": [
+                {
+                    "id": "81557de4-f919-4997-b02b-386e06f3e0d6-224fd455-43d9-49a6-a91e-49d3cf83980e",
+                    "source": {
+                        "boundary": "eb"
+                    },
+                    "target": {
+                        "projectId": "3d217e9d-7ffb-46dd-a8b6-a5ca93e35f3f",
+                        "boundary": "wb"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "45823d7a-8170-4fb0-a7a9-5cb9d0cf5bc0",
+            "name": "wso2-finance",
+            "components": [],
+            "connections": [
+                {
+                    "id": "9e8d6b72-d786-45d0-8087-93fc99efbd2e-7ddb0976-7cf5-4823-bf89-785eecda7133",
+                    "source": {
+                        "boundary": "eb"
+                    },
+                    "target": {
+                        "projectId": "111bd914-e524-4832-8949-4535a02d64d1",
+                        "boundary": "wb"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "e79b99fd-bf66-4d31-95f1-25ce6c2c21cd",
+            "name": "wso2-sales-web",
+            "components": [],
+            "connections": [
+                {
+                    "id": "b9d7445b-ca06-4f57-951f-69f9a0380bf7-2cdfa68c-0ff0-47e8-b1be-ba80d5ac92c9",
+                    "source": {
+                        "boundary": "eb"
+                    },
+                    "target": {
+                        "projectId": "cc794ffe-f642-4a7e-9ef3-fe387f1906a0",
+                        "boundary": "wb"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "393f0646-8e4d-4724-817e-93718b8d3230",
+            "name": "wso2-super-app",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "93b09674-e931-4f7e-993d-6cb595b2d38f",
+            "name": "wso2-super-app-web",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "403f62c3-a7d9-4c13-a54e-a6971adc659b",
+            "name": "wso2-engineering-web",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "da003466-c6f6-4d87-b2f8-55fe52c7b3da",
+            "name": "wso2-hris-web",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "e85440b2-fc16-4287-b524-9455b3ae7bfe",
+            "name": "wso2-wso-2-currency",
+            "components": [],
+            "connections": [
+                {
+                    "id": "22d59ebb-2547-448f-8fa7-bf7b5c05cc25-9e8d6b72-d786-45d0-8087-93fc99efbd2e",
+                    "source": {
+                        "boundary": "eb"
+                    },
+                    "target": {
+                        "projectId": "45823d7a-8170-4fb0-a7a9-5cb9d0cf5bc0",
+                        "boundary": "wb"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "aa856aa3-e0e9-449b-b15b-7b48a2ed0448",
+            "name": "wso2-updates-delivery",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "0a12395a-ca2f-43a4-9fc9-a74137424111",
+            "name": "wso2-customer-success",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "8002016f-3bcc-4f7f-b86b-b658f712aab1",
+            "name": "wso2-infrastructure",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "77401196-697c-4a72-a76d-c50d45b1665b",
+            "name": "wso2-marketing",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "9f848345-6589-4b92-b731-75108292d2d0",
+            "name": "wso2-customer-success-web",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "cc794ffe-f642-4a7e-9ef3-fe387f1906a0",
+            "name": "wso2-sales",
+            "components": [],
+            "connections": [
+                {
+                    "id": "2cdfa68c-0ff0-47e8-b1be-ba80d5ac92c9-18625439-11eb-4a84-9f5e-4555ffdb8c3c",
+                    "source": {
+                        "boundary": "eb"
+                    },
+                    "target": {
+                        "projectId": "5be425c0-35c5-4e62-a524-f7891e83b46d",
+                        "boundary": "wb"
+                    }
+                },
+                {
+                    "id": "2cdfa68c-0ff0-47e8-b1be-ba80d5ac92c9-9e8d6b72-d786-45d0-8087-93fc99efbd2e",
+                    "source": {
+                        "boundary": "eb"
+                    },
+                    "target": {
+                        "projectId": "45823d7a-8170-4fb0-a7a9-5cb9d0cf5bc0",
+                        "boundary": "wb"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "fb33f32b-b214-4cea-85e4-14cc7f6dff6b",
+            "name": "wso2-infrastructure-web",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "a8ac945f-0eb5-49fd-9709-aa48d86869b6",
+            "name": "wso2-updates-creation",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "4e1e33b4-136b-464a-bad8-24065eaf856d",
+            "name": "wso2-engineering",
+            "components": [],
+            "connections": [
+                {
+                    "id": "0485cefb-3cde-486d-98e9-91028a1b350e-17e4a6b7-6957-4af4-b42d-8576caf7f346",
+                    "source": {
+                        "boundary": "eb"
+                    },
+                    "target": {
+                        "projectId": "cc794ffe-f642-4a7e-9ef3-fe387f1906a0",
+                        "boundary": "wb"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "5be425c0-35c5-4e62-a524-f7891e83b46d",
+            "name": "wso2-hris",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "111bd914-e524-4832-8949-4535a02d64d1",
+            "name": "wso2-finance-web",
+            "components": [],
+            "connections": [
+                {
+                    "id": "b18968df-0ef6-4bb3-ad7b-45aafa4b4cfa-9e8d6b72-d786-45d0-8087-93fc99efbd2e",
+                    "source": {
+                        "boundary": "eb"
+                    },
+                    "target": {
+                        "projectId": "45823d7a-8170-4fb0-a7a9-5cb9d0cf5bc0",
+                        "boundary": "wb"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "6d8d6476-fdbe-4413-8119-41fdeb039ef0",
+            "name": "wso2-update-2",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "18906c27-c58e-465b-a19d-cb1ecbd3e18b",
+            "name": "wso2-marketing-web",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "e01d1ddb-f777-4b45-8498-36ff600e1b31",
+            "name": "FinFlux",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "34f11022-6515-4fa1-9b52-b79b5eeee5af",
+            "name": "Ecom Connect",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "3d217e9d-7ffb-46dd-a8b6-a5ca93e35f3f",
+            "name": "Ecom Exchange",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "36cc6736-d220-4935-a8b7-935910c5ac73",
+            "name": "Ecom Stockpile ",
+            "components": [],
+            "connections": [
+                {
+                    "id": "4c19b7bb-ba7d-43cc-b1d2-e0d18da756a9-455b7250-3e59-4df1-93c6-0b930d91545c",
+                    "source": {
+                        "boundary": "eb"
+                    },
+                    "target": {
+                        "projectId": "34f11022-6515-4fa1-9b52-b79b5eeee5af",
+                        "boundary": "wb"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "8285860c-bc45-49d8-8f39-d75215118e6a",
+            "name": "TransPackSys",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "8518ada9-7c6a-4b84-a2b3-b31d5e464c03",
+            "name": "legacy-abc-saloon",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "a2293712-9904-4ee6-a611-19e5b117d53c",
+            "name": "Default Project",
+            "components": [],
+            "connections": []
+        },
+        {
+            "id": "2a15c489-391e-4564-8034-fc4aa622c93f",
+            "name": "Default Project",
+            "components": [],
+            "connections": []
+        }
+    ],
+    "modelVersion": "0.4.0"
+}

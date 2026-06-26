@@ -1,0 +1,127 @@
+{
+  "id": "org",
+  "name": "WSO2 Org",
+  "projects": [
+    {
+      "id": "1342c127-14d2-403e-949c-8090e079dbb3",
+      "name": "Finance Web",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "430c9a4b-6e77-4e8b-b850-3f7dc479b2ac",
+      "name": "HRIS Web",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "d186c421-2d86-402e-b80e-12883e45a193",
+      "name": "Sales",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "c27f2cc4-d356-4e80-a125-bc8ab0b2edde",
+      "name": "Marketing Web",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "ca2065a8-42c4-4104-b866-e76a8df5783a",
+      "name": "Marketing",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "6b670b92-7030-4500-968e-5f8ae997d01c",
+      "name": "Infrastructure",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "df6fc5a1-6953-448a-928e-a9715d4497db",
+      "name": "Sales Web",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "eab581e9-ab53-4f80-a4ce-7e9e413b307f",
+      "name": "Engineering Web",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "1153cf41-2055-459c-bdf9-ab047ba74ab5",
+      "name": "Updates Creation",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "cf69d7c2-d4b1-40fc-8e17-b5b5a371582f",
+      "name": "Update2",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "9a488cf5-2580-483f-8303-81558c71f5fd",
+      "name": "Customer Success Web",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "1a73add8-5cd3-4e9c-9535-dc2222b08ae2",
+      "name": "WSO2 Currency",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "6747172f-f2f2-461c-a0a3-9f27d9cd6cd7",
+      "name": "Infrastructure Web",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "16bb1328-ba3c-4c92-9c00-5e23f3b7d1ec",
+      "name": "Super App Web",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "453ff9a8-9789-4a1d-8954-9bc77b8d6776",
+      "name": "Finance",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "55b780ef-d510-47b2-9253-67ba3b15bf4f",
+      "name": "Super App",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "8846b396-b732-4979-8c3d-7506d37ecc37",
+      "name": "Updates Delivery",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "0d0150ec-ec03-4a61-9ba3-de7462fe8223",
+      "name": "Customer Success",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "4ea7362e-edba-47d8-a837-3452da7605b1",
+      "name": "HRIS",
+      "components": [],
+      "connections": []
+    },
+    {
+      "id": "5b6cf6c2-ca08-484b-ba39-6c96fa0402c7",
+      "name": "Engineering",
+      "components": [],
+      "connections": []
+    }
+  ],
+  "modelVersion": "0.4.0"
+}

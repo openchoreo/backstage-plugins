@@ -1,4 +1,4 @@
-import { Project } from '@wso2/cell-diagram';
+import { Project } from '@openchoreo/cell-diagram';
 import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
 import type {
   WorkloadResource,
