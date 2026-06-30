@@ -2,6 +2,7 @@ import {
   lazy,
   memo,
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -16,12 +17,18 @@ import Switch from '@material-ui/core/Switch';
 import Tooltip from '@material-ui/core/Tooltip';
 import Typography from '@material-ui/core/Typography';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import { useEntity } from '@backstage/plugin-catalog-react';
+import { catalogApiRef, useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
+import { stringifyEntityRef } from '@backstage/catalog-model';
+import { useNavigate } from 'react-router-dom';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useTheme } from '@material-ui/core/styles';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
-import { DiagramLayer, Project } from '@openchoreo/cell-diagram';
+import {
+  DiagramLayer,
+  MoreVertMenuItem,
+  Project,
+} from '@openchoreo/cell-diagram';
 import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 import {
   EmptyState,
@@ -43,7 +50,13 @@ const CellView = lazy(() =>
 // only renders when project/mode actually change — without this, every
 // loading/refresh state flip in our parent causes a center/zoom race
 // and the diagram lands in a random corner.
-const MemoCellView = memo(CellView);
+const MemoCellView = memo(
+  CellView,
+  (prev, next) =>
+    prev.project === next.project &&
+    prev.mode === next.mode &&
+    prev.defaultDiagramLayer === next.defaultDiagramLayer,
+);
 
 function hasObservations(project: Project | undefined): boolean {
   if (!project?.components) return false;
@@ -68,9 +81,45 @@ export const CellDiagram = () => {
   const [hasFetchedOnce, setHasFetchedOnce] = useState(false);
   const [runtimeEnabled, setRuntimeEnabled] = useState(false);
   const client = useApi(openChoreoClientApiRef);
+  const catalogApi = useApi(catalogApiRef);
+  const navigate = useNavigate();
   const { mode } = useChoreoTokens();
   const theme = useTheme();
   const controlBg = theme.palette.background.paper;
+
+  const navDeps = useRef({ catalogApi, navigate, entity });
+  navDeps.current = { catalogApi, navigate, entity };
+
+  // Resolve a component node and navigate to one of its tabs.
+  // no-op when the component isn't in the catalog. `subPath` selects the tab
+  // (e.g. '/environments'); an empty string lands on the Overview tab.
+  const navigateToComponent = useCallback(
+    async (componentId: string, subPath: string = '') => {
+      if (!componentId) return;
+      const {
+        catalogApi: api,
+        navigate: nav,
+        entity: project,
+      } = navDeps.current;
+      try {
+        const { items } = await api.getEntities({
+          filter: {
+            kind: 'Component',
+            'metadata.name': componentId,
+            'relations.partof': stringifyEntityRef(project),
+          },
+          fields: ['kind', 'metadata.name', 'metadata.namespace'],
+        });
+        const target = items[0];
+        if (!target) return;
+        const ns = target.metadata.namespace ?? 'default';
+        nav(`/catalog/${ns}/component/${target.metadata.name}${subPath}`);
+      } catch {
+        // Swallow — a failed lookup just leaves the user on the diagram.
+      }
+    },
+    [],
+  );
 
   const projectName = entity.metadata.name;
   const namespaceName =
@@ -80,6 +129,9 @@ export const CellDiagram = () => {
     namespaceName,
   );
 
+  const envsLoadedOnce = useRef(false);
+  if (!environmentsLoading) envsLoadedOnce.current = true;
+
   const anyEnvHasRuntimeObservability = useMemo(
     () => environments.some(e => e.hasRuntimeObservability),
     [environments],
@@ -87,6 +139,24 @@ export const CellDiagram = () => {
   const selectedEnvHasRuntimeObservability =
     environments.find(e => e.name === environment?.name)
       ?.hasRuntimeObservability ?? false;
+
+  const componentMenu = useMemo<MoreVertMenuItem[]>(() => {
+    const tabs = [
+      { label: 'Overview', path: '' },
+      { label: 'Deploy', path: '/environments' },
+      { label: 'Logs', path: '/runtime-logs' },
+      { label: 'Metrics', path: '/metrics' },
+      ...(anyEnvHasRuntimeObservability
+        ? [{ label: 'Wirelogs', path: '/wirelogs' }]
+        : []),
+    ];
+    return tabs.map(tab => ({
+      label: tab.label,
+      callback: (componentId: string) => {
+        void navigateToComponent(componentId, tab.path);
+      },
+    }));
+  }, [navigateToComponent, anyEnvHasRuntimeObservability]);
 
   // Auto-select the first environment once the list resolves.
   useEffect(() => {
@@ -338,7 +408,7 @@ export const CellDiagram = () => {
           traffic is not observed.
         </Typography>
       )}
-      {cellDiagramData && !hasNoComponents && (
+      {cellDiagramData && !hasNoComponents && envsLoadedOnce.current && (
         <Suspense fallback={<Progress />}>
           {(() => {
             const targetLayer =
@@ -351,6 +421,7 @@ export const CellDiagram = () => {
                 project={cellDiagramData}
                 mode={mode}
                 defaultDiagramLayer={targetLayer}
+                componentMenu={componentMenu}
               />
             );
           })()}
@@ -372,7 +443,10 @@ export const CellDiagram = () => {
           />
         </Box>
       )}
-      {!cellDiagramData && (loading || !hasFetchedOnce) && <Progress />}
+      {((!cellDiagramData && (loading || !hasFetchedOnce)) ||
+        (cellDiagramData && !hasNoComponents && !envsLoadedOnce.current)) && (
+        <Progress />
+      )}
       {!cellDiagramData && hasFetchedOnce && !loading && (
         <Box
           style={{
