@@ -9,8 +9,12 @@ import {
 } from '@material-ui/core';
 import FileCopyOutlined from '@material-ui/icons/FileCopyOutlined';
 import { LogEntry as LogEntryType, LogEntryField } from './types';
+import { Link } from '@backstage/core-components';
+import { useLocation } from 'react-router-dom';
 import { useLogEntryStyles } from './styles';
 import { getColumnStyle } from './columns';
+import { Entity } from '@backstage/catalog-model';
+import { buildRuntimeLogsBasePath } from '@openchoreo/backstage-plugin-react';
 
 /**
  * Render-prop slot for a per-row action button (assistant integration,
@@ -29,6 +33,8 @@ interface LogEntryProps {
   environmentName?: string;
   projectName?: string;
   componentName?: string;
+  entityNamespace?: string;
+  entityKind?: string;
   /**
    * Whether this row is currently expanded. Controlled by the parent so that
    * expansion survives the virtualizer unmounting the row off-screen.
@@ -53,12 +59,15 @@ export const LogEntry: FC<LogEntryProps> = ({
   environmentName,
   projectName,
   componentName,
+  entityNamespace,
+  entityKind,
   expanded,
   onToggleExpand,
   getLogsSnapshot,
   renderRowAction,
 }) => {
   const classes = useLogEntryStyles();
+  const location = useLocation();
   const [copySuccess, setCopySuccess] = useState(false);
 
   const handleCopyLog = async (event: MouseEvent<HTMLButtonElement>) => {
@@ -140,13 +149,32 @@ export const LogEntry: FC<LogEntryProps> = ({
           }
 
           if (field === LogEntryField.ComponentName) {
+            const compName = log.metadata?.componentName ?? componentName ?? '';
+            const entity: Entity = {
+              apiVersion: 'backstage.io/v1alpha1',
+              kind: entityKind || 'Component',
+              metadata: {
+                name: compName,
+                namespace: entityNamespace,
+              },
+            };
+            const basePath = buildRuntimeLogsBasePath(entity);
             return (
               <Box
                 key={field}
                 style={getColumnStyle(field)}
                 className={`${classes.cell} ${classes.monospaceCell}`}
               >
-                {log.metadata?.componentName ?? componentName ?? ''}
+                {compName ? (
+                  <Link
+                    to={`${basePath}${location.search}`}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {compName}
+                  </Link>
+                ) : (
+                  ''
+                )}
               </Box>
             );
           }

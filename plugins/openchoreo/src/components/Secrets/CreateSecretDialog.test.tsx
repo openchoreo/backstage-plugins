@@ -166,7 +166,7 @@ describe('CreateSecretDialog — SSH Auth', () => {
     await selectSshAuth(user);
     await pasteSshKey(user, VALID_KEY);
     expect(screen.getByRole('button', { name: 'Create' })).toBeEnabled();
-  });
+  }, 15000);
 
   // The two tests below interact with multiple fields (SSH Key ID + multiline
   // SSH key + dynamically-added Key/Value rows). userEvent.type is per-keystroke

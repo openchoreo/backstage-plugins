@@ -12,14 +12,13 @@
     "directory": "packages/test-utils"
   },
   "backstage": {
-    "role": "node-library"
+    "role": "common-library"
   },
   "scripts": {
     "test": "backstage-cli package test",
     "clean": "backstage-cli package clean"
   },
   "dependencies": {
-    "@backstage/backend-test-utils": "^1.11.3",
     "@backstage/catalog-model": "^1.9.0"
   },
   "devDependencies": {
