@@ -892,9 +892,21 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             componentTypes.map(async ct => {
               const ctName = getName(ct);
               if (!ctName) return null;
+              // `templateUrl` carries the custom-template annotation from the
+              // raw CR (dropped by the trimmed metadata below) to the emission
+              // step, which decides fetch-vs-generate.
+              const templateUrl = getAnnotation(
+                ct,
+                CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL,
+              );
               try {
-                const { data: schemaData, error: schemaError } =
-                  await client.GET(
+                // A custom template replaces the generated wizard, so its input
+                // schema is irrelevant. Skip the schema fetch (and don't drop the
+                // type when it has no schema) — mirrors the event-driven path so
+                // both syncs emit the custom template identically.
+                let schemaData: any;
+                if (!templateUrl) {
+                  const { data, error: schemaError } = await client.GET(
                     '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema',
                     {
                       params: {
@@ -903,17 +915,16 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     },
                   );
 
-                if (schemaError || !schemaData) {
-                  this.logger.warn(
-                    `Failed to fetch schema for CTD ${ctName} in namespace ${nsName}`,
-                  );
-                  return null;
+                  if (schemaError || !data) {
+                    this.logger.warn(
+                      `Failed to fetch schema for CTD ${ctName} in namespace ${nsName}`,
+                    );
+                    return null;
+                  }
+                  schemaData = data;
                 }
 
                 // Combine metadata from list item + schema into full object.
-                // `templateUrl` carries the custom-template annotation from the
-                // raw CR (dropped by the trimmed metadata below) to the
-                // emission step, which decides fetch-vs-generate.
                 const fullComponentType = {
                   metadata: {
                     name: ctName,
@@ -925,12 +936,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     createdAt: getCreatedAt(ct) || '',
                   },
                   spec: {
-                    inputParametersSchema: schemaData as any,
+                    inputParametersSchema: schemaData,
                   },
-                  templateUrl: getAnnotation(
-                    ct,
-                    CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL,
-                  ),
+                  templateUrl,
                 };
 
                 return fullComponentType;
@@ -1384,21 +1392,30 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           clusterComponentTypes.map(async cct => {
             const cctName = getName(cct);
             if (!cctName) return null;
+            const templateUrl = getAnnotation(
+              cct,
+              CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL,
+            );
             try {
-              const { data: schemaData, error: schemaError } = await client.GET(
-                '/api/v1/clustercomponenttypes/{cctName}/schema',
-                {
-                  params: {
-                    path: { cctName },
+              // Custom template: skip the schema fetch (see the namespaced path).
+              let schemaData: any;
+              if (!templateUrl) {
+                const { data, error: schemaError } = await client.GET(
+                  '/api/v1/clustercomponenttypes/{cctName}/schema',
+                  {
+                    params: {
+                      path: { cctName },
+                    },
                   },
-                },
-              );
-
-              if (schemaError || !schemaData) {
-                this.logger.warn(
-                  `Failed to fetch schema for ClusterComponentType ${cctName}`,
                 );
-                return null;
+
+                if (schemaError || !data) {
+                  this.logger.warn(
+                    `Failed to fetch schema for ClusterComponentType ${cctName}`,
+                  );
+                  return null;
+                }
+                schemaData = data;
               }
 
               return {
@@ -1417,12 +1434,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   createdAt: getCreatedAt(cct) || '',
                 },
                 spec: {
-                  inputParametersSchema: schemaData as any,
+                  inputParametersSchema: schemaData,
                 },
-                templateUrl: getAnnotation(
-                  cct,
-                  CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL,
-                ),
+                templateUrl,
               };
             } catch (error) {
               this.logger.warn(

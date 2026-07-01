@@ -55,8 +55,8 @@ describe('RemoteTemplateFetcher', () => {
     });
 
     expect(entity.kind).toBe('Template');
-    expect(entity.metadata.name).toBe('my-custom-template');
-    // Defaulted from ctx because the authored template omits a namespace.
+    // Identity is normalised to the deterministic scheme, not the authored name.
+    expect(entity.metadata.name).toBe('template-agent-sandbox');
     expect(entity.metadata.namespace).toBe('my-ns');
 
     const ann = entity.metadata.annotations!;
@@ -87,16 +87,17 @@ describe('RemoteTemplateFetcher', () => {
     expect(entity.metadata.annotations![CHOREO_ANNOTATIONS.CTD_KIND]).toBe(
       'ClusterComponentType',
     );
+    expect(entity.metadata.name).toBe('template-cluster-agent');
     expect(entity.metadata.namespace).toBe('openchoreo-cluster');
   });
 
-  it('does not override a namespace declared by the authored template', async () => {
-    const withNamespace = VALID_TEMPLATE.replace(
+  it('forces the ComponentType name and namespace over the authored ones', async () => {
+    const withOwnIdentity = VALID_TEMPLATE.replace(
       'name: my-custom-template',
       'name: my-custom-template\n  namespace: authored-ns',
     );
     const fetcher = new RemoteTemplateFetcher(
-      readerFor(withNamespace),
+      readerFor(withOwnIdentity),
       mockLogger,
     );
 
@@ -105,7 +106,10 @@ describe('RemoteTemplateFetcher', () => {
       namespace: 'ctx-ns',
     });
 
-    expect(entity.metadata.namespace).toBe('authored-ns');
+    // Authored name/namespace are discarded so the entity ref stays deterministic
+    // (`template-<ctName>` in the CT namespace) for discovery + delete + toggle.
+    expect(entity.metadata.name).toBe('template-agent-sandbox');
+    expect(entity.metadata.namespace).toBe('ctx-ns');
   });
 
   it('picks the Template out of a multi-document YAML file', async () => {
@@ -125,7 +129,7 @@ ${VALID_TEMPLATE}
     });
 
     expect(entity.kind).toBe('Template');
-    expect(entity.metadata.name).toBe('my-custom-template');
+    expect(entity.metadata.name).toBe('template-agent-sandbox');
   });
 
   it('throws when the URL cannot be read', async () => {
@@ -156,7 +160,7 @@ metadata:
     ).rejects.toThrow(/No 'kind: Template' entity found/);
   });
 
-  it('throws when the Template is missing metadata.name', async () => {
+  it('supplies the normalised name even when the authored template omits one', async () => {
     const noName = `
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
@@ -168,19 +172,37 @@ spec:
 `;
     const fetcher = new RemoteTemplateFetcher(readerFor(noName), mockLogger);
 
-    await expect(
-      fetcher.fetch(URL, { ctdName: 'x', namespace: 'my-ns' }),
-    ).rejects.toThrow(/missing metadata.name/);
+    const entity = await fetcher.fetch(URL, {
+      ctdName: 'agent-sandbox',
+      namespace: 'my-ns',
+    });
+
+    expect(entity.metadata.name).toBe('template-agent-sandbox');
   });
 
-  it('throws on invalid YAML', async () => {
+  it('throws when the Template has no metadata block', async () => {
+    const noMetadata = `
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+spec:
+  owner: guests
+  type: Component
+`;
+    const fetcher = new RemoteTemplateFetcher(readerFor(noMetadata), mockLogger);
+
+    await expect(
+      fetcher.fetch(URL, { ctdName: 'x', namespace: 'my-ns' }),
+    ).rejects.toThrow(/has no metadata block/);
+  });
+
+  it('surfaces a YAML syntax error as a parse failure', async () => {
     const fetcher = new RemoteTemplateFetcher(
-      readerFor(': : : not valid : yaml : ['),
+      readerFor('kind: Template\nmetadata:\n  name: x\n bad: : : ['),
       mockLogger,
     );
 
     await expect(
       fetcher.fetch(URL, { ctdName: 'x', namespace: 'my-ns' }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/Failed to parse YAML/);
   });
 });

@@ -70,30 +70,43 @@ export class RemoteTemplateFetcher {
   }
 
   private parseTemplate(raw: string, templateUrl: string): Entity {
-    let entities: unknown[];
+    let docs;
     try {
-      entities = parseAllDocuments(raw).map(doc => doc.toJSON());
+      docs = parseAllDocuments(raw);
     } catch (error) {
       throw new Error(
         `Failed to parse YAML for scaffolder template at ${templateUrl}: ${error}`,
       );
     }
 
-    const template = entities.find(
-      (doc): doc is Entity =>
-        Boolean(doc) &&
-        typeof doc === 'object' &&
-        (doc as Entity).kind === 'Template',
-    );
+    // `parseAllDocuments` collects recoverable syntax errors on each document
+    // instead of throwing, so surface them explicitly — otherwise a half-parsed
+    // document silently masquerades as a missing Template.
+    for (const doc of docs) {
+      if (doc.errors.length > 0) {
+        throw new Error(
+          `Failed to parse YAML for scaffolder template at ${templateUrl}: ${doc.errors[0]}`,
+        );
+      }
+    }
+
+    const template = docs
+      .map(doc => doc.toJSON())
+      .find(
+        (doc): doc is Entity =>
+          Boolean(doc) &&
+          typeof doc === 'object' &&
+          (doc as Entity).kind === 'Template',
+      );
 
     if (!template) {
       throw new Error(
         `No 'kind: Template' entity found in scaffolder template at ${templateUrl}`,
       );
     }
-    if (!template.metadata?.name) {
+    if (!template.metadata || typeof template.metadata !== 'object') {
       throw new Error(
-        `Scaffolder template at ${templateUrl} is missing metadata.name`,
+        `Scaffolder template at ${templateUrl} has no metadata block`,
       );
     }
     return template;
@@ -129,7 +142,16 @@ export class RemoteTemplateFetcher {
       ...entity,
       metadata: {
         ...entity.metadata,
-        namespace: entity.metadata.namespace || ctx.namespace,
+        // Normalise the catalog identity to the same deterministic scheme as
+        // generated templates (`template-<ctName>` in the ComponentType's
+        // namespace). The portal discovery, the periodic full sync, and the
+        // event-driven delete path all key off this identity, so owning it here
+        // keeps custom and generated templates interchangeable and prevents
+        // cross-type name collisions and orphaned/duplicated entities. The
+        // authored title, description, parameters and steps are preserved — only
+        // name and namespace are ours.
+        name: `template-${ctx.ctdName}`,
+        namespace: ctx.namespace,
         annotations,
       },
     };
