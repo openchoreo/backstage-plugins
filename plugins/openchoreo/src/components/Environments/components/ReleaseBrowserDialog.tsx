@@ -360,7 +360,8 @@ export const ReleaseBrowserDialog = ({
     return () => {
       cancelled = true;
     };
-  }, [api, entity, open, highlightedName, manifestCache]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, open, highlightedName]);
 
   // Mirror fetch for the compare target. Reuses the same manifestCache so
   // switching back and forth between view and compare is free, and so the
@@ -399,7 +400,8 @@ export const ReleaseBrowserDialog = ({
     return () => {
       cancelled = true;
     };
-  }, [api, entity, open, mode, compareTargetName, manifestCache]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, open, mode, compareTargetName]);
 
   const handleConfirm = () => {
     if (!highlightedName) return;

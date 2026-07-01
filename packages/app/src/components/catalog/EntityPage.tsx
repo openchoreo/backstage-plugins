@@ -209,7 +209,6 @@ const hasGitlabAnnotation = (entity: Entity) =>
       entity.metadata.annotations?.['gitlab.com/project-id'],
   );
 
-
 const hasApis = (entity: Entity) =>
   Boolean(
     entity.relations?.some(
