@@ -53,6 +53,8 @@ import {
   getDescription,
   getDisplayName,
   getName,
+  isTemplateGenerationSkipped,
+  SKIP_TEMPLATE_GENERATION_ANNOTATION,
 } from '@openchoreo/openchoreo-client-node';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
@@ -1183,6 +1185,18 @@ export class EventDeltaApplier {
       ns,
       this.translatorContext,
     );
+    if (isTemplateGenerationSkipped(ct)) {
+      // Annotation may have been added after the Template was emitted, so
+      // actively remove it rather than just skipping the upsert.
+      this.logger.debug(
+        `Template generation skipped for ComponentType ${ns}/${name} (${SKIP_TEMPLATE_GENERATION_ANNOTATION})`,
+      );
+      await this.upsertEntities([ctEntity]);
+      await this.removeEntityRefs([
+        this.buildEntityRef('template', ns, `template-${name}`),
+      ]);
+      return;
+    }
     const templateEntity = await this.buildComponentTypeTemplateEntity(
       client,
       ns,
@@ -1223,6 +1237,16 @@ export class EventDeltaApplier {
       ns,
       this.translatorContext,
     ) as Entity;
+    if (isTemplateGenerationSkipped(rt)) {
+      this.logger.debug(
+        `Template generation skipped for ResourceType ${ns}/${name} (${SKIP_TEMPLATE_GENERATION_ANNOTATION})`,
+      );
+      await this.upsertEntities([rtEntity]);
+      await this.removeEntityRefs([
+        this.buildEntityRef('template', ns, `template-resource-${name}`),
+      ]);
+      return;
+    }
     const templateEntity = await this.buildResourceTypeTemplateEntity(
       client,
       ns,
@@ -1324,6 +1348,20 @@ export class EventDeltaApplier {
       cct,
       this.translatorContext,
     ) as Entity;
+    if (isTemplateGenerationSkipped(cct)) {
+      this.logger.debug(
+        `Template generation skipped for ClusterComponentType ${name} (${SKIP_TEMPLATE_GENERATION_ANNOTATION})`,
+      );
+      await this.upsertEntities([cctEntity]);
+      await this.removeEntityRefs([
+        this.buildEntityRef(
+          'template',
+          'openchoreo-cluster',
+          `template-${name}`,
+        ),
+      ]);
+      return;
+    }
     const templateEntity = await this.buildClusterComponentTypeTemplateEntity(
       client,
       cct,
@@ -1352,6 +1390,20 @@ export class EventDeltaApplier {
       crt,
       this.translatorContext,
     ) as Entity;
+    if (isTemplateGenerationSkipped(crt)) {
+      this.logger.debug(
+        `Template generation skipped for ClusterResourceType ${name} (${SKIP_TEMPLATE_GENERATION_ANNOTATION})`,
+      );
+      await this.upsertEntities([crtEntity]);
+      await this.removeEntityRefs([
+        this.buildEntityRef(
+          'template',
+          'openchoreo-cluster',
+          `template-resource-${name}`,
+        ),
+      ]);
+      return;
+    }
     const templateEntity = await this.buildClusterResourceTypeTemplateEntity(
       client,
       crt,

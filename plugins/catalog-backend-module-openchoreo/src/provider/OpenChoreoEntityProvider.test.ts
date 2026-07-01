@@ -1120,4 +1120,123 @@ describe('OpenChoreoEntityProvider', () => {
       expect((comp?.spec as any).owner).toBe('group:default/test-owner');
     });
   });
+
+  describe('skip-template-generation annotation', () => {
+    const skipAnnotation = {
+      'openchoreo.dev/skip-template-generation': 'true',
+    };
+
+    const k8sHiddenComponentType = {
+      metadata: k8sMeta('hidden-ct', {
+        annotations: {
+          'openchoreo.dev/display-name': 'Hidden CT',
+          ...skipAnnotation,
+        },
+      }),
+      spec: { workloadType: 'deployment' },
+      status: { conditions: [readyCondition] },
+    };
+
+    const k8sHiddenResourceType = {
+      metadata: k8sMeta('hidden-rt', {
+        annotations: {
+          'openchoreo.dev/display-name': 'Hidden RT',
+          ...skipAnnotation,
+        },
+      }),
+      spec: { retainPolicy: 'Delete', resources: [] },
+      status: { conditions: [readyCondition] },
+    };
+
+    const k8sProxyClusterComponentType = {
+      metadata: {
+        name: 'api-proxy',
+        uid: 'uid-api-proxy',
+        creationTimestamp: '2025-01-06T10:00:00Z',
+        annotations: {
+          'openchoreo.dev/display-name': 'API Proxy',
+          ...skipAnnotation,
+        },
+      },
+      spec: { workloadType: 'proxy' },
+      status: { conditions: [readyCondition] },
+    };
+
+    beforeEach(() => {
+      setupPathBasedMocks({
+        '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema':
+          okData({ type: 'object', properties: {} }),
+        '/api/v1/namespaces/{namespaceName}/componenttypes': okData({
+          items: [k8sComponentType, k8sHiddenComponentType],
+        }),
+        '/api/v1/namespaces/{namespaceName}/resourcetypes/{rtName}/schema':
+          okData({ type: 'object', properties: {} }),
+        '/api/v1/namespaces/{namespaceName}/resourcetypes': okData({
+          items: [k8sResourceType, k8sHiddenResourceType],
+        }),
+        '/api/v1/clustercomponenttypes/{cctName}/schema': okData({
+          type: 'object',
+          properties: {},
+        }),
+        '/api/v1/clustercomponenttypes': okData({
+          items: [k8sProxyClusterComponentType],
+        }),
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+      });
+    });
+
+    it('skips Template emission for annotated ComponentTypes but keeps the ComponentType entity', async () => {
+      const entities = await runProvider();
+      const templateNames = findEntities(entities, 'Template').map(
+        e => e.metadata.name,
+      );
+      expect(templateNames).toContain('template-go-service');
+      expect(templateNames).not.toContain('template-hidden-ct');
+      expect(
+        findEntities(entities, 'ComponentType').map(e => e.metadata.name),
+      ).toEqual(expect.arrayContaining(['go-service', 'hidden-ct']));
+    });
+
+    it('skips Template emission for annotated ClusterComponentTypes but keeps the ClusterComponentType entity', async () => {
+      const entities = await runProvider();
+      const templateNames = findEntities(entities, 'Template').map(
+        e => e.metadata.name,
+      );
+      expect(templateNames).not.toContain('template-api-proxy');
+      expect(
+        findEntities(entities, 'ClusterComponentType').map(
+          e => e.metadata.name,
+        ),
+      ).toContain('api-proxy');
+    });
+
+    it('skips Template emission for annotated ResourceTypes but keeps the ResourceType entity', async () => {
+      const entities = await runProvider();
+      const templateNames = findEntities(entities, 'Template').map(
+        e => e.metadata.name,
+      );
+      expect(templateNames).toContain('template-resource-postgres');
+      expect(templateNames).not.toContain('template-resource-hidden-rt');
+      expect(
+        findEntities(entities, 'ResourceType').map(e => e.metadata.name),
+      ).toEqual(expect.arrayContaining(['postgres', 'hidden-rt']));
+    });
+
+    it('does not fetch the schema for skipped types', async () => {
+      await runProvider();
+      const schemaCalls = mockGET.mock.calls.filter(([path]) =>
+        String(path).includes('/schema'),
+      );
+      const fetchedNames = schemaCalls.map(
+        ([, opts]) =>
+          opts?.params?.path?.ctName ??
+          opts?.params?.path?.cctName ??
+          opts?.params?.path?.rtName ??
+          opts?.params?.path?.crtName,
+      );
+      expect(fetchedNames).not.toContain('hidden-ct');
+      expect(fetchedNames).not.toContain('hidden-rt');
+      expect(fetchedNames).not.toContain('api-proxy');
+    });
+  });
 });

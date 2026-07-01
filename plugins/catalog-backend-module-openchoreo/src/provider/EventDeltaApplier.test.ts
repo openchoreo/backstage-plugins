@@ -836,4 +836,121 @@ describe('EventDeltaApplier.handleEvent', () => {
       expect.stringContaining('no CatalogService is wired'),
     );
   });
+
+  describe('skip-template-generation annotation', () => {
+    function ok(data: any) {
+      return { data, error: undefined, response: { ok: true, status: 200 } };
+    }
+
+    const cctBase = {
+      metadata: {
+        name: 'api-proxy',
+        uid: 'uid-api-proxy',
+        creationTimestamp: '2025-01-06T10:00:00Z',
+        annotations: { 'openchoreo.dev/display-name': 'API Proxy' },
+      },
+      spec: { workloadType: 'proxy' },
+    };
+
+    it('upserts the ClusterComponentType but actively removes its Template when annotated', async () => {
+      const applier = newApplier(connection);
+      const annotated = {
+        ...cctBase,
+        metadata: {
+          ...cctBase.metadata,
+          annotations: {
+            ...cctBase.metadata.annotations,
+            'openchoreo.dev/skip-template-generation': 'true',
+          },
+        },
+      };
+      mockGET.mockImplementation((path: string) =>
+        Promise.resolve(
+          path.includes('/schema')
+            ? ok({ type: 'object', properties: {} })
+            : ok(annotated),
+        ),
+      );
+
+      await applier.handleEvent(
+        'ClusterComponentType',
+        'api-proxy',
+        undefined,
+        'updated',
+      );
+
+      // First mutation: upsert of the CCT entity only — no Template.
+      const upsert = applyMutation.mock.calls[0][0];
+      expect(upsert.added.map((e: any) => e.entity.kind)).toEqual([
+        'ClusterComponentType',
+      ]);
+      // Second mutation: active removal of the (possibly pre-existing)
+      // Template — the annotation may have been added after emission.
+      const removal = applyMutation.mock.calls[1][0];
+      expect(removal.removed.map((r: any) => r.entityRef)).toEqual([
+        'template:openchoreo-cluster/template-api-proxy',
+      ]);
+    });
+
+    it('still emits the Template when the annotation is absent', async () => {
+      const applier = newApplier(connection);
+      mockGET.mockImplementation((path: string) =>
+        Promise.resolve(
+          path.includes('/schema')
+            ? ok({ type: 'object', properties: {} })
+            : ok(cctBase),
+        ),
+      );
+
+      await applier.handleEvent(
+        'ClusterComponentType',
+        'api-proxy',
+        undefined,
+        'updated',
+      );
+
+      expect(applyMutation).toHaveBeenCalledTimes(1);
+      const kinds = applyMutation.mock.calls[0][0].added.map(
+        (e: any) => e.entity.kind,
+      );
+      expect(kinds.sort()).toEqual(['ClusterComponentType', 'Template']);
+    });
+
+    it('removes the namespaced Template when an annotated ComponentType is refreshed', async () => {
+      const applier = newApplier(connection);
+      const annotatedCt = {
+        metadata: {
+          name: 'hidden-ct',
+          uid: 'uid-hidden-ct',
+          namespace: 'test-ns',
+          creationTimestamp: '2025-01-06T10:00:00Z',
+          annotations: { 'openchoreo.dev/skip-template-generation': 'true' },
+        },
+        spec: { workloadType: 'deployment' },
+      };
+      mockGET.mockImplementation((path: string) =>
+        Promise.resolve(
+          path.includes('/schema')
+            ? ok({ type: 'object', properties: {} })
+            : ok(annotatedCt),
+        ),
+      );
+
+      await applier.handleEvent(
+        'ComponentType',
+        'hidden-ct',
+        'test-ns',
+        'updated',
+      );
+
+      const upsert = applyMutation.mock.calls[0][0];
+      expect(upsert.added.map((e: any) => e.entity.kind)).toEqual([
+        'ComponentType',
+      ]);
+      const removal = applyMutation.mock.calls[1][0];
+      expect(removal.removed.map((r: any) => r.entityRef)).toEqual([
+        'template:test-ns/template-hidden-ct',
+      ]);
+    });
+  });
 });

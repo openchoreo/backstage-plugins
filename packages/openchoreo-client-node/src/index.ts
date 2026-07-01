@@ -44,6 +44,8 @@ export {
   getAnnotation,
   getDisplayName,
   getDescription,
+  SKIP_TEMPLATE_GENERATION_ANNOTATION,
+  isTemplateGenerationSkipped,
   getConditions,
   getCondition,
   getConditionStatus,
