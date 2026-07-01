@@ -8,11 +8,13 @@ import {
   AuthService,
   LoggerService,
   SchedulerServiceTaskRunner,
+  UrlReaderService,
 } from '@backstage/backend-plugin-api';
 import { Config } from '@backstage/config';
 import type { EventsService, EventParams } from '@backstage/plugin-events-node';
 import {
   fetchAllPages,
+  getAnnotation,
   getCreatedAt,
   getDescription,
   getDisplayName,
@@ -20,9 +22,16 @@ import {
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
-import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  ComponentTypeUtils,
+} from '@openchoreo/backstage-plugin-common';
 import { DeploymentPipelineEntityV1alpha1 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
+import {
+  RemoteTemplateContext,
+  RemoteTemplateFetcher,
+} from '../converters/RemoteTemplateFetcher';
 import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
 import {
   PtdToTemplateConverter,
@@ -119,6 +128,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly translatorContext: NewApiTranslatorContext;
   /** Subsystem that handles per-event delta updates. Built once. */
   private readonly eventApplier: EventDeltaApplier;
+  /**
+   * Fetches hand-authored scaffolder Templates referenced via the
+   * {@link CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL} annotation. Undefined when
+   * no UrlReader was provided (feature effectively disabled).
+   */
+  private readonly remoteTemplateFetcher?: RemoteTemplateFetcher;
 
   constructor(
     taskRunner: SchedulerServiceTaskRunner,
@@ -128,6 +143,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     events?: EventsService,
     catalogService?: CatalogService,
     auth?: AuthService,
+    urlReader?: UrlReaderService,
   ) {
     this.taskRunner = taskRunner;
     this.logger = logger;
@@ -157,6 +173,14 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     // Initialize component type utilities from config
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
 
+    // Build the remote-template fetcher when a UrlReader is available. Used to
+    // resolve custom scaffolder templates referenced by ComponentTypes via the
+    // SCAFFOLD_TEMPLATE_URL annotation. Shared with the event-driven applier so
+    // both sync paths behave identically.
+    this.remoteTemplateFetcher = urlReader
+      ? new RemoteTemplateFetcher(urlReader, this.logger)
+      : undefined;
+
     this.translatorContext = {
       providerName: this.getProviderName(),
       defaultOwner: this.defaultOwner,
@@ -173,6 +197,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       ctdConverter: this.ctdConverter,
       rtdConverter: this.rtdConverter,
       ptdConverter: this.ptdConverter,
+      remoteTemplateFetcher: this.remoteTemplateFetcher,
       catalogService,
       auth,
     });
@@ -180,6 +205,33 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
   getProviderName(): string {
     return 'OpenChoreoEntityProvider';
+  }
+
+  /**
+   * Resolve a custom scaffolder Template referenced by a ComponentType's
+   * SCAFFOLD_TEMPLATE_URL annotation. Returns the fetched Template entity, or
+   * `null` (with an error logged) when no UrlReader is configured or the fetch
+   * fails — in which case no template is emitted for that type rather than
+   * falling back to a generated wizard.
+   */
+  private async resolveCustomTemplate(
+    templateUrl: string,
+    ctx: RemoteTemplateContext,
+  ): Promise<Entity | null> {
+    if (!this.remoteTemplateFetcher) {
+      this.logger.error(
+        `ComponentType ${ctx.ctdName} sets ${CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL} but no UrlReader is configured; skipping its template`,
+      );
+      return null;
+    }
+    try {
+      return await this.remoteTemplateFetcher.fetch(templateUrl, ctx);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch custom template for ComponentType ${ctx.ctdName} from ${templateUrl}: ${error}`,
+      );
+      return null;
+    }
   }
 
   /**
@@ -858,7 +910,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   return null;
                 }
 
-                // Combine metadata from list item + schema into full object
+                // Combine metadata from list item + schema into full object.
+                // `templateUrl` carries the custom-template annotation from the
+                // raw CR (dropped by the trimmed metadata below) to the
+                // emission step, which decides fetch-vs-generate.
                 const fullComponentType = {
                   metadata: {
                     name: ctName,
@@ -872,6 +927,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   spec: {
                     inputParametersSchema: schemaData as any,
                   },
+                  templateUrl: getAnnotation(
+                    ct,
+                    CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL,
+                  ),
                 };
 
                 return fullComponentType;
@@ -889,30 +948,42 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             (ctd): ctd is NonNullable<typeof ctd> => ctd !== null,
           );
 
-          // Convert CTDs to template entities
-          const templateEntities: Entity[] = validCTDs
-            .map(ctd => {
-              try {
-                const templateEntity =
-                  this.ctdConverter.convertCtdToTemplateEntity(ctd, nsName);
-                if (!templateEntity.metadata.annotations) {
-                  templateEntity.metadata.annotations = {};
+          // Convert CTDs to template entities. When a CTD declares a custom
+          // template URL we fetch that Template instead of generating one;
+          // otherwise we generate the wizard as before.
+          const templateEntities: Entity[] = (
+            await Promise.all(
+              validCTDs.map(async ctd => {
+                if (ctd.templateUrl) {
+                  return this.resolveCustomTemplate(ctd.templateUrl, {
+                    ctdName: ctd.metadata.name,
+                    namespace: nsName,
+                    workloadType: ctd.metadata.workloadType,
+                    displayName: ctd.metadata.displayName,
+                  });
                 }
-                templateEntity.metadata.annotations[
-                  'backstage.io/managed-by-location'
-                ] = `provider:${this.getProviderName()}`;
-                templateEntity.metadata.annotations[
-                  'backstage.io/managed-by-origin-location'
-                ] = `provider:${this.getProviderName()}`;
-                return templateEntity;
-              } catch (error) {
-                this.logger.warn(
-                  `Failed to convert CTD ${ctd.metadata.name} to template: ${error}`,
-                );
-                return null;
-              }
-            })
-            .filter((entity): entity is Entity => entity !== null);
+                try {
+                  const templateEntity =
+                    this.ctdConverter.convertCtdToTemplateEntity(ctd, nsName);
+                  if (!templateEntity.metadata.annotations) {
+                    templateEntity.metadata.annotations = {};
+                  }
+                  templateEntity.metadata.annotations[
+                    'backstage.io/managed-by-location'
+                  ] = `provider:${this.getProviderName()}`;
+                  templateEntity.metadata.annotations[
+                    'backstage.io/managed-by-origin-location'
+                  ] = `provider:${this.getProviderName()}`;
+                  return templateEntity;
+                } catch (error) {
+                  this.logger.warn(
+                    `Failed to convert CTD ${ctd.metadata.name} to template: ${error}`,
+                  );
+                  return null;
+                }
+              }),
+            )
+          ).filter((entity): entity is Entity => entity !== null);
 
           allEntities.push(...templateEntities);
           this.logger.info(
@@ -1348,6 +1419,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                 spec: {
                   inputParametersSchema: schemaData as any,
                 },
+                templateUrl: getAnnotation(
+                  cct,
+                  CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL,
+                ),
               };
             } catch (error) {
               this.logger.warn(
@@ -1362,29 +1437,41 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           (cct): cct is NonNullable<typeof cct> => cct !== null,
         );
 
-        const cctTemplateEntities: Entity[] = validCCTs
-          .map(cct => {
-            try {
-              const templateEntity =
-                this.ctdConverter.convertClusterCtdToTemplateEntity(cct);
-              if (!templateEntity.metadata.annotations) {
-                templateEntity.metadata.annotations = {};
+        const cctTemplateEntities: Entity[] = (
+          await Promise.all(
+            validCCTs.map(async cct => {
+              if (cct.templateUrl) {
+                return this.resolveCustomTemplate(cct.templateUrl, {
+                  ctdName: cct.metadata.name,
+                  // Cluster-scoped Templates live in the shared cluster namespace.
+                  namespace: 'openchoreo-cluster',
+                  workloadType: cct.metadata.workloadType,
+                  displayName: cct.metadata.displayName,
+                  ctdKind: 'ClusterComponentType',
+                });
               }
-              templateEntity.metadata.annotations[
-                'backstage.io/managed-by-location'
-              ] = `provider:${this.getProviderName()}`;
-              templateEntity.metadata.annotations[
-                'backstage.io/managed-by-origin-location'
-              ] = `provider:${this.getProviderName()}`;
-              return templateEntity;
-            } catch (error) {
-              this.logger.warn(
-                `Failed to convert ClusterComponentType ${cct.metadata.name} to template: ${error}`,
-              );
-              return null;
-            }
-          })
-          .filter((entity): entity is Entity => entity !== null);
+              try {
+                const templateEntity =
+                  this.ctdConverter.convertClusterCtdToTemplateEntity(cct);
+                if (!templateEntity.metadata.annotations) {
+                  templateEntity.metadata.annotations = {};
+                }
+                templateEntity.metadata.annotations[
+                  'backstage.io/managed-by-location'
+                ] = `provider:${this.getProviderName()}`;
+                templateEntity.metadata.annotations[
+                  'backstage.io/managed-by-origin-location'
+                ] = `provider:${this.getProviderName()}`;
+                return templateEntity;
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to convert ClusterComponentType ${cct.metadata.name} to template: ${error}`,
+                );
+                return null;
+              }
+            }),
+          )
+        ).filter((entity): entity is Entity => entity !== null);
 
         allEntities.push(...cctTemplateEntities);
         this.logger.info(

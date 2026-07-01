@@ -49,11 +49,16 @@ import {
   translateNewWorkflowToEntity,
 } from '../utils/entityTranslation';
 import {
+  getAnnotation,
   getCreatedAt,
   getDescription,
   getDisplayName,
   getName,
 } from '@openchoreo/openchoreo-client-node';
+import {
+  RemoteTemplateContext,
+  RemoteTemplateFetcher,
+} from '../converters/RemoteTemplateFetcher';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
 import {
@@ -119,6 +124,7 @@ export class EventDeltaApplier {
   private readonly ctdConverter: CtdToTemplateConverter;
   private readonly rtdConverter: RtdToTemplateConverter;
   private readonly ptdConverter: PtdToTemplateConverter;
+  private readonly remoteTemplateFetcher?: RemoteTemplateFetcher;
   private readonly catalogService?: CatalogService;
   private readonly auth?: AuthService;
 
@@ -132,6 +138,12 @@ export class EventDeltaApplier {
     ctdConverter: CtdToTemplateConverter;
     rtdConverter: RtdToTemplateConverter;
     ptdConverter: PtdToTemplateConverter;
+    /**
+     * Resolves custom scaffolder Templates referenced by the
+     * SCAFFOLD_TEMPLATE_URL annotation. Shared with the periodic provider so
+     * both sync paths behave identically. Undefined disables the feature.
+     */
+    remoteTemplateFetcher?: RemoteTemplateFetcher;
     /**
      * Optional catalog read-side. Used by the workload-deletion handler
      * to find entities annotated with the deleted workload's name and
@@ -153,6 +165,7 @@ export class EventDeltaApplier {
     this.ctdConverter = opts.ctdConverter;
     this.rtdConverter = opts.rtdConverter;
     this.ptdConverter = opts.ptdConverter;
+    this.remoteTemplateFetcher = opts.remoteTemplateFetcher;
     this.getConnection = opts.getConnection;
     this.catalogService = opts.catalogService;
     this.auth = opts.auth;
@@ -162,6 +175,32 @@ export class EventDeltaApplier {
 
   private locationKey(): string {
     return `provider:${this.translatorContext.providerName}`;
+  }
+
+  /**
+   * Resolve a custom scaffolder Template referenced by a ComponentType's
+   * SCAFFOLD_TEMPLATE_URL annotation. Returns the fetched Template, or
+   * `undefined` (with an error logged) when no UrlReader is configured or the
+   * fetch fails — no template is emitted for that type in that case.
+   */
+  private async resolveCustomTemplate(
+    templateUrl: string,
+    ctx: RemoteTemplateContext,
+  ): Promise<Entity | undefined> {
+    if (!this.remoteTemplateFetcher) {
+      this.logger.error(
+        `ComponentType ${ctx.ctdName} sets ${CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL} but no UrlReader is configured; skipping its template`,
+      );
+      return undefined;
+    }
+    try {
+      return await this.remoteTemplateFetcher.fetch(templateUrl, ctx);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch custom template for ComponentType ${ctx.ctdName} from ${templateUrl}: ${error}`,
+      );
+      return undefined;
+    }
   }
 
   private toDeferred(entities: Entity[]): {
@@ -850,6 +889,20 @@ export class EventDeltaApplier {
     const ctName = getName(ct);
     if (!ctName) return undefined;
 
+    // A custom template URL short-circuits schema fetch + generation.
+    const templateUrl = getAnnotation(
+      ct,
+      CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL,
+    );
+    if (templateUrl) {
+      return this.resolveCustomTemplate(templateUrl, {
+        ctdName: ctName,
+        namespace: ns,
+        workloadType: ct.spec?.workloadType ?? 'deployment',
+        displayName: getDisplayName(ct),
+      });
+    }
+
     try {
       const { data: schemaData, error: schemaError } = await client.GET(
         '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema',
@@ -909,6 +962,21 @@ export class EventDeltaApplier {
   ): Promise<Entity | undefined> {
     const cctName = getName(cct);
     if (!cctName) return undefined;
+
+    // A custom template URL short-circuits schema fetch + generation.
+    const templateUrl = getAnnotation(
+      cct,
+      CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL,
+    );
+    if (templateUrl) {
+      return this.resolveCustomTemplate(templateUrl, {
+        ctdName: cctName,
+        namespace: 'openchoreo-cluster',
+        workloadType: cct.spec?.workloadType ?? 'deployment',
+        displayName: getDisplayName(cct),
+        ctdKind: 'ClusterComponentType',
+      });
+    }
 
     try {
       const { data: schemaData, error: schemaError } = await client.GET(

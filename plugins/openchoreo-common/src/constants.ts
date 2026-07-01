@@ -31,6 +31,11 @@ export const CHOREO_ANNOTATIONS = {
   CTD_DISPLAY_NAME: 'openchoreo.io/ctd-display-name',
   CTD_GENERATED: 'openchoreo.io/ctd-generated',
   CTD_KIND: 'openchoreo.io/ctd-kind',
+  // Set on an OpenChoreo (Cluster)ComponentType to point the catalog sync at a
+  // hand-authored Backstage scaffolder Template. When present, the sync fetches
+  // that Template from the URL (via Backstage `integrations`) and emits it in
+  // place of the auto-generated component-creation wizard for this type.
+  SCAFFOLD_TEMPLATE_URL: 'scaffolder.openchoreo.dev/backstage-template-url',
   // (Cluster)ResourceType Definition (RTD) annotations
   // Umbrella prefix `RTD` mirrors `CTD` on the Component side: a third
   // letter (`D` for Definition) keeps it distinct from `RT` (ResourceType)
