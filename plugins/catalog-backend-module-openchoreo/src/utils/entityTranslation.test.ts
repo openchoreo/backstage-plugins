@@ -531,6 +531,31 @@ describe('translateNotificationChannelToEntity', () => {
       'dev-webhook notification channel',
     );
   });
+
+  it('sets the deletion-timestamp annotation only when the input carries one', () => {
+    const without = translateNotificationChannelToEntity(
+      { name: 'a', environment: 'dev', type: 'email' },
+      'analytics',
+      config,
+    );
+    expect(Object.keys(without.metadata.annotations ?? {})).not.toContain(
+      'openchoreo.io/deletion-timestamp',
+    );
+
+    const withTs = translateNotificationChannelToEntity(
+      {
+        name: 'b',
+        environment: 'dev',
+        type: 'email',
+        deletionTimestamp: '2026-05-14T11:00:00Z',
+      },
+      'analytics',
+      config,
+    );
+    expect(withTs.metadata.annotations).toMatchObject({
+      'openchoreo.io/deletion-timestamp': '2026-05-14T11:00:00Z',
+    });
+  });
 });
 
 describe('translateResourceToEntity', () => {

@@ -46,6 +46,19 @@ const k8sWorkflow = {
   status: { conditions: [] },
 };
 
+const k8sNotificationChannel = {
+  metadata: {
+    name: 'dev-webhook',
+    namespace: 'test-ns',
+  },
+  spec: {
+    environment: 'dev',
+    type: 'webhook',
+    webhookConfig: { url: 'https://hooks.example.com' },
+  },
+  status: {},
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -225,6 +238,32 @@ describe('PlatformResourceService', () => {
       expect(result.data).toEqual(resource);
     });
 
+    it('fetches observabilityalertsnotificationchannel via new API', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sNotificationChannel));
+
+      const service = createService();
+      const result = await service.getResourceDefinition(
+        'observabilityalertsnotificationchannels' as any,
+        'test-ns',
+        'dev-webhook',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(k8sNotificationChannel);
+      expect(mockGET).toHaveBeenCalledWith(
+        '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels/{observabilityAlertsNotificationChannelName}',
+        expect.objectContaining({
+          params: {
+            path: {
+              namespaceName: 'test-ns',
+              observabilityAlertsNotificationChannelName: 'dev-webhook',
+            },
+          },
+        }),
+      );
+    });
+
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(createErrorResponse());
 
@@ -384,6 +423,35 @@ describe('PlatformResourceService', () => {
       expect(mockPUT).toHaveBeenCalledTimes(1);
     });
 
+    it('updates observabilityalertsnotificationchannel via new API PUT', async () => {
+      mockPUT.mockResolvedValueOnce(createOkResponse(k8sNotificationChannel));
+
+      const service = createService();
+      const result = await service.updateResourceDefinition(
+        'observabilityalertsnotificationchannels' as any,
+        'test-ns',
+        'dev-webhook',
+        k8sNotificationChannel,
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.operation).toBe('updated');
+      expect(result.data?.name).toBe('dev-webhook');
+      expect(result.data?.kind).toBe('ObservabilityAlertsNotificationChannel');
+      expect(mockPUT).toHaveBeenCalledWith(
+        '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels/{observabilityAlertsNotificationChannelName}',
+        expect.objectContaining({
+          params: {
+            path: {
+              namespaceName: 'test-ns',
+              observabilityAlertsNotificationChannelName: 'dev-webhook',
+            },
+          },
+        }),
+      );
+    });
+
     it('throws on API error', async () => {
       mockPUT.mockResolvedValueOnce(createErrorResponse());
 
@@ -527,6 +595,35 @@ describe('PlatformResourceService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.kind).toBe('ClusterProjectType');
+    });
+
+    it('deletes observabilityalertsnotificationchannel via new API', async () => {
+      mockDELETE.mockResolvedValueOnce({
+        error: undefined,
+        response: { ok: true, status: 200 },
+      });
+
+      const service = createService();
+      const result = await service.deleteResourceDefinition(
+        'observabilityalertsnotificationchannels' as any,
+        'test-ns',
+        'dev-webhook',
+        'token-123',
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.kind).toBe('ObservabilityAlertsNotificationChannel');
+      expect(mockDELETE).toHaveBeenCalledWith(
+        '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels/{observabilityAlertsNotificationChannelName}',
+        expect.objectContaining({
+          params: {
+            path: {
+              namespaceName: 'test-ns',
+              observabilityAlertsNotificationChannelName: 'dev-webhook',
+            },
+          },
+        }),
+      );
     });
 
     it('throws on API error', async () => {
