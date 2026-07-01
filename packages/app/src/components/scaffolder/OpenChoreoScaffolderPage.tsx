@@ -30,6 +30,7 @@ import { ProjectNamespaceFieldExtension } from '../../scaffolder/ProjectNamespac
 import { NamespaceEntityPickerFieldExtension } from '../../scaffolder/NamespaceEntityPicker';
 import { DeploymentPipelinePickerFieldExtension } from '../../scaffolder/DeploymentPipelinePicker';
 import { EnvironmentFormWithYamlFieldExtension } from '../../scaffolder/EnvironmentFormWithYaml';
+import { NotificationChannelFormWithYamlFieldExtension } from '../../scaffolder/NotificationChannelFormWithYaml';
 import { DeploymentPipelineFormWithYamlFieldExtension } from '../../scaffolder/DeploymentPipelineFormWithYaml';
 import { WorkloadDetailsFieldExtension } from '../../scaffolder/WorkloadDetailsField';
 import { CustomTemplateListPage } from './CustomTemplateListPage';
@@ -86,6 +87,7 @@ export function OpenChoreoScaffolderPage() {
           <ComponentWorkflowYamlEditorFieldExtension />
           <ClusterWorkflowYamlEditorFieldExtension />
           <EnvironmentFormWithYamlFieldExtension />
+          <NotificationChannelFormWithYamlFieldExtension />
           <DeploymentPipelineFormWithYamlFieldExtension />
           <GitSourceFieldExtension />
           <WorkloadDetailsFieldExtension />

@@ -54,6 +54,7 @@ export {
   DataplaneEnvironmentsCard,
   DataplaneGatewayConfigurationCard,
 } from './components/DataplaneOverview';
+export { NotificationChannelConfigCard } from './components/NotificationChannelOverview';
 export {
   ClusterDataplaneStatusCard,
   ClusterDataplaneEnvironmentsCard,

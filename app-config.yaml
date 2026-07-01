@@ -43,7 +43,7 @@ backend:
     # Uncomment the following host directive to bind to specific interfaces
     # host: 127.0.0.1
   csp:
-    connect-src: ["'self'", 'http:', 'https:']
+    connect-src: ["'self'", "http:", "https:"]
     # Content-Security-Policy directives follow the Helmet format: https://helmetjs.github.io/#reference
     # Default Helmet Content-Security-Policy values can be removed by setting the key to false
   cors:
@@ -58,7 +58,7 @@ backend:
     # filename: ':memory:' produces an in-memory SQLite database, identical
     # behavior to the legacy connection: ':memory:' bare-string form.
     connection:
-      filename: ':memory:'
+      filename: ":memory:"
   # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
 
 integrations:
@@ -112,11 +112,11 @@ proxy:
 # and an external cloud storage when deploying TechDocs for production use-case.
 # https://backstage.io/docs/features/techdocs/how-to-guides#how-to-migrate-from-techdocs-basic-to-recommended-deployment-approach
 techdocs:
-  builder: 'local' # Alternatives - 'external'
+  builder: "local" # Alternatives - 'external'
   generator:
-    runIn: 'docker' # Alternatives - 'local'
+    runIn: "docker" # Alternatives - 'local'
   publisher:
-    type: 'local' # Alternatives - 'googleGcs' or 'awsS3'. Read documentation for using alternatives.
+    type: "local" # Alternatives - 'googleGcs' or 'awsS3'. Read documentation for using alternatives.
 
 auth:
   # see https://backstage.io/docs/auth/ to learn about auth providers
@@ -138,7 +138,7 @@ auth:
         # Explicit OAuth2 endpoints (used if metadataUrl not set, or as override)
         authorizationUrl: ${OPENCHOREO_AUTH_AUTHORIZATION_URL}
         tokenUrl: ${OPENCHOREO_AUTH_TOKEN_URL}
-        scope: 'openid profile email' # Override via OPENCHOREO_AUTH_OIDC_SCOPE in production
+        scope: "openid profile email" # Override via OPENCHOREO_AUTH_OIDC_SCOPE in production
 
     # Guest provider - used when openchoreo.features.auth.enabled is false
     # Allows users to access the portal without authentication (demo/development mode)
@@ -168,7 +168,7 @@ openchoreo:
 
   # Default owner for built-in Backstage entity kinds (Domain, System, Component, API)
   # Required by Backstage schema validation. Custom OpenChoreo kinds don't use owner.
-  defaultOwner: 'openchoreo-users'
+  defaultOwner: "openchoreo-users"
 
   # Upstream URL the openchoreo-portal-assistant-backend plugin forwards
   # to (Portal Assistant). Env-var-gated: when OPENCHOREO_PORTAL_ASSISTANT_URL
@@ -212,7 +212,7 @@ openchoreo:
     auth:
       enabled: ${OPENCHOREO_FEATURES_AUTH_ENABLED}
       # Must match auth.providers.openchoreo-auth.development.scope
-      scope: 'openid profile email'
+      scope: "openid profile email"
     # Authorization configuration (Access Control)
     # When disabled, hides Access Control sidebar item and pages
     authz:
@@ -261,7 +261,7 @@ thunder:
   # For production: set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.thunder.baseUrl
   baseUrl: ${THUNDER_BASE_URL} # e.g., http://sts.openchoreo.localhost or https://idp.example.com
   # token: ${THUNDER_TOKEN} # Optional: uncomment if you need Thunder API authentication
-  defaultNamespace: 'default' # Default namespace for User and Group entities
+  defaultNamespace: "default" # Default namespace for User and Group entities
   schedule:
     frequency: 600 # seconds between runs (default: 600 = 10 minutes)
     timeout: 300 # seconds for timeout (default: 300 = 5 minutes)
@@ -332,6 +332,10 @@ catalog:
         - allow: [Template]
     - type: file
       target: ../../templates/create-openchoreo-clusterworkflow/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: ../../templates/create-openchoreo-notification-channel/template.yaml
       rules:
         - allow: [Template]
     # - type: file

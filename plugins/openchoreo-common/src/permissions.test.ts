@@ -5,9 +5,14 @@ import {
   openchoreoClusterProjectTypeCreatePermission,
   openchoreoClusterProjectTypeUpdatePermission,
   openchoreoClusterProjectTypeDeletePermission,
+  openchoreoNotificationChannelCreatePermission,
+  openchoreoNotificationChannelReadPermission,
+  openchoreoNotificationChannelUpdatePermission,
+  openchoreoNotificationChannelDeletePermission,
   openchoreoPermissions,
   OPENCHOREO_PERMISSION_TO_ACTION,
   OPENCHOREO_MANAGED_ENTITY_KINDS,
+  CATALOG_KIND_TO_ACTION,
 } from './permissions';
 
 describe('ProjectType / ClusterProjectType permissions', () => {
@@ -83,5 +88,63 @@ describe('ProjectType / ClusterProjectType permissions', () => {
     expect(OPENCHOREO_MANAGED_ENTITY_KINDS).toEqual(
       expect.arrayContaining(['ProjectType', 'ClusterProjectType']),
     );
+  });
+});
+
+describe('NotificationChannel permissions', () => {
+  it('defines notification channel permissions with the expected names and actions', () => {
+    expect(openchoreoNotificationChannelCreatePermission.name).toBe(
+      'openchoreo.notificationchannel.create',
+    );
+    expect(openchoreoNotificationChannelReadPermission.name).toBe(
+      'openchoreo.notificationchannel.read',
+    );
+    expect(openchoreoNotificationChannelUpdatePermission.name).toBe(
+      'openchoreo.notificationchannel.update',
+    );
+    expect(openchoreoNotificationChannelDeletePermission.name).toBe(
+      'openchoreo.notificationchannel.delete',
+    );
+  });
+
+  it('registers all four notification channel permissions in openchoreoPermissions', () => {
+    const names = openchoreoPermissions.map(p => p.name);
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'openchoreo.notificationchannel.create',
+        'openchoreo.notificationchannel.read',
+        'openchoreo.notificationchannel.update',
+        'openchoreo.notificationchannel.delete',
+      ]),
+    );
+  });
+
+  it('maps notification channel permissions to their authz actions', () => {
+    expect(
+      OPENCHOREO_PERMISSION_TO_ACTION['openchoreo.notificationchannel.create'],
+    ).toBe('observabilityalertsnotificationchannel:create');
+    expect(
+      OPENCHOREO_PERMISSION_TO_ACTION['openchoreo.notificationchannel.read'],
+    ).toBe('observabilityalertsnotificationchannel:view');
+    expect(
+      OPENCHOREO_PERMISSION_TO_ACTION['openchoreo.notificationchannel.update'],
+    ).toBe('observabilityalertsnotificationchannel:update');
+    expect(
+      OPENCHOREO_PERMISSION_TO_ACTION['openchoreo.notificationchannel.delete'],
+    ).toBe('observabilityalertsnotificationchannel:delete');
+  });
+
+  it('lists ObservabilityAlertsNotificationChannel as a managed entity kind', () => {
+    expect(OPENCHOREO_MANAGED_ENTITY_KINDS).toEqual(
+      expect.arrayContaining(['ObservabilityAlertsNotificationChannel']),
+    );
+  });
+
+  it('bridges catalog.entity.read to the view action', () => {
+    expect(
+      CATALOG_KIND_TO_ACTION.observabilityalertsnotificationchannel[
+        'catalog.entity.read'
+      ],
+    ).toBe('observabilityalertsnotificationchannel:view');
   });
 });

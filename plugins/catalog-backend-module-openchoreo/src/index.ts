@@ -36,6 +36,7 @@ export {
   translateClusterTraitToEntity,
   translateClusterWorkflowToEntity,
   translateDeploymentPipelineToEntity,
+  translateNotificationChannelToEntity,
   extractWorkflowParameters,
   type ComponentEntityTranslationConfig,
   type EntityTranslationConfig,

@@ -20,3 +20,4 @@ export { ResourceTypeEntityProcessor } from './ResourceTypeEntityProcessor';
 export { ClusterProjectTypeEntityProcessor } from './ClusterProjectTypeEntityProcessor';
 export { ProjectTypeEntityProcessor } from './ProjectTypeEntityProcessor';
 export { SystemEntityProcessor } from './SystemEntityProcessor';
+export { ObservabilityAlertsNotificationChannelEntityProcessor } from './ObservabilityAlertsNotificationChannelEntityProcessor';

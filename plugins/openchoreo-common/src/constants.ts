@@ -182,3 +182,17 @@ export const RELATION_USES_WORKFLOW = 'usesWorkflow';
  * This is the inverse of RELATION_USES_WORKFLOW.
  */
 export const RELATION_WORKFLOW_USED_BY = 'workflowUsedBy';
+
+/**
+ * A relation indicating that an Environment sends alerts to an
+ * ObservabilityAlertsNotificationChannel. The source is the environment,
+ * the target is the notification channel.
+ */
+export const RELATION_NOTIFIES = 'notifies';
+
+/**
+ * A relation indicating that an ObservabilityAlertsNotificationChannel
+ * receives alerts from an Environment. This is the inverse of
+ * RELATION_NOTIFIES.
+ */
+export const RELATION_NOTIFIED_BY = 'notifiedBy';

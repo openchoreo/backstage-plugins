@@ -394,6 +394,10 @@ export const lightTokens: ThemeTokens = {
     workflow: { accent: '#8b5cf6', tint: '#f3f0ff' },
     clusterworkflow: { accent: '#8b5cf6', tint: '#f3f0ff' },
     componentworkflow: { accent: '#3b82f6', tint: '#eff6ff' },
+    observabilityalertsnotificationchannel: {
+      accent: '#8b5cf6',
+      tint: '#f3f0ff',
+    },
   },
   entityKindDefault: { accent: '#6b7280', tint: '#f3f4f6' },
 
@@ -622,6 +626,10 @@ export const darkTokens: ThemeTokens = {
     workflow: { accent: '#a78bfa', tint: '#1e1a2e' },
     clusterworkflow: { accent: '#a78bfa', tint: '#1e1a2e' },
     componentworkflow: { accent: '#60a5fa', tint: '#151c2e' },
+    observabilityalertsnotificationchannel: {
+      accent: '#a78bfa',
+      tint: '#1e1a2e',
+    },
   },
   entityKindDefault: { accent: '#9ca3af', tint: '#1f2128' },
 

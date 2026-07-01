@@ -1,0 +1,38 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-openchoreo-notification-channel
+  title: Notification Channel
+  description: Create a channel (email or webhook) that OpenChoreo alert rules can send notifications to.
+spec:
+  owner: openchoreo-users
+  type: ObservabilityAlertsNotificationChannel
+  # Enable user token injection for user-based authorization at OpenChoreo API
+  EXPERIMENTAL_formDecorators:
+    - id: openchoreo:inject-user-token
+  parameters:
+    - title: Notification Channel Details
+      required:
+        - channelConfig
+      properties:
+        channelConfig:
+          title: ' '
+          type: object
+          ui:field: NotificationChannelFormWithYaml
+  steps:
+    - id: create-openchoreo-notification-channel
+      name: Create OpenChoreo Notification Channel
+      action: openchoreo:notificationchannel:create
+      input:
+        namespaceName: ${{ parameters.channelConfig.namespace_name }}
+        channelName: ${{ parameters.channelConfig.channel_name }}
+        environment: ${{ parameters.channelConfig.environment }}
+        isEnvDefault: ${{ parameters.channelConfig.isEnvDefault }}
+        type: ${{ parameters.channelConfig.type }}
+        emailConfig: ${{ parameters.channelConfig.emailConfig }}
+        webhookConfig: ${{ parameters.channelConfig.webhookConfig }}
+  output:
+    links:
+      - title: View Notification Channel
+        icon: catalog
+        entityRef: ${{ steps['create-openchoreo-notification-channel'].output.entityRef }}

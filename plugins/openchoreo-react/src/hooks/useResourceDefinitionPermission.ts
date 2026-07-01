@@ -17,6 +17,8 @@ import {
   openchoreoComponentWorkflowDeletePermission,
   openchoreoEnvironmentUpdatePermission,
   openchoreoEnvironmentDeletePermission,
+  openchoreoNotificationChannelUpdatePermission,
+  openchoreoNotificationChannelDeletePermission,
   openchoreoDataplaneUpdatePermission,
   openchoreoDataplaneDeletePermission,
   openchoreoWorkflowplaneUpdatePermission,
@@ -135,6 +137,11 @@ const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
   environment: {
     update: openchoreoEnvironmentUpdatePermission,
     delete: openchoreoEnvironmentDeletePermission,
+    isResourceScoped: true,
+  },
+  observabilityalertsnotificationchannel: {
+    update: openchoreoNotificationChannelUpdatePermission,
+    delete: openchoreoNotificationChannelDeletePermission,
     isResourceScoped: true,
   },
   dataplane: {
