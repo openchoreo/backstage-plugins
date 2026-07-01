@@ -41,6 +41,14 @@ export type PinnedContext = {
    */
   repoUrl?: string;
   /**
+   * In-repo build path (the component's workflow ``repository.appPath``)
+   * extracted alongside ``repoUrl``. Plumbed through so the build_failure
+   * "Copy as prompt" button can tell an external coding bot which
+   * sub-directory of the repo the failing build ran in. Optional —
+   * components built from the repo root omit it.
+   */
+  componentPath?: string;
+  /**
    * Optional case discriminator forwarded into ChatScope.caseType so the
    * agent layers in case-specific guidance. Launchers built for a single
    * scenario (e.g. failed builds) set this; the generic FAB leaves it

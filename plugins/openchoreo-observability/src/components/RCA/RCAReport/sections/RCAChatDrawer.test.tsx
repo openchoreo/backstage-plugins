@@ -30,7 +30,7 @@ const chatContext = (api: RCAAgentApi) => ({
 
 const openDrawer = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(
-    screen.getByRole('button', { name: /chat with rca agent/i }),
+    screen.getByRole('button', { name: /ask portal assistant/i }),
   );
 };
 
@@ -47,15 +47,39 @@ describe('RCAChatDrawer', () => {
 
     // Drawer content is not mounted until the FAB is clicked.
     expect(
-      screen.queryByPlaceholderText('Message RCA Agent'),
+      screen.queryByPlaceholderText('Message Portal Assistant'),
     ).not.toBeInTheDocument();
 
     await openDrawer(user);
 
     expect(screen.getByText(/ask follow-up questions/i)).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText('Message RCA Agent'),
+      screen.getByPlaceholderText('Message Portal Assistant'),
     ).toBeInTheDocument();
+  });
+
+  it('sends a suggestion chip as a turn to the agent', async () => {
+    // The empty-state chips are what make the RCA chat feel like the
+    // Portal Assistant — clicking one must actually fire the turn (with
+    // the chip wording as the user message), not just prefill the box.
+    const user = userEvent.setup();
+    const api = makeApi(async (_req, _routing, onEvent) => {
+      onEvent(ev({ type: 'done', message: 'chip reply' }));
+    });
+    render(<RCAChatDrawer reportId="rep-1" chatContext={chatContext(api)} />);
+    await openDrawer(user);
+
+    await user.click(
+      screen.getByRole('button', { name: /explain the root cause/i }),
+    );
+
+    expect(screen.getByText('Explain the root cause')).toBeInTheDocument();
+    expect(await screen.findByText('chip reply')).toBeInTheDocument();
+    expect(api.streamRCAChat).toHaveBeenCalledTimes(1);
+    const [request] = api.streamRCAChat.mock.calls[0];
+    expect(request.messages[request.messages.length - 1].content).toContain(
+      'Explain the root cause',
+    );
   });
 
   it('hides the launcher FAB while the drawer is open', async () => {
@@ -66,13 +90,13 @@ describe('RCAChatDrawer', () => {
     // FAB is the only way in while closed; once open it must not overlap
     // the drawer (its z-index sits above the modal layer).
     expect(
-      screen.getByRole('button', { name: /chat with rca agent/i }),
+      screen.getByRole('button', { name: /ask portal assistant/i }),
     ).toBeInTheDocument();
 
     await openDrawer(user);
 
     expect(
-      screen.queryByRole('button', { name: /chat with rca agent/i }),
+      screen.queryByRole('button', { name: /ask portal assistant/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -90,7 +114,7 @@ describe('RCAChatDrawer', () => {
     await openDrawer(user);
 
     await user.type(
-      screen.getByPlaceholderText('Message RCA Agent'),
+      screen.getByPlaceholderText('Message Portal Assistant'),
       'why did it fail?{Enter}',
     );
 
@@ -118,7 +142,10 @@ describe('RCAChatDrawer', () => {
     render(<RCAChatDrawer reportId="rep-7" chatContext={chatContext(api)} />);
     await openDrawer(user);
 
-    await user.type(screen.getByPlaceholderText('Message RCA Agent'), 'hi');
+    await user.type(
+      screen.getByPlaceholderText('Message Portal Assistant'),
+      'hi',
+    );
     await user.click(screen.getByRole('button', { name: /send message/i }));
 
     expect(await screen.findByText('persisted reply')).toBeInTheDocument();
@@ -155,7 +182,7 @@ describe('RCAChatDrawer', () => {
     await openDrawer(user);
 
     await user.type(
-      screen.getByPlaceholderText('Message RCA Agent'),
+      screen.getByPlaceholderText('Message Portal Assistant'),
       'boom{Enter}',
     );
 
@@ -185,7 +212,7 @@ describe('RCAChatDrawer', () => {
     await openDrawer(user);
 
     await user.type(
-      screen.getByPlaceholderText('Message RCA Agent'),
+      screen.getByPlaceholderText('Message Portal Assistant'),
       'long task{Enter}',
     );
 
@@ -212,7 +239,7 @@ describe('RCAChatDrawer', () => {
     await openDrawer(user);
 
     await user.type(
-      screen.getByPlaceholderText('Message RCA Agent'),
+      screen.getByPlaceholderText('Message Portal Assistant'),
       'boom{Enter}',
     );
 
@@ -225,16 +252,16 @@ describe('RCAChatDrawer', () => {
     render(<RCAChatDrawer reportId="rep-1" chatContext={chatContext(api)} />);
     await openDrawer(user);
     expect(
-      screen.getByPlaceholderText('Message RCA Agent'),
+      screen.getByPlaceholderText('Message Portal Assistant'),
     ).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole('button', { name: /close rca agent chat/i }),
+      screen.getByRole('button', { name: /close portal assistant chat/i }),
     );
 
     await waitFor(() =>
       expect(
-        screen.queryByPlaceholderText('Message RCA Agent'),
+        screen.queryByPlaceholderText('Message Portal Assistant'),
       ).not.toBeInTheDocument(),
     );
   });
@@ -245,14 +272,14 @@ describe('RCAChatDrawer', () => {
     render(<RCAChatDrawer reportId="rep-1" chatContext={chatContext(api)} />);
     await openDrawer(user);
     expect(
-      screen.getByPlaceholderText('Message RCA Agent'),
+      screen.getByPlaceholderText('Message Portal Assistant'),
     ).toBeInTheDocument();
 
     await user.keyboard('{Escape}');
 
     await waitFor(() =>
       expect(
-        screen.queryByPlaceholderText('Message RCA Agent'),
+        screen.queryByPlaceholderText('Message Portal Assistant'),
       ).not.toBeInTheDocument(),
     );
   });
@@ -266,7 +293,7 @@ describe('RCAChatDrawer', () => {
     await openDrawer(user);
 
     await user.type(
-      screen.getByPlaceholderText('Message RCA Agent'),
+      screen.getByPlaceholderText('Message Portal Assistant'),
       'hi{Enter}',
     );
 

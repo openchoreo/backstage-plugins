@@ -9,6 +9,7 @@ import {
 import {
   Typography,
   Box,
+  Chip,
   IconButton,
   TextField,
   InputAdornment,
@@ -94,6 +95,15 @@ const markdownComponents = {
 
 const DRAWER_WIDTH = 440;
 
+// Starter prompts shown on the empty chat — mirrors the Portal Assistant
+// drawer's suggestion chips, scoped to follow-ups on an RCA report so the
+// two chats read as the same assistant.
+const CHAT_SUGGESTIONS = [
+  'Explain the root cause',
+  'What are the recommended fixes?',
+  'Any related incidents?',
+];
+
 const useStyles = makeStyles(theme => ({
   fabRoot: {
     position: 'fixed',
@@ -140,6 +150,27 @@ const useStyles = makeStyles(theme => ({
   statusStrip: {
     padding: theme.spacing(0.25, 2, 0, 2),
     textAlign: 'left',
+  },
+  emptyState: {
+    padding: theme.spacing(2, 2, 1),
+  },
+  // Pill-strip of suggestion chips shown only on the empty timeline —
+  // matches the Portal Assistant drawer's ``suggestionStrip``.
+  suggestionStrip: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: theme.spacing(0.75),
+    marginTop: theme.spacing(2),
+  },
+  suggestionChip: {
+    height: 'auto',
+    cursor: 'pointer',
+    '& .MuiChip-label': {
+      whiteSpace: 'normal',
+      paddingTop: theme.spacing(0.25),
+      paddingBottom: theme.spacing(0.25),
+    },
   },
 }));
 
@@ -205,104 +236,123 @@ export const RCAChatDrawer = ({
     }
   }, [messages, streamingContent, open]);
 
-  const handleSendMessage = useCallback(async () => {
-    if (!chatMessage.trim() || isSending) return;
+  const sendText = useCallback(
+    async (rawText: string) => {
+      if (!rawText.trim() || isSending) return;
 
-    const trimmedMessage = chatMessage.trim();
-    const userMessage: ChatMessage = { role: 'user', content: trimmedMessage };
-    const updatedMessages = [...messages, userMessage];
-    const messagesToSend = [
-      ...messages,
-      {
-        role: 'user' as const,
-        content: `[${new Date().toISOString()}] \n${trimmedMessage}`,
-      },
-    ];
-
-    setMessages(updatedMessages);
-    setChatMessage('');
-    setIsSending(true);
-    setStreamingContent('');
-    setToolStatus(null);
-    setChatError(null);
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    // Local mirror of the streamed text. The streamingContent STATE can't
-    // be read back inside this same invocation (the closure captured its
-    // value — '' — at send time), so accumulate here to preserve partial
-    // output if the user cancels mid-stream.
-    let assembled = '';
-
-    try {
-      await chatContext.rcaAgentApi.streamRCAChat(
+      const trimmedMessage = rawText.trim();
+      const userMessage: ChatMessage = {
+        role: 'user',
+        content: trimmedMessage,
+      };
+      const updatedMessages = [...messages, userMessage];
+      const messagesToSend = [
+        ...messages,
         {
-          reportId: reportId || '',
-          namespace: chatContext.namespaceName,
-          project: chatContext.projectName,
-          environment: chatContext.environmentName,
-          messages: messagesToSend,
+          role: 'user' as const,
+          content: `[${new Date().toISOString()}] \n${trimmedMessage}`,
         },
-        {
-          namespaceName: chatContext.namespaceName,
-          environmentName: chatContext.environmentName,
-        },
-        (event: StreamEvent) => {
-          switch (event.type) {
-            case 'message_chunk':
-              assembled += event.content;
-              setStreamingContent(prev => prev + event.content);
-              setToolStatus(null);
-              break;
-            case 'tool_call':
-              setToolStatus(event.activeForm || 'Digging deeper...');
-              break;
-            case 'done':
-              // Finalize the assistant message
-              setMessages(prev => [
-                ...prev,
-                { role: 'assistant', content: event.message },
-              ]);
-              setStreamingContent('');
-              setToolStatus(null);
-              break;
-            case 'error':
-              setChatError(event.message);
-              setStreamingContent('');
-              setToolStatus(null);
-              break;
-            case 'actions':
-              // TODO: Handle actions
-              break;
-            default:
-              // Unknown event type, ignore
-              break;
-          }
-        },
-        controller.signal,
-      );
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        // User cancelled - add partial content as message if any
-        if (assembled) {
-          setMessages(prev => [
-            ...prev,
-            { role: 'assistant', content: `${assembled} (cancelled)` },
-          ]);
-        }
-      } else {
-        setChatError(
-          err instanceof Error ? err.message : 'Failed to send message',
-        );
-      }
-    } finally {
-      setIsSending(false);
+      ];
+
+      setMessages(updatedMessages);
+      setChatMessage('');
+      setIsSending(true);
       setStreamingContent('');
       setToolStatus(null);
-      abortControllerRef.current = null;
-    }
-  }, [chatMessage, isSending, messages, chatContext, reportId]);
+      setChatError(null);
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      // Local mirror of the streamed text. The streamingContent STATE can't
+      // be read back inside this same invocation (the closure captured its
+      // value — '' — at send time), so accumulate here to preserve partial
+      // output if the user cancels mid-stream.
+      let assembled = '';
+
+      try {
+        await chatContext.rcaAgentApi.streamRCAChat(
+          {
+            reportId: reportId || '',
+            namespace: chatContext.namespaceName,
+            project: chatContext.projectName,
+            environment: chatContext.environmentName,
+            messages: messagesToSend,
+          },
+          {
+            namespaceName: chatContext.namespaceName,
+            environmentName: chatContext.environmentName,
+          },
+          (event: StreamEvent) => {
+            switch (event.type) {
+              case 'message_chunk':
+                assembled += event.content;
+                setStreamingContent(prev => prev + event.content);
+                setToolStatus(null);
+                break;
+              case 'tool_call':
+                setToolStatus(event.activeForm || 'Digging deeper...');
+                break;
+              case 'done':
+                // Finalize the assistant message
+                setMessages(prev => [
+                  ...prev,
+                  { role: 'assistant', content: event.message },
+                ]);
+                setStreamingContent('');
+                setToolStatus(null);
+                break;
+              case 'error':
+                setChatError(event.message);
+                setStreamingContent('');
+                setToolStatus(null);
+                break;
+              case 'actions':
+                // TODO: Handle actions
+                break;
+              default:
+                // Unknown event type, ignore
+                break;
+            }
+          },
+          controller.signal,
+        );
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          // User cancelled - add partial content as message if any
+          if (assembled) {
+            setMessages(prev => [
+              ...prev,
+              { role: 'assistant', content: `${assembled} (cancelled)` },
+            ]);
+          }
+        } else {
+          setChatError(
+            err instanceof Error ? err.message : 'Failed to send message',
+          );
+        }
+      } finally {
+        setIsSending(false);
+        setStreamingContent('');
+        setToolStatus(null);
+        abortControllerRef.current = null;
+      }
+    },
+    [isSending, messages, chatContext, reportId],
+  );
+
+  const handleSendMessage = useCallback(() => {
+    void sendText(chatMessage);
+  }, [chatMessage, sendText]);
+
+  // Empty-state suggestion chips fire a turn immediately with pre-vetted
+  // wording — mirrors the Portal Assistant drawer's starter prompts.
+  const handleSuggestion = useCallback(
+    (text: string) => {
+      void sendText(text);
+    },
+    [sendText],
+  );
 
   const handleCancelSend = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -339,14 +389,14 @@ export const RCAChatDrawer = ({
           clicks at the bottom-right. The header close button handles
           dismissal. */}
       {!open && (
-        <Tooltip title="Chat with RCA Agent" placement="left">
+        <Tooltip title="Ask Portal Assistant" placement="left">
           <Fab
             color="primary"
             size="medium"
             className={drawerClasses.fab}
             classes={{ root: drawerClasses.fabRoot }}
             onClick={() => setOpen(true)}
-            aria-label="Chat with RCA Agent"
+            aria-label="Ask Portal Assistant"
           >
             <ChatOutlinedIcon />
           </Fab>
@@ -360,7 +410,7 @@ export const RCAChatDrawer = ({
       >
         <Box className={drawerClasses.drawerHeader}>
           <Typography variant="subtitle1" className={drawerClasses.headerTitle}>
-            Chat with RCA Agent
+            Portal Assistant
           </Typography>
           <Box className={drawerClasses.drawerHeaderActions}>
             <Tooltip title="Clear conversation">
@@ -378,7 +428,7 @@ export const RCAChatDrawer = ({
             <IconButton
               size="small"
               onClick={() => setOpen(false)}
-              aria-label="Close RCA Agent chat"
+              aria-label="Close Portal Assistant chat"
             >
               <CloseIcon fontSize="small" />
             </IconButton>
@@ -389,9 +439,29 @@ export const RCAChatDrawer = ({
             {/* To push messages to bottom */}
             <div style={{ marginTop: 'auto' }} />
             {messages.length === 0 && !streamingContent && !toolStatus ? (
-              <Typography variant="body2" color="textSecondary" align="center">
-                Ask follow-up questions, search logs, or explore related issues
-              </Typography>
+              <Box className={drawerClasses.emptyState}>
+                <Typography
+                  variant="body2"
+                  color="textSecondary"
+                  align="center"
+                >
+                  Ask follow-up questions, search logs, or explore related
+                  issues
+                </Typography>
+                <Box className={drawerClasses.suggestionStrip}>
+                  {CHAT_SUGGESTIONS.map(suggestion => (
+                    <Chip
+                      key={suggestion}
+                      label={suggestion}
+                      variant="outlined"
+                      size="small"
+                      clickable
+                      className={drawerClasses.suggestionChip}
+                      onClick={() => handleSuggestion(suggestion)}
+                    />
+                  ))}
+                </Box>
+              </Box>
             ) : (
               <>
                 {messages.map((msg, index) => (
@@ -449,7 +519,7 @@ export const RCAChatDrawer = ({
               maxRows={4}
               variant="outlined"
               size="small"
-              placeholder="Message RCA Agent"
+              placeholder="Message Portal Assistant"
               value={chatMessage}
               onChange={e => setChatMessage(e.target.value)}
               onKeyDown={handleKeyDown}

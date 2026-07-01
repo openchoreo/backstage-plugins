@@ -152,9 +152,11 @@ export const AssistantChatDrawer = ({
           workflowName: pin.workflowName,
           workflowKind: pin.workflowKind,
           caseType: pin.caseType,
-          // Forwarded so the agent can drop the URL into the
-          // ``fix_prompt`` it generates on build_failure turns.
+          // Forwarded so the agent can drop the URL and in-repo build
+          // path into the ``fix_prompt`` it generates on build_failure
+          // turns (``Repo:`` + ``Path:`` lines).
           repoUrl: pin.repoUrl,
+          componentPath: pin.componentPath,
         }
       : fromPath;
     return scopeOverrides ? { ...fromPin, ...scopeOverrides } : fromPin;
