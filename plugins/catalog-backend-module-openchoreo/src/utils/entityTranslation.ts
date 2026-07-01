@@ -1538,7 +1538,7 @@ export function translateNewNotificationChannelToEntity(
       description: getDescription(channel),
       environment: channel.spec?.environment ?? '',
       isEnvDefault: channel.spec?.isEnvDefault,
-      type: (channel.spec?.type ?? 'email') as 'email' | 'webhook',
+      type: channel.spec?.type as 'email' | 'webhook',
       emailConfig: channel.spec?.emailConfig,
       webhookConfig: channel.spec?.webhookConfig,
       createdAt: getCreatedAt(channel),

@@ -241,12 +241,34 @@ describe('ObservabilityAlertsNotificationChannelEntityProcessor', () => {
       ).rejects.toThrow('spec.environment');
     });
 
+    it('throws when type is "email" but spec.emailConfig is missing', async () => {
+      const entity = {
+        kind: 'ObservabilityAlertsNotificationChannel',
+        metadata: { name: 'ch', namespace: 'my-ns' },
+        spec: { type: 'email', environment: 'dev' },
+      } as any;
+      await expect(
+        processor.postProcessEntity(entity, mockLocation, jest.fn()),
+      ).rejects.toThrow('spec.emailConfig');
+    });
+
+    it('throws when type is "webhook" but spec.webhookConfig is missing', async () => {
+      const entity = {
+        kind: 'ObservabilityAlertsNotificationChannel',
+        metadata: { name: 'ch', namespace: 'my-ns' },
+        spec: { type: 'webhook', environment: 'dev' },
+      } as any;
+      await expect(
+        processor.postProcessEntity(entity, mockLocation, jest.fn()),
+      ).rejects.toThrow('spec.webhookConfig');
+    });
+
     it('emits notifiedBy/notifies relations to the target Environment', async () => {
       const emit = jest.fn();
       const entity = {
         kind: 'ObservabilityAlertsNotificationChannel',
         metadata: { name: 'ch', namespace: 'my-ns' },
-        spec: { type: 'email', environment: 'dev' },
+        spec: { type: 'email', environment: 'dev', emailConfig: {} },
       } as any;
       await processor.postProcessEntity(entity, mockLocation, emit);
       expect(emit).toHaveBeenCalledWith(

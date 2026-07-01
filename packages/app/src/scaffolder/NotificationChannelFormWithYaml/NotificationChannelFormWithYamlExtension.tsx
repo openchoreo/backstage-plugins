@@ -140,6 +140,21 @@ function isValidK8sName(name: string): boolean {
   return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(name);
 }
 
+/** Matches the CRD's `spec.webhookConfig.url` OpenAPI `format: uri` constraint — must be an absolute URI with a scheme. */
+function isValidAbsoluteUri(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return Boolean(parsed.protocol);
+  } catch {
+    return false;
+  }
+}
+
+/** Basic email shape check — not RFC 5322-exhaustive, just enough to catch typos/garbage input. */
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 function formToYaml(data: NotificationChannelWorkingData): string {
   const spec: Record<string, unknown> = {
     environment: extractName(data.environment),
@@ -279,7 +294,6 @@ function yamlToForm(
 export const NotificationChannelFormWithYamlExtension = ({
   onChange,
   formData,
-  rawErrors,
 }: FieldExtensionComponentProps<NotificationChannelFormData>) => {
   const classes = useStyles();
   const catalogApi = useApi(catalogApiRef);
@@ -313,9 +327,11 @@ export const NotificationChannelFormWithYamlExtension = ({
     }),
     [formData],
   );
+  const dataRef = useRef(data);
 
   useEffect(() => {
     formDataRef.current = formData;
+    dataRef.current = data;
   });
 
   // Only the config matching the currently selected `type` is submitted
@@ -336,6 +352,9 @@ export const NotificationChannelFormWithYamlExtension = ({
     const nsName = data.namespace_name ? extractName(data.namespace_name) : '';
     if (!nsName) {
       setEnvironments([]);
+      if (data.environment) {
+        commit({ ...dataRef.current, environment: '' });
+      }
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       return () => {};
     }
@@ -348,14 +367,19 @@ export const NotificationChannelFormWithYamlExtension = ({
       })
       .then(result => {
         if (cancelled) return;
-        setEnvironments(
-          result.items.map(entity => ({
-            name: entity.metadata.name,
-            entityRef: `environment:${entity.metadata.namespace || 'default'}/${
-              entity.metadata.name
-            }`,
-          })),
-        );
+        const nextEnvironments = result.items.map(entity => ({
+          name: entity.metadata.name,
+          entityRef: `environment:${entity.metadata.namespace || 'default'}/${
+            entity.metadata.name
+          }`,
+        }));
+        setEnvironments(nextEnvironments);
+        if (
+          data.environment &&
+          !nextEnvironments.some(env => env.entityRef === data.environment)
+        ) {
+          commit({ ...dataRef.current, environment: '' });
+        }
       })
       .catch(() => {
         if (!cancelled) setEnvironments([]);
@@ -367,7 +391,7 @@ export const NotificationChannelFormWithYamlExtension = ({
     return () => {
       cancelled = true;
     };
-  }, [data.namespace_name, catalogApi]);
+  }, [data.namespace_name, data.environment, catalogApi, commit]);
 
   // Initialize form data on mount if empty
   useEffect(() => {
@@ -760,10 +784,6 @@ export const NotificationChannelFormWithYamlExtension = ({
           </div>
         </div>
       )}
-
-      {rawErrors && rawErrors.length > 0 && (
-        <div className={classes.errorText}>{rawErrors.join(', ')}</div>
-      )}
     </div>
   );
 };
@@ -803,15 +823,71 @@ export const notificationChannelFormWithYamlValidation = (
   if (value?.type === 'email') {
     if (!value.emailConfig?.from) {
       validation.addError('Email "from" address is required');
+    } else if (!isValidEmail(value.emailConfig.from)) {
+      validation.addError('Email "from" address must be a valid email address');
     }
     if (!value.emailConfig?.to || value.emailConfig.to.length === 0) {
       validation.addError('At least one "to" address is required');
+    } else if (value.emailConfig.to.some(addr => !isValidEmail(addr))) {
+      validation.addError('All "to" addresses must be valid email addresses');
     }
     if (!value.emailConfig?.smtpHost) {
       validation.addError('SMTP host is required');
     }
+    if (
+      !Number.isInteger(value.emailConfig?.smtpPort) ||
+      (value.emailConfig?.smtpPort ?? 0) < 1 ||
+      (value.emailConfig?.smtpPort ?? 0) > 65535
+    ) {
+      validation.addError('SMTP port must be between 1 and 65535');
+    }
+    if (!value.emailConfig?.smtpUsernameSecretName) {
+      validation.addError('SMTP username secret name is required');
+    }
+    if (!value.emailConfig?.smtpUsernameSecretKey) {
+      validation.addError('SMTP username secret key is required');
+    }
+    if (!value.emailConfig?.smtpPasswordSecretName) {
+      validation.addError('SMTP password secret name is required');
+    }
+    if (!value.emailConfig?.smtpPasswordSecretKey) {
+      validation.addError('SMTP password secret key is required');
+    }
+    if (!value.emailConfig?.subjectTemplate) {
+      validation.addError('Subject template is required');
+    }
+    if (!value.emailConfig?.bodyTemplate) {
+      validation.addError('Body template is required');
+    }
   }
-  if (value?.type === 'webhook' && !value.webhookConfig?.url) {
-    validation.addError('Webhook URL is required');
+  if (value?.type === 'webhook') {
+    if (!value.webhookConfig?.url) {
+      validation.addError('Webhook URL is required');
+    } else if (!isValidAbsoluteUri(value.webhookConfig.url)) {
+      validation.addError(
+        'Webhook URL must be a valid absolute URI (e.g. https://example.com/webhook)',
+      );
+    }
+    const headers = value.webhookConfig?.headers ?? [];
+    const headerNames = headers
+      .map(header => header.name?.trim())
+      .filter((name): name is string => Boolean(name));
+    if (new Set(headerNames).size !== headerNames.length) {
+      validation.addError('Webhook header names must be unique');
+    }
+    if (
+      headers.some(header => {
+        const hasSecretName = Boolean(header.secretName);
+        const hasSecretKey = Boolean(header.secretKey);
+        return (
+          hasSecretName !== hasSecretKey ||
+          (!header.value && !(hasSecretName && hasSecretKey))
+        );
+      })
+    ) {
+      validation.addError(
+        'Each webhook header must provide either "value" or both "secretName" and "secretKey"',
+      );
+    }
   }
 };

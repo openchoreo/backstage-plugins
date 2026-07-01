@@ -46,7 +46,6 @@ describe('NotificationChannelConfigCard', () => {
       screen.getByText('team@example.com, oncall@example.com'),
     ).toBeInTheDocument();
     expect(screen.getByText('smtp.example.com:587')).toBeInTheDocument();
-    expect(screen.queryByText('Webhook default')).not.toBeInTheDocument();
   });
 
   it('renders webhook config details with inline and secret headers', () => {
@@ -123,5 +122,16 @@ describe('NotificationChannelConfigCard', () => {
       'href',
       '/catalog/team-ns/environment/staging',
     );
+  });
+
+  it('renders nothing when the entity has no spec', () => {
+    mockEntity = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ObservabilityAlertsNotificationChannel',
+      metadata: { name: 'dev-channel', namespace: 'my-ns' },
+    };
+
+    const { container } = render(<NotificationChannelConfigCard />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

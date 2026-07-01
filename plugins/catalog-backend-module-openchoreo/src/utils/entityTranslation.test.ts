@@ -5,6 +5,7 @@ import {
   translateNewClusterProjectTypeToEntity,
   translateNewClusterResourceTypeToEntity,
   translateNewComponentToEntity,
+  translateNewNotificationChannelToEntity,
   translateNewProjectToEntity,
   translateNewProjectTypeToEntity,
   translateNewResourceToEntity,
@@ -555,6 +556,49 @@ describe('translateNotificationChannelToEntity', () => {
     expect(withTs.metadata.annotations).toMatchObject({
       'openchoreo.io/deletion-timestamp': '2026-05-14T11:00:00Z',
     });
+  });
+});
+
+describe('translateNewNotificationChannelToEntity', () => {
+  it('unwraps the typed-client shape and delegates to the inner translator', () => {
+    const entity = translateNewNotificationChannelToEntity(
+      {
+        metadata: {
+          name: 'dev-webhook',
+          namespace: 'analytics',
+          annotations: {
+            'openchoreo.dev/display-name': 'Dev Webhook',
+          },
+          creationTimestamp: '2026-05-14T10:00:00Z',
+        } as any,
+        spec: {
+          environment: 'dev',
+          type: 'webhook',
+          webhookConfig: { url: 'https://hooks.example.com' },
+        } as any,
+      } as any,
+      'analytics',
+      { providerName: 'openchoreo-provider' } as any,
+    );
+
+    expect(entity.kind).toBe('ObservabilityAlertsNotificationChannel');
+    expect(entity.metadata.name).toBe('dev-webhook');
+    expect(entity.metadata.title).toBe('Dev Webhook');
+    expect(entity.spec.type).toBe('webhook');
+    expect(entity.spec.webhookConfig?.url).toBe('https://hooks.example.com');
+  });
+
+  it('leaves type undefined rather than defaulting to "email" when the API omits spec.type', () => {
+    const entity = translateNewNotificationChannelToEntity(
+      {
+        metadata: { name: 'no-type', namespace: 'analytics' } as any,
+        spec: { environment: 'dev' } as any,
+      } as any,
+      'analytics',
+      { providerName: 'openchoreo-provider' } as any,
+    );
+
+    expect(entity.spec.type).toBeUndefined();
   });
 });
 

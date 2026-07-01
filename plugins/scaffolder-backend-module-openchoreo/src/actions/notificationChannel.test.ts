@@ -181,4 +181,72 @@ describe('createNotificationChannelAction', () => {
       /User authentication token not available/,
     );
   });
+
+  it('throws when type is email but emailConfig is missing', async () => {
+    const action = createNotificationChannelAction(
+      buildConfig(),
+      mockCatalog as any,
+    );
+    const ctx = buildCtx({ input: { emailConfig: undefined } });
+    await expect(action.handler(ctx as any)).rejects.toThrow(
+      /emailConfig is required/,
+    );
+    expect(mockPOST).not.toHaveBeenCalled();
+  });
+
+  it('throws when type is webhook but webhookConfig is missing', async () => {
+    const action = createNotificationChannelAction(
+      buildConfig(),
+      mockCatalog as any,
+    );
+    const ctx = buildCtx({
+      input: { type: 'webhook', emailConfig: undefined },
+    });
+    await expect(action.handler(ctx as any)).rejects.toThrow(
+      /webhookConfig is required/,
+    );
+    expect(mockPOST).not.toHaveBeenCalled();
+  });
+
+  it('throws when a webhook header has only one of secretName/secretKey', async () => {
+    const action = createNotificationChannelAction(
+      buildConfig(),
+      mockCatalog as any,
+    );
+    const ctx = buildCtx({
+      input: {
+        type: 'webhook',
+        emailConfig: undefined,
+        webhookConfig: {
+          url: 'https://hooks.example.com',
+          headers: [{ name: 'X-Api-Key', secretName: 'webhook-auth' }],
+        },
+      },
+    });
+    await expect(action.handler(ctx as any)).rejects.toThrow(
+      /must provide either `value` or both `secretName` and `secretKey`/,
+    );
+    expect(mockPOST).not.toHaveBeenCalled();
+  });
+
+  it('throws when a webhook header provides neither a value nor a secret pair', async () => {
+    const action = createNotificationChannelAction(
+      buildConfig(),
+      mockCatalog as any,
+    );
+    const ctx = buildCtx({
+      input: {
+        type: 'webhook',
+        emailConfig: undefined,
+        webhookConfig: {
+          url: 'https://hooks.example.com',
+          headers: [{ name: 'X-Api-Key' }],
+        },
+      },
+    });
+    await expect(action.handler(ctx as any)).rejects.toThrow(
+      /must provide either `value` or both `secretName` and `secretKey`/,
+    );
+    expect(mockPOST).not.toHaveBeenCalled();
+  });
 });

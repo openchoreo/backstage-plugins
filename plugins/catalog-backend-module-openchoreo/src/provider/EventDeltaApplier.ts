@@ -38,6 +38,7 @@ import {
   translateNewDeploymentPipelineToEntity,
   translateNewEnvironmentToEntity,
   translateNewNamespaceToDomainEntity,
+  translateNewNotificationChannelToEntity,
   translateNewObservabilityPlaneToEntity,
   translateNewProjectToEntity,
   translateNewClusterProjectTypeToEntity,
@@ -65,6 +66,8 @@ type NewProject = OpenChoreoComponents['schemas']['Project'];
 type NewComponent = OpenChoreoComponents['schemas']['Component'];
 type NewWorkload = OpenChoreoComponents['schemas']['Workload'];
 type NewEnvironment = OpenChoreoComponents['schemas']['Environment'];
+type NewNotificationChannel =
+  OpenChoreoComponents['schemas']['ObservabilityAlertsNotificationChannel'];
 type NewDataPlane = OpenChoreoComponents['schemas']['DataPlane'];
 type NewWorkflowPlane = OpenChoreoComponents['schemas']['WorkflowPlane'];
 type NewObservabilityPlane =
@@ -350,6 +353,28 @@ export class EventDeltaApplier {
         params: { path: { namespaceName: ns, envName: name } },
       }) as any,
       'environment',
+      `${ns}/${name}`,
+    );
+  }
+
+  private fetchNotificationChannel(
+    client: OpenChoreoApiClient,
+    ns: string,
+    name: string,
+  ) {
+    return this.fetchOne<NewNotificationChannel>(
+      client.GET(
+        '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels/{observabilityAlertsNotificationChannelName}',
+        {
+          params: {
+            path: {
+              namespaceName: ns,
+              observabilityAlertsNotificationChannelName: name,
+            },
+          },
+        },
+      ) as any,
+      'observabilityalertsnotificationchannel',
       `${ns}/${name}`,
     );
   }
@@ -786,6 +811,27 @@ export class EventDeltaApplier {
     }
     await this.upsertEntities([
       translateNewEnvironmentToEntity(env, ns, this.translatorContext),
+    ]);
+  }
+
+  private async refreshNotificationChannel(
+    ns: string,
+    name: string,
+  ): Promise<void> {
+    const client = await this.createApiClient();
+    const channel = await this.fetchNotificationChannel(client, ns, name);
+    if (!channel) {
+      await this.removeEntityRefs([
+        this.buildEntityRef('observabilityalertsnotificationchannel', ns, name),
+      ]);
+      return;
+    }
+    await this.upsertEntities([
+      translateNewNotificationChannelToEntity(
+        channel,
+        ns,
+        this.translatorContext,
+      ),
     ]);
   }
 
@@ -1510,6 +1556,9 @@ export class EventDeltaApplier {
         return;
       case 'environment':
         await this.refreshEnvironment(ns, name);
+        return;
+      case 'observabilityalertsnotificationchannel':
+        await this.refreshNotificationChannel(ns, name);
         return;
       case 'dataplane':
         await this.refreshDataPlane(ns, name);

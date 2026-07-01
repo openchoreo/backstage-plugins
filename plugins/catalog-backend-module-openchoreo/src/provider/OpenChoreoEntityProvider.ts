@@ -233,6 +233,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'openchoreo.project',
           'openchoreo.component',
           'openchoreo.environment',
+          'openchoreo.observabilityalertsnotificationchannel',
           'openchoreo.dataplane',
           'openchoreo.workflowplane',
           'openchoreo.observabilityplane',

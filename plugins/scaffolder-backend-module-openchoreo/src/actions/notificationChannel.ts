@@ -95,9 +95,7 @@ export const createNotificationChannelAction = (
     },
     async handler(ctx) {
       ctx.logger.debug(
-        `Creating notification channel with parameters: ${JSON.stringify(
-          ctx.input,
-        )}`,
+        `Creating notification channel '${ctx.input.channelName}' of type '${ctx.input.type}'`,
       );
 
       // Extract entity name from entity reference format (e.g., "domain:default/default-ns" -> "default-ns")
@@ -111,6 +109,25 @@ export const createNotificationChannelAction = (
 
       const { emailConfig: emailInput, webhookConfig: webhookInput } =
         ctx.input;
+
+      if (ctx.input.type === 'email' && !emailInput) {
+        throw new Error('emailConfig is required when type is "email".');
+      }
+      if (ctx.input.type === 'webhook' && !webhookInput) {
+        throw new Error('webhookConfig is required when type is "webhook".');
+      }
+      if (
+        webhookInput?.headers?.some(
+          header =>
+            Boolean(header.secretName) !== Boolean(header.secretKey) ||
+            (header.value === undefined &&
+              !(header.secretName && header.secretKey)),
+        )
+      ) {
+        throw new Error(
+          'Each webhook header must provide either `value` or both `secretName` and `secretKey`.',
+        );
+      }
 
       const emailConfig =
         ctx.input.type === 'email' && emailInput
@@ -224,11 +241,11 @@ export const createNotificationChannelAction = (
           'create notification channel',
         );
 
-        ctx.logger.debug(
-          `Notification channel created successfully: ${JSON.stringify(data)}`,
-        );
-
         const channelName = data?.metadata?.name || ctx.input.channelName;
+
+        ctx.logger.debug(
+          `Notification channel '${channelName}' created successfully`,
+        );
 
         // Immediately insert the notification channel into the catalog
         try {

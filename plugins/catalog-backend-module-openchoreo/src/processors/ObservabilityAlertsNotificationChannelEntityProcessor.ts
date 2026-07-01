@@ -42,6 +42,16 @@ export class ObservabilityAlertsNotificationChannelEntityProcessor
           'ObservabilityAlertsNotificationChannel entity must have spec.environment',
         );
       }
+      if (entity.spec.type === 'email' && !entity.spec.emailConfig) {
+        throw new Error(
+          'ObservabilityAlertsNotificationChannel entity with type "email" must have spec.emailConfig',
+        );
+      }
+      if (entity.spec.type === 'webhook' && !entity.spec.webhookConfig) {
+        throw new Error(
+          'ObservabilityAlertsNotificationChannel entity with type "webhook" must have spec.webhookConfig',
+        );
+      }
 
       const sourceRef = {
         kind: entity.kind.toLowerCase(),

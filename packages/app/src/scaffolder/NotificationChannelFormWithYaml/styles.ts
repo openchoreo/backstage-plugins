@@ -16,11 +16,6 @@ export const useStyles = makeStyles(theme => ({
     borderRadius: theme.shape.borderRadius,
     overflow: 'hidden',
   },
-  errorText: {
-    color: theme.palette.error.main,
-    marginTop: theme.spacing(1),
-    fontSize: '0.75rem',
-  },
   helpText: {
     display: 'flex',
     alignItems: 'center',

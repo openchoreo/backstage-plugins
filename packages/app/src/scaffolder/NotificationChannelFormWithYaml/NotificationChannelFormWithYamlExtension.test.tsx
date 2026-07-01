@@ -82,10 +82,8 @@ let latestFormData: NotificationChannelFormData | undefined;
 
 function Harness({
   initialFormData,
-  rawErrors,
 }: {
   initialFormData?: NotificationChannelFormData;
-  rawErrors?: string[];
 }) {
   const [formData, setFormData] = useState(initialFormData);
   const props = {
@@ -94,7 +92,6 @@ function Harness({
       latestFormData = next;
       setFormData(next);
     },
-    rawErrors: rawErrors ?? [],
   } as unknown as FieldExtensionComponentProps<NotificationChannelFormData>;
   return <NotificationChannelFormWithYamlExtension {...props} />;
 }
@@ -811,22 +808,6 @@ describe('NotificationChannelFormWithYamlExtension — YAML mode', () => {
   });
 });
 
-describe('NotificationChannelFormWithYamlExtension — raw errors', () => {
-  it('renders rawErrors when present', async () => {
-    render(<Harness rawErrors={['Something went wrong']} />);
-    await waitFor(() => expect(latestFormData).toBeDefined());
-
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-  });
-
-  it('renders nothing extra when rawErrors is empty', async () => {
-    render(<Harness />);
-    await waitFor(() => expect(latestFormData).toBeDefined());
-
-    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
-  });
-});
-
 describe('notificationChannelFormWithYamlValidation', () => {
   function validate(value: Partial<NotificationChannelFormData>) {
     const errors: string[] = [];
@@ -889,6 +870,97 @@ describe('notificationChannelFormWithYamlValidation', () => {
     expect(errors).toContain('SMTP host is required');
   });
 
+  it('rejects a malformed "from" address', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'email',
+      emailConfig: {
+        from: 'not-an-email',
+        to: ['c@d.com'],
+        smtpHost: 'smtp.example.com',
+      } as any,
+    });
+    expect(errors).toContain(
+      'Email "from" address must be a valid email address',
+    );
+  });
+
+  it('rejects a "to" list containing a malformed address', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'email',
+      emailConfig: {
+        from: 'a@b.com',
+        to: ['c@d.com', 'not-an-email'],
+        smtpHost: 'smtp.example.com',
+      } as any,
+    });
+    expect(errors).toContain(
+      'All "to" addresses must be valid email addresses',
+    );
+  });
+
+  it('accepts well-formed "from" and "to" addresses', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'email',
+      emailConfig: {
+        from: 'alerts@example.com',
+        to: ['team@example.com', 'oncall@example.com'],
+        smtpHost: 'smtp.example.com',
+      } as any,
+    });
+    expect(errors).not.toContain(
+      'Email "from" address must be a valid email address',
+    );
+    expect(errors).not.toContain(
+      'All "to" addresses must be valid email addresses',
+    );
+  });
+
+  it('requires smtp secrets and templates when type is email', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'email',
+      emailConfig: {
+        from: 'a@b.com',
+        to: ['c@d.com'],
+        smtpHost: 'smtp.example.com',
+      } as any,
+    });
+    expect(errors).toContain('SMTP port must be between 1 and 65535');
+    expect(errors).toContain('SMTP username secret name is required');
+    expect(errors).toContain('SMTP username secret key is required');
+    expect(errors).toContain('SMTP password secret name is required');
+    expect(errors).toContain('SMTP password secret key is required');
+    expect(errors).toContain('Subject template is required');
+    expect(errors).toContain('Body template is required');
+  });
+
+  it('rejects an smtp port outside 1-65535', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'email',
+      emailConfig: {
+        from: 'a@b.com',
+        to: ['c@d.com'],
+        smtpHost: 'smtp.example.com',
+        smtpPort: 0,
+      } as any,
+    });
+    expect(errors).toContain('SMTP port must be between 1 and 65535');
+  });
+
   it('requires a webhook URL when type is webhook', () => {
     const errors = validate({
       channel_name: 'ok',
@@ -898,6 +970,104 @@ describe('notificationChannelFormWithYamlValidation', () => {
       webhookConfig: { url: '' } as any,
     });
     expect(errors).toContain('Webhook URL is required');
+  });
+
+  it('rejects a webhook URL without a scheme', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'webhook',
+      webhookConfig: { url: 'asgsg' } as any,
+    });
+    expect(errors).toContain(
+      'Webhook URL must be a valid absolute URI (e.g. https://example.com/webhook)',
+    );
+  });
+
+  it('accepts a well-formed webhook URL', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'webhook',
+      webhookConfig: { url: 'https://hooks.example.com/services/x' } as any,
+    });
+    expect(errors).not.toContain(
+      'Webhook URL must be a valid absolute URI (e.g. https://example.com/webhook)',
+    );
+  });
+
+  it('rejects duplicate webhook header names', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'webhook',
+      webhookConfig: {
+        url: 'https://hooks.example.com',
+        headers: [
+          { name: 'X-Api-Key', value: 'one', secretName: '', secretKey: '' },
+          { name: 'X-Api-Key', value: 'two', secretName: '', secretKey: '' },
+        ],
+      } as any,
+    });
+    expect(errors).toContain('Webhook header names must be unique');
+  });
+
+  it('rejects a webhook header with only one of secretName/secretKey', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'webhook',
+      webhookConfig: {
+        url: 'https://hooks.example.com',
+        headers: [{ name: 'X-Api-Key', secretName: 'webhook-auth' }],
+      } as any,
+    });
+    expect(errors).toContain(
+      'Each webhook header must provide either "value" or both "secretName" and "secretKey"',
+    );
+  });
+
+  it('rejects a webhook header with neither a value nor a secret pair', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'webhook',
+      webhookConfig: {
+        url: 'https://hooks.example.com',
+        headers: [{ name: 'X-Api-Key' }],
+      } as any,
+    });
+    expect(errors).toContain(
+      'Each webhook header must provide either "value" or both "secretName" and "secretKey"',
+    );
+  });
+
+  it('accepts a webhook header backed by an inline value or a secret pair', () => {
+    const errors = validate({
+      channel_name: 'ok',
+      namespace_name: 'a',
+      environment: 'b',
+      type: 'webhook',
+      webhookConfig: {
+        url: 'https://hooks.example.com',
+        headers: [
+          { name: 'Content-Type', value: 'application/json' },
+          {
+            name: 'X-Api-Key',
+            secretName: 'webhook-auth',
+            secretKey: 'key',
+          },
+        ],
+      } as any,
+    });
+    expect(errors).not.toContain(
+      'Each webhook header must provide either "value" or both "secretName" and "secretKey"',
+    );
   });
 
   it('passes for a fully valid email channel', () => {
@@ -911,6 +1081,13 @@ describe('notificationChannelFormWithYamlValidation', () => {
           from: 'a@b.com',
           to: ['c@d.com'],
           smtpHost: 'smtp.example.com',
+          smtpPort: 587,
+          smtpUsernameSecretName: 'smtp-auth',
+          smtpUsernameSecretKey: 'username',
+          smtpPasswordSecretName: 'smtp-auth',
+          smtpPasswordSecretKey: 'password',
+          subjectTemplate: 'Alert',
+          bodyTemplate: 'Body',
         } as any,
       }),
     ).toHaveLength(0);

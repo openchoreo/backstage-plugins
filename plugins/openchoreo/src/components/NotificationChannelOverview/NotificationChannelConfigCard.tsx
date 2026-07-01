@@ -25,8 +25,12 @@ interface NotificationChannelSpec {
 export const NotificationChannelConfigCard = () => {
   const classes = useNotificationChannelOverviewStyles();
   const { entity } = useEntity();
-  const spec = entity.spec as unknown as NotificationChannelSpec;
+  const spec = entity.spec as unknown as NotificationChannelSpec | undefined;
   const namespace = entity.metadata.namespace || 'default';
+
+  if (!spec) {
+    return null;
+  }
 
   const environmentLink = spec.environment
     ? `/catalog/${namespace}/environment/${spec.environment}`

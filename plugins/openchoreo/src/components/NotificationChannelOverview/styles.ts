@@ -10,7 +10,7 @@ export const useNotificationChannelOverviewStyles = makeStyles(theme => ({
     border: `1px solid ${
       theme.palette.type === 'dark'
         ? darkTokens.border.subtle
-        : lightTokens.grey[100]
+        : lightTokens.border.subtle
     } !important`,
     boxShadow: `${
       theme.palette.type === 'dark'
