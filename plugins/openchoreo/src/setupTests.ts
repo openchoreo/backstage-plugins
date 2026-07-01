@@ -9,7 +9,6 @@ if (typeof global !== 'undefined') {
   (global as any).IS_REACT_ACT_ENVIRONMENT = true;
 }
 
-
 const originalConsoleError = console.error;
 console.error = (...args: any[]) => {
   if (
