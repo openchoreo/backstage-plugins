@@ -5,7 +5,7 @@ import {
   Project,
   Component,
   Connection as CellDiagramConnection,
-} from '@wso2/cell-diagram';
+} from '@openchoreo/cell-diagram';
 import { CellDiagramService } from '../../types';
 import {
   createOpenChoreoApiClient,

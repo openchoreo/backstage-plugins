@@ -26,7 +26,7 @@ jest.mock('@backstage/core-components', () => ({
   Progress: () => <div data-testid="progress">Loading...</div>,
 }));
 
-jest.mock('@wso2/cell-diagram', () => ({
+jest.mock('@openchoreo/cell-diagram', () => ({
   CellDiagram: ({ project, defaultDiagramLayer }: any) => (
     <div data-testid="cell-diagram-view" data-layer={defaultDiagramLayer}>
       {project?.id}

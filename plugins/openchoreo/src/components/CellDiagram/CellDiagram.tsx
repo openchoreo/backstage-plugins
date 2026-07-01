@@ -24,7 +24,11 @@ import { useNavigate } from 'react-router-dom';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useTheme } from '@material-ui/core/styles';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
-import { DiagramLayer, MoreVertMenuItem, Project } from '@wso2/cell-diagram';
+import {
+  DiagramLayer,
+  MoreVertMenuItem,
+  Project,
+} from '@openchoreo/cell-diagram';
 import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 import {
   EmptyState,
@@ -36,7 +40,7 @@ import {
 import { useCellEnvironments } from './useCellEnvironments';
 
 const CellView = lazy(() =>
-  import('@wso2/cell-diagram').then(module => ({
+  import('@openchoreo/cell-diagram').then(module => ({
     default: module.CellDiagram,
   })),
 );
