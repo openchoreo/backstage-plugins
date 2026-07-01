@@ -99,6 +99,13 @@ integrations:
 #   username: ${JENKINS_USERNAME}
 #   apiKey: ${JENKINS_API_KEY}
 
+# SonarQube Configuration
+# Uncomment and configure in app-config.local.yaml to enable code quality metrics on entity pages.
+# Requires the `sonarqube.org/project-key` annotation on catalog entities to show the tab.
+# sonarqube:
+#   baseUrl: ${SONARQUBE_BASE_URL}   # e.g. https://sonarqube.example.com (no trailing slash)
+#   apiKey: ${SONARQUBE_API_KEY}     # User token with at least Browse permission on the project
+
 proxy:
   ### Example for how to add a proxy endpoint for the frontend.
   ### A typical reason to do this is to handle HTTPS and CORS for internal services.

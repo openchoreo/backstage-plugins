@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { LogsTable } from './LogsTable';
 import { LogEntryField } from './types';
 import { LogEntry as LogEntryType } from './types';
@@ -84,7 +85,11 @@ function renderTable(
     projectName: 'my-project',
   };
 
-  return render(<LogsTable {...defaultProps} {...overrides} />);
+  return render(
+    <MemoryRouter>
+      <LogsTable {...defaultProps} {...overrides} />
+    </MemoryRouter>,
+  );
 }
 
 // ---- Tests ----
