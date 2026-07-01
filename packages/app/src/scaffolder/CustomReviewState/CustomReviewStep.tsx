@@ -185,7 +185,11 @@ function EnvironmentReview({ data }: { data: Record<string, unknown> }) {
 // NotificationChannelReview
 // ---------------------------------------------------------------------------
 
-function NotificationChannelReview({ data }: { data: Record<string, unknown> }) {
+function NotificationChannelReview({
+  data,
+}: {
+  data: Record<string, unknown>;
+}) {
   const classes = useStyles();
   const config = (data.channelConfig ?? data) as Record<string, unknown>;
   const metadata: Record<string, string> = {};

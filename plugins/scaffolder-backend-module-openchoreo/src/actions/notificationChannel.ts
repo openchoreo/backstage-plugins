@@ -88,7 +88,8 @@ export const createNotificationChannelAction = (
           }),
         entityRef: z =>
           z.string({
-            description: 'Entity reference for the created notification channel',
+            description:
+              'Entity reference for the created notification channel',
           }),
       },
     },
@@ -218,7 +219,10 @@ export const createNotificationChannelAction = (
           },
         );
 
-        assertApiResponse({ data, error, response }, 'create notification channel');
+        assertApiResponse(
+          { data, error, response },
+          'create notification channel',
+        );
 
         ctx.logger.debug(
           `Notification channel created successfully: ${JSON.stringify(data)}`,
@@ -238,9 +242,7 @@ export const createNotificationChannelAction = (
               environment: data?.spec?.environment ?? environmentName,
               isEnvDefault:
                 data?.spec?.isEnvDefault ?? ctx.input.isEnvDefault ?? false,
-              type: (data?.spec?.type ?? ctx.input.type) as
-                | 'email'
-                | 'webhook',
+              type: (data?.spec?.type ?? ctx.input.type) as 'email' | 'webhook',
               emailConfig: data?.spec?.emailConfig ?? emailConfig,
               webhookConfig: data?.spec?.webhookConfig ?? webhookConfig,
               createdAt:

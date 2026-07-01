@@ -159,12 +159,10 @@ export const openchoreoEnvironmentReadPermission = createPermission({
  * Permission to create a new notification channel.
  * Requires organization context.
  */
-export const openchoreoNotificationChannelCreatePermission = createPermission(
-  {
-    name: 'openchoreo.notificationchannel.create',
-    attributes: { action: 'create' },
-  },
-);
+export const openchoreoNotificationChannelCreatePermission = createPermission({
+  name: 'openchoreo.notificationchannel.create',
+  attributes: { action: 'create' },
+});
 
 /**
  * Permission to read/view notification channels.
@@ -478,25 +476,21 @@ export const openchoreoEnvironmentDeletePermission = createPermission({
  * Permission to update a notification channel.
  * Resource-based: requires entity context.
  */
-export const openchoreoNotificationChannelUpdatePermission = createPermission(
-  {
-    name: 'openchoreo.notificationchannel.update',
-    attributes: { action: 'update' },
-    resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
-  },
-);
+export const openchoreoNotificationChannelUpdatePermission = createPermission({
+  name: 'openchoreo.notificationchannel.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
 
 /**
  * Permission to delete a notification channel.
  * Resource-based: requires entity context.
  */
-export const openchoreoNotificationChannelDeletePermission = createPermission(
-  {
-    name: 'openchoreo.notificationchannel.delete',
-    attributes: { action: 'delete' },
-    resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
-  },
-);
+export const openchoreoNotificationChannelDeletePermission = createPermission({
+  name: 'openchoreo.notificationchannel.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
 
 /**
  * Permission to update a dataplane.

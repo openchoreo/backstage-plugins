@@ -171,7 +171,9 @@ describe('useResourceDefinitionPermission', () => {
   });
 
   it('wires ObservabilityAlertsNotificationChannel to resource-scoped update + delete permissions', () => {
-    mockUseEntity.mockReturnValue(makeEntity('ObservabilityAlertsNotificationChannel'));
+    mockUseEntity.mockReturnValue(
+      makeEntity('ObservabilityAlertsNotificationChannel'),
+    );
     mockUsePermission.mockReturnValue({ allowed: true, loading: false });
     const { result } = renderHook(() => useResourceDefinitionPermission());
 
