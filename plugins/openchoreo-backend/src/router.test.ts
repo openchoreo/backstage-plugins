@@ -32,6 +32,9 @@ function createMockServices() {
       fetchResourceEnvironmentInfo: jest.fn(),
       updateResourceReleaseBinding: jest.fn(),
       deleteResourceReleaseBinding: jest.fn(),
+      fetchProjectEnvironmentInfo: jest.fn(),
+      fetchProjectReleaseBindings: jest.fn(),
+      updateProjectReleaseBinding: jest.fn(),
     },
     cellDiagramInfoService: {
       fetchProjectInfo: jest.fn(),
@@ -83,6 +86,10 @@ function createMockServices() {
     resourceReleaseInfoService: {
       fetchResourceRelease: jest.fn(),
       fetchResourceReleaseSchema: jest.fn(),
+    },
+    projectReleaseInfoService: {
+      fetchProjectRelease: jest.fn(),
+      fetchProjectReleaseSchema: jest.fn(),
     },
     secretReferencesInfoService: {
       fetchSecretReferences: jest.fn(),
@@ -1036,6 +1043,218 @@ describe('createRouter', () => {
           message: expect.stringContaining(
             'resourceName, projectName and namespaceName are required',
           ),
+        }),
+      });
+    });
+  });
+
+  describe('GET /project-environment-info', () => {
+    it('returns env-info for a project on success', async () => {
+      const mockEnvInfo = [
+        {
+          name: 'dev',
+          bindingName: 'my-project-dev',
+          projectRelease: 'my-project-abc',
+          latestRelease: 'my-project-abc',
+          namespace: 'dp-ns-my-project-dev-abc',
+          promotionTargets: [{ name: 'staging', resourceName: 'staging' }],
+        },
+        { name: 'staging', latestRelease: 'my-project-abc' },
+      ];
+      services.environmentInfoService.fetchProjectEnvironmentInfo.mockResolvedValue(
+        mockEnvInfo,
+      );
+
+      const response = await request(app)
+        .get('/project-environment-info')
+        .query({
+          projectName: 'my-project',
+          namespaceName: 'my-namespace',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(mockEnvInfo);
+      expect(
+        services.environmentInfoService.fetchProjectEnvironmentInfo,
+      ).toHaveBeenCalledWith(
+        {
+          projectName: 'my-project',
+          namespaceName: 'my-namespace',
+        },
+        'mock-user-token',
+      );
+    });
+
+    it('returns 400 when required query parameters are missing', async () => {
+      const response = await request(app)
+        .get('/project-environment-info')
+        .query({ projectName: 'my-project' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          message: expect.stringContaining(
+            'projectName and namespaceName are required',
+          ),
+        }),
+      });
+    });
+  });
+
+  describe('GET /project-release-bindings', () => {
+    it('returns transformed binding items wrapped in success envelope', async () => {
+      services.environmentInfoService.fetchProjectReleaseBindings.mockResolvedValue(
+        {
+          items: [
+            {
+              metadata: {
+                name: 'my-project-dev',
+                namespace: 'my-namespace',
+                creationTimestamp: '2025-01-06T11:00:00Z',
+              },
+              spec: {
+                owner: { projectName: 'my-project' },
+                environment: 'dev',
+                projectRelease: 'my-project-abc',
+                environmentConfigs: { replicas: 2 },
+              },
+              status: {
+                conditions: [
+                  { type: 'Ready', status: 'True', reason: 'Ready' },
+                ],
+                namespace: 'dp-ns-my-project-dev-abc',
+              },
+            },
+          ],
+        },
+      );
+
+      const response = await request(app)
+        .get('/project-release-bindings')
+        .query({
+          projectName: 'my-project',
+          namespaceName: 'my-namespace',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          items: [
+            expect.objectContaining({
+              name: 'my-project-dev',
+              projectName: 'my-project',
+              environment: 'dev',
+              releaseName: 'my-project-abc',
+              namespace: 'dp-ns-my-project-dev-abc',
+              status: 'Ready',
+            }),
+          ],
+        },
+      });
+    });
+
+    it('returns 400 when required query parameters are missing', async () => {
+      const response = await request(app)
+        .get('/project-release-bindings')
+        .query({ projectName: 'my-project' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          message: expect.stringContaining(
+            'projectName and namespaceName are required',
+          ),
+        }),
+      });
+    });
+  });
+
+  describe('PUT /update-project-release-binding', () => {
+    it('forwards the request to updateProjectReleaseBinding', async () => {
+      services.environmentInfoService.updateProjectReleaseBinding.mockResolvedValue(
+        { ok: true },
+      );
+
+      const response = await request(app)
+        .put('/update-project-release-binding')
+        .send({
+          projectName: 'my-project',
+          namespaceName: 'my-namespace',
+          environment: 'dev',
+          releaseName: 'my-project-new',
+          environmentConfigs: { replicas: 3 },
+        });
+
+      expect(response.status).toBe(200);
+      expect(
+        services.environmentInfoService.updateProjectReleaseBinding,
+      ).toHaveBeenCalledWith(
+        {
+          projectName: 'my-project',
+          namespaceName: 'my-namespace',
+          environment: 'dev',
+          releaseName: 'my-project-new',
+          environmentConfigs: { replicas: 3 },
+        },
+        'mock-user-token',
+      );
+    });
+
+    it('returns 400 when required body fields are missing', async () => {
+      const response = await request(app)
+        .put('/update-project-release-binding')
+        .send({ projectName: 'my-project' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          message: expect.stringContaining(
+            'projectName, namespaceName, environment and releaseName are required',
+          ),
+        }),
+      });
+    });
+  });
+
+  describe('GET /project-release-schema', () => {
+    it('forwards the request to fetchProjectReleaseSchema', async () => {
+      services.projectReleaseInfoService.fetchProjectReleaseSchema.mockResolvedValue(
+        { success: true, data: { type: 'object' } },
+      );
+
+      const response = await request(app).get('/project-release-schema').query({
+        namespaceName: 'my-namespace',
+        releaseName: 'my-project-abc',
+        section: 'environmentConfigs',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        success: true,
+        data: { type: 'object' },
+      });
+      expect(
+        services.projectReleaseInfoService.fetchProjectReleaseSchema,
+      ).toHaveBeenCalledWith(
+        'my-namespace',
+        'my-project-abc',
+        'environmentConfigs',
+        'mock-user-token',
+      );
+    });
+
+    it('returns 400 when section is not an allowed value', async () => {
+      const response = await request(app).get('/project-release-schema').query({
+        namespaceName: 'my-namespace',
+        releaseName: 'my-project-abc',
+        section: 'bogus',
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          message: expect.stringContaining('section must be one of'),
         }),
       });
     });

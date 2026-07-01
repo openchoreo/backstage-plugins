@@ -213,6 +213,79 @@ export interface ResourceEnvironment {
   latestRelease?: string;
 }
 
+/** A single condition on a ProjectReleaseBinding. */
+export interface ProjectReleaseBindingCondition {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+  observedGeneration?: number;
+}
+
+/**
+ * Project release binding item — one per environment for a given Project.
+ * Fields the BFF transformer always emits (possibly as empty strings) are
+ * required here; truly per-status fields are optional. Matches the
+ * `ProjectReleaseBindingResponse` shape in `@openchoreo/backstage-plugin-common`.
+ */
+export interface ProjectReleaseBinding {
+  name: string;
+  environment: string;
+  projectName: string;
+  namespaceName: string;
+  releaseName: string;
+  createdAt: string;
+  /**
+   * Per-environment overrides layered over the project-level parameters
+   * when the (Cluster)ProjectType resources are rendered.
+   */
+  environmentConfigs?: Record<string, unknown>;
+  /** Data-plane namespace owned by this binding (status.namespace). */
+  namespace?: string;
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  conditions?: ProjectReleaseBindingCondition[];
+}
+
+/** Project release bindings response */
+export interface ProjectReleaseBindingsResponse {
+  success: boolean;
+  data?: {
+    items: ProjectReleaseBinding[];
+  };
+}
+
+/**
+ * Per-environment deploy view of a Project. One entry per environment defined
+ * in the project's deployment pipeline, including environments with no binding
+ * (so the UI can render a Deploy/Promote affordance). Matches the backend
+ * `ProjectEnvironment` shape in `plugins/openchoreo-backend/src/types.ts`.
+ */
+export interface ProjectEnvironment {
+  uid?: string;
+  name: string;
+  resourceName?: string;
+  dataPlaneRef?: string;
+  dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';
+  bindingName?: string;
+  /** The ProjectRelease pinned to this environment (binding.spec.projectRelease). */
+  projectRelease?: string;
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  lastDeployed?: string;
+  /** Data-plane namespace owned by this binding (binding.status.namespace). */
+  namespace?: string;
+  promotionTargets?: {
+    name: string;
+    resourceName?: string;
+  }[];
+  /** Latest ProjectRelease cut by the Project controller, if any. */
+  latestRelease?: string;
+}
+
 /** Create release response */
 export interface CreateReleaseResponse {
   success: boolean;
@@ -673,6 +746,50 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     environment: string,
   ): Promise<unknown>;
+
+  /**
+   * Fetch per-environment deploy info for a Project entity. Returns one entry
+   * per environment in the project's deployment pipeline (including
+   * environments without bindings yet), joined with the project's latest
+   * release.
+   */
+  fetchProjectEnvironmentInfo(entity: Entity): Promise<ProjectEnvironment[]>;
+
+  /**
+   * Fetch all project release bindings for a Project entity. Filters by the
+   * owning project, returning one binding per environment.
+   */
+  fetchProjectReleaseBindings(
+    entity: Entity,
+  ): Promise<ProjectReleaseBindingsResponse>;
+
+  /**
+   * Create or update a ProjectReleaseBinding for the given environment.
+   * Creates a new binding when none exists; otherwise advances
+   * `spec.projectRelease` (the deploy/promote pin). `environmentConfigs` is
+   * written when present, left untouched when omitted.
+   */
+  updateProjectReleaseBinding(
+    entity: Entity,
+    environment: string,
+    options: {
+      projectRelease: string;
+      environmentConfigs?: unknown;
+    },
+  ): Promise<unknown>;
+
+  /**
+   * Fetch a schema section from the frozen snapshot stored on a
+   * ProjectRelease. `parameters` returns the project-level schema;
+   * `environmentConfigs` returns the per-env override schema. Pinned-release
+   * flows use this so form validation matches what the release was actually
+   * cut against, not the live (Cluster)ProjectType which may have drifted.
+   */
+  fetchProjectReleaseSchema(
+    namespaceName: string,
+    releaseName: string,
+    section: 'parameters' | 'environmentConfigs',
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
 
   /** List all component releases for a component (sorted newest first by caller) */
   listComponentReleases(entity: Entity): Promise<ComponentReleasesResponse>;

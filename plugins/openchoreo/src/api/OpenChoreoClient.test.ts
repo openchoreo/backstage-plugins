@@ -334,3 +334,172 @@ describe('OpenChoreoClient — deleteResourceReleaseBinding', () => {
     });
   });
 });
+
+// A Project entity is catalog kind System: the project name is the entity
+// name and the OpenChoreo namespace is annotated.
+const PROJECT_ENTITY = {
+  apiVersion: 'backstage.io/v1alpha1',
+  kind: 'System',
+  metadata: {
+    name: 'shop',
+    namespace: 'default',
+    annotations: {
+      'openchoreo.io/namespace': 'test-ns',
+      'openchoreo.io/project-type': 'web-application',
+      'openchoreo.io/project-type-kind': 'ClusterProjectType',
+    },
+  },
+  spec: {},
+};
+
+describe('OpenChoreoClient — project environment info', () => {
+  const fetchMock = jest.fn();
+  const discovery = { getBaseUrl: jest.fn().mockResolvedValue(BASE_URL) };
+  const fetchApi = { fetch: fetchMock };
+  let client: OpenChoreoClient;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    discovery.getBaseUrl.mockResolvedValue(BASE_URL);
+    client = new OpenChoreoClient(discovery as any, fetchApi as any);
+  });
+
+  it('GETs /project-environment-info with project entity params', async () => {
+    const payload = [
+      { name: 'dev', latestRelease: 'shop-abc' },
+      { name: 'staging', latestRelease: 'shop-abc' },
+    ];
+    fetchMock.mockResolvedValueOnce(makeJsonResponse(payload));
+
+    const result = await client.fetchProjectEnvironmentInfo(
+      PROJECT_ENTITY as any,
+    );
+
+    expect(result).toEqual(payload);
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/project-environment-info');
+    expect(calledUrl).toContain('projectName=shop');
+    expect(calledUrl).toContain('namespaceName=test-ns');
+    expect(opts.method ?? 'GET').toBe('GET');
+  });
+
+  it('throws when the namespace annotation is missing on the entity', async () => {
+    const bareEntity = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'System',
+      metadata: { name: 'shop', namespace: 'default', annotations: {} },
+      spec: {},
+    };
+
+    await expect(
+      client.fetchProjectEnvironmentInfo(bareEntity as any),
+    ).rejects.toThrow(/Missing required OpenChoreo annotations/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('OpenChoreoClient — fetchProjectReleaseBindings', () => {
+  const fetchMock = jest.fn();
+  const discovery = { getBaseUrl: jest.fn().mockResolvedValue(BASE_URL) };
+  const fetchApi = { fetch: fetchMock };
+  let client: OpenChoreoClient;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    discovery.getBaseUrl.mockResolvedValue(BASE_URL);
+    client = new OpenChoreoClient(discovery as any, fetchApi as any);
+  });
+
+  it('GETs /project-release-bindings with project entity params', async () => {
+    const payload = { success: true, data: { items: [] } };
+    fetchMock.mockResolvedValueOnce(makeJsonResponse(payload));
+
+    const result = await client.fetchProjectReleaseBindings(
+      PROJECT_ENTITY as any,
+    );
+
+    expect(result).toEqual(payload);
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/project-release-bindings');
+    expect(calledUrl).toContain('projectName=shop');
+    expect(calledUrl).toContain('namespaceName=test-ns');
+    expect(opts.method ?? 'GET').toBe('GET');
+  });
+});
+
+describe('OpenChoreoClient — updateProjectReleaseBinding', () => {
+  const fetchMock = jest.fn();
+  const discovery = { getBaseUrl: jest.fn().mockResolvedValue(BASE_URL) };
+  const fetchApi = { fetch: fetchMock };
+  let client: OpenChoreoClient;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    discovery.getBaseUrl.mockResolvedValue(BASE_URL);
+    client = new OpenChoreoClient(discovery as any, fetchApi as any);
+  });
+
+  it('PUTs to /update-project-release-binding with project metadata + new release', async () => {
+    fetchMock.mockResolvedValueOnce(makeJsonResponse({ ok: true }));
+
+    await client.updateProjectReleaseBinding(PROJECT_ENTITY as any, 'dev', {
+      projectRelease: 'shop-new',
+    });
+
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/update-project-release-binding');
+    expect(opts.method).toBe('PUT');
+    const body = JSON.parse(opts.body);
+    expect(body).toEqual({
+      projectName: 'shop',
+      namespaceName: 'test-ns',
+      environment: 'dev',
+      releaseName: 'shop-new',
+    });
+  });
+
+  it('forwards optional environmentConfigs', async () => {
+    fetchMock.mockResolvedValueOnce(makeJsonResponse({ ok: true }));
+
+    await client.updateProjectReleaseBinding(PROJECT_ENTITY as any, 'dev', {
+      projectRelease: 'shop-new',
+      environmentConfigs: { replicas: 3 },
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.environmentConfigs).toEqual({ replicas: 3 });
+  });
+});
+
+describe('OpenChoreoClient — fetchProjectReleaseSchema', () => {
+  const fetchMock = jest.fn();
+  const discovery = { getBaseUrl: jest.fn().mockResolvedValue(BASE_URL) };
+  const fetchApi = { fetch: fetchMock };
+  let client: OpenChoreoClient;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    discovery.getBaseUrl.mockResolvedValue(BASE_URL);
+    client = new OpenChoreoClient(discovery as any, fetchApi as any);
+  });
+
+  it('GETs /project-release-schema with namespace, release and section', async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeJsonResponse({ success: true, data: { type: 'object' } }),
+    );
+
+    const result = await client.fetchProjectReleaseSchema(
+      'test-ns',
+      'shop-abc',
+      'environmentConfigs',
+    );
+
+    expect(result).toEqual({ success: true, data: { type: 'object' } });
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/project-release-schema');
+    expect(calledUrl).toContain('namespaceName=test-ns');
+    expect(calledUrl).toContain('releaseName=shop-abc');
+    expect(calledUrl).toContain('section=environmentConfigs');
+    expect(opts.method ?? 'GET').toBe('GET');
+  });
+});
