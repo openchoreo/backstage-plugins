@@ -128,11 +128,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly translatorContext: NewApiTranslatorContext;
   /** Subsystem that handles per-event delta updates. Built once. */
   private readonly eventApplier: EventDeltaApplier;
-  /**
-   * Fetches hand-authored scaffolder Templates referenced via the
-   * {@link CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL} annotation. Undefined when
-   * no UrlReader was provided (feature effectively disabled).
-   */
+  /** Resolves custom templates; undefined disables the feature (no UrlReader). */
   private readonly remoteTemplateFetcher?: RemoteTemplateFetcher;
 
   constructor(
@@ -173,10 +169,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     // Initialize component type utilities from config
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
 
-    // Build the remote-template fetcher when a UrlReader is available. Used to
-    // resolve custom scaffolder templates referenced by ComponentTypes via the
-    // SCAFFOLD_TEMPLATE_URL annotation. Shared with the event-driven applier so
-    // both sync paths behave identically.
+    // Shared with the event applier so both sync paths behave identically.
     this.remoteTemplateFetcher = urlReader
       ? new RemoteTemplateFetcher(urlReader, this.logger)
       : undefined;
@@ -207,13 +200,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     return 'OpenChoreoEntityProvider';
   }
 
-  /**
-   * Resolve a custom scaffolder Template referenced by a ComponentType's
-   * SCAFFOLD_TEMPLATE_URL annotation. Returns the fetched Template entity, or
-   * `null` (with an error logged) when no UrlReader is configured or the fetch
-   * fails — in which case no template is emitted for that type rather than
-   * falling back to a generated wizard.
-   */
+  /** Fetch the custom Template, or null (error logged) if unavailable/failed. */
   private async resolveCustomTemplate(
     templateUrl: string,
     ctx: RemoteTemplateContext,
@@ -892,18 +879,14 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             componentTypes.map(async ct => {
               const ctName = getName(ct);
               if (!ctName) return null;
-              // `templateUrl` carries the custom-template annotation from the
-              // raw CR (dropped by the trimmed metadata below) to the emission
-              // step, which decides fetch-vs-generate.
+              // Carried to the emission step, which decides fetch-vs-generate.
               const templateUrl = getAnnotation(
                 ct,
                 CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL,
               );
               try {
-                // A custom template replaces the generated wizard, so its input
-                // schema is irrelevant. Skip the schema fetch (and don't drop the
-                // type when it has no schema) — mirrors the event-driven path so
-                // both syncs emit the custom template identically.
+                // Custom templates need no schema — skip the fetch (mirrors the
+                // event path; also avoids dropping schema-less types).
                 let schemaData: any;
                 if (!templateUrl) {
                   const { data, error: schemaError } = await client.GET(
@@ -956,9 +939,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             (ctd): ctd is NonNullable<typeof ctd> => ctd !== null,
           );
 
-          // Convert CTDs to template entities. When a CTD declares a custom
-          // template URL we fetch that Template instead of generating one;
-          // otherwise we generate the wizard as before.
+          // Fetch a custom Template when the CTD declares one, else generate.
           const templateEntities: Entity[] = (
             await Promise.all(
               validCTDs.map(async ctd => {

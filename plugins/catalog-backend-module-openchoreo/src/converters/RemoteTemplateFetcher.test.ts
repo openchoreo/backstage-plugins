@@ -106,8 +106,7 @@ describe('RemoteTemplateFetcher', () => {
       namespace: 'ctx-ns',
     });
 
-    // Authored name/namespace are discarded so the entity ref stays deterministic
-    // (`template-<ctName>` in the CT namespace) for discovery + delete + toggle.
+    // Authored name/namespace are discarded for a deterministic entity ref.
     expect(entity.metadata.name).toBe('template-agent-sandbox');
     expect(entity.metadata.namespace).toBe('ctx-ns');
   });

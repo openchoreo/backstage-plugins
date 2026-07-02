@@ -138,11 +138,7 @@ export class EventDeltaApplier {
     ctdConverter: CtdToTemplateConverter;
     rtdConverter: RtdToTemplateConverter;
     ptdConverter: PtdToTemplateConverter;
-    /**
-     * Resolves custom scaffolder Templates referenced by the
-     * SCAFFOLD_TEMPLATE_URL annotation. Shared with the periodic provider so
-     * both sync paths behave identically. Undefined disables the feature.
-     */
+    /** Resolves custom templates; shared with the provider. Undefined disables it. */
     remoteTemplateFetcher?: RemoteTemplateFetcher;
     /**
      * Optional catalog read-side. Used by the workload-deletion handler
@@ -177,12 +173,7 @@ export class EventDeltaApplier {
     return `provider:${this.translatorContext.providerName}`;
   }
 
-  /**
-   * Resolve a custom scaffolder Template referenced by a ComponentType's
-   * SCAFFOLD_TEMPLATE_URL annotation. Returns the fetched Template, or
-   * `undefined` (with an error logged) when no UrlReader is configured or the
-   * fetch fails — no template is emitted for that type in that case.
-   */
+  /** Fetch the custom Template, or undefined (error logged) if unavailable/failed. */
   private async resolveCustomTemplate(
     templateUrl: string,
     ctx: RemoteTemplateContext,

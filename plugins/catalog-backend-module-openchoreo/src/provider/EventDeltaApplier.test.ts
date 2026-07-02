@@ -842,12 +842,6 @@ describe('EventDeltaApplier.handleEvent', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Custom scaffolder template resolution: a ComponentType carrying the
-// SCAFFOLD_TEMPLATE_URL annotation is served by the RemoteTemplateFetcher
-// instead of the auto-generated wizard.
-// ---------------------------------------------------------------------------
-
 describe('EventDeltaApplier custom scaffolder templates', () => {
   const URL = 'https://github.com/acme/templates/blob/main/agent.yaml';
   let applyMutation: jest.Mock;
