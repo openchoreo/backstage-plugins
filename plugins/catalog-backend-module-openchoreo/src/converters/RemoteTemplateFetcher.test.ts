@@ -188,7 +188,10 @@ spec:
   owner: guests
   type: Component
 `;
-    const fetcher = new RemoteTemplateFetcher(readerFor(noMetadata), mockLogger);
+    const fetcher = new RemoteTemplateFetcher(
+      readerFor(noMetadata),
+      mockLogger,
+    );
 
     await expect(
       fetcher.fetch(URL, { ctdName: 'x', namespace: 'my-ns' }),
