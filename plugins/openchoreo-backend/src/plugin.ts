@@ -3,6 +3,8 @@ import {
   createBackendPlugin,
 } from '@backstage/backend-plugin-api';
 import { createRouter } from './router';
+import { registerExecWebSocketProxy } from './execWebSocketProxy';
+import type { Server } from 'node:http';
 import { catalogServiceRef } from '@backstage/plugin-catalog-node';
 import { EnvironmentInfoService } from './services/EnvironmentService/EnvironmentInfoService';
 import { CellDiagramInfoService } from './services/CellDiagramService/CellDiagramInfoService';
@@ -184,6 +186,18 @@ export const choreoPlugin = createBackendPlugin({
               return resourceRefs.map(() => undefined);
             }
           },
+        });
+
+        // Arm the exec WebSocket upgrade handler from this plugin via
+        // req.socket.server (signals-backend pattern), once per server.
+        const execWsArmedServers = new WeakSet<Server>();
+        httpRouter.use((req, _res, next) => {
+          const server = (req.socket as unknown as { server?: Server }).server;
+          if (server && !execWsArmedServers.has(server)) {
+            execWsArmedServers.add(server);
+            registerExecWebSocketProxy(server, config, logger);
+          }
+          next();
         });
 
         httpRouter.use(

@@ -5,7 +5,7 @@ import {
   LoggerService,
   RootConfigService,
 } from '@backstage/backend-plugin-api';
-import { execSessionStore } from '@openchoreo/backstage-plugin-backend';
+import { execSessionStore } from './ExecSessionStore';
 
 /** Max bytes buffered from the client before the upstream socket opens. */
 const MAX_PENDING_BYTES = 64 * 1024;
@@ -19,21 +19,12 @@ function rawDataByteLength(data: WebSocket.RawData): number {
 }
 
 /**
- * Registers the WebSocket proxy for component exec sessions on the given
- * HTTP server.
+ * Registers the exec-session WebSocket proxy on the raw http.Server. Invoked
+ * from the plugin's httpRouter middleware (which reaches the server via
+ * req.socket.server), so it ships inside the publishable plugin.
  *
- * Why this lives outside the plugin:
- *   WebSocket upgrade handling requires direct access to the raw Node.js
- *   http.Server (server.on('upgrade', ...)), which is only available in
- *   rootHttpRouterServiceFactory's configure callback. The plugin itself
- *   cannot reach the server instance.
- *
- * Auth flow:
- *   1. Frontend calls POST /api/openchoreo/exec/init (HTTP) to exchange its
- *      IDP token for a short-lived sessionId.
- *   2. Frontend opens ws://.../api/openchoreo/exec/ws?sessionId=<uuid>.
- *      This function handles the upgrade, looks up the session, and proxies
- *      the connection to the OpenChoreo API using the stored token.
+ * POST /exec/init mints a sessionId; the browser opens /exec/ws?sessionId=,
+ * which this proxies to the OpenChoreo API using the stored token.
  */
 export function registerExecWebSocketProxy(
   server: Server,
