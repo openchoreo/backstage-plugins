@@ -112,7 +112,10 @@ describe('buildTreeNodes', () => {
 
     expect(releaseNodes).toHaveLength(1);
     expect(releaseNodes[0].name).toBe('my-release');
-    expect(releaseNodes[0].version).toBe('dataplane');
+    expect(releaseNodes[0].targetPlane).toBe('dataplane');
+    // Real GVK is set so the release's own events/spec can be fetched.
+    expect(releaseNodes[0].group).toBe('openchoreo.dev');
+    expect(releaseNodes[0].version).toBe('v1alpha1');
   });
 
   it('links RenderedRelease nodes to root', () => {

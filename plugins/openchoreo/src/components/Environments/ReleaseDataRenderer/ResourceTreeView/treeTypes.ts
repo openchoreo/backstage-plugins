@@ -20,6 +20,8 @@ export interface TreeNode {
   healthStatus?: HealthStatus;
   /** Whether this is the root node */
   isRoot?: boolean;
+  /** Target plane of a RenderedRelease node (e.g. "dataplane") */
+  targetPlane?: string;
   /** Last observed timestamp */
   lastObservedTime?: string;
   /** Raw status object for detail drawer */
