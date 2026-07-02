@@ -65,7 +65,8 @@ class ExecSessionStore {
 
 /**
  * Module-level singleton shared between the router (HTTP /exec/init) and the
- * WebSocket upgrade handler in packages/backend/src/index.ts.
+ * WebSocket upgrade proxy (execWebSocketProxy.ts), which this plugin registers
+ * via its httpRouter middleware in plugin.ts.
  *
  * Node.js module caching guarantees both import sites receive the same
  * instance as long as they run in the same process.
