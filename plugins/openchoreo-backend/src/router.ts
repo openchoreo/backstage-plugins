@@ -2352,8 +2352,9 @@ export async function createRouter({
   //      cannot bypass the UI permission gate.
   //   3. Backend stores session → returns { sessionId, ttlSeconds }
   //   4. Frontend opens ws://…/exec/ws?sessionId=<id>
-  //   5. WebSocket upgrade handler (packages/backend/src/index.ts) looks up
-  //      the session and proxies to the OpenChoreo API using the stored token.
+  //   5. WebSocket upgrade proxy (execWebSocketProxy.ts, registered from this
+  //      plugin) looks up the session and proxies to the OpenChoreo API using
+  //      the stored token.
   //
   // podName/containerName are optional: present when launched from a specific
   // Pod node in the K8s resource tree, omitted for the component/environment
