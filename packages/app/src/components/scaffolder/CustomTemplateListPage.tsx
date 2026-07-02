@@ -45,6 +45,7 @@ import {
   useProjectPermission,
   useComponentCreatePermission,
   useEnvironmentPermission,
+  useNotificationChannelPermission,
   useTraitCreatePermission,
   useComponentTypePermission,
   useClusterTraitCreatePermission,
@@ -87,6 +88,7 @@ const APPLICATION_TYPES: string[] = [];
 const PLATFORM_TYPES = [
   'Namespace',
   'Environment',
+  'ObservabilityAlertsNotificationChannel',
   'DeploymentPipeline',
   'ClusterProjectType',
   'ProjectType',
@@ -169,6 +171,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   const projectPerm = useProjectPermission();
   const componentPerm = useComponentCreatePermission();
   const environmentPerm = useEnvironmentPermission();
+  const notificationChannelPerm = useNotificationChannelPermission();
   const traitPerm = useTraitCreatePermission();
   const componentTypePerm = useComponentTypePermission();
   const clusterTraitPerm = useClusterTraitCreatePermission();
@@ -194,6 +197,11 @@ const TemplateListContent = (props: TemplateListPageProps) => {
           return !componentPerm.loading && !componentPerm.canCreate;
         case 'Environment':
           return !environmentPerm.loading && !environmentPerm.canCreate;
+        case 'ObservabilityAlertsNotificationChannel':
+          return (
+            !notificationChannelPerm.loading &&
+            !notificationChannelPerm.canCreate
+          );
         case 'Trait':
           return !traitPerm.loading && !traitPerm.canCreate;
         case 'ClusterTrait':
@@ -242,6 +250,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
       projectPerm,
       componentPerm,
       environmentPerm,
+      notificationChannelPerm,
       traitPerm,
       clusterTraitPerm,
       componentTypePerm,

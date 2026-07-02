@@ -75,6 +75,7 @@ const VALID_PLATFORM_RESOURCE_KINDS = [
   'component-workflows',
   'components',
   'environments',
+  'observabilityalertsnotificationchannels',
   'dataplanes',
   'workflowplanes',
   'observabilityplanes',

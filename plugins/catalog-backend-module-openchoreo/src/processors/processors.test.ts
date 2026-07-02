@@ -15,6 +15,8 @@ import {
   RELATION_DEPLOYED_BY,
   RELATION_USES_PIPELINE,
   RELATION_PIPELINE_USED_BY,
+  RELATION_NOTIFIES,
+  RELATION_NOTIFIED_BY,
 } from '@openchoreo/backstage-plugin-common';
 
 import { ClusterComponentTypeEntityProcessor } from './ClusterComponentTypeEntityProcessor';
@@ -34,6 +36,7 @@ import { CustomAnnotationProcessor } from './CustomAnnotationProcessor';
 import { DataplaneEntityProcessor } from './DataplaneEntityProcessor';
 import { DeploymentPipelineEntityProcessor } from './DeploymentPipelineEntityProcessor';
 import { EnvironmentEntityProcessor } from './EnvironmentEntityProcessor';
+import { ObservabilityAlertsNotificationChannelEntityProcessor } from './ObservabilityAlertsNotificationChannelEntityProcessor';
 import { ObservabilityPlaneEntityProcessor } from './ObservabilityPlaneEntityProcessor';
 import { SystemEntityProcessor } from './SystemEntityProcessor';
 import { TraitTypeEntityProcessor } from './TraitTypeEntityProcessor';
@@ -186,6 +189,131 @@ describe('EnvironmentEntityProcessor', () => {
       const emit = jest.fn();
       await processor.processEntity(
         { kind: 'Component' } as any,
+        mockLocation,
+        emit,
+      );
+      expect(emit).not.toHaveBeenCalled();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ObservabilityAlertsNotificationChannelEntityProcessor
+// ---------------------------------------------------------------------------
+describe('ObservabilityAlertsNotificationChannelEntityProcessor', () => {
+  const processor = new ObservabilityAlertsNotificationChannelEntityProcessor();
+
+  describe('validateEntityKind', () => {
+    it('returns true for ObservabilityAlertsNotificationChannel kind', async () => {
+      expect(
+        await processor.validateEntityKind({
+          kind: 'ObservabilityAlertsNotificationChannel',
+        } as any),
+      ).toBe(true);
+    });
+    it('returns false for other kinds', async () => {
+      expect(
+        await processor.validateEntityKind({ kind: 'Environment' } as any),
+      ).toBe(false);
+    });
+  });
+
+  describe('postProcessEntity', () => {
+    it('throws when spec.type is missing', async () => {
+      const entity = {
+        kind: 'ObservabilityAlertsNotificationChannel',
+        metadata: { name: 'ch', namespace: 'my-ns' },
+        spec: { environment: 'dev' },
+      } as any;
+      await expect(
+        processor.postProcessEntity(entity, mockLocation, jest.fn()),
+      ).rejects.toThrow('spec.type');
+    });
+
+    it('throws when spec.environment is missing', async () => {
+      const entity = {
+        kind: 'ObservabilityAlertsNotificationChannel',
+        metadata: { name: 'ch', namespace: 'my-ns' },
+        spec: { type: 'email' },
+      } as any;
+      await expect(
+        processor.postProcessEntity(entity, mockLocation, jest.fn()),
+      ).rejects.toThrow('spec.environment');
+    });
+
+    it('throws when type is "email" but spec.emailConfig is missing', async () => {
+      const entity = {
+        kind: 'ObservabilityAlertsNotificationChannel',
+        metadata: { name: 'ch', namespace: 'my-ns' },
+        spec: { type: 'email', environment: 'dev' },
+      } as any;
+      await expect(
+        processor.postProcessEntity(entity, mockLocation, jest.fn()),
+      ).rejects.toThrow('spec.emailConfig');
+    });
+
+    it('throws when type is "webhook" but spec.webhookConfig is missing', async () => {
+      const entity = {
+        kind: 'ObservabilityAlertsNotificationChannel',
+        metadata: { name: 'ch', namespace: 'my-ns' },
+        spec: { type: 'webhook', environment: 'dev' },
+      } as any;
+      await expect(
+        processor.postProcessEntity(entity, mockLocation, jest.fn()),
+      ).rejects.toThrow('spec.webhookConfig');
+    });
+
+    it('emits notifiedBy/notifies relations to the target Environment', async () => {
+      const emit = jest.fn();
+      const entity = {
+        kind: 'ObservabilityAlertsNotificationChannel',
+        metadata: { name: 'ch', namespace: 'my-ns' },
+        spec: { type: 'email', environment: 'dev', emailConfig: {} },
+      } as any;
+      await processor.postProcessEntity(entity, mockLocation, emit);
+      expect(emit).toHaveBeenCalledWith(
+        processingResult.relation({
+          source: {
+            kind: 'observabilityalertsnotificationchannel',
+            namespace: 'my-ns',
+            name: 'ch',
+          },
+          target: { kind: 'environment', namespace: 'my-ns', name: 'dev' },
+          type: RELATION_NOTIFIED_BY,
+        }),
+      );
+      expect(emit).toHaveBeenCalledWith(
+        processingResult.relation({
+          source: { kind: 'environment', namespace: 'my-ns', name: 'dev' },
+          target: {
+            kind: 'observabilityalertsnotificationchannel',
+            namespace: 'my-ns',
+            name: 'ch',
+          },
+          type: RELATION_NOTIFIES,
+        }),
+      );
+    });
+  });
+
+  describe('processEntity', () => {
+    it('emits entity for ObservabilityAlertsNotificationChannel kind', async () => {
+      const emit = jest.fn();
+      const entity = {
+        kind: 'ObservabilityAlertsNotificationChannel',
+        metadata: { name: 'ch' },
+        spec: { type: 'email', environment: 'dev' },
+      } as any;
+      await processor.processEntity(entity, mockLocation, emit);
+      expect(emit).toHaveBeenCalledWith(
+        processingResult.entity(mockLocation, entity),
+      );
+    });
+
+    it('skips entities of other kinds', async () => {
+      const emit = jest.fn();
+      await processor.processEntity(
+        { kind: 'Environment' } as any,
         mockLocation,
         emit,
       );

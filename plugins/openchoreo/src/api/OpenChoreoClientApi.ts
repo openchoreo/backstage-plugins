@@ -564,6 +564,7 @@ export type PlatformResourceKind =
   | 'component-workflows'
   | 'components'
   | 'environments'
+  | 'observabilityalertsnotificationchannels'
   | 'dataplanes'
   | 'workflowplanes'
   | 'observabilityplanes'

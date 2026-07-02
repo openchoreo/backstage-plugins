@@ -54,6 +54,7 @@ import {
   translateNewDataplaneToEntity,
   translateNewDeploymentPipelineToEntity,
   translateNewEnvironmentToEntity,
+  translateNewNotificationChannelToEntity,
   translateNewNamespaceToDomainEntity,
   translateNewObservabilityPlaneToEntity,
   translateNewProjectToEntity,
@@ -74,6 +75,8 @@ type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];
 type NewProject = OpenChoreoComponents['schemas']['Project'];
 type NewComponent = OpenChoreoComponents['schemas']['Component'];
 type NewEnvironment = OpenChoreoComponents['schemas']['Environment'];
+type NewNotificationChannel =
+  OpenChoreoComponents['schemas']['ObservabilityAlertsNotificationChannel'];
 type NewDataPlane = OpenChoreoComponents['schemas']['DataPlane'];
 type NewWorkflowPlane = OpenChoreoComponents['schemas']['WorkflowPlane'];
 type NewObservabilityPlane =
@@ -230,6 +233,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'openchoreo.project',
           'openchoreo.component',
           'openchoreo.environment',
+          'openchoreo.observabilityalertsnotificationchannel',
           'openchoreo.dataplane',
           'openchoreo.workflowplane',
           'openchoreo.observabilityplane',
@@ -421,6 +425,47 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         } catch (error) {
           this.logger.warn(
             `Failed to fetch environments for namespace ${nsName}: ${error}`,
+          );
+        }
+      }
+
+      // Get notification channels for each namespace
+      for (const ns of namespaces) {
+        const nsName = getName(ns)!;
+        try {
+          const notificationChannels =
+            await fetchAllPages<NewNotificationChannel>(cursor =>
+              client
+                .GET(
+                  '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels',
+                  {
+                    params: {
+                      path: { namespaceName: nsName },
+                      query: { limit: 100, cursor },
+                    },
+                  },
+                )
+                .then(res => {
+                  if (res.error)
+                    throw new Error(
+                      `Failed to fetch notification channels for ${nsName}`,
+                    );
+                  return res.data;
+                }),
+            );
+
+          const notificationChannelEntities: Entity[] =
+            notificationChannels.map(channel =>
+              translateNewNotificationChannelToEntity(
+                channel,
+                nsName,
+                this.translatorContext,
+              ),
+            );
+          allEntities.push(...notificationChannelEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch notification channels for namespace ${nsName}: ${error}`,
           );
         }
       }
@@ -1811,6 +1856,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     const environmentCount = allEntities.filter(
       e => e.kind === 'Environment',
     ).length;
+    const notificationChannelCount = allEntities.filter(
+      e => e.kind === 'ObservabilityAlertsNotificationChannel',
+    ).length;
     const dataplaneCount = allEntities.filter(
       e => e.kind === 'Dataplane',
     ).length;
@@ -1862,7 +1910,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       e => e.kind === 'ClusterWorkflow',
     ).length;
     this.logger.info(
-      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${resourceTypeCount} resource types, ${projectTypeCount} project types, ${resourceCount} resources, ${clusterComponentTypeCount} cluster component types, ${clusterResourceTypeCount} cluster resource types, ${clusterProjectTypeCount} cluster project types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
+      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${notificationChannelCount} notification channels, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${resourceTypeCount} resource types, ${projectTypeCount} project types, ${resourceCount} resources, ${clusterComponentTypeCount} cluster component types, ${clusterResourceTypeCount} cluster resource types, ${clusterProjectTypeCount} cluster project types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
     );
   }
 }

@@ -82,3 +82,66 @@ describe('CustomReviewStep — Project (per-ProjectType) templates', () => {
     expect(tables()).toHaveLength(1);
   });
 });
+
+describe('CustomReviewStep — Notification Channel templates', () => {
+  it('shows only webhook fields when type is webhook', () => {
+    render(
+      <CustomReviewStep
+        {...makeProps({
+          channelConfig: {
+            namespace_name: 'domain:default/default',
+            channel_name: 'dev-webhook',
+            environment: 'environment:default/development',
+            isEnvDefault: false,
+            type: 'webhook',
+            webhookConfig: {
+              url: 'https://hooks.example.com',
+              headers: [],
+              payloadTemplate: 'payload',
+            },
+          },
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByText('Notification Channel Details'),
+    ).toBeInTheDocument();
+    const meta = JSON.stringify(tables()[0]);
+    expect(meta).toContain('https://hooks.example.com');
+    expect(meta).not.toContain('Email Config');
+  });
+
+  it('shows only email fields when type is email', () => {
+    render(
+      <CustomReviewStep
+        {...makeProps({
+          channelConfig: {
+            namespace_name: 'domain:default/default',
+            channel_name: 'dev-email',
+            environment: 'environment:default/development',
+            isEnvDefault: false,
+            type: 'email',
+            emailConfig: {
+              from: 'alerts@example.com',
+              to: ['team@example.com'],
+              smtpHost: 'smtp.example.com',
+              smtpPort: 587,
+              smtpUsernameSecretName: 'smtp-auth',
+              smtpUsernameSecretKey: 'username',
+              smtpPasswordSecretName: 'smtp-auth',
+              smtpPasswordSecretKey: 'password',
+              insecureSkipVerify: false,
+              subjectTemplate: 'Alert',
+              bodyTemplate: 'Body',
+            },
+          },
+        })}
+      />,
+    );
+
+    const meta = JSON.stringify(tables()[0]);
+    expect(meta).toContain('alerts@example.com');
+    expect(meta).not.toContain('Webhook Config');
+  });
+});

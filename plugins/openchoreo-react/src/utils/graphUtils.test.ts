@@ -214,6 +214,7 @@ describe('graphUtils', () => {
         'workflow',
         'clusterworkflow',
         'componentworkflow',
+        'observabilityalertsnotificationchannel',
       ];
       for (const kind of customKinds) {
         expect(lightTokens.entityKind[kind]).toBeDefined();

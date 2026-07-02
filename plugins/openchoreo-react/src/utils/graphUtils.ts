@@ -101,6 +101,7 @@ export const KIND_LABEL_PREFIXES: Record<string, string> = {
   workflow: 'WF',
   clusterworkflow: 'CWF',
   componentworkflow: 'CompWF',
+  observabilityalertsnotificationchannel: 'Notif',
 };
 
 /**
@@ -130,6 +131,7 @@ export const KIND_FULL_LABELS: Record<string, string> = {
   workflow: 'Workflow',
   clusterworkflow: 'Cluster Workflow',
   componentworkflow: 'Component Workflow',
+  observabilityalertsnotificationchannel: 'Notification Channel',
 };
 
 /**

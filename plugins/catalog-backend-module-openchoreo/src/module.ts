@@ -32,6 +32,7 @@ import {
   ClusterProjectTypeEntityProcessor,
   ProjectTypeEntityProcessor,
   SystemEntityProcessor,
+  ObservabilityAlertsNotificationChannelEntityProcessor,
 } from './processors';
 import {
   immediateCatalogServiceRef,
@@ -180,6 +181,11 @@ export const catalogModuleOpenchoreo = createBackendModule({
         // Emits the usesPipeline / pipelineUsedBy relation pair from the
         // Project side using `System.spec.deploymentPipelineRef`.
         catalog.addProcessor(new SystemEntityProcessor());
+
+        // Register the ObservabilityAlertsNotificationChannel entity processor
+        catalog.addProcessor(
+          new ObservabilityAlertsNotificationChannelEntityProcessor(),
+        );
 
         // Wire the OpenChoreo event-driven flow only when enabled. When
         // disabled the entity provider falls back to poll-only mode

@@ -37,6 +37,7 @@ type ResourceKind =
   | 'component-workflows'
   | 'components'
   | 'environments'
+  | 'observabilityalertsnotificationchannels'
   | 'dataplanes'
   | 'workflowplanes'
   | 'observabilityplanes'
@@ -63,6 +64,8 @@ const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
   'component-workflows': 'ComponentWorkflow',
   components: 'Component',
   environments: 'Environment',
+  observabilityalertsnotificationchannels:
+    'ObservabilityAlertsNotificationChannel',
   dataplanes: 'DataPlane',
   workflowplanes: 'WorkflowPlane',
   observabilityplanes: 'ObservabilityPlane',
@@ -87,6 +90,7 @@ const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
   'resources',
   'traits',
   'environments',
+  'observabilityalertsnotificationchannels',
   'dataplanes',
   'workflowplanes',
   'observabilityplanes',
@@ -283,6 +287,25 @@ export class PlatformResourceService {
             {
               params: {
                 path: { namespaceName, envName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
+          resource = data as Record<string, unknown>;
+          break;
+        }
+        case 'observabilityalertsnotificationchannels': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels/{observabilityAlertsNotificationChannelName}',
+            {
+              params: {
+                path: {
+                  namespaceName,
+                  observabilityAlertsNotificationChannelName: resourceName,
+                },
               },
             },
           );
@@ -671,6 +694,25 @@ export class PlatformResourceService {
             {
               params: {
                 path: { namespaceName, envName: resourceName },
+              },
+              body,
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
+          break;
+        }
+        case 'observabilityalertsnotificationchannels': {
+          const { error, response } = await client.PUT(
+            '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels/{observabilityAlertsNotificationChannelName}',
+            {
+              params: {
+                path: {
+                  namespaceName,
+                  observabilityAlertsNotificationChannelName: resourceName,
+                },
               },
               body,
             },
@@ -1212,6 +1254,24 @@ export class PlatformResourceService {
             {
               params: {
                 path: { namespaceName, envName: resourceName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
+          break;
+        }
+        case 'observabilityalertsnotificationchannels': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels/{observabilityAlertsNotificationChannelName}',
+            {
+              params: {
+                path: {
+                  namespaceName,
+                  observabilityAlertsNotificationChannelName: resourceName,
+                },
               },
             },
           );

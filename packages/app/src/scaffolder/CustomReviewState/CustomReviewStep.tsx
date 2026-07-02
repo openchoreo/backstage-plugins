@@ -182,6 +182,30 @@ function EnvironmentReview({ data }: { data: Record<string, unknown> }) {
 }
 
 // ---------------------------------------------------------------------------
+// NotificationChannelReview
+// ---------------------------------------------------------------------------
+
+function NotificationChannelReview({
+  data,
+}: {
+  data: Record<string, unknown>;
+}) {
+  const classes = useStyles();
+  const config = (data.channelConfig ?? data) as Record<string, unknown>;
+  const metadata: Record<string, string> = {};
+  flattenToMetadata(config, '', metadata);
+
+  return (
+    <>
+      <Typography className={classes.sectionTitle}>
+        Notification Channel Details
+      </Typography>
+      <StructuredMetadataTable metadata={metadata} />
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // ComponentReview
 // ---------------------------------------------------------------------------
 
@@ -677,12 +701,14 @@ function detectTemplateType(
 ):
   | 'deployment-pipeline'
   | 'environment'
+  | 'notification-channel'
   | 'component'
   | 'resource'
   | 'project'
   | 'default' {
   if ('deploymentPipelineConfig' in formData) return 'deployment-pipeline';
   if ('environmentConfig' in formData) return 'environment';
+  if ('channelConfig' in formData) return 'notification-channel';
   if ('workloadDetails' in formData) return 'component';
   // Per-type Resource templates emit `resource_name` at the top level
   // (vs Component's `component_name` which is paired with `workloadDetails`).
@@ -714,6 +740,9 @@ export const CustomReviewStep = ({
         )}
         {templateType === 'environment' && (
           <EnvironmentReview data={formData} />
+        )}
+        {templateType === 'notification-channel' && (
+          <NotificationChannelReview data={formData} />
         )}
         {templateType === 'component' && <ComponentReview data={formData} />}
         {templateType === 'resource' && <ResourceReview data={formData} />}

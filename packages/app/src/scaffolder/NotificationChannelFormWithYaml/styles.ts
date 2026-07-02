@@ -1,0 +1,32 @@
+import { makeStyles } from '@material-ui/core/styles';
+
+export const useStyles = makeStyles(theme => ({
+  toggleContainer: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginBottom: theme.spacing(2),
+  },
+  formContainer: {
+    width: '100%',
+  },
+  yamlContainer: {
+    width: '100%',
+    height: 500,
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: theme.shape.borderRadius,
+    overflow: 'hidden',
+  },
+  helpText: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    marginBottom: theme.spacing(1.5),
+    color: theme.palette.text.secondary,
+    fontSize: '0.875rem',
+  },
+  sectionTitle: {
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(1),
+    fontWeight: 600,
+  },
+}));

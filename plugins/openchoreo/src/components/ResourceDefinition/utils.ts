@@ -28,6 +28,8 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'component-workflows';
     case 'environment':
       return 'environments';
+    case 'observabilityalertsnotificationchannel':
+      return 'observabilityalertsnotificationchannels';
     case 'dataplane':
       return 'dataplanes';
     case 'workflowplane':
@@ -86,6 +88,8 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'ComponentWorkflow';
     case 'environment':
       return 'Environment';
+    case 'observabilityalertsnotificationchannel':
+      return 'ObservabilityAlertsNotificationChannel';
     case 'dataplane':
       return 'DataPlane';
     case 'workflowplane':
@@ -174,6 +178,7 @@ export function isSupportedKind(kind: string): boolean {
     'workflow',
     'componentworkflow',
     'environment',
+    'observabilityalertsnotificationchannel',
     'dataplane',
     'workflowplane',
     'observabilityplane',

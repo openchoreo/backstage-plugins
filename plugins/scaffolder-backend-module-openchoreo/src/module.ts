@@ -19,6 +19,7 @@ import { createClusterProjectTypeDefinitionAction } from './actions/clusterProje
 import { createClusterTraitDefinitionAction } from './actions/clusterTrait';
 import { createClusterWorkflowDefinitionAction } from './actions/clusterWorkflow';
 import { createEnvironmentAction } from './actions/environment';
+import { createNotificationChannelAction } from './actions/notificationChannel';
 import { createNamespaceAction } from './actions/namespace';
 import { createDeploymentPipelineAction } from './actions/deploymentPipeline';
 /**
@@ -58,6 +59,7 @@ export const scaffolderModule = createBackendModule({
           createTraitDefinitionAction(config, immediateCatalog),
           createComponentWorkflowDefinitionAction(config, immediateCatalog),
           createEnvironmentAction(config, immediateCatalog),
+          createNotificationChannelAction(config, immediateCatalog),
           createNamespaceAction(config, immediateCatalog),
           createClusterComponentTypeDefinitionAction(config, immediateCatalog),
           createClusterResourceTypeDefinitionAction(config, immediateCatalog),

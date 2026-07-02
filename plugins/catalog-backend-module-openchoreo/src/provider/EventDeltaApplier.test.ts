@@ -82,6 +82,10 @@ describe('EventDeltaApplier.handleEvent', () => {
     // convention fallback); covered by separate tests below, not by
     // the generic per-kind dispatch table.
     { kind: 'Environment', expectedRefs: ['environment:test-ns/order'] },
+    {
+      kind: 'ObservabilityAlertsNotificationChannel',
+      expectedRefs: ['observabilityalertsnotificationchannel:test-ns/order'],
+    },
     { kind: 'DataPlane', expectedRefs: ['dataplane:test-ns/order'] },
     { kind: 'WorkflowPlane', expectedRefs: ['workflowplane:test-ns/order'] },
     {

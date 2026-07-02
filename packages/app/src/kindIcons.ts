@@ -1,5 +1,6 @@
 import type { IconComponent } from '@backstage/core-plugin-api';
 import CloudIcon from '@material-ui/icons/Cloud';
+import NotificationsIcon from '@material-ui/icons/Notifications';
 import DnsIcon from '@material-ui/icons/Dns';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import VisibilityIcon from '@material-ui/icons/Visibility';
@@ -19,6 +20,7 @@ import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
  */
 export const KIND_ICONS: Record<string, IconComponent> = {
   environment: CloudIcon,
+  observabilityalertsnotificationchannel: NotificationsIcon,
   dataplane: DnsIcon,
   clusterdataplane: DnsIcon,
   deploymentpipeline: AccountTreeIcon,

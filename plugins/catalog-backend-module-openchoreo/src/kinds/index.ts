@@ -20,3 +20,15 @@ export type { ClusterResourceTypeEntityV1alpha1 } from './ClusterResourceTypeEnt
 export type { ResourceTypeEntityV1alpha1 } from './ResourceTypeEntityV1alpha1';
 export type { ClusterProjectTypeEntityV1alpha1 } from './ClusterProjectTypeEntityV1alpha1';
 export type { ProjectTypeEntityV1alpha1 } from './ProjectTypeEntityV1alpha1';
+export type {
+  ObservabilityAlertsNotificationChannelEntityV1alpha1,
+  NotificationSecretKeyRef,
+  NotificationSecretValueFrom,
+  NotificationSmtpAuth,
+  NotificationSmtpTlsConfig,
+  NotificationSmtpConfig,
+  NotificationEmailTemplate,
+  NotificationEmailConfig,
+  NotificationWebhookHeaderValue,
+  NotificationWebhookConfig,
+} from './ObservabilityAlertsNotificationChannelEntityV1alpha1';

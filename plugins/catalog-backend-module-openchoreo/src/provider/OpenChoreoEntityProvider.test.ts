@@ -87,6 +87,19 @@ const k8sEnvironment = {
   status: { conditions: [readyCondition] },
 };
 
+const k8sNotificationChannel = {
+  metadata: k8sMeta('dev-webhook'),
+  spec: {
+    environment: 'dev',
+    isEnvDefault: true,
+    type: 'webhook',
+    webhookConfig: {
+      url: 'https://hooks.example.com',
+    },
+  },
+  status: {},
+};
+
 const k8sDataPlane = {
   metadata: k8sMeta('default-dp'),
   spec: {
@@ -413,6 +426,10 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/namespaces/{namespaceName}/environments': okData({
           items: [k8sEnvironment],
         }),
+        '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels':
+          okData({
+            items: [k8sNotificationChannel],
+          }),
         '/api/v1/namespaces/{namespaceName}/dataplanes': okData({
           items: [k8sDataPlane],
         }),
@@ -479,6 +496,9 @@ describe('OpenChoreoEntityProvider', () => {
 
       expect(findEntities(entities, 'Domain')).toHaveLength(1);
       expect(findEntities(entities, 'Environment')).toHaveLength(1);
+      expect(
+        findEntities(entities, 'ObservabilityAlertsNotificationChannel'),
+      ).toHaveLength(1);
       expect(findEntities(entities, 'Dataplane')).toHaveLength(1);
       expect(findEntities(entities, 'WorkflowPlane')).toHaveLength(1);
       expect(findEntities(entities, 'ObservabilityPlane')).toHaveLength(1);
@@ -621,6 +641,23 @@ describe('OpenChoreoEntityProvider', () => {
       expect(gateway.ingress.internal.name).toBe('env-gateway');
       expect(gateway.ingress.internal.http.host).toBe(
         'env-internal.example.com',
+      );
+    });
+
+    it('creates ObservabilityAlertsNotificationChannel entity with correct spec', async () => {
+      const entities = await runProvider();
+
+      const channel = findEntities(
+        entities,
+        'ObservabilityAlertsNotificationChannel',
+      )[0];
+      expect(channel.metadata.name).toBe('dev-webhook');
+      expect(channel.metadata.namespace).toBe('test-ns');
+      expect((channel.spec as any).environment).toBe('dev');
+      expect((channel.spec as any).isEnvDefault).toBe(true);
+      expect((channel.spec as any).type).toBe('webhook');
+      expect((channel.spec as any).webhookConfig.url).toBe(
+        'https://hooks.example.com',
       );
     });
 
@@ -963,6 +1000,38 @@ describe('OpenChoreoEntityProvider', () => {
       // Environment from ns-ok should be present
       expect(findEntities(entities, 'Environment')).toHaveLength(1);
       // applyMutation should still be called
+      expect(mockConnection.applyMutation).toHaveBeenCalledTimes(1);
+    });
+
+    it('processes other namespaces when one fails for notification channels', async () => {
+      const nsOk = {
+        ...k8sNamespace,
+        metadata: { ...k8sNamespace.metadata, name: 'ns-ok' },
+      };
+      const nsFail = {
+        ...k8sNamespace,
+        metadata: { ...k8sNamespace.metadata, name: 'ns-fail' },
+      };
+
+      let callCount = 0;
+      setupPathBasedMocks({
+        '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels':
+          () => {
+            callCount++;
+            if (callCount === 1) {
+              return okData({ items: [k8sNotificationChannel] });
+            }
+            return errorData();
+          },
+        '/api/v1/namespaces': okData({ items: [nsOk, nsFail] }),
+      });
+
+      const entities = await runProvider();
+
+      expect(findEntities(entities, 'Domain')).toHaveLength(2);
+      expect(
+        findEntities(entities, 'ObservabilityAlertsNotificationChannel'),
+      ).toHaveLength(1);
       expect(mockConnection.applyMutation).toHaveBeenCalledTimes(1);
     });
   });

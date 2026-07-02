@@ -156,6 +156,24 @@ export const openchoreoEnvironmentReadPermission = createPermission({
 });
 
 /**
+ * Permission to create a new notification channel.
+ * Requires organization context.
+ */
+export const openchoreoNotificationChannelCreatePermission = createPermission({
+  name: 'openchoreo.notificationchannel.create',
+  attributes: { action: 'create' },
+});
+
+/**
+ * Permission to read/view notification channels.
+ * Org-scoped permission.
+ */
+export const openchoreoNotificationChannelReadPermission = createPermission({
+  name: 'openchoreo.notificationchannel.read',
+  attributes: { action: 'read' },
+});
+
+/**
  * Permission to create a new namespace (organization).
  * Requires organization context.
  */
@@ -450,6 +468,26 @@ export const openchoreoEnvironmentUpdatePermission = createPermission({
  */
 export const openchoreoEnvironmentDeletePermission = createPermission({
   name: 'openchoreo.environment.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update a notification channel.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoNotificationChannelUpdatePermission = createPermission({
+  name: 'openchoreo.notificationchannel.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete a notification channel.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoNotificationChannelDeletePermission = createPermission({
+  name: 'openchoreo.notificationchannel.delete',
   attributes: { action: 'delete' },
   resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
@@ -1074,6 +1112,8 @@ export const openchoreoPermissions = [
   openchoreoNamespaceDeletePermission,
   openchoreoEnvironmentCreatePermission,
   openchoreoEnvironmentReadPermission,
+  openchoreoNotificationChannelCreatePermission,
+  openchoreoNotificationChannelReadPermission,
   openchoreoReleaseCreatePermission,
   openchoreoReleaseReadPermission,
   openchoreoReleaseBindingReadPermission,
@@ -1141,6 +1181,8 @@ export const openchoreoPermissions = [
   openchoreoComponentWorkflowDeletePermission,
   openchoreoEnvironmentUpdatePermission,
   openchoreoEnvironmentDeletePermission,
+  openchoreoNotificationChannelUpdatePermission,
+  openchoreoNotificationChannelDeletePermission,
   openchoreoDataplaneUpdatePermission,
   openchoreoDataplaneDeletePermission,
   openchoreoWorkflowplaneUpdatePermission,
@@ -1194,6 +1236,10 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.namespace.delete': 'namespace:delete',
   'openchoreo.environment.create': 'environment:create',
   'openchoreo.environment.read': 'environment:view',
+  'openchoreo.notificationchannel.create':
+    'observabilityalertsnotificationchannel:create',
+  'openchoreo.notificationchannel.read':
+    'observabilityalertsnotificationchannel:view',
   'openchoreo.release.create': 'componentrelease:create',
   'openchoreo.release.read': 'componentrelease:view',
   'openchoreo.releasebinding.update': 'releasebinding:update',
@@ -1260,6 +1306,10 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.componentworkflow.delete': 'workflow:delete',
   'openchoreo.environment.update': 'environment:update',
   'openchoreo.environment.delete': 'environment:delete',
+  'openchoreo.notificationchannel.update':
+    'observabilityalertsnotificationchannel:update',
+  'openchoreo.notificationchannel.delete':
+    'observabilityalertsnotificationchannel:delete',
   'openchoreo.dataplane.update': 'dataplane:update',
   'openchoreo.dataplane.delete': 'dataplane:delete',
   'openchoreo.workflowplane.update': 'workflowplane:update',
@@ -1336,6 +1386,7 @@ export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
   'ClusterWorkflow',
   'ComponentWorkflow',
   'Environment',
+  'ObservabilityAlertsNotificationChannel',
 ];
 
 /**
@@ -1425,5 +1476,8 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   },
   environment: {
     'catalog.entity.read': 'environment:view',
+  },
+  observabilityalertsnotificationchannel: {
+    'catalog.entity.read': 'observabilityalertsnotificationchannel:view',
   },
 };

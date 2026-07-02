@@ -13,6 +13,7 @@ import SettingsApplicationsOutlinedIcon from '@material-ui/icons/SettingsApplica
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import ApartmentOutlined from '@material-ui/icons/ApartmentOutlined';
 import AccountTreeOutlined from '@material-ui/icons/AccountTreeOutlined';
+import NotificationsOutlinedIcon from '@material-ui/icons/NotificationsOutlined';
 import { useStarredEntity } from '@backstage/plugin-catalog-react';
 import type { TemplateEntityV1beta3 } from '@backstage/plugin-scaffolder-common';
 import { useStyles } from './styles';
@@ -21,6 +22,9 @@ const TYPE_ICONS: Record<string, React.ReactElement> = {
   'System (Project)': <FolderOutlinedIcon fontSize="inherit" />,
   Component: <WidgetsOutlinedIcon fontSize="inherit" />,
   Environment: <CloudOutlinedIcon fontSize="inherit" />,
+  ObservabilityAlertsNotificationChannel: (
+    <NotificationsOutlinedIcon fontSize="inherit" />
+  ),
   Trait: <ExtensionOutlinedIcon fontSize="inherit" />,
   ClusterTrait: <ExtensionOutlinedIcon fontSize="inherit" />,
   ComponentType: <CategoryOutlinedIcon fontSize="inherit" />,

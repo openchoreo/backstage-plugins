@@ -6,6 +6,8 @@ import {
   openchoreoProjectTypeDeletePermission,
   openchoreoClusterProjectTypeUpdatePermission,
   openchoreoClusterProjectTypeDeletePermission,
+  openchoreoNotificationChannelUpdatePermission,
+  openchoreoNotificationChannelDeletePermission,
 } from '@openchoreo/backstage-plugin-common';
 import { useResourceDefinitionPermission } from './useResourceDefinitionPermission';
 
@@ -162,6 +164,26 @@ describe('useResourceDefinitionPermission', () => {
     const perms = inputs.map(i => i.permission);
     expect(perms).toContain(openchoreoProjectTypeUpdatePermission);
     expect(perms).toContain(openchoreoProjectTypeDeletePermission);
+    // Namespace-scoped: resourceRef must be passed.
+    for (const input of inputs) {
+      expect(input).toHaveProperty('resourceRef');
+    }
+  });
+
+  it('wires ObservabilityAlertsNotificationChannel to resource-scoped update + delete permissions', () => {
+    mockUseEntity.mockReturnValue(
+      makeEntity('ObservabilityAlertsNotificationChannel'),
+    );
+    mockUsePermission.mockReturnValue({ allowed: true, loading: false });
+    const { result } = renderHook(() => useResourceDefinitionPermission());
+
+    expect(result.current.canUpdate).toBe(true);
+    expect(result.current.canDelete).toBe(true);
+
+    const inputs = mockUsePermission.mock.calls.map(c => c[0]).filter(Boolean);
+    const perms = inputs.map(i => i.permission);
+    expect(perms).toContain(openchoreoNotificationChannelUpdatePermission);
+    expect(perms).toContain(openchoreoNotificationChannelDeletePermission);
     // Namespace-scoped: resourceRef must be passed.
     for (const input of inputs) {
       expect(input).toHaveProperty('resourceRef');

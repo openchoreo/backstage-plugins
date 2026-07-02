@@ -96,3 +96,41 @@ describe('ResourceDefinition utils — ClusterProjectType wiring', () => {
     expect(isSupportedKind('ClusterProjectType')).toBe(true);
   });
 });
+
+describe('ResourceDefinition utils — ObservabilityAlertsNotificationChannel wiring', () => {
+  it('maps the Backstage entity kind to the API path kind', () => {
+    expect(mapKindToApiKind('observabilityalertsnotificationchannel')).toBe(
+      'observabilityalertsnotificationchannels',
+    );
+    expect(mapKindToApiKind('ObservabilityAlertsNotificationChannel')).toBe(
+      'observabilityalertsnotificationchannels',
+    );
+  });
+
+  it('maps the Backstage entity kind to the CRD kind', () => {
+    expect(mapKindToCrdKind('observabilityalertsnotificationchannel')).toBe(
+      'ObservabilityAlertsNotificationChannel',
+    );
+    expect(mapKindToCrdKind('ObservabilityAlertsNotificationChannel')).toBe(
+      'ObservabilityAlertsNotificationChannel',
+    );
+  });
+
+  it('does not mark ObservabilityAlertsNotificationChannel as cluster-scoped', () => {
+    expect(isClusterScopedKind('observabilityalertsnotificationchannel')).toBe(
+      false,
+    );
+    expect(isClusterScopedKind('ObservabilityAlertsNotificationChannel')).toBe(
+      false,
+    );
+  });
+
+  it('marks ObservabilityAlertsNotificationChannel as supported', () => {
+    expect(isSupportedKind('observabilityalertsnotificationchannel')).toBe(
+      true,
+    );
+    expect(isSupportedKind('ObservabilityAlertsNotificationChannel')).toBe(
+      true,
+    );
+  });
+});

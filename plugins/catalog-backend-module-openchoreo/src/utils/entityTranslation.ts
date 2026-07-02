@@ -37,6 +37,9 @@ import type {
   ClusterProjectTypeEntityV1alpha1,
   ProjectTypeEntityV1alpha1,
   DeploymentPipelineEntityV1alpha1,
+  ObservabilityAlertsNotificationChannelEntityV1alpha1,
+  NotificationEmailConfig,
+  NotificationWebhookConfig,
 } from '../kinds';
 import { normalizeObservabilityPlaneRef, resolveProjectOwner } from './helpers';
 
@@ -46,6 +49,8 @@ type ModelsComponent = ComponentResponse;
 type NewProject = OpenChoreoComponents['schemas']['Project'];
 type NewComponent = OpenChoreoComponents['schemas']['Component'];
 type NewEnvironment = OpenChoreoComponents['schemas']['Environment'];
+type NewNotificationChannel =
+  OpenChoreoComponents['schemas']['ObservabilityAlertsNotificationChannel'];
 type NewDataPlane = OpenChoreoComponents['schemas']['DataPlane'];
 type NewWorkflowPlane = OpenChoreoComponents['schemas']['WorkflowPlane'];
 type NewObservabilityPlane =
@@ -490,6 +495,62 @@ export function translateEnvironmentToEntity(
   };
 
   return environmentEntity;
+}
+
+/**
+ * Translates an OpenChoreo ObservabilityAlertsNotificationChannel to a
+ * Backstage ObservabilityAlertsNotificationChannel entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateNotificationChannelToEntity(
+  channel: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    environment: string;
+    isEnvDefault?: boolean;
+    type: 'email' | 'webhook';
+    emailConfig?: NotificationEmailConfig;
+    webhookConfig?: NotificationWebhookConfig;
+    createdAt?: string;
+    deletionTimestamp?: string;
+  },
+  namespaceName: string,
+  config: EntityTranslationConfig,
+): ObservabilityAlertsNotificationChannelEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ObservabilityAlertsNotificationChannel',
+    metadata: {
+      name: channel.name,
+      namespace: namespaceName,
+      title: channel.displayName || channel.name,
+      description:
+        channel.description || `${channel.name} notification channel`,
+      tags: ['openchoreo', 'notification-channel', channel.type],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        ...(channel.createdAt && {
+          [CHOREO_ANNOTATIONS.CREATED_AT]: channel.createdAt,
+        }),
+        ...(channel.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: channel.deletionTimestamp,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      environment: channel.environment,
+      isEnvDefault: channel.isEnvDefault,
+      type: channel.type,
+      ...(channel.emailConfig && { emailConfig: channel.emailConfig }),
+      ...(channel.webhookConfig && { webhookConfig: channel.webhookConfig }),
+    },
+  };
 }
 
 /**
@@ -1455,6 +1516,33 @@ export function translateNewEnvironmentToEntity(
       createdAt: getCreatedAt(env),
       status: isReady(env) ? 'Ready' : 'Not Ready',
       deletionTimestamp: getDeletionTimestamp(env),
+    },
+    namespaceName,
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API ObservabilityAlertsNotificationChannel into a
+ * Backstage ObservabilityAlertsNotificationChannel entity.
+ */
+export function translateNewNotificationChannelToEntity(
+  channel: NewNotificationChannel,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): ObservabilityAlertsNotificationChannelEntityV1alpha1 {
+  return translateNotificationChannelToEntity(
+    {
+      name: getName(channel)!,
+      displayName: getDisplayName(channel),
+      description: getDescription(channel),
+      environment: channel.spec?.environment ?? '',
+      isEnvDefault: channel.spec?.isEnvDefault,
+      type: channel.spec?.type as 'email' | 'webhook',
+      emailConfig: channel.spec?.emailConfig,
+      webhookConfig: channel.spec?.webhookConfig,
+      createdAt: getCreatedAt(channel),
+      deletionTimestamp: getDeletionTimestamp(channel),
     },
     namespaceName,
     { locationKey: ctx.providerName },

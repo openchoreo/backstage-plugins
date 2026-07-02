@@ -17,6 +17,8 @@ export {
   RELATION_WORKFLOW_USED_BY,
   RELATION_BUILDS_ON,
   RELATION_BUILDS,
+  RELATION_NOTIFIES,
+  RELATION_NOTIFIED_BY,
 } from './constants';
 
 // Permissions
@@ -41,6 +43,8 @@ export {
   openchoreoNamespaceDeletePermission,
   openchoreoEnvironmentCreatePermission,
   openchoreoEnvironmentReadPermission,
+  openchoreoNotificationChannelCreatePermission,
+  openchoreoNotificationChannelReadPermission,
   openchoreoReleaseCreatePermission,
   openchoreoReleaseReadPermission,
   openchoreoReleaseBindingUpdatePermission,
@@ -106,6 +110,8 @@ export {
   openchoreoComponentWorkflowDeletePermission,
   openchoreoEnvironmentUpdatePermission,
   openchoreoEnvironmentDeletePermission,
+  openchoreoNotificationChannelUpdatePermission,
+  openchoreoNotificationChannelDeletePermission,
   openchoreoDataplaneUpdatePermission,
   openchoreoDataplaneDeletePermission,
   openchoreoWorkflowplaneUpdatePermission,

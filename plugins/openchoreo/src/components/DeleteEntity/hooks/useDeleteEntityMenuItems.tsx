@@ -51,6 +51,7 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
   system: 'Project',
   domain: 'Namespace',
   environment: 'Environment',
+  observabilityalertsnotificationchannel: 'Notification Channel',
   dataplane: 'Dataplane',
   clusterdataplane: 'Cluster Data Plane',
   buildplane: 'Build Plane',
