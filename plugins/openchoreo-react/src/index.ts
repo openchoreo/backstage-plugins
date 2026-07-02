@@ -311,6 +311,10 @@ export {
   type UseConfigureAndDeployPermissionResult,
 } from './hooks/useConfigureAndDeployPermission';
 export {
+  useExecPermission,
+  type UseExecPermissionResult,
+} from './hooks/useExecPermission';
+export {
   useLogsPermission,
   type UseLogsPermissionResult,
 } from './hooks/useLogsPermission';

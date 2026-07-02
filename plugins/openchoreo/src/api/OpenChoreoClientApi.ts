@@ -1229,6 +1229,26 @@ export interface OpenChoreoClientApi {
   /** List all bindings (cluster + namespace) for a cluster role */
   listBindingsForClusterRole(name: string): Promise<RoleBindingsLookup>;
 
+  // === Component Exec ===
+
+  /**
+   * Creates a short-lived exec session. The returned sessionId can be used to
+   * open a WebSocket connection at /api/openchoreo/exec/ws?sessionId=<id>
+   * within the next 30 seconds.
+   *
+   * podName/containerName target a specific pod and container (e.g. when
+   * launched from a Pod node in the K8s resource tree). When omitted, the
+   * control plane resolves the pod for the component + environment.
+   */
+  execInit(params: {
+    namespaceName: string;
+    projectName: string;
+    componentName: string;
+    environment: string;
+    podName?: string;
+    containerName?: string;
+  }): Promise<{ sessionId: string; ttlSeconds: number }>;
+
   /** List all bindings for a namespace role */
   listBindingsForNamespaceRole(
     namespace: string,

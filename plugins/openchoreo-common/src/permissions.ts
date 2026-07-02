@@ -932,6 +932,17 @@ export const openchoreoClusterRoleMappingDeletePermission = createPermission({
 });
 
 /**
+ * Permission to exec into a running pod for a component.
+ * Resource-based: requires the specific component context.
+ * Supports ABAC environment constraints (e.g. restrict to non-production).
+ */
+export const openchoreoExecPermission = createPermission({
+  name: 'openchoreo.exec',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
  * Permission to view logs for a component.
  * Resource-based: requires the specific component context.
  */
@@ -1088,6 +1099,7 @@ export const openchoreoPermissions = [
   openchoreoClusterRoleMappingCreatePermission,
   openchoreoClusterRoleMappingUpdatePermission,
   openchoreoClusterRoleMappingDeletePermission,
+  openchoreoExecPermission,
   openchoreoLogsViewPermission,
   openchoreoEventsViewPermission,
   openchoreoMetricsViewPermission,
@@ -1207,6 +1219,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.clusterrolemapping.create': 'clusterauthzrolebinding:create',
   'openchoreo.clusterrolemapping.update': 'clusterauthzrolebinding:update',
   'openchoreo.clusterrolemapping.delete': 'clusterauthzrolebinding:delete',
+  'openchoreo.exec': 'component:exec',
   'openchoreo.logs.view': 'logs:view',
   'openchoreo.events.view': 'events:view',
   'openchoreo.alerts.view': 'alerts:view',

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ReleaseBindingDetailTabs } from './ReleaseBindingDetailTabs';
+import type { ExecContext } from './treeTypes';
 
 // Mock design-system YamlViewer
 jest.mock('@openchoreo/backstage-design-system', () => ({
@@ -8,6 +9,20 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
     <pre data-testid="yaml-viewer">{value}</pre>
   ),
 }));
+
+// Isolate the unit under test from the terminal session machinery.
+jest.mock('./ResourcePodTerminalViewer', () => ({
+  ResourcePodTerminalViewer: () => <div data-testid="terminal-viewer" />,
+}));
+
+const execContext: ExecContext = {
+  namespaceName: 'default',
+  projectName: 'default',
+  componentName: 'greeter-service',
+  environmentName: 'development',
+  environmentDisplayName: 'Development',
+  entityRef: 'component:default/greeter-service',
+};
 
 // ---- Tests ----
 
@@ -164,6 +179,46 @@ describe('ReleaseBindingDetailTabs', () => {
       // reason and message should show '-' when not provided
       const dashes = screen.getAllByText('-');
       expect(dashes.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('Fallback Terminal tab', () => {
+    const healthyBinding: Record<string, unknown> = {
+      name: 'my-binding',
+      releaseName: 'my-release',
+      environment: 'development',
+      status: 'Active',
+    };
+
+    it('does not show a Terminal tab without execContext', () => {
+      render(<ReleaseBindingDetailTabs releaseBindingData={healthyBinding} />);
+      expect(screen.queryByText('Terminal')).not.toBeInTheDocument();
+    });
+
+    it('shows a Terminal tab when execContext is provided and binding is healthy', async () => {
+      const user = userEvent.setup();
+      render(
+        <ReleaseBindingDetailTabs
+          releaseBindingData={healthyBinding}
+          execContext={execContext}
+        />,
+      );
+
+      const terminalTab = screen.getByText('Terminal');
+      expect(terminalTab).toBeInTheDocument();
+
+      await user.click(terminalTab);
+      expect(screen.getByTestId('terminal-viewer')).toBeInTheDocument();
+    });
+
+    it('hides the Terminal tab when the binding is not healthy', () => {
+      render(
+        <ReleaseBindingDetailTabs
+          releaseBindingData={{ ...healthyBinding, status: 'Failed' }}
+          execContext={execContext}
+        />,
+      );
+      expect(screen.queryByText('Terminal')).not.toBeInTheDocument();
     });
   });
 

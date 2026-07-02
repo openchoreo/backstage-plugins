@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { DetailPageLayout } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
@@ -68,6 +68,23 @@ export const ReleaseDetailsPage = ({
 
   const namespaceName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
+  const projectName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ?? '';
+  const componentName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT] ?? '';
+
+  // Context required to open an exec terminal from a Pod / ReleaseBinding node.
+  const execContext =
+    namespaceName && projectName && componentName && environmentName
+      ? {
+          namespaceName,
+          projectName,
+          componentName,
+          environmentName,
+          environmentDisplayName: environment.name,
+          entityRef: stringifyEntityRef(entity),
+        }
+      : undefined;
 
   const loadReleaseData = useCallback(
     async (showLoadingState = true) => {
@@ -203,6 +220,7 @@ export const ReleaseDetailsPage = ({
           releaseBindingName={(releaseBindingData as any)?.name ?? ''}
           onRefresh={handleManualRefresh}
           isRefreshing={refreshing}
+          execContext={execContext}
         />
       )}
 

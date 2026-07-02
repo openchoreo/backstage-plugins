@@ -69,6 +69,7 @@ import { LEGACY_KIND_ICONS } from './kindIcons';
 import {
   AccessControlContent,
   SecretsContent,
+  ExecTerminalWindowPage,
 } from '@openchoreo/backstage-plugin';
 import {
   UserSettingsPage,
@@ -143,6 +144,12 @@ const routes = (
       element={<CatalogGraphPage renderNode={CustomGraphNode} />}
     />
     <Route path="/platform-overview" element={<PlatformOverviewPage />} />
+    {/*
+      Standalone full-window exec terminal, opened in a new browser tab from the
+      resource drawer. The page renders a fixed viewport overlay over the app
+      chrome, so the terminal uses the entire window.
+    */}
+    <Route path="/exec-terminal" element={<ExecTerminalWindowPage />} />
   </FlatRoutes>
 );
 

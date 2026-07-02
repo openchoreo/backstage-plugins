@@ -13,9 +13,12 @@ import { YamlViewer } from '@openchoreo/backstage-design-system';
 import { useTreeStyles } from './treeStyles';
 import { ResourceEventsTable } from './ResourceEventsTable';
 import { ResourcePodLogsViewer } from './ResourcePodLogsViewer';
-import type { LayoutNode } from './treeTypes';
+import { ResourcePodTerminalViewer } from './ResourcePodTerminalViewer';
+import { getPodContainerNames } from './podUtils';
+import type { ExecContext, LayoutNode } from './treeTypes';
 
 const LOGGABLE_KINDS = new Set(['Pod']);
+const EXECUTABLE_KINDS = new Set(['Pod']);
 
 const REFRESHABLE_TABS = new Set(['events', 'logs']);
 
@@ -24,10 +27,13 @@ interface TabConfig {
   label: string;
 }
 
-function getTabsForKind(kind: string): TabConfig[] {
+function getTabsForKind(kind: string, canExec: boolean): TabConfig[] {
   const tabs: TabConfig[] = [{ id: 'events', label: 'Events' }];
   if (LOGGABLE_KINDS.has(kind)) {
     tabs.push({ id: 'logs', label: 'Logs' });
+  }
+  if (canExec && EXECUTABLE_KINDS.has(kind)) {
+    tabs.push({ id: 'terminal', label: 'Terminal' });
   }
   tabs.push({ id: 'definition', label: 'Definition' });
   return tabs;
@@ -37,18 +43,24 @@ interface ResourceDetailTabsProps {
   node: LayoutNode;
   namespaceName: string;
   releaseBindingName: string;
+  /** Present when exec is available (component/env context resolved). */
+  execContext?: ExecContext;
 }
 
 export const ResourceDetailTabs: FC<ResourceDetailTabsProps> = ({
   node,
   namespaceName,
   releaseBindingName,
+  execContext,
 }) => {
   const classes = useTreeStyles();
   const [activeTab, setActiveTab] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const tabs = getTabsForKind(node.kind);
+  // A Terminal tab is offered only for Pod nodes when we have the component /
+  // environment context needed to open an exec session.
+  const canExec = Boolean(execContext);
+  const tabs = getTabsForKind(node.kind, canExec);
 
   // Reset tab when switching to a different node
   useEffect(() => {
@@ -101,6 +113,14 @@ export const ResourceDetailTabs: FC<ResourceDetailTabsProps> = ({
             namespaceName={namespaceName}
             releaseBindingName={releaseBindingName}
             refreshKey={refreshKey}
+          />
+        )}
+
+        {currentTab === 'terminal' && execContext && (
+          <ResourcePodTerminalViewer
+            execContext={execContext}
+            podName={node.name}
+            containers={getPodContainerNames(node.specObject)}
           />
         )}
 

@@ -13,7 +13,8 @@ import { ResourceDetailPanel } from './ResourceDetailPanel';
 import { ReleaseStatusBar } from './ReleaseStatusBar';
 import { useTreeStyles } from './treeStyles';
 import { buildTreeNodes, computeTreeLayout } from './treeLayoutUtils';
-import type { LayoutNode } from './treeTypes';
+import { treeHasPodNode } from './podUtils';
+import type { ExecContext, LayoutNode } from './treeTypes';
 import type { ResourceTreeData } from '../types';
 
 interface ResourceTreeViewProps {
@@ -23,6 +24,8 @@ interface ResourceTreeViewProps {
   releaseBindingName: string;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  /** Component/environment context for opening an exec terminal from a node. */
+  execContext?: ExecContext;
 }
 
 export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
@@ -32,9 +35,18 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
   releaseBindingName,
   onRefresh,
   isRefreshing = false,
+  execContext,
 }) => {
   const classes = useTreeStyles();
   const [selectedNode, setSelectedNode] = useState<LayoutNode | null>(null);
+
+  // Whether the workload pod is surfaced in the tree. Drives whether the
+  // Terminal lives on the Pod node drawer (true) or the ReleaseBinding
+  // fallback drawer (false). Derived from already-fetched tree data.
+  const hasPodNode = useMemo(
+    () => treeHasPodNode(resourceTreeData),
+    [resourceTreeData],
+  );
 
   const layout = useMemo(() => {
     const nodes = buildTreeNodes(resourceTreeData, releaseBindingData);
@@ -121,6 +133,8 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
         releaseBindingData={releaseBindingData}
         namespaceName={namespaceName}
         releaseBindingName={releaseBindingName}
+        execContext={execContext}
+        hasPodNode={hasPodNode}
       />
     </Box>
   );
