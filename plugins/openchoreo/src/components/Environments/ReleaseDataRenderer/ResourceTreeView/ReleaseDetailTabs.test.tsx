@@ -34,7 +34,10 @@ function makeReleaseNode(overrides: Partial<LayoutNode> = {}): LayoutNode {
     version: 'v1alpha1',
     targetPlane: 'dataplane',
     parentIds: ['__release_binding__'],
-    specObject: { apiVersion: 'openchoreo.dev/v1alpha1', kind: 'RenderedRelease' },
+    specObject: {
+      apiVersion: 'openchoreo.dev/v1alpha1',
+      kind: 'RenderedRelease',
+    },
     x: 0,
     y: 0,
     width: 200,
@@ -65,7 +68,9 @@ describe('ReleaseDetailTabs', () => {
 
     const viewer = screen.getByTestId('yaml-viewer');
     expect(viewer).toHaveTextContent('kind: RenderedRelease');
-    expect(screen.queryByTestId('resource-events-table')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('resource-events-table'),
+    ).not.toBeInTheDocument();
   });
 
   it('shows an empty state on the Spec tab when no spec is available', async () => {
@@ -80,6 +85,23 @@ describe('ReleaseDetailTabs', () => {
 
     expect(screen.getByText('No release spec available')).toBeInTheDocument();
     expect(screen.queryByTestId('yaml-viewer')).not.toBeInTheDocument();
+  });
+
+  it('surfaces the target plane as a chip when present', () => {
+    render(<ReleaseDetailTabs {...defaultProps} node={makeReleaseNode()} />);
+
+    expect(screen.getByText('Target: dataplane')).toBeInTheDocument();
+  });
+
+  it('omits the target plane chip when the node has none', () => {
+    render(
+      <ReleaseDetailTabs
+        {...defaultProps}
+        node={makeReleaseNode({ targetPlane: undefined })}
+      />,
+    );
+
+    expect(screen.queryByText(/^Target:/)).not.toBeInTheDocument();
   });
 
   it('bumps the events refresh key when the refresh button is clicked', async () => {

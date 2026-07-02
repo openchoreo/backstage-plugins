@@ -1,5 +1,13 @@
 import { useState, useEffect, useCallback, type FC } from 'react';
-import { Box, Tabs, Tab, Typography, IconButton, Tooltip } from '@material-ui/core';
+import {
+  Box,
+  Tabs,
+  Tab,
+  Typography,
+  IconButton,
+  Tooltip,
+  Chip,
+} from '@material-ui/core';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import YAML from 'yaml';
 import { YamlViewer } from '@openchoreo/backstage-design-system';
@@ -58,6 +66,14 @@ export const ReleaseDetailTabs: FC<ReleaseDetailTabsProps> = ({
             <Tab key={tab.id} label={tab.label} />
           ))}
         </Tabs>
+        {node.targetPlane && (
+          <Chip
+            label={`Target: ${node.targetPlane}`}
+            size="small"
+            variant="outlined"
+            style={{ marginRight: 8 }}
+          />
+        )}
         {currentTab === 'events' && (
           <Tooltip title="Refresh">
             <IconButton size="small" onClick={handleRefresh}>
