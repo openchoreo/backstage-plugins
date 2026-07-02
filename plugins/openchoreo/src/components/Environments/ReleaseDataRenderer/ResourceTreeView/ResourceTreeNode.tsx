@@ -67,9 +67,9 @@ export const ResourceTreeNode: FC<ResourceTreeNodeProps> = ({
       <div className={classes.nodeContent}>
         <span className={classes.nodeKind}>{node.kind}</span>
         <span className={classes.nodeName}>{node.name}</span>
-        {node.kind === 'RenderedRelease' && node.version && (
+        {node.kind === 'RenderedRelease' && node.targetPlane && (
           <span className={classes.nodeSubtitle}>
-            Target plane: {node.version}
+            Target plane: {node.targetPlane}
           </span>
         )}
       </div>

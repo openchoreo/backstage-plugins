@@ -110,10 +110,14 @@ export function buildTreeNodes(
 
     nodes.push({
       id: releaseNodeId,
+      // Real GVK of the RenderedRelease CR so its events/spec can be fetched.
       kind: 'RenderedRelease',
+      group: 'openchoreo.dev',
+      version: 'v1alpha1',
       name: release.name,
-      version: release.targetPlane,
+      targetPlane: release.targetPlane,
       healthStatus: aggregateHealth(release.nodes),
+      specObject: release.renderedRelease,
       parentIds: [ROOT_NODE_ID],
     });
 
