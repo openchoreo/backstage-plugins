@@ -239,27 +239,56 @@ export const useStyles = makeStyles(theme => ({
   },
   // Inline preview revealed by the chevron. Visually continuous with
   // the banner above (same hover-tint background, square top corners,
-  // matching border) so the two read as one expandable unit.
-  // pre-wrap keeps the agent's paragraph breaks intact while allowing
-  // long lines (stack-trace excerpts, repo URLs) to wrap inside the
-  // narrow drawer instead of introducing horizontal scroll.
+  // matching border) so the two read as one expandable unit. Rendered
+  // as markdown (same as the chat messages) so the agent's backticks
+  // become styled inline-code pills instead of showing literally; the
+  // Copy button still copies the raw fix_prompt verbatim. Block-level
+  // monospace/pre-wrap is intentionally dropped — structure now comes
+  // from the markdown elements (paragraphs, lists, code spans), with
+  // long tokens still wrapping via wordBreak.
   fixPromptPreview: {
     margin: 0,
-    padding: theme.spacing(1),
+    padding: theme.spacing(1, 1.25),
     backgroundColor: theme.palette.action.hover,
     border: `1px solid ${theme.palette.divider}`,
     borderTop: 'none',
     borderBottomLeftRadius: theme.shape.borderRadius,
     borderBottomRightRadius: theme.shape.borderRadius,
-    fontFamily:
-      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-    fontSize: 11.5,
-    lineHeight: 1.45,
+    fontSize: 12.5,
+    lineHeight: 1.5,
     color: theme.palette.text.primary,
-    whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
     maxHeight: 280,
     overflowY: 'auto',
+    '& p': { margin: 0 },
+    '& p + p': { marginTop: theme.spacing(0.75) },
+    '& ul, & ol': {
+      margin: theme.spacing(0.5, 0),
+      paddingLeft: theme.spacing(2.5),
+    },
+    '& li + li': { marginTop: theme.spacing(0.25) },
+    // Inline code → subtle monospace pill, matching the RCA chat look.
+    '& code': {
+      fontFamily:
+        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+      fontSize: '0.9em',
+      padding: '0.08em 0.35em',
+      borderRadius: 4,
+      backgroundColor: theme.palette.action.selected,
+    },
+    // Fenced blocks get their own surface; nested code drops the pill.
+    '& pre': {
+      margin: theme.spacing(0.5, 0),
+      padding: theme.spacing(1),
+      borderRadius: theme.shape.borderRadius,
+      backgroundColor: theme.palette.background.paper,
+      overflowX: 'auto',
+    },
+    '& pre code': {
+      padding: 0,
+      backgroundColor: 'transparent',
+      fontSize: '0.85em',
+    },
   },
   evidenceSummary: {
     cursor: 'pointer',

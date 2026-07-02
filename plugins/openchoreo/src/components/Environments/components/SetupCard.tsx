@@ -1,5 +1,6 @@
-import { Box, Typography } from '@material-ui/core';
+import { Box, Tooltip, Typography } from '@material-ui/core';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
+import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
 import clsx from 'clsx';
 import { useSetupCardCompactStyles } from '../styles';
 import { SetupCardProps } from '../types';
@@ -15,15 +16,29 @@ export const SetupCard = ({
   loading,
   environmentsExist,
   selected,
+  hasError,
 }: SetupCardProps) => {
   const classes = useSetupCardCompactStyles();
   return (
     <Box
       className={clsx(classes.setupCard, {
         [classes.cardSelected]: selected,
+        [classes.cardError]: hasError && !selected,
       })}
     >
       <span className={classes.startBadge}>Start</span>
+      {hasError && (
+        <Tooltip
+          title="Auto-deploy failed — open Set up for details"
+          placement="top"
+          arrow
+        >
+          <ReportProblemOutlinedIcon
+            className={classes.errorMarker}
+            aria-label="Auto-deploy failed"
+          />
+        </Tooltip>
+      )}
       <Box className={classes.titleRow}>
         <SettingsOutlinedIcon className={classes.titleIcon} />
         <Typography className={classes.title}>Set up</Typography>

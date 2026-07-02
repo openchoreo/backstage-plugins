@@ -5,8 +5,6 @@ import {
   fetchAllPages,
 } from '@openchoreo/openchoreo-client-node';
 import type {
-  APIResponse,
-  ListResponse,
   TraitResponse,
   ComponentTraitResponse,
   UpdateComponentTraitsRequest as UpdateTraitsRequest,
@@ -17,19 +15,9 @@ import {
   getDescription,
   getCreatedAt,
 } from '../transformers/common';
+import type { ApiListResponse, ApiSchemaResponse } from '../types';
 
-// Type definitions matching the API response structure
-type TraitListResponse = APIResponse & {
-  data?: ListResponse & {
-    items?: TraitResponse[];
-  };
-};
-
-type TraitSchemaResponse = APIResponse & {
-  data?: {
-    [key: string]: unknown;
-  };
-};
+type TraitListResponse = ApiListResponse<TraitResponse>;
 
 export type ComponentTrait = ComponentTraitResponse;
 export type UpdateComponentTraitsRequest = UpdateTraitsRequest;
@@ -102,7 +90,7 @@ export class TraitInfoService {
     namespaceName: string,
     traitName: string,
     token?: string,
-  ): Promise<TraitSchemaResponse> {
+  ): Promise<ApiSchemaResponse> {
     this.logger.debug(
       `Fetching schema for trait: ${traitName} in namespace: ${namespaceName}`,
     );
@@ -131,7 +119,7 @@ export class TraitInfoService {
       return {
         success: true,
         data: data,
-      } as TraitSchemaResponse;
+      } as ApiSchemaResponse;
     } catch (error) {
       this.logger.error(
         `Failed to fetch schema for trait ${traitName} in namespace ${namespaceName}: ${error}`,

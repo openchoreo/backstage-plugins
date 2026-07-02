@@ -317,6 +317,25 @@ eventForwarder:
   enabled: true
 ```
 
+## Observability
+
+### Configuration
+
+| Setting                                                  | Environment Variable                                       | Default | Description                                                                                                                                                                                            |
+| -------------------------------------------------------- | ---------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `openchoreo.observability.wirelogs.streamTimeoutSeconds` | `OPENCHOREO_OBSERVABILITY_WIRELOGS_STREAM_TIMEOUT_SECONDS` | `900`   | Hard cap (seconds) on a single wirelogs SSE stream before the backend ends it. The UI shows soft warnings at ~1/3 and ~2/3 of this value and a toast when the server stops it. Defaults to 15 minutes. |
+
+**Production (Helm):**
+
+The Helm chart injects this environment variable. You can configure it via Helm values:
+
+```yaml
+backstage:
+  observability:
+    wirelogs:
+      streamTimeoutSeconds: 900
+```
+
 ## External CI Platform Integration
 
 OpenChoreo includes built-in support for viewing CI build status from external platforms directly in Backstage.

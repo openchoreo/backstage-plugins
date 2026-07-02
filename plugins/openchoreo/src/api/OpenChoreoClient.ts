@@ -4,6 +4,7 @@ import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   CHOREO_ANNOTATIONS,
   type WorkloadResource,
+  type ReleaseBindingCondition,
 } from '@openchoreo/backstage-plugin-common';
 import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
@@ -16,6 +17,8 @@ import type {
   ReleaseBindingsResponse,
   ResourceReleaseResponse,
   ResourceReleaseBindingsResponse,
+  ProjectReleaseBindingsResponse,
+  ProjectEnvironment,
   WorkflowSchemaResponse,
   ComponentInfo,
   SecretReferencesResponse,
@@ -69,6 +72,10 @@ const API_ENDPOINTS = {
   RESOURCE_ENVIRONMENT_INFO: '/resource-environment-info',
   UPDATE_RESOURCE_RELEASE_BINDING: '/update-resource-release-binding',
   DELETE_RESOURCE_RELEASE_BINDING: '/delete-resource-release-binding',
+  PROJECT_RELEASE_BINDINGS: '/project-release-bindings',
+  PROJECT_ENVIRONMENT_INFO: '/project-environment-info',
+  UPDATE_PROJECT_RELEASE_BINDING: '/update-project-release-binding',
+  PROJECT_RELEASE_SCHEMA: '/project-release-schema',
   COMPONENT_RELEASES: '/component-releases',
   UPDATE_RELEASE_BINDING: '/update-release-binding',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
@@ -180,6 +187,28 @@ function extractResourceEntityMetadata(entity: Entity): ResourceEntityMetadata {
   }
 
   return { resourceName, projectName, namespaceName };
+}
+
+interface ProjectEntityMetadata {
+  projectName: string;
+  namespaceName: string;
+}
+
+function extractProjectEntityMetadata(entity: Entity): ProjectEntityMetadata {
+  // A Project entity (catalog kind System) carries its project name as the
+  // entity name; the OpenChoreo namespace is annotated.
+  const projectName = entity.metadata.name;
+  const namespaceName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+
+  if (!projectName || !namespaceName) {
+    throw new Error(
+      'Missing required OpenChoreo annotations on Project entity. ' +
+        `Required: project name and ${CHOREO_ANNOTATIONS.NAMESPACE}`,
+    );
+  }
+
+  return { projectName, namespaceName };
 }
 
 // ============================================
@@ -506,6 +535,66 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     });
   }
 
+  async fetchProjectEnvironmentInfo(
+    entity: Entity,
+  ): Promise<ProjectEnvironment[]> {
+    const { projectName, namespaceName } = extractProjectEntityMetadata(entity);
+
+    return this.apiFetch<ProjectEnvironment[]>(
+      API_ENDPOINTS.PROJECT_ENVIRONMENT_INFO,
+      {
+        params: { projectName, namespaceName },
+      },
+    );
+  }
+
+  async fetchProjectReleaseBindings(
+    entity: Entity,
+  ): Promise<ProjectReleaseBindingsResponse> {
+    const { projectName, namespaceName } = extractProjectEntityMetadata(entity);
+
+    return this.apiFetch<ProjectReleaseBindingsResponse>(
+      API_ENDPOINTS.PROJECT_RELEASE_BINDINGS,
+      {
+        params: { projectName, namespaceName },
+      },
+    );
+  }
+
+  async updateProjectReleaseBinding(
+    entity: Entity,
+    environment: string,
+    options: {
+      projectRelease: string;
+      environmentConfigs?: unknown;
+    },
+  ): Promise<unknown> {
+    const { projectName, namespaceName } = extractProjectEntityMetadata(entity);
+
+    return this.apiFetch(API_ENDPOINTS.UPDATE_PROJECT_RELEASE_BINDING, {
+      method: 'PUT',
+      body: {
+        projectName,
+        namespaceName,
+        environment,
+        releaseName: options.projectRelease,
+        ...(options.environmentConfigs !== undefined
+          ? { environmentConfigs: options.environmentConfigs }
+          : {}),
+      },
+    });
+  }
+
+  async fetchProjectReleaseSchema(
+    namespaceName: string,
+    releaseName: string,
+    section: 'parameters' | 'environmentConfigs',
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
+    return this.apiFetch(API_ENDPOINTS.PROJECT_RELEASE_SCHEMA, {
+      params: { namespaceName, releaseName, section },
+    });
+  }
+
   async listComponentReleases(
     entity: Entity,
   ): Promise<ComponentReleasesResponse> {
@@ -723,6 +812,10 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     parameters?: Record<string, unknown>;
     autoDeploy?: boolean;
     latestRelease?: { name?: string; releaseHash?: string };
+    conditions?: ReleaseBindingCondition[];
+    hasError?: boolean;
+    errorReason?: string;
+    errorMessage?: string;
   }> {
     const metadata = extractEntityMetadata(entity);
 

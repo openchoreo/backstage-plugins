@@ -262,5 +262,40 @@ describe('useWirelogsStream', () => {
     await waitFor(() => expect(result.current.status).toBe('connecting'));
     act(() => result.current.stop());
     expect(result.current.status).toBe('closed');
+    expect(result.current.closedReason).toBe('user');
+  });
+
+  it('captures the hard timeout from a meta frame', async () => {
+    const { fetch } = makeApis();
+    fetch.mockResolvedValueOnce(
+      streamingResponse([
+        'event: meta\ndata: {"hardTimeoutMs":900000}\n\n',
+        'data: {"flow":{"uuid":"a"}}\n\n',
+      ]),
+    );
+    const { result } = renderHook(() => useWirelogsStream(args));
+    act(() => result.current.start());
+    await waitFor(() => expect(result.current.hardTimeoutMs).toBe(900000));
+  });
+
+  it('marks closedReason=timeout when the server sends a timeout frame', async () => {
+    const { fetch } = makeApis();
+    fetch.mockResolvedValueOnce(
+      streamingResponse(['event: timeout\ndata: {"message":"stopped"}\n\n']),
+    );
+    const { result } = renderHook(() => useWirelogsStream(args));
+    act(() => result.current.start());
+    await waitFor(() => expect(result.current.status).toBe('closed'));
+    // The trailing natural-end must not overwrite the timeout reason.
+    expect(result.current.closedReason).toBe('timeout');
+  });
+
+  it('marks closedReason=ended when the stream ends naturally', async () => {
+    const { fetch } = makeApis();
+    fetch.mockResolvedValueOnce(streamingResponse([]));
+    const { result } = renderHook(() => useWirelogsStream(args));
+    act(() => result.current.start());
+    await waitFor(() => expect(result.current.status).toBe('closed'));
+    expect(result.current.closedReason).toBe('ended');
   });
 });

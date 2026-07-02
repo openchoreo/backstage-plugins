@@ -19,6 +19,7 @@ import { ClusterComponentTypeInfoService } from './services/ClusterComponentType
 import { ResourceTypeInfoService } from './services/ResourceTypeService/ResourceTypeInfoService';
 import { ClusterResourceTypeInfoService } from './services/ClusterResourceTypeService/ClusterResourceTypeInfoService';
 import { ResourceReleaseInfoService } from './services/ResourceReleaseService/ResourceReleaseInfoService';
+import { ProjectReleaseInfoService } from './services/ProjectReleaseService/ProjectReleaseInfoService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
 import { SecretsService } from './services/SecretsService/SecretsService';
 import { AuthzService } from './services/AuthzService/AuthzService';
@@ -80,6 +81,21 @@ export const choreoPlugin = createBackendPlugin({
         const authEnabled =
           config.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
 
+        // Hard cap on a single wirelogs SSE stream. Wirelogs have no upstream
+        // timeout (the openchoreo-api disables the write deadline for SSE), so
+        // the backend proxy enforces one to stop runaway streams. Default 15m.
+        // Guard against a non-positive value (would abort streams instantly)
+        // and against overflowing setTimeout's max delay.
+        const configuredWirelogsTimeoutSeconds =
+          config.getOptionalNumber(
+            'openchoreo.observability.wirelogs.streamTimeoutSeconds',
+          ) ?? 900;
+        const wirelogsStreamTimeoutMs =
+          Number.isFinite(configuredWirelogsTimeoutSeconds) &&
+          configuredWirelogsTimeoutSeconds > 0
+            ? Math.min(configuredWirelogsTimeoutSeconds * 1000, 2_147_483_647)
+            : 900_000;
+
         // All services use user tokens forwarded from the frontend
         // No default token - services require token parameter for each API call
         const environmentInfoService = new EnvironmentInfoService(
@@ -122,6 +138,11 @@ export const choreoPlugin = createBackendPlugin({
           new ClusterResourceTypeInfoService(logger, baseUrl);
 
         const resourceReleaseInfoService = new ResourceReleaseInfoService(
+          logger,
+          baseUrl,
+        );
+
+        const projectReleaseInfoService = new ProjectReleaseInfoService(
           logger,
           baseUrl,
         );
@@ -215,6 +236,7 @@ export const choreoPlugin = createBackendPlugin({
             resourceTypeInfoService,
             clusterResourceTypeInfoService,
             resourceReleaseInfoService,
+            projectReleaseInfoService,
             secretReferencesInfoService,
             secretsService,
             authzService,
@@ -227,6 +249,7 @@ export const choreoPlugin = createBackendPlugin({
             auth,
             tokenService,
             authEnabled,
+            wirelogsStreamTimeoutMs,
             logger,
           }),
         );

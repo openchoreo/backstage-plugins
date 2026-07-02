@@ -14,10 +14,9 @@ import {
 } from '@material-ui/core';
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
-import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
 import DeleteIcon from '@material-ui/icons/Delete';
-import EditIcon from '@material-ui/icons/Edit';
+import { EditRowActions } from '@openchoreo/backstage-design-system';
 import type {
   ResourceDependency,
   ResourceTypeOutput,
@@ -30,6 +29,11 @@ const useStyles = makeStyles((theme: Theme) => ({
     borderRadius: 6,
     marginBottom: theme.spacing(1),
     backgroundColor: theme.palette.background.default,
+  },
+  // Read-only row: content + inline actions share one line.
+  readOnlyContainer: {
+    display: 'flex',
+    alignItems: 'center',
   },
   containerEditing: {
     padding: theme.spacing(1.5),
@@ -58,9 +62,6 @@ const useStyles = makeStyles((theme: Theme) => ({
   typeChip: {
     height: 20,
     fontSize: '0.7rem',
-  },
-  actionButton: {
-    marginLeft: theme.spacing(0.5),
   },
   header: {
     display: 'flex',
@@ -287,43 +288,30 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
 
   if (!isEditing) {
     return (
-      <Box className={classes.container}>
-        <Box display="flex" alignItems="center">
-          <Box flex={1} className={classes.readOnlyContent}>
-            <Typography className={classes.readOnlyName}>
-              {dependency.ref || '(no resource)'}
-            </Typography>
-            <Chip
-              label="Resource"
-              size="small"
-              variant="outlined"
-              className={classes.typeChip}
-            />
-            <Typography className={classes.readOnlyDetails}>
-              {summary}
-            </Typography>
-          </Box>
-          <Button
+      <Box className={`${classes.container} ${classes.readOnlyContainer}`}>
+        <Box flex={1} className={classes.readOnlyContent}>
+          <Typography className={classes.readOnlyName}>
+            {dependency.ref || '(no resource)'}
+          </Typography>
+          <Chip
+            label="Resource"
             size="small"
             variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={onEdit}
-            disabled={disabled || editDisabled}
-            className={classes.actionButton}
-          >
-            Edit
-          </Button>
-          <IconButton
-            onClick={onRemove}
-            color="secondary"
-            size="small"
-            disabled={disabled || deleteDisabled}
-            className={classes.actionButton}
-            aria-label="Remove resource dependency"
-          >
-            <DeleteIcon />
-          </IconButton>
+            className={classes.typeChip}
+          />
+          <Typography className={classes.readOnlyDetails}>{summary}</Typography>
         </Box>
+        <EditRowActions
+          isEditing={false}
+          itemLabel="resource dependency"
+          onEdit={onEdit}
+          onApply={onApply}
+          onCancel={onCancel}
+          onRemove={onRemove}
+          disabled={disabled}
+          editDisabled={editDisabled}
+          deleteDisabled={deleteDisabled}
+        />
       </Box>
     );
   }
@@ -407,235 +395,198 @@ export const ResourceDependencyEditor: FC<ResourceDependencyEditorProps> = ({
       className={classes.containerEditing}
       data-testid="resource-dependency-editor"
     >
-      <Box display="flex" alignItems="flex-start">
-        <Box flex={1}>
-          <Box className={classes.header}>
-            <FormControl
-              variant="outlined"
-              size="small"
-              className={classes.refSelect}
-            >
-              <InputLabel>Resource</InputLabel>
-              <Select
-                value={dependency.ref || ''}
-                onChange={e => handleRefChange(e.target.value as string)}
-                label="Resource"
-                disabled={disabled}
-                inputProps={{ 'data-testid': 'resource-ref-select' }}
-              >
-                {refOptions.map(option => (
-                  <MenuItem key={option.name} value={option.name}>
-                    {option.name}
-                    {option.resourceType && (
-                      <Typography
-                        variant="caption"
-                        color="textSecondary"
-                        style={{ marginLeft: 8 }}
-                      >
-                        {option.resourceType}
-                      </Typography>
-                    )}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-
-          <Box className={classes.bindingsList}>
-            {wiredOutputNames.length === 0 ? (
-              <Typography className={classes.emptyHint}>
-                No bindings yet. Add a binding to wire an output into the
-                container.
-              </Typography>
-            ) : (
-              wiredOutputNames.map(name => {
-                const output = outputByName.get(name);
-                const kind = output ? outputKind(output) : 'unknown';
-                const hasEnvBinding = name in envBindings;
-                const hasFileBinding = name in fileBindings;
-                return (
-                  <Box
-                    key={name}
-                    className={classes.bindingRow}
-                    data-testid={`binding-row-${name}`}
+      <Box className={classes.header}>
+        <FormControl
+          variant="outlined"
+          size="small"
+          className={classes.refSelect}
+        >
+          <InputLabel>Resource</InputLabel>
+          <Select
+            value={dependency.ref || ''}
+            onChange={e => handleRefChange(e.target.value as string)}
+            label="Resource"
+            disabled={disabled}
+            inputProps={{ 'data-testid': 'resource-ref-select' }}
+          >
+            {refOptions.map(option => (
+              <MenuItem key={option.name} value={option.name}>
+                {option.name}
+                {option.resourceType && (
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    style={{ marginLeft: 8 }}
                   >
-                    <Box className={classes.bindingHeader}>
-                      <Typography className={classes.bindingName}>
-                        {name}
-                      </Typography>
-                      <Chip
-                        label={kind}
-                        size="small"
+                    {option.resourceType}
+                  </Typography>
+                )}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      <Box className={classes.bindingsList}>
+        {wiredOutputNames.length === 0 ? (
+          <Typography className={classes.emptyHint}>
+            No bindings yet. Add a binding to wire an output into the container.
+          </Typography>
+        ) : (
+          wiredOutputNames.map(name => {
+            const output = outputByName.get(name);
+            const kind = output ? outputKind(output) : 'unknown';
+            const hasEnvBinding = name in envBindings;
+            const hasFileBinding = name in fileBindings;
+            return (
+              <Box
+                key={name}
+                className={classes.bindingRow}
+                data-testid={`binding-row-${name}`}
+              >
+                <Box className={classes.bindingHeader}>
+                  <Typography className={classes.bindingName}>
+                    {name}
+                  </Typography>
+                  <Chip
+                    label={kind}
+                    size="small"
+                    variant="outlined"
+                    className={classes.kindChip}
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={() => handleRemoveBinding(name)}
+                    disabled={disabled}
+                    aria-label={`Remove binding ${name}`}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                <Box className={classes.fields}>
+                  {hasEnvBinding && (
+                    <Box className={classes.fieldWithRemove}>
+                      <TextField
+                        label="Env var"
                         variant="outlined"
-                        className={classes.kindChip}
+                        size="small"
+                        className={classes.field}
+                        value={envBindings[name] ?? ''}
+                        disabled={disabled}
+                        onChange={e => handleEnvChange(name, e.target.value)}
+                        placeholder="e.g. DB_HOST"
+                        inputProps={{
+                          'data-testid': `env-input-${name}`,
+                        }}
                       />
                       <IconButton
                         size="small"
-                        onClick={() => handleRemoveBinding(name)}
+                        onClick={() => handleRemoveEnvBinding(name)}
                         disabled={disabled}
-                        aria-label={`Remove binding ${name}`}
+                        aria-label={`Remove env binding ${name}`}
                       >
-                        <DeleteIcon fontSize="small" />
+                        <CloseIcon fontSize="small" />
                       </IconButton>
                     </Box>
-                    <Box className={classes.fields}>
-                      {hasEnvBinding && (
-                        <Box className={classes.fieldWithRemove}>
-                          <TextField
-                            label="Env var"
-                            variant="outlined"
-                            size="small"
-                            className={classes.field}
-                            value={envBindings[name] ?? ''}
-                            disabled={disabled}
-                            onChange={e =>
-                              handleEnvChange(name, e.target.value)
-                            }
-                            placeholder="e.g. DB_HOST"
-                            inputProps={{
-                              'data-testid': `env-input-${name}`,
-                            }}
-                          />
-                          <IconButton
-                            size="small"
-                            onClick={() => handleRemoveEnvBinding(name)}
-                            disabled={disabled}
-                            aria-label={`Remove env binding ${name}`}
-                          >
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      )}
-                      {hasFileBinding && (
-                        <Box className={classes.fieldWithRemove}>
-                          <TextField
-                            label="Mount path"
-                            variant="outlined"
-                            size="small"
-                            className={classes.field}
-                            value={fileBindings[name] ?? ''}
-                            disabled={disabled}
-                            onChange={e =>
-                              handleMountChange(name, e.target.value)
-                            }
-                            placeholder="e.g. /etc/secrets/db"
-                            inputProps={{
-                              'data-testid': `mount-input-${name}`,
-                            }}
-                          />
-                          <IconButton
-                            size="small"
-                            onClick={() => handleRemoveFileBinding(name)}
-                            disabled={disabled}
-                            aria-label={`Remove file mount ${name}`}
-                          >
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      )}
+                  )}
+                  {hasFileBinding && (
+                    <Box className={classes.fieldWithRemove}>
+                      <TextField
+                        label="Mount path"
+                        variant="outlined"
+                        size="small"
+                        className={classes.field}
+                        value={fileBindings[name] ?? ''}
+                        disabled={disabled}
+                        onChange={e => handleMountChange(name, e.target.value)}
+                        placeholder="e.g. /etc/secrets/db"
+                        inputProps={{
+                          'data-testid': `mount-input-${name}`,
+                        }}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => handleRemoveFileBinding(name)}
+                        disabled={disabled}
+                        aria-label={`Remove file mount ${name}`}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
                     </Box>
-                  </Box>
-                );
-              })
-            )}
-          </Box>
-
-          <Box className={classes.addButtonRow}>
-            <Button
-              startIcon={<AddIcon />}
-              onClick={e => setEnvAddAnchor(e.currentTarget)}
-              variant="outlined"
-              size="small"
-              disabled={disabled || envUnboundOutputs.length === 0}
-            >
-              Add env binding
-            </Button>
-            <Button
-              startIcon={<AddIcon />}
-              onClick={e => setFileAddAnchor(e.currentTarget)}
-              variant="outlined"
-              size="small"
-              disabled={disabled || fileUnboundOutputs.length === 0}
-            >
-              Add file mount
-            </Button>
-            <Menu
-              anchorEl={envAddAnchor}
-              open={Boolean(envAddAnchor)}
-              onClose={() => setEnvAddAnchor(null)}
-            >
-              {envUnboundOutputs.map(o => (
-                <MenuItem
-                  key={o.name}
-                  onClick={() => handleAddEnvBinding(o.name)}
-                >
-                  {o.name}{' '}
-                  <Typography
-                    variant="caption"
-                    color="textSecondary"
-                    style={{ marginLeft: 8 }}
-                  >
-                    {outputKind(o)}
-                  </Typography>
-                </MenuItem>
-              ))}
-            </Menu>
-            <Menu
-              anchorEl={fileAddAnchor}
-              open={Boolean(fileAddAnchor)}
-              onClose={() => setFileAddAnchor(null)}
-            >
-              {fileUnboundOutputs.map(o => (
-                <MenuItem
-                  key={o.name}
-                  onClick={() => handleAddFileBinding(o.name)}
-                >
-                  {o.name}{' '}
-                  <Typography
-                    variant="caption"
-                    color="textSecondary"
-                    style={{ marginLeft: 8 }}
-                  >
-                    {outputKind(o)}
-                  </Typography>
-                </MenuItem>
-              ))}
-            </Menu>
-          </Box>
-        </Box>
-
-        <Box display="flex" flexDirection="column" ml={1}>
-          <IconButton
-            onClick={onApply}
-            color="primary"
-            size="small"
-            disabled={disabled || applyDisabled}
-            className={classes.actionButton}
-            aria-label="Apply changes"
-          >
-            <CheckIcon />
-          </IconButton>
-          <IconButton
-            onClick={onCancel}
-            size="small"
-            disabled={disabled}
-            className={classes.actionButton}
-            aria-label="Cancel editing"
-          >
-            <CloseIcon />
-          </IconButton>
-          <IconButton
-            onClick={onRemove}
-            color="secondary"
-            size="small"
-            disabled={disabled}
-            className={classes.actionButton}
-            aria-label="Remove resource dependency"
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Box>
+                  )}
+                </Box>
+              </Box>
+            );
+          })
+        )}
       </Box>
+
+      <Box className={classes.addButtonRow}>
+        <Button
+          startIcon={<AddIcon />}
+          onClick={e => setEnvAddAnchor(e.currentTarget)}
+          variant="outlined"
+          size="small"
+          disabled={disabled || envUnboundOutputs.length === 0}
+        >
+          Add env binding
+        </Button>
+        <Button
+          startIcon={<AddIcon />}
+          onClick={e => setFileAddAnchor(e.currentTarget)}
+          variant="outlined"
+          size="small"
+          disabled={disabled || fileUnboundOutputs.length === 0}
+        >
+          Add file mount
+        </Button>
+        <Menu
+          anchorEl={envAddAnchor}
+          open={Boolean(envAddAnchor)}
+          onClose={() => setEnvAddAnchor(null)}
+        >
+          {envUnboundOutputs.map(o => (
+            <MenuItem key={o.name} onClick={() => handleAddEnvBinding(o.name)}>
+              {o.name}{' '}
+              <Typography
+                variant="caption"
+                color="textSecondary"
+                style={{ marginLeft: 8 }}
+              >
+                {outputKind(o)}
+              </Typography>
+            </MenuItem>
+          ))}
+        </Menu>
+        <Menu
+          anchorEl={fileAddAnchor}
+          open={Boolean(fileAddAnchor)}
+          onClose={() => setFileAddAnchor(null)}
+        >
+          {fileUnboundOutputs.map(o => (
+            <MenuItem key={o.name} onClick={() => handleAddFileBinding(o.name)}>
+              {o.name}{' '}
+              <Typography
+                variant="caption"
+                color="textSecondary"
+                style={{ marginLeft: 8 }}
+              >
+                {outputKind(o)}
+              </Typography>
+            </MenuItem>
+          ))}
+        </Menu>
+      </Box>
+      <EditRowActions
+        isEditing
+        itemLabel="resource dependency"
+        onEdit={onEdit}
+        onApply={onApply}
+        onCancel={onCancel}
+        onRemove={onRemove}
+        disabled={disabled}
+        applyDisabled={applyDisabled}
+      />
     </Box>
   );
 };

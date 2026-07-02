@@ -19,6 +19,8 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(1),
   },
   inheritedRow: {
+    display: 'flex',
+    alignItems: 'center',
     padding: theme.spacing(1.5),
     backgroundColor: theme.palette.grey[50],
     borderRadius: 6,

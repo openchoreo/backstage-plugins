@@ -5,6 +5,7 @@ import {
   EndpointInfo,
   ResourceEnvironment,
   ResourceBindingOutput,
+  ProjectEnvironment,
 } from '../../types';
 import {
   createOpenChoreoApiClient,
@@ -31,6 +32,11 @@ type NewResourceReleaseBinding =
   OpenChoreoComponents['schemas']['ResourceReleaseBinding'];
 
 type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
+
+type NewProjectReleaseBinding =
+  OpenChoreoComponents['schemas']['ProjectReleaseBinding'];
+
+type NewProject = OpenChoreoComponents['schemas']['Project'];
 
 /**
  * Extracts the environment name from a sourceEnvironmentRef which may be
@@ -426,6 +432,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         status: deploymentStatus,
         statusReason: binding?.statusReason,
         statusMessage: binding?.statusMessage,
+        conditions: binding?.conditions,
         lastDeployed,
         image,
         releaseName,
@@ -2022,6 +2029,676 @@ export class EnvironmentInfoService implements EnvironmentService {
       const totalTime = Date.now() - startTime;
       this.logger.error(
         `Error deleting resource release binding for ${request.resourceName} from ${request.environment} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches per-environment deploy state for a Project. Joins environments,
+   * the project's deployment pipeline, ProjectReleaseBindings owned by the
+   * project, and the Project's status.latestRelease. Returns one entry per
+   * pipeline environment, including environments where no binding exists yet
+   * (so a Deploy/Promote affordance can render against them).
+   *
+   * Built around the Project lifecycle: a ProjectReleaseBinding pins an
+   * environment to a ProjectRelease (spec.projectRelease) and carries the
+   * per-environment overrides (spec.environmentConfigs). Mirrors the join in
+   * fetchResourceEnvironmentInfo, without resource outputs or retain policy.
+   */
+  async fetchProjectEnvironmentInfo(
+    request: {
+      projectName: string;
+      namespaceName: string;
+    },
+    token?: string,
+  ): Promise<ProjectEnvironment[]> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Starting project environment fetch for: ${request.projectName}`,
+      );
+
+      const createTimedPromise = <T>(promise: Promise<T>, name: string) => {
+        const start = Date.now();
+        return promise
+          .then(result => ({
+            type: name,
+            result,
+            duration: Date.now() - start,
+          }))
+          .catch(error => {
+            if (
+              error.name === 'NotAllowedError' ||
+              error.name === 'AuthenticationError'
+            ) {
+              throw error;
+            }
+            const duration = Date.now() - start;
+            if (name === 'bindings') {
+              this.logger.warn(
+                `Failed to fetch project bindings for ${request.projectName}: ${error}`,
+              );
+              return { type: name, result: [] as any, duration };
+            } else if (name === 'pipeline') {
+              this.logger.warn(
+                `No deployment pipeline found for project ${request.projectName}, using default ordering`,
+              );
+              return { type: name, result: null as any, duration };
+            } else if (name === 'project') {
+              this.logger.warn(
+                `Failed to fetch project ${request.projectName}: ${error}`,
+              );
+              return { type: name, result: null as any, duration };
+            }
+            throw error;
+          });
+      };
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const environmentsPromise = createTimedPromise(
+        fetchAllPages(cursor =>
+          client
+            .GET('/api/v1/namespaces/{namespaceName}/environments', {
+              params: {
+                path: { namespaceName: request.namespaceName },
+                query: { limit: 100, cursor },
+              },
+            })
+            .then(res => {
+              assertApiResponse(res, 'fetch environments');
+              return res.data;
+            }),
+        ),
+        'environments',
+      );
+
+      const bindingsPromise = createTimedPromise(
+        (async () => {
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/projectreleasebindings',
+            {
+              params: {
+                path: { namespaceName: request.namespaceName },
+                query: { project: request.projectName },
+              },
+            },
+          );
+          assertApiResponse(
+            { data, error, response },
+            'fetch project release bindings',
+          );
+          // The list endpoint filters by project name, but guard against an
+          // older API that ignores the query param so bindings owned by other
+          // projects never bleed into this project's view.
+          const items = (data?.items ?? []).filter(
+            (b: NewProjectReleaseBinding) =>
+              b.spec?.owner?.projectName === request.projectName,
+          );
+          return items;
+        })(),
+        'bindings',
+      );
+
+      const pipelinePromise = createTimedPromise(
+        (async () => {
+          const {
+            data: project,
+            error: projectError,
+            response: projectResponse,
+          } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
+            {
+              params: {
+                path: {
+                  namespaceName: request.namespaceName,
+                  projectName: request.projectName,
+                },
+              },
+            },
+          );
+          if (
+            projectError ||
+            !projectResponse.ok ||
+            !project?.spec?.deploymentPipelineRef?.name
+          ) {
+            return null;
+          }
+
+          const pipelineName = project.spec.deploymentPipelineRef.name;
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}',
+            {
+              params: {
+                path: {
+                  namespaceName: request.namespaceName,
+                  deploymentPipelineName: pipelineName,
+                },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            return null;
+          }
+          return transformDeploymentPipeline(data!);
+        })(),
+        'pipeline',
+      );
+
+      const projectPromise = createTimedPromise(
+        (async () => {
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
+            {
+              params: {
+                path: {
+                  namespaceName: request.namespaceName,
+                  projectName: request.projectName,
+                },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            return null;
+          }
+          return data as NewProject;
+        })(),
+        'project',
+      );
+
+      const [
+        environmentsResult,
+        bindingsResult,
+        pipelineResult,
+        projectResult,
+      ] = await Promise.all([
+        environmentsPromise,
+        bindingsPromise,
+        pipelinePromise,
+        projectPromise,
+      ]);
+
+      this.logger.debug(
+        `Project env-info API timings - Environments: ${environmentsResult.duration}ms, ` +
+          `Bindings: ${bindingsResult.duration}ms, ` +
+          `Pipeline: ${pipelineResult.duration}ms, ` +
+          `Project: ${projectResult.duration}ms`,
+      );
+
+      const newEnvironments = environmentsResult.result;
+      const bindings =
+        (bindingsResult.result as NewProjectReleaseBinding[]) ?? [];
+      const deploymentPipeline = pipelineResult.result;
+      const project = projectResult.result as NewProject | null;
+
+      if (!newEnvironments || newEnvironments.length === 0) {
+        this.logger.warn('No environments found in API response');
+        return [];
+      }
+
+      const environments = newEnvironments.map(transformEnvironment);
+      const latestRelease = project?.status?.latestRelease?.name;
+
+      const result = this.transformProjectEnvironmentData(
+        environments,
+        bindings,
+        deploymentPipeline,
+        latestRelease,
+      );
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Project env-info completed for ${request.projectName}: Total: ${totalTime}ms`,
+      );
+
+      return result;
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        (error.name === 'NotAllowedError' ||
+          error.name === 'AuthenticationError')
+      ) {
+        throw error;
+      }
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching project environment info for ${request.projectName} (${totalTime}ms):`,
+        error as Error,
+      );
+      return [];
+    }
+  }
+
+  private transformProjectEnvironmentData(
+    environmentData: ModelsEnvironment[],
+    bindings: NewProjectReleaseBinding[],
+    deploymentPipeline: any | null,
+    latestRelease: string | undefined,
+  ): ProjectEnvironment[] {
+    const envMap = new Map<string, ModelsEnvironment>();
+    const envNameMap = new Map<string, string>();
+    const bindingsByEnv = new Map<string, NewProjectReleaseBinding>();
+
+    for (const env of environmentData) {
+      const displayName = env.displayName || env.name;
+      envMap.set(displayName, env);
+      envMap.set(displayName.toLowerCase(), env);
+      envNameMap.set(displayName.toLowerCase(), displayName);
+      if (env.name && env.name.toLowerCase() !== displayName.toLowerCase()) {
+        envMap.set(env.name, env);
+        envMap.set(env.name.toLowerCase(), env);
+        envNameMap.set(env.name.toLowerCase(), displayName);
+      }
+    }
+
+    for (const binding of bindings) {
+      const envKey = binding.spec?.environment;
+      if (!envKey) continue;
+      const envName = envNameMap.get(envKey.toLowerCase()) || envKey;
+      bindingsByEnv.set(envName, binding);
+    }
+
+    if (
+      !deploymentPipeline ||
+      !deploymentPipeline.promotionPaths ||
+      deploymentPipeline.promotionPaths.length === 0
+    ) {
+      this.logger.debug(
+        'No deployment pipeline found for project, using default ordering',
+      );
+      return environmentData.map(env => {
+        const envName = env.displayName || env.name;
+        const binding = bindingsByEnv.get(envName);
+        return this.createProjectEnvironment(
+          env,
+          binding,
+          undefined,
+          latestRelease,
+        );
+      });
+    }
+
+    const promotionMap = new Map<string, any[]>();
+    for (const path of deploymentPipeline.promotionPaths) {
+      const sourceRef = getSourceEnvName(path.sourceEnvironmentRef);
+      const sourceEnv = envNameMap.get(sourceRef.toLowerCase()) || sourceRef;
+      const targets = path.targetEnvironmentRefs.map((ref: any) => ({
+        ...ref,
+        name: envNameMap.get(ref.name.toLowerCase()) || ref.name,
+        resourceName: ref.name,
+      }));
+      const existing = promotionMap.get(sourceEnv);
+      if (existing) {
+        existing.push(...targets);
+      } else {
+        promotionMap.set(sourceEnv, targets);
+      }
+    }
+
+    const orderedEnvNames = this.getEnvironmentOrder(
+      deploymentPipeline.promotionPaths,
+      envNameMap,
+    );
+
+    const ordered: ProjectEnvironment[] = [];
+    const processed = new Set<string>();
+
+    for (const envName of orderedEnvNames) {
+      const envData = envMap.get(envName);
+      if (envData && !processed.has(envName)) {
+        processed.add(envName);
+        const binding = bindingsByEnv.get(envName);
+        const promotionTargets = promotionMap.get(envName);
+        ordered.push(
+          this.createProjectEnvironment(
+            envData,
+            binding,
+            promotionTargets,
+            latestRelease,
+          ),
+        );
+      }
+    }
+
+    // Append any environments referenced by bindings but not in the pipeline
+    // so the UI surfaces drift instead of silently hiding them.
+    for (const [envName, binding] of bindingsByEnv.entries()) {
+      if (!processed.has(envName)) {
+        const envData = envMap.get(envName);
+        if (envData) {
+          processed.add(envName);
+          ordered.push(
+            this.createProjectEnvironment(
+              envData,
+              binding,
+              undefined,
+              latestRelease,
+            ),
+          );
+        }
+      }
+    }
+
+    return ordered;
+  }
+
+  private createProjectEnvironment(
+    envData: ModelsEnvironment,
+    binding: NewProjectReleaseBinding | undefined,
+    promotionTargets: any[] | undefined,
+    latestRelease: string | undefined,
+  ): ProjectEnvironment {
+    const envName = envData.displayName || envData.name;
+    const envResourceName = envData.name;
+
+    let status: 'Ready' | 'NotReady' | 'Failed' | undefined;
+    let statusReason: string | undefined;
+    let statusMessage: string | undefined;
+    let lastDeployed: string | undefined;
+    let projectRelease: string | undefined;
+    let bindingName: string | undefined;
+    let namespace: string | undefined;
+
+    if (binding) {
+      bindingName = binding.metadata?.name;
+      projectRelease = binding.spec?.projectRelease;
+      namespace = binding.status?.namespace;
+      // Use the Ready condition's lastTransitionTime as the deploy timestamp;
+      // it flips whenever Synced / NamespaceReady / ResourcesReady transition,
+      // so promotes bump it naturally. Falls back to creationTimestamp on
+      // bindings the controller has not yet reconciled.
+      const readyCond = (
+        binding.status?.conditions as
+          | Array<{ type?: string; lastTransitionTime?: string }>
+          | undefined
+      )?.find(c => c.type === 'Ready');
+      lastDeployed =
+        readyCond?.lastTransitionTime ?? binding.metadata?.creationTimestamp;
+
+      const derived = deriveBindingStatusDetailed(binding as any);
+      if (derived) {
+        status = derived.status;
+        statusReason = derived.reason;
+        statusMessage = derived.message;
+      }
+    }
+
+    const result: ProjectEnvironment = {
+      uid: envData.uid,
+      name: envName,
+      resourceName: envResourceName,
+      dataPlaneRef: envData.dataPlaneRef?.name,
+      dataPlaneKind: envData.dataPlaneRef?.kind as
+        | 'DataPlane'
+        | 'ClusterDataPlane'
+        | undefined,
+      bindingName,
+      projectRelease,
+      status,
+      statusReason,
+      statusMessage,
+      lastDeployed,
+      namespace,
+      latestRelease,
+    };
+
+    if (promotionTargets && promotionTargets.length > 0) {
+      result.promotionTargets = promotionTargets.map((ref: any) => ({
+        name: ref.name,
+        resourceName: ref.resourceName,
+      }));
+    }
+
+    return result;
+  }
+
+  /**
+   * Fetches ProjectReleaseBindings owned by a project. The openchoreo-api
+   * endpoint filters by project name; a defensive client-side filter is
+   * applied so an older API that ignores the query param does not surface
+   * bindings owned by other projects.
+   */
+  async fetchProjectReleaseBindings(
+    request: {
+      projectName: string;
+      namespaceName: string;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Fetching project release bindings for project ${request.projectName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/projectreleasebindings',
+        {
+          params: {
+            path: { namespaceName: request.namespaceName },
+            query: { project: request.projectName },
+          },
+        },
+      );
+
+      assertApiResponse(
+        { data, error, response },
+        'fetch project release bindings',
+      );
+
+      const filtered = {
+        ...(data as any),
+        items: ((data as any)?.items ?? []).filter(
+          (b: any) => b?.spec?.owner?.projectName === request.projectName,
+        ),
+      };
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Project release bindings fetched for ${request.projectName}: Total: ${totalTime}ms`,
+      );
+
+      return filtered;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Failed to fetch project release bindings for ${request.projectName}: ${
+          error instanceof Error ? error.message : String(error)
+        } (${totalTime}ms)`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Creates or updates a ProjectReleaseBinding for deploy/promote actions.
+   * GET → PUT when the binding already exists; GET 404 → POST a new binding;
+   * return-existing on a 409 create conflict.
+   *
+   * The binding owner carries only `projectName` (no resourceName) and the
+   * override field is `environmentConfigs`. spec.owner and spec.environment
+   * are immutable on the CRD, so the PUT path preserves them via spread and
+   * only advances spec.projectRelease (the promote/deploy pin) and
+   * spec.environmentConfigs. Used for both Deploy (pin first env) and Promote
+   * (pin next env to the source env's release).
+   */
+  async updateProjectReleaseBinding(
+    request: {
+      projectName: string;
+      namespaceName: string;
+      environment: string;
+      releaseName: string;
+      environmentConfigs?: any;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Updating project release binding for ${request.projectName} in ${request.environment}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const bindingName = `${request.projectName}-${request.environment}`;
+
+      const {
+        data: existing,
+        error: getError,
+        response: getResponse,
+      } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/projectreleasebindings/{projectReleaseBindingName}',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              projectReleaseBindingName: bindingName,
+            },
+          },
+        },
+      );
+
+      if (getResponse.ok && existing) {
+        const updated = {
+          ...existing,
+          spec: {
+            ...existing.spec!,
+            projectRelease: request.releaseName,
+            ...(request.environmentConfigs !== undefined
+              ? { environmentConfigs: request.environmentConfigs }
+              : {}),
+          },
+        };
+
+        const { data, error, response } = await client.PUT(
+          '/api/v1/namespaces/{namespaceName}/projectreleasebindings/{projectReleaseBindingName}',
+          {
+            params: {
+              path: {
+                namespaceName: request.namespaceName,
+                projectReleaseBindingName: bindingName,
+              },
+            },
+            body: updated,
+          },
+        );
+
+        assertApiResponse(
+          { data, error, response },
+          'update project release binding',
+        );
+
+        const totalTime = Date.now() - startTime;
+        this.logger.debug(
+          `Project release binding updated for ${request.projectName} in ${request.environment}: Total: ${totalTime}ms`,
+        );
+
+        return data;
+      }
+
+      if (getResponse.status !== 404) {
+        const errorDetail = getError ? JSON.stringify(getError) : '';
+        throw new Error(
+          `Failed to fetch project release binding ${bindingName}: ${
+            getResponse.status
+          } ${getResponse.statusText}${errorDetail ? ` ${errorDetail}` : ''}`,
+        );
+      }
+
+      const newBinding = {
+        metadata: {
+          name: bindingName,
+          namespace: request.namespaceName,
+        },
+        spec: {
+          owner: {
+            projectName: request.projectName,
+          },
+          environment: request.environment,
+          projectRelease: request.releaseName,
+          ...(request.environmentConfigs !== undefined
+            ? { environmentConfigs: request.environmentConfigs }
+            : {}),
+        },
+      };
+
+      const {
+        data: createData,
+        error: createError,
+        response: createResponse,
+      } = await client.POST(
+        '/api/v1/namespaces/{namespaceName}/projectreleasebindings',
+        {
+          params: {
+            path: { namespaceName: request.namespaceName },
+          },
+          body: newBinding,
+        },
+      );
+
+      // Concurrent create produced a 409 — refetch and return the existing
+      // binding so the caller sees a consistent result.
+      if (createResponse.status === 409) {
+        this.logger.debug(
+          `Project release binding ${bindingName} already exists (409 conflict), fetching existing`,
+        );
+        const {
+          data: conflictExisting,
+          error: conflictGetError,
+          response: conflictGetResponse,
+        } = await client.GET(
+          '/api/v1/namespaces/{namespaceName}/projectreleasebindings/{projectReleaseBindingName}',
+          {
+            params: {
+              path: {
+                namespaceName: request.namespaceName,
+                projectReleaseBindingName: bindingName,
+              },
+            },
+          },
+        );
+        assertApiResponse(
+          {
+            data: conflictExisting,
+            error: conflictGetError,
+            response: conflictGetResponse,
+          },
+          'fetch project release binding after 409 conflict',
+        );
+        return conflictExisting;
+      }
+
+      assertApiResponse(
+        { data: createData, error: createError, response: createResponse },
+        'create project release binding',
+      );
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Project release binding created for ${request.projectName} in ${request.environment}: Total: ${totalTime}ms`,
+      );
+
+      return createData;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error updating project release binding for ${request.projectName} in ${request.environment} (${totalTime}ms):`,
         error as Error,
       );
       throw error;

@@ -1,7 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Typography, Grid, Box, IconButton, Button } from '@material-ui/core';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
-import ChatOutlinedIcon from '@material-ui/icons/ChatOutlined';
 import AutorenewIcon from '@material-ui/icons/Autorenew';
 import { InfoCard } from '@backstage/core-components';
 import BugReportOutlinedIcon from '@material-ui/icons/BugReportOutlined';
@@ -18,7 +17,7 @@ import { RecommendationsSection } from './sections/RecommendationsSection';
 import { VisibilityImprovementsSection } from './sections/VisibilityImprovementsSection';
 import { IncidentOverviewSection } from './sections/IncidentOverviewSection';
 import { AssessmentSection } from './sections/AssessmentSection';
-import { ChatPanelSection } from './sections/ChatPanelSection';
+import { RCAChatDrawer } from './sections/RCAChatDrawer';
 import { QuickFixesPanelSection } from './sections/QuickFixesPanelSection';
 import { allActionsResolved } from './sections/PatchTabContent';
 import { useRCAReportStyles } from './styles';
@@ -78,13 +77,20 @@ export const RCAReportView = ({
 
   const hasRevised = revisedActions.length > 0;
 
-  const [activePanel, setActivePanel] = useState<'chat' | 'fixes' | null>(
-    () => {
-      if (!hasRevised) return null;
-      if (allActionsResolved(revisedActions)) return null;
-      return 'fixes';
-    },
-  );
+  const [activePanel, setActivePanel] = useState<'fixes' | null>(null);
+
+  // Keep the panel in sync with the current report's recommendations.
+  // Runs on mount and whenever the revised-actions set changes, so the
+  // panel reflects the latest report data. It does not fight the manual
+  // Quick Fixes toggle below: clicking that button changes neither
+  // hasRevised nor revisedActions, so this effect won't re-run.
+  useEffect(() => {
+    if (!hasRevised || allActionsResolved(revisedActions)) {
+      setActivePanel(null);
+      return;
+    }
+    setActivePanel('fixes');
+  }, [hasRevised, revisedActions]);
 
   const formatTimestamp = (timestamp?: string): string => {
     if (!timestamp) return 'N/A';
@@ -208,8 +214,8 @@ export const RCAReportView = ({
               )}
             </Box>
           </Box>
-          <Box display="flex" style={{ gap: 8 }}>
-            {hasRevised && (
+          {hasRevised && (
+            <Box display="flex" style={{ gap: 8 }}>
               <Button
                 variant={activePanel === 'fixes' ? 'contained' : 'outlined'}
                 color="primary"
@@ -221,19 +227,8 @@ export const RCAReportView = ({
               >
                 Quick Fixes
               </Button>
-            )}
-            <Button
-              variant={activePanel === 'chat' ? 'contained' : 'outlined'}
-              color="primary"
-              size="small"
-              startIcon={<ChatOutlinedIcon />}
-              onClick={() =>
-                setActivePanel(prev => (prev === 'chat' ? null : 'chat'))
-              }
-            >
-              Chat
-            </Button>
-          </Box>
+            </Box>
+          )}
         </Box>
         <Box className={classes.content}>
           <Grid container spacing={1}>
@@ -326,12 +321,6 @@ export const RCAReportView = ({
               style={{ flex: '0 0 38%', maxWidth: '38%' }}
               className={classes.sidebarColumn}
             >
-              {activePanel === 'chat' && (
-                <ChatPanelSection
-                  reportId={reportId}
-                  chatContext={chatContext}
-                />
-              )}
               {activePanel === 'fixes' && (
                 <QuickFixesPanelSection
                   reportId={reportId}
@@ -372,6 +361,15 @@ export const RCAReportView = ({
             </Grid>
           </Grid>
         </Box>
+        {/* key on reportId: the drawer loads its conversation from storage
+            only on mount, so it must remount when the route switches to a
+            different report — otherwise the prior report's messages persist
+            (and get written back under the new report's key). */}
+        <RCAChatDrawer
+          key={reportId}
+          reportId={reportId}
+          chatContext={chatContext}
+        />
       </Box>
     </EntityLinkContext.Provider>
   );

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '@material-ui/lab';
 import { Box, Tooltip, Typography } from '@material-ui/core';
 import { Progress } from '@backstage/core-components';
+import { alertApiRef, useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
@@ -15,12 +16,14 @@ import {
 import { WirelogsFilter } from './WirelogsFilter';
 import { WirelogsStats } from './WirelogsStats';
 import { WirelogsTable, matchesSearch } from './WirelogsTable';
+import { WirelogsStreamTimeoutDialog } from './WirelogsStreamTimeoutDialog';
 import { useWirelogsStream } from './useWirelogsStream';
 import { useWirelogsStyles } from './styles';
 import type { WirelogsFilters } from './types';
 
 const ObservabilityWirelogsContent = () => {
   const classes = useWirelogsStyles();
+  const alertApi = useApi(alertApiRef);
   const { entity } = useEntity();
   const { namespace, project } = useGetNamespaceAndProjectByEntity(entity);
   const componentName =
@@ -72,7 +75,11 @@ const ObservabilityWirelogsContent = () => {
     componentName,
   });
 
-  const { status: streamStatus, stop: stopStream } = stream;
+  const {
+    status: streamStatus,
+    stop: stopStream,
+    closedReason: streamClosedReason,
+  } = stream;
   useEffect(() => {
     if (
       !environmentsLoading &&
@@ -90,6 +97,20 @@ const ObservabilityWirelogsContent = () => {
     streamStatus,
     stopStream,
   ]);
+
+  // When the server ends the stream at the hard cap, surface a toast — the
+  // `timeout` SSE frame distinguishes this from a generic error. The Start
+  // stream button (shown once closed) is the one-click way to resume.
+  useEffect(() => {
+    if (streamStatus === 'closed' && streamClosedReason === 'timeout') {
+      alertApi.post({
+        message:
+          'Wirelogs streaming stopped after reaching the maximum duration. Select "Start stream" to resume.',
+        severity: 'info',
+        display: 'transient',
+      });
+    }
+  }, [streamStatus, streamClosedReason, alertApi]);
 
   // Component scoping is applied upstream via the Hubble filter; only the
   // free-text search box is applied client-side here.
@@ -187,6 +208,13 @@ const ObservabilityWirelogsContent = () => {
       ) : (
         toolbar
       )}
+
+      <WirelogsStreamTimeoutDialog
+        status={stream.status}
+        startedAt={stream.startedAt}
+        hardTimeoutMs={stream.hardTimeoutMs}
+        onStop={stream.stop}
+      />
 
       {stream.error && (
         <Alert severity="error" className={classes.errorContainer}>

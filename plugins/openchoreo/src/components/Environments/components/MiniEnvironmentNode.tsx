@@ -81,6 +81,8 @@ export const MiniEnvironmentNode = ({
     useState<HTMLElement | null>(null);
   const [manifestOpen, setManifestOpen] = useState(false);
 
+  // Component-level failures (no binding) are surfaced on the Setup card only —
+  // a binding-less env tile just reads its normal status (e.g. "Not Deployed").
   const statusVariant = useEnvironmentStatusVariant(
     environment.deployment.status,
     environment.deployment.statusReason,

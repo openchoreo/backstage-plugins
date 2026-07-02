@@ -1,0 +1,79 @@
+{
+  "name": "@openchoreo/cell-diagram",
+  "version": "0.3.1",
+  "description": "React component library that visualizes OpenChoreo cell architectures.",
+  "license": "Apache-2.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openchoreo/backstage-plugins.git",
+    "directory": "packages/cell-diagram"
+  },
+  "keywords": [
+    "cell-architecture"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "dist/index.esm.js",
+    "types": "dist/index.d.ts",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "backstage": {
+    "role": "web-library"
+  },
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "start": "backstage-cli package start",
+    "build": "backstage-cli package build",
+    "lint": "backstage-cli package lint",
+    "test": "backstage-cli package test",
+    "clean": "backstage-cli package clean",
+    "prepack": "backstage-cli package prepack",
+    "postpack": "backstage-cli package postpack",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build -o storybook-static"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.9.3",
+    "@emotion/styled": "^11.10.5",
+    "@material-ui/core": "^4.12.3",
+    "@mui/icons-material": "~5.15.19",
+    "@mui/material": "~5.13.2",
+    "@projectstorm/geometry": "^6.7.4",
+    "@projectstorm/react-canvas-core": "^6.7.4",
+    "@projectstorm/react-diagrams": "^6.7.4",
+    "@projectstorm/react-diagrams-core": "^6.7.4",
+    "@projectstorm/react-diagrams-defaults": "^6.7.4",
+    "@projectstorm/react-diagrams-routing": "^6.7.4",
+    "@storybook/addon-actions": "^8.6.14",
+    "dagre": "^0.8.5",
+    "gsap": "~3.12.2",
+    "lodash": "^4.17.11"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@backstage/cli": "0.34.3",
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/react": "^8.6.14",
+    "@storybook/react-vite": "^8.6.14",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "14.3.1",
+    "@types/dagre": "^0.7.53",
+    "@types/lodash": "^4.14.189",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "storybook": "^8.6.14",
+    "vite": "^5.4.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

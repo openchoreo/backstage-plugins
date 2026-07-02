@@ -108,7 +108,7 @@ export const NamespaceProjectsCard = () => {
             isFreeAction: true,
             onClick: () =>
               navigate(
-                `/create/templates/default/create-openchoreo-project?namespace=${entity.metadata.name}`,
+                `/create?view=projects&namespace=${entity.metadata.name}`,
               ),
           },
         ]}

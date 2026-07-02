@@ -32,6 +32,9 @@ function createMockServices() {
       fetchResourceEnvironmentInfo: jest.fn(),
       updateResourceReleaseBinding: jest.fn(),
       deleteResourceReleaseBinding: jest.fn(),
+      fetchProjectEnvironmentInfo: jest.fn(),
+      fetchProjectReleaseBindings: jest.fn(),
+      updateProjectReleaseBinding: jest.fn(),
     },
     cellDiagramInfoService: {
       fetchProjectInfo: jest.fn(),
@@ -83,6 +86,10 @@ function createMockServices() {
     resourceReleaseInfoService: {
       fetchResourceRelease: jest.fn(),
       fetchResourceReleaseSchema: jest.fn(),
+    },
+    projectReleaseInfoService: {
+      fetchProjectRelease: jest.fn(),
+      fetchProjectReleaseSchema: jest.fn(),
     },
     secretReferencesInfoService: {
       fetchSecretReferences: jest.fn(),
@@ -136,6 +143,7 @@ function createMockServices() {
       hasServiceCredentials: jest.fn().mockReturnValue(false),
     } as jest.Mocked<OpenChoreoTokenService>,
     authEnabled: true,
+    wirelogsStreamTimeoutMs: 900_000,
     logger: {
       info: jest.fn(),
       warn: jest.fn(),
@@ -1040,6 +1048,218 @@ describe('createRouter', () => {
     });
   });
 
+  describe('GET /project-environment-info', () => {
+    it('returns env-info for a project on success', async () => {
+      const mockEnvInfo = [
+        {
+          name: 'dev',
+          bindingName: 'my-project-dev',
+          projectRelease: 'my-project-abc',
+          latestRelease: 'my-project-abc',
+          namespace: 'dp-ns-my-project-dev-abc',
+          promotionTargets: [{ name: 'staging', resourceName: 'staging' }],
+        },
+        { name: 'staging', latestRelease: 'my-project-abc' },
+      ];
+      services.environmentInfoService.fetchProjectEnvironmentInfo.mockResolvedValue(
+        mockEnvInfo,
+      );
+
+      const response = await request(app)
+        .get('/project-environment-info')
+        .query({
+          projectName: 'my-project',
+          namespaceName: 'my-namespace',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(mockEnvInfo);
+      expect(
+        services.environmentInfoService.fetchProjectEnvironmentInfo,
+      ).toHaveBeenCalledWith(
+        {
+          projectName: 'my-project',
+          namespaceName: 'my-namespace',
+        },
+        'mock-user-token',
+      );
+    });
+
+    it('returns 400 when required query parameters are missing', async () => {
+      const response = await request(app)
+        .get('/project-environment-info')
+        .query({ projectName: 'my-project' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          message: expect.stringContaining(
+            'projectName and namespaceName are required',
+          ),
+        }),
+      });
+    });
+  });
+
+  describe('GET /project-release-bindings', () => {
+    it('returns transformed binding items wrapped in success envelope', async () => {
+      services.environmentInfoService.fetchProjectReleaseBindings.mockResolvedValue(
+        {
+          items: [
+            {
+              metadata: {
+                name: 'my-project-dev',
+                namespace: 'my-namespace',
+                creationTimestamp: '2025-01-06T11:00:00Z',
+              },
+              spec: {
+                owner: { projectName: 'my-project' },
+                environment: 'dev',
+                projectRelease: 'my-project-abc',
+                environmentConfigs: { replicas: 2 },
+              },
+              status: {
+                conditions: [
+                  { type: 'Ready', status: 'True', reason: 'Ready' },
+                ],
+                namespace: 'dp-ns-my-project-dev-abc',
+              },
+            },
+          ],
+        },
+      );
+
+      const response = await request(app)
+        .get('/project-release-bindings')
+        .query({
+          projectName: 'my-project',
+          namespaceName: 'my-namespace',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          items: [
+            expect.objectContaining({
+              name: 'my-project-dev',
+              projectName: 'my-project',
+              environment: 'dev',
+              releaseName: 'my-project-abc',
+              namespace: 'dp-ns-my-project-dev-abc',
+              status: 'Ready',
+            }),
+          ],
+        },
+      });
+    });
+
+    it('returns 400 when required query parameters are missing', async () => {
+      const response = await request(app)
+        .get('/project-release-bindings')
+        .query({ projectName: 'my-project' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          message: expect.stringContaining(
+            'projectName and namespaceName are required',
+          ),
+        }),
+      });
+    });
+  });
+
+  describe('PUT /update-project-release-binding', () => {
+    it('forwards the request to updateProjectReleaseBinding', async () => {
+      services.environmentInfoService.updateProjectReleaseBinding.mockResolvedValue(
+        { ok: true },
+      );
+
+      const response = await request(app)
+        .put('/update-project-release-binding')
+        .send({
+          projectName: 'my-project',
+          namespaceName: 'my-namespace',
+          environment: 'dev',
+          releaseName: 'my-project-new',
+          environmentConfigs: { replicas: 3 },
+        });
+
+      expect(response.status).toBe(200);
+      expect(
+        services.environmentInfoService.updateProjectReleaseBinding,
+      ).toHaveBeenCalledWith(
+        {
+          projectName: 'my-project',
+          namespaceName: 'my-namespace',
+          environment: 'dev',
+          releaseName: 'my-project-new',
+          environmentConfigs: { replicas: 3 },
+        },
+        'mock-user-token',
+      );
+    });
+
+    it('returns 400 when required body fields are missing', async () => {
+      const response = await request(app)
+        .put('/update-project-release-binding')
+        .send({ projectName: 'my-project' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          message: expect.stringContaining(
+            'projectName, namespaceName, environment and releaseName are required',
+          ),
+        }),
+      });
+    });
+  });
+
+  describe('GET /project-release-schema', () => {
+    it('forwards the request to fetchProjectReleaseSchema', async () => {
+      services.projectReleaseInfoService.fetchProjectReleaseSchema.mockResolvedValue(
+        { success: true, data: { type: 'object' } },
+      );
+
+      const response = await request(app).get('/project-release-schema').query({
+        namespaceName: 'my-namespace',
+        releaseName: 'my-project-abc',
+        section: 'environmentConfigs',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        success: true,
+        data: { type: 'object' },
+      });
+      expect(
+        services.projectReleaseInfoService.fetchProjectReleaseSchema,
+      ).toHaveBeenCalledWith(
+        'my-namespace',
+        'my-project-abc',
+        'environmentConfigs',
+        'mock-user-token',
+      );
+    });
+
+    it('returns 400 when section is not an allowed value', async () => {
+      const response = await request(app).get('/project-release-schema').query({
+        namespaceName: 'my-namespace',
+        releaseName: 'my-project-abc',
+        section: 'bogus',
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          message: expect.stringContaining('section must be one of'),
+        }),
+      });
+    });
+  });
+
   describe('GET /wirelogs/stream', () => {
     /**
      * Build a Response-like object whose body.getReader() yields the supplied
@@ -1101,6 +1321,9 @@ describe('createRouter', () => {
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toMatch(/text\/event-stream/);
       expect(response.headers['cache-control']).toMatch(/no-cache/);
+      // The stream opens with a `meta` frame advertising the hard cap.
+      expect(response.text).toContain('event: meta');
+      expect(response.text).toContain('hardTimeoutMs');
       expect(response.text).toContain('"uuid":"a"');
       expect(response.text).toContain('"uuid":"b"');
 
@@ -1154,6 +1377,80 @@ describe('createRouter', () => {
       expect(response.text).toContain('event: error');
       expect(response.text).toContain('"status":502');
       expect(response.text).toContain('bad gateway');
+    });
+
+    it('ends the stream with a timeout SSE frame when the hard cap is hit', async () => {
+      // Fresh router with a tiny cap; the upstream never produces data and
+      // only settles when the composed signal aborts (as a real fetch body
+      // would), so the hard timeout is the only thing that can end it.
+      const localServices = createMockServices();
+      localServices.wirelogsStreamTimeoutMs = 50;
+      localServices.wirelogsInfoService.openStream.mockImplementation(
+        async (_req: any, _token: any, signal: AbortSignal) => {
+          const reader = {
+            read: jest.fn(
+              () =>
+                new Promise((_resolve, reject) => {
+                  signal.addEventListener(
+                    'abort',
+                    () => reject(new DOMException('aborted', 'AbortError')),
+                    { once: true },
+                  );
+                }),
+            ),
+            cancel: jest.fn().mockResolvedValue(undefined),
+          };
+          return {
+            ok: true,
+            status: 200,
+            body: { getReader: () => reader },
+            text: jest.fn().mockResolvedValue(''),
+          } as unknown as Response;
+        },
+      );
+      const localApp = express();
+      localApp.use(await createRouter(localServices as any));
+      localApp.use(mockErrorHandler());
+
+      const response = await request(localApp).get('/wirelogs/stream').query({
+        namespaceName: 'ns',
+        environmentName: 'dev',
+        projectName: 'proj',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('event: timeout');
+      expect(response.text).toContain('hardTimeoutMs');
+    });
+
+    it('emits a timeout frame (not an error) when the cap is hit before the upstream opens', async () => {
+      const localServices = createMockServices();
+      localServices.wirelogsStreamTimeoutMs = 50;
+      // openStream never resolves; it rejects only once the hard-timeout abort
+      // fires — exercising the pre-open abort branch in the catch.
+      localServices.wirelogsInfoService.openStream.mockImplementation(
+        (_req: any, _token: any, signal: AbortSignal) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener(
+              'abort',
+              () => reject(new DOMException('aborted', 'AbortError')),
+              { once: true },
+            );
+          }),
+      );
+      const localApp = express();
+      localApp.use(await createRouter(localServices as any));
+      localApp.use(mockErrorHandler());
+
+      const response = await request(localApp).get('/wirelogs/stream').query({
+        namespaceName: 'ns',
+        environmentName: 'dev',
+        projectName: 'proj',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('event: timeout');
+      expect(response.text).not.toContain('Failed to open wirelogs stream');
     });
   });
 });

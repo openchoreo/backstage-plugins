@@ -759,14 +759,17 @@ export const AssistantChatDrawer = ({
                   {expandedPrompts.has(i) && (
                     // Preview lives OUTSIDE the banner so its tinted
                     // background visually anchors to the banner above
-                    // (same accent, square top corners). Text is set
-                    // to pre-wrap so paragraph breaks the agent
-                    // included survive, but long lines wrap so a wide
-                    // repo URL or stack-trace line doesn't introduce
-                    // horizontal scroll inside the narrow drawer.
-                    <pre className={classes.fixPromptPreview}>
-                      {item.fixPrompt}
-                    </pre>
+                    // (same accent, square top corners). Rendered as
+                    // markdown (same renderer as the chat messages) so the
+                    // agent's backticks show as styled inline-code pills
+                    // instead of literally. The Copy button above still
+                    // copies the RAW fix_prompt verbatim — only this
+                    // on-screen preview is prettified.
+                    <Box className={classes.fixPromptPreview}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {item.fixPrompt}
+                      </ReactMarkdown>
+                    </Box>
                   )}
                 </>
               )}

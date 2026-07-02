@@ -9,6 +9,10 @@
 
 export { transformProject } from './project';
 export { transformComponent } from './component';
+export {
+  deriveComponentReadiness,
+  type ComponentReadiness,
+} from './component-readiness';
 export { transformEnvironment } from './environment';
 export { transformDataPlane } from './dataplane';
 export { transformWorkflowPlane } from './workflowplane';
@@ -22,3 +26,4 @@ export {
   deriveBindingStatus,
 } from './release-binding';
 export { transformResourceReleaseBinding } from './resource-release-binding';
+export { transformProjectReleaseBinding } from './project-release-binding';

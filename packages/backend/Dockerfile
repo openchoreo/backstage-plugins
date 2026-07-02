@@ -1,6 +1,5 @@
 # Stage 1 - Create yarn install skeleton layer
-# Pinned to 22.22: see the runtime stage below for why.
-FROM --platform=linux/amd64 node:22.22-bookworm-slim AS packages
+FROM --platform=linux/amd64 node:22-bookworm-slim AS packages
 
 WORKDIR /app
 COPY backstage.json package.json yarn.lock ./
@@ -15,7 +14,7 @@ COPY plugins plugins
 RUN find packages \! -name "package.json" -mindepth 2 -maxdepth 2 -exec rm -rf {} \+
 
 # Stage 2 - Install dependencies and build packages
-FROM --platform=linux/amd64 node:22.22-bookworm-slim AS build
+FROM --platform=linux/amd64 node:22-bookworm-slim AS build
 
 # Set Python interpreter for `node-gyp` to use
 ENV PYTHON=/usr/bin/python3
@@ -53,21 +52,16 @@ RUN mkdir packages/backend/dist/skeleton packages/backend/dist/bundle \
 
 # Stage 3 - Build the actual backend image and install production dependencies
 #
-# Pinned to 22.22 (not floating 22) to avoid a regression introduced in Node
-# 22.23.0 / 24.17.0 by the CVE-2026-48931 fix ("response queue poisoning in
-# http.Agent"). That security fix changed keep-alive socket-reuse behaviour and
-# exposes a latent node-fetch@2 bug whose "malformed chunked response detector"
-# throws false-positive ERR_STREAM_PREMATURE_CLOSE on reused pooled sockets.
-# Backstage's internal service-to-service calls (e.g. catalog -> permission
-# /api/permission/authorize) use node-fetch@2 via cross-fetch, so they fail with
-# "Premature close", breaking catalog entities/by-refs ("Failed to load platform
-# details") whenever authz is enabled.
-#   - Backstage:  https://github.com/backstage/backstage/issues/34651
-#   - Node.js:    https://github.com/nodejs/node/issues/63989
-#   - Upstream fix: https://github.com/nodejs/node/pull/64004 (merged, awaiting a
-#     22.x patch release). Revert this pin to `node:22-bookworm-slim` once the
-#     Node 22 release containing PR #64004 (expected 22.23.1+) is available.
-FROM node:22.22-bookworm-slim
+# Floating node:22 requires >= 22.23.1, which ships the fix for the regression
+# that Node 22.23.0 / 24.17.0 introduced via the CVE-2026-48931 ("response queue
+# poisoning in http.Agent") security patch. That patch changed keep-alive
+# socket-reuse behaviour and tripped a latent node-fetch@2 bug, throwing
+# false-positive ERR_STREAM_PREMATURE_CLOSE on reused pooled sockets and breaking
+# Backstage's internal service-to-service calls (e.g. catalog -> permission) with
+# "Premature close" whenever authz is enabled. We temporarily pinned to 22.22 to
+# avoid it; Node 22.23.1 reverted the bad behaviour, so we float again.
+#   - Node.js fix: https://github.com/nodejs/node/pull/64004 (in 22.23.1+)
+FROM node:22-bookworm-slim
 
 # Set Python interpreter for `node-gyp` to use
 ENV PYTHON=/usr/bin/python3

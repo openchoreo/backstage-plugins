@@ -116,6 +116,7 @@ let contextOverride: Partial<{
   autoDeployLoading: boolean;
   latestReleaseName: string | null;
   awaitingNewRelease: boolean;
+  componentError: { reason?: string; message?: string } | null;
 }> = {};
 jest.mock('../EnvironmentsContext', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -153,6 +154,7 @@ jest.mock('../EnvironmentsContext', () => {
         },
         latestReleaseName: null,
         awaitingNewRelease: false,
+        componentError: null,
         beginAwaitingNewRelease: mockBeginAwaitingNewRelease,
         selection: null,
         setSelection: jest.fn(),
@@ -384,6 +386,38 @@ describe('SetupDetailPane', () => {
       screen.queryByRole('button', { name: /create release/i }),
     ).toBeNull();
     expect(screen.queryByTestId('deploy-release-panel')).toBeNull();
+  });
+
+  it('surfaces a controller auto-deploy failure inline when auto-deploy is on', async () => {
+    contextOverride = {
+      autoDeploy: true,
+      componentError: {
+        reason: 'AutoDeployFailed',
+        message: "Failed to handle autoDeploy: trait 'auth' not found",
+      },
+    };
+    renderPane();
+
+    expect(
+      await screen.findByText(/Failed to handle autoDeploy/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/AutoDeployFailed/)).toBeInTheDocument();
+  });
+
+  it('hides the controller failure while still awaiting the new release', async () => {
+    contextOverride = {
+      autoDeploy: true,
+      awaitingNewRelease: true,
+      componentError: {
+        reason: 'AutoDeployFailed',
+        message: "Failed to handle autoDeploy: trait 'auth' not found",
+      },
+    };
+    renderPane();
+
+    // While the post-save poll is still running we don't flash a stale error.
+    await screen.findByRole('button', { name: /configure & deploy/i });
+    expect(screen.queryByText(/Failed to handle autoDeploy/)).toBeNull();
   });
 
   it('shows the controller-managed latest release, not the newest orphan CR', async () => {

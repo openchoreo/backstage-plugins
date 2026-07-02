@@ -41,6 +41,7 @@ import { derivePrimaryUrl } from '../utils/invokeUrlUtils';
 import { ComponentReleaseDiffDialog } from './ComponentReleaseDiffDialog';
 import { EnvironmentActions } from './EnvironmentActions';
 import { IncidentsBanner } from './IncidentsBanner';
+import { DeploymentFailureBanner } from './DeploymentFailureBanner';
 import { InvokeUrlsDialog } from './InvokeUrlsDialog';
 import { PromotePrimaryAction } from './PromotePrimaryAction';
 import { ReleaseBrowserDialog } from './ReleaseBrowserDialog';
@@ -181,6 +182,34 @@ export const EnvironmentDetailPanel = ({
     environment?.deployment.status,
     environment?.deployment.statusReason,
   );
+
+  // Per-env render/apply failure: the binding exists but the controller marked
+  // it Ready=False (BFF-derived `status: 'Failed'`). Surface the controller's
+  // message instead of a bare red badge — preferring the derived
+  // `statusMessage`, falling back to the Ready condition message. The message
+  // is optional: a reason-only failure still renders (DeploymentFailureBanner
+  // shows a generic headline + reason), so we don't drop back to a context-less
+  // badge. Component-level failures (no binding) are NOT shown here — they live
+  // on the Setup card only, so a binding-less env reads a plain "Not Deployed".
+  const isBindingFailed =
+    !!environment && environment.deployment.status === 'Failed';
+  const bindingFailureMessage = (() => {
+    if (!isBindingFailed) return undefined;
+    if (environment!.deployment.statusMessage) {
+      return environment!.deployment.statusMessage;
+    }
+    const ready = environment!.deployment.conditions?.find(
+      c => c.type === 'Ready',
+    );
+    return ready?.message;
+  })();
+
+  const failureBanner = isBindingFailed
+    ? {
+        message: bindingFailureMessage,
+        reason: environment!.deployment.statusReason,
+      }
+    : null;
   // Mirror the badge colour on the View K8s Artifacts button so it stops
   // signalling "healthy" when the env isn't. Stays enabled because the
   // artifacts are exactly what users need to inspect during a failure.
@@ -338,6 +367,14 @@ export const EnvironmentDetailPanel = ({
           </Box>
         ) : (
           <>
+            {failureBanner && (
+              <Box className={classes.section}>
+                <DeploymentFailureBanner
+                  message={failureBanner.message}
+                  reason={failureBanner.reason}
+                />
+              </Box>
+            )}
             {showReleaseSection && (
               <Box className={classes.section}>
                 {environment.deployment.releaseName && (

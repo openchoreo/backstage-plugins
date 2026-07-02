@@ -193,6 +193,11 @@ describe('EnvironmentInfoService', () => {
       expect(result[0].dataPlaneKind).toBe('DataPlane');
       expect(result[0].deployment.status).toBe('Ready');
       expect(result[0].deployment.releaseName).toBe('release-1');
+      // Raw binding conditions flow through to the deployment so the detail
+      // panel can surface the controller's failure reason + message.
+      expect(result[0].deployment.conditions).toEqual(
+        k8sReleaseBinding.status.conditions,
+      );
     });
 
     it('returns environments even when bindings fetch fails', async () => {
@@ -1111,6 +1116,489 @@ describe('EnvironmentInfoService', () => {
 
       // Empty promotionPaths treated as no pipeline → show all environments
       expect(result).toHaveLength(5);
+    });
+  });
+
+  describe('fetchProjectEnvironmentInfo', () => {
+    function prbBinding(
+      projectName: string,
+      environment: string,
+      release: string,
+    ) {
+      return {
+        metadata: {
+          name: `${projectName}-${environment}`,
+          namespace: 'test-ns',
+          creationTimestamp: '2025-01-06T11:00:00Z',
+        },
+        spec: {
+          owner: { projectName },
+          environment,
+          projectRelease: release,
+          environmentConfigs: { replicas: 2 },
+        },
+        status: {
+          conditions: [
+            {
+              type: 'Ready',
+              status: 'True',
+              reason: 'Ready',
+              lastTransitionTime: '2025-01-06T11:05:00Z',
+            },
+          ],
+          namespace: `dp-test-ns-${projectName}-${environment}-abc`,
+        },
+      };
+    }
+
+    const k8sProjectWithRelease = {
+      metadata: { name: 'my-project', namespace: 'test-ns' },
+      spec: { deploymentPipelineRef: { name: 'default-pipeline' } },
+      status: {
+        latestRelease: { name: 'my-project-zzz', hash: 'zzz' },
+      },
+    };
+
+    it('returns one entry per pipeline environment with binding + latestRelease joined', async () => {
+      // env list
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [makeK8sEnvironment('dev'), makeK8sEnvironment('staging')],
+          pagination: {},
+        }),
+      );
+      // project release bindings (dev only)
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [prbBinding('my-project', 'dev', 'my-project-abc')],
+        }),
+      );
+      // project (pipeline ref)
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      // project (latestRelease)
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      // pipeline
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      const service = createService();
+      const result = await service.fetchProjectEnvironmentInfo(
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result.map(e => e.name)).toEqual(['dev', 'staging']);
+
+      expect(result[0].bindingName).toBe('my-project-dev');
+      expect(result[0].projectRelease).toBe('my-project-abc');
+      expect(result[0].status).toBe('Ready');
+      expect(result[0].namespace).toBe('dp-test-ns-my-project-dev-abc');
+      expect(result[0].latestRelease).toBe('my-project-zzz');
+      expect(result[0].promotionTargets).toEqual([
+        { name: 'staging', resourceName: 'staging' },
+      ]);
+
+      expect(result[1].bindingName).toBeUndefined();
+      expect(result[1].projectRelease).toBeUndefined();
+      expect(result[1].latestRelease).toBe('my-project-zzz');
+    });
+
+    it('filters bindings to the owning project', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [makeK8sEnvironment('dev')],
+          pagination: {},
+        }),
+      );
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [
+            prbBinding('my-project', 'dev', 'rel-mine'),
+            prbBinding('other-project', 'dev', 'rel-theirs'),
+          ],
+        }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      const service = createService();
+      const result = await service.fetchProjectEnvironmentInfo(
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].projectRelease).toBe('rel-mine');
+    });
+
+    it('returns environments with no bindings when none exist', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [makeK8sEnvironment('dev'), makeK8sEnvironment('staging')],
+          pagination: {},
+        }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      const service = createService();
+      const result = await service.fetchProjectEnvironmentInfo(
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result.every(e => e.bindingName === undefined)).toBe(true);
+      expect(result.every(e => e.latestRelease === 'my-project-zzz')).toBe(
+        true,
+      );
+    });
+
+    it('falls back to default ordering when project has no pipeline', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [makeK8sEnvironment('dev'), makeK8sEnvironment('staging')],
+          pagination: {},
+        }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+      // project without deploymentPipelineRef (pipeline fetch)
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectNoPipeline));
+      // project (latestRelease fetch)
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectNoPipeline));
+
+      const service = createService();
+      const result = await service.fetchProjectEnvironmentInfo(
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result.every(e => e.promotionTargets === undefined)).toBe(true);
+    });
+
+    it('returns env-info without latestRelease when project fetch errors', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [makeK8sEnvironment('dev')],
+          pagination: {},
+        }),
+      );
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [prbBinding('my-project', 'dev', 'rel-1')],
+        }),
+      );
+      // pipeline's project fetch ok (has pipelineRef)
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      // latestRelease project fetch errors
+      mockGET.mockResolvedValueOnce(createErrorResponse());
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      const service = createService();
+      const result = await service.fetchProjectEnvironmentInfo(
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].projectRelease).toBe('rel-1');
+      expect(result[0].latestRelease).toBeUndefined();
+    });
+
+    it('returns an empty array when there are no environments', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [], pagination: {} }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      const service = createService();
+      const result = await service.fetchProjectEnvironmentInfo(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token-123',
+      );
+
+      expect(result).toEqual([]);
+    });
+
+    it('tolerates a bindings fetch failure and returns unbound envs', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [makeK8sEnvironment('dev'), makeK8sEnvironment('staging')],
+          pagination: {},
+        }),
+      );
+      // bindings fetch fails — the env-info join should soft-fail to no bindings
+      mockGET.mockResolvedValueOnce(createErrorResponse());
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      const service = createService();
+      const result = await service.fetchProjectEnvironmentInfo(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token-123',
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result.every(e => e.bindingName === undefined)).toBe(true);
+    });
+
+    it('appends bound environments that are not in the pipeline (drift)', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [
+            makeK8sEnvironment('dev'),
+            makeK8sEnvironment('staging'),
+            makeK8sEnvironment('legacy'),
+          ],
+          pagination: {},
+        }),
+      );
+      // 'legacy' has a binding but the pipeline only covers dev -> staging.
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [prbBinding('my-project', 'legacy', 'rel-legacy')],
+        }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectWithRelease));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      const service = createService();
+      const result = await service.fetchProjectEnvironmentInfo(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token-123',
+      );
+
+      const legacy = result.find(e => e.name === 'legacy');
+      expect(legacy).toBeDefined();
+      expect(legacy?.projectRelease).toBe('rel-legacy');
+    });
+  });
+
+  describe('fetchProjectReleaseBindings', () => {
+    function prb(projectName: string, environment: string, release: string) {
+      return {
+        metadata: {
+          name: `${projectName}-${environment}`,
+          namespace: 'test-ns',
+        },
+        spec: { owner: { projectName }, environment, projectRelease: release },
+        status: {},
+      };
+    }
+
+    it('returns bindings filtered to the requested project', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [
+            prb('my-project', 'dev', 'rel-1'),
+            prb('other-project', 'dev', 'rel-2'),
+          ],
+        }),
+      );
+
+      const service = createService();
+      const result = (await service.fetchProjectReleaseBindings(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token-123',
+      )) as { items: any[] };
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].spec.owner.projectName).toBe('my-project');
+    });
+
+    it('passes the project query to the openchoreo-api', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+
+      const service = createService();
+      await service.fetchProjectReleaseBindings(
+        { projectName: 'my-project', namespaceName: 'test-ns' },
+        'token-123',
+      );
+
+      const call = mockGET.mock.calls[0];
+      expect(call[0]).toBe(
+        '/api/v1/namespaces/{namespaceName}/projectreleasebindings',
+      );
+      expect(call[1].params.query).toEqual({ project: 'my-project' });
+    });
+
+    it('throws when the bindings API errors', async () => {
+      mockGET.mockResolvedValueOnce(createErrorResponse(500));
+
+      const service = createService();
+      await expect(
+        service.fetchProjectReleaseBindings(
+          { projectName: 'my-project', namespaceName: 'test-ns' },
+          'token-123',
+        ),
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('updateProjectReleaseBinding', () => {
+    const existingBinding = {
+      metadata: {
+        name: 'my-project-dev',
+        namespace: 'test-ns',
+        creationTimestamp: '2025-01-06T11:00:00Z',
+        resourceVersion: '42',
+      },
+      spec: {
+        owner: { projectName: 'my-project' },
+        environment: 'dev',
+        projectRelease: 'my-project-old',
+      },
+      status: { conditions: [] },
+    };
+
+    it('GETs the existing binding then PUTs with the new projectRelease, preserving owner + environment', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse(existingBinding));
+      mockPUT.mockResolvedValueOnce(createOkResponse({ ...existingBinding }));
+
+      const service = createService();
+      await service.updateProjectReleaseBinding(
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environment: 'dev',
+          releaseName: 'my-project-new',
+        },
+        'token-123',
+      );
+
+      expect(mockGET).toHaveBeenCalledTimes(1);
+      expect(mockPUT).toHaveBeenCalledTimes(1);
+      const putCall = mockPUT.mock.calls[0];
+      expect(putCall[0]).toBe(
+        '/api/v1/namespaces/{namespaceName}/projectreleasebindings/{projectReleaseBindingName}',
+      );
+      expect(putCall[1].body.spec.projectRelease).toBe('my-project-new');
+      // owner + environment are immutable and must be carried over untouched
+      expect(putCall[1].body.spec.owner).toEqual({ projectName: 'my-project' });
+      expect(putCall[1].body.spec.environment).toBe('dev');
+    });
+
+    it('passes environmentConfigs into the spec when provided', async () => {
+      mockGET.mockResolvedValueOnce(createOkResponse(existingBinding));
+      mockPUT.mockResolvedValueOnce(createOkResponse({ ...existingBinding }));
+
+      const service = createService();
+      await service.updateProjectReleaseBinding(
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environment: 'dev',
+          releaseName: 'my-project-new',
+          environmentConfigs: { replicas: 3 },
+        },
+        'token-123',
+      );
+
+      expect(mockPUT.mock.calls[0][1].body.spec.environmentConfigs).toEqual({
+        replicas: 3,
+      });
+    });
+
+    it('POSTs a new binding when GET returns 404 (owner carries only projectName)', async () => {
+      mockGET.mockResolvedValueOnce(createErrorResponse(404));
+      mockPOST.mockResolvedValueOnce(
+        createOkResponse({ metadata: { name: 'my-project-dev' } }),
+      );
+
+      const service = createService();
+      await service.updateProjectReleaseBinding(
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environment: 'dev',
+          releaseName: 'my-project-new',
+          environmentConfigs: { replicas: 1 },
+        },
+        'token-123',
+      );
+
+      expect(mockPUT).not.toHaveBeenCalled();
+      expect(mockPOST).toHaveBeenCalledTimes(1);
+      const postCall = mockPOST.mock.calls[0];
+      expect(postCall[0]).toBe(
+        '/api/v1/namespaces/{namespaceName}/projectreleasebindings',
+      );
+      const body = postCall[1].body;
+      expect(body.metadata.name).toBe('my-project-dev');
+      expect(body.spec.owner).toEqual({ projectName: 'my-project' });
+      expect(body.spec.owner).not.toHaveProperty('resourceName');
+      expect(body.spec.environment).toBe('dev');
+      expect(body.spec.projectRelease).toBe('my-project-new');
+      expect(body.spec.environmentConfigs).toEqual({ replicas: 1 });
+    });
+
+    it('refetches the binding when POST returns 409', async () => {
+      mockGET.mockResolvedValueOnce(createErrorResponse(404));
+      mockPOST.mockResolvedValueOnce(createErrorResponse(409));
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          metadata: { name: 'my-project-dev' },
+          spec: { projectRelease: 'rel-from-conflict' },
+        }),
+      );
+
+      const service = createService();
+      const result = await service.updateProjectReleaseBinding(
+        {
+          projectName: 'my-project',
+          namespaceName: 'test-ns',
+          environment: 'dev',
+          releaseName: 'my-project-new',
+        },
+        'token-123',
+      );
+
+      expect((result as any)?.metadata?.name).toBe('my-project-dev');
+      expect((result as any)?.spec?.projectRelease).toBe('rel-from-conflict');
+    });
+
+    it('throws when GET returns a non-404 error', async () => {
+      mockGET.mockResolvedValueOnce(createErrorResponse(500));
+
+      const service = createService();
+      await expect(
+        service.updateProjectReleaseBinding(
+          {
+            projectName: 'my-project',
+            namespaceName: 'test-ns',
+            environment: 'dev',
+            releaseName: 'my-project-new',
+          },
+          'token-123',
+        ),
+      ).rejects.toThrow(/Failed to fetch project release binding/);
+
+      expect(mockPUT).not.toHaveBeenCalled();
+      expect(mockPOST).not.toHaveBeenCalled();
     });
   });
 });

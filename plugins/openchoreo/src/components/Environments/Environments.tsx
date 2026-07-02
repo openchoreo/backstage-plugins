@@ -62,6 +62,7 @@ export const Environments = ({
   const {
     autoDeploy,
     latestReleaseName,
+    componentError,
     loading: autoDeployLoading,
     refetch: refetchAutoDeploy,
     setAutoDeployOptimistic,
@@ -69,9 +70,11 @@ export const Environments = ({
 
   // Drives the "Deploying…" pill on the Setup card after a UI save.
   // Polls Component.status.latestRelease.name and the env list until
-  // either advances to the new release, or 30s passes.
+  // either advances to the new release, the controller reports an error,
+  // or 30s passes.
   const { awaitingNewRelease, beginAwaitingNewRelease } = useAwaitNewRelease({
     latestReleaseName,
+    hasError: !!componentError,
     refetchAutoDeploy,
     refetchEnvironments: refetch,
   });
@@ -142,6 +145,7 @@ export const Environments = ({
       refetchAutoDeploy,
       setAutoDeployOptimistic,
       latestReleaseName,
+      componentError,
       awaitingNewRelease,
       beginAwaitingNewRelease,
       selection,
@@ -164,6 +168,7 @@ export const Environments = ({
       refetchAutoDeploy,
       setAutoDeployOptimistic,
       latestReleaseName,
+      componentError,
       awaitingNewRelease,
       beginAwaitingNewRelease,
       selection,

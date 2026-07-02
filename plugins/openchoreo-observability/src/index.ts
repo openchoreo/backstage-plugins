@@ -12,6 +12,7 @@ export {
   ObservabilityCostAnalysis,
 } from './plugin';
 export type { RenderLogRowAction } from './components/RuntimeLogs/LogEntry';
+export { useComponentHasAnyCiliumEnabledEnvironment } from './hooks';
 export {
   logRowActionRendererApiRef,
   type LogRowActionRendererApi,
