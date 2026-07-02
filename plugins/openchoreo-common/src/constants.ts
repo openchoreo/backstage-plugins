@@ -31,6 +31,9 @@ export const CHOREO_ANNOTATIONS = {
   CTD_DISPLAY_NAME: 'openchoreo.io/ctd-display-name',
   CTD_GENERATED: 'openchoreo.io/ctd-generated',
   CTD_KIND: 'openchoreo.io/ctd-kind',
+  // Points the sync at a hand-authored scaffolder Template to serve instead of
+  // the generated wizard for this (Cluster)ComponentType.
+  SCAFFOLD_TEMPLATE_URL: 'scaffolder.openchoreo.dev/backstage-template-url',
   // (Cluster)ResourceType Definition (RTD) annotations
   // Umbrella prefix `RTD` mirrors `CTD` on the Component side: a third
   // letter (`D` for Definition) keeps it distinct from `RT` (ResourceType)

@@ -9839,6 +9839,7 @@ __metadata:
     "@openchoreo/openchoreo-client-node": "workspace:^"
     json-schema: "npm:0.4.0"
     knex: "npm:3.1.0"
+    yaml: "npm:^2.8.1"
   languageName: unknown
   linkType: soft
 

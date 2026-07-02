@@ -8,11 +8,13 @@ import {
   AuthService,
   LoggerService,
   SchedulerServiceTaskRunner,
+  UrlReaderService,
 } from '@backstage/backend-plugin-api';
 import { Config } from '@backstage/config';
 import type { EventsService, EventParams } from '@backstage/plugin-events-node';
 import {
   fetchAllPages,
+  getAnnotation,
   getCreatedAt,
   getDescription,
   getDisplayName,
@@ -20,9 +22,16 @@ import {
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
-import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  ComponentTypeUtils,
+} from '@openchoreo/backstage-plugin-common';
 import { DeploymentPipelineEntityV1alpha1 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
+import {
+  RemoteTemplateContext,
+  RemoteTemplateFetcher,
+} from '../converters/RemoteTemplateFetcher';
 import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
 import {
   PtdToTemplateConverter,
@@ -119,6 +128,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly translatorContext: NewApiTranslatorContext;
   /** Subsystem that handles per-event delta updates. Built once. */
   private readonly eventApplier: EventDeltaApplier;
+  /** Resolves custom templates; undefined disables the feature (no UrlReader). */
+  private readonly remoteTemplateFetcher?: RemoteTemplateFetcher;
 
   constructor(
     taskRunner: SchedulerServiceTaskRunner,
@@ -128,6 +139,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     events?: EventsService,
     catalogService?: CatalogService,
     auth?: AuthService,
+    urlReader?: UrlReaderService,
   ) {
     this.taskRunner = taskRunner;
     this.logger = logger;
@@ -157,6 +169,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     // Initialize component type utilities from config
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
 
+    // Shared with the event applier so both sync paths behave identically.
+    this.remoteTemplateFetcher = urlReader
+      ? new RemoteTemplateFetcher(urlReader, this.logger)
+      : undefined;
+
     this.translatorContext = {
       providerName: this.getProviderName(),
       defaultOwner: this.defaultOwner,
@@ -173,6 +190,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       ctdConverter: this.ctdConverter,
       rtdConverter: this.rtdConverter,
       ptdConverter: this.ptdConverter,
+      remoteTemplateFetcher: this.remoteTemplateFetcher,
       catalogService,
       auth,
     });
@@ -180,6 +198,27 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
   getProviderName(): string {
     return 'OpenChoreoEntityProvider';
+  }
+
+  /** Fetch the custom Template, or null (error logged) if unavailable/failed. */
+  private async resolveCustomTemplate(
+    templateUrl: string,
+    ctx: RemoteTemplateContext,
+  ): Promise<Entity | null> {
+    if (!this.remoteTemplateFetcher) {
+      this.logger.error(
+        `ComponentType ${ctx.ctdName} sets ${CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL} but no UrlReader is configured; skipping its template`,
+      );
+      return null;
+    }
+    try {
+      return await this.remoteTemplateFetcher.fetch(templateUrl, ctx);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch custom template for ComponentType ${ctx.ctdName} from ${templateUrl}: ${error}`,
+      );
+      return null;
+    }
   }
 
   /**
@@ -840,9 +879,17 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             componentTypes.map(async ct => {
               const ctName = getName(ct);
               if (!ctName) return null;
+              // Carried to the emission step, which decides fetch-vs-generate.
+              const templateUrl = getAnnotation(
+                ct,
+                CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL,
+              );
               try {
-                const { data: schemaData, error: schemaError } =
-                  await client.GET(
+                // Custom templates need no schema — skip the fetch (mirrors the
+                // event path; also avoids dropping schema-less types).
+                let schemaData: any;
+                if (!templateUrl) {
+                  const { data, error: schemaError } = await client.GET(
                     '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema',
                     {
                       params: {
@@ -851,14 +898,16 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     },
                   );
 
-                if (schemaError || !schemaData) {
-                  this.logger.warn(
-                    `Failed to fetch schema for CTD ${ctName} in namespace ${nsName}`,
-                  );
-                  return null;
+                  if (schemaError || !data) {
+                    this.logger.warn(
+                      `Failed to fetch schema for CTD ${ctName} in namespace ${nsName}`,
+                    );
+                    return null;
+                  }
+                  schemaData = data;
                 }
 
-                // Combine metadata from list item + schema into full object
+                // Combine metadata from list item + schema into full object.
                 const fullComponentType = {
                   metadata: {
                     name: ctName,
@@ -870,8 +919,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     createdAt: getCreatedAt(ct) || '',
                   },
                   spec: {
-                    inputParametersSchema: schemaData as any,
+                    inputParametersSchema: schemaData,
                   },
+                  templateUrl,
                 };
 
                 return fullComponentType;
@@ -889,30 +939,40 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             (ctd): ctd is NonNullable<typeof ctd> => ctd !== null,
           );
 
-          // Convert CTDs to template entities
-          const templateEntities: Entity[] = validCTDs
-            .map(ctd => {
-              try {
-                const templateEntity =
-                  this.ctdConverter.convertCtdToTemplateEntity(ctd, nsName);
-                if (!templateEntity.metadata.annotations) {
-                  templateEntity.metadata.annotations = {};
+          // Fetch a custom Template when the CTD declares one, else generate.
+          const templateEntities: Entity[] = (
+            await Promise.all(
+              validCTDs.map(async ctd => {
+                if (ctd.templateUrl) {
+                  return this.resolveCustomTemplate(ctd.templateUrl, {
+                    ctdName: ctd.metadata.name,
+                    namespace: nsName,
+                    workloadType: ctd.metadata.workloadType,
+                    displayName: ctd.metadata.displayName,
+                  });
                 }
-                templateEntity.metadata.annotations[
-                  'backstage.io/managed-by-location'
-                ] = `provider:${this.getProviderName()}`;
-                templateEntity.metadata.annotations[
-                  'backstage.io/managed-by-origin-location'
-                ] = `provider:${this.getProviderName()}`;
-                return templateEntity;
-              } catch (error) {
-                this.logger.warn(
-                  `Failed to convert CTD ${ctd.metadata.name} to template: ${error}`,
-                );
-                return null;
-              }
-            })
-            .filter((entity): entity is Entity => entity !== null);
+                try {
+                  const templateEntity =
+                    this.ctdConverter.convertCtdToTemplateEntity(ctd, nsName);
+                  if (!templateEntity.metadata.annotations) {
+                    templateEntity.metadata.annotations = {};
+                  }
+                  templateEntity.metadata.annotations[
+                    'backstage.io/managed-by-location'
+                  ] = `provider:${this.getProviderName()}`;
+                  templateEntity.metadata.annotations[
+                    'backstage.io/managed-by-origin-location'
+                  ] = `provider:${this.getProviderName()}`;
+                  return templateEntity;
+                } catch (error) {
+                  this.logger.warn(
+                    `Failed to convert CTD ${ctd.metadata.name} to template: ${error}`,
+                  );
+                  return null;
+                }
+              }),
+            )
+          ).filter((entity): entity is Entity => entity !== null);
 
           allEntities.push(...templateEntities);
           this.logger.info(
@@ -1313,21 +1373,30 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           clusterComponentTypes.map(async cct => {
             const cctName = getName(cct);
             if (!cctName) return null;
+            const templateUrl = getAnnotation(
+              cct,
+              CHOREO_ANNOTATIONS.SCAFFOLD_TEMPLATE_URL,
+            );
             try {
-              const { data: schemaData, error: schemaError } = await client.GET(
-                '/api/v1/clustercomponenttypes/{cctName}/schema',
-                {
-                  params: {
-                    path: { cctName },
+              // Custom template: skip the schema fetch (see the namespaced path).
+              let schemaData: any;
+              if (!templateUrl) {
+                const { data, error: schemaError } = await client.GET(
+                  '/api/v1/clustercomponenttypes/{cctName}/schema',
+                  {
+                    params: {
+                      path: { cctName },
+                    },
                   },
-                },
-              );
-
-              if (schemaError || !schemaData) {
-                this.logger.warn(
-                  `Failed to fetch schema for ClusterComponentType ${cctName}`,
                 );
-                return null;
+
+                if (schemaError || !data) {
+                  this.logger.warn(
+                    `Failed to fetch schema for ClusterComponentType ${cctName}`,
+                  );
+                  return null;
+                }
+                schemaData = data;
               }
 
               return {
@@ -1346,8 +1415,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   createdAt: getCreatedAt(cct) || '',
                 },
                 spec: {
-                  inputParametersSchema: schemaData as any,
+                  inputParametersSchema: schemaData,
                 },
+                templateUrl,
               };
             } catch (error) {
               this.logger.warn(
@@ -1362,29 +1432,41 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           (cct): cct is NonNullable<typeof cct> => cct !== null,
         );
 
-        const cctTemplateEntities: Entity[] = validCCTs
-          .map(cct => {
-            try {
-              const templateEntity =
-                this.ctdConverter.convertClusterCtdToTemplateEntity(cct);
-              if (!templateEntity.metadata.annotations) {
-                templateEntity.metadata.annotations = {};
+        const cctTemplateEntities: Entity[] = (
+          await Promise.all(
+            validCCTs.map(async cct => {
+              if (cct.templateUrl) {
+                return this.resolveCustomTemplate(cct.templateUrl, {
+                  ctdName: cct.metadata.name,
+                  // Cluster-scoped Templates live in the shared cluster namespace.
+                  namespace: 'openchoreo-cluster',
+                  workloadType: cct.metadata.workloadType,
+                  displayName: cct.metadata.displayName,
+                  ctdKind: 'ClusterComponentType',
+                });
               }
-              templateEntity.metadata.annotations[
-                'backstage.io/managed-by-location'
-              ] = `provider:${this.getProviderName()}`;
-              templateEntity.metadata.annotations[
-                'backstage.io/managed-by-origin-location'
-              ] = `provider:${this.getProviderName()}`;
-              return templateEntity;
-            } catch (error) {
-              this.logger.warn(
-                `Failed to convert ClusterComponentType ${cct.metadata.name} to template: ${error}`,
-              );
-              return null;
-            }
-          })
-          .filter((entity): entity is Entity => entity !== null);
+              try {
+                const templateEntity =
+                  this.ctdConverter.convertClusterCtdToTemplateEntity(cct);
+                if (!templateEntity.metadata.annotations) {
+                  templateEntity.metadata.annotations = {};
+                }
+                templateEntity.metadata.annotations[
+                  'backstage.io/managed-by-location'
+                ] = `provider:${this.getProviderName()}`;
+                templateEntity.metadata.annotations[
+                  'backstage.io/managed-by-origin-location'
+                ] = `provider:${this.getProviderName()}`;
+                return templateEntity;
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to convert ClusterComponentType ${cct.metadata.name} to template: ${error}`,
+                );
+                return null;
+              }
+            }),
+          )
+        ).filter((entity): entity is Entity => entity !== null);
 
         allEntities.push(...cctTemplateEntities);
         this.logger.info(
