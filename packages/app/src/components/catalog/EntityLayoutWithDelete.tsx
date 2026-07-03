@@ -41,6 +41,7 @@ const PLATFORM_RESOURCE_KINDS = new Set([
   'workflow',
   'clusterworkflow',
   'componentworkflow',
+  'observabilityalertsnotificationchannel',
 ]);
 
 /**
