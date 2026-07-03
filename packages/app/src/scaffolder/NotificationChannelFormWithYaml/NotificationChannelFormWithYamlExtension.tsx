@@ -455,10 +455,9 @@ export const NotificationChannelFormWithYamlExtension = ({
     (content: string) => {
       setYamlContent(content);
       try {
-        YAML.parse(content);
-        setYamlError(undefined);
         const parsed = yamlToForm(content, namespaces, environments);
         commit({ ...data, ...parsed });
+        setYamlError(undefined);
       } catch (err) {
         setYamlError(`YAML parse error: ${err}`);
       }
