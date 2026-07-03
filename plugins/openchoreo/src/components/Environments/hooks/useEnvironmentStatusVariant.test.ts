@@ -12,6 +12,16 @@ describe('useEnvironmentStatusVariant', () => {
     });
   });
 
+  it('maps a Ready binding with ReadyWithSuspendedResources to suspended', () => {
+    const { result } = renderHook(() =>
+      useEnvironmentStatusVariant('Ready', 'ReadyWithSuspendedResources'),
+    );
+    expect(result.current).toEqual({
+      variant: 'suspended',
+      label: 'Suspended',
+    });
+  });
+
   it('maps Ready (without undeployed reason) to active', () => {
     const { result } = renderHook(() =>
       useEnvironmentStatusVariant('Ready', undefined),

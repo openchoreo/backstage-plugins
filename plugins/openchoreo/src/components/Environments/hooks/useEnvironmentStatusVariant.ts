@@ -15,6 +15,12 @@ export function getEnvironmentStatusVariant(
   if (statusReason === 'ResourcesUndeployed') {
     return { variant: 'undeployed', label: 'Undeployed' };
   }
+  // A Ready binding whose primary workload is scaled to zero. Core reports this
+  // on the ResourcesReady condition; the backend surfaces its reason here so the
+  // pipeline shows "Suspended" rather than "Active".
+  if (statusReason === 'ReadyWithSuspendedResources') {
+    return { variant: 'suspended', label: 'Suspended' };
+  }
   if (status === 'Ready') {
     return { variant: 'active', label: 'Active' };
   }

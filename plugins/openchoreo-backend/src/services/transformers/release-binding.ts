@@ -19,6 +19,13 @@ const PROGRESSING_REASONS = [
 /** Reasons that represent an intentional non-deployed state, not an error. */
 const NON_ERROR_REASONS = ['ResourcesUndeployed'] as const;
 
+/**
+ * Reason core sets on the ResourcesReady condition when the primary workload is
+ * intentionally suspended (e.g. a Deployment scaled to zero). The binding is
+ * still Ready, so this is read from ResourcesReady, not the Ready condition.
+ */
+const SUSPENDED_REASON = 'ReadyWithSuspendedResources';
+
 export interface DerivedBindingStatus {
   status: 'Ready' | 'NotReady' | 'Failed';
   reason?: string;
@@ -75,6 +82,20 @@ export function deriveBindingStatusDetailed(
   if (!readyCond) return { status: 'NotReady' }; // Not yet reconciled
 
   if (readyCond.status === 'True') {
+    // A Ready binding may still be intentionally scaled to zero. Core reports
+    // that on the ResourcesReady condition, not on Ready, so surface its reason
+    // and message here so the pipeline can distinguish a suspended workload from
+    // a running one.
+    const resourcesReady = conditionsForGeneration.find(
+      c => c.type === 'ResourcesReady',
+    );
+    if (resourcesReady?.reason === SUSPENDED_REASON) {
+      return {
+        status: 'Ready',
+        reason: resourcesReady.reason,
+        message: resourcesReady.message,
+      };
+    }
     return {
       status: 'Ready',
       reason: readyCond.reason,

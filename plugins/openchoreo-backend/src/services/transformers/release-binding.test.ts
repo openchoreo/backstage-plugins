@@ -218,6 +218,24 @@ describe('deriveBindingStatusDetailed', () => {
     });
   });
 
+  it('surfaces the suspended reason from ResourcesReady on a Ready binding', () => {
+    const binding = makeBinding([
+      { type: 'Ready', status: 'True', reason: 'Ready' },
+      {
+        type: 'ResourcesReady',
+        status: 'True',
+        reason: 'ReadyWithSuspendedResources',
+        message: 'Primary workload Deployment is suspended (scaled to 0)',
+      },
+    ]);
+    const result = deriveBindingStatusDetailed(binding);
+    expect(result).toEqual({
+      status: 'Ready',
+      reason: 'ReadyWithSuspendedResources',
+      message: 'Primary workload Deployment is suspended (scaled to 0)',
+    });
+  });
+
   it('returns reason and message for NotReady progressing status', () => {
     const binding = makeBinding([
       {
