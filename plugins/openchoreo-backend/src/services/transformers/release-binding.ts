@@ -14,6 +14,10 @@ const PROGRESSING_REASONS = [
   'JobRunning',
   'ConnectionsPending',
   'ResourcesUnknown',
+  // ProjectReleaseBinding with an empty spec.projectRelease pin: the control
+  // plane seeds it with the project's latest release once one exists, so a
+  // just-created binding sits here briefly. Pending, not an error.
+  'ProjectReleaseNotSet',
 ] as const;
 
 /** Reasons that represent an intentional non-deployed state, not an error. */

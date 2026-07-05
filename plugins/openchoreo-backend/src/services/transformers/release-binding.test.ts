@@ -83,6 +83,19 @@ describe('deriveBindingStatus', () => {
     expect(deriveBindingStatus(binding)).toBe('NotReady');
   });
 
+  it('returns NotReady for ProjectReleaseNotSet reason (awaiting pin seeding)', () => {
+    const binding = makeBinding([
+      {
+        type: 'Ready',
+        status: 'False',
+        reason: 'ProjectReleaseNotSet',
+        message:
+          'spec.projectRelease is unset; pin a ProjectRelease to deploy this binding',
+      },
+    ]);
+    expect(deriveBindingStatus(binding)).toBe('NotReady');
+  });
+
   it('returns Failed for ResourcesDegraded reason', () => {
     const binding = makeBinding([
       {
