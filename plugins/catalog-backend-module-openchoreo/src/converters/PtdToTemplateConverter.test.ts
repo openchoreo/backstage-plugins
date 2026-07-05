@@ -146,6 +146,9 @@ describe('PtdToTemplateConverter', () => {
       expect(autoDeploy.title).toBe('Auto Deploy');
       expect(autoDeploy.default).toBe(true);
       expect(autoDeploy['ui:field']).toBe('SwitchField');
+      // Opting out has consequences (manual deploy before any component
+      // deploys); SwitchField surfaces this while the toggle is off.
+      expect(autoDeploy['ui:options'].offWarning).toMatch(/deploy it manually/);
       // Not in the section's required list: a toggle always carries a value.
       expect((result.spec as any).parameters[0].required).not.toContain(
         'auto_deploy',

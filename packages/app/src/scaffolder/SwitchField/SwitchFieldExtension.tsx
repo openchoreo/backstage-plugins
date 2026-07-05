@@ -1,10 +1,15 @@
 import { ChangeEvent } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import { Box, Typography, Switch } from '@material-ui/core';
+import { Alert } from '@material-ui/lab';
 
 /**
  * SwitchField component
- * Renders a switch toggle for boolean fields
+ * Renders a switch toggle for boolean fields.
+ *
+ * ui:options:
+ * - `offWarning`: warning text shown below the field while the switch is
+ *   off, for toggles whose opt-out has consequences worth calling out.
  */
 export const SwitchField = ({
   onChange,
@@ -14,6 +19,7 @@ export const SwitchField = ({
   uiSchema,
 }: FieldExtensionComponentProps<boolean>) => {
   const disabled = uiSchema?.['ui:disabled'] === true;
+  const offWarning = uiSchema?.['ui:options']?.offWarning;
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (!disabled) {
@@ -47,6 +53,11 @@ export const SwitchField = ({
         >
           {description}
         </Typography>
+      )}
+      {!formData && typeof offWarning === 'string' && offWarning && (
+        <Box mt={1}>
+          <Alert severity="warning">{offWarning}</Alert>
+        </Box>
       )}
       {rawErrors?.length ? (
         <Typography variant="body2" color="error" style={{ marginTop: 8 }}>

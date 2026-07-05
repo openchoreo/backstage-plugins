@@ -233,6 +233,12 @@ export class PtdToTemplateConverter {
             'Automatically deploys the project to all environments in the deployment pipeline once created',
           default: true,
           'ui:field': 'SwitchField',
+          'ui:options': {
+            offWarning:
+              'The project will not be deployed to any environment. You will ' +
+              'need to deploy it manually from the project’s Deploy tab ' +
+              'before you can deploy components.',
+          },
         },
       },
     };
