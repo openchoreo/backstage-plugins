@@ -104,6 +104,18 @@ describe('PtdToTemplateConverter – convertClusterPtdToTemplateEntity', () => {
     expect(steps[0].input.typeName).toBe('default');
   });
 
+  it('emits a default-on Auto Deploy toggle and threads it into the step input', () => {
+    const result = converter.convertClusterPtdToTemplateEntity(baseCpt);
+    const autoDeploy = (result.spec as any).parameters[0].properties
+      .auto_deploy;
+    const steps = (result.spec as any).steps as any[];
+
+    expect(autoDeploy.type).toBe('boolean');
+    expect(autoDeploy.default).toBe(true);
+    expect(autoDeploy['ui:field']).toBe('SwitchField');
+    expect(steps[0].input.autoDeploy).toBe('${{ parameters.auto_deploy }}');
+  });
+
   it('passes PTD schema in parameters ui:options', () => {
     const result = converter.convertClusterPtdToTemplateEntity(baseCpt);
     const options = (result.spec as any).parameters[1].properties.parameters[

@@ -167,7 +167,7 @@ export class PtdToTemplateConverter {
 
   /**
    * Two parameter sections:
-   *   1. Project Metadata — namespace + project_name (+ display name / description / deployment pipeline)
+   *   1. Project Metadata — namespace + project_name (+ display name / description / deployment pipeline / auto deploy)
    *   2. <Display Name> Details — single `parameters` field rendered by `ProjectParametersField`
    *                               which reads the schema from ui:options.ptdSchema
    *
@@ -226,6 +226,14 @@ export class PtdToTemplateConverter {
           description: 'Deployment pipeline to associate with this project',
           'ui:field': 'DeploymentPipelinePicker',
         },
+        auto_deploy: {
+          title: 'Auto Deploy',
+          type: 'boolean',
+          description:
+            'Automatically deploys the project to all environments in the deployment pipeline once created',
+          default: true,
+          'ui:field': 'SwitchField',
+        },
       },
     };
 
@@ -265,6 +273,7 @@ export class PtdToTemplateConverter {
           displayName: '${{ parameters.displayName }}',
           description: '${{ parameters.description }}',
           deploymentPipeline: '${{ parameters.deployment_pipeline }}',
+          autoDeploy: '${{ parameters.auto_deploy }}',
           typeKind: ptdKind,
           typeName: pt.metadata.name,
           parameters: '${{ parameters.parameters }}',

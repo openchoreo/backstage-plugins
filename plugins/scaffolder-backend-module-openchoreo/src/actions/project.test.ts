@@ -2,12 +2,13 @@ import { translateProjectToEntity } from '@openchoreo/backstage-plugin-catalog-b
 import { createProjectAction } from './project';
 
 const mockPOST = jest.fn();
+const mockGET = jest.fn();
 
 jest.mock('@openchoreo/openchoreo-client-node', () => ({
   ...jest.requireActual('@openchoreo/openchoreo-client-node'),
   createOpenChoreoApiClient: jest.fn(() => ({
     POST: mockPOST,
-    GET: jest.fn(),
+    GET: mockGET,
     PUT: jest.fn(),
     DELETE: jest.fn(),
   })),
@@ -68,11 +69,58 @@ const successResponse = (name = 'my-project') => ({
   response: { ok: true, status: 200 } as any,
 });
 
+// dev -> staging -> prod; staging appears as both target and source to
+// exercise deduplication in the auto-deploy environment expansion.
+const pipelineResponse = () => ({
+  data: {
+    metadata: { name: 'default-pipeline' },
+    spec: {
+      promotionPaths: [
+        {
+          sourceEnvironmentRef: { kind: 'Environment', name: 'dev' },
+          targetEnvironmentRefs: [{ kind: 'Environment', name: 'staging' }],
+        },
+        {
+          sourceEnvironmentRef: { kind: 'Environment', name: 'staging' },
+          targetEnvironmentRefs: [{ kind: 'Environment', name: 'prod' }],
+        },
+      ],
+    },
+  },
+  error: undefined,
+  response: { ok: true, status: 200 } as any,
+});
+
+const bindingCreatedResponse = (status = 201) => ({
+  data: {},
+  error: undefined,
+  response: { ok: true, status } as any,
+});
+
+const bindingErrorResponse = (status: number) => ({
+  data: undefined,
+  error: { message: `error ${status}` },
+  response: { ok: false, status } as any,
+});
+
+const bindingCalls = () =>
+  mockPOST.mock.calls.filter(
+    ([path]) =>
+      path === '/api/v1/namespaces/{namespaceName}/projectreleasebindings',
+  );
+
 describe('createProjectAction', () => {
   let mockImmediateCatalog: { insertEntity: jest.Mock };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default: pipeline fetch fails; auto deploy warns and skips the fan-out,
+    // so tests not about auto deploy are unaffected.
+    mockGET.mockResolvedValue({
+      data: undefined,
+      error: { message: 'not found' },
+      response: { ok: false, status: 404 } as any,
+    });
     mockImmediateCatalog = {
       insertEntity: jest.fn().mockResolvedValue(undefined),
     };
@@ -259,5 +307,191 @@ describe('createProjectAction', () => {
       buildCtx({ secrets: { OPENCHOREO_USER_TOKEN: 'tkn' } }) as any,
     );
     expect(mockPOST).toHaveBeenCalled();
+  });
+
+  describe('auto deploy release binding fan-out', () => {
+    it('creates one unpinned binding per pipeline environment, deduplicated in pipeline order', async () => {
+      mockPOST.mockResolvedValueOnce(successResponse());
+      mockGET.mockResolvedValue(pipelineResponse());
+      mockPOST.mockResolvedValue(bindingCreatedResponse());
+
+      const action = createProjectAction(
+        buildConfig(),
+        mockImmediateCatalog as any,
+      );
+      const ctx = buildCtx();
+      await action.handler(ctx as any);
+
+      expect(mockGET).toHaveBeenCalledWith(
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}',
+        {
+          params: {
+            path: {
+              namespaceName: 'my-ns',
+              deploymentPipelineName: 'default-pipeline',
+            },
+          },
+        },
+      );
+
+      const calls = bindingCalls();
+      expect(calls).toHaveLength(3);
+      expect(calls.map(([, opts]) => opts.body.metadata.name)).toEqual([
+        'my-project-dev',
+        'my-project-staging',
+        'my-project-prod',
+      ]);
+      for (const [, opts] of calls) {
+        expect(opts.params.path.namespaceName).toBe('my-ns');
+        expect(opts.body.spec.owner).toEqual({ projectName: 'my-project' });
+        expect(opts.body.spec.projectRelease).toBeUndefined();
+      }
+      expect(calls.map(([, opts]) => opts.body.spec.environment)).toEqual([
+        'dev',
+        'staging',
+        'prod',
+      ]);
+      expect(ctx.output).toHaveBeenCalledWith('createdBindings', [
+        'my-project-dev',
+        'my-project-staging',
+        'my-project-prod',
+      ]);
+    });
+
+    it('creates no bindings when autoDeploy is false', async () => {
+      mockPOST.mockResolvedValueOnce(successResponse());
+      mockGET.mockResolvedValue(pipelineResponse());
+
+      const action = createProjectAction(
+        buildConfig(),
+        mockImmediateCatalog as any,
+      );
+      const ctx = buildCtx({ input: { autoDeploy: false } });
+      await action.handler(ctx as any);
+
+      expect(mockGET).not.toHaveBeenCalled();
+      expect(bindingCalls()).toHaveLength(0);
+      expect(ctx.output).toHaveBeenCalledWith('createdBindings', []);
+    });
+
+    it('treats 409 (binding already exists) as success', async () => {
+      mockPOST.mockResolvedValueOnce(successResponse());
+      mockGET.mockResolvedValue(pipelineResponse());
+      mockPOST
+        .mockResolvedValueOnce(bindingCreatedResponse())
+        .mockResolvedValueOnce(bindingErrorResponse(409))
+        .mockResolvedValueOnce(bindingCreatedResponse());
+
+      const action = createProjectAction(
+        buildConfig(),
+        mockImmediateCatalog as any,
+      );
+      const ctx = buildCtx();
+      await action.handler(ctx as any);
+
+      expect(ctx.output).toHaveBeenCalledWith('createdBindings', [
+        'my-project-dev',
+        'my-project-staging',
+        'my-project-prod',
+      ]);
+    });
+
+    it('continues past per-environment failures and reports the rest', async () => {
+      mockPOST.mockResolvedValueOnce(successResponse());
+      mockGET.mockResolvedValue(pipelineResponse());
+      mockPOST
+        .mockResolvedValueOnce(bindingCreatedResponse())
+        .mockResolvedValueOnce(bindingErrorResponse(500))
+        .mockResolvedValueOnce(bindingCreatedResponse());
+
+      const action = createProjectAction(
+        buildConfig(),
+        mockImmediateCatalog as any,
+      );
+      const ctx = buildCtx();
+      await action.handler(ctx as any);
+
+      expect(bindingCalls()).toHaveLength(3);
+      expect(ctx.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('my-project-staging'),
+      );
+      expect(ctx.output).toHaveBeenCalledWith('createdBindings', [
+        'my-project-dev',
+        'my-project-prod',
+      ]);
+    });
+
+    it('fails the step when every binding create fails', async () => {
+      mockPOST.mockResolvedValueOnce(successResponse());
+      mockGET.mockResolvedValue(pipelineResponse());
+      mockPOST.mockResolvedValue(bindingErrorResponse(403));
+
+      const action = createProjectAction(
+        buildConfig(),
+        mockImmediateCatalog as any,
+      );
+      await expect(action.handler(buildCtx() as any)).rejects.toThrow(
+        /failed to create release bindings for all 3/i,
+      );
+    });
+
+    it('warns without failing the task when the pipeline fetch fails', async () => {
+      mockPOST.mockResolvedValueOnce(successResponse());
+      // beforeEach default: GET resolves 404
+
+      const action = createProjectAction(
+        buildConfig(),
+        mockImmediateCatalog as any,
+      );
+      const ctx = buildCtx();
+      await action.handler(ctx as any);
+
+      expect(bindingCalls()).toHaveLength(0);
+      expect(ctx.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Deploy tab'),
+      );
+      expect(ctx.output).toHaveBeenCalledWith('projectName', 'my-project');
+      expect(ctx.output).toHaveBeenCalledWith('createdBindings', []);
+    });
+
+    it('warns without failing when the pipeline has no environments', async () => {
+      mockPOST.mockResolvedValueOnce(successResponse());
+      mockGET.mockResolvedValue({
+        data: { metadata: { name: 'default-pipeline' }, spec: {} },
+        error: undefined,
+        response: { ok: true, status: 200 } as any,
+      });
+
+      const action = createProjectAction(
+        buildConfig(),
+        mockImmediateCatalog as any,
+      );
+      const ctx = buildCtx();
+      await action.handler(ctx as any);
+
+      expect(bindingCalls()).toHaveLength(0);
+      expect(ctx.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('no environments'),
+      );
+      expect(ctx.output).toHaveBeenCalledWith('createdBindings', []);
+    });
+
+    it('falls back to the default pipeline name when the input is empty', async () => {
+      mockPOST.mockResolvedValueOnce(successResponse());
+      mockGET.mockResolvedValue(pipelineResponse());
+      mockPOST.mockResolvedValue(bindingCreatedResponse());
+
+      const action = createProjectAction(
+        buildConfig(),
+        mockImmediateCatalog as any,
+      );
+      await action.handler(
+        buildCtx({ input: { deploymentPipeline: '' } }) as any,
+      );
+
+      expect(mockGET.mock.calls[0][1].params.path.deploymentPipelineName).toBe(
+        'default',
+      );
+    });
   });
 });

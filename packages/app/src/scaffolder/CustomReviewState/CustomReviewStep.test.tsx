@@ -81,6 +81,21 @@ describe('CustomReviewStep — Project (per-ProjectType) templates', () => {
     expect(screen.queryByText('Parameters')).not.toBeInTheDocument();
     expect(tables()).toHaveLength(1);
   });
+
+  it('renders the Auto Deploy toggle value as Yes/No', () => {
+    render(
+      <CustomReviewStep
+        {...makeProps({
+          namespace_name: 'domain:default/default',
+          project_name: 'minimal-demo',
+          deployment_pipeline: 'default',
+          auto_deploy: false,
+        })}
+      />,
+    );
+
+    expect(tables()[0]['Auto Deploy']).toBe('No');
+  });
 });
 
 describe('CustomReviewStep — Notification Channel templates', () => {

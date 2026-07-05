@@ -636,6 +636,9 @@ function ProjectReview({ data }: { data: Record<string, unknown> }) {
       String(data.deployment_pipeline),
     );
   }
+  if (data.auto_deploy !== undefined) {
+    setMeta(projectMeta, 'Auto Deploy', data.auto_deploy ? 'Yes' : 'No');
+  }
 
   // Section: Parameters — the per-type schema-driven form values flattened
   // to label/value rows. Empty/missing fields are dropped by flattenToMetadata.

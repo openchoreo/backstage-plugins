@@ -132,6 +132,26 @@ describe('PtdToTemplateConverter', () => {
       );
     });
 
+    it('emits a default-on Auto Deploy toggle in the Project Metadata section', () => {
+      const pt: ProjectTypeCRD = {
+        metadata: { name: 'web-app' },
+        spec: {},
+      };
+
+      const result = converter.convertPtdToTemplateEntity(pt, 'finance');
+      const autoDeploy = (result.spec as any).parameters[0].properties
+        .auto_deploy;
+
+      expect(autoDeploy.type).toBe('boolean');
+      expect(autoDeploy.title).toBe('Auto Deploy');
+      expect(autoDeploy.default).toBe(true);
+      expect(autoDeploy['ui:field']).toBe('SwitchField');
+      // Not in the section's required list: a toggle always carries a value.
+      expect((result.spec as any).parameters[0].required).not.toContain(
+        'auto_deploy',
+      );
+    });
+
     it('pre-fills the namespace dropdown with the type own namespace (namespaced scope)', () => {
       const pt: ProjectTypeCRD = { metadata: { name: 'web-app' }, spec: {} };
 
@@ -197,6 +217,7 @@ describe('PtdToTemplateConverter', () => {
         displayName: '${{ parameters.displayName }}',
         description: '${{ parameters.description }}',
         deploymentPipeline: '${{ parameters.deployment_pipeline }}',
+        autoDeploy: '${{ parameters.auto_deploy }}',
         typeKind: 'ProjectType',
         typeName: 'web-app',
         parameters: '${{ parameters.parameters }}',
