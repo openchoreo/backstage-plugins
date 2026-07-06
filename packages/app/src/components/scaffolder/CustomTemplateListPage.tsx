@@ -502,9 +502,17 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   const onTemplateSelected = useCallback(
     (template: any) => {
       const { namespace, name } = parseEntityRef(stringifyEntityRef(template));
-      navigate(templateRoute({ namespace, templateName: name }));
+      const basePath = templateRoute({ namespace, templateName: name });
+      // Carry the project/namespace context forward so the wizard's
+      // ProjectNamespaceField can preselect them. These params are dropped by
+      // the template route itself, so append them explicitly.
+      const preserved = new URLSearchParams();
+      if (projectParam) preserved.set('project', projectParam);
+      if (namespaceParam) preserved.set('namespace', namespaceParam);
+      const query = preserved.toString();
+      navigate(query ? `${basePath}?${query}` : basePath);
     },
-    [navigate, templateRoute],
+    [navigate, templateRoute, projectParam, namespaceParam],
   );
 
   const navigateToComponentsView = useCallback(() => {
