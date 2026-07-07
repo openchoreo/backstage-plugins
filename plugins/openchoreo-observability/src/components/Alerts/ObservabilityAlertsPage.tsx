@@ -1,12 +1,13 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { Box, Typography, Button } from '@material-ui/core';
-import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
+import { EmptyState, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { AlertsFilter } from './AlertsFilter';
 import { AlertsTable } from './AlertsTable';
 import { AlertsActions } from './AlertsActions';
+import { ObservabilityPageSkeleton } from '../common';
 import {
   useComponentAlerts,
   useGetNamespaceAndProjectByEntity,
@@ -48,6 +49,7 @@ const ObservabilityAlertsContent = () => {
   const {
     alerts,
     loading: alertsLoading,
+    isRefetching: alertsRefetching,
     error: alertsError,
     fetchAlerts,
     refresh,
@@ -244,7 +246,7 @@ const ObservabilityAlertsContent = () => {
         <>
           <AlertsActions
             totalCount={filteredAlerts.length}
-            disabled={alertsLoading || !filters.environment}
+            disabled={alertsLoading || alertsRefetching || !filters.environment}
             onRefresh={handleRefresh}
             filters={filters}
             onFiltersChange={handleFiltersChange}
@@ -254,6 +256,7 @@ const ObservabilityAlertsContent = () => {
           <AlertsTable
             alerts={filteredAlerts}
             loading={alertsLoading}
+            isRefetching={alertsRefetching}
             environmentName={
               selectedEnvironment?.displayName || selectedEnvironment?.name
             }
@@ -276,7 +279,7 @@ export const ObservabilityAlertsPage = () => {
     deniedTooltip,
   } = useAlertsPermission();
 
-  if (permissionLoading) return <Progress />;
+  if (permissionLoading) return <ObservabilityPageSkeleton />;
 
   if (!canViewAlerts) {
     return (

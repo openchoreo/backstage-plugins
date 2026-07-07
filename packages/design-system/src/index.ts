@@ -13,6 +13,8 @@ export { StatusBadge } from './components/StatusBadge';
 export type { StatusType } from './components/StatusBadge';
 export { Card } from './components/Card';
 export type { CardProps } from './components/Card';
+export { Skeleton } from './components/Skeleton';
+export type { SkeletonProps } from './components/Skeleton';
 export { VerticalTabNav, VerticalTabItem } from './components/VerticalTabNav';
 export type {
   VerticalTabNavProps,

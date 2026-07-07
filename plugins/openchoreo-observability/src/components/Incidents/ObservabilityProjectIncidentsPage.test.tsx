@@ -136,7 +136,7 @@ describe('ObservabilityProjectIncidentsPage', () => {
     setupDefaultMocks();
   });
 
-  it('shows progress while checking permissions', async () => {
+  it('shows a page skeleton while checking permissions', async () => {
     mockUseIncidentsPermission.mockReturnValue({
       canViewIncidents: false,
       loading: true,
@@ -145,7 +145,10 @@ describe('ObservabilityProjectIncidentsPage', () => {
 
     await renderPage();
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    // Permission gate now renders a stable page skeleton (role=status,
+    // aria-busy) instead of a top progress bar.
+    const skeleton = screen.getByRole('status');
+    expect(skeleton).toHaveAttribute('aria-busy', 'true');
   });
 
   it('shows permission denied when user lacks permission', async () => {

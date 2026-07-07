@@ -10,7 +10,7 @@ import {
   Typography,
   CircularProgress,
 } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
+import { SkeletonRows } from '@openchoreo/backstage-plugin-react';
 import type { AlertSummary } from '../../types';
 import { useLogsTableStyles } from '../RuntimeLogs/styles';
 import { AlertRow } from './AlertRow';
@@ -18,6 +18,8 @@ import { AlertRow } from './AlertRow';
 interface AlertsTableProps {
   alerts: AlertSummary[];
   loading: boolean;
+  /** Background refresh while alerts are already shown — overlay, don't blank. */
+  isRefetching?: boolean;
   environmentName?: string;
   projectName?: string;
   componentName?: string;
@@ -29,6 +31,7 @@ interface AlertsTableProps {
 export const AlertsTable: FC<AlertsTableProps> = ({
   alerts,
   loading,
+  isRefetching = false,
   environmentName = '',
   projectName = '',
   componentName = '',
@@ -37,27 +40,6 @@ export const AlertsTable: FC<AlertsTableProps> = ({
   onViewCostAnalysis,
 }) => {
   const classes = useLogsTableStyles();
-
-  const renderLoadingSkeletons = () =>
-    Array.from({ length: 5 }).map((_, i) => (
-      <TableRow key={`skeleton-${i}`}>
-        <TableCell>
-          <Skeleton variant="text" width="100%" />
-        </TableCell>
-        <TableCell>
-          <Skeleton variant="text" width="100%" />
-        </TableCell>
-        <TableCell>
-          <Skeleton variant="text" width="100%" />
-        </TableCell>
-        <TableCell>
-          <Skeleton variant="text" width="100%" />
-        </TableCell>
-        <TableCell>
-          <Skeleton variant="text" width="100%" />
-        </TableCell>
-      </TableRow>
-    ));
 
   const renderEmptyState = () => (
     <TableRow>
@@ -100,7 +82,7 @@ export const AlertsTable: FC<AlertsTableProps> = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {loading && renderLoadingSkeletons()}
+            {loading && <SkeletonRows rows={5} cols={5} />}
             {!loading && filteredAlerts.length === 0 && renderEmptyState()}
             {!loading &&
               filteredAlerts.map(alert => (
@@ -118,7 +100,7 @@ export const AlertsTable: FC<AlertsTableProps> = ({
           </TableBody>
         </Table>
       </Box>
-      {loading && filteredAlerts.length > 0 && (
+      {isRefetching && filteredAlerts.length > 0 && (
         <Box className={classes.loadingContainer}>
           <CircularProgress size={24} />
         </Box>

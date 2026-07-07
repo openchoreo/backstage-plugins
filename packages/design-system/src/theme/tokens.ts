@@ -211,6 +211,21 @@ export type ThemeTokens = {
 
   // ---- Deletion warning (graph nodes marked for deletion) -------------------
   deletionWarning: string;
+
+  // ---- Motion / animation timing --------------------------------------------
+  // Single source of truth for loading/animation timing so shimmer, pulse,
+  // spin and fade-in read consistently everywhere. Colors for shimmer live in
+  // `graph.skeletonStops`; only timing/easing belong here.
+  motion: {
+    /** Shimmer/pulse cycle used by the Skeleton primitive and pulse effects. */
+    shimmerDuration: string;
+    /** Easing for the shimmer/pulse cycle. */
+    shimmerEasing: string;
+    /** Fade-in for content/overlays appearing after load. */
+    fadeInDuration: string;
+    /** Rotation cycle for spinners / refresh icons. */
+    spinDuration: string;
+  };
 };
 
 // ---------------------------------------------------------------------------
@@ -454,6 +469,13 @@ export const lightTokens: ThemeTokens = {
   },
 
   deletionWarning: '#f59e0b',
+
+  motion: {
+    shimmerDuration: '1.5s',
+    shimmerEasing: 'ease-in-out',
+    fadeInDuration: '300ms',
+    spinDuration: '1s',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -674,4 +696,11 @@ export const darkTokens: ThemeTokens = {
   },
 
   deletionWarning: '#fbbf24',
+
+  motion: {
+    shimmerDuration: '1.5s',
+    shimmerEasing: 'ease-in-out',
+    fadeInDuration: '300ms',
+    spinDuration: '1s',
+  },
 };

@@ -1,0 +1,1 @@
+export { ObservabilityPageSkeleton } from './ObservabilityPageSkeleton';

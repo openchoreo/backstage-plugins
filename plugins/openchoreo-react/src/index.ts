@@ -7,6 +7,12 @@
 // Components
 export { SummaryWidgetWrapper } from './components/SummaryWidgetWrapper';
 export {
+  ContentLoader,
+  type ContentLoaderProps,
+  SkeletonRows,
+  type SkeletonRowsProps,
+} from './components/ContentLoader';
+export {
   FeatureGate,
   FeatureGatedContent,
   withFeatureGate,

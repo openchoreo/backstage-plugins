@@ -69,8 +69,8 @@ describe('IncidentsTable', () => {
   it('shows loading skeletons when loading', () => {
     renderTable({ loading: true, incidents: [] });
 
-    // 5 skeleton rows × 6 cells each
-    const skeletons = document.querySelectorAll('.MuiSkeleton-root');
+    // SkeletonRows rows={5} cols={6} → 30 decorative shimmer placeholders.
+    const skeletons = document.querySelectorAll('[aria-hidden="true"]');
     expect(skeletons.length).toBe(30);
   });
 

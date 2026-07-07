@@ -144,7 +144,7 @@ describe('ObservabilityAlertsPage', () => {
     setupDefaultMocks();
   });
 
-  it('shows progress while checking permissions', async () => {
+  it('shows a page skeleton while checking permissions', async () => {
     mockUseAlertsPermission.mockReturnValue({
       canViewAlerts: false,
       loading: true,
@@ -153,7 +153,11 @@ describe('ObservabilityAlertsPage', () => {
 
     await renderPage();
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    // The permission gate now renders a stable page skeleton (role=status,
+    // aria-busy) instead of a top progress bar, so the page frame does not
+    // visibly swap when the check resolves.
+    const skeleton = screen.getByRole('status');
+    expect(skeleton).toHaveAttribute('aria-busy', 'true');
   });
 
   it('shows permission denied when user lacks access', async () => {

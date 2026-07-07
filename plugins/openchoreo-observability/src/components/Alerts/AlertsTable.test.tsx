@@ -78,14 +78,25 @@ describe('AlertsTable', () => {
   it('shows loading skeletons when loading with no alerts', () => {
     renderTable({ alerts: [], loading: true });
 
-    const skeletons = document.querySelectorAll('.MuiSkeleton-root');
+    // SkeletonRows renders decorative (aria-hidden) shimmer placeholders.
+    const skeletons = document.querySelectorAll('[aria-hidden="true"]');
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
-  it('shows spinner when loading with existing alerts', () => {
-    renderTable({ loading: true });
+  it('shows an overlay spinner when refetching with existing alerts', () => {
+    // A background refresh keeps the rows and overlays a spinner — it must NOT
+    // blank the list.
+    renderTable({ isRefetching: true });
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    // Existing rows stay on screen.
+    expect(screen.getByText('High Memory')).toBeInTheDocument();
+  });
+
+  it('does not blank existing alerts during a refetch', () => {
+    renderTable({ isRefetching: true });
+    expect(screen.getByText('High Memory')).toBeInTheDocument();
+    expect(screen.getByText('Error Rate Spike')).toBeInTheDocument();
   });
 
   it('renders severity chips', () => {

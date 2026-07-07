@@ -1,12 +1,13 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { Box, Typography, Button, Snackbar } from '@material-ui/core';
-import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
+import { EmptyState, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { IncidentsFilter } from './IncidentsFilter';
 import { IncidentsTable } from './IncidentsTable';
 import { IncidentsActions } from './IncidentsActions';
+import { ObservabilityPageSkeleton } from '../common';
 import {
   useGetComponentsByProject,
   useProjectIncidents,
@@ -334,7 +335,7 @@ export const ObservabilityProjectIncidentsPage = () => {
     deniedTooltip,
   } = useIncidentsPermission();
 
-  if (permissionLoading) return <Progress />;
+  if (permissionLoading) return <ObservabilityPageSkeleton />;
 
   if (!canViewIncidents) {
     return (

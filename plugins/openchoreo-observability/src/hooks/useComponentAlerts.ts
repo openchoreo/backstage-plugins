@@ -20,6 +20,8 @@ export interface UseComponentAlertsOptions {
 export interface UseComponentAlertsResult {
   alerts: AlertSummary[];
   loading: boolean;
+  /** True during a background refresh where alerts are already on screen. */
+  isRefetching: boolean;
   error: string | null;
   totalCount: number;
   fetchAlerts: (reset?: boolean) => Promise<void>;
@@ -35,9 +37,14 @@ export function useComponentAlerts(
   const observabilityApi = useApi(observabilityApiRef);
   const [alerts, setAlerts] = useState<AlertSummary[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isRefetching, setIsRefetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const requestVersionRef = useRef(0);
+  // Mirrors whether we currently have alerts, without adding `alerts` to
+  // fetchAlerts' deps (which would re-create the callback on every fetch).
+  const hasAlertsRef = useRef(false);
+  hasAlertsRef.current = alerts.length > 0;
 
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
@@ -51,7 +58,13 @@ export function useComponentAlerts(
       const version = ++requestVersionRef.current;
 
       try {
-        setLoading(true);
+        // First load shows the skeleton; a refresh with alerts already on
+        // screen keeps them and shows a subtle overlay instead of blanking.
+        if (hasAlertsRef.current) {
+          setIsRefetching(true);
+        } else {
+          setLoading(true);
+        }
         setError(null);
 
         const { startTime, endTime } = calculateTimeRange(options.timeRange, {
@@ -83,6 +96,7 @@ export function useComponentAlerts(
       } finally {
         if (version === requestVersionRef.current) {
           setLoading(false);
+          setIsRefetching(false);
         }
       }
     },
@@ -101,13 +115,15 @@ export function useComponentAlerts(
   );
 
   const refresh = useCallback(() => {
-    setAlerts([]);
+    // Keep the current alerts on screen; fetchAlerts flips isRefetching so the
+    // table shows an overlay spinner instead of clearing to an empty list.
     fetchAlerts(true);
   }, [fetchAlerts]);
 
   return {
     alerts,
     loading,
+    isRefetching,
     error,
     totalCount,
     fetchAlerts,
