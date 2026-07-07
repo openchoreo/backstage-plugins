@@ -33,7 +33,11 @@ import {
 } from '@openchoreo/backstage-design-system';
 import { CreateProjectContentButton } from './CreateProjectContentButton';
 import { ProjectContentsEmptyState } from './ProjectContentsEmptyState';
-import { buildProjectContentColumns } from './columns';
+import {
+  buildProjectContentColumns,
+  buildProjectContentSkeletonColumns,
+  PROJECT_CONTENT_SKELETON_ROWS,
+} from './columns';
 import { getKindLabel } from './kindPalette';
 import { useProjectContentsCardStyles } from './styles';
 
@@ -165,6 +169,11 @@ export const ProjectContentsCard = () => {
     [pipelineEnvironments, canViewBindings, pipelineError, environmentsLoading],
   );
 
+  const skeletonColumns = useMemo(
+    () => buildProjectContentSkeletonColumns(),
+    [],
+  );
+
   // --- Handlers ----------------------------------------------------------
   const handleKindsChange = (next: Set<string>) => {
     setSelectedKinds(next);
@@ -259,12 +268,15 @@ export const ProjectContentsCard = () => {
         <>
           <Box className={classes.tableScroll}>
             <Table<ProjectContentItem>
-              columns={columns}
-              data={page.items}
-              isLoading={tableLoading}
+              columns={tableLoading ? skeletonColumns : columns}
+              data={tableLoading ? PROJECT_CONTENT_SKELETON_ROWS : page.items}
+              // Render skeleton rows on the card's paper background instead of
+              // the Table's built-in CircularProgress overlay.
+              isLoading={false}
               onOrderChange={handleOrderChange}
               onRowClick={(event, rowData) => {
                 if (
+                  tableLoading ||
                   !rowData ||
                   !shouldNavigateOnRowClick(event) ||
                   isMarkedForDeletion(rowData.entity)

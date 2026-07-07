@@ -117,6 +117,69 @@ const CreatedCell = ({ item }: { item: ProjectContentItem }) => {
   );
 };
 
+/** Placeholder rows shown while the catalog page loads. */
+export const SKELETON_ROW_COUNT = 3;
+export const PROJECT_CONTENT_SKELETON_ROWS: ProjectContentItem[] = Array.from(
+  { length: SKELETON_ROW_COUNT },
+  (_, index) => ({ name: `skeleton-${index}` } as ProjectContentItem),
+);
+
+const TextSkeleton = ({ width }: { width: number }) => (
+  <Skeleton variant="text" width={width} height={20} />
+);
+
+/**
+ * Columns mirroring {@link buildProjectContentColumns} (same titles + widths)
+ * but rendering skeletons instead of data. Used to keep the header row and
+ * column layout stable while the page loads, on the card's paper background.
+ */
+export function buildProjectContentSkeletonColumns(): TableColumn<ProjectContentItem>[] {
+  return [
+    {
+      title: 'Name',
+      field: 'displayName',
+      width: '16%',
+      highlight: true,
+      sorting: false,
+      render: () => <TextSkeleton width={120} />,
+    },
+    {
+      title: 'Kind',
+      field: 'kind',
+      width: '9%',
+      sorting: false,
+      render: () => <TextSkeleton width={60} />,
+    },
+    {
+      title: 'Description',
+      field: 'description',
+      width: '18%',
+      sorting: false,
+      render: () => <TextSkeleton width={180} />,
+    },
+    {
+      title: 'Type',
+      field: 'type',
+      width: '14%',
+      sorting: false,
+      render: () => <TextSkeleton width={80} />,
+    },
+    {
+      title: 'Deployment',
+      width: '30%',
+      sorting: false,
+      render: () => <DeploymentStatusSkeleton />,
+    },
+    {
+      title: 'Created',
+      field: 'createdAt',
+      width: '13%',
+      sorting: false,
+      render: () => <TextSkeleton width={70} />,
+    },
+  ];
+}
+
 interface BuildColumnsArgs {
   environments: Environment[];
   canViewBindings: boolean;
