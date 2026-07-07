@@ -15,3 +15,7 @@ export {
   mockComponentEntity,
   mockSystemEntity,
 } from './frontend';
+export {
+  createQueryWrapper,
+  createTestQueryClient,
+} from './queryClientWrapper';

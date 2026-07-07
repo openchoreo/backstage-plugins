@@ -1,6 +1,6 @@
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
-import { useAsyncRetry } from 'react-use';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import type { ReleaseBindingCondition } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError } from '../../../utils/errorUtils';
@@ -57,21 +57,19 @@ export interface Environment {
 export function useEnvironmentData(entity: Entity) {
   const client = useApi(openChoreoClientApiRef);
 
-  const {
-    loading,
-    value: environments,
-    error,
-    retry,
-  } = useAsyncRetry(async () => {
-    const data = await client.fetchEnvironmentInfo(entity);
-    return data as Environment[];
-  }, [entity, client]);
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
+    ['environments', stringifyEntityRef(entity)],
+    () => client.fetchEnvironmentInfo(entity) as Promise<Environment[]>,
+  );
 
   return {
-    environments: environments ?? [],
+    environments: data ?? [],
     loading,
+    // Background refresh with environments already on screen — lets the Deploy
+    // tab keep content and show a subtle overlay instead of blanking.
+    isRefetching,
     error,
     isForbidden: isForbiddenError(error),
-    refetch: retry,
+    refetch,
   };
 }

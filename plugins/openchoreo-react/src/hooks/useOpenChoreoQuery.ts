@@ -1,0 +1,123 @@
+import {
+  useQuery,
+  type QueryKey,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
+
+/**
+ * The `refetchInterval` accepted by a `useQuery<T, Error>`. Kept as a named
+ * alias so the public option type below stays parameterised on `T` and matches
+ * the internal `useQuery` call (an unparameterised `UseQueryOptions` collapses
+ * to `unknown` and no longer type-checks against `useQuery<T, Error>`).
+ */
+type RefetchInterval<T> = UseQueryOptions<
+  T,
+  Error,
+  T,
+  QueryKey
+>['refetchInterval'];
+
+/**
+ * Options accepted by {@link useOpenChoreoQuery}. A trimmed passthrough of the
+ * TanStack Query options we actually want callers to set — everything else
+ * (caching, dedup, retry) comes from the app-level `QueryClient` defaults so
+ * behaviour stays consistent across the portal.
+ */
+export interface UseOpenChoreoQueryOptions<T> {
+  /**
+   * Freshness window for this query, in ms. Status-y data (deploy/binding
+   * status, logs) should pass a short value; near-static data (roles, schemas)
+   * can rely on the longer app default. Overrides the `QueryClient` default.
+   */
+  staleTime?: number;
+  /**
+   * Poll interval, in ms, or a function returning `false` to stop polling once
+   * a run reaches a terminal state. Replaces hand-rolled `setInterval` loops.
+   */
+  refetchInterval?: RefetchInterval<T>;
+  /**
+   * When false, the query is registered but does not fetch — for data that is
+   * gated on a prerequisite (e.g. an entity ref that isn't resolved yet).
+   * @default true
+   */
+  enabled?: boolean;
+}
+
+/**
+ * The shape every OpenChoreo data hook returns. Deliberately matches what
+ * `ContentLoader` consumes — `loading` drives the first-load skeleton,
+ * `isRefetching` drives the keep-content-on-screen overlay — so a hook built on
+ * this wrapper plugs straight into `<ContentLoader loading isRefetching data error />`.
+ */
+export interface UseOpenChoreoQueryResult<T> {
+  /** The cached/fetched data, or `undefined` before the first successful load. */
+  data: T | undefined;
+  /** First load with no data yet. Maps to TanStack's `isPending`. */
+  loading: boolean;
+  /**
+   * Background refresh while data is already on screen. True only when a fetch
+   * is in flight AND we already have data — so it never fires on the first load.
+   */
+  isRefetching: boolean;
+  /** The last error, kept in `error` (never cached as data), or `null`. */
+  error: Error | null;
+  /** Re-run the query. Returns void so it drops into `onRetry`/`refetch` props. */
+  refetch: () => void;
+}
+
+/**
+ * The single response-caching entry point for OpenChoreo frontend hooks.
+ *
+ * A thin wrapper over TanStack Query's `useQuery` that (a) keeps the third-party
+ * dependency out of ~90 call sites behind one swappable seam, and (b) maps the
+ * result onto the `{ loading, isRefetching, data, error, refetch }` shape that
+ * `ContentLoader` (from this package) expects. Caching, request dedup and retry
+ * come from the app-level `QueryClient`; callers only supply a key + fetcher.
+ *
+ * The fetcher's thrown errors (including a Backstage `ResponseError` for a 403)
+ * land in `error` — they are never cached as successful `data` — so existing
+ * `isForbiddenError(error)` checks keep working.
+ *
+ * @example
+ * ```ts
+ * const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
+ *   ['environments', stringifyEntityRef(entity)],
+ *   () => client.fetchEnvironmentInfo(entity),
+ * );
+ * ```
+ *
+ * @param queryKey - Stable, serialisable key identifying this data (per client
+ *   method + params). Drives caching and invalidation.
+ * @param fetcher - Async function that performs the request via the API client.
+ * @param options - Optional per-query overrides (freshness, polling, enablement).
+ */
+export function useOpenChoreoQuery<T>(
+  queryKey: QueryKey,
+  fetcher: () => Promise<T>,
+  options: UseOpenChoreoQueryOptions<T> = {},
+): UseOpenChoreoQueryResult<T> {
+  const { data, error, isPending, isFetching, refetch } = useQuery<T, Error>({
+    queryKey,
+    queryFn: fetcher,
+    staleTime: options.staleTime,
+    refetchInterval: options.refetchInterval,
+    enabled: options.enabled,
+  });
+
+  // `enabled: false` leaves a query in a "pending but not fetching" state
+  // forever; treat that as not-loading so a disabled query doesn't wedge a
+  // consumer on the skeleton.
+  const isDisabled = options.enabled === false;
+
+  return {
+    data,
+    loading: isPending && !isDisabled,
+    // Background refresh: a fetch is in flight while we already have data.
+    // `!isPending` guarantees this is never true during the first load.
+    isRefetching: isFetching && !isPending,
+    error: error ?? null,
+    refetch: () => {
+      void refetch();
+    },
+  };
+}

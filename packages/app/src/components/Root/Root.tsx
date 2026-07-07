@@ -39,8 +39,10 @@ import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
 import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { ScaffolderPreselectionProvider } from '../../scaffolder/ScaffolderPreselectionContext';
 import { DependencyGraphZoomOverrides } from '../graph/DependencyGraphZoomOverrides';
+import { queryClient } from '../../queryClient';
 
 const isMac =
   typeof navigator !== 'undefined' &&
@@ -157,6 +159,11 @@ const SignOutButton = () => {
 
   const handleSignOut = async () => {
     await identityApi.signOut();
+    // Drop every cached BFF response so the next user can't see the previous
+    // user's permission-scoped data. The reload below already clears in-memory
+    // cache, but clearing explicitly keeps this correct if the reload is ever
+    // removed and is the seam a future persisted cache would hook into.
+    queryClient.clear();
     // Reload to clear session and redirect to sign-in page
     window.location.href = '/';
   };
@@ -170,85 +177,91 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
   useSearchModalStyles();
   const a11yClasses = useA11yStyles();
   return (
-    <ScaffolderPreselectionProvider>
-      <AssistantDrawerProvider>
-        {/*
+    <QueryClientProvider client={queryClient}>
+      <ScaffolderPreselectionProvider>
+        <AssistantDrawerProvider>
+          {/*
           Mounted inside <Root> (which lives under <AppRouter> per
           convertLegacyAppRoot's children-recognition rules) so the
           component's MutationObserver runs in the routed subtree. The
           previous placement as an <AppRouter> sibling was silently
           dropped by convertLegacyAppRoot during the NFS migration.
         */}
-        <DependencyGraphZoomOverrides />
-        <a href="#main-content" className={a11yClasses.skipLink}>
-          Skip to main content
-        </a>
-        <SidebarPage>
-          <Sidebar>
-            <SidebarLogo />
-            <Tooltip title={searchShortcutLabel} placement="right" arrow>
-              <div>
-                <SidebarGroup label="Search" icon={<SearchIcon />} to="/search">
-                  <SearchModalProvider>
-                    <KeyboardShortcutSearchToggler />
-                    <SidebarSearchModal>
-                      {({ toggleModal }) => (
-                        <CustomSearchModal toggleModal={toggleModal} />
-                      )}
-                    </SidebarSearchModal>
-                  </SearchModalProvider>
-                </SidebarGroup>
-              </div>
-            </Tooltip>
-            <SidebarDivider />
-            <SidebarGroup label="Menu" icon={<MenuIcon />}>
-              {/* Global nav, not org-specific */}
-              <SidebarItem icon={HomeIcon} to="/" text="Home" />
-              <SidebarItem icon={CategoryIcon} to="catalog" text="Catalog" />
-              <SidebarItem
-                icon={BubbleChartIcon}
-                to="platform-overview"
-                text="Platform"
-              />
-              <MyGroupsSidebarItem
-                singularTitle="My Group"
-                pluralTitle="My Groups"
-                icon={GroupIcon}
-              />
-              <SidebarItem icon={ExtensionIcon} to="api-docs" text="APIs" />
-              {/* TechDocs disabled until proper production support is implemented */}
-              {/* <SidebarItem icon={LibraryBooks} to="docs" text="Docs" /> */}
-              <SidebarItem
-                icon={CreateComponentIcon}
-                to="create"
-                text="Create..."
-              />
-              {/* End global nav */}
-              <SidebarScrollWrapper>
-                {/* Items in this group will be scrollable if they run out of space */}
-              </SidebarScrollWrapper>
-            </SidebarGroup>
-            <SidebarSpace />
-            <SidebarDivider />
-            <SidebarGroup
-              label="Settings"
-              icon={<UserSettingsSignInAvatar />}
-              to="/settings"
+          <DependencyGraphZoomOverrides />
+          <a href="#main-content" className={a11yClasses.skipLink}>
+            Skip to main content
+          </a>
+          <SidebarPage>
+            <Sidebar>
+              <SidebarLogo />
+              <Tooltip title={searchShortcutLabel} placement="right" arrow>
+                <div>
+                  <SidebarGroup
+                    label="Search"
+                    icon={<SearchIcon />}
+                    to="/search"
+                  >
+                    <SearchModalProvider>
+                      <KeyboardShortcutSearchToggler />
+                      <SidebarSearchModal>
+                        {({ toggleModal }) => (
+                          <CustomSearchModal toggleModal={toggleModal} />
+                        )}
+                      </SidebarSearchModal>
+                    </SearchModalProvider>
+                  </SidebarGroup>
+                </div>
+              </Tooltip>
+              <SidebarDivider />
+              <SidebarGroup label="Menu" icon={<MenuIcon />}>
+                {/* Global nav, not org-specific */}
+                <SidebarItem icon={HomeIcon} to="/" text="Home" />
+                <SidebarItem icon={CategoryIcon} to="catalog" text="Catalog" />
+                <SidebarItem
+                  icon={BubbleChartIcon}
+                  to="platform-overview"
+                  text="Platform"
+                />
+                <MyGroupsSidebarItem
+                  singularTitle="My Group"
+                  pluralTitle="My Groups"
+                  icon={GroupIcon}
+                />
+                <SidebarItem icon={ExtensionIcon} to="api-docs" text="APIs" />
+                {/* TechDocs disabled until proper production support is implemented */}
+                {/* <SidebarItem icon={LibraryBooks} to="docs" text="Docs" /> */}
+                <SidebarItem
+                  icon={CreateComponentIcon}
+                  to="create"
+                  text="Create..."
+                />
+                {/* End global nav */}
+                <SidebarScrollWrapper>
+                  {/* Items in this group will be scrollable if they run out of space */}
+                </SidebarScrollWrapper>
+              </SidebarGroup>
+              <SidebarSpace />
+              <SidebarDivider />
+              <SidebarGroup
+                label="Settings"
+                icon={<UserSettingsSignInAvatar />}
+                to="/settings"
+              >
+                <SidebarSettings />
+              </SidebarGroup>
+              <SidebarDivider />
+              <SignOutButton />
+            </Sidebar>
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className={a11yClasses.mainContent}
             >
-              <SidebarSettings />
-            </SidebarGroup>
-            <SidebarDivider />
-            <SignOutButton />
-          </Sidebar>
-          <main
-            id="main-content"
-            tabIndex={-1}
-            className={a11yClasses.mainContent}
-          >
-            {children}
-          </main>
-        </SidebarPage>
-      </AssistantDrawerProvider>
-    </ScaffolderPreselectionProvider>
+              {children}
+            </main>
+          </SidebarPage>
+        </AssistantDrawerProvider>
+      </ScaffolderPreselectionProvider>
+    </QueryClientProvider>
   );
 };

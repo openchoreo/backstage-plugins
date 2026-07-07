@@ -6,7 +6,12 @@ import {
   type FC,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
-import { Box, useMediaQuery, useTheme } from '@material-ui/core';
+import {
+  Box,
+  CircularProgress,
+  useMediaQuery,
+  useTheme,
+} from '@material-ui/core';
 import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 import {
   buildEnvPipelineNodes,
@@ -31,6 +36,9 @@ const SETUP_NODE_ID = '__setup__';
 export interface DeployFlowCanvasProps {
   environments: Environment[];
   loading: boolean;
+  /** Background refresh with environments already on screen — shows a small
+   *  overlay in the canvas's top-right instead of blanking the nodes. */
+  isRefetching?: boolean;
   isWorkloadEditorSupported: boolean;
   selectedEnvName: string | null;
   selectedSetup: boolean;
@@ -58,6 +66,7 @@ export interface DeployFlowCanvasProps {
 export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
   environments,
   loading,
+  isRefetching = false,
   isWorkloadEditorSupported,
   selectedEnvName,
   selectedSetup,
@@ -177,6 +186,16 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
         ['--canvas-dots' as string]: tokens.graph.canvasDotPattern,
       }}
     >
+      {isRefetching && (
+        <Box
+          className={classes.canvasRefetchOverlay}
+          data-testid="env-refetch-overlay"
+          role="status"
+          aria-label="Refreshing environments"
+        >
+          <CircularProgress size={16} aria-hidden="true" />
+        </Box>
+      )}
       {/*
         The canvas container + content divs are the d3-zoom drag/wheel
         surfaces and also handle a target-equality "click background to

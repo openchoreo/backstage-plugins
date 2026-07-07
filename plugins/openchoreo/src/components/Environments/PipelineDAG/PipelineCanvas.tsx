@@ -131,6 +131,7 @@ export const PipelineCanvas: FC = () => {
     displayEnvironments,
     loading,
     error,
+    isRefetching,
     refetch,
     isWorkloadEditorSupported,
     canViewEnvironments,
@@ -437,6 +438,7 @@ export const PipelineCanvas: FC = () => {
           <DeployFlowCanvas
             environments={displayEnvironments}
             loading={loading}
+            isRefetching={isRefetching}
             isWorkloadEditorSupported={isWorkloadEditorSupported}
             selectedEnvName={selectedEnvName}
             selectedSetup={selectedSetup}

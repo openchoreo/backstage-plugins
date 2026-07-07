@@ -515,6 +515,11 @@ export {
   type AsyncStatus,
   type AsyncState,
 } from './hooks/useAsyncOperation';
+export {
+  useOpenChoreoQuery,
+  type UseOpenChoreoQueryOptions,
+  type UseOpenChoreoQueryResult,
+} from './hooks/useOpenChoreoQuery';
 
 // Change Detection Components
 export { ChangeDiff, type ChangeDiffProps } from './components/ChangeDiff';

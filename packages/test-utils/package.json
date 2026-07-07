@@ -20,9 +20,16 @@
   },
   "dependencies": {
     "@backstage/backend-test-utils": "^1.11.3",
-    "@backstage/catalog-model": "^1.9.0"
+    "@backstage/catalog-model": "^1.9.0",
+    "@backstage/test-utils": "^1.7.18",
+    "@tanstack/react-query": "^5.101.2"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
   },
   "devDependencies": {
-    "@backstage/cli": "^0.36.2"
+    "@backstage/cli": "^0.36.2",
+    "@testing-library/react": "14.3.1",
+    "@types/react": "^18.0.0"
   }
 }
