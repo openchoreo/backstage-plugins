@@ -356,6 +356,9 @@ describe('createProjectAction', () => {
         'my-project-staging',
         'my-project-prod',
       ]);
+      // No failures, so the manual-deploy warning is suppressed.
+      expect(ctx.output).toHaveBeenCalledWith('autoDeployFailed', false);
+      expect(ctx.output).toHaveBeenCalledWith('failedEnvironments', '');
     });
 
     it('creates no bindings when autoDeploy is false', async () => {
@@ -419,9 +422,12 @@ describe('createProjectAction', () => {
         'my-project-dev',
         'my-project-prod',
       ]);
+      // The failed environment is surfaced for the manual-deploy warning.
+      expect(ctx.output).toHaveBeenCalledWith('autoDeployFailed', true);
+      expect(ctx.output).toHaveBeenCalledWith('failedEnvironments', 'staging');
     });
 
-    it('fails the step when every binding create fails', async () => {
+    it('warns without failing the task when every binding create fails', async () => {
       mockPOST.mockResolvedValueOnce(successResponse());
       mockGET.mockResolvedValue(pipelineResponse());
       mockPOST.mockResolvedValue(bindingErrorResponse(403));
@@ -430,8 +436,23 @@ describe('createProjectAction', () => {
         buildConfig(),
         mockImmediateCatalog as any,
       );
-      await expect(action.handler(buildCtx() as any)).rejects.toThrow(
-        /failed to create release bindings for all 3/i,
+      const ctx = buildCtx();
+      await action.handler(ctx as any);
+
+      // The project was already created, so the step succeeds and still emits
+      // its outputs (letting the "View Project" link render); the binding
+      // failures only surface as warnings.
+      expect(bindingCalls()).toHaveLength(3);
+      expect(ctx.output).toHaveBeenCalledWith('projectName', 'my-project');
+      expect(ctx.output).toHaveBeenCalledWith('createdBindings', []);
+      expect(ctx.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('created 0 of 3'),
+      );
+      // All environments failed, so the warning lists them all.
+      expect(ctx.output).toHaveBeenCalledWith('autoDeployFailed', true);
+      expect(ctx.output).toHaveBeenCalledWith(
+        'failedEnvironments',
+        'dev, staging, prod',
       );
     });
 
