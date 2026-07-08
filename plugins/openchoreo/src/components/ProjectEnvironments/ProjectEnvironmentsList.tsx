@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box } from '@material-ui/core';
 import { useNavigate } from 'react-router-dom';
-import { Progress } from '@backstage/core-components';
+import { Progress, EmptyState } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import {
-  EmptyState,
-  ErrorState,
-  ForbiddenState,
-} from '@openchoreo/backstage-plugin-react';
-import { Card } from '@openchoreo/backstage-design-system';
+import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
 import {
   openChoreoClientApiRef,
   type ProjectEnvironment,
@@ -17,6 +12,7 @@ import {
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { useNotification } from '../../hooks';
 import { NotificationBanner } from '../Environments/components';
+import { NoEnvironmentsEmptyState } from '../Environments/components/NoEnvironmentsEmptyState';
 import { useEnvironmentPolling } from '../Environments/hooks';
 import { ProjectDeployFlowCanvas } from './ProjectDeployFlowCanvas';
 import { ProjectEnvironmentDetailPanel } from './ProjectEnvironmentDetailPanel';
@@ -183,29 +179,16 @@ export const ProjectEnvironmentsList = () => {
 
   if (error) {
     return (
-      <Card style={{ minHeight: '300px', width: '100%' }}>
-        <ErrorState
-          title="Failed to load environments"
-          message={getErrorMessage(error)}
-          onRetry={() => fetchEnvs({ showProgress: true })}
-        />
-      </Card>
+      <EmptyState
+        missing="data"
+        title="Failed to load environments"
+        description={getErrorMessage(error)}
+      />
     );
   }
 
   if (envs.length === 0) {
-    return (
-      <Card style={{ minHeight: '300px', width: '100%' }}>
-        <EmptyState
-          title="No environments available"
-          description="This project's deployment pipeline has no environments configured."
-          action={{
-            label: 'Retry',
-            onClick: () => fetchEnvs({ showProgress: true }),
-          }}
-        />
-      </Card>
-    );
+    return <NoEnvironmentsEmptyState />;
   }
 
   return (

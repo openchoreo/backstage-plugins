@@ -29,28 +29,18 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('@backstage/core-components', () => ({
   Progress: () => <div data-testid="progress">loading</div>,
+  EmptyState: ({ missing, title, description }: any) => (
+    <div data-testid={missing === 'data' ? 'error-state' : 'empty-state'}>
+      <span>{title}</span>
+      <span>{typeof description === 'string' ? description : ''}</span>
+    </div>
+  ),
 }));
 
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden">{message}</div>
   ),
-  EmptyState: ({ title, description }: any) => (
-    <div data-testid="empty-state">
-      <span>{title}</span>
-      <span>{description}</span>
-    </div>
-  ),
-  ErrorState: ({ title, message }: any) => (
-    <div data-testid="error-state">
-      <span>{title}</span>
-      <span>{message}</span>
-    </div>
-  ),
-}));
-
-jest.mock('@openchoreo/backstage-design-system', () => ({
-  Card: ({ children }: any) => <div data-testid="card">{children}</div>,
 }));
 
 jest.mock('../../utils/errorUtils', () => ({
@@ -68,6 +58,14 @@ jest.mock('../../hooks', () => ({
 
 jest.mock('../Environments/components', () => ({
   NotificationBanner: () => null,
+}));
+
+jest.mock('../Environments/components/NoEnvironmentsEmptyState', () => ({
+  NoEnvironmentsEmptyState: () => (
+    <div>
+      This project's deployment pipeline has no environments configured.
+    </div>
+  ),
 }));
 
 jest.mock('../Environments/hooks', () => ({

@@ -19,6 +19,10 @@ jest.mock('./DeployFlowCanvas', () => ({
   },
 }));
 
+jest.mock('../components/NoEnvironmentsEmptyState', () => ({
+  NoEnvironmentsEmptyState: () => <div data-testid="empty-state" />,
+}));
+
 jest.mock('../components', () => ({
   NotificationBanner: () => null,
   EnvironmentDetailPanel: (props: EnvironmentDetailPanelProps) => {
@@ -35,25 +39,24 @@ jest.mock('../components', () => ({
 
 // ---- Mock @openchoreo/backstage-plugin-react primitives ----
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
-  EmptyState: (props: { title: string; description: string }) => (
-    <div data-testid="empty-state">
-      <span>{props.title}</span>
-      <span>{props.description}</span>
-    </div>
-  ),
   ForbiddenState: (props: { message: string; onRetry?: () => void }) => (
     <div data-testid="forbidden-state">
       <span>{props.message}</span>
     </div>
   ),
-  ErrorState: (props: {
-    title?: string;
-    message: string;
-    onRetry?: () => void;
+}));
+
+jest.mock('@backstage/core-components', () => ({
+  EmptyState: (props: {
+    missing?: string;
+    title: string;
+    description: any;
   }) => (
-    <div data-testid="error-state">
+    <div data-testid={props.missing === 'data' ? 'error-state' : 'empty-state'}>
       <span>{props.title}</span>
-      <span>{props.message}</span>
+      <span>
+        {typeof props.description === 'string' ? props.description : ''}
+      </span>
     </div>
   ),
 }));

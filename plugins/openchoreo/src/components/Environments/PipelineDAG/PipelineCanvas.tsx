@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, type FC } from 'react';
 import { Box } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import { EmptyState } from '@backstage/core-components';
 
 import { useItemActionTracker, useNotification } from '../../../hooks';
 import {
@@ -18,17 +19,14 @@ import { EnvironmentDetailPanel, NotificationBanner } from '../components';
 import { useEnvironmentsContext, type Selection } from '../EnvironmentsContext';
 import { useIncidentsSummary } from '../hooks/useIncidentsSummary';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
-import {
-  EmptyState,
-  ErrorState,
-  ForbiddenState,
-} from '@openchoreo/backstage-plugin-react';
+import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
 import { Card, useChoreoTokens } from '@openchoreo/backstage-design-system';
 import {
   useDeployFlowCanvasStyles,
   useEnvironmentDetailPanelStyles,
 } from '../styles';
 import { DeployFlowCanvas } from './DeployFlowCanvas';
+import { NoEnvironmentsEmptyState } from '../components/NoEnvironmentsEmptyState';
 
 /** Placeholder canvas tiles while initial env data loads. */
 const CanvasSkeleton: FC = () => {
@@ -406,27 +404,17 @@ export const PipelineCanvas: FC = () => {
         environments.length === 0 &&
         canViewEnvironments &&
         error && (
-          <Card style={{ minHeight: '300px', width: '100%' }}>
-            <ErrorState
-              title="Failed to load environments"
-              message={getErrorMessage(error)}
-              onRetry={refetch}
-            />
-          </Card>
+          <EmptyState
+            missing="data"
+            title="Failed to load environments"
+            description={getErrorMessage(error)}
+          />
         )}
       {!loading &&
         !environmentReadPermissionLoading &&
         !error &&
         environments.length === 0 &&
-        canViewEnvironments && (
-          <Card style={{ minHeight: '300px', width: '100%' }}>
-            <EmptyState
-              title="No environments available"
-              description="This project's deployment pipeline has no environments configured."
-              action={{ label: 'Retry', onClick: refetch }}
-            />
-          </Card>
-        )}
+        canViewEnvironments && <NoEnvironmentsEmptyState />}
 
       {showSkeleton && (
         <Box className={classes.splitContainer}>
