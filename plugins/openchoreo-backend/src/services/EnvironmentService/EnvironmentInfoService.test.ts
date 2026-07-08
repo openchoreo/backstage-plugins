@@ -298,13 +298,13 @@ describe('EnvironmentInfoService', () => {
         error: undefined,
         response: { ok: true, status: 200 },
       });
-      // fetchDeploymentInfo calls
+      // fetchDeploymentInfo calls (env, bindings, project, pipeline)
       mockGET.mockResolvedValueOnce(
         createOkResponse({ items: [k8sEnvironment], pagination: {} }),
       );
       mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
-      // project with no pipeline ref
-      mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectNoPipeline));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
 
       const service = createService();
       const result = await service.deleteReleaseBinding(
@@ -641,7 +641,7 @@ describe('EnvironmentInfoService', () => {
       );
     });
 
-    it('falls back to default ordering when project has no pipeline', async () => {
+    it('throws rather than defaulting to all environments when the pipeline cannot be resolved', async () => {
       mockGET.mockResolvedValueOnce(
         createOkResponse({
           items: [makeK8sEnvironment('dev'), makeK8sEnvironment('staging')],
@@ -649,22 +649,21 @@ describe('EnvironmentInfoService', () => {
         }),
       );
       mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
-      // project without deploymentPipelineRef
+      // project without deploymentPipelineRef → pipeline unresolved
       mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectNoPipeline));
       mockGET.mockResolvedValueOnce(createOkResponse(k8sResource));
 
       const service = createService();
-      const result = await service.fetchResourceEnvironmentInfo(
-        {
-          resourceName: 'analytics-db',
-          projectName: 'my-project',
-          namespaceName: 'test-ns',
-        },
-        'token-123',
-      );
-
-      expect(result).toHaveLength(2);
-      expect(result.every(e => e.promotionTargets === undefined)).toBe(true);
+      await expect(
+        service.fetchResourceEnvironmentInfo(
+          {
+            resourceName: 'analytics-db',
+            projectName: 'my-project',
+            namespaceName: 'test-ns',
+          },
+          'token-123',
+        ),
+      ).rejects.toThrow(/could not be loaded/);
     });
 
     it('returns env-info without latestRelease when resource fetch errors', async () => {
@@ -1066,28 +1065,28 @@ describe('EnvironmentInfoService', () => {
       expect(result[2].name).toBe('Production Environment');
     });
 
-    it('returns all environments when no pipeline exists', async () => {
+    it('throws rather than defaulting to all environments when the pipeline cannot be resolved', async () => {
       mockGET.mockResolvedValueOnce(
         createOkResponse({ items: allEnvs, pagination: {} }),
       );
       mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
-      // project with no pipeline ref
+      // project with no pipeline ref → pipeline unresolved
       mockGET.mockResolvedValueOnce(createOkResponse(k8sProjectNoPipeline));
 
       const service = createService();
-      const result = await service.fetchDeploymentInfo(
-        {
-          projectName: 'my-project',
-          componentName: 'api-service',
-          namespaceName: 'test-ns',
-        },
-        'token-123',
-      );
-
-      expect(result).toHaveLength(5);
+      await expect(
+        service.fetchDeploymentInfo(
+          {
+            projectName: 'my-project',
+            componentName: 'api-service',
+            namespaceName: 'test-ns',
+          },
+          'token-123',
+        ),
+      ).rejects.toThrow(/could not be loaded/);
     });
 
-    it('returns all environments when pipeline has empty promotionPaths', async () => {
+    it('returns no environments when the pipeline has empty promotionPaths', async () => {
       const emptyPipeline = {
         ...pipelineDevStagingProd,
         spec: { promotionPaths: [] },
@@ -1109,8 +1108,31 @@ describe('EnvironmentInfoService', () => {
         'token-123',
       );
 
-      // Empty promotionPaths treated as no pipeline → show all environments
-      expect(result).toHaveLength(5);
+      // A resolved pipeline that defines no promotion paths has no deployable
+      // environments — the UI shows its empty state
+      expect(result).toHaveLength(0);
+    });
+
+    it('surfaces a Forbidden error (not "pipeline unavailable") when the pipeline read is denied', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: allEnvs, pagination: {} }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      // deploymentpipelines:view denied → 403 on the pipeline read
+      mockGET.mockResolvedValueOnce(createErrorResponse(403));
+
+      const service = createService();
+      await expect(
+        service.fetchDeploymentInfo(
+          {
+            projectName: 'my-project',
+            componentName: 'api-service',
+            namespaceName: 'test-ns',
+          },
+          'token-123',
+        ),
+      ).rejects.toMatchObject({ name: 'NotAllowedError' });
     });
   });
 });
