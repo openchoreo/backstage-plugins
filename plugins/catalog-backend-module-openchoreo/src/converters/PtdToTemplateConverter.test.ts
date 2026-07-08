@@ -243,6 +243,27 @@ describe('PtdToTemplateConverter', () => {
       ]);
     });
 
+    it('emits a conditional manual-deploy warning text output', () => {
+      const pt: ProjectTypeCRD = { metadata: { name: 'web-app' }, spec: {} };
+
+      const result = converter.convertPtdToTemplateEntity(pt, 'finance');
+      const output = (result.spec as any).output;
+
+      // A static, schema-valid array (output.text must be an array) whose single
+      // entry is dropped by the scaffolder when the `if` condition is falsy.
+      // `icon: 'warning'` selects the alert severity in the app's custom
+      // outputs renderer; no title so the note renders as a plain warning bar.
+      expect(output.text).toHaveLength(1);
+      expect(output.text[0].if).toBe(
+        "${{ steps['create-project'].output.autoDeployFailed }}",
+      );
+      expect(output.text[0].icon).toBe('warning');
+      expect(output.text[0].title).toBeUndefined();
+      expect(output.text[0].content).toContain(
+        "${{ steps['create-project'].output.failedEnvironments }}",
+      );
+    });
+
     it('formats hyphenated ProjectType names as title case', () => {
       expect(
         converter.convertPtdToTemplateEntity(

@@ -34,6 +34,7 @@ import { NotificationChannelFormWithYamlFieldExtension } from '../../scaffolder/
 import { DeploymentPipelineFormWithYamlFieldExtension } from '../../scaffolder/DeploymentPipelineFormWithYaml';
 import { WorkloadDetailsFieldExtension } from '../../scaffolder/WorkloadDetailsField';
 import { CustomTemplateListPage } from './CustomTemplateListPage';
+import { OpenChoreoTemplateOutputs } from './OpenChoreoTemplateOutputs';
 import { CustomReviewStep } from '../../scaffolder/CustomReviewState';
 
 /**
@@ -55,6 +56,7 @@ export function OpenChoreoScaffolderPage() {
         }}
         components={{
           EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
+          EXPERIMENTAL_TemplateOutputsComponent: OpenChoreoTemplateOutputs,
           ReviewStepComponent: CustomReviewStep,
         }}
       >

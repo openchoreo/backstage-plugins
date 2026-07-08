@@ -139,6 +139,24 @@ export class PtdToTemplateConverter {
                 "system:${{ steps['create-project'].output.namespaceName }}/${{ steps['create-project'].output.projectName }}",
             },
           ],
+          // Rendered as a warning bar below the "View Project" link, but only
+          // when auto deploy could not create some release bindings. The `if`
+          // condition is evaluated by the scaffolder after the step runs
+          // (falsy items are dropped), so on success no bar is shown. `icon`
+          // drives the alert severity in OpenChoreoTemplateOutputs (the app's
+          // custom outputs renderer); a title is intentionally omitted.
+          text: [
+            {
+              if: "${{ steps['create-project'].output.autoDeployFailed }}",
+              icon: 'warning',
+              content:
+                'Auto Deploy could not create release binding(s) for ' +
+                "**${{ steps['create-project'].output.failedEnvironments }}**. " +
+                'The project was created successfully, but it will not be ' +
+                'deployed automatically — deploy it manually from the ' +
+                "project's **Deploy** tab.",
+            },
+          ],
         },
       } as any,
     };

@@ -16929,6 +16929,7 @@ __metadata:
     "@backstage/plugin-permission-common": "npm:^0.9.9"
     "@backstage/plugin-permission-react": "npm:^0.5.1"
     "@backstage/plugin-scaffolder": "npm:^1.37.0"
+    "@backstage/plugin-scaffolder-common": "npm:^2.2.0"
     "@backstage/plugin-scaffolder-react": "npm:^2.0.0"
     "@backstage/plugin-search": "npm:^1.7.4"
     "@backstage/plugin-search-react": "npm:^1.11.4"

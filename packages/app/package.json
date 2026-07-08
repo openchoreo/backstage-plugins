@@ -47,6 +47,7 @@
     "@backstage/plugin-permission-common": "^0.9.9",
     "@backstage/plugin-permission-react": "^0.5.1",
     "@backstage/plugin-scaffolder": "^1.37.0",
+    "@backstage/plugin-scaffolder-common": "^2.2.0",
     "@backstage/plugin-scaffolder-react": "^2.0.0",
     "@backstage/plugin-search": "^1.7.4",
     "@backstage/plugin-search-react": "^1.11.4",
