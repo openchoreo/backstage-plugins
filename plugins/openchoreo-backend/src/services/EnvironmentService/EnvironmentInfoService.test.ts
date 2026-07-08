@@ -1117,6 +1117,28 @@ describe('EnvironmentInfoService', () => {
       // environments — the UI shows its empty state
       expect(result).toHaveLength(0);
     });
+
+    it('surfaces a Forbidden error (not "pipeline unavailable") when the pipeline read is denied', async () => {
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: allEnvs, pagination: {} }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      // deploymentpipelines:view denied → 403 on the pipeline read
+      mockGET.mockResolvedValueOnce(createErrorResponse(403));
+
+      const service = createService();
+      await expect(
+        service.fetchDeploymentInfo(
+          {
+            projectName: 'my-project',
+            componentName: 'api-service',
+            namespaceName: 'test-ns',
+          },
+          'token-123',
+        ),
+      ).rejects.toMatchObject({ name: 'NotAllowedError' });
+    });
   });
 
   describe('fetchProjectEnvironmentInfo', () => {

@@ -58,6 +58,19 @@ export class PipelineUnavailableError extends NotFoundError {
 }
 
 /**
+ * Surfaces auth failures (401/403) encountered while resolving the deployment
+ * pipeline as thrown Backstage errors.
+ */
+function assertPipelineFetchAllowed(
+  result: { data?: unknown; error?: unknown; response: Response },
+  context: string,
+): void {
+  if (result.response.status === 401 || result.response.status === 403) {
+    assertApiResponse(result, context);
+  }
+}
+
+/**
  * Extracts the environment name from a sourceEnvironmentRef which may be
  * a plain string (old API) or an object { kind, name } (new API).
  */
@@ -212,6 +225,14 @@ export class EnvironmentInfoService implements EnvironmentService {
               },
             },
           );
+          assertPipelineFetchAllowed(
+            {
+              data: project,
+              error: projectError,
+              response: projectResponse,
+            },
+            'fetch project',
+          );
           if (
             projectError ||
             !projectResponse.ok ||
@@ -232,6 +253,10 @@ export class EnvironmentInfoService implements EnvironmentService {
                 },
               },
             },
+          );
+          assertPipelineFetchAllowed(
+            { data, error, response },
+            'fetch deployment pipeline',
           );
           if (error || !response.ok) {
             return null;
@@ -1530,6 +1555,14 @@ export class EnvironmentInfoService implements EnvironmentService {
               },
             },
           );
+          assertPipelineFetchAllowed(
+            {
+              data: project,
+              error: projectError,
+              response: projectResponse,
+            },
+            'fetch project',
+          );
           if (
             projectError ||
             !projectResponse.ok ||
@@ -1549,6 +1582,10 @@ export class EnvironmentInfoService implements EnvironmentService {
                 },
               },
             },
+          );
+          assertPipelineFetchAllowed(
+            { data, error, response },
+            'fetch deployment pipeline',
           );
           if (error || !response.ok) {
             return null;
@@ -2177,6 +2214,14 @@ export class EnvironmentInfoService implements EnvironmentService {
               },
             },
           );
+          assertPipelineFetchAllowed(
+            {
+              data: project,
+              error: projectError,
+              response: projectResponse,
+            },
+            'fetch project',
+          );
           if (
             projectError ||
             !projectResponse.ok ||
@@ -2196,6 +2241,10 @@ export class EnvironmentInfoService implements EnvironmentService {
                 },
               },
             },
+          );
+          assertPipelineFetchAllowed(
+            { data, error, response },
+            'fetch deployment pipeline',
           );
           if (error || !response.ok) {
             return null;
