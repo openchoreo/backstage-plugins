@@ -7,6 +7,7 @@ import {
 import {
   Environment,
   useProjectEnvironments,
+  type ProjectEnvironmentsStatus,
 } from '@openchoreo/backstage-plugin-react';
 
 // Cap each probe so a single hanging DataPlane can't block the page.
@@ -24,7 +25,9 @@ export interface WirelogsEnvironment extends Environment {
 export interface UseWirelogsEnvironmentsResult {
   environments: WirelogsEnvironment[];
   loading: boolean;
+  status: ProjectEnvironmentsStatus;
   error: string | null;
+  refetch: () => void;
 }
 
 /**
@@ -45,7 +48,9 @@ export const useWirelogsEnvironments = (
   const {
     environments: baseEnvs,
     loading: baseLoading,
+    status: baseStatus,
     error,
+    refetch,
   } = useProjectEnvironments(projectName, namespaceName);
   const [environments, setEnvironments] = useState<WirelogsEnvironment[]>([]);
   const [enriching, setEnriching] = useState(false);
@@ -121,6 +126,10 @@ export const useWirelogsEnvironments = (
   return {
     environments,
     loading: baseLoading || enriching,
+    // A netpol-probe failure (base envs resolved, enrichment failed) is
+    // surfaced as `unavailable`; otherwise mirror the base resolution status.
+    status: enrichError ? 'unavailable' : baseStatus,
     error: error || enrichError,
+    refetch,
   };
 };

@@ -112,7 +112,9 @@ function setupDefaultMocks() {
   mockUseProjectEnvironments.mockReturnValue({
     environments: [defaultEnvironment],
     loading: false,
+    status: 'ok',
     error: null,
+    refetch: jest.fn(),
   });
 
   mockUseGetComponentsByProject.mockReturnValue({
@@ -265,16 +267,21 @@ describe('ObservabilityTracesPage', () => {
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
   });
 
-  it('renders nothing for environments error', async () => {
+  it('shows the pipeline-unavailable notice when environments fail to load', async () => {
     mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
+      status: 'unavailable',
       error: 'Environment error',
+      refetch: jest.fn(),
     });
 
     await renderPage();
 
     expect(screen.queryByTestId('traces-filters')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Couldn't load this project's deployment pipeline/i),
+    ).toBeInTheDocument();
   });
 
   it('renders nothing for components error', async () => {

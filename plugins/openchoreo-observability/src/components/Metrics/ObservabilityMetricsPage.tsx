@@ -20,6 +20,7 @@ import {
   useMetrics,
 } from '../../hooks';
 import { useProjectEnvironments } from '@openchoreo/backstage-plugin-react';
+import { EnvironmentsStatusNotice } from '../common';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   ResourceMetrics,
@@ -45,7 +46,8 @@ const ObservabilityMetricsContent = () => {
   const {
     environments,
     loading: environmentsLoading,
-    error: environmentsError,
+    status: environmentsStatus,
+    refetch: refetchEnvironments,
   } = useProjectEnvironments(project, namespace);
 
   // URL-synced filters - must be after environments are available
@@ -100,9 +102,18 @@ const ObservabilityMetricsContent = () => {
     return <></>;
   }
 
-  if (environmentsError) {
-    // TODO: Add a toast notification here
-    return <></>;
+  if (
+    environmentsStatus === 'forbidden' ||
+    environmentsStatus === 'unavailable'
+  ) {
+    return (
+      <Box>
+        <EnvironmentsStatusNotice
+          status={environmentsStatus}
+          onRetry={refetchEnvironments}
+        />
+      </Box>
+    );
   }
 
   const isLoading = environmentsLoading;
@@ -143,6 +154,9 @@ const ObservabilityMetricsContent = () => {
             environments={environments}
             disabled={isLoading}
           />
+          {environmentsStatus === 'empty-pipeline' && (
+            <EnvironmentsStatusNotice status="empty-pipeline" />
+          )}
           {filters.environment &&
             !envPermissionLoading &&
             !canViewMetricsForEnv && (

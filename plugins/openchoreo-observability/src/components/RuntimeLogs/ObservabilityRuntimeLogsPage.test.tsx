@@ -114,7 +114,9 @@ function setupDefaultMocks() {
       { name: 'staging', displayName: 'Staging' },
     ],
     loading: false,
+    status: 'ok',
     error: null,
+    refetch: jest.fn(),
   });
 
   mockUseUrlFiltersForRuntimeLogs.mockReturnValue({
@@ -202,17 +204,19 @@ describe('ObservabilityRuntimeLogsPage', () => {
     expect(screen.getByTestId('total-count')).toHaveTextContent('1');
   });
 
-  it('shows environment error when environments fail to load', async () => {
+  it('shows the pipeline-unavailable notice when environments fail to load', async () => {
     mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
+      status: 'unavailable',
       error: 'Failed to fetch environments',
+      refetch: jest.fn(),
     });
 
     await renderPage();
 
     expect(
-      screen.getByText('Failed to fetch environments'),
+      screen.getByText(/Couldn't load this project's deployment pipeline/i),
     ).toBeInTheDocument();
   });
 
@@ -254,11 +258,13 @@ describe('ObservabilityRuntimeLogsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows no environments alert when none found', async () => {
+  it('shows the empty-pipeline notice when the pipeline has no environments', async () => {
     mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
+      status: 'empty-pipeline',
       error: null,
+      refetch: jest.fn(),
     });
 
     mockUseUrlFiltersForRuntimeLogs.mockReturnValue({
@@ -270,7 +276,7 @@ describe('ObservabilityRuntimeLogsPage', () => {
 
     expect(
       screen.getByText(
-        'No environments found. Make sure your component is properly configured.',
+        /This project's deployment pipeline has no environments configured/i,
       ),
     ).toBeInTheDocument();
   });

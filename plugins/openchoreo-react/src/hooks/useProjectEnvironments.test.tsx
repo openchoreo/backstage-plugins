@@ -147,6 +147,7 @@ describe('useProjectEnvironments', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.error).toBeNull();
+    expect(result.current.status).toBe('ok');
     expect(result.current.environments.map(e => e.name)).toEqual([
       'dev',
       'stage',
@@ -238,7 +239,7 @@ describe('useProjectEnvironments', () => {
     ]);
   });
 
-  it('returns an empty list when promotionPaths is empty (no catalog hit)', async () => {
+  it('reports empty-pipeline status when promotionPaths is empty (no catalog hit)', async () => {
     mockFetchApi.fetch.mockResolvedValueOnce(
       okJsonResponse({ promotionPaths: [] }),
     );
@@ -247,6 +248,7 @@ describe('useProjectEnvironments', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.environments).toEqual([]);
+    expect(result.current.status).toBe('empty-pipeline');
     expect(mockCatalogApi.getEntities).not.toHaveBeenCalled();
   });
 
@@ -273,14 +275,26 @@ describe('useProjectEnvironments', () => {
     ]);
   });
 
-  it('reports an error when the pipeline endpoint fails', async () => {
+  it('reports unavailable status when the pipeline endpoint fails', async () => {
     mockFetchApi.fetch.mockResolvedValueOnce(errResponse(500, 'boom'));
 
     const { result } = renderHookWithApis();
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.environments).toEqual([]);
+    expect(result.current.status).toBe('unavailable');
     expect(result.current.error).toContain('500');
+  });
+
+  it('reports forbidden status when the pipeline read is denied (403)', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(errResponse(403, 'Forbidden'));
+
+    const { result } = renderHookWithApis();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.environments).toEqual([]);
+    expect(result.current.status).toBe('forbidden');
+    expect(mockCatalogApi.getEntities).not.toHaveBeenCalled();
   });
 
   it('reports an error when fetch throws', async () => {

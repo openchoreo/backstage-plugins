@@ -15,6 +15,7 @@ import {
   ForbiddenState,
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
+import { EnvironmentsStatusNotice } from '../common';
 import { CostAnalysisReport } from './CostAnalysisReport';
 import { EntityLinkContext } from '../RCA/RCAReport/EntityLinkContext';
 
@@ -29,7 +30,8 @@ const CostAnalysisListContent = () => {
   const {
     environments,
     loading: environmentsLoading,
-    error: environmentsError,
+    status: environmentsStatus,
+    refetch: refetchEnvironments,
   } = useProjectEnvironments(projectName, namespace);
   const { filters, updateFilters } = useUrlFilters({ environments });
 
@@ -108,16 +110,10 @@ const CostAnalysisListContent = () => {
             environmentsLoading={environmentsLoading}
           />
 
-          {environmentsError && (
-            <Box mt={2} mb={2}>
-              <Alert severity="warning">
-                <Typography variant="body1">
-                  Failed to load environments. Environment filtering may not be
-                  available.
-                </Typography>
-              </Alert>
-            </Box>
-          )}
+          <EnvironmentsStatusNotice
+            status={environmentsStatus}
+            onRetry={refetchEnvironments}
+          />
 
           {reportsError && renderError(reportsError)}
 

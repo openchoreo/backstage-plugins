@@ -662,4 +662,5 @@ export * from './components/EnvironmentFilter';
 export {
   useProjectEnvironments,
   type UseProjectEnvironmentsResult,
+  type ProjectEnvironmentsStatus,
 } from './hooks/useProjectEnvironments';

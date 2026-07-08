@@ -18,6 +18,7 @@ import {
   ForbiddenState,
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
+import { EnvironmentsStatusNotice } from '../common';
 import { useRuntimeLogsStyles } from './styles';
 import { LOG_LEVELS } from './types';
 import type { RenderLogRowAction } from './LogEntry';
@@ -40,7 +41,8 @@ const ObservabilityRuntimeLogsContent = ({
   const {
     environments,
     loading: environmentsLoading,
-    error: environmentsError,
+    status: environmentsStatus,
+    refetch: refetchEnvironments,
   } = useProjectEnvironments(project, namespace);
 
   const { filters, updateFilters } = useUrlFiltersForRuntimeLogs({
@@ -202,8 +204,18 @@ const ObservabilityRuntimeLogsContent = ({
     );
   };
 
-  if (environmentsError) {
-    return <Box>{renderError(environmentsError)}</Box>;
+  if (
+    environmentsStatus === 'forbidden' ||
+    environmentsStatus === 'unavailable'
+  ) {
+    return (
+      <Box>
+        <EnvironmentsStatusNotice
+          status={environmentsStatus}
+          onRetry={refetchEnvironments}
+        />
+      </Box>
+    );
   }
 
   return (
@@ -218,16 +230,9 @@ const ObservabilityRuntimeLogsContent = ({
 
       {logsError && renderError(logsError)}
 
-      {!filters.environment &&
-        !environmentsLoading &&
-        environments.length === 0 && (
-          <Alert severity="info" className={classes.errorContainer}>
-            <Typography variant="body1">
-              No environments found. Make sure your component is properly
-              configured.
-            </Typography>
-          </Alert>
-        )}
+      {!environmentsLoading && environmentsStatus === 'empty-pipeline' && (
+        <EnvironmentsStatusNotice status="empty-pipeline" />
+      )}
 
       {filters.environment && !envPermissionLoading && !canViewLogsForEnv && (
         <ForbiddenState

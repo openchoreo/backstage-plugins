@@ -90,7 +90,9 @@ function setupDefaultMocks() {
   mockUseProjectEnvironments.mockReturnValue({
     environments: [defaultEnvironment],
     loading: false,
+    status: 'ok',
     error: null,
+    refetch: jest.fn(),
   });
 
   mockUseGetComponentsByProject.mockReturnValue({
@@ -208,11 +210,13 @@ describe('ObservabilityProjectIncidentsPage', () => {
     expect(screen.getByText('Retry')).toBeInTheDocument();
   });
 
-  it('shows no environments alert', async () => {
+  it('shows the empty-pipeline notice when the pipeline has no environments', async () => {
     mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
+      status: 'empty-pipeline',
       error: null,
+      refetch: jest.fn(),
     });
 
     mockUseUrlFiltersForIncidents.mockReturnValue({
@@ -226,7 +230,9 @@ describe('ObservabilityProjectIncidentsPage', () => {
     await renderPage();
 
     expect(
-      screen.getByText('No environments found for this project.'),
+      screen.getByText(
+        /This project's deployment pipeline has no environments configured/i,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -246,19 +252,19 @@ describe('ObservabilityProjectIncidentsPage', () => {
     expect(screen.queryByTestId('incidents-table')).not.toBeInTheDocument();
   });
 
-  it('renders environments error as observability disabled info', async () => {
+  it('shows the pipeline-unavailable notice when environments fail to load', async () => {
     mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
-      error: 'Observability is not enabled for this project',
+      status: 'unavailable',
+      error: 'Failed to load deployment pipeline: 500 Internal Server Error',
+      refetch: jest.fn(),
     });
 
     await renderPage();
 
     expect(
-      screen.getByText(
-        'Observability is not enabled for this project. Enable observability to view incidents.',
-      ),
+      screen.getByText(/Couldn't load this project's deployment pipeline/i),
     ).toBeInTheDocument();
   });
 

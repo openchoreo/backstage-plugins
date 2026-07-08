@@ -183,7 +183,9 @@ function setupEnvironments(over: Partial<ReturnType<any>> = {}) {
   mockUseWirelogsEnvironments.mockReturnValue({
     environments: [dev, stg],
     loading: false,
+    status: 'ok',
     error: null,
+    refetch: jest.fn(),
     ...over,
   });
 }
@@ -231,24 +233,34 @@ describe('ObservabilityWirelogsPage', () => {
     );
   });
 
-  it('renders the env error alert when environments fail to load', () => {
+  it('renders the pipeline-unavailable notice when environments fail to load', () => {
     mockUseWirelogsEnvironments.mockReturnValueOnce({
       environments: [],
       loading: false,
+      status: 'unavailable',
       error: 'broken',
+      refetch: jest.fn(),
     });
     render(<ObservabilityWirelogsPage />);
-    expect(screen.getByText('broken')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Couldn't load this project's deployment pipeline/i),
+    ).toBeInTheDocument();
   });
 
-  it('renders the no-envs alert when env list is empty (not loading)', () => {
+  it('renders the empty-pipeline notice when the pipeline has no environments', () => {
     mockUseWirelogsEnvironments.mockReturnValueOnce({
       environments: [],
       loading: false,
+      status: 'empty-pipeline',
       error: null,
+      refetch: jest.fn(),
     });
     render(<ObservabilityWirelogsPage />);
-    expect(screen.getByText(/No environments found/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /This project's deployment pipeline has no environments configured/i,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('renders the stream error message under the toolbar', () => {

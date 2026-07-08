@@ -21,6 +21,7 @@ import {
   calculateTimeRange,
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
+import { EnvironmentsStatusNotice } from '../common';
 
 const ObservabilityTracesContent = () => {
   const { entity } = useEntity();
@@ -31,7 +32,8 @@ const ObservabilityTracesContent = () => {
   const {
     environments,
     loading: environmentsLoading,
-    error: environmentsError,
+    status: environmentsStatus,
+    refetch: refetchEnvironments,
   } = useProjectEnvironments(projectName, namespace);
   const {
     components,
@@ -110,8 +112,18 @@ const ObservabilityTracesContent = () => {
     return <></>;
   }
 
-  if (environmentsError) {
-    return <></>;
+  if (
+    environmentsStatus === 'forbidden' ||
+    environmentsStatus === 'unavailable'
+  ) {
+    return (
+      <Box>
+        <EnvironmentsStatusNotice
+          status={environmentsStatus}
+          onRetry={refetchEnvironments}
+        />
+      </Box>
+    );
   }
 
   const renderError = (error: string) => {
@@ -151,6 +163,10 @@ const ObservabilityTracesContent = () => {
             components={components}
             componentsLoading={componentsLoading}
           />
+
+          {environmentsStatus === 'empty-pipeline' && (
+            <EnvironmentsStatusNotice status="empty-pipeline" />
+          )}
 
           {filters.environment &&
             !envPermissionLoading &&

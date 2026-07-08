@@ -114,7 +114,9 @@ function setupDefaultMocks() {
       { name: 'staging', displayName: 'Staging' },
     ],
     loading: false,
+    status: 'ok',
     error: null,
+    refetch: jest.fn(),
   });
 
   mockUseUrlFiltersForRuntimeEvents.mockReturnValue({
@@ -199,17 +201,19 @@ describe('ObservabilityRuntimeEventsPage', () => {
     expect(screen.getByTestId('total-count')).toHaveTextContent('1');
   });
 
-  it('shows an environment error when environments fail to load', async () => {
+  it('shows the pipeline-unavailable notice when environments fail to load', async () => {
     mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
+      status: 'unavailable',
       error: 'Failed to fetch environments',
+      refetch: jest.fn(),
     });
 
     await renderPage();
 
     expect(
-      screen.getByText('Failed to fetch environments'),
+      screen.getByText(/Couldn't load this project's deployment pipeline/i),
     ).toBeInTheDocument();
   });
 
@@ -253,11 +257,13 @@ describe('ObservabilityRuntimeEventsPage', () => {
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
   });
 
-  it('shows the no-environments alert when none are found', async () => {
+  it('shows the empty-pipeline notice when the pipeline has no environments', async () => {
     mockUseProjectEnvironments.mockReturnValue({
       environments: [],
       loading: false,
+      status: 'empty-pipeline',
       error: null,
+      refetch: jest.fn(),
     });
     mockUseUrlFiltersForRuntimeEvents.mockReturnValue({
       filters: { ...defaultFilters, environment: '' },
@@ -268,7 +274,7 @@ describe('ObservabilityRuntimeEventsPage', () => {
 
     expect(
       screen.getByText(
-        'No environments found. Make sure your component is properly configured.',
+        /This project's deployment pipeline has no environments configured/i,
       ),
     ).toBeInTheDocument();
   });
