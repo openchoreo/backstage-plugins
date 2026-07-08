@@ -15,6 +15,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   DeletionBadge,
   isMarkedForDeletion,
+  RowDeleteButton,
+  useDeleteEntityDialog,
+  usePendingDeletionOverlay,
 } from '@openchoreo/backstage-plugin';
 import {
   queryClient,
@@ -170,6 +173,15 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
     navigate(url);
   };
 
+  // Row-level delete for every kind the OC API can delete (projects,
+  // components, resources, namespaces, environments, platform types, ...).
+  // The catalog lags a delete by a sync/event, so deleted rows are overlaid
+  // with the deletion mark until the next refetch drops them.
+  const { markDeleted, overlay } = usePendingDeletionOverlay();
+  const { requestDelete, DeleteDialog } = useDeleteEntityDialog({
+    onDeleted: markDeleted,
+  });
+
   // The authoritative selected kind. `filters.kind` (applied filter) and the URL
   // both LAG during an in-app kind switch: the provider only sets `appliedFilters`
   // and rewrites the URL AFTER the new kind's fetch resolves. So on a switch, both
@@ -256,8 +268,11 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
   // seed. On a kind switch the held entities are the wrong kind, so the seed
   // (kind-matched) wins — a cached new kind paints immediately; an uncached one
   // has no seed, leaving nothing to show so the cold-load loader takes over.
-  const displayEntities =
-    entities.length > 0 && heldKindMatches ? entities : seed?.items ?? [];
+  // Deleted rows are overlaid with the deletion mark until a refetch drops
+  // them (`overlay` is an identity pass-through when nothing is pending).
+  const displayEntities = overlay(
+    entities.length > 0 && heldKindMatches ? entities : seed?.items ?? [],
+  );
   // Prefer the live count; fall back to the seed's while it loads.
   const displayTotal = totalItems ?? seed?.totalItems;
 
@@ -584,6 +599,7 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
                       </IconButton>
                     </Tooltip>
                   )}
+                  <RowDeleteButton entity={entity} onDelete={requestDelete} />
                 </Box>
               </Box>
             );
@@ -610,6 +626,8 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
           />
         </Box>
       )}
+
+      <DeleteDialog />
     </Box>
   );
 };

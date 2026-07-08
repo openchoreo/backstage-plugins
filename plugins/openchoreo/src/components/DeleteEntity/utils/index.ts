@@ -1,1 +1,6 @@
-export { isMarkedForDeletion, getDeletionTimestamp } from './deletionUtils';
+export {
+  isMarkedForDeletion,
+  getDeletionTimestamp,
+  entityDeletionKey,
+  markEntityForDeletionLocally,
+} from './deletionUtils';

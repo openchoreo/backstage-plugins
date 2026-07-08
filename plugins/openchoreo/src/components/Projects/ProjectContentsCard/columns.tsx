@@ -124,8 +124,8 @@ interface BuildColumnsArgs {
   pipelineError: unknown;
   /** Pipeline environments / permission still loading — skeleton the column. */
   environmentsLoading: boolean;
-  /** Open the delete-confirmation dialog for a component row. */
-  onDeleteComponent: (item: ProjectContentItem) => void;
+  /** Open the delete-confirmation dialog for a row. */
+  onDeleteItem: (item: ProjectContentItem) => void;
 }
 
 export function buildProjectContentColumns({
@@ -133,7 +133,7 @@ export function buildProjectContentColumns({
   canViewBindings,
   pipelineError,
   environmentsLoading,
-  onDeleteComponent,
+  onDeleteItem,
 }: BuildColumnsArgs): TableColumn<ProjectContentItem>[] {
   return [
     {
@@ -205,9 +205,7 @@ export function buildProjectContentColumns({
       sorting: false,
       cellStyle: { textAlign: 'right', paddingRight: 8 },
       headerStyle: { textAlign: 'right' },
-      render: item => (
-        <RowActionsCell item={item} onDelete={onDeleteComponent} />
-      ),
+      render: item => <RowActionsCell item={item} onDelete={onDeleteItem} />,
     },
   ];
 }

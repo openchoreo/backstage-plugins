@@ -1,42 +1,17 @@
-import { type MouseEvent } from 'react';
-import { IconButton, Tooltip } from '@material-ui/core';
-import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
-import { isMarkedForDeletion } from '../../DeleteEntity';
+import { RowDeleteButton } from '../../DeleteEntity';
 import { type ProjectContentItem } from '../hooks';
 
 interface RowActionsCellProps {
   item: ProjectContentItem;
-  /** Open the delete-confirmation dialog for this component. */
+  /** Open the delete-confirmation dialog for this row's entity. */
   onDelete: (item: ProjectContentItem) => void;
 }
 
 /**
- * Per-row delete control for the Project Contents table.
- *
- * Only components are deletable from the listing — Resource rows have no
- * client-side delete, and a row already marked for deletion shows nothing.
- * The click is stopped from bubbling so the row's navigate-on-click doesn't
- * fire.
+ * Per-row delete control for the Project Contents table. Both component and
+ * resource rows are deletable; a row already marked for deletion shows
+ * nothing (RowDeleteButton owns that gating and the click-bubbling stop).
  */
-export const RowActionsCell = ({ item, onDelete }: RowActionsCellProps) => {
-  if (item.kind !== 'component' || isMarkedForDeletion(item.entity)) {
-    return null;
-  }
-
-  const handleDelete = (event: MouseEvent) => {
-    event.stopPropagation();
-    onDelete(item);
-  };
-
-  return (
-    <Tooltip title="Delete component">
-      <IconButton
-        size="small"
-        aria-label={`Delete ${item.displayName}`}
-        onClick={handleDelete}
-      >
-        <DeleteOutlineIcon fontSize="small" />
-      </IconButton>
-    </Tooltip>
-  );
-};
+export const RowActionsCell = ({ item, onDelete }: RowActionsCellProps) => (
+  <RowDeleteButton entity={item.entity} onDelete={() => onDelete(item)} />
+);

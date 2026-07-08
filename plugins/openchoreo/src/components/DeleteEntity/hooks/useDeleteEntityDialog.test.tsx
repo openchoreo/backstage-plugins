@@ -5,7 +5,7 @@ import { TestApiProvider } from '@backstage/test-utils';
 import { alertApiRef } from '@backstage/core-plugin-api';
 import { createMockOpenChoreoClient } from '@openchoreo/test-utils';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
-import { useDeleteComponentDialog } from './useDeleteComponentDialog';
+import { useDeleteEntityDialog } from './useDeleteEntityDialog';
 import type { Entity } from '@backstage/catalog-model';
 
 // ---- Mocks ----
@@ -21,10 +21,10 @@ jest.mock('../../../utils/errorUtils', () => ({
 const mockClient = createMockOpenChoreoClient();
 const mockAlertApi = { post: jest.fn() };
 
-function makeComponent(name: string): Entity {
+function makeEntity(kind: string, name: string): Entity {
   return {
     apiVersion: 'backstage.io/v1alpha1',
-    kind: 'Component',
+    kind,
     metadata: {
       name,
       namespace: 'default',
@@ -34,6 +34,8 @@ function makeComponent(name: string): Entity {
   };
 }
 
+const makeComponent = (name: string) => makeEntity('Component', name);
+
 /** Renders the hook: a button per entity opens the shared dialog. */
 function TestHarness({
   entities,
@@ -42,7 +44,7 @@ function TestHarness({
   entities: Entity[];
   onDeleted?: () => void;
 }) {
-  const { requestDelete, DeleteDialog } = useDeleteComponentDialog({
+  const { requestDelete, DeleteDialog } = useDeleteEntityDialog({
     onDeleted,
   });
 
@@ -79,7 +81,7 @@ function renderHarness(entities: Entity[], onDeleted?: () => void) {
 
 // ---- Tests ----
 
-describe('useDeleteComponentDialog', () => {
+describe('useDeleteEntityDialog', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -130,7 +132,71 @@ describe('useDeleteComponentDialog', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('targets the component whose row requested deletion', async () => {
+  it('deletes a project (system) with the cascade note shown', async () => {
+    const user = userEvent.setup();
+    mockClient.deleteProject.mockResolvedValue(undefined);
+
+    renderHarness([makeEntity('System', 'my-project')]);
+
+    await user.click(screen.getByTestId('open-my-project'));
+
+    expect(
+      screen.getByRole('heading', { name: /delete project/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/All components within this project will also be/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^delete$/i }));
+
+    await waitFor(() => {
+      expect(mockClient.deleteProject).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({ name: 'my-project' }),
+        }),
+      );
+      expect(mockAlertApi.post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Project "my-project" has been marked for deletion',
+          severity: 'success',
+        }),
+      );
+    });
+  });
+
+  it('deletes a namespace (domain) via deleteNamespace', async () => {
+    const user = userEvent.setup();
+    mockClient.deleteNamespace.mockResolvedValue(undefined);
+
+    renderHarness([makeEntity('Domain', 'my-ns')]);
+
+    await user.click(screen.getByTestId('open-my-ns'));
+    await user.click(screen.getByRole('button', { name: /^delete$/i }));
+
+    await waitFor(() => {
+      expect(mockClient.deleteNamespace).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('deletes a platform resource kind via deleteResourceDefinition', async () => {
+    const user = userEvent.setup();
+    mockClient.deleteResourceDefinition.mockResolvedValue(undefined);
+
+    renderHarness([makeEntity('Resource', 'my-db')]);
+
+    await user.click(screen.getByTestId('open-my-db'));
+    await user.click(screen.getByRole('button', { name: /^delete$/i }));
+
+    await waitFor(() => {
+      expect(mockClient.deleteResourceDefinition).toHaveBeenCalledWith(
+        'resources',
+        'test-ns',
+        'my-db',
+      );
+    });
+  });
+
+  it('targets the entity whose row requested deletion', async () => {
     const user = userEvent.setup();
     mockClient.deleteComponent.mockResolvedValue(undefined);
 

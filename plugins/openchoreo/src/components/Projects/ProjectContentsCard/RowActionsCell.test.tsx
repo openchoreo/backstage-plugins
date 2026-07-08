@@ -1,23 +1,25 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { RowActionsCell } from './RowActionsCell';
 import { type ProjectContentItem } from '../hooks';
-
-// isMarkedForDeletion is annotation-driven; mock it so each test controls it.
-const mockIsMarkedForDeletion = jest.fn();
-jest.mock('../../DeleteEntity', () => ({
-  isMarkedForDeletion: (...args: any[]) => mockIsMarkedForDeletion(...args),
-}));
 
 function makeItem(
   kind: 'component' | 'resource',
   name: string,
+  options?: { markedForDeletion?: boolean },
 ): ProjectContentItem {
   return {
     entity: {
       apiVersion: 'backstage.io/v1alpha1',
       kind: kind === 'component' ? 'Component' : 'Resource',
-      metadata: { name, namespace: 'default' },
+      metadata: {
+        name,
+        namespace: 'default',
+        annotations: options?.markedForDeletion
+          ? { [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: '2026-01-01T00:00:00Z' }
+          : {},
+      },
       spec: {},
     },
     kind,
@@ -31,11 +33,6 @@ function makeItem(
 }
 
 describe('RowActionsCell', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockIsMarkedForDeletion.mockReturnValue(false);
-  });
-
   it('renders a delete button for a component row', () => {
     render(
       <RowActionsCell
@@ -45,6 +42,15 @@ describe('RowActionsCell', () => {
     );
     expect(
       screen.getByRole('button', { name: /delete svc/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders a delete button for a resource row', () => {
+    render(
+      <RowActionsCell item={makeItem('resource', 'db')} onDelete={jest.fn()} />,
+    );
+    expect(
+      screen.getByRole('button', { name: /delete db/i }),
     ).toBeInTheDocument();
   });
 
@@ -60,18 +66,10 @@ describe('RowActionsCell', () => {
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith(item));
   });
 
-  it('renders nothing for a resource row', () => {
-    const { container } = render(
-      <RowActionsCell item={makeItem('resource', 'db')} onDelete={jest.fn()} />,
-    );
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('renders nothing for a component already marked for deletion', () => {
-    mockIsMarkedForDeletion.mockReturnValue(true);
+  it('renders nothing for a row already marked for deletion', () => {
     const { container } = render(
       <RowActionsCell
-        item={makeItem('component', 'svc')}
+        item={makeItem('component', 'svc', { markedForDeletion: true })}
         onDelete={jest.fn()}
       />,
     );

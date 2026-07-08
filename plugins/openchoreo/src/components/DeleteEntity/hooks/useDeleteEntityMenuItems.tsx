@@ -1,21 +1,18 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Typography } from '@material-ui/core';
 import DeleteIcon from '@material-ui/icons/Delete';
 import { useNavigate } from 'react-router-dom';
 import { useApi, alertApiRef, IconComponent } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import {
-  openChoreoClientApiRef,
-  CLUSTER_SCOPED_RESOURCE_KINDS,
-} from '../../../api/OpenChoreoClientApi';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { isMarkedForDeletion } from '../utils';
 import { DeleteEntityDialog } from '../components';
 import {
-  isSupportedKind,
-  mapKindToApiKind,
-} from '../../ResourceDefinition/utils';
+  getEntityDeleteCascadeNote,
+  getEntityDisplayType,
+  isDeletableEntityKind,
+  performEntityDelete,
+} from './deleteEntityDispatch';
 
 interface ExtraContextMenuItem {
   title: string;
@@ -35,34 +32,6 @@ export interface DeletePermissionInfo {
   loading: boolean;
   deniedTooltip: string;
 }
-
-/** Human-friendly display names for all deletable entity kinds */
-const KIND_DISPLAY_NAMES: Record<string, string> = {
-  component: 'Component',
-  resource: 'Resource',
-  system: 'Project',
-  domain: 'Namespace',
-  environment: 'Environment',
-  observabilityalertsnotificationchannel: 'Notification Channel',
-  dataplane: 'Dataplane',
-  clusterdataplane: 'Cluster Data Plane',
-  buildplane: 'Build Plane',
-  clusterbuildplane: 'Cluster Build Plane',
-  workflowplane: 'Workflow Plane',
-  clusterworkflowplane: 'Cluster Workflow Plane',
-  observabilityplane: 'Observability Plane',
-  clusterobservabilityplane: 'Cluster Observability Plane',
-  deploymentpipeline: 'Deployment Pipeline',
-  componenttype: 'Component Type',
-  resourcetype: 'Resource Type',
-  clustercomponenttype: 'Cluster Component Type',
-  clusterresourcetype: 'Cluster Resource Type',
-  traittype: 'Trait Type',
-  clustertraittype: 'Cluster Trait Type',
-  workflow: 'Workflow',
-  clusterworkflow: 'Cluster Workflow',
-  componentworkflow: 'Component Workflow',
-};
 
 /**
  * Hook that provides delete menu items for EntityLayout's extraContextMenuItems.
@@ -86,17 +55,11 @@ export function useDeleteEntityMenuItems(
 
   const entityKind = entity.kind.toLowerCase();
   const entityName = entity.metadata.name;
-  const isComponent = entityKind === 'component';
-  const isProject = entityKind === 'system';
-  const isDomain = entityKind === 'domain';
-  const isPlatformResource = isSupportedKind(entityKind);
-
-  const entityDisplayType = KIND_DISPLAY_NAMES[entityKind] ?? entityKind;
+  const entityDisplayType = getEntityDisplayType(entityKind);
 
   const alreadyMarkedForDeletion = isMarkedForDeletion(entity);
-  const isDeletableKind =
-    isComponent || isProject || isDomain || isPlatformResource;
-  const canDelete = isDeletableKind && !alreadyMarkedForDeletion;
+  const canDelete =
+    isDeletableEntityKind(entityKind) && !alreadyMarkedForDeletion;
 
   const handleOpenDialog = useCallback(() => {
     setDialogOpen(true);
@@ -115,31 +78,7 @@ export function useDeleteEntityMenuItems(
     setError(null);
 
     try {
-      if (isComponent) {
-        await openChoreoClient.deleteComponent(entity);
-      } else if (isProject) {
-        await openChoreoClient.deleteProject(entity);
-      } else if (isDomain) {
-        await openChoreoClient.deleteNamespace(entity);
-      } else if (isPlatformResource) {
-        const apiKind = mapKindToApiKind(entityKind);
-        const namespace =
-          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
-
-        if (!CLUSTER_SCOPED_RESOURCE_KINDS.has(apiKind) && !namespace) {
-          throw new Error(
-            `Missing namespace annotation for ${entityDisplayType.toLowerCase()} "${entityName}"`,
-          );
-        }
-
-        await openChoreoClient.deleteResourceDefinition(
-          apiKind,
-          namespace ?? '',
-          entityName,
-        );
-      } else {
-        throw new Error(`Unsupported entity kind for deletion: ${entityKind}`);
-      }
+      await performEntityDelete(openChoreoClient, entity);
 
       alertApi.post({
         message: `${entityDisplayType} "${entityName}" has been marked for deletion`,
@@ -163,13 +102,8 @@ export function useDeleteEntityMenuItems(
     }
   }, [
     entity,
-    entityKind,
     entityName,
     entityDisplayType,
-    isComponent,
-    isProject,
-    isDomain,
-    isPlatformResource,
     openChoreoClient,
     alertApi,
     navigate,
@@ -207,24 +141,10 @@ export function useDeleteEntityMenuItems(
     ];
   }, [canDelete, entityDisplayType, handleOpenDialog, deletePermission]);
 
-  const cascadeNote = useMemo(() => {
-    if (isProject) {
-      return (
-        <Typography variant="h5">
-          Note: All components within this project will also be deleted.
-        </Typography>
-      );
-    }
-    if (isDomain) {
-      return (
-        <Typography variant="h5">
-          Note: All projects and components within this namespace will also be
-          deleted.
-        </Typography>
-      );
-    }
-    return undefined;
-  }, [isProject, isDomain]);
+  const cascadeNote = useMemo(
+    () => getEntityDeleteCascadeNote(entityKind),
+    [entityKind],
+  );
 
   const DeleteConfirmationDialog: React.FC = useCallback(
     () => (

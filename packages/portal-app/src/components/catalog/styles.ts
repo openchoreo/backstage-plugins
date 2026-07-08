@@ -126,7 +126,7 @@ export const usePersonalFilterStyles = makeStyles(theme => ({
 
 export const useCardListStyles = makeStyles(theme => {
   const mobileGrid = {
-    gridTemplateColumns: '32px 1fr 60px',
+    gridTemplateColumns: '32px 1fr 100px',
   };
 
   return {
@@ -150,32 +150,32 @@ export const useCardListStyles = makeStyles(theme => {
     // Grid templates per kind — icon + actions fixed, rest spread evenly
     // Component: Icon | Name | Description | Namespace | Project | Type | Actions
     gridTemplateComponent: {
-      gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr 80px',
+      gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr 116px',
       [theme.breakpoints.down('xs')]: mobileGrid,
     },
     // API: Icon | Name | Description | Namespace | Project | Component | Type | Actions
     gridTemplateApi: {
-      gridTemplateColumns: '40px 1.2fr 2fr 0.8fr 0.8fr 0.8fr 0.7fr 80px',
+      gridTemplateColumns: '40px 1.2fr 2fr 0.8fr 0.8fr 0.8fr 0.7fr 116px',
       [theme.breakpoints.down('xs')]: mobileGrid,
     },
     // Environment: Icon | Name | Description | Namespace | Type | Actions
     gridTemplateEnvironment: {
-      gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 80px',
+      gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 116px',
       [theme.breakpoints.down('xs')]: mobileGrid,
     },
     // Planes: Icon | Name | Description | Namespace | Agent | Actions
     gridTemplatePlane: {
-      gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 80px',
+      gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 116px',
       [theme.breakpoints.down('xs')]: mobileGrid,
     },
     // Project/simple: Icon | Name | Description | Namespace | Actions
     gridTemplateSimple: {
-      gridTemplateColumns: '40px 1fr 1.5fr 1fr 80px',
+      gridTemplateColumns: '40px 1fr 1.5fr 1fr 116px',
       [theme.breakpoints.down('xs')]: mobileGrid,
     },
     // Namespace/domain: Icon | Name | Description | Actions
     gridTemplateMinimal: {
-      gridTemplateColumns: '40px 1fr 1.5fr 80px',
+      gridTemplateColumns: '40px 1fr 1.5fr 116px',
       [theme.breakpoints.down('xs')]: mobileGrid,
     },
 
@@ -238,6 +238,9 @@ export const useCardListStyles = makeStyles(theme => {
       minWidth: 0,
       '& > :first-child': {
         marginLeft: -8,
+      },
+      '& .MuiIconButton-root': {
+        padding: theme.spacing(0.75),
       },
     },
     columnCell: {
