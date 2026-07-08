@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import type { ActionInfo } from '../../../api/OpenChoreoClientApi';
 
@@ -11,33 +11,19 @@ interface UseActionsResult {
 }
 
 export function useActions(): UseActionsResult {
-  const [actions, setActions] = useState<ActionInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
   const client = useApi(openChoreoClientApiRef);
 
-  const fetchActions = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await client.listActions();
-      setActions(result);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  }, [client]);
-
-  useEffect(() => {
-    fetchActions();
-  }, [fetchActions]);
+  const { data, loading, error, refetch } = useOpenChoreoQuery(
+    ['actions'],
+    () => client.listActions(),
+  );
 
   return {
-    actions,
+    actions: data ?? [],
     loading,
     error,
-    fetchActions,
+    fetchActions: async () => {
+      refetch();
+    },
   };
 }

@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   openChoreoClientApiRef,
@@ -34,41 +34,42 @@ interface UseEnvironmentDeployedComponentsResult {
   refresh: () => void;
 }
 
+const EMPTY_STATUS_SUMMARY: EnvironmentStatusSummary = {
+  healthy: 0,
+  degraded: 0,
+  failed: 0,
+  pending: 0,
+  total: 0,
+};
+
 export function useEnvironmentDeployedComponents(
   environmentEntity: Entity,
 ): UseEnvironmentDeployedComponentsResult {
   const client = useApi(openChoreoClientApiRef);
   const catalogApi = useApi(catalogApiRef);
 
-  const [components, setComponents] = useState<DeployedComponent[]>([]);
-  const [statusSummary, setStatusSummary] = useState<EnvironmentStatusSummary>({
-    healthy: 0,
-    degraded: 0,
-    failed: 0,
-    pending: 0,
-    total: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const environmentName =
+    environmentEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.ENVIRONMENT] ||
+    environmentEntity.metadata.name;
+  const namespaceName =
+    environmentEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  const fetchDeployedComponents = useCallback(async () => {
-    const environmentName =
-      environmentEntity.metadata.annotations?.[
-        CHOREO_ANNOTATIONS.ENVIRONMENT
-      ] || environmentEntity.metadata.name;
-    const namespaceName =
-      environmentEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
-
-    if (!environmentName || !namespaceName) {
-      setComponents([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
+  const { data, loading, error, refetch } = useOpenChoreoQuery(
+    [
+      'environment-deployed-components',
+      stringifyEntityRef(environmentEntity),
+      namespaceName,
+      environmentName,
+    ],
+    async (): Promise<{
+      components: DeployedComponent[];
+      statusSummary: EnvironmentStatusSummary;
+    }> => {
+      // Narrows namespaceName/environmentName to string (query enabled only
+      // when both are set) so catalog filters stay assignable to EntityFilterQuery.
+      if (!namespaceName || !environmentName) {
+        return { components: [], statusSummary: EMPTY_STATUS_SUMMARY };
+      }
       // First, get all projects in this namespace
       const { items: systemEntities } = await catalogApi.getEntities({
         filter: {
@@ -146,30 +147,17 @@ export function useEnvironmentDeployedComponents(
         total: deployedComponents.length,
       };
 
-      setComponents(deployedComponents);
-      setStatusSummary(summary);
-    } catch (err) {
-      setError(err as Error);
-      setComponents([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [environmentEntity, catalogApi, client]);
-
-  useEffect(() => {
-    fetchDeployedComponents();
-  }, [fetchDeployedComponents]);
-
-  const refresh = useCallback(() => {
-    fetchDeployedComponents();
-  }, [fetchDeployedComponents]);
+      return { components: deployedComponents, statusSummary: summary };
+    },
+    { enabled: !!environmentName && !!namespaceName },
+  );
 
   return {
-    components,
-    statusSummary,
+    components: data?.components ?? [],
+    statusSummary: data?.statusSummary ?? EMPTY_STATUS_SUMMARY,
     loading,
     error,
-    refresh,
+    refresh: refetch,
   };
 }
 

@@ -520,6 +520,11 @@ export {
   type UseOpenChoreoQueryOptions,
   type UseOpenChoreoQueryResult,
 } from './hooks/useOpenChoreoQuery';
+export {
+  useOpenChoreoMutation,
+  type UseOpenChoreoMutationOptions,
+  type UseOpenChoreoMutationResult,
+} from './hooks/useOpenChoreoMutation';
 
 // Change Detection Components
 export { ChangeDiff, type ChangeDiffProps } from './components/ChangeDiff';

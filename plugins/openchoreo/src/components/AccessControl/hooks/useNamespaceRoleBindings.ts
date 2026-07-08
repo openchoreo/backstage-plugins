@@ -1,11 +1,21 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import {
+  useOpenChoreoQuery,
+  useOpenChoreoMutation,
+} from '@openchoreo/backstage-plugin-react';
 import {
   openChoreoClientApiRef,
   NamespaceRoleBinding,
   NamespaceRoleBindingRequest,
   NamespaceRoleBindingFilters,
 } from '../../../api/OpenChoreoClientApi';
+
+/** Query key for a namespace's bindings list; namespace + filters both part of it. */
+const bindingsKey = (
+  namespace: string | undefined,
+  filters: NamespaceRoleBindingFilters,
+) => ['access-control', 'namespace-role-bindings', namespace ?? null, filters];
 
 interface UseNamespaceRoleBindingsResult {
   bindings: NamespaceRoleBinding[];
@@ -25,94 +35,60 @@ interface UseNamespaceRoleBindingsResult {
 export function useNamespaceRoleBindings(
   namespace: string | undefined,
 ): UseNamespaceRoleBindingsResult {
-  const [bindings, setBindings] = useState<NamespaceRoleBinding[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [filters, setFiltersState] = useState<NamespaceRoleBindingFilters>({});
-  const filtersRef = useRef<NamespaceRoleBindingFilters>({});
-
   const client = useApi(openChoreoClientApiRef);
+  const [filters, setFiltersState] = useState<NamespaceRoleBindingFilters>({});
 
-  const fetchBindings = useCallback(
-    async (overrideFilters?: NamespaceRoleBindingFilters) => {
-      if (!namespace) {
-        setBindings([]);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-        const activeFilters = overrideFilters ?? filtersRef.current;
-        const result = await client.listNamespaceRoleBindings(
-          namespace,
-          activeFilters,
-        );
-        setBindings(result);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Unknown error'));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [client, namespace],
+  const { data, loading, error, refetch } = useOpenChoreoQuery(
+    bindingsKey(namespace, filters),
+    () => client.listNamespaceRoleBindings(namespace as string, filters),
+    { enabled: !!namespace },
   );
 
-  const setFilters = useCallback(
-    (newFilters: NamespaceRoleBindingFilters) => {
-      filtersRef.current = newFilters;
-      setFiltersState(newFilters);
-      fetchBindings(newFilters);
+  const invalidates = [bindingsKey(namespace, filters)];
+  const { mutate: addBinding } = useOpenChoreoMutation(
+    (binding: NamespaceRoleBindingRequest) => {
+      if (!namespace) throw new Error('Namespace is required');
+      return client.createNamespaceRoleBinding(namespace, binding);
     },
-    [fetchBindings],
+    { invalidates },
+  );
+  const { mutate: updateBinding } = useOpenChoreoMutation(
+    (name: string, binding: NamespaceRoleBindingRequest) => {
+      if (!namespace) throw new Error('Namespace is required');
+      return client.updateNamespaceRoleBinding(namespace, name, binding);
+    },
+    { invalidates },
+  );
+  const { mutate: deleteBinding } = useOpenChoreoMutation(
+    (name: string) => {
+      if (!namespace) throw new Error('Namespace is required');
+      return client.deleteNamespaceRoleBinding(namespace, name);
+    },
+    { invalidates },
   );
 
-  const addBinding = useCallback(
-    async (binding: NamespaceRoleBindingRequest) => {
-      if (!namespace) {
-        throw new Error('Namespace is required');
-      }
-      await client.createNamespaceRoleBinding(namespace, binding);
-      await fetchBindings();
-    },
-    [client, fetchBindings, namespace],
-  );
-
-  const updateBinding = useCallback(
-    async (name: string, binding: NamespaceRoleBindingRequest) => {
-      if (!namespace) {
-        throw new Error('Namespace is required');
-      }
-      await client.updateNamespaceRoleBinding(namespace, name, binding);
-      await fetchBindings();
-    },
-    [client, fetchBindings, namespace],
-  );
-
-  const deleteBinding = useCallback(
-    async (name: string) => {
-      if (!namespace) {
-        throw new Error('Namespace is required');
-      }
-      await client.deleteNamespaceRoleBinding(namespace, name);
-      await fetchBindings();
-    },
-    [client, fetchBindings, namespace],
-  );
-
-  useEffect(() => {
-    fetchBindings();
-  }, [fetchBindings]);
+  const setFilters = useCallback((newFilters: NamespaceRoleBindingFilters) => {
+    setFiltersState(newFilters);
+  }, []);
 
   return {
-    bindings,
+    bindings: data ?? [],
     loading,
     error,
     filters,
     setFilters,
-    fetchBindings,
-    addBinding,
-    updateBinding,
-    deleteBinding,
+    fetchBindings: async overrideFilters => {
+      if (overrideFilters) setFiltersState(overrideFilters);
+      else refetch();
+    },
+    addBinding: async binding => {
+      await addBinding(binding);
+    },
+    updateBinding: async (name, binding) => {
+      await updateBinding(name, binding);
+    },
+    deleteBinding: async name => {
+      await deleteBinding(name);
+    },
   };
 }

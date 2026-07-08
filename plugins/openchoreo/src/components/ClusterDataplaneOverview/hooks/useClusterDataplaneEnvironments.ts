@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
 import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { DataplaneEnvironment } from '../../DataplaneOverview/hooks';
 
 interface UseClusterDataplaneEnvironmentsResult {
@@ -17,24 +17,11 @@ export function useClusterDataplaneEnvironments(
 ): UseClusterDataplaneEnvironmentsResult {
   const catalogApi = useApi(catalogApiRef);
 
-  const [environments, setEnvironments] = useState<DataplaneEnvironment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
   const dataplaneName = dataplaneEntity.metadata.name;
 
-  const fetchEnvironments = useCallback(async () => {
-    if (!dataplaneName) {
-      setEnvironments([]);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
+  const { data, loading, error, refetch } = useOpenChoreoQuery(
+    ['cluster-dataplane-environments', dataplaneName],
+    async () => {
       // Fetch Environment entities that reference a ClusterDataPlane
       const { items: envEntities } = await catalogApi.getEntities({
         filter: {
@@ -68,27 +55,15 @@ export function useClusterDataplaneEnvironments(
         };
       });
 
-      setEnvironments(envList);
-    } catch (err) {
-      setError(err as Error);
-      setEnvironments([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [dataplaneName, catalogApi]);
-
-  useEffect(() => {
-    fetchEnvironments();
-  }, [fetchEnvironments]);
-
-  const refresh = useCallback(() => {
-    fetchEnvironments();
-  }, [fetchEnvironments]);
+      return envList;
+    },
+    { enabled: !!dataplaneName },
+  );
 
   return {
-    environments,
+    environments: data ?? [],
     loading,
     error,
-    refresh,
+    refresh: refetch,
   };
 }

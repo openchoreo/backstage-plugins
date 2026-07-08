@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { genericWorkflowsClientApiRef } from '../api';
 import type { Workflow } from '../types';
 import { useSelectedNamespace } from '../context';
@@ -19,36 +19,21 @@ export function useWorkflows(): UseWorkflowsResult {
   const client = useApi(genericWorkflowsClientApiRef);
   const namespaceName = useSelectedNamespace();
 
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchWorkflows = useCallback(async () => {
-    if (!namespaceName) {
-      setWorkflows([]);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
+  const { data, loading, error, refetch } = useOpenChoreoQuery(
+    ['workflows', namespaceName],
+    async () => {
       const response = await client.listWorkflows(namespaceName);
-      setWorkflows(response.items);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setLoading(false);
-    }
-  }, [client, namespaceName]);
-
-  useEffect(() => {
-    fetchWorkflows();
-  }, [fetchWorkflows]);
+      return response.items;
+    },
+    { enabled: !!namespaceName },
+  );
 
   return {
-    workflows,
+    workflows: data ?? [],
     loading,
     error,
-    refetch: fetchWorkflows,
+    refetch: async () => {
+      refetch();
+    },
   };
 }

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { genericWorkflowsClientApiRef } from '../api';
 
 interface UseNamespacesResult {
@@ -15,37 +15,9 @@ interface UseNamespacesResult {
 export function useNamespaces(): UseNamespacesResult {
   const client = useApi(genericWorkflowsClientApiRef);
 
-  const [namespaces, setNamespaces] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { data, loading, error } = useOpenChoreoQuery(['namespaces'], () =>
+    client.listNamespaces(),
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchNamespaces = async () => {
-      try {
-        setError(null);
-        const result = await client.listNamespaces();
-        if (!cancelled) {
-          setNamespaces(result);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error(String(err)));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchNamespaces();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [client]);
-
-  return { namespaces, loading, error };
+  return { namespaces: data ?? [], loading, error };
 }
