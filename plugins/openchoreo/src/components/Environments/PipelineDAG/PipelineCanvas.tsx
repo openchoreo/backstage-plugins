@@ -18,7 +18,11 @@ import { EnvironmentDetailPanel, NotificationBanner } from '../components';
 import { useEnvironmentsContext, type Selection } from '../EnvironmentsContext';
 import { useIncidentsSummary } from '../hooks/useIncidentsSummary';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
-import { EmptyState, ForbiddenState } from '@openchoreo/backstage-plugin-react';
+import {
+  EmptyState,
+  ErrorState,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
 import { Card, useChoreoTokens } from '@openchoreo/backstage-design-system';
 import {
   useDeployFlowCanvasStyles,
@@ -128,6 +132,7 @@ export const PipelineCanvas: FC = () => {
     environments,
     displayEnvironments,
     loading,
+    error,
     refetch,
     isWorkloadEditorSupported,
     canViewEnvironments,
@@ -384,7 +389,7 @@ export const PipelineCanvas: FC = () => {
     <>
       <NotificationBanner notification={notification.notification} />
 
-      {/* Permission/empty states when no environments */}
+      {/* Permission/error/empty states when no environments */}
       {!loading &&
         !environmentReadPermissionLoading &&
         environments.length === 0 &&
@@ -399,11 +404,25 @@ export const PipelineCanvas: FC = () => {
       {!loading &&
         !environmentReadPermissionLoading &&
         environments.length === 0 &&
+        canViewEnvironments &&
+        error && (
+          <Card style={{ minHeight: '300px', width: '100%' }}>
+            <ErrorState
+              title="Failed to load environments"
+              message={getErrorMessage(error)}
+              onRetry={refetch}
+            />
+          </Card>
+        )}
+      {!loading &&
+        !environmentReadPermissionLoading &&
+        !error &&
+        environments.length === 0 &&
         canViewEnvironments && (
           <Card style={{ minHeight: '300px', width: '100%' }}>
             <EmptyState
               title="No environments available"
-              description="No deployment environments were found for this component."
+              description="This project's deployment pipeline has no environments configured."
               action={{ label: 'Retry', onClick: refetch }}
             />
           </Card>

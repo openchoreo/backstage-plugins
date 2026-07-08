@@ -46,6 +46,16 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
       <span>{props.message}</span>
     </div>
   ),
+  ErrorState: (props: {
+    title?: string;
+    message: string;
+    onRetry?: () => void;
+  }) => (
+    <div data-testid="error-state">
+      <span>{props.title}</span>
+      <span>{props.message}</span>
+    </div>
+  ),
 }));
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
@@ -73,6 +83,7 @@ interface MockContextValue {
   environments: Environment[];
   displayEnvironments: Environment[];
   loading: boolean;
+  error?: Error;
   refetch: jest.Mock;
   lowestEnvironment: string;
   isWorkloadEditorSupported: boolean;
@@ -89,6 +100,7 @@ const defaultMockContext = (): MockContextValue => ({
   environments: [],
   displayEnvironments: [],
   loading: false,
+  error: undefined,
   refetch: jest.fn(),
   lowestEnvironment: 'development',
   isWorkloadEditorSupported: true,
@@ -214,6 +226,22 @@ describe('PipelineCanvas (deploy split view)', () => {
   it('shows empty state when no environments and user has view permission', () => {
     renderWithRouter(<PipelineCanvas />);
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    expect(screen.queryByTestId('deploy-flow-canvas')).not.toBeInTheDocument();
+  });
+
+  it('shows error state (not empty state) when the fetch failed', () => {
+    mockContextValue.error = new Error(
+      'The deployment pipeline for project "p" could not be loaded.',
+    );
+    renderWithRouter(<PipelineCanvas />);
+    expect(screen.getByTestId('error-state')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'The deployment pipeline for project "p" could not be loaded.',
+      ),
+    ).toBeInTheDocument();
+    // The empty state must not render at the same time.
+    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
     expect(screen.queryByTestId('deploy-flow-canvas')).not.toBeInTheDocument();
   });
 

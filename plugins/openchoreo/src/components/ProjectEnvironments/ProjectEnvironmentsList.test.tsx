@@ -35,6 +35,22 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden">{message}</div>
   ),
+  EmptyState: ({ title, description }: any) => (
+    <div data-testid="empty-state">
+      <span>{title}</span>
+      <span>{description}</span>
+    </div>
+  ),
+  ErrorState: ({ title, message }: any) => (
+    <div data-testid="error-state">
+      <span>{title}</span>
+      <span>{message}</span>
+    </div>
+  ),
+}));
+
+jest.mock('@openchoreo/backstage-design-system', () => ({
+  Card: ({ children }: any) => <div data-testid="card">{children}</div>,
 }));
 
 jest.mock('../../utils/errorUtils', () => ({

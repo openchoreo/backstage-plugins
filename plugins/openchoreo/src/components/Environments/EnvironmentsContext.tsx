@@ -50,6 +50,11 @@ interface EnvironmentsContextValue {
   displayEnvironments: Environment[];
   /** Whether environments are currently loading */
   loading: boolean;
+  /**
+   * A non-forbidden error from the environment fetch (e.g. the deployment
+   * pipeline could not be resolved).
+   */
+  error?: Error;
   /** Refetch environments data */
   refetch: () => void;
   /** The lowest environment (first in deployment pipeline) */

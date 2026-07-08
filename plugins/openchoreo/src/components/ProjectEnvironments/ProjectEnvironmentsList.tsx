@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Typography, makeStyles } from '@material-ui/core';
+import { Box } from '@material-ui/core';
 import { useNavigate } from 'react-router-dom';
 import { Progress } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
+import {
+  EmptyState,
+  ErrorState,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
+import { Card } from '@openchoreo/backstage-design-system';
 import {
   openChoreoClientApiRef,
   type ProjectEnvironment,
@@ -22,16 +27,6 @@ import {
 } from './ProjectEnvironmentsContext';
 import { useProjectDeployFlowCanvasStyles } from './styles';
 
-const useStyles = makeStyles(theme => ({
-  error: {
-    color: theme.palette.error.main,
-  },
-  empty: {
-    color: theme.palette.text.secondary,
-    fontStyle: 'italic',
-  },
-}));
-
 /**
  * Deploy view mounted at the `/` sub-route of the Project entity's
  * `/deploy` tab. Renders the pipeline DAG with the Set up tile + env
@@ -40,7 +35,6 @@ const useStyles = makeStyles(theme => ({
  * from the Set up detail pane's Configure & Deploy button.
  */
 export const ProjectEnvironmentsList = () => {
-  const classes = useStyles();
   const canvasClasses = useProjectDeployFlowCanvasStyles();
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
@@ -189,17 +183,28 @@ export const ProjectEnvironmentsList = () => {
 
   if (error) {
     return (
-      <Typography variant="body1" className={classes.error}>
-        Failed to load environments: {getErrorMessage(error)}
-      </Typography>
+      <Card style={{ minHeight: '300px', width: '100%' }}>
+        <ErrorState
+          title="Failed to load environments"
+          message={getErrorMessage(error)}
+          onRetry={() => fetchEnvs({ showProgress: true })}
+        />
+      </Card>
     );
   }
 
   if (envs.length === 0) {
     return (
-      <Typography variant="body1" className={classes.empty}>
-        No environments configured in the project's deployment pipeline.
-      </Typography>
+      <Card style={{ minHeight: '300px', width: '100%' }}>
+        <EmptyState
+          title="No environments available"
+          description="This project's deployment pipeline has no environments configured."
+          action={{
+            label: 'Retry',
+            onClick: () => fetchEnvs({ showProgress: true }),
+          }}
+        />
+      </Card>
     );
   }
 
