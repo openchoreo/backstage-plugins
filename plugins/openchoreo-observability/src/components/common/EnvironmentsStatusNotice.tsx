@@ -1,29 +1,30 @@
-import { Button, Typography } from '@material-ui/core';
-import { Alert } from '@material-ui/lab';
+import { EmptyState } from '@backstage/core-components';
 import {
   ForbiddenState,
   type ProjectEnvironmentsStatus,
 } from '@openchoreo/backstage-plugin-react';
-import { useEnvironmentsStatusNoticeStyles } from './styles';
 
 export interface EnvironmentsStatusNoticeProps {
   /** The environments-resolution status from `useProjectEnvironments`. */
   status: ProjectEnvironmentsStatus;
-  /** Retry callback for the `unavailable` case. */
-  onRetry?: () => void;
+  /**
+   * What the page shows (e.g. `logs`, `metrics`), used to make the empty-state
+   * title specific: "No environments available to view {feature}". Falls back
+   * to a generic title when omitted.
+   */
+  feature?: string;
 }
 
 /**
  * Renders a cause-specific notice when a project's environments can't be
  * shown, so observability pages explain *what happened* instead of a generic
- * "no environments found". Returns `null` for the `ok` status.
+ * "no environments found". Uses the standard Backstage `EmptyState` to match
+ * the Deploy tab. Returns `null` for the `ok` status.
  */
 export const EnvironmentsStatusNotice = ({
   status,
-  onRetry,
+  feature,
 }: EnvironmentsStatusNoticeProps) => {
-  const classes = useEnvironmentsStatusNoticeStyles();
-
   if (status === 'ok') {
     return null;
   }
@@ -39,28 +40,24 @@ export const EnvironmentsStatusNotice = ({
 
   if (status === 'empty-pipeline') {
     return (
-      <Alert severity="info" className={classes.container}>
-        <Typography variant="body1">
-          This project's deployment pipeline has no environments configured, so
-          there's nothing to show here yet. Add environments to the pipeline to
-          get started.
-        </Typography>
-      </Alert>
+      <EmptyState
+        missing="content"
+        title={
+          feature
+            ? `No environments available to view ${feature}`
+            : 'No environments available'
+        }
+        description="This project's deployment pipeline has no environments configured. Review the deployment pipeline or contact your administrator."
+      />
     );
   }
 
   // status === 'unavailable'
   return (
-    <Alert severity="error" className={classes.container}>
-      <Typography variant="body1">
-        Couldn't load this project's deployment pipeline. It may be missing or
-        misconfigured.
-      </Typography>
-      {onRetry && (
-        <Button onClick={onRetry} color="inherit" size="small">
-          Retry
-        </Button>
-      )}
-    </Alert>
+    <EmptyState
+      missing="data"
+      title="Failed to load environments"
+      description="Couldn't load this project's deployment pipeline. Review the deployment pipeline or contact your administrator."
+    />
   );
 };

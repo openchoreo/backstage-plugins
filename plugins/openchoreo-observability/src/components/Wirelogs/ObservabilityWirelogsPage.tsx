@@ -35,7 +35,6 @@ const ObservabilityWirelogsContent = () => {
     environments,
     loading: environmentsLoading,
     status: environmentsStatus,
-    refetch: refetchEnvironments,
   } = useWirelogsEnvironments(project, namespace);
 
   const [filters, setFilters] = useState<WirelogsFilters>({
@@ -151,15 +150,16 @@ const ObservabilityWirelogsContent = () => {
     URL.revokeObjectURL(url);
   };
 
-  if (
-    environmentsStatus === 'forbidden' ||
-    environmentsStatus === 'unavailable'
-  ) {
+  if (environmentsLoading) {
+    return <Progress />;
+  }
+
+  if (environmentsStatus !== 'ok') {
     return (
       <Box>
         <EnvironmentsStatusNotice
           status={environmentsStatus}
-          onRetry={refetchEnvironments}
+          feature="wire logs"
         />
       </Box>
     );
@@ -226,10 +226,6 @@ const ObservabilityWirelogsContent = () => {
         <Alert severity="error" className={classes.errorContainer}>
           {stream.error}
         </Alert>
-      )}
-
-      {!environmentsLoading && environmentsStatus === 'empty-pipeline' && (
-        <EnvironmentsStatusNotice status="empty-pipeline" />
       )}
 
       {filters.environment && !envPermissionLoading && !canViewForEnv && (

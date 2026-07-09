@@ -31,7 +31,6 @@ const CostAnalysisListContent = () => {
     environments,
     loading: environmentsLoading,
     status: environmentsStatus,
-    refetch: refetchEnvironments,
   } = useProjectEnvironments(projectName, namespace);
   const { filters, updateFilters } = useUrlFilters({ environments });
 
@@ -97,6 +96,25 @@ const CostAnalysisListContent = () => {
     );
   };
 
+  // Wait for the environment resolution before rendering the filters, so the
+  // filter bar doesn't flash before we know whether to show the notice.
+  if (environmentsLoading) {
+    return <Progress />;
+  }
+
+  // No resolvable environments (empty, forbidden, or unavailable) → show only
+  // the notice, without the filters or reports.
+  if (environmentsStatus !== 'ok') {
+    return (
+      <Box>
+        <EnvironmentsStatusNotice
+          status={environmentsStatus}
+          feature="cost reports"
+        />
+      </Box>
+    );
+  }
+
   return (
     <Box>
       {reportsLoading && <Progress />}
@@ -108,11 +126,6 @@ const CostAnalysisListContent = () => {
             onFiltersChange={handleFiltersChange}
             environments={environments}
             environmentsLoading={environmentsLoading}
-          />
-
-          <EnvironmentsStatusNotice
-            status={environmentsStatus}
-            onRetry={refetchEnvironments}
           />
 
           {reportsError && renderError(reportsError)}

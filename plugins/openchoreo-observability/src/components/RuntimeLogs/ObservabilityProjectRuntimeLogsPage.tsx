@@ -42,7 +42,6 @@ const ObservabilityProjectRuntimeLogsContent = ({
     environments,
     loading: environmentsLoading,
     status: environmentsStatus,
-    refetch: refetchEnvironments,
   } = useProjectEnvironments(projectName, namespace);
 
   const {
@@ -192,16 +191,14 @@ const ObservabilityProjectRuntimeLogsContent = ({
     );
   };
 
-  if (
-    environmentsStatus === 'forbidden' ||
-    environmentsStatus === 'unavailable'
-  ) {
+  if (environmentsLoading) {
+    return <Progress />;
+  }
+
+  if (environmentsStatus !== 'ok') {
     return (
       <Box>
-        <EnvironmentsStatusNotice
-          status={environmentsStatus}
-          onRetry={refetchEnvironments}
-        />
+        <EnvironmentsStatusNotice status={environmentsStatus} feature="logs" />
       </Box>
     );
   }
@@ -223,10 +220,6 @@ const ObservabilityProjectRuntimeLogsContent = ({
       />
 
       {logsError && renderError(logsError)}
-
-      {!environmentsLoading && environmentsStatus === 'empty-pipeline' && (
-        <EnvironmentsStatusNotice status="empty-pipeline" />
-      )}
 
       {filters.environment && (
         <>

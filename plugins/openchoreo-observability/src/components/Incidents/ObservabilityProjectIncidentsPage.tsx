@@ -33,7 +33,6 @@ const ObservabilityProjectIncidentsContent = () => {
     environments,
     loading: environmentsLoading,
     status: environmentsStatus,
-    refetch: refetchEnvironments,
   } = useProjectEnvironments(projectName, namespace);
 
   const {
@@ -255,15 +254,16 @@ const ObservabilityProjectIncidentsContent = () => {
     );
   };
 
-  if (
-    environmentsStatus === 'forbidden' ||
-    environmentsStatus === 'unavailable'
-  ) {
+  if (environmentsLoading) {
+    return <Progress />;
+  }
+
+  if (environmentsStatus !== 'ok') {
     return (
       <Box>
         <EnvironmentsStatusNotice
           status={environmentsStatus}
-          onRetry={refetchEnvironments}
+          feature="incidents"
         />
       </Box>
     );
@@ -286,10 +286,6 @@ const ObservabilityProjectIncidentsContent = () => {
       />
 
       {incidentsError && renderError(incidentsError)}
-
-      {!environmentsLoading && environmentsStatus === 'empty-pipeline' && (
-        <EnvironmentsStatusNotice status="empty-pipeline" />
-      )}
 
       {filters.environment && (
         <>

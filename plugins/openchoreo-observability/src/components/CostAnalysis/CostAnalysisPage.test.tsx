@@ -78,6 +78,7 @@ function setupDefaultMocks() {
   mockUseProjectEnvironments.mockReturnValue({
     environments: [defaultEnvironment],
     loading: false,
+    status: 'ok',
     error: null,
   });
   mockUseUrlFilters.mockReturnValue({

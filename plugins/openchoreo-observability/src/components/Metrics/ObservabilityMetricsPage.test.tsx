@@ -110,6 +110,7 @@ function setupDefaultMocks() {
   mockUseProjectEnvironments.mockReturnValue({
     environments: [defaultEnvironment],
     loading: false,
+    status: 'ok',
     error: null,
   });
 
@@ -218,6 +219,7 @@ describe('ObservabilityMetricsPage', () => {
     mockUseProjectEnvironments.mockReturnValue({
       environments: [defaultEnvironment],
       loading: true,
+      status: 'ok',
       error: null,
     });
 

@@ -47,7 +47,6 @@ const ObservabilityMetricsContent = () => {
     environments,
     loading: environmentsLoading,
     status: environmentsStatus,
-    refetch: refetchEnvironments,
   } = useProjectEnvironments(project, namespace);
 
   // URL-synced filters - must be after environments are available
@@ -102,15 +101,14 @@ const ObservabilityMetricsContent = () => {
     return <></>;
   }
 
-  if (
-    environmentsStatus === 'forbidden' ||
-    environmentsStatus === 'unavailable'
-  ) {
+  // When the pipeline has no resolvable environments (empty, forbidden, or
+  // unavailable) there's nothing to filter or chart — show only the notice.
+  if (environmentsStatus !== 'ok') {
     return (
       <Box>
         <EnvironmentsStatusNotice
           status={environmentsStatus}
-          onRetry={refetchEnvironments}
+          feature="metrics"
         />
       </Box>
     );
@@ -154,9 +152,6 @@ const ObservabilityMetricsContent = () => {
             environments={environments}
             disabled={isLoading}
           />
-          {environmentsStatus === 'empty-pipeline' && (
-            <EnvironmentsStatusNotice status="empty-pipeline" />
-          )}
           {filters.environment &&
             !envPermissionLoading &&
             !canViewMetricsForEnv && (

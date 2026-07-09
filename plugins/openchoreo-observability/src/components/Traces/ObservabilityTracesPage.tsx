@@ -33,7 +33,6 @@ const ObservabilityTracesContent = () => {
     environments,
     loading: environmentsLoading,
     status: environmentsStatus,
-    refetch: refetchEnvironments,
   } = useProjectEnvironments(projectName, namespace);
   const {
     components,
@@ -112,15 +111,16 @@ const ObservabilityTracesContent = () => {
     return <></>;
   }
 
-  if (
-    environmentsStatus === 'forbidden' ||
-    environmentsStatus === 'unavailable'
-  ) {
+  if (environmentsLoading) {
+    return <Progress />;
+  }
+
+  if (environmentsStatus !== 'ok') {
     return (
       <Box>
         <EnvironmentsStatusNotice
           status={environmentsStatus}
-          onRetry={refetchEnvironments}
+          feature="traces"
         />
       </Box>
     );
@@ -163,10 +163,6 @@ const ObservabilityTracesContent = () => {
             components={components}
             componentsLoading={componentsLoading}
           />
-
-          {environmentsStatus === 'empty-pipeline' && (
-            <EnvironmentsStatusNotice status="empty-pipeline" />
-          )}
 
           {filters.environment &&
             !envPermissionLoading &&

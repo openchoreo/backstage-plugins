@@ -32,7 +32,6 @@ const ObservabilityRuntimeEventsContent = () => {
     environments,
     loading: environmentsLoading,
     status: environmentsStatus,
-    refetch: refetchEnvironments,
   } = useProjectEnvironments(project, namespace);
 
   const { filters, updateFilters } = useUrlFiltersForRuntimeEvents({
@@ -171,15 +170,16 @@ const ObservabilityRuntimeEventsContent = () => {
     );
   };
 
-  if (
-    environmentsStatus === 'forbidden' ||
-    environmentsStatus === 'unavailable'
-  ) {
+  if (environmentsLoading) {
+    return <Progress />;
+  }
+
+  if (environmentsStatus !== 'ok') {
     return (
       <Box>
         <EnvironmentsStatusNotice
           status={environmentsStatus}
-          onRetry={refetchEnvironments}
+          feature="events"
         />
       </Box>
     );
@@ -196,10 +196,6 @@ const ObservabilityRuntimeEventsContent = () => {
       />
 
       {eventsError && renderError(eventsError)}
-
-      {!environmentsLoading && environmentsStatus === 'empty-pipeline' && (
-        <EnvironmentsStatusNotice status="empty-pipeline" />
-      )}
 
       {filters.environment && !envPermissionLoading && !canViewEventsForEnv && (
         <ForbiddenState

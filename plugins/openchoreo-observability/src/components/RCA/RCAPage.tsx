@@ -31,7 +31,6 @@ const RCAListContent = () => {
     environments,
     loading: environmentsLoading,
     status: environmentsStatus,
-    refetch: refetchEnvironments,
   } = useProjectEnvironments(projectName, namespace);
   const { filters, updateFilters } = useUrlFilters({ environments });
 
@@ -65,15 +64,16 @@ const RCAListContent = () => {
     refresh();
   }, [refresh]);
 
-  if (
-    environmentsStatus === 'forbidden' ||
-    environmentsStatus === 'unavailable'
-  ) {
+  if (environmentsLoading) {
+    return <Progress />;
+  }
+
+  if (environmentsStatus !== 'ok') {
     return (
       <Box>
         <EnvironmentsStatusNotice
           status={environmentsStatus}
-          onRetry={refetchEnvironments}
+          feature="RCA reports"
         />
       </Box>
     );
@@ -122,10 +122,6 @@ const RCAListContent = () => {
             environments={environments}
             environmentsLoading={environmentsLoading}
           />
-
-          {environmentsStatus === 'empty-pipeline' && (
-            <EnvironmentsStatusNotice status="empty-pipeline" />
-          )}
 
           {reportsError && renderError(reportsError)}
 
