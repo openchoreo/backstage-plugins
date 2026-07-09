@@ -33,3 +33,8 @@ The seam only forwards `staleTime`/`refetchInterval`/`enabled` when a caller
 actually sets them — passing an explicit `undefined` overrides the QueryClient
 default instead of inheriting it, which resolved `staleTime` to 0 and refetched
 on every remount, silently defeating the shared 30s cache.
+
+The cell-diagram and wirelogs environment hooks no longer fold `isRefetching`
+into `loading`; a background refresh kept re-showing their full skeleton (the
+"blank on refresh" the cache was meant to remove). They now report `loading`
+for the first load only and expose `isRefetching` separately.

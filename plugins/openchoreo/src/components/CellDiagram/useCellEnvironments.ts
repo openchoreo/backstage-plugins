@@ -19,7 +19,10 @@ export interface CellEnvironment extends Environment {
 
 export interface UseCellEnvironmentsResult {
   environments: CellEnvironment[];
+  /** First load only — stays false during a background refresh. */
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
 }
 
 /**
@@ -98,6 +101,12 @@ export const useCellEnvironments = (
 
   return {
     environments: data ?? [],
-    loading: baseLoading || loading || isRefetching,
+    // First-load only: the base envs are still resolving, or the enrichment
+    // query is on its first fetch with nothing cached. A background refresh
+    // (isRefetching) must NOT fold in here — it would re-trigger the full
+    // skeleton and blank the diagram every 30s. Surface it separately so a
+    // consumer can show a subtle indicator instead.
+    loading: baseLoading || loading,
+    isRefetching,
   };
 };

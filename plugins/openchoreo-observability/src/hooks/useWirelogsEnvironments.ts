@@ -24,8 +24,11 @@ export interface WirelogsEnvironment extends Environment {
 
 export interface UseWirelogsEnvironmentsResult {
   environments: WirelogsEnvironment[];
+  /** First load only — stays false during a background refresh. */
   loading: boolean;
   status: ProjectEnvironmentsStatus;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: string | null;
   refetch: () => void;
 }
@@ -56,6 +59,7 @@ export const useWirelogsEnvironments = (
   const {
     data,
     loading: enriching,
+    isRefetching,
     error: enrichError,
   } = useOpenChoreoQuery<WirelogsEnvironment[]>(
     [
@@ -117,9 +121,11 @@ export const useWirelogsEnvironments = (
 
   return {
     environments: data ?? [],
-    // First-load only — a background refresh keeps the current envs on screen
-    // instead of blanking to a skeleton (`isRefetching` deliberately excluded).
+    // First-load only. A background refresh (isRefetching) must NOT fold in
+    // here — it would re-trigger the full skeleton and blank the wirelogs env
+    // selector every 30s. Surface it separately for a subtle indicator.
     loading: baseLoading || enriching,
+    isRefetching,
     // A netpol-probe failure (base envs resolved, enrichment failed) is
     // surfaced as `unavailable`; otherwise mirror the base resolution status.
     status: enrichError ? 'unavailable' : baseStatus,

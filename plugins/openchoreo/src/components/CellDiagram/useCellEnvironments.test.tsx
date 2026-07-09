@@ -189,6 +189,36 @@ describe('useCellEnvironments', () => {
     expect(result.current.environments).toEqual([]);
   });
 
+  it('keeps loading=false during a background refetch (does not blank on refresh)', async () => {
+    // Regression: a background refresh must not fold into `loading`, or the
+    // cell diagram re-shows its full skeleton every staleTime window instead of
+    // keeping the cached diagram on screen.
+    mockUseProjectEnvironments.mockReturnValue({
+      environments: [
+        {
+          name: 'dev',
+          namespace: 'ns-1',
+          dataPlaneRef: { name: 'dp-1', kind: 'DataPlane' },
+        },
+      ],
+      loading: false,
+      error: null,
+    });
+    mockFetchApi.fetch.mockResolvedValue(
+      okResponse({ networkPolicyProvider: 'cilium' }),
+    );
+
+    const { result, rerender } = setup();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.environments).toHaveLength(1);
+
+    // Force a refetch and assert loading stays false throughout — only
+    // isRefetching may flip. Data remains on screen.
+    rerender();
+    expect(result.current.loading).toBe(false);
+    expect(result.current.environments).toHaveLength(1);
+  });
+
   it('defaults dataPlaneRef.kind to DataPlane in the probe params', async () => {
     mockUseProjectEnvironments.mockReturnValue({
       environments: [
