@@ -57,10 +57,7 @@ export function useWorkflowRunDetails(
         try {
           return await client.getWorkflowRun(resolvedNamespace!, runName);
         } catch (err) {
-          if (
-            err instanceof NotFoundError &&
-            attempt < NOT_FOUND_MAX_RETRIES
-          ) {
+          if (err instanceof NotFoundError && attempt < NOT_FOUND_MAX_RETRIES) {
             await wait(NOT_FOUND_RETRY_INTERVAL);
             continue;
           }
@@ -70,7 +67,11 @@ export function useWorkflowRunDetails(
     },
     {
       enabled: !!resolvedNamespace && !!runName,
-      refetchInterval: query => (isActive(query.state.data) ? POLLING_INTERVAL : false),
+      refetchInterval: query =>
+        isActive(query.state.data) ? POLLING_INTERVAL : false,
+      // The fetcher owns the 404 retry/backoff loop; disable the global retry so
+      // it can't run the ~10s NotFound loop twice (~20s stuck loading).
+      retry: false,
     },
   );
 
@@ -79,7 +80,7 @@ export function useWorkflowRunDetails(
     loading,
     error,
     refetch: async () => {
-      refetch();
+      await refetch();
     },
   };
 }

@@ -53,7 +53,12 @@ describe('useOpenChoreoQuery', () => {
 
     await waitFor(() => expect(result.current.data).toEqual(['first']));
 
-    act(() => result.current.refetch());
+    // refetch() now returns a Promise; kick it inside act without awaiting the
+    // resolve (it's held open by secondPending) but swallow to avoid an
+    // unhandled rejection leaking into later tests.
+    await act(async () => {
+      result.current.refetch().catch(() => {});
+    });
 
     // Data stays on screen; the in-flight refresh surfaces as isRefetching,
     // never as loading (loading is first-load only).

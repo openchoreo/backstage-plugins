@@ -41,6 +41,12 @@ export interface UseOpenChoreoQueryOptions<T> {
    * @default true
    */
   enabled?: boolean;
+  /**
+   * Retry policy for a failed fetch. Overrides the app-level default (retry: 1).
+   * Set `false`/`0` for fetchers that own their own retry/backoff, so the global
+   * retry doesn't double it.
+   */
+  retry?: boolean | number;
 }
 
 /**
@@ -61,8 +67,13 @@ export interface UseOpenChoreoQueryResult<T> {
   isRefetching: boolean;
   /** The last error, kept in `error` (never cached as data), or `null`. */
   error: Error | null;
-  /** Re-run the query. Returns void so it drops into `onRetry`/`refetch` props. */
-  refetch: () => void;
+  /**
+   * Re-run the query. Resolves when the refetch settles, so callers that surface
+   * a "refreshing" state (e.g. a mutation wrapping this) stay pending for the
+   * real duration. Still drops into `onRetry`/void `refetch` props — the promise
+   * is simply ignored there.
+   */
+  refetch: () => Promise<void>;
 }
 
 /**
@@ -102,6 +113,10 @@ export function useOpenChoreoQuery<T>(
     staleTime: options.staleTime,
     refetchInterval: options.refetchInterval,
     enabled: options.enabled,
+    // Only override the app-level retry when a caller explicitly sets one —
+    // passing `retry: undefined` would reset TanStack to its built-in default
+    // (retry 3) instead of inheriting the QueryClient's configured policy.
+    ...(options.retry !== undefined ? { retry: options.retry } : {}),
   });
 
   // `enabled: false` leaves a query in a "pending but not fetching" state
@@ -116,8 +131,8 @@ export function useOpenChoreoQuery<T>(
     // `!isPending` guarantees this is never true during the first load.
     isRefetching: isFetching && !isPending,
     error: error ?? null,
-    refetch: () => {
-      void refetch();
-    },
+    // Map TanStack's rich refetch result to a bare `Promise<void>` so the seam
+    // doesn't leak its types, while still resolving only once the refetch is done.
+    refetch: () => refetch().then(() => undefined),
   };
 }

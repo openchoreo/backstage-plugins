@@ -6,7 +6,10 @@ import {
   useOpenChoreoMutation,
   useOpenChoreoQuery,
 } from '@openchoreo/backstage-plugin-react';
-import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
+import {
+  openChoreoClientApiRef,
+  type PlatformResourceKind,
+} from '../../api/OpenChoreoClientApi';
 import {
   mapKindToApiKind,
   cleanCrdForEditing,
@@ -52,11 +55,22 @@ export function useResourceDefinition({
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
   const resourceName = entity.metadata.name;
   const isSupported = isSupportedKind(kind);
-  const apiKind = mapKindToApiKind(kind);
+  // `mapKindToApiKind` throws on an unsupported kind, so only resolve it when the
+  // kind is supported. The query and mutations are gated on `canOperate`
+  // (⊆ isSupported), so this placeholder is never used for a real request — it
+  // only keeps the query key well-typed for the unsupported (idle) case.
+  const apiKind: PlatformResourceKind = isSupported
+    ? mapKindToApiKind(kind)
+    : 'resources';
 
   const canOperate =
     isSupported && !!resourceName && (clusterScoped || !!namespace);
-  const definitionKey = ['resource-definition', apiKind, namespace ?? '', resourceName];
+  const definitionKey = [
+    'resource-definition',
+    apiKind,
+    namespace ?? '',
+    resourceName,
+  ];
 
   const { data, loading, error, refetch } = useOpenChoreoQuery<
     Record<string, unknown>
@@ -115,7 +129,7 @@ export function useResourceDefinition({
     error: error ? error.message : null,
     rawError: error,
     refresh: async () => {
-      refetch();
+      await refetch();
     },
     save,
     deleteResource,

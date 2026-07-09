@@ -1,10 +1,13 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { createQueryWrapper } from '@openchoreo/test-utils';
-import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import {
+  openChoreoClientApiRef,
+  type ClusterRole,
+} from '../../../api/OpenChoreoClientApi';
 import { useClusterRoles } from './useClusterRoles';
 
-function makeRole(name: string) {
-  return { name, rules: [] } as any;
+function makeRole(name: string): ClusterRole {
+  return { name, actions: [] };
 }
 
 function renderUseClusterRoles(client: any) {

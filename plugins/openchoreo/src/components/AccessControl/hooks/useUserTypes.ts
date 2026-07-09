@@ -57,7 +57,7 @@ export function useUserTypes(): UseUserTypesResult {
     loading,
     error,
     fetchUserTypes: async () => {
-      refetch();
+      await refetch();
     },
   };
 }

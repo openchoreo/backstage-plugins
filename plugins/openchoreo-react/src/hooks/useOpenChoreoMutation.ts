@@ -15,10 +15,10 @@ export interface UseOpenChoreoMutationOptions<TArgs extends unknown[], TData> {
    * issued, so callers still have fresh data in flight by the time they await.
    */
   invalidates?: QueryKey[];
-  /** Called after a successful mutation, with the result and the call args. */
-  onSuccess?: (data: TData, args: TArgs) => void;
-  /** Called after a failed mutation, with the error and the call args. */
-  onError?: (error: Error, args: TArgs) => void;
+  /** Called after a successful mutation, with the result and the call args. May be async. */
+  onSuccess?: (data: TData, args: TArgs) => void | Promise<void>;
+  /** Called after a failed mutation, with the error and the call args. May be async. */
+  onError?: (error: Error, args: TArgs) => void | Promise<void>;
 }
 
 /** What {@link useOpenChoreoMutation} returns. */
@@ -79,10 +79,12 @@ export function useOpenChoreoMutation<TArgs extends unknown[], TData>(
           ),
         );
       }
-      onSuccess?.(data, args);
+      // Await so a rejection from an async handler surfaces through mutateAsync
+      // rather than becoming an unhandled promise.
+      await onSuccess?.(data, args);
     },
-    onError: (error, args) => {
-      onError?.(error, args);
+    onError: async (error, args) => {
+      await onError?.(error, args);
     },
   });
 

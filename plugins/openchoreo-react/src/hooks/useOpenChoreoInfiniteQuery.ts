@@ -51,8 +51,8 @@ export interface UseOpenChoreoInfiniteQueryResult<TItem> {
   hasMore: boolean;
   /** Load the next page (no-op when there is none / already loading). */
   loadMore: () => void;
-  /** Re-fetch from page 1. */
-  refresh: () => void;
+  /** Re-fetch from page 1. Resolves when the refetch settles. */
+  refresh: () => Promise<void>;
 }
 
 /**
@@ -94,8 +94,7 @@ export function useOpenChoreoInfiniteQuery<TItem>(
     queryFn: ({ pageParam }) => fetcher(pageParam),
     getNextPageParam: lastPage => {
       // Explicit `hasMore` wins (fan-out pages); otherwise a short page ends it.
-      const more =
-        lastPage.hasMore ?? lastPage.items.length >= pageSize;
+      const more = lastPage.hasMore ?? lastPage.items.length >= pageSize;
       if (!more || lastPage.items.length === 0) return undefined;
       const lastItem = lastPage.items[lastPage.items.length - 1];
       return getCursor(lastItem) ?? undefined;
@@ -119,8 +118,6 @@ export function useOpenChoreoInfiniteQuery<TItem>(
     loadMore: () => {
       if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
     },
-    refresh: () => {
-      void refetch();
-    },
+    refresh: () => refetch().then(() => undefined),
   };
 }

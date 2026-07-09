@@ -36,7 +36,7 @@ export const useReleases = (entity: Entity): UseReleasesResult => {
     loading,
     error: error ? error.message || 'Failed to load releases' : null,
     refetch: async () => {
-      refetch();
+      await refetch();
     },
   };
 };

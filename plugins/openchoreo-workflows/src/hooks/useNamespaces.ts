@@ -15,8 +15,9 @@ interface UseNamespacesResult {
 export function useNamespaces(): UseNamespacesResult {
   const client = useApi(genericWorkflowsClientApiRef);
 
-  const { data, loading, error } = useOpenChoreoQuery(['namespaces'], () =>
-    client.listNamespaces(),
+  const { data, loading, error } = useOpenChoreoQuery(
+    ['workflows', 'namespaces'],
+    () => client.listNamespaces(),
   );
 
   return { namespaces: data ?? [], loading, error };

@@ -33,7 +33,7 @@ export function useWorkflows(): UseWorkflowsResult {
     loading,
     error,
     refetch: async () => {
-      refetch();
+      await refetch();
     },
   };
 }

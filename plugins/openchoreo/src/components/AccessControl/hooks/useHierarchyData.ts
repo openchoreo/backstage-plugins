@@ -31,7 +31,7 @@ export function useNamespaces(): UseNamespacesResult {
     loading,
     error,
     refresh: async () => {
-      refetch();
+      await refetch();
     },
   };
 }
@@ -63,7 +63,7 @@ export function useProjects(
     loading,
     error,
     refresh: async () => {
-      refetch();
+      await refetch();
     },
   };
 }
@@ -87,8 +87,7 @@ export function useComponents(
 
   const { data, loading, error, refetch } = useOpenChoreoQuery(
     ['hierarchy', 'components', namespaceName ?? null, projectName ?? null],
-    () =>
-      client.listComponents(namespaceName as string, projectName as string),
+    () => client.listComponents(namespaceName as string, projectName as string),
     { enabled: !!namespaceName && !!projectName },
   );
 
@@ -97,7 +96,7 @@ export function useComponents(
     loading,
     error,
     refresh: async () => {
-      refetch();
+      await refetch();
     },
   };
 }

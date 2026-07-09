@@ -53,7 +53,11 @@ describe('useEnvironmentData', () => {
 
     await waitFor(() => expect(result.current.environments).toHaveLength(1));
 
-    act(() => result.current.refetch());
+    // refetch() now returns a Promise (held open by the pending second fetch);
+    // kick it inside act and swallow so it doesn't leak an unhandled rejection.
+    await act(async () => {
+      result.current.refetch().catch(() => {});
+    });
 
     await waitFor(() => expect(result.current.isRefetching).toBe(true));
     // Data stays on screen during the refresh — never blanks to a first load.

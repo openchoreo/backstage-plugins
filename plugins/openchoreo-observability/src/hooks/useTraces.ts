@@ -94,7 +94,7 @@ export function useTraces(filters: Filters, entity: Entity) {
     traces: filteredTraces,
     total: data?.length ?? 0,
     loading,
-    error: error ? error.message : null,
+    error: error ? error.message || 'Failed to fetch traces' : null,
     refresh: refetch,
   };
 }

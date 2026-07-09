@@ -133,7 +133,7 @@ export function useLogsSummary() {
     observabilityDisabled,
     refreshing: isRefetching,
     refresh: async () => {
-      refetch();
+      await refetch();
     },
   };
 }

@@ -44,34 +44,32 @@ export function useWorkflowData() {
   const { getEntityDetails } = useComponentEntityDetails();
   const entityRef = stringifyEntityRef(entity);
 
-  const {
-    data: componentDetails,
-    refetch: refetchComponentDetails,
-  } = useOpenChoreoQuery<ModelsCompleteComponent | null>(
-    ['workflow-data', 'component', entityRef],
-    async () => {
-      // Errors here are swallowed to `null` so the UI degrades to "Workflows
-      // Not Available" rather than surfacing a raw HTTP error.
-      try {
-        const { componentName, projectName, namespaceName } =
-          await getEntityDetails();
-        const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
-        const response = await fetchApi.fetch(
-          `${baseUrl}/component?componentName=${encodeURIComponent(
-            componentName,
-          )}&projectName=${encodeURIComponent(
-            projectName,
-          )}&namespaceName=${encodeURIComponent(namespaceName)}`,
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  const { data: componentDetails, refetch: refetchComponentDetails } =
+    useOpenChoreoQuery<ModelsCompleteComponent | null>(
+      ['workflow-data', 'component', entityRef],
+      async () => {
+        // Errors here are swallowed to `null` so the UI degrades to "Workflows
+        // Not Available" rather than surfacing a raw HTTP error.
+        try {
+          const { componentName, projectName, namespaceName } =
+            await getEntityDetails();
+          const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+          const response = await fetchApi.fetch(
+            `${baseUrl}/component?componentName=${encodeURIComponent(
+              componentName,
+            )}&projectName=${encodeURIComponent(
+              projectName,
+            )}&namespaceName=${encodeURIComponent(namespaceName)}`,
+          );
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return (await response.json()) as ModelsCompleteComponent;
+        } catch {
+          return null;
         }
-        return (await response.json()) as ModelsCompleteComponent;
-      } catch {
-        return null;
-      }
-    },
-  );
+      },
+    );
 
   const {
     data: builds,
@@ -103,7 +101,8 @@ export function useWorkflowData() {
         uuid: run.uuid || '',
         componentName:
           run.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] || componentName,
-        projectName: run.labels?.[CHOREO_LABELS.WORKFLOW_PROJECT] || projectName,
+        projectName:
+          run.labels?.[CHOREO_LABELS.WORKFLOW_PROJECT] || projectName,
         namespaceName: run.namespaceName,
         status: run.status,
         createdAt: run.createdAt,
@@ -125,10 +124,10 @@ export function useWorkflowData() {
     loading: buildsLoading,
     error,
     fetchBuilds: async () => {
-      refetchBuildsQuery();
+      await refetchBuildsQuery();
     },
     fetchComponentDetails: async () => {
-      refetchComponentDetails();
+      await refetchComponentDetails();
     },
   };
 }

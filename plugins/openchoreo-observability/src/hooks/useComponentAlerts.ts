@@ -87,7 +87,7 @@ export function useComponentAlerts(
     // Kept for API compatibility — a manual (re)fetch now just triggers refetch;
     // filter changes refetch on their own via the key.
     fetchAlerts: async () => {
-      refetch();
+      await refetch();
     },
     refresh: refetch,
   };

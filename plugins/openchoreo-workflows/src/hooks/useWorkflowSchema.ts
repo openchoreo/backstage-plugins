@@ -45,7 +45,7 @@ export function useWorkflowSchema(
     loading,
     error,
     refetch: async () => {
-      refetch();
+      await refetch();
     },
   };
 }

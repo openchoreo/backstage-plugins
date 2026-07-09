@@ -15,8 +15,16 @@ export function useProjects(namespaces?: string[]): ProjectEntry[] {
   // undefined means "fetch all" (no namespace filter).
   const isEmptyNamespaces = namespaces !== undefined && namespaces.length === 0;
 
+  // Distinguish the three states in the cache key so "fetch all" (undefined),
+  // "fetch none" ([]) and a specific set never collide — `undefined` and `[]`
+  // would both join to '' otherwise, serving the full list where [] wants none.
+  const namespacesKey =
+    namespaces === undefined
+      ? '__all__'
+      : `ns:${[...namespaces].sort().join(',')}`;
+
   const { data } = useOpenChoreoQuery(
-    ['projects-catalog', (namespaces ?? []).join(',')],
+    ['projects-catalog', namespacesKey],
     async () => {
       if (isEmptyNamespaces) {
         return [] as ProjectEntry[];

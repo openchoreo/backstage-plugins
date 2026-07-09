@@ -185,7 +185,7 @@ export function useWorkflowsSummary() {
     triggeringBuild: triggerMutation.isLoading,
     triggerBuild,
     refresh: async () => {
-      refetch();
+      await refetch();
     },
   };
 }

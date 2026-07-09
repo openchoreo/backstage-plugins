@@ -115,7 +115,7 @@ export function useProjectIncidents(
     totalCount: data?.totalCount ?? 0,
     // Kept for API compatibility; filter changes refetch on their own via the key.
     fetchIncidents: async () => {
-      refetch();
+      await refetch();
     },
     refresh: refetch,
   };

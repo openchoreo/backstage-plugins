@@ -23,7 +23,7 @@ export function useActions(): UseActionsResult {
     loading,
     error,
     fetchActions: async () => {
-      refetch();
+      await refetch();
     },
   };
 }

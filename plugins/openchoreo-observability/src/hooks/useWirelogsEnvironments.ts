@@ -73,7 +73,10 @@ export const useWirelogsEnvironments = (
             return { ...env, hasWirelogs: false };
           }
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), NETPOL_TIMEOUT_MS);
+          const timeout = setTimeout(
+            () => controller.abort(),
+            NETPOL_TIMEOUT_MS,
+          );
           try {
             const params = new URLSearchParams({
               namespaceName: env.namespace,
@@ -110,7 +113,11 @@ export const useWirelogsEnvironments = (
     // A netpol-probe failure (base envs resolved, enrichment failed) is
     // surfaced as `unavailable`; otherwise mirror the base resolution status.
     status: enrichError ? 'unavailable' : baseStatus,
-    error: error || (enrichError ? enrichError.message : null),
+    error:
+      error ||
+      (enrichError
+        ? enrichError.message || 'Failed to fetch wirelogs environments'
+        : null),
     refetch,
   };
 };

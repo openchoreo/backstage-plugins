@@ -46,7 +46,7 @@ export function useWorkflowRunLogs(
     loading,
     error,
     refetch: async () => {
-      refetch();
+      await refetch();
     },
   };
 }

@@ -28,8 +28,7 @@ export function useDeploymentStatus() {
     ['deployment-status', stringifyEntityRef(entity)],
     () => client.fetchEnvironmentInfo(entity) as Promise<Environment[]>,
     {
-      refetchInterval: query =>
-        shouldPoll(query.state.data) ? 10000 : false,
+      refetchInterval: query => (shouldPoll(query.state.data) ? 10000 : false),
     },
   );
 
@@ -42,7 +41,7 @@ export function useDeploymentStatus() {
     // manual-refresh `refreshing` flag onto the wrapper's isRefetching.
     refreshing: isRefetching,
     refresh: async () => {
-      refetch();
+      await refetch();
     },
   };
 }

@@ -38,9 +38,7 @@ export function useSecrets(namespaceName: string): UseSecretsResult {
       } catch (err) {
         // Normalise non-Error rejections so `error` is always an Error with a
         // usable message (matches the pre-cache hand-rolled behaviour).
-        throw err instanceof Error
-          ? err
-          : new Error('Failed to fetch secrets');
+        throw err instanceof Error ? err : new Error('Failed to fetch secrets');
       }
     },
     { enabled: !!namespaceName },
@@ -75,7 +73,7 @@ export function useSecrets(namespaceName: string): UseSecretsResult {
     error,
     isForbidden: isForbiddenError(error),
     fetchSecrets: async () => {
-      refetch();
+      await refetch();
     },
     createSecret,
     updateSecret,
