@@ -24,6 +24,10 @@ import {
   transformReleaseBinding,
 } from '../transformers';
 import { deriveBindingStatusDetailed } from '../transformers/release-binding';
+import {
+  deriveProjectDeploymentStatus,
+  type ProjectDeploymentStatus,
+} from '../transformers/project-release-binding';
 
 type ModelsEnvironment = EnvironmentResponse;
 
@@ -305,12 +309,26 @@ export class EnvironmentInfoService implements EnvironmentService {
         transformReleaseBinding,
       );
 
+      // Enrich with per-env project-deployment status: whether the owning
+      // project is deployed in each environment (its cell namespace exists),
+      // which a component requires before it can run there. Fetched after the
+      // main batch — it's a fail-open enrichment, so serialising it keeps the
+      // hot path's parallel fetches intact and never blocks a deploy on a
+      // transient error. `null` (any failure, incl. a 403) → treat every env
+      // as project-deployed.
+      const projectBindings = await this.fetchProjectBindingsForStatus(
+        client,
+        request.namespaceName,
+        request.projectName,
+      );
+
       // Transform environment data with bindings and promotion information
       const transformStart = Date.now();
       const result = this.transformEnvironmentDataWithBindings(
         environments,
         bindings,
         deploymentPipeline,
+        projectBindings,
       );
       const transformEnd = Date.now();
 
@@ -346,6 +364,9 @@ export class EnvironmentInfoService implements EnvironmentService {
     environmentData: ModelsEnvironment[],
     bindings: ReleaseBindingResponse[],
     deploymentPipeline: any | null,
+    // Owning project's ProjectReleaseBindings, or `null` when the fetch
+    // failed (fail-open — every env is treated as project-deployed).
+    projectBindings: NewProjectReleaseBinding[] | null,
   ): Environment[] {
     // Create maps for easy lookup
     const envMap = new Map<string, ModelsEnvironment>();
@@ -373,6 +394,30 @@ export class EnvironmentInfoService implements EnvironmentService {
         binding.environment;
       bindingsByEnv.set(envName, binding);
     }
+
+    // Build project-binding map by environment. `null` (fetch failed) means
+    // "unknown → treat every env as project-deployed" so we never block on a
+    // transient error; a non-null (possibly empty) list means an env with no
+    // entry is genuinely not project-deployed.
+    const projectBindingsByEnv =
+      projectBindings === null
+        ? null
+        : (() => {
+            const map = new Map<string, NewProjectReleaseBinding>();
+            for (const pb of projectBindings) {
+              const envRef = pb.spec?.environment;
+              if (!envRef) continue;
+              const envName = envNameMap.get(envRef.toLowerCase()) || envRef;
+              map.set(envName, pb);
+            }
+            return map;
+          })();
+    const projectDeploymentStatusFor = (
+      envName: string,
+    ): ProjectDeploymentStatus =>
+      projectBindingsByEnv === null
+        ? 'ready'
+        : deriveProjectDeploymentStatus(projectBindingsByEnv.get(envName));
 
     // A resolved pipeline with no promotion paths defines no deployable
     // environments — return an empty list
@@ -427,6 +472,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           envData,
           binding,
           promotionTargets,
+          projectDeploymentStatusFor(envName),
         );
 
         orderedEnvironments.push(transformedEnv);
@@ -439,7 +485,8 @@ export class EnvironmentInfoService implements EnvironmentService {
   private createEnvironmentFromBinding(
     envData: ModelsEnvironment,
     binding: ReleaseBindingResponse | undefined,
-    promotionTargets?: any[],
+    promotionTargets: any[] | undefined,
+    projectDeploymentStatus: ProjectDeploymentStatus,
   ): Environment {
     const envName = envData.displayName || envData.name;
     const envResourceName = envData.name; // Actual Kubernetes resource name
@@ -471,6 +518,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       name: envName,
       resourceName: envResourceName,
       bindingName: binding?.name,
+      projectDeploymentStatus,
       hasComponentTypeOverrides:
         binding?.componentTypeEnvironmentConfigs &&
         Object.keys(binding.componentTypeEnvironmentConfigs).length > 0,
@@ -500,6 +548,48 @@ export class EnvironmentInfoService implements EnvironmentService {
     }
 
     return transformedEnv;
+  }
+
+  /**
+   * Fetches the owning project's ProjectReleaseBindings for the per-env
+   * project-deployment status enrichment. Self-contained and fail-open:
+   * returns `null` on ANY failure (including a 403 on the bindings resource),
+   * which {@link transformEnvironmentDataWithBindings} treats as "project
+   * deployed in every env" so the deploy UI never blocks on a transient or
+   * authz error.
+   */
+  private async fetchProjectBindingsForStatus(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    namespaceName: string,
+    projectName: string,
+  ): Promise<NewProjectReleaseBinding[] | null> {
+    try {
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/projectreleasebindings',
+        {
+          params: {
+            path: { namespaceName },
+            query: { project: projectName },
+          },
+        },
+      );
+      if (error || !response.ok || !data) {
+        this.logger.warn(
+          `Project-deployment check: bindings fetch for project "${projectName}" ` +
+            `returned status ${response?.status}; treating project as deployed (fail-open).`,
+        );
+        return null;
+      }
+      return (((data as any).items ?? []) as NewProjectReleaseBinding[]).filter(
+        b => (b as any)?.spec?.owner?.projectName === projectName,
+      );
+    } catch (e) {
+      this.logger.warn(
+        `Project-deployment check: failed to fetch bindings for project "${projectName}": ${e}; ` +
+          `treating project as deployed (fail-open).`,
+      );
+      return null;
+    }
   }
 
   private getEnvironmentOrder(

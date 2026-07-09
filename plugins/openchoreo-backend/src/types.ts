@@ -101,6 +101,16 @@ export interface Environment {
   name: string;
   resourceName?: string;
   bindingName?: string;
+  /**
+   * Whether the owning project is deployed in this environment (its cell
+   * namespace exists), which a component requires before it can run here.
+   * Derived from the project's ProjectReleaseBinding `NamespaceReady`
+   * condition. `ready` — namespace exists; `pending` — binding exists but the
+   * namespace isn't ready yet; `not-deployed` — no project binding for this
+   * env. Absent when the project-deployment check could not run (treated as
+   * deployed by the UI, fail-open).
+   */
+  projectDeploymentStatus?: 'ready' | 'pending' | 'not-deployed';
   hasComponentTypeOverrides?: boolean;
   dataPlaneRef?: string;
   dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';

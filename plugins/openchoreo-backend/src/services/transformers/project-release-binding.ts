@@ -10,6 +10,37 @@ type NewProjectReleaseBinding =
   OpenChoreoComponents['schemas']['ProjectReleaseBinding'];
 
 /**
+ * Whether a project is deployed enough in an environment for a component of
+ * that project to be deployable there. A component's ReleaseBinding applies
+ * its manifests into the project's cell namespace, which is created by the
+ * project's ProjectReleaseBinding — so the gating signal is the binding's
+ * `NamespaceReady` condition, NOT the aggregate `Ready` (which also folds in
+ * `ResourcesReady` and would wrongly report a project as undeployed when some
+ * unrelated project resource is degraded).
+ *
+ * - `not-deployed` — no ProjectReleaseBinding exists for the environment.
+ * - `ready` — the binding's `NamespaceReady` condition is `True` (cell
+ *   namespace exists on the data plane).
+ * - `pending` — a binding exists but `NamespaceReady` is not yet `True`
+ *   (`False` / `Unknown` / absent). Covers the unpinned
+ *   `Synced=False / ProjectReleaseNotSet` case, where the controller sets
+ *   `NamespaceReady=Unknown` until the pin is seeded and the namespace lands.
+ */
+export type ProjectDeploymentStatus = 'ready' | 'pending' | 'not-deployed';
+
+export function deriveProjectDeploymentStatus(
+  binding: NewProjectReleaseBinding | undefined,
+): ProjectDeploymentStatus {
+  if (!binding) return 'not-deployed';
+  const namespaceReady = (
+    binding.status?.conditions as
+      | Array<{ type?: string; status?: string }>
+      | undefined
+  )?.find(c => c.type === 'NamespaceReady');
+  return namespaceReady?.status === 'True' ? 'ready' : 'pending';
+}
+
+/**
  * Transforms a K8s-style ProjectReleaseBinding into the flat
  * ProjectReleaseBindingResponse shape expected by the frontend. Reuses the
  * same Ready-condition derivation as the other bindings because the project
