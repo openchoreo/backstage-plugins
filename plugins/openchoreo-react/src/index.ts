@@ -525,6 +525,10 @@ export {
   type UseOpenChoreoMutationOptions,
   type UseOpenChoreoMutationResult,
 } from './hooks/useOpenChoreoMutation';
+export {
+  useOpenChoreoCache,
+  type OpenChoreoCache,
+} from './hooks/useOpenChoreoCache';
 
 // Change Detection Components
 export { ChangeDiff, type ChangeDiffProps } from './components/ChangeDiff';

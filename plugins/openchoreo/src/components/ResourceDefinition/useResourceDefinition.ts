@@ -1,7 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  useOpenChoreoMutation,
+  useOpenChoreoQuery,
+} from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import {
   mapKindToApiKind,
@@ -43,128 +47,76 @@ export function useResourceDefinition({
 }: UseResourceDefinitionOptions): UseResourceDefinitionResult {
   const client = useApi(openChoreoClientApiRef);
 
-  const [definition, setDefinition] = useState<Record<string, unknown> | null>(
-    null,
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [rawError, setRawError] = useState<Error | null>(null);
-
   const kind = entity.kind;
   const clusterScoped = isClusterScopedKind(kind);
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
   const resourceName = entity.metadata.name;
   const isSupported = isSupportedKind(kind);
+  const apiKind = mapKindToApiKind(kind);
 
-  const fetchDefinition = useCallback(async () => {
-    if (!isSupported || !resourceName || (!clusterScoped && !namespace)) {
-      setIsLoading(false);
-      return;
-    }
+  const canOperate =
+    isSupported && !!resourceName && (clusterScoped || !!namespace);
+  const definitionKey = ['resource-definition', apiKind, namespace ?? '', resourceName];
 
-    setIsLoading(true);
-    setError(null);
-    setRawError(null);
-
-    try {
-      const apiKind = mapKindToApiKind(kind);
-      const data = await client.getResourceDefinition(
+  const { data, loading, error, refetch } = useOpenChoreoQuery<
+    Record<string, unknown>
+  >(
+    definitionKey,
+    async () => {
+      const raw = await client.getResourceDefinition(
         apiKind,
         namespace || '',
         resourceName,
       );
-      const cleaned = cleanCrdForEditing(data);
-      setDefinition(cleaned);
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Failed to fetch resource definition';
-      setError(message);
-      setRawError(err instanceof Error ? err : new Error(message));
-      setDefinition(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [client, kind, namespace, resourceName, isSupported, clusterScoped]);
+      return cleanCrdForEditing(raw);
+    },
+    { enabled: canOperate },
+  );
 
-  // Fetch on mount and when entity changes
-  useEffect(() => {
-    fetchDefinition();
-  }, [fetchDefinition]);
+  const { mutate: runSave, isLoading: isSaving } = useOpenChoreoMutation(
+    (resource: Record<string, unknown>) =>
+      client.updateResourceDefinition(
+        apiKind,
+        namespace || '',
+        resourceName,
+        resource,
+      ),
+    { invalidates: [definitionKey] },
+  );
+
+  const { mutate: runDelete } = useOpenChoreoMutation(() =>
+    client.deleteResourceDefinition(apiKind, namespace || '', resourceName),
+  );
 
   const save = useCallback(
     async (resource: Record<string, unknown>) => {
-      if (!isSupported || !resourceName || (!clusterScoped && !namespace)) {
+      if (!canOperate) {
         throw new Error(
           'Cannot save: entity not supported or missing required fields',
         );
       }
-
-      setIsSaving(true);
-      setError(null);
-
-      try {
-        const apiKind = mapKindToApiKind(kind);
-        await client.updateResourceDefinition(
-          apiKind,
-          namespace || '',
-          resourceName,
-          resource,
-        );
-        // Refresh to get the latest version from the server
-        await fetchDefinition();
-      } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : 'Failed to save resource definition';
-        setError(message);
-        throw err;
-      } finally {
-        setIsSaving(false);
-      }
+      await runSave(resource);
     },
-    [
-      client,
-      kind,
-      namespace,
-      resourceName,
-      isSupported,
-      clusterScoped,
-      fetchDefinition,
-    ],
+    [canOperate, runSave],
   );
 
   const deleteResource = useCallback(async () => {
-    if (!isSupported || !resourceName || (!clusterScoped && !namespace)) {
+    if (!canOperate) {
       throw new Error(
         'Cannot delete: entity not supported or missing required fields',
       );
     }
-
-    try {
-      const apiKind = mapKindToApiKind(kind);
-      await client.deleteResourceDefinition(
-        apiKind,
-        namespace || '',
-        resourceName,
-      );
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to delete resource';
-      setError(message);
-      throw err;
-    }
-  }, [client, kind, namespace, resourceName, isSupported, clusterScoped]);
+    await runDelete();
+  }, [canOperate, runDelete]);
 
   return {
-    definition,
-    isLoading,
-    error,
-    rawError,
-    refresh: fetchDefinition,
+    definition: data ?? null,
+    isLoading: loading,
+    error: error ? error.message : null,
+    rawError: error,
+    refresh: async () => {
+      refetch();
+    },
     save,
     deleteResource,
     isSaving,

@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import {
   openChoreoClientApiRef,
   NamespaceSummary,
@@ -19,36 +19,20 @@ interface UseNamespacesResult {
 }
 
 export function useNamespaces(): UseNamespacesResult {
-  const [namespaces, setNamespaces] = useState<NamespaceSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
   const client = useApi(openChoreoClientApiRef);
 
-  const refresh = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await client.listNamespaces();
-      setNamespaces(result);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error('Failed to fetch namespaces'),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [client]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const { data, loading, error, refetch } = useOpenChoreoQuery(
+    ['hierarchy', 'namespaces'],
+    () => client.listNamespaces(),
+  );
 
   return {
-    namespaces,
+    namespaces: data ?? [],
     loading,
     error,
-    refresh,
+    refresh: async () => {
+      refetch();
+    },
   };
 }
 
@@ -66,41 +50,21 @@ interface UseProjectsResult {
 export function useProjects(
   namespaceName: string | undefined,
 ): UseProjectsResult {
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
   const client = useApi(openChoreoClientApiRef);
 
-  const refresh = useCallback(async () => {
-    if (!namespaceName) {
-      setProjects([]);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await client.listProjects(namespaceName);
-      setProjects(result);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error('Failed to fetch projects'),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [client, namespaceName]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const { data, loading, error, refetch } = useOpenChoreoQuery(
+    ['hierarchy', 'projects', namespaceName ?? null],
+    () => client.listProjects(namespaceName as string),
+    { enabled: !!namespaceName },
+  );
 
   return {
-    projects,
+    projects: data ?? [],
     loading,
     error,
-    refresh,
+    refresh: async () => {
+      refetch();
+    },
   };
 }
 
@@ -119,40 +83,21 @@ export function useComponents(
   namespaceName: string | undefined,
   projectName: string | undefined,
 ): UseComponentsResult {
-  const [components, setComponents] = useState<ComponentSummary[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
   const client = useApi(openChoreoClientApiRef);
 
-  const refresh = useCallback(async () => {
-    if (!namespaceName || !projectName) {
-      setComponents([]);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await client.listComponents(namespaceName, projectName);
-      setComponents(result);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error('Failed to fetch components'),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [client, namespaceName, projectName]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const { data, loading, error, refetch } = useOpenChoreoQuery(
+    ['hierarchy', 'components', namespaceName ?? null, projectName ?? null],
+    () =>
+      client.listComponents(namespaceName as string, projectName as string),
+    { enabled: !!namespaceName && !!projectName },
+  );
 
   return {
-    components,
+    components: data ?? [],
     loading,
     error,
-    refresh,
+    refresh: async () => {
+      refetch();
+    },
   };
 }

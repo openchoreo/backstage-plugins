@@ -9958,6 +9958,7 @@ __metadata:
     "@openchoreo/backstage-design-system": "workspace:^"
     "@openchoreo/backstage-plugin-common": "workspace:^"
     "@openchoreo/backstage-plugin-react": "workspace:^"
+    "@openchoreo/test-utils": "workspace:^"
     "@testing-library/jest-dom": "npm:6.9.1"
     "@testing-library/react": "npm:14.3.1"
     "@testing-library/user-event": "npm:14.6.1"

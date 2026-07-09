@@ -1,6 +1,6 @@
-import { renderHook, act } from '@testing-library/react';
-import { TestApiProvider } from '@backstage/test-utils';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { ResponseError } from '@backstage/errors';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useSecrets } from './useSecrets';
 import {
   openChoreoClientApiRef,
@@ -27,11 +27,7 @@ function makeSecret(name: string): Secret {
 
 function renderUseSecrets(namespace: string) {
   return renderHook(() => useSecrets(namespace), {
-    wrapper: ({ children }) => (
-      <TestApiProvider apis={[[openChoreoClientApiRef, mockClient as any]]}>
-        {children}
-      </TestApiProvider>
-    ),
+    wrapper: createQueryWrapper([[openChoreoClientApiRef, mockClient as any]]),
   });
 }
 
@@ -60,10 +56,9 @@ describe('useSecrets', () => {
 
     const { result } = renderUseSecrets('ns');
 
-    await act(async () => {});
+    await waitFor(() => expect(result.current.secrets).toEqual(items));
 
     expect(mockClient.listSecrets).toHaveBeenCalledWith('ns');
-    expect(result.current.secrets).toEqual(items);
     expect(result.current.loading).toBe(false);
     expect(result.current.error).toBeNull();
     expect(result.current.isForbidden).toBe(false);
@@ -72,7 +67,7 @@ describe('useSecrets', () => {
   it('clears secrets when namespace is empty (does not fetch)', async () => {
     const { result } = renderUseSecrets('');
 
-    await act(async () => {});
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(mockClient.listSecrets).not.toHaveBeenCalled();
     expect(result.current.secrets).toEqual([]);
@@ -83,9 +78,8 @@ describe('useSecrets', () => {
 
     const { result } = renderUseSecrets('ns');
 
-    await act(async () => {});
+    await waitFor(() => expect(result.current.error?.message).toBe('boom'));
 
-    expect(result.current.error?.message).toBe('boom');
     expect(result.current.secrets).toEqual([]);
     expect(result.current.isForbidden).toBe(false);
   });
@@ -103,9 +97,7 @@ describe('useSecrets', () => {
 
     const { result } = renderUseSecrets('ns');
 
-    await act(async () => {});
-
-    expect(result.current.isForbidden).toBe(true);
+    await waitFor(() => expect(result.current.isForbidden).toBe(true));
   });
 
   it('createSecret calls the client and refetches', async () => {
@@ -125,7 +117,7 @@ describe('useSecrets', () => {
     });
 
     const { result } = renderUseSecrets('ns');
-    await act(async () => {});
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     let returned: Secret | undefined;
     await act(async () => {
@@ -144,8 +136,10 @@ describe('useSecrets', () => {
       data: { k: 'v' },
     });
     expect(returned).toEqual(created);
-    expect(mockClient.listSecrets).toHaveBeenCalledTimes(2);
-    expect(result.current.secrets).toEqual([created]);
+    await waitFor(() =>
+      expect(mockClient.listSecrets).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() => expect(result.current.secrets).toEqual([created]));
   });
 
   it('updateSecret calls the client and refetches', async () => {
@@ -165,7 +159,7 @@ describe('useSecrets', () => {
     });
 
     const { result } = renderUseSecrets('ns');
-    await act(async () => {});
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     let returned: Secret | undefined;
     await act(async () => {
@@ -178,8 +172,10 @@ describe('useSecrets', () => {
       data: { k1: 'new' },
     });
     expect(returned).toEqual(updated);
-    expect(mockClient.listSecrets).toHaveBeenCalledTimes(2);
-    expect(result.current.secrets).toEqual([updated]);
+    await waitFor(() =>
+      expect(mockClient.listSecrets).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() => expect(result.current.secrets).toEqual([updated]));
   });
 
   it('deleteSecret calls the client and refetches', async () => {
@@ -198,26 +194,25 @@ describe('useSecrets', () => {
     });
 
     const { result } = renderUseSecrets('ns');
-    await act(async () => {});
-
-    expect(result.current.secrets).toEqual([initial]);
+    await waitFor(() => expect(result.current.secrets).toEqual([initial]));
 
     await act(async () => {
       await result.current.deleteSecret('victim');
     });
 
     expect(mockClient.deleteSecret).toHaveBeenCalledWith('ns', 'victim');
-    expect(mockClient.listSecrets).toHaveBeenCalledTimes(2);
-    expect(result.current.secrets).toEqual([]);
+    await waitFor(() =>
+      expect(mockClient.listSecrets).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() => expect(result.current.secrets).toEqual([]));
   });
 
   it('wraps non-Error rejection values in an Error', async () => {
     mockClient.listSecrets.mockRejectedValueOnce('not-an-error');
 
     const { result } = renderUseSecrets('ns');
-    await act(async () => {});
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(Error));
 
-    expect(result.current.error).toBeInstanceOf(Error);
     expect(result.current.error?.message).toBe('Failed to fetch secrets');
   });
 });

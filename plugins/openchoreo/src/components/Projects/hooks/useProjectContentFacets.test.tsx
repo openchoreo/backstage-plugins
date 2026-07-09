@@ -1,6 +1,6 @@
-import { renderHook, act } from '@testing-library/react';
-import { TestApiProvider } from '@backstage/test-utils';
+import { renderHook, waitFor } from '@testing-library/react';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useProjectContentFacets } from './useProjectContentFacets';
 
@@ -16,11 +16,7 @@ const mockCatalogApi = { getEntityFacets: jest.fn() };
 
 function renderFacets() {
   return renderHook(() => useProjectContentFacets(systemEntity), {
-    wrapper: ({ children }) => (
-      <TestApiProvider apis={[[catalogApiRef, mockCatalogApi as any]]}>
-        {children}
-      </TestApiProvider>
-    ),
+    wrapper: createQueryWrapper([[catalogApiRef, mockCatalogApi as any]]),
   });
 }
 
@@ -44,13 +40,14 @@ describe('useProjectContentFacets', () => {
       });
 
     const { result } = renderFacets();
-    await act(async () => {});
 
-    expect(result.current.counts).toEqual({
-      all: 6,
-      component: 4,
-      resource: 2,
-    });
+    await waitFor(() =>
+      expect(result.current.counts).toEqual({
+        all: 6,
+        component: 4,
+        resource: 2,
+      }),
+    );
     expect(result.current.typesByKind.component).toEqual([
       'deployment/service',
       'deployment/web',
@@ -62,17 +59,18 @@ describe('useProjectContentFacets', () => {
   it('facets each kind by spec.type, scoped to the project', async () => {
     mockCatalogApi.getEntityFacets.mockResolvedValue({ facets: {} });
     renderFacets();
-    await act(async () => {});
 
-    expect(mockCatalogApi.getEntityFacets).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filter: {
-          'spec.system': 'url-shortener',
-          'metadata.namespace': 'default',
-          kind: 'Component',
-        },
-        facets: ['spec.type'],
-      }),
+    await waitFor(() =>
+      expect(mockCatalogApi.getEntityFacets).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filter: {
+            'spec.system': 'url-shortener',
+            'metadata.namespace': 'default',
+            kind: 'Component',
+          },
+          facets: ['spec.type'],
+        }),
+      ),
     );
     expect(mockCatalogApi.getEntityFacets).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -85,7 +83,8 @@ describe('useProjectContentFacets', () => {
   it('returns empty facets when the query fails', async () => {
     mockCatalogApi.getEntityFacets.mockRejectedValue(new Error('down'));
     const { result } = renderFacets();
-    await act(async () => {});
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.counts).toEqual({
       all: 0,
@@ -93,6 +92,5 @@ describe('useProjectContentFacets', () => {
       resource: 0,
     });
     expect(result.current.typesByKind).toEqual({ component: [], resource: [] });
-    expect(result.current.loading).toBe(false);
   });
 });
