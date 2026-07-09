@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from 'react';
 import {
   discoveryApiRef,
   fetchApiRef,
@@ -6,6 +5,7 @@ import {
 } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { PlatformDetailsCard } from '../PlatformDetailsCard';
 import { fetchDataplanesWithEnvironmentsAndComponents } from '../../api/dataplanesWithEnvironmentsAndComponents';
 import {
@@ -15,38 +15,35 @@ import {
 } from '../../types';
 import { Box, CircularProgress, Typography } from '@material-ui/core';
 
+interface PlatformPlanes {
+  dataplanesWithEnvironments: DataPlaneWithEnvironments[];
+  clusterDataplanes: DataPlaneWithEnvironments[];
+  workflowPlanes: WorkflowPlane[];
+  clusterWorkflowPlanes: WorkflowPlane[];
+  observabilityPlanes: ObservabilityPlane[];
+  clusterObservabilityPlanes: ObservabilityPlane[];
+}
+
+const EMPTY_PLANES: PlatformPlanes = {
+  dataplanesWithEnvironments: [],
+  clusterDataplanes: [],
+  workflowPlanes: [],
+  clusterWorkflowPlanes: [],
+  observabilityPlanes: [],
+  clusterObservabilityPlanes: [],
+};
+
 /**
  * A standalone platform details card for the homepage that handles its own data fetching
  */
 export const HomePagePlatformDetailsCard = () => {
-  const [dataplanesWithEnvironments, setDataplanesWithEnvironments] = useState<
-    DataPlaneWithEnvironments[]
-  >([]);
-  const [clusterDataplanes, setClusterDataplanes] = useState<
-    DataPlaneWithEnvironments[]
-  >([]);
-  const [workflowPlanes, setWorkflowPlanes] = useState<WorkflowPlane[]>([]);
-  const [clusterWorkflowPlanes, setClusterWorkflowPlanes] = useState<
-    WorkflowPlane[]
-  >([]);
-  const [observabilityPlanes, setObservabilityPlanes] = useState<
-    ObservabilityPlane[]
-  >([]);
-  const [clusterObservabilityPlanes, setClusterObservabilityPlanes] = useState<
-    ObservabilityPlane[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const discovery = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
   const catalogApi = useApi(catalogApiRef);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
+  const { data, loading, error } = useOpenChoreoQuery<PlatformPlanes>(
+    ['platform-details', 'planes'],
+    async () => {
       const [
         dataplanesData,
         dataplaneCatalogResult,
@@ -86,32 +83,6 @@ export const HomePagePlatformDetailsCard = () => {
         );
       });
 
-      // Enrich namespace-scoped dataplanes with agent status
-      setDataplanesWithEnvironments(
-        dataplanesData.map(dp => ({
-          ...dp,
-          agentConnected: dataplaneAgentMap.get(
-            `${dp.namespaceName}/${dp.name}`,
-          ),
-        })),
-      );
-
-      // Cluster dataplanes
-      setClusterDataplanes(
-        clusterDpResult.items.map(entity => ({
-          name: entity.metadata.name,
-          namespace: entity.metadata.namespace,
-          displayName: entity.metadata.title || entity.metadata.name,
-          description: entity.metadata.description,
-          namespaceName: 'openchoreo-cluster',
-          agentConnected:
-            entity.metadata.annotations?.[
-              CHOREO_ANNOTATIONS.AGENT_CONNECTED
-            ] === 'true',
-          environments: [],
-        })),
-      );
-
       const mapWorkflowPlane = (
         entity: (typeof workflowPlaneResult.items)[0],
       ): WorkflowPlane => ({
@@ -135,9 +106,6 @@ export const HomePagePlatformDetailsCard = () => {
           10,
         ),
       });
-
-      setWorkflowPlanes(workflowPlaneResult.items.map(mapWorkflowPlane));
-      setClusterWorkflowPlanes(clusterBpResult.items.map(mapWorkflowPlane));
 
       const mapObsPlane = (
         entity: (typeof obsPlaneResult.items)[0],
@@ -163,26 +131,35 @@ export const HomePagePlatformDetailsCard = () => {
         ),
       });
 
-      setObservabilityPlanes(obsPlaneResult.items.map(mapObsPlane));
-      setClusterObservabilityPlanes(clusterOpResult.items.map(mapObsPlane));
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to fetch platform details',
-      );
-      setDataplanesWithEnvironments([]);
-      setClusterDataplanes([]);
-      setWorkflowPlanes([]);
-      setClusterWorkflowPlanes([]);
-      setObservabilityPlanes([]);
-      setClusterObservabilityPlanes([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [discovery, fetchApi, catalogApi]);
+      return {
+        // Enrich namespace-scoped dataplanes with agent status.
+        dataplanesWithEnvironments: dataplanesData.map(dp => ({
+          ...dp,
+          agentConnected: dataplaneAgentMap.get(
+            `${dp.namespaceName}/${dp.name}`,
+          ),
+        })),
+        clusterDataplanes: clusterDpResult.items.map(entity => ({
+          name: entity.metadata.name,
+          namespace: entity.metadata.namespace,
+          displayName: entity.metadata.title || entity.metadata.name,
+          description: entity.metadata.description,
+          namespaceName: 'openchoreo-cluster',
+          agentConnected:
+            entity.metadata.annotations?.[
+              CHOREO_ANNOTATIONS.AGENT_CONNECTED
+            ] === 'true',
+          environments: [],
+        })),
+        workflowPlanes: workflowPlaneResult.items.map(mapWorkflowPlane),
+        clusterWorkflowPlanes: clusterBpResult.items.map(mapWorkflowPlane),
+        observabilityPlanes: obsPlaneResult.items.map(mapObsPlane),
+        clusterObservabilityPlanes: clusterOpResult.items.map(mapObsPlane),
+      };
+    },
+  );
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const planes = data ?? EMPTY_PLANES;
 
   if (loading) {
     return (
@@ -214,12 +191,12 @@ export const HomePagePlatformDetailsCard = () => {
 
   return (
     <PlatformDetailsCard
-      dataplanesWithEnvironments={dataplanesWithEnvironments}
-      clusterDataplanes={clusterDataplanes}
-      workflowPlanes={workflowPlanes}
-      clusterWorkflowPlanes={clusterWorkflowPlanes}
-      observabilityPlanes={observabilityPlanes}
-      clusterObservabilityPlanes={clusterObservabilityPlanes}
+      dataplanesWithEnvironments={planes.dataplanesWithEnvironments}
+      clusterDataplanes={planes.clusterDataplanes}
+      workflowPlanes={planes.workflowPlanes}
+      clusterWorkflowPlanes={planes.clusterWorkflowPlanes}
+      observabilityPlanes={planes.observabilityPlanes}
+      clusterObservabilityPlanes={planes.clusterObservabilityPlanes}
     />
   );
 };

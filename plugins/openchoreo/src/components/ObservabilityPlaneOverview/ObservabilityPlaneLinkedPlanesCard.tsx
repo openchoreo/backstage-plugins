@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import RefreshIcon from '@material-ui/icons/Refresh';
@@ -8,11 +7,12 @@ import CloudOffIcon from '@material-ui/icons/CloudOff';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { Link } from '@backstage/core-components';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
 import { shouldNavigateOnRowClick } from '../../utils/shouldNavigateOnRowClick';
 
@@ -29,34 +29,27 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
   const catalogApi = useApi(catalogApiRef);
   const navigate = useNavigate();
 
-  const [linkedPlanes, setLinkedPlanes] = useState<LinkedPlane[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
   const planeName = entity.metadata.name;
 
-  const fetchLinkedPlanes = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(false);
-
+  const {
+    data,
+    loading,
+    error,
+    refetch: fetchLinkedPlanes,
+  } = useOpenChoreoQuery<LinkedPlane[]>(
+    ['observability-plane-linked', stringifyEntityRef(entity)],
+    async () => {
       // Query catalog for DataPlane and WorkflowPlane entities with matching observability-plane-ref annotation
       const [dataplaneResult, workflowplaneResult] = await Promise.all([
-        catalogApi.getEntities({
-          filter: { kind: 'Dataplane' },
-        }),
-        catalogApi.getEntities({
-          filter: { kind: 'WorkflowPlane' },
-        }),
+        catalogApi.getEntities({ filter: { kind: 'Dataplane' } }),
+        catalogApi.getEntities({ filter: { kind: 'WorkflowPlane' } }),
       ]);
 
       const planes: LinkedPlane[] = [];
 
-      const matchesRef = (e: Entity) => {
-        const ref =
-          e.metadata.annotations?.[CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF];
-        return ref === planeName;
-      };
+      const matchesRef = (e: Entity) =>
+        e.metadata.annotations?.[CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF] ===
+        planeName;
 
       dataplaneResult.items.filter(matchesRef).forEach(dp => {
         planes.push({
@@ -76,17 +69,11 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
         });
       });
 
-      setLinkedPlanes(planes);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [catalogApi, planeName]);
+      return planes;
+    },
+  );
 
-  useEffect(() => {
-    fetchLinkedPlanes();
-  }, [fetchLinkedPlanes]);
+  const linkedPlanes = data ?? [];
 
   if (loading) {
     return (
