@@ -44,11 +44,16 @@ import { IncidentsBanner } from './IncidentsBanner';
 import { DeploymentFailureBanner } from './DeploymentFailureBanner';
 import { InvokeUrlsDialog } from './InvokeUrlsDialog';
 import { PromotePrimaryAction } from './PromotePrimaryAction';
+import { ProjectNotDeployedCallout } from './ProjectNotDeployedCallout';
 import { ReleaseBrowserDialog } from './ReleaseBrowserDialog';
 import { ReleaseManifestDialog } from './ReleaseManifestDialog';
 import type { ReleaseDeployments } from './releaseFormatters';
 import { RemoveDeploymentConfirmationDialog } from './RemoveDeploymentConfirmationDialog';
 import { SetupDetailPane } from './SetupDetailPane';
+import {
+  attributeToProjectNotDeployed,
+  makeIsTargetProjectBlocked,
+} from '../utils/projectDeployment';
 import type { ActionTrackers, Environment } from '../types';
 
 export type DetailPanelSelection =
@@ -139,6 +144,11 @@ export const EnvironmentDetailPanel = ({
   const [diffOpen, setDiffOpen] = useState(false);
   const { entity } = useEntity();
   const { environments, renderInvestigateAction } = useEnvironmentsContext();
+  // A promote target whose project is not deployed there blocks the promote.
+  const isTargetProjectBlocked = useMemo(
+    () => makeIsTargetProjectBlocked(environments),
+    [environments],
+  );
   const { releases, loading: releasesLoading } = useReleases(entity);
   const deployments: ReleaseDeployments = useMemo(() => {
     const map: ReleaseDeployments = {};
@@ -203,6 +213,14 @@ export const EnvironmentDetailPanel = ({
     );
     return ready?.message;
   })();
+
+  // When the failure is the component's project not being deployed in this
+  // env (namespace missing), attribute it so the banner/dialog explain the
+  // real cause and offer to deploy the project.
+  const projectNotDeployedFailure =
+    isBindingFailed &&
+    !!environment &&
+    attributeToProjectNotDeployed(environment);
 
   const failureBanner = isBindingFailed
     ? {
@@ -372,7 +390,19 @@ export const EnvironmentDetailPanel = ({
                 <DeploymentFailureBanner
                   message={failureBanner.message}
                   reason={failureBanner.reason}
+                  projectNotDeployed={projectNotDeployedFailure}
+                  envName={environment.name}
+                  envResourceName={environment.resourceName}
                 />
+                {projectNotDeployedFailure && (
+                  <Box mt={1}>
+                    <ProjectNotDeployedCallout
+                      variant="error-dialog"
+                      envName={environment.name}
+                      envResourceName={environment.resourceName}
+                    />
+                  </Box>
+                )}
               </Box>
             )}
             {showReleaseSection && (
@@ -582,19 +612,39 @@ export const EnvironmentDetailPanel = ({
                   Actions
                 </Typography>
                 {showPromote && (
-                  <Box display="flex" justifyContent="flex-end">
-                    <PromotePrimaryAction
-                      environmentName={environment.name}
-                      environmentResourceName={environment.resourceName}
-                      bindingName={environment.bindingName}
-                      deploymentStatus={environment.deployment.status}
-                      statusReason={environment.deployment.statusReason}
-                      promotionTargets={environment.promotionTargets}
-                      isAlreadyPromoted={isAlreadyPromoted}
-                      promotionTracker={actionTrackers.promotionTracker}
-                      onPromote={onPromote}
-                    />
-                  </Box>
+                  <>
+                    <Box display="flex" justifyContent="flex-end">
+                      <PromotePrimaryAction
+                        environmentName={environment.name}
+                        environmentResourceName={environment.resourceName}
+                        bindingName={environment.bindingName}
+                        deploymentStatus={environment.deployment.status}
+                        statusReason={environment.deployment.statusReason}
+                        promotionTargets={environment.promotionTargets}
+                        isAlreadyPromoted={isAlreadyPromoted}
+                        isTargetProjectBlocked={isTargetProjectBlocked}
+                        promotionTracker={actionTrackers.promotionTracker}
+                        onPromote={onPromote}
+                      />
+                    </Box>
+                    {(() => {
+                      // When a promote target's project isn't deployed there,
+                      // the promote is disabled — surface the fix inline,
+                      // targeting the first blocked target.
+                      const blocked = (environment.promotionTargets ?? []).find(
+                        t => isTargetProjectBlocked(t),
+                      );
+                      return blocked ? (
+                        <Box mt={1}>
+                          <ProjectNotDeployedCallout
+                            variant="promote"
+                            envName={blocked.name}
+                            envResourceName={blocked.resourceName}
+                          />
+                        </Box>
+                      ) : null;
+                    })()}
+                  </>
                 )}
                 <EnvironmentActions
                   environmentName={environment.name}

@@ -11,11 +11,17 @@ export interface PromotionTargetAction {
   label: string;
   /**
    * True when the action is disabled for non-permission reasons
-   * (already promoted, in-flight). Permission-driven disabling is layered
-   * on top by the consumer via `usePromoteToEnvPermission(target)` — hooks
-   * cannot be called in a loop here.
+   * (already promoted, in-flight, target project not deployed). Permission-
+   * driven disabling is layered on top by the consumer via
+   * `usePromoteToEnvPermission(target)` — hooks cannot be called in a loop
+   * here.
    */
   disabled: boolean;
+  /**
+   * Set when the target env's project is not deployed there — the reason the
+   * action is blocked, surfaced as a tooltip by consumers.
+   */
+  blockedReason?: string;
   isAlreadyPromoted: boolean;
   isPromoting: boolean;
   onClick: () => void;
@@ -44,6 +50,12 @@ export interface UsePromotionActionInput {
   statusReason?: string;
   promotionTargets?: PromotionTargetInfo[];
   isAlreadyPromoted: (targetEnvName: string) => boolean;
+  /**
+   * Reports whether a target env has its project undeployed (cell namespace
+   * missing), which blocks promotion into it. Optional — omitted by consumers
+   * where the project prerequisite does not apply (e.g. resource envs).
+   */
+  isTargetProjectBlocked?: (target: PromotionTargetInfo) => boolean;
   promotionTracker: ItemActionTracker;
   suspendTracker: ItemActionTracker;
   onPromote: (targetEnvName: string) => void | Promise<void>;
@@ -76,6 +88,7 @@ export function usePromotionAction({
   statusReason,
   promotionTargets,
   isAlreadyPromoted,
+  isTargetProjectBlocked,
   promotionTracker,
   suspendTracker,
   onPromote,
@@ -108,6 +121,7 @@ export function usePromotionAction({
           const targetKey = target.resourceName ?? target.name;
           const promoted = isAlreadyPromoted(target.name);
           const promoting = promotionTracker.isActive(targetKey);
+          const projectBlocked = isTargetProjectBlocked?.(target) ?? false;
           let label: string;
           if (promoted) {
             label = `Promoted to ${target.name}`;
@@ -119,7 +133,10 @@ export function usePromotionAction({
           return {
             target,
             label,
-            disabled: promoting || promoted,
+            disabled: promoting || promoted || projectBlocked,
+            blockedReason: projectBlocked
+              ? `Project is not deployed to ${target.name} yet.`
+              : undefined,
             isAlreadyPromoted: promoted,
             isPromoting: promoting,
             onClick: () => onPromote(targetKey),

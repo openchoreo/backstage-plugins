@@ -1,5 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { EntityProvider } from '@backstage/plugin-catalog-react';
+import { mockComponentEntity } from '@openchoreo/test-utils';
 import { DeploymentErrorDetailsDialog } from './DeploymentErrorDetailsDialog';
 
 describe('DeploymentErrorDetailsDialog', () => {
@@ -55,5 +58,34 @@ describe('DeploymentErrorDetailsDialog', () => {
     expect(
       screen.getByText(/could not roll out this release/i),
     ).toBeInTheDocument();
+  });
+
+  it('renders the project-not-deployed remediation callout when attributed', () => {
+    render(
+      <MemoryRouter>
+        <EntityProvider
+          entity={mockComponentEntity({
+            annotations: { 'openchoreo.io/project': 'test-1' },
+          })}
+        >
+          <DeploymentErrorDetailsDialog
+            open
+            onClose={jest.fn()}
+            reason="ResourceApplyFailed"
+            message='namespaces "dp-x" not found'
+            projectNotDeployed
+            envName="Development"
+            envResourceName="development"
+          />
+        </EntityProvider>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Project not deployed')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /deploy project/i }),
+    ).toHaveAttribute(
+      'href',
+      '/catalog/default/system/test-1/deploy?env=development&intent=deploy',
+    );
   });
 });

@@ -22,9 +22,11 @@ jest.mock('@backstage/plugin-catalog-react', () => ({
 }));
 
 const mockNavigate = jest.fn();
+let mockSearchParams = new URLSearchParams();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
+  useSearchParams: () => [mockSearchParams, jest.fn()],
 }));
 
 jest.mock('@backstage/core-components', () => ({
@@ -113,6 +115,7 @@ jest.mock('./ProjectSetupDetailPane', () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockSearchParams = new URLSearchParams();
   mockClient.updateProjectReleaseBinding.mockResolvedValue({ ok: true });
 });
 
@@ -127,6 +130,38 @@ describe('ProjectEnvironmentsList', () => {
 
     expect(await screen.findByTestId('canvas')).toBeInTheDocument();
     expect(screen.getByTestId('detail').textContent).toBe('none');
+  });
+
+  it('pre-selects the arrival environment from ?env= and shows the hint on intent=deploy', async () => {
+    mockSearchParams = new URLSearchParams({
+      env: 'staging',
+      intent: 'deploy',
+    });
+    mockClient.fetchProjectEnvironmentInfo.mockResolvedValue([
+      { name: 'dev', resourceName: 'dev' },
+      { name: 'Staging', resourceName: 'staging' },
+    ]);
+
+    render(<ProjectEnvironmentsList />);
+
+    // Selection seeded from the deep link (matched by resource name).
+    expect((await screen.findByTestId('detail')).textContent).toBe('Staging');
+    // One-time arrival hint.
+    expect(
+      screen.getByText(/return to your component tab to continue/i),
+    ).toBeInTheDocument();
+  });
+
+  it('shows no arrival hint without intent=deploy', async () => {
+    mockSearchParams = new URLSearchParams({ env: 'dev' });
+    mockClient.fetchProjectEnvironmentInfo.mockResolvedValue([{ name: 'dev' }]);
+
+    render(<ProjectEnvironmentsList />);
+
+    await screen.findByTestId('canvas');
+    expect(
+      screen.queryByText(/return to your component tab to continue/i),
+    ).not.toBeInTheDocument();
   });
 
   it('selects an environment and shows it in the detail panel', async () => {

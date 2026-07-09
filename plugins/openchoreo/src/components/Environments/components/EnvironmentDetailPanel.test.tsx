@@ -882,4 +882,29 @@ describe('EnvironmentDetailPanel', () => {
     });
     expect(screen.getByTestId('browser-dialog')).toBeInTheDocument();
   });
+
+  it('attributes a namespace-not-found failure to the project and shows the remediation (S2)', () => {
+    renderPanel({
+      selection: {
+        kind: 'env',
+        environment: {
+          name: 'Development',
+          resourceName: 'development',
+          bindingName: 'my-component-development',
+          projectDeploymentStatus: 'not-deployed',
+          endpoints: [],
+          deployment: {
+            status: 'Failed',
+            statusReason: 'ResourceApplyFailed',
+            statusMessage: 'namespaces "dp-x" not found',
+          },
+        } as Environment,
+      },
+    });
+
+    expect(
+      screen.getByText(/The project isn't deployed to this environment/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Project not deployed')).toBeInTheDocument();
+  });
 });

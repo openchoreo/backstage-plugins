@@ -24,6 +24,11 @@ import { AutoDeployConfirmationDialog } from './AutoDeployConfirmationDialog';
 import { DeployReleasePanel } from './DeployReleasePanel';
 import { NotificationBanner } from './NotificationBanner';
 import { DeploymentFailureBanner } from './DeploymentFailureBanner';
+import { ProjectNotDeployedCallout } from './ProjectNotDeployedCallout';
+import {
+  isProjectBlocking,
+  isProjectPending,
+} from '../utils/projectDeployment';
 import { ReleaseBrowserDialog } from './ReleaseBrowserDialog';
 import { ReleaseManifestDialog } from './ReleaseManifestDialog';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';
@@ -350,6 +355,20 @@ export const SetupDetailPane = ({
   const canCreate =
     !permissionLoading && canConfigureAndDeploy && readiness.canCreateRelease;
 
+  // A component can only deploy into an environment where its project is
+  // deployed (the project owns the cell namespace). Block the manual Deploy
+  // for the first env when the project isn't deployed there, and surface the
+  // fix; a `pending` project deployment is not blocked (the controller
+  // converges) but is noted. Creating a release is never blocked.
+  //
+  // `lowestEnvironment` is `environments[0].name` lowercased, so match
+  // case-insensitively (the env's display name keeps its original casing).
+  const firstEnv = environments.find(
+    e => e.name.toLowerCase() === lowestEnvironment.toLowerCase(),
+  );
+  const projectBlocked = !!firstEnv && isProjectBlocking(firstEnv);
+  const projectPending = !!firstEnv && isProjectPending(firstEnv);
+
   return (
     <Box className={classes.panel}>
       <NotificationBanner notification={notification.notification} />
@@ -501,14 +520,37 @@ export const SetupDetailPane = ({
                   selectedReleaseName={selectedReleaseName}
                   onSelectedReleaseChange={setSelectedReleaseName}
                   firstEnvironmentName={lowestEnvironment}
-                  disabled={permissionLoading || !canConfigureAndDeploy}
-                  disabledReason={deniedTooltip}
+                  disabled={
+                    permissionLoading ||
+                    !canConfigureAndDeploy ||
+                    projectBlocked
+                  }
+                  disabledReason={
+                    projectBlocked
+                      ? `Project is not deployed to ${lowestEnvironment} yet.`
+                      : deniedTooltip
+                  }
                   onCreateRelease={
                     isWorkloadEditorSupported ? onConfigureWorkload : undefined
                   }
                   canCreateRelease={canCreate && !readiness.loading}
                   createDisabledReason={createDisabledReason}
                 />
+                {projectBlocked && firstEnv && (
+                  <Box mt={2}>
+                    <ProjectNotDeployedCallout
+                      variant="setup"
+                      envName={firstEnv.name}
+                      envResourceName={firstEnv.resourceName}
+                    />
+                  </Box>
+                )}
+                {projectPending && !projectBlocked && (
+                  <Alert severity="info">
+                    Project deployment to {lowestEnvironment} is still in
+                    progress.
+                  </Alert>
+                )}
               </>
             )}
           </>

@@ -23,6 +23,7 @@ import { useDeployFlowCanvasStyles } from '../styles';
 import { MiniEnvironmentNode } from '../components/MiniEnvironmentNode';
 import { SetupCard } from '../components/SetupCard';
 import { useEnvironmentsContext } from '../EnvironmentsContext';
+import { makeIsTargetProjectBlocked } from '../utils/projectDeployment';
 import type { ActionTrackers, Environment } from '../types';
 
 const SETUP_NODE_ID = '__setup__';
@@ -154,6 +155,11 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
     return map;
   }, [environments]);
 
+  const isTargetProjectBlocked = useMemo(
+    () => makeIsTargetProjectBlocked(environments),
+    [environments],
+  );
+
   if (!layout) {
     return null;
   }
@@ -253,6 +259,7 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
                   selected={selectedEnvName === env.name}
                   isRefreshing={refreshingEnvName(env.name)}
                   isAlreadyPromoted={target => isAlreadyPromoted(env, target)}
+                  isTargetProjectBlocked={isTargetProjectBlocked}
                   actionTrackers={actionTrackers}
                   activeIncidentCount={
                     incidentsSummaries?.get(env.name)?.activeCount

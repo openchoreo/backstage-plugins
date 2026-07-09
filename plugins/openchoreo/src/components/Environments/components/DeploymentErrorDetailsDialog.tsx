@@ -10,6 +10,7 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
+import { ProjectNotDeployedCallout } from './ProjectNotDeployedCallout';
 
 const useStyles = makeStyles(theme => ({
   reasonChip: {
@@ -46,6 +47,13 @@ export interface DeploymentErrorDetailsDialogProps {
   reason?: string;
   /** The full controller failure message. */
   message?: string;
+  /**
+   * When true, the failure is attributed to the project not being deployed in
+   * this environment — render the remediation callout below the raw error.
+   */
+  projectNotDeployed?: boolean;
+  envName?: string;
+  envResourceName?: string;
 }
 
 /**
@@ -56,7 +64,15 @@ export interface DeploymentErrorDetailsDialogProps {
  */
 export const DeploymentErrorDetailsDialog: FC<
   DeploymentErrorDetailsDialogProps
-> = ({ open, onClose, reason, message }) => {
+> = ({
+  open,
+  onClose,
+  reason,
+  message,
+  projectNotDeployed,
+  envName,
+  envResourceName,
+}) => {
   const classes = useStyles();
   const fullMessage =
     message || 'The controller could not roll out this release.';
@@ -92,6 +108,15 @@ export const DeploymentErrorDetailsDialog: FC<
         <Box component="pre" className={classes.message}>
           {fullMessage}
         </Box>
+        {projectNotDeployed && envName && (
+          <Box mt={1.5}>
+            <ProjectNotDeployedCallout
+              variant="error-dialog"
+              envName={envName}
+              envResourceName={envResourceName}
+            />
+          </Box>
+        )}
       </DialogContent>
 
       <DialogActions>

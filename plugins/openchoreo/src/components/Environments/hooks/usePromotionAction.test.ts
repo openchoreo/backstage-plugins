@@ -67,6 +67,32 @@ describe('usePromotionAction', () => {
     expect(result.current.primaryPromotion?.target.name).toBe('staging');
   });
 
+  it('blocks a target whose project is not deployed there, with a reason', () => {
+    const { result } = renderHook(() =>
+      usePromotionAction({
+        environmentName: 'dev',
+        deploymentStatus: 'Ready',
+        promotionTargets: [{ name: 'staging' }, { name: 'prod' }],
+        isAlreadyPromoted: () => false,
+        isTargetProjectBlocked: target => target.name === 'staging',
+        promotionTracker: tracker(),
+        suspendTracker: tracker(),
+        onPromote: jest.fn(),
+        onSuspend: jest.fn(),
+        onRedeploy: jest.fn(),
+      }),
+    );
+    const [staging, prod] = result.current.promotionActions;
+    expect(staging.disabled).toBe(true);
+    expect(staging.blockedReason).toBe(
+      'Project is not deployed to staging yet.',
+    );
+    expect(prod.disabled).toBe(false);
+    expect(prod.blockedReason).toBeUndefined();
+    // The non-blocked target is preferred as the primary.
+    expect(result.current.primaryPromotion?.target.name).toBe('prod');
+  });
+
   it('marks already-promoted targets as disabled and prefers a non-promoted primary', () => {
     const { result } = renderHook(() =>
       usePromotionAction({
