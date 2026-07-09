@@ -922,4 +922,82 @@ describe('EventDeltaApplier custom scaffolder templates', () => {
     );
     expect(addedKinds).toEqual(['ComponentType']);
   });
+
+  // A ClusterComponentType API response carrying the custom-template annotation.
+  function cctWithTemplateUrl() {
+    return {
+      data: {
+        metadata: {
+          name: 'cluster-agent-sandbox',
+          annotations: {
+            'scaffolder.openchoreo.dev/backstage-template-url': URL,
+          },
+        },
+        spec: { workloadType: 'deployment' },
+      },
+      response: { status: 200 },
+    };
+  }
+
+  it('fetches the custom template for a ClusterComponentType and upserts it under openchoreo-cluster', async () => {
+    const fetched = {
+      apiVersion: 'scaffolder.backstage.io/v1beta3',
+      kind: 'Template',
+      metadata: {
+        name: 'cluster-agent-sandbox-template',
+        namespace: 'openchoreo-cluster',
+      },
+      spec: { owner: 'guests', type: 'Component', steps: [] },
+    };
+    const fetcher = { fetch: jest.fn().mockResolvedValue(fetched) };
+    mockGET.mockResolvedValue(cctWithTemplateUrl());
+    const applier = newApplier(connection, fetcher);
+
+    await applier.handleEvent(
+      'ClusterComponentType',
+      'cluster-agent-sandbox',
+      '',
+      'created',
+    );
+
+    // Cluster-scoped fetch: emitted into openchoreo-cluster with ctdKind set.
+    expect(fetcher.fetch).toHaveBeenCalledWith(
+      URL,
+      expect.objectContaining({
+        ctdName: 'cluster-agent-sandbox',
+        namespace: 'openchoreo-cluster',
+        workloadType: 'deployment',
+        ctdKind: 'ClusterComponentType',
+      }),
+    );
+    // Only the ClusterComponentType is fetched; no schema GET for generation.
+    expect(mockGET).toHaveBeenCalledTimes(1);
+    const added = applyMutation.mock.calls[0][0].added.map(
+      (d: any) => d.entity.metadata.name,
+    );
+    expect(added).toEqual(
+      expect.arrayContaining([
+        'cluster-agent-sandbox',
+        'cluster-agent-sandbox-template',
+      ]),
+    );
+  });
+
+  it('emits no template (only the ClusterComponentType) when the custom fetch fails', async () => {
+    const fetcher = { fetch: jest.fn().mockRejectedValue(new Error('boom')) };
+    mockGET.mockResolvedValue(cctWithTemplateUrl());
+    const applier = newApplier(connection, fetcher);
+
+    await applier.handleEvent(
+      'ClusterComponentType',
+      'cluster-agent-sandbox',
+      '',
+      'created',
+    );
+
+    const addedKinds = applyMutation.mock.calls[0][0].added.map(
+      (d: any) => d.entity.kind,
+    );
+    expect(addedKinds).toEqual(['ClusterComponentType']);
+  });
 });

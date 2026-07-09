@@ -954,15 +954,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                 try {
                   const templateEntity =
                     this.ctdConverter.convertCtdToTemplateEntity(ctd, nsName);
-                  if (!templateEntity.metadata.annotations) {
-                    templateEntity.metadata.annotations = {};
-                  }
-                  templateEntity.metadata.annotations[
-                    'backstage.io/managed-by-location'
-                  ] = `provider:${this.getProviderName()}`;
-                  templateEntity.metadata.annotations[
-                    'backstage.io/managed-by-origin-location'
-                  ] = `provider:${this.getProviderName()}`;
+                  this.stampManagedByLocation(templateEntity);
                   return templateEntity;
                 } catch (error) {
                   this.logger.warn(
@@ -1448,15 +1440,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               try {
                 const templateEntity =
                   this.ctdConverter.convertClusterCtdToTemplateEntity(cct);
-                if (!templateEntity.metadata.annotations) {
-                  templateEntity.metadata.annotations = {};
-                }
-                templateEntity.metadata.annotations[
-                  'backstage.io/managed-by-location'
-                ] = `provider:${this.getProviderName()}`;
-                templateEntity.metadata.annotations[
-                  'backstage.io/managed-by-origin-location'
-                ] = `provider:${this.getProviderName()}`;
+                this.stampManagedByLocation(templateEntity);
                 return templateEntity;
               } catch (error) {
                 this.logger.warn(
