@@ -18,6 +18,8 @@ export const useAutoDeployUpdate = (entity: Entity) => {
       await mutate(autoDeploy);
     },
     isUpdating: isLoading,
-    error: error ? error.message || 'Failed to update auto deploy setting' : null,
+    error: error
+      ? error.message || 'Failed to update auto deploy setting'
+      : null,
   };
 };

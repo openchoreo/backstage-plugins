@@ -37,7 +37,9 @@ export function useFinOpsReport(
   return {
     report: data ?? null,
     loading,
-    error: error ? error.message || 'Failed to fetch cost analysis report' : null,
+    error: error
+      ? error.message || 'Failed to fetch cost analysis report'
+      : null,
     refresh: refetch,
   };
 }

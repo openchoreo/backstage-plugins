@@ -110,9 +110,7 @@ export function useSecretReferences(): UseSecretReferencesResult {
     ['secret-references', stringifyEntityRef(entity)],
     async () => {
       const response = await fetchSecretReferences(entity, discovery, fetchApi);
-      return response.success && response.data.items
-        ? response.data.items
-        : [];
+      return response.success && response.data.items ? response.data.items : [];
     },
   );
 

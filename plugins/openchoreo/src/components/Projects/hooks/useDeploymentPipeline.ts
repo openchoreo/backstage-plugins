@@ -25,8 +25,7 @@ export const useDeploymentPipeline = () => {
 
   // Get project and namespace from system entity
   const projectName = entity.metadata.name;
-  const namespace =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   const { data, loading, error, refetch } = useOpenChoreoQuery(
     ['deployment-pipeline', namespace, projectName],

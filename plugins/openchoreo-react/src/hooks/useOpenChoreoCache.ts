@@ -39,8 +39,7 @@ export interface OpenChoreoCache {
 export function useOpenChoreoCache(): OpenChoreoCache {
   const queryClient = useQueryClient();
   return {
-    setData: (queryKey, updater) =>
-      queryClient.setQueryData(queryKey, updater),
+    setData: (queryKey, updater) => queryClient.setQueryData(queryKey, updater),
     invalidate: queryKey => {
       void queryClient.invalidateQueries({ queryKey });
     },

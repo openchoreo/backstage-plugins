@@ -33,7 +33,12 @@ export const useDataPlaneNetPolProvider = (
   const dpKind = dataPlaneRef?.kind ?? 'DataPlane';
 
   const { data, loading } = useOpenChoreoQuery(
-    ['dataplane-netpol-provider', namespaceName ?? null, dpName ?? null, dpKind],
+    [
+      'dataplane-netpol-provider',
+      namespaceName ?? null,
+      dpName ?? null,
+      dpKind,
+    ],
     async () => {
       const baseUrl = await discoveryApi.getBaseUrl(
         'openchoreo-observability-backend',

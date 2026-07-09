@@ -16,8 +16,7 @@ export function useRCAReport(
 
   const { data, loading, error, refetch } = useOpenChoreoQuery(
     ['rca-report', reportId ?? null, environmentName ?? null, namespace],
-    () =>
-      observabilityApi.getRCAReport(reportId!, environmentName!, namespace),
+    () => observabilityApi.getRCAReport(reportId!, environmentName!, namespace),
     {
       enabled: !!reportId && !!environmentName,
     },

@@ -39,11 +39,13 @@ export const useReleaseReadiness = (
   // Workload existence: a successful fetch means it exists; any error means it
   // doesn't (or isn't reachable) — the same swallow-to-false the old hook did.
   const { data: hasWorkload = false, loading: workloadLoading } =
-    useOpenChoreoQuery<boolean>(['release-readiness', 'workload', entityRef], () =>
-      client
-        .fetchWorkloadInfo(entity)
-        .then(() => true)
-        .catch(() => false),
+    useOpenChoreoQuery<boolean>(
+      ['release-readiness', 'workload', entityRef],
+      () =>
+        client
+          .fetchWorkloadInfo(entity)
+          .then(() => true)
+          .catch(() => false),
     );
 
   const { data: builds = [], loading: buildsLoading } = useOpenChoreoQuery<

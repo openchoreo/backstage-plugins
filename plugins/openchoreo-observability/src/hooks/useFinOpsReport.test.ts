@@ -90,7 +90,8 @@ describe('useFinOpsReport', () => {
     };
 
     const { result } = renderHook(
-      () => useFinOpsReport('report-1', 'development', entityNoNamespace as any),
+      () =>
+        useFinOpsReport('report-1', 'development', entityNoNamespace as any),
       { wrapper: createQueryWrapper() },
     );
 

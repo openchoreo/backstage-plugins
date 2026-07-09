@@ -63,7 +63,9 @@ jest.mock('@openchoreo/backstage-plugin-react', () => {
   // and breaks on attachComponentData).
   const { useOpenChoreoQuery } =
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    jest.requireActual('@openchoreo/backstage-plugin-react/src/hooks/useOpenChoreoQuery');
+    jest.requireActual(
+      '@openchoreo/backstage-plugin-react/src/hooks/useOpenChoreoQuery',
+    );
   // Each recompute advances "now" (mirroring the real calculateTimeRange,
   // which uses `new Date()`), so the Refresh button produces a new fetch key
   // and triggers a refetch.

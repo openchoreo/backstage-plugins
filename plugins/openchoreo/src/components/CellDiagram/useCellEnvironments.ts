@@ -53,7 +53,10 @@ export const useCellEnvironments = (
             return { ...env, hasRuntimeObservability: false };
           }
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), NETPOL_TIMEOUT_MS);
+          const timeout = setTimeout(
+            () => controller.abort(),
+            NETPOL_TIMEOUT_MS,
+          );
           try {
             const params = new URLSearchParams({
               namespaceName: env.namespace,

@@ -254,17 +254,13 @@ describe('useRuntimeEvents', () => {
       renderEvents({ isLive: true });
 
       // Auto-fetch fires on mount now (not only after the 5s interval).
-      await waitFor(() =>
-        expect(getRuntimeEvents).toHaveBeenCalledTimes(1),
-      );
+      await waitFor(() => expect(getRuntimeEvents).toHaveBeenCalledTimes(1));
 
       await act(async () => {
         await jest.advanceTimersByTimeAsync(5000);
       });
 
-      await waitFor(() =>
-        expect(getRuntimeEvents).toHaveBeenCalledTimes(2),
-      );
+      await waitFor(() => expect(getRuntimeEvents).toHaveBeenCalledTimes(2));
     } finally {
       jest.useRealTimers();
     }

@@ -100,7 +100,10 @@ describe('useFinOpsReports', () => {
   it('returns empty reports when timeRange filter is missing', async () => {
     const { result } = renderHook(
       () =>
-        useFinOpsReports({ environment: baseEnvironment } as any, entity as any),
+        useFinOpsReports(
+          { environment: baseEnvironment } as any,
+          entity as any,
+        ),
       { wrapper: createQueryWrapper() },
     );
 

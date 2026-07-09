@@ -69,65 +69,73 @@ export function useRuntimeLogs(
   const noLevelsSelected =
     options.logLevels !== undefined && options.logLevels.length === 0;
 
-  const { items, loading, loadingMore, error, totalCount, hasMore, loadMore, refresh } =
-    useOpenChoreoInfiniteQuery<LogEntry>(
-      [
-        'runtime-logs',
+  const {
+    items,
+    loading,
+    loadingMore,
+    error,
+    totalCount,
+    hasMore,
+    loadMore,
+    refresh,
+  } = useOpenChoreoInfiniteQuery<LogEntry>(
+    [
+      'runtime-logs',
+      namespaceName,
+      project,
+      options.environment,
+      componentName ?? null,
+      options.timeRange,
+      options.customStartTime,
+      options.customEndTime,
+      (options.logLevels ?? []).join(','),
+      options.searchQuery ?? '',
+      sortOrder,
+      pageSize,
+    ],
+    async cursor => {
+      const { startTime: initialStartTime, endTime: initialEndTime } =
+        calculateTimeRange(options.timeRange, {
+          startTime: options.customStartTime,
+          endTime: options.customEndTime,
+        });
+
+      // The cursor is the previous page's last timestamp; move the matching
+      // window edge inward based on sort order.
+      let startTime = initialStartTime;
+      let endTime = initialEndTime;
+      if (cursor) {
+        if (sortOrder === 'desc') endTime = cursor;
+        else startTime = cursor;
+      }
+
+      const response = await observabilityApi.getRuntimeLogs(
         namespaceName,
         project,
         options.environment,
-        componentName ?? null,
-        options.timeRange,
-        options.customStartTime,
-        options.customEndTime,
-        (options.logLevels ?? []).join(','),
-        options.searchQuery ?? '',
-        sortOrder,
-        pageSize,
-      ],
-      async cursor => {
-        const { startTime: initialStartTime, endTime: initialEndTime } =
-          calculateTimeRange(options.timeRange, {
-            startTime: options.customStartTime,
-            endTime: options.customEndTime,
-          });
-
-        // The cursor is the previous page's last timestamp; move the matching
-        // window edge inward based on sort order.
-        let startTime = initialStartTime;
-        let endTime = initialEndTime;
-        if (cursor) {
-          if (sortOrder === 'desc') endTime = cursor;
-          else startTime = cursor;
-        }
-
-        const response = await observabilityApi.getRuntimeLogs(
-          namespaceName,
-          project,
-          options.environment,
-          componentName!,
-          {
-            limit: pageSize,
-            startTime,
-            endTime,
-            logLevels: options.logLevels,
-            searchQuery: options.searchQuery,
-            sortOrder,
-          },
-        );
-        return { items: response.logs, total: response.total ?? 0 };
-      },
-      {
-        pageSize,
-        getCursor: last => last.timestamp,
-        enabled:
-          enabled &&
-          !!options.environment &&
-          !!componentName &&
-          !noLevelsSelected,
-        refetchInterval: options.isLive ? 5000 : false,
-      },
-    );
+        componentName!,
+        {
+          limit: pageSize,
+          startTime,
+          endTime,
+          logLevels: options.logLevels,
+          searchQuery: options.searchQuery,
+          sortOrder,
+        },
+      );
+      return { items: response.logs, total: response.total ?? 0 };
+    },
+    {
+      pageSize,
+      getCursor: last => last.timestamp,
+      enabled:
+        enabled &&
+        !!options.environment &&
+        !!componentName &&
+        !noLevelsSelected,
+      refetchInterval: options.isLive ? 5000 : false,
+    },
+  );
 
   return {
     logs: items,
