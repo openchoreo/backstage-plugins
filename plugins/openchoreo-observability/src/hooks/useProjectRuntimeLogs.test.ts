@@ -1,6 +1,7 @@
-import { act, renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { useApi } from '@backstage/core-plugin-api';
-import { LogEntryField } from '../components/RuntimeLogs/types';
+import { createQueryWrapper } from '@openchoreo/test-utils';
+import { LogEntryField, LOG_LEVELS } from '../components/RuntimeLogs/types';
 import { useProjectRuntimeLogs } from './useProjectRuntimeLogs';
 
 jest.mock('@backstage/core-plugin-api', () => {
@@ -17,7 +18,10 @@ describe('useProjectRuntimeLogs', () => {
   const baseFilters = {
     environment: 'env-1',
     timeRange: '1h',
-    logLevel: [],
+    // Non-empty logLevel is required for the query to be enabled under the new
+    // declarative model (enabled: filters.logLevel.length > 0). All levels are
+    // selected, which the hook still normalises to [] for the backend call.
+    logLevel: [...LOG_LEVELS],
     selectedFields: [
       LogEntryField.Timestamp,
       LogEntryField.LogLevel,
@@ -73,25 +77,26 @@ describe('useProjectRuntimeLogs', () => {
         total: 1,
       });
 
-    const { result } = renderHook(() =>
-      useProjectRuntimeLogs(
-        {
-          ...baseFilters,
-          components: ['component-a', 'component-b'],
-        },
-        entity as any,
-        {
-          environmentName: 'development',
-          namespaceName: 'dev',
-          projectName: 'project-a',
-          limit: 50,
-        },
-      ),
+    const { result } = renderHook(
+      () =>
+        useProjectRuntimeLogs(
+          {
+            ...baseFilters,
+            components: ['component-a', 'component-b'],
+          },
+          entity as any,
+          {
+            environmentName: 'development',
+            namespaceName: 'dev',
+            projectName: 'project-a',
+            limit: 50,
+          },
+        ),
+      { wrapper: createQueryWrapper() },
     );
 
-    await act(async () => {
-      await result.current.fetchLogs(true);
-    });
+    // Fan-out page auto-fetches on mount (replaces the old fetchLogs(true)).
+    await waitFor(() => expect(result.current.logs).toHaveLength(3));
 
     expect(getRuntimeLogs).toHaveBeenCalledTimes(2);
     expect(getRuntimeLogs).toHaveBeenNthCalledWith(
@@ -134,25 +139,25 @@ describe('useProjectRuntimeLogs', () => {
       total: 1,
     });
 
-    const { result } = renderHook(() =>
-      useProjectRuntimeLogs(
-        {
-          ...baseFilters,
-          components: [],
-        },
-        entity as any,
-        {
-          environmentName: 'development',
-          namespaceName: 'dev',
-          projectName: 'project-a',
-          limit: 50,
-        },
-      ),
+    const { result } = renderHook(
+      () =>
+        useProjectRuntimeLogs(
+          {
+            ...baseFilters,
+            components: [],
+          },
+          entity as any,
+          {
+            environmentName: 'development',
+            namespaceName: 'dev',
+            projectName: 'project-a',
+            limit: 50,
+          },
+        ),
+      { wrapper: createQueryWrapper() },
     );
 
-    await act(async () => {
-      await result.current.fetchLogs(true);
-    });
+    await waitFor(() => expect(result.current.logs).toHaveLength(1));
 
     expect(getRuntimeLogs).toHaveBeenCalledTimes(1);
     expect(getRuntimeLogs).toHaveBeenCalledWith(
@@ -162,7 +167,6 @@ describe('useProjectRuntimeLogs', () => {
       undefined,
       expect.any(Object),
     );
-    expect(result.current.logs).toHaveLength(1);
     expect(result.current.totalCount).toBe(1);
   });
 });

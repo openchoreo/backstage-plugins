@@ -78,21 +78,27 @@ const ObservabilityRuntimeLogsContent = ({
     error: logsError,
     totalCount,
     hasMore,
-    fetchLogs,
     loadMore,
     refresh,
-    clearLogs,
-  } = useRuntimeLogs(entity, namespace || '', project || '', {
-    environment: filters.environment,
-    timeRange: filters.timeRange,
-    customStartTime: filters.customStartTime,
-    customEndTime: filters.customEndTime,
-    logLevels: allLogLevelsSelected ? undefined : filters.logLevel,
-    limit: 50,
-    searchQuery: filters.searchQuery,
-    sortOrder: filters.sortOrder || 'asc',
-    isLive: filters.isLive && !noLogLevelSelected,
-  });
+  } = useRuntimeLogs(
+    entity,
+    namespace || '',
+    project || '',
+    {
+      environment: filters.environment,
+      timeRange: filters.timeRange,
+      customStartTime: filters.customStartTime,
+      customEndTime: filters.customEndTime,
+      logLevels: allLogLevelsSelected ? undefined : filters.logLevel,
+      limit: 50,
+      searchQuery: filters.searchQuery,
+      sortOrder: filters.sortOrder || 'asc',
+      isLive: filters.isLive && !noLogLevelSelected,
+    },
+    // Only fetch once the env is selected and the user may view logs — the
+    // query keys on the filters, so it refetches on its own when they change.
+    Boolean(selectedEnvironment && canViewLogsForEnv),
+  );
 
   // Track previous filter values to detect changes
   // Initialize with null to ensure initial fetch happens when all conditions are ready
@@ -134,10 +140,9 @@ const ObservabilityRuntimeLogsContent = ({
       canViewLogsForEnv &&
       filtersChanged
     ) {
-      if (filters.logLevel.length === 0) {
-        clearLogs();
-      } else {
-        fetchLogs(true);
+      // The logs query keys on these filters and refetches on its own; this
+      // effect only stamps "last updated" (and not when nothing will be shown).
+      if (filters.logLevel.length > 0) {
         setLastUpdated(new Date());
       }
       previousFiltersRef.current = currentFilters;
@@ -150,8 +155,6 @@ const ObservabilityRuntimeLogsContent = ({
     filters.customEndTime,
     filters.searchQuery,
     filters.sortOrder,
-    fetchLogs,
-    clearLogs,
     selectedEnvironment,
     namespace,
     project,
@@ -167,8 +170,9 @@ const ObservabilityRuntimeLogsContent = ({
   }, [logsLoading]);
 
   const handleRefresh = () => {
+    // With no log levels selected the query is disabled and shows nothing —
+    // there's nothing to refresh.
     if (noLogLevelSelected) {
-      clearLogs();
       return;
     }
     refresh();

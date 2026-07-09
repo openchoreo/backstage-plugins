@@ -82,16 +82,21 @@ const ObservabilityProjectRuntimeLogsContent = ({
     error: logsError,
     totalCount,
     hasMore,
-    fetchLogs,
     loadMore,
     refresh,
-    clearLogs,
-  } = useProjectRuntimeLogs(filters, entity, {
-    environmentName: filters.environment,
-    namespaceName: namespace,
-    projectName,
-    limit: 50,
-  });
+  } = useProjectRuntimeLogs(
+    filters,
+    entity,
+    {
+      environmentName: filters.environment,
+      namespaceName: namespace,
+      projectName,
+      limit: 50,
+    },
+    // Fetch once an env is selected — the query keys on the filters (including
+    // components + log levels) and refetches on its own when they change.
+    Boolean(selectedEnvironment),
+  );
 
   const previousFiltersRef = useRef<{
     environment: string;
@@ -128,10 +133,9 @@ const ObservabilityProjectRuntimeLogsContent = ({
       projectName &&
       filtersChanged
     ) {
-      if (filters.logLevel.length === 0) {
-        clearLogs();
-      } else {
-        fetchLogs(true);
+      // The logs query keys on these filters and refetches on its own; this
+      // effect only stamps "last updated" (and not when nothing will be shown).
+      if (filters.logLevel.length > 0) {
         setLastUpdated(new Date());
       }
       previousFiltersRef.current = currentFilters;
@@ -145,8 +149,6 @@ const ObservabilityProjectRuntimeLogsContent = ({
     filters.searchQuery,
     filters.sortOrder,
     filters.components,
-    fetchLogs,
-    clearLogs,
     selectedEnvironment,
     namespace,
     projectName,
