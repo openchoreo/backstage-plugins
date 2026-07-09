@@ -120,7 +120,9 @@ export function useOpenChoreoQuery<T>(
     // 30s cache is silently defeated), and `retry: undefined` resets to the
     // built-in retry 3. Spread each key in only when defined so the app-level
     // defaults actually take effect.
-    ...(options.staleTime !== undefined ? { staleTime: options.staleTime } : {}),
+    ...(options.staleTime !== undefined
+      ? { staleTime: options.staleTime }
+      : {}),
     ...(options.refetchInterval !== undefined
       ? { refetchInterval: options.refetchInterval }
       : {}),

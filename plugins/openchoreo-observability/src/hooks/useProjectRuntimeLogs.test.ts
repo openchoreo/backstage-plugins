@@ -137,22 +137,38 @@ describe('useProjectRuntimeLogs', () => {
       // Page 1 — component A (desc): full page, newest first.
       .mockResolvedValueOnce({
         logs: [
-          { timestamp: '2026-03-05T10:05:00.000Z', log: 'a-newer', level: 'INFO' },
-          { timestamp: '2026-03-05T10:04:00.000Z', log: 'a-older', level: 'INFO' },
+          {
+            timestamp: '2026-03-05T10:05:00.000Z',
+            log: 'a-newer',
+            level: 'INFO',
+          },
+          {
+            timestamp: '2026-03-05T10:04:00.000Z',
+            log: 'a-older',
+            level: 'INFO',
+          },
         ],
         total: 5,
       })
       // Page 1 — component B (desc): short page → exhausted.
       .mockResolvedValueOnce({
         logs: [
-          { timestamp: '2026-03-05T10:03:00.000Z', log: 'b-only', level: 'WARN' },
+          {
+            timestamp: '2026-03-05T10:03:00.000Z',
+            log: 'b-only',
+            level: 'WARN',
+          },
         ],
         total: 1,
       })
       // Page 2 — ONLY component A should be re-queried, from A's own boundary.
       .mockResolvedValueOnce({
         logs: [
-          { timestamp: '2026-03-05T10:02:00.000Z', log: 'a-page2', level: 'INFO' },
+          {
+            timestamp: '2026-03-05T10:02:00.000Z',
+            log: 'a-page2',
+            level: 'INFO',
+          },
         ],
         total: 5,
       });
