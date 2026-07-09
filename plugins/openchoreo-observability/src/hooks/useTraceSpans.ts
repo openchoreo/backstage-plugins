@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoCache } from '@openchoreo/backstage-plugin-react';
 import { observabilityApiRef } from '../api/ObservabilityApi';
 import { Span } from '../types';
 
@@ -12,16 +13,49 @@ interface UseTraceSpansOptions {
   endTime?: string;
 }
 
+/**
+ * Lazily loads spans per trace id, on demand (a row expands → `fetchSpans(id)`).
+ * The span data is cached in the shared query cache — keyed by trace id + scope
+ * — so re-expanding a row (or revisiting the page) serves instantly and dedupes
+ * concurrent expands. Per-key loading/error remain local UI state; only the
+ * server data lives in the cache.
+ */
 export function useTraceSpans(options: UseTraceSpansOptions) {
   const observabilityApi = useApi(observabilityApiRef);
-  const [spansMap, setSpansMap] = useState<Map<string, Span[]>>(new Map());
+  const cache = useOpenChoreoCache();
   const [loadingMap, setLoadingMap] = useState<Map<string, boolean>>(new Map());
   const [errorMap, setErrorMap] = useState<Map<string, string>>(new Map());
+  // Bumped whenever a fetch resolves so cache-backed reads re-render.
+  const [, setVersion] = useState(0);
+
+  const spanKey = useCallback(
+    (traceId: string) => [
+      'trace-spans',
+      options.namespaceName,
+      options.projectName,
+      options.environmentName,
+      options.componentName ?? null,
+      options.startTime ?? null,
+      options.endTime ?? null,
+      traceId,
+    ],
+    [
+      options.namespaceName,
+      options.projectName,
+      options.environmentName,
+      options.componentName,
+      options.startTime,
+      options.endTime,
+    ],
+  );
 
   const fetchSpans = useCallback(
     async (traceId: string) => {
-      // Already loaded or loading
-      if (loadingMap.get(traceId) || spansMap.has(traceId)) {
+      // Already loading, or already cached for this scope.
+      if (
+        loadingMap.get(traceId) ||
+        cache.getData<Span[]>(spanKey(traceId)) !== undefined
+      ) {
         return;
       }
 
@@ -33,19 +67,18 @@ export function useTraceSpans(options: UseTraceSpansOptions) {
       });
 
       try {
-        const result = await observabilityApi.getTraceSpans(
-          traceId,
-          options.namespaceName,
-          options.projectName,
-          options.environmentName,
-          options.componentName,
-          {
-            startTime: options.startTime,
-            endTime: options.endTime,
-          },
-        );
-
-        setSpansMap(prev => new Map(prev).set(traceId, result.spans));
+        await cache.fetchQuery<Span[]>(spanKey(traceId), async () => {
+          const result = await observabilityApi.getTraceSpans(
+            traceId,
+            options.namespaceName,
+            options.projectName,
+            options.environmentName,
+            options.componentName,
+            { startTime: options.startTime, endTime: options.endTime },
+          );
+          return result.spans;
+        });
+        setVersion(v => v + 1);
       } catch (err) {
         setErrorMap(prev =>
           new Map(prev).set(
@@ -61,12 +94,13 @@ export function useTraceSpans(options: UseTraceSpansOptions) {
         });
       }
     },
-    [observabilityApi, options, loadingMap, spansMap],
+    [observabilityApi, options, loadingMap, cache, spanKey],
   );
 
   const getSpans = useCallback(
-    (traceId: string): Span[] | undefined => spansMap.get(traceId),
-    [spansMap],
+    (traceId: string): Span[] | undefined =>
+      cache.getData<Span[]>(spanKey(traceId)),
+    [cache, spanKey],
   );
 
   const isLoading = useCallback(
@@ -79,13 +113,13 @@ export function useTraceSpans(options: UseTraceSpansOptions) {
     [errorMap],
   );
 
-  const clearSpans = useCallback((traceId: string) => {
-    setSpansMap(prev => {
-      const next = new Map(prev);
-      next.delete(traceId);
-      return next;
-    });
-  }, []);
+  const clearSpans = useCallback(
+    (traceId: string) => {
+      cache.setData<Span[] | undefined>(spanKey(traceId), () => undefined);
+      setVersion(v => v + 1);
+    },
+    [cache, spanKey],
+  );
 
   return {
     fetchSpans,

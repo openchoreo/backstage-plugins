@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApiHolder, createApiRef } from '@backstage/core-plugin-api';
+import { stringifyEntityRef } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import type { Environment } from './useEnvironmentData';
 
 interface ObservabilityIncidentsApi {
@@ -47,10 +49,6 @@ export function useIncidentsSummary(
   // `useApi()` would throw NotImplementedError. `useApiHolder().get()` returns undefined
   // instead, letting the Deploy tab render without incident chips.
   const observabilityApi = useApiHolder().get(observabilityApiRef);
-  const [summaries, setSummaries] = useState<Map<string, IncidentsSummary>>(
-    new Map(),
-  );
-  const requestIdRef = useRef(0);
 
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
@@ -58,88 +56,75 @@ export function useIncidentsSummary(
   const namespaceName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  const fetchIncidents = useCallback(async () => {
-    const currentRequestId = ++requestIdRef.current;
+  const envNames = environments.map(e => e.name).join(',');
 
-    if (!observabilityApi) {
-      setSummaries(new Map());
-      return;
-    }
+  const { data, loading } = useOpenChoreoQuery<Map<string, number>>(
+    [
+      'incidents-summary',
+      stringifyEntityRef(entity),
+      componentName ?? null,
+      projectName ?? null,
+      namespaceName ?? null,
+      envNames,
+    ],
+    async () => {
+      const now = new Date();
+      const oneHourAgo = new Date(now.getTime() - 3600000);
 
-    if (!componentName || !projectName || !namespaceName) {
-      setSummaries(new Map());
-      return;
-    }
+      // Fan out one getIncidents per environment; a per-env failure degrades to
+      // zero (observability may be partially configured) rather than failing the
+      // whole batch — same as the pre-cache Promise.allSettled behaviour.
+      const results = await Promise.allSettled(
+        environments.map(async env => {
+          const result = await observabilityApi!.getIncidents(
+            namespaceName!,
+            projectName!,
+            env.resourceName ?? env.name,
+            componentName!,
+            {
+              startTime: oneHourAgo.toISOString(),
+              endTime: now.toISOString(),
+              limit: 100,
+            },
+          );
+          const activeCount = result.incidents.filter(
+            i => i.status === 'active',
+          ).length;
+          return { envName: env.name, activeCount };
+        }),
+      );
 
-    if (environments.length === 0) {
-      setSummaries(new Map());
-      return;
-    }
-
-    const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 3600000);
-
-    // Set loading state
-    const loading = new Map<string, IncidentsSummary>();
-    for (const env of environments) {
-      loading.set(env.name, { activeCount: 0, loading: true });
-    }
-    setSummaries(loading);
-
-    // Fetch in parallel
-    const results = await Promise.allSettled(
-      environments.map(async env => {
-        const result = await observabilityApi.getIncidents(
-          namespaceName,
-          projectName,
-          env.resourceName ?? env.name,
-          componentName,
-          {
-            startTime: oneHourAgo.toISOString(),
-            endTime: now.toISOString(),
-            limit: 100,
-          },
+      const counts = new Map<string, number>();
+      environments.forEach((env, i) => {
+        const result = results[i];
+        counts.set(
+          env.name,
+          result.status === 'fulfilled' ? result.value.activeCount : 0,
         );
+      });
+      return counts;
+    },
+    {
+      // Freshness matches the old 1h window intent; short so revisits refresh.
+      staleTime: 30_000,
+      enabled:
+        !!observabilityApi &&
+        !!componentName &&
+        !!projectName &&
+        !!namespaceName &&
+        environments.length > 0,
+    },
+  );
 
-        const activeCount = result.incidents.filter(
-          i => i.status === 'active',
-        ).length;
-
-        return { envName: env.name, activeCount };
-      }),
-    );
-
-    // Ignore stale responses from superseded fetches
-    if (currentRequestId !== requestIdRef.current) {
-      return;
+  // Rebuild the Map<envName, {activeCount, loading}> the Deploy tab expects.
+  return useMemo(() => {
+    const summaries = new Map<string, IncidentsSummary>();
+    for (const env of environments) {
+      summaries.set(env.name, {
+        activeCount: data?.get(env.name) ?? 0,
+        loading,
+      });
     }
-
-    const final = new Map<string, IncidentsSummary>();
-    for (let i = 0; i < environments.length; i++) {
-      const env = environments[i];
-      const result = results[i];
-      if (result.status === 'fulfilled') {
-        final.set(env.name, {
-          activeCount: result.value.activeCount,
-          loading: false,
-        });
-      } else {
-        // Silently treat errors as no incidents (observability might not be configured)
-        final.set(env.name, { activeCount: 0, loading: false });
-      }
-    }
-    setSummaries(final);
-  }, [
-    observabilityApi,
-    componentName,
-    projectName,
-    namespaceName,
-    environments,
-  ]);
-
-  useEffect(() => {
-    fetchIncidents();
-  }, [fetchIncidents]);
-
-  return summaries;
+    return summaries;
+  }, [environments, data, loading]);
 }
