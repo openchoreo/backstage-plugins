@@ -4,6 +4,7 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useDataPlaneNetPolProvider } from './useDataPlaneNetPolProvider';
 
 jest.mock('@backstage/core-plugin-api', () => {
@@ -36,11 +37,13 @@ describe('useDataPlaneNetPolProvider', () => {
   });
 
   it('returns undefined and is not loading when namespaceName is absent', async () => {
-    const { result } = renderHook(() =>
-      useDataPlaneNetPolProvider(undefined, {
-        kind: 'DataPlane',
-        name: 'dp-1',
-      }),
+    const { result } = renderHook(
+      () =>
+        useDataPlaneNetPolProvider(undefined, {
+          kind: 'DataPlane',
+          name: 'dp-1',
+        }),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -50,8 +53,9 @@ describe('useDataPlaneNetPolProvider', () => {
   });
 
   it('returns undefined and is not loading when dataPlaneRef.name is absent', async () => {
-    const { result } = renderHook(() =>
-      useDataPlaneNetPolProvider('ns-1', { kind: 'DataPlane' }),
+    const { result } = renderHook(
+      () => useDataPlaneNetPolProvider('ns-1', { kind: 'DataPlane' }),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -61,8 +65,9 @@ describe('useDataPlaneNetPolProvider', () => {
   });
 
   it('returns undefined and is not loading when dataPlaneRef is undefined', async () => {
-    const { result } = renderHook(() =>
-      useDataPlaneNetPolProvider('ns-1', undefined),
+    const { result } = renderHook(
+      () => useDataPlaneNetPolProvider('ns-1', undefined),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -74,8 +79,10 @@ describe('useDataPlaneNetPolProvider', () => {
   it('fetches and returns the network policy provider', async () => {
     fetch.mockResolvedValueOnce(okResponse('cilium'));
 
-    const { result } = renderHook(() =>
-      useDataPlaneNetPolProvider('ns-1', { kind: 'DataPlane', name: 'dp-1' }),
+    const { result } = renderHook(
+      () =>
+        useDataPlaneNetPolProvider('ns-1', { kind: 'DataPlane', name: 'dp-1' }),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -90,8 +97,9 @@ describe('useDataPlaneNetPolProvider', () => {
   it('defaults dpKind to DataPlane when kind is absent', async () => {
     fetch.mockResolvedValueOnce(okResponse('cilium'));
 
-    const { result } = renderHook(() =>
-      useDataPlaneNetPolProvider('ns-1', { name: 'dp-1' }),
+    const { result } = renderHook(
+      () => useDataPlaneNetPolProvider('ns-1', { name: 'dp-1' }),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -107,8 +115,10 @@ describe('useDataPlaneNetPolProvider', () => {
       statusText: 'Error',
     });
 
-    const { result } = renderHook(() =>
-      useDataPlaneNetPolProvider('ns-1', { kind: 'DataPlane', name: 'dp-1' }),
+    const { result } = renderHook(
+      () =>
+        useDataPlaneNetPolProvider('ns-1', { kind: 'DataPlane', name: 'dp-1' }),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -119,8 +129,10 @@ describe('useDataPlaneNetPolProvider', () => {
   it('returns undefined when the fetch throws', async () => {
     fetch.mockRejectedValueOnce(new Error('network error'));
 
-    const { result } = renderHook(() =>
-      useDataPlaneNetPolProvider('ns-1', { kind: 'DataPlane', name: 'dp-1' }),
+    const { result } = renderHook(
+      () =>
+        useDataPlaneNetPolProvider('ns-1', { kind: 'DataPlane', name: 'dp-1' }),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -131,11 +143,13 @@ describe('useDataPlaneNetPolProvider', () => {
   it('returns undefined when the annotation is not set', async () => {
     fetch.mockResolvedValueOnce(okResponse(undefined));
 
-    const { result } = renderHook(() =>
-      useDataPlaneNetPolProvider('ns-1', {
-        kind: 'ClusterDataPlane',
-        name: 'cdp-1',
-      }),
+    const { result } = renderHook(
+      () =>
+        useDataPlaneNetPolProvider('ns-1', {
+          kind: 'ClusterDataPlane',
+          name: 'cdp-1',
+        }),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -149,8 +163,10 @@ describe('useDataPlaneNetPolProvider', () => {
       json: async () => ({ networkPolicyProvider: null }),
     });
 
-    const { result } = renderHook(() =>
-      useDataPlaneNetPolProvider('ns-1', { kind: 'DataPlane', name: 'dp-1' }),
+    const { result } = renderHook(
+      () =>
+        useDataPlaneNetPolProvider('ns-1', { kind: 'DataPlane', name: 'dp-1' }),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));

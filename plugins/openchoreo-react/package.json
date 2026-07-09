@@ -73,6 +73,7 @@
   "devDependencies": {
     "@backstage/cli": "^0.36.2",
     "@backstage/test-utils": "^1.7.18",
+    "@openchoreo/test-utils": "workspace:^",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "14.3.1",
     "@testing-library/user-event": "^14.6.1",

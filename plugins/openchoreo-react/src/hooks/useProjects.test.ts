@@ -1,4 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useProjects } from './useProjects';
 
 const mockGetEntities = jest.fn();
@@ -26,7 +27,9 @@ describe('useProjects', () => {
       ],
     });
 
-    const { result } = renderHook(() => useProjects());
+    const { result } = renderHook(() => useProjects(), {
+      wrapper: createQueryWrapper(),
+    });
 
     await waitFor(() => expect(result.current.length).toBe(2));
     expect(mockGetEntities).toHaveBeenCalledWith({
@@ -40,7 +43,9 @@ describe('useProjects', () => {
       items: [{ metadata: { name: 'p1', namespace: 'ns1' } }],
     });
 
-    renderHook(() => useProjects(['ns1', 'ns2']));
+    renderHook(() => useProjects(['ns1', 'ns2']), {
+      wrapper: createQueryWrapper(),
+    });
 
     await waitFor(() =>
       expect(mockGetEntities).toHaveBeenCalledWith({
@@ -51,7 +56,9 @@ describe('useProjects', () => {
   });
 
   it('returns empty array when namespaces is an empty array', async () => {
-    const { result } = renderHook(() => useProjects([]));
+    const { result } = renderHook(() => useProjects([]), {
+      wrapper: createQueryWrapper(),
+    });
     // Should not call API
     expect(mockGetEntities).not.toHaveBeenCalled();
     expect(result.current).toEqual([]);
@@ -66,7 +73,9 @@ describe('useProjects', () => {
       ],
     });
 
-    const { result } = renderHook(() => useProjects());
+    const { result } = renderHook(() => useProjects(), {
+      wrapper: createQueryWrapper(),
+    });
 
     await waitFor(() => expect(result.current.length).toBe(3));
     expect(result.current).toEqual([
@@ -78,7 +87,9 @@ describe('useProjects', () => {
 
   it('returns empty array on API error', async () => {
     mockGetEntities.mockRejectedValue(new Error('API fail'));
-    const { result } = renderHook(() => useProjects());
+    const { result } = renderHook(() => useProjects(), {
+      wrapper: createQueryWrapper(),
+    });
     await waitFor(() => {
       expect(result.current).toEqual([]);
     });
@@ -89,7 +100,9 @@ describe('useProjects', () => {
       items: [{ metadata: { name: 'p1' } }],
     });
 
-    const { result } = renderHook(() => useProjects());
+    const { result } = renderHook(() => useProjects(), {
+      wrapper: createQueryWrapper(),
+    });
 
     await waitFor(() => expect(result.current.length).toBe(1));
     expect(result.current[0].namespace).toBe('default');

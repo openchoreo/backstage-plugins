@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
 import {
   useApi,
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
-import { useComponentEntityDetails } from '@openchoreo/backstage-plugin-react';
+import {
+  useComponentEntityDetails,
+  useOpenChoreoQuery,
+} from '@openchoreo/backstage-plugin-react';
 
 export interface WorkflowRunDetails {
   name: string;
@@ -40,24 +42,10 @@ export function useWorkflowRun(runName?: string): UseWorkflowRunResult {
   const fetchApi = useApi(fetchApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
 
-  const [workflowRun, setWorkflowRun] = useState<WorkflowRunDetails | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [refetchTrigger, setRefetchTrigger] = useState(0);
-
-  useEffect(() => {
-    if (!runName) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchWorkflowRun = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
+  const { data, loading, error, refetch } =
+    useOpenChoreoQuery<WorkflowRunDetails>(
+      ['workflow-run', runName ?? null],
+      async () => {
         const { componentName, projectName, namespaceName } =
           await getEntityDetails();
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo-ci-backend');
@@ -69,31 +57,20 @@ export function useWorkflowRun(runName?: string): UseWorkflowRunResult {
             projectName,
           )}&namespaceName=${encodeURIComponent(
             namespaceName,
-          )}&runName=${encodeURIComponent(runName)}`,
+          )}&runName=${encodeURIComponent(runName as string)}`,
         );
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        setWorkflowRun(data);
-      } catch (err) {
-        setError(err as Error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWorkflowRun();
-  }, [runName, discoveryApi, fetchApi, getEntityDetails, refetchTrigger]);
-
-  const refetch = () => {
-    setRefetchTrigger(prev => prev + 1);
-  };
+        return (await response.json()) as WorkflowRunDetails;
+      },
+      { enabled: !!runName },
+    );
 
   return {
-    workflowRun,
+    workflowRun: data ?? null,
     loading,
     error,
     refetch,

@@ -1,12 +1,14 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { TestApiProvider } from '@backstage/test-utils';
 import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useCellEnvironments } from './useCellEnvironments';
 
 // Mock useProjectEnvironments directly; we only exercise the Cilium probe
-// layered on top.
+// layered on top. Spread the real module so the hook's own
+// `useOpenChoreoQuery` import survives the mock.
 const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  ...jest.requireActual('@openchoreo/backstage-plugin-react'),
   useProjectEnvironments: (...args: any[]) =>
     mockUseProjectEnvironments(...args),
 }));
@@ -22,16 +24,10 @@ const errResponse = (status: number) =>
 
 function setup() {
   return renderHook(() => useCellEnvironments('proj-1', 'ns-1'), {
-    wrapper: ({ children }) => (
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi as any],
-          [fetchApiRef, mockFetchApi as any],
-        ]}
-      >
-        {children}
-      </TestApiProvider>
-    ),
+    wrapper: createQueryWrapper([
+      [discoveryApiRef, mockDiscoveryApi as any],
+      [fetchApiRef, mockFetchApi as any],
+    ]),
   });
 }
 

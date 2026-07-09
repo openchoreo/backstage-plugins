@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Grid,
   Card,
@@ -63,27 +63,23 @@ const ObservabilityMetricsContent = () => {
     permissionName: envPermissionName,
   } = useMetricsPermission(filters.environment?.name);
 
-  // Fetch metrics using the custom hook
+  // Fetch metrics using the custom hook. The query auto-fetches (and refetches
+  // when the filters in its key change) once `canViewMetricsForEnv` gates it on
+  // — replacing the old imperative fetch-on-filter-change effect.
   const {
     metrics,
     loading: metricsLoading,
     error: metricsError,
-    fetchMetrics,
     refresh,
-  } = useMetrics(filters, entity, namespace as string, project as string);
-  const resourceMetrics = metrics as ResourceMetrics;
-
-  // Fetch metrics when filters change
-  useEffect(() => {
-    if (filters.environment && filters.timeRange && canViewMetricsForEnv) {
-      fetchMetrics(true);
-    }
-  }, [
-    filters.environment,
-    filters.timeRange,
-    fetchMetrics,
+  } = useMetrics(
+    filters,
+    entity,
+    namespace as string,
+    project as string,
+    'resource',
     canViewMetricsForEnv,
-  ]);
+  );
+  const resourceMetrics = metrics as ResourceMetrics;
 
   const [refreshNonce, setRefreshNonce] = useState(0);
 

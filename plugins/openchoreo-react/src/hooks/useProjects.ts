@@ -1,34 +1,26 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_NAMESPACE } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { useOpenChoreoQuery } from './useOpenChoreoQuery';
 
 export type ProjectEntry = {
   name: string;
   namespace: string;
 };
 
-export function useProjects(namespaces?: string[]) {
+export function useProjects(namespaces?: string[]): ProjectEntry[] {
   const catalogApi = useApi(catalogApiRef);
-  const [projects, setProjects] = useState<ProjectEntry[]>([]);
-  const requestIdRef = useRef(0);
 
   // Explicit empty array means "no namespaces selected" → no projects to fetch.
   // undefined means "fetch all" (no namespace filter).
   const isEmptyNamespaces = namespaces !== undefined && namespaces.length === 0;
 
-  const namespacesKey = useMemo(
-    () => namespaces?.slice().sort().join(',') ?? '',
-    [namespaces],
-  );
-
-  const fetchProjects = useCallback(async () => {
-    if (isEmptyNamespaces) {
-      setProjects([]);
-      return;
-    }
-    const id = ++requestIdRef.current;
-    try {
+  const { data } = useOpenChoreoQuery(
+    ['projects-catalog', (namespaces ?? []).join(',')],
+    async () => {
+      if (isEmptyNamespaces) {
+        return [] as ProjectEntry[];
+      }
       const response = await catalogApi.getEntities({
         filter: {
           kind: 'System',
@@ -38,29 +30,19 @@ export function useProjects(namespaces?: string[]) {
         },
         fields: ['metadata.name', 'metadata.namespace'],
       });
-      if (id === requestIdRef.current) {
-        const entries: ProjectEntry[] = response.items
-          .map(e => ({
-            name: e.metadata.name,
-            namespace: e.metadata.namespace ?? DEFAULT_NAMESPACE,
-          }))
-          .sort((a, b) => {
-            const nsCmp = a.namespace.localeCompare(b.namespace);
-            return nsCmp !== 0 ? nsCmp : a.name.localeCompare(b.name);
-          });
-        setProjects(entries);
-      }
-    } catch {
-      if (id === requestIdRef.current) {
-        setProjects([]);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalogApi, namespacesKey, isEmptyNamespaces]);
+      const entries: ProjectEntry[] = response.items
+        .map(e => ({
+          name: e.metadata.name,
+          namespace: e.metadata.namespace ?? DEFAULT_NAMESPACE,
+        }))
+        .sort((a, b) => {
+          const nsCmp = a.namespace.localeCompare(b.namespace);
+          return nsCmp !== 0 ? nsCmp : a.name.localeCompare(b.name);
+        });
+      return entries;
+    },
+    { enabled: !isEmptyNamespaces },
+  );
 
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
-
-  return projects;
+  return data ?? [];
 }

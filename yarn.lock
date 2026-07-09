@@ -10186,6 +10186,7 @@ __metadata:
     "@material-ui/pickers": "npm:3.3.11"
     "@openchoreo/backstage-design-system": "workspace:^"
     "@openchoreo/backstage-plugin-common": "workspace:^"
+    "@openchoreo/test-utils": "workspace:^"
     "@react-hookz/web": "npm:^24.0.0"
     "@tanstack/react-query": "npm:^5.101.2"
     "@tanstack/react-virtual": "npm:^3.13.0"
