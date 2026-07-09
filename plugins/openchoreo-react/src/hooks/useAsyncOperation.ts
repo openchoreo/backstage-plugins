@@ -12,6 +12,11 @@ export type AsyncState<T> =
  * Hook for managing async operation state (loading, success, error).
  * Provides a clean way to track the state of async operations.
  *
+ * @deprecated Prefer `useOpenChoreoMutation` for write/action operations — it
+ * carries the same `{ isLoading, error, reset }` state plus cache invalidation,
+ * and its `mutate` re-throws exactly like `execute`. This hook remains only for
+ * any out-of-tree callers and will be removed once none remain.
+ *
  * @example
  * const saveOperation = useAsyncOperation(async (data: FormData) => {
  *   const result = await api.save(data);

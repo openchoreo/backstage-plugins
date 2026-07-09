@@ -39,7 +39,7 @@ import {
 import {
   useComponentEntityDetails,
   useBuildPermission,
-  useAsyncOperation,
+  useOpenChoreoMutation,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -187,8 +187,9 @@ export const Workflows = () => {
     return workflowData.builds.find(build => build.name === routingState.runId);
   }, [routingState.view, routingState.runId, workflowData.builds]);
 
-  // Async operation for triggering workflow with default parameters
-  const triggerWorkflowOp = useAsyncOperation(
+  // Mutation for triggering a workflow with default parameters. Refreshes the
+  // builds list on success (replacing the manual post-POST fetchBuilds()).
+  const triggerWorkflowOp = useOpenChoreoMutation(
     useCallback(async () => {
       const { componentName, projectName, namespaceName } =
         await getEntityDetails();
@@ -230,13 +231,12 @@ export const Workflows = () => {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-
-      await workflowData.fetchBuilds();
     }, [discoveryApi, fetchApi, getEntityDetails, workflowData]),
+    { onSuccess: () => workflowData.fetchBuilds() },
   );
 
-  // Async operation for triggering workflow with custom parameters
-  const triggerWithParamsOp = useAsyncOperation(
+  // Mutation for triggering a workflow with custom parameters.
+  const triggerWithParamsOp = useOpenChoreoMutation(
     useCallback(
       async (customParameters: Record<string, unknown>) => {
         const { componentName, projectName, namespaceName } =
@@ -275,14 +275,13 @@ export const Workflows = () => {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-
-        await workflowData.fetchBuilds();
       },
       [discoveryApi, fetchApi, getEntityDetails, workflowData],
     ),
+    { onSuccess: () => workflowData.fetchBuilds() },
   );
 
-  const refreshOp = useAsyncOperation(workflowData.fetchBuilds);
+  const refreshOp = useOpenChoreoMutation(workflowData.fetchBuilds);
 
   // Navigation handlers
   const handleBack = useCallback(() => {
@@ -312,7 +311,7 @@ export const Workflows = () => {
 
   const handleTriggerWithParams = useCallback(
     async (parameters: Record<string, unknown>) => {
-      await triggerWithParamsOp.execute(parameters);
+      await triggerWithParamsOp.mutate(parameters);
     },
     [triggerWithParamsOp],
   );
@@ -337,7 +336,7 @@ export const Workflows = () => {
   const handleBuildAction = useCallback(
     (key: string) => {
       if (key === 'build-latest') {
-        triggerWorkflowOp.execute();
+        triggerWorkflowOp.mutate();
       } else if (key === 'build-custom') {
         handleOpenParamsDialog();
       }
@@ -371,7 +370,7 @@ export const Workflows = () => {
             builds={workflowData.builds}
             loading={workflowData.loading}
             isRefreshing={refreshOp.isLoading}
-            onRefresh={() => refreshOp.execute()}
+            onRefresh={() => refreshOp.mutate()}
             onRowClick={handleOpenRunDetails}
             gitFieldMapping={gitFieldMapping}
             retentionTtl={retentionTtl}

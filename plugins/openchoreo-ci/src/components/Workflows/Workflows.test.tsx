@@ -65,10 +65,11 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
     }),
   }),
   useBuildPermission: () => mockUseBuildPermission(),
-  useAsyncOperation: (fn: any) => ({
-    execute: fn,
+  useOpenChoreoMutation: (fn: any) => ({
+    mutate: fn,
     isLoading: false,
     error: null,
+    reset: jest.fn(),
   }),
   ForbiddenState: (props: any) => (
     <div data-testid="forbidden-state">{props.message}</div>

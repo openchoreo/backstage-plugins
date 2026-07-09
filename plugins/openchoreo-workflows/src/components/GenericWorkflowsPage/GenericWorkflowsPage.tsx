@@ -23,7 +23,7 @@ import { makeStyles } from '@material-ui/core/styles';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '@openchoreo/backstage-plugin';
-import { useAsync } from 'react-use';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { useWorkflows } from '../../hooks/useWorkflows';
 import { NamespaceProvider, useNamespaceContext } from '../../context';
 import { TriggerWorkflowPage } from '../TriggerWorkflowPage';
@@ -113,12 +113,12 @@ const WorkflowsListContent = () => {
 
   // Fetch available namespaces
   const {
-    value: namespaces,
+    data: namespaces,
     loading: namespacesLoading,
     error: namespacesError,
-  } = useAsync(async () => {
-    return client.listNamespaces();
-  }, [client]);
+  } = useOpenChoreoQuery(['workflows', 'namespaces'], () =>
+    client.listNamespaces(),
+  );
 
   // Fetch workflows for the selected namespace (reads from context)
   const {

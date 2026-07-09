@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoMutation } from '@openchoreo/backstage-plugin-react';
 import { observabilityApiRef } from '../api';
 import type { IncidentSummary } from '../types';
 
@@ -15,53 +15,36 @@ export interface UseUpdateIncidentResult {
 
 export function useUpdateIncident(): UseUpdateIncidentResult {
   const observabilityApi = useApi(observabilityApiRef);
-  const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const inFlightRef = useRef(false);
 
-  const updateIncident = useCallback(
+  const { mutate, isLoading, error, reset } = useOpenChoreoMutation(
     async (
       incident: IncidentSummary,
       newStatus: 'acknowledged' | 'resolved',
-    ): Promise<void> => {
-      if (inFlightRef.current) {
-        throw new Error('An incident update is already in progress.');
-      }
-
+    ) => {
       const namespaceName = incident.namespaceName || '';
       const environmentName = incident.environmentName || '';
-
       if (!namespaceName || !environmentName) {
-        const msg = 'Cannot update incident: missing namespace or environment.';
-        setError(msg);
-        throw new Error(msg);
-      }
-
-      inFlightRef.current = true;
-      setUpdating(true);
-      setError(null);
-
-      try {
-        await observabilityApi.updateIncidentStatus(
-          incident.incidentId,
-          newStatus,
-          namespaceName,
-          environmentName,
+        throw new Error(
+          'Cannot update incident: missing namespace or environment.',
         );
-      } catch (err) {
-        const msg =
-          err instanceof Error ? err.message : 'Failed to update incident.';
-        setError(msg);
-        throw err; // re-throw so the caller can skip refresh on failure
-      } finally {
-        setUpdating(false);
-        inFlightRef.current = false;
       }
+      await observabilityApi.updateIncidentStatus(
+        incident.incidentId,
+        newStatus,
+        namespaceName,
+        environmentName,
+      );
     },
-    [observabilityApi],
+    // Refresh any incident lists so the new status shows without a manual refetch.
+    { invalidates: [['project-incidents'], ['incidents-summary']] },
   );
 
-  const clearError = useCallback(() => setError(null), []);
-
-  return { updateIncident, updating, error, clearError };
+  return {
+    updateIncident: async (incident, newStatus) => {
+      await mutate(incident, newStatus);
+    },
+    updating: isLoading,
+    error: error ? error.message || 'Failed to update incident.' : null,
+    clearError: reset,
+  };
 }
