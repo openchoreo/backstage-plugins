@@ -19,3 +19,4 @@ export {
   createQueryWrapper,
   createTestQueryClient,
 } from './queryClientWrapper';
+export { createQueryClientWrapper } from './queryClientBareWrapper';

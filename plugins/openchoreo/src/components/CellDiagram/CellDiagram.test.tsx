@@ -1,6 +1,17 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+// Import from the sub-path (not the barrel) so this suite — which mocks
+// @backstage/core-plugin-api — doesn't transitively load @backstage/test-utils'
+// TestApiProvider (which runs attachComponentData at import and would break).
+import { createQueryClientWrapper } from '@openchoreo/test-utils/src/queryClientBareWrapper';
 import { CellDiagram } from './CellDiagram';
+
+// useCellEnvironments is now backed by useOpenChoreoQuery, which needs a
+// QueryClientProvider in the tree. Wrap in a fresh, retry-free cache each render
+// (a bare provider, not TestApiProvider — this suite mocks core-plugin-api and
+// supplies APIs through the useApi mock, so TestApiProvider isn't wanted).
+const renderCell = () =>
+  render(<CellDiagram />, { wrapper: createQueryClientWrapper() });
 
 // ---- Mocks ----
 
@@ -46,11 +57,19 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
 jest.mock('@openchoreo/backstage-plugin-react', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react');
+  // Keep the real caching wrapper (useCellEnvironments now calls
+  // useOpenChoreoQuery). Pull it from its own module rather than the barrel so
+  // we don't drag in the whole package (which imports the mocked core-plugin-api
+  // and breaks on attachComponentData).
+  const { useOpenChoreoQuery } =
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    jest.requireActual('@openchoreo/backstage-plugin-react/src/hooks/useOpenChoreoQuery');
   // Each recompute advances "now" (mirroring the real calculateTimeRange,
   // which uses `new Date()`), so the Refresh button produces a new fetch key
   // and triggers a refetch.
   let rangeCall = 0;
   return {
+    useOpenChoreoQuery,
     EmptyState: ({ title, description, action }: any) => (
       <div data-testid="empty-state">
         <div>{title}</div>
@@ -408,7 +427,7 @@ describe('CellDiagram', () => {
     const mockClient = setupMockClient();
 
     await act(async () => {
-      render(<CellDiagram />);
+      renderCell();
     });
 
     await waitFor(() => {
@@ -438,7 +457,7 @@ describe('CellDiagram', () => {
     const mockClient = setupMockClient();
 
     await act(async () => {
-      render(<CellDiagram />);
+      renderCell();
     });
 
     await waitFor(() => {
@@ -480,7 +499,7 @@ describe('CellDiagram', () => {
     setupMockClient();
 
     await act(async () => {
-      render(<CellDiagram />);
+      renderCell();
     });
 
     await waitFor(() => {
@@ -522,7 +541,7 @@ describe('CellDiagram', () => {
     setupMockClient();
 
     await act(async () => {
-      render(<CellDiagram />);
+      renderCell();
     });
 
     await waitFor(() => {
@@ -570,7 +589,7 @@ describe('CellDiagram', () => {
     });
 
     await act(async () => {
-      render(<CellDiagram />);
+      renderCell();
     });
 
     await waitFor(() => {
@@ -615,7 +634,7 @@ describe('CellDiagram', () => {
     });
 
     await act(async () => {
-      render(<CellDiagram />);
+      renderCell();
     });
 
     const toggle = screen.getByRole('switch', {
@@ -658,7 +677,7 @@ describe('CellDiagram', () => {
     });
 
     await act(async () => {
-      render(<CellDiagram />);
+      renderCell();
     });
 
     // Toggle OFF → architecture
@@ -706,7 +725,7 @@ describe('CellDiagram', () => {
     });
 
     await act(async () => {
-      render(<CellDiagram />);
+      renderCell();
     });
 
     const toggle = screen.getByRole('switch', {
@@ -728,7 +747,7 @@ describe('CellDiagram', () => {
     const mockClient = setupMockClient();
 
     await act(async () => {
-      render(<CellDiagram />);
+      renderCell();
     });
 
     await waitFor(() => {
@@ -768,7 +787,7 @@ describe('CellDiagram', () => {
     });
 
     await act(async () => {
-      render(<CellDiagram />);
+      renderCell();
     });
 
     await waitFor(() => {
@@ -795,7 +814,7 @@ describe('CellDiagram', () => {
     });
 
     await act(async () => {
-      render(<CellDiagram />);
+      renderCell();
     });
 
     await waitFor(() => {
