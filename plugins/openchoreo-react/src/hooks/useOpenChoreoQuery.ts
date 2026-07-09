@@ -100,16 +100,19 @@ export interface UseOpenChoreoQueryResult<T> {
  * @param queryKey - Stable, serialisable key identifying this data (per client
  *   method + params). Drives caching and invalidation.
  * @param fetcher - Async function that performs the request via the API client.
+ *   Receives an optional `{ signal }` (TanStack's AbortSignal) so long-running
+ *   fetchers — e.g. an in-fetcher retry/backoff loop — can bail when the query
+ *   is cancelled (unmount, supersede). Existing zero-arg fetchers ignore it.
  * @param options - Optional per-query overrides (freshness, polling, enablement).
  */
 export function useOpenChoreoQuery<T>(
   queryKey: QueryKey,
-  fetcher: () => Promise<T>,
+  fetcher: (context: { signal: AbortSignal }) => Promise<T>,
   options: UseOpenChoreoQueryOptions<T> = {},
 ): UseOpenChoreoQueryResult<T> {
   const { data, error, isPending, isFetching, refetch } = useQuery<T, Error>({
     queryKey,
-    queryFn: fetcher,
+    queryFn: ({ signal }) => fetcher({ signal }),
     staleTime: options.staleTime,
     refetchInterval: options.refetchInterval,
     enabled: options.enabled,

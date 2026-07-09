@@ -10,11 +10,15 @@ import {
  * `hasMore` (optional) overrides the default "page shorter than `pageSize` ends
  * pagination" heuristic — needed when a page is a fan-out/merge of several
  * requests, so its length isn't a clean end-of-list signal.
+ * `nextCursor` (optional) lets a fan-out fetcher carry a composite cursor
+ * forward (e.g. a per-component timestamp map); when present it's used verbatim
+ * as the next page param instead of `getCursor(lastItem)`.
  */
 export interface OpenChoreoPage<TItem> {
   items: TItem[];
   total?: number;
   hasMore?: boolean;
+  nextCursor?: string;
 }
 
 /** Options for {@link useOpenChoreoInfiniteQuery}. */
@@ -26,11 +30,15 @@ export interface UseOpenChoreoInfiniteQueryOptions<TItem> {
   /** Freshness window in ms. Overrides the app `QueryClient` default. */
   staleTime?: number;
   /**
-   * Derive the cursor for the next page from the last item of the last page.
-   * Return `undefined`/`null` to signal there is no next page. Called only when
-   * the previous page was "full" (its length === `pageSize`).
+   * Derive the cursor for the next page. Receives the last item of the last
+   * page and the last page itself (so a fan-out fetcher can read a composite
+   * `page.nextCursor`). Return `undefined`/`null` to signal no next page.
+   * Called only when the previous page is not the last (per `hasMore`/length).
    */
-  getCursor: (lastItem: TItem) => string | undefined | null;
+  getCursor: (
+    lastItem: TItem,
+    page: OpenChoreoPage<TItem>,
+  ) => string | undefined | null;
   /** Page size — a page shorter than this is treated as the last page. */
   pageSize: number;
 }
@@ -95,18 +103,27 @@ export function useOpenChoreoInfiniteQuery<TItem>(
     getNextPageParam: lastPage => {
       // Explicit `hasMore` wins (fan-out pages); otherwise a short page ends it.
       const more = lastPage.hasMore ?? lastPage.items.length >= pageSize;
-      if (!more || lastPage.items.length === 0) return undefined;
+      if (!more) return undefined;
+      // A fan-out page can carry its own composite `nextCursor` even if this
+      // page happened to be empty for some components; only fall back to the
+      // last-item cursor when there's an item and no explicit nextCursor.
+      if (lastPage.nextCursor !== undefined) return lastPage.nextCursor;
+      if (lastPage.items.length === 0) return undefined;
       const lastItem = lastPage.items[lastPage.items.length - 1];
-      return getCursor(lastItem) ?? undefined;
+      return getCursor(lastItem, lastPage) ?? undefined;
     },
     enabled,
     refetchInterval,
     staleTime,
   });
 
-  const pages = data?.pages ?? [];
-  const items = pages.flatMap(p => p.items);
   const isDisabled = enabled === false;
+  // A disabled query keeps its last data in the TanStack cache, but a disabled
+  // list should render as empty — otherwise stale rows from the prior (enabled)
+  // filter stay on screen when the gate closes (e.g. all log levels deselected,
+  // where the "all" and "none" states share a query key). Surface nothing.
+  const pages = isDisabled ? [] : data?.pages ?? [];
+  const items = pages.flatMap(p => p.items);
 
   return {
     items,
@@ -114,7 +131,7 @@ export function useOpenChoreoInfiniteQuery<TItem>(
     loadingMore: isFetchingNextPage,
     error: error ?? null,
     totalCount: pages[0]?.total ?? items.length,
-    hasMore: hasNextPage,
+    hasMore: isDisabled ? false : hasNextPage,
     loadMore: () => {
       if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
     },

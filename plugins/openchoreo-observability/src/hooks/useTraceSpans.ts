@@ -115,7 +115,10 @@ export function useTraceSpans(options: UseTraceSpansOptions) {
 
   const clearSpans = useCallback(
     (traceId: string) => {
-      cache.setData<Span[] | undefined>(spanKey(traceId), () => undefined);
+      // `setData(key, () => undefined)` is a no-op in TanStack — removeQueries
+      // actually drops the entry so a re-expand refetches instead of serving
+      // the stale cached spans.
+      cache.remove(spanKey(traceId));
       setVersion(v => v + 1);
     },
     [cache, spanKey],

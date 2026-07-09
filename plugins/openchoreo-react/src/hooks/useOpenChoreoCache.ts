@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 
 /**
@@ -29,6 +30,12 @@ export interface OpenChoreoCache {
   ) => Promise<T>;
   /** Synchronously read a cached query's data, or `undefined` if not cached. */
   getData: <T>(queryKey: QueryKey) => T | undefined;
+  /**
+   * Remove a cached query entirely. Unlike `setData(key, () => undefined)` —
+   * which TanStack treats as a no-op and does NOT clear — this actually drops
+   * the entry so the next read misses and a fresh fetch runs.
+   */
+  remove: (queryKey: QueryKey) => void;
 }
 
 /**
@@ -38,17 +45,25 @@ export interface OpenChoreoCache {
  */
 export function useOpenChoreoCache(): OpenChoreoCache {
   const queryClient = useQueryClient();
-  return {
-    setData: (queryKey, updater) => queryClient.setQueryData(queryKey, updater),
-    invalidate: queryKey => {
-      void queryClient.invalidateQueries({ queryKey });
-    },
-    fetchQuery: (queryKey, fetcher, options) =>
-      queryClient.fetchQuery({
-        queryKey,
-        queryFn: fetcher,
-        staleTime: options?.staleTime,
-      }),
-    getData: queryKey => queryClient.getQueryData(queryKey),
-  };
+  // `useQueryClient()` returns a stable client for the provider's lifetime, so
+  // memoise the handle: without this, a fresh object + 5 closures every render
+  // would break any consumer that lists `cache` in a useCallback/useEffect dep.
+  return useMemo<OpenChoreoCache>(
+    () => ({
+      setData: (queryKey, updater) =>
+        queryClient.setQueryData(queryKey, updater),
+      invalidate: queryKey => {
+        void queryClient.invalidateQueries({ queryKey });
+      },
+      fetchQuery: (queryKey, fetcher, options) =>
+        queryClient.fetchQuery({
+          queryKey,
+          queryFn: fetcher,
+          staleTime: options?.staleTime,
+        }),
+      getData: queryKey => queryClient.getQueryData(queryKey),
+      remove: queryKey => queryClient.removeQueries({ queryKey, exact: true }),
+    }),
+    [queryClient],
+  );
 }

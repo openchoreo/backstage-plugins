@@ -61,7 +61,17 @@ export const useWirelogsEnvironments = (
     [
       'wirelogs-environments',
       namespaceName ?? null,
-      baseEnvs.map(e => e.name).join(','),
+      // Include each env's dataplane identity, not just its name — the probe is
+      // per-dataPlaneRef, so a dataplane reassignment that keeps the env name
+      // must still bust the cache.
+      baseEnvs
+        .map(
+          e =>
+            `${e.name}:${e.namespace ?? ''}:${e.dataPlaneRef?.name ?? ''}:${
+              e.dataPlaneRef?.kind ?? ''
+            }`,
+        )
+        .join(','),
     ],
     async () => {
       const baseUrl = await discoveryApi.getBaseUrl(

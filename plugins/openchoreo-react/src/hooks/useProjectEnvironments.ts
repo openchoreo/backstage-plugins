@@ -173,7 +173,7 @@ export const useProjectEnvironments = (
       errorDetail = error.status === 'unavailable' ? error.message : null;
     } else {
       status = 'unavailable';
-      errorDetail = error.message;
+      errorDetail = error.message || 'Failed to load project environments';
     }
   } else if (data) {
     status = data.status;

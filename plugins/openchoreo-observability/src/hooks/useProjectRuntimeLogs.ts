@@ -8,7 +8,6 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import {
   LogEntry,
-  LogsResponse,
   RuntimeLogsFilters,
   LOG_LEVELS,
 } from '../components/RuntimeLogs/types';
@@ -35,6 +34,13 @@ interface UseProjectRuntimeLogsResult {
   refresh: () => void;
   clearLogs: () => void;
 }
+
+/** Sentinel marking a component that has returned its last (short) page. */
+const FANOUT_DONE = '__done__';
+
+/** Per-component pagination cursor: componentName ('' for unfiltered) → its own
+ *  last-returned timestamp, or FANOUT_DONE once that component is exhausted. */
+type FanoutCursor = Record<string, string>;
 
 const sortByTimestamp = (
   logs: LogEntry[],
@@ -100,72 +106,88 @@ export function useProjectRuntimeLogs(
           endTime: filters.customEndTime,
         });
 
-      let startTime = initialStartTime;
-      let endTime = initialEndTime;
-      if (cursor) {
-        if (sortOrder === 'desc') endTime = cursor;
-        else startTime = cursor;
+      // The fan-out paginates each component INDEPENDENTLY: the cursor is a
+      // per-component map of that component's own last-returned timestamp (or
+      // FANOUT_DONE once it returned a short page). A single shared merged-page
+      // cursor would skip a lagging component's rows and duplicate the leading
+      // component's, since each component's window edge differs. Page 1 (no
+      // cursor) queries every component over the full range.
+      const perCursor: FanoutCursor = cursor ? JSON.parse(cursor) : {};
+
+      const componentsForPage =
+        selectedComponents.length > 0 ? selectedComponents : [undefined];
+
+      const perComponent = await Promise.all(
+        componentsForPage.map(async componentName => {
+          const key = componentName ?? '';
+          const state = perCursor[key];
+          // A component that already returned a short page is exhausted — skip
+          // it on subsequent pages so it can't be re-queried or duplicated.
+          if (state === FANOUT_DONE) {
+            return { componentName, logs: [] as LogEntry[], total: 0 };
+          }
+          const startTime =
+            sortOrder === 'asc' && state ? state : initialStartTime;
+          const endTime =
+            sortOrder === 'desc' && state ? state : initialEndTime;
+          const response = await observabilityApi.getRuntimeLogs(
+            options.namespaceName,
+            options.projectName,
+            options.environmentName,
+            componentName,
+            {
+              limit: pageSize,
+              startTime,
+              endTime,
+              logLevels,
+              searchQuery: filters.searchQuery,
+              sortOrder,
+            },
+          );
+          const logs = (response.logs || []).map(log => ({
+            ...log,
+            metadata: {
+              ...log.metadata,
+              componentName:
+                log.metadata?.componentName || componentName || undefined,
+            },
+          }));
+          return { componentName, logs, total: response.total ?? 0 };
+        }),
+      );
+
+      // Build the next per-component cursor: a component that filled its page
+      // advances to its own last timestamp; a short page marks it done.
+      const nextCursor: FanoutCursor = {};
+      let anyMore = false;
+      for (const { componentName, logs } of perComponent) {
+        const key = componentName ?? '';
+        const prev = perCursor[key];
+        if (prev === FANOUT_DONE) {
+          nextCursor[key] = FANOUT_DONE;
+        } else if (logs.length === pageSize) {
+          nextCursor[key] = logs[logs.length - 1].timestamp ?? FANOUT_DONE;
+          if (nextCursor[key] !== FANOUT_DONE) anyMore = true;
+        } else {
+          nextCursor[key] = FANOUT_DONE;
+        }
       }
 
-      const queryOptions = {
-        limit: pageSize,
-        startTime,
-        endTime,
-        logLevels,
-        searchQuery: filters.searchQuery,
-        sortOrder,
-      } as const;
-
-      // Fan out one request per selected component (or one unfiltered request),
-      // then merge + re-sort into a single page.
-      const responses: LogsResponse[] =
-        selectedComponents.length > 0
-          ? await Promise.all(
-              selectedComponents.map(componentName =>
-                observabilityApi.getRuntimeLogs(
-                  options.namespaceName,
-                  options.projectName,
-                  options.environmentName,
-                  componentName,
-                  queryOptions,
-                ),
-              ),
-            )
-          : [
-              await observabilityApi.getRuntimeLogs(
-                options.namespaceName,
-                options.projectName,
-                options.environmentName,
-                undefined,
-                queryOptions,
-              ),
-            ];
-
-      const flattened =
-        selectedComponents.length > 0
-          ? responses.flatMap((response, index) =>
-              (response.logs || []).map(log => ({
-                ...log,
-                metadata: {
-                  ...log.metadata,
-                  componentName:
-                    log.metadata?.componentName || selectedComponents[index],
-                },
-              })),
-            )
-          : responses.flatMap(response => response.logs || []);
-
+      const flattened = perComponent.flatMap(r => r.logs);
       return {
         items: sortByTimestamp(flattened, sortOrder),
-        total: responses.reduce((sum, r) => sum + (r.total || 0), 0),
-        // A merged page can exceed pageSize, so length isn't a clean end signal:
-        // more pages exist if ANY component filled its page.
-        hasMore: responses.some(r => (r.logs || []).length === pageSize),
+        total: perComponent.reduce((sum, r) => sum + r.total, 0),
+        hasMore: anyMore,
+        // Carry the per-component cursor forward for the next loadMore.
+        nextCursor: anyMore ? JSON.stringify(nextCursor) : undefined,
       };
     },
     {
       pageSize,
-      getCursor: last => last.timestamp,
+      // The per-component cursor is computed in the fetcher and returned as
+      // `nextCursor`; getCursor just surfaces it (falling back to the last
+      // timestamp for the single-component / unfiltered case where there's no map).
+      getCursor: (_last, page) => page?.nextCursor ?? null,
       enabled:
         enabled &&
         filters.logLevel.length > 0 &&

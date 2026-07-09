@@ -18,9 +18,22 @@ const POLLING_INTERVAL = 5000; // 5 seconds
 const NOT_FOUND_RETRY_INTERVAL = 2000;
 const NOT_FOUND_MAX_RETRIES = 5;
 
-const wait = (ms: number) =>
-  new Promise<void>(resolve => {
-    setTimeout(resolve, ms);
+/** Sleep `ms`, rejecting early if the query's AbortSignal fires (unmount/supersede). */
+const wait = (ms: number, signal: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
   });
 
 /** True while the run is still active (Pending or Running) — drives the poll. */
@@ -49,16 +62,18 @@ export function useWorkflowRunDetails(
 
   const { data, loading, error, refetch } = useOpenChoreoQuery<WorkflowRun>(
     ['workflow-run-details', resolvedNamespace ?? null, runName],
-    async () => {
+    async ({ signal }) => {
       // A newly triggered WorkflowRun may not be visible immediately; retry the
       // 404 a few times before surfacing it (kept inside the fetcher so the
-      // query stays in its loading state throughout the retry window).
+      // query stays in its loading state throughout the retry window). The
+      // backoff waits on the query's AbortSignal, so navigating away mid-retry
+      // stops the loop instead of hammering the backend for the full window.
       for (let attempt = 0; ; attempt++) {
         try {
           return await client.getWorkflowRun(resolvedNamespace!, runName);
         } catch (err) {
           if (err instanceof NotFoundError && attempt < NOT_FOUND_MAX_RETRIES) {
-            await wait(NOT_FOUND_RETRY_INTERVAL);
+            await wait(NOT_FOUND_RETRY_INTERVAL, signal);
             continue;
           }
           throw err;

@@ -37,11 +37,20 @@ export const useCellEnvironments = (
 
   const { data, loading, isRefetching } = useOpenChoreoQuery<CellEnvironment[]>(
     // Key on the resolved env identities + namespace so re-enrichment happens
-    // whenever the base environments change.
+    // whenever the base environments change. Include each env's dataplane
+    // identity (not just name) — the probe is per-dataPlaneRef, so a dataplane
+    // reassignment that keeps the env name must still bust the cache.
     [
       'cell-environments',
       namespaceName ?? null,
-      baseEnvs.map(env => env.name).join(','),
+      baseEnvs
+        .map(
+          env =>
+            `${env.name}:${env.namespace ?? ''}:${
+              env.dataPlaneRef?.name ?? ''
+            }:${env.dataPlaneRef?.kind ?? ''}`,
+        )
+        .join(','),
     ],
     async () => {
       const baseUrl = await discoveryApi.getBaseUrl(
