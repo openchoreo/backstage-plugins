@@ -50,7 +50,6 @@ const ObservabilityAlertsContent = () => {
     alerts,
     loading: alertsLoading,
     error: alertsError,
-    fetchAlerts,
     refresh,
   } = useComponentAlerts(entity, namespace || '', project || '', {
     environment: filters.environment,
@@ -90,7 +89,8 @@ const ObservabilityAlertsContent = () => {
       componentName &&
       filtersChanged
     ) {
-      fetchAlerts(true);
+      // The alerts query keys on these filters, so it refetches on its own when
+      // they change — this effect only stamps the "last updated" time.
       setLastUpdated(new Date());
       previousFiltersRef.current = currentFilters;
     }
@@ -100,7 +100,6 @@ const ObservabilityAlertsContent = () => {
     filters.customStartTime,
     filters.customEndTime,
     filters.sortOrder,
-    fetchAlerts,
     selectedEnvironment,
     namespace,
     project,

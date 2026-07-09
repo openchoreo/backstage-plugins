@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import {
   discoveryApiRef,
   fetchApiRef,
@@ -6,6 +5,7 @@ import {
 } from '@backstage/core-plugin-api';
 import {
   Environment,
+  useOpenChoreoQuery,
   useProjectEnvironments,
   type ProjectEnvironmentsStatus,
 } from '@openchoreo/backstage-plugin-react';
@@ -52,84 +52,65 @@ export const useWirelogsEnvironments = (
     error,
     refetch,
   } = useProjectEnvironments(projectName, namespaceName);
-  const [environments, setEnvironments] = useState<WirelogsEnvironment[]>([]);
-  const [enriching, setEnriching] = useState(false);
-  const [enrichError, setEnrichError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (baseLoading) return undefined;
-    if (baseEnvs.length === 0) {
-      setEnvironments([]);
-      setEnriching(false);
-      setEnrichError(null);
-      return undefined;
-    }
-    setEnriching(true);
-    setEnrichError(null);
-    (async () => {
-      try {
-        const baseUrl = await discoveryApi.getBaseUrl(
-          'openchoreo-observability-backend',
-        );
-        const enriched = await Promise.all(
-          baseEnvs.map(async env => {
-            if (!env.namespace || !env.dataPlaneRef?.name) {
-              return { ...env, hasWirelogs: false };
-            }
-            const controller = new AbortController();
-            const timeout = setTimeout(
-              () => controller.abort(),
-              NETPOL_TIMEOUT_MS,
+  const {
+    data,
+    loading: enriching,
+    error: enrichError,
+  } = useOpenChoreoQuery<WirelogsEnvironment[]>(
+    [
+      'wirelogs-environments',
+      namespaceName ?? null,
+      baseEnvs.map(e => e.name).join(','),
+    ],
+    async () => {
+      const baseUrl = await discoveryApi.getBaseUrl(
+        'openchoreo-observability-backend',
+      );
+      return Promise.all(
+        baseEnvs.map(async env => {
+          if (!env.namespace || !env.dataPlaneRef?.name) {
+            return { ...env, hasWirelogs: false };
+          }
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), NETPOL_TIMEOUT_MS);
+          try {
+            const params = new URLSearchParams({
+              namespaceName: env.namespace,
+              dpName: env.dataPlaneRef.name,
+              dpKind: env.dataPlaneRef.kind ?? 'DataPlane',
+            });
+            const res = await fetchApi.fetch(
+              `${baseUrl}/dataplane-netpol-provider?${params.toString()}`,
+              { signal: controller.signal },
             );
-            try {
-              const params = new URLSearchParams({
-                namespaceName: env.namespace,
-                dpName: env.dataPlaneRef.name,
-                dpKind: env.dataPlaneRef.kind ?? 'DataPlane',
-              });
-              const res = await fetchApi.fetch(
-                `${baseUrl}/dataplane-netpol-provider?${params.toString()}`,
-                { signal: controller.signal },
-              );
-              if (!res.ok) return { ...env, hasWirelogs: false };
-              const data = await res.json();
-              return {
-                ...env,
-                hasWirelogs: data?.networkPolicyProvider === 'cilium',
-              };
-            } catch {
-              return { ...env, hasWirelogs: false };
-            } finally {
-              clearTimeout(timeout);
-            }
-          }),
-        );
-        if (!cancelled) setEnvironments(enriched);
-      } catch (err) {
-        if (!cancelled) {
-          setEnvironments([]);
-          setEnrichError(
-            err instanceof Error ? err.message : 'Failed to probe environments',
-          );
-        }
-      } finally {
-        if (!cancelled) setEnriching(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [baseEnvs, baseLoading, discoveryApi, fetchApi]);
+            // Per-env failure degrades to false rather than rejecting the batch.
+            if (!res.ok) return { ...env, hasWirelogs: false };
+            const body = await res.json();
+            return {
+              ...env,
+              hasWirelogs: body?.networkPolicyProvider === 'cilium',
+            };
+          } catch {
+            return { ...env, hasWirelogs: false };
+          } finally {
+            clearTimeout(timeout);
+          }
+        }),
+      );
+    },
+    { enabled: !baseLoading && baseEnvs.length > 0 },
+  );
 
   return {
-    environments,
+    environments: data ?? [],
+    // First-load only — a background refresh keeps the current envs on screen
+    // instead of blanking to a skeleton (`isRefetching` deliberately excluded).
     loading: baseLoading || enriching,
     // A netpol-probe failure (base envs resolved, enrichment failed) is
     // surfaced as `unavailable`; otherwise mirror the base resolution status.
     status: enrichError ? 'unavailable' : baseStatus,
-    error: error || enrichError,
+    error: error || (enrichError ? enrichError.message : null),
     refetch,
   };
 };

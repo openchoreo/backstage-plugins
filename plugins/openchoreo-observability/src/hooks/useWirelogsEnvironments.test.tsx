@@ -1,10 +1,13 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { TestApiProvider } from '@backstage/test-utils';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
 import { useWirelogsEnvironments } from './useWirelogsEnvironments';
 
 const mockUseProjectEnvironments = jest.fn();
+// Keep the real caching wrapper (useOpenChoreoQuery); only stub the base
+// environments hook so tests can drive its return.
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  ...jest.requireActual('@openchoreo/backstage-plugin-react'),
   useProjectEnvironments: (...args: any[]) =>
     mockUseProjectEnvironments(...args),
 }));
@@ -20,16 +23,10 @@ const errResponse = (status: number) =>
 
 function setup() {
   return renderHook(() => useWirelogsEnvironments('proj-1', 'ns-1'), {
-    wrapper: ({ children }) => (
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi as any],
-          [fetchApiRef, mockFetchApi as any],
-        ]}
-      >
-        {children}
-      </TestApiProvider>
-    ),
+    wrapper: createQueryWrapper([
+      [discoveryApiRef, mockDiscoveryApi as any],
+      [fetchApiRef, mockFetchApi as any],
+    ]),
   });
 }
 

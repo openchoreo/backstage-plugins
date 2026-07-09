@@ -61,7 +61,6 @@ const ObservabilityProjectIncidentsContent = () => {
     incidents,
     loading: incidentsLoading,
     error: incidentsError,
-    fetchIncidents,
     refresh,
   } = useProjectIncidents(entity, {
     environment: filters.environment,
@@ -102,7 +101,8 @@ const ObservabilityProjectIncidentsContent = () => {
       projectName &&
       filtersChanged
     ) {
-      fetchIncidents(true);
+      // The incidents query keys on these filters, so it refetches on its own
+      // when they change — this effect only stamps the "last updated" time.
       setLastUpdated(new Date());
       previousFiltersRef.current = currentFilters;
     }
@@ -113,7 +113,6 @@ const ObservabilityProjectIncidentsContent = () => {
     filters.customEndTime,
     filters.components,
     filters.sortOrder,
-    fetchIncidents,
     selectedEnvironment,
     namespace,
     projectName,
