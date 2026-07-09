@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import { stringifyEntityRef } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import type { Entity } from '@backstage/catalog-model';
 import type { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoQuery } from './useOpenChoreoQuery';
 
 /** Information about a secret key in a secret reference */
 export interface SecretDataSourceInfo {
@@ -104,40 +105,21 @@ export function useSecretReferences(): UseSecretReferencesResult {
   const discovery = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
   const { entity } = useEntity();
-  const [secretReferences, setSecretReferences] = useState<SecretReference[]>(
-    [],
+
+  const { data, loading, error } = useOpenChoreoQuery<SecretReference[]>(
+    ['secret-references', stringifyEntityRef(entity)],
+    async () => {
+      const response = await fetchSecretReferences(entity, discovery, fetchApi);
+      return response.success && response.data.items
+        ? response.data.items
+        : [];
+    },
   );
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchSecrets = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await fetchSecretReferences(
-          entity,
-          discovery,
-          fetchApi,
-        );
-        if (response.success && response.data.items) {
-          setSecretReferences(response.data.items);
-        }
-      } catch (err) {
-        setError('Failed to fetch secret references');
-        setSecretReferences([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSecrets();
-
-    return () => {
-      setSecretReferences([]);
-      setError(null);
-    };
-  }, [entity, discovery, fetchApi]);
-
-  return { secretReferences, isLoading, error };
+  return {
+    secretReferences: data ?? [],
+    isLoading: loading,
+    // Preserve the original generic message (never leaked the raw error text).
+    error: error ? 'Failed to fetch secret references' : null,
+  };
 }

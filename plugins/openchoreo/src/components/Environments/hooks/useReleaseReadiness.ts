@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   useApi,
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { ModelsBuild } from '@openchoreo/backstage-plugin-common';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 
@@ -34,68 +34,46 @@ export const useReleaseReadiness = (
   const discovery = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
   const client = useApi(openChoreoClientApiRef);
+  const entityRef = stringifyEntityRef(entity);
 
-  const [workloadLoading, setWorkloadLoading] = useState(true);
-  const [hasWorkload, setHasWorkload] = useState(false);
-  const [builds, setBuilds] = useState<ModelsBuild[]>([]);
-  const [buildsLoading, setBuildsLoading] = useState(true);
+  // Workload existence: a successful fetch means it exists; any error means it
+  // doesn't (or isn't reachable) — the same swallow-to-false the old hook did.
+  const { data: hasWorkload = false, loading: workloadLoading } =
+    useOpenChoreoQuery<boolean>(['release-readiness', 'workload', entityRef], () =>
+      client
+        .fetchWorkloadInfo(entity)
+        .then(() => true)
+        .catch(() => false),
+    );
 
-  useEffect(() => {
-    let cancelled = false;
-    setWorkloadLoading(true);
-    const fetchWorkload = async () => {
-      try {
-        await client.fetchWorkloadInfo(entity);
-        if (!cancelled) setHasWorkload(true);
-      } catch {
-        if (!cancelled) setHasWorkload(false);
-      } finally {
-        if (!cancelled) setWorkloadLoading(false);
+  const { data: builds = [], loading: buildsLoading } = useOpenChoreoQuery<
+    ModelsBuild[]
+  >(['release-readiness', 'builds', entityRef], async () => {
+    const componentName = entity.metadata.name;
+    const projectName = entity.metadata.annotations?.['openchoreo.io/project'];
+    const namespaceName =
+      entity.metadata.annotations?.['openchoreo.io/namespace'];
+    if (!projectName || !namespaceName || !componentName) {
+      return [];
+    }
+    const baseUrl = await discovery.getBaseUrl('openchoreo');
+    try {
+      const response = await fetchApi.fetch(
+        `${baseUrl}/builds?componentName=${encodeURIComponent(
+          componentName,
+        )}&projectName=${encodeURIComponent(
+          projectName,
+        )}&namespaceName=${encodeURIComponent(namespaceName)}`,
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    };
-    fetchWorkload();
-    return () => {
-      cancelled = true;
-    };
-  }, [entity, client]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setBuildsLoading(true);
-    const fetchBuilds = async () => {
-      try {
-        const componentName = entity.metadata.name;
-        const projectName =
-          entity.metadata.annotations?.['openchoreo.io/project'];
-        const namespaceName =
-          entity.metadata.annotations?.['openchoreo.io/namespace'];
-        const baseUrl = await discovery.getBaseUrl('openchoreo');
-
-        if (projectName && namespaceName && componentName) {
-          const response = await fetchApi.fetch(
-            `${baseUrl}/builds?componentName=${encodeURIComponent(
-              componentName,
-            )}&projectName=${encodeURIComponent(
-              projectName,
-            )}&namespaceName=${encodeURIComponent(namespaceName)}`,
-          );
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-          const data = await response.json();
-          if (!cancelled) setBuilds(data);
-        }
-      } catch {
-        if (!cancelled) setBuilds([]);
-      } finally {
-        if (!cancelled) setBuildsLoading(false);
-      }
-    };
-    fetchBuilds();
-    return () => {
-      cancelled = true;
-    };
-  }, [entity.metadata.name, entity.metadata.annotations, fetchApi, discovery]);
+      return (await response.json()) as ModelsBuild[];
+    } catch {
+      // Builds are best-effort for readiness — degrade to none on failure.
+      return [];
+    }
+  });
 
   const isFromSource = isFromSourceComponent(entity);
   const hasBuilds = builds.length > 0;
