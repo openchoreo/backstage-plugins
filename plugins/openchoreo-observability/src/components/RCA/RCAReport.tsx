@@ -9,6 +9,7 @@ import {
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useRCAReport, useFilters } from '../../hooks';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { RCAReportView } from './RCAReport/RCAReportView';
@@ -32,6 +33,7 @@ const RCAReportContent = () => {
   const {
     report: detailedReport,
     loading,
+    isRefetching,
     error,
   } = useRCAReport(reportId, environment?.name, entity);
 
@@ -94,12 +96,15 @@ const RCAReportContent = () => {
   };
 
   return (
-    <RCAReportView
-      report={detailedReport}
-      reportId={reportId}
-      onBack={handleBack}
-      chatContext={chatContext}
-    />
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing RCA report" />
+      <RCAReportView
+        report={detailedReport}
+        reportId={reportId}
+        onBack={handleBack}
+        chatContext={chatContext}
+      />
+    </Box>
   );
 };
 

@@ -21,6 +21,7 @@ import {
 } from '../../hooks';
 import { useProjectEnvironments } from '@openchoreo/backstage-plugin-react';
 import { EnvironmentsStatusNotice } from '../common';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   ResourceMetrics,
@@ -69,6 +70,7 @@ const ObservabilityMetricsContent = () => {
   const {
     metrics,
     loading: metricsLoading,
+    isRefetching,
     error: metricsError,
     refresh,
   } = useMetrics(
@@ -137,7 +139,8 @@ const ObservabilityMetricsContent = () => {
   };
 
   return (
-    <Box>
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing metrics" />
       {(isLoading || metricsLoading) && <Progress />}
 
       {!isLoading && (

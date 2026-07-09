@@ -10,7 +10,7 @@ import { useApi } from '@backstage/core-plugin-api';
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { Link } from '@backstage/core-components';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
@@ -34,6 +34,7 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
   const {
     data,
     loading,
+    isRefetching,
     error,
     refetch: fetchLinkedPlanes,
   } = useOpenChoreoQuery<LinkedPlane[]>(
@@ -125,7 +126,12 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
   }
 
   return (
-    <Card padding={24} className={classes.card}>
+    <Card
+      padding={24}
+      className={classes.card}
+      style={{ position: 'relative' }}
+    >
+      <RefreshOverlay active={isRefetching} label="Refreshing linked planes" />
       <Box className={classes.cardHeader}>
         <Typography variant="h5">Linked Planes</Typography>
         <Tooltip title="Refresh">

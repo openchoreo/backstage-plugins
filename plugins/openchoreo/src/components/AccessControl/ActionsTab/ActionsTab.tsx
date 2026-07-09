@@ -16,6 +16,7 @@ import RefreshIcon from '@material-ui/icons/Refresh';
 import ExpandLess from '@material-ui/icons/ExpandLess';
 import ExpandMore from '@material-ui/icons/ExpandMore';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useActions } from '../hooks';
 import { useStyles } from './styles';
 import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
@@ -33,7 +34,7 @@ interface ActionGroup {
 
 export const ActionsTab = () => {
   const classes = useStyles();
-  const { actions, loading, error, fetchActions } = useActions();
+  const { actions, loading, isRefetching, error, fetchActions } = useActions();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -134,7 +135,8 @@ export const ActionsTab = () => {
   );
 
   return (
-    <Box>
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing actions" />
       <Box className={classes.header}>
         <Typography variant="h5">Available Actions</Typography>
         <IconButton onClick={fetchActions} size="small" title="Refresh">

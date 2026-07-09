@@ -7,6 +7,8 @@ import { useSelectedNamespace } from '../context';
 interface UseWorkflowRunsResult {
   runs: WorkflowRun[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
 }
@@ -37,7 +39,7 @@ export function useWorkflowRuns(
   const contextNamespace = useSelectedNamespace();
   const resolvedNamespace = namespaceName ?? contextNamespace;
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     ['workflow-runs', resolvedNamespace ?? null, workflowName ?? null],
     () =>
       client
@@ -53,6 +55,7 @@ export function useWorkflowRuns(
   return {
     runs: data ?? [],
     loading,
+    isRefetching,
     error,
     refetch: async () => {
       await refetch();

@@ -12,6 +12,8 @@ export interface UseCreateComponentPathResult {
   path: string;
   /** True while checking for cluster-level component templates. */
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
 }
 
 /**
@@ -32,7 +34,11 @@ export function useCreateComponentPath(
   // Entity-independent: the cluster-namespace Component template facet is the
   // same for every project, so this query is keyed without the entity and is
   // shared/deduped across all callers.
-  const { data: hasClusterTemplates, loading } = useOpenChoreoQuery(
+  const {
+    data: hasClusterTemplates,
+    loading,
+    isRefetching,
+  } = useOpenChoreoQuery(
     ['cluster-component-templates'],
     () =>
       catalogApi
@@ -61,5 +67,5 @@ export function useCreateComponentPath(
     return buildCreateComponentPath(entity.metadata.name, namespaces);
   }, [entity.metadata.name, namespace, hasClusterTemplates]);
 
-  return { path, loading };
+  return { path, loading, isRefetching };
 }

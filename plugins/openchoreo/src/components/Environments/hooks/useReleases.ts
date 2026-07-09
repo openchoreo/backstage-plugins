@@ -7,6 +7,8 @@ import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 export interface UseReleasesResult {
   releases: ComponentRelease[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: string | null;
   refetch: () => Promise<void>;
 }
@@ -22,7 +24,7 @@ const getCreationTime = (release: ComponentRelease): number => {
 export const useReleases = (entity: Entity): UseReleasesResult => {
   const client = useApi(openChoreoClientApiRef);
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     ['releases', stringifyEntityRef(entity)],
     async (): Promise<ComponentRelease[]> => {
       const response = await client.listComponentReleases(entity);
@@ -34,6 +36,7 @@ export const useReleases = (entity: Entity): UseReleasesResult => {
   return {
     releases: data ?? [],
     loading,
+    isRefetching,
     error: error ? error.message || 'Failed to load releases' : null,
     refetch: async () => {
       await refetch();

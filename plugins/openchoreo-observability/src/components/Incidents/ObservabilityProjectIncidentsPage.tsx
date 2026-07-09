@@ -4,6 +4,7 @@ import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { IncidentsFilter } from './IncidentsFilter';
 import { IncidentsTable } from './IncidentsTable';
 import { IncidentsActions } from './IncidentsActions';
@@ -60,6 +61,7 @@ const ObservabilityProjectIncidentsContent = () => {
   const {
     incidents,
     loading: incidentsLoading,
+    isRefetching,
     error: incidentsError,
     refresh,
   } = useProjectIncidents(entity, {
@@ -273,7 +275,8 @@ const ObservabilityProjectIncidentsContent = () => {
   }
 
   return (
-    <Box>
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing incidents" />
       <IncidentsFilter
         filters={filters}
         onFiltersChange={handleFiltersChange}

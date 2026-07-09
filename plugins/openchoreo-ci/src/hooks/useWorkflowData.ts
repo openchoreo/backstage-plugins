@@ -74,6 +74,7 @@ export function useWorkflowData() {
   const {
     data: builds,
     loading: buildsLoading,
+    isRefetching: buildsRefetching,
     error,
     refetch: refetchBuildsQuery,
   } = useOpenChoreoQuery<ModelsBuild[]>(
@@ -122,6 +123,7 @@ export function useWorkflowData() {
     // component-details query degrades to null silently and shouldn't hold the
     // whole card on a skeleton.
     loading: buildsLoading,
+    isRefetching: buildsRefetching,
     error,
     fetchBuilds: async () => {
       await refetchBuildsQuery();

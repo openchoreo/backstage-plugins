@@ -8,6 +8,8 @@ import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 export interface UseDataPlaneNetPolProviderResult {
   networkPolicyProvider: string | undefined;
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
 }
 
 /**
@@ -32,7 +34,7 @@ export const useDataPlaneNetPolProvider = (
   const dpName = dataPlaneRef?.name;
   const dpKind = dataPlaneRef?.kind ?? 'DataPlane';
 
-  const { data, loading } = useOpenChoreoQuery(
+  const { data, loading, isRefetching } = useOpenChoreoQuery(
     [
       'dataplane-netpol-provider',
       namespaceName ?? null,
@@ -66,5 +68,5 @@ export const useDataPlaneNetPolProvider = (
     },
   );
 
-  return { networkPolicyProvider: data ?? undefined, loading };
+  return { networkPolicyProvider: data ?? undefined, loading, isRefetching };
 };

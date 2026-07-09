@@ -28,6 +28,7 @@ import { isMarkedForDeletion } from '../../DeleteEntity';
 import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import {
   MultiSelectFilter,
+  RefreshOverlay,
   type MultiSelectGroup,
 } from '@openchoreo/backstage-design-system';
 import { CreateProjectContentButton } from './CreateProjectContentButton';
@@ -89,7 +90,11 @@ export const ProjectContentsCard = () => {
     limit: PAGE_SIZE,
   });
 
-  const { environments, loading: envsLoading } = useEnvironments(entity);
+  const {
+    environments,
+    loading: envsLoading,
+    isRefetching: envsRefetching,
+  } = useEnvironments(entity);
   const {
     data: pipelineData,
     loading: pipelineLoading,
@@ -193,7 +198,8 @@ export const ProjectContentsCard = () => {
   const isEmptyProject = !facets.loading && facets.counts.all === 0;
 
   return (
-    <Box className={classes.cardWrapper}>
+    <Box className={classes.cardWrapper} position="relative">
+      <RefreshOverlay active={envsRefetching} label="Refreshing environments" />
       <Box className={classes.header}>
         <Box className={classes.titleGroup}>
           <Typography variant="h5">Project Contents</Typography>

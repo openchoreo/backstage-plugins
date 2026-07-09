@@ -22,6 +22,8 @@ export interface UseComponentAlertsOptions {
 export interface UseComponentAlertsResult {
   alerts: AlertSummary[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: string | null;
   totalCount: number;
   fetchAlerts: (reset?: boolean) => Promise<void>;
@@ -42,7 +44,7 @@ export function useComponentAlerts(
   // Every param is folded into the query key, so a filter change starts a fresh
   // query and the cache discards superseded responses — replacing the manual
   // `requestVersionRef` race-guard the hand-rolled version carried.
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     [
       'component-alerts',
       namespace,
@@ -82,6 +84,7 @@ export function useComponentAlerts(
   return {
     alerts: data?.alerts ?? [],
     loading,
+    isRefetching,
     error: error ? error.message || 'Failed to fetch alerts' : null,
     totalCount: data?.total ?? 0,
     // Kept for API compatibility — a manual (re)fetch now just triggers refetch;

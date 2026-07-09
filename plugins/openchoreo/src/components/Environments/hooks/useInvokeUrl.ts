@@ -21,7 +21,7 @@ export function useInvokeUrl(
 ) {
   const client = useApi(openChoreoClientApiRef);
 
-  const { data, loading } = useOpenChoreoQuery(
+  const { data, loading, isRefetching } = useOpenChoreoQuery(
     [
       'invoke-url',
       stringifyEntityRef(entity),
@@ -78,5 +78,5 @@ export function useInvokeUrl(
     { enabled: !!releaseName && !!status && status !== 'Failed' },
   );
 
-  return { invokeUrl: data ?? null, loading };
+  return { invokeUrl: data ?? null, loading, isRefetching };
 }

@@ -16,6 +16,8 @@ export interface DataplaneEnvironment {
 interface UseDataplaneEnvironmentsResult {
   environments: DataplaneEnvironment[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refresh: () => void;
 }
@@ -29,7 +31,7 @@ export function useDataplaneEnvironments(
   const namespaceName =
     dataplaneEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     ['dataplane-environments', dataplaneName, namespaceName],
     async () => {
       // Narrows the annotation values to string (query is enabled only when
@@ -74,6 +76,7 @@ export function useDataplaneEnvironments(
   return {
     environments: data ?? [],
     loading,
+    isRefetching,
     error,
     refresh: refetch,
   };

@@ -14,7 +14,7 @@ export function useFinOpsReport(
   const namespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] || '';
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     ['finops-report', reportId ?? null, environmentName ?? null, namespace],
     () => {
       // Surface the missing-annotation case as an error (as the pre-cache hook
@@ -37,6 +37,7 @@ export function useFinOpsReport(
   return {
     report: data ?? null,
     loading,
+    isRefetching,
     error: error
       ? error.message || 'Failed to fetch cost analysis report'
       : null,

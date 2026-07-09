@@ -91,6 +91,8 @@ export interface UseSecretReferencesResult {
   secretReferences: SecretReference[];
   /** Whether the hook is currently loading data */
   isLoading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   /** Error message if the fetch failed */
   error: string | null;
 }
@@ -106,17 +108,17 @@ export function useSecretReferences(): UseSecretReferencesResult {
   const fetchApi = useApi(fetchApiRef);
   const { entity } = useEntity();
 
-  const { data, loading, error } = useOpenChoreoQuery<SecretReference[]>(
-    ['secret-references', stringifyEntityRef(entity)],
-    async () => {
-      const response = await fetchSecretReferences(entity, discovery, fetchApi);
-      return response.success && response.data.items ? response.data.items : [];
-    },
-  );
+  const { data, loading, isRefetching, error } = useOpenChoreoQuery<
+    SecretReference[]
+  >(['secret-references', stringifyEntityRef(entity)], async () => {
+    const response = await fetchSecretReferences(entity, discovery, fetchApi);
+    return response.success && response.data.items ? response.data.items : [];
+  });
 
   return {
     secretReferences: data ?? [],
     isLoading: loading,
+    isRefetching,
     // Preserve the original generic message (never leaked the raw error text).
     error: error ? 'Failed to fetch secret references' : null,
   };

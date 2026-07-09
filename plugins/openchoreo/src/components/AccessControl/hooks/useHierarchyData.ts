@@ -14,6 +14,8 @@ import {
 interface UseNamespacesResult {
   namespaces: NamespaceSummary[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
 }
@@ -21,7 +23,7 @@ interface UseNamespacesResult {
 export function useNamespaces(): UseNamespacesResult {
   const client = useApi(openChoreoClientApiRef);
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     ['hierarchy', 'namespaces'],
     () => client.listNamespaces(),
   );
@@ -29,6 +31,7 @@ export function useNamespaces(): UseNamespacesResult {
   return {
     namespaces: data ?? [],
     loading,
+    isRefetching,
     error,
     refresh: async () => {
       await refetch();
@@ -43,6 +46,8 @@ export function useNamespaces(): UseNamespacesResult {
 interface UseProjectsResult {
   projects: ProjectSummary[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
 }
@@ -52,7 +57,7 @@ export function useProjects(
 ): UseProjectsResult {
   const client = useApi(openChoreoClientApiRef);
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     ['hierarchy', 'projects', namespaceName ?? null],
     () => client.listProjects(namespaceName as string),
     { enabled: !!namespaceName },
@@ -61,6 +66,7 @@ export function useProjects(
   return {
     projects: data ?? [],
     loading,
+    isRefetching,
     error,
     refresh: async () => {
       await refetch();
@@ -75,6 +81,8 @@ export function useProjects(
 interface UseComponentsResult {
   components: ComponentSummary[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
 }
@@ -85,7 +93,7 @@ export function useComponents(
 ): UseComponentsResult {
   const client = useApi(openChoreoClientApiRef);
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     ['hierarchy', 'components', namespaceName ?? null, projectName ?? null],
     () => client.listComponents(namespaceName as string, projectName as string),
     { enabled: !!namespaceName && !!projectName },
@@ -94,6 +102,7 @@ export function useComponents(
   return {
     components: data ?? [],
     loading,
+    isRefetching,
     error,
     refresh: async () => {
       await refetch();

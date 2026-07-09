@@ -9,6 +9,7 @@ import {
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useFinOpsReport, useFilters } from '../../hooks';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { CostAnalysisReportView } from './CostAnalysisReportView';
@@ -32,6 +33,7 @@ const CostAnalysisReportContent = () => {
   const {
     report: detailedReport,
     loading,
+    isRefetching,
     error,
     refresh,
   } = useFinOpsReport(reportId, environment?.name, entity);
@@ -128,15 +130,18 @@ const CostAnalysisReportContent = () => {
   };
 
   return (
-    <CostAnalysisReportView
-      report={detailedReport}
-      reportId={reportId!}
-      onBack={handleBack}
-      componentUrl={componentUrl}
-      metricsUrl={metricsUrl}
-      chatContext={chatContext}
-      onRecommendationApplied={refresh}
-    />
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing cost report" />
+      <CostAnalysisReportView
+        report={detailedReport}
+        reportId={reportId!}
+        onBack={handleBack}
+        componentUrl={componentUrl}
+        metricsUrl={metricsUrl}
+        chatContext={chatContext}
+        onRecommendationApplied={refresh}
+      />
+    </Box>
   );
 };
 

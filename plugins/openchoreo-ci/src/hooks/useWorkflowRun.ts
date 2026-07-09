@@ -28,6 +28,8 @@ export interface WorkflowRunDetails {
 interface UseWorkflowRunResult {
   workflowRun: WorkflowRunDetails | null;
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refetch: () => void;
 }
@@ -42,7 +44,7 @@ export function useWorkflowRun(runName?: string): UseWorkflowRunResult {
   const fetchApi = useApi(fetchApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
 
-  const { data, loading, error, refetch } =
+  const { data, loading, isRefetching, error, refetch } =
     useOpenChoreoQuery<WorkflowRunDetails>(
       ['workflow-run', runName ?? null],
       async () => {
@@ -72,6 +74,7 @@ export function useWorkflowRun(runName?: string): UseWorkflowRunResult {
   return {
     workflowRun: data ?? null,
     loading,
+    isRefetching,
     error,
     refetch,
   };

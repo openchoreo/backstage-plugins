@@ -45,39 +45,40 @@ export const InfrastructureWidget = () => {
   const fetchApi = useApi(fetchApiRef);
   const catalogApi = useApi(catalogApiRef);
 
-  const { data, loading, error } = useOpenChoreoQuery<InfrastructureCounts>(
-    ['platform-infrastructure', 'summary'],
-    async () => {
-      const [
-        platformData,
-        workflowPlaneResult,
-        obsPlaneResult,
-        clusterDpResult,
-        clusterBpResult,
-        clusterOpResult,
-      ] = await Promise.all([
-        fetchPlatformOverview(discovery, fetchApi, catalogApi),
-        catalogApi.getEntities({ filter: { kind: 'WorkflowPlane' } }),
-        catalogApi.getEntities({ filter: { kind: 'ObservabilityPlane' } }),
-        catalogApi.getEntities({ filter: { kind: 'ClusterDataplane' } }),
-        catalogApi.getEntities({ filter: { kind: 'ClusterWorkflowPlane' } }),
-        catalogApi.getEntities({
-          filter: { kind: 'ClusterObservabilityPlane' },
-        }),
-      ]);
+  const { data, loading, isRefetching, error } =
+    useOpenChoreoQuery<InfrastructureCounts>(
+      ['platform-infrastructure', 'summary'],
+      async () => {
+        const [
+          platformData,
+          workflowPlaneResult,
+          obsPlaneResult,
+          clusterDpResult,
+          clusterBpResult,
+          clusterOpResult,
+        ] = await Promise.all([
+          fetchPlatformOverview(discovery, fetchApi, catalogApi),
+          catalogApi.getEntities({ filter: { kind: 'WorkflowPlane' } }),
+          catalogApi.getEntities({ filter: { kind: 'ObservabilityPlane' } }),
+          catalogApi.getEntities({ filter: { kind: 'ClusterDataplane' } }),
+          catalogApi.getEntities({ filter: { kind: 'ClusterWorkflowPlane' } }),
+          catalogApi.getEntities({
+            filter: { kind: 'ClusterObservabilityPlane' },
+          }),
+        ]);
 
-      return {
-        totalDataplanes: platformData.dataplanes.length,
-        totalClusterDataplanes: clusterDpResult.items.length,
-        totalEnvironments: platformData.environments.length,
-        healthyWorkloadCount: platformData.healthyWorkloadCount,
-        totalWorkflowPlanes: workflowPlaneResult.items.length,
-        totalClusterWorkflowPlanes: clusterBpResult.items.length,
-        totalObservabilityPlanes: obsPlaneResult.items.length,
-        totalClusterObservabilityPlanes: clusterOpResult.items.length,
-      };
-    },
-  );
+        return {
+          totalDataplanes: platformData.dataplanes.length,
+          totalClusterDataplanes: clusterDpResult.items.length,
+          totalEnvironments: platformData.environments.length,
+          healthyWorkloadCount: platformData.healthyWorkloadCount,
+          totalWorkflowPlanes: workflowPlaneResult.items.length,
+          totalClusterWorkflowPlanes: clusterBpResult.items.length,
+          totalObservabilityPlanes: obsPlaneResult.items.length,
+          totalClusterObservabilityPlanes: clusterOpResult.items.length,
+        };
+      },
+    );
 
   const {
     totalDataplanes,
@@ -146,6 +147,7 @@ export const InfrastructureWidget = () => {
         },
       ]}
       loading={loading}
+      refreshing={isRefetching}
       errorMessage={
         error
           ? error.message || 'Failed to fetch infrastructure data'

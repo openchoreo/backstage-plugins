@@ -46,7 +46,7 @@ export function useEntityExistsCheck(entity: Entity): EntityExistsCheckResult {
   const entityKind = entity.kind.toLowerCase();
   const entityName = entity.metadata.name;
 
-  const { data, loading } = useOpenChoreoQuery(
+  const { data, loading, isRefetching } = useOpenChoreoQuery(
     ['entity-exists-check', stringifyEntityRef(entity)],
     async (): Promise<{ status: EntityStatus; message: string | null }> => {
       try {
@@ -117,6 +117,7 @@ export function useEntityExistsCheck(entity: Entity): EntityExistsCheckResult {
 
   return {
     loading,
+    isRefetching,
     status: data?.status ?? null,
     message: data?.message ?? null,
   };

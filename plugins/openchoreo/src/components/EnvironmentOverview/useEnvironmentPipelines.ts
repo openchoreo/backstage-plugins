@@ -19,6 +19,8 @@ export interface PipelinePosition {
 export interface UseEnvironmentPipelinesResult {
   pipelines: PipelinePosition[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   environmentName: string;
 }
@@ -37,7 +39,7 @@ export function useEnvironmentPipelines(): UseEnvironmentPipelinesResult {
   const namespaceName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  const { data, loading, error } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error } = useOpenChoreoQuery(
     [
       'environment-pipelines',
       stringifyEntityRef(entity),
@@ -156,5 +158,11 @@ export function useEnvironmentPipelines(): UseEnvironmentPipelinesResult {
     { enabled: !!namespaceName && !!environmentName },
   );
 
-  return { pipelines: data ?? [], loading, error, environmentName };
+  return {
+    pipelines: data ?? [],
+    loading,
+    isRefetching,
+    error,
+    environmentName,
+  };
 }

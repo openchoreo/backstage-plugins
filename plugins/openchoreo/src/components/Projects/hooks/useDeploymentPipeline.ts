@@ -27,7 +27,7 @@ export const useDeploymentPipeline = () => {
   const projectName = entity.metadata.name;
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     ['deployment-pipeline', namespace, projectName],
     async (): Promise<DeploymentPipelineData> => {
       if (!projectName || !namespace) {
@@ -91,5 +91,5 @@ export const useDeploymentPipeline = () => {
     { enabled: !!projectName && !!namespace },
   );
 
-  return { data: data ?? null, loading, error, refetch };
+  return { data: data ?? null, loading, isRefetching, error, refetch };
 };

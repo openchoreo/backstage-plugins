@@ -21,7 +21,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { Link } from '@backstage/core-components';
 import { useNavigate } from 'react-router-dom';
 import { parseEntityRef } from '@backstage/catalog-model';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, RefreshOverlay } from '@openchoreo/backstage-design-system';
 import {
   useEnvironmentDeployedComponents,
   type DeployedComponent,
@@ -86,7 +86,7 @@ export const EnvironmentDeployedComponentsCard = () => {
   const classes = useEnvironmentOverviewStyles();
   const { entity } = useEntity();
   const navigate = useNavigate();
-  const { components, loading, error, refresh } =
+  const { components, loading, isRefetching, error, refresh } =
     useEnvironmentDeployedComponents(entity);
 
   // Get initial filter from URL
@@ -210,7 +210,13 @@ export const EnvironmentDeployedComponentsCard = () => {
   }
 
   return (
-    <Card padding={24} className={classes.card} id="deployed-components-card">
+    <Card
+      padding={24}
+      className={classes.card}
+      id="deployed-components-card"
+      style={{ position: 'relative' }}
+    >
+      <RefreshOverlay active={isRefetching} label="Refreshing components" />
       <Box className={classes.cardHeader}>
         <Box display="flex" alignItems="center" gridGap={8}>
           <Typography variant="h5">Deployed Components</Typography>

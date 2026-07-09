@@ -28,7 +28,7 @@ export function useMetrics(
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery<
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery<
     ResourceMetrics | HttpMetrics
   >(
     [
@@ -73,6 +73,7 @@ export function useMetrics(
   return {
     metrics: data ?? null,
     loading,
+    isRefetching,
     error: error ? error.message || 'Failed to fetch metrics' : null,
     fetchMetrics: (_reset: boolean = false) => refetch(),
     refresh: refetch,

@@ -25,6 +25,8 @@ export interface UseRuntimeLogsOptions {
 export interface UseRuntimeLogsResult {
   logs: LogEntry[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: string | null;
   totalCount: number;
   hasMore: boolean;
@@ -72,6 +74,7 @@ export function useRuntimeLogs(
   const {
     items,
     loading,
+    isRefetching,
     loadingMore,
     error,
     totalCount,
@@ -140,6 +143,7 @@ export function useRuntimeLogs(
   return {
     logs: items,
     loading: loading || loadingMore,
+    isRefetching,
     error: error ? error.message || 'Failed to fetch logs' : null,
     totalCount,
     hasMore,

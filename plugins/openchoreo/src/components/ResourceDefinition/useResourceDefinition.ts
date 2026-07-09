@@ -26,6 +26,8 @@ export interface UseResourceDefinitionResult {
   definition: Record<string, unknown> | null;
   /** Whether the definition is loading */
   isLoading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   /** Error message if loading failed */
   error: string | null;
   /** Raw error object for type checking (e.g., isForbiddenError) */
@@ -72,7 +74,7 @@ export function useResourceDefinition({
     resourceName,
   ];
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery<
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery<
     Record<string, unknown>
   >(
     definitionKey,
@@ -126,6 +128,7 @@ export function useResourceDefinition({
   return {
     definition: data ?? null,
     isLoading: loading,
+    isRefetching,
     error: error ? error.message : null,
     rawError: error,
     refresh: async () => {

@@ -14,7 +14,7 @@ export function useRCAReport(
   const namespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] || '';
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     ['rca-report', reportId ?? null, environmentName ?? null, namespace],
     () => observabilityApi.getRCAReport(reportId!, environmentName!, namespace),
     {
@@ -25,6 +25,7 @@ export function useRCAReport(
   return {
     report: data ?? null,
     loading,
+    isRefetching,
     error: error ? error.message || 'Failed to fetch RCA report' : null,
     refresh: refetch,
   };

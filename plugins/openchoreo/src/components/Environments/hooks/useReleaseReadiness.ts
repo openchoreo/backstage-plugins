@@ -13,6 +13,8 @@ export type ReleaseReadinessAlertSeverity = 'error' | 'warning' | 'info';
 
 export interface UseReleaseReadinessResult {
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   /** True when a release can be created (workload exists and any required build succeeded). */
   canCreateRelease: boolean;
   /** When canCreateRelease is false, a human-readable reason. */
@@ -38,49 +40,59 @@ export const useReleaseReadiness = (
 
   // Workload existence: a successful fetch means it exists; any error means it
   // doesn't (or isn't reachable) — the same swallow-to-false the old hook did.
-  const { data: hasWorkload = false, loading: workloadLoading } =
-    useOpenChoreoQuery<boolean>(
-      ['release-readiness', 'workload', entityRef],
-      () =>
-        client
-          .fetchWorkloadInfo(entity)
-          .then(() => true)
-          .catch(() => false),
-    );
+  const {
+    data: hasWorkload = false,
+    loading: workloadLoading,
+    isRefetching: workloadRefetching,
+  } = useOpenChoreoQuery<boolean>(
+    ['release-readiness', 'workload', entityRef],
+    () =>
+      client
+        .fetchWorkloadInfo(entity)
+        .then(() => true)
+        .catch(() => false),
+  );
 
-  const { data: builds = [], loading: buildsLoading } = useOpenChoreoQuery<
-    ModelsBuild[]
-  >(['release-readiness', 'builds', entityRef], async () => {
-    const componentName = entity.metadata.name;
-    const projectName = entity.metadata.annotations?.['openchoreo.io/project'];
-    const namespaceName =
-      entity.metadata.annotations?.['openchoreo.io/namespace'];
-    if (!projectName || !namespaceName || !componentName) {
-      return [];
-    }
-    const baseUrl = await discovery.getBaseUrl('openchoreo');
-    try {
-      const response = await fetchApi.fetch(
-        `${baseUrl}/builds?componentName=${encodeURIComponent(
-          componentName,
-        )}&projectName=${encodeURIComponent(
-          projectName,
-        )}&namespaceName=${encodeURIComponent(namespaceName)}`,
-      );
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  const {
+    data: builds = [],
+    loading: buildsLoading,
+    isRefetching: buildsRefetching,
+  } = useOpenChoreoQuery<ModelsBuild[]>(
+    ['release-readiness', 'builds', entityRef],
+    async () => {
+      const componentName = entity.metadata.name;
+      const projectName =
+        entity.metadata.annotations?.['openchoreo.io/project'];
+      const namespaceName =
+        entity.metadata.annotations?.['openchoreo.io/namespace'];
+      if (!projectName || !namespaceName || !componentName) {
+        return [];
       }
-      return (await response.json()) as ModelsBuild[];
-    } catch {
-      // Builds are best-effort for readiness — degrade to none on failure.
-      return [];
-    }
-  });
+      const baseUrl = await discovery.getBaseUrl('openchoreo');
+      try {
+        const response = await fetchApi.fetch(
+          `${baseUrl}/builds?componentName=${encodeURIComponent(
+            componentName,
+          )}&projectName=${encodeURIComponent(
+            projectName,
+          )}&namespaceName=${encodeURIComponent(namespaceName)}`,
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return (await response.json()) as ModelsBuild[];
+      } catch {
+        // Builds are best-effort for readiness — degrade to none on failure.
+        return [];
+      }
+    },
+  );
 
   const isFromSource = isFromSourceComponent(entity);
   const hasBuilds = builds.length > 0;
   const hasSuccessfulBuild = builds.some(build => !!build.image);
   const loading = workloadLoading || buildsLoading;
+  const isRefetching = workloadRefetching || buildsRefetching;
 
   const canCreateRelease = (() => {
     if (loading) return false;
@@ -119,6 +131,7 @@ export const useReleaseReadiness = (
 
   return {
     loading,
+    isRefetching,
     canCreateRelease,
     alertMessage,
     alertSeverity,

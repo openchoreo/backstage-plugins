@@ -14,6 +14,8 @@ import { isForbiddenError } from '../../../utils/errorUtils';
 export interface UseSecretsResult {
   secrets: Secret[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   isForbidden: boolean;
   fetchSecrets: () => Promise<void>;
@@ -29,7 +31,7 @@ export function useSecrets(namespaceName: string): UseSecretsResult {
   const client = useApi(openChoreoClientApiRef);
   const secretsKey = ['secrets', namespaceName];
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     secretsKey,
     async () => {
       try {
@@ -70,6 +72,7 @@ export function useSecrets(namespaceName: string): UseSecretsResult {
   return {
     secrets: data ?? [],
     loading,
+    isRefetching,
     error,
     isForbidden: isForbiddenError(error),
     fetchSecrets: async () => {

@@ -42,6 +42,7 @@ import {
   VerticalTabNav,
   TabItemData,
   RjsfForm,
+  RefreshOverlay,
 } from '@openchoreo/backstage-design-system';
 import {
   DetailPageLayout,
@@ -767,6 +768,7 @@ export const WorkflowRunsContent = () => {
     runs,
     loading: runsLoading,
     error,
+    isRefetching,
     refetch,
   } = useWorkflowRuns(workflowName, runsNamespace);
 
@@ -912,21 +914,24 @@ export const WorkflowRunsContent = () => {
       )}
 
       {!runsLoading && runs.length > 0 && (
-        <Table
-          data={runs}
-          columns={columns}
-          options={{
-            search: true,
-            paging: true,
-            pageSize: 10,
-            sorting: true,
-          }}
-          onRowClick={(_, row) => {
-            if (row) {
-              handleRunClick(row.name);
-            }
-          }}
-        />
+        <Box position="relative">
+          <RefreshOverlay active={isRefetching} label="Refreshing runs…" />
+          <Table
+            data={runs}
+            columns={columns}
+            options={{
+              search: true,
+              paging: true,
+              pageSize: 10,
+              sorting: true,
+            }}
+            onRowClick={(_, row) => {
+              if (row) {
+                handleRunClick(row.name);
+              }
+            }}
+          />
+        </Box>
       )}
     </Content>
   );

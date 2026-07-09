@@ -18,6 +18,8 @@ const namespaceRolesKey = (namespace: string | undefined) => [
 interface UseNamespaceRolesResult {
   roles: NamespaceRole[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   fetchRoles: () => Promise<void>;
   addRole: (role: NamespaceRole) => Promise<void>;
@@ -30,7 +32,7 @@ export function useNamespaceRoles(
 ): UseNamespaceRolesResult {
   const client = useApi(openChoreoClientApiRef);
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     namespaceRolesKey(namespace),
     () => client.listNamespaceRoles(namespace as string),
     // No namespace → nothing to fetch (the old hook cleared the list early).
@@ -60,6 +62,7 @@ export function useNamespaceRoles(
   return {
     roles: data ?? [],
     loading,
+    isRefetching,
     error,
     fetchRoles: async () => refetch(),
     addRole: async role => {

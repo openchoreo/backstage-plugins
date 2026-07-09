@@ -14,6 +14,8 @@ export interface Environment {
 interface UseEnvironmentsResult {
   environments: Environment[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
 }
 
@@ -23,7 +25,7 @@ export function useEnvironments(systemEntity: Entity): UseEnvironmentsResult {
   const namespace =
     systemEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  const { data, loading, error } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error } = useOpenChoreoQuery(
     ['project-environments', stringifyEntityRef(systemEntity), namespace],
     async (): Promise<Environment[]> => {
       // Narrows `namespace` to string (the query is enabled only when set) and
@@ -54,6 +56,7 @@ export function useEnvironments(systemEntity: Entity): UseEnvironmentsResult {
   return {
     environments: data ?? [],
     loading,
+    isRefetching,
     error,
   };
 }

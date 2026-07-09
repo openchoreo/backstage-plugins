@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { Box, Button, Typography } from '@material-ui/core';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { TracesFilters } from './TracesFilters';
 import { TracesActions } from './TracesActions';
 import { TracesTable } from './TracesTable';
@@ -65,6 +66,7 @@ const ObservabilityTracesContent = () => {
     traces,
     total,
     loading: tracesLoading,
+    isRefetching,
     error: tracesError,
     refresh,
   } = useTraces(tracesFilters, entity);
@@ -150,7 +152,8 @@ const ObservabilityTracesContent = () => {
   };
 
   return (
-    <Box>
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing traces" />
       {tracesLoading && <Progress />}
 
       {!tracesLoading && (

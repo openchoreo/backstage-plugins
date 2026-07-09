@@ -12,6 +12,8 @@ export interface UseCreateResourcePathResult {
   path: string;
   /** True while checking for cluster-level resource templates. */
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
 }
 
 /**
@@ -33,7 +35,11 @@ export function useCreateResourcePath(
   // Entity-independent: the cluster-namespace Resource template facet is the
   // same for every project, so this query is keyed without the entity and is
   // shared/deduped across all callers.
-  const { data: hasClusterTemplates, loading } = useOpenChoreoQuery(
+  const {
+    data: hasClusterTemplates,
+    loading,
+    isRefetching,
+  } = useOpenChoreoQuery(
     ['cluster-resource-templates'],
     () =>
       catalogApi
@@ -62,5 +68,5 @@ export function useCreateResourcePath(
     return buildCreateResourcePath(entity.metadata.name, namespaces);
   }, [entity.metadata.name, namespace, hasClusterTemplates]);
 
-  return { path, loading };
+  return { path, loading, isRefetching };
 }

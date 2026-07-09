@@ -6,6 +6,8 @@ import { useSelectedNamespace } from '../context';
 interface UseWorkflowSchemaResult {
   schema: unknown | null;
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
 }
@@ -29,20 +31,22 @@ export function useWorkflowSchema(
   const enabled =
     !!workflowName && (workflowKind === 'ClusterWorkflow' || !!namespaceName);
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery<unknown>(
-    ['workflow-schema', workflowKind, namespaceName, workflowName],
-    () => {
-      if (workflowKind === 'ClusterWorkflow') {
-        return client.getClusterWorkflowSchema(workflowName);
-      }
-      return client.getWorkflowSchema(namespaceName, workflowName);
-    },
-    { enabled },
-  );
+  const { data, loading, isRefetching, error, refetch } =
+    useOpenChoreoQuery<unknown>(
+      ['workflow-schema', workflowKind, namespaceName, workflowName],
+      () => {
+        if (workflowKind === 'ClusterWorkflow') {
+          return client.getClusterWorkflowSchema(workflowName);
+        }
+        return client.getWorkflowSchema(namespaceName, workflowName);
+      },
+      { enabled },
+    );
 
   return {
     schema: data ?? null,
     loading,
+    isRefetching,
     error,
     refetch: async () => {
       await refetch();

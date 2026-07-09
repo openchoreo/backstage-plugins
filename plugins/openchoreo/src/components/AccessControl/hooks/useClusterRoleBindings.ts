@@ -25,6 +25,8 @@ const bindingsKey = (filters: ClusterRoleBindingFilters) => [
 interface UseClusterRoleBindingsResult {
   bindings: ClusterRoleBinding[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   filters: ClusterRoleBindingFilters;
   setFilters: (filters: ClusterRoleBindingFilters) => void;
@@ -41,7 +43,7 @@ export function useClusterRoleBindings(): UseClusterRoleBindingsResult {
   const client = useApi(openChoreoClientApiRef);
   const [filters, setFiltersState] = useState<ClusterRoleBindingFilters>({});
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     bindingsKey(filters),
     () => client.listClusterRoleBindings(filters),
   );
@@ -71,6 +73,7 @@ export function useClusterRoleBindings(): UseClusterRoleBindingsResult {
   return {
     bindings: data ?? [],
     loading,
+    isRefetching,
     error,
     filters,
     setFilters,

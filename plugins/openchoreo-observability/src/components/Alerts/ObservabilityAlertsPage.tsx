@@ -4,6 +4,7 @@ import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { AlertsFilter } from './AlertsFilter';
 import { AlertsTable } from './AlertsTable';
 import { AlertsActions } from './AlertsActions';
@@ -49,6 +50,7 @@ const ObservabilityAlertsContent = () => {
   const {
     alerts,
     loading: alertsLoading,
+    isRefetching,
     error: alertsError,
     refresh,
   } = useComponentAlerts(entity, namespace || '', project || '', {
@@ -229,7 +231,8 @@ const ObservabilityAlertsContent = () => {
   }
 
   return (
-    <Box>
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing alerts" />
       <AlertsFilter
         filters={filters}
         onFiltersChange={handleFiltersChange}

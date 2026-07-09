@@ -23,6 +23,8 @@ export interface UseProjectIncidentsFilters {
 export interface UseProjectIncidentsResult {
   incidents: IncidentSummary[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: string | null;
   totalCount: number;
   fetchIncidents: (reset?: boolean) => Promise<void>;
@@ -47,7 +49,7 @@ export function useProjectIncidents(
   // Filters (including the component set) are folded into the key, so a change
   // starts a fresh query and superseded responses are dropped — replacing the
   // manual `requestVersionRef` race-guard.
-  const { data, loading, error, refetch } = useOpenChoreoQuery<{
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery<{
     incidents: IncidentSummary[];
     totalCount: number;
   }>(
@@ -111,6 +113,7 @@ export function useProjectIncidents(
   return {
     incidents: data?.incidents ?? [],
     loading,
+    isRefetching,
     error: error ? error.message || 'Failed to fetch incidents' : null,
     totalCount: data?.totalCount ?? 0,
     // Kept for API compatibility; filter changes refetch on their own via the key.

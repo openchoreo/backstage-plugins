@@ -8,6 +8,8 @@ import { useSelectedNamespace } from '../context';
 interface UseWorkflowRunDetailsResult {
   run: WorkflowRun | null;
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
 }
@@ -60,39 +62,44 @@ export function useWorkflowRunDetails(
   const contextNamespace = useSelectedNamespace();
   const resolvedNamespace = namespaceName ?? contextNamespace;
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery<WorkflowRun>(
-    ['workflow-run-details', resolvedNamespace ?? null, runName],
-    async ({ signal }) => {
-      // A newly triggered WorkflowRun may not be visible immediately; retry the
-      // 404 a few times before surfacing it (kept inside the fetcher so the
-      // query stays in its loading state throughout the retry window). The
-      // backoff waits on the query's AbortSignal, so navigating away mid-retry
-      // stops the loop instead of hammering the backend for the full window.
-      for (let attempt = 0; ; attempt++) {
-        try {
-          return await client.getWorkflowRun(resolvedNamespace!, runName);
-        } catch (err) {
-          if (err instanceof NotFoundError && attempt < NOT_FOUND_MAX_RETRIES) {
-            await wait(NOT_FOUND_RETRY_INTERVAL, signal);
-            continue;
+  const { data, loading, isRefetching, error, refetch } =
+    useOpenChoreoQuery<WorkflowRun>(
+      ['workflow-run-details', resolvedNamespace ?? null, runName],
+      async ({ signal }) => {
+        // A newly triggered WorkflowRun may not be visible immediately; retry the
+        // 404 a few times before surfacing it (kept inside the fetcher so the
+        // query stays in its loading state throughout the retry window). The
+        // backoff waits on the query's AbortSignal, so navigating away mid-retry
+        // stops the loop instead of hammering the backend for the full window.
+        for (let attempt = 0; ; attempt++) {
+          try {
+            return await client.getWorkflowRun(resolvedNamespace!, runName);
+          } catch (err) {
+            if (
+              err instanceof NotFoundError &&
+              attempt < NOT_FOUND_MAX_RETRIES
+            ) {
+              await wait(NOT_FOUND_RETRY_INTERVAL, signal);
+              continue;
+            }
+            throw err;
           }
-          throw err;
         }
-      }
-    },
-    {
-      enabled: !!resolvedNamespace && !!runName,
-      refetchInterval: query =>
-        isActive(query.state.data) ? POLLING_INTERVAL : false,
-      // The fetcher owns the 404 retry/backoff loop; disable the global retry so
-      // it can't run the ~10s NotFound loop twice (~20s stuck loading).
-      retry: false,
-    },
-  );
+      },
+      {
+        enabled: !!resolvedNamespace && !!runName,
+        refetchInterval: query =>
+          isActive(query.state.data) ? POLLING_INTERVAL : false,
+        // The fetcher owns the 404 retry/backoff loop; disable the global retry so
+        // it can't run the ~10s NotFound loop twice (~20s stuck loading).
+        retry: false,
+      },
+    );
 
   return {
     run: data ?? null,
     loading,
+    isRefetching,
     error,
     refetch: async () => {
       await refetch();

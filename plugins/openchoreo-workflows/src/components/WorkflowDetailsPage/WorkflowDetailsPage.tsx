@@ -9,6 +9,7 @@ import {
 import { Alert, AlertTitle } from '@material-ui/lab';
 import { Box, Button, IconButton, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
@@ -87,13 +88,20 @@ export const WorkflowDetailsPage = () => {
   const navigate = useNavigate();
   const decodedName = decodeURIComponent(workflowName || '');
 
-  const { workflows, loading: workflowsLoading } = useWorkflows();
+  const {
+    workflows,
+    loading: workflowsLoading,
+    isRefetching: workflowsRefetching,
+  } = useWorkflows();
   const {
     runs,
     loading: runsLoading,
     error,
+    isRefetching: runsRefetching,
     refetch,
   } = useWorkflowRuns(decodedName);
+
+  const refreshing = workflowsRefetching || runsRefetching;
 
   const workflow = workflows.find(w => w.name === decodedName);
 
@@ -184,21 +192,24 @@ export const WorkflowDetailsPage = () => {
       )}
 
       {!runsLoading && runs.length > 0 && (
-        <Table
-          data={runs}
-          columns={columns}
-          options={{
-            search: true,
-            paging: true,
-            pageSize: 10,
-            sorting: true,
-          }}
-          onRowClick={(_, row) => {
-            if (row) {
-              navigate(`../runs/${encodeURIComponent(row.name)}`);
-            }
-          }}
-        />
+        <Box position="relative">
+          <RefreshOverlay active={refreshing} label="Refreshing runs…" />
+          <Table
+            data={runs}
+            columns={columns}
+            options={{
+              search: true,
+              paging: true,
+              pageSize: 10,
+              sorting: true,
+            }}
+            onRowClick={(_, row) => {
+              if (row) {
+                navigate(`../runs/${encodeURIComponent(row.name)}`);
+              }
+            }}
+          />
+        </Box>
       )}
     </Content>
   );

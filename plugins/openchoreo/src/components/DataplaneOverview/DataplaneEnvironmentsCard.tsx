@@ -11,7 +11,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { parseEntityRef } from '@backstage/catalog-model';
 import { Link } from '@backstage/core-components';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useDataplaneEnvironments } from './hooks';
 import { useDataplaneOverviewStyles } from './styles';
 import { shouldNavigateOnRowClick } from '../../utils/shouldNavigateOnRowClick';
@@ -22,7 +22,7 @@ export const DataplaneEnvironmentsCard = () => {
   const classes = useDataplaneOverviewStyles();
   const { entity } = useEntity();
   const navigate = useNavigate();
-  const { environments, loading, error, refresh } =
+  const { environments, loading, isRefetching, error, refresh } =
     useDataplaneEnvironments(entity);
   const [page, setPage] = useState(0);
 
@@ -95,7 +95,12 @@ export const DataplaneEnvironmentsCard = () => {
   }
 
   return (
-    <Card padding={24} className={classes.card}>
+    <Card
+      padding={24}
+      className={classes.card}
+      style={{ position: 'relative' }}
+    >
+      <RefreshOverlay active={isRefetching} label="Refreshing environments" />
       <Box className={classes.cardHeader}>
         <Typography variant="h5">Hosted Environments</Typography>
         <Tooltip title="Refresh">

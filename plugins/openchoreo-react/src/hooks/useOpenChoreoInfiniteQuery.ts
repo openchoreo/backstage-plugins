@@ -51,6 +51,12 @@ export interface UseOpenChoreoInfiniteQueryResult<TItem> {
   loading: boolean;
   /** A next-page (loadMore) fetch is in flight. */
   loadingMore: boolean;
+  /**
+   * A background refresh of the existing pages is in flight while data is
+   * already on screen — true only when it's neither the first load nor a
+   * loadMore, so it maps to the "keep content, show a subtle indicator" state.
+   */
+  isRefetching: boolean;
   /** The last error, or null. */
   error: Error | null;
   /** Server-side total from the first page, or the loaded count as a fallback. */
@@ -86,6 +92,7 @@ export function useOpenChoreoInfiniteQuery<TItem>(
     data,
     error,
     isPending,
+    isFetching,
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
@@ -132,6 +139,10 @@ export function useOpenChoreoInfiniteQuery<TItem>(
     items,
     loading: isPending && !isDisabled,
     loadingMore: isFetchingNextPage,
+    // Background refresh of page 1+: fetching, but not the first load and not a
+    // loadMore. `!isDisabled` keeps a gated-off list from flashing the indicator.
+    isRefetching:
+      isFetching && !isPending && !isFetchingNextPage && !isDisabled,
     error: error ?? null,
     totalCount: pages[0]?.total ?? items.length,
     hasMore: isDisabled ? false : hasNextPage,

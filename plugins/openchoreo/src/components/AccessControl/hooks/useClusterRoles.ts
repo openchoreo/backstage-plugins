@@ -14,6 +14,8 @@ const CLUSTER_ROLES_KEY = ['access-control', 'cluster-roles'];
 interface UseClusterRolesResult {
   roles: ClusterRole[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   fetchRoles: () => Promise<void>;
   addRole: (role: ClusterRole) => Promise<void>;
@@ -24,7 +26,7 @@ interface UseClusterRolesResult {
 export function useClusterRoles(): UseClusterRolesResult {
   const client = useApi(openChoreoClientApiRef);
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     CLUSTER_ROLES_KEY,
     () => client.listClusterRoles(),
   );
@@ -49,6 +51,7 @@ export function useClusterRoles(): UseClusterRolesResult {
   return {
     roles: data ?? [],
     loading,
+    isRefetching,
     error,
     // Preserved for call sites that trigger a manual refresh; `refetch` returns
     // void here, matching the previous `Promise<void>` contract closely enough.

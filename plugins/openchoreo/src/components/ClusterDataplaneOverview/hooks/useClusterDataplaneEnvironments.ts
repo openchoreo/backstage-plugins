@@ -8,6 +8,8 @@ import { DataplaneEnvironment } from '../../DataplaneOverview/hooks';
 interface UseClusterDataplaneEnvironmentsResult {
   environments: DataplaneEnvironment[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refresh: () => void;
 }
@@ -19,7 +21,7 @@ export function useClusterDataplaneEnvironments(
 
   const dataplaneName = dataplaneEntity.metadata.name;
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     ['cluster-dataplane-environments', dataplaneName],
     async () => {
       // Fetch Environment entities that reference a ClusterDataPlane
@@ -63,6 +65,7 @@ export function useClusterDataplaneEnvironments(
   return {
     environments: data ?? [],
     loading,
+    isRefetching,
     error,
     refresh: refetch,
   };

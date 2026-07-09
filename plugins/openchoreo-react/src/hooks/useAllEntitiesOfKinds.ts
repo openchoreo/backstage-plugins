@@ -8,7 +8,7 @@ export function useAllEntitiesOfKinds(kinds: string[], namespaces?: string[]) {
 
   const enabled = kinds.length > 0;
 
-  const { data, loading, error } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error } = useOpenChoreoQuery(
     ['all-entities-of-kinds', kinds.join(','), (namespaces ?? []).join(',')],
     async () => {
       if (kinds.length === 0) {
@@ -40,6 +40,7 @@ export function useAllEntitiesOfKinds(kinds: string[], namespaces?: string[]) {
   return {
     entityRefs: data?.entityRefs ?? [],
     loading,
+    isRefetching,
     error: error ?? undefined,
     entityCount: data?.entityCount ?? 0,
   };

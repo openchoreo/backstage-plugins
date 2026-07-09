@@ -16,6 +16,8 @@ export interface Component {
 export interface UseGetComponentsByProjectResult {
   components: Component[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: string | null;
 }
 
@@ -36,7 +38,9 @@ export const useGetComponentsByProject = (
   // a specific error string (not a fetch error) and skips the request.
   const guardError = !namespace || !project;
 
-  const { data, loading, error } = useOpenChoreoQuery<Component[]>(
+  const { data, loading, isRefetching, error } = useOpenChoreoQuery<
+    Component[]
+  >(
     ['project-components', namespace, project],
     async () => {
       // Fetch components from Backstage catalog API
@@ -85,5 +89,5 @@ export const useGetComponentsByProject = (
     errorMessage = error.message || 'Failed to fetch components';
   }
 
-  return { components: data ?? [], loading, error: errorMessage };
+  return { components: data ?? [], loading, isRefetching, error: errorMessage };
 };

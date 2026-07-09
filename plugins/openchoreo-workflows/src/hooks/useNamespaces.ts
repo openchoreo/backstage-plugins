@@ -5,6 +5,8 @@ import { genericWorkflowsClientApiRef } from '../api';
 interface UseNamespacesResult {
   namespaces: string[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
 }
 
@@ -15,10 +17,10 @@ interface UseNamespacesResult {
 export function useNamespaces(): UseNamespacesResult {
   const client = useApi(genericWorkflowsClientApiRef);
 
-  const { data, loading, error } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error } = useOpenChoreoQuery(
     ['workflows', 'namespaces'],
     () => client.listNamespaces(),
   );
 
-  return { namespaces: data ?? [], loading, error };
+  return { namespaces: data ?? [], loading, isRefetching, error };
 }

@@ -20,6 +20,8 @@ const bindingsKey = (
 interface UseNamespaceRoleBindingsResult {
   bindings: NamespaceRoleBinding[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   filters: NamespaceRoleBindingFilters;
   setFilters: (filters: NamespaceRoleBindingFilters) => void;
@@ -38,7 +40,7 @@ export function useNamespaceRoleBindings(
   const client = useApi(openChoreoClientApiRef);
   const [filters, setFiltersState] = useState<NamespaceRoleBindingFilters>({});
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     bindingsKey(namespace, filters),
     () => client.listNamespaceRoleBindings(namespace as string, filters),
     { enabled: !!namespace },
@@ -74,6 +76,7 @@ export function useNamespaceRoleBindings(
   return {
     bindings: data ?? [],
     loading,
+    isRefetching,
     error,
     filters,
     setFilters,

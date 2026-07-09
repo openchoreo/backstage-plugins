@@ -13,6 +13,8 @@ export { StatusBadge } from './components/StatusBadge';
 export type { StatusType } from './components/StatusBadge';
 export { Card } from './components/Card';
 export type { CardProps } from './components/Card';
+export { RefreshOverlay } from './components/RefreshOverlay';
+export type { RefreshOverlayProps } from './components/RefreshOverlay';
 export { VerticalTabNav, VerticalTabItem } from './components/VerticalTabNav';
 export type {
   VerticalTabNavProps,

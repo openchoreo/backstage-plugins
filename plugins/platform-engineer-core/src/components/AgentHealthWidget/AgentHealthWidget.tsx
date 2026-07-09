@@ -26,42 +26,44 @@ const EMPTY_COUNTS: AgentHealthCounts = {
 export const AgentHealthWidget = () => {
   const catalogApi = useApi(catalogApiRef);
 
-  const { data, loading, error } = useOpenChoreoQuery<AgentHealthCounts>(
-    ['platform-agent-health'],
-    async () => {
-      const [dataplaneResult, workflowPlaneResult, obsPlaneResult] =
-        await Promise.all([
-          catalogApi.getEntities({ filter: { kind: 'Dataplane' } }),
-          catalogApi.getEntities({ filter: { kind: 'WorkflowPlane' } }),
-          catalogApi.getEntities({ filter: { kind: 'ObservabilityPlane' } }),
-        ]);
+  const { data, loading, isRefetching, error } =
+    useOpenChoreoQuery<AgentHealthCounts>(
+      ['platform-agent-health'],
+      async () => {
+        const [dataplaneResult, workflowPlaneResult, obsPlaneResult] =
+          await Promise.all([
+            catalogApi.getEntities({ filter: { kind: 'Dataplane' } }),
+            catalogApi.getEntities({ filter: { kind: 'WorkflowPlane' } }),
+            catalogApi.getEntities({ filter: { kind: 'ObservabilityPlane' } }),
+          ]);
 
-      const allPlanes = [
-        ...dataplaneResult.items,
-        ...workflowPlaneResult.items,
-        ...obsPlaneResult.items,
-      ];
+        const allPlanes = [
+          ...dataplaneResult.items,
+          ...workflowPlaneResult.items,
+          ...obsPlaneResult.items,
+        ];
 
-      let connected = 0;
-      let disconnected = 0;
-      for (const entity of allPlanes) {
-        if (
-          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.AGENT_CONNECTED] ===
-          'true'
-        ) {
-          connected++;
-        } else {
-          disconnected++;
+        let connected = 0;
+        let disconnected = 0;
+        for (const entity of allPlanes) {
+          if (
+            entity.metadata.annotations?.[
+              CHOREO_ANNOTATIONS.AGENT_CONNECTED
+            ] === 'true'
+          ) {
+            connected++;
+          } else {
+            disconnected++;
+          }
         }
-      }
 
-      return {
-        connectedCount: connected,
-        disconnectedCount: disconnected,
-        totalCount: allPlanes.length,
-      };
-    },
-  );
+        return {
+          connectedCount: connected,
+          disconnectedCount: disconnected,
+          totalCount: allPlanes.length,
+        };
+      },
+    );
 
   const { connectedCount, disconnectedCount, totalCount } =
     data ?? EMPTY_COUNTS;
@@ -86,6 +88,7 @@ export const AgentHealthWidget = () => {
         },
       ]}
       loading={loading}
+      refreshing={isRefetching}
       errorMessage={
         error ? error.message || 'Failed to fetch agent health data' : undefined
       }

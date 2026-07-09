@@ -40,6 +40,8 @@ export function getEntitlementDisplayName(
 interface UseUserTypesResult {
   userTypes: UserTypeConfig[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   fetchUserTypes: () => Promise<void>;
 }
@@ -47,7 +49,7 @@ interface UseUserTypesResult {
 export function useUserTypes(): UseUserTypesResult {
   const client = useApi(openChoreoClientApiRef);
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     ['user-types'],
     () => client.listUserTypes(),
   );
@@ -55,6 +57,7 @@ export function useUserTypes(): UseUserTypesResult {
   return {
     userTypes: data ?? [],
     loading,
+    isRefetching,
     error,
     fetchUserTypes: async () => {
       await refetch();

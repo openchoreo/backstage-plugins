@@ -26,6 +26,8 @@ export type ProjectEnvironmentsStatus =
 export interface UseProjectEnvironmentsResult {
   environments: Environment[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   /** Discriminates why `environments` is empty. See {@link ProjectEnvironmentsStatus}. */
   status: ProjectEnvironmentsStatus;
   /** Raw error detail for the `unavailable` case (null otherwise). */
@@ -75,7 +77,7 @@ export const useProjectEnvironments = (
 
   const enabled = Boolean(projectName && namespaceName);
 
-  const { data, loading, error, refetch } =
+  const { data, loading, isRefetching, error, refetch } =
     useOpenChoreoQuery<ProjectEnvironmentsData>(
       ['project-environments', projectName ?? '', namespaceName ?? ''],
       async (): Promise<ProjectEnvironmentsData> => {
@@ -182,6 +184,7 @@ export const useProjectEnvironments = (
   return {
     environments: data?.environments ?? [],
     loading,
+    isRefetching,
     status,
     error: errorDetail,
     refetch,

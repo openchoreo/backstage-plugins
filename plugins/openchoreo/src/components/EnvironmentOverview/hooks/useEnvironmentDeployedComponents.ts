@@ -30,6 +30,8 @@ interface UseEnvironmentDeployedComponentsResult {
   components: DeployedComponent[];
   statusSummary: EnvironmentStatusSummary;
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refresh: () => void;
 }
@@ -54,7 +56,7 @@ export function useEnvironmentDeployedComponents(
   const namespaceName =
     environmentEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     [
       'environment-deployed-components',
       stringifyEntityRef(environmentEntity),
@@ -156,6 +158,7 @@ export function useEnvironmentDeployedComponents(
     components: data?.components ?? [],
     statusSummary: data?.statusSummary ?? EMPTY_STATUS_SUMMARY,
     loading,
+    isRefetching,
     error,
     refresh: refetch,
   };

@@ -23,7 +23,9 @@ export function useTraces(filters: Filters, entity: Entity) {
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
   const projectName = entity.metadata.name as string;
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery<Trace[]>(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery<
+    Trace[]
+  >(
     [
       'traces',
       namespace,
@@ -94,6 +96,7 @@ export function useTraces(filters: Filters, entity: Entity) {
     traces: filteredTraces,
     total: data?.length ?? 0,
     loading,
+    isRefetching,
     error: error ? error.message || 'Failed to fetch traces' : null,
     refresh: refetch,
   };

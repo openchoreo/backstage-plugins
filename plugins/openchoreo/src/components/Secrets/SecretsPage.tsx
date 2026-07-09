@@ -22,6 +22,7 @@ import {
   useOpenChoreoQuery,
   useSecretManagementEnabled,
 } from '@openchoreo/backstage-plugin-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
@@ -143,6 +144,7 @@ export const SecretsContent = () => {
   const {
     secrets,
     loading: secretsLoading,
+    isRefetching: secretsRefetching,
     error: secretsError,
     isForbidden: secretsForbidden,
     createSecret,
@@ -276,13 +278,19 @@ export const SecretsContent = () => {
         </Box>
       ) : (
         !secretsForbidden && (
-          <SecretsTable
-            secrets={secrets}
-            loading={secretsLoading}
-            onDelete={handleDeleteSecret}
-            onEdit={setEditingSecret}
-            namespaceName={selectedNamespace}
-          />
+          <Box position="relative">
+            <RefreshOverlay
+              active={secretsRefetching}
+              label="Refreshing secrets"
+            />
+            <SecretsTable
+              secrets={secrets}
+              loading={secretsLoading}
+              onDelete={handleDeleteSecret}
+              onEdit={setEditingSecret}
+              namespaceName={selectedNamespace}
+            />
+          </Box>
         )
       )}
 

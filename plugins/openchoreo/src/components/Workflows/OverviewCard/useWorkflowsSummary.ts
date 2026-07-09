@@ -46,7 +46,7 @@ export function useWorkflowsSummary() {
 
   const queryKey = ['workflows-summary', stringifyEntityRef(entity)];
 
-  const { data, loading, error, refetch } =
+  const { data, loading, isRefetching, error, refetch } =
     useOpenChoreoQuery<WorkflowsSummaryData>(
       queryKey,
       async () => {
@@ -181,6 +181,7 @@ export function useWorkflowsSummary() {
     componentDetails: data?.componentDetails ?? null,
     hasWorkflows: Boolean(data?.componentDetails?.componentWorkflow?.name),
     loading,
+    isRefetching,
     error: error ?? triggerMutation.error,
     triggeringBuild: triggerMutation.isLoading,
     triggerBuild,

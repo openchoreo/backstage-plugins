@@ -6,6 +6,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { parseEntityRef } from '@backstage/catalog-model';
 import {
   Card,
+  RefreshOverlay,
   lightTokens,
   darkTokens,
 } from '@openchoreo/backstage-design-system';
@@ -75,7 +76,7 @@ const useStyles = makeStyles(theme => ({
 export const EnvironmentPipelinesTab = () => {
   const classes = useStyles();
   const { entity } = useEntity();
-  const { pipelines, loading, error, environmentName } =
+  const { pipelines, loading, isRefetching, error, environmentName } =
     useEnvironmentPipelines();
 
   if (loading) {
@@ -127,36 +128,39 @@ export const EnvironmentPipelinesTab = () => {
 
   return (
     <Content>
-      <Grid container spacing={3}>
-        {pipelines.map(pipeline => (
-          <Grid item xs={12} key={pipeline.pipelineEntityRef}>
-            <Card className={classes.pipelineCard}>
-              <Box className={classes.pipelineHeader}>
-                <Link
-                  to={(() => {
-                    const ref = parseEntityRef(pipeline.pipelineEntityRef, {
-                      defaultKind: 'deploymentpipeline',
-                      defaultNamespace: 'default',
-                    });
-                    return `/catalog/${ref.namespace}/${ref.kind}/${ref.name}`;
-                  })()}
-                  className={classes.pipelineName}
-                >
-                  {pipeline.pipelineName}
-                </Link>
-              </Box>
-              <PipelineFlowVisualization
-                environments={pipeline.environments}
-                promotionPaths={pipeline.promotionPaths}
-                highlightedEnvironment={environmentName}
-                pipelineEntityRef={pipeline.pipelineEntityRef}
-                environmentNamespace={entity.metadata.namespace || 'default'}
-                showPipelineLink={false}
-              />
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      <Box position="relative">
+        <RefreshOverlay active={isRefetching} label="Refreshing pipelines" />
+        <Grid container spacing={3}>
+          {pipelines.map(pipeline => (
+            <Grid item xs={12} key={pipeline.pipelineEntityRef}>
+              <Card className={classes.pipelineCard}>
+                <Box className={classes.pipelineHeader}>
+                  <Link
+                    to={(() => {
+                      const ref = parseEntityRef(pipeline.pipelineEntityRef, {
+                        defaultKind: 'deploymentpipeline',
+                        defaultNamespace: 'default',
+                      });
+                      return `/catalog/${ref.namespace}/${ref.kind}/${ref.name}`;
+                    })()}
+                    className={classes.pipelineName}
+                  >
+                    {pipeline.pipelineName}
+                  </Link>
+                </Box>
+                <PipelineFlowVisualization
+                  environments={pipeline.environments}
+                  promotionPaths={pipeline.promotionPaths}
+                  highlightedEnvironment={environmentName}
+                  pipelineEntityRef={pipeline.pipelineEntityRef}
+                  environmentNamespace={entity.metadata.namespace || 'default'}
+                  showPipelineLink={false}
+                />
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
     </Content>
   );
 };

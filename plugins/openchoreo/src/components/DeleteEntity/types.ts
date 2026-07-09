@@ -9,6 +9,8 @@ export type EntityStatus = 'exists' | 'not-found' | 'marked-for-deletion';
 export interface EntityExistsCheckResult {
   /** Whether the check is still in progress */
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   /** Status of the entity in OpenChoreo */
   status: EntityStatus | null;
   /** Message to display (for not-found or marked-for-deletion states) */

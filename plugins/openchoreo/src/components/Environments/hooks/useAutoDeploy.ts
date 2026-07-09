@@ -50,9 +50,8 @@ export const useAutoDeploy = (entity: Entity) => {
   const cache = useOpenChoreoCache();
   const queryKey = autoDeployKey(entity);
 
-  const { data, loading, refetch } = useOpenChoreoQuery<AutoDeployState>(
-    queryKey,
-    async () => {
+  const { data, loading, isRefetching, refetch } =
+    useOpenChoreoQuery<AutoDeployState>(queryKey, async () => {
       const componentData = await client.getComponentDetails(entity);
       return {
         autoDeploy: !!componentData?.autoDeploy,
@@ -64,8 +63,7 @@ export const useAutoDeploy = (entity: Entity) => {
             }
           : null,
       };
-    },
-  );
+    });
 
   // Optimistic write used by the Setup card toggle: flip the cached value
   // immediately on Confirm so the switch responds without a round-trip; the
@@ -97,6 +95,7 @@ export const useAutoDeploy = (entity: Entity) => {
     // Only the first load (no cached data) gates the setup card skeleton; later
     // refetches keep the current toggle on screen — same contract as before.
     loading,
+    isRefetching,
     refetch,
     setAutoDeployOptimistic,
   };

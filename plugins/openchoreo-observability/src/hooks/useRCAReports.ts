@@ -15,7 +15,7 @@ export function useRCAReports(filters: Filters, entity: Entity) {
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] || '';
   const projectName = entity.metadata.name as string;
 
-  const { data, loading, error, refetch } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     [
       'rca-reports',
       namespace,
@@ -52,6 +52,7 @@ export function useRCAReports(filters: Filters, entity: Entity) {
   return {
     reports: data?.reports ?? [],
     loading,
+    isRefetching,
     error: error ? error.message || 'Failed to fetch RCA reports' : null,
     refresh: refetch,
     totalCount: data?.totalCount,

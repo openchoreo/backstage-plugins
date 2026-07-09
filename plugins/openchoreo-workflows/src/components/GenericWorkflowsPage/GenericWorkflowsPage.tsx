@@ -22,6 +22,7 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import { useApi } from '@backstage/core-plugin-api';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { openChoreoClientApiRef } from '@openchoreo/backstage-plugin';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { useWorkflows } from '../../hooks/useWorkflows';
@@ -125,6 +126,7 @@ const WorkflowsListContent = () => {
     workflows,
     loading: workflowsLoading,
     error: workflowsError,
+    isRefetching,
     refetch,
   } = useWorkflows();
 
@@ -213,7 +215,13 @@ const WorkflowsListContent = () => {
               <RefreshIcon />
             </IconButton>
           </Box>
-          <WorkflowsTable workflows={workflows} />
+          <Box position="relative">
+            <RefreshOverlay
+              active={isRefetching}
+              label="Refreshing workflows…"
+            />
+            <WorkflowsTable workflows={workflows} />
+          </Box>
         </>
       )}
     </Content>

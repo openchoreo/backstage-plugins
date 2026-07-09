@@ -23,6 +23,8 @@ export interface UseRuntimeEventsOptions {
 export interface UseRuntimeEventsResult {
   events: EventEntry[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: string | null;
   totalCount: number;
   hasMore: boolean;
@@ -62,6 +64,7 @@ export function useRuntimeEvents(
   const {
     items,
     loading,
+    isRefetching,
     loadingMore,
     error,
     totalCount,
@@ -115,6 +118,7 @@ export function useRuntimeEvents(
   return {
     events: items,
     loading: loading || loadingMore,
+    isRefetching,
     error: error ? error.message || 'Failed to fetch events' : null,
     totalCount,
     hasMore,
