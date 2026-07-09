@@ -99,4 +99,34 @@ describe('useOpenChoreoQuery', () => {
     expect(result.current.data).toBeUndefined();
     expect(fetcher).not.toHaveBeenCalled();
   });
+
+  it('inherits the QueryClient staleTime when the caller omits it (no refetch on remount)', async () => {
+    // Regression: the hook must NOT forward `staleTime: undefined` to useQuery.
+    // TanStack treats an explicit `undefined` as an override that resolves to 0,
+    // which marks the query stale immediately and refetches on every remount —
+    // silently defeating the app-level 30s cache. A caller with no staleTime
+    // should inherit the client default, so a remount within that window serves
+    // from cache without re-invoking the fetcher.
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 60_000 } },
+    });
+    const fetcher = jest.fn().mockResolvedValue(['a']);
+    const wrapper = wrapperWith(client);
+
+    const first = renderHook(() => useOpenChoreoQuery(['items'], fetcher), {
+      wrapper,
+    });
+    await waitFor(() => expect(first.result.current.data).toEqual(['a']));
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    first.unmount();
+
+    // Remount with the same key while the cache entry is still fresh.
+    const second = renderHook(() => useOpenChoreoQuery(['items'], fetcher), {
+      wrapper,
+    });
+    // Data is available synchronously from cache; no spinner, no new fetch.
+    expect(second.result.current.loading).toBe(false);
+    expect(second.result.current.data).toEqual(['a']);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
 });

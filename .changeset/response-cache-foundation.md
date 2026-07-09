@@ -28,3 +28,8 @@ and parameterized reads, read+mutation hooks, `setInterval` pollers (now
 keyed-Map hooks, the log/event pagination trio, and the `react-use` `useAsync`
 sites. `useAsyncOperation` is deprecated in favour of `useOpenChoreoMutation`.
 The provider is mounted in the app root and the cache is cleared on sign-out.
+
+The seam only forwards `staleTime`/`refetchInterval`/`enabled` when a caller
+actually sets them — passing an explicit `undefined` overrides the QueryClient
+default instead of inheriting it, which resolved `staleTime` to 0 and refetched
+on every remount, silently defeating the shared 30s cache.

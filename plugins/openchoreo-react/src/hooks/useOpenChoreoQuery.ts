@@ -113,12 +113,18 @@ export function useOpenChoreoQuery<T>(
   const { data, error, isPending, isFetching, refetch } = useQuery<T, Error>({
     queryKey,
     queryFn: ({ signal }) => fetcher({ signal }),
-    staleTime: options.staleTime,
-    refetchInterval: options.refetchInterval,
-    enabled: options.enabled,
-    // Only override the app-level retry when a caller explicitly sets one —
-    // passing `retry: undefined` would reset TanStack to its built-in default
-    // (retry 3) instead of inheriting the QueryClient's configured policy.
+    // Only forward each option when the caller actually set it. Passing an
+    // explicit `undefined` does NOT inherit the QueryClient default — TanStack
+    // treats it as an override, so `staleTime: undefined` resolves to 0 (query
+    // is stale immediately, `refetchOnMount` refires on every remount and the
+    // 30s cache is silently defeated), and `retry: undefined` resets to the
+    // built-in retry 3. Spread each key in only when defined so the app-level
+    // defaults actually take effect.
+    ...(options.staleTime !== undefined ? { staleTime: options.staleTime } : {}),
+    ...(options.refetchInterval !== undefined
+      ? { refetchInterval: options.refetchInterval }
+      : {}),
+    ...(options.enabled !== undefined ? { enabled: options.enabled } : {}),
     ...(options.retry !== undefined ? { retry: options.retry } : {}),
   });
 

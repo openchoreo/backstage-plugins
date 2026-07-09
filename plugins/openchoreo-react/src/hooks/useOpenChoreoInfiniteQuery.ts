@@ -112,9 +112,12 @@ export function useOpenChoreoInfiniteQuery<TItem>(
       const lastItem = lastPage.items[lastPage.items.length - 1];
       return getCursor(lastItem, lastPage) ?? undefined;
     },
-    enabled,
-    refetchInterval,
-    staleTime,
+    // Forward each option only when set — an explicit `undefined` overrides the
+    // QueryClient default rather than inheriting it (so `staleTime: undefined`
+    // resolves to 0 and defeats the 30s cache; see useOpenChoreoQuery).
+    ...(enabled !== undefined ? { enabled } : {}),
+    ...(refetchInterval !== undefined ? { refetchInterval } : {}),
+    ...(staleTime !== undefined ? { staleTime } : {}),
   });
 
   const isDisabled = enabled === false;
