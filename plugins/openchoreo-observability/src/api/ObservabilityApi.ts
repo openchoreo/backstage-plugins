@@ -16,6 +16,11 @@ import {
   IncidentSummary,
   FinOpsReportSummary,
   FinOpsReportDetailed,
+  DoraGranularity,
+  DoraMetricName,
+  DoraMetricsResponse,
+  DoraDeploymentsResponse,
+  DoraSearchScope,
 } from '../types';
 import { LogsResponse } from '../components/RuntimeLogs/types';
 import { EventsResponse } from '../components/RuntimeEvents/types';
@@ -184,6 +189,26 @@ export interface ObservabilityApi {
     environmentName: string,
     namespaceName: string,
   ): Promise<FinOpsReportDetailed>;
+
+  getDoraMetrics(
+    scope: DoraSearchScope,
+    options: {
+      startTime: string;
+      endTime: string;
+      granularity?: DoraGranularity;
+      metrics?: DoraMetricName[];
+    },
+  ): Promise<DoraMetricsResponse>;
+
+  getDoraDeployments(
+    scope: DoraSearchScope,
+    options: {
+      startTime: string;
+      endTime: string;
+      limit?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<DoraDeploymentsResponse>;
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
@@ -1004,6 +1029,86 @@ export class ObservabilityClient implements ObservabilityApi {
 
     const data = await response.json();
     return data;
+  }
+
+  async getDoraMetrics(
+    scope: DoraSearchScope,
+    options: {
+      startTime: string;
+      endTime: string;
+      granularity?: DoraGranularity;
+      metrics?: DoraMetricName[];
+    },
+  ): Promise<DoraMetricsResponse> {
+    // Environment-specific slices resolve through that environment; wider scopes
+    // resolve at namespace level (empty environment).
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      scope.namespace,
+      scope.environment ?? '',
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1alpha1/insights/dora/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          searchScope: scope,
+          startTime: options.startTime,
+          endTime: options.endTime,
+          granularity: options.granularity ?? 'daily',
+          ...(options.metrics?.length ? { metrics: options.metrics } : {}),
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(
+        error || `Failed to fetch DORA metrics: ${response.statusText}`,
+      );
+    }
+
+    return response.json();
+  }
+
+  async getDoraDeployments(
+    scope: DoraSearchScope,
+    options: {
+      startTime: string;
+      endTime: string;
+      limit?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<DoraDeploymentsResponse> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      scope.namespace,
+      scope.environment ?? '',
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1alpha1/insights/dora/deployments/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          searchScope: scope,
+          startTime: options.startTime,
+          endTime: options.endTime,
+          limit: options.limit ?? 100,
+          sortOrder: options.sortOrder ?? 'desc',
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(
+        error || `Failed to fetch deployments: ${response.statusText}`,
+      );
+    }
+
+    return response.json();
   }
 
   private async parseError(response: Response): Promise<string> {

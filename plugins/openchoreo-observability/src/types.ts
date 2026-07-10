@@ -240,3 +240,117 @@ export interface InvestigationStep {
   outcome: string;
   rationale?: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Delivery Insights (DORA metrics)
+// ---------------------------------------------------------------------------
+
+export type DoraGranularity = 'daily' | 'weekly' | 'monthly';
+
+export type DoraMetricName =
+  | 'deploymentFrequency'
+  | 'leadTime'
+  | 'changeFailureRate'
+  | 'mttr';
+
+/** DORA performance tier for a summary value, computed by the observer. */
+export type DoraClassification = 'Elite' | 'High' | 'Medium' | 'Low' | 'Unknown';
+
+/** Scope of a DORA query: namespace-only = org level; add project/component to narrow. */
+export interface DoraSearchScope {
+  namespace: string;
+  project?: string;
+  component?: string;
+  environment?: string;
+}
+
+export interface DoraFrequencySummary {
+  total: number;
+  perDay: number;
+  classification: DoraClassification;
+  /** Change vs the preceding window of equal length (%); null without a baseline. */
+  deltaPct: number | null;
+}
+
+export interface DoraLeadTimeSummary {
+  p50Ms: number | null;
+  p95Ms: number | null;
+  /** Fraction of deployments carrying commit provenance (lead-time input). */
+  coverage: number;
+  classification: DoraClassification;
+  deltaPct: number | null;
+}
+
+export interface DoraChangeFailureRateSummary {
+  rate: number;
+  failed: number;
+  total: number;
+  classification: DoraClassification;
+  deltaPct: number | null;
+}
+
+export interface DoraMttrSummary {
+  meanMs: number | null;
+  p50Ms: number | null;
+  recoveries: number;
+  classification: DoraClassification;
+  deltaPct: number | null;
+}
+
+export interface DoraMetricsResponse {
+  scope: DoraSearchScope;
+  granularity: DoraGranularity;
+  window: { startTime: string; endTime: string; generatedAt: string };
+  summary: {
+    deploymentFrequency?: DoraFrequencySummary;
+    leadTime?: DoraLeadTimeSummary;
+    changeFailureRate?: DoraChangeFailureRateSummary;
+    mttr?: DoraMttrSummary;
+  };
+  series: {
+    /** Zero-filled: one entry per bucket in the window. */
+    deploymentFrequency?: { bucketStart: string; count: number }[];
+    /** Only buckets with data appear. */
+    leadTime?: {
+      bucketStart: string;
+      p50Ms: number;
+      p75Ms: number;
+      p95Ms: number;
+    }[];
+    /** Zero-filled: one entry per bucket in the window. */
+    changeFailureRate?: {
+      bucketStart: string;
+      rate: number;
+      failed: number;
+      total: number;
+    }[];
+    /** Only buckets with data appear. */
+    mttr?: {
+      bucketStart: string;
+      meanMs: number;
+      p50Ms: number;
+      count: number;
+    }[];
+  };
+}
+
+export interface DoraDeployment {
+  deployedAt: string;
+  projectName: string;
+  componentName: string;
+  environmentName: string;
+  componentRelease: string;
+  /** Full commit SHA; empty when provenance is missing. */
+  commit: string;
+  outcome: 'success' | 'failed' | 'in_progress';
+  failedBy: string;
+  failureReason: string;
+  incidentId: string;
+  leadTimeMs: number | null;
+}
+
+export interface DoraDeploymentsResponse {
+  deployments: DoraDeployment[];
+  totalCount: number;
+  tookMs: number;
+}
