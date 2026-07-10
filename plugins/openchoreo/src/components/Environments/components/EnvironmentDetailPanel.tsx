@@ -23,7 +23,10 @@ import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
 import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
-import { StatusBadge } from '@openchoreo/backstage-design-system';
+import {
+  StatusBadge,
+  RefreshOverlay,
+} from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
@@ -149,7 +152,11 @@ export const EnvironmentDetailPanel = ({
     () => makeIsTargetProjectBlocked(environments),
     [environments],
   );
-  const { releases, loading: releasesLoading } = useReleases(entity);
+  const {
+    releases,
+    loading: releasesLoading,
+    isRefetching: releasesRefetching,
+  } = useReleases(entity);
   const deployments: ReleaseDeployments = useMemo(() => {
     const map: ReleaseDeployments = {};
     for (const env of environments) {
@@ -310,7 +317,8 @@ export const EnvironmentDetailPanel = ({
     showPromote || showUndeploy || showRolloutRestart || showRemoveDeployment;
 
   return (
-    <Box className={classes.panel}>
+    <Box className={classes.panel} position="relative">
+      <RefreshOverlay active={releasesRefetching} label="Refreshing releases" />
       <Box className={classes.header}>
         <Box className={classes.headerTopRow}>
           <Box className={classes.headerNameRow}>

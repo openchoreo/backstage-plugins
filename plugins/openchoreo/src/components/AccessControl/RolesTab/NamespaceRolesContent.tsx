@@ -15,6 +15,7 @@ import {
   useRolePermissions,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { isForbiddenError } from '../../../utils/errorUtils';
 import { useNamespaceRoles, NamespaceRole } from '../hooks';
 import type { RoleInput } from './RoleDialog';
@@ -56,8 +57,16 @@ export const NamespaceRolesContent = ({
   } = useRolePermissions();
 
   const client = useApi(openChoreoClientApiRef);
-  const { roles, loading, error, fetchRoles, addRole, updateRole, deleteRole } =
-    useNamespaceRoles(selectedNamespace || undefined);
+  const {
+    roles,
+    loading,
+    isRefetching,
+    error,
+    fetchRoles,
+    addRole,
+    updateRole,
+    deleteRole,
+  } = useNamespaceRoles(selectedNamespace || undefined);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<NamespaceRole | undefined>(
@@ -157,7 +166,8 @@ export const NamespaceRolesContent = ({
   const hasForbiddenError = !loading && error && isForbiddenError(error);
 
   return (
-    <Box>
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing roles" />
       <NotificationBanner notification={notification.notification} />
       {!hasForbiddenError &&
         actionsContainerRef.current &&

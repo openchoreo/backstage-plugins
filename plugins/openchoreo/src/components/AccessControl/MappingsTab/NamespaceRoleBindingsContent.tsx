@@ -38,6 +38,7 @@ import {
   useRoleMappingPermissions,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import {
   useNamespaceRoleBindings,
   useNamespaceRoles,
@@ -160,6 +161,7 @@ export const NamespaceRoleBindingsContent = ({
   const {
     bindings,
     loading,
+    isRefetching,
     error,
     fetchBindings,
     addBinding,
@@ -393,7 +395,8 @@ export const NamespaceRoleBindingsContent = ({
   );
 
   return (
-    <Box>
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing role bindings" />
       <NotificationBanner notification={notification.notification} />
       {actionsContainerRef.current &&
         createPortal(actionButtons, actionsContainerRef.current)}

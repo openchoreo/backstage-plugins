@@ -38,6 +38,7 @@ import {
   useClusterRoleMappingPermissions,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { isForbiddenError } from '../../../utils/errorUtils';
 import {
   useClusterRoleBindings,
@@ -165,6 +166,7 @@ export const ClusterRoleBindingsContent = ({
   const {
     bindings,
     loading,
+    isRefetching,
     error,
     filters,
     setFilters,
@@ -380,7 +382,11 @@ export const ClusterRoleBindingsContent = ({
   );
 
   return (
-    <Box>
+    <Box position="relative">
+      <RefreshOverlay
+        active={isRefetching}
+        label="Refreshing cluster role bindings"
+      />
       <NotificationBanner notification={notification.notification} />
       {actionsContainerRef.current &&
         createPortal(actionButtons, actionsContainerRef.current)}

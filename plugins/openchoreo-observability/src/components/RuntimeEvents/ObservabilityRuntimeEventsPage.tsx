@@ -18,6 +18,7 @@ import {
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { EnvironmentsStatusNotice } from '../common';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useRuntimeEventsStyles } from './styles';
 
 const ObservabilityRuntimeEventsContent = () => {
@@ -62,6 +63,7 @@ const ObservabilityRuntimeEventsContent = () => {
   const {
     events,
     loading: eventsLoading,
+    isRefetching: eventsRefetching,
     error: eventsError,
     totalCount,
     hasMore,
@@ -193,7 +195,13 @@ const ObservabilityRuntimeEventsContent = () => {
   }
 
   return (
-    <Box>
+    <Box position="relative">
+      {/* Background revalidation indicator — suppressed in live mode, where the
+          poll would otherwise flash it constantly and fight the Live toggle. */}
+      <RefreshOverlay
+        active={eventsRefetching && !filters.isLive}
+        label="Refreshing events"
+      />
       <EventsFilter
         filters={filters}
         onFiltersChange={handleFiltersChange}

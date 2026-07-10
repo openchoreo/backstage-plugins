@@ -49,6 +49,10 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
   StatusBadge: (props: { status: string }) => (
     <span data-testid="status-badge">{props.status}</span>
   ),
+  RefreshOverlay: (props: { active: boolean; label?: string }) =>
+    props.active ? (
+      <div data-testid="refresh-overlay">{props.label}</div>
+    ) : null,
 }));
 
 jest.mock('./SetupDetailPane', () => ({

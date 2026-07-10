@@ -19,6 +19,7 @@ import {
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { EnvironmentsStatusNotice } from '../common';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useRuntimeLogsStyles } from './styles';
 import { LogEntryField } from './types';
 import type { RenderLogRowAction } from './LogEntry';
@@ -79,6 +80,7 @@ const ObservabilityProjectRuntimeLogsContent = ({
   const {
     logs,
     loading: logsLoading,
+    isRefetching: logsRefetching,
     error: logsError,
     totalCount,
     hasMore,
@@ -210,7 +212,13 @@ const ObservabilityProjectRuntimeLogsContent = ({
   }
 
   return (
-    <Box>
+    <Box position="relative">
+      {/* Background revalidation indicator — suppressed in live mode, where the
+          5s poll would otherwise flash it constantly and fight the Live toggle. */}
+      <RefreshOverlay
+        active={logsRefetching && !filters.isLive}
+        label="Refreshing logs"
+      />
       <LogsFilter
         filters={filters}
         onFiltersChange={handleFiltersChange}

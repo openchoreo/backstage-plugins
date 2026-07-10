@@ -8,6 +8,7 @@ import {
   useClusterRolePermissions,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { isForbiddenError } from '../../../utils/errorUtils';
 import { useClusterRoles, ClusterRole } from '../hooks';
 import { useNotification } from '../../../hooks';
@@ -37,8 +38,16 @@ export const ClusterRolesContent = ({
     deleteDeniedTooltip,
   } = useClusterRolePermissions();
   const client = useApi(openChoreoClientApiRef);
-  const { roles, loading, error, fetchRoles, addRole, updateRole, deleteRole } =
-    useClusterRoles();
+  const {
+    roles,
+    loading,
+    isRefetching,
+    error,
+    fetchRoles,
+    addRole,
+    updateRole,
+    deleteRole,
+  } = useClusterRoles();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<ClusterRole | undefined>(
@@ -153,7 +162,8 @@ export const ClusterRolesContent = ({
   );
 
   return (
-    <Box>
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing cluster roles" />
       <NotificationBanner notification={notification.notification} />
       {actionsContainerRef.current &&
         createPortal(actionButtons, actionsContainerRef.current)}

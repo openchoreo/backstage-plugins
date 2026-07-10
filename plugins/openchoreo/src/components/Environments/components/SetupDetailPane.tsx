@@ -37,6 +37,7 @@ import { useReleases } from '../hooks/useReleases';
 import { useReleaseReadiness } from '../hooks/useReleaseReadiness';
 import { useEnvironmentsContext } from '../EnvironmentsContext';
 import { useConfigureAndDeployPermission } from '@openchoreo/backstage-plugin-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useNotification } from '../../../hooks';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import {
@@ -265,6 +266,7 @@ export const SetupDetailPane = ({
   const {
     releases,
     loading: releasesLoading,
+    isRefetching: releasesRefetching,
     error: releasesError,
   } = useReleases(entity);
 
@@ -370,7 +372,11 @@ export const SetupDetailPane = ({
   const projectPending = !!firstEnv && isProjectPending(firstEnv);
 
   return (
-    <Box className={classes.panel}>
+    <Box className={classes.panel} position="relative">
+      <RefreshOverlay
+        active={releasesRefetching || readiness.isRefetching}
+        label="Refreshing setup"
+      />
       <NotificationBanner notification={notification.notification} />
       <Box className={classes.setupHeader}>
         <Box className={classes.headerTopRow}>
