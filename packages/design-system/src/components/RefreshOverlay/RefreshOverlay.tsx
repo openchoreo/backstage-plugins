@@ -26,6 +26,12 @@ const useStyles = makeStyles((theme: Theme) => ({
     right: 0,
     zIndex: 5,
     pointerEvents: 'none',
+    // Honour reduced-motion: MUI runs the indeterminate sweep on the inner bar
+    // elements, so freeze those (the class-level `animation: none` misses them).
+    '@media (prefers-reduced-motion: reduce)': {
+      '& .MuiLinearProgress-bar1Indeterminate': { animation: 'none' },
+      '& .MuiLinearProgress-bar2Indeterminate': { animation: 'none' },
+    },
   },
   spinner: {
     // Honour reduced-motion: freeze the sweep rather than spinning.

@@ -209,9 +209,7 @@ export function useProjectRuntimeLogs(
     error: error ? error.message || 'Failed to fetch logs' : null,
     totalCount,
     hasMore,
-    fetchLogs: async () => {
-      refresh();
-    },
+    fetchLogs: () => refresh(),
     loadMore,
     refresh,
     clearLogs: refresh,

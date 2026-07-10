@@ -88,11 +88,7 @@ export const WorkflowDetailsPage = () => {
   const navigate = useNavigate();
   const decodedName = decodeURIComponent(workflowName || '');
 
-  const {
-    workflows,
-    loading: workflowsLoading,
-    isRefetching: workflowsRefetching,
-  } = useWorkflows();
+  const { workflows, loading: workflowsLoading } = useWorkflows();
   const {
     runs,
     loading: runsLoading,
@@ -100,8 +96,6 @@ export const WorkflowDetailsPage = () => {
     isRefetching: runsRefetching,
     refetch,
   } = useWorkflowRuns(decodedName);
-
-  const refreshing = workflowsRefetching || runsRefetching;
 
   const workflow = workflows.find(w => w.name === decodedName);
 
@@ -193,7 +187,7 @@ export const WorkflowDetailsPage = () => {
 
       {!runsLoading && runs.length > 0 && (
         <Box position="relative">
-          <RefreshOverlay active={refreshing} label="Refreshing runs…" />
+          <RefreshOverlay active={runsRefetching} label="Refreshing runs…" />
           <Table
             data={runs}
             columns={columns}
