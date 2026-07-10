@@ -21,6 +21,7 @@ import {
   ForbiddenState,
   calculateTimeRange,
 } from '@openchoreo/backstage-plugin-react';
+import { NoEnvironmentsEmptyState } from '../common';
 
 const ObservabilityTracesContent = () => {
   const { entity } = useEntity();
@@ -112,6 +113,14 @@ const ObservabilityTracesContent = () => {
 
   if (environmentsError) {
     return <></>;
+  }
+
+  if (!environmentsLoading && environments.length === 0) {
+    return (
+      <Box>
+        <NoEnvironmentsEmptyState feature="traces" />
+      </Box>
+    );
   }
 
   const renderError = (error: string) => {

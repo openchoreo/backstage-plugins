@@ -212,4 +212,26 @@ describe('CostAnalysisPage', () => {
     await renderPage();
     expect(screen.getByText('1 reports')).toBeInTheDocument();
   });
+
+  it('shows no environments notice when none found', async () => {
+    mockUseGetEnvironmentsByNamespace.mockReturnValue({
+      environments: [],
+      loading: false,
+      error: null,
+    });
+
+    mockUseUrlFilters.mockReturnValue({
+      filters: { environment: undefined, timeRange: '1h' },
+      updateFilters: jest.fn(),
+    });
+
+    await renderPage();
+
+    expect(
+      screen.getByText(
+        /No environments available to view cost analysis reports/i,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('rca-filters')).not.toBeInTheDocument();
+  });
 });

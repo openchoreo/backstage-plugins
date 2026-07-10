@@ -259,10 +259,9 @@ describe('ObservabilityAlertsPage', () => {
     await renderPage();
 
     expect(
-      screen.getByText(
-        'No environments found. Make sure your component is properly configured.',
-      ),
+      screen.getByText(/No environments available to view alerts/i),
     ).toBeInTheDocument();
+    expect(screen.queryByTestId('alerts-filter')).not.toBeInTheDocument();
   });
 
   it('does not render actions/table when no environment selected', async () => {
