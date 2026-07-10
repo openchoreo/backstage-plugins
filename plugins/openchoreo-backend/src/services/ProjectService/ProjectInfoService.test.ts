@@ -148,7 +148,7 @@ describe('ProjectInfoService', () => {
       expect(mockGET).toHaveBeenCalledTimes(2);
     });
 
-    it('throws when project has no pipeline ref', async () => {
+    it('throws a NotFoundError when project has no pipeline ref', async () => {
       const noPipeline = {
         ...k8sProject,
         spec: { deploymentPipelineRef: undefined },
@@ -162,7 +162,10 @@ describe('ProjectInfoService', () => {
           'my-project',
           'token-123',
         ),
-      ).rejects.toThrow('no deployment pipeline reference');
+      ).rejects.toMatchObject({
+        name: 'NotFoundError',
+        message: expect.stringContaining('no deployment pipeline reference'),
+      });
     });
 
     it('throws when pipeline fetch fails', async () => {
