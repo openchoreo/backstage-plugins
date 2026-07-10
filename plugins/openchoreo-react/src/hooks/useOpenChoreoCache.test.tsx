@@ -117,7 +117,9 @@ describe('useOpenChoreoCache', () => {
         staleTime: 60_000,
       });
     });
-    expect(result.current.getData(['scope', 'a'])).toBe('first');
+    await waitFor(() =>
+      expect(result.current.getData(['scope', 'a'])).toBe('first'),
+    );
 
     act(() => {
       // Prefix match: ['scope'] covers ['scope', 'a'].

@@ -87,7 +87,9 @@ describe('useSpanDetails', () => {
       'dev',
       'development',
     );
-    expect(result.current.getDetails('trace-1', 'span-1')).toEqual(details);
+    await waitFor(() =>
+      expect(result.current.getDetails('trace-1', 'span-1')).toEqual(details),
+    );
     expect(result.current.getError('trace-1', 'span-1')).toBeUndefined();
   });
 

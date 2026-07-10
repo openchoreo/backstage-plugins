@@ -86,7 +86,9 @@ describe('useTraceSpans', () => {
       undefined,
       expect.any(Object),
     );
-    expect(result.current.getSpans('trace-1')).toEqual(spans);
+    await waitFor(() =>
+      expect(result.current.getSpans('trace-1')).toEqual(spans),
+    );
     expect(result.current.getError('trace-1')).toBeUndefined();
   });
 
@@ -117,7 +119,9 @@ describe('useTraceSpans', () => {
     await act(async () => {
       await result.current.fetchSpans('trace-1');
     });
-    expect(result.current.getSpans('trace-1')).toEqual(spans);
+    await waitFor(() =>
+      expect(result.current.getSpans('trace-1')).toEqual(spans),
+    );
 
     act(() => {
       result.current.clearSpans('trace-1');
