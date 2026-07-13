@@ -5,6 +5,9 @@ import { makeStyles } from '@material-ui/core/styles';
 import { DoraClassification } from '../../types';
 import { CLASSIFICATION_COLORS } from './utils';
 
+const SPARK_W = 84;
+const SPARK_H = 30;
+
 const useStyles = makeStyles(theme => ({
   card: {
     height: '100%',
@@ -30,9 +33,14 @@ const useStyles = makeStyles(theme => ({
   footer: {
     display: 'flex',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: theme.spacing(1),
     marginTop: theme.spacing(0.5),
     minHeight: 20,
+  },
+  // Keeps the footer text clear of the absolutely-positioned corner sparkline.
+  footerWithSpark: {
+    paddingRight: SPARK_W + 16,
   },
   delta: {
     display: 'flex',
@@ -61,9 +69,6 @@ export interface DoraMetricTileProps {
   /** Per-bucket values rendered as a small sparkline in the tile corner. */
   sparkData?: number[];
 }
-
-const SPARK_W = 84;
-const SPARK_H = 30;
 
 const Sparkline = ({ data }: { data: number[] }) => {
   if (data.length < 2) {
@@ -133,7 +138,11 @@ export const DoraMetricTile = ({
         <Typography variant="h4" className={classes.value}>
           {value}
         </Typography>
-        <Box className={classes.footer}>
+        <Box
+          className={`${classes.footer} ${
+            sparkData ? classes.footerWithSpark : ''
+          }`}
+        >
           {deltaPct !== null && deltaPct !== 0 && (
             <Typography
               variant="caption"
