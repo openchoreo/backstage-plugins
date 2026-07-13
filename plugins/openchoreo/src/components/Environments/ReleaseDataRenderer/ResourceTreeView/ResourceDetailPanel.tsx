@@ -87,11 +87,7 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
             <ReleaseBindingDetailTabs releaseBindingData={releaseBindingData} />
           )}
           {!node.isRoot && node.kind === 'RenderedRelease' && (
-            <ReleaseDetailTabs
-              node={node}
-              namespaceName={namespaceName}
-              releaseBindingName={releaseBindingName}
-            />
+            <ReleaseDetailTabs node={node} />
           )}
           {!node.isRoot && node.kind !== 'RenderedRelease' && (
             <ResourceDetailTabs

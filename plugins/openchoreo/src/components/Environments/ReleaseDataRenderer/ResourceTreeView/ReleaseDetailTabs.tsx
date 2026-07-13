@@ -1,44 +1,59 @@
-import { useState, useEffect, useCallback, type FC } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import {
   Box,
   Tabs,
   Tab,
   Typography,
-  IconButton,
-  Tooltip,
   Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@material-ui/core';
-import RefreshIcon from '@material-ui/icons/Refresh';
 import YAML from 'yaml';
 import { YamlViewer } from '@openchoreo/backstage-design-system';
 import { useTreeStyles } from './treeStyles';
-import { ResourceEventsTable } from './ResourceEventsTable';
+import { useReleaseInfoStyles } from '../styles';
+import { formatTimestamp, getHealthChipClass } from '../utils';
 import type { LayoutNode } from './treeTypes';
 
 const TABS = [
-  { id: 'events', label: 'Events' },
-  { id: 'spec', label: 'Spec' },
+  { id: 'summary', label: 'Summary' },
+  { id: 'definition', label: 'Definition' },
 ] as const;
+
+function getReleaseField(
+  release: Record<string, unknown> | undefined,
+  field: string,
+): unknown {
+  const spec = release?.spec as Record<string, unknown> | undefined;
+  return spec?.[field];
+}
+
+function getReleaseConditions(
+  release: Record<string, unknown> | undefined,
+): any[] {
+  const status = release?.status as Record<string, unknown> | undefined;
+  if (status && Array.isArray(status.conditions)) return status.conditions;
+  return [];
+}
 
 interface ReleaseDetailTabsProps {
   node: LayoutNode;
-  namespaceName: string;
-  releaseBindingName: string;
 }
 
 /**
  * Detail tabs shown when a rendered release node is selected in the resource
- * tree. Surfaces the release's own Kubernetes events and full spec (YAML),
- * reusing the same components used for individual resources.
+ * tree. The release controllers report state through status.conditions rather
+ * than Kubernetes events, so the Summary tab is where a failed apply to the
+ * data plane shows up (ResourcesApplied=False with the apply error as message).
  */
-export const ReleaseDetailTabs: FC<ReleaseDetailTabsProps> = ({
-  node,
-  namespaceName,
-  releaseBindingName,
-}) => {
+export const ReleaseDetailTabs: FC<ReleaseDetailTabsProps> = ({ node }) => {
   const classes = useTreeStyles();
+  const releaseClasses = useReleaseInfoStyles();
   const [activeTab, setActiveTab] = useState(0);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   // Reset tab when switching to a different node
   useEffect(() => {
@@ -46,10 +61,15 @@ export const ReleaseDetailTabs: FC<ReleaseDetailTabsProps> = ({
   }, [node.id]);
 
   const currentTab = TABS[activeTab]?.id;
+  const release = node.specObject as Record<string, unknown> | undefined;
 
-  const handleRefresh = useCallback(() => {
-    setRefreshKey(prev => prev + 1);
-  }, []);
+  const displayConditions = getReleaseConditions(release);
+  const environment = getReleaseField(release, 'environmentName') as
+    | string
+    | undefined;
+  const owner = getReleaseField(release, 'owner') as
+    | Record<string, string>
+    | undefined;
 
   return (
     <>
@@ -74,26 +94,138 @@ export const ReleaseDetailTabs: FC<ReleaseDetailTabsProps> = ({
             style={{ marginRight: 8 }}
           />
         )}
-        {currentTab === 'events' && (
-          <Tooltip title="Refresh">
-            <IconButton size="small" onClick={handleRefresh}>
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        )}
       </Box>
 
       <Box className={classes.drawerTabContent}>
-        {currentTab === 'events' && (
-          <ResourceEventsTable
-            node={node}
-            namespaceName={namespaceName}
-            releaseBindingName={releaseBindingName}
-            refreshKey={refreshKey}
-          />
+        {currentTab === 'summary' && (
+          <Box>
+            {/* Key-value properties */}
+            {owner?.projectName && (
+              <Box className={classes.drawerProperty}>
+                <Typography className={classes.drawerPropertyKey}>
+                  Project
+                </Typography>
+                <Typography className={classes.drawerPropertyValue}>
+                  {owner.projectName}
+                </Typography>
+              </Box>
+            )}
+
+            {owner?.componentName && (
+              <Box className={classes.drawerProperty}>
+                <Typography className={classes.drawerPropertyKey}>
+                  Component
+                </Typography>
+                <Typography className={classes.drawerPropertyValue}>
+                  {owner.componentName}
+                </Typography>
+              </Box>
+            )}
+
+            {environment && (
+              <Box className={classes.drawerProperty}>
+                <Typography className={classes.drawerPropertyKey}>
+                  Environment
+                </Typography>
+                <Typography className={classes.drawerPropertyValue}>
+                  {environment}
+                </Typography>
+              </Box>
+            )}
+
+            {node.targetPlane && (
+              <Box className={classes.drawerProperty}>
+                <Typography className={classes.drawerPropertyKey}>
+                  Target Plane
+                </Typography>
+                <Typography className={classes.drawerPropertyValue}>
+                  {node.targetPlane}
+                </Typography>
+              </Box>
+            )}
+
+            {/* Conditions table */}
+            {displayConditions.length > 0 && (
+              <Box mt={3}>
+                <Typography
+                  variant="subtitle2"
+                  gutterBottom
+                  style={{ fontWeight: 600 }}
+                >
+                  Conditions
+                </Typography>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell scope="col">Type</TableCell>
+                        <TableCell scope="col">Status</TableCell>
+                        <TableCell scope="col">Reason</TableCell>
+                        <TableCell scope="col">Message</TableCell>
+                        <TableCell scope="col">Last Transition</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {displayConditions.map(
+                        (condition: any, index: number) => (
+                          <TableRow key={`${condition.type}-${index}`}>
+                            <TableCell>
+                              <Typography
+                                variant="body2"
+                                style={{ fontWeight: 500 }}
+                              >
+                                {condition.type}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={condition.status}
+                                size="small"
+                                className={getHealthChipClass(
+                                  condition.status === 'True'
+                                    ? 'Healthy'
+                                    : 'Degraded',
+                                  releaseClasses,
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {condition.reason ?? '-'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography
+                                variant="body2"
+                                style={{
+                                  maxWidth: 400,
+                                  wordBreak: 'break-word',
+                                }}
+                              >
+                                {condition.message ?? '-'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {condition.lastTransitionTime
+                                  ? formatTimestamp(
+                                      condition.lastTransitionTime,
+                                    )
+                                  : '-'}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ),
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+          </Box>
         )}
 
-        {currentTab === 'spec' && (
+        {currentTab === 'definition' && (
           <>
             {node.specObject ? (
               <YamlViewer
@@ -103,7 +235,7 @@ export const ReleaseDetailTabs: FC<ReleaseDetailTabsProps> = ({
             ) : (
               <Box className={classes.drawerEmptyState}>
                 <Typography variant="body2" color="textSecondary">
-                  No release spec available
+                  No release definition available
                 </Typography>
               </Box>
             )}
