@@ -535,6 +535,8 @@ export {
   type UseOpenChoreoInfiniteQueryOptions,
   type UseOpenChoreoInfiniteQueryResult,
 } from './hooks/useOpenChoreoInfiniteQuery';
+export { queryClient } from './query/queryClient';
+export { OpenChoreoQueryProvider } from './query/OpenChoreoQueryProvider';
 
 // Change Detection Components
 export { ChangeDiff, type ChangeDiffProps } from './components/ChangeDiff';

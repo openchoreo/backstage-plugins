@@ -3,6 +3,7 @@ import {
   type QueryKey,
   type InfiniteData,
 } from '@tanstack/react-query';
+import { useUserScopedKey } from '../query/OpenChoreoQueryProvider';
 
 /**
  * A single page returned by the fetcher. `items` are the rows for this page and
@@ -88,6 +89,10 @@ export function useOpenChoreoInfiniteQuery<TItem>(
 ): UseOpenChoreoInfiniteQueryResult<TItem> {
   const { enabled, refetchInterval, staleTime, getCursor, pageSize } = options;
 
+  // Namespace by the signed-in user (see useUserScopedKey) for cross-user
+  // isolation, consistent with useOpenChoreoQuery.
+  const scopeKey = useUserScopedKey();
+
   const {
     data,
     error,
@@ -104,7 +109,7 @@ export function useOpenChoreoInfiniteQuery<TItem>(
     QueryKey,
     string | undefined
   >({
-    queryKey,
+    queryKey: scopeKey(queryKey),
     initialPageParam: undefined,
     queryFn: ({ pageParam }) => fetcher(pageParam),
     getNextPageParam: lastPage => {

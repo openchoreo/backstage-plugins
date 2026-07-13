@@ -3,6 +3,7 @@ import {
   type QueryKey,
   type UseQueryOptions,
 } from '@tanstack/react-query';
+import { useUserScopedKey } from '../query/OpenChoreoQueryProvider';
 
 /**
  * The `refetchInterval` accepted by a `useQuery<T, Error>`. Kept as a named
@@ -110,8 +111,11 @@ export function useOpenChoreoQuery<T>(
   fetcher: (context: { signal: AbortSignal }) => Promise<T>,
   options: UseOpenChoreoQueryOptions<T> = {},
 ): UseOpenChoreoQueryResult<T> {
+  // Namespace the key by the signed-in user so one user's cached responses are
+  // never served to another (structural cross-user isolation — no clearing).
+  const scopeKey = useUserScopedKey();
   const { data, error, isPending, isFetching, refetch } = useQuery<T, Error>({
-    queryKey,
+    queryKey: scopeKey(queryKey),
     queryFn: ({ signal }) => fetcher({ signal }),
     // Only forward each option when the caller actually set it. Passing an
     // explicit `undefined` does NOT inherit the QueryClient default — TanStack

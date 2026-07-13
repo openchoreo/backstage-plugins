@@ -4,6 +4,7 @@ import {
   useQueryClient,
   type QueryKey,
 } from '@tanstack/react-query';
+import { useUserScopedKey } from '../query/OpenChoreoQueryProvider';
 
 /** Options for {@link useOpenChoreoMutation}. */
 export interface UseOpenChoreoMutationOptions<TArgs extends unknown[], TData> {
@@ -66,6 +67,7 @@ export function useOpenChoreoMutation<TArgs extends unknown[], TData>(
   opts: UseOpenChoreoMutationOptions<TArgs, TData> = {},
 ): UseOpenChoreoMutationResult<TArgs, TData> {
   const queryClient = useQueryClient();
+  const scopeKey = useUserScopedKey();
   const { invalidates, onSuccess, onError } = opts;
 
   const mutation = useMutation<TData, Error, TArgs>({
@@ -74,8 +76,10 @@ export function useOpenChoreoMutation<TArgs extends unknown[], TData>(
     onSuccess: async (data, args) => {
       if (invalidates?.length) {
         await Promise.all(
+          // Scope the invalidation keys the same way the queries were stored
+          // (see useUserScopedKey), or the prefix match would miss them.
           invalidates.map(queryKey =>
-            queryClient.invalidateQueries({ queryKey }),
+            queryClient.invalidateQueries({ queryKey: scopeKey(queryKey) }),
           ),
         );
       }

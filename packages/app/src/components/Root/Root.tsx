@@ -39,10 +39,19 @@ import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
 import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
-import { QueryClientProvider } from '@tanstack/react-query';
+// This app composes some OpenChoreo entity tabs itself via legacy
+// `EntityLayout.Route` JSX (see EntityPage.tsx), so they render OUTSIDE the
+// plugins' `PluginWrapperBlueprint` scope. Mount `OpenChoreoQueryProvider` here
+// (QueryClientProvider + the user-scoping context) so those host-composed tabs
+// still get a QueryClient and per-user cache-key namespacing. It shares the same
+// `queryClient` singleton the plugin wrappers use, so there is one cache; the
+// SignOutButton clears that exact client on sign-out.
+import {
+  OpenChoreoQueryProvider,
+  queryClient,
+} from '@openchoreo/backstage-plugin-react';
 import { ScaffolderPreselectionProvider } from '../../scaffolder/ScaffolderPreselectionContext';
 import { DependencyGraphZoomOverrides } from '../graph/DependencyGraphZoomOverrides';
-import { queryClient } from '../../queryClient';
 
 const isMac =
   typeof navigator !== 'undefined' &&
@@ -177,7 +186,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
   useSearchModalStyles();
   const a11yClasses = useA11yStyles();
   return (
-    <QueryClientProvider client={queryClient}>
+    <OpenChoreoQueryProvider>
       <ScaffolderPreselectionProvider>
         <AssistantDrawerProvider>
           {/*
@@ -262,6 +271,6 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
           </SidebarPage>
         </AssistantDrawerProvider>
       </ScaffolderPreselectionProvider>
-    </QueryClientProvider>
+    </OpenChoreoQueryProvider>
   );
 };

@@ -3,6 +3,7 @@ import {
   createFrontendPlugin,
   discoveryApiRef,
   fetchApiRef,
+  PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
 import {
   EntityCardBlueprint,
@@ -27,6 +28,26 @@ const openChoreoClientApi = ApiBlueprint.make({
       deps: { discoveryApi: discoveryApiRef, fetchApi: fetchApiRef },
       factory: ({ discoveryApi, fetchApi }) =>
         new OpenChoreoClient(discoveryApi, fetchApi),
+    }),
+});
+
+// Wraps this plugin's own extensions (tabs/cards) in the TanStack Query
+// provider, so every OpenChoreo surface has a QueryClient in the tree —
+// response caching is self-contained, the host wires nothing. Uses
+// PluginWrapperBlueprint (not AppRootWrapperBlueprint, whose app/root input is
+// internal and silently ignores plugin-contributed wrappers). The provider
+// references the shared `queryClient` singleton, so multiple OpenChoreo plugins
+// each wrapping their own surfaces still share exactly one cache.
+const queryProvider = PluginWrapperBlueprint.make({
+  name: 'query-provider',
+  params: defineParams =>
+    defineParams({
+      loader: async () => {
+        const { OpenChoreoQueryProvider } = await import(
+          '@openchoreo/backstage-plugin-react'
+        );
+        return { component: OpenChoreoQueryProvider };
+      },
     }),
 });
 
@@ -528,6 +549,7 @@ export default createFrontendPlugin({
   },
   extensions: [
     openChoreoClientApi,
+    queryProvider,
     resourceDefinitionEntityContent,
     componentDeployEntityContent,
     deploymentStatusCard,

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
+import { useUserScopedKey } from '../query/OpenChoreoQueryProvider';
 
 /**
  * Imperative cache handle for the rare hooks that need to touch a cached query
@@ -45,25 +46,33 @@ export interface OpenChoreoCache {
  */
 export function useOpenChoreoCache(): OpenChoreoCache {
   const queryClient = useQueryClient();
+  // Namespace every key by the signed-in user, identically to the query hooks,
+  // so imperative reads/writes/invalidations hit the same entries the queries
+  // stored (see useUserScopedKey). `scopeKey` is stable for the user's scope.
+  const scopeKey = useUserScopedKey();
   // `useQueryClient()` returns a stable client for the provider's lifetime, so
   // memoise the handle: without this, a fresh object + 5 closures every render
   // would break any consumer that lists `cache` in a useCallback/useEffect dep.
   return useMemo<OpenChoreoCache>(
     () => ({
       setData: (queryKey, updater) =>
-        queryClient.setQueryData(queryKey, updater),
+        queryClient.setQueryData(scopeKey(queryKey), updater),
       invalidate: queryKey => {
-        void queryClient.invalidateQueries({ queryKey });
+        void queryClient.invalidateQueries({ queryKey: scopeKey(queryKey) });
       },
       fetchQuery: (queryKey, fetcher, options) =>
         queryClient.fetchQuery({
-          queryKey,
+          queryKey: scopeKey(queryKey),
           queryFn: fetcher,
           staleTime: options?.staleTime,
         }),
-      getData: queryKey => queryClient.getQueryData(queryKey),
-      remove: queryKey => queryClient.removeQueries({ queryKey, exact: true }),
+      getData: queryKey => queryClient.getQueryData(scopeKey(queryKey)),
+      remove: queryKey =>
+        queryClient.removeQueries({
+          queryKey: scopeKey(queryKey),
+          exact: true,
+        }),
     }),
-    [queryClient],
+    [queryClient, scopeKey],
   );
 }

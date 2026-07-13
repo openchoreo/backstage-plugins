@@ -1,11 +1,8 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { ReactNode } from 'react';
-import {
-  QueryClient,
-  QueryClientProvider,
-  useQuery,
-} from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useOpenChoreoMutation } from './useOpenChoreoMutation';
+import { useOpenChoreoQuery } from './useOpenChoreoQuery';
 
 function freshClient() {
   return new QueryClient({
@@ -71,9 +68,13 @@ describe('useOpenChoreoMutation', () => {
       .mockResolvedValueOnce('v1')
       .mockResolvedValueOnce('v2');
 
-    // A query we expect to be refetched by the mutation's invalidation.
+    // A query we expect to be refetched by the mutation's invalidation. Use the
+    // real seam (useOpenChoreoQuery), not raw useQuery, so its key is namespaced
+    // by the same user scope the mutation's invalidation uses — otherwise the
+    // prefix-match wouldn't line up (both resolve to the pending-user scope here,
+    // since no OpenChoreoQueryProvider is mounted).
     const { result: query } = renderHook(
-      () => useQuery({ queryKey: ['thing'], queryFn: fetcher }),
+      () => useOpenChoreoQuery(['thing'], fetcher),
       { wrapper: wrapperWith(client) },
     );
     await waitFor(() => expect(query.current.data).toBe('v1'));

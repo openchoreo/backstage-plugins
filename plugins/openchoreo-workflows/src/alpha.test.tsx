@@ -15,6 +15,7 @@ describe('openchoreo-workflows alpha plugin', () => {
     const plugin = 'openchoreo-workflows';
     for (const expected of [
       `api:${plugin}/generic-workflows-client`,
+      `plugin-wrapper:${plugin}/query-provider`,
       `page:${plugin}/generic-workflows`,
       `entity-content:${plugin}/workflow-runs`,
     ]) {
