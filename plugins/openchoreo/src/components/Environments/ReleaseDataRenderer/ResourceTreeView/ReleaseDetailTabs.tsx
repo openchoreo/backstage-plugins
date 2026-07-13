@@ -40,6 +40,17 @@ function getReleaseConditions(
   return [];
 }
 
+/**
+ * A condition status is True, False or Unknown. Unknown means the controller has
+ * not determined the state yet, so it reads as progressing rather than a failure
+ * — the same mapping the release binding uses for its Ready condition.
+ */
+function conditionHealth(status: string | undefined): string {
+  if (status === 'True') return 'Healthy';
+  if (status === 'False') return 'Degraded';
+  return 'Progressing';
+}
+
 interface ReleaseDetailTabsProps {
   node: LayoutNode;
 }
@@ -182,9 +193,7 @@ export const ReleaseDetailTabs: FC<ReleaseDetailTabsProps> = ({ node }) => {
                                 label={condition.status}
                                 size="small"
                                 className={getHealthChipClass(
-                                  condition.status === 'True'
-                                    ? 'Healthy'
-                                    : 'Degraded',
+                                  conditionHealth(condition.status),
                                   releaseClasses,
                                 )}
                               />

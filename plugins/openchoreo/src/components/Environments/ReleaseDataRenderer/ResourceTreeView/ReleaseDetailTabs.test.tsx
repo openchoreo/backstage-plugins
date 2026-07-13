@@ -84,6 +84,35 @@ describe('ReleaseDetailTabs', () => {
     expect(screen.getByText(/admission webhook denied/)).toBeInTheDocument();
   });
 
+  it('does not style an Unknown condition as a failure', () => {
+    const { container } = render(
+      <ReleaseDetailTabs
+        node={makeReleaseNode({
+          specObject: {
+            status: {
+              conditions: [
+                {
+                  type: 'ResourcesApplied',
+                  status: 'Unknown',
+                  reason: 'Progressing',
+                },
+              ],
+            },
+          },
+        })}
+      />,
+    );
+
+    // An indeterminate condition reads as progressing, not as a failure.
+    expect(
+      container.querySelector('[class*="degraded"]'),
+    ).not.toBeInTheDocument();
+    expect(
+      container.querySelector('[class*="progressing"]'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Unknown')).toBeInTheDocument();
+  });
+
   it('shows the owning project, component and environment on the Summary tab', () => {
     render(<ReleaseDetailTabs node={makeReleaseNode()} />);
 
