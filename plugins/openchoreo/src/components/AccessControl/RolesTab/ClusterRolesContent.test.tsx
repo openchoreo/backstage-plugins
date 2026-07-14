@@ -49,7 +49,11 @@ jest.mock('../../Environments/components', () => ({
 }));
 
 jest.mock('@backstage/core-components', () => ({
-  Progress: () => <div data-testid="progress">Loading...</div>,
+  Progress: () => (
+    <div data-testid="progress" role="progressbar">
+      Loading...
+    </div>
+  ),
   ResponseErrorPanel: ({ error }: any) => (
     <div data-testid="error-panel">{error.message}</div>
   ),
