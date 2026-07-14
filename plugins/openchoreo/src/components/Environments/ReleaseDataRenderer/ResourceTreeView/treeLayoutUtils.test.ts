@@ -71,11 +71,18 @@ describe('getResourceTreeNodes', () => {
 });
 
 describe('buildTreeNodes', () => {
+  const renderedRelease = {
+    apiVersion: 'openchoreo.dev/v1alpha1',
+    kind: 'RenderedRelease',
+    status: { conditions: [{ type: 'ResourcesApplied', status: 'True' }] },
+  };
+
   const singleReleaseData: ResourceTreeData = {
     renderedReleases: [
       {
         name: 'my-release',
         targetPlane: 'dataplane',
+        renderedRelease,
         nodes: [
           makeNode({ uid: 'dep-1', kind: 'Deployment', name: 'nginx' }),
           makeNode({
@@ -112,10 +119,12 @@ describe('buildTreeNodes', () => {
 
     expect(releaseNodes).toHaveLength(1);
     expect(releaseNodes[0].name).toBe('my-release');
+    // The target plane has its own field, and version holds the real CR version.
     expect(releaseNodes[0].targetPlane).toBe('dataplane');
-    // Real GVK is set so the release's own events/spec can be fetched.
     expect(releaseNodes[0].group).toBe('openchoreo.dev');
     expect(releaseNodes[0].version).toBe('v1alpha1');
+    // The detail panel reads its conditions and YAML off the full CR.
+    expect(releaseNodes[0].specObject).toBe(renderedRelease);
   });
 
   it('links RenderedRelease nodes to root', () => {

@@ -110,7 +110,8 @@ export function buildTreeNodes(
 
     nodes.push({
       id: releaseNodeId,
-      // Real GVK of the RenderedRelease CR so its events/spec can be fetched.
+      // Real GVK of the RenderedRelease CR. The target plane has its own field:
+      // it is not a version, and the detail panel renders group/version as the GVK.
       kind: 'RenderedRelease',
       group: 'openchoreo.dev',
       version: 'v1alpha1',
