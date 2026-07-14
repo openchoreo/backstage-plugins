@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Progress, EmptyState } from '@backstage/core-components';
+import { EmptyState } from '@backstage/core-components';
+import { PageLoader } from '@openchoreo/backstage-design-system';
+import { Box } from '@material-ui/core';
+
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
@@ -199,7 +201,7 @@ export const ProjectEnvironmentsList = () => {
   }
 
   if (loading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (error) {

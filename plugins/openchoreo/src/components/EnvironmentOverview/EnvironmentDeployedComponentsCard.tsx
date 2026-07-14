@@ -12,7 +12,6 @@ import {
   IconButton,
   Tooltip,
 } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
 import ClearIcon from '@material-ui/icons/Clear';
@@ -21,7 +20,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { Link } from '@backstage/core-components';
 import { useNavigate } from 'react-router-dom';
 import { parseEntityRef } from '@backstage/catalog-model';
-import { Card, RefreshOverlay } from '@openchoreo/backstage-design-system';
+import { Card, RefreshOverlay, Skeleton } from '@openchoreo/backstage-design-system';
 import {
   useEnvironmentDeployedComponents,
   type DeployedComponent,

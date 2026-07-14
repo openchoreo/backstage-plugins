@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import NavigateBeforeIcon from '@material-ui/icons/NavigateBefore';
 import NavigateNextIcon from '@material-ui/icons/NavigateNext';
@@ -11,7 +10,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { parseEntityRef } from '@backstage/catalog-model';
 import { Link } from '@backstage/core-components';
 import { useNavigate } from 'react-router-dom';
-import { Card, RefreshOverlay } from '@openchoreo/backstage-design-system';
+import { Card, RefreshOverlay, Skeleton } from '@openchoreo/backstage-design-system';
 import { useDataplaneEnvironments } from './hooks';
 import { useDataplaneOverviewStyles } from './styles';
 import { shouldNavigateOnRowClick } from '../../utils/shouldNavigateOnRowClick';

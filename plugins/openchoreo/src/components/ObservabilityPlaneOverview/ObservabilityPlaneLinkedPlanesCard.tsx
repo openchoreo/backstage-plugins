@@ -1,5 +1,4 @@
 import { Box, Typography, IconButton, Tooltip } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import StorageIcon from '@material-ui/icons/Storage';
 import BuildIcon from '@material-ui/icons/Build';
@@ -10,7 +9,7 @@ import { useApi } from '@backstage/core-plugin-api';
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { Link } from '@backstage/core-components';
 import { useNavigate } from 'react-router-dom';
-import { Card, RefreshOverlay } from '@openchoreo/backstage-design-system';
+import { Card, RefreshOverlay, Skeleton } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';

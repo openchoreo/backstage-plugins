@@ -9,7 +9,11 @@ import {
 } from '@material-ui/core';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import { StatusBadge, StatusType } from '@openchoreo/backstage-design-system';
+import {
+  StatusBadge,
+  StatusType,
+  Skeleton,
+} from '@openchoreo/backstage-design-system';
 import { FinOpsReportSummary } from '../../types';
 import { FormattedText } from '../RCA/RCAReport/FormattedText';
 
@@ -172,6 +176,19 @@ export const CostAnalysisTable = ({
     },
   ];
 
+  // While loading, render skeleton rows on the table's own background instead
+  // of the material-table CircularProgress overlay (which sits on the grey
+  // page background). Cloned columns keep the header row + widths stable.
+  const skeletonColumns: TableColumn[] = columns.map(column => ({
+    ...column,
+    sorting: false,
+    highlight: false,
+    render: () => <Skeleton variant="text" height={20} />,
+  }));
+  const skeletonData = Array.from({ length: 5 }, (_, index) => ({
+    id: `skeleton-${index}`,
+  }));
+
   return (
     <Table
       options={{
@@ -181,9 +198,9 @@ export const CostAnalysisTable = ({
         sorting: true,
         padding: 'default',
       }}
-      columns={columns}
-      data={reports}
-      isLoading={loading}
+      columns={loading ? skeletonColumns : columns}
+      data={loading ? skeletonData : reports}
+      isLoading={false}
       emptyContent={
         <Box textAlign="center" padding={4}>
           <Typography variant="h6" gutterBottom>

@@ -1,11 +1,10 @@
 import { Box, Typography, List, ListItem } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import TimelineIcon from '@material-ui/icons/Timeline';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import { Link } from '@backstage/core-components';
 import { useNavigate } from 'react-router-dom';
 import { parseEntityRef } from '@backstage/catalog-model';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, Skeleton } from '@openchoreo/backstage-design-system';
 import { useEnvironmentOverviewStyles } from './styles';
 import { useEnvironmentPipelines } from './useEnvironmentPipelines';
 import { shouldNavigateOnRowClick } from '../../utils/shouldNavigateOnRowClick';

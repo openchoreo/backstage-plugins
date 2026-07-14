@@ -1,4 +1,5 @@
-import { Chip, CircularProgress } from '@material-ui/core';
+import { Chip } from '@material-ui/core';
+import { Spinner } from '@openchoreo/backstage-design-system';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import ErrorIcon from '@material-ui/icons/Error';
 import ScheduleIcon from '@material-ui/icons/Schedule';
@@ -38,7 +39,7 @@ export const BuildStatusChip = ({ status }: { status?: string }) => {
   if (statusLower.includes('running') || statusLower.includes('progress')) {
     return (
       <Chip
-        icon={<CircularProgress size={14} style={{ color: '#01579b' }} />}
+        icon={<Spinner size="chip" color="inherit" />}
         label={status}
         size="small"
         className={`${classes.statusChip} ${classes.runningChip}`}

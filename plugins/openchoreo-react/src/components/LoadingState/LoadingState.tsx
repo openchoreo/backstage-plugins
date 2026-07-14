@@ -1,6 +1,6 @@
-import { Box, CircularProgress, Typography } from '@material-ui/core';
+import { Box, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { VisuallyHidden } from '@openchoreo/backstage-design-system';
+import { Spinner, VisuallyHidden } from '@openchoreo/backstage-design-system';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -56,7 +56,7 @@ export const LoadingState = ({
       role="status"
       aria-busy="true"
     >
-      <CircularProgress size={size} aria-hidden="true" />
+      <Spinner size={size} aria-label="Loading" />
       {message ? (
         <Typography variant="body2" className={classes.message}>
           {message}

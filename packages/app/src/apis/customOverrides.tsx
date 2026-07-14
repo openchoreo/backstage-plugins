@@ -14,8 +14,11 @@ import { createFrontendModule } from '@backstage/frontend-plugin-api';
 import { createTranslationMessages } from '@backstage/frontend-plugin-api';
 import {
   SignInPageBlueprint,
+  SwappableComponentBlueprint,
   TranslationBlueprint,
 } from '@backstage/plugin-app-react';
+import { Progress } from '@backstage/frontend-plugin-api';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { catalogImportTranslationRef } from '@backstage/plugin-catalog-import/alpha';
 import {
   catalogGraphApiRef,
@@ -239,6 +242,17 @@ export const customAppModule = createFrontendModule({
           <InvestigateLogButton log={log} getLogsSnapshot={getLogsSnapshot} />
         ),
       },
+    }),
+    // Swap Backstage's built-in `<Progress />` bar (the Suspense fallback
+    // `ExtensionBoundary` renders while a lazy page/extension chunk loads) for
+    // our centered PageLoader, so route transitions match the rest of the app.
+    SwappableComponentBlueprint.make({
+      name: 'progress',
+      params: defineParams =>
+        defineParams({
+          component: Progress,
+          loader: () => () => <PageLoader />,
+        }),
     }),
   ],
 });

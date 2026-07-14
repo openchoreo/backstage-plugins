@@ -1,5 +1,5 @@
 import { Box, Grid } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
+import { Skeleton } from '@openchoreo/backstage-design-system';
 import { useStyles } from './styles';
 
 export const TemplateCardSkeleton = () => {

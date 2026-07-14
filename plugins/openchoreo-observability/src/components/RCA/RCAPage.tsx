@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Routes, Route } from 'react-router-dom';
 import { Box, Typography, Button } from '@material-ui/core';
 import { RCAFilters } from './RCAFilters';
@@ -8,7 +9,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import type { RCAReportSummary } from '../../types';
 import { useUrlFilters, useRCAReports } from '../../hooks';
-import { Progress } from '@backstage/core-components';
+
 import { Alert } from '@material-ui/lab';
 import {
   useRcaPermission,
@@ -112,7 +113,7 @@ const RCAListContent = () => {
 
   return (
     <Box>
-      {reportsLoading && <Progress />}
+      {reportsLoading && <PageLoader />}
 
       {!reportsLoading && (
         <>
@@ -149,7 +150,7 @@ const RCAListView = () => {
   } = useRcaPermission();
 
   if (permissionLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canViewRca) {

@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Content,
-  Progress,
   Table,
   TableColumn,
   InfoCard,
@@ -43,6 +42,7 @@ import {
   TabItemData,
   RjsfForm,
   RefreshOverlay,
+  PageLoader,
 } from '@openchoreo/backstage-design-system';
 import {
   DetailPageLayout,
@@ -408,7 +408,7 @@ const TriggerForm = ({
   };
 
   if (loading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (error) {
@@ -603,7 +603,7 @@ const RunDetailView = ({
   );
 
   if (loading && !run) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (error) {
@@ -902,7 +902,7 @@ export const WorkflowRunsContent = () => {
         </Alert>
       )}
 
-      {runsLoading && <Progress />}
+      {runsLoading && <PageLoader />}
 
       {!runsLoading && runs.length === 0 && !showTriggerForm && (
         <Box className={classes.emptyState}>

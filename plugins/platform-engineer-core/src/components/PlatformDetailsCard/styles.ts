@@ -90,24 +90,6 @@ export const useStyles = makeStyles(theme => ({
     gap: theme.spacing(2),
     marginTop: theme.spacing(2),
   },
-  emptyState: {
-    textAlign: 'center',
-    padding: theme.spacing(4),
-    // Original: `#6b7280`.
-    color:
-      theme.palette.type === 'dark'
-        ? darkTokens.text.secondary
-        : lightTokens.text.subtle,
-    fontStyle: 'italic',
-  },
-  emptyStateIcon: {
-    fontSize: '3rem',
-    opacity: 0.3,
-    marginBottom: theme.spacing(2),
-  },
-  emptyStateTitle: {
-    marginBottom: theme.spacing(1),
-  },
   planeSection: {
     marginBottom: theme.spacing(3),
   },

@@ -12,9 +12,10 @@ import {
   UNSAFE_NavigationContext as NavigationContext,
 } from 'react-router-dom';
 import type { Navigator } from 'react-router-dom';
+import { Skeleton } from '@openchoreo/backstage-design-system';
 import { Box, Button, CircularProgress, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { Alert, Skeleton } from '@material-ui/lab';
+import { Alert } from '@material-ui/lab';
 import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import {

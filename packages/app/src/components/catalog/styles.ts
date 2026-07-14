@@ -332,16 +332,21 @@ export const useCardListStyles = makeStyles(theme => {
       color: theme.palette.text.secondary,
       fontSize: '0.95rem',
     },
-    loadingContainer: {
-      display: 'flex',
-      justifyContent: 'center',
-      padding: theme.spacing(6),
+    // Full-row loading placeholder. Height/width are set via the Skeleton props
+    // to match a real `entityRow` (minHeight 44, full width); the radius here
+    // matches the row's rounded corners.
+    skeletonRow: {
+      borderRadius: 6,
     },
     metadataChip: {
       fontSize: '0.7rem',
       height: 20,
       borderRadius: 4,
       fontWeight: 500,
+      // MUI v4's Chip root has no default max-width (unlike v5), so a long
+      // label grows past its grid track and gets clipped by the cell's
+      // `overflow: hidden`. Cap it to the cell so the label ellipsizes instead.
+      maxWidth: '100%',
     },
     agentStatus: {
       display: 'flex',

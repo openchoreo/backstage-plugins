@@ -1,5 +1,4 @@
 import { Box, Typography, Grid } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import TimelineIcon from '@material-ui/icons/Timeline';
 import { Link, Content } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -9,6 +8,7 @@ import {
   RefreshOverlay,
   lightTokens,
   darkTokens,
+  Skeleton,
 } from '@openchoreo/backstage-design-system';
 import { PipelineFlowVisualization } from '@openchoreo/backstage-plugin-react';
 import { useEnvironmentPipelines } from './useEnvironmentPipelines';

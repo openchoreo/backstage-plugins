@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Content,
-  Progress,
   InfoCard,
   StructuredMetadataTable,
 } from '@backstage/core-components';
@@ -16,6 +15,7 @@ import EventNoteOutlinedIcon from '@material-ui/icons/EventNoteOutlined';
 import {
   VerticalTabNav,
   TabItemData,
+  PageLoader,
 } from '@openchoreo/backstage-design-system';
 import {
   DetailPageLayout,
@@ -97,7 +97,7 @@ export const WorkflowRunDetailsPage = () => {
   if (loading && !run) {
     return (
       <Content>
-        <Progress />
+        <PageLoader />
       </Content>
     );
   }

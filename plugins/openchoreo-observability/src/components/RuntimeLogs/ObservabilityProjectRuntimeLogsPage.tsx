@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box, Typography, Button } from '@material-ui/core';
-import { Progress } from '@backstage/core-components';
+
 import { useApiHolder } from '@backstage/core-plugin-api';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -279,7 +280,7 @@ export const ObservabilityProjectRuntimeLogsPage = ({
     renderRowAction ?? apiHolder.get(logRowActionRendererApiRef)?.render;
 
   if (permissionLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canViewLogs) {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Skeleton } from '@openchoreo/backstage-design-system';
 import {
   Box,
   Chip,
@@ -12,7 +13,7 @@ import {
 } from '@material-ui/core';
 import type { PaperProps, PopperProps } from '@material-ui/core';
 import { alpha, makeStyles } from '@material-ui/core/styles';
-import { Autocomplete, Skeleton } from '@material-ui/lab';
+import { Autocomplete } from '@material-ui/lab';
 import AddIcon from '@material-ui/icons/Add';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import type { ComponentRelease } from '@openchoreo/backstage-plugin-common';

@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
+import { Skeleton } from '@openchoreo/backstage-design-system';
 import { Box, Typography } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import { InfoCard, Link } from '@backstage/core-components';
 import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useStyles } from './styles';

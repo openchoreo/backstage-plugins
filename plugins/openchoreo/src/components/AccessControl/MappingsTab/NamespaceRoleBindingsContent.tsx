@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, RefObject } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { createPortal } from 'react-dom';
 import {
   Typography,
@@ -33,7 +34,7 @@ import EditIcon from '@material-ui/icons/EditOutlined';
 import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import ClearIcon from '@material-ui/icons/Clear';
-import { Progress, ResponseErrorPanel } from '@backstage/core-components';
+import { ResponseErrorPanel } from '@backstage/core-components';
 import {
   useRoleMappingPermissions,
   ForbiddenState,
@@ -329,7 +330,7 @@ export const NamespaceRoleBindingsContent = ({
     roleFilter !== 'all' || searchQuery || effectFilter !== 'all';
 
   if (permissionsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canView) {
@@ -410,7 +411,7 @@ export const NamespaceRoleBindingsContent = ({
       ) : (
         <>
           {(loading || namespaceRolesLoading || clusterRolesLoading) && (
-            <Progress />
+            <PageLoader />
           )}
           {!loading &&
             !namespaceRolesLoading &&

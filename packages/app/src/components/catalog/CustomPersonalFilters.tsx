@@ -283,7 +283,9 @@ export const ProjectChip = () => {
       ]),
     );
   }, [queryParameters]);
-  const prevQueryProjectsRef = useRef<string[]>(queryProjects);
+  // Starts empty (not seeded with the initial query) so the effect below can
+  // detect and adopt a query param that is present on first render.
+  const prevQueryProjectsRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (prevKindRef.current !== kind) {
@@ -326,12 +328,14 @@ export const ProjectChip = () => {
     ) {
       return;
     }
-    const hadQueryProjects = prevQueryProjectsRef.current.length > 0;
+    const prevQueryProjects = prevQueryProjectsRef.current;
     prevQueryProjectsRef.current = queryProjects;
+    // Only react when the project query param itself changes; otherwise the
+    // stale URL param would keep overriding the user's own filter changes.
+    if (isSameSelection(prevQueryProjects, queryProjects)) {
+      return;
+    }
     if (queryProjects.length === 0) {
-      if (!hadQueryProjects) {
-        return;
-      }
       if (selectedProjects.length === 0) {
         return;
       }
@@ -474,7 +478,9 @@ export const ComponentChip = () => {
       ]),
     );
   }, [queryParameters]);
-  const prevQueryComponentsRef = useRef<string[]>(queryComponents);
+  // Starts empty (not seeded with the initial query) so the effect below can
+  // detect and adopt a query param that is present on first render.
+  const prevQueryComponentsRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (prevKindRef.current !== kind) {
@@ -509,12 +515,14 @@ export const ComponentChip = () => {
     if (kind?.toLowerCase() !== 'api') {
       return;
     }
-    const hadQueryComponents = prevQueryComponentsRef.current.length > 0;
+    const prevQueryComponents = prevQueryComponentsRef.current;
     prevQueryComponentsRef.current = queryComponents;
+    // Only react when the component query param itself changes; otherwise the
+    // stale URL param would keep overriding the user's own filter changes.
+    if (isSameSelection(prevQueryComponents, queryComponents)) {
+      return;
+    }
     if (queryComponents.length === 0) {
-      if (!hadQueryComponents) {
-        return;
-      }
       if (selectedComponents.length === 0) {
         return;
       }
@@ -630,7 +638,9 @@ export const NamespaceChip = () => {
       ),
     [queryParameters],
   );
-  const prevQueryNamespacesRef = useRef<string[]>(queryNamespaces);
+  // Starts empty (not seeded with the initial query) so the effect below can
+  // detect and adopt a query param that is present on first render.
+  const prevQueryNamespacesRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (prevKindRef.current !== kind) {
@@ -667,12 +677,16 @@ export const NamespaceChip = () => {
     if (!kind) {
       return;
     }
-    const hadQueryNamespaces = prevQueryNamespacesRef.current.length > 0;
+    const prevQueryNamespaces = prevQueryNamespacesRef.current;
     prevQueryNamespacesRef.current = queryNamespaces;
+    // Only react when the namespace query param itself changes (e.g. arriving
+    // from a header link). The param lingers in the URL after it's adopted, so
+    // reacting to any divergence from the current selection would snap the
+    // user's own filter changes right back to the stale URL value.
+    if (isSameSelection(prevQueryNamespaces, queryNamespaces)) {
+      return;
+    }
     if (queryNamespaces.length === 0) {
-      if (!hadQueryNamespaces) {
-        return;
-      }
       if (selectedNamespaces.length === 0) {
         return;
       }

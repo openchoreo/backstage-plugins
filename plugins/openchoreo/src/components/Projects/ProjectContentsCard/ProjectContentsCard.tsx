@@ -29,15 +29,12 @@ import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClic
 import {
   MultiSelectFilter,
   RefreshOverlay,
+  Skeleton,
   type MultiSelectGroup,
 } from '@openchoreo/backstage-design-system';
 import { CreateProjectContentButton } from './CreateProjectContentButton';
 import { ProjectContentsEmptyState } from './ProjectContentsEmptyState';
-import {
-  buildProjectContentColumns,
-  buildProjectContentSkeletonColumns,
-  PROJECT_CONTENT_SKELETON_ROWS,
-} from './columns';
+import { buildProjectContentColumns } from './columns';
 import { getKindLabel } from './kindPalette';
 import { useProjectContentsCardStyles } from './styles';
 
@@ -169,11 +166,6 @@ export const ProjectContentsCard = () => {
     [pipelineEnvironments, canViewBindings, pipelineError, environmentsLoading],
   );
 
-  const skeletonColumns = useMemo(
-    () => buildProjectContentSkeletonColumns(),
-    [],
-  );
-
   // --- Handlers ----------------------------------------------------------
   const handleKindsChange = (next: Set<string>) => {
     setSelectedKinds(next);
@@ -206,15 +198,31 @@ export const ProjectContentsCard = () => {
   // The project has no contents at all (vs. filters excluding everything).
   const isEmptyProject = !facets.loading && facets.counts.all === 0;
 
+  // First load — we don't yet know if this resolves to a table or the empty
+  // state, so show a neutral card skeleton rather than a table-shaped one.
+  // The page hook keeps prior rows during a refetch, so `items.length === 0`
+  // distinguishes the initial load from a search/sort/paging refresh.
+  const initialLoading =
+    !isEmptyProject &&
+    (facets.loading || (page.loading && page.items.length === 0));
+
+  const showTable = !isEmptyProject && !initialLoading;
+
   return (
     <Box className={classes.cardWrapper} position="relative">
       <RefreshOverlay active={envsRefetching} label="Refreshing environments" />
       <Box className={classes.header}>
         <Box className={classes.titleGroup}>
-          <Typography variant="h5">Project Contents</Typography>
-          <span className={classes.countBadge}>{facets.counts.all}</span>
+          {initialLoading ? (
+            <Skeleton variant="text" width={150} height={28} />
+          ) : (
+            <>
+              <Typography variant="h5">Project Contents</Typography>
+              <span className={classes.countBadge}>{facets.counts.all}</span>
+            </>
+          )}
         </Box>
-        {!isEmptyProject && (
+        {showTable && (
           <Box className={classes.headerActions}>
             <MultiSelectFilter
               label="Kind"
@@ -264,14 +272,16 @@ export const ProjectContentsCard = () => {
 
       {isEmptyProject ? (
         <ProjectContentsEmptyState entity={entity} />
+      ) : initialLoading ? (
+        <Box className={classes.skeletonBody}>
+          <Skeleton variant="rect" width="100%" height={240} />
+        </Box>
       ) : (
         <>
           <Box className={classes.tableScroll}>
             <Table<ProjectContentItem>
-              columns={tableLoading ? skeletonColumns : columns}
-              data={tableLoading ? PROJECT_CONTENT_SKELETON_ROWS : page.items}
-              // Render skeleton rows on the card's paper background instead of
-              // the Table's built-in CircularProgress overlay.
+              columns={columns}
+              data={page.items}
               isLoading={false}
               onOrderChange={handleOrderChange}
               onRowClick={(event, rowData) => {

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography } from '@material-ui/core';
-import { Progress } from '@backstage/core-components';
+
 import { Alert } from '@material-ui/lab';
 import {
   useRcaPermission,
@@ -54,7 +55,7 @@ const RCAReportContent = () => {
   };
 
   if (loading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!reportId) {
@@ -117,7 +118,7 @@ export const RCAReport = () => {
   } = useRcaPermission();
 
   if (permissionLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canViewRca) {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box, Typography, Button } from '@material-ui/core';
-import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
+import { EmptyState, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
@@ -279,7 +280,7 @@ export const ObservabilityAlertsPage = () => {
     deniedTooltip,
   } = useAlertsPermission();
 
-  if (permissionLoading) return <Progress />;
+  if (permissionLoading) return <PageLoader />;
 
   if (!canViewAlerts) {
     return (

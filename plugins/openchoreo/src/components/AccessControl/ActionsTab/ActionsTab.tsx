@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import {
   Typography,
   Box,
@@ -15,7 +16,7 @@ import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import ExpandLess from '@material-ui/icons/ExpandLess';
 import ExpandMore from '@material-ui/icons/ExpandMore';
-import { Progress, ResponseErrorPanel } from '@backstage/core-components';
+import { ResponseErrorPanel } from '@backstage/core-components';
 import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useActions } from '../hooks';
 import { useStyles } from './styles';
@@ -113,7 +114,7 @@ export const ActionsTab = () => {
   };
 
   if (loading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (error) {

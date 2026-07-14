@@ -1,4 +1,5 @@
 import { useState, RefObject } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { createPortal } from 'react-dom';
 import {
   Typography,
@@ -10,7 +11,7 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import { Progress } from '@backstage/core-components';
+
 import {
   useRolePermissions,
   ForbiddenState,
@@ -123,7 +124,7 @@ export const NamespaceRolesContent = ({
   };
 
   if (permissionsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canView) {
@@ -181,7 +182,7 @@ export const NamespaceRolesContent = ({
         </Box>
       ) : (
         <>
-          {loading && <Progress />}
+          {loading && <PageLoader />}
           {!loading &&
             error &&
             (isForbiddenError(error) ? (

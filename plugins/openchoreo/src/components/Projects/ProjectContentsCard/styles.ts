@@ -80,6 +80,10 @@ export const useProjectContentsCardStyles = makeStyles(theme => {
       width: '100%',
       overflowX: 'auto',
     },
+    skeletonBody: {
+      flexGrow: 1,
+      padding: theme.spacing(1, 3, 3),
+    },
 
     // --- Deployment status chips -------------------------------------------
     deploymentStatus: {

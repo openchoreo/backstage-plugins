@@ -7,7 +7,7 @@ import {
   Typography,
   makeStyles,
 } from '@material-ui/core';
-import { Alert, Skeleton } from '@material-ui/lab';
+import { Alert } from '@material-ui/lab';
 import type { JSONSchema7 } from 'json-schema';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -17,7 +17,7 @@ import {
   ForbiddenState,
   useProjectUpdatePermission,
 } from '@openchoreo/backstage-plugin-react';
-import { RjsfForm } from '@openchoreo/backstage-design-system';
+import { RjsfForm, Skeleton } from '@openchoreo/backstage-design-system';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { useNotification } from '../../hooks';

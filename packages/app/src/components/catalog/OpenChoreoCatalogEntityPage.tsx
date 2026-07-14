@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAsyncRetry from 'react-use/esm/useAsyncRetry';
 import type { Entity } from '@backstage/catalog-model';
@@ -41,6 +41,22 @@ function useEntityFromUrl(): EntityLoadingStatus {
     [catalogApi, kind, namespace, name],
   );
 
+  // Stale-while-revalidate: keep the previously resolved entity visible while
+  // the next one loads. `useAsyncRetry` resets `value` to undefined on every
+  // param change, which would make the descendant `EntitySwitch` render
+  // nothing (it drops all cases when `loading && !entity`) — unmounting the
+  // entire page, header included, on each cross-entity navigation. Retaining
+  // the previous entity keeps the layout/header mounted; the header still
+  // derives the *current* entity's identity from the URL params, so stale
+  // values never surface for the entity you navigated to.
+  const lastEntityRef = useRef<Entity | undefined>(undefined);
+  useEffect(() => {
+    if (!loading) {
+      lastEntityRef.current = entity;
+    }
+  }, [loading, entity]);
+  const stableEntity = loading ? entity ?? lastEntityRef.current : entity;
+
   useEffect(() => {
     if (!name) {
       errorApi.post(new Error('No name provided!'));
@@ -48,7 +64,7 @@ function useEntityFromUrl(): EntityLoadingStatus {
     }
   }, [errorApi, navigate, error, loading, entity, name]);
 
-  return { entity, loading, error, refresh };
+  return { entity: stableEntity, loading, error, refresh };
 }
 
 interface OpenChoreoCatalogEntityPageProps {

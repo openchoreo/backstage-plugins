@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { EmptyState } from '@backstage/core-components';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box } from '@material-ui/core';
 import { useNavigate } from 'react-router-dom';
-import { Progress, EmptyState } from '@backstage/core-components';
+
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
@@ -305,7 +307,7 @@ export const ResourceEnvironmentsList = () => {
   }
 
   if (loading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (error) {

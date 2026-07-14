@@ -17,6 +17,7 @@ import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
 import { HomePage } from './components/Home';
 import { CustomGraphNode } from '@openchoreo/backstage-plugin-react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { PlatformOverviewPage } from './components/platformOverview';
 
 import { AlertDisplay, OAuthRequestDialog } from '@backstage/core-components';
@@ -199,6 +200,11 @@ const app = createApp({
       registerComponent: catalogImportPlugin.routes.importPage,
       viewTechDoc: techdocsPlugin.routes.docRoot,
     });
+  },
+  advanced: {
+    // App-boot loader (waiting for config/features) — use our centered loader
+    // instead of the default Backstage progress bar.
+    loadingElement: <PageLoader />,
   },
 });
 

@@ -1,5 +1,4 @@
 import { Box, Typography } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import WifiIcon from '@material-ui/icons/Wifi';
 import WifiOffIcon from '@material-ui/icons/WifiOff';
@@ -7,7 +6,7 @@ import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import LinkIcon from '@material-ui/icons/Link';
 import clsx from 'clsx';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, Skeleton } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
 

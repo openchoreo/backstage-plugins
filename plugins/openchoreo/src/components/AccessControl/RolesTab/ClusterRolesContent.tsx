@@ -1,9 +1,10 @@
 import { useState, RefObject } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { createPortal } from 'react-dom';
 import { Button, Box, IconButton, Tooltip } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import { Progress, ResponseErrorPanel } from '@backstage/core-components';
+import { ResponseErrorPanel } from '@backstage/core-components';
 import {
   useClusterRolePermissions,
   ForbiddenState,
@@ -118,7 +119,7 @@ export const ClusterRolesContent = ({
   };
 
   if (loading || permissionsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (error) {

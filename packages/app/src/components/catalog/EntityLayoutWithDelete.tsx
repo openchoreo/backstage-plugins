@@ -1,8 +1,11 @@
 import { type ReactNode } from 'react';
 import { Box } from '@material-ui/core';
 import { useAsyncEntity, useEntity } from '@backstage/plugin-catalog-react';
-import { EmptyState, Progress } from '@backstage/core-components';
-import { VisuallyHidden } from '@openchoreo/backstage-design-system';
+import { EmptyState } from '@backstage/core-components';
+import {
+  VisuallyHidden,
+  PageLoader,
+} from '@openchoreo/backstage-design-system';
 import {
   useDeleteEntityMenuItems,
   useEntityExistsCheck,
@@ -105,7 +108,12 @@ function EntityLayoutWithDeleteContent({
     extraMenuItems: annotationMenuItems,
     EditAnnotationsDialog: AnnotationEditorDialog,
   } = useAnnotationEditorMenuItems(entity);
-  const { loading, status, message } = useEntityExistsCheck(entity);
+  // `useEntityExistsCheck` also exposes a `loading` flag, but we intentionally
+  // don't block the whole page on it. Blanking here on every navigation is a
+  // second source of the "page disappears then reappears" flash; instead we
+  // render the layout optimistically while the OpenChoreo existence check runs
+  // and only swap to an empty state once it resolves to not-found/deleted.
+  const { status, message } = useEntityExistsCheck(entity);
 
   const extraMenuItems = [...annotationMenuItems, ...deleteMenuItems];
 
@@ -117,11 +125,6 @@ function EntityLayoutWithDeleteContent({
 
   // Get display label for the entity type
   const entityTypeLabel = getEntityTypeLabel(entity.kind);
-
-  // Show loading state while checking entity status
-  if (loading) {
-    return <Progress />;
-  }
 
   // Show empty state with header if entity not found in OpenChoreo
   if (status === 'not-found') {
@@ -211,8 +214,12 @@ function EntityLayoutWithDeleteContent({
 export function EntityLayoutWithDelete(props: EntityLayoutWithDeleteProps) {
   const { entity, loading, error } = useAsyncEntity();
 
-  if (loading) {
-    return <Progress />;
+  // Only take over the whole viewport with a spinner on a true cold load (no
+  // entity resolved yet). During navigation between entities the provider
+  // keeps the previous entity (stale-while-revalidate), so we fall through and
+  // let the layout render — the header stays put and only the content updates.
+  if (loading && !entity) {
+    return <PageLoader />;
   }
 
   if (error) {

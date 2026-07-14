@@ -14,7 +14,9 @@ import {
   WorkflowPlane,
   ObservabilityPlane,
 } from '../../types';
-import { Box, CircularProgress, Typography } from '@material-ui/core';
+import { Box, Grid } from '@material-ui/core';
+import { Skeleton } from '@openchoreo/backstage-design-system';
+import { ErrorState } from '@openchoreo/backstage-plugin-react';
 
 interface PlatformPlanes {
   dataplanesWithEnvironments: DataPlaneWithEnvironments[];
@@ -167,29 +169,30 @@ export const HomePagePlatformDetailsCard = () => {
   const planes = data ?? EMPTY_PLANES;
 
   if (loading) {
+    // A working install always has at least one plane, and usually several, so
+    // we show a plausible three section-shaped skeletons in the same responsive
+    // grid rather than a lone placeholder.
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight={120}
-      >
-        <CircularProgress size={24} />
-      </Box>
+      <Grid container spacing={3}>
+        {[0, 1, 2].map(section => (
+          <Grid item xs={12} sm={6} md={4} key={section}>
+            <Box display="flex" flexDirection="column" gridGap={12}>
+              <Skeleton variant="text" width={180} height={24} />
+              <Skeleton variant="rect" width="100%" height={64} />
+            </Box>
+          </Grid>
+        ))}
+      </Grid>
     );
   }
 
   if (error) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight={120}
-      >
-        <Typography variant="body2" color="error">
-          Failed to load platform details
-        </Typography>
+      <Box minHeight={120}>
+        <ErrorState
+          message="Failed to load platform planes."
+          onRetry={fetchData}
+        />
       </Box>
     );
   }

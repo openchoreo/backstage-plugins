@@ -10,7 +10,7 @@ import {
   Typography,
   CircularProgress,
 } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
+import { SkeletonRows } from '@openchoreo/backstage-plugin-react';
 import type { AlertSummary } from '../../types';
 import { useLogsTableStyles } from '../RuntimeLogs/styles';
 import { AlertRow } from './AlertRow';
@@ -37,27 +37,6 @@ export const AlertsTable: FC<AlertsTableProps> = ({
   onViewCostAnalysis,
 }) => {
   const classes = useLogsTableStyles();
-
-  const renderLoadingSkeletons = () =>
-    Array.from({ length: 5 }).map((_, i) => (
-      <TableRow key={`skeleton-${i}`}>
-        <TableCell>
-          <Skeleton variant="text" width="100%" />
-        </TableCell>
-        <TableCell>
-          <Skeleton variant="text" width="100%" />
-        </TableCell>
-        <TableCell>
-          <Skeleton variant="text" width="100%" />
-        </TableCell>
-        <TableCell>
-          <Skeleton variant="text" width="100%" />
-        </TableCell>
-        <TableCell>
-          <Skeleton variant="text" width="100%" />
-        </TableCell>
-      </TableRow>
-    ));
 
   const renderEmptyState = () => (
     <TableRow>
@@ -100,7 +79,7 @@ export const AlertsTable: FC<AlertsTableProps> = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {loading && renderLoadingSkeletons()}
+            {loading && <SkeletonRows rows={5} cols={5} />}
             {!loading && filteredAlerts.length === 0 && renderEmptyState()}
             {!loading &&
               filteredAlerts.map(alert => (

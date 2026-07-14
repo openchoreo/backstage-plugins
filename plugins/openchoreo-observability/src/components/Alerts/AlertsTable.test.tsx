@@ -78,7 +78,8 @@ describe('AlertsTable', () => {
   it('shows loading skeletons when loading with no alerts', () => {
     renderTable({ alerts: [], loading: true });
 
-    const skeletons = document.querySelectorAll('.MuiSkeleton-root');
+    // SkeletonRows renders decorative (aria-hidden) shimmer placeholders.
+    const skeletons = document.querySelectorAll('[aria-hidden="true"]');
     expect(skeletons.length).toBeGreaterThan(0);
   });
 

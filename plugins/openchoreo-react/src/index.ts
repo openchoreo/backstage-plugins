@@ -24,6 +24,12 @@ export {
   LoadingState,
   type LoadingStateProps,
 } from './components/LoadingState';
+export {
+  ContentLoader,
+  type ContentLoaderProps,
+  SkeletonRows,
+  type SkeletonRowsProps,
+} from './components/ContentLoader';
 export { ErrorState, type ErrorStateProps } from './components/ErrorState';
 export {
   ForbiddenState,

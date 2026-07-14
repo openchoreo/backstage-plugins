@@ -1,10 +1,15 @@
-import { type ComponentProps, type ElementType, type ReactNode } from 'react';
+import {
+  Suspense,
+  type ComponentProps,
+  type ElementType,
+  type ReactNode,
+} from 'react';
 import { type Entity, type EntityRelation } from '@backstage/catalog-model';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import {
   Content,
   Link,
   Page,
-  Progress,
   RoutedTabs,
   WarningPanel,
 } from '@backstage/core-components';
@@ -120,7 +125,16 @@ export const OpenChoreoEntityLayout = (props: OpenChoreoEntityLayoutProps) => {
             {
               path: elementProps.path,
               title: elementProps.title,
-              children: elementProps.children,
+              // Tab content is often a raw `React.lazy` component (e.g. the
+              // observability Logs/Metrics/Alerts pages) with no Suspense of
+              // its own. Wrap it here — below the header and tab bar — so a
+              // lazy chunk load falls back within the content area instead of
+              // bubbling to the app-root Suspense and blanking the whole page.
+              children: (
+                <Suspense fallback={<PageLoader />}>
+                  {elementProps.children}
+                </Suspense>
+              ),
               tabProps: elementProps.tabProps,
             },
           ];
@@ -176,15 +190,17 @@ export const OpenChoreoEntityLayout = (props: OpenChoreoEntityLayoutProps) => {
           entity={entity}
           headerTitle={headerTitle}
           kind={kind ?? entity.kind}
-          entityName={entity.metadata.name}
+          // Drive the current entity's identity from the URL params so it is
+          // correct immediately during navigation (while `entity` may still be
+          // the stale previous one from stale-while-revalidate).
+          entityName={name ?? entity.metadata.name}
           kindDisplayNames={kindDisplayNames}
           parentEntity={parentEntity}
           ancestorEntity={ancestorEntity}
           contextMenu={contextMenuNode}
+          loading={loading}
         />
       )}
-
-      {loading && <Progress />}
 
       {entity && <RoutedTabs routes={routes} />}
 

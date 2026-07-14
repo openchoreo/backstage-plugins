@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Progress } from '@backstage/core-components';
+
 import Box from '@material-ui/core/Box';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
@@ -29,7 +29,10 @@ import {
   MoreVertMenuItem,
   Project,
 } from '@openchoreo/cell-diagram';
-import { useChoreoTokens } from '@openchoreo/backstage-design-system';
+import {
+  useChoreoTokens,
+  PageLoader,
+} from '@openchoreo/backstage-design-system';
 import {
   EmptyState,
   type Environment,
@@ -409,7 +412,7 @@ export const CellDiagram = () => {
         </Typography>
       )}
       {cellDiagramData && !hasNoComponents && envsLoadedOnce.current && (
-        <Suspense fallback={<Progress />}>
+        <Suspense fallback={<PageLoader />}>
           {(() => {
             const targetLayer =
               runtimeEnabled && hasObservations(cellDiagramData)
@@ -445,7 +448,7 @@ export const CellDiagram = () => {
       )}
       {((!cellDiagramData && (loading || !hasFetchedOnce)) ||
         (cellDiagramData && !hasNoComponents && !envsLoadedOnce.current)) && (
-        <Progress />
+        <PageLoader />
       )}
       {!cellDiagramData && hasFetchedOnce && !loading && (
         <Box

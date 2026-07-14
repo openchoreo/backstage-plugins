@@ -1,4 +1,5 @@
 import { useMemo, useCallback, useState, RefObject } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { createPortal } from 'react-dom';
 import {
   Typography,
@@ -33,7 +34,7 @@ import EditIcon from '@material-ui/icons/EditOutlined';
 import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import ClearIcon from '@material-ui/icons/Clear';
-import { Progress, ResponseErrorPanel } from '@backstage/core-components';
+import { ResponseErrorPanel } from '@backstage/core-components';
 import {
   useClusterRoleMappingPermissions,
   ForbiddenState,
@@ -317,7 +318,7 @@ export const ClusterRoleBindingsContent = ({
     filters.roleName || searchQuery || effectFilter !== 'all';
 
   if (loading || permissionsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
   if (
     wizardAction === 'create' ||

@@ -3,7 +3,7 @@ import { useApp } from '@backstage/core-plugin-api';
 import { Entity, RELATION_HAS_PART } from '@backstage/catalog-model';
 import { useEntity, useRelatedEntities } from '@backstage/plugin-catalog-react';
 import { Box, Button, Tooltip, Typography } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
+import { Skeleton } from '@openchoreo/backstage-design-system';
 import AddIcon from '@material-ui/icons/Add';
 import { useNavigate } from 'react-router-dom';
 import { isMarkedForDeletion, DeletionBadge } from '../../DeleteEntity';

@@ -4,11 +4,7 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
-import {
-  Progress,
-  ResponseErrorPanel,
-  EmptyState,
-} from '@backstage/core-components';
+import { ResponseErrorPanel, EmptyState } from '@backstage/core-components';
 import { Typography, Button, Box, CircularProgress } from '@material-ui/core';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import SettingsIcon from '@material-ui/icons/SettingsOutlined';
@@ -18,6 +14,7 @@ import {
   VerticalTabNav,
   TabItemData,
   SplitButton,
+  PageLoader,
 } from '@openchoreo/backstage-design-system';
 import type { SplitButtonOption } from '@openchoreo/backstage-design-system';
 import { WorkflowConfigPage } from '../WorkflowConfigPage';
@@ -389,7 +386,7 @@ export const Workflows = () => {
 
   // Loading state
   if (workflowData.loading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   // Error state

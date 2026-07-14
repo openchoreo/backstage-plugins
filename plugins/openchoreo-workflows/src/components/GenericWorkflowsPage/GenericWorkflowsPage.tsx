@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import {
   Content,
   Header,
   Page,
-  Progress,
   Table,
   TableColumn,
   WarningPanel,
@@ -200,7 +200,7 @@ const WorkflowsListContent = () => {
         </Box>
       )}
 
-      {selectedNamespace && workflowsLoading && <Progress />}
+      {selectedNamespace && workflowsLoading && <PageLoader />}
 
       {selectedNamespace && !workflowsLoading && (
         <>

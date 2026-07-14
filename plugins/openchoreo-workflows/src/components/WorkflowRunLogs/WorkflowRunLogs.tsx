@@ -1,5 +1,5 @@
-import { Progress } from '@backstage/core-components';
 import { Alert, AlertTitle } from '@material-ui/lab';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { VirtualizedLogList } from '@openchoreo/backstage-plugin-react';
@@ -62,7 +62,7 @@ export const WorkflowRunLogs = ({
   const classes = useStyles();
 
   if (loading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (error) {

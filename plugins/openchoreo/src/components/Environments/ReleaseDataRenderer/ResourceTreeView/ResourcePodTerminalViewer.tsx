@@ -19,8 +19,9 @@ import {
   Typography,
 } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
-import { Progress } from '@backstage/core-components';
+
 import { useExecPermission } from '@openchoreo/backstage-plugin-react';
 import { TerminalPanel, useExecSession } from '../../../Terminal';
 import { useTreeStyles } from './treeStyles';
@@ -196,7 +197,7 @@ export const ResourcePodTerminalViewer: FC<ResourcePodTerminalViewerProps> = ({
     );
   }, [execContext, podName, containerOptions, selectedContainer]);
 
-  if (permLoading) return <Progress />;
+  if (permLoading) return <PageLoader />;
 
   if (!canExec) {
     return (
