@@ -48,6 +48,7 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
 }));
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
+  ...jest.requireActual('@openchoreo/backstage-design-system'),
   RjsfForm: ({ onChange }: any) => (
     <button
       data-testid="rjsf-change"

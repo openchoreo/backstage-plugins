@@ -37,6 +37,13 @@ describe('Skeleton', () => {
     expect(queryByRole('status')).not.toBeInTheDocument();
   });
 
+  it('tags each placeholder with a default (overridable) data-testid', () => {
+    const { getAllByTestId, rerender } = render(<Skeleton count={3} />);
+    expect(getAllByTestId('skeleton')).toHaveLength(3);
+    rerender(<Skeleton data-testid="custom" />);
+    expect(getAllByTestId('custom')).toHaveLength(1);
+  });
+
   it('merges a caller style over the shimmer style (drop-in for MUI style prop)', () => {
     const { container } = render(
       <Skeleton variant="rect" height={36} style={{ marginTop: 12 }} />,

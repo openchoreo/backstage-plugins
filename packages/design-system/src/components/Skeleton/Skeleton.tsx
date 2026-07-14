@@ -58,6 +58,8 @@ export interface SkeletonProps {
   className?: string;
   /** Extra inline styles, merged over the shimmer style (caller wins). */
   style?: CSSProperties;
+  /** Test id on each placeholder element. @default 'skeleton' */
+  'data-testid'?: string;
 }
 
 /**
@@ -82,6 +84,7 @@ export const Skeleton = ({
   count = 1,
   className,
   style,
+  'data-testid': dataTestId = 'skeleton',
 }: SkeletonProps) => {
   const classes = useStyles();
   const tokens = useChoreoTokens();
@@ -111,6 +114,7 @@ export const Skeleton = ({
         .join(' ')}
       style={{ ...shimmerStyle, ...style }}
       aria-hidden="true"
+      data-testid={dataTestId}
     />
   );
 
