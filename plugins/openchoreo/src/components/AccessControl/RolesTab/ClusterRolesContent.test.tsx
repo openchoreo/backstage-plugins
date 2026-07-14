@@ -156,7 +156,7 @@ describe('ClusterRolesContent', () => {
 
     renderContent();
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('shows progress when permissions are loading', () => {
@@ -167,7 +167,7 @@ describe('ClusterRolesContent', () => {
 
     renderContent();
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('shows forbidden state for 403 error', () => {

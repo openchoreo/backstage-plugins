@@ -67,6 +67,7 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
       {children}
     </div>
   ),
+  Skeleton: () => <span data-testid="skeleton" />,
   useChoreoTokens: () => ({
     graph: { canvasDotPattern: 'none' },
   }),

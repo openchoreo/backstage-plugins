@@ -22,6 +22,7 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
   StatusBadge: ({ status }: any) => (
     <span data-testid="status-badge">{status}</span>
   ),
+  PageLoader: () => <div data-testid="page-loader" />,
   useChoreoTokens: () => ({ graph: { canvasDotPattern: '' } }),
 }));
 
@@ -163,7 +164,7 @@ describe('ResourceEnvironments', () => {
       fetchResourceEnvironmentInfo: jest.fn(() => new Promise(() => {})),
     };
     renderTab(client);
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    expect(screen.getByTestId('page-loader')).toBeInTheDocument();
   });
 
   it('renders the canvas with env tiles and starts with no env selected', async () => {

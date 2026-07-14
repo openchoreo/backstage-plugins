@@ -111,6 +111,7 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
       Build
     </button>
   ),
+  PageLoader: () => <div data-testid="progress" />,
 }));
 
 // Mock child components

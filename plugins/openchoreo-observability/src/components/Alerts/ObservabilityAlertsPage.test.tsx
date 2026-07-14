@@ -155,7 +155,7 @@ describe('ObservabilityAlertsPage', () => {
 
     await renderPage();
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('shows permission denied when user lacks access', async () => {

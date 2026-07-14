@@ -37,8 +37,8 @@ describe('SummaryWidgetWrapper', () => {
     // Title still renders; metric values do not.
     expect(screen.getByText('Deployments')).toBeInTheDocument();
     expect(screen.queryByText('Running')).not.toBeInTheDocument();
-    // MUI Skeletons carry the MuiSkeleton class.
-    expect(container.querySelectorAll('.MuiSkeleton-root').length).toBe(3);
+    // The design-system Skeleton renders decorative (aria-hidden) placeholders.
+    expect(container.querySelectorAll('[aria-hidden="true"]').length).toBe(3);
   });
 
   it('renders the error message instead of metrics when errorMessage is set', () => {

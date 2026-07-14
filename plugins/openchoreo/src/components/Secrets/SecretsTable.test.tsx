@@ -39,7 +39,7 @@ function renderTable(
 describe('SecretsTable', () => {
   it('shows progress bar when loading', () => {
     renderTable({ loading: true });
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('shows empty state when no secrets', () => {

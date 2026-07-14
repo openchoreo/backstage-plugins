@@ -52,6 +52,7 @@ jest.mock('@openchoreo/cell-diagram', () => ({
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
   useChoreoTokens: () => ({ mode: 'light' }),
+  PageLoader: () => <div data-testid="page-loader" />,
 }));
 
 jest.mock('@openchoreo/backstage-plugin-react', () => {

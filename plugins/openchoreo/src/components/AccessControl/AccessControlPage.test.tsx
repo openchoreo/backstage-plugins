@@ -15,6 +15,7 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
       {children}
     </div>
   ),
+  PageLoader: () => <div data-testid="progress" />,
 }));
 
 jest.mock('@backstage/core-components', () => ({

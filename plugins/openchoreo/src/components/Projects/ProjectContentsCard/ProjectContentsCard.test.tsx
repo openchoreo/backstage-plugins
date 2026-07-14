@@ -217,12 +217,17 @@ describe('ProjectContentsCard', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('keeps the table mounted during a refetch (loading with existing rows)', () => {
-    // A search/sort/paging refetch sets page.loading but retains prior rows;
-    // the table must stay put rather than collapsing back to the skeleton.
+  it('keeps the table mounted during a refetch after the first load', () => {
+    // Once the card has loaded, a subsequent refetch (page.loading true) must
+    // keep the table and header controls mounted rather than collapsing back to
+    // the skeleton — even if the refetch momentarily has no rows.
     setup([item('component', 'snip-api', 'deployment/service')], {
       totalItems: 7,
     });
+    const { rerender } = renderCard();
+    expect(screen.getByTestId('table')).toBeInTheDocument();
+
+    // Now a refetch is in flight (loading true, prior rows retained).
     mockUseProjectContentsPage.mockReturnValue({
       items: [item('component', 'snip-api', 'deployment/service')],
       totalItems: 7,
@@ -231,8 +236,13 @@ describe('ProjectContentsCard', () => {
       loading: true,
       error: null,
     });
-
-    renderCard();
+    rerender(
+      <MemoryRouter>
+        <EntityProvider entity={testEntity}>
+          <ProjectContentsCard />
+        </EntityProvider>
+      </MemoryRouter>,
+    );
 
     expect(screen.getByTestId('table')).toBeInTheDocument();
     expect(screen.getByText('snip-api')).toBeInTheDocument();

@@ -7,6 +7,7 @@ import { ProjectTypeOverviewCard } from './ProjectTypeOverviewCard';
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
   Card: ({ children }: any) => <div data-testid="card">{children}</div>,
+  Skeleton: () => <span data-testid="skeleton" />,
 }));
 
 jest.mock('../DataplaneOverview/styles', () => ({

@@ -159,7 +159,7 @@ describe('ObservabilityRuntimeEventsPage', () => {
 
     await renderPage();
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('shows the forbidden state when the user lacks permission', async () => {

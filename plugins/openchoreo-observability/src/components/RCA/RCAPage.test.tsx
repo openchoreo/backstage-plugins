@@ -145,7 +145,7 @@ describe('RCAPage', () => {
 
     await renderPage();
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('shows forbidden state when user lacks permission', async () => {
@@ -202,7 +202,7 @@ describe('RCAPage', () => {
 
     await renderPage();
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('shows info message when observability is disabled', async () => {

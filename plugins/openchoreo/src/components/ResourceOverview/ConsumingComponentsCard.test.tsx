@@ -11,6 +11,7 @@ jest.mock('@backstage/core-components', () => ({
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
   Card: ({ children }: any) => <div data-testid="card">{children}</div>,
+  PageLoader: () => <div data-testid="progress" />,
 }));
 
 jest.mock('../DataplaneOverview/styles', () => ({
