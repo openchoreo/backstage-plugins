@@ -270,13 +270,15 @@ export const ProjectContentsCard = () => {
         )}
       </Box>
 
-      {isEmptyProject ? (
-        <ProjectContentsEmptyState entity={entity} />
-      ) : initialLoading ? (
+      {isEmptyProject && <ProjectContentsEmptyState entity={entity} />}
+
+      {initialLoading && (
         <Box className={classes.skeletonBody}>
           <Skeleton variant="rect" width="100%" height={240} />
         </Box>
-      ) : (
+      )}
+
+      {showTable && (
         <>
           <Box className={classes.tableScroll}>
             <Table<ProjectContentItem>

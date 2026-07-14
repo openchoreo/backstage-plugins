@@ -20,7 +20,11 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { Link } from '@backstage/core-components';
 import { useNavigate } from 'react-router-dom';
 import { parseEntityRef } from '@backstage/catalog-model';
-import { Card, RefreshOverlay, Skeleton } from '@openchoreo/backstage-design-system';
+import {
+  Card,
+  RefreshOverlay,
+  Skeleton,
+} from '@openchoreo/backstage-design-system';
 import {
   useEnvironmentDeployedComponents,
   type DeployedComponent,

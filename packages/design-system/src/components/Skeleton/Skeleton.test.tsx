@@ -36,4 +36,15 @@ describe('Skeleton', () => {
     const { queryByRole } = render(<Skeleton />);
     expect(queryByRole('status')).not.toBeInTheDocument();
   });
+
+  it('merges a caller style over the shimmer style (drop-in for MUI style prop)', () => {
+    const { container } = render(
+      <Skeleton variant="rect" height={36} style={{ marginTop: 12 }} />,
+    );
+    const el = container.querySelector('[aria-hidden="true"]') as HTMLElement;
+    // Caller style is applied...
+    expect(el.style.marginTop).toBe('12px');
+    // ...alongside the component's own shimmer style.
+    expect(el.style.animationDuration).toBe('2s');
+  });
 });

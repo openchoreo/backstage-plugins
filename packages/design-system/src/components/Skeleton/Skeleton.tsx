@@ -56,6 +56,8 @@ export interface SkeletonProps {
    */
   count?: number;
   className?: string;
+  /** Extra inline styles, merged over the shimmer style (caller wins). */
+  style?: CSSProperties;
 }
 
 /**
@@ -79,6 +81,7 @@ export const Skeleton = ({
   height,
   count = 1,
   className,
+  style,
 }: SkeletonProps) => {
   const classes = useStyles();
   const tokens = useChoreoTokens();
@@ -106,7 +109,7 @@ export const Skeleton = ({
       className={[classes.skeleton, variantClass, className]
         .filter(Boolean)
         .join(' ')}
-      style={shimmerStyle}
+      style={{ ...shimmerStyle, ...style }}
       aria-hidden="true"
     />
   );
