@@ -181,7 +181,7 @@ const ObservabilityRuntimeEventsContent = () => {
   };
 
   if (environmentsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (environmentsStatus !== 'ok') {

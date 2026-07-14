@@ -44,7 +44,7 @@ export const HomePagePlatformDetailsCard = () => {
   const fetchApi = useApi(fetchApiRef);
   const catalogApi = useApi(catalogApiRef);
 
-  const { data, loading, isRefetching, error } =
+  const { data, loading, isRefetching, error, refetch } =
     useOpenChoreoQuery<PlatformPlanes>(
       ['platform-details', 'planes'],
       async () => {
@@ -191,7 +191,7 @@ export const HomePagePlatformDetailsCard = () => {
       <Box minHeight={120}>
         <ErrorState
           message="Failed to load platform planes."
-          onRetry={fetchData}
+          onRetry={refetch}
         />
       </Box>
     );

@@ -217,7 +217,7 @@ const ObservabilityAlertsContent = () => {
   };
 
   if (environmentsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (environmentsStatus !== 'ok') {

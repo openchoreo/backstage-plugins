@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { PageLoader } from '@openchoreo/backstage-design-system';
 import {
   Grid,

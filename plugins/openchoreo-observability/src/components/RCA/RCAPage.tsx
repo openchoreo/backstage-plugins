@@ -66,7 +66,7 @@ const RCAListContent = () => {
   }, [refresh]);
 
   if (environmentsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (environmentsStatus !== 'ok') {

@@ -100,7 +100,7 @@ const CostAnalysisListContent = () => {
   // Wait for the environment resolution before rendering the filters, so the
   // filter bar doesn't flash before we know whether to show the notice.
   if (environmentsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   // No resolvable environments (empty, forbidden, or unavailable) → show only
