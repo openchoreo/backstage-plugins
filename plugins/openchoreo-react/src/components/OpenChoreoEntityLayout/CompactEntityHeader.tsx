@@ -15,7 +15,6 @@ import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import Tooltip from '@material-ui/core/Tooltip';
 import Typography from '@material-ui/core/Typography';
-import Skeleton from '@material-ui/lab/Skeleton';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import { makeStyles } from '@material-ui/core/styles';
@@ -32,7 +31,11 @@ import {
   type EntityRelation,
 } from '@backstage/catalog-model';
 import { useNavigate } from 'react-router-dom';
-import { lightTokens, darkTokens } from '@openchoreo/backstage-design-system';
+import {
+  lightTokens,
+  darkTokens,
+  Skeleton,
+} from '@openchoreo/backstage-design-system';
 
 export interface CompactEntityHeaderProps {
   entity: Entity;

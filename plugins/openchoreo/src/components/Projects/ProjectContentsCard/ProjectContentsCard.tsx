@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Table } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useNavigate } from 'react-router-dom';
@@ -198,13 +198,23 @@ export const ProjectContentsCard = () => {
   // The project has no contents at all (vs. filters excluding everything).
   const isEmptyProject = !facets.loading && facets.counts.all === 0;
 
+  // Track whether the card has ever finished a load. Using `items.length === 0`
+  // to detect the initial load misfires when a filter yields 0 rows and is then
+  // changed — the refetch (loading + empty items) would look like a first load
+  // and unmount the header controls (incl. the search field being typed in).
+  const hasLoadedOnce = useRef(false);
+  useEffect(() => {
+    if (!page.loading && !facets.loading) {
+      hasLoadedOnce.current = true;
+    }
+  }, [page.loading, facets.loading]);
+
   // First load — we don't yet know if this resolves to a table or the empty
   // state, so show a neutral card skeleton rather than a table-shaped one.
-  // The page hook keeps prior rows during a refetch, so `items.length === 0`
-  // distinguishes the initial load from a search/sort/paging refresh.
   const initialLoading =
     !isEmptyProject &&
-    (facets.loading || (page.loading && page.items.length === 0));
+    !hasLoadedOnce.current &&
+    (facets.loading || page.loading);
 
   const showTable = !isEmptyProject && !initialLoading;
 

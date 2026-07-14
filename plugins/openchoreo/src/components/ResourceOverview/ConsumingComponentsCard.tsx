@@ -72,7 +72,7 @@ export const ConsumingComponentsCard = () => {
         <Typography variant="h5">{headerText}</Typography>
       </Box>
 
-      {loading && <PageLoader />}
+      {loading && <PageLoader minHeight={120} />}
 
       {!loading && error && (
         <Typography className={classes.statusValue} color="error">

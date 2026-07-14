@@ -142,7 +142,10 @@ const ObservabilityMetricsContent = () => {
   return (
     <Box position="relative">
       <RefreshOverlay active={isRefetching} label="Refreshing metrics" />
-      {(isLoading || metricsLoading) && <PageLoader />}
+      {/* Full-page loader only on the true first load; while metrics refetch
+          (metricsLoading) the filters + grid stay put and the RefreshOverlay
+          signals activity, so we don't push content down with a 60vh spinner. */}
+      {isLoading && <PageLoader />}
 
       {!isLoading && (
         <>
