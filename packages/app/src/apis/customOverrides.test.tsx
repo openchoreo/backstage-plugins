@@ -30,19 +30,15 @@ describe('customOverrides', () => {
     ).toBe('app');
   });
 
-  it('registers extensions on the customAppModule (SignInPage, Translation, LogRowAction)', () => {
+  it('registers extensions on the customAppModule (SignInPage, Translation, LogRowAction, Progress swap)', () => {
     const extensions = ((customAppModule as any).extensions ?? []) as Array<{
       id: string;
     }>;
     expect(Array.isArray(extensions)).toBe(true);
-    expect(extensions.length).toBeGreaterThan(0);
 
-    // The host registers exactly three extensions on the app module today:
-    // a SignInPage, a Translation override (catalog-import), and a
-    // LogRowAction renderer. Overview-slot cards (OpenChoreoAboutCard,
-    // WorkflowsOrExternalCICard) used to live here but moved back into the
-    // hand-authored `entityPage` JSX when we restored the custom
-    // page:catalog/entity override — see customOverrides.tsx for context.
-    expect(extensions).toHaveLength(3);
+    // SignInPage, Translation override (catalog-import), LogRowAction renderer,
+    // and the core-progress swappable-component override (PageLoader).
+    expect(extensions).toHaveLength(4);
+    expect(extensions.map(e => e.id)).toContain('component:app/progress');
   });
 });
