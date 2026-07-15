@@ -29,12 +29,16 @@ const useStyles = makeStyles((theme: Theme) =>
       whiteSpace: 'nowrap',
     },
     select: {
-      minWidth: 180,
+      minWidth: 270,
     },
     renderValue: {
       display: 'flex',
       alignItems: 'center',
       gap: theme.spacing(1),
+      minWidth: 0,
+      overflow: 'hidden',
+      whiteSpace: 'nowrap',
+      textOverflow: 'ellipsis',
       '& svg': {
         fontSize: '1.2rem',
         color: theme.palette.text.secondary,
