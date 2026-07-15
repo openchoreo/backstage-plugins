@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { Box, Chip, IconButton, Tooltip, Typography } from '@material-ui/core';
 import { PageLoader } from '@openchoreo/backstage-design-system';
 import { TablePagination } from '@material-ui/core';
@@ -16,6 +16,11 @@ import {
   DeletionBadge,
   isMarkedForDeletion,
 } from '@openchoreo/backstage-plugin';
+import {
+  queryClient,
+  useUserScopedKey,
+} from '@openchoreo/backstage-plugin-react';
+import type { QueryEntitiesResponse } from '@backstage/catalog-client';
 import { Entity } from '@backstage/catalog-model';
 import { useCardListStyles } from './styles';
 import {
@@ -159,32 +164,73 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
     navigate(url);
   };
 
-  const kindLabel = filters.kind?.label || filters.kind?.value || 'Entity';
-  const pluralLabel = kindPluralNames[kindLabel] || `${kindLabel}s`;
-  const titleText = `All ${totalItems === 1 ? kindLabel : pluralLabel}${
-    totalItems !== undefined ? ` (${totalItems})` : ''
-  }`;
-
   const selectedKind = filters.kind?.value?.toLowerCase();
   const gridTemplateClass = classes[getGridTemplate(selectedKind)];
   const headerColumns = getHeaderColumns(selectedKind);
 
+  // On a fresh mount (navigating back to /catalog) `useEntityList` starts with
+  // empty `entities` and re-runs its own async fetch, so it can't paint from
+  // cache synchronously — that's the skeleton flash. Seed the first render from
+  // the response our CachingCatalogApi already stored: read the warm
+  // `queryEntities` entry for the current kind straight out of the shared
+  // queryClient. This is READ-ONLY (a miss just falls back to the skeleton) and
+  // scoped to the signed-in user via useUserScopedKey, so it can't cross-serve.
+  const scopeKey = useUserScopedKey();
+  const seed = useMemo<QueryEntitiesResponse | undefined>(() => {
+    // Only needed while useEntityList has nothing of its own to show.
+    if (entities.length > 0) return undefined;
+    // Prefix match instead of reconstructing the exact request object (which
+    // Backstage builds via a non-exported reducer with `fullTextFilter:
+    // undefined` / `offset: undefined` subtleties). Pick the newest cached
+    // page whose request kind matches the current kind.
+    const prefix = scopeKey(['catalog', 'queryEntities']);
+    const matches = queryClient
+      .getQueryCache()
+      .findAll({ queryKey: prefix })
+      .map(q => ({
+        req: q.queryKey[4] as { filter?: { kind?: unknown } } | undefined,
+        data: q.state.data as QueryEntitiesResponse | undefined,
+      }))
+      .filter(({ data }) => data !== undefined)
+      .filter(({ req }) => {
+        if (!selectedKind) return true;
+        const reqKind = req?.filter?.kind;
+        const kinds = Array.isArray(reqKind) ? reqKind : [reqKind];
+        return kinds.some(k => String(k).toLowerCase() === selectedKind);
+      });
+    return matches[0]?.data;
+  }, [entities.length, scopeKey, selectedKind]);
+
+  // Rows to render: the live list once it has resolved, else the cached seed.
+  const displayEntities = entities.length > 0 ? entities : seed?.items ?? [];
+  // Prefer the live count; fall back to the seed's while it loads.
+  const displayTotal = totalItems ?? seed?.totalItems;
+
+  const kindLabel = filters.kind?.label || filters.kind?.value || 'Entity';
+  const pluralLabel = kindPluralNames[kindLabel] || `${kindLabel}s`;
+  const titleText = `All ${displayTotal === 1 ? kindLabel : pluralLabel}${
+    displayTotal !== undefined ? ` (${displayTotal})` : ''
+  }`;
+
   // Show the skeleton only on a COLD load — when there is nothing safe to keep
-  // on screen. On a same-kind revisit, `useEntityList` keeps the previously
-  // resolved entities painted while a background refetch runs (the catalog
-  // reads route through the cached CatalogApi), so we keep the rows instead of
+  // on screen: no live entities, no cached seed. On a same-kind revisit,
+  // `useEntityList` keeps the previously resolved entities (or we paint the
+  // cached seed) while a background refetch runs, so we keep rows instead of
   // wiping to a skeleton.
   //
   // A kind SWITCH is treated as cold even though `useEntityList` still holds
   // the old kind's entities: the column set is derived from `selectedKind`, so
   // rendering the previous kind's rows under the new kind's headers would
   // misalign columns. Detect it by comparing the held entities' kind to the
-  // selected kind.
+  // selected kind. (The seed is already kind-matched, so it never trips this.)
   const heldKindMatches =
     entities.length === 0 ||
     !selectedKind ||
     entities[0].kind?.toLowerCase() === selectedKind;
-  const firstLoad = loading && (entities.length === 0 || !heldKindMatches);
+  const firstLoad =
+    loading &&
+    displayEntities.length === 0 &&
+    (entities.length === 0 || !heldKindMatches);
 
   return (
     <Box>
@@ -204,10 +250,10 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
       </Box>
 
       {firstLoad && <PageLoader minHeight={240} />}
-      {!loading && entities.length === 0 && (
+      {!loading && displayEntities.length === 0 && (
         <Box className={classes.emptyState}>No entities found</Box>
       )}
-      {!firstLoad && entities.length > 0 && (
+      {!firstLoad && displayEntities.length > 0 && (
         <Box className={classes.listContainer}>
           {/* Header row */}
           <Box className={`${classes.headerRow} ${gridTemplateClass}`}>
@@ -218,7 +264,7 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
             ))}
           </Box>
 
-          {entities.map(entity => {
+          {displayEntities.map(entity => {
             const name =
               entity.metadata.title || entity.metadata.name || 'Unnamed';
             const description = entity.metadata.description || '';
@@ -457,10 +503,10 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
         </Box>
       )}
 
-      {!firstLoad && totalItems !== undefined && totalItems > 0 && (
+      {!firstLoad && displayTotal !== undefined && displayTotal > 0 && (
         <Box className={classes.paginationContainer}>
           <TablePagination
-            count={totalItems}
+            count={displayTotal}
             page={
               offset !== undefined && limit > 0 ? Math.floor(offset / limit) : 0
             }

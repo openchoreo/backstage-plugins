@@ -25,3 +25,9 @@ lists) now read their data through `useOpenChoreoQuery` instead of an imperative
 `await catalogApi.getEntities(...)`, so reopening a level renders the cached list
 instantly (no loading spinner) and only revalidates in the background, rather
 than blocking on the network every open.
+
+The catalog list page seeds its initial rows from the cached `queryEntities`
+response (via the newly exported `useUserScopedKey`), so returning to a
+previously viewed list paints instantly from cache instead of flashing a
+skeleton while `useEntityList` re-fetches. `useUserScopedKey` is now exported
+from `@openchoreo/backstage-plugin-react`.
