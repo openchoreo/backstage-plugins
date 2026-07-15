@@ -32,6 +32,7 @@ import {
   useMetricsPermission,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { NoEnvironmentsEmptyState } from '../common';
 
 const ObservabilityMetricsContent = () => {
   const classes = useObservabilityMetricsPageStyles();
@@ -103,6 +104,14 @@ const ObservabilityMetricsContent = () => {
   if (environmentsError) {
     // TODO: Add a toast notification here
     return <></>;
+  }
+
+  if (!environmentsLoading && environments.length === 0) {
+    return (
+      <Box>
+        <NoEnvironmentsEmptyState feature="metrics" />
+      </Box>
+    );
   }
 
   const isLoading = environmentsLoading;

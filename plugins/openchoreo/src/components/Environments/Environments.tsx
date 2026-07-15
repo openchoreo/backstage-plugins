@@ -29,7 +29,7 @@ export const Environments = () => {
   const { navigateToList } = useEnvironmentRouting();
 
   // Data fetching
-  const { environments, loading, isForbidden, refetch } =
+  const { environments, loading, error, isForbidden, refetch } =
     useEnvironmentData(entity);
   const { displayEnvironments, isPending } = useStaleEnvironments(environments);
 
@@ -92,6 +92,7 @@ export const Environments = () => {
       environments,
       displayEnvironments,
       loading,
+      error: isForbidden ? undefined : error,
       refetch,
       lowestEnvironment: environments[0]?.name?.toLowerCase() || 'development',
       isWorkloadEditorSupported,
@@ -107,6 +108,8 @@ export const Environments = () => {
       environments,
       displayEnvironments,
       loading,
+      error,
+      isForbidden,
       refetch,
       isWorkloadEditorSupported,
       handlePendingActionComplete,

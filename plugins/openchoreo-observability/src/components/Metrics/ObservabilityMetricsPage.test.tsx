@@ -339,4 +339,24 @@ describe('ObservabilityMetricsPage', () => {
     expect(screen.queryByTestId('metrics-filters')).not.toBeInTheDocument();
     expect(screen.queryByTestId('metrics-actions')).not.toBeInTheDocument();
   });
+
+  it('shows no environments notice when none found', async () => {
+    mockUseGetEnvironmentsByNamespace.mockReturnValue({
+      environments: [],
+      loading: false,
+      error: null,
+    });
+
+    mockUseUrlFilters.mockReturnValue({
+      filters: { environment: undefined, timeRange: '1h' },
+      updateFilters: jest.fn(),
+    });
+
+    await renderPage();
+
+    expect(
+      screen.getByText(/No environments available to view metrics/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('metrics-filters')).not.toBeInTheDocument();
+  });
 });

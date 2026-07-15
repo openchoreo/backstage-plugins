@@ -9,6 +9,12 @@ import { ResourceEnvironmentsList } from './ResourceEnvironmentsList';
 
 jest.mock('@backstage/core-components', () => ({
   Progress: () => <div data-testid="progress" />,
+  EmptyState: ({ missing, title, description }: any) => (
+    <div data-testid={missing === 'data' ? 'error-state' : 'empty-state'}>
+      <span>{title}</span>
+      <span>{typeof description === 'string' ? description : ''}</span>
+    </div>
+  ),
 }));
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
@@ -22,6 +28,18 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   ForbiddenState: ({ message }: any) => (
     <div data-testid="forbidden">{message}</div>
+  ),
+  EmptyState: ({ title, description }: any) => (
+    <div data-testid="empty-state">
+      <span>{title}</span>
+      <span>{description}</span>
+    </div>
+  ),
+  ErrorState: ({ title, message }: any) => (
+    <div data-testid="error-state">
+      <span>{title}</span>
+      <span>{message}</span>
+    </div>
   ),
   useResourceReleaseBindingUpdatePermission: () => ({
     canUpdate: true,
@@ -86,6 +104,14 @@ jest.mock('../Environments/components', () => ({
         {notification.message}
       </div>
     ) : null,
+}));
+
+jest.mock('../Environments/components/NoEnvironmentsEmptyState', () => ({
+  NoEnvironmentsEmptyState: () => (
+    <div>
+      This project's deployment pipeline has no environments configured.
+    </div>
+  ),
 }));
 
 function makeEntity(): Entity {

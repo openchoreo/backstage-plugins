@@ -18,6 +18,7 @@ import {
   useRcaPermission,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { NoEnvironmentsEmptyState } from '../common';
 import { CostAnalysisReport } from './CostAnalysisReport';
 import { EntityLinkContext } from '../RCA/RCAReport/EntityLinkContext';
 
@@ -65,6 +66,14 @@ const CostAnalysisListContent = () => {
   const handleRefresh = useCallback(() => {
     refresh();
   }, [refresh]);
+
+  if (!environmentsLoading && !environmentsError && environments.length === 0) {
+    return (
+      <Box>
+        <NoEnvironmentsEmptyState feature="cost analysis reports" />
+      </Box>
+    );
+  }
 
   const renderError = (error: string) => {
     const isObservabilityDisabled = error.includes(

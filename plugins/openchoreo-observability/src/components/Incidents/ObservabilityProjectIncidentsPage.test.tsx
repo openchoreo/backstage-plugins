@@ -226,8 +226,9 @@ describe('ObservabilityProjectIncidentsPage', () => {
     await renderPage();
 
     expect(
-      screen.getByText('No environments found for this project.'),
+      screen.getByText(/No environments available to view incidents/i),
     ).toBeInTheDocument();
+    expect(screen.queryByTestId('incidents-filter')).not.toBeInTheDocument();
   });
 
   it('does not render actions/table when no environment selected', async () => {

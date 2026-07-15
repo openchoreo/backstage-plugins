@@ -15,6 +15,7 @@ import {
   useUpdateIncident,
 } from '../../hooks';
 import { useIncidentsPermission } from '@openchoreo/backstage-plugin-react';
+import { NoEnvironmentsEmptyState } from '../common';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
 import type { IncidentSummary } from '../../types';
 
@@ -259,6 +260,14 @@ const ObservabilityProjectIncidentsContent = () => {
     return <Box>{renderError(componentsError)}</Box>;
   }
 
+  if (!environmentsLoading && environments.length === 0) {
+    return (
+      <Box>
+        <NoEnvironmentsEmptyState feature="incidents" />
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <IncidentsFilter
@@ -272,16 +281,6 @@ const ObservabilityProjectIncidentsContent = () => {
       />
 
       {incidentsError && renderError(incidentsError)}
-
-      {!filters.environment &&
-        !environmentsLoading &&
-        environments.length === 0 && (
-          <Alert severity="info" className={classes.errorContainer}>
-            <Typography variant="body1">
-              No environments found for this project.
-            </Typography>
-          </Alert>
-        )}
 
       {filters.environment && (
         <>

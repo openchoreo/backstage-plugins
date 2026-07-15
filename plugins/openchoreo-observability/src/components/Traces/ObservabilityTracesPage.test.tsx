@@ -288,4 +288,24 @@ describe('ObservabilityTracesPage', () => {
 
     expect(screen.queryByTestId('traces-filters')).not.toBeInTheDocument();
   });
+
+  it('shows no environments notice when none found', async () => {
+    mockUseGetEnvironmentsByNamespace.mockReturnValue({
+      environments: [],
+      loading: false,
+      error: null,
+    });
+
+    mockUseUrlFilters.mockReturnValue({
+      filters: { environment: undefined, timeRange: '1h' },
+      updateFilters: jest.fn(),
+    });
+
+    await renderPage();
+
+    expect(
+      screen.getByText(/No environments available to view traces/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('traces-filters')).not.toBeInTheDocument();
+  });
 });

@@ -1,4 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
+import { NotFoundError } from '@backstage/errors';
 import {
   createOpenChoreoApiClient,
   assertApiResponse,
@@ -94,7 +95,7 @@ export class ProjectInfoService {
 
       const pipelineName = project!.spec?.deploymentPipelineRef?.name;
       if (!pipelineName) {
-        throw new Error(
+        throw new NotFoundError(
           `Project ${projectName} has no deployment pipeline reference`,
         );
       }

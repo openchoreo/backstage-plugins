@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Typography, makeStyles } from '@material-ui/core';
+import { Box } from '@material-ui/core';
 import { useNavigate } from 'react-router-dom';
-import { Progress } from '@backstage/core-components';
+import { Progress, EmptyState } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
@@ -12,6 +12,7 @@ import {
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { useNotification } from '../../hooks';
 import { NotificationBanner } from '../Environments/components';
+import { NoEnvironmentsEmptyState } from '../Environments/components/NoEnvironmentsEmptyState';
 import { useEnvironmentPolling } from '../Environments/hooks';
 import { ResourceDeployFlowCanvas } from './ResourceDeployFlowCanvas';
 import { ResourceEnvironmentDetailPanel } from './ResourceEnvironmentDetailPanel';
@@ -28,16 +29,6 @@ import {
 import { ResourceRemoveDeploymentDialog } from './ResourceRemoveDeploymentDialog';
 import { useResourceDeployFlowCanvasStyles } from './styles';
 
-const useStyles = makeStyles(theme => ({
-  error: {
-    color: theme.palette.error.main,
-  },
-  empty: {
-    color: theme.palette.text.secondary,
-    fontStyle: 'italic',
-  },
-}));
-
 /**
  * Deploy view mounted at the `/` sub-route of the Resource entity's
  * `/environments` tab. Renders the pipeline DAG with the Set up tile +
@@ -46,7 +37,6 @@ const useStyles = makeStyles(theme => ({
  * reachable from the Set up detail pane's Configure & Deploy button.
  */
 export const ResourceEnvironmentsList = () => {
-  const classes = useStyles();
   const canvasClasses = useResourceDeployFlowCanvasStyles();
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
@@ -320,18 +310,16 @@ export const ResourceEnvironmentsList = () => {
 
   if (error) {
     return (
-      <Typography variant="body1" className={classes.error}>
-        Failed to load environments: {getErrorMessage(error)}
-      </Typography>
+      <EmptyState
+        missing="data"
+        title="Failed to load environments"
+        description={getErrorMessage(error)}
+      />
     );
   }
 
   if (envs.length === 0) {
-    return (
-      <Typography variant="body1" className={classes.empty}>
-        No environments configured in the project's deployment pipeline.
-      </Typography>
-    );
+    return <NoEnvironmentsEmptyState />;
   }
 
   return (
