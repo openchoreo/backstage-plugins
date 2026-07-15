@@ -19,3 +19,9 @@ The `queryClient` default `staleTime` changes from 30s to 0 (always
 stale-while-revalidate): a revisited surface paints cached data instantly and
 always runs a background refresh, so nothing on screen is left silently stale.
 The two hooks that set an explicit 30s `staleTime` now inherit this default.
+
+The entity-header breadcrumb dropdowns (namespace/project/component sibling
+lists) now read their data through `useOpenChoreoQuery` instead of an imperative
+`await catalogApi.getEntities(...)`, so reopening a level renders the cached list
+instantly (no loading spinner) and only revalidates in the background, rather
+than blocking on the network every open.
