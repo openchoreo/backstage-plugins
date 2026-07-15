@@ -28,7 +28,7 @@ export function useTraceSpans(options: UseTraceSpansOptions) {
   // Bumped whenever a fetch resolves so cache-backed reads re-render.
   const [, setVersion] = useState(0);
 
-    // A trace id is globally unique and a trace is atomic, so its spans are the
+  // A trace id is globally unique and a trace is atomic, so its spans are the
   // same regardless of the filter/time scope used to find it in the list. Key
   // by trace id alone (user-scoped by the cache) — the scope/time only belong
   // in the trace-list key, which does depend on the filters.
