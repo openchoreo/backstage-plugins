@@ -103,10 +103,12 @@ describe('useOpenChoreoQuery', () => {
   it('inherits the QueryClient staleTime when the caller omits it (no refetch on remount)', async () => {
     // Regression: the hook must NOT forward `staleTime: undefined` to useQuery.
     // TanStack treats an explicit `undefined` as an override that resolves to 0,
-    // which marks the query stale immediately and refetches on every remount —
-    // silently defeating the app-level 30s cache. A caller with no staleTime
-    // should inherit the client default, so a remount within that window serves
-    // from cache without re-invoking the fetcher.
+    // which marks the query stale immediately and refetches on every remount. A
+    // caller with no staleTime should inherit whatever the client default is —
+    // proven here with a client that sets a nonzero staleTime, so a remount
+    // within that window serves from cache without re-invoking the fetcher. (The
+    // app-level default is 0/always-revalidate; this test uses 60s locally to
+    // exercise the inherit-the-default path, which is what the regression guards.)
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: 60_000 } },
     });

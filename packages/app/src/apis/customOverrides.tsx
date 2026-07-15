@@ -32,6 +32,13 @@ import {
 } from '@backstage/plugin-catalog-react';
 import { DefaultEntityPresentationApi } from '@backstage/plugin-catalog';
 import {
+  discoveryApiRef,
+  fetchApiRef,
+  identityApiRef,
+} from '@backstage/core-plugin-api';
+import { CatalogClient } from '@backstage/catalog-client';
+import { CachingCatalogApi } from '@openchoreo/backstage-plugin-react';
+import {
   formDecoratorsApiRef,
   DefaultScaffolderFormDecoratorsApi,
 } from '@backstage/plugin-scaffolder/alpha';
@@ -149,6 +156,38 @@ export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
             <m.CustomCatalogPage initialKind="system" />
           )),
       },
+    }),
+    // Wrap `api:catalog` with a caching CatalogApi so the catalog list
+    // (`useEntityList` → getEntities/queryEntities) and the entity page
+    // (getEntityByRef) read through the shared OpenChoreo `queryClient`.
+    // Without this, Backstage's own catalog hooks re-fetch on every mount and
+    // flash a skeleton on revisit; with it, a revisited catalog surface paints
+    // instantly from the warm cache and revalidates in the background. Mirrors
+    // upstream's factory (`new CatalogClient({ discoveryApi, fetchApi })`) and
+    // adds `identityApi` to namespace cache keys per signed-in user.
+    catalogPluginAlphaBase.getExtension('api:catalog').override({
+      params: defineParams =>
+        defineParams({
+          api: catalogApiRef,
+          deps: {
+            discoveryApi: discoveryApiRef,
+            fetchApi: fetchApiRef,
+            identityApi: identityApiRef,
+          },
+          factory: ({ discoveryApi, fetchApi, identityApi }) => {
+            const base = new CatalogClient({ discoveryApi, fetchApi });
+            // Resolve the signed-in user's entityRef once and reuse it — the
+            // identity is stable for the session, and the wrapper only needs it
+            // to build per-user cache keys.
+            let cachedUserRef: Promise<string | undefined> | undefined;
+            const getUserRef = () =>
+              (cachedUserRef ??= identityApi
+                .getBackstageIdentity()
+                .then(({ userEntityRef }) => userEntityRef)
+                .catch(() => undefined));
+            return new CachingCatalogApi(base, getUserRef);
+          },
+        }),
     }),
     catalogPluginAlphaBase
       .getExtension('api:catalog/entity-presentation')

@@ -105,8 +105,8 @@ export function useIncidentsSummary(
       return counts;
     },
     {
-      // Freshness matches the old 1h window intent; short so revisits refresh.
-      staleTime: 30_000,
+      // staleTime inherits the client default (0) — revisits paint cache and
+      // always revalidate in the background.
       enabled:
         !!observabilityApi &&
         !!componentName &&

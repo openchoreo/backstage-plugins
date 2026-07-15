@@ -13,11 +13,16 @@ import { QueryClient } from '@tanstack/react-query';
  * "No QueryClient set" crash from a missing provider.
  *
  * Rationale for the defaults:
- * - `staleTime: 30s` — within this window a revisited tab paints from cache
- *   with no refetch; after it, cached data still paints instantly and a silent
- *   background revalidation runs. Status-y hooks pass a shorter value.
+ * - `staleTime: 0` — stale-while-revalidate: a revisited surface paints cached
+ *   data instantly (from the still-warm `gcTime` entry) AND always kicks a
+ *   background revalidation, so data on screen is never left silently stale.
+ *   Data is fresh cluster/BFF state, so we prefer an always-up-to-date view
+ *   over suppressing refetches within a freshness window. Concurrent callers
+ *   still dedupe to one request; an explicit `refetch()`/invalidate is
+ *   immediate regardless. Pollers set their own `refetchInterval`.
  * - `gcTime: 5m` — how long an unused cache entry survives after its last
- *   observer unmounts, so navigating away and back still hits warm cache.
+ *   observer unmounts, so navigating away and back still hits warm cache. With
+ *   `staleTime: 0` this is what carries the instant-paint on revisit.
  * - `refetchOnWindowFocus: false` — this is an internal platform tool; data
  *   isn't second-to-second critical and focus-refetch is surprising here.
  * - `retry: 1` — one retry smooths a transient blip without hammering a slow
@@ -26,7 +31,7 @@ import { QueryClient } from '@tanstack/react-query';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
+      staleTime: 0,
       gcTime: 5 * 60_000,
       refetchOnWindowFocus: false,
       retry: 1,

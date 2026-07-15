@@ -169,6 +169,23 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
   const gridTemplateClass = classes[getGridTemplate(selectedKind)];
   const headerColumns = getHeaderColumns(selectedKind);
 
+  // Show the skeleton only on a COLD load — when there is nothing safe to keep
+  // on screen. On a same-kind revisit, `useEntityList` keeps the previously
+  // resolved entities painted while a background refetch runs (the catalog
+  // reads route through the cached CatalogApi), so we keep the rows instead of
+  // wiping to a skeleton.
+  //
+  // A kind SWITCH is treated as cold even though `useEntityList` still holds
+  // the old kind's entities: the column set is derived from `selectedKind`, so
+  // rendering the previous kind's rows under the new kind's headers would
+  // misalign columns. Detect it by comparing the held entities' kind to the
+  // selected kind.
+  const heldKindMatches =
+    entities.length === 0 ||
+    !selectedKind ||
+    entities[0].kind?.toLowerCase() === selectedKind;
+  const firstLoad = loading && (entities.length === 0 || !heldKindMatches);
+
   return (
     <Box>
       <Box className={classes.searchAndTitle}>
@@ -186,11 +203,11 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
         </Box>
       </Box>
 
-      {loading && <PageLoader minHeight={240} />}
+      {firstLoad && <PageLoader minHeight={240} />}
       {!loading && entities.length === 0 && (
         <Box className={classes.emptyState}>No entities found</Box>
       )}
-      {!loading && entities.length > 0 && (
+      {!firstLoad && entities.length > 0 && (
         <Box className={classes.listContainer}>
           {/* Header row */}
           <Box className={`${classes.headerRow} ${gridTemplateClass}`}>
@@ -440,7 +457,7 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
         </Box>
       )}
 
-      {!loading && totalItems !== undefined && totalItems > 0 && (
+      {!firstLoad && totalItems !== undefined && totalItems > 0 && (
         <Box className={classes.paginationContainer}>
           <TablePagination
             count={totalItems}

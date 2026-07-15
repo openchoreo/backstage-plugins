@@ -543,6 +543,7 @@ export {
 } from './hooks/useOpenChoreoInfiniteQuery';
 export { queryClient } from './query/queryClient';
 export { OpenChoreoQueryProvider } from './query/OpenChoreoQueryProvider';
+export { CachingCatalogApi, type GetUserRef } from './query/CachingCatalogApi';
 
 // Change Detection Components
 export { ChangeDiff, type ChangeDiffProps } from './components/ChangeDiff';
