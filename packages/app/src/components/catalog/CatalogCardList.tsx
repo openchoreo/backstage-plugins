@@ -149,6 +149,7 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
     totalItems,
     loading,
     filters,
+    queryParameters,
     limit,
     offset,
     setLimit,
@@ -164,7 +165,15 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
     navigate(url);
   };
 
-  const selectedKind = filters.kind?.value?.toLowerCase();
+  // Prefer the applied filter's kind, but fall back to the URL query param on a
+  // fresh mount: `filters.kind` is only populated once ChoreoEntityKindPicker's
+  // effect re-registers it (which waits on an async kind fetch), so for the
+  // instant-paint window `filters.kind` is undefined while the URL already
+  // carries the kind. The picker reads the same `queryParameters.kind` first.
+  const urlKind = (
+    [queryParameters?.kind].flat()[0] as string | undefined
+  )?.toLowerCase();
+  const selectedKind = filters.kind?.value?.toLowerCase() ?? urlKind;
   const gridTemplateClass = classes[getGridTemplate(selectedKind)];
   const headerColumns = getHeaderColumns(selectedKind);
 
@@ -175,38 +184,79 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
   // `queryEntities` entry for the current kind straight out of the shared
   // queryClient. This is READ-ONLY (a miss just falls back to the skeleton) and
   // scoped to the signed-in user via useUserScopedKey, so it can't cross-serve.
+  // The seed only paints while the live list is empty AND the view is the plain
+  // first page of a kind — no chip/search filter, no pagination offset. Any
+  // other filter narrows the query in ways we can't reconstruct from the cache
+  // key alone, so seeding then would risk showing a broader page's rows (wrong
+  // scope) or stale rows for a filter that now returns nothing. Restricting to
+  // the unfiltered first page keeps the seed correct-by-construction.
+  // `project`/`component` are custom OpenChoreo filters registered via
+  // `updateFilters` (typed as `any` at their call sites), so they aren't on the
+  // `DefaultEntityFilters` shape — read them through a widened view.
+  const activeFilters = filters as Record<string, unknown>;
+  const hasNarrowingFilter = Boolean(
+    activeFilters.namespace ||
+      activeFilters.project ||
+      activeFilters.component ||
+      activeFilters.type ||
+      activeFilters.user ||
+      activeFilters.text,
+  );
+  const seedEligible =
+    entities.length === 0 && !hasNarrowingFilter && !offset && !!selectedKind;
+
   const scopeKey = useUserScopedKey();
   const seed = useMemo<QueryEntitiesResponse | undefined>(() => {
-    // Only needed while useEntityList has nothing of its own to show.
-    if (entities.length > 0) return undefined;
-    // Prefix match instead of reconstructing the exact request object (which
-    // Backstage builds via a non-exported reducer with `fullTextFilter:
-    // undefined` / `offset: undefined` subtleties). Pick the newest cached
-    // page whose request kind matches the current kind.
+    if (!seedEligible) return undefined;
+    // Read the warm queryEntities entry the CachingCatalogApi stored. Match on
+    // the current kind AND require an unfiltered, first-page request (filter is
+    // kind-only, no fullTextFilter, offset falsy) so we can't pick a filtered or
+    // paginated page. Among matches, take the most recently updated (findAll has
+    // no recency order, so an unsorted [0] could be an older/wrong page).
     const prefix = scopeKey(['catalog', 'queryEntities']);
-    const matches = queryClient
+    const match = queryClient
       .getQueryCache()
       .findAll({ queryKey: prefix })
       .map(q => ({
-        req: q.queryKey[4] as { filter?: { kind?: unknown } } | undefined,
+        req: q.queryKey[4] as
+          | {
+              filter?: { kind?: unknown };
+              fullTextFilter?: unknown;
+              offset?: number;
+            }
+          | undefined,
         data: q.state.data as QueryEntitiesResponse | undefined,
+        updatedAt: q.state.dataUpdatedAt,
       }))
       .filter(({ data }) => data !== undefined)
       .filter(({ req }) => {
-        if (!selectedKind) return true;
-        const reqKind = req?.filter?.kind;
+        if (!req || req.fullTextFilter || req.offset) return false;
+        // Only the kind may be present in the filter — reject any page that
+        // carried extra filter facets (project/namespace/type/...).
+        const filter = (req.filter ?? {}) as Record<string, unknown>;
+        const keys = Object.keys(filter);
+        if (keys.length !== 1 || keys[0] !== 'kind') return false;
+        const reqKind = filter.kind;
         const kinds = Array.isArray(reqKind) ? reqKind : [reqKind];
         return kinds.some(k => String(k).toLowerCase() === selectedKind);
-      });
-    return matches[0]?.data;
-  }, [entities.length, scopeKey, selectedKind]);
+      })
+      .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    return match?.data;
+  }, [seedEligible, scopeKey, selectedKind]);
 
   // Rows to render: the live list once it has resolved, else the cached seed.
   const displayEntities = entities.length > 0 ? entities : seed?.items ?? [];
   // Prefer the live count; fall back to the seed's while it loads.
   const displayTotal = totalItems ?? seed?.totalItems;
 
-  const kindLabel = filters.kind?.label || filters.kind?.value || 'Entity';
+  // Fall back to the URL-derived kind (capitalized to match kindPluralNames
+  // keys) while filters.kind is still catching up, so the title reads correctly
+  // during the seed window instead of the generic "Entity".
+  const capitalizedKind = selectedKind
+    ? selectedKind.charAt(0).toUpperCase() + selectedKind.slice(1)
+    : undefined;
+  const kindLabel =
+    filters.kind?.label || filters.kind?.value || capitalizedKind || 'Entity';
   const pluralLabel = kindPluralNames[kindLabel] || `${kindLabel}s`;
   const titleText = `All ${displayTotal === 1 ? kindLabel : pluralLabel}${
     displayTotal !== undefined ? ` (${displayTotal})` : ''
@@ -226,7 +276,10 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
   const heldKindMatches =
     entities.length === 0 ||
     !selectedKind ||
-    entities[0].kind?.toLowerCase() === selectedKind;
+    // A held entity with no kind can't be proven a mismatch — don't force a
+    // cold reload over it (that would wipe otherwise-valid rows to the loader).
+    !entities[0].kind ||
+    entities[0].kind.toLowerCase() === selectedKind;
   const firstLoad =
     loading &&
     displayEntities.length === 0 &&
