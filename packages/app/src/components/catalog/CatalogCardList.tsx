@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { Box, Chip, IconButton, Tooltip, Typography } from '@material-ui/core';
-import { Skeleton } from '@openchoreo/backstage-design-system';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { TablePagination } from '@material-ui/core';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import { useApp, useRouteRef } from '@backstage/core-plugin-api';
@@ -186,21 +186,7 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
         </Box>
       </Box>
 
-      {loading && (
-        // Headers are omitted while loading: the column set depends on the
-        // entity kind, so the previous kind's headers would be stale.
-        <Box className={classes.listContainer}>
-          {Array.from({ length: 5 }).map((_, rowIndex) => (
-            <Skeleton
-              key={`skeleton-row-${rowIndex}`}
-              variant="rect"
-              width="100%"
-              height={58}
-              className={classes.skeletonRow}
-            />
-          ))}
-        </Box>
-      )}
+      {loading && <PageLoader minHeight={240} />}
       {!loading && entities.length === 0 && (
         <Box className={classes.emptyState}>No entities found</Box>
       )}

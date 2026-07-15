@@ -335,9 +335,6 @@ export const useCardListStyles = makeStyles(theme => {
     // Full-row loading placeholder. Height/width are set via the Skeleton props
     // to match a real `entityRow` (minHeight 44, full width); the radius here
     // matches the row's rounded corners.
-    skeletonRow: {
-      borderRadius: 6,
-    },
     metadataChip: {
       fontSize: '0.7rem',
       height: 20,
