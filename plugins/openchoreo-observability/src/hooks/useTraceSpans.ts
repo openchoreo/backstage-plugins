@@ -28,25 +28,13 @@ export function useTraceSpans(options: UseTraceSpansOptions) {
   // Bumped whenever a fetch resolves so cache-backed reads re-render.
   const [, setVersion] = useState(0);
 
+    // A trace id is globally unique and a trace is atomic, so its spans are the
+  // same regardless of the filter/time scope used to find it in the list. Key
+  // by trace id alone (user-scoped by the cache) — the scope/time only belong
+  // in the trace-list key, which does depend on the filters.
   const spanKey = useCallback(
-    (traceId: string) => [
-      'trace-spans',
-      options.namespaceName,
-      options.projectName,
-      options.environmentName,
-      options.componentName ?? null,
-      options.startTime ?? null,
-      options.endTime ?? null,
-      traceId,
-    ],
-    [
-      options.namespaceName,
-      options.projectName,
-      options.environmentName,
-      options.componentName,
-      options.startTime,
-      options.endTime,
-    ],
+    (traceId: string) => ['trace-spans', traceId],
+    [],
   );
 
   const fetchSpans = useCallback(
