@@ -79,39 +79,45 @@ export class CachingCatalogApi implements CatalogApi {
   }
 
   /**
-   * Read-through cache: fetch-and-cache under the per-user key, deduping
-   * concurrent callers and serving the warm entry. `staleTime` inherits the
-   * client default (0 → always revalidate on revisit); the warm `gcTime` entry
-   * is what paints instantly.
+   * Read-through cache: serve the warm entry immediately and revalidate in the
+   * background. Uses `ensureQueryData({ revalidateIfStale: true })` rather than
+   * `fetchQuery`: with the client default `staleTime: 0` every entry is stale,
+   * and `fetchQuery` would AWAIT the network on a stale entry (never painting
+   * cached-first). `ensureQueryData` returns the cached value synchronously when
+   * present and kicks a background refetch, which is the actual instant-paint +
+   * stale-while-revalidate behavior an already-warm revisit wants. Concurrent
+   * callers still dedupe on the shared key.
    */
   private async cachedRead<T>(
     method: string,
     args: unknown[],
     fetch: () => Promise<T>,
   ): Promise<T> {
-    return queryClient.fetchQuery({
+    return queryClient.ensureQueryData({
       queryKey: await this.keyFor(method, args),
       queryFn: fetch,
+      revalidateIfStale: true,
     });
   }
 
   /**
    * Read-through cache for a method that may resolve to `undefined` (e.g.
-   * `getEntityByRef` on a missing/404 entity). TanStack's `fetchQuery` REJECTS
-   * when the queryFn resolves to `undefined` ("Query data cannot be undefined"),
-   * which would turn a normal not-found into a thrown error and break callers
-   * (the entity page and header breadcrumb tolerate `undefined`). Cache a `null`
-   * sentinel instead (which TanStack does accept) and map it back to `undefined`
-   * so the `CatalogApi` contract is preserved.
+   * `getEntityByRef` on a missing/404 entity). TanStack's `ensureQueryData`
+   * (like `fetchQuery`) REJECTS when the queryFn resolves to `undefined`
+   * ("Query data cannot be undefined"), which would turn a normal not-found into
+   * a thrown error and break callers (the entity page and header breadcrumb
+   * tolerate `undefined`). Cache a `null` sentinel instead (which TanStack does
+   * accept) and map it back to `undefined` so the `CatalogApi` contract holds.
    */
   private async cachedReadNullable<T>(
     method: string,
     args: unknown[],
     fetch: () => Promise<T | undefined>,
   ): Promise<T | undefined> {
-    const value = await queryClient.fetchQuery<T | null>({
+    const value = await queryClient.ensureQueryData<T | null>({
       queryKey: await this.keyFor(method, args),
       queryFn: async () => (await fetch()) ?? null,
+      revalidateIfStale: true,
     });
     return value ?? undefined;
   }

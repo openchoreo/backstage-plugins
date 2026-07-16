@@ -176,15 +176,18 @@ export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
           },
           factory: ({ discoveryApi, fetchApi, identityApi }) => {
             const base = new CatalogClient({ discoveryApi, fetchApi });
-            // Resolve the signed-in user's entityRef once and reuse it — the
-            // identity is stable for the session, and the wrapper only needs it
-            // to build per-user cache keys.
-            let cachedUserRef: Promise<string | undefined> | undefined;
+            // Resolve the signed-in user's entityRef per call (used only to
+            // namespace cache keys). Don't memoize the promise: `identityApi`
+            // already caches the session and dedupes token refresh internally,
+            // and memoizing here would permanently pin the cache namespace to
+            // the pending sentinel if the very first call resolved to undefined
+            // or rejected (e.g. queried before sign-in completes) — it would
+            // never recover for the app's lifetime.
             const getUserRef = () =>
-              (cachedUserRef ??= identityApi
+              identityApi
                 .getBackstageIdentity()
                 .then(({ userEntityRef }) => userEntityRef)
-                .catch(() => undefined));
+                .catch(() => undefined);
             return new CachingCatalogApi(base, getUserRef);
           },
         }),
