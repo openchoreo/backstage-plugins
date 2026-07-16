@@ -1,6 +1,6 @@
 import { type ReactNode, useMemo } from 'react';
 import { Box, Chip, IconButton, Tooltip, Typography } from '@material-ui/core';
-import { PageLoader } from '@openchoreo/backstage-design-system';
+import { PageLoader, Spinner } from '@openchoreo/backstage-design-system';
 import { TablePagination } from '@material-ui/core';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import { useApp, useRouteRef } from '@backstage/core-plugin-api';
@@ -20,10 +20,12 @@ import {
   queryClient,
   useUserScopedKey,
 } from '@openchoreo/backstage-plugin-react';
+import { useIsFetching } from '@tanstack/react-query';
 import type { QueryEntitiesResponse } from '@backstage/catalog-client';
 import { Entity } from '@backstage/catalog-model';
 import { useCardListStyles } from './styles';
 import { pickCatalogSeed, type CatalogSeedEntry } from './catalogSeed';
+import { deriveCatalogLoadState } from './catalogLoadState';
 import {
   StarredChip,
   TypeChip,
@@ -238,33 +240,50 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
     displayTotal !== undefined ? ` (${displayTotal})` : ''
   }`;
 
-  // Show the skeleton only on a COLD load — when there is nothing safe to keep
-  // on screen: no live entities, no cached seed. On a same-kind revisit,
-  // `useEntityList` keeps the previously resolved entities (or we paint the
-  // cached seed) while a background refetch runs, so we keep rows instead of
-  // wiping to a skeleton.
-  //
-  // A kind SWITCH is treated as cold even though `useEntityList` still holds
-  // the old kind's entities: the column set is derived from `selectedKind`, so
-  // rendering the previous kind's rows under the new kind's headers would
-  // misalign columns. Detect it by comparing the held entities' kind to the
-  // selected kind. (The seed is already kind-matched, so it never trips this.)
-  const heldKindMatches =
-    entities.length === 0 ||
-    !selectedKind ||
-    // A held entity with no kind can't be proven a mismatch — don't force a
-    // cold reload over it (that would wipe otherwise-valid rows to the loader).
-    !entities[0].kind ||
-    entities[0].kind.toLowerCase() === selectedKind;
-  const firstLoad =
-    loading &&
-    displayEntities.length === 0 &&
-    (entities.length === 0 || !heldKindMatches);
+  // The real background-revalidation signal comes from the shared queryClient,
+  // not `useEntityList().loading`: our CachingCatalogApi serves the cached page
+  // instantly and revalidates behind it, so `loading` flips false the moment the
+  // cached read resolves (tens of ms) while the network refetch runs on for the
+  // whole round-trip. `useIsFetching` on the catalog `queryEntities` key tracks
+  // that actual in-flight fetch, so the overlay stays up until it settles.
+  const queryFetching =
+    useIsFetching(
+      { queryKey: scopeKey(['catalog', 'queryEntities']) },
+      queryClient,
+    ) > 0;
+
+  // Cold load (nothing safe to show → PageLoader) vs. background refresh (rows
+  // on screen while the query revalidates → quiet inline spinner). A kind SWITCH
+  // counts as cold — the column set follows `selectedKind`, so held old-kind
+  // rows would misalign under new headers. Logic lives in the tested pure helper.
+  const { firstLoad, backgroundRefreshing } = deriveCatalogLoadState({
+    loading,
+    queryFetching,
+    entities,
+    displayEntities,
+    selectedKind,
+  });
 
   return (
     <Box>
       <Box className={classes.searchAndTitle}>
-        <Typography className={classes.titleText}>{titleText}</Typography>
+        <Box display="flex" alignItems="center" style={{ gap: 8 }}>
+          <Typography className={classes.titleText}>{titleText}</Typography>
+          {/* Quiet inline spinner next to the count while a background
+              revalidation runs behind the cached/held rows. role="status" +
+              aria-label so assistive tech announces the refresh. */}
+          {backgroundRefreshing && (
+            <Box
+              component="span"
+              role="status"
+              aria-label={`Refreshing ${pluralLabel.toLowerCase()}`}
+              display="inline-flex"
+              alignItems="center"
+            >
+              <Spinner size="chip" aria-hidden="true" />
+            </Box>
+          )}
+        </Box>
         <Box display="flex" alignItems="center" style={{ gap: 8 }}>
           <NamespaceChip />
           <ProjectChip />

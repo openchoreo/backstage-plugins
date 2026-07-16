@@ -31,3 +31,11 @@ response (via the newly exported `useUserScopedKey`), so returning to a
 previously viewed list paints instantly from cache instead of flashing a
 skeleton while `useEntityList` re-fetches. `useUserScopedKey` is now exported
 from `@openchoreo/backstage-plugin-react`.
+
+Both cached-first surfaces now show a quiet inline spinner next to their label
+(the "All Components (N)" count and the breadcrumb menu title) while their
+background revalidation runs, so a refresh is visible instead of the data
+swapping in silently. The spinner tracks the real network refetch on the shared
+`queryClient` (via `useIsFetching`), not the surface's own `loading` flag —
+which resolves the instant the cached read returns while the revalidation is
+still in flight.

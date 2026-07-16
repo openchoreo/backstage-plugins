@@ -6,7 +6,9 @@ import {
   useState,
 } from 'react';
 import useAsync from 'react-use/esm/useAsync';
+import { useIsFetching } from '@tanstack/react-query';
 import { useOpenChoreoQuery } from '../../hooks/useOpenChoreoQuery';
+import { useUserScopedKey } from '../../query/OpenChoreoQueryProvider';
 import Box from '@material-ui/core/Box';
 import MaterialBreadcrumbs from '@material-ui/core/Breadcrumbs';
 import Chip from '@material-ui/core/Chip';
@@ -35,6 +37,7 @@ import {
   lightTokens,
   darkTokens,
   Skeleton,
+  Spinner,
 } from '@openchoreo/backstage-design-system';
 
 export interface CompactEntityHeaderProps {
@@ -539,6 +542,32 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
       { enabled: Boolean(openTargetNode) },
     );
 
+  // The real background revalidation happens one layer down: the fetcher above
+  // calls the *cached* catalogApi (CachingCatalogApi), which serves its own
+  // cached `getEntities` entry instantly and revalidates behind it. So the outer
+  // query's `isRefetching` settles in a few ms while the network refetch runs on
+  // in the inner cache — the same instant-resolve trap the catalog list hit.
+  // Track that inner `getEntities` query directly via `useIsFetching`, matched
+  // to the open level's kind+namespace, so the spinner reflects the actual fetch.
+  const scopeKey = useUserScopedKey();
+  const siblingsRefetching =
+    useIsFetching({
+      queryKey: scopeKey(['catalog', 'getEntities']),
+      predicate: query => {
+        // Key shape: ['@user', user, 'catalog', 'getEntities', request].
+        const request = query.queryKey[4] as
+          | { filter?: Array<Record<string, unknown>> }
+          | undefined;
+        const filter = request?.filter?.[0];
+        return (
+          !!openTargetNode &&
+          !!filter &&
+          filter.kind === openTargetNode.kind &&
+          filter['metadata.namespace'] === openTargetNode.namespace
+        );
+      },
+    }) > 0;
+
   // Derive the menu items from the fetched siblings, applying the same
   // relation-based sibling filtering, current-entity flagging, and alpha sort
   // the imperative version did. Falls back to just the current node until data
@@ -853,10 +882,32 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         transformOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Box px={2} pt={1.25} pb={0.5}>
+        <Box
+          px={2}
+          pt={1.25}
+          pb={0.5}
+          display="flex"
+          alignItems="center"
+          style={{ gap: 8 }}
+        >
           <Typography className={classes.breadcrumbMenuTitle}>
             {breadcrumbMenuTitle}
           </Typography>
+          {/* Quiet inline spinner next to the menu title while an already-cached
+              sibling list revalidates in the background — the first load still
+              shows the "Loading resources..." item below. role="status" mirrors
+              the other cached surfaces so assistive tech announces the refresh. */}
+          {siblingsRefetching && (
+            <Box
+              component="span"
+              role="status"
+              aria-label={`Refreshing ${breadcrumbMenuTitle.toLowerCase()}`}
+              display="inline-flex"
+              alignItems="center"
+            >
+              <Spinner size="chip" aria-hidden="true" />
+            </Box>
+          )}
         </Box>
         {isBreadcrumbMenuLoading && (
           <MenuItem disabled className={classes.breadcrumbMenuItem}>
