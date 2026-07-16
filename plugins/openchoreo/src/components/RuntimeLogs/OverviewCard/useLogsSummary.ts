@@ -103,7 +103,7 @@ export function useLogsSummary() {
           lastActivityTime: logs.length > 0 ? logs[0].timestamp ?? null : null,
         };
       },
-      { staleTime: 30_000, enabled: !!observabilityApi },
+      { enabled: !!observabilityApi },
     );
 
   // "Observability disabled" = the plugin isn't installed (no API) OR the backend

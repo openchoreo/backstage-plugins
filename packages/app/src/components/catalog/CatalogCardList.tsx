@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { Box, Chip, IconButton, Tooltip, Typography } from '@material-ui/core';
 import { PageLoader } from '@openchoreo/backstage-design-system';
 import { TablePagination } from '@material-ui/core';
@@ -16,8 +16,14 @@ import {
   DeletionBadge,
   isMarkedForDeletion,
 } from '@openchoreo/backstage-plugin';
+import {
+  queryClient,
+  useUserScopedKey,
+} from '@openchoreo/backstage-plugin-react';
+import type { QueryEntitiesResponse } from '@backstage/catalog-client';
 import { Entity } from '@backstage/catalog-model';
 import { useCardListStyles } from './styles';
+import { pickCatalogSeed, type CatalogSeedEntry } from './catalogSeed';
 import {
   StarredChip,
   TypeChip,
@@ -144,6 +150,7 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
     totalItems,
     loading,
     filters,
+    queryParameters,
     limit,
     offset,
     setLimit,
@@ -159,15 +166,100 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
     navigate(url);
   };
 
-  const kindLabel = filters.kind?.label || filters.kind?.value || 'Entity';
-  const pluralLabel = kindPluralNames[kindLabel] || `${kindLabel}s`;
-  const titleText = `All ${totalItems === 1 ? kindLabel : pluralLabel}${
-    totalItems !== undefined ? ` (${totalItems})` : ''
-  }`;
-
-  const selectedKind = filters.kind?.value?.toLowerCase();
+  // Prefer the applied filter's kind, but fall back to the URL query param on a
+  // fresh mount: `filters.kind` is only populated once ChoreoEntityKindPicker's
+  // effect re-registers it (which waits on an async kind fetch), so for the
+  // instant-paint window `filters.kind` is undefined while the URL already
+  // carries the kind. The picker reads the same `queryParameters.kind` first.
+  const urlKind = (
+    [queryParameters?.kind].flat()[0] as string | undefined
+  )?.toLowerCase();
+  const selectedKind = filters.kind?.value?.toLowerCase() ?? urlKind;
   const gridTemplateClass = classes[getGridTemplate(selectedKind)];
   const headerColumns = getHeaderColumns(selectedKind);
+
+  // On a fresh mount (navigating back to /catalog) `useEntityList` starts with
+  // empty `entities` and re-runs its own async fetch, so it can't paint from
+  // cache synchronously — that's the skeleton flash. Seed the first render from
+  // the warm `queryEntities` response our CachingCatalogApi already stored,
+  // read straight out of the shared queryClient. This is READ-ONLY (a miss just
+  // falls back to the loader) and scoped to the signed-in user via
+  // useUserScopedKey, so it can't cross-serve. Selection rules (unfiltered
+  // first page only, kind-only request, recency-ranked) live in the tested pure
+  // helper `pickCatalogSeed`; here we just gather the cache entries and criteria.
+  //
+  // `project`/`component` are custom OpenChoreo filters registered via
+  // `updateFilters` (typed as `any` at their call sites), so they aren't on the
+  // `DefaultEntityFilters` shape — read them through a widened view.
+  const activeFilters = filters as Record<string, unknown>;
+  const hasNarrowingFilter = Boolean(
+    activeFilters.namespace ||
+      activeFilters.project ||
+      activeFilters.component ||
+      activeFilters.type ||
+      activeFilters.user ||
+      activeFilters.text,
+  );
+
+  const scopeKey = useUserScopedKey();
+  const seed = useMemo<QueryEntitiesResponse | undefined>(() => {
+    const prefix = scopeKey(['catalog', 'queryEntities']);
+    const entries: CatalogSeedEntry[] = queryClient
+      .getQueryCache()
+      .findAll({ queryKey: prefix })
+      .map(q => ({
+        request: q.queryKey[4] as CatalogSeedEntry['request'],
+        data: q.state.data as QueryEntitiesResponse | undefined,
+        updatedAt: q.state.dataUpdatedAt,
+      }));
+    return pickCatalogSeed(entries, {
+      selectedKind,
+      hasNarrowingFilter,
+      offset,
+      hasLiveEntities: entities.length > 0,
+    });
+  }, [scopeKey, selectedKind, hasNarrowingFilter, offset, entities.length]);
+
+  // Rows to render: the live list once it has resolved, else the cached seed.
+  const displayEntities = entities.length > 0 ? entities : seed?.items ?? [];
+  // Prefer the live count; fall back to the seed's while it loads.
+  const displayTotal = totalItems ?? seed?.totalItems;
+
+  // Fall back to the URL-derived kind (capitalized to match kindPluralNames
+  // keys) while filters.kind is still catching up, so the title reads correctly
+  // during the seed window instead of the generic "Entity".
+  const capitalizedKind = selectedKind
+    ? selectedKind.charAt(0).toUpperCase() + selectedKind.slice(1)
+    : undefined;
+  const kindLabel =
+    filters.kind?.label || filters.kind?.value || capitalizedKind || 'Entity';
+  const pluralLabel = kindPluralNames[kindLabel] || `${kindLabel}s`;
+  const titleText = `All ${displayTotal === 1 ? kindLabel : pluralLabel}${
+    displayTotal !== undefined ? ` (${displayTotal})` : ''
+  }`;
+
+  // Show the skeleton only on a COLD load — when there is nothing safe to keep
+  // on screen: no live entities, no cached seed. On a same-kind revisit,
+  // `useEntityList` keeps the previously resolved entities (or we paint the
+  // cached seed) while a background refetch runs, so we keep rows instead of
+  // wiping to a skeleton.
+  //
+  // A kind SWITCH is treated as cold even though `useEntityList` still holds
+  // the old kind's entities: the column set is derived from `selectedKind`, so
+  // rendering the previous kind's rows under the new kind's headers would
+  // misalign columns. Detect it by comparing the held entities' kind to the
+  // selected kind. (The seed is already kind-matched, so it never trips this.)
+  const heldKindMatches =
+    entities.length === 0 ||
+    !selectedKind ||
+    // A held entity with no kind can't be proven a mismatch — don't force a
+    // cold reload over it (that would wipe otherwise-valid rows to the loader).
+    !entities[0].kind ||
+    entities[0].kind.toLowerCase() === selectedKind;
+  const firstLoad =
+    loading &&
+    displayEntities.length === 0 &&
+    (entities.length === 0 || !heldKindMatches);
 
   return (
     <Box>
@@ -186,11 +278,11 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
         </Box>
       </Box>
 
-      {loading && <PageLoader minHeight={240} />}
-      {!loading && entities.length === 0 && (
+      {firstLoad && <PageLoader minHeight={240} />}
+      {!loading && displayEntities.length === 0 && (
         <Box className={classes.emptyState}>No entities found</Box>
       )}
-      {!loading && entities.length > 0 && (
+      {!firstLoad && displayEntities.length > 0 && (
         <Box className={classes.listContainer}>
           {/* Header row */}
           <Box className={`${classes.headerRow} ${gridTemplateClass}`}>
@@ -201,7 +293,7 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
             ))}
           </Box>
 
-          {entities.map(entity => {
+          {displayEntities.map(entity => {
             const name =
               entity.metadata.title || entity.metadata.name || 'Unnamed';
             const description = entity.metadata.description || '';
@@ -440,10 +532,10 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
         </Box>
       )}
 
-      {!loading && totalItems !== undefined && totalItems > 0 && (
+      {!firstLoad && displayTotal !== undefined && displayTotal > 0 && (
         <Box className={classes.paginationContainer}>
           <TablePagination
-            count={totalItems}
+            count={displayTotal}
             page={
               offset !== undefined && limit > 0 ? Math.floor(offset / limit) : 0
             }

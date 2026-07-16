@@ -32,6 +32,16 @@ import {
 } from '@backstage/plugin-catalog-react';
 import { DefaultEntityPresentationApi } from '@backstage/plugin-catalog';
 import {
+  discoveryApiRef,
+  fetchApiRef,
+  identityApiRef,
+  type DiscoveryApi,
+  type FetchApi,
+  type IdentityApi,
+} from '@backstage/core-plugin-api';
+import { CatalogClient } from '@backstage/catalog-client';
+import { CachingCatalogApi } from '@openchoreo/backstage-plugin-react';
+import {
   formDecoratorsApiRef,
   DefaultScaffolderFormDecoratorsApi,
 } from '@backstage/plugin-scaffolder/alpha';
@@ -108,6 +118,37 @@ export const catalogGraphPluginAlpha =
   });
 
 /**
+ * Factory for the caching `catalogApiRef` implementation (the `api:catalog`
+ * override below). Builds the same `CatalogClient` upstream does, then wraps it
+ * in `CachingCatalogApi` so catalog reads flow through the shared OpenChoreo
+ * `queryClient`.
+ *
+ * `getUserRef` resolves the signed-in user's entityRef per call (used only to
+ * namespace cache keys). It deliberately does NOT memoize the promise:
+ * `identityApi` already caches the session and dedupes token refresh internally,
+ * and memoizing here would permanently pin the cache namespace to the pending
+ * sentinel if the very first call resolved to undefined or rejected (e.g. a
+ * query before sign-in completes) — it would never recover for the app's life.
+ *
+ * Exported so the wrapper wiring is unit-testable without driving the extension
+ * blueprint machinery.
+ */
+export function createCachingCatalogApi(deps: {
+  discoveryApi: DiscoveryApi;
+  fetchApi: FetchApi;
+  identityApi: IdentityApi;
+}): CachingCatalogApi {
+  const { discoveryApi, fetchApi, identityApi } = deps;
+  const base = new CatalogClient({ discoveryApi, fetchApi });
+  const getUserRef = () =>
+    identityApi
+      .getBackstageIdentity()
+      .then(({ userEntityRef }) => userEntityRef)
+      .catch(() => undefined);
+  return new CachingCatalogApi(base, getUserRef);
+}
+
+/**
  * Override `catalog`'s default `api:catalog/entity-presentation` to provide
  * kind icons for OpenChoreo-specific entity kinds (Environment, DataPlane,
  * DeploymentPipeline, etc.) in the catalog graph and entity views.
@@ -149,6 +190,26 @@ export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
             <m.CustomCatalogPage initialKind="system" />
           )),
       },
+    }),
+    // Wrap `api:catalog` with a caching CatalogApi so the catalog list
+    // (`useEntityList` → getEntities/queryEntities) and the entity page
+    // (getEntityByRef) read through the shared OpenChoreo `queryClient`.
+    // Without this, Backstage's own catalog hooks re-fetch on every mount and
+    // flash a skeleton on revisit; with it, a revisited catalog surface paints
+    // instantly from the warm cache and revalidates in the background. Mirrors
+    // upstream's factory (`new CatalogClient({ discoveryApi, fetchApi })`) and
+    // adds `identityApi` to namespace cache keys per signed-in user.
+    catalogPluginAlphaBase.getExtension('api:catalog').override({
+      params: defineParams =>
+        defineParams({
+          api: catalogApiRef,
+          deps: {
+            discoveryApi: discoveryApiRef,
+            fetchApi: fetchApiRef,
+            identityApi: identityApiRef,
+          },
+          factory: createCachingCatalogApi,
+        }),
     }),
     catalogPluginAlphaBase
       .getExtension('api:catalog/entity-presentation')

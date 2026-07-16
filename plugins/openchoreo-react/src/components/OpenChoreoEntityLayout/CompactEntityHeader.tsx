@@ -3,10 +3,10 @@ import {
   type ReactNode,
   useCallback,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import useAsync from 'react-use/esm/useAsync';
+import { useOpenChoreoQuery } from '../../hooks/useOpenChoreoQuery';
 import Box from '@material-ui/core/Box';
 import MaterialBreadcrumbs from '@material-ui/core/Breadcrumbs';
 import Chip from '@material-ui/core/Chip';
@@ -369,17 +369,11 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
   const catalogApi = useApi(catalogApiRef);
   const [breadcrumbMenuAnchor, setBreadcrumbMenuAnchor] =
     useState<HTMLElement | null>(null);
-  const [breadcrumbMenuItems, setBreadcrumbMenuItems] = useState<
-    Array<{
-      key: string;
-      value: string;
-      path: string | null;
-      isCurrent?: boolean;
-    }>
-  >([]);
-  const [breadcrumbMenuTitle, setBreadcrumbMenuTitle] = useState('Resources');
-  const [isBreadcrumbMenuLoading, setIsBreadcrumbMenuLoading] = useState(false);
-  const breadcrumbMenuRequestIdRef = useRef(0);
+  // Which breadcrumb level's sibling menu is open (null = closed). Drives the
+  // keyed useOpenChoreoQuery below so the sibling list renders cached-first —
+  // reopening a level shows the cached list instantly (no spinner) and only
+  // revalidates in the background.
+  const [openNodeIndex, setOpenNodeIndex] = useState<number | null>(null);
 
   const kindLabel = kindDisplayNames?.[kind.toLowerCase()] ?? kind;
 
@@ -514,94 +508,92 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     [breadcrumbNodes],
   );
 
-  const loadBreadcrumbLevelItems = useCallback(
-    async (targetNodeIndex: number, requestId: number) => {
-      const isCurrentRequest = () =>
-        breadcrumbMenuRequestIdRef.current === requestId;
-      const leftNode = breadcrumbNodes[targetNodeIndex - 1];
-      const targetNode = breadcrumbNodes[targetNodeIndex];
-      const fallbackItems = targetNode
-        ? [
-            {
-              key: targetNode.key,
-              value: targetNode.value,
-              path: targetNode.path,
-              isCurrent: true,
-            },
-          ]
-        : [];
+  // The breadcrumb level whose sibling menu is currently open (if any).
+  const openTargetNode =
+    openNodeIndex !== null ? breadcrumbNodes[openNodeIndex] : undefined;
+  const openLeftNode =
+    openNodeIndex !== null ? breadcrumbNodes[openNodeIndex - 1] : undefined;
 
-      if (!isCurrentRequest()) {
-        return;
-      }
-      setIsBreadcrumbMenuLoading(true);
-      setBreadcrumbMenuItems(fallbackItems);
-      setBreadcrumbMenuTitle(getMenuTitleForNodeIndex(targetNodeIndex));
+  const breadcrumbMenuTitle =
+    openNodeIndex !== null
+      ? getMenuTitleForNodeIndex(openNodeIndex)
+      : 'Resources';
 
-      if (!targetNode) {
-        if (isCurrentRequest()) {
-          setIsBreadcrumbMenuLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const response = await catalogApi.getEntities({
+  // Sibling entities for the open level, fetched through the cached catalog API
+  // via useQuery. Keyed by kind+namespace so reopening the same level renders
+  // the cached list instantly (cached-first) and only revalidates in the
+  // background — the imperative await-before-render version always blocked on
+  // the network, even for a list loaded moments earlier.
+  const { data: siblingEntities, loading: siblingsLoading } =
+    useOpenChoreoQuery(
+      ['breadcrumb-siblings', openTargetNode?.kind, openTargetNode?.namespace],
+      () =>
+        catalogApi.getEntities({
           filter: [
             {
-              kind: targetNode.kind,
-              'metadata.namespace': targetNode.namespace,
+              kind: openTargetNode!.kind,
+              'metadata.namespace': openTargetNode!.namespace,
             },
           ],
-        });
-        if (!isCurrentRequest()) {
-          return;
-        }
+        }),
+      { enabled: Boolean(openTargetNode) },
+    );
 
-        const sameKindCandidates = response.items;
-        const siblingCandidates =
-          typeof leftNode?.normalizedRef === 'string'
-            ? sameKindCandidates.filter(candidate =>
-                (candidate.relations ?? []).some(
-                  relation =>
-                    normalizeEntityRef(relation.targetRef) ===
-                      leftNode.normalizedRef &&
-                    (targetNode.relationType
-                      ? relation.type === targetNode.relationType
-                      : true),
-                ),
-              )
-            : sameKindCandidates;
+  // Derive the menu items from the fetched siblings, applying the same
+  // relation-based sibling filtering, current-entity flagging, and alpha sort
+  // the imperative version did. Falls back to just the current node until data
+  // arrives (matching the old fallbackItems behavior).
+  const breadcrumbMenuItems = useMemo(() => {
+    if (!openTargetNode) return [];
 
-        const effectiveCandidates =
-          siblingCandidates.length > 0 ? siblingCandidates : sameKindCandidates;
+    const currentOnly = [
+      {
+        key: openTargetNode.key,
+        value: openTargetNode.value,
+        path: openTargetNode.path,
+        isCurrent: true,
+      },
+    ];
 
-        const siblingItems = effectiveCandidates
-          .map(candidate => {
-            const candidateRef = stringifyEntityRef(candidate);
-            return {
-              key: `${targetNode.kind}-${candidateRef}`,
-              value: candidate.metadata.title ?? candidate.metadata.name,
-              path: buildCatalogEntityPathFromEntity(candidate),
-              isCurrent:
-                normalizeEntityRef(candidateRef) === targetNode.normalizedRef,
-            };
-          })
-          .sort((a, b) => a.value.localeCompare(b.value));
+    if (!siblingEntities) return currentOnly;
 
-        setBreadcrumbMenuItems(siblingItems);
-      } catch {
-        if (isCurrentRequest()) {
-          setBreadcrumbMenuItems(fallbackItems);
-        }
-      } finally {
-        if (isCurrentRequest()) {
-          setIsBreadcrumbMenuLoading(false);
-        }
-      }
-    },
-    [breadcrumbNodes, getMenuTitleForNodeIndex, catalogApi],
-  );
+    const sameKindCandidates = siblingEntities.items;
+    const siblingCandidates =
+      typeof openLeftNode?.normalizedRef === 'string'
+        ? sameKindCandidates.filter(candidate =>
+            (candidate.relations ?? []).some(
+              relation =>
+                normalizeEntityRef(relation.targetRef) ===
+                  openLeftNode.normalizedRef &&
+                (openTargetNode.relationType
+                  ? relation.type === openTargetNode.relationType
+                  : true),
+            ),
+          )
+        : sameKindCandidates;
+
+    const effectiveCandidates =
+      siblingCandidates.length > 0 ? siblingCandidates : sameKindCandidates;
+
+    const siblingItems = effectiveCandidates
+      .map(candidate => {
+        const candidateRef = stringifyEntityRef(candidate);
+        return {
+          key: `${openTargetNode.kind}-${candidateRef}`,
+          value: candidate.metadata.title ?? candidate.metadata.name,
+          path: buildCatalogEntityPathFromEntity(candidate),
+          isCurrent:
+            normalizeEntityRef(candidateRef) === openTargetNode.normalizedRef,
+        };
+      })
+      .sort((a, b) => a.value.localeCompare(b.value));
+
+    return siblingItems.length > 0 ? siblingItems : currentOnly;
+  }, [openTargetNode, openLeftNode, siblingEntities]);
+
+  // "Loading" only for the true first fetch (no cached data yet) — a background
+  // revalidation of an already-cached list must NOT show the spinner.
+  const isBreadcrumbMenuLoading = siblingsLoading;
 
   const buildKindCatalogPath = useCallback(
     (targetNodeIndex: number): string => {
@@ -661,21 +653,18 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
       );
     }
     event.currentTarget.classList.add(classes.breadcrumbSeparatorButtonOpen);
-    const requestId = breadcrumbMenuRequestIdRef.current + 1;
-    breadcrumbMenuRequestIdRef.current = requestId;
     setBreadcrumbMenuAnchor(event.currentTarget);
-    setBreadcrumbMenuTitle(getMenuTitleForNodeIndex(targetNodeIndex));
-    void loadBreadcrumbLevelItems(targetNodeIndex, requestId);
+    setOpenNodeIndex(targetNodeIndex);
   };
 
   const closeBreadcrumbMenu = () => {
-    breadcrumbMenuRequestIdRef.current += 1;
     if (breadcrumbMenuAnchor) {
       breadcrumbMenuAnchor.classList.remove(
         classes.breadcrumbSeparatorButtonOpen,
       );
     }
     setBreadcrumbMenuAnchor(null);
+    setOpenNodeIndex(null);
   };
 
   const navigateFromBreadcrumbMenu = (
