@@ -209,6 +209,21 @@ export interface ObservabilityApi {
     projectName: string,
     environmentName: string,
     componentName: string,
+    options?: {
+      /**
+       * ISO timestamp for the lower bound of the retries lookup window. Pair
+       * with `endTime` — the backend rejects one-only (both-or-none contract).
+       * When both are omitted the backend falls back to a 30-day lookback,
+       * which can silently truncate under the observer adapter's per-call
+       * 1000-event cap on high-frequency CronJobs.
+       */
+      startTime?: string;
+      /**
+       * ISO timestamp for the upper bound of the retries lookup window. See
+       * `startTime` for the both-or-none contract and truncation caveat.
+       */
+      endTime?: string;
+    },
   ): Promise<RetriesQueryResponse>;
 
   getPodLogs(
@@ -1115,11 +1130,49 @@ export class ObservabilityClient implements ObservabilityApi {
     projectName: string,
     environmentName: string,
     componentName: string,
+    options?: {
+      /**
+       * ISO timestamp for the lower bound of the retries lookup window. Pair
+       * with `endTime` — the backend rejects one-only (both-or-none contract).
+       * When both are omitted the backend falls back to a 30-day lookback,
+       * which can silently truncate under the observer adapter's per-call
+       * 1000-event cap on high-frequency CronJobs.
+       */
+      startTime?: string;
+      /**
+       * ISO timestamp for the upper bound of the retries lookup window. See
+       * `startTime` for the both-or-none contract and truncation caveat.
+       */
+      endTime?: string;
+    },
   ): Promise<RetriesQueryResponse> {
     const { observerUrl } = await this.urlCache.resolveUrls(
       namespaceName,
       environmentName,
     );
+
+    const body: {
+      searchScope: {
+        namespace: string;
+        project: string;
+        component: string;
+        environment: string;
+      };
+      startTime?: string;
+      endTime?: string;
+    } = {
+      searchScope: {
+        namespace: namespaceName,
+        project: projectName,
+        component: componentName,
+        environment: environmentName,
+      },
+    };
+    // Only include time bounds when BOTH are present. Backend rejects one-only.
+    if (options?.startTime && options?.endTime) {
+      body.startTime = options.startTime;
+      body.endTime = options.endTime;
+    }
 
     const response = await this.fetchApi.fetch(
       `${observerUrl}/api/v1/scheduled-tasks/runs/${encodeURIComponent(
@@ -1128,14 +1181,7 @@ export class ObservabilityClient implements ObservabilityApi {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
-        body: JSON.stringify({
-          searchScope: {
-            namespace: namespaceName,
-            project: projectName,
-            component: componentName,
-            environment: environmentName,
-          },
-        }),
+        body: JSON.stringify(body),
       },
     );
 

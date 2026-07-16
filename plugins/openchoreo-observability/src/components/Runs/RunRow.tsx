@@ -95,6 +95,11 @@ export const RunRow: FC<RunRowProps> = ({
     projectName,
     environmentName,
     componentName,
+    // Scope retries fetch to this run's lifetime. When still running,
+    // `completionTime` is undefined — `useRetries` only forwards the pair
+    // when both are non-empty, so the backend uses its 30-day fallback.
+    startTime: run.startTime,
+    endTime: run.completionTime || undefined,
   });
 
   useEffect(() => {

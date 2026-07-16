@@ -9,6 +9,18 @@ export interface UseRetriesOptions {
   projectName: string;
   environmentName: string;
   componentName: string;
+  /**
+   * Optional. Scope the events fetch to a specific run's lifetime. Must be
+   * paired with `endTime` — the backend rejects one-only (both-or-none). Set
+   * these when the caller knows the run window so the observer adapter does
+   * not silently truncate at its 1000-event-per-call cap on high-frequency
+   * CronJobs. When omitted, the backend falls back to a 30-day lookback.
+   */
+  startTime?: string;
+  /**
+   * Optional. See `startTime` — both must be provided together.
+   */
+  endTime?: string;
 }
 
 export interface UseRetriesResult {
@@ -47,6 +59,9 @@ export function useRetries(options: UseRetriesOptions): UseRetriesResult {
         options.projectName,
         options.environmentName,
         options.componentName,
+        options.startTime && options.endTime
+          ? { startTime: options.startTime, endTime: options.endTime }
+          : undefined,
       );
 
       if (version !== requestVersionRef.current) return;
@@ -69,6 +84,8 @@ export function useRetries(options: UseRetriesOptions): UseRetriesResult {
     options.projectName,
     options.environmentName,
     options.componentName,
+    options.startTime,
+    options.endTime,
   ]);
 
   return {
