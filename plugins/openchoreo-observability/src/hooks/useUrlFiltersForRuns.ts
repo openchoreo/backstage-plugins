@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Environment } from '../components/RuntimeLogs/types';
-import type { RunsFilters } from '../components/Runs/types';
+import type { Environment, RunsFilters } from '../components/Runs/types';
 import { RUNS_TIME_RANGE_OPTIONS } from '../components/Runs/types';
 
 const DEFAULT_TIME_RANGE = '24h';

@@ -10,12 +10,15 @@ import { RunsActions } from './RunsActions';
 import {
   useRuns,
   useGetNamespaceAndProjectByEntity,
-  useGetEnvironmentsByNamespace,
   useUrlFiltersForRuns,
 } from '../../hooks';
-import { useLogsPermission } from '@openchoreo/backstage-plugin-react';
+import {
+  useLogsPermission,
+  useProjectEnvironments,
+} from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
-import type { Environment as RuntimeLogsEnvironment } from '../RuntimeLogs/types';
+import { EnvironmentsStatusNotice } from '../common';
+import type { Environment } from './types';
 import { RUNS_PAGE_SIZE } from './types';
 
 const ObservabilityRunsContent = () => {
@@ -25,18 +28,20 @@ const ObservabilityRunsContent = () => {
   const { namespace, project } = useGetNamespaceAndProjectByEntity(entity);
 
   const {
-    environments: observabilityEnvironments,
+    environments: projectEnvironments,
     loading: environmentsLoading,
-    error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace);
+    status: environmentsStatus,
+  } = useProjectEnvironments(project, namespace);
 
-  const environments = useMemo<RuntimeLogsEnvironment[]>(() => {
-    return observabilityEnvironments.map(env => ({
+  // Map the upstream `{ name, displayName, ... }` environment shape onto the
+  // simpler `{ id, name, resourceName }` shape the Runs filter / URL sync use.
+  const environments = useMemo<Environment[]>(() => {
+    return projectEnvironments.map(env => ({
       id: env.name,
       name: env.displayName || env.name,
       resourceName: env.name,
     }));
-  }, [observabilityEnvironments]);
+  }, [projectEnvironments]);
 
   const { filters, updateFilters } = useUrlFiltersForRuns({
     environments,
@@ -146,8 +151,14 @@ const ObservabilityRunsContent = () => {
     );
   };
 
-  if (environmentsError) {
-    return <Box>{renderError(environmentsError)}</Box>;
+  // When the pipeline has no resolvable environments (empty, forbidden, or
+  // unavailable) there's nothing to filter or list — show only the notice.
+  if (environmentsStatus !== 'ok' && !environmentsLoading) {
+    return (
+      <Box>
+        <EnvironmentsStatusNotice status={environmentsStatus} feature="runs" />
+      </Box>
+    );
   }
 
   return (
@@ -161,17 +172,6 @@ const ObservabilityRunsContent = () => {
       />
 
       {runsError && renderError(runsError)}
-
-      {!filters.environmentId &&
-        !environmentsLoading &&
-        environments.length === 0 && (
-          <Alert severity="info" className={classes.errorContainer}>
-            <Typography variant="body1">
-              No environments found. Make sure your component is properly
-              configured.
-            </Typography>
-          </Alert>
-        )}
 
       {filters.environmentId && selectedEnvironment && (
         <>

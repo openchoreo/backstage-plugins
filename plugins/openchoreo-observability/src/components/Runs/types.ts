@@ -1,6 +1,14 @@
-import type { Environment } from '../RuntimeLogs/types';
-
-export type { Environment };
+/**
+ * Local Environment shape used by the Runs page filter / URL sync.
+ * The upstream `Environment` from `@openchoreo/backstage-plugin-react`
+ * (name / displayName / namespace / dataPlaneRef) is mapped onto this
+ * simpler `{ id, name, resourceName }` shape by `ObservabilityRunsPage`.
+ */
+export interface Environment {
+  id: string;
+  name: string;
+  resourceName: string;
+}
 
 export type RunStatus = 'succeeded' | 'failed' | 'running' | 'unknown';
 
