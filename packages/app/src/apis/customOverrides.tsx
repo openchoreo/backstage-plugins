@@ -35,6 +35,9 @@ import {
   discoveryApiRef,
   fetchApiRef,
   identityApiRef,
+  type DiscoveryApi,
+  type FetchApi,
+  type IdentityApi,
 } from '@backstage/core-plugin-api';
 import { CatalogClient } from '@backstage/catalog-client';
 import { CachingCatalogApi } from '@openchoreo/backstage-plugin-react';
@@ -115,6 +118,37 @@ export const catalogGraphPluginAlpha =
   });
 
 /**
+ * Factory for the caching `catalogApiRef` implementation (the `api:catalog`
+ * override below). Builds the same `CatalogClient` upstream does, then wraps it
+ * in `CachingCatalogApi` so catalog reads flow through the shared OpenChoreo
+ * `queryClient`.
+ *
+ * `getUserRef` resolves the signed-in user's entityRef per call (used only to
+ * namespace cache keys). It deliberately does NOT memoize the promise:
+ * `identityApi` already caches the session and dedupes token refresh internally,
+ * and memoizing here would permanently pin the cache namespace to the pending
+ * sentinel if the very first call resolved to undefined or rejected (e.g. a
+ * query before sign-in completes) — it would never recover for the app's life.
+ *
+ * Exported so the wrapper wiring is unit-testable without driving the extension
+ * blueprint machinery.
+ */
+export function createCachingCatalogApi(deps: {
+  discoveryApi: DiscoveryApi;
+  fetchApi: FetchApi;
+  identityApi: IdentityApi;
+}): CachingCatalogApi {
+  const { discoveryApi, fetchApi, identityApi } = deps;
+  const base = new CatalogClient({ discoveryApi, fetchApi });
+  const getUserRef = () =>
+    identityApi
+      .getBackstageIdentity()
+      .then(({ userEntityRef }) => userEntityRef)
+      .catch(() => undefined);
+  return new CachingCatalogApi(base, getUserRef);
+}
+
+/**
  * Override `catalog`'s default `api:catalog/entity-presentation` to provide
  * kind icons for OpenChoreo-specific entity kinds (Environment, DataPlane,
  * DeploymentPipeline, etc.) in the catalog graph and entity views.
@@ -174,22 +208,7 @@ export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
             fetchApi: fetchApiRef,
             identityApi: identityApiRef,
           },
-          factory: ({ discoveryApi, fetchApi, identityApi }) => {
-            const base = new CatalogClient({ discoveryApi, fetchApi });
-            // Resolve the signed-in user's entityRef per call (used only to
-            // namespace cache keys). Don't memoize the promise: `identityApi`
-            // already caches the session and dedupes token refresh internally,
-            // and memoizing here would permanently pin the cache namespace to
-            // the pending sentinel if the very first call resolved to undefined
-            // or rejected (e.g. queried before sign-in completes) — it would
-            // never recover for the app's lifetime.
-            const getUserRef = () =>
-              identityApi
-                .getBackstageIdentity()
-                .then(({ userEntityRef }) => userEntityRef)
-                .catch(() => undefined);
-            return new CachingCatalogApi(base, getUserRef);
-          },
+          factory: createCachingCatalogApi,
         }),
     }),
     catalogPluginAlphaBase

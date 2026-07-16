@@ -23,6 +23,7 @@ import {
 import type { QueryEntitiesResponse } from '@backstage/catalog-client';
 import { Entity } from '@backstage/catalog-model';
 import { useCardListStyles } from './styles';
+import { pickCatalogSeed, type CatalogSeedEntry } from './catalogSeed';
 import {
   StarredChip,
   TypeChip,
@@ -180,16 +181,13 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
   // On a fresh mount (navigating back to /catalog) `useEntityList` starts with
   // empty `entities` and re-runs its own async fetch, so it can't paint from
   // cache synchronously — that's the skeleton flash. Seed the first render from
-  // the response our CachingCatalogApi already stored: read the warm
-  // `queryEntities` entry for the current kind straight out of the shared
-  // queryClient. This is READ-ONLY (a miss just falls back to the skeleton) and
-  // scoped to the signed-in user via useUserScopedKey, so it can't cross-serve.
-  // The seed only paints while the live list is empty AND the view is the plain
-  // first page of a kind — no chip/search filter, no pagination offset. Any
-  // other filter narrows the query in ways we can't reconstruct from the cache
-  // key alone, so seeding then would risk showing a broader page's rows (wrong
-  // scope) or stale rows for a filter that now returns nothing. Restricting to
-  // the unfiltered first page keeps the seed correct-by-construction.
+  // the warm `queryEntities` response our CachingCatalogApi already stored,
+  // read straight out of the shared queryClient. This is READ-ONLY (a miss just
+  // falls back to the loader) and scoped to the signed-in user via
+  // useUserScopedKey, so it can't cross-serve. Selection rules (unfiltered
+  // first page only, kind-only request, recency-ranked) live in the tested pure
+  // helper `pickCatalogSeed`; here we just gather the cache entries and criteria.
+  //
   // `project`/`component` are custom OpenChoreo filters registered via
   // `updateFilters` (typed as `any` at their call sites), so they aren't on the
   // `DefaultEntityFilters` shape — read them through a widened view.
@@ -202,47 +200,25 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
       activeFilters.user ||
       activeFilters.text,
   );
-  const seedEligible =
-    entities.length === 0 && !hasNarrowingFilter && !offset && !!selectedKind;
 
   const scopeKey = useUserScopedKey();
   const seed = useMemo<QueryEntitiesResponse | undefined>(() => {
-    if (!seedEligible) return undefined;
-    // Read the warm queryEntities entry the CachingCatalogApi stored. Match on
-    // the current kind AND require an unfiltered, first-page request (filter is
-    // kind-only, no fullTextFilter, offset falsy) so we can't pick a filtered or
-    // paginated page. Among matches, take the most recently updated (findAll has
-    // no recency order, so an unsorted [0] could be an older/wrong page).
     const prefix = scopeKey(['catalog', 'queryEntities']);
-    const match = queryClient
+    const entries: CatalogSeedEntry[] = queryClient
       .getQueryCache()
       .findAll({ queryKey: prefix })
       .map(q => ({
-        req: q.queryKey[4] as
-          | {
-              filter?: { kind?: unknown };
-              fullTextFilter?: unknown;
-              offset?: number;
-            }
-          | undefined,
+        request: q.queryKey[4] as CatalogSeedEntry['request'],
         data: q.state.data as QueryEntitiesResponse | undefined,
         updatedAt: q.state.dataUpdatedAt,
-      }))
-      .filter(({ data }) => data !== undefined)
-      .filter(({ req }) => {
-        if (!req || req.fullTextFilter || req.offset) return false;
-        // Only the kind may be present in the filter — reject any page that
-        // carried extra filter facets (project/namespace/type/...).
-        const filter = (req.filter ?? {}) as Record<string, unknown>;
-        const keys = Object.keys(filter);
-        if (keys.length !== 1 || keys[0] !== 'kind') return false;
-        const reqKind = filter.kind;
-        const kinds = Array.isArray(reqKind) ? reqKind : [reqKind];
-        return kinds.some(k => String(k).toLowerCase() === selectedKind);
-      })
-      .sort((a, b) => b.updatedAt - a.updatedAt)[0];
-    return match?.data;
-  }, [seedEligible, scopeKey, selectedKind]);
+      }));
+    return pickCatalogSeed(entries, {
+      selectedKind,
+      hasNarrowingFilter,
+      offset,
+      hasLiveEntities: entities.length > 0,
+    });
+  }, [scopeKey, selectedKind, hasNarrowingFilter, offset, entities.length]);
 
   // Rows to render: the live list once it has resolved, else the cached seed.
   const displayEntities = entities.length > 0 ? entities : seed?.items ?? [];
