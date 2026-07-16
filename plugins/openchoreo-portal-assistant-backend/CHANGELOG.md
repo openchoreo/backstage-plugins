@@ -1,5 +1,11 @@
 # @openchoreo/backstage-plugin-openchoreo-portal-assistant-backend
 
+## 1.2.0-next.3
+
+### Patch Changes
+
+- d03eaf7: Provide investigation support for deployment issues.
+
 ## 1.0.0-next.0
 
 ### Major Changes

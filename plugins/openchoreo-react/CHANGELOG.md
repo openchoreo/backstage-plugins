@@ -1,5 +1,207 @@
 # @openchoreo/backstage-plugin-react
 
+## 1.2.0-next.3
+
+### Minor Changes
+
+- cf2203a: Add a pod-aware exec terminal in the Deploy view. The Terminal lives in the K8s resource-tree drawer reached via Deploy → environment → View K8s Artifacts: it appears as a tab on the Pod node's drawer (with a container picker) when the pod is rendered in the tree, and falls back to the ReleaseBinding drawer when the pod is managed by another operator and the binding is healthy. The exec session targets the selected pod and container via WebSocket. The standalone component-level Terminal tab has been removed.
+
+  Access is gated by the `openchoreo.exec` permission with per-environment ABAC, and the `POST /exec/init` backend endpoint now enforces this permission server-side so direct API calls cannot bypass the UI gate.
+
+- 383e7f6: Add Backstage management for OpenChoreo notification channels (email and webhook), the platform resource that alert rules send notifications to. Notification channels are now browsable and creatable from the catalog and /create pages alongside Environments and other platform resources, with dedicated create/read/update/delete permissions, a catalog relation to their target Environment, and a raw-definition editor.
+- c572a46: Unify portal loading states behind a shared, token-driven system so every
+  loader looks and behaves consistently.
+
+  **New shared components**
+
+  - **design-system**: `Skeleton` (token-driven shimmer — `text`/`rect`/`circle`
+    with a `count` for stacked lines, backed by new `motion` timing tokens),
+    `Spinner` (theme-coloured circular loader with named sizes
+    `chip`/`button`/`inline`/`page`), and `PageLoader` (centered `Spinner` for
+    page/route/section loads).
+  - **backstage-plugin-react**: `ContentLoader` (loading/error/empty/content
+    wrapper that keeps content on screen and overlays a spinner during a
+    background refetch instead of blanking) and `SkeletonRows` (table-body
+    skeleton helper).
+
+  **Consistency changes**
+
+  - Tables now show skeleton rows instead of a circular overlay (catalog,
+    Project Contents, namespace cards, observability RCA/Cost Analysis, and the
+    raw-MUI alert/incident/log tables).
+  - Overview cards and widgets render skeleton placeholders via the shared
+    `Skeleton` (including the home-page platform-planes section).
+  - Page-level loaders use the centered `PageLoader` instead of the Backstage
+    progress bar — including Backstage's internal route/Suspense fallback and the
+    app-boot loader.
+  - Status chips use the themed `Spinner` (removing a hardcoded spinner colour).
+  - The shared `ErrorState` icon is sized down to read proportionately in
+    section-level errors.
+
+  Prefer `Skeleton`/`Spinner`/`PageLoader` and `ContentLoader` over raw MUI
+  `Skeleton`/`CircularProgress`/`Progress` for new loading states.
+
+### Patch Changes
+
+- 591df85: Show a subtle background-refresh indicator on cached views instead of swapping
+  data in silently.
+
+  Adds a shared `RefreshOverlay` primitive to the design system — a small
+  top-right spinner (or thin top bar) that overlays a positioned container while a
+  background revalidation runs, without shifting or blanking the cached content.
+  `useOpenChoreoQuery`/`useOpenChoreoInfiniteQuery` already expose `isRefetching`;
+  the data hooks across the portal now thread it through, and the home dashboard,
+  plane cards, access-control, secrets, project, environment, workflow and
+  observability surfaces render the overlay from it. `SummaryWidgetWrapper` gained
+  a `refreshing` prop so the home summary widgets get it for free.
+
+- c86de7f: Cache catalog reads and switch the response cache to always-revalidate.
+
+  The catalog list and entity pages now read through a `CachingCatalogApi` wrapper
+  (exported from `@openchoreo/backstage-plugin-react`) that routes
+  `getEntities`/`queryEntities`/`getEntityByRef`/`getEntitiesByRefs` through the
+  shared `queryClient`, keyed per signed-in user. Previously the catalog used
+  Backstage's `CatalogApi` directly, so every visit re-fetched from scratch and
+  flashed a loading skeleton; now a revisited catalog list or entity page paints
+  instantly from the warm cache. Catalog writes (`refreshEntity`, location
+  add/remove/update, `removeEntityByUid`) invalidate the cache so user changes show
+  immediately.
+
+  The `queryClient` default `staleTime` changes from 30s to 0 (always
+  stale-while-revalidate): a revisited surface paints cached data instantly and
+  always runs a background refresh, so nothing on screen is left silently stale.
+  The two hooks that set an explicit 30s `staleTime` now inherit this default.
+
+  The entity-header breadcrumb dropdowns (namespace/project/component sibling
+  lists) now read their data through `useOpenChoreoQuery` instead of an imperative
+  `await catalogApi.getEntities(...)`, so reopening a level renders the cached list
+  instantly (no loading spinner) and only revalidates in the background, rather
+  than blocking on the network every open.
+
+  The catalog list page seeds its initial rows from the cached `queryEntities`
+  response (via the newly exported `useUserScopedKey`), so returning to a
+  previously viewed list paints instantly from cache instead of flashing a
+  skeleton while `useEntityList` re-fetches. `useUserScopedKey` is now exported
+  from `@openchoreo/backstage-plugin-react`.
+
+  Both cached-first surfaces now show a quiet inline spinner next to their label
+  (the "All Components (N)" count and the breadcrumb menu title) while their
+  background revalidation runs, so a refresh is visible instead of the data
+  swapping in silently. The spinner tracks the real network refetch on the shared
+  `queryClient` (via `useIsFetching`), not the surface's own `loading` flag —
+  which resolves the instant the cached read returns while the revalidation is
+  still in flight.
+
+- 62608f5: chore: remove dead code left over from the OpenAPI-client and New Frontend
+  System migrations — commented-out blocks, orphaned files/components, and unused
+  deprecated exports (`LogEntry`/`RuntimeLogsResponse` aliases, `FILTER_PRESETS`,
+  `useOrgName`, `useRCAReportByAlert`, `UserTypeConfig`), plus consolidation of
+  duplicated backend response-type wrappers. No behavioural changes.
+- 8381554: Fix the "Add Trait" / "Update Trait" button staying disabled in the YAML
+  view of the trait dialogs even after the user has filled in every
+  required field. `TraitConfigToggle` now propagates each YAML edit to
+  the parent (debounced 150 ms; flushed synchronously on blur and when
+  switching to form view), so schema-validity recomputes as the user
+  types instead of only on focus loss.
+- 8381554: Add JSON Schema → annotated YAML utilities (`buildYamlString`,
+  `buildYamlData`, `generateDefaults`) for editors that toggle between a
+  structured form and a raw YAML view. `buildYamlString` walks the schema
+  recursively so nested required scalars get a `# required` hint and
+  enum-constrained scalars get `# allowed: <values>`; `allOf` composition,
+  nullable type arrays (`["object", "null"]`), and non-string enum values
+  are handled. `TraitConfigToggle` now delegates to these helpers in
+  place of its previous single-level annotation, so deeply-required and
+  enum fields in trait schemas surface their constraints in the YAML
+  view.
+- e3986a9: Add an `/alpha` entry point that exposes each plugin as a `createFrontendPlugin` for use with Backstage's New Frontend System (NFS). The default entry continues to export the legacy `createPlugin` instance so existing host apps keep working unchanged; adopters on NFS can now import `from '@openchoreo/backstage-plugin-<name>/alpha'` and include the plugin directly in `createApp({ features: [...] })`.
+
+  The `/alpha` exports register each plugin's API factories (e.g. `openChoreoCiClientApiRef`, `genericWorkflowsClientApiRef`, the three observability backend clients, `openChoreoClientApiRef`) and one top-level page where applicable (`platform-engineer-core`'s dashboard view, `openchoreo-workflows`' generic workflows page, `openchoreo-ci`'s workflows entity tab).
+
+  Entity tabs and overview cards that previously lived in the host's `EntityPage.tsx` now ride through each plugin's `/alpha` export as `EntityContentBlueprint` and `EntityCardBlueprint` extensions, with the right kind filters. Adopters on `/alpha` get the full entity-page contributions automatically: the OpenChoreo CI plugin contributes the Build tab (scoped to `kind:component`); the observability plugin contributes the 10 component- and system-page tabs (Logs, Events, Metrics, Alerts, Wirelogs, Traces, Incidents, RCA Reports, Cost Analysis) plus a registry API for host-injected log-row action renderers; the OpenChoreo plugin contributes the Deploy tab, the system Cell Diagram tab, the shared Resource Definition tab, and 30+ overview cards spanning every OpenChoreo platform kind (Environment, DataPlane, WorkflowPlane, ObservabilityPlane, DeploymentPipeline, the ComponentType / ResourceType / TraitType families, and the Workflow family); the generic-workflows plugin contributes the Runs tab on `Workflow` and `ClusterWorkflow` entities of type `Generic`. The react plugin exposes a new `FeatureGatedContent` component so plugin authors can gate routable extensions on the OpenChoreo feature flags without rolling their own empty-state wrapper.
+
+  Custom catalog-graph relations, entity-presentation kind icons, and the scaffolder form-decorator override are now actually applied at runtime — the original migration registered them but they were silently overwritten by upstream defaults at startup. The form-decorator override also stops dropping decorators contributed by other plugins.
+
+  Adopters still on the default (legacy) export are unaffected. This addresses the body of [openchoreo/openchoreo#3568](https://github.com/openchoreo/openchoreo/issues/3568) — adopters can drop `--legacy` from the `@backstage/create-app` step when installing the plugin suite into an existing Backstage host.
+
+- d5eff9e: Replace the generic "No environments found. Make sure your component is properly configured." message on the observability pages (Runtime Logs, Runtime Events, Alerts, Wirelogs, Metrics, Traces, Incidents, Cost Analysis, RCA — component and project scoped) with cause-specific messaging. `useProjectEnvironments` now reports a discriminated status — `empty-pipeline` (the deployment pipeline has no environments), `forbidden` (permission to view the pipeline is denied), or `unavailable` (the pipeline is missing or couldn't be loaded) — and the pages render a cause-specific state via a shared `EnvironmentsStatusNotice` component, using the standard Backstage `EmptyState` (matching the Deploy tab). A missing `deploymentPipelineRef` now returns a clean 404 instead of a 500.
+- 2f45e83: Add Backstage catalog and UI support for the new OpenChoreo `ProjectType` (namespaced) and `ClusterProjectType` (cluster-scoped) platform-engineer abstractions introduced by the project-release-lifecycle epic.
+
+  The catalog provider now ingests both kinds (full sync and near-real-time event deltas), translates them into dedicated entity kinds, and links each `Project` to the `ProjectType` / `ClusterProjectType` it references via `spec.type` (an `instanceOf` / `hasInstance` relation). Both kinds get first-class Overview pages — rendering their `parameters` / `environmentConfigs` schemas, `validations`, and `resources` templates — plus a Definition tab showing the raw CR, and they appear throughout the catalog UI (kind registry, icons, graph labels, About card).
+
+  Permission wiring enables create / edit / delete on both kinds for authorized users, and a scaffolder creation wizard is added for each (grouped under "Platform Resources"). The generated OpenChoreo API client is re-synced from core `main` to pick up the `ProjectType` / `ClusterProjectType` schemas, their REST endpoints, and the new `Project.spec.type` field.
+
+- 591df85: Introduce a frontend response cache (TanStack Query) behind a swappable seam and
+  migrate the portal's data-fetching hooks onto it, so cached data paints
+  instantly on remount and a background refresh no longer blanks the view.
+
+  New hooks in `@openchoreo/backstage-plugin-react`, all wrapping TanStack Query so
+  plugins never import it directly:
+
+  - `useOpenChoreoQuery` — cached reads, returning the
+    `{ data, loading, isRefetching, error, refetch }` shape the loaders consume.
+  - `useOpenChoreoMutation` — writes that re-throw on error and invalidate cached
+    queries on success (replacing the hand-rolled "call verb then refetch").
+  - `useOpenChoreoInfiniteQuery` — cursor-paginated "load more + live poll" lists
+    (runtime logs/events).
+  - `useOpenChoreoCache` — imperative cache access for optimistic writes and the
+    lazy, dynamically-keyed hooks.
+
+  Migrated across the openchoreo, observability, CI and workflows plugins: simple
+  and parameterized reads, read+mutation hooks, `setInterval` pollers (now
+  `refetchInterval` with terminal stop conditions), lazy/conditional and
+  keyed-Map hooks, the log/event pagination trio, and the `react-use` `useAsync`
+  sites. `useAsyncOperation` is deprecated in favour of `useOpenChoreoMutation`.
+  The provider is mounted in the app root and the cache is cleared on sign-out.
+
+  The seam only forwards `staleTime`/`refetchInterval`/`enabled` when a caller
+  actually sets them — passing an explicit `undefined` overrides the QueryClient
+  default instead of inheriting it, which resolved `staleTime` to 0 and refetched
+  on every remount, silently defeating the shared 30s cache.
+
+  The cell-diagram and wirelogs environment hooks no longer fold `isRefetching`
+  into `loading`; a background refresh kept re-showing their full skeleton (the
+  "blank on refresh" the cache was meant to remove). They now report `loading`
+  for the first load only and expose `isRefetching` separately.
+
+- 915e2e5: Self-contain the response cache for NFS-mounted OpenChoreo surfaces. Each
+  OpenChoreo plugin now wraps its own extensions in a TanStack Query
+  `QueryClientProvider` via `PluginWrapperBlueprint`, around a shared `queryClient`
+  singleton exported from `@openchoreo/backstage-plugin-react`. A host that mounts
+  the plugins' `/alpha` features (auto-mounted entity tabs/cards and the standalone
+  plugin pages) gets response caching with no provider wiring — previously those
+  surfaces would crash with "No QueryClient set" when a cached tab rendered.
+
+  Scope: this covers surfaces rendered through a plugin's own extension boundary
+  (NFS auto-mounted tabs/cards and standalone plugin pages). A host that instead
+  composes OpenChoreo tab components itself via legacy `EntityLayout.Route` JSX
+  renders them outside the plugin wrapper, so that host still mounts its own
+  provider — `OpenChoreoQueryProvider` (also exported here) bundles the
+  `QueryClientProvider` and the user-scoping context for that case.
+
+  Cross-user isolation is structural: every cache key is namespaced by the
+  signed-in user's entityRef inside the cache seam (`useOpenChoreoQuery`,
+  `useOpenChoreoInfiniteQuery`, `useOpenChoreoMutation`, `useOpenChoreoCache`), so
+  a different user occupies a disjoint key space and can never read the previous
+  user's permission-scoped responses from the cache — no cache-clearing needed.
+  Multiple OpenChoreo plugins share the same `queryClient`, so there is one cache.
+
+- Updated dependencies [591df85]
+- Updated dependencies [18e51cf]
+- Updated dependencies [62608f5]
+- Updated dependencies [cf2203a]
+- Updated dependencies [39d264c]
+- Updated dependencies [0d2433f]
+- Updated dependencies [383e7f6]
+- Updated dependencies [8416223]
+- Updated dependencies [71f7b6c]
+- Updated dependencies [2f45e83]
+- Updated dependencies [14601f4]
+- Updated dependencies [284fcd7]
+- Updated dependencies [453b958]
+- Updated dependencies [c572a46]
+  - @openchoreo/backstage-design-system@1.2.0-next.3
+  - @openchoreo/backstage-plugin-common@1.2.0-next.3
+
 ## 1.2.0-next.2
 
 ### Minor Changes

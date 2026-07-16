@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/openchoreo-client-node",
-  "version": "1.2.0-m.2",
+  "version": "1.2.0-rc.1",
   "description": "OpenChoreo API client with auto-generated TypeScript types",
   "license": "Apache-2.0",
   "main": "src/index.ts",

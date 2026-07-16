@@ -1,5 +1,51 @@
 # @openchoreo/backstage-plugin-common
 
+## 1.2.0-next.3
+
+### Minor Changes
+
+- 18e51cf: Add support for custom component-creation templates. A (Cluster)ComponentType
+  can now set the `scaffolder.openchoreo.dev/backstage-template-url` annotation to
+  point at a hand-authored Backstage scaffolder Template. When present, the catalog
+  sync fetches that Template from the URL (via the configured `integrations`) and
+  emits it in place of the auto-generated wizard; when absent, behaviour is
+  unchanged. Applies to both the periodic and event-driven sync paths. If the URL
+  cannot be read or does not yield a valid `kind: Template`, an error is logged and
+  no template is emitted for that type.
+- cf2203a: Add a pod-aware exec terminal in the Deploy view. The Terminal lives in the K8s resource-tree drawer reached via Deploy → environment → View K8s Artifacts: it appears as a tab on the Pod node's drawer (with a container picker) when the pod is rendered in the tree, and falls back to the ReleaseBinding drawer when the pod is managed by another operator and the binding is healthy. The exec session targets the selected pod and container via WebSocket. The standalone component-level Terminal tab has been removed.
+
+  Access is gated by the `openchoreo.exec` permission with per-environment ABAC, and the `POST /exec/init` backend endpoint now enforces this permission server-side so direct API calls cannot bypass the UI gate.
+
+- 383e7f6: Add Backstage management for OpenChoreo notification channels (email and webhook), the platform resource that alert rules send notifications to. Notification channels are now browsable and creatable from the catalog and /create pages alongside Environments and other platform resources, with dedicated create/read/update/delete permissions, a catalog relation to their target Environment, and a raw-definition editor.
+- 284fcd7: Surface OpenChoreo controller auto-deploy failures in the Deploy tab. Pre-binding release-generation failures (bad trait, invalid config — from `Component.status.conditions`) now surface on the Setup card and as an error marker on the canvas Set-up tile, instead of leaving the user with no signal. Post-binding render/apply failures (from `ReleaseBinding.status.conditions`) show an actionable error banner with the controller's reason + message in the environment detail panel, instead of a context-free "Failed" badge. Long controller messages are clamped to a compact banner with a "View details" dialog (reason + full message + copy).
+
+### Patch Changes
+
+- 62608f5: chore: remove dead code left over from the OpenAPI-client and New Frontend
+  System migrations — commented-out blocks, orphaned files/components, and unused
+  deprecated exports (`LogEntry`/`RuntimeLogsResponse` aliases, `FILTER_PRESETS`,
+  `useOrgName`, `useRCAReportByAlert`, `UserTypeConfig`), plus consolidation of
+  duplicated backend response-type wrappers. No behavioural changes.
+- 39d264c: Fix OAuth scopes in the auth code flow: inject configured scope into the passport-oauth2 token exchange and refresh, and expose the scope to the frontend client via `openchoreo.features.auth.scope` so sign-in and session refresh requests use the operator-configured scope instead of hardcoded defaults.
+- 8416223: Add a per-ProjectType "Create Project" wizard, mirroring the Resource creation flow.
+
+  Each `ProjectType` / `ClusterProjectType` now generates a scaffolder Template via `PtdToTemplateConverter`, surfaced under a new `?view=projects` browse view with a dedicated "Project" landing card. Selecting a type opens a wizard whose parameters step is driven by the type's `spec.parameters.openAPIV3Schema`, then creates the Project with `spec.type` and `spec.parameters` set via the extended `openchoreo:project:create` action (it falls back to the OpenChoreo API default when these are omitted, keeping the legacy path working). The catalog provider emits these templates during full sync and the event-delta path keeps them current. Replaces the static `create-openchoreo-project` template.
+
+- 71f7b6c: Add a "Deploy" tab to the Project entity page for the project-release lifecycle.
+
+  The tab renders the project's deployment pipeline as a DAG of environments with live status and drives deploy/promote through `ProjectRelease` / `ProjectReleaseBinding`. A "Set up" card opens a **Configure & Deploy** wizard: step 1 edits `Project.spec.parameters` against the `(Cluster)ProjectType` parameters schema (saving cuts a new `ProjectRelease`), step 2 pins the first environment's binding and edits its `environmentConfigs` overrides. Each environment node supports **Promote** (copy the pinned release forward to the next environment) and **Configure overrides**; all mutating actions gate on the project-update permission.
+
+  Backed by new BFF endpoints (`/project-environment-info`, `/project-release-bindings`, `/update-project-release-binding`, `/project-release-schema`) and matching `OpenChoreoClient` methods.
+
+- 2f45e83: Add Backstage catalog and UI support for the new OpenChoreo `ProjectType` (namespaced) and `ClusterProjectType` (cluster-scoped) platform-engineer abstractions introduced by the project-release-lifecycle epic.
+
+  The catalog provider now ingests both kinds (full sync and near-real-time event deltas), translates them into dedicated entity kinds, and links each `Project` to the `ProjectType` / `ClusterProjectType` it references via `spec.type` (an `instanceOf` / `hasInstance` relation). Both kinds get first-class Overview pages — rendering their `parameters` / `environmentConfigs` schemas, `validations`, and `resources` templates — plus a Definition tab showing the raw CR, and they appear throughout the catalog UI (kind registry, icons, graph labels, About card).
+
+  Permission wiring enables create / edit / delete on both kinds for authorized users, and a scaffolder creation wizard is added for each (grouped under "Platform Resources"). The generated OpenChoreo API client is re-synced from core `main` to pick up the `ProjectType` / `ClusterProjectType` schemas, their REST endpoints, and the new `Project.spec.type` field.
+
+- Updated dependencies [2f45e83]
+  - @openchoreo/openchoreo-client-node@1.2.0-next.3
+
 ## 1.2.0-next.2
 
 ### Patch Changes

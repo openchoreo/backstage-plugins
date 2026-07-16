@@ -1,5 +1,33 @@
 # @openchoreo/backstage-plugin-openchoreo-portal-assistant
 
+## 1.2.0-next.3
+
+### Patch Changes
+
+- 7da3c7d: Convert the RCA chat to a right drawer where previously it was inbuild to the page
+- d03eaf7: Provide investigation support for deployment issues.
+- Updated dependencies [591df85]
+- Updated dependencies [c86de7f]
+- Updated dependencies [18e51cf]
+- Updated dependencies [62608f5]
+- Updated dependencies [cf2203a]
+- Updated dependencies [8381554]
+- Updated dependencies [39d264c]
+- Updated dependencies [8381554]
+- Updated dependencies [e3986a9]
+- Updated dependencies [383e7f6]
+- Updated dependencies [d5eff9e]
+- Updated dependencies [8416223]
+- Updated dependencies [71f7b6c]
+- Updated dependencies [2f45e83]
+- Updated dependencies [591df85]
+- Updated dependencies [915e2e5]
+- Updated dependencies [284fcd7]
+- Updated dependencies [c572a46]
+  - @openchoreo/backstage-plugin-react@1.2.0-next.3
+  - @openchoreo/backstage-plugin-openchoreo-ci@1.2.0-next.3
+  - @openchoreo/backstage-plugin-common@1.2.0-next.3
+
 ## 1.0.0-next.0
 
 ### Major Changes
