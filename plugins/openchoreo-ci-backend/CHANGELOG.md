@@ -1,5 +1,26 @@
 # @openchoreo/backstage-plugin-openchoreo-ci-backend
 
+## 1.2.0-next.3
+
+### Patch Changes
+
+- 62608f5: chore: remove dead code left over from the OpenAPI-client and New Frontend
+  System migrations — commented-out blocks, orphaned files/components, and unused
+  deprecated exports (`LogEntry`/`RuntimeLogsResponse` aliases, `FILTER_PRESETS`,
+  `useOrgName`, `useRCAReportByAlert`, `UserTypeConfig`), plus consolidation of
+  duplicated backend response-type wrappers. No behavioural changes.
+- Updated dependencies [18e51cf]
+- Updated dependencies [62608f5]
+- Updated dependencies [cf2203a]
+- Updated dependencies [39d264c]
+- Updated dependencies [383e7f6]
+- Updated dependencies [8416223]
+- Updated dependencies [71f7b6c]
+- Updated dependencies [2f45e83]
+- Updated dependencies [284fcd7]
+  - @openchoreo/backstage-plugin-common@1.2.0-next.3
+  - @openchoreo/openchoreo-client-node@1.2.0-next.3
+
 ## 1.2.0-next.0
 
 ### Minor Changes
