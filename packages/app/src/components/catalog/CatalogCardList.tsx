@@ -26,6 +26,8 @@ import { Entity } from '@backstage/catalog-model';
 import { useCardListStyles } from './styles';
 import { pickCatalogSeed, type CatalogSeedEntry } from './catalogSeed';
 import { deriveCatalogLoadState } from './catalogLoadState';
+import { useSelectedKind } from './SelectedKindContext';
+import { kindDisplayNames } from '../../utils/kindUtils';
 import {
   StarredChip,
   TypeChip,
@@ -168,17 +170,34 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
     navigate(url);
   };
 
-  // Prefer the applied filter's kind, but fall back to the URL query param on a
-  // fresh mount: `filters.kind` is only populated once ChoreoEntityKindPicker's
-  // effect re-registers it (which waits on an async kind fetch), so for the
-  // instant-paint window `filters.kind` is undefined while the URL already
-  // carries the kind. The picker reads the same `queryParameters.kind` first.
+  // The authoritative selected kind. `filters.kind` (applied filter) and the URL
+  // both LAG during an in-app kind switch: the provider only sets `appliedFilters`
+  // and rewrites the URL AFTER the new kind's fetch resolves. So on a switch, both
+  // still read the OLD kind for the whole loading window — which would leave the
+  // old kind's title/columns on screen (and defeat the kind-switch cold-load
+  // detection). The `ChoreoEntityKindPicker` publishes the newly picked kind to
+  // `SelectedKindContext` synchronously on selection, so prefer that; fall back to
+  // `filters.kind`/the URL for the initial mount and deep-links (before any in-app
+  // selection), where the context is still empty.
+  const { selectedKind: contextKind } = useSelectedKind();
   const urlKind = (
     [queryParameters?.kind].flat()[0] as string | undefined
   )?.toLowerCase();
-  const selectedKind = filters.kind?.value?.toLowerCase() ?? urlKind;
+  const selectedKind =
+    contextKind ?? filters.kind?.value?.toLowerCase() ?? urlKind;
   const gridTemplateClass = classes[getGridTemplate(selectedKind)];
   const headerColumns = getHeaderColumns(selectedKind);
+
+  // Whether the held live entities are the currently selected kind. During a
+  // kind SWITCH `useEntityList` keeps the previous kind's `entities` while the
+  // new kind refetches, so they'd be the wrong kind for the selected view.
+  // Detect that so we neither render them (they'd misalign under the new
+  // headers) nor let them block a cached seed for the new kind.
+  const heldKindMatches =
+    entities.length === 0 ||
+    !selectedKind ||
+    !entities[0].kind ||
+    entities[0].kind.toLowerCase() === selectedKind;
 
   // On a fresh mount (navigating back to /catalog) `useEntityList` starts with
   // empty `entities` and re-runs its own async fetch, so it can't paint from
@@ -218,23 +237,44 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
       selectedKind,
       hasNarrowingFilter,
       offset,
-      hasLiveEntities: entities.length > 0,
+      // Only entities of the SELECTED kind count as "live" — during a kind
+      // switch the held entities are the previous kind, so they must not block
+      // a cached seed for the new kind (which lets a cached B paint instantly
+      // instead of flashing the loader).
+      hasLiveEntities: entities.length > 0 && heldKindMatches,
     });
-  }, [scopeKey, selectedKind, hasNarrowingFilter, offset, entities.length]);
+  }, [
+    scopeKey,
+    selectedKind,
+    hasNarrowingFilter,
+    offset,
+    entities.length,
+    heldKindMatches,
+  ]);
 
-  // Rows to render: the live list once it has resolved, else the cached seed.
-  const displayEntities = entities.length > 0 ? entities : seed?.items ?? [];
+  // Rows to render: the live list when it's the selected kind, else the cached
+  // seed. On a kind switch the held entities are the wrong kind, so the seed
+  // (kind-matched) wins — a cached new kind paints immediately; an uncached one
+  // has no seed, leaving nothing to show so the cold-load loader takes over.
+  const displayEntities =
+    entities.length > 0 && heldKindMatches ? entities : seed?.items ?? [];
   // Prefer the live count; fall back to the seed's while it loads.
   const displayTotal = totalItems ?? seed?.totalItems;
 
-  // Fall back to the URL-derived kind (capitalized to match kindPluralNames
-  // keys) while filters.kind is still catching up, so the title reads correctly
-  // during the seed window instead of the generic "Entity".
+  // Derive the display label from the authoritative `selectedKind` first (via the
+  // same `kindDisplayNames` map the picker uses, e.g. domain→Namespace), so the
+  // title reflects the newly picked kind immediately on a switch instead of the
+  // lagging `filters.kind?.label`. Fall back to the applied filter's label, then a
+  // capitalized kind, then the generic "Entity".
   const capitalizedKind = selectedKind
     ? selectedKind.charAt(0).toUpperCase() + selectedKind.slice(1)
     : undefined;
   const kindLabel =
-    filters.kind?.label || filters.kind?.value || capitalizedKind || 'Entity';
+    (selectedKind && kindDisplayNames[selectedKind]) ||
+    filters.kind?.label ||
+    filters.kind?.value ||
+    capitalizedKind ||
+    'Entity';
   const pluralLabel = kindPluralNames[kindLabel] || `${kindLabel}s`;
   const titleText = `All ${displayTotal === 1 ? kindLabel : pluralLabel}${
     displayTotal !== undefined ? ` (${displayTotal})` : ''

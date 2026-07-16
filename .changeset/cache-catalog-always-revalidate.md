@@ -39,3 +39,8 @@ swapping in silently. The spinner tracks the real network refetch on the shared
 `queryClient` (via `useIsFetching`), not the surface's own `loading` flag —
 which resolves the instant the cached read returns while the revalidation is
 still in flight.
+
+Switching the catalog Kind filter now reflects the newly selected kind
+immediately: a cached kind's rows and title appear at once from the cache, and
+an uncached kind shows a clean full-page loader under the new kind's title
+instead of leaving the previous kind's rows on screen until the fetch resolves.

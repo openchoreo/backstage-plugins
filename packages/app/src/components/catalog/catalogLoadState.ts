@@ -72,14 +72,13 @@ export function deriveCatalogLoadState(
     !entities[0].kind ||
     entities[0].kind.toLowerCase() === selectedKind;
 
-  // Cold load whenever we're loading and there is nothing safe to keep on
-  // screen: either no rows at all, OR the held live rows are a different kind
-  // than the selected one (a kind SWITCH). `useEntityList` keeps the previous
-  // kind's `entities` while the new kind refetches, so `displayEntities` is
-  // nonempty during a switch — the `!heldKindMatches` term must fire
-  // independently, or those old rows would render under the new kind's headers.
-  const firstLoad =
-    loading && (displayEntities.length === 0 || !heldKindMatches);
+  // Cold load whenever we're loading with nothing valid to show. `displayEntities`
+  // is already scoped to the SELECTED kind by the caller (matching live rows, or
+  // the kind-matched cache seed — never the previous kind's held rows during a
+  // switch), so an empty `displayEntities` genuinely means "nothing for this kind
+  // yet". On a kind switch to a cached kind the seed fills it (no loader); to an
+  // uncached kind it's empty, so the full loader shows under the new kind's title.
+  const firstLoad = loading && displayEntities.length === 0;
 
   const backgroundRefreshing =
     queryFetching && !firstLoad && displayEntities.length > 0;
