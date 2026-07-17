@@ -7,6 +7,7 @@ import { ChoreoEntityKindPicker } from './ChoreoEntityKindPicker';
 import { StarredFilter } from './CustomPersonalFilters';
 import { CatalogCardList } from './CatalogCardList';
 import { ContextAwareCreateButton } from './ContextAwareCreateButton';
+import { SelectedKindProvider } from './SelectedKindContext';
 import { useStyles } from './styles';
 
 export interface CustomCatalogPageProps {
@@ -23,55 +24,57 @@ export const CustomCatalogPage = ({
     <PageWithHeader title="Catalog" themeId="home">
       <Content>
         <EntityListProvider pagination={{ mode: 'offset', limit: 25 }}>
-          <Box className={classes.root}>
-            {/* Header with Filter button (mobile only) */}
-            <Box className={classes.header}>
-              <Box
-                className={classes.filterButton}
-                component="button"
-                onClick={() => setDrawerOpen(true)}
-                style={{
-                  gap: '8px',
-                }}
-              >
-                <FilterListIcon fontSize="small" />
-                <span className={classes.filterButtonText}>Filters</span>
-              </Box>
-            </Box>
-
-            {/* Filters at the top (desktop) */}
-            <Box className={classes.filterSection}>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item sm={12} md={4} lg={3}>
-                  <ChoreoEntityKindPicker initialFilter={initialKind} />
-                </Grid>
-              </Grid>
-            </Box>
-
-            {/* Filter drawer for mobile */}
-            <Drawer
-              anchor="left"
-              open={drawerOpen}
-              onClose={() => setDrawerOpen(false)}
-              className={classes.filterDrawer}
-            >
-              <Box className={classes.filterDrawerContent}>
-                <Box className={classes.filterGrid}>
-                  <Box className={classes.filterItem}>
-                    <ChoreoEntityKindPicker initialFilter={initialKind} />
-                  </Box>
-                  <Box className={classes.filterItem}>
-                    <StarredFilter />
-                  </Box>
+          <SelectedKindProvider>
+            <Box className={classes.root}>
+              {/* Header with Filter button (mobile only) */}
+              <Box className={classes.header}>
+                <Box
+                  className={classes.filterButton}
+                  component="button"
+                  onClick={() => setDrawerOpen(true)}
+                  style={{
+                    gap: '8px',
+                  }}
+                >
+                  <FilterListIcon fontSize="small" />
+                  <span className={classes.filterButtonText}>Filters</span>
                 </Box>
               </Box>
-            </Drawer>
 
-            {/* Catalog card list */}
-            <Box className={classes.contentArea}>
-              <CatalogCardList actionButton={<ContextAwareCreateButton />} />
+              {/* Filters at the top (desktop) */}
+              <Box className={classes.filterSection}>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item sm={12} md={4} lg={3}>
+                    <ChoreoEntityKindPicker initialFilter={initialKind} />
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {/* Filter drawer for mobile */}
+              <Drawer
+                anchor="left"
+                open={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+                className={classes.filterDrawer}
+              >
+                <Box className={classes.filterDrawerContent}>
+                  <Box className={classes.filterGrid}>
+                    <Box className={classes.filterItem}>
+                      <ChoreoEntityKindPicker initialFilter={initialKind} />
+                    </Box>
+                    <Box className={classes.filterItem}>
+                      <StarredFilter />
+                    </Box>
+                  </Box>
+                </Box>
+              </Drawer>
+
+              {/* Catalog card list */}
+              <Box className={classes.contentArea}>
+                <CatalogCardList actionButton={<ContextAwareCreateButton />} />
+              </Box>
             </Box>
-          </Box>
+          </SelectedKindProvider>
         </EntityListProvider>
       </Content>
     </PageWithHeader>

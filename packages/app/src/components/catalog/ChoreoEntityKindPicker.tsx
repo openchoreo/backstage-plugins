@@ -13,6 +13,7 @@ import {
 } from '@backstage/plugin-catalog-react';
 import { kindDisplayNames, kindCategories } from '../../utils/kindUtils';
 import { useAllKinds } from '../../hooks/useAllKinds';
+import { useSelectedKind } from './SelectedKindContext';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -145,6 +146,17 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
     useEntityKindFilter({
       initialFilter: initialFilter,
     });
+
+  // Publish the selected kind to the shared context so CatalogCardList sees it
+  // synchronously (before `filters.kind`/the URL settle post-fetch). Only the
+  // visible picker writes it — the hidden mobile/desktop twin would otherwise
+  // fight over the context with its own lagging `selectedKind`.
+  const { setSelectedKind: publishSelectedKind } = useSelectedKind();
+  useEffect(() => {
+    if (!hidden) {
+      publishSelectedKind(selectedKind);
+    }
+  }, [hidden, selectedKind, publishSelectedKind]);
 
   useEffect(() => {
     if (error) {

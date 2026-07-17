@@ -29,25 +29,37 @@ describe('deriveCatalogLoadState', () => {
       expect(s.firstLoad).toBe(false);
     });
 
-    it('treats a kind switch as a cold load (held rows are a different kind)', () => {
-      // Production state: `useEntityList` keeps the old Component `entities`
-      // while the new kind refetches, and CatalogCardList renders those held
-      // rows as `displayEntities` (entities take precedence over the seed). So
-      // the fixture must carry NONEMPTY held display rows — the kind mismatch
-      // has to force a cold load anyway, or they'd render under API headers.
-      const heldComponentRows = [{ kind: 'Component' }];
+    it('is a cold load on a switch to an UNCACHED kind (no rows to show)', () => {
+      // The caller scopes `displayEntities` to the selected kind, so during a
+      // switch to a kind with no cache seed it is empty (the held previous-kind
+      // rows are excluded). With nothing valid to show, the full loader fires.
       const s = deriveCatalogLoadState({
         ...base,
         loading: true,
-        entities: heldComponentRows,
-        displayEntities: heldComponentRows,
+        entities: [{ kind: 'Component' }], // held previous kind, still lingering
+        displayEntities: [], // but nothing shown for the new (uncached) kind
         selectedKind: 'api',
       });
       expect(s.heldKindMatches).toBe(false);
       expect(s.firstLoad).toBe(true);
     });
 
-    it('does not force a cold reload over a held entity that has no kind', () => {
+    it('is NOT a cold load on a switch to a CACHED kind (seed fills the rows)', () => {
+      // A cached kind supplies a kind-matched seed, so the caller passes nonempty
+      // `displayEntities` even though the held `entities` are the previous kind.
+      // The new kind paints from the seed — no loader.
+      const s = deriveCatalogLoadState({
+        ...base,
+        loading: true,
+        entities: [{ kind: 'Component' }], // held previous kind
+        displayEntities: rows(5), // the new kind's cached seed rows
+        selectedKind: 'api',
+      });
+      expect(s.heldKindMatches).toBe(false);
+      expect(s.firstLoad).toBe(false);
+    });
+
+    it('reports heldKindMatches=true for a held entity with no kind (no forced reload)', () => {
       const s = deriveCatalogLoadState({
         ...base,
         loading: true,
