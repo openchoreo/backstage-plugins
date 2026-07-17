@@ -5505,6 +5505,11 @@ export interface components {
        * @example Starting application server on port 8080
        */
       log: string;
+      /**
+       * @description Name of the container that produced this log entry
+       * @example main
+       */
+      container?: string;
     };
     /** @description Response containing logs for a specific pod */
     ResourcePodLogsResponse: {
@@ -11663,6 +11668,8 @@ export interface operations {
       query: {
         /** @description Name of the pod */
         podName: string;
+        /** @description Name of the container to fetch logs from. If omitted, logs from all containers in the pod are returned, with each entry tagged by container. */
+        container?: string;
         /** @description Number of seconds since which to show logs */
         sinceSeconds?: number;
       };

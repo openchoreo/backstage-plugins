@@ -620,6 +620,7 @@ export interface ResourceEventsResponse {
 export interface PodLogEntry {
   timestamp: string;
   log: string;
+  container?: string;
 }
 
 /** Response from the pod-logs API */
