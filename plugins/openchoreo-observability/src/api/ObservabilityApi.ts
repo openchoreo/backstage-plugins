@@ -19,6 +19,10 @@ import {
 } from '../types';
 import { LogsResponse } from '../components/RuntimeLogs/types';
 import { EventsResponse } from '../components/RuntimeEvents/types';
+import type {
+  RunsQueryResponse,
+  RetriesQueryResponse,
+} from '../components/Runs/types';
 import { ObserverUrlCache } from './ObserverUrlCache';
 
 export interface ObservabilityApi {
@@ -184,6 +188,57 @@ export interface ObservabilityApi {
     environmentName: string,
     namespaceName: string,
   ): Promise<FinOpsReportDetailed>;
+
+  getRuns(
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+      offset?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<RunsQueryResponse>;
+
+  getRetries(
+    jobName: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      /**
+       * ISO timestamp for the lower bound of the retries lookup window. Pair
+       * with `endTime` — the backend rejects one-only (both-or-none contract).
+       * When both are omitted the backend falls back to a 30-day lookback,
+       * which can silently truncate under the observer adapter's per-call
+       * 1000-event cap on high-frequency CronJobs.
+       */
+      startTime?: string;
+      /**
+       * ISO timestamp for the upper bound of the retries lookup window. See
+       * `startTime` for the both-or-none contract and truncation caveat.
+       */
+      endTime?: string;
+    },
+  ): Promise<RetriesQueryResponse>;
+
+  getPodLogs(
+    podName: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<LogsResponse>;
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
@@ -943,9 +998,6 @@ export class ObservabilityClient implements ObservabilityApi {
       if (error.includes('FinOps service is not configured')) {
         throw new Error('FinOps service is not configured');
       }
-      if (error.includes('Observability is not configured for component')) {
-        throw new Error('Observability is not enabled for this component');
-      }
       throw new Error(
         error || `Failed to fetch FinOps reports: ${response.statusText}`,
       );
@@ -999,6 +1051,204 @@ export class ObservabilityClient implements ObservabilityApi {
       }
       throw new Error(
         error || `Failed to fetch FinOps report: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    return data;
+  }
+
+  async getRuns(
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+      offset?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<RunsQueryResponse> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1/scheduled-tasks/runs/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          startTime:
+            options?.startTime ?? new Date(Date.now() - 3600000).toISOString(),
+          endTime: options?.endTime ?? new Date().toISOString(),
+          limit: options?.limit ?? 20,
+          offset: options?.offset ?? 0,
+          sortOrder: options?.sortOrder ?? 'desc',
+          searchScope: {
+            namespace: namespaceName,
+            project: projectName,
+            component: componentName,
+            environment: environmentName,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      if (error.includes('Observability is not configured for component')) {
+        throw new Error('Observability is not enabled for this component');
+      }
+      throw new Error(error || `Failed to fetch runs: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return {
+      runs: (data.runs ?? []).map((r: any) => ({
+        jobName: r.jobName ?? '',
+        status: r.status ?? 'unknown',
+        startTime: r.startTime ?? '',
+        completionTime: r.completionTime,
+        eventCount: r.eventCount ?? 0,
+        failureReason: r.failureReason,
+        events: r.events,
+      })),
+      total: data.total ?? 0,
+      tookMs: data.tookMs ?? 0,
+    };
+  }
+
+  async getRetries(
+    jobName: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      /**
+       * ISO timestamp for the lower bound of the retries lookup window. Pair
+       * with `endTime` — the backend rejects one-only (both-or-none contract).
+       * When both are omitted the backend falls back to a 30-day lookback,
+       * which can silently truncate under the observer adapter's per-call
+       * 1000-event cap on high-frequency CronJobs.
+       */
+      startTime?: string;
+      /**
+       * ISO timestamp for the upper bound of the retries lookup window. See
+       * `startTime` for the both-or-none contract and truncation caveat.
+       */
+      endTime?: string;
+    },
+  ): Promise<RetriesQueryResponse> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const body: {
+      searchScope: {
+        namespace: string;
+        project: string;
+        component: string;
+        environment: string;
+      };
+      startTime?: string;
+      endTime?: string;
+    } = {
+      searchScope: {
+        namespace: namespaceName,
+        project: projectName,
+        component: componentName,
+        environment: environmentName,
+      },
+    };
+    // Only include time bounds when BOTH are present. Backend rejects one-only.
+    if (options?.startTime && options?.endTime) {
+      body.startTime = options.startTime;
+      body.endTime = options.endTime;
+    }
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1/scheduled-tasks/runs/${encodeURIComponent(
+        jobName,
+      )}/retries/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify(body),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(
+        error || `Failed to fetch retries: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    return {
+      retries: (data.retries ?? []).map((r: any) => ({
+        podName: r.podName ?? '',
+        status: r.status ?? 'Unknown',
+        startTime: r.startTime ?? '',
+        eventCount: r.eventCount ?? 0,
+        events: r.events,
+      })),
+      total: data.total ?? 0,
+      tookMs: data.tookMs ?? 0,
+    };
+  }
+
+  async getPodLogs(
+    podName: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<LogsResponse> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1/logs/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          startTime:
+            options?.startTime ??
+            new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+          endTime: options?.endTime ?? new Date().toISOString(),
+          limit: options?.limit ?? 500,
+          sortOrder: options?.sortOrder ?? 'asc',
+          searchScope: {
+            namespace: namespaceName,
+            project: projectName,
+            component: componentName,
+            environment: environmentName,
+            podName,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(
+        error || `Failed to fetch pod logs: ${response.statusText}`,
       );
     }
 

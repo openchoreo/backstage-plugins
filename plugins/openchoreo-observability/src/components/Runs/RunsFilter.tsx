@@ -1,0 +1,102 @@
+import { FC, ChangeEvent } from 'react';
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Grid,
+} from '@material-ui/core';
+import { Skeleton } from '@material-ui/lab';
+import type { RunsFilters, Environment } from './types';
+import { RUNS_TIME_RANGE_OPTIONS } from './types';
+
+interface RunsFilterProps {
+  filters: RunsFilters;
+  onFiltersChange: (filters: Partial<RunsFilters>) => void;
+  environments: Environment[];
+  environmentsLoading: boolean;
+  disabled?: boolean;
+}
+
+export const RunsFilter: FC<RunsFilterProps> = ({
+  filters,
+  onFiltersChange,
+  environments,
+  environmentsLoading,
+  disabled = false,
+}) => {
+  const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
+    onFiltersChange({ environmentId: event.target.value as string });
+  };
+
+  const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
+    onFiltersChange({ timeRange: event.target.value as string });
+  };
+
+  const handleSortOrderChange = (event: ChangeEvent<{ value: unknown }>) => {
+    onFiltersChange({ sortOrder: event.target.value as 'asc' | 'desc' });
+  };
+
+  return (
+    <Grid container spacing={2}>
+      <Grid item xs={12} md={3}>
+        <FormControl
+          fullWidth
+          disabled={disabled || environmentsLoading}
+          variant="outlined"
+        >
+          <InputLabel id="runs-environment-label">Environment</InputLabel>
+          {environmentsLoading ? (
+            <Skeleton variant="rect" height={56} />
+          ) : (
+            <Select
+              value={filters.environmentId}
+              onChange={handleEnvironmentChange}
+              labelId="runs-environment-label"
+              label="Environment"
+            >
+              {environments.map(env => (
+                <MenuItem key={env.id} value={env.id}>
+                  {env.name}
+                </MenuItem>
+              ))}
+            </Select>
+          )}
+        </FormControl>
+      </Grid>
+
+      <Grid item xs={12} md={3}>
+        <FormControl fullWidth disabled={disabled} variant="outlined">
+          <InputLabel id="runs-time-range-label">Time Range</InputLabel>
+          <Select
+            value={filters.timeRange}
+            onChange={handleTimeRangeChange}
+            labelId="runs-time-range-label"
+            label="Time Range"
+          >
+            {RUNS_TIME_RANGE_OPTIONS.map(opt => (
+              <MenuItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Grid>
+
+      <Grid item xs={12} md={3}>
+        <FormControl fullWidth disabled={disabled} variant="outlined">
+          <InputLabel id="runs-sort-label">Sort Order</InputLabel>
+          <Select
+            value={filters.sortOrder}
+            onChange={handleSortOrderChange}
+            labelId="runs-sort-label"
+            label="Sort Order"
+          >
+            <MenuItem value="desc">Newest First</MenuItem>
+            <MenuItem value="asc">Oldest First</MenuItem>
+          </Select>
+        </FormControl>
+      </Grid>
+    </Grid>
+  );
+};
