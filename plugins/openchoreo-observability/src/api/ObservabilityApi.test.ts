@@ -554,13 +554,7 @@ describe('ObservabilityClient.getRetries', () => {
     );
 
     const client = createClient();
-    await client.getRetries(
-      'job-1',
-      'ns1',
-      'project-a',
-      'dev',
-      'component-a',
-    );
+    await client.getRetries('job-1', 'ns1', 'project-a', 'dev', 'component-a');
 
     expect(mockFetchApi.fetch).toHaveBeenCalledTimes(1);
     const [url, options] = mockFetchApi.fetch.mock.calls[0];
@@ -585,17 +579,10 @@ describe('ObservabilityClient.getRetries', () => {
     mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({ retries: [] }));
 
     const client = createClient();
-    await client.getRetries(
-      'job-1',
-      'ns1',
-      'project-a',
-      'dev',
-      'component-a',
-      {
-        startTime: '2026-03-05T09:00:00.000Z',
-        endTime: '2026-03-05T10:00:00.000Z',
-      },
-    );
+    await client.getRetries('job-1', 'ns1', 'project-a', 'dev', 'component-a', {
+      startTime: '2026-03-05T09:00:00.000Z',
+      endTime: '2026-03-05T10:00:00.000Z',
+    });
 
     const payload = JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body);
     expect(payload.startTime).toBe('2026-03-05T09:00:00.000Z');
@@ -606,14 +593,9 @@ describe('ObservabilityClient.getRetries', () => {
     mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({ retries: [] }));
 
     const client = createClient();
-    await client.getRetries(
-      'job-1',
-      'ns1',
-      'project-a',
-      'dev',
-      'component-a',
-      { startTime: '2026-03-05T09:00:00.000Z' },
-    );
+    await client.getRetries('job-1', 'ns1', 'project-a', 'dev', 'component-a', {
+      startTime: '2026-03-05T09:00:00.000Z',
+    });
 
     const payload = JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body);
     expect(payload.startTime).toBeUndefined();
@@ -624,14 +606,9 @@ describe('ObservabilityClient.getRetries', () => {
     mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({ retries: [] }));
 
     const client = createClient();
-    await client.getRetries(
-      'job-1',
-      'ns1',
-      'project-a',
-      'dev',
-      'component-a',
-      { endTime: '2026-03-05T10:00:00.000Z' },
-    );
+    await client.getRetries('job-1', 'ns1', 'project-a', 'dev', 'component-a', {
+      endTime: '2026-03-05T10:00:00.000Z',
+    });
 
     const payload = JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body);
     expect(payload.startTime).toBeUndefined();
@@ -767,13 +744,7 @@ describe('ObservabilityClient.getPodLogs', () => {
     mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({ logs: [] }));
 
     const client = createClient();
-    await client.getPodLogs(
-      'pod-1',
-      'ns1',
-      'project-a',
-      'dev',
-      'component-a',
-    );
+    await client.getPodLogs('pod-1', 'ns1', 'project-a', 'dev', 'component-a');
 
     const payload = JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body);
     expect(payload.limit).toBe(500);
@@ -792,13 +763,7 @@ describe('ObservabilityClient.getPodLogs', () => {
 
     const client = createClient();
     await expect(
-      client.getPodLogs(
-        'pod-1',
-        'ns1',
-        'project-a',
-        'dev',
-        'component-a',
-      ),
+      client.getPodLogs('pod-1', 'ns1', 'project-a', 'dev', 'component-a'),
     ).rejects.toThrow('pod logs boom');
   });
 });
