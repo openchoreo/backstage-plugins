@@ -33,6 +33,7 @@ import {
   useMetricsPermission,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { NoEnvironmentsEmptyState } from '../common';
 
 const ObservabilityMetricsContent = () => {
   const classes = useObservabilityMetricsPageStyles();
@@ -47,7 +48,7 @@ const ObservabilityMetricsContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace);
+  } = useGetEnvironmentsByNamespace(namespace, project);
 
   // URL-synced filters - must be after environments are available
   const { filters, updateFilters } = useUrlFilters({
@@ -103,6 +104,14 @@ const ObservabilityMetricsContent = () => {
   if (environmentsError) {
     // TODO: Add a toast notification here
     return <></>;
+  }
+
+  if (!environmentsLoading && environments.length === 0) {
+    return (
+      <Box>
+        <NoEnvironmentsEmptyState feature="metrics" />
+      </Box>
+    );
   }
 
   const isLoading = environmentsLoading || metricsLoading;

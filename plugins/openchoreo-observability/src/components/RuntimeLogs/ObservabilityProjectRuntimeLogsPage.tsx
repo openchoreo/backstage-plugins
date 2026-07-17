@@ -18,6 +18,7 @@ import {
   useLogsPermission,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { NoEnvironmentsEmptyState } from '../common';
 import { useRuntimeLogsStyles } from './styles';
 import { Environment as RuntimeLogsEnvironment, LogEntryField } from './types';
 
@@ -33,7 +34,7 @@ const ObservabilityProjectRuntimeLogsContent = () => {
     environments: observabilityEnvironments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace);
+  } = useGetEnvironmentsByNamespace(namespace, projectName);
 
   const {
     components,
@@ -188,6 +189,14 @@ const ObservabilityProjectRuntimeLogsContent = () => {
     return <Box>{renderError(componentsError)}</Box>;
   }
 
+  if (!environmentsLoading && environments.length === 0) {
+    return (
+      <Box>
+        <NoEnvironmentsEmptyState feature="logs" />
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <LogsFilter
@@ -201,16 +210,6 @@ const ObservabilityProjectRuntimeLogsContent = () => {
       />
 
       {logsError && renderError(logsError)}
-
-      {!filters.environmentId &&
-        !environmentsLoading &&
-        environments.length === 0 && (
-          <Alert severity="info" className={classes.errorContainer}>
-            <Typography variant="body1">
-              No environments found for this project.
-            </Typography>
-          </Alert>
-        )}
 
       {filters.environmentId && (
         <>

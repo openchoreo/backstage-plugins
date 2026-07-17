@@ -131,6 +131,20 @@ describe('createRouter', () => {
     expect(response.body).toEqual({ environments: mockEnvironments });
   });
 
+  it('should forward the project query param for pipeline-scoped environments', async () => {
+    observabilityService.fetchEnvironmentsByNamespace.mockResolvedValue([]);
+
+    const response = await request(app)
+      .get('/environments')
+      .query({ namespace: 'org-1', project: 'my-project' });
+
+    expect(response.status).toBe(200);
+    const [namespaceArg, projectArg] =
+      observabilityService.fetchEnvironmentsByNamespace.mock.calls[0];
+    expect(namespaceArg).toBe('org-1');
+    expect(projectArg).toBe('my-project');
+  });
+
   it('should return 400 when namespace is missing for environments', async () => {
     const response = await request(app).get('/environments').query({});
 

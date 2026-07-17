@@ -20,6 +20,7 @@ import {
   useTracesPermission,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { NoEnvironmentsEmptyState } from '../common';
 import { calculateTimeRange } from './utils';
 
 const ObservabilityTracesContent = () => {
@@ -32,7 +33,7 @@ const ObservabilityTracesContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace);
+  } = useGetEnvironmentsByNamespace(namespace, projectName);
   const {
     components,
     loading: componentsLoading,
@@ -92,6 +93,14 @@ const ObservabilityTracesContent = () => {
 
   if (environmentsError) {
     return <></>;
+  }
+
+  if (!environmentsLoading && environments.length === 0) {
+    return (
+      <Box>
+        <NoEnvironmentsEmptyState feature="traces" />
+      </Box>
+    );
   }
 
   const renderError = (error: string) => {
