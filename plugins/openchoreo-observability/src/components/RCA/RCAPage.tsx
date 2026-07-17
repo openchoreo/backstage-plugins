@@ -18,6 +18,7 @@ import {
   useRcaPermission,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { NoEnvironmentsEmptyState } from '../common';
 import { RCAReport } from './RCAReport';
 import { EntityLinkContext } from './RCAReport/EntityLinkContext';
 
@@ -32,7 +33,7 @@ const RCAListContent = () => {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace);
+  } = useGetEnvironmentsByNamespace(namespace, entity.metadata.name as string);
   const { filters, updateFilters } = useUrlFilters({ environments });
 
   const {
@@ -68,6 +69,14 @@ const RCAListContent = () => {
   if (environmentsError) {
     // TODO: Add a toast notification here
     return <></>;
+  }
+
+  if (!environmentsLoading && environments.length === 0) {
+    return (
+      <Box>
+        <NoEnvironmentsEmptyState feature="RCA reports" />
+      </Box>
+    );
   }
 
   const renderError = (error: string) => {

@@ -14,6 +14,7 @@ import {
   useUrlFiltersForAlerts,
 } from '../../hooks';
 import { useAlertsPermission } from '@openchoreo/backstage-plugin-react';
+import { NoEnvironmentsEmptyState } from '../common';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
 import type { Environment as RuntimeLogsEnvironment } from '../RuntimeLogs/types';
 import type { AlertSummary } from '../../types';
@@ -28,7 +29,7 @@ const ObservabilityAlertsContent = () => {
     environments: observabilityEnvironments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByNamespace(namespace);
+  } = useGetEnvironmentsByNamespace(namespace, project);
 
   const environments = useMemo<RuntimeLogsEnvironment[]>(() => {
     return observabilityEnvironments.map(env => ({
@@ -204,6 +205,14 @@ const ObservabilityAlertsContent = () => {
     return <Box>{renderError(environmentsError)}</Box>;
   }
 
+  if (!environmentsLoading && environments.length === 0) {
+    return (
+      <Box>
+        <NoEnvironmentsEmptyState feature="alerts" />
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <AlertsFilter
@@ -215,17 +224,6 @@ const ObservabilityAlertsContent = () => {
       />
 
       {alertsError && renderError(alertsError)}
-
-      {!filters.environmentId &&
-        !environmentsLoading &&
-        environments.length === 0 && (
-          <Alert severity="info" className={classes.errorContainer}>
-            <Typography variant="body1">
-              No environments found. Make sure your component is properly
-              configured.
-            </Typography>
-          </Alert>
-        )}
 
       {filters.environmentId && (
         <>

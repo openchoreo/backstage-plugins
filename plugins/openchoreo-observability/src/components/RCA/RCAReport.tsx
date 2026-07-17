@@ -28,7 +28,10 @@ const RCAReportContent = () => {
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   // Get environments to ensure we have environment data
-  const { environments } = useGetEnvironmentsByNamespace(namespace);
+  const { environments } = useGetEnvironmentsByNamespace(
+    namespace,
+    entity.metadata.name as string,
+  );
   const environment = filters.environment || environments[0];
 
   const {

@@ -1,4 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
+import { NotFoundError } from '@backstage/errors';
 import { EnvironmentService, Environment, EndpointInfo } from '../../types';
 import {
   createOpenChoreoApiClient,
@@ -19,6 +20,37 @@ import {
 type ModelsEnvironment = EnvironmentResponse;
 
 type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
+
+/**
+ * Thrown when the deployment pipeline that governs a component/project
+ * cannot be resolved (the owning project has no `deploymentPipelineRef`, or the
+ * referenced pipeline could not be fetched). Deployment views must surface this
+ * as an error rather than silently falling back to every environment in the
+ * namespace. Extends `NotFoundError` (→ HTTP 404) but keeps a distinct class
+ * identity so it can be re-thrown precisely without also re-throwing unrelated
+ * 404s raised by `assertApiResponse`.
+ */
+export class PipelineUnavailableError extends NotFoundError {
+  constructor(message: string) {
+    super(message);
+    // Keep the wire name as NotFoundError so the backend error handler maps it
+    // to a 404; `instanceof` still identifies our own errors.
+    this.name = 'NotFoundError';
+  }
+}
+
+/**
+ * Surfaces auth failures (401/403) encountered while resolving the deployment
+ * pipeline as thrown Backstage errors.
+ */
+function assertPipelineFetchAllowed(
+  result: { data?: unknown; error?: unknown; response: Response },
+  context: string,
+): void {
+  if (result.response.status === 401 || result.response.status === 403) {
+    assertApiResponse(result, context);
+  }
+}
 
 /**
  * Extracts the environment name from a sourceEnvironmentRef which may be
@@ -175,6 +207,14 @@ export class EnvironmentInfoService implements EnvironmentService {
               },
             },
           );
+          assertPipelineFetchAllowed(
+            {
+              data: project,
+              error: projectError,
+              response: projectResponse,
+            },
+            'fetch project',
+          );
           if (
             projectError ||
             !projectResponse.ok ||
@@ -195,6 +235,10 @@ export class EnvironmentInfoService implements EnvironmentService {
                 },
               },
             },
+          );
+          assertPipelineFetchAllowed(
+            { data, error, response },
+            'fetch deployment pipeline',
           );
           if (error || !response.ok) {
             return null;
@@ -229,6 +273,12 @@ export class EnvironmentInfoService implements EnvironmentService {
         return [];
       }
 
+      if (!deploymentPipeline) {
+        throw new PipelineUnavailableError(
+          `The deployment pipeline for project "${request.projectName}" could not be loaded. It may be missing or misconfigured.`,
+        );
+      }
+
       // Transform new K8s-style environments to legacy shape
       const environments = newEnvironments.map(transformEnvironment);
 
@@ -258,9 +308,10 @@ export class EnvironmentInfoService implements EnvironmentService {
       return result;
     } catch (error: unknown) {
       if (
-        error instanceof Error &&
-        (error.name === 'NotAllowedError' ||
-          error.name === 'AuthenticationError')
+        error instanceof PipelineUnavailableError ||
+        (error instanceof Error &&
+          (error.name === 'NotAllowedError' ||
+            error.name === 'AuthenticationError'))
       ) {
         throw error;
       }
@@ -305,17 +356,17 @@ export class EnvironmentInfoService implements EnvironmentService {
       bindingsByEnv.set(envName, binding);
     }
 
-    // If no pipeline data, use default ordering
+    // A resolved pipeline with no promotion paths defines no deployable
+    // environments — return an empty list
     if (
       !deploymentPipeline ||
       !deploymentPipeline.promotionPaths ||
       deploymentPipeline.promotionPaths.length === 0
     ) {
-      this.logger.debug('No deployment pipeline found, using default ordering');
-      return this.transformEnvironmentDataWithBindingsOnly(
-        environmentData,
-        bindingsByEnv,
+      this.logger.debug(
+        'Deployment pipeline defines no environments, returning empty list',
       );
+      return [];
     }
 
     // Build promotion map from pipeline data (normalized to actual env names)
@@ -422,17 +473,6 @@ export class EnvironmentInfoService implements EnvironmentService {
     }
 
     return transformedEnv;
-  }
-
-  private transformEnvironmentDataWithBindingsOnly(
-    environmentData: ModelsEnvironment[],
-    bindingsByEnv: Map<string, ReleaseBindingResponse>,
-  ): Environment[] {
-    return environmentData.map(env => {
-      const envName = env.displayName || env.name;
-      const binding = bindingsByEnv.get(envName);
-      return this.createEnvironmentFromBinding(env, binding);
-    });
   }
 
   private getEnvironmentOrder(
