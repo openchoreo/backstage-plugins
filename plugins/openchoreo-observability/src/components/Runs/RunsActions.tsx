@@ -60,7 +60,10 @@ export const RunsActions = ({
         <Typography variant="body2" color="textSecondary">
           Total runs: {totalCount}
           {totalCount > 0 && (
-            <> — showing {startItem}-{endItem}</>
+            <>
+              {' '}
+              — showing {startItem}-{endItem}
+            </>
           )}
         </Typography>
         <Typography variant="body2" color="textSecondary">

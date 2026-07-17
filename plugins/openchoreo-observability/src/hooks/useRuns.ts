@@ -80,9 +80,7 @@ export function useRuns(
         setTotalCount(response.total ?? 0);
       } catch (err) {
         if (version !== requestVersionRef.current) return;
-        setError(
-          err instanceof Error ? err.message : 'Failed to fetch runs',
-        );
+        setError(err instanceof Error ? err.message : 'Failed to fetch runs');
       } finally {
         if (version === requestVersionRef.current) {
           setLoading(false);

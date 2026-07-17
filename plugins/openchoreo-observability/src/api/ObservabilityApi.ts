@@ -1103,9 +1103,7 @@ export class ObservabilityClient implements ObservabilityApi {
       if (error.includes('Observability is not configured for component')) {
         throw new Error('Observability is not enabled for this component');
       }
-      throw new Error(
-        error || `Failed to fetch runs: ${response.statusText}`,
-      );
+      throw new Error(error || `Failed to fetch runs: ${response.statusText}`);
     }
 
     const data = await response.json();

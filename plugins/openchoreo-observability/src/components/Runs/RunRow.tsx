@@ -112,7 +112,9 @@ export const RunRow: FC<RunRowProps> = ({
     <>
       <TableRow
         hover
-        className={`${logClasses.logRow} ${expanded ? logClasses.expandedRow : ''}`}
+        className={`${logClasses.logRow} ${
+          expanded ? logClasses.expandedRow : ''
+        }`}
         onClick={() => setExpanded(prev => !prev)}
       >
         <TableCell>
@@ -130,7 +132,11 @@ export const RunRow: FC<RunRowProps> = ({
                 run.status.toUpperCase()
               )
             }
-            className={`${logClasses.logLevelChip} ${getStatusChipClass(run.status, logClasses, runClasses)}`}
+            className={`${logClasses.logLevelChip} ${getStatusChipClass(
+              run.status,
+              logClasses,
+              runClasses,
+            )}`}
           />
         </TableCell>
         <TableCell className={logClasses.monospaceCell}>
@@ -143,15 +149,9 @@ export const RunRow: FC<RunRowProps> = ({
           {formatTimestamp(run.completionTime)}
         </TableCell>
         <TableCell style={{ fontSize: '0.75rem' }}>
-          {formatDuration(
-            run.startTime,
-            run.completionTime,
-            run.status,
-          )}
+          {formatDuration(run.startTime, run.completionTime, run.status)}
         </TableCell>
-        <TableCell style={{ fontSize: '0.75rem' }}>
-          {run.eventCount}
-        </TableCell>
+        <TableCell style={{ fontSize: '0.75rem' }}>{run.eventCount}</TableCell>
       </TableRow>
 
       {expanded && (
@@ -160,7 +160,8 @@ export const RunRow: FC<RunRowProps> = ({
             <Collapse in={expanded} timeout="auto" unmountOnExit>
               <Box className={logClasses.expandedContent}>
                 <Typography className={runClasses.sectionTitle}>
-                  Retries ({retries.length} pod{retries.length !== 1 ? 's' : ''})
+                  Retries ({retries.length} pod{retries.length !== 1 ? 's' : ''}
+                  )
                 </Typography>
 
                 {retriesLoading && (
@@ -176,10 +177,7 @@ export const RunRow: FC<RunRowProps> = ({
                 )}
 
                 {!retriesLoading && !retriesError && retries.length > 0 && (
-                  <Table
-                    size="small"
-                    className={runClasses.retriesTable}
-                  >
+                  <Table size="small" className={runClasses.retriesTable}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Status</TableCell>
@@ -214,7 +212,6 @@ export const RunRow: FC<RunRowProps> = ({
                     No retry pods found for this run.
                   </Typography>
                 )}
-
               </Box>
             </Collapse>
           </TableCell>

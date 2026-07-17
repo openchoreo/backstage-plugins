@@ -69,9 +69,7 @@ export function useRetries(options: UseRetriesOptions): UseRetriesResult {
       setRetries(response.retries ?? []);
     } catch (err) {
       if (version !== requestVersionRef.current) return;
-      setError(
-        err instanceof Error ? err.message : 'Failed to fetch retries',
-      );
+      setError(err instanceof Error ? err.message : 'Failed to fetch retries');
     } finally {
       if (version === requestVersionRef.current) {
         setLoading(false);

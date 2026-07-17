@@ -124,14 +124,20 @@ export const RetryRow: FC<RetryRowProps> = ({
     <>
       <TableRow
         hover
-        className={`${logClasses.logRow} ${expanded ? logClasses.expandedRow : ''}`}
+        className={`${logClasses.logRow} ${
+          expanded ? logClasses.expandedRow : ''
+        }`}
         onClick={() => setExpanded(prev => !prev)}
       >
         <TableCell>
           <Chip
             size="small"
             label={retry.status}
-            className={`${logClasses.logLevelChip} ${getStatusChipClass(retry.status, logClasses, runClasses)}`}
+            className={`${logClasses.logLevelChip} ${getStatusChipClass(
+              retry.status,
+              logClasses,
+              runClasses,
+            )}`}
           />
         </TableCell>
         <TableCell className={logClasses.monospaceCell}>
@@ -157,9 +163,7 @@ export const RetryRow: FC<RetryRowProps> = ({
                   {logsOpen ? (
                     <ExpandMore className={runClasses.sectionToggleIcon} />
                   ) : (
-                    <ChevronRight
-                      className={runClasses.sectionToggleIcon}
-                    />
+                    <ChevronRight className={runClasses.sectionToggleIcon} />
                   )}
                   <Typography className={runClasses.sectionHeaderTitle}>
                     Logs ({logs.length})
@@ -214,7 +218,9 @@ export const RetryRow: FC<RetryRowProps> = ({
                             {formatTimestamp(log.timestamp)}
                           </span>
                           <span
-                            className={`${runClasses.logLevel} ${logLevelClass(log.level)}`}
+                            className={`${runClasses.logLevel} ${logLevelClass(
+                              log.level,
+                            )}`}
                           >
                             {log.level || '-'}
                           </span>
@@ -234,17 +240,13 @@ export const RetryRow: FC<RetryRowProps> = ({
                       onClick={() => setEventsOpen(prev => !prev)}
                     >
                       {eventsOpen ? (
-                        <ExpandMore
-                          className={runClasses.sectionToggleIcon}
-                        />
+                        <ExpandMore className={runClasses.sectionToggleIcon} />
                       ) : (
                         <ChevronRight
                           className={runClasses.sectionToggleIcon}
                         />
                       )}
-                      <Typography
-                        className={runClasses.sectionHeaderTitle}
-                      >
+                      <Typography className={runClasses.sectionHeaderTitle}>
                         Events ({retry.events.length})
                       </Typography>
                     </Box>
@@ -256,7 +258,11 @@ export const RetryRow: FC<RetryRowProps> = ({
                               {formatTimestamp(event.timestamp)}
                             </span>
                             <span
-                              className={`${runClasses.eventReason} ${event.type === 'Warning' ? runClasses.warningEvent : ''}`}
+                              className={`${runClasses.eventReason} ${
+                                event.type === 'Warning'
+                                  ? runClasses.warningEvent
+                                  : ''
+                              }`}
                             >
                               {event.reason}
                             </span>
