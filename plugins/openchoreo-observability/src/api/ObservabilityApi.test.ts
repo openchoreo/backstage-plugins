@@ -399,3 +399,406 @@ describe('ObservabilityClient.getRuntimeEvents', () => {
     ).rejects.toThrow('kaboom');
   });
 });
+
+describe('ObservabilityClient.getRuns', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resolveUrls.mockResolvedValue({ observerUrl: 'http://observer' });
+  });
+
+  it('POSTs to the runs endpoint with searchScope and options, and maps the response', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({
+        runs: [
+          {
+            jobName: 'job-1',
+            status: 'succeeded',
+            startTime: '2026-03-05T10:00:00.000Z',
+            completionTime: '2026-03-05T10:05:00.000Z',
+            eventCount: 3,
+            failureReason: null,
+            events: [{ reason: 'Created', message: 'ok' }],
+          },
+        ],
+        total: 42,
+        tookMs: 12,
+      }),
+    );
+
+    const client = createClient();
+    const result = await client.getRuns(
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+      {
+        startTime: '2026-03-05T09:00:00.000Z',
+        endTime: '2026-03-05T10:00:00.000Z',
+        limit: 25,
+        offset: 5,
+        sortOrder: 'asc',
+      },
+    );
+
+    expect(mockFetchApi.fetch).toHaveBeenCalledTimes(1);
+    const [url, options] = mockFetchApi.fetch.mock.calls[0];
+    expect(url).toBe('http://observer/api/v1/scheduled-tasks/runs/query');
+    expect(options.method).toBe('POST');
+    const payload = JSON.parse(options.body);
+    expect(payload).toEqual({
+      startTime: '2026-03-05T09:00:00.000Z',
+      endTime: '2026-03-05T10:00:00.000Z',
+      limit: 25,
+      offset: 5,
+      sortOrder: 'asc',
+      searchScope: {
+        namespace: 'ns1',
+        project: 'project-a',
+        component: 'component-a',
+        environment: 'dev',
+      },
+    });
+    expect(result.runs).toHaveLength(1);
+    expect(result.runs[0]).toEqual({
+      jobName: 'job-1',
+      status: 'succeeded',
+      startTime: '2026-03-05T10:00:00.000Z',
+      completionTime: '2026-03-05T10:05:00.000Z',
+      eventCount: 3,
+      failureReason: null,
+      events: [{ reason: 'Created', message: 'ok' }],
+    });
+    expect(result.total).toBe(42);
+    expect(result.tookMs).toBe(12);
+  });
+
+  it('applies defaults for limit / offset / sortOrder when options are omitted', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({ runs: [] }));
+
+    const client = createClient();
+    await client.getRuns('ns1', 'project-a', 'dev', 'component-a');
+
+    const payload = JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body);
+    expect(payload.limit).toBe(20);
+    expect(payload.offset).toBe(0);
+    expect(payload.sortOrder).toBe('desc');
+    expect(typeof payload.startTime).toBe('string');
+    expect(typeof payload.endTime).toBe('string');
+  });
+
+  it('coerces missing per-run fields to safe defaults', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({ runs: [{}], total: undefined }),
+    );
+
+    const client = createClient();
+    const result = await client.getRuns(
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+    );
+
+    expect(result.runs[0]).toEqual({
+      jobName: '',
+      status: 'unknown',
+      startTime: '',
+      completionTime: undefined,
+      eventCount: 0,
+      failureReason: undefined,
+      events: undefined,
+    });
+    expect(result.total).toBe(0);
+    expect(result.tookMs).toBe(0);
+  });
+
+  it('maps the not-configured error to an observability-disabled message', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce({
+      ok: false,
+      json: () =>
+        Promise.resolve({
+          error: 'Observability is not configured for component foo',
+        }),
+    });
+
+    const client = createClient();
+    await expect(
+      client.getRuns('ns1', 'project-a', 'dev', 'component-a'),
+    ).rejects.toThrow('Observability is not enabled for this component');
+  });
+
+  it('throws the parsed error for other failures', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Server Error',
+      json: () => Promise.resolve({ error: 'runs boom' }),
+    });
+
+    const client = createClient();
+    await expect(
+      client.getRuns('ns1', 'project-a', 'dev', 'component-a'),
+    ).rejects.toThrow('runs boom');
+  });
+});
+
+describe('ObservabilityClient.getRetries', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resolveUrls.mockResolvedValue({ observerUrl: 'http://observer' });
+  });
+
+  it('POSTs to the retries endpoint and omits time bounds when neither option is set', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({ retries: [], total: 0, tookMs: 0 }),
+    );
+
+    const client = createClient();
+    await client.getRetries(
+      'job-1',
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+    );
+
+    expect(mockFetchApi.fetch).toHaveBeenCalledTimes(1);
+    const [url, options] = mockFetchApi.fetch.mock.calls[0];
+    expect(url).toBe(
+      'http://observer/api/v1/scheduled-tasks/runs/job-1/retries/query',
+    );
+    expect(options.method).toBe('POST');
+    const payload = JSON.parse(options.body);
+    expect(payload).toEqual({
+      searchScope: {
+        namespace: 'ns1',
+        project: 'project-a',
+        component: 'component-a',
+        environment: 'dev',
+      },
+    });
+    expect(payload.startTime).toBeUndefined();
+    expect(payload.endTime).toBeUndefined();
+  });
+
+  it('includes both time bounds when both are provided', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({ retries: [] }));
+
+    const client = createClient();
+    await client.getRetries(
+      'job-1',
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+      {
+        startTime: '2026-03-05T09:00:00.000Z',
+        endTime: '2026-03-05T10:00:00.000Z',
+      },
+    );
+
+    const payload = JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body);
+    expect(payload.startTime).toBe('2026-03-05T09:00:00.000Z');
+    expect(payload.endTime).toBe('2026-03-05T10:00:00.000Z');
+  });
+
+  it('omits time bounds when only startTime is provided (both-or-none)', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({ retries: [] }));
+
+    const client = createClient();
+    await client.getRetries(
+      'job-1',
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+      { startTime: '2026-03-05T09:00:00.000Z' },
+    );
+
+    const payload = JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body);
+    expect(payload.startTime).toBeUndefined();
+    expect(payload.endTime).toBeUndefined();
+  });
+
+  it('omits time bounds when only endTime is provided (both-or-none)', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({ retries: [] }));
+
+    const client = createClient();
+    await client.getRetries(
+      'job-1',
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+      { endTime: '2026-03-05T10:00:00.000Z' },
+    );
+
+    const payload = JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body);
+    expect(payload.startTime).toBeUndefined();
+    expect(payload.endTime).toBeUndefined();
+  });
+
+  it('URL-encodes the jobName', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({ retries: [] }));
+
+    const client = createClient();
+    await client.getRetries(
+      'job/with slashes',
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+    );
+
+    const [url] = mockFetchApi.fetch.mock.calls[0];
+    expect(url).toContain('job%2Fwith%20slashes');
+  });
+
+  it('maps response retries with default fields', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({
+        retries: [
+          {
+            podName: 'pod-1',
+            status: 'Succeeded',
+            startTime: '2026-03-05T10:00:00.000Z',
+            eventCount: 2,
+            events: [],
+          },
+          {},
+        ],
+        total: 2,
+        tookMs: 7,
+      }),
+    );
+
+    const client = createClient();
+    const result = await client.getRetries(
+      'job-1',
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+    );
+
+    expect(result.retries).toEqual([
+      {
+        podName: 'pod-1',
+        status: 'Succeeded',
+        startTime: '2026-03-05T10:00:00.000Z',
+        eventCount: 2,
+        events: [],
+      },
+      {
+        podName: '',
+        status: 'Unknown',
+        startTime: '',
+        eventCount: 0,
+        events: undefined,
+      },
+    ]);
+    expect(result.total).toBe(2);
+    expect(result.tookMs).toBe(7);
+  });
+
+  it('throws the parsed error when the response is not ok', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Server Error',
+      json: () => Promise.resolve({ error: 'retries boom' }),
+    });
+
+    const client = createClient();
+    await expect(
+      client.getRetries('job-1', 'ns1', 'project-a', 'dev', 'component-a'),
+    ).rejects.toThrow('retries boom');
+  });
+});
+
+describe('ObservabilityClient.getPodLogs', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resolveUrls.mockResolvedValue({ observerUrl: 'http://observer' });
+  });
+
+  it('POSTs to the logs endpoint with the pod name in searchScope', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({ logs: [{ timestamp: 't1', message: 'hello' }] }),
+    );
+
+    const client = createClient();
+    const result = await client.getPodLogs(
+      'pod-1',
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+      {
+        startTime: '2026-03-05T09:00:00.000Z',
+        endTime: '2026-03-05T10:00:00.000Z',
+        limit: 100,
+        sortOrder: 'desc',
+      },
+    );
+
+    expect(mockFetchApi.fetch).toHaveBeenCalledTimes(1);
+    const [url, options] = mockFetchApi.fetch.mock.calls[0];
+    expect(url).toBe('http://observer/api/v1/logs/query');
+    expect(options.method).toBe('POST');
+    const payload = JSON.parse(options.body);
+    expect(payload.startTime).toBe('2026-03-05T09:00:00.000Z');
+    expect(payload.endTime).toBe('2026-03-05T10:00:00.000Z');
+    expect(payload.limit).toBe(100);
+    expect(payload.sortOrder).toBe('desc');
+    expect(payload.searchScope).toEqual({
+      namespace: 'ns1',
+      project: 'project-a',
+      component: 'component-a',
+      environment: 'dev',
+      podName: 'pod-1',
+    });
+    expect(result).toEqual({
+      logs: [{ timestamp: 't1', message: 'hello' }],
+    });
+  });
+
+  it('applies default limit/sortOrder and default start/end when no options given', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(mockOkResponse({ logs: [] }));
+
+    const client = createClient();
+    await client.getPodLogs(
+      'pod-1',
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+    );
+
+    const payload = JSON.parse(mockFetchApi.fetch.mock.calls[0][1].body);
+    expect(payload.limit).toBe(500);
+    expect(payload.sortOrder).toBe('asc');
+    expect(typeof payload.startTime).toBe('string');
+    expect(typeof payload.endTime).toBe('string');
+  });
+
+  it('throws the parsed error when the response is not ok', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Server Error',
+      json: () => Promise.resolve({ error: 'pod logs boom' }),
+    });
+
+    const client = createClient();
+    await expect(
+      client.getPodLogs(
+        'pod-1',
+        'ns1',
+        'project-a',
+        'dev',
+        'component-a',
+      ),
+    ).rejects.toThrow('pod logs boom');
+  });
+});
