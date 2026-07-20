@@ -59,6 +59,58 @@ describe('useRelatedEntitiesQuery', () => {
     ]);
   });
 
+  it('sends the same sorted refs it keys on, so row order is deterministic', async () => {
+    // getEntitiesByRefs returns items positionally aligned to the refs given.
+    // If the key were sorted but the request were not, two callers with the
+    // same ref set in different orders would share one cache entry whose row
+    // order came from whichever ran first.
+    const getEntitiesByRefs = jest.fn(async ({ entityRefs }) => ({
+      items: entityRefs.map(entityFor),
+    }));
+
+    const reversed: Entity = {
+      ...namespace,
+      relations: [...(namespace.relations ?? [])].reverse(),
+    };
+
+    const { result } = renderHook(
+      () => useRelatedEntitiesQuery(reversed, { type: RELATION_HAS_PART }),
+      {
+        wrapper: createQueryWrapper([
+          [catalogApiRef, makeCatalogApi(getEntitiesByRefs)],
+        ]),
+      },
+    );
+
+    await waitFor(() => expect(result.current.entities).toHaveLength(2));
+
+    // Relation order reversed on the source entity, request still sorted.
+    expect(getEntitiesByRefs).toHaveBeenCalledWith({
+      entityRefs: ['component:default/api', 'system:default/billing'],
+    });
+  });
+
+  it('returns a stable empty array across renders when nothing matches', async () => {
+    // A fresh [] per render would change the identity of the `data` prop the
+    // cards pass to MUI's Table, re-rendering it (and resetting page/sort) on
+    // every unrelated render.
+    const { result, rerender } = renderHook(
+      () => useRelatedEntitiesQuery(namespace, { kind: 'Template' }),
+      {
+        wrapper: createQueryWrapper([
+          [catalogApiRef, makeCatalogApi(jest.fn())],
+        ]),
+      },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const first = result.current.entities;
+
+    rerender();
+
+    expect(result.current.entities).toBe(first);
+  });
+
   it('filters by relation type alone when no kind is given', async () => {
     const getEntitiesByRefs = jest.fn(async ({ entityRefs }) => ({
       items: entityRefs.map(entityFor),
@@ -75,8 +127,9 @@ describe('useRelatedEntitiesQuery', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
+    // Refs are sorted before being keyed and sent (see the ordering test above).
     expect(getEntitiesByRefs).toHaveBeenCalledWith({
-      entityRefs: ['system:default/billing', 'component:default/api'],
+      entityRefs: ['component:default/api', 'system:default/billing'],
     });
     expect(result.current.entities).toHaveLength(2);
   });

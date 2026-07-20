@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   Entity,
   parseEntityRef,
@@ -6,6 +7,13 @@ import {
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useOpenChoreoQuery } from './useOpenChoreoQuery';
+
+/**
+ * Shared empty result. Returning a fresh `[]` per render would change the
+ * identity of the `data` prop the cards hand to MUI's Table on every unrelated
+ * re-render, re-rendering it (and resetting page/sort state) for no reason.
+ */
+const NO_ENTITIES: Entity[] = [];
 
 /** Relation filter, matching Backstage's `useRelatedEntities` options. */
 export interface RelatedEntitiesFilter {
@@ -21,8 +29,14 @@ export interface RelatedEntitiesQueryResult {
 
 /**
  * Fetches the entities an entity's relations point at, optionally filtered by
- * relation type and target kind — the same contract as Backstage's
+ * relation type and target kind — the same call signature as Backstage's
  * `useRelatedEntities`, but as a `useOpenChoreoQuery` observer.
+ *
+ * One deliberate difference from Backstage's result shape: `error` is
+ * `Error | null`, not `Error | undefined`, matching every other hook in this
+ * package (`UseOpenChoreoQueryResult`). Consistency inside the package beats
+ * drop-in parity with the hook being replaced — but it means a migrating call
+ * site that tests `error === undefined` must be updated to a truthiness check.
  *
  * Why not Backstage's version: it is a one-shot `useAsync`, so it resolves once
  * and can never be told about newer data. Our `CachingCatalogApi` is honest
@@ -52,20 +66,28 @@ export function useRelatedEntitiesQuery(
   const filterByTypeLower = relationFilter.type?.toLocaleLowerCase('en-US');
   const filterByKindLower = relationFilter.kind?.toLocaleLowerCase('en-US');
 
-  const targetRefs = (entity.relations ?? [])
-    .filter(
-      r =>
-        (!filterByTypeLower ||
-          r.type.toLocaleLowerCase('en-US') === filterByTypeLower) &&
-        (!filterByKindLower ||
-          parseEntityRef(r.targetRef).kind === filterByKindLower),
-    )
-    .map(r => r.targetRef);
+  // Sorted, so relation ordering churn on the source entity neither fragments
+  // the cache nor reshuffles the rows. The SAME sorted array is both hashed into
+  // the key and sent as the request: `getEntitiesByRefs` returns items
+  // positionally aligned to the refs it was given, so a key built from a
+  // different order than the request would let two callers share one entry whose
+  // row order came from whichever ran first.
+  const targetRefs = useMemo(
+    () =>
+      (entity.relations ?? [])
+        .filter(
+          r =>
+            (!filterByTypeLower ||
+              r.type.toLocaleLowerCase('en-US') === filterByTypeLower) &&
+            (!filterByKindLower ||
+              parseEntityRef(r.targetRef).kind === filterByKindLower),
+        )
+        .map(r => r.targetRef)
+        .sort(),
+    [entity.relations, filterByTypeLower, filterByKindLower],
+  );
 
-  // Sorted so relation ordering churn on the source entity can't fragment the
-  // cache; the request itself keeps the unsorted refs (order is irrelevant to
-  // getEntitiesByRefs, and callers sort their own rows).
-  const refsKey = [...targetRefs].sort().join(',');
+  const refsKey = targetRefs.join(',');
   const hasRefs = targetRefs.length > 0;
 
   const { data, loading, error } = useOpenChoreoQuery<Entity[]>(
@@ -88,7 +110,7 @@ export function useRelatedEntitiesQuery(
   return {
     // No relations is a resolved empty result, not a pending one — the query is
     // disabled in that case and would otherwise leave `data` undefined forever.
-    entities: hasRefs ? data : [],
+    entities: hasRefs ? data : NO_ENTITIES,
     loading,
     error,
   };
