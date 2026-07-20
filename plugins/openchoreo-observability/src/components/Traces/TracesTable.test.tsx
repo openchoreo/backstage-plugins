@@ -141,4 +141,20 @@ describe('TracesTable', () => {
       screen.getByText('Failed to load spans: Network error'),
     ).toBeInTheDocument();
   });
+
+  it('renders the error stripe for traces with errors', () => {
+    const { container } = renderTable({
+      traces: [{ ...sampleTrace, hasErrors: true }],
+    });
+
+    expect(
+      container.querySelector('[class*="errorStripe"]'),
+    ).toBeInTheDocument();
+  });
+
+  it('omits the error stripe for traces without errors', () => {
+    const { container } = renderTable();
+
+    expect(container.querySelector('[class*="errorStripe"]')).toBeNull();
+  });
 });
