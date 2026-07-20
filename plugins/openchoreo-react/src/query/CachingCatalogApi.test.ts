@@ -177,6 +177,49 @@ describe('CachingCatalogApi', () => {
       expect(result.items[0].metadata.name).toBe('good');
     });
 
+    it('does NOT serve invalidated data when the refresh fails', async () => {
+      // A write said this entry is wrong; if the follow-up read fails we must
+      // surface the error rather than resurrect the value the write discarded
+      // (for removeEntityByUid, that value is an entity the user just deleted).
+      //
+      // The flag has to be captured BEFORE the fetch: TanStack's `error` action
+      // sets isInvalidated=true unconditionally, so a post-failure read of it
+      // cannot tell "a write invalidated this" from "the refresh failed" — and
+      // a guard written that way would never fall back at all.
+      const getEntities = jest
+        .fn()
+        .mockResolvedValueOnce({ items: [{ metadata: { name: 'deleted' } }] });
+      const api = new CachingCatalogApi(makeDelegate({ getEntities }), userA);
+
+      await api.getEntities({ filter: { kind: 'component' } });
+
+      await api.refreshEntity('component:default/svc');
+      getEntities.mockRejectedValue(new Error('502 Bad Gateway'));
+
+      await expect(
+        api.getEntities({ filter: { kind: 'component' } }),
+      ).rejects.toThrow('502 Bad Gateway');
+    });
+
+    it('does not retry a failed read (the caller is awaiting it)', async () => {
+      // The app default is retry: 1. Because these reads are awaited, that
+      // backoff lands directly in a page load — two round-trips before the
+      // fallback. Exactly one delegate call per read.
+      const getEntities = jest
+        .fn()
+        .mockResolvedValueOnce({ items: [{ metadata: { name: 'good' } }] });
+      const api = new CachingCatalogApi(makeDelegate({ getEntities }), userA);
+
+      await api.getEntities({ filter: { kind: 'component' } });
+      expect(getEntities).toHaveBeenCalledTimes(1);
+
+      getEntities.mockRejectedValue(new Error('502 Bad Gateway'));
+      advanceTime(10_000);
+      await api.getEntities({ filter: { kind: 'component' } });
+
+      expect(getEntities).toHaveBeenCalledTimes(2);
+    });
+
     it('rejects when the very first read fails (no last good value to serve)', async () => {
       const api = new CachingCatalogApi(
         makeDelegate({

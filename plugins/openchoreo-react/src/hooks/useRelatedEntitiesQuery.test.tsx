@@ -122,6 +122,56 @@ describe('useRelatedEntitiesQuery', () => {
     ]);
   });
 
+  it('keeps the previous rows on screen while a changed relation set refetches', async () => {
+    // The regression this hook exists to prevent. The refs are part of the
+    // cache key, so creating a project moves the query to a fresh key — which
+    // without keepPreviousData means data: undefined, loading: true, and the
+    // card renders skeleton rows for the whole round-trip. That is exactly the
+    // "created a project, came back, saw a skeleton" case, so the meaningful
+    // assertion is that `loading` NEVER goes true and rows are never empty.
+    let release: (() => void) | undefined;
+    const getEntitiesByRefs = jest.fn(async ({ entityRefs }) => {
+      if (entityRefs.length === 3) {
+        await new Promise<void>(resolve => {
+          release = resolve;
+        });
+      }
+      return { items: entityRefs.map(entityFor) };
+    });
+    const wrapper = createQueryWrapper([
+      [catalogApiRef, makeCatalogApi(getEntitiesByRefs)],
+    ]);
+
+    const withThirdProject: Entity = {
+      ...namespace,
+      relations: [
+        ...(namespace.relations ?? []),
+        { type: RELATION_HAS_PART, targetRef: 'system:default/new-project' },
+      ],
+    };
+
+    const { result, rerender } = renderHook(
+      ({ entity }) =>
+        useRelatedEntitiesQuery(entity, { type: RELATION_HAS_PART }),
+      { wrapper, initialProps: { entity: namespace } },
+    );
+
+    await waitFor(() => expect(result.current.entities).toHaveLength(2));
+
+    // Relations grow by one → new cache key → fetch starts and is held open.
+    rerender({ entity: withThirdProject });
+    await waitFor(() => expect(getEntitiesByRefs).toHaveBeenCalledTimes(2));
+
+    // Mid-flight: the previous two rows are still rendered, not a skeleton.
+    expect(result.current.loading).toBe(false);
+    expect(result.current.entities).toHaveLength(2);
+
+    release?.();
+
+    await waitFor(() => expect(result.current.entities).toHaveLength(3));
+    expect(result.current.loading).toBe(false);
+  });
+
   it('reuses the cache entry when re-rendered with an equal but not identical entity', async () => {
     // Backstage's useRelatedEntities keys its useAsync on the `entity` object,
     // so a new instance with identical relations refetches. Keying on the

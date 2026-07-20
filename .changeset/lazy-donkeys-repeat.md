@@ -1,5 +1,5 @@
 ---
-'@openchoreo/backstage-plugin-react': patch
+'@openchoreo/backstage-plugin-react': minor
 '@openchoreo/backstage-plugin': patch
 ---
 

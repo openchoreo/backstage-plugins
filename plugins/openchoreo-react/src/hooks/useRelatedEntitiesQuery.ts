@@ -35,6 +35,13 @@ export interface RelatedEntitiesQueryResult {
  * object (which is what Backstage's `useAsync` dep list keys on): two renders
  * holding different `Entity` instances with identical relations should share one
  * cache entry, not refetch.
+ *
+ * Because the refs are IN the key, adding or removing a relation moves the query
+ * to a fresh key — which, on its own, would mean an empty cache entry and a
+ * skeleton for exactly the case this hook exists to smooth (a project was just
+ * created). `keepPreviousData` closes that: the prior ref set's rows stay on
+ * screen while the new set is fetched, so the table only ever changes contents,
+ * never blanks. Callers can show a quiet spinner off `isRefetching`.
  */
 export function useRelatedEntitiesQuery(
   entity: Entity,
@@ -75,7 +82,7 @@ export function useRelatedEntitiesQuery(
       });
       return items.filter((x): x is Entity => Boolean(x));
     },
-    { enabled: hasRefs },
+    { enabled: hasRefs, keepPreviousData: true },
   );
 
   return {

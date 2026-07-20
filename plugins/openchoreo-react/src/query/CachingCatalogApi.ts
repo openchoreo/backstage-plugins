@@ -57,6 +57,18 @@ const PENDING_USER = '@openchoreo/pending-user';
 const CATALOG_STALE_TIME_MS = 5_000;
 
 /**
+ * No retry on catalog reads.
+ *
+ * These reads are AWAITED by the caller (see `cachedRead`), so the app-level
+ * `retry: 1` would put its ~1s backoff directly into a page load: a failing
+ * backend would make every navigation wait for two round-trips before falling
+ * back to cached data. The retry bought little anyway — the fallback below
+ * already rides out a transient blip, and the 5s window means the next
+ * navigation re-attempts almost immediately.
+ */
+const CATALOG_RETRY = 0;
+
+/**
  * A {@link CatalogApi} that routes catalog READS through the shared OpenChoreo
  * `queryClient`, so the repeat reads of a single navigation collapse to one
  * request instead of re-fetching from scratch.
@@ -123,18 +135,41 @@ export class CachingCatalogApi implements CatalogApi {
     args: unknown[],
     fetch: () => Promise<T>,
   ): Promise<T> {
-    const queryKey = await this.keyFor(method, args);
+    return this.readThrough(await this.keyFor(method, args), fetch);
+  }
+
+  /**
+   * The single read path: fetch honestly, and on failure fall back to the last
+   * good value only when that value is still trustworthy.
+   *
+   * `ensureQueryData` used to swallow a failed revalidation and keep serving the
+   * cached value; `fetchQuery` rejects, which would blank a page that today
+   * rides out a transient 502. The fallback restores that resilience — but NOT
+   * for an entry a write already invalidated, whose cached value is known-wrong
+   * (e.g. an entity `removeEntityByUid` just deleted).
+   *
+   * The invalidation flag must be read BEFORE the fetch: TanStack's `error`
+   * action sets `isInvalidated: true` unconditionally ("flag existing data as
+   * invalidated if we get a background error"), so after a failure the flag can
+   * no longer distinguish "a write invalidated this" from "the refresh failed".
+   */
+  private async readThrough<T>(
+    queryKey: QueryKey,
+    queryFn: () => Promise<T>,
+  ): Promise<T> {
+    const wasInvalidated =
+      queryClient.getQueryState<T>(queryKey)?.isInvalidated === true;
     try {
       return await queryClient.fetchQuery({
         queryKey,
-        queryFn: fetch,
+        queryFn,
         staleTime: CATALOG_STALE_TIME_MS,
+        retry: CATALOG_RETRY,
       });
     } catch (err) {
-      // `ensureQueryData` used to swallow a failed revalidation and keep serving
-      // the last good value; `fetchQuery` rejects. Without this fallback a
-      // transient 502 would blank a page that currently rides it out. A cold
-      // entry has nothing to fall back to, so the error surfaces as before.
+      if (wasInvalidated) {
+        throw err;
+      }
       const lastGood = queryClient.getQueryData<T>(queryKey);
       if (lastGood !== undefined) {
         return lastGood;
@@ -157,22 +192,14 @@ export class CachingCatalogApi implements CatalogApi {
     args: unknown[],
     fetch: () => Promise<T | undefined>,
   ): Promise<T | undefined> {
-    const queryKey = await this.keyFor(method, args);
-    let value: T | null | undefined;
-    try {
-      value = await queryClient.fetchQuery<T | null>({
-        queryKey,
-        queryFn: async () => (await fetch()) ?? null,
-        staleTime: CATALOG_STALE_TIME_MS,
-      });
-    } catch (err) {
-      // Same last-good fallback as cachedRead. `undefined` here means "no cache
-      // entry at all" (the sentinel is `null`), so a cold miss still throws.
-      value = queryClient.getQueryData<T | null>(queryKey);
-      if (value === undefined) {
-        throw err;
-      }
-    }
+    // Shares `readThrough`, so the freshness window, retry policy and
+    // invalidation-aware fallback can never drift from the non-nullable path.
+    // `undefined` never reaches the cache (the sentinel is `null`), so a cold
+    // miss still surfaces the error there.
+    const value = await this.readThrough<T | null>(
+      await this.keyFor(method, args),
+      async () => (await fetch()) ?? null,
+    );
     return value ?? undefined;
   }
 
