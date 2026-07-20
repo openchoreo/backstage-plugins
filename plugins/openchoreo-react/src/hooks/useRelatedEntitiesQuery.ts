@@ -45,17 +45,20 @@ export interface RelatedEntitiesQueryResult {
  * paints instantly from the query cache and the row set re-renders when the
  * refetch lands.
  *
- * The cache key is built from the RESOLVED target refs rather than the entity
- * object (which is what Backstage's `useAsync` dep list keys on): two renders
- * holding different `Entity` instances with identical relations should share one
- * cache entry, not refetch.
+ * The key is the QUESTION — this entity, this relation type, this target kind —
+ * and deliberately NOT the resolved refs, even though the refs are what gets
+ * fetched. The refs are derived from the entity that is already in the key, so
+ * including them would conflate "what am I asking" with "what was the answer
+ * last time": adding a project would look like a different query, land on a cold
+ * entry, and render skeletons for precisely the transition this hook exists to
+ * smooth (to say nothing of orphaning the old entry until `gcTime`).
  *
- * Because the refs are IN the key, adding or removing a relation moves the query
- * to a fresh key — which, on its own, would mean an empty cache entry and a
- * skeleton for exactly the case this hook exists to smooth (a project was just
- * created). `keepPreviousData` closes that: the prior ref set's rows stay on
- * screen while the new set is fetched, so the table only ever changes contents,
- * never blanks. Callers can show a quiet spinner off `isRefetching`.
+ * With a stable key, a revisit is a remount: TanStack hands back the previous
+ * answer immediately (`loading` false, rows on screen) and `refetchOnMount` +
+ * `staleTime: 0` refetch with the CURRENT refs behind it, so the table changes
+ * contents without ever blanking. Relations cannot change without a remount here
+ * — `useEntity` is fed by `useEntityFromUrl`'s `useAsync`, which is keyed on the
+ * URL and never refreshes in place.
  */
 export function useRelatedEntitiesQuery(
   entity: Entity,
@@ -66,12 +69,10 @@ export function useRelatedEntitiesQuery(
   const filterByTypeLower = relationFilter.type?.toLocaleLowerCase('en-US');
   const filterByKindLower = relationFilter.kind?.toLocaleLowerCase('en-US');
 
-  // Sorted, so relation ordering churn on the source entity neither fragments
-  // the cache nor reshuffles the rows. The SAME sorted array is both hashed into
-  // the key and sent as the request: `getEntitiesByRefs` returns items
-  // positionally aligned to the refs it was given, so a key built from a
-  // different order than the request would let two callers share one entry whose
-  // row order came from whichever ran first.
+  // Sorted so row order is deterministic: `getEntitiesByRefs` returns items
+  // positionally aligned to the refs it was given, so without this the rows
+  // would follow whatever order the catalog provider happened to emit relations
+  // in, and could reshuffle between refreshes.
   const targetRefs = useMemo(
     () =>
       (entity.relations ?? [])
@@ -87,7 +88,6 @@ export function useRelatedEntitiesQuery(
     [entity.relations, filterByTypeLower, filterByKindLower],
   );
 
-  const refsKey = targetRefs.join(',');
   const hasRefs = targetRefs.length > 0;
 
   const { data, loading, error } = useOpenChoreoQuery<Entity[]>(
@@ -96,7 +96,6 @@ export function useRelatedEntitiesQuery(
       stringifyEntityRef(entity),
       filterByTypeLower ?? '*',
       filterByKindLower ?? '*',
-      refsKey,
     ],
     async () => {
       const { items } = await catalogApi.getEntitiesByRefs({
@@ -104,7 +103,7 @@ export function useRelatedEntitiesQuery(
       });
       return items.filter((x): x is Entity => Boolean(x));
     },
-    { enabled: hasRefs, keepPreviousData: true },
+    { enabled: hasRefs },
   );
 
   return {

@@ -1,5 +1,4 @@
 import {
-  keepPreviousData as keepPreviousDataFn,
   useQuery,
   type QueryKey,
   type UseQueryOptions,
@@ -49,22 +48,6 @@ export interface UseOpenChoreoQueryOptions<T> {
    * retry doesn't double it.
    */
   retry?: boolean | number;
-  /**
-   * Hold the PREVIOUS key's data while the new key's first fetch is in flight,
-   * instead of dropping to `loading` with no data.
-   *
-   * For queries whose key encodes an input that changes with the data itself
-   * (a page cursor, a filter, a resolved list of refs), a key change is exactly
-   * the moment the user must not see a skeleton: there are perfectly good rows
-   * on screen and only their contents are about to change. Without this, every
-   * such change is a cold entry — `data` undefined, `loading` true — which
-   * defeats the point of caching for the one transition that matters.
-   *
-   * While the placeholder is showing, `loading` stays false and `isRefetching`
-   * is true, so callers can render the old rows under a quiet refresh spinner.
-   * @default false
-   */
-  keepPreviousData?: boolean;
 }
 
 /**
@@ -149,9 +132,6 @@ export function useOpenChoreoQuery<T>(
       : {}),
     ...(options.enabled !== undefined ? { enabled: options.enabled } : {}),
     ...(options.retry !== undefined ? { retry: options.retry } : {}),
-    ...(options.keepPreviousData
-      ? { placeholderData: keepPreviousDataFn }
-      : {}),
   });
 
   // `enabled: false` leaves a query in a "pending but not fetching" state

@@ -59,11 +59,10 @@ describe('useRelatedEntitiesQuery', () => {
     ]);
   });
 
-  it('sends the same sorted refs it keys on, so row order is deterministic', async () => {
-    // getEntitiesByRefs returns items positionally aligned to the refs given.
-    // If the key were sorted but the request were not, two callers with the
-    // same ref set in different orders would share one cache entry whose row
-    // order came from whichever ran first.
+  it('sorts the refs it requests, so row order is deterministic', async () => {
+    // getEntitiesByRefs returns items positionally aligned to the refs given,
+    // so unsorted refs would let rows follow whatever order the catalog
+    // provider emitted relations in — and reshuffle between refreshes.
     const getEntitiesByRefs = jest.fn(async ({ entityRefs }) => ({
       items: entityRefs.map(entityFor),
     }));
@@ -127,7 +126,7 @@ describe('useRelatedEntitiesQuery', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    // Refs are sorted before being keyed and sent (see the ordering test above).
+    // Refs are sorted before being sent (see the ordering test above).
     expect(getEntitiesByRefs).toHaveBeenCalledWith({
       entityRefs: ['component:default/api', 'system:default/billing'],
     });
@@ -175,27 +174,23 @@ describe('useRelatedEntitiesQuery', () => {
     ]);
   });
 
-  it('keeps the previous rows on screen while a changed relation set refetches', async () => {
-    // The regression this hook exists to prevent. The refs are part of the
-    // cache key, so creating a project moves the query to a fresh key — which
-    // without keepPreviousData means data: undefined, loading: true, and the
-    // card renders skeleton rows for the whole round-trip. That is exactly the
-    // "created a project, came back, saw a skeleton" case, so the meaningful
-    // assertion is that `loading` NEVER goes true and rows are never empty.
-    let release: (() => void) | undefined;
-    const getEntitiesByRefs = jest.fn(async ({ entityRefs }) => {
-      if (entityRefs.length === 3) {
-        await new Promise<void>(resolve => {
-          release = resolve;
-        });
-      }
-      return { items: entityRefs.map(entityFor) };
-    });
+  it('paints previous rows without a skeleton and refetches when revisited', async () => {
+    // The regression this hook exists to prevent, in its real shape: navigating
+    // away and back is an UNMOUNT + REMOUNT, not an in-place rerender.
+    //
+    // The key is the question (entity + type + kind), not the resolved refs, so
+    // a project created in between lands on the same warm entry: rows paint
+    // immediately with loading false, and refetchOnMount brings the new set in.
+    // Were the refs in the key, this remount would hit a cold entry and the card
+    // would render skeleton rows for the whole round-trip.
+    const getEntitiesByRefs = jest.fn(async ({ entityRefs }) => ({
+      items: entityRefs.map(entityFor),
+    }));
     const wrapper = createQueryWrapper([
       [catalogApiRef, makeCatalogApi(getEntitiesByRefs)],
     ]);
 
-    const withThirdProject: Entity = {
+    const withNewProject: Entity = {
       ...namespace,
       relations: [
         ...(namespace.relations ?? []),
@@ -203,26 +198,34 @@ describe('useRelatedEntitiesQuery', () => {
       ],
     };
 
-    const { result, rerender } = renderHook(
-      ({ entity }) =>
-        useRelatedEntitiesQuery(entity, { type: RELATION_HAS_PART }),
-      { wrapper, initialProps: { entity: namespace } },
+    const first = renderHook(
+      () => useRelatedEntitiesQuery(namespace, { type: RELATION_HAS_PART }),
+      { wrapper },
+    );
+    await waitFor(() => expect(first.result.current.entities).toHaveLength(2));
+    first.unmount();
+
+    // Revisit, now that a project has been created.
+    const second = renderHook(
+      () =>
+        useRelatedEntitiesQuery(withNewProject, { type: RELATION_HAS_PART }),
+      { wrapper },
     );
 
-    await waitFor(() => expect(result.current.entities).toHaveLength(2));
+    // Instant paint: the previous rows, never a loading state.
+    expect(second.result.current.loading).toBe(false);
+    expect(second.result.current.entities).toHaveLength(2);
 
-    // Relations grow by one → new cache key → fetch starts and is held open.
-    rerender({ entity: withThirdProject });
-    await waitFor(() => expect(getEntitiesByRefs).toHaveBeenCalledTimes(2));
-
-    // Mid-flight: the previous two rows are still rendered, not a skeleton.
-    expect(result.current.loading).toBe(false);
-    expect(result.current.entities).toHaveLength(2);
-
-    release?.();
-
-    await waitFor(() => expect(result.current.entities).toHaveLength(3));
-    expect(result.current.loading).toBe(false);
+    // ...and the refetch lands with the new relation set.
+    await waitFor(() => expect(second.result.current.entities).toHaveLength(3));
+    expect(second.result.current.loading).toBe(false);
+    expect(getEntitiesByRefs).toHaveBeenLastCalledWith({
+      entityRefs: [
+        'component:default/api',
+        'system:default/billing',
+        'system:default/new-project',
+      ],
+    });
   });
 
   it('reuses the cache entry when re-rendered with an equal but not identical entity', async () => {
