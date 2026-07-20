@@ -1,3 +1,5 @@
+import { SpanStatus } from '../../types';
+
 export function parseRfc3339NanoToNanoseconds(rfc3339Nano: string): number {
   // Split timestamp into base and fractional parts and return nanoseconds
   const [base, fractional] = rfc3339Nano.replace('Z', '').split('.');
@@ -33,4 +35,14 @@ export function formatTime(nanoseconds: number): string {
 
 export function formatTimeFromString(rfc3339Nano: string): string {
   return rfc3339Nano.endsWith('Z') ? rfc3339Nano : `${rfc3339Nano}Z`;
+}
+
+/** The OTel status code (`ok` | `error` | `unset`) of a span, if present. */
+export function getSpanStatusCode(status?: SpanStatus): string | undefined {
+  return status?.code;
+}
+
+/** Whether a span carries an error status. */
+export function isSpanError(status?: SpanStatus): boolean {
+  return status?.code === 'error';
 }

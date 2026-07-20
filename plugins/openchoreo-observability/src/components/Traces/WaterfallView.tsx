@@ -17,6 +17,8 @@ import {
   parseRfc3339NanoToNanoseconds,
   formatDuration,
   formatTimeFromString,
+  isSpanError,
+  getSpanStatusCode,
 } from './utils';
 
 interface SpanDetailsHook {
@@ -132,13 +134,6 @@ const SpanDetailsPanel = ({ details, traceId }: SpanDetailsPanelProps) => {
     { label: 'Duration', value: formatDuration(details.durationNs) },
   ];
 
-  let statusColor = '#94A3B8';
-  if (details.status === 'error') {
-    statusColor = '#EF4444';
-  } else if (details.status === 'ok') {
-    statusColor = '#10B981';
-  }
-
   return (
     <Box>
       {/* Core span fields */}
@@ -183,35 +178,9 @@ const SpanDetailsPanel = ({ details, traceId }: SpanDetailsPanelProps) => {
             </Typography>
           </Box>
         ))}
-        {details.status && (
-          <Box display="flex" style={{ gap: 8, marginBottom: 2 }}>
-            <Typography
-              variant="caption"
-              style={{
-                fontSize: '0.7rem',
-                fontFamily: 'monospace',
-                fontWeight: 600,
-                minWidth: 220,
-                flexShrink: 0,
-              }}
-            >
-              Status
-            </Typography>
-            <Typography
-              variant="caption"
-              style={{
-                fontSize: '0.7rem',
-                fontFamily: 'monospace',
-                fontWeight: 600,
-                color: statusColor,
-              }}
-            >
-              {details.status}
-            </Typography>
-          </Box>
-        )}
       </Box>
 
+      <AttributeSection label="Status" data={details.status} />
       <AttributeSection label="Attributes" data={details.attributes} />
       <AttributeSection
         label="Resource Attributes"
@@ -235,9 +204,9 @@ export const WaterfallView = ({
   const getSpanColor = (
     spanName: string,
     depth: number,
-    status?: string,
+    isError: boolean,
   ): string => {
-    if (status === 'error') return '#FCA5A5'; // light red
+    if (isError) return '#FCA5A5'; // light red
 
     const colors = [
       '#93C5FD', // blue-300
@@ -424,7 +393,11 @@ export const WaterfallView = ({
             calculateWidth(span.startTime, span.endTime),
             0.5,
           );
-          const color = getSpanColor(span.spanName, span.depth, span.status);
+          const color = getSpanColor(
+            span.spanName,
+            span.depth,
+            isSpanError(span.status),
+          );
           const indent = span.depth * 20;
           const hasChildren = span.children.length > 0;
           const isCollapsed = collapsedSpans.has(span.spanId);
@@ -446,7 +419,7 @@ export const WaterfallView = ({
                   </IconButton>
                 )}
                 {!hasChildren && <Box style={{ width: '20px' }} />}
-                {span.status === 'error' && (
+                {isSpanError(span.status) && (
                   <Tooltip title="Span error">
                     <ErrorOutlineIcon className={classes.spanErrorIcon} />
                   </Tooltip>
@@ -575,17 +548,17 @@ export const WaterfallView = ({
                           {formatDuration(span.durationNs)}
                         </Typography>
                       </Box>
-                      {span.status && (
+                      {getSpanStatusCode(span.status) && (
                         <Box className={classes.tooltipRow}>
                           <Typography
                             variant="caption"
                             component="span"
                             className={classes.tooltipLabel}
                           >
-                            Status:
+                            Status Code:
                           </Typography>
                           <Typography variant="caption">
-                            {span.status}
+                            {getSpanStatusCode(span.status)}
                           </Typography>
                         </Box>
                       )}

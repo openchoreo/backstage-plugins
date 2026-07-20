@@ -469,6 +469,7 @@ export class ObservabilityClient implements ObservabilityApi {
       endTime: data.endTime ?? '',
       durationNs: data.durationNs ?? 0,
       parentSpanId: data.parentSpanId,
+      status: data.status,
       attributes: data.attributes,
       resourceAttributes: data.resourceAttributes,
     };

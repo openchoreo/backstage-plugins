@@ -399,3 +399,80 @@ describe('ObservabilityClient.getRuntimeEvents', () => {
     ).rejects.toThrow('kaboom');
   });
 });
+
+describe('ObservabilityClient.getTraceSpans', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resolveUrls.mockResolvedValue({ observerUrl: 'http://observer' });
+  });
+
+  it('passes the OTel status object through unchanged', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({
+        spans: [
+          {
+            spanId: 'span-1',
+            spanName: 'root',
+            startTime: 's',
+            endTime: 'e',
+            durationNs: 100,
+            status: { code: 'error', message: 'boom' },
+          },
+        ],
+        total: 1,
+        tookMs: 3,
+      }),
+    );
+
+    const client = createClient();
+    const result = await client.getTraceSpans(
+      'trace-1',
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+    );
+
+    const [url] = mockFetchApi.fetch.mock.calls[0];
+    expect(url).toBe('http://observer/api/v1alpha1/traces/trace-1/spans/query');
+    expect(result.spans[0].status).toEqual({
+      code: 'error',
+      message: 'boom',
+    });
+  });
+});
+
+describe('ObservabilityClient.getSpanDetails', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resolveUrls.mockResolvedValue({ observerUrl: 'http://observer' });
+  });
+
+  it('maps the status object into the span details', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({
+        spanId: 'span-1',
+        spanName: 'GET /api',
+        startTime: 's',
+        endTime: 'e',
+        durationNs: 100,
+        status: { code: 'ok' },
+        attributes: [{ key: 'http.method', value: 'GET' }],
+      }),
+    );
+
+    const client = createClient();
+    const result = await client.getSpanDetails(
+      'trace-1',
+      'span-1',
+      'ns1',
+      'dev',
+    );
+
+    const [url] = mockFetchApi.fetch.mock.calls[0];
+    expect(url).toBe(
+      'http://observer/api/v1alpha1/traces/trace-1/spans/span-1',
+    );
+    expect(result.status).toEqual({ code: 'ok' });
+  });
+});
