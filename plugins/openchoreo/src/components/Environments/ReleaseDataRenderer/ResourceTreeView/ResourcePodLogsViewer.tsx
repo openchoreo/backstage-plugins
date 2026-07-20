@@ -23,7 +23,9 @@ interface ResourcePodLogsViewerProps {
   refreshKey?: number;
 }
 
-const ALL_CONTAINERS = 'all';
+// Sentinel for the "All containers" option. Underscores are invalid in a
+// Kubernetes container name (DNS-1123), so it cannot collide with a real container
+const ALL_CONTAINERS = '__all__';
 
 const useLogStyles = makeStyles(theme => ({
   root: {
@@ -146,7 +148,7 @@ export const ResourcePodLogsViewer: FC<ResourcePodLogsViewerProps> = ({
 
   // Label each line only when viewing all containers of a multi-container pod.
   const showContainerLabel =
-    selectedContainer === ALL_CONTAINERS && loggedContainers.length > 1;
+    selectedContainer === ALL_CONTAINERS && containerOptions.length > 1;
 
   useEffect(() => {
     let cancelled = false;

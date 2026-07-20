@@ -5509,7 +5509,7 @@ export interface components {
        * @description Name of the container that produced this log entry
        * @example main
        */
-      container?: string;
+      container: string;
     };
     /** @description Response containing logs for a specific pod */
     ResourcePodLogsResponse: {
