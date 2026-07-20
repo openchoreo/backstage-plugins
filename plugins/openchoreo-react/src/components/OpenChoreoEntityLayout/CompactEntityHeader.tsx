@@ -523,10 +523,10 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
       : 'Resources';
 
   // Sibling entities for the open level, fetched through the cached catalog API
-  // via useQuery. Keyed by kind+namespace so reopening the same level renders
-  // the cached list instantly (cached-first) and only revalidates in the
-  // background — the imperative await-before-render version always blocked on
-  // the network, even for a list loaded moments earlier.
+  // via useQuery. Keyed by kind+namespace so reopening the same level paints the
+  // previous list instantly from this query's own cache entry and re-renders when
+  // the refetch lands — the imperative await-before-render version always blocked
+  // on the network, even for a list loaded moments earlier.
   const { data: siblingEntities, loading: siblingsLoading } =
     useOpenChoreoQuery(
       ['breadcrumb-siblings', openTargetNode?.kind, openTargetNode?.namespace],
@@ -542,13 +542,12 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
       { enabled: Boolean(openTargetNode) },
     );
 
-  // The real background revalidation happens one layer down: the fetcher above
-  // calls the *cached* catalogApi (CachingCatalogApi), which serves its own
-  // cached `getEntities` entry instantly and revalidates behind it. So the outer
-  // query's `isRefetching` settles in a few ms while the network refetch runs on
-  // in the inner cache — the same instant-resolve trap the catalog list hit.
-  // Track that inner `getEntities` query directly via `useIsFetching`, matched
-  // to the open level's kind+namespace, so the spinner reflects the actual fetch.
+  // Two cache layers sit under this: the outer query above, and the inner
+  // `getEntities` entry inside CachingCatalogApi. When the inner entry is still
+  // within its freshness window the outer fetcher resolves without any network
+  // call, so the outer `isRefetching` is not a reliable "fetching now" signal.
+  // Track the inner `getEntities` query directly via `useIsFetching`, matched to
+  // the open level's kind+namespace, so the spinner reflects the actual fetch.
   const scopeKey = useUserScopedKey();
   const siblingsRefetching =
     useIsFetching({

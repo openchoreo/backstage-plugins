@@ -1,13 +1,16 @@
 import { Link, Table, TableColumn } from '@backstage/core-components';
 import { useApp } from '@backstage/core-plugin-api';
 import { Entity, RELATION_HAS_PART } from '@backstage/catalog-model';
-import { useEntity, useRelatedEntities } from '@backstage/plugin-catalog-react';
+import { useEntity } from '@backstage/plugin-catalog-react';
 import { Box, Button, Tooltip, Typography } from '@material-ui/core';
 import { Skeleton } from '@openchoreo/backstage-design-system';
 import AddIcon from '@material-ui/icons/Add';
 import { useNavigate } from 'react-router-dom';
 import { isMarkedForDeletion, DeletionBadge } from '../../DeleteEntity';
-import { useScopedProjectCreatePermission } from '@openchoreo/backstage-plugin-react';
+import {
+  useRelatedEntitiesQuery,
+  useScopedProjectCreatePermission,
+} from '@openchoreo/backstage-plugin-react';
 import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import { useNamespaceProjectsCardStyles } from './styles';
 
@@ -16,7 +19,7 @@ export const NamespaceProjectsCard = () => {
   const Icon = app.getSystemIcon('kind:system');
   const classes = useNamespaceProjectsCardStyles();
   const { entity } = useEntity();
-  const { entities: systems, loading } = useRelatedEntities(entity, {
+  const { entities: systems, loading } = useRelatedEntitiesQuery(entity, {
     type: RELATION_HAS_PART,
     kind: 'System',
   });

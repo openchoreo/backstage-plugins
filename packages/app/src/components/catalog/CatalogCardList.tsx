@@ -280,12 +280,12 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
     displayTotal !== undefined ? ` (${displayTotal})` : ''
   }`;
 
-  // The real background-revalidation signal comes from the shared queryClient,
-  // not `useEntityList().loading`: our CachingCatalogApi serves the cached page
-  // instantly and revalidates behind it, so `loading` flips false the moment the
-  // cached read resolves (tens of ms) while the network refetch runs on for the
-  // whole round-trip. `useIsFetching` on the catalog `queryEntities` key tracks
-  // that actual in-flight fetch, so the overlay stays up until it settles.
+  // The in-flight signal comes from the shared queryClient, not
+  // `useEntityList().loading`: CachingCatalogApi serves an entry inside its short
+  // freshness window without any network call, so `loading` covers a cache hit
+  // and a real round-trip alike and can't distinguish them. `useIsFetching` on
+  // the catalog `queryEntities` key is true for exactly the network fetch, so the
+  // spinner appears only when something is actually being fetched.
   const queryFetching =
     useIsFetching(
       { queryKey: scopeKey(['catalog', 'queryEntities']) },

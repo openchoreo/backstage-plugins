@@ -40,15 +40,40 @@ export type GetUserRef = () => Promise<string | undefined>;
 const PENDING_USER = '@openchoreo/pending-user';
 
 /**
+ * Freshness window for cached catalog reads.
+ *
+ * Deliberately short. `CatalogApi` is a PROMISE API with no subscribers, so a
+ * stale entry must be AWAITED — we can never notify the caller about a
+ * revalidation that lands after the promise resolved. This window therefore
+ * exists only to collapse the sequential repeat-calls of a single
+ * render/navigation burst (unmount/remount, tab switch, StrictMode's double
+ * mount in dev). Concurrent callers already dedupe on the in-flight promise,
+ * independent of `staleTime`.
+ *
+ * Any value long enough for a human to perceive would reintroduce the bug this
+ * constant exists to prevent: create a component, navigate back, and see the
+ * pre-create list with no way to be told otherwise.
+ */
+const CATALOG_STALE_TIME_MS = 5_000;
+
+/**
  * A {@link CatalogApi} that routes catalog READS through the shared OpenChoreo
- * `queryClient`, so a revisited catalog list or entity page paints instantly
- * from cache (and revalidates in the background per the client's `staleTime: 0`
- * policy) instead of re-fetching from scratch and flashing a skeleton.
+ * `queryClient`, so the repeat reads of a single navigation collapse to one
+ * request instead of re-fetching from scratch.
  *
  * Backstage's own catalog hooks (`useEntityList` → `getEntities`/`queryEntities`,
  * the entity page → `getEntityByRef`) call this API directly, so wrapping it is
  * the only way to bring the catalog under the same cache as the OpenChoreo BFF
  * hooks. All other methods delegate straight through to the real client.
+ *
+ * IMPORTANT — this layer does NOT do stale-while-revalidate, and must not. SWR
+ * requires a subscriber to receive the revalidation, and every consumer of this
+ * API is a one-shot `await` (`useEffect`, `useAsync`, `EntityListProvider`),
+ * never a TanStack observer. A promise resolves exactly once, so anything served
+ * stale here can never be corrected on screen. Instant-paint belongs one layer
+ * up, in React, where a component can re-render: our own surfaces get it from
+ * `useOpenChoreoQuery`, and Backstage-owned surfaces from a cache seed (see
+ * `pickCatalogSeed` in the app's catalog list).
  *
  * Keys mirror the hook convention exactly (`['@user', userEntityRef, ...]`, see
  * `useUserScopedKey`) so per-user isolation is structural: a different user
@@ -79,31 +104,49 @@ export class CachingCatalogApi implements CatalogApi {
   }
 
   /**
-   * Read-through cache: serve the warm entry immediately and revalidate in the
-   * background. Uses `ensureQueryData({ revalidateIfStale: true })` rather than
-   * `fetchQuery`: with the client default `staleTime: 0` every entry is stale,
-   * and `fetchQuery` would AWAIT the network on a stale entry (never painting
-   * cached-first). `ensureQueryData` returns the cached value synchronously when
-   * present and kicks a background refetch, which is the actual instant-paint +
-   * stale-while-revalidate behavior an already-warm revisit wants. Concurrent
-   * callers still dedupe on the shared key.
+   * Read-through cache with an honest promise: a fresh entry (within
+   * {@link CATALOG_STALE_TIME_MS}) resolves instantly with no network, a stale
+   * one AWAITS the refetch and resolves with the new data.
+   *
+   * Uses `fetchQuery` rather than `ensureQueryData({ revalidateIfStale: true })`.
+   * `ensureQueryData` resolves with the STALE value and kicks a background
+   * refetch whose result it discards (`void this.prefetchQuery(...)`) — correct
+   * only when a TanStack observer is watching the cache and will re-render. No
+   * consumer of `CatalogApi` is one, so that fresh data was never reaching the
+   * screen. See the class doc.
+   *
+   * Concurrent callers still dedupe: `fetchQuery` returns the in-flight promise
+   * when one exists, regardless of `staleTime`.
    */
   private async cachedRead<T>(
     method: string,
     args: unknown[],
     fetch: () => Promise<T>,
   ): Promise<T> {
-    return queryClient.ensureQueryData({
-      queryKey: await this.keyFor(method, args),
-      queryFn: fetch,
-      revalidateIfStale: true,
-    });
+    const queryKey = await this.keyFor(method, args);
+    try {
+      return await queryClient.fetchQuery({
+        queryKey,
+        queryFn: fetch,
+        staleTime: CATALOG_STALE_TIME_MS,
+      });
+    } catch (err) {
+      // `ensureQueryData` used to swallow a failed revalidation and keep serving
+      // the last good value; `fetchQuery` rejects. Without this fallback a
+      // transient 502 would blank a page that currently rides it out. A cold
+      // entry has nothing to fall back to, so the error surfaces as before.
+      const lastGood = queryClient.getQueryData<T>(queryKey);
+      if (lastGood !== undefined) {
+        return lastGood;
+      }
+      throw err;
+    }
   }
 
   /**
    * Read-through cache for a method that may resolve to `undefined` (e.g.
-   * `getEntityByRef` on a missing/404 entity). TanStack's `ensureQueryData`
-   * (like `fetchQuery`) REJECTS when the queryFn resolves to `undefined`
+   * `getEntityByRef` on a missing/404 entity). TanStack's `fetchQuery`
+   * REJECTS when the queryFn resolves to `undefined`
    * ("Query data cannot be undefined"), which would turn a normal not-found into
    * a thrown error and break callers (the entity page and header breadcrumb
    * tolerate `undefined`). Cache a `null` sentinel instead (which TanStack does
@@ -114,11 +157,22 @@ export class CachingCatalogApi implements CatalogApi {
     args: unknown[],
     fetch: () => Promise<T | undefined>,
   ): Promise<T | undefined> {
-    const value = await queryClient.ensureQueryData<T | null>({
-      queryKey: await this.keyFor(method, args),
-      queryFn: async () => (await fetch()) ?? null,
-      revalidateIfStale: true,
-    });
+    const queryKey = await this.keyFor(method, args);
+    let value: T | null | undefined;
+    try {
+      value = await queryClient.fetchQuery<T | null>({
+        queryKey,
+        queryFn: async () => (await fetch()) ?? null,
+        staleTime: CATALOG_STALE_TIME_MS,
+      });
+    } catch (err) {
+      // Same last-good fallback as cachedRead. `undefined` here means "no cache
+      // entry at all" (the sentinel is `null`), so a cold miss still throws.
+      value = queryClient.getQueryData<T | null>(queryKey);
+      if (value === undefined) {
+        throw err;
+      }
+    }
     return value ?? undefined;
   }
 
