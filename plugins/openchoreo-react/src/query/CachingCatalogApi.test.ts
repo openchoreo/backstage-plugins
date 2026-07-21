@@ -35,10 +35,28 @@ function makeDelegate(overrides: Partial<CatalogApi> = {}): CatalogApi {
 const userA = () => Promise.resolve('user:default/alice');
 const userB = () => Promise.resolve('user:default/bob');
 
+// TanStack decides staleness from `Date.now()` (via `timeUntilStale`), so we
+// simulate elapsed time by offsetting it rather than with jest fake timers —
+// the shared client retries once on failure, and that backoff needs a real
+// `setTimeout` to fire.
+const realDateNow = Date.now.bind(Date);
+let timeOffset = 0;
+const advanceTime = (ms: number) => {
+  timeOffset += ms;
+};
+
 describe('CachingCatalogApi', () => {
   beforeEach(() => {
     // The wrapper uses the shared singleton; isolate each test.
     queryClient.clear();
+    timeOffset = 0;
+    jest
+      .spyOn(Date, 'now')
+      .mockImplementation(() => realDateNow() + timeOffset);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('dedupes concurrent identical reads to a single delegate call', async () => {
@@ -103,6 +121,140 @@ describe('CachingCatalogApi', () => {
         'component:default/missing',
       ]),
     ).toBeNull();
+  });
+
+  describe('freshness (the promise must never resolve with data we cannot correct)', () => {
+    // These lock in the fix for the bug where creating a component left the
+    // Project Contents table, the namespace Projects card and /catalog showing
+    // the pre-create list. `ensureQueryData({ revalidateIfStale: true })` served
+    // the stale value and discarded the revalidation; CatalogApi's consumers are
+    // one-shot awaits with no way to receive it. Nothing here was covered before,
+    // which is exactly why the bug shipped green.
+    it('serves a cached read within the freshness window without hitting the delegate', async () => {
+      const delegate = makeDelegate();
+      const api = new CachingCatalogApi(delegate, userA);
+
+      await api.getEntities({ filter: { kind: 'component' } });
+      await api.getEntities({ filter: { kind: 'component' } });
+
+      expect(delegate.getEntities).toHaveBeenCalledTimes(1);
+    });
+
+    it('AWAITS the refetch on a stale entry and resolves with the NEW value', async () => {
+      const getEntities = jest
+        .fn()
+        .mockResolvedValueOnce({ items: [{ metadata: { name: 'old' } }] })
+        .mockResolvedValueOnce({ items: [{ metadata: { name: 'new' } }] });
+      const api = new CachingCatalogApi(makeDelegate({ getEntities }), userA);
+
+      const first = await api.getEntities({ filter: { kind: 'component' } });
+      expect(first.items[0].metadata.name).toBe('old');
+
+      // Past the freshness window — as any create-then-navigate-back is.
+      advanceTime(10_000);
+
+      // The resolved VALUE is what matters: serving 'old' here while refetching
+      // in the background is the bug, because nothing would ever deliver 'new'.
+      const second = await api.getEntities({ filter: { kind: 'component' } });
+      expect(second.items[0].metadata.name).toBe('new');
+      expect(getEntities).toHaveBeenCalledTimes(2);
+    });
+
+    it('falls back to the last good value when a refetch over a warm entry fails', async () => {
+      const getEntities = jest
+        .fn()
+        .mockResolvedValueOnce({ items: [{ metadata: { name: 'good' } }] });
+      const api = new CachingCatalogApi(makeDelegate({ getEntities }), userA);
+
+      await api.getEntities({ filter: { kind: 'component' } });
+
+      // Persistent rejection so the client's single retry fails too.
+      getEntities.mockRejectedValue(new Error('502 Bad Gateway'));
+      advanceTime(10_000);
+
+      // A transient blip must not blank a page that previously rode it out.
+      const result = await api.getEntities({ filter: { kind: 'component' } });
+      expect(result.items[0].metadata.name).toBe('good');
+    });
+
+    it('does NOT serve invalidated data when the refresh fails', async () => {
+      // A write said this entry is wrong; if the follow-up read fails we must
+      // surface the error rather than resurrect the value the write discarded
+      // (for removeEntityByUid, that value is an entity the user just deleted).
+      //
+      // The flag has to be captured BEFORE the fetch: TanStack's `error` action
+      // sets isInvalidated=true unconditionally, so a post-failure read of it
+      // cannot tell "a write invalidated this" from "the refresh failed" — and
+      // a guard written that way would never fall back at all.
+      const getEntities = jest
+        .fn()
+        .mockResolvedValueOnce({ items: [{ metadata: { name: 'deleted' } }] });
+      const api = new CachingCatalogApi(makeDelegate({ getEntities }), userA);
+
+      await api.getEntities({ filter: { kind: 'component' } });
+
+      await api.refreshEntity('component:default/svc');
+      getEntities.mockRejectedValue(new Error('502 Bad Gateway'));
+
+      await expect(
+        api.getEntities({ filter: { kind: 'component' } }),
+      ).rejects.toThrow('502 Bad Gateway');
+    });
+
+    it('does not retry a failed read (the caller is awaiting it)', async () => {
+      // The app default is retry: 1. Because these reads are awaited, that
+      // backoff lands directly in a page load — two round-trips before the
+      // fallback. Exactly one delegate call per read.
+      const getEntities = jest
+        .fn()
+        .mockResolvedValueOnce({ items: [{ metadata: { name: 'good' } }] });
+      const api = new CachingCatalogApi(makeDelegate({ getEntities }), userA);
+
+      await api.getEntities({ filter: { kind: 'component' } });
+      expect(getEntities).toHaveBeenCalledTimes(1);
+
+      getEntities.mockRejectedValue(new Error('502 Bad Gateway'));
+      advanceTime(10_000);
+      await api.getEntities({ filter: { kind: 'component' } });
+
+      expect(getEntities).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects when the very first read fails (no last good value to serve)', async () => {
+      const api = new CachingCatalogApi(
+        makeDelegate({
+          getEntities: jest.fn().mockRejectedValue(new Error('boom')),
+        }),
+        userA,
+      );
+
+      await expect(
+        api.getEntities({ filter: { kind: 'component' } }),
+      ).rejects.toThrow('boom');
+    });
+
+    it('awaits past a stale null sentinel so a since-created entity is returned', async () => {
+      // The create-then-return case for getEntityByRef: the first read 404s and
+      // caches `null`; the entity now exists and the second read must find it.
+      const getEntityByRef = jest
+        .fn()
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce({ kind: 'Component' });
+      const api = new CachingCatalogApi(
+        makeDelegate({ getEntityByRef }),
+        userA,
+      );
+
+      await expect(
+        api.getEntityByRef('component:default/svc'),
+      ).resolves.toBeUndefined();
+
+      advanceTime(10_000);
+
+      await expect(
+        api.getEntityByRef('component:default/svc'),
+      ).resolves.toEqual({ kind: 'Component' });
+    });
   });
 
   it('keys reads by the request, so different requests do not collide', async () => {

@@ -175,6 +175,11 @@ export { makeColumnStyle } from './components/VirtualizedLogList/columnStyle';
 
 // Hooks
 export {
+  useRelatedEntitiesQuery,
+  type RelatedEntitiesFilter,
+  type RelatedEntitiesQueryResult,
+} from './hooks/useRelatedEntitiesQuery';
+export {
   useRowExpansion,
   type UseRowExpansionResult,
 } from './hooks/useRowExpansion';

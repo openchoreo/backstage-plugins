@@ -1,9 +1,10 @@
 import { Link, Table, TableColumn } from '@backstage/core-components';
 import { useApp } from '@backstage/core-plugin-api';
 import { Entity, RELATION_HAS_PART } from '@backstage/catalog-model';
-import { useEntity, useRelatedEntities } from '@backstage/plugin-catalog-react';
+import { useEntity } from '@backstage/plugin-catalog-react';
 import { Box, Typography } from '@material-ui/core';
 import { Skeleton } from '@openchoreo/backstage-design-system';
+import { useRelatedEntitiesQuery } from '@openchoreo/backstage-plugin-react';
 import { useNavigate } from 'react-router-dom';
 import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import { useNamespaceResourcesCardStyles } from './styles';
@@ -23,7 +24,7 @@ export const NamespaceResourcesCard = () => {
   const classes = useNamespaceResourcesCardStyles();
   const { entity } = useEntity();
   const navigate = useNavigate();
-  const { entities, loading } = useRelatedEntities(entity, {
+  const { entities, loading } = useRelatedEntitiesQuery(entity, {
     type: RELATION_HAS_PART,
   });
 
