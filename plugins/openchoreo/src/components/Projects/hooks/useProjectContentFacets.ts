@@ -12,6 +12,8 @@ export interface ProjectContentFacets {
   loading: boolean;
   /** A background refresh is in flight while data is already on screen. */
   isRefetching: boolean;
+  /** Re-run the facet queries (counts + type options). */
+  refetch: () => Promise<void>;
 }
 
 const EMPTY: ProjectContentFacets = {
@@ -19,6 +21,7 @@ const EMPTY: ProjectContentFacets = {
   typesByKind: { component: [], resource: [] },
   loading: false,
   isRefetching: false,
+  refetch: async () => {},
 };
 
 function readTypeFacet(
@@ -47,7 +50,7 @@ export function useProjectContentFacets(
   const namespace =
     systemEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  const { data, loading, isRefetching } = useOpenChoreoQuery(
+  const { data, loading, isRefetching, refetch } = useOpenChoreoQuery(
     ['project-content-facets', namespace, project],
     async (): Promise<Pick<ProjectContentFacets, 'counts' | 'typesByKind'>> => {
       // The query is `enabled` only when both are set; narrow for the catalog
@@ -89,5 +92,6 @@ export function useProjectContentFacets(
     typesByKind: data?.typesByKind ?? EMPTY.typesByKind,
     loading,
     isRefetching,
+    refetch,
   };
 }

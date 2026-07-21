@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useQuery,
   type QueryKey,
   type UseQueryOptions,
@@ -48,6 +49,15 @@ export interface UseOpenChoreoQueryOptions<T> {
    * retry doesn't double it.
    */
   retry?: boolean | number;
+  /**
+   * Keep the previous result on screen while a fetch for a NEW query key is in
+   * flight, instead of dropping to the first-load pending state. Use for
+   * cursor/offset pagination so changing page doesn't flash a skeleton — the old
+   * page stays visible (with `isRefetching` true) until the new one arrives.
+   * Maps to TanStack's `placeholderData: keepPreviousData`.
+   * @default false
+   */
+  keepPreviousData?: boolean;
 }
 
 /**
@@ -132,6 +142,9 @@ export function useOpenChoreoQuery<T>(
       : {}),
     ...(options.enabled !== undefined ? { enabled: options.enabled } : {}),
     ...(options.retry !== undefined ? { retry: options.retry } : {}),
+    // Only opt in when explicitly requested; omitting the key leaves TanStack's
+    // default (no placeholder), so non-paginated callers are unaffected.
+    ...(options.keepPreviousData ? { placeholderData: keepPreviousData } : {}),
   });
 
   // `enabled: false` leaves a query in a "pending but not fetching" state
