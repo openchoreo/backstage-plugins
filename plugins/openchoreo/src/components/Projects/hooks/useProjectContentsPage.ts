@@ -191,8 +191,16 @@ export function useProjectContentsPage(
   const catalogApi = useApi(catalogApiRef);
   const client = useApi(openChoreoClientApiRef);
 
-  const { systemEntity, search, kinds, types, orderBy, orderDir, cursor, limit } =
-    params;
+  const {
+    systemEntity,
+    search,
+    kinds,
+    types,
+    orderBy,
+    orderDir,
+    cursor,
+    limit,
+  } = params;
   const project = systemEntity.metadata.name;
   const namespace =
     systemEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
@@ -202,7 +210,8 @@ export function useProjectContentsPage(
 
   // No project context, or the user has explicitly cleared every kind/type.
   const clearedAllFilters =
-    (kinds !== null && kinds.size === 0) || (types !== null && types.size === 0);
+    (kinds !== null && kinds.size === 0) ||
+    (types !== null && types.size === 0);
   const canFetchPage = !!project && !!namespace && !clearedAllFilters;
 
   // --- Page query: the catalog rows (renders the table fast) --------------
@@ -254,7 +263,9 @@ export function useProjectContentsPage(
   // --- Bindings query: deployment status for exactly the visible rows -----
   // Keyed on the rows on screen so it refetches when the page changes.
   const rowsKey = baseItems.map(rowKey).join('|');
-  const bindingsQuery = useOpenChoreoQuery<Record<string, DeploymentStatusByEnv>>(
+  const bindingsQuery = useOpenChoreoQuery<
+    Record<string, DeploymentStatusByEnv>
+  >(
     ['project-contents-bindings', namespace, project, rowsKey],
     async () => {
       const entries = await Promise.all(
@@ -264,7 +275,10 @@ export function useProjectContentsPage(
               item.kind === 'component'
                 ? await client.fetchReleaseBindings(item.entity)
                 : await client.fetchResourceReleaseBindings(item.entity);
-            return [rowKey(item), toDeploymentStatus(response?.data?.items)] as const;
+            return [
+              rowKey(item),
+              toDeploymentStatus(response?.data?.items),
+            ] as const;
           } catch {
             // Leave deployment status empty if bindings can't be fetched.
             return [rowKey(item), {}] as const;
