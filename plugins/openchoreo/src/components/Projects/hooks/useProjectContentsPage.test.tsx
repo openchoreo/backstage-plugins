@@ -1,6 +1,6 @@
-import { renderHook, act } from '@testing-library/react';
-import { TestApiProvider } from '@backstage/test-utils';
+import { renderHook, waitFor } from '@testing-library/react';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import {
@@ -52,16 +52,10 @@ const mockClient = {
 
 function renderPage(params: ProjectContentsPageParams) {
   return renderHook(() => useProjectContentsPage(params), {
-    wrapper: ({ children }) => (
-      <TestApiProvider
-        apis={[
-          [catalogApiRef, mockCatalogApi as any],
-          [openChoreoClientApiRef, mockClient as any],
-        ]}
-      >
-        {children}
-      </TestApiProvider>
-    ),
+    wrapper: createQueryWrapper([
+      [catalogApiRef, mockCatalogApi as any],
+      [openChoreoClientApiRef, mockClient as any],
+    ]),
   });
 }
 
@@ -96,7 +90,8 @@ describe('useProjectContentsPage', () => {
 
   it('queries both kinds scoped to the project, ordered by title for a name sort', async () => {
     const { result } = renderPage(baseParams);
-    await act(async () => {});
+
+    await waitFor(() => expect(result.current.items).toHaveLength(2));
 
     expect(mockCatalogApi.queryEntities).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -109,7 +104,6 @@ describe('useProjectContentsPage', () => {
         orderFields: [{ field: 'metadata.title', order: 'asc' }],
       }),
     );
-    expect(result.current.items).toHaveLength(2);
     expect(result.current.totalItems).toBe(2);
     expect(result.current.nextCursor).toBe('NEXT');
     expect(result.current.loading).toBe(false);
@@ -117,31 +111,33 @@ describe('useProjectContentsPage', () => {
 
   it('orders by the created-at annotation when sorting by createdAt', async () => {
     renderPage({ ...baseParams, orderBy: 'createdAt', orderDir: 'desc' });
-    await act(async () => {});
 
-    expect(mockCatalogApi.queryEntities).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orderFields: [
-          {
-            field: `metadata.annotations.${CHOREO_ANNOTATIONS.CREATED_AT}`,
-            order: 'desc',
-          },
-        ],
-      }),
+    await waitFor(() =>
+      expect(mockCatalogApi.queryEntities).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderFields: [
+            {
+              field: `metadata.annotations.${CHOREO_ANNOTATIONS.CREATED_AT}`,
+              order: 'desc',
+            },
+          ],
+        }),
+      ),
     );
   });
 
   it('adds a name-scoped full-text filter when searching', async () => {
     renderPage({ ...baseParams, search: 'snip' });
-    await act(async () => {});
 
-    expect(mockCatalogApi.queryEntities).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fullTextFilter: {
-          term: 'snip',
-          fields: ['metadata.title', 'metadata.name'],
-        },
-      }),
+    await waitFor(() =>
+      expect(mockCatalogApi.queryEntities).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fullTextFilter: {
+            term: 'snip',
+            fields: ['metadata.title', 'metadata.name'],
+          },
+        }),
+      ),
     );
   });
 
@@ -151,49 +147,50 @@ describe('useProjectContentsPage', () => {
       kinds: new Set(['resource']),
       types: new Set(['postgres']),
     });
-    await act(async () => {});
 
-    expect(mockCatalogApi.queryEntities).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filter: expect.objectContaining({
-          kind: ['Resource'],
-          'spec.type': ['postgres'],
+    await waitFor(() =>
+      expect(mockCatalogApi.queryEntities).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filter: expect.objectContaining({
+            kind: ['Resource'],
+            'spec.type': ['postgres'],
+          }),
         }),
-      }),
+      ),
     );
   });
 
   it('sends a cursor request (no filter/order) when a cursor is given', async () => {
     renderPage({ ...baseParams, cursor: 'PAGE2' });
-    await act(async () => {});
 
-    expect(mockCatalogApi.queryEntities).toHaveBeenCalledWith({
-      cursor: 'PAGE2',
-      limit: 5,
-    });
+    await waitFor(() =>
+      expect(mockCatalogApi.queryEntities).toHaveBeenCalledWith({
+        cursor: 'PAGE2',
+        limit: 5,
+      }),
+    );
   });
 
   it('short-circuits to empty when every kind is cleared', async () => {
     const { result } = renderPage({ ...baseParams, kinds: new Set() });
-    await act(async () => {});
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(mockCatalogApi.queryEntities).not.toHaveBeenCalled();
     expect(result.current.items).toEqual([]);
-    expect(result.current.loading).toBe(false);
   });
 
   it('renders rows (loading false) before deployment bindings resolve', async () => {
-    // Bindings never resolve, so only the catalog (phase 1) completes.
+    // Bindings never resolve, so only the page query (rows) completes.
     mockClient.fetchReleaseBindings.mockReturnValue(new Promise(() => {}));
     mockClient.fetchResourceReleaseBindings.mockReturnValue(
       new Promise(() => {}),
     );
 
     const { result } = renderPage(baseParams);
-    await act(async () => {});
 
+    await waitFor(() => expect(result.current.items).toHaveLength(2));
     expect(result.current.loading).toBe(false);
-    expect(result.current.items).toHaveLength(2);
     expect(result.current.items.every(item => !item.deploymentLoaded)).toBe(
       true,
     );
@@ -201,14 +198,21 @@ describe('useProjectContentsPage', () => {
 
   it('enriches each row with its release-binding deployment status', async () => {
     const { result } = renderPage(baseParams);
-    await act(async () => {});
+
+    // Require the rows first — `[].every(...)` is vacuously true, so waiting on
+    // `deploymentLoaded` alone would resolve before the page has even loaded.
+    await waitFor(() => {
+      expect(result.current.items).toHaveLength(2);
+      expect(result.current.items.every(item => item.deploymentLoaded)).toBe(
+        true,
+      );
+    });
 
     const component = result.current.items.find(i => i.kind === 'component')!;
     const resource = result.current.items.find(i => i.kind === 'resource')!;
 
     expect(mockClient.fetchReleaseBindings).toHaveBeenCalled();
     expect(mockClient.fetchResourceReleaseBindings).toHaveBeenCalled();
-    expect(component.deploymentLoaded).toBe(true);
     expect(component.deploymentStatus.development).toEqual(
       expect.objectContaining({ isDeployed: true, status: 'Ready' }),
     );

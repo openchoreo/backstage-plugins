@@ -50,6 +50,20 @@ export const useProjectContentsCardStyles = makeStyles(theme => {
       alignItems: 'center',
       gap: theme.spacing(1),
     },
+    refreshButton: {
+      color: theme.palette.text.secondary,
+      padding: theme.spacing(0.5),
+    },
+    refreshIcon: {
+      fontSize: '1.125rem',
+    },
+    spinning: {
+      animation: '$spin 0.8s linear infinite',
+    },
+    '@keyframes spin': {
+      from: { transform: 'rotate(0deg)' },
+      to: { transform: 'rotate(360deg)' },
+    },
     countBadge: {
       display: 'inline-flex',
       alignItems: 'center',

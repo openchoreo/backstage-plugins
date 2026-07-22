@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { mockSystemEntity } from '@openchoreo/test-utils';
@@ -117,7 +117,9 @@ const setup = (
     prevCursor: undefined,
     nextCursor: page.nextCursor,
     loading: false,
+    isRefetching: false,
     error: null,
+    refetch: jest.fn().mockResolvedValue(undefined),
   });
   mockUseProjectContentFacets.mockReturnValue({
     counts: {
@@ -127,6 +129,8 @@ const setup = (
     },
     typesByKind: { component: ['deployment/service'], resource: ['postgres'] },
     loading: false,
+    isRefetching: false,
+    refetch: jest.fn().mockResolvedValue(undefined),
   });
   mockUseEnvironments.mockReturnValue({ environments: [], loading: false });
   mockUseDeploymentPipeline.mockReturnValue({
@@ -163,6 +167,35 @@ describe('ProjectContentsCard', () => {
     expect(screen.getAllByTestId('table-row')).toHaveLength(2);
     expect(screen.getByText('snip-api')).toBeInTheDocument();
     expect(screen.getByText('snip-postgres')).toBeInTheDocument();
+  });
+
+  it('refetches both the page and the facets when refresh is clicked', () => {
+    const pageRefetch = jest.fn().mockResolvedValue(undefined);
+    const facetsRefetch = jest.fn().mockResolvedValue(undefined);
+    setup([item('component', 'snip-api', 'deployment/service')]);
+    mockUseProjectContentsPage.mockReturnValue({
+      items: [item('component', 'snip-api', 'deployment/service')],
+      totalItems: 1,
+      prevCursor: undefined,
+      nextCursor: undefined,
+      loading: false,
+      isRefetching: false,
+      error: null,
+      refetch: pageRefetch,
+    });
+    mockUseProjectContentFacets.mockReturnValue({
+      counts: { all: 1, component: 1, resource: 0 },
+      typesByKind: { component: ['deployment/service'], resource: [] },
+      loading: false,
+      isRefetching: false,
+      refetch: facetsRefetch,
+    });
+
+    renderCard();
+
+    fireEvent.click(screen.getByLabelText('Refresh project contents'));
+    expect(pageRefetch).toHaveBeenCalledTimes(1);
+    expect(facetsRefetch).toHaveBeenCalledTimes(1);
   });
 
   it('renders the Kind and Type filter dropdowns', () => {

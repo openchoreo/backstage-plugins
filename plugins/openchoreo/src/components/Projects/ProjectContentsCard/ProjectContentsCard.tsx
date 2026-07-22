@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Table } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useNavigate } from 'react-router-dom';
@@ -7,12 +7,14 @@ import {
   IconButton,
   InputAdornment,
   TextField,
+  Tooltip,
   Typography,
 } from '@material-ui/core';
 import SearchIcon from '@material-ui/icons/Search';
 import ClearIcon from '@material-ui/icons/Close';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import RefreshIcon from '@material-ui/icons/Refresh';
 import { useReleaseBindingPermission } from '@openchoreo/backstage-plugin-react';
 import {
   useProjectContentsPage,
@@ -67,6 +69,9 @@ export const ProjectContentsCard = () => {
   }>({ by: 'createdAt', dir: 'desc' });
   const [cursor, setCursor] = useState<string>();
   const [pageIndex, setPageIndex] = useState(0);
+  // Drives the Refresh icon's spin + disabled state while an explicit refresh
+  // (page rows + facet counts) is in flight.
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const resetToFirstPage = () => {
     setCursor(undefined);
@@ -167,6 +172,16 @@ export const ProjectContentsCard = () => {
   );
 
   // --- Handlers ----------------------------------------------------------
+  // Manual refresh: re-run the contents page (rows + deployment status) and the
+  // facet queries (counts + type options). Spins the icon until both settle.
+  const handleRefresh = () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    Promise.all([page.refetch(), facets.refetch()]).finally(() =>
+      setIsRefreshing(false),
+    );
+  };
+
   const handleKindsChange = (next: Set<string>) => {
     setSelectedKinds(next);
     resetToFirstPage();
@@ -189,11 +204,32 @@ export const ProjectContentsCard = () => {
   };
 
   // Rows render as soon as the catalog page returns; the Deployment column
-  // skeletons independently while environments/bindings load.
-  const tableLoading = page.loading;
+  // skeletons independently while environments/bindings load. `keepPreviousData`
+  // holds the prior page on screen during a page change (loading stays false,
+  // isRefetching flips true), so guard the pager/row-clicks on both.
+  const tableLoading = page.loading || page.isRefetching;
 
   const rangeStart = page.items.length ? pageIndex * PAGE_SIZE + 1 : 0;
   const rangeEnd = pageIndex * PAGE_SIZE + page.items.length;
+
+  // Keep the widget from shrinking on a short last page. Once a full page has
+  // rendered, lock its measured height so navigating to a page with fewer than
+  // PAGE_SIZE rows reserves the same space instead of the card jumping. Measured
+  // (not a hardcoded row height) so it stays correct across themes/row content;
+  // only grows (Math.max) so async deployment chips never under-reserve.
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const [fullPageHeight, setFullPageHeight] = useState<number>();
+  useLayoutEffect(() => {
+    if (page.items.length === PAGE_SIZE && tableScrollRef.current) {
+      const measured = tableScrollRef.current.offsetHeight;
+      setFullPageHeight(prev =>
+        prev === undefined ? measured : Math.max(prev, measured),
+      );
+    }
+  }, [page.items]);
+  // Reserve height only when there's more than one page to move between.
+  const reservedHeight =
+    page.totalItems > PAGE_SIZE ? fullPageHeight : undefined;
 
   // The project has no contents at all (vs. filters excluding everything).
   const isEmptyProject = !facets.loading && facets.counts.all === 0;
@@ -229,6 +265,23 @@ export const ProjectContentsCard = () => {
             <>
               <Typography variant="h5">Project Contents</Typography>
               <span className={classes.countBadge}>{facets.counts.all}</span>
+              <Tooltip title={isRefreshing ? 'Refreshing…' : 'Refresh'}>
+                <span>
+                  <IconButton
+                    className={classes.refreshButton}
+                    size="small"
+                    aria-label="Refresh project contents"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                  >
+                    <RefreshIcon
+                      className={`${classes.refreshIcon} ${
+                        isRefreshing ? classes.spinning : ''
+                      }`}
+                    />
+                  </IconButton>
+                </span>
+              </Tooltip>
             </>
           )}
         </Box>
@@ -290,7 +343,11 @@ export const ProjectContentsCard = () => {
 
       {showTable && (
         <>
-          <Box className={classes.tableScroll}>
+          <div
+            className={classes.tableScroll}
+            ref={tableScrollRef}
+            style={reservedHeight ? { minHeight: reservedHeight } : undefined}
+          >
             <Table<ProjectContentItem>
               columns={columns}
               data={page.items}
@@ -331,7 +388,7 @@ export const ProjectContentsCard = () => {
               }}
               style={{ width: '100%', minWidth: 950, boxShadow: 'none' }}
             />
-          </Box>
+          </div>
 
           {page.totalItems > 0 && (
             <Box className={classes.pager}>
