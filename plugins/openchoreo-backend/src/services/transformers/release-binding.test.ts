@@ -2,6 +2,7 @@ import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import {
   deriveBindingStatus,
   deriveBindingStatusDetailed,
+  transformReleaseBinding,
 } from './release-binding';
 
 type ReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
@@ -270,5 +271,54 @@ describe('deriveBindingStatusDetailed', () => {
     const binding = makeBinding([]);
     const result = deriveBindingStatusDetailed(binding);
     expect(result).toEqual({ status: 'NotReady' });
+  });
+});
+
+describe('transformReleaseBinding endpoint https prioritization', () => {
+  const http = { host: 'api.example.com', port: 80, scheme: 'http' };
+  const https = { host: 'api.example.com', port: 443, scheme: 'https' };
+
+  function makeBindingWithEndpoints(endpoints: unknown[]): ReleaseBinding {
+    return {
+      status: { conditions: [], endpoints },
+    } as unknown as ReleaseBinding;
+  }
+
+  it('orders https before http in externalURLs', () => {
+    const result = transformReleaseBinding(
+      makeBindingWithEndpoints([
+        { name: 'ep', externalURLs: { plain: http, secure: https } },
+      ]),
+    );
+    const urls = Object.values(result.endpoints![0].externalURLs!);
+    expect(urls[0].scheme).toBe('https');
+    expect(urls[1].scheme).toBe('http');
+  });
+
+  it('orders https before http in internalURLs', () => {
+    const result = transformReleaseBinding(
+      makeBindingWithEndpoints([
+        { name: 'ep', internalURLs: { plain: http, secure: https } },
+      ]),
+    );
+    const urls = Object.values(result.endpoints![0].internalURLs!);
+    expect(urls[0].scheme).toBe('https');
+  });
+
+  it('preserves order when only http is present', () => {
+    const result = transformReleaseBinding(
+      makeBindingWithEndpoints([
+        { name: 'ep', externalURLs: { a: http, b: { ...http, port: 8080 } } },
+      ]),
+    );
+    const urls = Object.values(result.endpoints![0].externalURLs!);
+    expect(urls.map(u => u.port)).toEqual([80, 8080]);
+  });
+
+  it('leaves endpoints without URL maps untouched', () => {
+    const result = transformReleaseBinding(
+      makeBindingWithEndpoints([{ name: 'ep' }]),
+    );
+    expect(result.endpoints![0]).toEqual({ name: 'ep' });
   });
 });
