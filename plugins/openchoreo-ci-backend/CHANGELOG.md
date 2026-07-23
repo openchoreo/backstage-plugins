@@ -1,5 +1,14 @@
 # @openchoreo/backstage-plugin-openchoreo-ci-backend
 
+## 1.2.0-next.2
+
+### Patch Changes
+
+- Updated dependencies [52396b0]
+- Updated dependencies [56b4e95]
+  - @openchoreo/openchoreo-client-node@1.2.0-next.2
+  - @openchoreo/backstage-plugin-common@1.2.0-next.2
+
 ## 1.2.0-next.3
 
 ### Patch Changes

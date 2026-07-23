@@ -1,5 +1,28 @@
 # @openchoreo/backstage-plugin-openchoreo-observability
 
+## 1.2.0-next.2
+
+### Patch Changes
+
+- 56b4e95: Adapt the tracing views to the OpenTelemetry span status model. The
+  observability API now returns a span's `status` as a `SpanStatus` object
+  (`code` of `ok`/`error`/`unset` plus an optional `message`) instead of a plain
+  status string. The waterfall tooltip now shows the span's status code, the span
+  details panel gains a dedicated Status section (alongside Attributes and Resource
+  Attributes) that surfaces the status message, and error spans stay highlighted
+  based on the status code. This also prevents the span tooltip from crashing when
+  the status is an object.
+- 56b4e95: Fix the error stripe not rendering on error rows in the traces table. The red
+  "contains errors" indicator was drawn by CSS targeting table cells (`td`/`th`)
+  that no longer exist after the table moved to a div-based virtualized layout,
+  and the span that did render (the tooltip's hover target) had no fill colour.
+  The stripe is now drawn on the rendered element, so error traces show the red
+  stripe again.
+- Updated dependencies [b52e578]
+- Updated dependencies [4d7ebff]
+  - @openchoreo/backstage-plugin-react@1.2.0-next.2
+  - @openchoreo/backstage-plugin-common@1.2.0-next.2
+
 ## 1.2.0-next.3
 
 ### Minor Changes
