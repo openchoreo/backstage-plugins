@@ -1,5 +1,25 @@
 # @openchoreo/backstage-plugin-backend
 
+## 1.2.0-next.2
+
+### Patch Changes
+
+- e79c7b3: Prefer HTTPS over HTTP for endpoint URLs surfaced in the API test console. When
+  a ReleaseBinding endpoint exposes both an `http` and an `https` URL, the console
+  could show either one, since the frontend selects the first entry of each URL
+  map and is otherwise scheme-blind — which URL came first was decided by the
+  upstream control-plane response ordering. The `ReleaseBinding` transformer now
+  reorders each endpoint's `externalURLs`/`internalURLs` so `https` entries come
+  first (relative order otherwise preserved), making the existing frontend
+  selection land on the secure URL with no frontend change. http-only endpoints
+  and endpoints without URL maps are unaffected.
+- Updated dependencies [52396b0]
+- Updated dependencies [56b4e95]
+  - @openchoreo/openchoreo-client-node@1.2.0-next.2
+  - @openchoreo/backstage-plugin-catalog-backend-module@1.2.0-next.2
+  - @openchoreo/backstage-plugin-common@1.2.0-next.2
+  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@1.2.0-next.2
+
 ## 1.2.0-next.3
 
 ### Minor Changes

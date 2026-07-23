@@ -1,5 +1,25 @@
 # @openchoreo/openchoreo-client-node
 
+## 1.2.0-next.2
+
+### Patch Changes
+
+- 52396b0: Show container names in the resource-tree pod logs tab and add a per-container
+  filter. The pod logs API now returns logs aggregated across all of a pod's
+  containers, each entry tagged with its container. For multi-container pods
+  (for example an app container plus a Dapr sidecar) the logs viewer aligns
+  each line into timestamp / container / message columns and adds a container
+  dropdown ("All containers" plus one entry per container) to filter the view.
+  Single-container pods are unchanged.
+- 56b4e95: Adapt the tracing views to the OpenTelemetry span status model. The
+  observability API now returns a span's `status` as a `SpanStatus` object
+  (`code` of `ok`/`error`/`unset` plus an optional `message`) instead of a plain
+  status string. The waterfall tooltip now shows the span's status code, the span
+  details panel gains a dedicated Status section (alongside Attributes and Resource
+  Attributes) that surfaces the status message, and error spans stay highlighted
+  based on the status code. This also prevents the span tooltip from crashing when
+  the status is an object.
+
 ## 1.2.0-next.3
 
 ### Patch Changes

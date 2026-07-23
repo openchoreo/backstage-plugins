@@ -1,5 +1,42 @@
 # @openchoreo/backstage-plugin
 
+## 1.2.0-next.2
+
+### Patch Changes
+
+- b52e578: Fix cached catalog data not refreshing after a change. Creating a component or project
+  left the project contents table, the namespace projects card and the catalog list showing
+  the previous contents until you navigated away and back. Cached catalog reads are now
+  refreshed before they are handed to the page, and the namespace cards update in place when
+  newer data arrives.
+- 52396b0: Show container names in the resource-tree pod logs tab and add a per-container
+  filter. The pod logs API now returns logs aggregated across all of a pod's
+  containers, each entry tagged with its container. For multi-container pods
+  (for example an app container plus a Dapr sidecar) the logs viewer aligns
+  each line into timestamp / container / message columns and adds a container
+  dropdown ("All containers" plus one entry per container) to filter the view.
+  Single-container pods are unchanged.
+- 4d7ebff: Add a Refresh action to the Project Contents card and back it with the response
+  cache.
+
+  A Refresh icon button next to the "Project Contents" title re-pulls the table
+  rows (and their per-environment deployment status) together with the count badge
+  and type-filter options. `useProjectContentsPage` moves off a hand-rolled
+  `useEffect` fetch onto `useOpenChoreoQuery`, split into two dependent queries
+  (page rows + visible-row deployment bindings), so it gains `refetch`/
+  `isRefetching` and smoother paging. The card also reserves a full page's height
+  so navigating to a shorter last page no longer makes the widget jump.
+
+  `useOpenChoreoQuery` gains an optional `keepPreviousData` flag (forwarded as
+  `placeholderData: keepPreviousData`) so paginated queries can keep the previous
+  page on screen while the next one loads. It is additive and only applied when
+  set, so existing callers are unchanged.
+
+- Updated dependencies [b52e578]
+- Updated dependencies [4d7ebff]
+  - @openchoreo/backstage-plugin-react@1.2.0-next.2
+  - @openchoreo/backstage-plugin-common@1.2.0-next.2
+
 ## 1.2.0-next.3
 
 ### Minor Changes
