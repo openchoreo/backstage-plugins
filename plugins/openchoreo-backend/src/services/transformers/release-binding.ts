@@ -2,6 +2,7 @@ import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import type {
   ReleaseBindingResponse,
   ReleaseBindingEndpoint,
+  ReleaseBindingEndpointURLDetails,
   ReleaseBindingCondition,
 } from '@openchoreo/backstage-plugin-common';
 import { getName, getNamespace, getCreatedAt } from './common';
@@ -142,6 +143,48 @@ export function deriveBindingStatusDetailed(
 }
 
 /**
+ * Reorders a URL map so that HTTPS entries come first.
+ *
+ * The frontend selects an endpoint's primary URL with `Object.values(urls)[0]`
+ * — the first entry in iteration order — and is otherwise scheme-blind. When an
+ * endpoint exposes both an http and an https URL we want the secure one to win,
+ * so we surface https entries first here while keeping the relative order of
+ * everything else stable. Object iteration order follows insertion order for the
+ * string keys used here, so rebuilding the record is enough to influence the
+ * frontend's choice without any frontend change.
+ */
+function prioritizeHttpsUrls(
+  urls: Record<string, ReleaseBindingEndpointURLDetails>,
+): Record<string, ReleaseBindingEndpointURLDetails> {
+  const isHttps = (d: ReleaseBindingEndpointURLDetails | undefined) =>
+    d?.scheme?.toLowerCase() === 'https';
+  const entries = Object.entries(urls);
+  const ordered = [
+    ...entries.filter(([, d]) => isHttps(d)),
+    ...entries.filter(([, d]) => !isHttps(d)),
+  ];
+  return Object.fromEntries(ordered);
+}
+
+/**
+ * Returns a copy of the endpoint with its external/internal URL maps reordered
+ * so https URLs take precedence over http when both are present.
+ */
+function prioritizeEndpointHttps(
+  endpoint: ReleaseBindingEndpoint,
+): ReleaseBindingEndpoint {
+  return {
+    ...endpoint,
+    ...(endpoint.externalURLs
+      ? { externalURLs: prioritizeHttpsUrls(endpoint.externalURLs) }
+      : {}),
+    ...(endpoint.internalURLs
+      ? { internalURLs: prioritizeHttpsUrls(endpoint.internalURLs) }
+      : {}),
+  };
+}
+
+/**
  * Transforms a K8s-style ReleaseBinding resource into the flat
  * ReleaseBindingResponse shape expected by the frontend.
  */
@@ -172,10 +215,12 @@ export function transformReleaseBinding(
     endpoints: (() => {
       const raw = (binding.status as any)?.endpoints;
       if (!Array.isArray(raw)) return undefined;
-      return raw.filter(
-        (e): e is ReleaseBindingEndpoint =>
-          e !== null && typeof e === 'object' && typeof e.name === 'string',
-      );
+      return raw
+        .filter(
+          (e): e is ReleaseBindingEndpoint =>
+            e !== null && typeof e === 'object' && typeof e.name === 'string',
+        )
+        .map(prioritizeEndpointHttps);
     })(),
     conditions: (() => {
       const raw = binding.status?.conditions;
