@@ -378,9 +378,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     );
     this.nextRetryAtMs = Date.now() + backoffMs;
     this.logger.warn(
-      `OpenChoreo catalog sync failed (attempt ${this.consecutiveFailures}); retrying in ${Math.round(
-        backoffMs / 1000,
-      )}s`,
+      `OpenChoreo catalog sync failed (attempt ${
+        this.consecutiveFailures
+      }); retrying in ${Math.round(backoffMs / 1000)}s`,
     );
   }
 
