@@ -134,6 +134,16 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   /** Resolves custom templates; undefined disables the feature (no UrlReader). */
   private readonly remoteTemplateFetcher?: RemoteTemplateFetcher;
 
+  // Adaptive-cadence bookkeeping. The scheduled task fires every
+  // `retryInterval` seconds; these let a healthy sync stay on the normal
+  // `frequency` while a failed run retries with exponential backoff.
+  private lastSuccessAtMs?: number;
+  private consecutiveFailures = 0;
+  // Earliest time the next retry may run while failing (0 = retry now).
+  private nextRetryAtMs = 0;
+  private readonly syncFrequencyMs: number;
+  private readonly retryBaseMs: number;
+
   constructor(
     taskRunner: SchedulerServiceTaskRunner,
     logger: LoggerService,
@@ -147,6 +157,16 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     this.taskRunner = taskRunner;
     this.logger = logger;
     this.baseUrl = config.getString('openchoreo.baseUrl');
+    // Normal (healthy) full-sync cadence. Must match module.ts's
+    // `schedule.frequency`; the task itself fires more often (retryInterval).
+    this.syncFrequencyMs =
+      (config.getOptionalNumber('openchoreo.schedule.frequency') ?? 300) * 1000;
+    // Base delay for the first retry after a failure; doubles each
+    // consecutive failure, capped at syncFrequencyMs. Must match module.ts's
+    // `schedule.retryInterval` (the tick cadence).
+    this.retryBaseMs =
+      (config.getOptionalNumber('openchoreo.schedule.retryInterval') ?? 30) *
+      1000;
     this.tokenService = tokenService;
     this.events = events;
     // Default owner for built-in Backstage entities (Domain, System, Component, API)
@@ -303,9 +323,65 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     await this.taskRunner.run({
       id: this.getProviderName(),
       fn: async () => {
-        await this.run();
+        await this.syncTick();
       },
     });
+  }
+
+  /**
+   * Scheduled tick. The task fires every `retryInterval` seconds, but a full
+   * sync only runs when it is actually due:
+   *  - healthy: every `syncFrequencyMs` (the normal cadence);
+   *  - failing: after an exponential backoff (retryBase, x2 per consecutive
+   *    failure, capped at syncFrequencyMs) — so a cold-start failure recovers
+   *    within ~retryBase, while a sustained outage backs off to the normal
+   *    cadence instead of hammering. It never gives up: the loop keeps
+   *    reconciling so the catalog self-heals whenever the backend returns.
+   * Ticks that are neither due nor past the backoff window are cheap no-ops.
+   */
+  private async syncTick(): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Connection not initialized');
+    }
+    const now = Date.now();
+    if (this.consecutiveFailures > 0) {
+      // Failing: honor the exponential backoff window. (Don't fall back to
+      // the "normal cadence" branch — while failing, backoff is the only
+      // gate, otherwise a never-yet-succeeded provider would run every tick.)
+      if (now < this.nextRetryAtMs) {
+        return;
+      }
+    } else {
+      // Healthy: run only on the normal cadence. The first-ever run
+      // (no prior success recorded) is always due.
+      const dueForNormalSync =
+        this.lastSuccessAtMs === undefined ||
+        now - this.lastSuccessAtMs >= this.syncFrequencyMs;
+      if (!dueForNormalSync) {
+        return;
+      }
+    }
+
+    const succeeded = await this.runNew();
+    if (succeeded) {
+      this.consecutiveFailures = 0;
+      this.nextRetryAtMs = 0;
+      this.lastSuccessAtMs = Date.now();
+      return;
+    }
+
+    // Failure: schedule the next retry with capped exponential backoff.
+    this.consecutiveFailures += 1;
+    const backoffMs = Math.min(
+      this.retryBaseMs * 2 ** (this.consecutiveFailures - 1),
+      this.syncFrequencyMs,
+    );
+    this.nextRetryAtMs = Date.now() + backoffMs;
+    this.logger.warn(
+      `OpenChoreo catalog sync failed (attempt ${this.consecutiveFailures}); retrying in ${Math.round(
+        backoffMs / 1000,
+      )}s`,
+    );
   }
 
   /**
@@ -380,10 +456,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       throw new Error('Connection not initialized');
     }
 
-    return this.runNew();
+    await this.runNew();
   }
 
-  private async runNew(): Promise<void> {
+  /** Runs a full sync. Returns true if the mutation was applied, false if the run aborted. */
+  private async runNew(): Promise<boolean> {
     try {
       this.logger.info(
         'Fetching namespaces and projects from OpenChoreo API (new API)',
@@ -1908,8 +1985,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       });
 
       this.logEntityCounts(allEntities, domainEntities.length);
+      return true;
     } catch (error) {
       this.logger.error(`Failed to run OpenChoreoEntityProvider: ${error}`);
+      return false;
     }
   }
 

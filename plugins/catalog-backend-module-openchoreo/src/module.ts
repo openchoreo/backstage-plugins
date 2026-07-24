@@ -96,8 +96,13 @@ export const catalogModuleOpenchoreo = createBackendModule({
         urlReader,
       }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
-        const frequency =
-          openchoreoConfig?.getOptionalNumber('schedule.frequency') ?? 300;
+        // The scheduled task fires at this fast retry cadence; the provider
+        // throttles so a healthy sync still only runs every
+        // `schedule.frequency` seconds (which the provider reads itself),
+        // but a failed run (e.g. dependency unreachable at cold start)
+        // retries within `retryInterval` instead of waiting a full frequency.
+        const retryInterval =
+          openchoreoConfig?.getOptionalNumber('schedule.retryInterval') ?? 30;
         const timeout =
           openchoreoConfig?.getOptionalNumber('schedule.timeout') ?? 120;
         // Whether to wire up the event-driven sync. Defaults to true so
@@ -111,7 +116,7 @@ export const catalogModuleOpenchoreo = createBackendModule({
           openchoreoConfig?.getOptionalBoolean('events.enabled') ?? true;
 
         const taskRunner = scheduler.createScheduledTaskRunner({
-          frequency: { seconds: frequency },
+          frequency: { seconds: retryInterval },
           timeout: { seconds: timeout },
         });
 

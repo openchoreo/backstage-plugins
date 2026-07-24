@@ -185,6 +185,7 @@ openchoreo:
 
   schedule:
     frequency: 300 # seconds between runs (default: 300, the periodic full sync acts as a safety net behind the event-forwarder's real-time deltas)
+    retryInterval: 30 # seconds between retries while a sync is failing (default: 30); recovers fast from cold-start dependency outages without waiting a full frequency
     timeout: 120 # seconds for timeout (default: 120)
 
   # Observability tuning (optional).

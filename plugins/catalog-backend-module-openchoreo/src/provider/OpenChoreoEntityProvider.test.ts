@@ -1189,4 +1189,100 @@ describe('OpenChoreoEntityProvider', () => {
       expect((comp?.spec as any).owner).toBe('group:default/test-owner');
     });
   });
+
+  describe('adaptive sync cadence', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    // frequency = 300s (normal cadence), retryInterval = 30s (backoff base).
+    function scheduleConfig() {
+      return new ConfigReader({
+        openchoreo: {
+          baseUrl: 'http://test:8080',
+          defaultOwner: 'test-owner',
+          componentTypes: {
+            mappings: [{ pattern: 'Service', pageVariant: 'service' }],
+          },
+          schedule: { frequency: 300, retryInterval: 30 },
+        },
+      });
+    }
+
+    async function connectProvider(config = scheduleConfig()) {
+      const provider = new OpenChoreoEntityProvider(
+        taskRunner as any,
+        mkLogger(),
+        config,
+        undefined, // no token service
+      );
+      await provider.connect(mockConnection as any);
+      return provider;
+    }
+
+    it('syncs on the first tick, then no-ops while healthy and not yet due', async () => {
+      // Every endpoint returns an empty list → the run succeeds (applies an
+      // empty full mutation). A second tick soon after is skipped because a
+      // sync just succeeded and the normal frequency has not elapsed.
+      mockGET.mockResolvedValue(okData({ items: [] }));
+
+      await connectProvider();
+      await taskRunner.runTask();
+      await taskRunner.runTask();
+
+      expect(mockConnection.applyMutation).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries failures with capped exponential backoff and resets on success', async () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(0);
+
+      // Count how many full-sync attempts actually reach the API (each run
+      // hits /api/v1/namespaces exactly once). `failing` flips to false to
+      // simulate the backend recovering.
+      let namespacesCalls = 0;
+      let failing = true;
+      mockGET.mockImplementation((path: string) => {
+        if (path === '/api/v1/namespaces') {
+          namespacesCalls += 1;
+          return Promise.resolve(
+            failing ? errorData(500) : okData({ items: [] }),
+          );
+        }
+        return Promise.resolve(okData({ items: [] }));
+      });
+
+      await connectProvider();
+
+      // t=0: first attempt fails → next retry at +30s.
+      await taskRunner.runTask();
+      expect(namespacesCalls).toBe(1);
+
+      // t=0 again: still inside the backoff window → no-op.
+      await taskRunner.runTask();
+      expect(namespacesCalls).toBe(1);
+
+      // t=30s: retry due → 2nd failure → next retry at +60s (t=90s).
+      jest.setSystemTime(30_000);
+      await taskRunner.runTask();
+      expect(namespacesCalls).toBe(2);
+
+      // t=60s: backoff widened to 60s, so still not due → no-op.
+      jest.setSystemTime(60_000);
+      await taskRunner.runTask();
+      expect(namespacesCalls).toBe(2);
+
+      // t=90s: retry due, backend recovered → success, no mutation missed.
+      jest.setSystemTime(90_000);
+      failing = false;
+      await taskRunner.runTask();
+      expect(namespacesCalls).toBe(3);
+      expect(mockConnection.applyMutation).toHaveBeenCalledTimes(1);
+
+      // After success the failure state resets: an immediate tick no-ops
+      // (healthy, frequency not elapsed) rather than retrying fast.
+      await taskRunner.runTask();
+      expect(namespacesCalls).toBe(3);
+    });
+  });
 });

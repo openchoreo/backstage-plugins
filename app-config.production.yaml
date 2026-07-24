@@ -202,6 +202,10 @@ openchoreo:
 
   schedule:
     frequency: ${OPENCHOREO_CATALOG_SYNC_FREQUENCY}
+    # Seconds between retries while a sync is failing; backs off exponentially
+    # up to `frequency`. Environment variable: OPENCHOREO_CATALOG_SYNC_RETRY_INTERVAL
+    # (seconds). When unset it resolves to undefined and the code default (30) applies.
+    retryInterval: ${OPENCHOREO_CATALOG_SYNC_RETRY_INTERVAL}
     timeout: 120 # seconds for timeout (default: 120)
 
   # Whether to wire the OpenChoreo event-driven catalog sync. Mirrors

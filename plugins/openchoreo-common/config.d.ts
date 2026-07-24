@@ -130,6 +130,13 @@ export interface Config {
       frequency?: number;
 
       /**
+       * Seconds between retries while a run is failing. Backs off
+       * exponentially from this base up to `frequency`. Defaults to 30.
+       * @visibility backend
+       */
+      retryInterval?: number;
+
+      /**
        * Timeout in seconds for provider operations
        * @visibility backend
        */
