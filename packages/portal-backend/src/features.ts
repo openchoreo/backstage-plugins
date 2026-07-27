@@ -6,6 +6,92 @@ import {
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
 /**
+ * OpenChoreo service factories, registered ahead of every plugin: the catalog
+ * module and openchoreo-backend depend on these (the AnnotationStore is
+ * initialized by the catalog module). Exported for tests — consume
+ * {@link portalBackendFeatures} instead.
+ *
+ * @internal
+ */
+export const portalServiceFactories = [
+  immediateCatalogServiceFactory,
+  annotationStoreFactory,
+];
+
+/**
+ * The portal's plugin/module composition, in registration order, as lazy
+ * import thunks. Exported for tests — consume {@link portalBackendFeatures}
+ * instead.
+ *
+ * @internal
+ */
+export const portalFeatureLoaders = [
+  () => import('@backstage/plugin-app-backend'),
+  () => import('@backstage/plugin-proxy-backend'),
+  () => import('@backstage/plugin-scaffolder-backend'),
+  () => import('@backstage/plugin-scaffolder-backend-module-github'),
+  () => import('@backstage/plugin-techdocs-backend'),
+
+  // auth plugin
+  // See https://backstage.io/docs/backend-system/building-backends/migrating#the-auth-plugin
+  () => import('@backstage/plugin-auth-backend'),
+  // Auth providers - both registered, but each checks config to determine if it should activate
+  // OpenChoreo Auth provider - works with any OIDC-compliant IDP (active when openchoreo.features.auth.enabled = true)
+  () => OpenChoreoAuthModule,
+  // Guest provider for development/demo mode (active when openchoreo.features.auth.enabled = false)
+  () => import('@backstage/plugin-auth-backend-module-guest-provider'),
+  // Github provider
+  () => import('@backstage/plugin-auth-backend-module-github-provider'),
+  // events plugin — receives webhook POSTs and publishes to EventsService
+  () => import('@backstage/plugin-events-backend'),
+
+  // catalog plugin
+  () => import('@backstage/plugin-catalog-backend'),
+  () =>
+    import('@backstage/plugin-catalog-backend-module-scaffolder-entity-model'),
+  // See https://backstage.io/docs/features/software-catalog/configuration#subscribing-to-catalog-errors
+  () => import('@backstage/plugin-catalog-backend-module-logs'),
+
+  // permission plugin
+  () => import('@backstage/plugin-permission-backend'),
+  // OpenChoreo permission policy - handles openchoreo.* permissions via /authz/profile API
+  // Falls back to ALLOW for non-OpenChoreo permissions (composable with other policies)
+  () =>
+    import(
+      '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy'
+    ),
+
+  // search plugin, engine and collators
+  // See https://backstage.io/docs/features/search/search-engines
+  () => import('@backstage/plugin-search-backend'),
+  () => import('@backstage/plugin-search-backend-module-pg'),
+  () => import('@backstage/plugin-search-backend-module-catalog'),
+
+  // user settings plugin - enables centralized storage for starred entities and user preferences
+  () => import('@backstage/plugin-user-settings-backend'),
+
+  // IMPORTANT: catalog-backend-module MUST be registered before openchoreo-backend
+  // because openchoreo-backend depends on the AnnotationStore which is initialized
+  // by the catalog module.
+  () => import('@openchoreo/backstage-plugin-catalog-backend-module'),
+  () => import('@openchoreo/backstage-plugin-backend'),
+  () => import('@openchoreo/backstage-plugin-scaffolder-backend-module'),
+  () =>
+    import(
+      '@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users'
+    ),
+  () => import('@openchoreo/backstage-plugin-platform-engineer-core-backend'),
+  () => import('@openchoreo/backstage-plugin-openchoreo-observability-backend'),
+  () => import('@openchoreo/backstage-plugin-openchoreo-ci-backend'),
+
+  // External CI Platform Integrations
+  // Jenkins: Handles missing config gracefully (API calls fail, not startup)
+  () => import('@backstage-community/plugin-jenkins-backend'),
+
+  () => import('@openchoreo/backstage-plugin-openchoreo-workflows-backend'),
+];
+
+/**
  * The OpenChoreo Portal's backend composition as a single feature.
  *
  * Bundles every backend plugin, module, and service factory the stock portal
@@ -24,80 +110,10 @@ import {
  */
 export const portalBackendFeatures = createBackendFeatureLoader({
   *loader() {
-    // OpenChoreo service factories. The catalog module and openchoreo-backend
-    // depend on these being registered.
-    yield immediateCatalogServiceFactory;
-    yield annotationStoreFactory;
+    yield* portalServiceFactories;
 
-    yield import('@backstage/plugin-app-backend');
-    yield import('@backstage/plugin-proxy-backend');
-    yield import('@backstage/plugin-scaffolder-backend');
-    yield import('@backstage/plugin-scaffolder-backend-module-github');
-    yield import('@backstage/plugin-techdocs-backend');
-
-    // auth plugin
-    yield import('@backstage/plugin-auth-backend');
-    // See https://backstage.io/docs/backend-system/building-backends/migrating#the-auth-plugin
-
-    // Auth providers - both registered, but each checks config to determine if it should activate
-    // OpenChoreo Auth provider - works with any OIDC-compliant IDP (active when openchoreo.features.auth.enabled = true)
-    yield OpenChoreoAuthModule;
-    // Guest provider for development/demo mode (active when openchoreo.features.auth.enabled = false)
-    yield import('@backstage/plugin-auth-backend-module-guest-provider');
-    // Github provider
-    yield import('@backstage/plugin-auth-backend-module-github-provider');
-    // events plugin — receives webhook POSTs and publishes to EventsService
-    yield import('@backstage/plugin-events-backend');
-
-    // catalog plugin
-    yield import('@backstage/plugin-catalog-backend');
-    yield import(
-      '@backstage/plugin-catalog-backend-module-scaffolder-entity-model'
-    );
-
-    // See https://backstage.io/docs/features/software-catalog/configuration#subscribing-to-catalog-errors
-    yield import('@backstage/plugin-catalog-backend-module-logs');
-
-    // permission plugin
-    yield import('@backstage/plugin-permission-backend');
-    // OpenChoreo permission policy - handles openchoreo.* permissions via /authz/profile API
-    // Falls back to ALLOW for non-OpenChoreo permissions (composable with other policies)
-    yield import(
-      '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy'
-    );
-
-    // search plugin
-    yield import('@backstage/plugin-search-backend');
-
-    // search engine
-    // See https://backstage.io/docs/features/search/search-engines
-    yield import('@backstage/plugin-search-backend-module-pg');
-
-    // search collators
-    yield import('@backstage/plugin-search-backend-module-catalog');
-
-    // user settings plugin - enables centralized storage for starred entities and user preferences
-    yield import('@backstage/plugin-user-settings-backend');
-
-    // IMPORTANT: catalog-backend-module MUST be registered before openchoreo-backend
-    // because openchoreo-backend depends on the AnnotationStore which is initialized
-    // by the catalog module.
-    yield import('@openchoreo/backstage-plugin-catalog-backend-module');
-    yield import('@openchoreo/backstage-plugin-backend');
-    yield import('@openchoreo/backstage-plugin-scaffolder-backend-module');
-    yield import(
-      '@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users'
-    );
-    yield import('@openchoreo/backstage-plugin-platform-engineer-core-backend');
-    yield import(
-      '@openchoreo/backstage-plugin-openchoreo-observability-backend'
-    );
-    yield import('@openchoreo/backstage-plugin-openchoreo-ci-backend');
-
-    // External CI Platform Integrations
-    // Jenkins: Handles missing config gracefully (API calls fail, not startup)
-    yield import('@backstage-community/plugin-jenkins-backend');
-
-    yield import('@openchoreo/backstage-plugin-openchoreo-workflows-backend');
+    for (const load of portalFeatureLoaders) {
+      yield load();
+    }
   },
 });
