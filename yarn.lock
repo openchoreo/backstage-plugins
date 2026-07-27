@@ -10307,6 +10307,130 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@openchoreo/backstage-portal-app@workspace:^, @openchoreo/backstage-portal-app@workspace:packages/portal-app":
+  version: 0.0.0-use.local
+  resolution: "@openchoreo/backstage-portal-app@workspace:packages/portal-app"
+  dependencies:
+    "@backstage-community/plugin-github-actions": "npm:^0.20.0"
+    "@backstage-community/plugin-jenkins": "npm:^0.28.0"
+    "@backstage/catalog-client": "npm:^1.15.1"
+    "@backstage/catalog-model": "npm:^1.9.0"
+    "@backstage/cli": "npm:^0.36.2"
+    "@backstage/config": "npm:^1.3.8"
+    "@backstage/core-app-api": "npm:^1.20.1"
+    "@backstage/core-compat-api": "npm:^0.5.11"
+    "@backstage/core-components": "npm:^0.18.10"
+    "@backstage/core-plugin-api": "npm:^1.12.6"
+    "@backstage/frontend-app-api": "npm:^0.16.3"
+    "@backstage/frontend-defaults": "npm:^0.5.2"
+    "@backstage/frontend-plugin-api": "npm:^0.17.0"
+    "@backstage/frontend-test-utils": "npm:^0.6.0"
+    "@backstage/integration-react": "npm:^1.2.18"
+    "@backstage/plugin-api-docs": "npm:^0.14.1"
+    "@backstage/plugin-app": "npm:^0.4.6"
+    "@backstage/plugin-app-react": "npm:^0.2.3"
+    "@backstage/plugin-catalog": "npm:^2.0.5"
+    "@backstage/plugin-catalog-common": "npm:^1.1.10"
+    "@backstage/plugin-catalog-graph": "npm:^0.6.4"
+    "@backstage/plugin-catalog-import": "npm:^0.13.13"
+    "@backstage/plugin-catalog-react": "npm:^3.0.0"
+    "@backstage/plugin-home": "npm:^0.9.6"
+    "@backstage/plugin-kubernetes": "npm:^0.12.19"
+    "@backstage/plugin-org": "npm:^0.7.4"
+    "@backstage/plugin-permission-common": "npm:^0.9.9"
+    "@backstage/plugin-permission-react": "npm:^0.5.1"
+    "@backstage/plugin-scaffolder": "npm:^1.37.0"
+    "@backstage/plugin-scaffolder-common": "npm:^2.2.0"
+    "@backstage/plugin-scaffolder-react": "npm:^2.0.0"
+    "@backstage/plugin-search": "npm:^1.7.4"
+    "@backstage/plugin-search-react": "npm:^1.11.4"
+    "@backstage/plugin-techdocs": "npm:^1.17.6"
+    "@backstage/plugin-techdocs-common": "npm:^0.1.1"
+    "@backstage/plugin-techdocs-module-addons-contrib": "npm:^1.1.36"
+    "@backstage/plugin-techdocs-react": "npm:^1.3.11"
+    "@backstage/plugin-user-settings": "npm:^0.9.3"
+    "@backstage/test-utils": "npm:^1.7.18"
+    "@backstage/theme": "npm:^0.7.3"
+    "@gitbeaker/rest": "npm:^40.6.0"
+    "@immobiliarelabs/backstage-plugin-gitlab": "npm:^6.13.0"
+    "@material-ui/core": "npm:4.12.4"
+    "@material-ui/icons": "npm:4.11.3"
+    "@material-ui/lab": "npm:4.0.0-alpha.61"
+    "@openchoreo/backstage-design-system": "workspace:^"
+    "@openchoreo/backstage-plugin": "workspace:^"
+    "@openchoreo/backstage-plugin-common": "workspace:^"
+    "@openchoreo/backstage-plugin-openchoreo-ci": "workspace:^"
+    "@openchoreo/backstage-plugin-openchoreo-observability": "workspace:^"
+    "@openchoreo/backstage-plugin-openchoreo-portal-assistant": "workspace:^"
+    "@openchoreo/backstage-plugin-openchoreo-workflows": "workspace:^"
+    "@openchoreo/backstage-plugin-platform-engineer-core": "workspace:^"
+    "@openchoreo/backstage-plugin-react": "workspace:^"
+    "@rjsf/core": "npm:5.24.13"
+    "@rjsf/material-ui": "npm:5.24.13"
+    "@rjsf/utils": "npm:5.24.13"
+    "@rjsf/validator-ajv8": "npm:5.24.13"
+    "@tanstack/react-query": "npm:^5.101.2"
+    "@testing-library/dom": "npm:9.3.4"
+    "@testing-library/jest-dom": "npm:6.9.1"
+    "@testing-library/react": "npm:14.3.1"
+    "@testing-library/user-event": "npm:14.6.1"
+    "@types/react-dom": "npm:*"
+    clsx: "npm:^2.1.1"
+    d3-selection: "npm:^3.0.0"
+    d3-zoom: "npm:^3.0.0"
+    devicons-react: "npm:^1.5.0"
+    json-schema: "npm:0.4.0"
+    react: "npm:18.3.1"
+    react-dom: "npm:18.3.1"
+    react-router-dom: "npm:6.30.1"
+    react-use: "npm:17.6.0"
+    yaml: "npm:^2.8.1"
+  peerDependencies:
+    react: ^18.0.0
+    react-dom: ^18.0.0
+    react-router-dom: ^6.0.0
+  languageName: unknown
+  linkType: soft
+
+"@openchoreo/backstage-portal-backend@workspace:^, @openchoreo/backstage-portal-backend@workspace:packages/portal-backend":
+  version: 0.0.0-use.local
+  resolution: "@openchoreo/backstage-portal-backend@workspace:packages/portal-backend"
+  dependencies:
+    "@backstage-community/plugin-jenkins-backend": "npm:^0.24.1"
+    "@backstage/backend-defaults": "npm:^0.17.1"
+    "@backstage/backend-plugin-api": "npm:^1.9.1"
+    "@backstage/cli": "npm:^0.36.2"
+    "@backstage/plugin-app-backend": "npm:^0.5.14"
+    "@backstage/plugin-auth-backend": "npm:^0.29.0"
+    "@backstage/plugin-auth-backend-module-github-provider": "npm:^0.5.3"
+    "@backstage/plugin-auth-backend-module-guest-provider": "npm:^0.2.19"
+    "@backstage/plugin-catalog-backend": "npm:^3.7.0"
+    "@backstage/plugin-catalog-backend-module-logs": "npm:^0.1.22"
+    "@backstage/plugin-catalog-backend-module-scaffolder-entity-model": "npm:^0.2.20"
+    "@backstage/plugin-events-backend": "npm:^0.6.2"
+    "@backstage/plugin-permission-backend": "npm:^0.7.12"
+    "@backstage/plugin-proxy-backend": "npm:^0.6.13"
+    "@backstage/plugin-scaffolder-backend": "npm:^4.0.0"
+    "@backstage/plugin-scaffolder-backend-module-github": "npm:^0.9.9"
+    "@backstage/plugin-search-backend": "npm:^2.1.2"
+    "@backstage/plugin-search-backend-module-catalog": "npm:^0.3.15"
+    "@backstage/plugin-search-backend-module-pg": "npm:^0.5.55"
+    "@backstage/plugin-techdocs-backend": "npm:^2.2.0"
+    "@backstage/plugin-user-settings-backend": "npm:^0.4.3"
+    "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth": "workspace:^"
+    "@openchoreo/backstage-plugin-backend": "workspace:^"
+    "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^"
+    "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users": "workspace:^"
+    "@openchoreo/backstage-plugin-openchoreo-ci-backend": "workspace:^"
+    "@openchoreo/backstage-plugin-openchoreo-observability-backend": "workspace:^"
+    "@openchoreo/backstage-plugin-openchoreo-workflows-backend": "workspace:^"
+    "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy": "workspace:^"
+    "@openchoreo/backstage-plugin-platform-engineer-core-backend": "workspace:^"
+    "@openchoreo/backstage-plugin-scaffolder-backend-module": "workspace:^"
+    "@openchoreo/openchoreo-auth": "workspace:^"
+  languageName: unknown
+  linkType: soft
+
 "@openchoreo/cell-diagram@workspace:^, @openchoreo/cell-diagram@workspace:packages/cell-diagram":
   version: 0.0.0-use.local
   resolution: "@openchoreo/cell-diagram@workspace:packages/cell-diagram"
@@ -16936,85 +17060,17 @@ __metadata:
   resolution: "app@workspace:packages/app"
   dependencies:
     "@axe-core/playwright": "npm:^4.11.3"
-    "@backstage-community/plugin-github-actions": "npm:^0.20.0"
-    "@backstage-community/plugin-jenkins": "npm:^0.28.0"
-    "@backstage/app-defaults": "npm:^1.7.8"
-    "@backstage/catalog-client": "npm:^1.15.1"
-    "@backstage/catalog-model": "npm:^1.9.0"
     "@backstage/cli": "npm:^0.36.2"
-    "@backstage/config": "npm:^1.3.8"
-    "@backstage/core-app-api": "npm:^1.20.1"
-    "@backstage/core-compat-api": "npm:^0.5.11"
-    "@backstage/core-components": "npm:^0.18.10"
-    "@backstage/core-plugin-api": "npm:^1.12.6"
-    "@backstage/frontend-app-api": "npm:^0.16.3"
-    "@backstage/frontend-defaults": "npm:^0.5.2"
-    "@backstage/frontend-plugin-api": "npm:^0.17.0"
-    "@backstage/frontend-test-utils": "npm:^0.6.0"
-    "@backstage/integration-react": "npm:^1.2.18"
-    "@backstage/plugin-api-docs": "npm:^0.14.1"
-    "@backstage/plugin-app": "npm:^0.4.6"
-    "@backstage/plugin-app-react": "npm:^0.2.3"
-    "@backstage/plugin-catalog": "npm:^2.0.5"
-    "@backstage/plugin-catalog-common": "npm:^1.1.10"
-    "@backstage/plugin-catalog-graph": "npm:^0.6.4"
-    "@backstage/plugin-catalog-import": "npm:^0.13.13"
-    "@backstage/plugin-catalog-react": "npm:^3.0.0"
-    "@backstage/plugin-home": "npm:^0.9.6"
-    "@backstage/plugin-kubernetes": "npm:^0.12.19"
-    "@backstage/plugin-org": "npm:^0.7.4"
-    "@backstage/plugin-permission-common": "npm:^0.9.9"
-    "@backstage/plugin-permission-react": "npm:^0.5.1"
-    "@backstage/plugin-scaffolder": "npm:^1.37.0"
-    "@backstage/plugin-scaffolder-common": "npm:^2.2.0"
-    "@backstage/plugin-scaffolder-react": "npm:^2.0.0"
-    "@backstage/plugin-search": "npm:^1.7.4"
-    "@backstage/plugin-search-react": "npm:^1.11.4"
-    "@backstage/plugin-techdocs": "npm:^1.17.6"
-    "@backstage/plugin-techdocs-common": "npm:^0.1.1"
-    "@backstage/plugin-techdocs-module-addons-contrib": "npm:^1.1.36"
-    "@backstage/plugin-techdocs-react": "npm:^1.3.11"
-    "@backstage/plugin-user-settings": "npm:^0.9.3"
-    "@backstage/test-utils": "npm:^1.7.18"
-    "@backstage/theme": "npm:^0.7.3"
     "@backstage/ui": "npm:^0.15.0"
-    "@gitbeaker/rest": "npm:^40.6.0"
-    "@immobiliarelabs/backstage-plugin-gitlab": "npm:^6.13.0"
-    "@material-ui/core": "npm:4.12.4"
-    "@material-ui/icons": "npm:4.11.3"
-    "@material-ui/lab": "npm:4.0.0-alpha.61"
-    "@openchoreo/backstage-design-system": "workspace:^"
-    "@openchoreo/backstage-plugin": "workspace:^"
-    "@openchoreo/backstage-plugin-common": "workspace:^"
-    "@openchoreo/backstage-plugin-openchoreo-ci": "workspace:^"
-    "@openchoreo/backstage-plugin-openchoreo-observability": "workspace:^"
-    "@openchoreo/backstage-plugin-openchoreo-portal-assistant": "workspace:^"
-    "@openchoreo/backstage-plugin-openchoreo-workflows": "workspace:^"
-    "@openchoreo/backstage-plugin-platform-engineer-core": "workspace:^"
-    "@openchoreo/backstage-plugin-react": "workspace:^"
+    "@openchoreo/backstage-portal-app": "workspace:^"
     "@playwright/test": "npm:1.56.0"
-    "@rjsf/core": "npm:5.24.13"
-    "@rjsf/material-ui": "npm:5.24.13"
-    "@rjsf/utils": "npm:5.24.13"
-    "@rjsf/validator-ajv8": "npm:5.24.13"
-    "@tanstack/react-query": "npm:^5.101.2"
     "@testing-library/dom": "npm:9.3.4"
     "@testing-library/jest-dom": "npm:6.9.1"
     "@testing-library/react": "npm:14.3.1"
-    "@testing-library/user-event": "npm:14.6.1"
     "@types/react-dom": "npm:*"
-    clsx: "npm:^2.1.1"
     cross-env: "npm:7.0.3"
-    d3-selection: "npm:^3.0.0"
-    d3-zoom: "npm:^3.0.0"
-    devicons-react: "npm:^1.5.0"
-    json-schema: "npm:0.4.0"
     react: "npm:18.3.1"
     react-dom: "npm:18.3.1"
-    react-router: "npm:6.30.1"
-    react-router-dom: "npm:6.30.1"
-    react-use: "npm:17.6.0"
-    yaml: "npm:^2.8.1"
   languageName: unknown
   linkType: soft
 
@@ -17632,47 +17688,19 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "backend@workspace:packages/backend"
   dependencies:
-    "@backstage-community/plugin-jenkins-backend": "npm:^0.24.1"
     "@backstage/backend-defaults": "npm:^0.17.1"
     "@backstage/backend-plugin-api": "npm:^1.9.1"
     "@backstage/cli": "npm:^0.36.2"
     "@backstage/config": "npm:^1.3.8"
-    "@backstage/plugin-app-backend": "npm:^0.5.14"
-    "@backstage/plugin-auth-backend": "npm:^0.29.0"
-    "@backstage/plugin-auth-backend-module-github-provider": "npm:^0.5.3"
-    "@backstage/plugin-auth-backend-module-guest-provider": "npm:^0.2.19"
     "@backstage/plugin-auth-node": "npm:^0.7.1"
-    "@backstage/plugin-catalog-backend": "npm:^3.7.0"
-    "@backstage/plugin-catalog-backend-module-logs": "npm:^0.1.22"
-    "@backstage/plugin-catalog-backend-module-scaffolder-entity-model": "npm:^0.2.20"
-    "@backstage/plugin-events-backend": "npm:^0.6.2"
     "@backstage/plugin-kubernetes-backend": "npm:^0.21.4"
-    "@backstage/plugin-permission-backend": "npm:^0.7.12"
     "@backstage/plugin-permission-common": "npm:^0.9.9"
     "@backstage/plugin-permission-node": "npm:^0.11.0"
-    "@backstage/plugin-proxy-backend": "npm:^0.6.13"
-    "@backstage/plugin-scaffolder-backend": "npm:^4.0.0"
-    "@backstage/plugin-scaffolder-backend-module-github": "npm:^0.9.9"
-    "@backstage/plugin-search-backend": "npm:^2.1.2"
-    "@backstage/plugin-search-backend-module-catalog": "npm:^0.3.15"
-    "@backstage/plugin-search-backend-module-pg": "npm:^0.5.55"
     "@backstage/plugin-search-backend-module-techdocs": "npm:^0.4.14"
     "@backstage/plugin-search-backend-node": "npm:^1.4.4"
-    "@backstage/plugin-techdocs-backend": "npm:^2.2.0"
-    "@backstage/plugin-user-settings-backend": "npm:^0.4.3"
     "@immobiliarelabs/backstage-plugin-gitlab-backend": "npm:^6.13.0"
-    "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth": "workspace:^"
-    "@openchoreo/backstage-plugin-backend": "workspace:^"
-    "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^"
-    "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users": "workspace:^"
-    "@openchoreo/backstage-plugin-openchoreo-ci-backend": "workspace:^"
-    "@openchoreo/backstage-plugin-openchoreo-observability-backend": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend": "workspace:^"
-    "@openchoreo/backstage-plugin-openchoreo-workflows-backend": "workspace:^"
-    "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy": "workspace:^"
-    "@openchoreo/backstage-plugin-platform-engineer-core-backend": "workspace:^"
-    "@openchoreo/backstage-plugin-scaffolder-backend-module": "workspace:^"
-    "@openchoreo/openchoreo-auth": "workspace:^"
+    "@openchoreo/backstage-portal-backend": "workspace:^"
     "@types/cookie-parser": "npm:1.4.8"
     "@types/express-session": "npm:1.18.2"
     app: "workspace:^"
@@ -32195,12 +32223,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qs@npm:^6.10.1, qs@npm:^6.11.0, qs@npm:^6.11.2, qs@npm:^6.12.2, qs@npm:^6.12.3, qs@npm:^6.14.0, qs@npm:^6.9.4, qs@npm:~6.15.1":
+"qs@npm:^6.10.1, qs@npm:^6.11.0, qs@npm:^6.11.2, qs@npm:^6.12.3, qs@npm:^6.14.0, qs@npm:^6.9.4, qs@npm:~6.15.1":
   version: 6.15.2
   resolution: "qs@npm:6.15.2"
   dependencies:
     side-channel: "npm:^1.1.0"
   checksum: 10c0/e6fd5f6f0aab06d480fe9ab15cebfc4ce4235303e2f91dc69a8f7f4df1e668a61c11d1cfbabacf4295cbbeb7b670ed23db45307480726259761f98e5695e93a7
+  languageName: node
+  linkType: hard
+
+"qs@npm:^6.12.2":
+  version: 6.15.3
+  resolution: "qs@npm:6.15.3"
+  dependencies:
+    es-define-property: "npm:^1.0.1"
+    side-channel: "npm:^1.1.1"
+  checksum: 10c0/8f3f6e45ece255347d57696628401cde29e9ec649fff698b53bd3150dea7cefdf33036e1bc1826b9f110bfa7cb0ec4ab9f5297eca628ce216c55af82c304e08e
   languageName: node
   linkType: hard
 
@@ -34789,6 +34827,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"side-channel-list@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "side-channel-list@npm:1.0.1"
+  dependencies:
+    es-errors: "npm:^1.3.0"
+    object-inspect: "npm:^1.13.4"
+  checksum: 10c0/d346c787fd2f9f1c2fdea14f00e8250118db0e7596d85a6cb9faa75f105d31a73a8f7a341c93d7df2a2429098c3d37a77bd3be9e88c37094b8c01807bc77c7a2
+  languageName: node
+  linkType: hard
+
 "side-channel-map@npm:^1.0.1":
   version: 1.0.1
   resolution: "side-channel-map@npm:1.0.1"
@@ -34824,6 +34872,19 @@ __metadata:
     side-channel-map: "npm:^1.0.1"
     side-channel-weakmap: "npm:^1.0.2"
   checksum: 10c0/cb20dad41eb032e6c24c0982e1e5a24963a28aa6122b4f05b3f3d6bf8ae7fd5474ef382c8f54a6a3ab86e0cac4d41a23bd64ede3970e5bfb50326ba02a7996e6
+  languageName: node
+  linkType: hard
+
+"side-channel@npm:^1.1.1":
+  version: 1.1.1
+  resolution: "side-channel@npm:1.1.1"
+  dependencies:
+    es-errors: "npm:^1.3.0"
+    object-inspect: "npm:^1.13.4"
+    side-channel-list: "npm:^1.0.1"
+    side-channel-map: "npm:^1.0.1"
+    side-channel-weakmap: "npm:^1.0.2"
+  checksum: 10c0/dc0ab81d67f61bda9247d053ce93f41c3fd8ad2bdcb9cf9d8d2f8540d488f26d87a5e99ebfc07eea49ec025867b2452b705442d974b1478f0395e69f6bfb3270
   languageName: node
   linkType: hard
 
