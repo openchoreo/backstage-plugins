@@ -27,7 +27,8 @@
       "@openchoreo/backstage-plugin-openchoreo-workflows-backend",
       "@openchoreo/backstage-plugin-thunder-idp-client-node",
       "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users",
-      "@openchoreo/cell-diagram"
+      "@openchoreo/cell-diagram",
+      "@openchoreo/backstage-portal-backend"
     ]
   ],
   "access": "restricted",
