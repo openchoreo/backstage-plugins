@@ -10351,6 +10351,7 @@ __metadata:
     "@backstage/plugin-user-settings": "npm:^0.9.3"
     "@backstage/test-utils": "npm:^1.7.18"
     "@backstage/theme": "npm:^0.7.3"
+    "@backstage/types": "npm:^1.2.2"
     "@gitbeaker/rest": "npm:^40.6.0"
     "@immobiliarelabs/backstage-plugin-gitlab": "npm:^6.13.0"
     "@material-ui/core": "npm:4.12.4"

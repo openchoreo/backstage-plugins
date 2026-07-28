@@ -8,6 +8,9 @@ export type {
   EntityKindPalette,
 } from './theme/tokens';
 export { useChoreoTokens } from './theme/useChoreoTokens';
+export { resolveBrandTokens } from './theme/brand';
+export type { BrandPaletteOverrides } from './theme/brand';
+export { ChoreoTokensProvider } from './theme/ChoreoTokensProvider';
 export { OpenChoreoIcon } from './icons/OpenChoreoIcon';
 export { StatusBadge } from './components/StatusBadge';
 export type { StatusType } from './components/StatusBadge';
