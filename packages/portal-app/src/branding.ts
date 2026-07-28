@@ -21,16 +21,35 @@ export interface BrandingConfig {
   };
 }
 
+/**
+ * Reads one branding string, treating malformed values as unset. ConfigReader
+ * THROWS (not `undefined`) for present-but-invalid values — notably empty
+ * strings, which pass schema validation — and `readBrandingConfig` runs
+ * during render, so an uncaught throw would white-screen the app.
+ */
+function readOptionalString(
+  config: ConfigApi,
+  key: string,
+): string | undefined {
+  try {
+    return config.getOptionalString(key);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn(`Ignoring invalid branding config: ${error}`);
+    return undefined;
+  }
+}
+
 /** Reads `app.branding.*` from config. Exported for tests and non-hook use. */
 export function readBrandingConfig(config: ConfigApi): BrandingConfig {
   const primary = (mode: 'light' | 'dark') =>
-    config.getOptionalString(`app.branding.theme.${mode}.primaryColor`);
+    readOptionalString(config, `app.branding.theme.${mode}.primaryColor`);
   const light = primary('light');
   const dark = primary('dark');
   return {
-    name: config.getOptionalString('app.branding.name'),
-    iconLogo: config.getOptionalString('app.branding.iconLogo'),
-    fullLogo: config.getOptionalString('app.branding.fullLogo'),
+    name: readOptionalString(config, 'app.branding.name'),
+    iconLogo: readOptionalString(config, 'app.branding.iconLogo'),
+    fullLogo: readOptionalString(config, 'app.branding.fullLogo'),
     ...(light || dark
       ? {
           theme: {

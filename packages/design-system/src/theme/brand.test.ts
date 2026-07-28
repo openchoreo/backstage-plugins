@@ -12,6 +12,36 @@ describe('resolveBrandTokens', () => {
     );
   });
 
+  it('ignores unparseable colors instead of throwing (render safety)', () => {
+    // resolveBrandTokens runs inside the theme provider's render with no
+    // error boundary above it — a config typo must never crash the app.
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      // Named color, #-less hex: decomposeColor rejects these.
+      expect(
+        resolveBrandTokens(lightTokens, { primary: { main: 'teal' } }),
+      ).toBe(lightTokens);
+      expect(
+        resolveBrandTokens(lightTokens, { primary: { main: '0d9488' } }),
+      ).toBe(lightTokens);
+      // CSS4 space-separated syntax: mis-parses to NaN channels.
+      expect(
+        resolveBrandTokens(darkTokens, {
+          primary: { main: 'rgb(13 148 136)' },
+        }),
+      ).toBe(darkTokens);
+      // Valid main but invalid explicit light: whole override ignored.
+      expect(
+        resolveBrandTokens(lightTokens, {
+          primary: { main: '#0d9488', light: 'bogus' },
+        }),
+      ).toBe(lightTokens);
+      expect(warn).toHaveBeenCalledTimes(4);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it('derives the primary scale from main when light/dark are omitted', () => {
     const resolved = resolveBrandTokens(lightTokens, {
       primary: { main: '#0d9488' },

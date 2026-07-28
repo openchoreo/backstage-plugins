@@ -1,5 +1,25 @@
-import { alpha, darken, lighten } from '@material-ui/core/styles';
+import {
+  alpha,
+  darken,
+  decomposeColor,
+  lighten,
+} from '@material-ui/core/styles';
 import { ColorScale, ThemeTokens } from './tokens';
+
+/**
+ * Throws unless `color` is a format MUI's color utilities fully parse.
+ * `decomposeColor` rejects named colors and `#`-less hex outright, but
+ * silently mis-parses CSS4 space-separated syntax (`rgb(13 148 136)` →
+ * one value) — hence the component-count check.
+ */
+function assertParseableColor(color: string) {
+  const { type, values } = decomposeColor(color);
+  if (values.length < 3 || values.some(v => Number.isNaN(v))) {
+    throw new Error(
+      `Unsupported \`${color}\` color: \`${type}\` needs comma-separated components`,
+    );
+  }
+}
 
 /**
  * Brand overrides that can be applied on top of a base token set.
@@ -42,6 +62,18 @@ export function resolveBrandTokens(
 ): ThemeTokens {
   const main = brand?.primary?.main;
   if (!main) {
+    return base;
+  }
+
+  try {
+    assertParseableColor(main);
+    if (brand.primary?.light) assertParseableColor(brand.primary.light);
+    if (brand.primary?.dark) assertParseableColor(brand.primary.dark);
+  } catch (error) {
+    // A branding typo must degrade to the stock look, never crash the app:
+    // this runs inside the theme provider's render, above any error boundary.
+    // eslint-disable-next-line no-console
+    console.warn(`Ignoring brand primary color override: ${error}`);
     return base;
   }
 
