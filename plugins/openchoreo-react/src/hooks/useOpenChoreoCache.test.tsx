@@ -32,24 +32,33 @@ describe('useOpenChoreoCache', () => {
   });
 
   it('fetchQuery serves the cached value within staleTime (dedupes the fetcher)', async () => {
-    const fetcher = jest.fn().mockResolvedValue('v');
-    const { result } = renderHook(() => useOpenChoreoCache(), {
-      wrapper: createQueryClientWrapper(),
-    });
-
-    await act(async () => {
-      await result.current.fetchQuery(['k'], fetcher, { staleTime: 60_000 });
-    });
-    let second: unknown;
-    await act(async () => {
-      second = await result.current.fetchQuery(['k'], fetcher, {
-        staleTime: 60_000,
+    // The wrapper's QueryClient uses gcTime: 0, which evicts the unobserved
+    // entry on a setTimeout(0) once the first fetch settles — so with real
+    // timers the second fetchQuery races the GC timer. Fake timers keep that
+    // timer pending so this asserts the staleTime contract, not scheduling.
+    jest.useFakeTimers();
+    try {
+      const fetcher = jest.fn().mockResolvedValue('v');
+      const { result } = renderHook(() => useOpenChoreoCache(), {
+        wrapper: createQueryClientWrapper(),
       });
-    });
 
-    expect(second).toBe('v');
-    // Within staleTime the fetcher is not called again.
-    expect(fetcher).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        await result.current.fetchQuery(['k'], fetcher, { staleTime: 60_000 });
+      });
+      let second: unknown;
+      await act(async () => {
+        second = await result.current.fetchQuery(['k'], fetcher, {
+          staleTime: 60_000,
+        });
+      });
+
+      expect(second).toBe('v');
+      // Within staleTime the fetcher is not called again.
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('fetchQuery propagates a rejected fetcher and leaves nothing cached', async () => {
