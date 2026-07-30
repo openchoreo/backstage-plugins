@@ -12,6 +12,16 @@ import {
   portalRootHttpRouterServiceFactory,
 } from '@openchoreo/backstage-portal-backend';
 
+// Guest mode: when OpenChoreo auth is explicitly disabled, the portal has no
+// IDP and needs guest sign-in plus an open default auth policy. These feed the
+// ${...} substitutions in app-config.yaml / app-config.production.yaml; any
+// other value (including unset) leaves them undefined so Backstage's secure
+// defaults apply. Explicitly set env vars are never overridden (??=).
+if (process.env.OPENCHOREO_FEATURES_AUTH_ENABLED === 'false') {
+  process.env.BACKSTAGE_DANGEROUSLY_DISABLE_DEFAULT_AUTH_POLICY ??= 'true';
+  process.env.BACKSTAGE_GUEST_DANGEROUSLY_ALLOW_OUTSIDE_DEVELOPMENT ??= 'true';
+}
+
 const backend = createBackend();
 
 // Root HTTP router with the IDP token header middleware — reads the IDP token
