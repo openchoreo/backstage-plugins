@@ -316,6 +316,24 @@ When a feature is disabled:
 - **Overview cards** for the feature are hidden from the Overview tab
 - This approach ensures consistent navigation while clearly communicating feature availability
 
+### Auth Security Flags (derived)
+
+Guest mode requires two Backstage settings that are unsafe outside of demos:
+`backend.auth.dangerouslyDisableDefaultAuthPolicy` (serves the backend API
+without credentials) and `auth.providers.guest.dangerouslyAllowOutsideDevelopment`
+(allows guest sign-in in production builds). They are **not** hardcoded;
+`packages/backend/src/index.ts` derives them from the auth feature flag before
+config loads:
+
+| Environment Variable                                    | Value when `OPENCHOREO_FEATURES_AUTH_ENABLED=false` | Any other case                       |
+| ------------------------------------------------------- | --------------------------------------------------- | ------------------------------------ |
+| `BACKSTAGE_DANGEROUSLY_DISABLE_DEFAULT_AUTH_POLICY`     | `true`                                              | unset — default auth policy enforced |
+| `BACKSTAGE_GUEST_DANGEROUSLY_ALLOW_OUTSIDE_DEVELOPMENT` | `true`                                              | unset — guest sign-in refused (403)  |
+
+Setting either variable explicitly overrides the derived value (fail-secure:
+when in doubt, leave both unset). With auth enabled, anonymous API requests
+receive `401` and guest sign-in `403`.
+
 ## External CI Platform Integration
 
 OpenChoreo includes built-in support for viewing CI build status from external platforms directly in Backstage.
