@@ -32,6 +32,7 @@ import BubbleChartIcon from '@material-ui/icons/BubbleChart';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import SettingsIcon from '@material-ui/icons/Settings';
+import { getRelativeTime } from './relativeTime';
 
 const NUM_VISITS_OPEN = 3;
 const NUM_VISITS_TOTAL = 8;
@@ -113,20 +114,6 @@ const useStyles = makeStyles(theme => ({
 function getChipLabel(kind: string | undefined): string {
   if (!kind) return 'other';
   return (KIND_FULL_LABELS[kind.toLowerCase()] ?? kind).toLowerCase();
-}
-
-function getRelativeTime(timestamp: number): string {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return 'just now';
-
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-
-  const days = Math.floor(hours / 24);
-  return `${days} day${days !== 1 ? 's' : ''} ago`;
 }
 
 function resolveVisit(
