@@ -334,7 +334,6 @@ Setting either variable explicitly overrides the derived value (fail-secure:
 when in doubt, leave both unset). With auth enabled, anonymous API requests
 receive `401` and guest sign-in `403`.
 
-
 ## External CI Platform Integration
 
 OpenChoreo includes built-in support for viewing CI build status from external platforms directly in Backstage.
