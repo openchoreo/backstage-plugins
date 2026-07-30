@@ -111,14 +111,14 @@ export function getEntityDeleteCascadeNote(kind: string): ReactNode {
   const kindLower = kind.toLowerCase();
   if (kindLower === 'system') {
     return (
-      <Typography variant="h5">
+      <Typography variant="body2" color="error">
         Note: All components within this project will also be deleted.
       </Typography>
     );
   }
   if (kindLower === 'domain') {
     return (
-      <Typography variant="h5">
+      <Typography variant="body2" color="error">
         Note: All projects and components within this namespace will also be
         deleted.
       </Typography>
