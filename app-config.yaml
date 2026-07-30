@@ -33,7 +33,10 @@ backend:
   #   keys:
   #     - secret: ${BACKEND_SECRET}
   auth:
-    dangerouslyDisableDefaultAuthPolicy: true # TODO: Remove this when added auth properly
+    # Guest mode only: derived from OPENCHOREO_FEATURES_AUTH_ENABLED=false by
+    # packages/backend/src/index.ts. Unset leaves the key out entirely, so the
+    # default auth policy stays enforced whenever auth is enabled.
+    dangerouslyDisableDefaultAuthPolicy: ${BACKSTAGE_DANGEROUSLY_DISABLE_DEFAULT_AUTH_POLICY}
   # Environment variable is injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
   # For local k3d: http://openchoreo.localhost (set via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml)
   # For production: external ingress URL (set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.baseUrl)
@@ -142,8 +145,13 @@ auth:
 
     # Guest provider - used when openchoreo.features.auth.enabled is false
     # Allows users to access the portal without authentication (demo/development mode)
+    # The guest key itself must stay present even when auth is enabled — the
+    # guest module reads it at startup. The dangerous flag below is derived from
+    # OPENCHOREO_FEATURES_AUTH_ENABLED=false by packages/backend/src/index.ts;
+    # unset drops the key, so guest sign-in is refused outside development.
+    # (In local dev, NODE_ENV=development allows guest sign-in regardless.)
     guest:
-      dangerouslyAllowOutsideDevelopment: true
+      dangerouslyAllowOutsideDevelopment: ${BACKSTAGE_GUEST_DANGEROUSLY_ALLOW_OUTSIDE_DEVELOPMENT}
 
 scaffolder:
   # see https://backstage.io/docs/features/software-templates/configuration for software template options
