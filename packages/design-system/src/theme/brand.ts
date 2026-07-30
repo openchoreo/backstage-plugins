@@ -2,14 +2,15 @@ import {
   alpha,
   darken,
   decomposeColor,
+  getContrastRatio,
   lighten,
 } from '@material-ui/core/styles';
 import { ColorScale, ThemeTokens } from './tokens';
 
 /**
- * Throws unless `color` is a format MUI's color utilities fully parse.
- * `decomposeColor` rejects named colors and `#`-less hex outright, but
- * silently mis-parses CSS4 space-separated syntax (`rgb(13 148 136)` →
+ * Throws unless `color` is an opaque format MUI's color utilities fully
+ * parse. `decomposeColor` rejects named colors and `#`-less hex outright,
+ * but silently mis-parses CSS4 space-separated syntax (`rgb(13 148 136)` →
  * one value) — hence the component-count check.
  */
 function assertParseableColor(color: string) {
@@ -18,6 +19,12 @@ function assertParseableColor(color: string) {
     throw new Error(
       `Unsupported \`${color}\` color: \`${type}\` needs comma-separated components`,
     );
+  }
+  // MUI's luminance/lighten math ignores alpha, so a translucent brand color
+  // would composite against arbitrary surfaces at render time while the
+  // contrast check below silently treats it as opaque.
+  if (values.length === 4 && values[3] < 1) {
+    throw new Error(`Unsupported \`${color}\` color: must be fully opaque`);
   }
 }
 
@@ -55,6 +62,13 @@ export interface BrandPaletteOverrides {
  * `indigo` ramp; deriving a dark ramp from an arbitrary hue is guesswork),
  * the `indigo` ramp itself, `entityKind` accents, `statusBackground.info`
  * tint, and `secondary` (it is the neutral text ramp, not a brand accent).
+ *
+ * Accessibility: the accent is applied verbatim, never auto-adjusted, but
+ * two checks warn (never gate — the operator owns the final palette): `main`
+ * below WCAG AA 4.5:1 against the mode's page background, and — light mode
+ * only — a header gradient stop below 3:1 (AA large text) under white header
+ * text. Translucent colors (alpha < 1) are rejected like unparseable ones:
+ * MUI's contrast math ignores alpha, so their ratios would be fiction.
  */
 export function resolveBrandTokens(
   base: ThemeTokens,
@@ -78,6 +92,36 @@ export function resolveBrandTokens(
   }
 
   const isDark = base.mode === 'dark';
+
+  // The accent renders as link text on the page background and as the fill
+  // under white header/button text — the same ratio governs both directions.
+  const contrast = getContrastRatio(main, base.surface.default);
+  if (contrast < 4.5) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `Brand primary color "${main}" has ${contrast.toFixed(2)}:1 contrast ` +
+        `against the ${base.mode} background (WCAG AA text needs 4.5:1); ` +
+        `links and header text may be hard to read — consider a ` +
+        `${isDark ? 'lighter' : 'darker'} shade.`,
+    );
+  }
+
+  // Light mode paints white header text over a gradient fading toward
+  // `lighten(main, 0.25)`; the fade end is the worst case, so check it at
+  // WCAG AA for large text (3:1 — header titles render large; the stock
+  // ramp's own stop sits at 3.16:1, which calibrates the threshold).
+  if (!isDark) {
+    const headerContrast = getContrastRatio('#ffffff', lighten(main, 0.25));
+    if (headerContrast < 3) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Brand primary color "${main}" fades to a header gradient stop with ` +
+          `${headerContrast.toFixed(2)}:1 contrast under white header text ` +
+          `(WCAG AA large text needs 3:1) — consider a darker shade.`,
+      );
+    }
+  }
+
   // Light mode's `primary.light` is a near-white tint (chip/selection
   // backgrounds); dark mode's is only slightly lighter than `main` (link
   // hover, selected labels) — hence the mode-dependent coefficient.
