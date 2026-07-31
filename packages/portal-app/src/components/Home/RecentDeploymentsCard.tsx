@@ -4,6 +4,7 @@ import { useApi } from '@backstage/core-plugin-api';
 import { InfoCard } from '@backstage/core-components';
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { catalogApiRef, EntityRefLink } from '@backstage/plugin-catalog-react';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '@openchoreo/backstage-plugin';
 import { getNodeColor } from '@openchoreo/backstage-plugin-react';
 import { useChoreoTokens } from '@openchoreo/backstage-design-system';
@@ -229,11 +230,29 @@ export const RecentDeploymentsCard = () => {
     loading,
     error,
   } = useAsync(async () => {
-    const { items } = await catalogApi.getEntities({
+    // Bounded, deterministic fetch: newest components first. The catalog has
+    // no "last deployed" field, so created-at is the best server-side proxy
+    // for which components are worth the environment-info fan-out; true
+    // recency ordering would need a backend endpoint listing recent releases.
+    const { items: components } = await catalogApi.queryEntities({
       filter: { kind: 'Component' },
+      limit: MAX_COMPONENTS,
+      orderFields: [
+        {
+          field: `metadata.annotations.${CHOREO_ANNOTATIONS.CREATED_AT}`,
+          order: 'desc',
+        },
+      ],
+      fields: [
+        'kind',
+        'metadata.name',
+        'metadata.namespace',
+        'metadata.title',
+        'metadata.annotations',
+        'spec.type',
+      ],
     });
 
-    const components = items.slice(0, MAX_COMPONENTS);
     const results = await Promise.allSettled(
       components.map(async (entity): Promise<DeploymentRow | null> => {
         const environments = (await client.fetchEnvironmentInfo(
