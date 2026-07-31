@@ -7,10 +7,7 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
-import {
-  portalBackendFeatures,
-  portalRootHttpRouterServiceFactory,
-} from '@openchoreo/backstage-portal-backend';
+import { portalBackendFeatures } from '@openchoreo/backstage-portal-backend';
 
 // Guest mode: when OpenChoreo auth is explicitly disabled, the portal has no
 // IDP and needs guest sign-in plus an open default auth policy. These feed the
@@ -24,13 +21,8 @@ if (process.env.OPENCHOREO_FEATURES_AUTH_ENABLED === 'false') {
 
 const backend = createBackend();
 
-// Root HTTP router with the IDP token header middleware — reads the IDP token
-// from headers and makes it available to ALL routes via AsyncLocalStorage,
-// which is critical for the permission system to access the user's IDP token
-// when making authorization decisions.
-backend.add(portalRootHttpRouterServiceFactory);
-
-// The full portal backend composition: Backstage core plugins, the Jenkins CI
+// The full portal backend composition: the root HTTP router with the IDP
+// token header middleware, Backstage core plugins, the Jenkins CI
 // integration, and all OpenChoreo backend plugins, modules, and service
 // factories.
 backend.add(portalBackendFeatures);

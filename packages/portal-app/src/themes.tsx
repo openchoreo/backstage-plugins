@@ -1,14 +1,18 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import type { AppTheme } from '@backstage/core-plugin-api';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import {
+  buildOpenChoreoTheme,
+  ChoreoTokensProvider,
   darkTokens,
   lightTokens,
   OpenChoreoIcon,
   openChoreoDarkTheme,
   openChoreoTheme,
+  resolveBrandTokens,
   type ThemeTokens,
 } from '@openchoreo/backstage-design-system';
+import { toBrandOverrides, useBranding } from './branding';
 
 // Backstage v1.51's `UnifiedThemeProvider` already sets `data-theme-mode` on
 // `<body>` so `@backstage/ui` (BUI) flips to its dark variant — but BUI's
@@ -26,16 +30,19 @@ import {
 // previous pre-migration look (page surround = `#f8f8f8`, cards = white).
 // Forcing our `surface.default` (`#ffffff`) here would flatten the page
 // against the cards.
+//
+// Takes the ACTIVE token set (not a mode) so `app.branding.*` primary-color
+// overrides reach BUI's solid-button variables too.
 function BuiThemeBridge({
-  mode,
+  tokens,
   children,
 }: {
-  mode: 'light' | 'dark';
+  tokens: ThemeTokens;
   children?: ReactNode;
 }) {
   useEffect(() => {
     const body = document.body;
-    const t: ThemeTokens = mode === 'dark' ? darkTokens : lightTokens;
+    const t = tokens;
     // Align BUI primary buttons (e.g. Scaffolder Review) with our MUI
     // `containedPrimary` fill (used by Scaffolder Create). Applied in both
     // modes so the two button systems read as one.
@@ -49,7 +56,7 @@ function BuiThemeBridge({
     // (`#f8f8f8` page surround etc.) already match the pre-migration look,
     // and forcing `surface.default` (`#ffffff`) in light flattens the page.
     const surfaceOverrides: Record<string, string> =
-      mode === 'dark'
+      t.mode === 'dark'
         ? {
             '--bui-bg-app': t.surface.default,
             '--bui-bg-surface-1': t.surface.paper,
@@ -70,8 +77,45 @@ function BuiThemeBridge({
         else body.style.removeProperty(name);
       }
     };
-  }, [mode]);
+  }, [tokens]);
   return <>{children}</>;
+}
+
+/**
+ * Theme provider honoring `app.branding.*` (see `config.d.ts`): when a brand
+ * primary color is configured for the active mode, the theme is rebuilt from
+ * brand-resolved tokens; otherwise the prebuilt stock theme singletons are
+ * reused, keeping the default render byte-identical to the unbranded portal.
+ * The resolved tokens also flow to `useChoreoTokens` consumers (via
+ * `ChoreoTokensProvider`) and to the BUI CSS-variable bridge.
+ */
+function BrandedThemeProvider({
+  mode,
+  children,
+}: {
+  mode: 'light' | 'dark';
+  children?: ReactNode;
+}) {
+  const branding = useBranding();
+  const { theme, tokens } = useMemo(() => {
+    const base = mode === 'dark' ? darkTokens : lightTokens;
+    const resolved = resolveBrandTokens(base, toBrandOverrides(branding, mode));
+    if (resolved === base) {
+      return {
+        theme: mode === 'dark' ? openChoreoDarkTheme : openChoreoTheme,
+        tokens: base,
+      };
+    }
+    return { theme: buildOpenChoreoTheme(resolved), tokens: resolved };
+  }, [mode, branding]);
+
+  return (
+    <UnifiedThemeProvider theme={theme}>
+      <ChoreoTokensProvider tokens={tokens}>
+        <BuiThemeBridge tokens={tokens}>{children}</BuiThemeBridge>
+      </ChoreoTokensProvider>
+    </UnifiedThemeProvider>
+  );
 }
 
 /**
@@ -91,9 +135,7 @@ export const appThemes: AppTheme[] = [
     variant: 'dark',
     icon: <OpenChoreoIcon />,
     Provider: ({ children }) => (
-      <UnifiedThemeProvider theme={openChoreoDarkTheme}>
-        <BuiThemeBridge mode="dark">{children}</BuiThemeBridge>
-      </UnifiedThemeProvider>
+      <BrandedThemeProvider mode="dark">{children}</BrandedThemeProvider>
     ),
   },
   {
@@ -102,9 +144,7 @@ export const appThemes: AppTheme[] = [
     variant: 'light',
     icon: <OpenChoreoIcon />,
     Provider: ({ children }) => (
-      <UnifiedThemeProvider theme={openChoreoTheme}>
-        <BuiThemeBridge mode="light">{children}</BuiThemeBridge>
-      </UnifiedThemeProvider>
+      <BrandedThemeProvider mode="light">{children}</BrandedThemeProvider>
     ),
   },
 ];

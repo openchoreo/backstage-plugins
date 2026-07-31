@@ -16,3 +16,5 @@
 
 export { createPortalApp } from './createPortalApp';
 export type { PortalAppOptions } from './createPortalApp';
+export { brandName, useBranding, DEFAULT_BRAND_NAME } from './branding';
+export type { BrandingConfig } from './branding';

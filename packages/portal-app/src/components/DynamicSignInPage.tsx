@@ -2,6 +2,7 @@ import { SignInPage } from '@backstage/core-components';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import type { SignInPageProps } from '@backstage/plugin-app-react';
 import { openChoreoAuthApiRef } from '../apis/authRefs';
+import { brandName, useBranding } from '../branding';
 
 /**
  * Dynamic SignInPage that switches between OpenChoreo OIDC and guest mode
@@ -18,6 +19,7 @@ import { openChoreoAuthApiRef } from '../apis/authRefs';
  */
 export function DynamicSignInPage(props: SignInPageProps) {
   const configApi = useApi(configApiRef);
+  const branding = useBranding();
   const authEnabled =
     configApi.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
 
@@ -25,13 +27,14 @@ export function DynamicSignInPage(props: SignInPageProps) {
     return <SignInPage {...props} auto providers={['guest']} />;
   }
 
+  const name = brandName(branding);
   return (
     <SignInPage
       {...props}
       provider={{
         id: 'openchoreo-auth',
-        title: 'OpenChoreo',
-        message: 'Sign in using OpenChoreo',
+        title: name,
+        message: `Sign in using ${name}`,
         apiRef: openChoreoAuthApiRef,
       }}
     />

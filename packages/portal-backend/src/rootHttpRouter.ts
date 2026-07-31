@@ -10,6 +10,10 @@ import { createIdpTokenHeaderMiddleware } from '@openchoreo/openchoreo-auth';
  * in the permission policy and elsewhere. It must wrap ALL route handlers,
  * which is why it is registered on the root HTTP router before applyDefaults().
  *
+ * Included in {@link portalBackendFeatures}; exported separately for hosts
+ * that compose their own backend from `portalServiceFactories` and
+ * `portalFeatureLoaders`.
+ *
  * @public
  */
 export const portalRootHttpRouterServiceFactory = rootHttpRouterServiceFactory({

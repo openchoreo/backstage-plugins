@@ -4,6 +4,7 @@ import {
   immediateCatalogServiceFactory,
   annotationStoreFactory,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
+import { portalRootHttpRouterServiceFactory } from './rootHttpRouter';
 
 /**
  * OpenChoreo service factories, registered ahead of every plugin: the catalog
@@ -97,19 +98,24 @@ export const portalFeatureLoaders = [
  * Bundles every backend plugin, module, and service factory the stock portal
  * runs — Backstage core plugins (app, auth, catalog, scaffolder, search,
  * techdocs, permission, events, proxy, user-settings), the Jenkins CI
- * integration, and all OpenChoreo backend plugins and modules. Add it to a
- * backend with a single `backend.add(portalBackendFeatures)`; additional
- * features can still be added alongside it with further `backend.add(...)`
- * calls.
+ * integration, and all OpenChoreo backend plugins and modules — plus
+ * {@link portalRootHttpRouterServiceFactory}, whose IDP-token middleware the
+ * bundled OpenChoreo permission policy depends on (without it, authorization
+ * silently fails closed). Add it to a backend with a single
+ * `backend.add(portalBackendFeatures)`; additional features can still be
+ * added alongside it with further `backend.add(...)` calls.
  *
- * Note: the portal's root HTTP router middleware is intentionally NOT part of
- * this bundle — add {@link portalRootHttpRouterServiceFactory} separately so
- * hosts can substitute their own root router configuration.
+ * To substitute your own root HTTP router configuration, do NOT use this
+ * bundle (adding a second root-router factory fails startup with a duplicate
+ * service error) — compose your backend from {@link portalServiceFactories}
+ * and {@link portalFeatureLoaders} instead, and make sure your router still
+ * applies `createIdpTokenHeaderMiddleware` from `@openchoreo/openchoreo-auth`.
  *
  * @public
  */
 export const portalBackendFeatures = createBackendFeatureLoader({
   *loader() {
+    yield portalRootHttpRouterServiceFactory;
     yield* portalServiceFactories;
 
     for (const load of portalFeatureLoaders) {

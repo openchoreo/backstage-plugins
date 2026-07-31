@@ -23,7 +23,8 @@
     "@backstage/ui": "^0.15.0",
     "@openchoreo/backstage-portal-app": "workspace:^",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.30.1"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
