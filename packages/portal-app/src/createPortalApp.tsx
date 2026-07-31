@@ -1,4 +1,5 @@
 import { Route } from 'react-router-dom';
+import Grid from '@material-ui/core/Grid';
 import { catalogPlugin } from '@backstage/plugin-catalog';
 import { catalogImportPlugin } from '@backstage/plugin-catalog-import';
 import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
@@ -70,13 +71,16 @@ import { appThemes } from './themes';
 import { LEGACY_KIND_ICONS } from './kindIcons';
 import {
   AccessControlContent,
+  PlatformAboutCard,
   SecretsContent,
   ExecTerminalWindowPage,
 } from '@openchoreo/backstage-plugin';
 import {
   UserSettingsPage,
   SettingsLayout,
-  UserSettingsGeneral,
+  UserSettingsProfileCard,
+  UserSettingsAppearanceCard,
+  UserSettingsIdentityCard,
 } from '@backstage/plugin-user-settings';
 import { VisitListener } from '@backstage/plugin-home';
 
@@ -131,7 +135,22 @@ const routes = (
     <Route path="/settings" element={<UserSettingsPage />}>
       <SettingsLayout>
         <SettingsLayout.Route path="general" title="General">
-          <UserSettingsGeneral />
+          {/* The stock <UserSettingsGeneral /> grid, recomposed to append the
+              OpenChoreo platform version card (openchoreo/openchoreo#4344). */}
+          <Grid container direction="row" spacing={3}>
+            <Grid item xs={12} md={6}>
+              <UserSettingsProfileCard />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <UserSettingsAppearanceCard />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <UserSettingsIdentityCard />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <PlatformAboutCard />
+            </Grid>
+          </Grid>
         </SettingsLayout.Route>
         <SettingsLayout.Route path="access-control" title="Access Control">
           <AccessControlContent />

@@ -19,3 +19,4 @@ export {
   type AsyncState,
 } from '@openchoreo/backstage-plugin-react';
 export { useQueryParams } from './useQueryParams';
+export { usePlatformVersion } from './usePlatformVersion';

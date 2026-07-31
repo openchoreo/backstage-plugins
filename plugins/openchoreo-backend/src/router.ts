@@ -33,6 +33,7 @@ import {
 } from './services/ProjectReleaseService/ProjectReleaseInfoService';
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { WirelogsInfoService } from './services/WirelogsService/WirelogsInfoService';
+import { VersionService } from './services/VersionService/VersionService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
 import { ClusterDataPlaneInfoService } from './services/ClusterDataPlaneService/ClusterDataPlaneInfoService';
@@ -108,6 +109,7 @@ export async function createRouter({
   clusterDataPlaneInfoService,
   platformResourceService,
   wirelogsInfoService,
+  versionService,
   annotationStore,
   catalogService,
   auth,
@@ -137,6 +139,7 @@ export async function createRouter({
   clusterDataPlaneInfoService: ClusterDataPlaneInfoService;
   platformResourceService: PlatformResourceService;
   wirelogsInfoService: WirelogsInfoService;
+  versionService: VersionService;
   annotationStore: AnnotationStore;
   catalogService: CatalogService;
   auth: AuthService;
@@ -155,6 +158,12 @@ export async function createRouter({
   // Middleware to require authentication for mutating operations
   // When auth is enabled, POST/PUT/PATCH/DELETE operations require a valid user token
   const requireAuth = createRequireAuthMiddleware(tokenService, authEnabled);
+
+  // Deployed OpenChoreo platform version — upstream endpoint is public
+  // (`security: []`), so no auth middleware here.
+  router.get('/platform-version', async (_req, res) => {
+    res.json(await versionService.fetchPlatformVersion());
+  });
 
   router.get('/deploy', async (req, res) => {
     const { componentName, projectName, namespaceName } = req.query;

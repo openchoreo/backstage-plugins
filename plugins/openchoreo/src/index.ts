@@ -26,6 +26,7 @@ export {
 } from './plugin';
 export { AccessControlContent } from './components/AccessControl';
 export { SecretsContent } from './components/Secrets';
+export { PlatformAboutCard } from './components/About';
 export * from './components/HomePage/MyProjectsWidget';
 export * from './components/HomePage/QuickActionsSection';
 export { ProjectContentsCard } from './components/Projects/ProjectContentsCard';

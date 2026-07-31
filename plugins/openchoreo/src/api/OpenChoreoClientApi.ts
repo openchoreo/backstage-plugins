@@ -543,6 +543,17 @@ export interface ComponentSummary {
   displayName?: string;
 }
 
+/** Deployed OpenChoreo platform version info (from the API server's /version) */
+export interface PlatformVersion {
+  name: string;
+  version: string;
+  gitRevision: string;
+  buildTime: string;
+  goOS: string;
+  goArch: string;
+  goVersion: string;
+}
+
 /** Component trait response */
 export interface ComponentTrait {
   kind?: 'Trait' | 'ClusterTrait';
@@ -1020,6 +1031,11 @@ export interface OpenChoreoClientApi {
 
   /** List all user types */
   listUserTypes(): Promise<UserTypeConfig[]>;
+
+  // === Platform Operations ===
+
+  /** Fetch the deployed OpenChoreo platform version */
+  getPlatformVersion(): Promise<PlatformVersion>;
 
   // === Hierarchy Data Operations ===
 
