@@ -15,11 +15,21 @@ export interface UrlTimeRange {
 /**
  * Parse `timeRange` + `from`/`to` query params with validation.
  * If `timeRange === 'custom'` but `from`/`to` are missing or unparseable,
- * falls back to the default preset.
+ * falls back to `defaultTimeRange`.
+ *
+ * `defaultTimeRange` lets a view pick its own landing window — e.g. Cost
+ * Insights defaults to a day-scale window because OpenCost cost allocation is
+ * day-grained and a sub-hour window yields an empty accumulation.
  */
-export function parseUrlTimeRange(searchParams: URLSearchParams): UrlTimeRange {
-  const raw = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
-  let timeRange = VALID_TIME_RANGES.has(raw) ? raw : DEFAULT_TIME_RANGE;
+export function parseUrlTimeRange(
+  searchParams: URLSearchParams,
+  defaultTimeRange: string = DEFAULT_TIME_RANGE,
+): UrlTimeRange {
+  const fallback = VALID_TIME_RANGES.has(defaultTimeRange)
+    ? defaultTimeRange
+    : DEFAULT_TIME_RANGE;
+  const raw = searchParams.get('timeRange') || fallback;
+  let timeRange = VALID_TIME_RANGES.has(raw) ? raw : fallback;
   let customStartTime: string | undefined;
   let customEndTime: string | undefined;
   if (timeRange === 'custom') {
@@ -29,7 +39,7 @@ export function parseUrlTimeRange(searchParams: URLSearchParams): UrlTimeRange {
       customStartTime = from;
       customEndTime = to;
     } else {
-      timeRange = DEFAULT_TIME_RANGE;
+      timeRange = fallback;
     }
   }
   return { timeRange, customStartTime, customEndTime };
@@ -37,15 +47,17 @@ export function parseUrlTimeRange(searchParams: URLSearchParams): UrlTimeRange {
 
 /**
  * Apply a partial time-range update to a URLSearchParams instance in place.
- * Switching away from `custom` clears stale `from`/`to`. Default preset is
- * elided from the URL so it stays clean.
+ * Switching away from `custom` clears stale `from`/`to`. The `defaultTimeRange`
+ * preset is elided from the URL so it stays clean — pass the same value the
+ * view gives {@link parseUrlTimeRange} so the two stay in sync.
  */
 export function writeUrlTimeRange(
   params: URLSearchParams,
   next: Partial<UrlTimeRange>,
+  defaultTimeRange: string = DEFAULT_TIME_RANGE,
 ): void {
   if (next.timeRange !== undefined) {
-    if (next.timeRange === DEFAULT_TIME_RANGE) {
+    if (next.timeRange === defaultTimeRange) {
       params.delete('timeRange');
     } else {
       params.set('timeRange', next.timeRange);
