@@ -149,7 +149,10 @@ export class ObservabilityUrlResolver {
     namespaceName: string,
     token?: string,
   ): Promise<ObservabilityUrlsResult> {
-    const cacheKey = `ns:${namespaceName}`;
+    // Partitioned by token: the result depends on which environments the
+    // caller can list in this namespace (see below), so callers with
+    // different access must not share a cache entry.
+    const cacheKey = `ns:${namespaceName}:${token ?? ''}`;
     const cached = this.getFromCache(cacheKey);
     if (cached) return cached;
 
