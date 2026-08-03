@@ -23,6 +23,14 @@ jest.mock('./ResourceDetailTabs', () => ({
   ),
 }));
 
+jest.mock('./ReleaseDetailTabs', () => ({
+  ReleaseDetailTabs: ({ node }: { node: { kind: string; name: string } }) => (
+    <div data-testid="release-detail-tabs">
+      {node.kind}/{node.name}
+    </div>
+  ),
+}));
+
 jest.mock('./ResourceKindIcon', () => ({
   ResourceKindIcon: ({ kind }: { kind: string }) => (
     <span data-testid="kind-icon">{kind}</span>
@@ -145,24 +153,24 @@ describe('ResourceDetailPanel', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('renders release name and target plane for RenderedRelease node', () => {
+    it('renders ReleaseDetailTabs for RenderedRelease node', () => {
       const node = makeLayoutNode({
         kind: 'RenderedRelease',
         name: 'my-release',
-        version: 'dataplane-1',
+        group: 'openchoreo.dev',
+        version: 'v1alpha1',
+        targetPlane: 'dataplane-1',
         isRoot: false,
       });
 
       render(<ResourceDetailPanel {...defaultProps} node={node} />);
 
-      expect(screen.getByText('Release Name')).toBeInTheDocument();
-      // "my-release" appears in header and body
-      expect(screen.getAllByText('my-release')).toHaveLength(2);
-      expect(screen.getByText('Target Plane')).toBeInTheDocument();
-      // "dataplane-1" appears in metadata chip (version) and in body text
-      expect(screen.getAllByText('dataplane-1').length).toBeGreaterThanOrEqual(
-        1,
+      expect(screen.getByTestId('release-detail-tabs')).toHaveTextContent(
+        'RenderedRelease/my-release',
       );
+      expect(
+        screen.queryByTestId('resource-detail-tabs'),
+      ).not.toBeInTheDocument();
     });
 
     it('renders ResourceDetailTabs for regular resource nodes', () => {
@@ -202,8 +210,9 @@ describe('ResourceDetailPanel', () => {
 
       render(<ResourceDetailPanel {...defaultProps} node={node} />);
 
-      expect(screen.queryByText('Release Name')).not.toBeInTheDocument();
-      expect(screen.queryByText('Target Plane')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('release-detail-tabs'),
+      ).not.toBeInTheDocument();
     });
   });
 });

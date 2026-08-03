@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Box, IconButton, Tooltip, Typography } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import TimelineIcon from '@material-ui/icons/Timeline';
 import EditIcon from '@material-ui/icons/Edit';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, Skeleton } from '@openchoreo/backstage-design-system';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useDeploymentPipeline } from '../hooks';

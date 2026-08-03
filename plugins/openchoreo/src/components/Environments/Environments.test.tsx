@@ -114,6 +114,7 @@ describe('Environments', () => {
     mockUseEnvironmentData.mockReturnValue({
       environments: [],
       loading: true,
+      isRefetching: false,
       isForbidden: false,
       refetch: mockRefetch,
     });
@@ -138,6 +139,7 @@ describe('Environments', () => {
         },
       ],
       loading: false,
+      isRefetching: false,
       isForbidden: false,
       refetch: mockRefetch,
     });

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 
 /**
  * Fetches the ttlAfterCompletion from the Workflow or ClusterWorkflow catalog entity.
@@ -11,47 +11,25 @@ export function useWorkflowRetention(
   namespace?: string,
 ): string | undefined {
   const catalogApi = useApi(catalogApiRef);
-  const [ttl, setTtl] = useState<string | undefined>();
 
-  useEffect(() => {
-    if (!workflowName || !workflowKind) {
-      setTtl(undefined);
-      return undefined;
-    }
+  const entityNamespace =
+    workflowKind === 'ClusterWorkflow' ? 'openchoreo-cluster' : namespace;
 
-    let ignore = false;
+  const enabled = !!workflowName && !!workflowKind && !!entityNamespace;
 
-    const fetchTtl = async () => {
-      try {
-        const entityNamespace =
-          workflowKind === 'ClusterWorkflow' ? 'openchoreo-cluster' : namespace;
+  const { data } = useOpenChoreoQuery<string | undefined>(
+    ['workflow-retention', workflowKind, entityNamespace, workflowName],
+    async () => {
+      const entity = await catalogApi.getEntityByRef(
+        `${workflowKind!.toLowerCase()}:${entityNamespace}/${workflowName}`,
+      );
+      const spec = entity?.spec as Record<string, unknown> | undefined;
+      return (spec?.ttlAfterCompletion as string) ?? undefined;
+    },
+    { enabled },
+  );
 
-        if (!entityNamespace) {
-          if (!ignore) setTtl(undefined);
-          return;
-        }
-
-        const entity = await catalogApi.getEntityByRef(
-          `${workflowKind.toLowerCase()}:${entityNamespace}/${workflowName}`,
-        );
-
-        if (!ignore) {
-          const spec = entity?.spec as Record<string, unknown> | undefined;
-          setTtl((spec?.ttlAfterCompletion as string) ?? undefined);
-        }
-      } catch {
-        if (!ignore) setTtl(undefined);
-      }
-    };
-
-    fetchTtl();
-
-    return () => {
-      ignore = true;
-    };
-  }, [catalogApi, workflowName, workflowKind, namespace]);
-
-  return ttl;
+  return data ?? undefined;
 }
 
 /**

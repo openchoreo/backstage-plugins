@@ -167,7 +167,7 @@ describe('ObservabilityMetricsPage', () => {
 
     await renderPage();
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('shows forbidden state when user lacks permission', async () => {
@@ -225,7 +225,7 @@ describe('ObservabilityMetricsPage', () => {
 
     await renderPage();
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('shows metrics error with Retry button', async () => {
@@ -271,7 +271,10 @@ describe('ObservabilityMetricsPage', () => {
   it('refetches both resource and HTTP metrics when refresh is clicked', async () => {
     const user = userEvent.setup();
     const resourceRefresh = jest.fn();
-    const httpFetchMetrics = jest.fn();
+    // Both sections now refetch via `refresh()` (the query keys on the filters,
+    // so a manual refresh re-runs the current key) — the HTTP section watches
+    // the parent's `refreshNonce` bump and calls its own `refresh`.
+    const httpRefresh = jest.fn();
 
     mockUseMetrics.mockImplementation(
       (
@@ -298,8 +301,8 @@ describe('ObservabilityMetricsPage', () => {
             },
             loading: false,
             error: null,
-            fetchMetrics: httpFetchMetrics,
-            refresh: jest.fn(),
+            fetchMetrics: jest.fn(),
+            refresh: httpRefresh,
           };
         }
         return {
@@ -321,12 +324,13 @@ describe('ObservabilityMetricsPage', () => {
 
     await renderPage();
 
-    httpFetchMetrics.mockClear();
+    resourceRefresh.mockClear();
+    httpRefresh.mockClear();
 
     await user.click(screen.getByTestId('refresh-btn'));
 
     expect(resourceRefresh).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(httpFetchMetrics).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(httpRefresh).toHaveBeenCalledTimes(1));
   });
 
   it('renders nothing for namespace error', async () => {

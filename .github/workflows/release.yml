@@ -78,12 +78,18 @@ jobs:
         run: yarn build:all
 
       - name: Publish to GitHub Packages
+        # Dist-tag scheme: `latest` only for the highest stable version,
+        # `next` for prereleases, `release-X.Y` for back-line patches so a
+        # re-release of an older line never steals `latest` from a newer one.
         env:
           YARN_NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG=latest
           if [ "${IS_PRERELEASE}" = "true" ]; then
             TAG=next
+          elif [ "${LATEST}" != "true" ]; then
+            VERSION=${RELEASE_TAG#v}
+            TAG="release-${VERSION%.*}"
           fi
           yarn workspaces foreach --all --no-private --topological --verbose \
             npm publish --tolerate-republish --access public --tag "${TAG}"

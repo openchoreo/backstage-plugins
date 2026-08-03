@@ -25,6 +25,9 @@ jest.mock('@backstage/core-components', () => ({
 }));
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
+  // Use the real design-system exports (so the real Skeleton renders); only
+  // stub StatusBadge to keep the label-assertions below simple.
+  ...jest.requireActual('@openchoreo/backstage-design-system'),
   StatusBadge: ({ label }: any) => (
     <span data-testid="status-badge">{label}</span>
   ),
@@ -54,8 +57,9 @@ function renderTable(reports: FinOpsReportSummary[], loading = false) {
 
 describe('CostAnalysisTable', () => {
   it('shows loading state', () => {
+    // Loading renders skeleton placeholder cells, not the isLoading overlay.
     renderTable([], true);
-    expect(screen.getByTestId('loading')).toBeInTheDocument();
+    expect(screen.getAllByTestId('skeleton').length).toBeGreaterThan(0);
   });
 
   it('shows empty state when no reports', () => {

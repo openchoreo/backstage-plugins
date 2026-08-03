@@ -166,7 +166,7 @@ describe('ObservabilityTracesPage', () => {
 
     await renderPage();
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('shows forbidden state when user lacks permission', async () => {
@@ -230,7 +230,7 @@ describe('ObservabilityTracesPage', () => {
 
     await renderPage();
 
-    expect(screen.getByTestId('progress')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('shows traces error with Retry button', async () => {

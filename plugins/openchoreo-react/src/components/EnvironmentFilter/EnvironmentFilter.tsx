@@ -1,10 +1,10 @@
 import { ChangeEvent, FC } from 'react';
+import { Skeleton } from '@openchoreo/backstage-design-system';
 import FormControl from '@material-ui/core/FormControl';
 import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
 import Tooltip from '@material-ui/core/Tooltip';
-import { Skeleton } from '@material-ui/lab';
 import { Environment } from './types';
 
 export interface EnvironmentFilterProps {

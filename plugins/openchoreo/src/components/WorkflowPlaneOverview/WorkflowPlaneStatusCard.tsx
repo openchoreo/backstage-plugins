@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { Box, Typography } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import WifiIcon from '@material-ui/icons/Wifi';
@@ -10,7 +9,7 @@ import clsx from 'clsx';
 import { parseEntityRef } from '@backstage/catalog-model';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Link } from '@backstage/core-components';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, Skeleton } from '@openchoreo/backstage-design-system';
 import {
   CHOREO_ANNOTATIONS,
   RELATION_OBSERVED_BY,

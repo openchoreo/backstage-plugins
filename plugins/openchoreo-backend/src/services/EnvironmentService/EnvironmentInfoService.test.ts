@@ -200,6 +200,102 @@ describe('EnvironmentInfoService', () => {
       );
     });
 
+    describe('projectDeploymentStatus', () => {
+      const makeProjectBinding = (
+        env: string,
+        namespaceReady?: 'True' | 'False' | 'Unknown',
+      ) => ({
+        metadata: { name: `my-project-${env}`, namespace: 'test-ns' },
+        spec: { owner: { projectName: 'my-project' }, environment: env },
+        status: {
+          conditions: namespaceReady
+            ? [{ type: 'NamespaceReady', status: namespaceReady }]
+            : [],
+        },
+      });
+
+      // The component-env fetch issues GETs in this order:
+      // environments → releasebindings → project → pipeline → projectreleasebindings
+      const queueFirstFour = () => {
+        mockGET.mockResolvedValueOnce(
+          createOkResponse({ items: [k8sEnvironment], pagination: {} }),
+        );
+        mockGET.mockResolvedValueOnce(
+          createOkResponse({ items: [k8sReleaseBinding] }),
+        );
+        mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+        mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+      };
+
+      const run = () =>
+        createService().fetchDeploymentInfo(
+          {
+            projectName: 'my-project',
+            componentName: 'api-service',
+            namespaceName: 'test-ns',
+          },
+          'token-123',
+        );
+
+      it('reports ready when the project binding NamespaceReady is True', async () => {
+        queueFirstFour();
+        mockGET.mockResolvedValueOnce(
+          createOkResponse({ items: [makeProjectBinding('dev', 'True')] }),
+        );
+        const result = await run();
+        expect(result[0].projectDeploymentStatus).toBe('ready');
+      });
+
+      it('reports ready even when a non-namespace project condition is False (keys off NamespaceReady, not aggregate Ready)', async () => {
+        queueFirstFour();
+        mockGET.mockResolvedValueOnce(
+          createOkResponse({
+            items: [
+              {
+                metadata: { name: 'my-project-dev', namespace: 'test-ns' },
+                spec: {
+                  owner: { projectName: 'my-project' },
+                  environment: 'dev',
+                },
+                status: {
+                  conditions: [
+                    { type: 'NamespaceReady', status: 'True' },
+                    { type: 'ResourcesReady', status: 'False' },
+                    { type: 'Ready', status: 'False' },
+                  ],
+                },
+              },
+            ],
+          }),
+        );
+        const result = await run();
+        expect(result[0].projectDeploymentStatus).toBe('ready');
+      });
+
+      it('reports pending when the project binding exists but NamespaceReady is not yet True', async () => {
+        queueFirstFour();
+        mockGET.mockResolvedValueOnce(
+          createOkResponse({ items: [makeProjectBinding('dev', 'Unknown')] }),
+        );
+        const result = await run();
+        expect(result[0].projectDeploymentStatus).toBe('pending');
+      });
+
+      it('reports not-deployed when the project has no binding for the env', async () => {
+        queueFirstFour();
+        mockGET.mockResolvedValueOnce(createOkResponse({ items: [] }));
+        const result = await run();
+        expect(result[0].projectDeploymentStatus).toBe('not-deployed');
+      });
+
+      it('fails open to ready when the project-bindings fetch errors', async () => {
+        queueFirstFour();
+        mockGET.mockResolvedValueOnce(createErrorResponse());
+        const result = await run();
+        expect(result[0].projectDeploymentStatus).toBe('ready');
+      });
+    });
+
     it('returns environments even when bindings fetch fails', async () => {
       mockGET.mockResolvedValueOnce(
         createOkResponse({ items: [k8sEnvironment], pagination: {} }),

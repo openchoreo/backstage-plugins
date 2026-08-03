@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoMutation } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 /**
@@ -9,28 +9,17 @@ import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 export const useAutoDeployUpdate = (entity: Entity) => {
   const client = useApi(openChoreoClientApiRef);
 
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const updateAutoDeploy = async (autoDeploy: boolean): Promise<void> => {
-    setIsUpdating(true);
-    setError(null);
-
-    try {
-      await client.patchComponent(entity, autoDeploy);
-    } catch (err: any) {
-      const errorMessage =
-        err.message || 'Failed to update auto deploy setting';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setIsUpdating(false);
-    }
-  };
+  const { mutate, isLoading, error } = useOpenChoreoMutation(
+    (autoDeploy: boolean) => client.patchComponent(entity, autoDeploy),
+  );
 
   return {
-    updateAutoDeploy,
-    isUpdating,
-    error,
+    updateAutoDeploy: async (autoDeploy: boolean): Promise<void> => {
+      await mutate(autoDeploy);
+    },
+    isUpdating: isLoading,
+    error: error
+      ? error.message || 'Failed to update auto deploy setting'
+      : null,
   };
 };

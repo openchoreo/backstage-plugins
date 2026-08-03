@@ -1,4 +1,5 @@
 import { useMemo, useCallback, useState, RefObject } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { createPortal } from 'react-dom';
 import {
   Typography,
@@ -33,11 +34,12 @@ import EditIcon from '@material-ui/icons/EditOutlined';
 import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import ClearIcon from '@material-ui/icons/Clear';
-import { Progress, ResponseErrorPanel } from '@backstage/core-components';
+import { ResponseErrorPanel } from '@backstage/core-components';
 import {
   useClusterRoleMappingPermissions,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { isForbiddenError } from '../../../utils/errorUtils';
 import {
   useClusterRoleBindings,
@@ -165,6 +167,7 @@ export const ClusterRoleBindingsContent = ({
   const {
     bindings,
     loading,
+    isRefetching,
     error,
     filters,
     setFilters,
@@ -315,7 +318,7 @@ export const ClusterRoleBindingsContent = ({
     filters.roleName || searchQuery || effectFilter !== 'all';
 
   if (loading || permissionsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
   if (
     wizardAction === 'create' ||
@@ -380,7 +383,11 @@ export const ClusterRoleBindingsContent = ({
   );
 
   return (
-    <Box>
+    <Box position="relative">
+      <RefreshOverlay
+        active={isRefetching}
+        label="Refreshing cluster role bindings"
+      />
       <NotificationBanner notification={notification.notification} />
       {actionsContainerRef.current &&
         createPortal(actionButtons, actionsContainerRef.current)}

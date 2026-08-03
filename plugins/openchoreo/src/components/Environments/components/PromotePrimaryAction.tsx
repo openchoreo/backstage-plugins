@@ -23,6 +23,8 @@ export interface PromotePrimaryActionProps {
   statusReason?: string;
   promotionTargets?: PromotionTargetInfo[];
   isAlreadyPromoted: (targetEnvName: string) => boolean;
+  /** Reports whether a target env's project is undeployed (blocks promote). */
+  isTargetProjectBlocked?: (target: PromotionTargetInfo) => boolean;
   promotionTracker: ItemActionTracker;
   onPromote: (targetEnvName: string) => Promise<void>;
 }
@@ -56,6 +58,7 @@ export const PromotePrimaryAction = ({
   statusReason,
   promotionTargets,
   isAlreadyPromoted,
+  isTargetProjectBlocked,
   promotionTracker,
   onPromote,
 }: PromotePrimaryActionProps) => {
@@ -67,6 +70,7 @@ export const PromotePrimaryAction = ({
     statusReason,
     promotionTargets,
     isAlreadyPromoted,
+    isTargetProjectBlocked,
     promotionTracker,
     suspendTracker: noopTracker,
     onPromote,
@@ -173,7 +177,8 @@ function PromotePrimaryButton({ action }: { action: PromotionTargetAction }) {
   const { canPromote, loading, deniedTooltip } =
     usePromoteToEnvPermission(targetEnvName);
   const disabled = action.disabled || loading || !canPromote;
-  const tooltip = !canPromote && !loading ? deniedTooltip : '';
+  const tooltip =
+    action.blockedReason || (!canPromote && !loading ? deniedTooltip : '');
   return (
     <Tooltip title={tooltip} disableHoverListener={!tooltip}>
       <span>
@@ -206,7 +211,8 @@ function PromoteSubMenuItem({
   const { canPromote, loading, deniedTooltip } =
     usePromoteToEnvPermission(targetEnvName);
   const disabled = action.disabled || loading || !canPromote;
-  const tooltip = !canPromote && !loading ? deniedTooltip : '';
+  const tooltip =
+    action.blockedReason || (!canPromote && !loading ? deniedTooltip : '');
   return (
     <Tooltip title={tooltip} disableHoverListener={!tooltip} placement="left">
       <span>

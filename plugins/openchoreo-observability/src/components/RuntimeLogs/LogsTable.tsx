@@ -1,6 +1,6 @@
 import { FC, useCallback, useEffect, useRef } from 'react';
 import { Paper, Box, Typography, CircularProgress } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
+import { Skeleton } from '@openchoreo/backstage-design-system';
 import {
   VirtualizedLogList,
   useAutoLoadWhenEmpty,

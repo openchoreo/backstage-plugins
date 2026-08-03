@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-react",
-  "version": "1.2.0-m.2",
+  "version": "1.2.0",
   "license": "Apache-2.0",
   "description": "Shared React components, hooks, and utilities for OpenChoreo Backstage plugins",
   "main": "src/index.ts",
@@ -30,9 +30,11 @@
     "postpack": "backstage-cli package postpack"
   },
   "dependencies": {
+    "@backstage/catalog-client": "^1.15.1",
     "@backstage/catalog-model": "^1.9.0",
     "@backstage/core-components": "^0.18.10",
     "@backstage/core-plugin-api": "^1.12.6",
+    "@backstage/plugin-catalog-common": "^1.1.10",
     "@backstage/plugin-catalog-graph": "^0.6.4",
     "@backstage/plugin-catalog-react": "^3.0.0",
     "@backstage/plugin-permission-react": "^0.5.1",
@@ -52,6 +54,7 @@
     "@openchoreo/backstage-design-system": "workspace:^",
     "@openchoreo/backstage-plugin-common": "workspace:^",
     "@react-hookz/web": "^24.0.0",
+    "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-virtual": "^3.13.0",
     "@uiw/react-codemirror": "^4.9.3",
     "clsx": "^2.1.1",
@@ -72,6 +75,7 @@
   "devDependencies": {
     "@backstage/cli": "^0.36.2",
     "@backstage/test-utils": "^1.7.18",
+    "@openchoreo/test-utils": "workspace:^",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "14.3.1",
     "@testing-library/user-event": "^14.6.1",

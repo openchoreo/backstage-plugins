@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, RefObject } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { createPortal } from 'react-dom';
 import {
   Typography,
@@ -33,11 +34,12 @@ import EditIcon from '@material-ui/icons/EditOutlined';
 import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import ClearIcon from '@material-ui/icons/Clear';
-import { Progress, ResponseErrorPanel } from '@backstage/core-components';
+import { ResponseErrorPanel } from '@backstage/core-components';
 import {
   useRoleMappingPermissions,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import {
   useNamespaceRoleBindings,
   useNamespaceRoles,
@@ -160,6 +162,7 @@ export const NamespaceRoleBindingsContent = ({
   const {
     bindings,
     loading,
+    isRefetching,
     error,
     fetchBindings,
     addBinding,
@@ -327,7 +330,7 @@ export const NamespaceRoleBindingsContent = ({
     roleFilter !== 'all' || searchQuery || effectFilter !== 'all';
 
   if (permissionsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canView) {
@@ -393,7 +396,8 @@ export const NamespaceRoleBindingsContent = ({
   );
 
   return (
-    <Box>
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing role bindings" />
       <NotificationBanner notification={notification.notification} />
       {actionsContainerRef.current &&
         createPortal(actionButtons, actionsContainerRef.current)}
@@ -407,7 +411,7 @@ export const NamespaceRoleBindingsContent = ({
       ) : (
         <>
           {(loading || namespaceRolesLoading || clusterRolesLoading) && (
-            <Progress />
+            <PageLoader />
           )}
           {!loading &&
             !namespaceRolesLoading &&

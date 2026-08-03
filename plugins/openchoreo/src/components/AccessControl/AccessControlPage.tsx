@@ -5,11 +5,11 @@ import {
   Header,
   Content,
   WarningPanel,
-  Progress,
 } from '@backstage/core-components';
 import {
   VerticalTabNav,
   TabItemData,
+  PageLoader,
 } from '@openchoreo/backstage-design-system';
 import {
   useRolePermissions,
@@ -106,7 +106,7 @@ export const AccessControlContent = () => {
     canViewMappings;
 
   if (permissionsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (authzDisabled) {

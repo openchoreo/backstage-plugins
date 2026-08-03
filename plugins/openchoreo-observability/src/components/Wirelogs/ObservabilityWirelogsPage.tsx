@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Alert } from '@material-ui/lab';
 import { Box, Tooltip, Typography } from '@material-ui/core';
-import { Progress } from '@backstage/core-components';
+
 import { alertApiRef, useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
@@ -151,7 +152,7 @@ const ObservabilityWirelogsContent = () => {
   };
 
   if (environmentsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (environmentsStatus !== 'ok') {
@@ -283,7 +284,7 @@ export const ObservabilityWirelogsPage = () => {
   } = useWirelogsPermission();
 
   if (permissionLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canViewWirelogs) {

@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Box, Grid, Typography } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, Skeleton } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import {

@@ -70,6 +70,15 @@ export interface DeploymentFailureBannerProps {
   message?: string;
   /** Machine-readable reason, e.g. `RenderingFailed` / `AutoDeployFailed`. */
   reason?: string;
+  /**
+   * When true, the failure is attributed to the project not being deployed in
+   * this environment. Prepends a plain-language lead line and threads the
+   * remediation into the details dialog. `envName` / `envResourceName` feed
+   * the "deploy the project" deep link.
+   */
+  projectNotDeployed?: boolean;
+  envName?: string;
+  envResourceName?: string;
 }
 
 /**
@@ -86,6 +95,9 @@ export interface DeploymentFailureBannerProps {
 export const DeploymentFailureBanner = ({
   message,
   reason,
+  projectNotDeployed,
+  envName,
+  envResourceName,
 }: DeploymentFailureBannerProps) => {
   const classes = useStyles();
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -102,6 +114,11 @@ export const DeploymentFailureBanner = ({
     <Box className={classes.banner} role="alert">
       <ReportProblemOutlinedIcon className={classes.icon} />
       <Box className={classes.body}>
+        {projectNotDeployed && (
+          <Typography className={classes.message} style={{ fontWeight: 600 }}>
+            The project isn't deployed to this environment.
+          </Typography>
+        )}
         <Typography
           className={`${classes.message}${
             showViewDetails ? ` ${classes.messageClamped}` : ''
@@ -129,6 +146,9 @@ export const DeploymentFailureBanner = ({
         onClose={() => setDetailsOpen(false)}
         reason={reason}
         message={message}
+        projectNotDeployed={projectNotDeployed}
+        envName={envName}
+        envResourceName={envResourceName}
       />
     </Box>
   );

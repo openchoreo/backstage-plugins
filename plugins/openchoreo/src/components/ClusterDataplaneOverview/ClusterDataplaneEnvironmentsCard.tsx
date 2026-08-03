@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import NavigateBeforeIcon from '@material-ui/icons/NavigateBefore';
 import NavigateNextIcon from '@material-ui/icons/NavigateNext';
@@ -11,7 +10,11 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { parseEntityRef } from '@backstage/catalog-model';
 import { Link } from '@backstage/core-components';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@openchoreo/backstage-design-system';
+import {
+  Card,
+  RefreshOverlay,
+  Skeleton,
+} from '@openchoreo/backstage-design-system';
 import { useClusterDataplaneEnvironments } from './hooks';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
 import { shouldNavigateOnRowClick } from '../../utils/shouldNavigateOnRowClick';
@@ -22,7 +25,7 @@ export const ClusterDataplaneEnvironmentsCard = () => {
   const classes = useDataplaneOverviewStyles();
   const { entity } = useEntity();
   const navigate = useNavigate();
-  const { environments, loading, error, refresh } =
+  const { environments, loading, isRefetching, error, refresh } =
     useClusterDataplaneEnvironments(entity);
   const [page, setPage] = useState(0);
 
@@ -95,7 +98,12 @@ export const ClusterDataplaneEnvironmentsCard = () => {
   }
 
   return (
-    <Card padding={24} className={classes.card}>
+    <Card
+      padding={24}
+      className={classes.card}
+      style={{ position: 'relative' }}
+    >
+      <RefreshOverlay active={isRefetching} label="Refreshing environments" />
       <Box className={classes.cardHeader}>
         <Typography variant="h5">Hosted Environments</Typography>
         <Tooltip title="Refresh">

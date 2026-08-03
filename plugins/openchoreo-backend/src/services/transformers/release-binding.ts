@@ -2,6 +2,7 @@ import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import type {
   ReleaseBindingResponse,
   ReleaseBindingEndpoint,
+  ReleaseBindingEndpointURLDetails,
   ReleaseBindingCondition,
 } from '@openchoreo/backstage-plugin-common';
 import { getName, getNamespace, getCreatedAt } from './common';
@@ -22,6 +23,13 @@ const PROGRESSING_REASONS = [
 
 /** Reasons that represent an intentional non-deployed state, not an error. */
 const NON_ERROR_REASONS = ['ResourcesUndeployed'] as const;
+
+/**
+ * Reason core sets on the ResourcesReady condition when the primary workload is
+ * intentionally suspended (e.g. a Deployment scaled to zero). The binding is
+ * still Ready, so this is read from ResourcesReady, not the Ready condition.
+ */
+const SUSPENDED_REASON = 'ReadyWithSuspendedResources';
 
 export interface DerivedBindingStatus {
   status: 'Ready' | 'NotReady' | 'Failed';
@@ -79,6 +87,20 @@ export function deriveBindingStatusDetailed(
   if (!readyCond) return { status: 'NotReady' }; // Not yet reconciled
 
   if (readyCond.status === 'True') {
+    // A Ready binding may still be intentionally scaled to zero. Core reports
+    // that on the ResourcesReady condition, not on Ready, so surface its reason
+    // and message here so the pipeline can distinguish a suspended workload from
+    // a running one.
+    const resourcesReady = conditionsForGeneration.find(
+      c => c.type === 'ResourcesReady',
+    );
+    if (resourcesReady?.reason === SUSPENDED_REASON) {
+      return {
+        status: 'Ready',
+        reason: resourcesReady.reason,
+        message: resourcesReady.message,
+      };
+    }
     return {
       status: 'Ready',
       reason: readyCond.reason,
@@ -121,6 +143,48 @@ export function deriveBindingStatusDetailed(
 }
 
 /**
+ * Reorders a URL map so that HTTPS entries come first.
+ *
+ * The frontend selects an endpoint's primary URL with `Object.values(urls)[0]`
+ * — the first entry in iteration order — and is otherwise scheme-blind. When an
+ * endpoint exposes both an http and an https URL we want the secure one to win,
+ * so we surface https entries first here while keeping the relative order of
+ * everything else stable. Object iteration order follows insertion order for the
+ * string keys used here, so rebuilding the record is enough to influence the
+ * frontend's choice without any frontend change.
+ */
+function prioritizeHttpsUrls(
+  urls: Record<string, ReleaseBindingEndpointURLDetails>,
+): Record<string, ReleaseBindingEndpointURLDetails> {
+  const isHttps = (d: ReleaseBindingEndpointURLDetails | undefined) =>
+    d?.scheme?.toLowerCase() === 'https';
+  const entries = Object.entries(urls);
+  const ordered = [
+    ...entries.filter(([, d]) => isHttps(d)),
+    ...entries.filter(([, d]) => !isHttps(d)),
+  ];
+  return Object.fromEntries(ordered);
+}
+
+/**
+ * Returns a copy of the endpoint with its external/internal URL maps reordered
+ * so https URLs take precedence over http when both are present.
+ */
+function prioritizeEndpointHttps(
+  endpoint: ReleaseBindingEndpoint,
+): ReleaseBindingEndpoint {
+  return {
+    ...endpoint,
+    ...(endpoint.externalURLs
+      ? { externalURLs: prioritizeHttpsUrls(endpoint.externalURLs) }
+      : {}),
+    ...(endpoint.internalURLs
+      ? { internalURLs: prioritizeHttpsUrls(endpoint.internalURLs) }
+      : {}),
+  };
+}
+
+/**
  * Transforms a K8s-style ReleaseBinding resource into the flat
  * ReleaseBindingResponse shape expected by the frontend.
  */
@@ -151,10 +215,12 @@ export function transformReleaseBinding(
     endpoints: (() => {
       const raw = (binding.status as any)?.endpoints;
       if (!Array.isArray(raw)) return undefined;
-      return raw.filter(
-        (e): e is ReleaseBindingEndpoint =>
-          e !== null && typeof e === 'object' && typeof e.name === 'string',
-      );
+      return raw
+        .filter(
+          (e): e is ReleaseBindingEndpoint =>
+            e !== null && typeof e === 'object' && typeof e.name === 'string',
+        )
+        .map(prioritizeEndpointHttps);
     })(),
     conditions: (() => {
       const raw = binding.status?.conditions;

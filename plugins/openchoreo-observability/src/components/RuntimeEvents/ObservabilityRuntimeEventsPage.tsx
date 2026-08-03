@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box, Typography, Button } from '@material-ui/core';
-import { Progress } from '@backstage/core-components';
+
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
@@ -18,6 +19,7 @@ import {
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { EnvironmentsStatusNotice } from '../common';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useRuntimeEventsStyles } from './styles';
 
 const ObservabilityRuntimeEventsContent = () => {
@@ -62,21 +64,29 @@ const ObservabilityRuntimeEventsContent = () => {
   const {
     events,
     loading: eventsLoading,
+    isRefetching: eventsRefetching,
     error: eventsError,
     totalCount,
     hasMore,
-    fetchEvents,
     loadMore,
     refresh,
-  } = useRuntimeEvents(entity, namespace || '', project || '', {
-    environment: filters.environment,
-    timeRange: filters.timeRange,
-    customStartTime: filters.customStartTime,
-    customEndTime: filters.customEndTime,
-    limit: 50,
-    sortOrder: filters.sortOrder || 'asc',
-    isLive: filters.isLive,
-  });
+  } = useRuntimeEvents(
+    entity,
+    namespace || '',
+    project || '',
+    {
+      environment: filters.environment,
+      timeRange: filters.timeRange,
+      customStartTime: filters.customStartTime,
+      customEndTime: filters.customEndTime,
+      limit: 50,
+      sortOrder: filters.sortOrder || 'asc',
+      isLive: filters.isLive,
+    },
+    // Only fetch once the env is selected and events are viewable — the query
+    // keys on the filters, so it refetches on its own when they change.
+    Boolean(selectedEnvironment && canViewEventsForEnv),
+  );
 
   // Track previous filter values to detect changes.
   // Initialize with null to ensure initial fetch happens when ready.
@@ -112,7 +122,8 @@ const ObservabilityRuntimeEventsContent = () => {
       canViewEventsForEnv &&
       filtersChanged
     ) {
-      fetchEvents(true);
+      // The events query keys on these filters and refetches on its own; this
+      // effect only stamps the "last updated" time.
       setLastUpdated(new Date());
       previousFiltersRef.current = currentFilters;
     }
@@ -122,7 +133,6 @@ const ObservabilityRuntimeEventsContent = () => {
     filters.customStartTime,
     filters.customEndTime,
     filters.sortOrder,
-    fetchEvents,
     selectedEnvironment,
     namespace,
     project,
@@ -171,7 +181,7 @@ const ObservabilityRuntimeEventsContent = () => {
   };
 
   if (environmentsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (environmentsStatus !== 'ok') {
@@ -186,7 +196,13 @@ const ObservabilityRuntimeEventsContent = () => {
   }
 
   return (
-    <Box>
+    <Box position="relative">
+      {/* Background revalidation indicator — suppressed in live mode, where the
+          poll would otherwise flash it constantly and fight the Live toggle. */}
+      <RefreshOverlay
+        active={eventsRefetching && !filters.isLive}
+        label="Refreshing events"
+      />
       <EventsFilter
         filters={filters}
         onFiltersChange={handleFiltersChange}
@@ -243,7 +259,7 @@ export const ObservabilityRuntimeEventsPage = () => {
   } = useEventsPermission();
 
   if (permissionLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canViewEvents) {

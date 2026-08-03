@@ -1,6 +1,6 @@
-import { renderHook, act } from '@testing-library/react';
-import { TestApiProvider } from '@backstage/test-utils';
+import { renderHook, waitFor } from '@testing-library/react';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useAllEntitiesOfKinds } from './useAllEntitiesOfKinds';
 
 // ---- Mocks ----
@@ -17,11 +17,7 @@ function makeEntity(kind: string, name: string, namespace = 'default') {
 
 function renderWithApi(hook: () => ReturnType<typeof useAllEntitiesOfKinds>) {
   return renderHook(hook, {
-    wrapper: ({ children }) => (
-      <TestApiProvider apis={[[catalogApiRef, mockCatalogApi as any]]}>
-        {children}
-      </TestApiProvider>
-    ),
+    wrapper: createQueryWrapper([[catalogApiRef, mockCatalogApi as any]]),
   });
 }
 
@@ -42,7 +38,7 @@ describe('useAllEntitiesOfKinds', () => {
       useAllEntitiesOfKinds(['system', 'component']),
     );
 
-    await act(async () => {});
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(mockCatalogApi.getEntities).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -62,22 +58,22 @@ describe('useAllEntitiesOfKinds', () => {
   it('passes namespace filter when provided', async () => {
     renderWithApi(() => useAllEntitiesOfKinds(['system'], ['ns-a', 'ns-b']));
 
-    await act(async () => {});
-
-    expect(mockCatalogApi.getEntities).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filter: {
-          kind: ['system'],
-          'metadata.namespace': ['ns-a', 'ns-b'],
-        },
-      }),
+    await waitFor(() =>
+      expect(mockCatalogApi.getEntities).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filter: {
+            kind: ['system'],
+            'metadata.namespace': ['ns-a', 'ns-b'],
+          },
+        }),
+      ),
     );
   });
 
   it('returns empty refs and does not fetch when kinds is empty', async () => {
     const { result } = renderWithApi(() => useAllEntitiesOfKinds([]));
 
-    await act(async () => {});
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(mockCatalogApi.getEntities).not.toHaveBeenCalled();
     expect(result.current.entityRefs).toEqual([]);
@@ -90,9 +86,9 @@ describe('useAllEntitiesOfKinds', () => {
 
     const { result } = renderWithApi(() => useAllEntitiesOfKinds(['system']));
 
-    await act(async () => {});
-
-    expect(result.current.error).toEqual(new Error('Catalog down'));
+    await waitFor(() =>
+      expect(result.current.error).toEqual(new Error('Catalog down')),
+    );
   });
 
   it('defaults namespace to "default" when entity has no namespace', async () => {
@@ -102,7 +98,7 @@ describe('useAllEntitiesOfKinds', () => {
 
     const { result } = renderWithApi(() => useAllEntitiesOfKinds(['system']));
 
-    await act(async () => {});
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.entityRefs[0].namespace).toBe('default');
   });
@@ -112,21 +108,19 @@ describe('useAllEntitiesOfKinds', () => {
       ({ kinds }) => useAllEntitiesOfKinds(kinds),
       {
         initialProps: { kinds: ['system'] },
-        wrapper: ({ children }) => (
-          <TestApiProvider apis={[[catalogApiRef, mockCatalogApi as any]]}>
-            {children}
-          </TestApiProvider>
-        ),
+        wrapper: createQueryWrapper([[catalogApiRef, mockCatalogApi as any]]),
       },
     );
 
-    await act(async () => {});
-    expect(mockCatalogApi.getEntities).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(mockCatalogApi.getEntities).toHaveBeenCalledTimes(1),
+    );
 
     rerender({ kinds: ['component'] });
-    await act(async () => {});
+    await waitFor(() =>
+      expect(mockCatalogApi.getEntities).toHaveBeenCalledTimes(2),
+    );
 
-    expect(mockCatalogApi.getEntities).toHaveBeenCalledTimes(2);
     expect(mockCatalogApi.getEntities).toHaveBeenLastCalledWith(
       expect.objectContaining({
         filter: { kind: ['component'] },

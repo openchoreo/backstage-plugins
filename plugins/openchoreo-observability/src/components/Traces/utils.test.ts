@@ -4,6 +4,8 @@ import {
   formatDuration,
   formatTime,
   formatTimeFromString,
+  getSpanStatusCode,
+  isSpanError,
 } from './utils';
 import { calculateTimeRange } from '@openchoreo/backstage-plugin-react';
 
@@ -84,6 +86,34 @@ describe('formatTimeFromString', () => {
     expect(formatTimeFromString('2024-06-01T10:00:00')).toBe(
       '2024-06-01T10:00:00Z',
     );
+  });
+});
+
+describe('getSpanStatusCode', () => {
+  it('returns the status code', () => {
+    expect(getSpanStatusCode({ code: 'ok' })).toBe('ok');
+  });
+
+  it('returns undefined when status is missing', () => {
+    expect(getSpanStatusCode(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined when code is absent', () => {
+    expect(getSpanStatusCode({ message: 'boom' })).toBeUndefined();
+  });
+});
+
+describe('isSpanError', () => {
+  it('is true only for the error code', () => {
+    expect(isSpanError({ code: 'error' })).toBe(true);
+    expect(isSpanError({ code: 'error', message: 'boom' })).toBe(true);
+  });
+
+  it('is false for ok/unset/missing status', () => {
+    expect(isSpanError({ code: 'ok' })).toBe(false);
+    expect(isSpanError({ code: 'unset' })).toBe(false);
+    expect(isSpanError(undefined)).toBe(false);
+    expect(isSpanError({})).toBe(false);
   });
 });
 

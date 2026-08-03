@@ -1,5 +1,7 @@
 import { useCallback } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box, Button, Typography } from '@material-ui/core';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { TracesFilters } from './TracesFilters';
 import { TracesActions } from './TracesActions';
 import { TracesTable } from './TracesTable';
@@ -13,7 +15,7 @@ import {
 import { useTraceSpans } from '../../hooks/useTraceSpans';
 import { useSpanDetails } from '../../hooks/useSpanDetails';
 import type { Filters } from '../../types';
-import { Progress } from '@backstage/core-components';
+
 import { Alert } from '@material-ui/lab';
 import {
   useTracesPermission,
@@ -65,6 +67,7 @@ const ObservabilityTracesContent = () => {
     traces,
     total,
     loading: tracesLoading,
+    isRefetching,
     error: tracesError,
     refresh,
   } = useTraces(tracesFilters, entity);
@@ -112,7 +115,7 @@ const ObservabilityTracesContent = () => {
   }
 
   if (environmentsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (environmentsStatus !== 'ok') {
@@ -150,8 +153,9 @@ const ObservabilityTracesContent = () => {
   };
 
   return (
-    <Box>
-      {tracesLoading && <Progress />}
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing traces" />
+      {tracesLoading && <PageLoader />}
 
       {!tracesLoading && (
         <>
@@ -209,7 +213,7 @@ export const ObservabilityTracesPage = () => {
   } = useTracesPermission();
 
   if (permissionLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canViewTraces) {

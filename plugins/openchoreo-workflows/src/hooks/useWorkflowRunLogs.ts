@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { genericWorkflowsClientApiRef } from '../api';
 import type { LogsResponse } from '../types';
 import { useSelectedNamespace } from '../context';
@@ -7,6 +7,8 @@ import { useSelectedNamespace } from '../context';
 interface UseWorkflowRunLogsResult {
   logs: LogsResponse | null;
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
 }
@@ -32,58 +34,22 @@ export function useWorkflowRunLogs(
   const contextNamespace = useSelectedNamespace();
   const resolvedNamespace = namespaceName ?? contextNamespace;
 
-  const [logs, setLogs] = useState<LogsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-
-  const fetchLogs = useCallback(async () => {
-    if (!runName || !resolvedNamespace) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setError(null);
-      const response = await client.getWorkflowRunLogs(
-        resolvedNamespace,
-        runName,
-      );
-      setLogs(response);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setLoading(false);
-    }
-  }, [client, resolvedNamespace, runName]);
-
-  // Set up polling when run is active
-  useEffect(() => {
-    if (isRunActive && runName) {
-      pollingRef.current = setInterval(() => {
-        fetchLogs();
-      }, POLLING_INTERVAL);
-    }
-
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, [isRunActive, runName, fetchLogs]);
-
-  // Initial fetch
-  useEffect(() => {
-    if (runName) {
-      fetchLogs();
-    }
-  }, [runName, fetchLogs]);
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
+    ['workflow-run-logs', resolvedNamespace ?? null, runName ?? null],
+    () => client.getWorkflowRunLogs(resolvedNamespace!, runName!),
+    {
+      enabled: !!runName && !!resolvedNamespace,
+      refetchInterval: isRunActive ? POLLING_INTERVAL : false,
+    },
+  );
 
   return {
-    logs,
+    logs: data ?? null,
     loading,
+    isRefetching,
     error,
-    refetch: fetchLogs,
+    refetch: async () => {
+      await refetch();
+    },
   };
 }

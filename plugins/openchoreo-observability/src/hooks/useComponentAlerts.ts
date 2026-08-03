@@ -1,8 +1,10 @@
-import { useCallback, useRef, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { observabilityApiRef } from '../api/ObservabilityApi';
-import { calculateTimeRange } from '@openchoreo/backstage-plugin-react';
+import {
+  calculateTimeRange,
+  useOpenChoreoQuery,
+} from '@openchoreo/backstage-plugin-react';
 import { AlertSummary } from '../types';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
@@ -20,6 +22,8 @@ export interface UseComponentAlertsOptions {
 export interface UseComponentAlertsResult {
   alerts: AlertSummary[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: string | null;
   totalCount: number;
   fetchAlerts: (reset?: boolean) => Promise<void>;
@@ -33,84 +37,61 @@ export function useComponentAlerts(
   options: UseComponentAlertsOptions,
 ): UseComponentAlertsResult {
   const observabilityApi = useApi(observabilityApiRef);
-  const [alerts, setAlerts] = useState<AlertSummary[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
-  const requestVersionRef = useRef(0);
 
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
 
-  const fetchAlerts = useCallback(
-    async (_reset = true) => {
-      if (!options.environment || !namespace || !project || !componentName) {
-        return;
-      }
-
-      const version = ++requestVersionRef.current;
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const { startTime, endTime } = calculateTimeRange(options.timeRange, {
-          startTime: options.customStartTime,
-          endTime: options.customEndTime,
-        });
-
-        const response = await observabilityApi.getAlerts(
-          namespace,
-          project,
-          options.environment,
-          componentName,
-          {
-            limit: options.limit ?? 100,
-            startTime,
-            endTime,
-            sortOrder: options.sortOrder ?? 'desc',
-          },
-        );
-
-        // Discard result if a newer request has been started
-        if (version !== requestVersionRef.current) return;
-
-        setAlerts(response.alerts ?? []);
-        setTotalCount(response.total ?? 0);
-      } catch (err) {
-        if (version !== requestVersionRef.current) return;
-        setError(err instanceof Error ? err.message : 'Failed to fetch alerts');
-      } finally {
-        if (version === requestVersionRef.current) {
-          setLoading(false);
-        }
-      }
-    },
+  // Every param is folded into the query key, so a filter change starts a fresh
+  // query and the cache discards superseded responses — replacing the manual
+  // `requestVersionRef` race-guard the hand-rolled version carried.
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     [
-      observabilityApi,
+      'component-alerts',
+      namespace,
+      project,
       options.environment,
+      componentName ?? null,
       options.timeRange,
       options.customStartTime,
       options.customEndTime,
-      options.limit,
-      options.sortOrder,
-      namespace,
-      project,
-      componentName,
+      options.limit ?? 100,
+      options.sortOrder ?? 'desc',
     ],
+    () => {
+      const { startTime, endTime } = calculateTimeRange(options.timeRange, {
+        startTime: options.customStartTime,
+        endTime: options.customEndTime,
+      });
+      return observabilityApi.getAlerts(
+        namespace,
+        project,
+        options.environment,
+        componentName!,
+        {
+          limit: options.limit ?? 100,
+          startTime,
+          endTime,
+          sortOrder: options.sortOrder ?? 'desc',
+        },
+      );
+    },
+    {
+      enabled:
+        !!options.environment && !!namespace && !!project && !!componentName,
+    },
   );
 
-  const refresh = useCallback(() => {
-    setAlerts([]);
-    fetchAlerts(true);
-  }, [fetchAlerts]);
-
   return {
-    alerts,
+    alerts: data?.alerts ?? [],
     loading,
-    error,
-    totalCount,
-    fetchAlerts,
-    refresh,
+    isRefetching,
+    error: error ? error.message || 'Failed to fetch alerts' : null,
+    totalCount: data?.total ?? 0,
+    // Kept for API compatibility — a manual (re)fetch now just triggers refetch;
+    // filter changes refetch on their own via the key.
+    fetchAlerts: async () => {
+      await refetch();
+    },
+    refresh: refetch,
   };
 }

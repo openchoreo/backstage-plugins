@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Box, Chip, Typography } from '@material-ui/core';
-import { Progress, Link } from '@backstage/core-components';
+import { Link } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef, useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef, type Entity } from '@backstage/catalog-model';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, PageLoader } from '@openchoreo/backstage-design-system';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
 import { useOverviewCardStyles } from '../Environments/OverviewCard/styles';
 
@@ -72,7 +72,7 @@ export const ConsumingComponentsCard = () => {
         <Typography variant="h5">{headerText}</Typography>
       </Box>
 
-      {loading && <Progress />}
+      {loading && <PageLoader minHeight={120} />}
 
       {!loading && error && (
         <Typography className={classes.statusValue} color="error">

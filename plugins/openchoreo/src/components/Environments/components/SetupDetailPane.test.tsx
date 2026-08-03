@@ -117,6 +117,8 @@ let contextOverride: Partial<{
   latestReleaseName: string | null;
   awaitingNewRelease: boolean;
   componentError: { reason?: string; message?: string } | null;
+  environments: Array<Record<string, unknown>>;
+  lowestEnvironment: string;
 }> = {};
 jest.mock('../EnvironmentsContext', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -549,5 +551,84 @@ describe('SetupDetailPane', () => {
       'data-disabled',
       'true',
     );
+  });
+
+  describe('project-not-deployed block (S1)', () => {
+    it('disables Deploy and shows the callout when the project is not deployed in the first env', () => {
+      // Display name is capitalised while lowestEnvironment is lowercased —
+      // the block must still match (regression guard for the casing bug).
+      contextOverride = {
+        environments: [
+          {
+            name: 'Development',
+            resourceName: 'development',
+            projectDeploymentStatus: 'not-deployed',
+            deployment: {},
+            endpoints: [],
+          },
+        ],
+        lowestEnvironment: 'development',
+      };
+
+      renderPane();
+
+      expect(screen.getByTestId('deploy-release-panel')).toHaveAttribute(
+        'data-disabled',
+        'true',
+      );
+      expect(screen.getByText('Project not deployed')).toBeInTheDocument();
+    });
+
+    it('keeps Deploy enabled and shows an info line when the project deployment is pending', () => {
+      contextOverride = {
+        environments: [
+          {
+            name: 'Development',
+            resourceName: 'development',
+            projectDeploymentStatus: 'pending',
+            deployment: {},
+            endpoints: [],
+          },
+        ],
+        lowestEnvironment: 'development',
+      };
+
+      renderPane();
+
+      expect(screen.getByTestId('deploy-release-panel')).toHaveAttribute(
+        'data-disabled',
+        'false',
+      );
+      expect(
+        screen.queryByText('Project not deployed'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText(/still in progress/i)).toBeInTheDocument();
+    });
+
+    it('does not block when the project is deployed (ready)', () => {
+      contextOverride = {
+        environments: [
+          {
+            name: 'Development',
+            resourceName: 'development',
+            projectDeploymentStatus: 'ready',
+            deployment: {},
+            endpoints: [],
+          },
+        ],
+        lowestEnvironment: 'development',
+      };
+
+      renderPane();
+
+      expect(screen.getByTestId('deploy-release-panel')).toHaveAttribute(
+        'data-disabled',
+        'false',
+      );
+      expect(
+        screen.queryByText('Project not deployed'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/still in progress/i)).not.toBeInTheDocument();
+    });
   });
 });

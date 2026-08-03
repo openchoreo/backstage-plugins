@@ -1,12 +1,16 @@
 import { Link, Table, TableColumn } from '@backstage/core-components';
 import { useApp } from '@backstage/core-plugin-api';
 import { Entity, RELATION_HAS_PART } from '@backstage/catalog-model';
-import { useEntity, useRelatedEntities } from '@backstage/plugin-catalog-react';
+import { useEntity } from '@backstage/plugin-catalog-react';
 import { Box, Button, Tooltip, Typography } from '@material-ui/core';
+import { Skeleton } from '@openchoreo/backstage-design-system';
 import AddIcon from '@material-ui/icons/Add';
 import { useNavigate } from 'react-router-dom';
 import { isMarkedForDeletion, DeletionBadge } from '../../DeleteEntity';
-import { useScopedProjectCreatePermission } from '@openchoreo/backstage-plugin-react';
+import {
+  useRelatedEntitiesQuery,
+  useScopedProjectCreatePermission,
+} from '@openchoreo/backstage-plugin-react';
 import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import { useNamespaceProjectsCardStyles } from './styles';
 
@@ -15,7 +19,7 @@ export const NamespaceProjectsCard = () => {
   const Icon = app.getSystemIcon('kind:system');
   const classes = useNamespaceProjectsCardStyles();
   const { entity } = useEntity();
-  const { entities: systems, loading } = useRelatedEntities(entity, {
+  const { entities: systems, loading } = useRelatedEntitiesQuery(entity, {
     type: RELATION_HAS_PART,
     kind: 'System',
   });
@@ -67,15 +71,30 @@ export const NamespaceProjectsCard = () => {
     },
   ];
 
+  // While loading, render skeleton rows on the card's paper background instead
+  // of the Table's built-in CircularProgress overlay (which sits on the grey
+  // page background). Cloned columns keep the header row + layout stable.
+  const skeletonColumns: TableColumn<Entity>[] = columns.map(column => ({
+    ...column,
+    sorting: false,
+    render: () => <Skeleton variant="text" height={20} />,
+  }));
+  const skeletonRows = Array.from(
+    { length: 3 },
+    (_, index) =>
+      ({ metadata: { name: `skeleton-${index}` } } as unknown as Entity),
+  );
+
   return (
     <Box className={classes.cardWrapper}>
       <Table
         title="Has Projects"
-        columns={columns}
-        data={systems || []}
-        isLoading={loading}
+        columns={loading ? skeletonColumns : columns}
+        data={loading ? skeletonRows : systems || []}
+        isLoading={false}
         onRowClick={(event, rowData) => {
           if (
+            loading ||
             !rowData ||
             !shouldNavigateOnRowClick(event) ||
             isMarkedForDeletion(rowData)

@@ -3,6 +3,8 @@ import openchoreoPlugin from './alpha';
 const ALPHA_EXTENSION_NAMES = [
   // backend client
   ['api', 'open-choreo-client'],
+  // self-contained response-cache provider
+  ['plugin-wrapper', 'query-provider'],
   // shared
   ['entity-content', 'resource-definition'],
   // component-page

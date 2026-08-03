@@ -126,7 +126,7 @@ export const TracesTable: FC<TracesTableProps> = ({
       <Box
         className={`${classes.traceRow} ${
           isRowExpanded ? classes.expandedRow : ''
-        } ${trace.hasErrors ? classes.errorRow : ''}`}
+        }`}
         onClick={() => handleToggle(rowKey, trace.traceId)}
         role="row"
       >

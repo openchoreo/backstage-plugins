@@ -11,7 +11,6 @@ import {
   ObservabilityPlane,
 } from '../../types';
 import { useStyles } from './styles';
-import { EmptyDataplanesState } from './EmptyDataplanesState';
 
 type PlaneItem = {
   name: string;
@@ -40,14 +39,6 @@ export const PlatformDetailsCard = ({
   const classes = useStyles();
   const theme = useTheme();
   const navigate = useNavigate();
-
-  const hasAnyPlanes =
-    dataplanesWithEnvironments.length > 0 ||
-    clusterDataplanes.length > 0 ||
-    workflowPlanes.length > 0 ||
-    clusterWorkflowPlanes.length > 0 ||
-    observabilityPlanes.length > 0 ||
-    clusterObservabilityPlanes.length > 0;
 
   const renderPlaneSection = (
     title: string,
@@ -124,49 +115,45 @@ export const PlatformDetailsCard = ({
 
   return (
     <Box className={classes.dataplaneDetailsSection}>
-      {!hasAnyPlanes ? (
-        <EmptyDataplanesState />
-      ) : (
-        <Grid container spacing={3}>
-          {renderPlaneSection(
-            'Data Planes',
-            <StorageIcon className={classes.planeSectionIcon} />,
-            dataplanesWithEnvironments,
-            dp => `/catalog/${dp.namespaceName}/dataplane/${dp.name}`,
-          )}
-          {renderPlaneSection(
-            'Workflow Planes',
-            <BuildIcon className={classes.planeSectionIcon} />,
-            workflowPlanes,
-            bp => `/catalog/${bp.namespaceName}/workflowplane/${bp.name}`,
-          )}
-          {renderPlaneSection(
-            'Observability Planes',
-            <VisibilityIcon className={classes.planeSectionIcon} />,
-            observabilityPlanes,
-            op => `/catalog/${op.namespaceName}/observabilityplane/${op.name}`,
-          )}
-          {renderPlaneSection(
-            'Cluster Data Planes',
-            <StorageIcon className={classes.planeSectionIcon} />,
-            clusterDataplanes,
-            dp => `/catalog/openchoreo-cluster/clusterdataplane/${dp.name}`,
-          )}
-          {renderPlaneSection(
-            'Cluster Workflow Planes',
-            <BuildIcon className={classes.planeSectionIcon} />,
-            clusterWorkflowPlanes,
-            bp => `/catalog/openchoreo-cluster/clusterworkflowplane/${bp.name}`,
-          )}
-          {renderPlaneSection(
-            'Cluster Observability Planes',
-            <VisibilityIcon className={classes.planeSectionIcon} />,
-            clusterObservabilityPlanes,
-            op =>
-              `/catalog/openchoreo-cluster/clusterobservabilityplane/${op.name}`,
-          )}
-        </Grid>
-      )}
+      <Grid container spacing={3}>
+        {renderPlaneSection(
+          'Data Planes',
+          <StorageIcon className={classes.planeSectionIcon} />,
+          dataplanesWithEnvironments,
+          dp => `/catalog/${dp.namespaceName}/dataplane/${dp.name}`,
+        )}
+        {renderPlaneSection(
+          'Workflow Planes',
+          <BuildIcon className={classes.planeSectionIcon} />,
+          workflowPlanes,
+          bp => `/catalog/${bp.namespaceName}/workflowplane/${bp.name}`,
+        )}
+        {renderPlaneSection(
+          'Observability Planes',
+          <VisibilityIcon className={classes.planeSectionIcon} />,
+          observabilityPlanes,
+          op => `/catalog/${op.namespaceName}/observabilityplane/${op.name}`,
+        )}
+        {renderPlaneSection(
+          'Cluster Data Planes',
+          <StorageIcon className={classes.planeSectionIcon} />,
+          clusterDataplanes,
+          dp => `/catalog/openchoreo-cluster/clusterdataplane/${dp.name}`,
+        )}
+        {renderPlaneSection(
+          'Cluster Workflow Planes',
+          <BuildIcon className={classes.planeSectionIcon} />,
+          clusterWorkflowPlanes,
+          bp => `/catalog/openchoreo-cluster/clusterworkflowplane/${bp.name}`,
+        )}
+        {renderPlaneSection(
+          'Cluster Observability Planes',
+          <VisibilityIcon className={classes.planeSectionIcon} />,
+          clusterObservabilityPlanes,
+          op =>
+            `/catalog/openchoreo-cluster/clusterobservabilityplane/${op.name}`,
+        )}
+      </Grid>
     </Box>
   );
 };

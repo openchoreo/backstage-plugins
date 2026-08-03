@@ -178,6 +178,21 @@ export type ThemeTokens = {
     labelPillFill: string;
   };
 
+  // ---- Motion / animation timing --------------------------------------------
+  // Single source of truth for loading/animation timing so shimmer, pulse,
+  // spin and fade-in read consistently everywhere. Colors for shimmer live in
+  // `graph.skeletonStops`; only timing/easing belong here.
+  motion: {
+    /** Shimmer/pulse cycle used by the Skeleton primitive and pulse effects. */
+    shimmerDuration: string;
+    /** Easing for the shimmer/pulse cycle. */
+    shimmerEasing: string;
+    /** Fade-in for content/overlays appearing after load. */
+    fadeInDuration: string;
+    /** Rotation cycle for spinners / refresh icons. */
+    spinDuration: string;
+  };
+
   // ---- Navigation ------------------------------------------------------------
   navigation: {
     background: string;
@@ -425,6 +440,13 @@ export const lightTokens: ThemeTokens = {
     labelPillFill: 'rgba(255, 255, 255, 0.75)',
   },
 
+  motion: {
+    shimmerDuration: '2s',
+    shimmerEasing: 'ease-in-out',
+    fadeInDuration: '300ms',
+    spinDuration: '1s',
+  },
+
   navigation: {
     background: '#ffffff',
     // Indicator bar darkened from #6c7fd8 to #5568c4 (5.04:1 on white).
@@ -651,6 +673,13 @@ export const darkTokens: ThemeTokens = {
     nodeShadowInner: 'rgba(0, 0, 0, 0.35)',
     nodeShadowOuter: 'rgba(0, 0, 0, 0.55)',
     labelPillFill: 'rgba(30, 30, 30, 0.65)',
+  },
+
+  motion: {
+    shimmerDuration: '2s',
+    shimmerEasing: 'ease-in-out',
+    fadeInDuration: '300ms',
+    spinDuration: '1s',
   },
 
   navigation: {

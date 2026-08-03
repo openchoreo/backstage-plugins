@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import {
   Content,
   Header,
   Page,
-  Progress,
   Table,
   TableColumn,
   WarningPanel,
@@ -22,8 +22,9 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import { useApi } from '@backstage/core-plugin-api';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { openChoreoClientApiRef } from '@openchoreo/backstage-plugin';
-import { useAsync } from 'react-use';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { useWorkflows } from '../../hooks/useWorkflows';
 import { NamespaceProvider, useNamespaceContext } from '../../context';
 import { TriggerWorkflowPage } from '../TriggerWorkflowPage';
@@ -113,18 +114,19 @@ const WorkflowsListContent = () => {
 
   // Fetch available namespaces
   const {
-    value: namespaces,
+    data: namespaces,
     loading: namespacesLoading,
     error: namespacesError,
-  } = useAsync(async () => {
-    return client.listNamespaces();
-  }, [client]);
+  } = useOpenChoreoQuery(['workflows', 'namespaces'], () =>
+    client.listNamespaces(),
+  );
 
   // Fetch workflows for the selected namespace (reads from context)
   const {
     workflows,
     loading: workflowsLoading,
     error: workflowsError,
+    isRefetching,
     refetch,
   } = useWorkflows();
 
@@ -198,7 +200,7 @@ const WorkflowsListContent = () => {
         </Box>
       )}
 
-      {selectedNamespace && workflowsLoading && <Progress />}
+      {selectedNamespace && workflowsLoading && <PageLoader />}
 
       {selectedNamespace && !workflowsLoading && (
         <>
@@ -213,7 +215,13 @@ const WorkflowsListContent = () => {
               <RefreshIcon />
             </IconButton>
           </Box>
-          <WorkflowsTable workflows={workflows} />
+          <Box position="relative">
+            <RefreshOverlay
+              active={isRefetching}
+              label="Refreshing workflows…"
+            />
+            <WorkflowsTable workflows={workflows} />
+          </Box>
         </>
       )}
     </Content>

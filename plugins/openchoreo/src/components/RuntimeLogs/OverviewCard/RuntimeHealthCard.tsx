@@ -5,7 +5,6 @@ import {
   CircularProgress,
   Tooltip,
 } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import { Link } from '@backstage/core-components';
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
 import RefreshIcon from '@material-ui/icons/Refresh';
@@ -14,7 +13,7 @@ import WarningIcon from '@material-ui/icons/Warning';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, Skeleton } from '@openchoreo/backstage-design-system';
 import {
   formatRelativeTime,
   useLogsPermission,

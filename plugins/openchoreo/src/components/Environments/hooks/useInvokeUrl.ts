@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { extractInvokeUrlFromTree } from '../utils/invokeUrlUtils';
@@ -21,18 +21,18 @@ export function useInvokeUrl(
 ) {
   const client = useApi(openChoreoClientApiRef);
 
-  const [invokeUrl, setInvokeUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchInvokeUrl = async () => {
-      // Only fetch if there's a deployment
-      if (!releaseName || !status || status === 'Failed') {
-        setInvokeUrl(null);
-        return;
-      }
-
-      setLoading(true);
+  const { data, loading, isRefetching } = useOpenChoreoQuery(
+    [
+      'invoke-url',
+      stringifyEntityRef(entity),
+      environmentName,
+      resourceName,
+      releaseName,
+      status,
+      dataPlaneRef,
+      releaseBindingName,
+    ],
+    async (): Promise<string | null> => {
       try {
         const namespaceName =
           entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
@@ -66,30 +66,17 @@ export function useInvokeUrl(
             namespaceName,
             releaseBindingName,
           );
-          const url = extractInvokeUrlFromTree(resourceTree, port);
-          setInvokeUrl(url);
-        } else {
-          setInvokeUrl(null);
+          return extractInvokeUrlFromTree(resourceTree, port);
         }
+        return null;
       } catch {
         // Silently fail - invoke URL is optional
-        setInvokeUrl(null);
-      } finally {
-        setLoading(false);
+        return null;
       }
-    };
+    },
+    // Only fetch if there's a deployment
+    { enabled: !!releaseName && !!status && status !== 'Failed' },
+  );
 
-    fetchInvokeUrl();
-  }, [
-    releaseName,
-    status,
-    environmentName,
-    resourceName,
-    dataPlaneRef,
-    releaseBindingName,
-    entity,
-    client,
-  ]);
-
-  return { invokeUrl, loading };
+  return { invokeUrl: data ?? null, loading, isRefetching };
 }

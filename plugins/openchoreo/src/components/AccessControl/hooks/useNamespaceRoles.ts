@@ -1,13 +1,25 @@
-import { useState, useCallback, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import {
+  useOpenChoreoQuery,
+  useOpenChoreoMutation,
+} from '@openchoreo/backstage-plugin-react';
 import {
   openChoreoClientApiRef,
   NamespaceRole,
 } from '../../../api/OpenChoreoClientApi';
 
+/** Query key for a namespace's role list. */
+const namespaceRolesKey = (namespace: string | undefined) => [
+  'access-control',
+  'namespace-roles',
+  namespace ?? null,
+];
+
 interface UseNamespaceRolesResult {
   roles: NamespaceRole[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   fetchRoles: () => Promise<void>;
   addRole: (role: NamespaceRole) => Promise<void>;
@@ -18,71 +30,49 @@ interface UseNamespaceRolesResult {
 export function useNamespaceRoles(
   namespace: string | undefined,
 ): UseNamespaceRolesResult {
-  const [roles, setRoles] = useState<NamespaceRole[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
   const client = useApi(openChoreoClientApiRef);
 
-  const fetchRoles = useCallback(async () => {
-    if (!namespace) {
-      setRoles([]);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await client.listNamespaceRoles(namespace);
-      setRoles(result);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  }, [client, namespace]);
-
-  const addRole = useCallback(
-    async (role: NamespaceRole) => {
-      await client.createNamespaceRole(role);
-      await fetchRoles();
-    },
-    [client, fetchRoles],
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
+    namespaceRolesKey(namespace),
+    () => client.listNamespaceRoles(namespace as string),
+    // No namespace → nothing to fetch (the old hook cleared the list early).
+    { enabled: !!namespace },
   );
 
-  const updateRole = useCallback(
-    async (name: string, role: Partial<NamespaceRole>) => {
-      if (!namespace) {
-        throw new Error('Namespace is required');
-      }
-      await client.updateNamespaceRole(namespace, name, role);
-      await fetchRoles();
-    },
-    [client, fetchRoles, namespace],
+  const invalidates = [namespaceRolesKey(namespace)];
+  const { mutate: addRole } = useOpenChoreoMutation(
+    (role: NamespaceRole) => client.createNamespaceRole(role),
+    { invalidates },
   );
-
-  const deleteRole = useCallback(
-    async (name: string) => {
-      if (!namespace) {
-        throw new Error('Namespace is required');
-      }
-      await client.deleteNamespaceRole(namespace, name);
-      await fetchRoles();
+  const { mutate: updateRole } = useOpenChoreoMutation(
+    (name: string, role: Partial<NamespaceRole>) => {
+      if (!namespace) throw new Error('Namespace is required');
+      return client.updateNamespaceRole(namespace, name, role);
     },
-    [client, fetchRoles, namespace],
+    { invalidates },
   );
-
-  useEffect(() => {
-    fetchRoles();
-  }, [fetchRoles]);
+  const { mutate: deleteRole } = useOpenChoreoMutation(
+    (name: string) => {
+      if (!namespace) throw new Error('Namespace is required');
+      return client.deleteNamespaceRole(namespace, name);
+    },
+    { invalidates },
+  );
 
   return {
-    roles,
+    roles: data ?? [],
     loading,
+    isRefetching,
     error,
-    fetchRoles,
-    addRole,
-    updateRole,
-    deleteRole,
+    fetchRoles: async () => refetch(),
+    addRole: async role => {
+      await addRole(role);
+    },
+    updateRole: async (name, role) => {
+      await updateRole(name, role);
+    },
+    deleteRole: async name => {
+      await deleteRole(name);
+    },
   };
 }

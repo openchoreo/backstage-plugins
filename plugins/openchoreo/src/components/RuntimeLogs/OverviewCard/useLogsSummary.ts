@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi, useApiHolder, createApiRef } from '@backstage/core-plugin-api';
+import { stringifyEntityRef } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { calculateTimeRange } from '../../../api/runtimeLogs';
 import type { LogEntry, Environment, LogsResponse } from '../types';
@@ -33,15 +34,17 @@ const observabilityApiRef = createApiRef<ObservabilityLogsApi>({
   id: 'plugin.openchoreo-observability.service',
 });
 
-interface LogsSummaryState {
+interface LogsSummaryData {
   errorCount: number;
   warningCount: number;
   lastActivityTime: string | null;
-  loading: boolean;
-  error: Error | null;
-  observabilityDisabled: boolean;
-  refreshing: boolean;
 }
+
+const EMPTY: LogsSummaryData = {
+  errorCount: 0,
+  warningCount: 0,
+  lastActivityTime: null,
+};
 
 /**
  * Hook for fetching log summary (error/warning counts) for the overview card.
@@ -51,145 +54,86 @@ export function useLogsSummary() {
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
   // Optional — see note in useIncidentsSummary.ts. When the observability plugin is not
-  // installed, useApiHolder().get() returns undefined and we short-circuit fetchData below
-  // by setting observabilityDisabled: true (the same state the backend sets when the
-  // cluster has observability turned off).
+  // installed, useApiHolder().get() returns undefined and we treat it as
+  // observability-disabled (the same state the backend sets when the cluster has
+  // observability turned off).
   const observabilityApi = useApiHolder().get(observabilityApiRef);
 
-  const [state, setState] = useState<LogsSummaryState>({
-    errorCount: 0,
-    warningCount: 0,
-    lastActivityTime: null,
-    loading: true,
-    error: null,
-    observabilityDisabled: false,
-    refreshing: false,
-  });
-
-  const fetchData = useCallback(async () => {
-    if (!observabilityApi) {
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: null,
-        observabilityDisabled: true,
-      }));
-      return;
-    }
-    try {
-      // Get environments
-      const environments: Environment[] = await client.getEnvironments(entity);
-
-      if (environments.length === 0) {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: null,
-        }));
-        return;
-      }
-
-      // Use first environment (usually the default/primary)
-      const selectedEnv = environments[0];
-      const componentName =
-        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
-      const projectName =
-        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-      const namespaceName =
-        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
-
-      if (!componentName || !projectName || !namespaceName) {
-        throw new Error(
-          'Component name, project, or namespace not found in annotations',
+  const { data, loading, isRefetching, error, refetch } =
+    useOpenChoreoQuery<LogsSummaryData>(
+      ['logs-summary', stringifyEntityRef(entity)],
+      async () => {
+        const environments: Environment[] = await client.getEnvironments(
+          entity,
         );
-      }
+        if (environments.length === 0) {
+          return EMPTY;
+        }
 
-      const { startTime, endTime } = calculateTimeRange('1h');
+        // Use first environment (usually the default/primary).
+        const selectedEnv = environments[0];
+        const componentName =
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+        const projectName =
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+        const namespaceName =
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-      // Call observer API directly via the observability plugin API
-      const data: LogsResponse = await observabilityApi.getRuntimeLogs(
-        namespaceName,
-        projectName,
-        selectedEnv.resourceName,
-        componentName,
-        {
-          limit: 100,
-          startTime,
-          endTime,
-          logLevels: [],
-        },
-      );
+        if (!componentName || !projectName || !namespaceName) {
+          throw new Error(
+            'Component name, project, or namespace not found in annotations',
+          );
+        }
 
-      // Count errors and warnings
-      const logs: LogEntry[] = data.logs || [];
-      const errorCount = logs.filter(log => log.level === 'ERROR').length;
-      const warningCount = logs.filter(log => log.level === 'WARN').length;
+        const { startTime, endTime } = calculateTimeRange('1h');
 
-      // Get last activity time (most recent log)
-      const lastActivityTime =
-        logs.length > 0 ? logs[0].timestamp ?? null : null;
+        const logsResponse: LogsResponse =
+          await observabilityApi!.getRuntimeLogs(
+            namespaceName,
+            projectName,
+            selectedEnv.resourceName,
+            componentName,
+            { limit: 100, startTime, endTime, logLevels: [] },
+          );
 
-      setState(prev => ({
-        ...prev,
-        errorCount,
-        warningCount,
-        lastActivityTime,
-        loading: false,
-        error: null,
-        observabilityDisabled: false,
-      }));
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch logs';
+        const logs: LogEntry[] = logsResponse.logs || [];
+        return {
+          errorCount: logs.filter(log => log.level === 'ERROR').length,
+          warningCount: logs.filter(log => log.level === 'WARN').length,
+          lastActivityTime: logs.length > 0 ? logs[0].timestamp ?? null : null,
+        };
+      },
+      { enabled: !!observabilityApi },
+    );
 
-      // Check if observability is disabled
-      if (errorMessage.includes('Observability is not enabled')) {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: null,
-          observabilityDisabled: true,
-        }));
-      } else {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: err as Error,
-        }));
-      }
-    }
-  }, [entity, client, observabilityApi]);
+  // "Observability disabled" = the plugin isn't installed (no API) OR the backend
+  // reported it's turned off for this cluster (a specific error message). Both
+  // suppress the error banner and just hide the summary.
+  const observabilityDisabled =
+    !observabilityApi ||
+    (error?.message.includes('Observability is not enabled') ?? false);
 
-  const refresh = useCallback(async () => {
-    setState(prev => ({ ...prev, refreshing: true }));
-    try {
-      await fetchData();
-    } finally {
-      setState(prev => ({ ...prev, refreshing: false }));
-    }
-  }, [fetchData]);
+  const errorCount = data?.errorCount ?? 0;
+  const warningCount = data?.warningCount ?? 0;
 
-  // Initial fetch
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // Determine health status based on error/warning counts
   const getHealthStatus = (): 'healthy' | 'warning' | 'error' => {
-    if (state.errorCount > 0) return 'error';
-    if (state.warningCount > 0) return 'warning';
+    if (errorCount > 0) return 'error';
+    if (warningCount > 0) return 'warning';
     return 'healthy';
   };
 
   return {
-    errorCount: state.errorCount,
-    warningCount: state.warningCount,
-    lastActivityTime: state.lastActivityTime,
+    errorCount,
+    warningCount,
+    lastActivityTime: data?.lastActivityTime ?? null,
     healthStatus: getHealthStatus(),
-    loading: state.loading,
-    error: state.error,
-    observabilityDisabled: state.observabilityDisabled,
-    refreshing: state.refreshing,
-    refresh,
+    loading,
+    // Suppress the "observability disabled" pseudo-error from the real error slot.
+    error: observabilityDisabled ? null : error,
+    observabilityDisabled,
+    refreshing: isRefetching,
+    refresh: async () => {
+      await refetch();
+    },
   };
 }

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography } from '@material-ui/core';
-import { Progress } from '@backstage/core-components';
+
 import { Alert } from '@material-ui/lab';
 import {
   useRcaPermission,
@@ -9,6 +10,7 @@ import {
   useProjectEnvironments,
 } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useFinOpsReport, useFilters } from '../../hooks';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { CostAnalysisReportView } from './CostAnalysisReportView';
@@ -32,6 +34,7 @@ const CostAnalysisReportContent = () => {
   const {
     report: detailedReport,
     loading,
+    isRefetching,
     error,
     refresh,
   } = useFinOpsReport(reportId, environment?.name, entity);
@@ -57,7 +60,7 @@ const CostAnalysisReportContent = () => {
   }, [discoveryApi]);
 
   if (loading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (error) {
@@ -128,15 +131,18 @@ const CostAnalysisReportContent = () => {
   };
 
   return (
-    <CostAnalysisReportView
-      report={detailedReport}
-      reportId={reportId!}
-      onBack={handleBack}
-      componentUrl={componentUrl}
-      metricsUrl={metricsUrl}
-      chatContext={chatContext}
-      onRecommendationApplied={refresh}
-    />
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing cost report" />
+      <CostAnalysisReportView
+        report={detailedReport}
+        reportId={reportId!}
+        onBack={handleBack}
+        componentUrl={componentUrl}
+        metricsUrl={metricsUrl}
+        chatContext={chatContext}
+        onRecommendationApplied={refresh}
+      />
+    </Box>
   );
 };
 
@@ -149,7 +155,7 @@ export const CostAnalysisReport = () => {
   } = useRcaPermission();
 
   if (permissionLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canViewRca) {

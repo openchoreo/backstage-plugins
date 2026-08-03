@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   useApi,
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { ModelsBuild } from '@openchoreo/backstage-plugin-common';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 
@@ -13,6 +13,8 @@ export type ReleaseReadinessAlertSeverity = 'error' | 'warning' | 'info';
 
 export interface UseReleaseReadinessResult {
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   /** True when a release can be created (workload exists and any required build succeeded). */
   canCreateRelease: boolean;
   /** When canCreateRelease is false, a human-readable reason. */
@@ -34,73 +36,63 @@ export const useReleaseReadiness = (
   const discovery = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
   const client = useApi(openChoreoClientApiRef);
+  const entityRef = stringifyEntityRef(entity);
 
-  const [workloadLoading, setWorkloadLoading] = useState(true);
-  const [hasWorkload, setHasWorkload] = useState(false);
-  const [builds, setBuilds] = useState<ModelsBuild[]>([]);
-  const [buildsLoading, setBuildsLoading] = useState(true);
+  // Workload existence: a successful fetch means it exists; any error means it
+  // doesn't (or isn't reachable) — the same swallow-to-false the old hook did.
+  const {
+    data: hasWorkload = false,
+    loading: workloadLoading,
+    isRefetching: workloadRefetching,
+  } = useOpenChoreoQuery<boolean>(
+    ['release-readiness', 'workload', entityRef],
+    () =>
+      client
+        .fetchWorkloadInfo(entity)
+        .then(() => true)
+        .catch(() => false),
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-    setWorkloadLoading(true);
-    const fetchWorkload = async () => {
-      try {
-        await client.fetchWorkloadInfo(entity);
-        if (!cancelled) setHasWorkload(true);
-      } catch {
-        if (!cancelled) setHasWorkload(false);
-      } finally {
-        if (!cancelled) setWorkloadLoading(false);
+  const {
+    data: builds = [],
+    loading: buildsLoading,
+    isRefetching: buildsRefetching,
+  } = useOpenChoreoQuery<ModelsBuild[]>(
+    ['release-readiness', 'builds', entityRef],
+    async () => {
+      const componentName = entity.metadata.name;
+      const projectName =
+        entity.metadata.annotations?.['openchoreo.io/project'];
+      const namespaceName =
+        entity.metadata.annotations?.['openchoreo.io/namespace'];
+      if (!projectName || !namespaceName || !componentName) {
+        return [];
       }
-    };
-    fetchWorkload();
-    return () => {
-      cancelled = true;
-    };
-  }, [entity, client]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setBuildsLoading(true);
-    const fetchBuilds = async () => {
+      const baseUrl = await discovery.getBaseUrl('openchoreo');
       try {
-        const componentName = entity.metadata.name;
-        const projectName =
-          entity.metadata.annotations?.['openchoreo.io/project'];
-        const namespaceName =
-          entity.metadata.annotations?.['openchoreo.io/namespace'];
-        const baseUrl = await discovery.getBaseUrl('openchoreo');
-
-        if (projectName && namespaceName && componentName) {
-          const response = await fetchApi.fetch(
-            `${baseUrl}/builds?componentName=${encodeURIComponent(
-              componentName,
-            )}&projectName=${encodeURIComponent(
-              projectName,
-            )}&namespaceName=${encodeURIComponent(namespaceName)}`,
-          );
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-          const data = await response.json();
-          if (!cancelled) setBuilds(data);
+        const response = await fetchApi.fetch(
+          `${baseUrl}/builds?componentName=${encodeURIComponent(
+            componentName,
+          )}&projectName=${encodeURIComponent(
+            projectName,
+          )}&namespaceName=${encodeURIComponent(namespaceName)}`,
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+        return (await response.json()) as ModelsBuild[];
       } catch {
-        if (!cancelled) setBuilds([]);
-      } finally {
-        if (!cancelled) setBuildsLoading(false);
+        // Builds are best-effort for readiness — degrade to none on failure.
+        return [];
       }
-    };
-    fetchBuilds();
-    return () => {
-      cancelled = true;
-    };
-  }, [entity.metadata.name, entity.metadata.annotations, fetchApi, discovery]);
+    },
+  );
 
   const isFromSource = isFromSourceComponent(entity);
   const hasBuilds = builds.length > 0;
   const hasSuccessfulBuild = builds.some(build => !!build.image);
   const loading = workloadLoading || buildsLoading;
+  const isRefetching = workloadRefetching || buildsRefetching;
 
   const canCreateRelease = (() => {
     if (loading) return false;
@@ -139,6 +131,7 @@ export const useReleaseReadiness = (
 
   return {
     loading,
+    isRefetching,
     canCreateRelease,
     alertMessage,
     alertSeverity,

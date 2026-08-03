@@ -4,6 +4,7 @@ import {
   discoveryApiRef,
   fetchApiRef,
   PageBlueprint,
+  PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
 import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
 
@@ -19,6 +20,22 @@ const genericWorkflowsClientApi = ApiBlueprint.make({
       deps: { discoveryApi: discoveryApiRef, fetchApi: fetchApiRef },
       factory: ({ discoveryApi, fetchApi }) =>
         new GenericWorkflowsClient(discoveryApi, fetchApi),
+    }),
+});
+
+// Wraps this plugin's own extensions in the TanStack Query provider (see the
+// openchoreo plugin's alpha for the full rationale). Shares the one `queryClient`
+// singleton across all OpenChoreo plugins.
+const queryProvider = PluginWrapperBlueprint.make({
+  name: 'query-provider',
+  params: defineParams =>
+    defineParams({
+      loader: async () => {
+        const { OpenChoreoQueryProvider } = await import(
+          '@openchoreo/backstage-plugin-react'
+        );
+        return { component: OpenChoreoQueryProvider };
+      },
     }),
 });
 
@@ -68,6 +85,7 @@ export default createFrontendPlugin({
   routes: { root: rootRouteRef },
   extensions: [
     genericWorkflowsClientApi,
+    queryProvider,
     genericWorkflowsPage,
     workflowRunsEntityContent,
   ],

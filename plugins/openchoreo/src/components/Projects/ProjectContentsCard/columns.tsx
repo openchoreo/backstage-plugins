@@ -1,7 +1,7 @@
 import { Link, TableColumn } from '@backstage/core-components';
 import { useApp } from '@backstage/core-plugin-api';
 import { Box, Tooltip, Typography } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
+import { Skeleton } from '@openchoreo/backstage-design-system';
 import LockIcon from '@material-ui/icons/LockOutlined';
 import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
 import { isMarkedForDeletion, DeletionBadge } from '../../DeleteEntity';

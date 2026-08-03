@@ -1,4 +1,5 @@
 import { useState, RefObject } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { createPortal } from 'react-dom';
 import {
   Typography,
@@ -10,11 +11,12 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import { Progress } from '@backstage/core-components';
+
 import {
   useRolePermissions,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { isForbiddenError } from '../../../utils/errorUtils';
 import { useNamespaceRoles, NamespaceRole } from '../hooks';
 import type { RoleInput } from './RoleDialog';
@@ -56,8 +58,16 @@ export const NamespaceRolesContent = ({
   } = useRolePermissions();
 
   const client = useApi(openChoreoClientApiRef);
-  const { roles, loading, error, fetchRoles, addRole, updateRole, deleteRole } =
-    useNamespaceRoles(selectedNamespace || undefined);
+  const {
+    roles,
+    loading,
+    isRefetching,
+    error,
+    fetchRoles,
+    addRole,
+    updateRole,
+    deleteRole,
+  } = useNamespaceRoles(selectedNamespace || undefined);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<NamespaceRole | undefined>(
@@ -114,7 +124,7 @@ export const NamespaceRolesContent = ({
   };
 
   if (permissionsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canView) {
@@ -157,7 +167,8 @@ export const NamespaceRolesContent = ({
   const hasForbiddenError = !loading && error && isForbiddenError(error);
 
   return (
-    <Box>
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing roles" />
       <NotificationBanner notification={notification.notification} />
       {!hasForbiddenError &&
         actionsContainerRef.current &&
@@ -171,7 +182,7 @@ export const NamespaceRolesContent = ({
         </Box>
       ) : (
         <>
-          {loading && <Progress />}
+          {loading && <PageLoader />}
           {!loading &&
             error &&
             (isForbiddenError(error) ? (

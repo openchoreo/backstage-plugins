@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from 'react';
 import {
   discoveryApiRef,
   fetchApiRef,
@@ -7,6 +6,7 @@ import {
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { Environment } from '../components/EnvironmentFilter/types';
+import { useOpenChoreoQuery } from './useOpenChoreoQuery';
 
 /**
  * Why the project's environment list is what it is. Lets callers show a
@@ -26,12 +26,41 @@ export type ProjectEnvironmentsStatus =
 export interface UseProjectEnvironmentsResult {
   environments: Environment[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   /** Discriminates why `environments` is empty. See {@link ProjectEnvironmentsStatus}. */
   status: ProjectEnvironmentsStatus;
   /** Raw error detail for the `unavailable` case (null otherwise). */
   error: string | null;
   /** Re-run the fetch (e.g. from a Retry button). */
   refetch: () => void;
+}
+
+/**
+ * The fetcher's success shape: the resolved environments plus the status that
+ * explains an empty list (`ok` vs `empty-pipeline`). The failure statuses
+ * (`forbidden`/`unavailable`) are carried on a thrown
+ * {@link ProjectEnvironmentsError} instead, so they never get cached as a
+ * successful result.
+ */
+interface ProjectEnvironmentsData {
+  environments: Environment[];
+  status: 'ok' | 'empty-pipeline';
+}
+
+/**
+ * Error thrown by the fetcher so the caller can map it back to a
+ * `forbidden`/`unavailable` status. Kept out of the cache by
+ * `useOpenChoreoQuery` (thrown errors land in `error`, never in `data`).
+ */
+class ProjectEnvironmentsError extends Error {
+  constructor(
+    public readonly status: 'forbidden' | 'unavailable',
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ProjectEnvironmentsError';
+  }
 }
 
 /**
@@ -45,46 +74,33 @@ export const useProjectEnvironments = (
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
   const catalogApi = useApi(catalogApiRef);
-  const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<ProjectEnvironmentsStatus>('ok');
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
 
-  const refetch = useCallback(() => setReloadToken(token => token + 1), []);
+  const enabled = Boolean(projectName && namespaceName);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!projectName || !namespaceName) {
-      setEnvironments([]);
-      setStatus('ok');
-      setLoading(false);
-      setError(null);
-      return undefined;
-    }
-    setLoading(true);
-    setError(null);
+  const { data, loading, isRefetching, error, refetch } =
+    useOpenChoreoQuery<ProjectEnvironmentsData>(
+      ['project-environments', projectName ?? '', namespaceName ?? ''],
+      async (): Promise<ProjectEnvironmentsData> => {
+        if (!projectName || !namespaceName) {
+          return { environments: [], status: 'ok' };
+        }
 
-    (async () => {
-      try {
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
         const params = new URLSearchParams({ projectName, namespaceName });
         const res = await fetchApi.fetch(
           `${baseUrl}/deployment-pipeline?${params.toString()}`,
         );
         if (!res.ok) {
-          if (cancelled) return;
-          setEnvironments([]);
           if (res.status === 403) {
-            setStatus('forbidden');
-            setError(null);
-          } else {
-            setStatus('unavailable');
-            setError(
-              `Failed to load deployment pipeline: ${res.status} ${res.statusText}`,
+            throw new ProjectEnvironmentsError(
+              'forbidden',
+              'You do not have permission to view this deployment pipeline.',
             );
           }
-          return;
+          throw new ProjectEnvironmentsError(
+            'unavailable',
+            `Failed to load deployment pipeline: ${res.status} ${res.statusText}`,
+          );
         }
         const pipeline = await res.json();
 
@@ -113,11 +129,7 @@ export const useProjectEnvironments = (
         }
 
         if (orderedEnvNames.length === 0) {
-          if (!cancelled) {
-            setEnvironments([]);
-            setStatus('empty-pipeline');
-          }
-          return;
+          return { environments: [], status: 'empty-pipeline' };
         }
 
         const { items } = await catalogApi.getEntities({
@@ -129,7 +141,6 @@ export const useProjectEnvironments = (
             'metadata.annotations',
           ],
         });
-        if (cancelled) return;
 
         const byName = new Map(items.map(e => [e.metadata.name, e]));
         const resolved: Environment[] = orderedEnvNames.map(name => {
@@ -146,36 +157,36 @@ export const useProjectEnvironments = (
           };
         });
 
-        if (!cancelled) {
-          setEnvironments(resolved);
-          setStatus('ok');
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setEnvironments([]);
-          setStatus('unavailable');
-          setError(
-            err instanceof Error
-              ? err.message
-              : 'Failed to load project environments',
-          );
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
+        return { environments: resolved, status: 'ok' };
+      },
+      { enabled },
+    );
 
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    projectName,
-    namespaceName,
-    discoveryApi,
-    fetchApi,
-    catalogApi,
-    reloadToken,
-  ]);
+  // Map the query result back onto the discriminated status contract callers
+  // depend on (see EnvironmentsStatusNotice). A thrown ProjectEnvironmentsError
+  // carries its own status; any other error is treated as `unavailable`.
+  let status: ProjectEnvironmentsStatus = 'ok';
+  let errorDetail: string | null = null;
+  if (error) {
+    if (error instanceof ProjectEnvironmentsError) {
+      status = error.status;
+      // Only the `unavailable` case surfaces a raw message; forbidden is
+      // rendered from its own copy in EnvironmentsStatusNotice.
+      errorDetail = error.status === 'unavailable' ? error.message : null;
+    } else {
+      status = 'unavailable';
+      errorDetail = error.message || 'Failed to load project environments';
+    }
+  } else if (data) {
+    status = data.status;
+  }
 
-  return { environments, loading, status, error, refetch };
+  return {
+    environments: data?.environments ?? [],
+    loading,
+    isRefetching,
+    status,
+    error: errorDetail,
+    refetch,
+  };
 };

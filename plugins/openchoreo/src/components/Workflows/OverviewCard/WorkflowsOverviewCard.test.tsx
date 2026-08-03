@@ -6,6 +6,7 @@ import { WorkflowsOverviewCard } from './WorkflowsOverviewCard';
 // ---- Mocks ----
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
+  ...jest.requireActual('@openchoreo/backstage-design-system'),
   Card: ({ children, ...rest }: any) => (
     <div data-testid="ds-card" {...rest}>
       {children}
@@ -102,6 +103,7 @@ describe('WorkflowsOverviewCard', () => {
     renderCard();
 
     expect(screen.getByTestId('ds-card')).toBeInTheDocument();
+    expect(screen.getAllByTestId('skeleton').length).toBeGreaterThan(0);
     expect(screen.queryByText('Workflows')).not.toBeInTheDocument();
   });
 

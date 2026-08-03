@@ -1,5 +1,8 @@
 import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
-import { transformProjectReleaseBinding } from './project-release-binding';
+import {
+  transformProjectReleaseBinding,
+  deriveProjectDeploymentStatus,
+} from './project-release-binding';
 
 type ProjectReleaseBinding =
   OpenChoreoComponents['schemas']['ProjectReleaseBinding'];
@@ -100,5 +103,68 @@ describe('transformProjectReleaseBinding', () => {
     expect(condition.status).toBe('');
     expect(condition.reason).toBe('Reconciling');
     expect(condition.message).toBe('still working');
+  });
+});
+
+describe('deriveProjectDeploymentStatus', () => {
+  const withConditions = (
+    conditions: Array<{ type: string; status: string }>,
+  ) => makeBinding({ status: { conditions } as any });
+
+  it('returns not-deployed when there is no binding', () => {
+    expect(deriveProjectDeploymentStatus(undefined)).toBe('not-deployed');
+  });
+
+  it('returns ready when NamespaceReady is True', () => {
+    expect(
+      deriveProjectDeploymentStatus(
+        withConditions([{ type: 'NamespaceReady', status: 'True' }]),
+      ),
+    ).toBe('ready');
+  });
+
+  it('keys off NamespaceReady, not the aggregate Ready — ready even when ResourcesReady is False', () => {
+    expect(
+      deriveProjectDeploymentStatus(
+        withConditions([
+          { type: 'NamespaceReady', status: 'True' },
+          { type: 'ResourcesReady', status: 'False' },
+          { type: 'Ready', status: 'False' },
+        ]),
+      ),
+    ).toBe('ready');
+  });
+
+  it('returns pending when NamespaceReady is False', () => {
+    expect(
+      deriveProjectDeploymentStatus(
+        withConditions([{ type: 'NamespaceReady', status: 'False' }]),
+      ),
+    ).toBe('pending');
+  });
+
+  it('returns pending when NamespaceReady is Unknown (unpinned ProjectReleaseNotSet)', () => {
+    expect(
+      deriveProjectDeploymentStatus(
+        withConditions([
+          { type: 'Synced', status: 'False' },
+          { type: 'NamespaceReady', status: 'Unknown' },
+        ]),
+      ),
+    ).toBe('pending');
+  });
+
+  it('returns pending when NamespaceReady condition is absent', () => {
+    expect(
+      deriveProjectDeploymentStatus(
+        withConditions([{ type: 'Ready', status: 'True' }]),
+      ),
+    ).toBe('pending');
+  });
+
+  it('returns pending when the binding has no status/conditions yet', () => {
+    expect(
+      deriveProjectDeploymentStatus(makeBinding({ status: undefined })),
+    ).toBe('pending');
   });
 });

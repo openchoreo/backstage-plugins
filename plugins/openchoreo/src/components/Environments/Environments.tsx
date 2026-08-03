@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 
 import { useNotification } from '../../hooks';
@@ -47,7 +47,7 @@ export const Environments = ({
   const { navigateToList } = useEnvironmentRouting();
 
   // Data fetching
-  const { environments, loading, error, isForbidden, refetch } =
+  const { environments, loading, error, isRefetching, isForbidden, refetch } =
     useEnvironmentData(entity);
   const { displayEnvironments, isPending } = useStaleEnvironments(environments);
 
@@ -91,6 +91,22 @@ export const Environments = ({
   // Polling for pending deployments
   useEnvironmentPolling(isPending, refetch);
 
+  // Refetch when the user returns to this browser tab. The "Deploy project in
+  // project view" hand-off opens the project's Deploy tab in another tab; on
+  // return, refetching lifts the project-not-deployed block (deploy/promote
+  // re-enables) without a manual refresh.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refetch();
+    };
+    window.addEventListener('focus', onVisible);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', onVisible);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [refetch]);
+
   // Check if workload editor is supported
   const isWorkloadEditorSupported = useMemo(
     () =>
@@ -132,7 +148,8 @@ export const Environments = ({
       environments,
       displayEnvironments,
       loading,
-      error: isForbidden ? undefined : error,
+      error: isForbidden ? undefined : error ?? undefined,
+      isRefetching,
       refetch,
       lowestEnvironment: environments[0]?.name?.toLowerCase() || 'development',
       isWorkloadEditorSupported,
@@ -159,6 +176,7 @@ export const Environments = ({
       loading,
       error,
       isForbidden,
+      isRefetching,
       refetch,
       isWorkloadEditorSupported,
       handlePendingActionComplete,

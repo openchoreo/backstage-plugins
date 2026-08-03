@@ -1,5 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import {
+  useOpenChoreoMutation,
+  useOpenChoreoQuery,
+} from '@openchoreo/backstage-plugin-react';
 import {
   openChoreoClientApiRef,
   CreateSecretRequest,
@@ -11,6 +14,8 @@ import { isForbiddenError } from '../../../utils/errorUtils';
 export interface UseSecretsResult {
   secrets: Secret[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   isForbidden: boolean;
   fetchSecrets: () => Promise<void>;
@@ -23,77 +28,56 @@ export interface UseSecretsResult {
 }
 
 export function useSecrets(namespaceName: string): UseSecretsResult {
-  const [secrets, setSecrets] = useState<Secret[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
   const client = useApi(openChoreoClientApiRef);
+  const secretsKey = ['secrets', namespaceName];
 
-  const fetchSecrets = useCallback(async () => {
-    if (!namespaceName) {
-      setSecrets([]);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await client.listSecrets(namespaceName);
-      setSecrets(response.items || []);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error('Failed to fetch secrets'),
-      );
-      setSecrets([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [client, namespaceName]);
-
-  const createSecret = useCallback(
-    async (request: CreateSecretRequest): Promise<Secret> => {
-      const secret = await client.createSecret(namespaceName, request);
-      await fetchSecrets();
-      return secret;
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
+    secretsKey,
+    async () => {
+      try {
+        const response = await client.listSecrets(namespaceName);
+        return response.items ?? [];
+      } catch (err) {
+        // Normalise non-Error rejections so `error` is always an Error with a
+        // usable message (matches the pre-cache hand-rolled behaviour).
+        throw err instanceof Error ? err : new Error('Failed to fetch secrets');
+      }
     },
-    [client, namespaceName, fetchSecrets],
+    { enabled: !!namespaceName },
   );
 
-  const updateSecret = useCallback(
-    async (
-      secretName: string,
-      request: UpdateSecretRequest,
-    ): Promise<Secret> => {
-      const secret = await client.updateSecret(
-        namespaceName,
-        secretName,
-        request,
-      );
-      await fetchSecrets();
-      return secret;
-    },
-    [client, namespaceName, fetchSecrets],
+  // Each write invalidates the list so it refreshes from one call — replaces
+  // the hand-rolled `await fetchSecrets()` that used to follow every mutation.
+  const { mutate: createSecret } = useOpenChoreoMutation<
+    [CreateSecretRequest],
+    Secret
+  >(request => client.createSecret(namespaceName, request), {
+    invalidates: [secretsKey],
+  });
+
+  const { mutate: updateSecret } = useOpenChoreoMutation<
+    [string, UpdateSecretRequest],
+    Secret
+  >(
+    (secretName, request) =>
+      client.updateSecret(namespaceName, secretName, request),
+    { invalidates: [secretsKey] },
   );
 
-  const deleteSecret = useCallback(
-    async (secretName: string): Promise<void> => {
-      await client.deleteSecret(namespaceName, secretName);
-      await fetchSecrets();
-    },
-    [client, namespaceName, fetchSecrets],
+  const { mutate: deleteSecret } = useOpenChoreoMutation<[string], void>(
+    secretName => client.deleteSecret(namespaceName, secretName),
+    { invalidates: [secretsKey] },
   );
-
-  useEffect(() => {
-    fetchSecrets();
-  }, [fetchSecrets]);
 
   return {
-    secrets,
+    secrets: data ?? [],
     loading,
+    isRefetching,
     error,
     isForbidden: isForbiddenError(error),
-    fetchSecrets,
+    fetchSecrets: async () => {
+      await refetch();
+    },
     createSecret,
     updateSecret,
     deleteSecret,

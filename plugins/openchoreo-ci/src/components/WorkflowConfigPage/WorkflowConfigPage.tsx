@@ -383,6 +383,7 @@ export const WorkflowConfigPage = ({
       alertApi.post({
         message: 'Workflow configuration successfully updated',
         severity: 'success',
+        display: 'transient',
       });
       onSaved();
       onBack();

@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useApi } from '@backstage/core-plugin-api';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useFinOpsReport } from './useFinOpsReport';
 
 jest.mock('@backstage/core-plugin-api', () => {
@@ -40,8 +41,9 @@ describe('useFinOpsReport', () => {
   it('fetches report when reportId and environmentName are provided', async () => {
     getFinOpsReport.mockResolvedValueOnce(mockReport);
 
-    const { result } = renderHook(() =>
-      useFinOpsReport('report-1', 'development', entity as any),
+    const { result } = renderHook(
+      () => useFinOpsReport('report-1', 'development', entity as any),
+      { wrapper: createQueryWrapper() },
     );
 
     expect(result.current.loading).toBe(true);
@@ -58,8 +60,9 @@ describe('useFinOpsReport', () => {
   });
 
   it('does not fetch when reportId is undefined', async () => {
-    const { result } = renderHook(() =>
-      useFinOpsReport(undefined, 'development', entity as any),
+    const { result } = renderHook(
+      () => useFinOpsReport(undefined, 'development', entity as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -69,8 +72,9 @@ describe('useFinOpsReport', () => {
   });
 
   it('does not fetch when environmentName is undefined', async () => {
-    const { result } = renderHook(() =>
-      useFinOpsReport('report-1', undefined, entity as any),
+    const { result } = renderHook(
+      () => useFinOpsReport('report-1', undefined, entity as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -85,8 +89,10 @@ describe('useFinOpsReport', () => {
       metadata: { name: 'project-a', annotations: {} },
     };
 
-    const { result } = renderHook(() =>
-      useFinOpsReport('report-1', 'development', entityNoNamespace as any),
+    const { result } = renderHook(
+      () =>
+        useFinOpsReport('report-1', 'development', entityNoNamespace as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -98,8 +104,9 @@ describe('useFinOpsReport', () => {
   it('sets error on API failure', async () => {
     getFinOpsReport.mockRejectedValueOnce(new Error('Network error'));
 
-    const { result } = renderHook(() =>
-      useFinOpsReport('report-1', 'development', entity as any),
+    const { result } = renderHook(
+      () => useFinOpsReport('report-1', 'development', entity as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -111,8 +118,9 @@ describe('useFinOpsReport', () => {
   it('sets generic error message for non-Error rejections', async () => {
     getFinOpsReport.mockRejectedValueOnce('unexpected');
 
-    const { result } = renderHook(() =>
-      useFinOpsReport('report-1', 'development', entity as any),
+    const { result } = renderHook(
+      () => useFinOpsReport('report-1', 'development', entity as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -125,8 +133,9 @@ describe('useFinOpsReport', () => {
       .mockResolvedValueOnce(mockReport)
       .mockResolvedValueOnce({ ...mockReport, status: 'completed' as const });
 
-    const { result } = renderHook(() =>
-      useFinOpsReport('report-1', 'development', entity as any),
+    const { result } = renderHook(
+      () => useFinOpsReport('report-1', 'development', entity as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));

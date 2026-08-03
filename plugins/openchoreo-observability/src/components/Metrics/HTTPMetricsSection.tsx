@@ -40,53 +40,28 @@ export const HTTPMetricsSection = ({
       filters.environment?.dataPlaneRef,
     );
   const httpEnabled = networkPolicyProvider === 'cilium';
-  const { metrics, error, fetchMetrics } = useMetrics(
+  // Auto-fetches (and refetches when the filters in its key change) once
+  // gated on `httpEnabled` — replacing the old imperative filter-change effect.
+  const { metrics, error, fetchMetrics, refresh } = useMetrics(
     filters,
     entity,
     namespaceName,
     project,
     'http',
+    httpEnabled,
   );
   const httpMetrics = metrics as HttpMetrics;
 
-  const previousFiltersRef = useRef({
-    environment: undefined as string | undefined,
-    timeRange: undefined as string | undefined,
-  });
+  // Filters live in the query key, so a filter change refetches on its own.
+  // Only the parent's explicit refresh (a `refreshNonce` bump, same key) needs
+  // a manual poke.
   const previousRefreshNonceRef = useRef(refreshNonce);
-
   useEffect(() => {
-    if (!httpEnabled) {
-      return;
+    if (previousRefreshNonceRef.current !== refreshNonce) {
+      previousRefreshNonceRef.current = refreshNonce;
+      if (httpEnabled) refresh();
     }
-
-    const currentFilters = {
-      environment: filters.environment?.name,
-      timeRange: filters.timeRange,
-    };
-
-    const filtersChanged =
-      JSON.stringify(previousFiltersRef.current) !==
-      JSON.stringify(currentFilters);
-    const refreshRequested = previousRefreshNonceRef.current !== refreshNonce;
-
-    if (
-      filters.environment &&
-      filters.timeRange &&
-      (filtersChanged || refreshRequested)
-    ) {
-      fetchMetrics(true);
-    }
-
-    previousFiltersRef.current = currentFilters;
-    previousRefreshNonceRef.current = refreshNonce;
-  }, [
-    httpEnabled,
-    filters.environment,
-    filters.timeRange,
-    fetchMetrics,
-    refreshNonce,
-  ]);
+  }, [refreshNonce, httpEnabled, refresh]);
 
   if (netPolLoading || !httpEnabled) {
     return null;

@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import {
   openChoreoClientApiRef,
   UserTypeConfig,
@@ -40,38 +40,27 @@ export function getEntitlementDisplayName(
 interface UseUserTypesResult {
   userTypes: UserTypeConfig[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   fetchUserTypes: () => Promise<void>;
 }
 
 export function useUserTypes(): UseUserTypesResult {
-  const [userTypes, setUserTypes] = useState<UserTypeConfig[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
   const client = useApi(openChoreoClientApiRef);
 
-  const fetchUserTypes = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await client.listUserTypes();
-      setUserTypes(result);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  }, [client]);
-
-  useEffect(() => {
-    fetchUserTypes();
-  }, [fetchUserTypes]);
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
+    ['user-types'],
+    () => client.listUserTypes(),
+  );
 
   return {
-    userTypes,
+    userTypes: data ?? [],
     loading,
+    isRefetching,
     error,
-    fetchUserTypes,
+    fetchUserTypes: async () => {
+      await refetch();
+    },
   };
 }

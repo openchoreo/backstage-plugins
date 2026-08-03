@@ -7,125 +7,37 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
-import { OpenChoreoAuthModule } from '@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth';
-import { rootHttpRouterServiceFactory } from '@backstage/backend-defaults/rootHttpRouter';
-import {
-  immediateCatalogServiceFactory,
-  annotationStoreFactory,
-} from '@openchoreo/backstage-plugin-catalog-backend-module';
-import { createIdpTokenHeaderMiddleware } from '@openchoreo/openchoreo-auth';
+import { portalBackendFeatures } from '@openchoreo/backstage-portal-backend';
+
+// Guest mode: when OpenChoreo auth is explicitly disabled, the portal has no
+// IDP and needs guest sign-in plus an open default auth policy. These feed the
+// ${...} substitutions in app-config.yaml / app-config.production.yaml; any
+// other value (including unset) leaves them undefined so Backstage's secure
+// defaults apply. Explicitly set env vars are never overridden (??=).
+if (process.env.OPENCHOREO_FEATURES_AUTH_ENABLED === 'false') {
+  process.env.BACKSTAGE_DANGEROUSLY_DISABLE_DEFAULT_AUTH_POLICY ??= 'true';
+  process.env.BACKSTAGE_GUEST_DANGEROUSLY_ALLOW_OUTSIDE_DEVELOPMENT ??= 'true';
+}
 
 const backend = createBackend();
 
-// Configure root HTTP router with IDP token header middleware
-// This middleware reads the IDP token from headers and makes it available
-// to ALL routes via AsyncLocalStorage, which is critical for the permission
-// system to access the user's IDP token when making authorization decisions.
-backend.add(
-  rootHttpRouterServiceFactory({
-    configure: ({ app, applyDefaults }) => {
-      // IDP token middleware — reads the IDP token from the x-openchoreo-token
-      // header and establishes the AsyncLocalStorage context so
-      // getUserTokenFromContext() works in the permission policy and elsewhere.
-      // Registered before applyDefaults() so it wraps all route handlers.
-      app.use(createIdpTokenHeaderMiddleware());
-
-      // applyDefaults() applies the standard middleware stack ONCE:
-      // helmet, cors, compression, logging, rateLimit, then routes + error
-      // handling. Do NOT re-apply any of these manually here.
-      applyDefaults();
-    },
-  }),
-);
-backend.add(immediateCatalogServiceFactory);
-backend.add(annotationStoreFactory);
-
-backend.add(import('@backstage/plugin-app-backend'));
-backend.add(import('@backstage/plugin-proxy-backend'));
-backend.add(import('@backstage/plugin-scaffolder-backend'));
-backend.add(import('@backstage/plugin-scaffolder-backend-module-github'));
-backend.add(import('@backstage/plugin-techdocs-backend'));
-
-// auth plugin
-backend.add(import('@backstage/plugin-auth-backend'));
-// See https://backstage.io/docs/backend-system/building-backends/migrating#the-auth-plugin
-
-// Auth providers - both registered, but each checks config to determine if it should activate
-// OpenChoreo Auth provider - works with any OIDC-compliant IDP (active when openchoreo.features.auth.enabled = true)
-backend.add(OpenChoreoAuthModule);
-// Guest provider for development/demo mode (active when openchoreo.features.auth.enabled = false)
-backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
-// Github provider
-backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
-// events plugin — receives webhook POSTs and publishes to EventsService
-backend.add(import('@backstage/plugin-events-backend'));
-
-// catalog plugin
-backend.add(import('@backstage/plugin-catalog-backend'));
-backend.add(
-  import('@backstage/plugin-catalog-backend-module-scaffolder-entity-model'),
-);
-
-// See https://backstage.io/docs/features/software-catalog/configuration#subscribing-to-catalog-errors
-backend.add(import('@backstage/plugin-catalog-backend-module-logs'));
-
-// permission plugin
-backend.add(import('@backstage/plugin-permission-backend'));
-// OpenChoreo permission policy - handles openchoreo.* permissions via /authz/profile API
-// Falls back to ALLOW for non-OpenChoreo permissions (composable with other policies)
-backend.add(
-  import(
-    '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy'
-  ),
-);
-
-// search plugin
-backend.add(import('@backstage/plugin-search-backend'));
-
-// search engine
-// See https://backstage.io/docs/features/search/search-engines
-backend.add(import('@backstage/plugin-search-backend-module-pg'));
-
-// search collators
-backend.add(import('@backstage/plugin-search-backend-module-catalog'));
-
-// user settings plugin - enables centralized storage for starred entities and user preferences
-backend.add(import('@backstage/plugin-user-settings-backend'));
-
-// IMPORTANT: catalog-backend-module MUST be registered before openchoreo-backend
-// because openchoreo-backend depends on the AnnotationStore which is initialized
-// by the catalog module.
-backend.add(import('@openchoreo/backstage-plugin-catalog-backend-module'));
-backend.add(import('@openchoreo/backstage-plugin-backend'));
-backend.add(import('@openchoreo/backstage-plugin-scaffolder-backend-module'));
-backend.add(
-  import(
-    '@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users'
-  ),
-);
-backend.add(
-  import('@openchoreo/backstage-plugin-platform-engineer-core-backend'),
-);
-// backend.add(import('@openchoreo/backstage-plugin-home-backend'));
-backend.add(
-  import('@openchoreo/backstage-plugin-openchoreo-observability-backend'),
-);
-backend.add(import('@openchoreo/backstage-plugin-openchoreo-ci-backend'));
+// The full portal backend composition: the root HTTP router with the IDP
+// token header middleware, Backstage core plugins, the Jenkins CI
+// integration, and all OpenChoreo backend plugins, modules, and service
+// factories.
+backend.add(portalBackendFeatures);
 
 // External CI Platform Integrations
-// Jenkins: Handles missing config gracefully (API calls fail, not startup)
-backend.add(import('@backstage-community/plugin-jenkins-backend'));
 // GitLab: Requires integrations.gitlab config at startup. Uncomment after configuring in app-config.local.yaml
 // For production, config is in app-config.production.yaml with Helm-injected env vars
 // backend.add(import('@immobiliarelabs/backstage-plugin-gitlab-backend'));
 
-backend.add(
-  import('@openchoreo/backstage-plugin-openchoreo-workflows-backend'),
-);
 // Portal Assistant backend — forwards Portal Assistant frontend traffic to the
 // portal-assistant service in the OpenChoreo control plane. Plugin
 // self-disables when openchoreo.portalAssistantUrl is not set.
+// (Private package — deliberately not part of the published portal bundle.)
 backend.add(
   import('@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend'),
 );
+
 backend.start();

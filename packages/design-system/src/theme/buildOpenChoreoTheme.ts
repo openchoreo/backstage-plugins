@@ -203,9 +203,6 @@ export function buildOpenChoreoTheme(t: ThemeTokens): UnifiedTheme {
           'body, html': {
             fontFamily: `${fontFamily} !important`,
           },
-          'nav[aria-label="sidebar nav"] hr': {
-            opacity: 0.2,
-          },
           'g[data-testid="node"] rect': {
             '&.primary': {
               fill: `${t.primary.dark} !important`,

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Content, Progress, InfoCard } from '@backstage/core-components';
+import { Content, InfoCard } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Alert, AlertTitle } from '@material-ui/lab';
 import { Box, Button, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { RjsfForm } from '@openchoreo/backstage-design-system';
+import { RjsfForm, PageLoader } from '@openchoreo/backstage-design-system';
 import type { RJSFSchema, UiSchema } from '@rjsf/utils';
 import type { IChangeEvent } from '@rjsf/core';
 import { useWorkflowSchema } from '../../hooks/useWorkflowSchema';
@@ -70,7 +70,7 @@ export const WorkflowTriggerContent = () => {
   if (loading) {
     return (
       <Content>
-        <Progress />
+        <PageLoader />
       </Content>
     );
   }

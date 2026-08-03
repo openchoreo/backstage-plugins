@@ -1,12 +1,14 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { TestApiProvider } from '@backstage/test-utils';
 import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useCellEnvironments } from './useCellEnvironments';
 
 // Mock useProjectEnvironments directly; we only exercise the Cilium probe
-// layered on top.
+// layered on top. Spread the real module so the hook's own
+// `useOpenChoreoQuery` import survives the mock.
 const mockUseProjectEnvironments = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  ...jest.requireActual('@openchoreo/backstage-plugin-react'),
   useProjectEnvironments: (...args: any[]) =>
     mockUseProjectEnvironments(...args),
 }));
@@ -22,16 +24,10 @@ const errResponse = (status: number) =>
 
 function setup() {
   return renderHook(() => useCellEnvironments('proj-1', 'ns-1'), {
-    wrapper: ({ children }) => (
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi as any],
-          [fetchApiRef, mockFetchApi as any],
-        ]}
-      >
-        {children}
-      </TestApiProvider>
-    ),
+    wrapper: createQueryWrapper([
+      [discoveryApiRef, mockDiscoveryApi as any],
+      [fetchApiRef, mockFetchApi as any],
+    ]),
   });
 }
 
@@ -191,6 +187,36 @@ describe('useCellEnvironments', () => {
     const { result } = setup();
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.environments).toEqual([]);
+  });
+
+  it('keeps loading=false during a background refetch (does not blank on refresh)', async () => {
+    // Regression: a background refresh must not fold into `loading`, or the
+    // cell diagram re-shows its full skeleton every staleTime window instead of
+    // keeping the cached diagram on screen.
+    mockUseProjectEnvironments.mockReturnValue({
+      environments: [
+        {
+          name: 'dev',
+          namespace: 'ns-1',
+          dataPlaneRef: { name: 'dp-1', kind: 'DataPlane' },
+        },
+      ],
+      loading: false,
+      error: null,
+    });
+    mockFetchApi.fetch.mockResolvedValue(
+      okResponse({ networkPolicyProvider: 'cilium' }),
+    );
+
+    const { result, rerender } = setup();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.environments).toHaveLength(1);
+
+    // Force a refetch and assert loading stays false throughout — only
+    // isRefetching may flip. Data remains on screen.
+    rerender();
+    expect(result.current.loading).toBe(false);
+    expect(result.current.environments).toHaveLength(1);
   });
 
   it('defaults dataPlaneRef.kind to DataPlane in the probe params', async () => {

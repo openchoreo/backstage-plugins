@@ -35,12 +35,19 @@ article.bui-Card {
  * white in light mode, so #383838 reads as hard near-black lines. Soften
  * to a subtle grey in light mode; keep #383838 in dark mode where it
  * blends correctly with the dark sidebar.
+ *
+ * Target the divider via the sidebar-nav `hr` element, NOT a
+ * `BackstageSidebarDivider-root` class prefix: in the production bundle JSS
+ * mangles the class to a bare `jss4-NN` (no component-name prefix), so the
+ * class-prefix selector matched nothing and the dark #383838 leaked through
+ * (fine in dev, broken in prod). The `nav[aria-label="sidebar nav"] hr`
+ * selector is class-independent and stable across dev and prod.
  */
-[class*='BackstageSidebarDivider-root'] {
+nav[aria-label='sidebar nav'] hr {
   background-color: #f3f4f6 !important;
 }
 
-[data-theme-mode='dark'] [class*='BackstageSidebarDivider-root'] {
+[data-theme-mode='dark'] nav[aria-label='sidebar nav'] hr {
   background-color: #383838 !important;
 }
 

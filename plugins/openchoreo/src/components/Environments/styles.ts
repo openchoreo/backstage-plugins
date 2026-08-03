@@ -413,6 +413,27 @@ export const useDeployFlowCanvasStyles = makeStyles(theme => ({
     borderRadius: 12,
     overflow: 'hidden',
   },
+  /**
+   * Subtle "refreshing" affordance pinned to the canvas's top-right, shown
+   * during a background revalidation (revisit tab / poll / post-action
+   * refetch). The nodes stay mounted underneath — now that responses are
+   * cached, a refetch no longer blanks the Deploy tab. Anchored inside the
+   * relatively-positioned canvasFrame so it tracks the diagram, not the
+   * detail panel.
+   */
+  canvasRefetchOverlay: {
+    position: 'absolute',
+    top: theme.spacing(1),
+    right: theme.spacing(1),
+    display: 'flex',
+    alignItems: 'center',
+    padding: theme.spacing(0.5, 1),
+    borderRadius: theme.shape.borderRadius,
+    backgroundColor: theme.palette.background.paper,
+    boxShadow: theme.shadows[1],
+    pointerEvents: 'none',
+    zIndex: 5,
+  },
   skeletonCanvasInner: {
     position: 'absolute',
     inset: 0,

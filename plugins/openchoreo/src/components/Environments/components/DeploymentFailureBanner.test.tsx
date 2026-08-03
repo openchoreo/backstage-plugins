@@ -78,4 +78,19 @@ describe('DeploymentFailureBanner', () => {
     await user.click(screen.getByRole('button', { name: /close/i }));
     await waitForElementToBeRemoved(() => screen.queryByRole('dialog'));
   });
+
+  it('prepends the plain-language lead line when the failure is the project not being deployed', () => {
+    render(
+      <DeploymentFailureBanner
+        message='namespaces "dp-x" not found'
+        reason="ResourceApplyFailed"
+        projectNotDeployed
+        envName="Development"
+        envResourceName="development"
+      />,
+    );
+    expect(
+      screen.getByText(/The project isn't deployed to this environment/i),
+    ).toBeInTheDocument();
+  });
 });

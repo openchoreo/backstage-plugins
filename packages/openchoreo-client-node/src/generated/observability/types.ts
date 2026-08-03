@@ -794,11 +794,7 @@ export interface components {
         durationNs?: number;
         /** @description The parent span ID */
         parentSpanId?: string;
-        /**
-         * @description The execution status of the span. One of "ok", "error", or "unset".
-         * @enum {string}
-         */
-        status?: 'ok' | 'error' | 'unset';
+        status?: components['schemas']['SpanStatus'];
         /** @description The span attributes */
         attributes?: {
           [key: string]: unknown;
@@ -837,17 +833,23 @@ export interface components {
       durationNs?: number;
       /** @description The parent span ID */
       parentSpanId?: string;
-      /**
-       * @description The execution status of the span. One of "ok", "error", or "unset".
-       * @enum {string}
-       */
-      status?: 'ok' | 'error' | 'unset';
+      status?: components['schemas']['SpanStatus'];
       attributes?: {
         /** @description The key of the attribute */
         key?: string;
         /** @description The value of the attribute */
         value?: string;
       }[];
+    };
+    /** @description Execution status of the span, following the OpenTelemetry span Status model. */
+    SpanStatus: {
+      /**
+       * @description The status code of the span. One of "ok", "error", or "unset".
+       * @enum {string}
+       */
+      code?: 'ok' | 'error' | 'unset';
+      /** @description Developer-facing human-readable status description. Typically set only when code is "error". */
+      message?: string;
     };
     AlertRuleRequest: {
       metadata: {

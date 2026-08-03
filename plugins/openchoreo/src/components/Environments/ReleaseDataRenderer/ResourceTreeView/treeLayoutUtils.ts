@@ -110,10 +110,15 @@ export function buildTreeNodes(
 
     nodes.push({
       id: releaseNodeId,
+      // Real GVK of the RenderedRelease CR. The target plane has its own field:
+      // it is not a version, and the detail panel renders group/version as the GVK.
       kind: 'RenderedRelease',
+      group: 'openchoreo.dev',
+      version: 'v1alpha1',
       name: release.name,
-      version: release.targetPlane,
+      targetPlane: release.targetPlane,
       healthStatus: aggregateHealth(release.nodes),
+      specObject: release.renderedRelease,
       parentIds: [ROOT_NODE_ID],
     });
 

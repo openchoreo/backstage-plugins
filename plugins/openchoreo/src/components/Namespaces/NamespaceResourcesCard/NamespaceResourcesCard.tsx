@@ -1,8 +1,10 @@
 import { Link, Table, TableColumn } from '@backstage/core-components';
 import { useApp } from '@backstage/core-plugin-api';
 import { Entity, RELATION_HAS_PART } from '@backstage/catalog-model';
-import { useEntity, useRelatedEntities } from '@backstage/plugin-catalog-react';
+import { useEntity } from '@backstage/plugin-catalog-react';
 import { Box, Typography } from '@material-ui/core';
+import { Skeleton } from '@openchoreo/backstage-design-system';
+import { useRelatedEntitiesQuery } from '@openchoreo/backstage-plugin-react';
 import { useNavigate } from 'react-router-dom';
 import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import { useNamespaceResourcesCardStyles } from './styles';
@@ -22,7 +24,7 @@ export const NamespaceResourcesCard = () => {
   const classes = useNamespaceResourcesCardStyles();
   const { entity } = useEntity();
   const navigate = useNavigate();
-  const { entities, loading } = useRelatedEntities(entity, {
+  const { entities, loading } = useRelatedEntitiesQuery(entity, {
     type: RELATION_HAS_PART,
   });
 
@@ -69,15 +71,29 @@ export const NamespaceResourcesCard = () => {
     },
   ];
 
+  // While loading, render skeleton rows on the card's paper background instead
+  // of the Table's built-in CircularProgress overlay (which sits on the grey
+  // page background). Cloned columns keep the header row + layout stable.
+  const skeletonColumns: TableColumn<Entity>[] = columns.map(column => ({
+    ...column,
+    sorting: false,
+    render: () => <Skeleton variant="text" height={20} />,
+  }));
+  const skeletonRows = Array.from(
+    { length: 3 },
+    (_, index) =>
+      ({ metadata: { name: `skeleton-${index}` } } as unknown as Entity),
+  );
+
   return (
     <Box className={classes.cardWrapper}>
       <Table
         title="Other Resources in Namespace"
-        columns={columns}
-        data={resources}
-        isLoading={loading}
+        columns={loading ? skeletonColumns : columns}
+        data={loading ? skeletonRows : resources}
+        isLoading={false}
         onRowClick={(event, rowData) => {
-          if (!rowData || !shouldNavigateOnRowClick(event)) return;
+          if (loading || !rowData || !shouldNavigateOnRowClick(event)) return;
           const ns = rowData.metadata.namespace || 'default';
           navigate(
             `/catalog/${ns}/${rowData.kind.toLowerCase()}/${

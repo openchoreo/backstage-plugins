@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import {
   IconButton,
   Tooltip,
@@ -22,7 +23,7 @@ import {
   TextField,
   InputAdornment,
 } from '@material-ui/core';
-import { Progress } from '@backstage/core-components';
+
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import EditOutlinedIcon from '@material-ui/icons/EditOutlined';
 import VpnKeyOutlinedIcon from '@material-ui/icons/VpnKeyOutlined';
@@ -175,7 +176,7 @@ export const SecretsTable = ({
   };
 
   if (loading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   return (

@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Content,
-  Progress,
   Table,
   TableColumn,
   InfoCard,
@@ -42,6 +41,8 @@ import {
   VerticalTabNav,
   TabItemData,
   RjsfForm,
+  RefreshOverlay,
+  PageLoader,
 } from '@openchoreo/backstage-design-system';
 import {
   DetailPageLayout,
@@ -407,7 +408,7 @@ const TriggerForm = ({
   };
 
   if (loading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (error) {
@@ -602,7 +603,7 @@ const RunDetailView = ({
   );
 
   if (loading && !run) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (error) {
@@ -767,6 +768,7 @@ export const WorkflowRunsContent = () => {
     runs,
     loading: runsLoading,
     error,
+    isRefetching,
     refetch,
   } = useWorkflowRuns(workflowName, runsNamespace);
 
@@ -900,7 +902,7 @@ export const WorkflowRunsContent = () => {
         </Alert>
       )}
 
-      {runsLoading && <Progress />}
+      {runsLoading && <PageLoader />}
 
       {!runsLoading && runs.length === 0 && !showTriggerForm && (
         <Box className={classes.emptyState}>
@@ -912,21 +914,24 @@ export const WorkflowRunsContent = () => {
       )}
 
       {!runsLoading && runs.length > 0 && (
-        <Table
-          data={runs}
-          columns={columns}
-          options={{
-            search: true,
-            paging: true,
-            pageSize: 10,
-            sorting: true,
-          }}
-          onRowClick={(_, row) => {
-            if (row) {
-              handleRunClick(row.name);
-            }
-          }}
-        />
+        <Box position="relative">
+          <RefreshOverlay active={isRefetching} label="Refreshing runs…" />
+          <Table
+            data={runs}
+            columns={columns}
+            options={{
+              search: true,
+              paging: true,
+              pageSize: 10,
+              sorting: true,
+            }}
+            onRowClick={(_, row) => {
+              if (row) {
+                handleRunClick(row.name);
+              }
+            }}
+          />
+        </Box>
       )}
     </Content>
   );

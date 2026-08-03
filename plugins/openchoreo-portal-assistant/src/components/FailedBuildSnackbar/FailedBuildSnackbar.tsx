@@ -86,9 +86,11 @@ export const FailedBuildSnackbar = () => {
       // Fall back to entity metadata if relationship resolution fails.
     }
 
-    const repoUrl = componentDetails
-      ? getRepositoryInfo(componentDetails).url
+    const repoInfo = componentDetails
+      ? getRepositoryInfo(componentDetails)
       : undefined;
+    const repoUrl = repoInfo?.url;
+    const componentPath = repoInfo?.path;
 
     openDrawer({
       initialMessage: `Why did the latest build fail?`,
@@ -104,6 +106,7 @@ export const FailedBuildSnackbar = () => {
         workflowKind: componentDetails?.componentWorkflow?.kind,
         caseType: 'build_failure',
         repoUrl,
+        componentPath,
       },
       // Shared with BuildPagePromptLauncher so opening from either
       // surface continues the same conversation.

@@ -1,9 +1,12 @@
-import { useEffect, useState, useCallback } from 'react';
+import { stringifyEntityRef } from '@backstage/catalog-model';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import type { PipelinePromotionPath } from '@openchoreo/backstage-plugin-react';
+import {
+  useOpenChoreoQuery,
+  type PipelinePromotionPath,
+} from '@openchoreo/backstage-plugin-react';
 
 export interface PipelinePosition {
   pipelineName: string;
@@ -16,6 +19,8 @@ export interface PipelinePosition {
 export interface UseEnvironmentPipelinesResult {
   pipelines: PipelinePosition[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   environmentName: string;
 }
@@ -28,26 +33,23 @@ export function useEnvironmentPipelines(): UseEnvironmentPipelinesResult {
   const { entity } = useEntity();
   const catalogApi = useApi(catalogApiRef);
 
-  const [pipelines, setPipelines] = useState<PipelinePosition[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
   const environmentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ENVIRONMENT] ||
     entity.metadata.name;
   const namespaceName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  const fetchPipelines = useCallback(async () => {
-    if (!namespaceName || !environmentName) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
+  const { data, loading, isRefetching, error } = useOpenChoreoQuery(
+    [
+      'environment-pipelines',
+      stringifyEntityRef(entity),
+      namespaceName,
+      environmentName,
+    ],
+    async (): Promise<PipelinePosition[]> => {
+      // Narrows namespaceName to string (query enabled only when set) so the
+      // filter stays assignable to EntityFilterQuery.
+      if (!namespaceName) return [];
       // Find DeploymentPipeline entities in this namespace that reference this environment
       const { items: pipelineEntities } = await catalogApi.getEntities({
         filter: {
@@ -151,17 +153,16 @@ export function useEnvironmentPipelines(): UseEnvironmentPipelinesResult {
         }
       }
 
-      setPipelines(matchingPipelines);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-    }
-  }, [namespaceName, environmentName, catalogApi]);
+      return matchingPipelines;
+    },
+    { enabled: !!namespaceName && !!environmentName },
+  );
 
-  useEffect(() => {
-    fetchPipelines();
-  }, [fetchPipelines]);
-
-  return { pipelines, loading, error, environmentName };
+  return {
+    pipelines: data ?? [],
+    loading,
+    isRefetching,
+    error,
+    environmentName,
+  };
 }

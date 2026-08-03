@@ -48,13 +48,20 @@ interface EnvironmentsContextValue {
   environments: Environment[];
   /** Environments with stale data handling */
   displayEnvironments: Environment[];
-  /** Whether environments are currently loading */
+  /** Whether environments are currently loading (first load, no data yet) */
   loading: boolean;
   /**
    * A non-forbidden error from the environment fetch (e.g. the deployment
    * pipeline could not be resolved).
    */
   error?: Error;
+  /**
+   * Background refresh while environments are already on screen (revisit tab,
+   * poll, post-action refetch). Drives a subtle "refreshing" overlay on the
+   * canvas instead of blanking — now that responses are cached, a refetch no
+   * longer clears the previous data.
+   */
+  isRefetching: boolean;
   /** Refetch environments data */
   refetch: () => void;
   /** The lowest environment (first in deployment pipeline) */

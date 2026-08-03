@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
 import {
   useApi,
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 
 export interface UseDataPlaneNetPolProviderResult {
   networkPolicyProvider: string | undefined;
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
 }
 
 /**
@@ -28,60 +30,43 @@ export const useDataPlaneNetPolProvider = (
 ): UseDataPlaneNetPolProviderResult => {
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
-  const [networkPolicyProvider, setNetworkPolicyProvider] = useState<
-    string | undefined
-  >(undefined);
-  const [loading, setLoading] = useState(false);
 
   const dpName = dataPlaneRef?.name;
   const dpKind = dataPlaneRef?.kind ?? 'DataPlane';
 
-  useEffect(() => {
-    let active = true;
-
-    const fetchDataPlaneNetPolProvider = async () => {
-      if (!namespaceName || !dpName) {
-        if (active) {
-          setNetworkPolicyProvider(undefined);
-          setLoading(false);
-        }
-        return;
-      }
-
-      if (active) setLoading(true);
-      try {
-        const baseUrl = await discoveryApi.getBaseUrl(
-          'openchoreo-observability-backend',
+  const { data, loading, isRefetching } = useOpenChoreoQuery(
+    [
+      'dataplane-netpol-provider',
+      namespaceName ?? null,
+      dpName ?? null,
+      dpKind,
+    ],
+    async () => {
+      const baseUrl = await discoveryApi.getBaseUrl(
+        'openchoreo-observability-backend',
+      );
+      const params = new URLSearchParams({
+        namespaceName: namespaceName!,
+        dpName: dpName!,
+        dpKind,
+      });
+      const response = await fetchApi.fetch(
+        `${baseUrl}/dataplane-netpol-provider?${params.toString()}`,
+      );
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch network policy provider: ${response.status} ${response.statusText}`,
         );
-        const params = new URLSearchParams({ namespaceName, dpName, dpKind });
-        const response = await fetchApi.fetch(
-          `${baseUrl}/dataplane-netpol-provider?${params.toString()}`,
-        );
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch network policy provider: ${response.status} ${response.statusText}`,
-          );
-        }
-        const data = await response.json();
-        if (active) {
-          const provider =
-            typeof data?.networkPolicyProvider === 'string'
-              ? data.networkPolicyProvider
-              : undefined;
-          setNetworkPolicyProvider(provider);
-        }
-      } catch (error) {
-        if (active) setNetworkPolicyProvider(undefined);
-      } finally {
-        if (active) setLoading(false);
       }
-    };
+      const json = await response.json();
+      return typeof json?.networkPolicyProvider === 'string'
+        ? json.networkPolicyProvider
+        : undefined;
+    },
+    {
+      enabled: !!namespaceName && !!dpName,
+    },
+  );
 
-    fetchDataPlaneNetPolProvider();
-    return () => {
-      active = false;
-    };
-  }, [namespaceName, dpName, dpKind, discoveryApi, fetchApi]);
-
-  return { networkPolicyProvider, loading };
+  return { networkPolicyProvider: data ?? undefined, loading, isRefetching };
 };

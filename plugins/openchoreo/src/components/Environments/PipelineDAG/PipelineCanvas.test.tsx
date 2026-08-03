@@ -67,6 +67,7 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
       {children}
     </div>
   ),
+  Skeleton: () => <span data-testid="skeleton" />,
   useChoreoTokens: () => ({
     graph: { canvasDotPattern: 'none' },
   }),
@@ -87,6 +88,7 @@ interface MockContextValue {
   displayEnvironments: Environment[];
   loading: boolean;
   error?: Error;
+  isRefetching: boolean;
   refetch: jest.Mock;
   lowestEnvironment: string;
   isWorkloadEditorSupported: boolean;
@@ -104,6 +106,7 @@ const defaultMockContext = (): MockContextValue => ({
   displayEnvironments: [],
   loading: false,
   error: undefined,
+  isRefetching: false,
   refetch: jest.fn(),
   lowestEnvironment: 'development',
   isWorkloadEditorSupported: true,
@@ -282,6 +285,32 @@ describe('PipelineCanvas (deploy split view)', () => {
       screen.queryByTestId('detail-panel-skeleton'),
     ).not.toBeInTheDocument();
     expect(screen.getByTestId('deploy-flow-canvas')).toBeInTheDocument();
+  });
+
+  it('forwards isRefetching to the canvas (keeping content) on a background refresh', () => {
+    const envs = [makeEnv({ name: 'development' })];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+    mockContextValue.isRefetching = true;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    // Content stays mounted (no skeleton) and the canvas is told to refresh —
+    // it renders the overlay in its own top-right (covered in DeployFlowCanvas).
+    expect(screen.getByTestId('deploy-flow-canvas')).toBeInTheDocument();
+    expect(screen.queryByTestId('canvas-skeleton')).not.toBeInTheDocument();
+    expect(capturedFlowCanvasProps?.isRefetching).toBe(true);
+  });
+
+  it('does not flag isRefetching to the canvas when not refetching', () => {
+    const envs = [makeEnv({ name: 'development' })];
+    mockContextValue.environments = envs;
+    mockContextValue.displayEnvironments = envs;
+    mockContextValue.isRefetching = false;
+
+    renderWithRouter(<PipelineCanvas />);
+
+    expect(capturedFlowCanvasProps?.isRefetching).toBe(false);
   });
 
   it('renders the split view and auto-selects the first active env when envs exist', () => {

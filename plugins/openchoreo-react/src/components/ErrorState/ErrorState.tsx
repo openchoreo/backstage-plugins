@@ -12,7 +12,7 @@ const useStyles = makeStyles(theme => ({
     gap: theme.spacing(2),
   },
   icon: {
-    fontSize: 48,
+    fontSize: 32,
     color: theme.palette.error.main,
   },
   message: {

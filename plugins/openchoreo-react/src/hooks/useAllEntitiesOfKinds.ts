@@ -1,32 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CompoundEntityRef, DEFAULT_NAMESPACE } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { useOpenChoreoQuery } from './useOpenChoreoQuery';
 
 export function useAllEntitiesOfKinds(kinds: string[], namespaces?: string[]) {
   const catalogApi = useApi(catalogApiRef);
-  const [entityRefs, setEntityRefs] = useState<CompoundEntityRef[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error>();
-  const [entityCount, setEntityCount] = useState(0);
 
-  const kindsKey = kinds.join(',');
-  const namespacesKey = useMemo(
-    () => namespaces?.slice().sort().join(',') ?? '',
-    [namespaces],
-  );
+  const enabled = kinds.length > 0;
 
-  const fetchEntities = useCallback(async () => {
-    if (kinds.length === 0) {
-      setEntityRefs([]);
-      setEntityCount(0);
-      setLoading(false);
-      setError(undefined);
-      return;
-    }
-    try {
-      setLoading(true);
-      setError(undefined);
+  const { data, loading, isRefetching, error } = useOpenChoreoQuery(
+    ['all-entities-of-kinds', kinds.join(','), (namespaces ?? []).join(',')],
+    async () => {
+      if (kinds.length === 0) {
+        return { entityRefs: [] as CompoundEntityRef[], entityCount: 0 };
+      }
 
       const response = await catalogApi.getEntities({
         filter: {
@@ -39,25 +26,22 @@ export function useAllEntitiesOfKinds(kinds: string[], namespaces?: string[]) {
         fields: ['kind', 'metadata.name', 'metadata.namespace'],
       });
 
-      const refs: CompoundEntityRef[] = response.items.map(entity => ({
+      const entityRefs: CompoundEntityRef[] = response.items.map(entity => ({
         kind: entity.kind,
         namespace: entity.metadata.namespace ?? DEFAULT_NAMESPACE,
         name: entity.metadata.name,
       }));
 
-      setEntityRefs(refs);
-      setEntityCount(refs.length);
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error(String(e)));
-    } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalogApi, kindsKey, namespacesKey]);
+      return { entityRefs, entityCount: entityRefs.length };
+    },
+    { enabled },
+  );
 
-  useEffect(() => {
-    fetchEntities();
-  }, [fetchEntities]);
-
-  return { entityRefs, loading, error, entityCount };
+  return {
+    entityRefs: data?.entityRefs ?? [],
+    loading,
+    isRefetching,
+    error: error ?? undefined,
+    entityCount: data?.entityCount ?? 0,
+  };
 }

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, type FC } from 'react';
 import { Box } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { EmptyState } from '@backstage/core-components';
 
@@ -20,7 +19,11 @@ import { useEnvironmentsContext, type Selection } from '../EnvironmentsContext';
 import { useIncidentsSummary } from '../hooks/useIncidentsSummary';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
-import { Card, useChoreoTokens } from '@openchoreo/backstage-design-system';
+import {
+  Card,
+  useChoreoTokens,
+  Skeleton,
+} from '@openchoreo/backstage-design-system';
 import {
   useDeployFlowCanvasStyles,
   useEnvironmentDetailPanelStyles,
@@ -131,6 +134,7 @@ export const PipelineCanvas: FC = () => {
     displayEnvironments,
     loading,
     error,
+    isRefetching,
     refetch,
     isWorkloadEditorSupported,
     canViewEnvironments,
@@ -437,6 +441,7 @@ export const PipelineCanvas: FC = () => {
           <DeployFlowCanvas
             environments={displayEnvironments}
             loading={loading}
+            isRefetching={isRefetching}
             isWorkloadEditorSupported={isWorkloadEditorSupported}
             selectedEnvName={selectedEnvName}
             selectedSetup={selectedSetup}

@@ -19,8 +19,10 @@ import {
 import { Alert } from '@material-ui/lab';
 import {
   ForbiddenState,
+  useOpenChoreoQuery,
   useSecretManagementEnabled,
 } from '@openchoreo/backstage-plugin-react';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
@@ -38,7 +40,6 @@ import {
   type TargetPlaneOption,
 } from './CreateSecretDialog';
 import { EditSecretDialog } from './EditSecretDialog';
-import { useAsync } from 'react-use';
 
 const useStyles = makeStyles(theme => ({
   content: {
@@ -69,76 +70,81 @@ export const SecretsContent = () => {
   const [editingSecret, setEditingSecret] = useState<Secret | null>(null);
 
   const {
-    value: namespaces,
+    data: namespaces,
     loading: namespacesLoading,
     error: namespacesError,
-  } = useAsync(async () => {
-    return client.listNamespaces();
-  }, [client]);
+  } = useOpenChoreoQuery(['secrets', 'namespaces'], () =>
+    client.listNamespaces(),
+  );
 
   // Fetch all four plane kinds for the target-plane dropdown
   const {
-    value: targetPlanes,
+    data: targetPlanes,
     loading: targetPlanesLoading,
     error: targetPlanesError,
-  } = useAsync(async (): Promise<TargetPlaneOption[]> => {
-    if (!selectedNamespace) return [];
+  } = useOpenChoreoQuery<TargetPlaneOption[]>(
+    ['secrets', 'target-planes', selectedNamespace ?? null],
+    async () => {
+      if (!selectedNamespace) return [];
 
-    const [wpResult, cwpResult, dpResult, cdpResult] = await Promise.all([
-      catalogApi.getEntities({
-        filter: {
-          kind: 'WorkflowPlane',
-          'metadata.namespace': selectedNamespace,
-        },
-      }),
-      catalogApi.getEntities({
-        filter: { kind: 'ClusterWorkflowPlane' },
-      }),
-      catalogApi.getEntities({
-        filter: {
-          kind: 'DataPlane',
-          'metadata.namespace': selectedNamespace,
-        },
-      }),
-      catalogApi.getEntities({
-        filter: { kind: 'ClusterDataPlane' },
-      }),
-    ]);
+      const [wpResult, cwpResult, dpResult, cdpResult] = await Promise.all([
+        catalogApi.getEntities({
+          filter: {
+            kind: 'WorkflowPlane',
+            'metadata.namespace': selectedNamespace,
+          },
+        }),
+        catalogApi.getEntities({
+          filter: { kind: 'ClusterWorkflowPlane' },
+        }),
+        catalogApi.getEntities({
+          filter: {
+            kind: 'DataPlane',
+            'metadata.namespace': selectedNamespace,
+          },
+        }),
+        catalogApi.getEntities({
+          filter: { kind: 'ClusterDataPlane' },
+        }),
+      ]);
 
-    const planes: TargetPlaneOption[] = [];
+      const planes: TargetPlaneOption[] = [];
 
-    // Cluster-scoped first, then namespaced
-    cdpResult.items.forEach(e => {
-      planes.push({
-        name: e.metadata.name,
-        kind: 'ClusterDataPlane' as TargetPlaneKind,
+      // Cluster-scoped first, then namespaced
+      cdpResult.items.forEach(e => {
+        planes.push({
+          name: e.metadata.name,
+          kind: 'ClusterDataPlane' as TargetPlaneKind,
+        });
       });
-    });
-    cwpResult.items.forEach(e => {
-      planes.push({
-        name: e.metadata.name,
-        kind: 'ClusterWorkflowPlane' as TargetPlaneKind,
+      cwpResult.items.forEach(e => {
+        planes.push({
+          name: e.metadata.name,
+          kind: 'ClusterWorkflowPlane' as TargetPlaneKind,
+        });
       });
-    });
-    dpResult.items.forEach(e => {
-      planes.push({
-        name: e.metadata.name,
-        kind: 'DataPlane' as TargetPlaneKind,
+      dpResult.items.forEach(e => {
+        planes.push({
+          name: e.metadata.name,
+          kind: 'DataPlane' as TargetPlaneKind,
+        });
       });
-    });
-    wpResult.items.forEach(e => {
-      planes.push({
-        name: e.metadata.name,
-        kind: 'WorkflowPlane' as TargetPlaneKind,
+      wpResult.items.forEach(e => {
+        planes.push({
+          name: e.metadata.name,
+          kind: 'WorkflowPlane' as TargetPlaneKind,
+        });
       });
-    });
 
-    return planes;
-  }, [catalogApi, selectedNamespace]);
+      return planes;
+    },
+    { enabled: !!selectedNamespace },
+  );
 
   const {
     secrets,
     loading: secretsLoading,
+    isRefetching: secretsRefetching,
     error: secretsError,
     isForbidden: secretsForbidden,
     createSecret,
@@ -272,13 +278,19 @@ export const SecretsContent = () => {
         </Box>
       ) : (
         !secretsForbidden && (
-          <SecretsTable
-            secrets={secrets}
-            loading={secretsLoading}
-            onDelete={handleDeleteSecret}
-            onEdit={setEditingSecret}
-            namespaceName={selectedNamespace}
-          />
+          <Box position="relative">
+            <RefreshOverlay
+              active={secretsRefetching}
+              label="Refreshing secrets"
+            />
+            <SecretsTable
+              secrets={secrets}
+              loading={secretsLoading}
+              onDelete={handleDeleteSecret}
+              onEdit={setEditingSecret}
+              namespaceName={selectedNamespace}
+            />
+          </Box>
         )
       )}
 
@@ -290,7 +302,7 @@ export const SecretsContent = () => {
         existingSecretNames={secrets.map(s => s.name)}
         targetPlanes={targetPlanes || []}
         targetPlanesLoading={targetPlanesLoading}
-        targetPlanesError={targetPlanesError}
+        targetPlanesError={targetPlanesError ?? undefined}
       />
 
       <EditSecretDialog

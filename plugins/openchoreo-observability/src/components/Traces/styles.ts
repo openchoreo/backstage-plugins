@@ -69,6 +69,7 @@ export const useTracesTableStyles = makeStyles((theme: Theme) => ({
     textOverflow: 'ellipsis',
   },
   traceIdCell: {
+    position: 'relative',
     fontSize: '0.75rem',
     fontFamily: 'monospace',
     overflow: 'hidden',
@@ -86,22 +87,9 @@ export const useTracesTableStyles = makeStyles((theme: Theme) => ({
       fontSize: '1rem',
     },
   },
-  errorRow: {
-    '& > td:first-child, & > th:first-child': {
-      position: 'relative',
-      borderLeft: 'none !important',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        left: 0,
-        top: '5%',
-        bottom: '5%',
-        width: '3px',
-        backgroundColor: '#EF4444',
-        borderRadius: '2px',
-      },
-    },
-  },
+  // Absolutely positioned inside the (relative) trace-name cell. The span itself
+  // is a wide, transparent hit-area so the "contains errors" tooltip is easy to
+  // hover; the visible 3px stripe is drawn by the ::before.
   errorStripe: {
     position: 'absolute',
     left: 0,
@@ -110,6 +98,16 @@ export const useTracesTableStyles = makeStyles((theme: Theme) => ({
     width: '8px',
     cursor: 'default',
     zIndex: 1,
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: '3px',
+      backgroundColor: theme.palette.error.main,
+      borderRadius: '2px',
+    },
   },
 }));
 

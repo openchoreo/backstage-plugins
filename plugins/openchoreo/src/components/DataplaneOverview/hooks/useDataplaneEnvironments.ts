@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
 import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 
 export interface DataplaneEnvironment {
   name: string;
@@ -16,6 +16,8 @@ export interface DataplaneEnvironment {
 interface UseDataplaneEnvironmentsResult {
   environments: DataplaneEnvironment[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refresh: () => void;
 }
@@ -25,25 +27,16 @@ export function useDataplaneEnvironments(
 ): UseDataplaneEnvironmentsResult {
   const catalogApi = useApi(catalogApiRef);
 
-  const [environments, setEnvironments] = useState<DataplaneEnvironment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
   const dataplaneName = dataplaneEntity.metadata.name;
   const namespaceName =
     dataplaneEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  const fetchEnvironments = useCallback(async () => {
-    if (!dataplaneName || !namespaceName) {
-      setEnvironments([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
+    ['dataplane-environments', dataplaneName, namespaceName],
+    async () => {
+      // Narrows the annotation values to string (query is enabled only when
+      // both are set) so the filter stays assignable to EntityFilterQuery.
+      if (!dataplaneName || !namespaceName) return [];
       // Fetch Environment entities that reference this dataplane
       const { items: envEntities } = await catalogApi.getEntities({
         filter: {
@@ -75,27 +68,16 @@ export function useDataplaneEnvironments(
         healthStatus: 'unknown' as const, // Would need additional API calls
       }));
 
-      setEnvironments(envList);
-    } catch (err) {
-      setError(err as Error);
-      setEnvironments([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [dataplaneName, namespaceName, catalogApi]);
-
-  useEffect(() => {
-    fetchEnvironments();
-  }, [fetchEnvironments]);
-
-  const refresh = useCallback(() => {
-    fetchEnvironments();
-  }, [fetchEnvironments]);
+      return envList;
+    },
+    { enabled: !!dataplaneName && !!namespaceName },
+  );
 
   return {
-    environments,
+    environments: data ?? [],
     loading,
+    isRefetching,
     error,
-    refresh,
+    refresh: refetch,
   };
 }

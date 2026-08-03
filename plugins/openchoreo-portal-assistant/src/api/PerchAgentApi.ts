@@ -134,6 +134,15 @@ export type ChatScope = {
    * the URL itself; it just passes it through into the generated prompt.
    */
   repoUrl?: string;
+  /**
+   * In-repo build path (the component's workflow ``repository.appPath``)
+   * pulled off the schema next to ``repoUrl``. The portal-assistant prompt
+   * adds it as a ``Path:`` line in the ``fix_prompt`` so the external coding
+   * bot knows which sub-directory of a monorepo the failing build ran in.
+   * Optional — root-of-repo builds omit it; the agent passes it through
+   * verbatim and never reads it itself.
+   */
+  componentPath?: string;
 };
 
 export type ChatRequest = {

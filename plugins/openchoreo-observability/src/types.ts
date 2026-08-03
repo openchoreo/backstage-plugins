@@ -45,6 +45,9 @@ export type HttpMetrics = {
 
 export type MetricType = 'resource' | 'http';
 
+// OTel span status ({ code: 'ok' | 'error' | 'unset', message? }) from the spec.
+export type SpanStatus = ObservabilityComponents['schemas']['SpanStatus'];
+
 export interface Span {
   spanId: string;
   spanName: string;
@@ -53,7 +56,7 @@ export interface Span {
   endTime: string;
   durationNs: number;
   parentSpanId?: string;
-  status?: 'ok' | 'error' | 'unset';
+  status?: SpanStatus;
 }
 
 export interface SpanDetails extends Span {

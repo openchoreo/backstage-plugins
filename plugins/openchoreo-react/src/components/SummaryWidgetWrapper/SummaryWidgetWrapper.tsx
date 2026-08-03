@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
+import { Skeleton } from '@openchoreo/backstage-design-system';
 import { Box, Typography } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import { InfoCard, Link } from '@backstage/core-components';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useStyles } from './styles';
 import ErrorIcon from '@material-ui/icons/Error';
 import clsx from 'clsx';
@@ -20,6 +21,12 @@ interface SummaryWidgetWrapperProps {
   titleLink?: string; // Optional link for the widget title
   metrics: Metric[];
   loading?: boolean;
+  /**
+   * A background refresh is in flight while the metrics are already on screen.
+   * Shows a subtle corner indicator without blanking the widget. Ignored
+   * during the first load (that's what `loading` is for).
+   */
+  refreshing?: boolean;
   errorMessage?: string;
   variant?: 'default' | 'cards';
 }
@@ -30,6 +37,7 @@ export const SummaryWidgetWrapper = ({
   titleLink,
   metrics,
   loading = false,
+  refreshing = false,
   errorMessage,
   variant = 'default',
 }: SummaryWidgetWrapperProps) => {
@@ -169,19 +177,24 @@ export const SummaryWidgetWrapper = ({
   };
 
   return (
-    <InfoCard
-      className={classes.card}
-      title={
-        <Box display="flex" alignItems="center" style={{ gap: 12 }}>
-          {icon}
-          {title}
-        </Box>
-      }
-      deepLink={
-        titleLink ? { title: `View ${title}`, link: titleLink } : undefined
-      }
-    >
-      {renderContent()}
-    </InfoCard>
+    <Box position="relative">
+      {/* Only a background refresh (content already shown) — never the first
+          load or error state, which own the whole card. */}
+      <RefreshOverlay active={refreshing && !loading && !errorMessage} />
+      <InfoCard
+        className={classes.card}
+        title={
+          <Box display="flex" alignItems="center" style={{ gap: 12 }}>
+            {icon}
+            {title}
+          </Box>
+        }
+        deepLink={
+          titleLink ? { title: `View ${title}`, link: titleLink } : undefined
+        }
+      >
+        {renderContent()}
+      </InfoCard>
+    </Box>
   );
 };

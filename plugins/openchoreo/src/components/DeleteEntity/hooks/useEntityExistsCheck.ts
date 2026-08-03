@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import {
   isSupportedKind,
@@ -42,18 +42,13 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
  */
 export function useEntityExistsCheck(entity: Entity): EntityExistsCheckResult {
   const client = useApi(openChoreoClientApiRef);
-  const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<EntityStatus | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   const entityKind = entity.kind.toLowerCase();
   const entityName = entity.metadata.name;
 
-  useEffect(() => {
-    const checkEntityStatus = async () => {
-      setLoading(true);
-      setMessage(null);
-
+  const { data, loading, isRefetching } = useOpenChoreoQuery(
+    ['entity-exists-check', stringifyEntityRef(entity)],
+    async (): Promise<{ status: EntityStatus; message: string | null }> => {
       try {
         let details: { uid?: string; deletionTimestamp?: string } | null = null;
         const entityTypeLabel = KIND_DISPLAY_NAMES[entityKind] ?? entityKind;
@@ -82,23 +77,21 @@ export function useEntityExistsCheck(entity: Entity): EntityExistsCheckResult {
           };
         } else {
           // For unsupported entity types (domain, api, user, group, etc.), assume exists
-          setStatus('exists');
-          return;
+          return { status: 'exists', message: null };
         }
 
         // Check if entity is marked for deletion (API response or catalog annotation)
         const deletionTs =
           details?.deletionTimestamp || getDeletionTimestamp(entity);
         if (deletionTs) {
-          setStatus('marked-for-deletion');
           const formattedDate = new Date(deletionTs).toLocaleString();
-          setMessage(
-            `This ${entityTypeLabel} "${entityName}" is marked for deletion (since ${formattedDate}). It will be permanently removed soon.`,
-          );
-          return;
+          return {
+            status: 'marked-for-deletion',
+            message: `This ${entityTypeLabel} "${entityName}" is marked for deletion (since ${formattedDate}). It will be permanently removed soon.`,
+          };
         }
 
-        setStatus('exists');
+        return { status: 'exists', message: null };
       } catch (error: unknown) {
         const entityTypeLabel = KIND_DISPLAY_NAMES[entityKind] ?? entityKind;
 
@@ -110,21 +103,22 @@ export function useEntityExistsCheck(entity: Entity): EntityExistsCheckResult {
             error.message.includes('Not Found'));
 
         if (is404) {
-          setStatus('not-found');
-          setMessage(
-            `The ${entityTypeLabel} "${entityName}" could not be found in OpenChoreo. It may have been deleted.`,
-          );
-        } else {
-          // For other errors, assume entity exists (don't block the page)
-          setStatus('exists');
+          return {
+            status: 'not-found',
+            message: `The ${entityTypeLabel} "${entityName}" could not be found in OpenChoreo. It may have been deleted.`,
+          };
         }
-      } finally {
-        setLoading(false);
+
+        // For other errors, assume entity exists (don't block the page)
+        return { status: 'exists', message: null };
       }
-    };
+    },
+  );
 
-    checkEntityStatus();
-  }, [entity, client, entityKind, entityName]);
-
-  return { loading, status, message };
+  return {
+    loading,
+    isRefetching,
+    status: data?.status ?? null,
+    message: data?.message ?? null,
+  };
 }

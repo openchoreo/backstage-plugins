@@ -1,14 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Content,
-  Progress,
-  Table,
-  TableColumn,
-  Link,
-} from '@backstage/core-components';
+import { PageLoader } from '@openchoreo/backstage-design-system';
+import { Content, Table, TableColumn, Link } from '@backstage/core-components';
 import { Alert, AlertTitle } from '@material-ui/lab';
 import { Box, Button, IconButton, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
@@ -92,6 +88,7 @@ export const WorkflowDetailsPage = () => {
     runs,
     loading: runsLoading,
     error,
+    isRefetching: runsRefetching,
     refetch,
   } = useWorkflowRuns(decodedName);
 
@@ -128,7 +125,7 @@ export const WorkflowDetailsPage = () => {
   if (workflowsLoading) {
     return (
       <Content>
-        <Progress />
+        <PageLoader />
       </Content>
     );
   }
@@ -172,7 +169,7 @@ export const WorkflowDetailsPage = () => {
         </Alert>
       )}
 
-      {runsLoading && <Progress />}
+      {runsLoading && <PageLoader />}
 
       {!runsLoading && runs.length === 0 && (
         <Box className={classes.emptyState}>
@@ -184,21 +181,24 @@ export const WorkflowDetailsPage = () => {
       )}
 
       {!runsLoading && runs.length > 0 && (
-        <Table
-          data={runs}
-          columns={columns}
-          options={{
-            search: true,
-            paging: true,
-            pageSize: 10,
-            sorting: true,
-          }}
-          onRowClick={(_, row) => {
-            if (row) {
-              navigate(`../runs/${encodeURIComponent(row.name)}`);
-            }
-          }}
-        />
+        <Box position="relative">
+          <RefreshOverlay active={runsRefetching} label="Refreshing runs…" />
+          <Table
+            data={runs}
+            columns={columns}
+            options={{
+              search: true,
+              paging: true,
+              pageSize: 10,
+              sorting: true,
+            }}
+            onRowClick={(_, row) => {
+              if (row) {
+                navigate(`../runs/${encodeURIComponent(row.name)}`);
+              }
+            }}
+          />
+        </Box>
       )}
     </Content>
   );

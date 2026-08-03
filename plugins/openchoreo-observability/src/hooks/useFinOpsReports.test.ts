@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useApi } from '@backstage/core-plugin-api';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useFinOpsReports } from './useFinOpsReports';
 
 jest.mock('@backstage/core-plugin-api', () => {
@@ -10,7 +11,10 @@ jest.mock('@backstage/core-plugin-api', () => {
   };
 });
 
+// Keep the real caching wrapper (useOpenChoreoQuery) — only stub the time-range
+// helper so the getFinOpsReports assertion has stable start/end values.
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  ...jest.requireActual('@openchoreo/backstage-plugin-react'),
   calculateTimeRange: jest.fn().mockReturnValue({
     startTime: '2026-01-01T00:00:00.000Z',
     endTime: '2026-01-02T00:00:00.000Z',
@@ -63,8 +67,9 @@ describe('useFinOpsReports', () => {
       totalCount: 1,
     });
 
-    const { result } = renderHook(() =>
-      useFinOpsReports(baseFilters as any, entity as any),
+    const { result } = renderHook(
+      () => useFinOpsReports(baseFilters as any, entity as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -81,8 +86,9 @@ describe('useFinOpsReports', () => {
   });
 
   it('returns empty reports when environment filter is missing', async () => {
-    const { result } = renderHook(() =>
-      useFinOpsReports({ timeRange: '1h' } as any, entity as any),
+    const { result } = renderHook(
+      () => useFinOpsReports({ timeRange: '1h' } as any, entity as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -92,8 +98,13 @@ describe('useFinOpsReports', () => {
   });
 
   it('returns empty reports when timeRange filter is missing', async () => {
-    const { result } = renderHook(() =>
-      useFinOpsReports({ environment: baseEnvironment } as any, entity as any),
+    const { result } = renderHook(
+      () =>
+        useFinOpsReports(
+          { environment: baseEnvironment } as any,
+          entity as any,
+        ),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -108,8 +119,9 @@ describe('useFinOpsReports', () => {
       metadata: { name: 'project-a', annotations: {} },
     };
 
-    const { result } = renderHook(() =>
-      useFinOpsReports(baseFilters as any, entityNoNs as any),
+    const { result } = renderHook(
+      () => useFinOpsReports(baseFilters as any, entityNoNs as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -121,8 +133,9 @@ describe('useFinOpsReports', () => {
   it('sets error on API failure', async () => {
     getFinOpsReports.mockRejectedValueOnce(new Error('API error'));
 
-    const { result } = renderHook(() =>
-      useFinOpsReports(baseFilters as any, entity as any),
+    const { result } = renderHook(
+      () => useFinOpsReports(baseFilters as any, entity as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -134,8 +147,9 @@ describe('useFinOpsReports', () => {
   it('sets generic error message for non-Error rejections', async () => {
     getFinOpsReports.mockRejectedValueOnce('unknown');
 
-    const { result } = renderHook(() =>
-      useFinOpsReports(baseFilters as any, entity as any),
+    const { result } = renderHook(
+      () => useFinOpsReports(baseFilters as any, entity as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -148,8 +162,9 @@ describe('useFinOpsReports', () => {
       .mockResolvedValueOnce({ reports: mockReports, totalCount: 1 })
       .mockResolvedValueOnce({ reports: mockReports, totalCount: 1 });
 
-    const { result } = renderHook(() =>
-      useFinOpsReports(baseFilters as any, entity as any),
+    const { result } = renderHook(
+      () => useFinOpsReports(baseFilters as any, entity as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));

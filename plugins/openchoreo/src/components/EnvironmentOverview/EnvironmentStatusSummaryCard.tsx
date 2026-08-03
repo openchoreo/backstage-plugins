@@ -1,5 +1,4 @@
 import { Box, Typography } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import WarningIcon from '@material-ui/icons/Warning';
 import ErrorIcon from '@material-ui/icons/Error';
@@ -9,7 +8,7 @@ import StorageIcon from '@material-ui/icons/Storage';
 import clsx from 'clsx';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Link } from '@backstage/core-components';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, Skeleton } from '@openchoreo/backstage-design-system';
 import { useEnvironmentDeployedComponents } from './hooks';
 import { useEnvironmentOverviewStyles } from './styles';
 

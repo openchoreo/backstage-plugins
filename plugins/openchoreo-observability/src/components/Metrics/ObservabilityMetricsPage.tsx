@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import {
   Grid,
   Card,
@@ -9,7 +10,7 @@ import {
   Typography,
   Box,
 } from '@material-ui/core';
-import { Progress } from '@backstage/core-components';
+
 import { MetricsFilters } from './MetricsFilters';
 import { MetricGraphByComponent } from './MetricGraphByComponent';
 import { MetricsActions } from './MetricsActions';
@@ -21,6 +22,7 @@ import {
 } from '../../hooks';
 import { useProjectEnvironments } from '@openchoreo/backstage-plugin-react';
 import { EnvironmentsStatusNotice } from '../common';
+import { RefreshOverlay } from '@openchoreo/backstage-design-system';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   ResourceMetrics,
@@ -63,27 +65,24 @@ const ObservabilityMetricsContent = () => {
     permissionName: envPermissionName,
   } = useMetricsPermission(filters.environment?.name);
 
-  // Fetch metrics using the custom hook
+  // Fetch metrics using the custom hook. The query auto-fetches (and refetches
+  // when the filters in its key change) once `canViewMetricsForEnv` gates it on
+  // — replacing the old imperative fetch-on-filter-change effect.
   const {
     metrics,
     loading: metricsLoading,
+    isRefetching,
     error: metricsError,
-    fetchMetrics,
     refresh,
-  } = useMetrics(filters, entity, namespace as string, project as string);
-  const resourceMetrics = metrics as ResourceMetrics;
-
-  // Fetch metrics when filters change
-  useEffect(() => {
-    if (filters.environment && filters.timeRange && canViewMetricsForEnv) {
-      fetchMetrics(true);
-    }
-  }, [
-    filters.environment,
-    filters.timeRange,
-    fetchMetrics,
+  } = useMetrics(
+    filters,
+    entity,
+    namespace as string,
+    project as string,
+    'resource',
     canViewMetricsForEnv,
-  ]);
+  );
+  const resourceMetrics = metrics as ResourceMetrics;
 
   const [refreshNonce, setRefreshNonce] = useState(0);
 
@@ -141,8 +140,12 @@ const ObservabilityMetricsContent = () => {
   };
 
   return (
-    <Box>
-      {(isLoading || metricsLoading) && <Progress />}
+    <Box position="relative">
+      <RefreshOverlay active={isRefetching} label="Refreshing metrics" />
+      {/* Full-page loader only on the true first load; while metrics refetch
+          (metricsLoading) the filters + grid stay put and the RefreshOverlay
+          signals activity, so we don't push content down with a 60vh spinner. */}
+      {isLoading && <PageLoader />}
 
       {!isLoading && (
         <>
@@ -233,7 +236,7 @@ export const ObservabilityMetricsPage = () => {
   } = useMetricsPermission();
 
   if (permissionLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canViewMetrics) {

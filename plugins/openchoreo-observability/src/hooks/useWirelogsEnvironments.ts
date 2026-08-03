@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import {
   discoveryApiRef,
   fetchApiRef,
@@ -6,6 +5,7 @@ import {
 } from '@backstage/core-plugin-api';
 import {
   Environment,
+  useOpenChoreoQuery,
   useProjectEnvironments,
   type ProjectEnvironmentsStatus,
 } from '@openchoreo/backstage-plugin-react';
@@ -24,8 +24,11 @@ export interface WirelogsEnvironment extends Environment {
 
 export interface UseWirelogsEnvironmentsResult {
   environments: WirelogsEnvironment[];
+  /** First load only — stays false during a background refresh. */
   loading: boolean;
   status: ProjectEnvironmentsStatus;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: string | null;
   refetch: () => void;
 }
@@ -52,84 +55,85 @@ export const useWirelogsEnvironments = (
     error,
     refetch,
   } = useProjectEnvironments(projectName, namespaceName);
-  const [environments, setEnvironments] = useState<WirelogsEnvironment[]>([]);
-  const [enriching, setEnriching] = useState(false);
-  const [enrichError, setEnrichError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (baseLoading) return undefined;
-    if (baseEnvs.length === 0) {
-      setEnvironments([]);
-      setEnriching(false);
-      setEnrichError(null);
-      return undefined;
-    }
-    setEnriching(true);
-    setEnrichError(null);
-    (async () => {
-      try {
-        const baseUrl = await discoveryApi.getBaseUrl(
-          'openchoreo-observability-backend',
-        );
-        const enriched = await Promise.all(
-          baseEnvs.map(async env => {
-            if (!env.namespace || !env.dataPlaneRef?.name) {
-              return { ...env, hasWirelogs: false };
-            }
-            const controller = new AbortController();
-            const timeout = setTimeout(
-              () => controller.abort(),
-              NETPOL_TIMEOUT_MS,
-            );
-            try {
-              const params = new URLSearchParams({
-                namespaceName: env.namespace,
-                dpName: env.dataPlaneRef.name,
-                dpKind: env.dataPlaneRef.kind ?? 'DataPlane',
-              });
-              const res = await fetchApi.fetch(
-                `${baseUrl}/dataplane-netpol-provider?${params.toString()}`,
-                { signal: controller.signal },
-              );
-              if (!res.ok) return { ...env, hasWirelogs: false };
-              const data = await res.json();
-              return {
-                ...env,
-                hasWirelogs: data?.networkPolicyProvider === 'cilium',
-              };
-            } catch {
-              return { ...env, hasWirelogs: false };
-            } finally {
-              clearTimeout(timeout);
-            }
-          }),
-        );
-        if (!cancelled) setEnvironments(enriched);
-      } catch (err) {
-        if (!cancelled) {
-          setEnvironments([]);
-          setEnrichError(
-            err instanceof Error ? err.message : 'Failed to probe environments',
+  const {
+    data,
+    loading: enriching,
+    isRefetching,
+    error: enrichError,
+  } = useOpenChoreoQuery<WirelogsEnvironment[]>(
+    [
+      'wirelogs-environments',
+      namespaceName ?? null,
+      // Include each env's dataplane identity, not just its name — the probe is
+      // per-dataPlaneRef, so a dataplane reassignment that keeps the env name
+      // must still bust the cache.
+      baseEnvs
+        .map(
+          e =>
+            `${e.name}:${e.namespace ?? ''}:${e.dataPlaneRef?.name ?? ''}:${
+              e.dataPlaneRef?.kind ?? ''
+            }`,
+        )
+        .join(','),
+    ],
+    async () => {
+      const baseUrl = await discoveryApi.getBaseUrl(
+        'openchoreo-observability-backend',
+      );
+      return Promise.all(
+        baseEnvs.map(async env => {
+          if (!env.namespace || !env.dataPlaneRef?.name) {
+            return { ...env, hasWirelogs: false };
+          }
+          const controller = new AbortController();
+          const timeout = setTimeout(
+            () => controller.abort(),
+            NETPOL_TIMEOUT_MS,
           );
-        }
-      } finally {
-        if (!cancelled) setEnriching(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [baseEnvs, baseLoading, discoveryApi, fetchApi]);
+          try {
+            const params = new URLSearchParams({
+              namespaceName: env.namespace,
+              dpName: env.dataPlaneRef.name,
+              dpKind: env.dataPlaneRef.kind ?? 'DataPlane',
+            });
+            const res = await fetchApi.fetch(
+              `${baseUrl}/dataplane-netpol-provider?${params.toString()}`,
+              { signal: controller.signal },
+            );
+            // Per-env failure degrades to false rather than rejecting the batch.
+            if (!res.ok) return { ...env, hasWirelogs: false };
+            const body = await res.json();
+            return {
+              ...env,
+              hasWirelogs: body?.networkPolicyProvider === 'cilium',
+            };
+          } catch {
+            return { ...env, hasWirelogs: false };
+          } finally {
+            clearTimeout(timeout);
+          }
+        }),
+      );
+    },
+    { enabled: !baseLoading && baseEnvs.length > 0 },
+  );
 
   return {
-    environments,
+    environments: data ?? [],
+    // First-load only. A background refresh (isRefetching) must NOT fold in
+    // here — it would re-trigger the full skeleton and blank the wirelogs env
+    // selector every 30s. Surface it separately for a subtle indicator.
     loading: baseLoading || enriching,
+    isRefetching,
     // A netpol-probe failure (base envs resolved, enrichment failed) is
     // surfaced as `unavailable`; otherwise mirror the base resolution status.
     status: enrichError ? 'unavailable' : baseStatus,
-    error: error || enrichError,
+    error:
+      error ||
+      (enrichError
+        ? enrichError.message || 'Failed to fetch wirelogs environments'
+        : null),
     refetch,
   };
 };

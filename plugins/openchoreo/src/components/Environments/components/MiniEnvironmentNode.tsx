@@ -41,6 +41,11 @@ export interface MiniEnvironmentNodeProps {
   selected: boolean;
   isRefreshing: boolean;
   isAlreadyPromoted: (targetEnvName: string) => boolean;
+  /** Reports whether a promote target env's project is undeployed (blocks it). */
+  isTargetProjectBlocked?: (target: {
+    name: string;
+    resourceName?: string;
+  }) => boolean;
   actionTrackers: ActionTrackers;
   /**
    * Active-incident count from useIncidentsSummary. Undefined when
@@ -66,6 +71,7 @@ export const MiniEnvironmentNode = ({
   selected,
   isRefreshing,
   isAlreadyPromoted,
+  isTargetProjectBlocked,
   actionTrackers,
   activeIncidentCount,
   onSelect,
@@ -101,6 +107,7 @@ export const MiniEnvironmentNode = ({
     statusReason: environment.deployment.statusReason,
     promotionTargets: environment.promotionTargets,
     isAlreadyPromoted,
+    isTargetProjectBlocked,
     promotionTracker: actionTrackers.promotionTracker,
     suspendTracker: actionTrackers.suspendTracker,
     onPromote,
@@ -537,7 +544,8 @@ function PromotePrimaryButton({
   const { canPromote, loading, deniedTooltip } =
     usePromoteToEnvPermission(targetEnvName);
   const disabled = action.disabled || loading || !canPromote;
-  const tooltip = !canPromote && !loading ? deniedTooltip : '';
+  const tooltip =
+    action.blockedReason || (!canPromote && !loading ? deniedTooltip : '');
   return (
     <Tooltip title={tooltip} disableHoverListener={!tooltip}>
       <span>
@@ -577,7 +585,8 @@ function PromoteMenuItemRow({
   const { canPromote, loading, deniedTooltip } =
     usePromoteToEnvPermission(targetEnvName);
   const disabled = action.disabled || loading || !canPromote;
-  const tooltip = !canPromote && !loading ? deniedTooltip : '';
+  const tooltip =
+    action.blockedReason || (!canPromote && !loading ? deniedTooltip : '');
   return (
     <Tooltip title={tooltip} disableHoverListener={!tooltip} placement="left">
       <span>

@@ -9,14 +9,13 @@ import {
   useBuildPermission,
   ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
-import { Skeleton } from '@material-ui/lab';
 import { Link } from '@backstage/core-components';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import CodeIcon from '@material-ui/icons/Code';
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
 import BuildIcon from '@material-ui/icons/Build';
 import BlockIcon from '@material-ui/icons/Block';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, Skeleton } from '@openchoreo/backstage-design-system';
 import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
 import { BuildStatusChip } from '../BuildStatusChip';
 import { useWorkflowsSummary } from './useWorkflowsSummary';

@@ -1,13 +1,21 @@
-import { useState, useCallback, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import {
+  useOpenChoreoQuery,
+  useOpenChoreoMutation,
+} from '@openchoreo/backstage-plugin-react';
 import {
   openChoreoClientApiRef,
   ClusterRole,
 } from '../../../api/OpenChoreoClientApi';
 
+/** Query key for the cluster-roles list. */
+const CLUSTER_ROLES_KEY = ['access-control', 'cluster-roles'];
+
 interface UseClusterRolesResult {
   roles: ClusterRole[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   fetchRoles: () => Promise<void>;
   addRole: (role: ClusterRole) => Promise<void>;
@@ -16,60 +24,46 @@ interface UseClusterRolesResult {
 }
 
 export function useClusterRoles(): UseClusterRolesResult {
-  const [roles, setRoles] = useState<ClusterRole[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
   const client = useApi(openChoreoClientApiRef);
 
-  const fetchRoles = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await client.listClusterRoles();
-      setRoles(result);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  }, [client]);
-
-  const addRole = useCallback(
-    async (role: ClusterRole) => {
-      await client.createClusterRole(role);
-      await fetchRoles();
-    },
-    [client, fetchRoles],
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
+    CLUSTER_ROLES_KEY,
+    () => client.listClusterRoles(),
   );
 
-  const updateRole = useCallback(
-    async (name: string, role: Partial<ClusterRole>) => {
-      await client.updateClusterRole(name, role);
-      await fetchRoles();
-    },
-    [client, fetchRoles],
+  // Each write invalidates the list query, which refetches it — replacing the
+  // hand-rolled `await fetchRoles()` that used to follow every mutation.
+  const invalidates = [CLUSTER_ROLES_KEY];
+  const { mutate: addRole } = useOpenChoreoMutation(
+    (role: ClusterRole) => client.createClusterRole(role),
+    { invalidates },
   );
-
-  const deleteRole = useCallback(
-    async (name: string) => {
-      await client.deleteClusterRole(name);
-      await fetchRoles();
-    },
-    [client, fetchRoles],
+  const { mutate: updateRole } = useOpenChoreoMutation(
+    (name: string, role: Partial<ClusterRole>) =>
+      client.updateClusterRole(name, role),
+    { invalidates },
   );
-
-  useEffect(() => {
-    fetchRoles();
-  }, [fetchRoles]);
+  const { mutate: deleteRole } = useOpenChoreoMutation(
+    (name: string) => client.deleteClusterRole(name),
+    { invalidates },
+  );
 
   return {
-    roles,
+    roles: data ?? [],
     loading,
+    isRefetching,
     error,
-    fetchRoles,
-    addRole,
-    updateRole,
-    deleteRole,
+    // Preserved for call sites that trigger a manual refresh; `refetch` returns
+    // void here, matching the previous `Promise<void>` contract closely enough.
+    fetchRoles: async () => refetch(),
+    addRole: async role => {
+      await addRole(role);
+    },
+    updateRole: async (name, role) => {
+      await updateRole(name, role);
+    },
+    deleteRole: async name => {
+      await deleteRole(name);
+    },
   };
 }

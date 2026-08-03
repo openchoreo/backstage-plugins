@@ -66,14 +66,14 @@ describe('CreateSecretDialog — Create button data validation', () => {
   const planes: TargetPlaneOption[] = [{ kind: 'DataPlane', name: 'dp' }];
 
   it('keeps Create disabled with a valid name + plane but empty Opaque data', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderDialog({ targetPlanes: planes });
     await user.type(inputForLabel('Secret Name'), 'my-secret');
     expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
   });
 
   it('disables Create for Basic Auth when password is empty', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderDialog({ targetPlanes: planes });
     await user.type(inputForLabel('Secret Name'), 'basic');
     await user.click(screen.getByRole('radio', { name: /Basic Auth/i }));
@@ -83,7 +83,7 @@ describe('CreateSecretDialog — Create button data validation', () => {
   });
 
   it('enables Create for Basic Auth once a password is provided', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderDialog({ targetPlanes: planes });
     await user.type(inputForLabel('Secret Name'), 'basic');
     await user.click(screen.getByRole('radio', { name: /Basic Auth/i }));
@@ -92,7 +92,7 @@ describe('CreateSecretDialog — Create button data validation', () => {
   });
 
   it('disables Create for Docker Config when JSON is invalid', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderDialog({ targetPlanes: planes });
     await user.type(inputForLabel('Secret Name'), 'docker');
     await user.click(screen.getByRole('radio', { name: /Docker Config/i }));
@@ -101,7 +101,7 @@ describe('CreateSecretDialog — Create button data validation', () => {
   });
 
   it('disables Create for TLS until both crt and key are provided', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderDialog({ targetPlanes: planes });
     await user.type(inputForLabel('Secret Name'), 'tls-secret');
     await user.click(screen.getByRole('radio', { name: /^TLS/i }));
@@ -121,7 +121,7 @@ describe('CreateSecretDialog — Secret Category', () => {
   });
 
   it('stamps the generic label when the category is Generic', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const onSubmit = jest.fn().mockResolvedValue({} as any);
     renderDialog({ targetPlanes: planes, onSubmit });
 
@@ -161,7 +161,7 @@ describe('CreateSecretDialog — SSH Auth', () => {
   }
 
   it('enables Create once a well-formed private key is provided', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderDialog({ targetPlanes: planes });
     await selectSshAuth(user);
     await pasteSshKey(user, VALID_KEY);
@@ -169,10 +169,11 @@ describe('CreateSecretDialog — SSH Auth', () => {
   });
 
   // The two tests below interact with multiple fields (SSH Key ID + multiline
-  // SSH key + dynamically-added Key/Value rows). userEvent.type is per-keystroke
-  // and gets slow under jsdom load in the full suite, so give them extra time.
+  // SSH key + dynamically-added Key/Value rows). userEvent.setup({ delay: null })
+  // types synchronously so they don't blow the timeout under full-suite jsdom
+  // load; the extra timeout stays as a safety margin for the slowest CI worker.
   it('submits the SSH key plus the optional SSH Key ID in the data map', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const onSubmit = jest.fn().mockResolvedValue({} as any);
     renderDialog({ targetPlanes: planes, onSubmit });
     await selectSshAuth(user);
@@ -187,7 +188,7 @@ describe('CreateSecretDialog — SSH Auth', () => {
   }, 15000);
 
   it('includes an SSH extra key/value row in the submitted data', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const onSubmit = jest.fn().mockResolvedValue({} as any);
     renderDialog({ targetPlanes: planes, onSubmit });
     await selectSshAuth(user);

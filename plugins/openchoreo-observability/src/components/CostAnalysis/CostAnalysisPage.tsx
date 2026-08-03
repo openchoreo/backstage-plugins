@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Routes, Route } from 'react-router-dom';
 import { Box, Typography, Button } from '@material-ui/core';
 import { RCAFilters } from '../RCA/RCAFilters';
@@ -8,7 +9,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import type { FinOpsReportSummary } from '../../types';
 import { useUrlFilters, useFinOpsReports } from '../../hooks';
-import { Progress } from '@backstage/core-components';
+
 import { Alert } from '@material-ui/lab';
 import {
   useRcaPermission,
@@ -99,7 +100,7 @@ const CostAnalysisListContent = () => {
   // Wait for the environment resolution before rendering the filters, so the
   // filter bar doesn't flash before we know whether to show the notice.
   if (environmentsLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   // No resolvable environments (empty, forbidden, or unavailable) → show only
@@ -117,7 +118,7 @@ const CostAnalysisListContent = () => {
 
   return (
     <Box>
-      {reportsLoading && <Progress />}
+      {reportsLoading && <PageLoader />}
 
       {!reportsLoading && (
         <>
@@ -157,7 +158,7 @@ const CostAnalysisListView = () => {
   } = useRcaPermission();
 
   if (permissionLoading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (!canViewRca) {

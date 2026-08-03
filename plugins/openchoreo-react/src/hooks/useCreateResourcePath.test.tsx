@@ -1,6 +1,6 @@
-import { renderHook, act } from '@testing-library/react';
-import { TestApiProvider } from '@backstage/test-utils';
+import { renderHook, waitFor } from '@testing-library/react';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useCreateResourcePath } from './useCreateResourcePath';
 
 const entity = {
@@ -12,11 +12,7 @@ const mockCatalogApi = { getEntityFacets: jest.fn() };
 
 function renderPath() {
   return renderHook(() => useCreateResourcePath(entity), {
-    wrapper: ({ children }) => (
-      <TestApiProvider apis={[[catalogApiRef, mockCatalogApi as any]]}>
-        {children}
-      </TestApiProvider>
-    ),
+    wrapper: createQueryWrapper([[catalogApiRef, mockCatalogApi as any]]),
   });
 }
 
@@ -32,17 +28,18 @@ describe('useCreateResourcePath', () => {
       facets: { 'metadata.name': [] },
     });
     renderPath();
-    await act(async () => {});
 
-    expect(mockCatalogApi.getEntityFacets).toHaveBeenCalledWith(
-      expect.objectContaining({
-        filter: {
-          kind: 'Template',
-          'metadata.namespace': 'openchoreo-cluster',
-          'spec.type': 'Resource',
-        },
-        facets: ['metadata.name'],
-      }),
+    await waitFor(() =>
+      expect(mockCatalogApi.getEntityFacets).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filter: {
+            kind: 'Template',
+            'metadata.namespace': 'openchoreo-cluster',
+            'spec.type': 'Resource',
+          },
+          facets: ['metadata.name'],
+        }),
+      ),
     );
   });
 
@@ -51,7 +48,7 @@ describe('useCreateResourcePath', () => {
       facets: { 'metadata.name': [{ value: 'pg', count: 1 }] },
     });
     const { result } = renderPath();
-    await act(async () => {});
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(namespaceFilters(result.current.path)).toEqual([
       'team-ns',
@@ -65,7 +62,7 @@ describe('useCreateResourcePath', () => {
       facets: { 'metadata.name': [] },
     });
     const { result } = renderPath();
-    await act(async () => {});
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(namespaceFilters(result.current.path)).toEqual(['team-ns']);
   });
@@ -73,7 +70,7 @@ describe('useCreateResourcePath', () => {
   it('falls back to the project namespace if the facet query fails', async () => {
     mockCatalogApi.getEntityFacets.mockRejectedValue(new Error('down'));
     const { result } = renderPath();
-    await act(async () => {});
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(namespaceFilters(result.current.path)).toEqual(['team-ns']);
   });

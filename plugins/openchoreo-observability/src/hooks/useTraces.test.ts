@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useApi } from '@backstage/core-plugin-api';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useTraces } from './useTraces';
 
 jest.mock('@backstage/core-plugin-api', () => {
@@ -55,8 +56,9 @@ describe('useTraces', () => {
       tookMs: 5,
     });
 
-    const { result } = renderHook(() =>
-      useTraces({ ...baseFilters, components: [] }, entity as any),
+    const { result } = renderHook(
+      () => useTraces({ ...baseFilters, components: [] }, entity as any),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -86,11 +88,13 @@ describe('useTraces', () => {
         tookMs: 5,
       });
 
-    const { result } = renderHook(() =>
-      useTraces(
-        { ...baseFilters, components: ['component-a', 'component-b'] },
-        entity as any,
-      ),
+    const { result } = renderHook(
+      () =>
+        useTraces(
+          { ...baseFilters, components: ['component-a', 'component-b'] },
+          entity as any,
+        ),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -136,11 +140,13 @@ describe('useTraces', () => {
         tookMs: 5,
       });
 
-    const { result } = renderHook(() =>
-      useTraces(
-        { ...baseFilters, components: ['component-a', 'component-b'] },
-        entity as any,
-      ),
+    const { result } = renderHook(
+      () =>
+        useTraces(
+          { ...baseFilters, components: ['component-a', 'component-b'] },
+          entity as any,
+        ),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -167,11 +173,13 @@ describe('useTraces', () => {
         tookMs: 5,
       });
 
-    const { result } = renderHook(() =>
-      useTraces(
-        { ...baseFilters, components: ['component-a', 'component-b'] },
-        entity as any,
-      ),
+    const { result } = renderHook(
+      () =>
+        useTraces(
+          { ...baseFilters, components: ['component-a', 'component-b'] },
+          entity as any,
+        ),
+      { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));

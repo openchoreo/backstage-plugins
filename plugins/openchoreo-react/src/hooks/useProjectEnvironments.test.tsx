@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { TestApiProvider } from '@backstage/test-utils';
 import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useProjectEnvironments } from './useProjectEnvironments';
 
 // ---- Mocks ----
@@ -50,17 +50,11 @@ function renderHookWithApis() {
         project?: string;
         namespace?: string;
       },
-      wrapper: ({ children }) => (
-        <TestApiProvider
-          apis={[
-            [discoveryApiRef, mockDiscoveryApi as any],
-            [fetchApiRef, mockFetchApi as any],
-            [catalogApiRef, mockCatalogApi as any],
-          ]}
-        >
-          {children}
-        </TestApiProvider>
-      ),
+      wrapper: createQueryWrapper([
+        [discoveryApiRef, mockDiscoveryApi as any],
+        [fetchApiRef, mockFetchApi as any],
+        [catalogApiRef, mockCatalogApi as any],
+      ]),
     },
   );
 }
@@ -75,17 +69,11 @@ describe('useProjectEnvironments', () => {
     const { result } = renderHook(
       () => useProjectEnvironments(undefined, 'ns-1'),
       {
-        wrapper: ({ children }) => (
-          <TestApiProvider
-            apis={[
-              [discoveryApiRef, mockDiscoveryApi as any],
-              [fetchApiRef, mockFetchApi as any],
-              [catalogApiRef, mockCatalogApi as any],
-            ]}
-          >
-            {children}
-          </TestApiProvider>
-        ),
+        wrapper: createQueryWrapper([
+          [discoveryApiRef, mockDiscoveryApi as any],
+          [fetchApiRef, mockFetchApi as any],
+          [catalogApiRef, mockCatalogApi as any],
+        ]),
       },
     );
 
@@ -100,17 +88,11 @@ describe('useProjectEnvironments', () => {
     const { result } = renderHook(
       () => useProjectEnvironments('proj-1', undefined),
       {
-        wrapper: ({ children }) => (
-          <TestApiProvider
-            apis={[
-              [discoveryApiRef, mockDiscoveryApi as any],
-              [fetchApiRef, mockFetchApi as any],
-              [catalogApiRef, mockCatalogApi as any],
-            ]}
-          >
-            {children}
-          </TestApiProvider>
-        ),
+        wrapper: createQueryWrapper([
+          [discoveryApiRef, mockDiscoveryApi as any],
+          [fetchApiRef, mockFetchApi as any],
+          [catalogApiRef, mockCatalogApi as any],
+        ]),
       },
     );
 

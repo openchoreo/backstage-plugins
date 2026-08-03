@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert } from '@material-ui/lab';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { EmptyState } from '@backstage/core-components';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 import { Box } from '@material-ui/core';
-import { useNavigate } from 'react-router-dom';
-import { Progress, EmptyState } from '@backstage/core-components';
+
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
@@ -49,6 +52,15 @@ export const ProjectEnvironmentsList = () => {
   );
   const [selectedSetup, setSelectedSetup] = useState(false);
   const cancelledRef = useRef(false);
+
+  // Arrival from a component's "Deploy project" hand-off:
+  // `?env=<resource>&intent=deploy` pre-selects that environment and shows a
+  // one-time hint. Seeding runs once, after envs load.
+  const [searchParams] = useSearchParams();
+  const arrivalEnv = searchParams.get('env');
+  const arrivalIntent = searchParams.get('intent');
+  const [arrivalHintDismissed, setArrivalHintDismissed] = useState(false);
+  const arrivalSeededRef = useRef(false);
 
   // Selecting an env clears the Setup selection and vice versa — the
   // right pane shows at most one of them.
@@ -113,6 +125,21 @@ export const ProjectEnvironmentsList = () => {
     }
   }, [envs, selectedEnvName]);
 
+  // Pre-select the arrival environment once, after envs load. Match on the
+  // resource name (what the deep link carries) with a display-name fallback.
+  useEffect(() => {
+    if (arrivalSeededRef.current || !arrivalEnv || envs.length === 0) return;
+    const match = envs.find(
+      e =>
+        e.resourceName === arrivalEnv ||
+        e.name.toLowerCase() === arrivalEnv.toLowerCase(),
+    );
+    if (match) {
+      setSelectedEnvName(match.name);
+      arrivalSeededRef.current = true;
+    }
+  }, [arrivalEnv, envs, setSelectedEnvName]);
+
   // Background poll while any binding is mid-rollout. Pin advances kick the
   // controller into a Progressing state that flips back to Ready once the
   // underlying RenderedRelease is reconciled.
@@ -174,7 +201,7 @@ export const ProjectEnvironmentsList = () => {
   }
 
   if (loading) {
-    return <Progress />;
+    return <PageLoader />;
   }
 
   if (error) {
@@ -194,6 +221,16 @@ export const ProjectEnvironmentsList = () => {
   return (
     <ProjectEnvironmentsProvider value={contextValue}>
       <NotificationBanner notification={notification.notification} />
+      {arrivalIntent === 'deploy' && !arrivalHintDismissed && (
+        <Alert
+          severity="info"
+          onClose={() => setArrivalHintDismissed(true)}
+          style={{ marginBottom: 8 }}
+        >
+          Deploy the project here, then return to your component tab to
+          continue.
+        </Alert>
+      )}
       <Box className={canvasClasses.splitContainer}>
         <ProjectDeployFlowCanvas
           environments={envs}

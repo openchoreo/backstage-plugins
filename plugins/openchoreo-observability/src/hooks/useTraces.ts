@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { observabilityApiRef } from '../api/ObservabilityApi';
 import { Filters, Trace } from '../types';
 import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { calculateTimeRange } from '@openchoreo/backstage-plugin-react';
+import {
+  calculateTimeRange,
+  useOpenChoreoQuery,
+} from '@openchoreo/backstage-plugin-react';
 
 const sortByStartTime = (traceList: Trace[]): Trace[] =>
   [...traceList].sort((a, b) => {
@@ -15,41 +18,25 @@ const sortByStartTime = (traceList: Trace[]): Trace[] =>
 
 export function useTraces(filters: Filters, entity: Entity) {
   const observabilityApi = useApi(observabilityApiRef);
-  const [traces, setTraces] = useState<Trace[]>([]);
-  const [total, setTotal] = useState<number>(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const namespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
   const projectName = entity.metadata.name as string;
 
-  // Memoize components string for dependency array
-  const componentsKey = useMemo(
-    () => filters.components?.join(',') || '',
-    [filters.components],
-  );
-
-  // Memoize filtered traces based on searchQuery
-  const filteredTraces = useMemo(() => {
-    if (!filters.searchQuery || filters.searchQuery.trim() === '') {
-      return traces;
-    }
-    const searchLower = filters.searchQuery.toLowerCase().trim();
-    return traces.filter(trace =>
-      trace.traceId.toLowerCase().includes(searchLower),
-    );
-  }, [traces, filters.searchQuery]);
-
-  const fetchTraces = useCallback(async () => {
-    if (!filters.environment || !filters.timeRange) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery<
+    Trace[]
+  >(
+    [
+      'traces',
+      namespace,
+      projectName,
+      filters.environment?.name,
+      filters.timeRange,
+      filters.customStartTime,
+      filters.customEndTime,
+      filters.components?.join(',') ?? '',
+    ],
+    async () => {
       const { startTime, endTime } = calculateTimeRange(filters.timeRange, {
         startTime: filters.customStartTime,
         endTime: filters.customEndTime,
@@ -87,51 +74,30 @@ export function useTraces(filters: Filters, entity: Entity) {
         .forEach(trace => {
           if (!seenIds.has(trace.traceId)) seenIds.set(trace.traceId, trace);
         });
-      const merged = sortByStartTime(Array.from(seenIds.values()));
+      return sortByStartTime(Array.from(seenIds.values()));
+    },
+    { enabled: !!filters.environment && !!filters.timeRange },
+  );
 
-      setTraces(merged);
-      setTotal(merged.length);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch traces');
-    } finally {
-      setLoading(false);
+  // Memoize filtered traces based on searchQuery (client-side, not part of the
+  // query key so it never triggers a refetch on keystroke).
+  const filteredTraces = useMemo(() => {
+    const traces = data ?? [];
+    if (!filters.searchQuery || filters.searchQuery.trim() === '') {
+      return traces;
     }
-  }, [
-    observabilityApi,
-    filters.environment,
-    filters.timeRange,
-    filters.customStartTime,
-    filters.customEndTime,
-    filters.components,
-    namespace,
-    projectName,
-  ]);
-
-  // Auto-fetch traces when filters change
-  useEffect(() => {
-    if (filters.environment && filters.timeRange) {
-      fetchTraces();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    filters.environment,
-    filters.timeRange,
-    filters.customStartTime,
-    filters.customEndTime,
-    componentsKey,
-  ]);
-
-  const refresh = useCallback(() => {
-    setTraces([]);
-    setTotal(0);
-    fetchTraces();
-  }, [fetchTraces]);
+    const searchLower = filters.searchQuery.toLowerCase().trim();
+    return traces.filter(trace =>
+      trace.traceId.toLowerCase().includes(searchLower),
+    );
+  }, [data, filters.searchQuery]);
 
   return {
     traces: filteredTraces,
-    total,
+    total: data?.length ?? 0,
     loading,
-    error,
-    refresh,
+    isRefetching,
+    error: error ? error.message || 'Failed to fetch traces' : null,
+    refresh: refetch,
   };
 }

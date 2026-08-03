@@ -7,14 +7,13 @@ import {
   Tooltip,
   Chip,
 } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import { Link } from '@backstage/core-components';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
 import CheckCircleIcon from '@material-ui/icons/CheckCircleOutlined';
 import ErrorIcon from '@material-ui/icons/ErrorOutlined';
 import WarningIcon from '@material-ui/icons/ReportProblemOutlined';
-import { Card } from '@openchoreo/backstage-design-system';
+import { Card, Skeleton } from '@openchoreo/backstage-design-system';
 import {
   useEnvironmentReadPermission,
   ForbiddenState,

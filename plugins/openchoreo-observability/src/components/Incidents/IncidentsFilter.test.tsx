@@ -101,6 +101,6 @@ describe('IncidentsFilter', () => {
   it('shows skeleton while environments are loading', () => {
     renderFilters({ environmentsLoading: true });
 
-    expect(document.querySelector('.MuiSkeleton-root')).toBeInTheDocument();
+    expect(screen.getByTestId('skeleton')).toBeInTheDocument();
   });
 });

@@ -27,6 +27,8 @@ describe('openchoreo-observability alpha plugin', () => {
     for (const expected of [
       // backend client apis
       `api:${plugin}/observability`,
+      // self-contained response-cache provider
+      `plugin-wrapper:${plugin}/query-provider`,
       `api:${plugin}/rca-agent`,
       `api:${plugin}/finops-agent`,
       // host-injection registry

@@ -1,4 +1,5 @@
 import { FC, ChangeEvent } from 'react';
+import { Skeleton } from '@openchoreo/backstage-design-system';
 import {
   FormControl,
   InputLabel,
@@ -8,7 +9,6 @@ import {
   Grid,
   TextField,
 } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import { type IncidentsFilters, INCIDENT_STATUSES } from './types';
 import {
   Environment,

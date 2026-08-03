@@ -8,6 +8,7 @@ describe('StatusBadge', () => {
     ['pending', 'Pending'],
     ['active', 'Active'],
     ['not-deployed', 'Not Deployed'],
+    ['suspended', 'Suspended'],
   ] as const)('renders default label "%s" → "%s"', (status, expectedLabel) => {
     render(<StatusBadge status={status} />);
     expect(screen.getByText(expectedLabel)).toBeInTheDocument();

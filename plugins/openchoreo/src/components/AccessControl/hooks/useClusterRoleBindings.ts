@@ -1,5 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import {
+  useOpenChoreoQuery,
+  useOpenChoreoMutation,
+} from '@openchoreo/backstage-plugin-react';
 import {
   openChoreoClientApiRef,
   ClusterRoleBinding,
@@ -7,9 +11,22 @@ import {
   ClusterRoleBindingFilters,
 } from '../../../api/OpenChoreoClientApi';
 
+/**
+ * Query key for the bindings list. Filters are part of the key, so changing
+ * filters naturally swaps to (and caches) a different query — replacing the old
+ * manual `fetchBindings(newFilters)` call.
+ */
+const bindingsKey = (filters: ClusterRoleBindingFilters) => [
+  'access-control',
+  'cluster-role-bindings',
+  filters,
+];
+
 interface UseClusterRoleBindingsResult {
   bindings: ClusterRoleBinding[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   filters: ClusterRoleBindingFilters;
   setFilters: (filters: ClusterRoleBindingFilters) => void;
@@ -23,77 +40,57 @@ interface UseClusterRoleBindingsResult {
 }
 
 export function useClusterRoleBindings(): UseClusterRoleBindingsResult {
-  const [bindings, setBindings] = useState<ClusterRoleBinding[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [filters, setFiltersState] = useState<ClusterRoleBindingFilters>({});
-  const filtersRef = useRef<ClusterRoleBindingFilters>({});
-
   const client = useApi(openChoreoClientApiRef);
+  const [filters, setFiltersState] = useState<ClusterRoleBindingFilters>({});
 
-  const fetchBindings = useCallback(
-    async (overrideFilters?: ClusterRoleBindingFilters) => {
-      try {
-        setLoading(true);
-        setError(null);
-        const activeFilters = overrideFilters ?? filtersRef.current;
-        const result = await client.listClusterRoleBindings(activeFilters);
-        setBindings(result);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Unknown error'));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [client],
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
+    bindingsKey(filters),
+    () => client.listClusterRoleBindings(filters),
   );
 
-  const setFilters = useCallback(
-    (newFilters: ClusterRoleBindingFilters) => {
-      filtersRef.current = newFilters;
-      setFiltersState(newFilters);
-      fetchBindings(newFilters);
-    },
-    [fetchBindings],
+  // Writes invalidate the current-filter list query, which refetches it.
+  const invalidates = [bindingsKey(filters)];
+  const { mutate: addBinding } = useOpenChoreoMutation(
+    (binding: ClusterRoleBindingRequest) =>
+      client.createClusterRoleBinding(binding),
+    { invalidates },
+  );
+  const { mutate: updateBinding } = useOpenChoreoMutation(
+    (name: string, binding: Partial<ClusterRoleBindingRequest>) =>
+      client.updateClusterRoleBinding(name, binding),
+    { invalidates },
+  );
+  const { mutate: deleteBinding } = useOpenChoreoMutation(
+    (name: string) => client.deleteClusterRoleBinding(name),
+    { invalidates },
   );
 
-  const addBinding = useCallback(
-    async (binding: ClusterRoleBindingRequest) => {
-      await client.createClusterRoleBinding(binding);
-      await fetchBindings();
-    },
-    [client, fetchBindings],
-  );
-
-  const updateBinding = useCallback(
-    async (name: string, binding: Partial<ClusterRoleBindingRequest>) => {
-      await client.updateClusterRoleBinding(name, binding);
-      await fetchBindings();
-    },
-    [client, fetchBindings],
-  );
-
-  const deleteBinding = useCallback(
-    async (name: string) => {
-      await client.deleteClusterRoleBinding(name);
-      await fetchBindings();
-    },
-    [client, fetchBindings],
-  );
-
-  useEffect(() => {
-    fetchBindings();
-  }, [fetchBindings]);
+  // Changing filters just updates state; the query key changes and refetches.
+  const setFilters = useCallback((newFilters: ClusterRoleBindingFilters) => {
+    setFiltersState(newFilters);
+  }, []);
 
   return {
-    bindings,
+    bindings: data ?? [],
     loading,
+    isRefetching,
     error,
     filters,
     setFilters,
-    fetchBindings,
-    addBinding,
-    updateBinding,
-    deleteBinding,
+    // Kept for call sites that force a refresh. An explicit override sets the
+    // filters (which refetches via the key); otherwise refetch the current key.
+    fetchBindings: async overrideFilters => {
+      if (overrideFilters) setFiltersState(overrideFilters);
+      else refetch();
+    },
+    addBinding: async binding => {
+      await addBinding(binding);
+    },
+    updateBinding: async (name, binding) => {
+      await updateBinding(name, binding);
+    },
+    deleteBinding: async name => {
+      await deleteBinding(name);
+    },
   };
 }

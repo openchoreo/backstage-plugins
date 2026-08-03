@@ -1,5 +1,6 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useApi } from '@backstage/core-plugin-api';
+import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useRuntimeEvents } from './useRuntimeEvents';
 
 jest.mock('@backstage/core-plugin-api', () => {
@@ -32,11 +33,13 @@ describe('useRuntimeEvents', () => {
   };
 
   const renderEvents = (options: Record<string, unknown> = {}) =>
-    renderHook(() =>
-      useRuntimeEvents(entity as any, 'dev-ns', 'project-a', {
-        ...baseOptions,
-        ...options,
-      }),
+    renderHook(
+      () =>
+        useRuntimeEvents(entity as any, 'dev-ns', 'project-a', {
+          ...baseOptions,
+          ...options,
+        }),
+      { wrapper: createQueryWrapper() },
     );
 
   beforeEach(() => {
@@ -61,11 +64,10 @@ describe('useRuntimeEvents', () => {
       total: 2,
     });
 
+    // Auto-fetch on mount replaces the old explicit fetchEvents(true) trigger.
     const { result } = renderEvents();
 
-    await act(async () => {
-      await result.current.fetchEvents(true);
-    });
+    await waitFor(() => expect(result.current.events).toHaveLength(2));
 
     expect(getRuntimeEvents).toHaveBeenCalledWith(
       'dev-ns',
@@ -74,39 +76,41 @@ describe('useRuntimeEvents', () => {
       'api-service',
       expect.objectContaining({ limit: 50, sortOrder: 'asc' }),
     );
-    expect(result.current.events).toHaveLength(2);
     expect(result.current.totalCount).toBe(2);
     expect(result.current.error).toBeNull();
   });
 
   it('does not call the API when no environment is selected', async () => {
+    // Empty env disables the query, so nothing fetches on mount.
     const { result } = renderEvents({ environment: '' });
 
-    await act(async () => {
-      await result.current.fetchEvents(true);
-    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(getRuntimeEvents).not.toHaveBeenCalled();
+    expect(result.current.events).toHaveLength(0);
+    expect(result.current.error).toBeNull();
   });
 
-  it('sets an error when the component annotation is missing', async () => {
-    const { result } = renderHook(() =>
-      useRuntimeEvents(
-        { ...entity, metadata: { name: 'x', annotations: {} } } as any,
-        'dev-ns',
-        'project-a',
-        baseOptions,
-      ),
+  it('does not fetch when the component annotation is missing', async () => {
+    // Renamed from "sets an error ...": a missing component annotation now
+    // disables the query (enabled:false) rather than raising the old
+    // "Component name not found" error.
+    const { result } = renderHook(
+      () =>
+        useRuntimeEvents(
+          { ...entity, metadata: { name: 'x', annotations: {} } } as any,
+          'dev-ns',
+          'project-a',
+          baseOptions,
+        ),
+      { wrapper: createQueryWrapper() },
     );
 
-    await act(async () => {
-      await result.current.fetchEvents(true);
-    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(getRuntimeEvents).not.toHaveBeenCalled();
-    expect(result.current.error).toBe(
-      'Component name not found in entity annotations',
-    );
+    expect(result.current.events).toHaveLength(0);
+    expect(result.current.error).toBeNull();
   });
 
   it('captures API errors', async () => {
@@ -114,11 +118,8 @@ describe('useRuntimeEvents', () => {
 
     const { result } = renderEvents();
 
-    await act(async () => {
-      await result.current.fetchEvents(true);
-    });
-
-    expect(result.current.error).toBe('boom');
+    // Error surfaces from the auto-fetch (test client has retry disabled).
+    await waitFor(() => expect(result.current.error).toBe('boom'));
   });
 
   it('falls back to a generic message for non-Error rejections', async () => {
@@ -126,11 +127,11 @@ describe('useRuntimeEvents', () => {
 
     const { result } = renderEvents();
 
-    await act(async () => {
-      await result.current.fetchEvents(true);
-    });
-
-    expect(result.current.error).toBe('Failed to fetch events');
+    // TanStack surfaces the raw thrown string; the hook reads `.message`
+    // (undefined on a string), so the 'Failed to fetch events' fallback wins.
+    await waitFor(() =>
+      expect(result.current.error).toBe('Failed to fetch events'),
+    );
   });
 
   it('sets hasMore=true when a full page is returned', async () => {
@@ -144,9 +145,7 @@ describe('useRuntimeEvents', () => {
 
     const { result } = renderEvents({ limit: 50 });
 
-    await act(async () => {
-      await result.current.fetchEvents(true);
-    });
+    await waitFor(() => expect(result.current.events).toHaveLength(50));
 
     expect(result.current.hasMore).toBe(true);
   });
@@ -159,9 +158,7 @@ describe('useRuntimeEvents', () => {
 
     const { result } = renderEvents({ limit: 50 });
 
-    await act(async () => {
-      await result.current.fetchEvents(true);
-    });
+    await waitFor(() => expect(result.current.events).toHaveLength(1));
 
     expect(result.current.hasMore).toBe(false);
   });
@@ -182,14 +179,16 @@ describe('useRuntimeEvents', () => {
 
     const { result } = renderEvents({ limit: 50, sortOrder: 'asc' });
 
-    await act(async () => {
-      await result.current.fetchEvents(true);
-    });
-    await act(async () => {
-      await result.current.fetchEvents(false);
+    // First page auto-fetches; loadMore() replaces the old fetchEvents(false).
+    await waitFor(() => expect(result.current.events).toHaveLength(50));
+
+    act(() => {
+      result.current.loadMore();
     });
 
-    expect(result.current.events).toHaveLength(51);
+    await waitFor(() => expect(result.current.events).toHaveLength(51));
+
+    // call[0] = auto-fetched page 1, call[1] = loadMore page 2 (indices unchanged).
     const secondCallOptions = getRuntimeEvents.mock.calls[1][4];
     expect(secondCallOptions.startTime).toBe('2026-03-05T10:49:00.000Z');
   });
@@ -210,36 +209,42 @@ describe('useRuntimeEvents', () => {
 
     const { result } = renderEvents({ limit: 50, sortOrder: 'desc' });
 
-    await act(async () => {
-      await result.current.fetchEvents(true);
+    await waitFor(() => expect(result.current.events).toHaveLength(50));
+
+    act(() => {
+      result.current.loadMore();
     });
-    await act(async () => {
-      await result.current.fetchEvents(false);
-    });
+
+    await waitFor(() => expect(result.current.events).toHaveLength(51));
 
     const secondCallOptions = getRuntimeEvents.mock.calls[1][4];
     expect(secondCallOptions.endTime).toBe('2026-03-05T10:49:00.000Z');
   });
 
-  it('clearEvents resets events, totalCount and hasMore', async () => {
-    getRuntimeEvents.mockResolvedValueOnce({
-      events: [{ timestamp: 't', message: 'm' }],
-      total: 1,
-    });
+  it('clearEvents triggers a refetch from page 1', async () => {
+    // clearEvents is now an alias for refresh(): it re-fetches page 1 rather
+    // than emptying the list. Assert it re-invokes the API and reloads events.
+    getRuntimeEvents
+      .mockResolvedValueOnce({
+        events: [{ timestamp: 't', message: 'm' }],
+        total: 1,
+      })
+      .mockResolvedValueOnce({
+        events: [{ timestamp: 't2', message: 'm2' }],
+        total: 1,
+      });
 
     const { result } = renderEvents();
 
-    await act(async () => {
-      await result.current.fetchEvents(true);
-    });
+    await waitFor(() => expect(result.current.events).toHaveLength(1));
+    expect(getRuntimeEvents).toHaveBeenCalledTimes(1);
 
     act(() => {
       result.current.clearEvents();
     });
 
-    expect(result.current.events).toHaveLength(0);
-    expect(result.current.totalCount).toBe(0);
-    expect(result.current.hasMore).toBe(true);
+    await waitFor(() => expect(getRuntimeEvents).toHaveBeenCalledTimes(2));
+    expect(result.current.events).toHaveLength(1);
   });
 
   it('sets up 5s polling when isLive is true', async () => {
@@ -248,13 +253,14 @@ describe('useRuntimeEvents', () => {
       getRuntimeEvents.mockResolvedValue({ events: [], total: 0 });
       renderEvents({ isLive: true });
 
-      expect(getRuntimeEvents).not.toHaveBeenCalled();
+      // Auto-fetch fires on mount now (not only after the 5s interval).
+      await waitFor(() => expect(getRuntimeEvents).toHaveBeenCalledTimes(1));
 
       await act(async () => {
-        jest.advanceTimersByTime(5000);
+        await jest.advanceTimersByTimeAsync(5000);
       });
 
-      expect(getRuntimeEvents).toHaveBeenCalled();
+      await waitFor(() => expect(getRuntimeEvents).toHaveBeenCalledTimes(2));
     } finally {
       jest.useRealTimers();
     }

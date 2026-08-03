@@ -10,6 +10,7 @@ import {
 import CloseIcon from '@material-ui/icons/Close';
 import { ResourceKindIcon } from './ResourceKindIcon';
 import { ResourceDetailTabs } from './ResourceDetailTabs';
+import { ReleaseDetailTabs } from './ReleaseDetailTabs';
 import { ReleaseBindingDetailTabs } from './ReleaseBindingDetailTabs';
 import { useTreeStyles } from './treeStyles';
 import type { ExecContext, LayoutNode } from './treeTypes';
@@ -100,22 +101,7 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
             />
           )}
           {!node.isRoot && node.kind === 'RenderedRelease' && (
-            <Box padding={2}>
-              <Typography variant="subtitle2" gutterBottom>
-                Release Name
-              </Typography>
-              <Typography variant="body2" gutterBottom>
-                {node.name}
-              </Typography>
-              <Typography
-                variant="subtitle2"
-                gutterBottom
-                style={{ marginTop: 16 }}
-              >
-                Target Plane
-              </Typography>
-              <Typography variant="body2">{node.version}</Typography>
-            </Box>
+            <ReleaseDetailTabs node={node} />
           )}
           {!node.isRoot && node.kind !== 'RenderedRelease' && (
             <ResourceDetailTabs

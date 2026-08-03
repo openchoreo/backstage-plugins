@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { genericWorkflowsClientApiRef } from '../api';
 import type { WorkflowRun } from '../types';
 import { useSelectedNamespace } from '../context';
@@ -7,11 +7,21 @@ import { useSelectedNamespace } from '../context';
 interface UseWorkflowRunsResult {
   runs: WorkflowRun[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
 }
 
 const POLLING_INTERVAL = 5000; // 5 seconds
+
+// Check if there are any active runs (Pending or Running)
+function hasActiveRuns(runs?: WorkflowRun[]): boolean {
+  return !!runs?.some(run => {
+    const status = (run.phase || run.status)?.toLowerCase();
+    return status === 'pending' || status === 'running';
+  });
+}
 
 /**
  * Hook to fetch workflow runs.
@@ -29,63 +39,26 @@ export function useWorkflowRuns(
   const contextNamespace = useSelectedNamespace();
   const resolvedNamespace = namespaceName ?? contextNamespace;
 
-  const [runs, setRuns] = useState<WorkflowRun[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-
-  const fetchRuns = useCallback(async () => {
-    if (!resolvedNamespace) {
-      setRuns([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setError(null);
-      const response = await client.listWorkflowRuns(
-        resolvedNamespace,
-        workflowName,
-      );
-      setRuns(response.items);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setLoading(false);
-    }
-  }, [client, resolvedNamespace, workflowName]);
-
-  // Check if there are any active runs (Pending or Running)
-  const hasActiveRuns = runs.some(run => {
-    const status = (run.phase || run.status)?.toLowerCase();
-    return status === 'pending' || status === 'running';
-  });
-
-  // Set up polling when there are active runs
-  useEffect(() => {
-    if (hasActiveRuns) {
-      pollingRef.current = setInterval(() => {
-        fetchRuns();
-      }, POLLING_INTERVAL);
-    }
-
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, [hasActiveRuns, fetchRuns]);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchRuns();
-  }, [fetchRuns]);
+  const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
+    ['workflow-runs', resolvedNamespace ?? null, workflowName ?? null],
+    () =>
+      client
+        .listWorkflowRuns(resolvedNamespace!, workflowName)
+        .then(r => r.items),
+    {
+      enabled: !!resolvedNamespace,
+      refetchInterval: query =>
+        hasActiveRuns(query.state.data) ? POLLING_INTERVAL : false,
+    },
+  );
 
   return {
-    runs,
+    runs: data ?? [],
     loading,
+    isRefetching,
     error,
-    refetch: fetchRuns,
+    refetch: async () => {
+      await refetch();
+    },
   };
 }

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { mockSystemEntity } from '@openchoreo/test-utils';
@@ -117,7 +117,9 @@ const setup = (
     prevCursor: undefined,
     nextCursor: page.nextCursor,
     loading: false,
+    isRefetching: false,
     error: null,
+    refetch: jest.fn().mockResolvedValue(undefined),
   });
   mockUseProjectContentFacets.mockReturnValue({
     counts: {
@@ -127,6 +129,8 @@ const setup = (
     },
     typesByKind: { component: ['deployment/service'], resource: ['postgres'] },
     loading: false,
+    isRefetching: false,
+    refetch: jest.fn().mockResolvedValue(undefined),
   });
   mockUseEnvironments.mockReturnValue({ environments: [], loading: false });
   mockUseDeploymentPipeline.mockReturnValue({
@@ -165,6 +169,35 @@ describe('ProjectContentsCard', () => {
     expect(screen.getByText('snip-postgres')).toBeInTheDocument();
   });
 
+  it('refetches both the page and the facets when refresh is clicked', () => {
+    const pageRefetch = jest.fn().mockResolvedValue(undefined);
+    const facetsRefetch = jest.fn().mockResolvedValue(undefined);
+    setup([item('component', 'snip-api', 'deployment/service')]);
+    mockUseProjectContentsPage.mockReturnValue({
+      items: [item('component', 'snip-api', 'deployment/service')],
+      totalItems: 1,
+      prevCursor: undefined,
+      nextCursor: undefined,
+      loading: false,
+      isRefetching: false,
+      error: null,
+      refetch: pageRefetch,
+    });
+    mockUseProjectContentFacets.mockReturnValue({
+      counts: { all: 1, component: 1, resource: 0 },
+      typesByKind: { component: ['deployment/service'], resource: [] },
+      loading: false,
+      isRefetching: false,
+      refetch: facetsRefetch,
+    });
+
+    renderCard();
+
+    fireEvent.click(screen.getByLabelText('Refresh project contents'));
+    expect(pageRefetch).toHaveBeenCalledTimes(1);
+    expect(facetsRefetch).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the Kind and Type filter dropdowns', () => {
     setup([
       item('component', 'snip-api', 'deployment/service'),
@@ -181,6 +214,71 @@ describe('ProjectContentsCard', () => {
     expect(
       screen.getByText('No components or resources match the current filters'),
     ).toBeInTheDocument();
+  });
+
+  it('shows a card skeleton (not the table) on the initial load', () => {
+    // Facets still resolving: we don't yet know if this becomes a table or the
+    // empty state, so the whole card reads as a skeleton — no title, no table.
+    mockUseProjectContentsPage.mockReturnValue({
+      items: [],
+      totalItems: 0,
+      loading: true,
+      error: null,
+    });
+    mockUseProjectContentFacets.mockReturnValue({
+      counts: { all: 0, component: 0, resource: 0 },
+      typesByKind: { component: [], resource: [] },
+      loading: true,
+    });
+    mockUseEnvironments.mockReturnValue({ environments: [], loading: false });
+    mockUseDeploymentPipeline.mockReturnValue({
+      data: { environments: [] },
+      loading: false,
+      error: null,
+    });
+    mockUseReleaseBindingPermission.mockReturnValue({
+      canViewBindings: true,
+      loading: false,
+    });
+
+    renderCard();
+
+    expect(screen.queryByTestId('table')).not.toBeInTheDocument();
+    expect(screen.queryByText('Project Contents')).not.toBeInTheDocument();
+    expect(
+      document.querySelectorAll('[aria-hidden="true"]').length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('keeps the table mounted during a refetch after the first load', () => {
+    // Once the card has loaded, a subsequent refetch (page.loading true) must
+    // keep the table and header controls mounted rather than collapsing back to
+    // the skeleton — even if the refetch momentarily has no rows.
+    setup([item('component', 'snip-api', 'deployment/service')], {
+      totalItems: 7,
+    });
+    const { rerender } = renderCard();
+    expect(screen.getByTestId('table')).toBeInTheDocument();
+
+    // Now a refetch is in flight (loading true, prior rows retained).
+    mockUseProjectContentsPage.mockReturnValue({
+      items: [item('component', 'snip-api', 'deployment/service')],
+      totalItems: 7,
+      prevCursor: undefined,
+      nextCursor: undefined,
+      loading: true,
+      error: null,
+    });
+    rerender(
+      <MemoryRouter>
+        <EntityProvider entity={testEntity}>
+          <ProjectContentsCard />
+        </EntityProvider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('table')).toBeInTheDocument();
+    expect(screen.getByText('snip-api')).toBeInTheDocument();
   });
 
   it('renders the cursor pager with range and an enabled Next when more pages exist', () => {

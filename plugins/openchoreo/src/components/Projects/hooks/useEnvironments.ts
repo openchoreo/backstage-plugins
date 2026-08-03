@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
 export interface Environment {
@@ -14,30 +14,23 @@ export interface Environment {
 interface UseEnvironmentsResult {
   environments: Environment[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
 }
 
 export function useEnvironments(systemEntity: Entity): UseEnvironmentsResult {
   const catalogApi = useApi(catalogApiRef);
 
-  const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const namespace =
+    systemEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  const fetchEnvironments = useCallback(async () => {
-    const namespace =
-      systemEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
-
-    if (!namespace) {
-      setEnvironments([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
+  const { data, loading, isRefetching, error } = useOpenChoreoQuery(
+    ['project-environments', stringifyEntityRef(systemEntity), namespace],
+    async (): Promise<Environment[]> => {
+      // Narrows `namespace` to string (the query is enabled only when set) and
+      // keeps the filter value assignable to EntityFilterQuery.
+      if (!namespace) return [];
       // Fetch Environment entities from catalog
       const { items } = await catalogApi.getEntities({
         filter: {
@@ -46,7 +39,7 @@ export function useEnvironments(systemEntity: Entity): UseEnvironmentsResult {
         },
       });
 
-      const envList: Environment[] = items.map((entity: Entity) => ({
+      return items.map((entity: Entity) => ({
         name:
           entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ENVIRONMENT] ||
           entity.metadata.name,
@@ -56,23 +49,14 @@ export function useEnvironments(systemEntity: Entity): UseEnvironmentsResult {
           entity.metadata.annotations?.['openchoreo.io/is-production'] ===
           'true',
       }));
-
-      setEnvironments(envList);
-    } catch (err) {
-      setError(err as Error);
-      setEnvironments([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [systemEntity, catalogApi]);
-
-  useEffect(() => {
-    fetchEnvironments();
-  }, [fetchEnvironments]);
+    },
+    { enabled: !!namespace },
+  );
 
   return {
-    environments,
+    environments: data ?? [],
     loading,
+    isRefetching,
     error,
   };
 }

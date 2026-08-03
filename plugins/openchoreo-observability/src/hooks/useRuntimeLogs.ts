@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
-import { observabilityApiRef } from '../api/ObservabilityApi';
 import { Entity } from '@backstage/catalog-model';
+import { observabilityApiRef } from '../api/ObservabilityApi';
 import { LogEntry } from '../components/RuntimeLogs/types';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { calculateTimeRange } from '@openchoreo/backstage-plugin-react';
+import {
+  calculateTimeRange,
+  useOpenChoreoInfiniteQuery,
+} from '@openchoreo/backstage-plugin-react';
 
 export interface UseRuntimeLogsOptions {
   environment: string;
@@ -23,6 +25,8 @@ export interface UseRuntimeLogsOptions {
 export interface UseRuntimeLogsResult {
   logs: LogEntry[];
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: string | null;
   totalCount: number;
   hasMore: boolean;
@@ -35,6 +39,10 @@ export interface UseRuntimeLogsResult {
 /**
  * Hook for fetching runtime logs for a component.
  *
+ * Cursor-paginated over timestamps: "load more" walks the window edge using the
+ * last row's timestamp (as the new endTime when descending, startTime when
+ * ascending). Live mode re-fetches from the first page every 5s.
+ *
  * @param entity - The Backstage entity
  * @param namespaceName - Namespace name
  * @param project - Project name
@@ -46,173 +54,106 @@ export function useRuntimeLogs(
   namespaceName: string,
   project: string,
   options: UseRuntimeLogsOptions,
+  /**
+   * Consumer gate (e.g. logs-view permission). Folded into the query's
+   * `enabled` so no request fires while the page's own preconditions are unmet,
+   * preserving the old imperative "only fetch when allowed" flow. @default true
+   */
+  enabled: boolean = true,
 ): UseRuntimeLogsResult {
   const observabilityApi = useApi(observabilityApiRef);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const inFlightRef = useRef<boolean>(false);
-  const fetchGenerationRef = useRef<number>(0);
 
-  const fetchLogs = useCallback(
-    async (reset: boolean = false) => {
-      if (!options.environment) {
-        return;
-      }
+  const componentName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+  const pageSize = options.limit || 50;
+  const sortOrder = options.sortOrder || 'asc';
+  // Empty (but defined) log levels means "none selected" → fetch nothing.
+  const noLevelsSelected =
+    options.logLevels !== undefined && options.logLevels.length === 0;
 
-      // Skip fetch if logLevels is explicitly empty (none selected)
-      if (options.logLevels !== undefined && options.logLevels.length === 0) {
-        return;
-      }
-
-      // Check if a fetch is already in progress
-      if (inFlightRef.current) {
-        return;
-      }
-
-      const generation = fetchGenerationRef.current;
-
-      try {
-        inFlightRef.current = true;
-        setLoading(true);
-        setError(null);
-
-        const componentName =
-          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
-        if (!componentName) {
-          throw new Error('Component name not found in entity annotations');
-        }
-
-        // Calculate the start and end times based on the time range
-        const { startTime: initialStartTime, endTime: initialEndTime } =
-          calculateTimeRange(options.timeRange, {
-            startTime: options.customStartTime,
-            endTime: options.customEndTime,
-          });
-
-        // Use timestamp-based pagination instead of offset
-        let endTime = initialEndTime;
-        let startTime = initialStartTime;
-        if (!reset && logs.length > 0) {
-          // For load more, use the timestamp of the last log as the new endTime or startTime based on the sort order
-          const lastLog = logs[logs.length - 1];
-          const sortOrder = options.sortOrder || 'asc';
-          if (sortOrder === 'desc') {
-            // For descending (newest first), use the timestamp of the last log as the new endTime
-            endTime = lastLog.timestamp ?? endTime;
-          } else {
-            // For ascending (oldest first), use the timestamp of the last log as the new startTime
-            startTime = lastLog.timestamp ?? startTime;
-          }
-        }
-
-        const response = await observabilityApi.getRuntimeLogs(
-          namespaceName,
-          project,
-          options.environment,
-          componentName,
-          {
-            limit: options.limit || 50,
-            startTime,
-            endTime,
-            logLevels: options.logLevels,
-            searchQuery: options.searchQuery,
-            sortOrder: options.sortOrder || 'asc',
-          },
-        );
-
-        if (fetchGenerationRef.current !== generation) return;
-
-        if (reset) {
-          setLogs(response.logs);
-          setTotalCount(response.total ?? 0);
-        } else {
-          setLogs(prev => [...prev, ...response.logs]);
-        }
-
-        setHasMore(response.logs.length === (options.limit || 50));
-      } catch (err) {
-        if (fetchGenerationRef.current === generation) {
-          setError(err instanceof Error ? err.message : 'Failed to fetch logs');
-        }
-      } finally {
-        setLoading(false);
-        inFlightRef.current = false;
-      }
-    },
-    [
-      observabilityApi,
-      options.environment,
-      options.timeRange,
-      options.customStartTime,
-      options.customEndTime,
-      options.logLevels,
-      options.limit,
-      options.searchQuery,
-      options.sortOrder,
-      logs,
-      namespaceName,
-      project,
-      entity,
-    ],
-  );
-
-  // Live polling effect
-  useEffect(() => {
-    // Always clear any existing interval first
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-
-    if (!options.isLive) {
-      return undefined;
-    }
-
-    // Set up polling interval (5 seconds)
-    pollingIntervalRef.current = setInterval(() => {
-      fetchLogs(true);
-    }, 5000);
-
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-      inFlightRef.current = false;
-    };
-  }, [options.isLive, fetchLogs]);
-
-  const loadMore = useCallback(() => {
-    if (!loading && hasMore && !error && logs.length > 0) {
-      fetchLogs(false);
-    }
-  }, [fetchLogs, hasMore, loading, error, logs.length]);
-
-  const refresh = useCallback(() => {
-    setLogs([]);
-    fetchLogs(true);
-  }, [fetchLogs]);
-
-  const clearLogs = useCallback(() => {
-    fetchGenerationRef.current += 1;
-    setLogs([]);
-    setTotalCount(0);
-    setHasMore(true);
-  }, []);
-
-  return {
-    logs,
+  const {
+    items,
     loading,
+    isRefetching,
+    loadingMore,
     error,
     totalCount,
     hasMore,
-    fetchLogs,
     loadMore,
     refresh,
-    clearLogs,
+  } = useOpenChoreoInfiniteQuery<LogEntry>(
+    [
+      'runtime-logs',
+      namespaceName,
+      project,
+      options.environment,
+      componentName ?? null,
+      options.timeRange,
+      options.customStartTime,
+      options.customEndTime,
+      (options.logLevels ?? []).join(','),
+      options.searchQuery ?? '',
+      sortOrder,
+      pageSize,
+    ],
+    async cursor => {
+      const { startTime: initialStartTime, endTime: initialEndTime } =
+        calculateTimeRange(options.timeRange, {
+          startTime: options.customStartTime,
+          endTime: options.customEndTime,
+        });
+
+      // The cursor is the previous page's last timestamp; move the matching
+      // window edge inward based on sort order.
+      let startTime = initialStartTime;
+      let endTime = initialEndTime;
+      if (cursor) {
+        if (sortOrder === 'desc') endTime = cursor;
+        else startTime = cursor;
+      }
+
+      const response = await observabilityApi.getRuntimeLogs(
+        namespaceName,
+        project,
+        options.environment,
+        componentName!,
+        {
+          limit: pageSize,
+          startTime,
+          endTime,
+          logLevels: options.logLevels,
+          searchQuery: options.searchQuery,
+          sortOrder,
+        },
+      );
+      return { items: response.logs, total: response.total ?? 0 };
+    },
+    {
+      pageSize,
+      getCursor: last => last.timestamp,
+      enabled:
+        enabled &&
+        !!options.environment &&
+        !!componentName &&
+        !noLevelsSelected,
+      refetchInterval: options.isLive ? 5000 : false,
+    },
+  );
+
+  return {
+    logs: items,
+    loading: loading || loadingMore,
+    isRefetching,
+    error: error ? error.message || 'Failed to fetch logs' : null,
+    totalCount,
+    hasMore,
+    // Kept for API compatibility; the query refetches on filter/key change.
+    fetchLogs: async () => {
+      refresh();
+    },
+    loadMore,
+    refresh,
+    // Clearing is a refresh back to page 1 now that pages live in the cache.
+    clearLogs: refresh,
   };
 }

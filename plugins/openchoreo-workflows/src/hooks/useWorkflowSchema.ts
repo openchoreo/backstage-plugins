@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { genericWorkflowsClientApiRef } from '../api';
 import { useSelectedNamespace } from '../context';
 
 interface UseWorkflowSchemaResult {
   schema: unknown | null;
   loading: boolean;
+  /** A background refresh is in flight while data is already on screen. */
+  isRefetching: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
 }
@@ -25,47 +27,29 @@ export function useWorkflowSchema(
   const client = useApi(genericWorkflowsClientApiRef);
   const namespaceName = useSelectedNamespace();
 
-  const [schema, setSchema] = useState<unknown | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  // Namespace-scoped workflows also require a namespace; cluster-scoped ones do not.
+  const enabled =
+    !!workflowName && (workflowKind === 'ClusterWorkflow' || !!namespaceName);
 
-  const fetchSchema = useCallback(async () => {
-    if (!workflowName) {
-      setLoading(false);
-      return;
-    }
-
-    // Namespace-scoped workflows also require a namespace
-    if (workflowKind !== 'ClusterWorkflow' && !namespaceName) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      let data: unknown;
-      if (workflowKind === 'ClusterWorkflow') {
-        data = await client.getClusterWorkflowSchema(workflowName);
-      } else {
-        data = await client.getWorkflowSchema(namespaceName, workflowName);
-      }
-      setSchema(data);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setLoading(false);
-    }
-  }, [client, namespaceName, workflowName, workflowKind]);
-
-  useEffect(() => {
-    fetchSchema();
-  }, [fetchSchema]);
+  const { data, loading, isRefetching, error, refetch } =
+    useOpenChoreoQuery<unknown>(
+      ['workflow-schema', workflowKind, namespaceName, workflowName],
+      () => {
+        if (workflowKind === 'ClusterWorkflow') {
+          return client.getClusterWorkflowSchema(workflowName);
+        }
+        return client.getWorkflowSchema(namespaceName, workflowName);
+      },
+      { enabled },
+    );
 
   return {
-    schema,
+    schema: data ?? null,
     loading,
+    isRefetching,
     error,
-    refetch: fetchSchema,
+    refetch: async () => {
+      await refetch();
+    },
   };
 }
