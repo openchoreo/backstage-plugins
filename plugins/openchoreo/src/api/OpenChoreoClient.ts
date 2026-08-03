@@ -25,6 +25,7 @@ import type {
   ComponentTrait,
   UserTypeConfig,
   NamespaceSummary,
+  PlatformVersion,
   ProjectSummary,
   ComponentSummary,
   Secret,
@@ -107,6 +108,8 @@ const API_ENDPOINTS = {
   USER_TYPES: '/user-types',
   // Secrets endpoints
   SECRETS: '/secrets',
+  // Platform endpoints
+  PLATFORM_VERSION: '/platform-version',
   // Hierarchy data endpoints
   NAMESPACES: '/namespaces',
   PROJECTS: '/projects', // GET /namespaces/{namespaceName}/projects
@@ -1197,6 +1200,14 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       API_ENDPOINTS.USER_TYPES,
     );
     return response.data || [];
+  }
+
+  // ============================================
+  // Platform Operations
+  // ============================================
+
+  async getPlatformVersion(): Promise<PlatformVersion> {
+    return this.apiFetch<PlatformVersion>(API_ENDPOINTS.PLATFORM_VERSION);
   }
 
   // ============================================
