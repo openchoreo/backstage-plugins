@@ -17,11 +17,7 @@ import { DoraMetricTile } from './DoraMetricTile';
 import { DoraTrendChart } from './DoraTrendChart';
 import { DoraBreakdownTable } from './DoraBreakdownTable';
 import { DoraEnvironmentCards } from './DoraEnvironmentCards';
-import {
-  INSIGHTS_TIME_RANGES,
-  formatDurationMs,
-  formatPercent,
-} from './utils';
+import { INSIGHTS_TIME_RANGES, formatDurationMs, formatPercent } from './utils';
 
 const CHART_COLORS = {
   deployments: '#1f77b4',
@@ -172,7 +168,7 @@ export const InsightsContent = ({ scope, level }: InsightsContentProps) => {
             <Grid item xs={12} sm={6} md={3}>
               <DoraMetricTile
                 title="Deployment Frequency"
-                value={frequency ? `${frequency.perDay}/day` : '—'}
+                value={frequency ? `${frequency.perDay.toFixed(2)}/day` : '—'}
                 classification={frequency?.classification ?? 'Unknown'}
                 deltaPct={frequency?.deltaPct ?? null}
                 positiveDeltaIsGood
@@ -312,7 +308,13 @@ export const InsightsContent = ({ scope, level }: InsightsContentProps) => {
             </Grid>
           </Box>
 
-          <Box mt={3} mb={1.5} display="flex" alignItems="baseline" style={{ gap: 10 }}>
+          <Box
+            mt={3}
+            mb={1.5}
+            display="flex"
+            alignItems="baseline"
+            style={{ gap: 10 }}
+          >
             <Typography variant="subtitle1" style={{ fontWeight: 650 }}>
               {labels.title}
             </Typography>
@@ -330,16 +332,18 @@ export const InsightsContent = ({ scope, level }: InsightsContentProps) => {
             }
           />
 
-          {level !== 'component' && !envFilter && breakdown.envRows.length > 0 && (
-            <>
-              <Box mt={3} mb={1.5}>
-                <Typography variant="subtitle1" style={{ fontWeight: 650 }}>
-                  Deployment metrics by environment
-                </Typography>
-              </Box>
-              <DoraEnvironmentCards rows={breakdown.envRows} />
-            </>
-          )}
+          {level !== 'component' &&
+            !envFilter &&
+            breakdown.envRows.length > 0 && (
+              <>
+                <Box mt={3} mb={1.5}>
+                  <Typography variant="subtitle1" style={{ fontWeight: 650 }}>
+                    Deployment metrics by environment
+                  </Typography>
+                </Box>
+                <DoraEnvironmentCards rows={breakdown.envRows} />
+              </>
+            )}
 
           {data && (
             <Box mt={2}>
@@ -364,15 +368,19 @@ export const InsightsContent = ({ scope, level }: InsightsContentProps) => {
                 How these metrics are calculated
               </summary>
               <Box mt={1.5}>
-                <Typography variant="body2" component="div" color="textSecondary">
+                <Typography
+                  variant="body2"
+                  component="div"
+                  color="textSecondary"
+                >
                   <b>Deployment Frequency</b> — successful deployments per
                   bucket, de-noised by rendered-release identity.
                   <br />
                   <b>Lead Time</b> — deploy-ready time minus commit-authored
                   time; commit provenance is carried on the Workload.
                   <br />
-                  <b>Change Failure Rate</b> — deployments with a failed
-                  rollout or an attributed incident ÷ total deployments.
+                  <b>Change Failure Rate</b> — deployments with a failed rollout
+                  or an attributed incident ÷ total deployments.
                   <br />
                   <b>MTTR</b> — incident resolved minus triggered, or the
                   health-based recovery transition.
