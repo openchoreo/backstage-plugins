@@ -85,7 +85,11 @@ export const DoraTrendChart = ({
           <Typography
             variant="body2"
             color="textSecondary"
-            style={{ height: CHART_HEIGHT, display: 'flex', alignItems: 'center' }}
+            style={{
+              height: CHART_HEIGHT,
+              display: 'flex',
+              alignItems: 'center',
+            }}
           >
             {emptyMessage ?? 'No data in the selected window'}
           </Typography>

@@ -117,11 +117,15 @@ export const DoraMetricTile = ({
   const colors = CLASSIFICATION_COLORS[classification];
 
   const deltaIsImprovement =
-    deltaPct !== null && (deltaPct >= 0) === positiveDeltaIsGood;
+    deltaPct !== null && deltaPct >= 0 === positiveDeltaIsGood;
   const deltaColor = deltaIsImprovement ? '#1e7e34' : '#c62828';
 
   return (
-    <Card className={classes.card} variant="outlined" style={{ position: 'relative' }}>
+    <Card
+      className={classes.card}
+      variant="outlined"
+      style={{ position: 'relative' }}
+    >
       {sparkData && <Sparkline data={sparkData} />}
       <CardContent>
         <Box className={classes.header}>

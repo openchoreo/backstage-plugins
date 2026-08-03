@@ -71,7 +71,10 @@ export const DoraEnvironmentCards = ({ rows }: DoraEnvironmentCardsProps) => {
               ? `${s.deploymentFrequency.total}`
               : '—',
           },
-          { label: 'Lead time p50', value: formatDurationMs(s?.leadTime?.p50Ms) },
+          {
+            label: 'Lead time p50',
+            value: formatDurationMs(s?.leadTime?.p50Ms),
+          },
           {
             label: 'Change failure',
             value:

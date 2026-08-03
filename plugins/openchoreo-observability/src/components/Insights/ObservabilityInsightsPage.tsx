@@ -1,12 +1,7 @@
 import { useMemo } from 'react';
 import { Box, Divider, Tab, Tabs, Typography } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
-import {
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-} from 'react-router-dom';
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { DoraSearchScope } from '../../types';
@@ -112,7 +107,10 @@ export const ObservabilityInsightsPage = () => {
 
   // Path-based inner tabs so the cost drill-down's nested routes
   // (/insights/cost/:reportId) survive navigation and deep links.
-  const insightsBase = location.pathname.replace(/\/insights(\/.*)?$/, '/insights');
+  const insightsBase = location.pathname.replace(
+    /\/insights(\/.*)?$/,
+    '/insights',
+  );
   const activeTab = /\/insights\/cost(\/|$)/.test(location.pathname)
     ? 'cost'
     : 'delivery';

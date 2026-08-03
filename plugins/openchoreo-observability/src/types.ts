@@ -257,7 +257,12 @@ export type DoraMetricName =
   | 'mttr';
 
 /** DORA performance tier for a summary value, computed by the observer. */
-export type DoraClassification = 'Elite' | 'High' | 'Medium' | 'Low' | 'Unknown';
+export type DoraClassification =
+  | 'Elite'
+  | 'High'
+  | 'Medium'
+  | 'Low'
+  | 'Unknown';
 
 /** Scope of a DORA query: namespace-only = org level; add project/component to narrow. */
 export interface DoraSearchScope {

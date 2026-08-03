@@ -182,7 +182,9 @@ export const DoraBreakdownTable = ({
                 style={clickable ? { cursor: 'pointer' } : undefined}
               >
                 <TableCell className={classes.nameCell}>
-                  <span className={row.entityRef ? classes.nameLink : undefined}>
+                  <span
+                    className={row.entityRef ? classes.nameLink : undefined}
+                  >
                     {row.name}
                   </span>
                 </TableCell>
