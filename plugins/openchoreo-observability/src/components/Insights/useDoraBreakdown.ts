@@ -48,7 +48,9 @@ export function useDoraBreakdown(
   const [error, setError] = useState<string | null>(null);
 
   const scopeKey = scope
-    ? `${scope.namespace}/${scope.project ?? ''}/${scope.component ?? ''}`
+    ? `${scope.namespace}/${scope.project ?? ''}/${scope.component ?? ''}/${
+        scope.environment ?? ''
+      }`
     : '';
 
   useEffect(() => {
@@ -64,7 +66,10 @@ export function useDoraBreakdown(
         setError(null);
 
         const { items: envEntities } = await catalogApi.getEntities({
-          filter: { kind: 'Environment', 'metadata.namespace': scope.namespace },
+          filter: {
+            kind: 'Environment',
+            'metadata.namespace': scope.namespace,
+          },
           fields: ['metadata.name'],
         });
         const envNames = envEntities.map(e => e.metadata.name);
@@ -84,7 +89,11 @@ export function useDoraBreakdown(
           });
           children = items.map(e => ({
             name: e.metadata.name,
-            scope: { namespace: scope.namespace, project: e.metadata.name },
+            scope: {
+              namespace: scope.namespace,
+              project: e.metadata.name,
+              environment: scope.environment,
+            },
             entityRef: {
               kind: e.kind,
               namespace: e.metadata.namespace ?? 'default',
@@ -117,6 +126,7 @@ export function useDoraBreakdown(
               component:
                 e.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT] ??
                 e.metadata.name,
+              environment: scope.environment,
             },
             entityRef: {
               kind: e.kind,
