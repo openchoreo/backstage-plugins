@@ -20,7 +20,10 @@ import { HomePage } from './components/Home';
 import { CustomGraphNode } from '@openchoreo/backstage-plugin-react';
 import { PageLoader } from '@openchoreo/backstage-design-system';
 import { PlatformOverviewPage } from './components/platformOverview';
-import { CostInsightsPage } from '@openchoreo/backstage-plugin-openchoreo-observability';
+import {
+  CostInsightsPage,
+  DeliveryInsightsPage,
+} from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 import { AlertDisplay, OAuthRequestDialog } from '@backstage/core-components';
 import { createApp } from '@backstage/frontend-defaults';
@@ -167,6 +170,7 @@ const routes = (
     />
     <Route path="/platform-overview" element={<PlatformOverviewPage />} />
     <Route path="/cost-insights" element={<CostInsightsPage />} />
+    <Route path="/delivery-insights" element={<DeliveryInsightsPage />} />
     {/*
       Standalone full-window exec terminal, opened in a new browser tab from the
       resource drawer. The page renders a fixed viewport overlay over the app

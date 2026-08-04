@@ -142,7 +142,6 @@ import {
   ObservabilityWirelogs,
   ObservabilityProjectIncidents,
   ObservabilityCostAnalysis,
-  ObservabilityInsights,
   useComponentHasAnyCiliumEnabledEnvironment,
   type RenderLogRowAction,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
@@ -388,12 +387,6 @@ const ServiceEntityPage = () => {
         </FeatureGatedContent>
       </EntityLayout.Route>
 
-      <EntityLayout.Route path="/insights" title="Insights">
-        <FeatureGatedContent feature="observability">
-          <ObservabilityInsights />
-        </FeatureGatedContent>
-      </EntityLayout.Route>
-
       <EntityLayout.Route path="/alerts" title="Alerts">
         <FeatureGatedContent feature="observability">
           <ObservabilityAlerts />
@@ -514,12 +507,6 @@ const GenericComponentEntityPage = () => {
       <EntityLayout.Route path="/metrics" title="Metrics">
         <FeatureGatedContent feature="observability">
           <ObservabilityMetrics />
-        </FeatureGatedContent>
-      </EntityLayout.Route>
-
-      <EntityLayout.Route path="/insights" title="Insights">
-        <FeatureGatedContent feature="observability">
-          <ObservabilityInsights />
         </FeatureGatedContent>
       </EntityLayout.Route>
 
@@ -805,11 +792,6 @@ const systemPage = (
         <ObservabilityCostAnalysis />
       </FeatureGatedContent>
     </EntityLayout.Route>
-    <EntityLayout.Route path="/insights" title="Insights">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityInsights />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
   </EntityLayoutWithDelete>
 );
 
@@ -840,11 +822,6 @@ const domainPage = (
           />
         </Grid>
       </Grid>
-    </OpenChoreoEntityLayout.Route>
-    <OpenChoreoEntityLayout.Route path="/insights" title="Insights">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityInsights />
-      </FeatureGatedContent>
     </OpenChoreoEntityLayout.Route>
     <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />

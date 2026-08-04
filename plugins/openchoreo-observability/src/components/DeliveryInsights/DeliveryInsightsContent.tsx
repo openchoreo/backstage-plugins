@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   Box,
   Button,
@@ -40,26 +40,48 @@ const BREAKDOWN_LABELS: Record<
   },
 };
 
-export interface InsightsContentProps {
-  /** Resolved query scope; null while the entity context is still loading. */
+export interface DeliveryInsightsContentProps {
+  /** Resolved query scope; null while the scope is still being resolved. */
   scope: DoraSearchScope | null;
-  /** Entity level driving breakdown labels and sections; null while loading. */
+  /** Scope level driving breakdown labels and sections; null while loading. */
   level: InsightsLevel | null;
+  /** Trailing window length in days (see `INSIGHTS_TIME_RANGES`). */
+  rangeDays: number;
+  granularity: DoraGranularity;
+  /** Environment name, or '' for all environments. */
+  envFilter: string;
+  onRangeDaysChange: (days: number) => void;
+  onGranularityChange: (granularity: DoraGranularity) => void;
+  onEnvFilterChange: (environment: string) => void;
+  /**
+   * Drill into a breakdown row one level down (a project or component). Absent
+   * at component level, where rows are environments and apply as a filter.
+   */
+  onDrill?: (childName: string) => void;
 }
 
 /**
  * The Delivery Insights (DORA metrics) surface, per the Insights wireframe:
  * filter bar (range / granularity / environment), four KPI tiles with rating +
  * delta + sparkline, four trend charts, a one-level-down breakdown table, a
- * per-environment section, and a "how these are calculated" footnote. Shared
- * by the namespace, project, and component pages — scope/level are the only
+ * per-environment section, and a "how these are calculated" footnote. Serves
+ * the namespace, project, and component levels — scope/level are the only
  * differences between them.
+ *
+ * Fully controlled: the hosting page owns the filter state so it can keep it in
+ * the URL, making a given view bookmarkable.
  */
-export const InsightsContent = ({ scope, level }: InsightsContentProps) => {
-  const [rangeDays, setRangeDays] = useState(30);
-  const [granularity, setGranularity] = useState<DoraGranularity>('daily');
-  const [envFilter, setEnvFilter] = useState('');
-
+export const DeliveryInsightsContent = ({
+  scope,
+  level,
+  rangeDays,
+  granularity,
+  envFilter,
+  onRangeDaysChange,
+  onGranularityChange,
+  onEnvFilterChange,
+  onDrill,
+}: DeliveryInsightsContentProps) => {
   // The environment filter narrows the headline tiles/charts (and the
   // project/component breakdown children inherit it); the per-environment
   // section always shows all environments, so it hides while a filter is on.
@@ -105,7 +127,7 @@ export const InsightsContent = ({ scope, level }: InsightsContentProps) => {
           variant="outlined"
           label="Range"
           value={rangeDays}
-          onChange={event => setRangeDays(Number(event.target.value))}
+          onChange={event => onRangeDaysChange(Number(event.target.value))}
         >
           {INSIGHTS_TIME_RANGES.map(option => (
             <MenuItem key={option.days} value={option.days}>
@@ -120,7 +142,7 @@ export const InsightsContent = ({ scope, level }: InsightsContentProps) => {
           label="Granularity"
           value={granularity}
           onChange={event =>
-            setGranularity(event.target.value as DoraGranularity)
+            onGranularityChange(event.target.value as DoraGranularity)
           }
         >
           <MenuItem value="daily">Daily</MenuItem>
@@ -133,7 +155,7 @@ export const InsightsContent = ({ scope, level }: InsightsContentProps) => {
           variant="outlined"
           label="Env"
           value={envFilter}
-          onChange={event => setEnvFilter(event.target.value)}
+          onChange={event => onEnvFilterChange(event.target.value)}
           style={{ minWidth: 160 }}
         >
           <MenuItem value="">All environments</MenuItem>
@@ -327,8 +349,9 @@ export const InsightsContent = ({ scope, level }: InsightsContentProps) => {
             rows={breakdown.rows}
             loading={breakdown.loading}
             error={breakdown.error}
+            onDrill={level === 'component' ? undefined : onDrill}
             onSelectEnvironment={
-              level === 'component' ? setEnvFilter : undefined
+              level === 'component' ? onEnvFilterChange : undefined
             }
           />
 

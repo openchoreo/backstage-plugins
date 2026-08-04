@@ -1,5 +1,5 @@
-export { ObservabilityInsightsPage } from './ObservabilityInsightsPage';
-export { InsightsContent } from './InsightsContent';
+export { DeliveryInsightsPage } from './DeliveryInsightsPage';
+export { DeliveryInsightsContent } from './DeliveryInsightsContent';
 export { DoraMetricTile } from './DoraMetricTile';
 export { DoraTrendChart } from './DoraTrendChart';
 export { DoraBreakdownTable } from './DoraBreakdownTable';

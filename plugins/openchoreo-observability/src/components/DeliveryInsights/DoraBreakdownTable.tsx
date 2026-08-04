@@ -10,10 +10,7 @@ import {
   Typography,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { useNavigate } from 'react-router-dom';
 import { Progress } from '@backstage/core-components';
-import { entityRouteRef } from '@backstage/plugin-catalog-react';
-import { useRouteRef } from '@backstage/core-plugin-api';
 import { DoraClassification } from '../../types';
 import { DoraBreakdownRow } from './useDoraBreakdown';
 import {
@@ -91,9 +88,13 @@ export interface DoraBreakdownTableProps {
   loading: boolean;
   error: string | null;
   /**
+   * Called when a row backed by a catalog entity (a project or component) is
+   * clicked — the caller narrows the page scope to it.
+   */
+  onDrill?: (childName: string) => void;
+  /**
    * Called when a row without a catalog entity (an environment) is clicked —
-   * the caller applies it as the environment filter. Entity-backed rows
-   * navigate to that entity's Insights tab instead.
+   * the caller applies it as the environment filter.
    */
   onSelectEnvironment?: (environment: string) => void;
 }
@@ -101,19 +102,18 @@ export interface DoraBreakdownTableProps {
 /**
  * The wireframe's per-level breakdown table: one row per child scope with
  * deployment frequency (bar), lead time p50, change failure rate, MTTR, and an
- * overall DORA rating pill. Rows drill down: project/component rows navigate
- * to the child's Insights tab, environment rows apply the env filter.
+ * overall DORA rating pill. Rows drill down: project/component rows narrow the
+ * page scope, environment rows apply the env filter.
  */
 export const DoraBreakdownTable = ({
   childLabel,
   rows,
   loading,
   error,
+  onDrill,
   onSelectEnvironment,
 }: DoraBreakdownTableProps) => {
   const classes = useStyles();
-  const navigate = useNavigate();
-  const entityRoute = useRouteRef(entityRouteRef);
 
   if (loading) {
     return <Progress />;
@@ -160,20 +160,17 @@ export const DoraBreakdownTable = ({
             const rating = overallRating(row.summary);
             const colors = CLASSIFICATION_COLORS[rating];
             const delta = df?.deltaPct ?? null;
+            // Entity-backed rows (projects/components) drill the page scope
+            // down a level; environment rows apply the environment filter.
+            const drillable = Boolean(row.entityRef && onDrill);
             const handleClick = () => {
-              if (row.entityRef) {
-                navigate(
-                  `${entityRoute({
-                    kind: row.entityRef.kind.toLowerCase(),
-                    namespace: row.entityRef.namespace,
-                    name: row.entityRef.name,
-                  })}/insights`,
-                );
+              if (drillable) {
+                onDrill!(row.name);
               } else if (onSelectEnvironment) {
                 onSelectEnvironment(row.name);
               }
             };
-            const clickable = Boolean(row.entityRef || onSelectEnvironment);
+            const clickable = drillable || Boolean(onSelectEnvironment);
             return (
               <TableRow
                 key={row.name}
@@ -182,9 +179,7 @@ export const DoraBreakdownTable = ({
                 style={clickable ? { cursor: 'pointer' } : undefined}
               >
                 <TableCell className={classes.nameCell}>
-                  <span
-                    className={row.entityRef ? classes.nameLink : undefined}
-                  >
+                  <span className={drillable ? classes.nameLink : undefined}>
                     {row.name}
                   </span>
                 </TableCell>
