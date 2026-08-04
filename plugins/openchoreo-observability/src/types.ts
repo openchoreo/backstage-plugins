@@ -362,3 +362,50 @@ export interface DoraDeploymentsResponse {
   totalCount: number;
   tookMs: number;
 }
+
+// -- Cost Insights types (from the observer FinOps cost/recommendation APIs) --
+
+/**
+ * A single cost data point from the observer cost endpoint. When a
+ * `granularity` is requested the endpoint returns one item per component per
+ * time bucket (so `startTime`/`endTime` describe the bucket); otherwise a
+ * single item per component spanning the whole window.
+ */
+export interface CostItem {
+  componentUid?: string;
+  component: string;
+  startTime: string;
+  endTime: string;
+  environmentUid?: string;
+  environment: string;
+  projectUid?: string;
+  project: string;
+  namespace: string;
+  cpuCost: number;
+  memoryCost: number;
+  /** Resource efficiency ratio in the range 0..1. */
+  efficiency: number;
+}
+
+/** Current or recommended resource allocation + its cost, from the observer. */
+export interface CostResourceProfile {
+  cpuRequest?: string;
+  cpuLimit?: string;
+  memoryRequest?: string;
+  memoryLimit?: string;
+  cpuCost: number;
+  memoryCost: number;
+}
+
+/** A right-sizing recommendation for a component in a given environment. */
+export interface CostRecommendationItem {
+  componentUid?: string;
+  component: string;
+  environmentUid?: string;
+  environment: string;
+  projectUid?: string;
+  project: string;
+  namespace: string;
+  current: CostResourceProfile;
+  recommendation: CostResourceProfile;
+}

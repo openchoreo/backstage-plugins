@@ -503,3 +503,44 @@ describe('OpenChoreoClient — fetchProjectReleaseSchema', () => {
     expect(opts.method ?? 'GET').toBe('GET');
   });
 });
+
+describe('OpenChoreoClient — platform version', () => {
+  const fetchMock = jest.fn();
+  const discovery = { getBaseUrl: jest.fn().mockResolvedValue(BASE_URL) };
+  const fetchApi = { fetch: fetchMock };
+  let client: OpenChoreoClient;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    discovery.getBaseUrl.mockResolvedValue(BASE_URL);
+    client = new OpenChoreoClient(discovery as any, fetchApi as any);
+  });
+
+  it('GETs /platform-version and returns the version info', async () => {
+    const versionInfo = {
+      name: 'openchoreo-api',
+      version: 'v1.2.0',
+      gitRevision: 'abc12345',
+      buildTime: '2025-01-06T10:00:00Z',
+      goOS: 'linux',
+      goArch: 'amd64',
+      goVersion: 'go1.24.2',
+    };
+    fetchMock.mockResolvedValueOnce(makeJsonResponse(versionInfo));
+
+    const result = await client.getPlatformVersion();
+
+    expect(result).toEqual(versionInfo);
+    const [calledUrl, opts] = fetchMock.mock.calls[0];
+    expect(calledUrl).toContain('/platform-version');
+    expect(opts.method ?? 'GET').toBe('GET');
+  });
+
+  it('throws on a non-2xx response', async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeJsonResponse({ error: 'unavailable' }, 502),
+    );
+
+    await expect(client.getPlatformVersion()).rejects.toThrow();
+  });
+});

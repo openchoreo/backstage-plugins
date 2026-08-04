@@ -120,6 +120,9 @@ function createMockServices() {
     wirelogsInfoService: {
       openStream: jest.fn(),
     },
+    versionService: {
+      fetchPlatformVersion: jest.fn(),
+    },
     annotationStore: {
       getAnnotations: jest.fn(),
       setAnnotations: jest.fn(),
@@ -164,6 +167,38 @@ describe('createRouter', () => {
     app = express();
     app.use(router);
     app.use(mockErrorHandler());
+  });
+
+  describe('GET /platform-version', () => {
+    it('should return the platform version on success', async () => {
+      const mockVersion = {
+        name: 'openchoreo-api',
+        version: 'v1.2.0',
+        gitRevision: 'abc12345',
+        buildTime: '2025-01-06T10:00:00Z',
+        goOS: 'linux',
+        goArch: 'amd64',
+        goVersion: 'go1.24.2',
+      };
+      services.versionService.fetchPlatformVersion.mockResolvedValue(
+        mockVersion,
+      );
+
+      const response = await request(app).get('/platform-version');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(mockVersion);
+    });
+
+    it('should return 500 when the upstream call fails', async () => {
+      services.versionService.fetchPlatformVersion.mockRejectedValue(
+        new Error('upstream unavailable'),
+      );
+
+      const response = await request(app).get('/platform-version');
+
+      expect(response.status).toBe(500);
+    });
   });
 
   describe('GET /deploy', () => {
