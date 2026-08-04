@@ -16,6 +16,8 @@ import {
   IncidentSummary,
   FinOpsReportSummary,
   FinOpsReportDetailed,
+  CostItem,
+  CostRecommendationItem,
 } from '../types';
 import { LogsResponse } from '../components/RuntimeLogs/types';
 import { EventsResponse } from '../components/RuntimeEvents/types';
@@ -184,6 +186,29 @@ export interface ObservabilityApi {
     environmentName: string,
     namespaceName: string,
   ): Promise<FinOpsReportDetailed>;
+
+  getCosts(
+    namespaceName: string,
+    environmentName: string,
+    options?: {
+      project?: string;
+      component?: string;
+      startTime?: string;
+      endTime?: string;
+      granularity?: string;
+    },
+  ): Promise<{ items: CostItem[] }>;
+
+  getCostRecommendations(
+    namespaceName: string,
+    environmentName: string,
+    options?: {
+      project?: string;
+      component?: string;
+      startTime?: string;
+      endTime?: string;
+    },
+  ): Promise<{ items: CostRecommendationItem[] }>;
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
@@ -1005,6 +1030,115 @@ export class ObservabilityClient implements ObservabilityApi {
 
     const data = await response.json();
     return data;
+  }
+
+  async getCosts(
+    namespaceName: string,
+    environmentName: string,
+    options?: {
+      project?: string;
+      component?: string;
+      startTime?: string;
+      endTime?: string;
+      granularity?: string;
+    },
+  ): Promise<{ items: CostItem[] }> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const url = new URL(
+      `${observerUrl}/api/v1alpha1/costs/namespaces/${encodeURIComponent(
+        namespaceName,
+      )}/environments/${encodeURIComponent(environmentName)}`,
+    );
+    if (options?.project) url.searchParams.set('project', options.project);
+    if (options?.component)
+      url.searchParams.set('component', options.component);
+    if (options?.startTime)
+      url.searchParams.set('startTime', options.startTime);
+    if (options?.endTime) url.searchParams.set('endTime', options.endTime);
+    if (options?.granularity)
+      url.searchParams.set('granularity', options.granularity);
+
+    const response = await this.fetchApi.fetch(url.toString(), {
+      headers: { ...DIRECT_HEADER },
+    });
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      if (error.includes('Observability is not configured for component')) {
+        throw new Error('Observability is not enabled for this component');
+      }
+      throw new Error(error || `Failed to fetch costs: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return {
+      items: (data.items ?? []).map((item: any) => ({
+        ...item,
+        cpuCost: item.cpuCost ?? 0,
+        memoryCost: item.memoryCost ?? 0,
+        efficiency: item.efficiency ?? 0,
+      })),
+    };
+  }
+
+  async getCostRecommendations(
+    namespaceName: string,
+    environmentName: string,
+    options?: {
+      project?: string;
+      component?: string;
+      startTime?: string;
+      endTime?: string;
+    },
+  ): Promise<{ items: CostRecommendationItem[] }> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const url = new URL(
+      `${observerUrl}/api/v1alpha1/costs/namespaces/${encodeURIComponent(
+        namespaceName,
+      )}/environments/${encodeURIComponent(environmentName)}/recommendations`,
+    );
+    if (options?.project) url.searchParams.set('project', options.project);
+    if (options?.component)
+      url.searchParams.set('component', options.component);
+    if (options?.startTime)
+      url.searchParams.set('startTime', options.startTime);
+    if (options?.endTime) url.searchParams.set('endTime', options.endTime);
+
+    const response = await this.fetchApi.fetch(url.toString(), {
+      headers: { ...DIRECT_HEADER },
+    });
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      if (error.includes('Observability is not configured for component')) {
+        throw new Error('Observability is not enabled for this component');
+      }
+      throw new Error(
+        error || `Failed to fetch cost recommendations: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    const normalizeProfile = (p: any) => ({
+      ...p,
+      cpuCost: p?.cpuCost ?? 0,
+      memoryCost: p?.memoryCost ?? 0,
+    });
+    return {
+      items: (data.items ?? []).map((item: any) => ({
+        ...item,
+        current: normalizeProfile(item.current),
+        recommendation: normalizeProfile(item.recommendation),
+      })),
+    };
   }
 
   private async parseError(response: Response): Promise<string> {
