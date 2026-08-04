@@ -51,8 +51,9 @@ export const OpenChoreoAuthModule = createBackendModule({
         logger: coreServices.logger,
         config: coreServices.rootConfig,
         discovery: coreServices.discovery,
+        auth: coreServices.auth,
       },
-      async init({ providers, logger, config, discovery }) {
+      async init({ providers, logger, config, discovery, auth }) {
         // Check if auth feature is enabled (defaults to true)
         const authEnabled =
           config.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
@@ -129,11 +130,22 @@ export const OpenChoreoAuthModule = createBackendModule({
                   const permissionBaseUrl = await discovery.getBaseUrl(
                     'permission',
                   );
+                  // Authenticate this inter-plugin call with a service token:
+                  // with the default auth policy enforced, an unauthenticated
+                  // POST is rejected with 401 and the pre-cache silently fails.
+                  const { token: serviceToken } =
+                    await auth.getPluginRequestToken({
+                      onBehalfOf: await auth.getOwnServiceCredentials(),
+                      targetPluginId: 'permission',
+                    });
                   const response = await fetch(
                     `${permissionBaseUrl}/cache-capabilities`,
                     {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${serviceToken}`,
+                      },
                       body: JSON.stringify({ userEntityRef, accessToken }),
                     },
                   );
