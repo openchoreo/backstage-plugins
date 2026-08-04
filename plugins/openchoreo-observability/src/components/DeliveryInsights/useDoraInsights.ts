@@ -24,7 +24,13 @@ export function useDoraInsights(
   granularity: DoraGranularity,
 ): UseDoraInsightsResult {
   const observabilityApi = useApi(observabilityApiRef);
-  const [data, setData] = useState<DoraMetricsResponse | null>(null);
+  // The response is stored with the query key that produced it, so a result can
+  // never be shown under a scope/window it does not belong to (for example when
+  // the request for a newly selected scope fails and the previous one lingers).
+  const [result, setResult] = useState<{
+    key: string;
+    data: DoraMetricsResponse;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -38,6 +44,7 @@ export function useDoraInsights(
         scope.environment ?? ''
       }`
     : '';
+  const queryKey = `${scopeKey}|${rangeDays}|${granularity}`;
 
   useEffect(() => {
     if (!scope) {
@@ -62,7 +69,7 @@ export function useDoraInsights(
           granularity,
         });
         if (!cancelled) {
-          setData(response);
+          setResult({ key: queryKey, data: response });
         }
       } catch (err) {
         if (!cancelled) {
@@ -83,6 +90,11 @@ export function useDoraInsights(
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scopeKey, rangeDays, granularity, reloadToken, observabilityApi]);
+
+  // A stale result (a scope/window that has since changed) is withheld rather
+  // than shown under the current selection. A failed *refresh* of the current
+  // key keeps its last good data alongside the error, which is intended.
+  const data = result?.key === queryKey ? result.data : null;
 
   return { data, loading, error, refetch };
 }

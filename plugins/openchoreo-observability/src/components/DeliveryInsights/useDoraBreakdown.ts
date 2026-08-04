@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { observabilityApiRef } from '../../api/ObservabilityApi';
 import { DoraMetricsResponse, DoraSearchScope } from '../../types';
+import { BREAKDOWN_CONCURRENCY, mapWithConcurrency } from './utils';
 
 export type InsightsLevel = 'domain' | 'system' | 'component';
 
@@ -26,6 +27,8 @@ export interface UseDoraBreakdownResult {
   environments: string[];
   loading: boolean;
   error: string | null;
+  /** Re-runs the breakdown queries; pairs with `useDoraInsights.refetch`. */
+  refetch: () => void;
 }
 
 /**
@@ -46,6 +49,9 @@ export function useDoraBreakdown(
   const [environments, setEnvironments] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const refetch = useCallback(() => setReloadToken(token => token + 1), []);
 
   const scopeKey = scope
     ? `${scope.namespace}/${scope.project ?? ''}/${scope.component ?? ''}/${
@@ -170,9 +176,12 @@ export function useDoraBreakdown(
             return child; // row renders with em-dashes rather than failing the table
           }
         };
+        // One request per child, but capped — at namespace level this is every
+        // project plus every environment, and each also passes through the
+        // observer URL cache.
         const [summaries, envSummaries] = await Promise.all([
-          Promise.all(children.map(fetchSummary)),
-          Promise.all(envChildren.map(fetchSummary)),
+          mapWithConcurrency(children, BREAKDOWN_CONCURRENCY, fetchSummary),
+          mapWithConcurrency(envChildren, BREAKDOWN_CONCURRENCY, fetchSummary),
         ]);
 
         if (!cancelled) {
@@ -203,7 +212,7 @@ export function useDoraBreakdown(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [level, scopeKey, rangeDays, catalogApi, observabilityApi]);
+  }, [level, scopeKey, rangeDays, reloadToken, catalogApi, observabilityApi]);
 
-  return { rows, envRows, environments, loading, error };
+  return { rows, envRows, environments, loading, error, refetch };
 }

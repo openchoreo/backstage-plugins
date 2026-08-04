@@ -26,8 +26,12 @@ export interface DoraChartSeries {
 export interface DoraTrendChartProps {
   title: string;
   granularity: DoraGranularity;
-  /** Points with a `bucketStart` ISO string plus the series' value fields. */
-  data: Array<Record<string, string | number>>;
+  /**
+   * Points with a `bucketStart` ISO string plus the series' value fields. A
+   * `null` value marks a bucket with no measurement, which recharts renders as
+   * a gap rather than interpolating across it (`connectNulls` is off).
+   */
+  data: Array<Record<string, string | number | null>>;
   series: DoraChartSeries[];
   /** bar = counts (deployment frequency); line = rates and durations. */
   variant: 'bar' | 'line';

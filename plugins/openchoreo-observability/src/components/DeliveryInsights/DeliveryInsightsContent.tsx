@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -17,7 +17,12 @@ import { DoraMetricTile } from './DoraMetricTile';
 import { DoraTrendChart } from './DoraTrendChart';
 import { DoraBreakdownTable } from './DoraBreakdownTable';
 import { DoraEnvironmentCards } from './DoraEnvironmentCards';
-import { INSIGHTS_TIME_RANGES, formatDurationMs, formatPercent } from './utils';
+import {
+  INSIGHTS_TIME_RANGES,
+  fillSeriesGaps,
+  formatDurationMs,
+  formatPercent,
+} from './utils';
 
 const CHART_COLORS = {
   deployments: '#1f77b4',
@@ -103,6 +108,33 @@ export const DeliveryInsightsContent = ({
     rangeDays,
   );
 
+  // The breakdown issues its own metric requests, so a refresh has to reload
+  // both or the table and env cards keep showing an older snapshot than the
+  // tiles and charts.
+  const refetchBreakdown = breakdown.refetch;
+  const refreshAll = useCallback(() => {
+    refetch();
+    refetchBreakdown();
+  }, [refetch, refetchBreakdown]);
+
+  // `leadTime`/`mttr` only include buckets that had data; align them to the
+  // zero-filled deployment-frequency buckets so missing periods render as gaps
+  // instead of the line bridging across them.
+  const buckets = data?.series?.deploymentFrequency;
+  const leadTimeSeries = useMemo(
+    () =>
+      fillSeriesGaps(buckets, data?.series?.leadTime, [
+        'p50Ms',
+        'p75Ms',
+        'p95Ms',
+      ]),
+    [buckets, data?.series?.leadTime],
+  );
+  const mttrSeries = useMemo(
+    () => fillSeriesGaps(buckets, data?.series?.mttr, ['meanMs']),
+    [buckets, data?.series?.mttr],
+  );
+
   if (!scope || !level) {
     return <Progress />;
   }
@@ -169,7 +201,7 @@ export const DeliveryInsightsContent = ({
         <Button
           size="small"
           startIcon={<RefreshIcon />}
-          onClick={refetch}
+          onClick={refreshAll}
           disabled={loading}
         >
           Refresh
@@ -222,7 +254,7 @@ export const DeliveryInsightsContent = ({
             <Grid item xs={12} sm={6} md={3}>
               <DoraMetricTile
                 title="Change Failure Rate"
-                value={cfr ? formatPercent(cfr.rate) : '—'}
+                value={cfr && cfr.total > 0 ? formatPercent(cfr.rate) : '—'}
                 classification={cfr?.classification ?? 'Unknown'}
                 deltaPct={cfr?.deltaPct ?? null}
                 positiveDeltaIsGood={false}
@@ -271,7 +303,7 @@ export const DeliveryInsightsContent = ({
                 <DoraTrendChart
                   title="Lead Time for Changes"
                   granularity={granularity}
-                  data={series?.leadTime ?? []}
+                  data={leadTimeSeries}
                   series={[
                     {
                       dataKey: 'p50Ms',
@@ -314,7 +346,7 @@ export const DeliveryInsightsContent = ({
                 <DoraTrendChart
                   title="Mean Time to Recovery"
                   granularity={granularity}
-                  data={series?.mttr ?? []}
+                  data={mttrSeries}
                   series={[
                     {
                       dataKey: 'meanMs',

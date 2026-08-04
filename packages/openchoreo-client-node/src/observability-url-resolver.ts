@@ -144,14 +144,23 @@ export class ObservabilityUrlResolver {
    * used by scopes that aggregate across environments (e.g. the Insights pages at
    * namespace/project level). Lists the namespace's environments and returns the
    * first one that resolves to an observability plane.
+   *
+   * This assumes every environment in a namespace reports to the same
+   * observability plane, which is how a namespace is expected to be configured.
+   * If a namespace ever spans several planes, a namespace-wide query resolves to
+   * whichever plane its first environment uses and would therefore only see that
+   * plane's data; aggregating across planes would need a different shape than a
+   * single resolved URL.
    */
   async resolveForNamespace(
     namespaceName: string,
     token?: string,
   ): Promise<ObservabilityUrlsResult> {
-    // Partitioned by token: the result depends on which environments the
-    // caller can list in this namespace (see below), so callers with
-    // different access must not share a cache entry.
+    // Keyed by token because which environments this caller can list decides
+    // which plane is chosen (see below). Note this only partitions the
+    // namespace-level entry — `resolveForEnvironment` keeps its own
+    // longstanding cache keyed by namespace/environment alone, so a plane URL
+    // it has already cached is shared across callers.
     const cacheKey = `ns:${namespaceName}:${token ?? ''}`;
     const cached = this.getFromCache(cacheKey);
     if (cached) return cached;

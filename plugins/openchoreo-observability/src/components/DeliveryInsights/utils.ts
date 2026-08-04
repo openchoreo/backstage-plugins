@@ -60,6 +60,67 @@ export const INSIGHTS_TIME_RANGES: InsightsTimeRangeOption[] = [
   { label: '12mo', days: 365 },
 ];
 
+/**
+ * Aligns a sparse series onto a zero-filled reference series' buckets, inserting
+ * `null` for buckets the sparse series omits.
+ *
+ * The observer zero-fills `deploymentFrequency` and `changeFailureRate` (one
+ * entry per bucket in the window) but returns only buckets that have data for
+ * `leadTime` and `mttr`. Plotted as-is on a categorical axis those omissions
+ * vanish and the line bridges straight across an unmeasured period, implying
+ * continuous coverage. Nulls make the gap render as a gap instead.
+ */
+export function fillSeriesGaps<K extends string>(
+  buckets: ReadonlyArray<{ bucketStart: string }> | undefined,
+  series:
+    | ReadonlyArray<{ bucketStart: string } & Record<K, number>>
+    | undefined,
+  valueKeys: readonly K[],
+): Array<Record<string, string | number | null>> {
+  if (!series?.length) {
+    return [];
+  }
+  const byBucket = new Map(series.map(point => [point.bucketStart, point]));
+  // Without a reference window there is nothing to align to, so plot what we have.
+  const slots = buckets?.length ? buckets : series;
+  return slots.map(({ bucketStart }) => {
+    const point = byBucket.get(bucketStart);
+    const row: Record<string, string | number | null> = { bucketStart };
+    for (const key of valueKeys) {
+      row[key] = point ? point[key] : null;
+    }
+    return row;
+  });
+}
+
+/**
+ * `items.map(fn)` with at most `limit` calls in flight, preserving input order.
+ *
+ * The breakdown fans out one metrics request per child scope; at namespace level
+ * that is every project plus every environment, which would otherwise hit the
+ * observer all in the same tick.
+ */
+export async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  const worker = async (): Promise<void> => {
+    for (let index = cursor++; index < items.length; index = cursor++) {
+      results[index] = await fn(items[index]);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker),
+  );
+  return results;
+}
+
+/** Max concurrent breakdown metric requests (see `mapWithConcurrency`). */
+export const BREAKDOWN_CONCURRENCY = 6;
+
 /** Short bucket label for chart axes: "Jul 7" (daily/weekly) or "Jul 2026" (monthly). */
 export function formatBucketLabel(
   bucketStart: string,
