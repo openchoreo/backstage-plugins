@@ -106,6 +106,7 @@ export const DeliveryInsightsContent = ({
     level,
     level === 'component' ? scope : effectiveScope,
     rangeDays,
+    granularity,
   );
 
   // The breakdown issues its own metric requests, so a refresh has to reload

@@ -3,7 +3,11 @@ import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { observabilityApiRef } from '../../api/ObservabilityApi';
-import { DoraMetricsResponse, DoraSearchScope } from '../../types';
+import {
+  DoraGranularity,
+  DoraMetricsResponse,
+  DoraSearchScope,
+} from '../../types';
 import { BREAKDOWN_CONCURRENCY, mapWithConcurrency } from './utils';
 
 export type InsightsLevel = 'domain' | 'system' | 'component';
@@ -41,6 +45,7 @@ export function useDoraBreakdown(
   level: InsightsLevel | null,
   scope: DoraSearchScope | null,
   rangeDays: number,
+  granularity: DoraGranularity,
 ): UseDoraBreakdownResult {
   const catalogApi = useApi(catalogApiRef);
   const observabilityApi = useApi(observabilityApiRef);
@@ -168,7 +173,11 @@ export function useDoraBreakdown(
               {
                 startTime: startTime.toISOString(),
                 endTime: endTime.toISOString(),
-                granularity: 'weekly',
+                // Only `summary` is read here, and summaries cover the exact
+                // requested window regardless of granularity — but pass the
+                // page's granularity so every request on the page describes the
+                // same view.
+                granularity,
               },
             );
             return { ...child, summary: response.summary };
@@ -212,7 +221,15 @@ export function useDoraBreakdown(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [level, scopeKey, rangeDays, reloadToken, catalogApi, observabilityApi]);
+  }, [
+    level,
+    scopeKey,
+    rangeDays,
+    granularity,
+    reloadToken,
+    catalogApi,
+    observabilityApi,
+  ]);
 
   return { rows, envRows, environments, loading, error, refetch };
 }
