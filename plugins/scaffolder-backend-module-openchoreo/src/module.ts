@@ -7,6 +7,7 @@ import {
   immediateCatalogServiceRef,
   annotationStoreRef,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
+import { catalogServiceRef } from '@backstage/plugin-catalog-node';
 import { createComponentTypeDefinitionAction } from './actions/componentType';
 import { createResourceTypeDefinitionAction } from './actions/resourceType';
 import { createResourceAction } from './actions/resource';
@@ -30,14 +31,16 @@ export const scaffolderModule = createBackendModule({
       deps: {
         scaffolderActions: scaffolderActionsExtensionPoint,
         config: coreServices.rootConfig,
-        discovery: coreServices.discovery,
+        auth: coreServices.auth,
+        catalog: catalogServiceRef,
         immediateCatalog: immediateCatalogServiceRef,
         annotationStore: annotationStoreRef,
       },
       async init({
         scaffolderActions,
         config,
-        discovery,
+        auth,
+        catalog,
         immediateCatalog,
         annotationStore,
       }) {
@@ -45,7 +48,8 @@ export const scaffolderModule = createBackendModule({
           createProjectAction(config, immediateCatalog),
           createComponentAction(
             config,
-            discovery,
+            catalog,
+            auth,
             immediateCatalog,
             annotationStore,
           ),

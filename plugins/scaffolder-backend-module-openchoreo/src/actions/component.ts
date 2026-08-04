@@ -11,7 +11,7 @@ import {
   buildWorkloadResource,
   type WorkflowParameterMapping,
 } from './componentResourceBuilder';
-import { CatalogClient } from '@backstage/catalog-client';
+import { CatalogService } from '@backstage/plugin-catalog-node';
 import {
   CHOREO_ANNOTATIONS,
   ComponentTypeUtils,
@@ -22,7 +22,7 @@ import {
   type AnnotationStore,
   translateComponentToEntity,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
-import type { DiscoveryService } from '@backstage/backend-plugin-api';
+import type { AuthService } from '@backstage/backend-plugin-api';
 
 /**
  * Namespace used for cluster-scoped resources such as ClusterWorkflows.
@@ -54,7 +54,8 @@ const MAX_NAME_LENGTH = 253;
 
 export const createComponentAction = (
   config: Config,
-  discovery: DiscoveryService,
+  catalog: CatalogService,
+  auth: AuthService,
   immediateCatalog: ImmediateCatalogService,
   annotationStore: AnnotationStore,
 ) => {
@@ -174,16 +175,21 @@ export const createComponentAction = (
         `Extracted project name: ${projectName} from ${ctx.input.projectName}`,
       );
 
-      const catalogApi = new CatalogClient({
-        discoveryApi: discovery,
-      });
+      // Backend-to-backend catalog reads run under a service identity: the
+      // CatalogService attaches the service token the enforced default auth
+      // policy requires (unauthenticated inter-plugin calls are rejected with
+      // 401), and service credentials keep these lookups unaffected by catalog
+      // visibility policies.
+      const credentials = await auth.getOwnServiceCredentials();
 
       // Resolve namespace from project entity to prevent cross-namespace mismatch
       try {
         const projectRef = ctx.input.projectName.includes(':')
           ? ctx.input.projectName
           : `system:${namespaceName}/${projectName}`;
-        const projectEntity = await catalogApi.getEntityByRef(projectRef);
+        const projectEntity = await catalog.getEntityByRef(projectRef, {
+          credentials,
+        });
         if (projectEntity) {
           const projectNs =
             projectEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
@@ -202,11 +208,14 @@ export const createComponentAction = (
       // Note: This requires catalog-backend to be accessible
       try {
         // Get all components from catalog
-        const { items } = await catalogApi.getEntities({
-          filter: {
-            kind: 'Component',
+        const { items } = await catalog.getEntities(
+          {
+            filter: {
+              kind: 'Component',
+            },
           },
-        });
+          { credentials },
+        );
 
         // Filter components by namespace annotation and check if name exists
         const existsInNamespace = items.some(
@@ -346,13 +355,16 @@ export const createComponentAction = (
               namespaceFilter = { 'metadata.namespace': namespaceName };
             }
 
-            const workflowEntities = await catalogApi.getEntities({
-              filter: {
-                kind: isClusterWorkflow ? 'ClusterWorkflow' : 'Workflow',
-                'metadata.name': lookupName,
-                ...namespaceFilter,
+            const workflowEntities = await catalog.getEntities(
+              {
+                filter: {
+                  kind: isClusterWorkflow ? 'ClusterWorkflow' : 'Workflow',
+                  'metadata.name': lookupName,
+                  ...namespaceFilter,
+                },
               },
-            });
+              { credentials },
+            );
             const workflowEntity = workflowEntities.items[0];
             const annotation =
               workflowEntity?.metadata?.annotations?.[
