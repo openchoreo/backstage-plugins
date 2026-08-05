@@ -65,6 +65,11 @@ import catalogImportPluginAlpha from '@backstage/plugin-catalog-import/alpha';
 // they depend on are absent and the tabs throw `NotImplementedError`.
 import apiDocsPluginAlpha from '@backstage/plugin-api-docs/alpha';
 import kubernetesPluginAlpha from '@backstage/plugin-kubernetes/alpha';
+// Same reasoning for Jenkins: we reuse `EntityLatestJenkinsRunCard` and
+// `EntityJenkinsContent` on the entity page, but those are cards/tabs rather
+// than routes, so `convertLegacyAppRoot` never discovers the plugin and
+// `jenkinsApiRef` (`plugin.jenkins.service2`) has no factory.
+import jenkinsPluginAlpha from '@backstage-community/plugin-jenkins/alpha';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
@@ -220,6 +225,7 @@ export function createPortalApp(options?: PortalAppOptions) {
       catalogImportPluginAlpha,
       apiDocsPluginAlpha,
       kubernetesPluginAlpha,
+      jenkinsPluginAlpha,
       openchoreoPluginAlpha,
       openchoreoCiPluginAlpha,
       openchoreoObservabilityPluginAlpha,

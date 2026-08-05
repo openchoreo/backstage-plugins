@@ -368,7 +368,8 @@ export class CtdToTemplateConverter {
           title: 'CI Job / Project Identifier',
           type: 'string',
           description:
-            'Identifier for the external CI job (e.g., Jenkins job path, GitHub repo slug, or GitLab project ID).',
+            'Identifier for the external CI job (e.g., Jenkins job full name such as ' +
+            '`my-folder/my-job`, GitHub repo slug, or GitLab project ID).',
         },
       },
     };
