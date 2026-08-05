@@ -152,9 +152,7 @@ describe('deriveWorkflowRunDisplayStatus', () => {
     expect(
       deriveWorkflowRunDisplayStatus({
         status: {
-          conditions: [
-            { type: 'WorkloadUpdated', status: 'True', reason: '' },
-          ],
+          conditions: [{ type: 'WorkloadUpdated', status: 'True', reason: '' }],
         },
       }),
     ).toBe('Completed');
