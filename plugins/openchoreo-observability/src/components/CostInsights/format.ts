@@ -1,6 +1,6 @@
-/** Format a cost number for a table cell, e.g. `0.00047`. */
+/** Format a cost number for a table cell, rounded to 2 decimals, e.g. `3.04`. */
 export function formatCost(value: number): string {
-  return value.toFixed(5);
+  return value.toFixed(2);
 }
 
 /** Format a cost as a card headline, e.g. `USD 12.00`. */

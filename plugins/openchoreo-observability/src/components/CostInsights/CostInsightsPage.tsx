@@ -192,7 +192,7 @@ export const CostInsightsPage = () => {
   );
 
   // --- Cost data ---
-  const { data, loading, isRefetching, error } = useCostInsights({
+  const { data, loading, isRefetching, error, refresh } = useCostInsights({
     scope,
     environments: selectedEnvironments,
     timeRange,
@@ -298,6 +298,8 @@ export const CostInsightsPage = () => {
                   onDrill={data.level === 'component' ? undefined : onDrill}
                   icon={app.getSystemIcon(`kind:${LEVEL_KIND[data.level]}`)}
                   titles={titles}
+                  scope={scope}
+                  onOptimized={refresh}
                 />
               )}
             </Box>

@@ -15,10 +15,17 @@ const useStyles = makeStyles(theme => ({
   },
   label: {
     fontWeight: 600,
-    fontSize: theme.typography.h6.fontSize,
+    fontSize: '0.75rem',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: theme.palette.text.secondary,
+  },
+  value: {
+    fontWeight: 700,
+    fontSize: '1.5rem',
+    lineHeight: 1.1,
     color: theme.palette.text.primary,
   },
-  value: { fontWeight: 700 },
   delta: { display: 'inline-flex', alignItems: 'center', gap: 2 },
   up: { color: theme.palette.error.main },
   down: { color: theme.palette.success.main },
@@ -64,7 +71,7 @@ export const CostSummaryCards: FC<CostSummaryCardsProps> = ({ summary }) => {
       <Grid item xs={12} sm={4}>
         <Card padding={16} className={classes.card}>
           <Typography className={classes.label}>Total Cost</Typography>
-          <Typography variant="h5" className={classes.value}>
+          <Typography component="div" className={classes.value}>
             {formatUsd(summary.totalCost)}
           </Typography>
           <DeltaChip deltaPct={summary.deltaPct} />
@@ -73,7 +80,7 @@ export const CostSummaryCards: FC<CostSummaryCardsProps> = ({ summary }) => {
       <Grid item xs={12} sm={4}>
         <Card padding={16} className={classes.card}>
           <Typography className={classes.label}>Forecast this month</Typography>
-          <Typography variant="h5" className={classes.value}>
+          <Typography component="div" className={classes.value}>
             {formatUsd(summary.forecastThisMonth)}
           </Typography>
           <Typography variant="body2" className={classes.muted}>
@@ -84,7 +91,7 @@ export const CostSummaryCards: FC<CostSummaryCardsProps> = ({ summary }) => {
       <Grid item xs={12} sm={4}>
         <Card padding={16} className={classes.card}>
           <Typography className={classes.label}>Efficiency</Typography>
-          <Typography variant="h5" className={classes.value}>
+          <Typography component="div" className={classes.value}>
             {formatEfficiency(summary.efficiency)}
           </Typography>
         </Card>

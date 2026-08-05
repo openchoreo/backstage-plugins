@@ -16,9 +16,17 @@ export interface CostScope {
   component?: string;
 }
 
+/** The four resource quantity strings (K8s notation) for a workload. */
+export type CostResourceQuantities = Pick<
+  CostResourceProfile,
+  'cpuRequest' | 'cpuLimit' | 'memoryRequest' | 'memoryLimit'
+>;
+
 /** Recommendation ("Cost After Optimizing") shown only at the component level. */
 export interface CostRowRecommendation extends CostResourceProfile {
   total: number;
+  /** Current (pre-optimization) resource values, for the confirm-diff dialog. */
+  current?: CostResourceQuantities;
 }
 
 export interface CostRow {
@@ -33,6 +41,14 @@ export interface CostRow {
   /** Percent change vs the previous equal-length window (null if unknown). */
   deltaPct: number | null;
   recommendation?: CostRowRecommendation;
+  /**
+   * True when the environment's ReleaseBinding was updated after the selected
+   * window's start, so recommendations derived from that window's usage would be
+   * based on the pre-change spec and are therefore withheld.
+   */
+  recommendationStale?: boolean;
+  /** ISO spec update time of the binding, shown in the withheld-recommendation notice. */
+  recommendationStaleSince?: string;
 }
 
 export interface CostSummary {

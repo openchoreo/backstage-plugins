@@ -9,6 +9,18 @@ jest.mock('@backstage/core-plugin-api', () => {
   return { ...actual, useApi: jest.fn() };
 });
 
+// The component-level path fetches release-binding info to detect stale
+// recommendations; stub it to no bindings so it's a no-op here.
+jest.mock('./optimizeChange', () => ({
+  ...jest.requireActual('./optimizeChange'),
+  fetchBindingInfoByEnv: jest.fn().mockResolvedValue(new Map()),
+}));
+import { fetchBindingInfoByEnv } from './optimizeChange';
+
+const mockFetchBindingInfo = fetchBindingInfoByEnv as jest.MockedFunction<
+  typeof fetchBindingInfoByEnv
+>;
+
 // Keep the real caching wrapper; only pin the window so previous-window maths
 // and the per-env call args are deterministic.
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
@@ -49,7 +61,12 @@ describe('useCostInsights', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useApi as jest.Mock).mockReturnValue({ getCosts, getCostRecommendations });
+    (useApi as jest.Mock).mockReturnValue({
+      getCosts,
+      getCostRecommendations,
+      getBaseUrl: jest.fn().mockResolvedValue('http://openchoreo'),
+      fetch: jest.fn(),
+    });
     getCosts.mockResolvedValue({ items: [costItem()] });
     getCostRecommendations.mockResolvedValue({ items: [] });
   });
@@ -101,6 +118,85 @@ describe('useCostInsights', () => {
     expect(getCostRecommendations).toHaveBeenCalledTimes(1);
     const devRow = result.current.data?.rows.find(r => r.key === 'dev');
     expect(devRow?.recommendation?.total).toBe(8);
+  });
+
+  it('withholds a recommendation when the binding changed after the window started', async () => {
+    getCostRecommendations.mockResolvedValue({
+      items: [
+        {
+          component: 'comp',
+          environment: 'dev',
+          project: 'gcp',
+          namespace: 'default',
+          current: { cpuCost: 22, memoryCost: 0, cpuRequest: '100m' },
+          recommendation: { cpuCost: 5, memoryCost: 3, cpuRequest: '50m' },
+        },
+      ],
+    });
+    // Spec updated at the window start -> within the settling buffer -> stale.
+    mockFetchBindingInfo.mockResolvedValueOnce(
+      new Map([['dev', { lastSpecUpdateTime: '2026-07-02T00:00:00.000Z' }]]),
+    );
+
+    const { result } = renderHook(
+      () =>
+        useCostInsights(
+          baseParams({
+            scope: { namespace: 'default', project: 'gcp', component: 'comp' },
+            environments: ['dev'],
+          }),
+        ),
+      { wrapper: createQueryWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const devRow = result.current.data?.rows.find(r => r.key === 'dev');
+    expect(devRow?.recommendationStale).toBe(true);
+    expect(devRow?.recommendationStaleSince).toBe('2026-07-02T00:00:00.000Z');
+    expect(devRow?.recommendation).toBeUndefined();
+  });
+
+  it('overrides the recommendation current request with live spec values', async () => {
+    getCostRecommendations.mockResolvedValue({
+      items: [
+        {
+          component: 'comp',
+          environment: 'dev',
+          project: 'gcp',
+          namespace: 'default',
+          current: { cpuCost: 22, memoryCost: 0, cpuRequest: '100m' },
+          recommendation: { cpuCost: 5, memoryCost: 3, cpuRequest: '50m' },
+        },
+      ],
+    });
+    // Spec updated well before the window -> not stale; live request wins.
+    mockFetchBindingInfo.mockResolvedValueOnce(
+      new Map([
+        [
+          'dev',
+          {
+            cpuRequest: '250m',
+            lastSpecUpdateTime: '2026-06-01T00:00:00.000Z',
+          },
+        ],
+      ]),
+    );
+
+    const { result } = renderHook(
+      () =>
+        useCostInsights(
+          baseParams({
+            scope: { namespace: 'default', project: 'gcp', component: 'comp' },
+            environments: ['dev'],
+          }),
+        ),
+      { wrapper: createQueryWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const devRow = result.current.data?.rows.find(r => r.key === 'dev');
+    expect(devRow?.recommendationStale).toBe(false);
+    expect(devRow?.recommendation?.current?.cpuRequest).toBe('250m');
   });
 
   it('passes the granularity only in graph view', async () => {

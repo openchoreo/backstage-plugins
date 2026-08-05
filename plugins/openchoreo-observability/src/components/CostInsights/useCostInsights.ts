@@ -1,4 +1,8 @@
-import { useApi } from '@backstage/core-plugin-api';
+import {
+  useApi,
+  discoveryApiRef,
+  fetchApiRef,
+} from '@backstage/core-plugin-api';
 import {
   useOpenChoreoQuery,
   calculateTimeRange,
@@ -6,6 +10,7 @@ import {
 import { observabilityApiRef } from '../../api/ObservabilityApi';
 import type { CostItem, CostRecommendationItem } from '../../types';
 import { buildCostInsightsData, deriveLevel } from './costAggregation';
+import { fetchBindingInfoByEnv, normalizeEnv } from './optimizeChange';
 import type { CostInsightsData, CostScope, CostViewMode } from './types';
 
 export interface UseCostInsightsParams {
@@ -38,6 +43,8 @@ export function useCostInsights(
   params: UseCostInsightsParams,
 ): UseCostInsightsResult {
   const api = useApi(observabilityApiRef);
+  const discovery = useApi(discoveryApiRef);
+  const fetchApi = useApi(fetchApiRef);
   const { scope, environments, timeRange, view, granularity } = params;
   const namespace = scope.namespace;
   const level = deriveLevel(scope);
@@ -133,17 +140,66 @@ export function useCostInsights(
         const previousItems = fulfilled.flatMap(r => r.value.previous);
         const recommendations = fulfilled.flatMap(r => r.value.recommendations);
 
+        // A recommendation is only trustworthy when its window's usage reflects
+        // the current spec. If the ReleaseBinding was updated after the window
+        // started, the samples include the pre-change spec, so we withhold those
+        // (keyed by env -> spec update time) and flag the row. For valid rows we
+        // override the window-derived "current" request strings with live spec
+        // values (display + diff only; costs stay window-based).
+        const staleRecommendationEnvs = new Map<string, string>();
+        if (level === 'component' && recommendations.length > 0) {
+          const openchoreoBaseUrl = await discovery.getBaseUrl('openchoreo');
+          const infoByEnv = await fetchBindingInfoByEnv({
+            openchoreoBaseUrl,
+            fetchApi,
+            namespaceName: namespace!,
+            projectName: scope.project!,
+            componentName: scope.component!,
+          });
+          const windowStartMs = new Date(startTime).getTime();
+          // Buffer so the settling period right after a spec change (pods rolling
+          // out) doesn't skew the recommendation.
+          const SETTLING_BUFFER_MS = 5 * 60 * 1000;
+          for (const rec of recommendations) {
+            const info = infoByEnv.get(normalizeEnv(rec.environment));
+            if (!info) continue;
+            const updatedMs = info.lastSpecUpdateTime
+              ? new Date(info.lastSpecUpdateTime).getTime()
+              : NaN;
+            if (
+              Number.isFinite(updatedMs) &&
+              updatedMs + SETTLING_BUFFER_MS > windowStartMs
+            ) {
+              staleRecommendationEnvs.set(
+                rec.environment,
+                info.lastSpecUpdateTime!,
+              );
+              continue;
+            }
+            rec.current = {
+              ...rec.current,
+              cpuRequest: info.cpuRequest ?? rec.current.cpuRequest,
+              cpuLimit: info.cpuLimit ?? rec.current.cpuLimit,
+              memoryRequest: info.memoryRequest ?? rec.current.memoryRequest,
+              memoryLimit: info.memoryLimit ?? rec.current.memoryLimit,
+            };
+          }
+        }
+
         return buildCostInsightsData({
           level,
           currentItems,
           previousItems,
           recommendations,
+          staleRecommendationEnvs,
           windowStart: startTime,
           windowEnd: endTime,
           now: new Date(),
         });
       },
-      { enabled, keepPreviousData: true },
+      // No keepPreviousData: a window/view/scope change shows the centered loader
+      // rather than stale data. Manual refresh keeps its key and uses the overlay.
+      { enabled },
     );
 
   return {
