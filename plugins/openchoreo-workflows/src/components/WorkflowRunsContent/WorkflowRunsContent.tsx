@@ -7,7 +7,7 @@ import {
   InfoCard,
   StructuredMetadataTable,
 } from '@backstage/core-components';
-import { useApi } from '@backstage/core-plugin-api';
+import { useApi, alertApiRef } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   Alert,
@@ -26,11 +26,17 @@ import {
   Paper,
   Button,
   Collapse,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import CloseIcon from '@material-ui/icons/Close';
+import DeleteIcon from '@material-ui/icons/Delete';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import EventNoteOutlinedIcon from '@material-ui/icons/EventNoteOutlined';
@@ -729,6 +735,13 @@ export const WorkflowRunsContent = () => {
   const { entity } = useEntity();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showTriggerForm, setShowTriggerForm] = useState(false);
+  const client = useApi(genericWorkflowsClientApiRef);
+  const alertApi = useApi(alertApiRef);
+
+  const [deleteTargetRun, setDeleteTargetRun] = useState<WorkflowRun | null>(
+    null,
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const workflowName = entity.metadata.name;
   const workflowKind: 'Workflow' | 'ClusterWorkflow' =
@@ -771,6 +784,24 @@ export const WorkflowRunsContent = () => {
     isRefetching,
     refetch,
   } = useWorkflowRuns(workflowName, runsNamespace);
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTargetRun) return;
+
+    setIsDeleting(true);
+    try {
+      await client.deleteWorkflowRun(runsNamespace, deleteTargetRun.name);
+      refetch();
+    } catch (err) {
+      alertApi.post({
+        message: `Failed to delete run: ${err}`,
+        severity: 'error',
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteTargetRun(null);
+    }
+  };
 
   const handleRunClick = (runName: string) => {
     setSearchParams({ run: runName });
@@ -914,25 +945,59 @@ export const WorkflowRunsContent = () => {
       )}
 
       {!runsLoading && runs.length > 0 && (
-        <Box position="relative">
-          <RefreshOverlay active={isRefetching} label="Refreshing runs…" />
-          <Table
-            data={runs}
-            columns={columns}
-            options={{
-              search: true,
-              paging: true,
-              pageSize: 10,
-              sorting: true,
-            }}
-            onRowClick={(_, row) => {
-              if (row) {
-                handleRunClick(row.name);
-              }
-            }}
-          />
-        </Box>
+        <Table
+          data={runs}
+          columns={columns}
+          actions={[
+            {
+              icon: () => <DeleteIcon />,
+              tooltip: 'Delete Run',
+              onClick: async (_event, rowData) => {
+                setDeleteTargetRun(rowData as WorkflowRun);
+              },
+            },
+          ]}
+          options={{
+            search: true,
+            paging: true,
+            pageSize: 10,
+            sorting: true,
+          }}
+          onRowClick={(_, row) => {
+            if (row) {
+              handleRunClick(row.name);
+            }
+          }}
+        />
       )}
+
+      <Dialog
+        open={Boolean(deleteTargetRun)}
+        onClose={() => setDeleteTargetRun(null)}
+      >
+        <DialogTitle>Delete Workflow Run</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete workflow run "{deleteTargetRun?.name}"?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setDeleteTargetRun(null)}
+            color="primary"
+            disabled={isDeleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="secondary"
+            disabled={isDeleting}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Content>
   );
 };

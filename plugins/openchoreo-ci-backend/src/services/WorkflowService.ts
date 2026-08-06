@@ -766,6 +766,52 @@ export class WorkflowService {
     }
   }
 
+  async deleteWorkflowRun(
+    namespaceName: string,
+    projectName: string,
+    componentName: string,
+    runName: string,
+    token?: string,
+  ): Promise<void> {
+    this.logger.info(
+      `Deleting workflow run: ${runName} for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
+    );
+
+    try {
+      await this.getWorkflowRun(
+        namespaceName,
+        projectName,
+        componentName,
+        runName,
+        token,
+      );
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.DELETE(
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}',
+        {
+          params: {
+            path: { namespaceName, runName },
+          },
+        },
+      );
+
+      assertApiResponse({ data, error, response }, 'delete workflow run');
+
+      this.logger.debug(`Successfully deleted workflow run: ${runName}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete workflow run ${runName} in namespace ${namespaceName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
   /**
    * Fetch JSONSchema for a specific component workflow
    */
