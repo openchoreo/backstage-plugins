@@ -194,4 +194,146 @@ describe('deriveWorkflowRunDisplayStatus', () => {
       }),
     ).toBe('Running');
   });
+
+  it('returns Failed from completedAt when WorkflowCompleted is False but reason is failed', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: {
+          completedAt: '2026-08-04T10:00:00Z',
+          conditions: [
+            {
+              type: 'WorkflowCompleted',
+              status: 'False',
+              reason: 'WorkflowFailed',
+            },
+          ],
+          tasks: [{ phase: 'Pending' }],
+        },
+      }),
+    ).toBe('Failed');
+  });
+
+  it('returns Ready reason from completedAt when it is not a failure signal', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: {
+          completedAt: '2026-08-04T10:00:00Z',
+          conditions: [{ type: 'Ready', status: 'True', reason: 'Completed' }],
+        },
+      }),
+    ).toBe('Completed');
+  });
+
+  it('returns Failed from Ready condition reason without completedAt', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: {
+          conditions: [
+            { type: 'Ready', status: 'False', reason: 'ValidationFailed' },
+          ],
+        },
+      }),
+    ).toBe('Failed');
+  });
+
+  it('returns Ready reason when present without completedAt', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: {
+          conditions: [{ type: 'Ready', status: 'False', reason: 'Running' }],
+        },
+      }),
+    ).toBe('Running');
+  });
+
+  it('returns Succeeded when Ready is True without reason', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: {
+          conditions: [{ type: 'Ready', status: 'True' }],
+        },
+      }),
+    ).toBe('Succeeded');
+  });
+
+  it('returns Running when Ready is False without reason', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: {
+          conditions: [{ type: 'Ready', status: 'False' }],
+        },
+      }),
+    ).toBe('Running');
+  });
+
+  it('returns Failed from task phase without completedAt', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: { tasks: [{ phase: 'Failed' }] },
+      }),
+    ).toBe('Failed');
+  });
+
+  it('returns Succeeded when all tasks succeeded without completedAt', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: {
+          tasks: [{ phase: 'Succeeded' }, { phase: 'Succeeded' }],
+        },
+      }),
+    ).toBe('Succeeded');
+  });
+
+  it('returns Running from task phase without timestamps', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: { tasks: [{ phase: 'Running' }] },
+      }),
+    ).toBe('Running');
+  });
+
+  it('does not treat WorkflowPending as failure in Ready reason', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: {
+          conditions: [
+            { type: 'Ready', status: 'False', reason: 'WorkflowPending' },
+          ],
+        },
+      }),
+    ).toBe('WorkflowPending');
+  });
+
+  it('returns Succeeded from completedAt when Ready reason is Running', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: {
+          completedAt: '2026-08-04T10:00:00Z',
+          conditions: [{ type: 'Ready', status: 'False', reason: 'Running' }],
+        },
+      }),
+    ).toBe('Succeeded');
+  });
+
+  it('returns Succeeded from completedAt when Ready reason is Pending', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: {
+          completedAt: '2026-08-04T10:00:00Z',
+          conditions: [{ type: 'Ready', status: 'False', reason: 'Pending' }],
+        },
+      }),
+    ).toBe('Succeeded');
+  });
+
+  it('returns Succeeded from completedAt when WorkflowCompleted has no reason', () => {
+    expect(
+      deriveWorkflowRunDisplayStatus({
+        status: {
+          completedAt: '2026-08-04T10:00:00Z',
+          conditions: [{ type: 'WorkflowCompleted', status: 'False' }],
+        },
+      }),
+    ).toBe('Succeeded');
+  });
 });

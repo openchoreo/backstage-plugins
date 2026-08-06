@@ -40,6 +40,7 @@ export type WorkflowRunStatusSource = {
 
 const FAILURE_REASON_RE = /Fail|Error|Invalid|Denied|Timeout/i;
 
+/** True when a condition reason indicates terminal or in-progress failure. */
 function isFailureReason(reason?: string): boolean {
   if (!reason) return false;
   if (
@@ -52,6 +53,7 @@ function isFailureReason(reason?: string): boolean {
   return FAILURE_REASON_RE.test(reason);
 }
 
+/** True when a WorkflowCompleted (or similar) reason denotes success. */
 function isSuccessReason(reason?: string): boolean {
   return (
     reason === 'WorkflowSucceeded' ||
