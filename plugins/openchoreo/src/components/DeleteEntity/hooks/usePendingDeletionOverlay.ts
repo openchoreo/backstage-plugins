@@ -1,9 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Entity } from '@backstage/catalog-model';
-import {
-  entityDeletionKey,
-  markEntityForDeletionLocally,
-} from '../utils/deletionUtils';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
+import { markEntityForDeletionLocally } from '../utils/deletionUtils';
 
 export interface UsePendingDeletionOverlayResult {
   /** Record that this entity was deleted from the listing this session. */
@@ -31,7 +28,7 @@ export function usePendingDeletionOverlay(): UsePendingDeletionOverlayResult {
   const markDeleted = useCallback((entity: Entity) => {
     setPendingDeletions(prev => {
       const next = new Set(prev);
-      next.add(entityDeletionKey(entity));
+      next.add(stringifyEntityRef(entity));
       return next;
     });
   }, []);
@@ -41,7 +38,7 @@ export function usePendingDeletionOverlay(): UsePendingDeletionOverlayResult {
       pendingDeletions.size === 0
         ? entities
         : entities.map(entity =>
-            pendingDeletions.has(entityDeletionKey(entity))
+            pendingDeletions.has(stringifyEntityRef(entity))
               ? markEntityForDeletionLocally(entity)
               : entity,
           ),

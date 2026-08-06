@@ -27,7 +27,6 @@ export type {
 export {
   isMarkedForDeletion,
   getDeletionTimestamp,
-  entityDeletionKey,
   markEntityForDeletionLocally,
 } from './utils';
 

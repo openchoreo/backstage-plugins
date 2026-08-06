@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { Table } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useNavigate } from 'react-router-dom';
@@ -35,7 +35,6 @@ import {
   type ProjectContentsOrderBy,
 } from '../hooks';
 import {
-  entityDeletionKey,
   isMarkedForDeletion,
   markEntityForDeletionLocally,
   useDeleteEntityDialog,
@@ -139,7 +138,7 @@ export const ProjectContentsCard = () => {
   const handleDeleted = useCallback((deletedEntity: Entity) => {
     setPendingDeletions(prev => {
       const next = new Set(prev);
-      next.add(entityDeletionKey(deletedEntity));
+      next.add(stringifyEntityRef(deletedEntity));
       return next;
     });
     setRefreshToken(token => token + 1);
@@ -236,7 +235,7 @@ export const ProjectContentsCard = () => {
       pendingDeletions.size === 0
         ? page.items
         : page.items.map(item =>
-            pendingDeletions.has(entityDeletionKey(item.entity))
+            pendingDeletions.has(stringifyEntityRef(item.entity))
               ? withOptimisticDeletion(item)
               : item,
           ),

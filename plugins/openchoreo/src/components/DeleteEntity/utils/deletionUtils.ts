@@ -16,13 +16,6 @@ export function getDeletionTimestamp(entity: Entity): string | undefined {
   return entity.metadata.annotations?.[CHOREO_ANNOTATIONS.DELETION_TIMESTAMP];
 }
 
-/** Stable identity for a listing row, independent of object reference. */
-export function entityDeletionKey(entity: Entity): string {
-  return `${entity.kind.toLowerCase()}:${
-    entity.metadata.namespace || 'default'
-  }/${entity.metadata.name}`;
-}
-
 /**
  * Returns a copy of the entity carrying the deletion-timestamp annotation,
  * so listings can show the "marked for deletion" badge immediately after a

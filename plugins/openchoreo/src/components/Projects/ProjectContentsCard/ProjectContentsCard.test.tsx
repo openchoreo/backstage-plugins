@@ -70,8 +70,6 @@ jest.mock('../../DeleteEntity', () => ({
   isMarkedForDeletion: () => false,
   DeletionBadge: () => null,
   RowDeleteButton: () => null,
-  entityDeletionKey: (entity: any) =>
-    `${entity.kind}:${entity.metadata.namespace}/${entity.metadata.name}`,
   markEntityForDeletionLocally: (entity: any) => entity,
   useDeleteEntityDialog: () => ({
     requestDelete: mockRequestDelete,
