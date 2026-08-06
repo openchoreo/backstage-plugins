@@ -23,7 +23,9 @@ interface EventEntryProps {
    * expansion survives the virtualizer unmounting the row off-screen.
    */
   expanded: boolean;
-  /** Called when the user clicks the row to expand or collapse it. */
+  /**
+   * Called when the user clicks the summary row to expand or collapse it.
+   */
   onToggleExpand: () => void;
 }
 
@@ -69,10 +71,9 @@ export const EventEntry: FC<EventEntryProps> = ({
   return (
     <Box
       className={`${classes.eventRow} ${expanded ? classes.expandedRow : ''}`}
-      onClick={onToggleExpand}
       role="row"
     >
-      <Box className={classes.eventRowMain}>
+      <Box className={classes.eventRowMain} onClick={onToggleExpand}>
         {selectedFields.map(field => {
           if (field === EventEntryField.Timestamp) {
             return (
