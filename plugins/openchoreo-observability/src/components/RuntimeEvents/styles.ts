@@ -71,7 +71,6 @@ export const useEventsTableStyles = makeStyles(theme => ({
 
 export const useEventEntryStyles = makeStyles(theme => ({
   eventRow: {
-    cursor: 'pointer',
     borderBottom: `1px solid ${theme.palette.grey[100]}`,
     '&:hover': {
       backgroundColor: theme.palette.action.hover,
@@ -84,7 +83,9 @@ export const useEventEntryStyles = makeStyles(theme => ({
   },
   // Flex container replacing the former <TableRow>. `alignItems: 'center'`
   // mirrors the default `vertical-align: middle` of MUI table cells.
+  // `cursor` toggles row expansion. Expanded panel below it is selectable text.
   eventRowMain: {
+    cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     width: '100%',
