@@ -133,16 +133,22 @@ export const ProjectContentsCard = () => {
 
   // Row-level delete (components and resources). On success we (1)
   // optimistically mark the row so the "marked for deletion" badge shows
-  // immediately, and (2) re-fetch so the row eventually drops off once the
-  // catalog removes the entity.
-  const handleDeleted = useCallback((deletedEntity: Entity) => {
-    setPendingDeletions(prev => {
-      const next = new Set(prev);
-      next.add(stringifyEntityRef(deletedEntity));
-      return next;
-    });
-    setRefreshToken(token => token + 1);
-  }, []);
+  // immediately, and (2) re-fetch the page and the facets (count badges,
+  // kind/type filter options) so both eventually reflect the removal once
+  // the catalog drops the entity.
+  const refetchFacets = facets.refetch;
+  const handleDeleted = useCallback(
+    (deletedEntity: Entity) => {
+      setPendingDeletions(prev => {
+        const next = new Set(prev);
+        next.add(stringifyEntityRef(deletedEntity));
+        return next;
+      });
+      setRefreshToken(token => token + 1);
+      refetchFacets();
+    },
+    [refetchFacets],
+  );
   const { requestDelete, DeleteDialog } = useDeleteEntityDialog({
     onDeleted: handleDeleted,
   });

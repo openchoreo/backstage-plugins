@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { mockSystemEntity } from '@openchoreo/test-utils';
@@ -66,15 +66,19 @@ jest.mock('@backstage/core-components', () => ({
 }));
 
 const mockRequestDelete = jest.fn();
+let capturedDialogOptions: { onDeleted?: (entity: any) => void } = {};
 jest.mock('../../DeleteEntity', () => ({
   isMarkedForDeletion: () => false,
   DeletionBadge: () => null,
   RowDeleteButton: () => null,
   markEntityForDeletionLocally: (entity: any) => entity,
-  useDeleteEntityDialog: () => ({
-    requestDelete: mockRequestDelete,
-    DeleteDialog: () => null,
-  }),
+  useDeleteEntityDialog: (options: any) => {
+    capturedDialogOptions = options;
+    return {
+      requestDelete: mockRequestDelete,
+      DeleteDialog: () => null,
+    };
+  },
 }));
 jest.mock('../../../utils/errorUtils', () => ({
   isForbiddenError: () => false,
@@ -202,6 +206,26 @@ describe('ProjectContentsCard', () => {
 
     fireEvent.click(screen.getByLabelText('Refresh project contents'));
     expect(pageRefetch).toHaveBeenCalledTimes(1);
+    expect(facetsRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('refetches the facets when a row delete completes', () => {
+    const facetsRefetch = jest.fn().mockResolvedValue(undefined);
+    const deleted = item('component', 'snip-api', 'deployment/service');
+    setup([deleted]);
+    mockUseProjectContentFacets.mockReturnValue({
+      counts: { all: 1, component: 1, resource: 0 },
+      typesByKind: { component: ['deployment/service'], resource: [] },
+      loading: false,
+      isRefetching: false,
+      refetch: facetsRefetch,
+    });
+
+    renderCard();
+
+    act(() => {
+      capturedDialogOptions.onDeleted?.(deleted.entity);
+    });
     expect(facetsRefetch).toHaveBeenCalledTimes(1);
   });
 
