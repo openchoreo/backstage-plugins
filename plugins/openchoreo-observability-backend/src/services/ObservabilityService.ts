@@ -38,6 +38,10 @@ export class ObservabilityService {
   /**
    * Resolves the observer, RCA agent, and FinOps agent URLs for a given namespace and environment.
    * Used by the frontend to make direct calls to observer/RCA/FinOps APIs.
+   *
+   * When `environmentName` is empty, resolves at namespace level (first environment
+   * that reaches an observability plane) — used by cross-environment scopes such as
+   * the Insights pages.
    */
   async resolveUrls(
     namespaceName: string,
@@ -48,6 +52,9 @@ export class ObservabilityService {
     rcaAgentUrl?: string;
     finopsAgentUrl?: string;
   }> {
+    if (!environmentName) {
+      return this.resolver.resolveForNamespace(namespaceName, userToken);
+    }
     return this.resolver.resolveForEnvironment(
       namespaceName,
       environmentName,

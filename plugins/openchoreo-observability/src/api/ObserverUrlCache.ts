@@ -19,6 +19,10 @@ export class ObserverUrlCache {
     this.fetchApi = options.fetchApi;
   }
 
+  /**
+   * Resolve observer/agent URLs. Pass an empty `environmentName` to resolve at
+   * namespace level (cross-environment scopes such as the Insights pages).
+   */
   async resolveUrls(
     namespaceName: string,
     environmentName: string,
@@ -42,7 +46,9 @@ export class ObserverUrlCache {
     );
     const url = new URL(`${baseUrl}/resolve-urls`);
     url.searchParams.set('namespaceName', namespaceName);
-    url.searchParams.set('environmentName', environmentName);
+    if (environmentName) {
+      url.searchParams.set('environmentName', environmentName);
+    }
 
     const response = await this.fetchApi.fetch(url.toString());
 
