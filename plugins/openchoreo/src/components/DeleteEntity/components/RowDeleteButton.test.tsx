@@ -4,6 +4,12 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import type { Entity } from '@backstage/catalog-model';
 import { RowDeleteButton } from './RowDeleteButton';
 
+const mockUseEntityDeletePermission = jest.fn();
+jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  useEntityDeletePermission: (...args: any[]) =>
+    mockUseEntityDeletePermission(...args),
+}));
+
 function makeEntity(
   kind: string,
   name: string,
@@ -24,6 +30,15 @@ function makeEntity(
 }
 
 describe('RowDeleteButton', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseEntityDeletePermission.mockReturnValue({
+      canDelete: true,
+      loading: false,
+      deniedTooltip: '',
+    });
+  });
+
   it.each([
     ['Component', 'my-service'],
     ['System', 'my-project'],
@@ -77,5 +92,35 @@ describe('RowDeleteButton', () => {
 
     expect(onDelete).toHaveBeenCalledWith(entity);
     expect(onRowClick).not.toHaveBeenCalled();
+  });
+
+  it('disables the button when the user lacks delete permission', () => {
+    mockUseEntityDeletePermission.mockReturnValue({
+      canDelete: false,
+      loading: false,
+      deniedTooltip: 'You do not have permission to delete this resource',
+    });
+    render(
+      <RowDeleteButton
+        entity={makeEntity('Component', 'svc')}
+        onDelete={jest.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /delete svc/i })).toBeDisabled();
+  });
+
+  it('disables the button while the permission check is loading', () => {
+    mockUseEntityDeletePermission.mockReturnValue({
+      canDelete: false,
+      loading: true,
+      deniedTooltip: '',
+    });
+    render(
+      <RowDeleteButton
+        entity={makeEntity('Component', 'svc')}
+        onDelete={jest.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /delete svc/i })).toBeDisabled();
   });
 });

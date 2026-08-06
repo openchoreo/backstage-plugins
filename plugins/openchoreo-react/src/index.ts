@@ -193,6 +193,10 @@ export {
   useHasAnyAnnotation,
 } from './hooks/useEntityAnnotation';
 export {
+  useEntityDeletePermission,
+  type UseEntityDeletePermissionResult,
+} from './hooks/useEntityDeletePermission';
+export {
   useOpenChoreoFeatures,
   useWorkflowsEnabled,
   useObservabilityEnabled,

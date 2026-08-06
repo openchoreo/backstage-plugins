@@ -82,8 +82,11 @@ type PermissionEntry = {
  * Lookup map from entity kind (lowercase) to update/delete permissions.
  * Namespace-scoped kinds use ResourcePermission (require resourceRef).
  * Cluster-scoped kinds use BasicPermission (no resource context).
+ *
+ * Shared with `useEntityDeletePermission` (internal only — not part of the
+ * package's public API).
  */
-const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
+export const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
   system: {
     update: openchoreoProjectUpdatePermission,
     delete: openchoreoProjectUpdatePermission, // Projects use update permission; delete is handled separately
@@ -208,7 +211,7 @@ const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
 
 // Fallback permission used when kind is unsupported to satisfy React hook rules
 // (hooks must always be called the same number of times).
-const FALLBACK_PERMISSION = openchoreoComponentTypeUpdatePermission;
+export const FALLBACK_PERMISSION = openchoreoComponentTypeUpdatePermission;
 
 /**
  * Hook for checking if the current user has permission to update and/or delete

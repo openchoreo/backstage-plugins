@@ -4,6 +4,14 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { RowActionsCell } from './RowActionsCell';
 import { type ProjectContentItem } from '../hooks';
 
+jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  useEntityDeletePermission: () => ({
+    canDelete: true,
+    loading: false,
+    deniedTooltip: '',
+  }),
+}));
+
 function makeItem(
   kind: 'component' | 'resource',
   name: string,
