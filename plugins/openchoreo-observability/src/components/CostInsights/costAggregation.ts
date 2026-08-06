@@ -118,6 +118,7 @@ export function aggregateRows(
   previousItems: CostItem[],
   level: CostScopeLevel,
   recommendations: CostRecommendationItem[] = [],
+  staleRecommendationEnvs: Map<string, string> = new Map(),
 ): CostRow[] {
   const prevTotals = previousTotalsByDimension(previousItems, level);
   const grouped = groupBy(currentItems, item => dimensionOf(item, level));
@@ -139,8 +140,14 @@ export function aggregateRows(
     const memoryCost = items.reduce((s, i) => s + (i.memoryCost ?? 0), 0);
     const total = cpuCost + memoryCost;
 
+    const recommendationStale =
+      level === 'component' && staleRecommendationEnvs.has(key);
+    const recommendationStaleSince = recommendationStale
+      ? staleRecommendationEnvs.get(key)
+      : undefined;
+
     let recommendation: CostRow['recommendation'];
-    if (level === 'component') {
+    if (level === 'component' && !recommendationStale) {
       const recs = recByEnv.get(key);
       if (recs && recs.length > 0) {
         const recCpu = recs.reduce(
@@ -152,8 +159,10 @@ export function aggregateRows(
           0,
         );
         // Resource strings only make sense for a single component/env pair;
-        // surface the first recommendation's request/limit values.
+        // surface the first recommendation's request/limit values (and its
+        // current values, for the confirm-diff dialog).
         const first = recs[0].recommendation;
+        const firstCurrent = recs[0].current;
         recommendation = {
           cpuRequest: first.cpuRequest,
           cpuLimit: first.cpuLimit,
@@ -162,6 +171,12 @@ export function aggregateRows(
           cpuCost: recCpu,
           memoryCost: recMem,
           total: recCpu + recMem,
+          current: {
+            cpuRequest: firstCurrent.cpuRequest,
+            cpuLimit: firstCurrent.cpuLimit,
+            memoryRequest: firstCurrent.memoryRequest,
+            memoryLimit: firstCurrent.memoryLimit,
+          },
         };
       }
     }
@@ -175,6 +190,8 @@ export function aggregateRows(
       efficiency: weightedEfficiency(items),
       deltaPct: percentChange(total, prevTotals.get(key)),
       recommendation,
+      recommendationStale,
+      recommendationStaleSince,
     });
   }
 
@@ -230,7 +247,45 @@ export function buildSeries(
       return point;
     });
 
-  return { series, seriesKeys: [...seriesKeys].sort() };
+  return {
+    series: fillMissingBuckets(series),
+    seriesKeys: [...seriesKeys].sort(),
+  };
+}
+
+/**
+ * The cost API can omit empty buckets, which then collapse together on the
+ * chart and hide the gap. Infer the interval from the smallest gap between
+ * buckets and insert empty points for every skipped interval.
+ */
+function fillMissingBuckets(series: CostSeriesPoint[]): CostSeriesPoint[] {
+  if (series.length < 2) return series;
+
+  const times = series.map(p => new Date(p.timestamp).getTime());
+  if (times.some(t => Number.isNaN(t))) return series;
+
+  let interval = Infinity;
+  for (let i = 1; i < times.length; i++) {
+    const gap = times[i] - times[i - 1];
+    if (gap > 0 && gap < interval) interval = gap;
+  }
+  if (!Number.isFinite(interval) || interval <= 0) return series;
+
+  const MAX_POINTS = 2000;
+
+  const filled: CostSeriesPoint[] = [series[0]];
+  for (let i = 1; i < series.length; i++) {
+    const prev = times[i - 1];
+    const curr = times[i];
+    const steps = Math.round((curr - prev) / interval);
+    for (let s = 1; s < steps && filled.length < MAX_POINTS; s++) {
+      filled.push({
+        timestamp: new Date(prev + s * interval).toISOString(),
+      });
+    }
+    filled.push(series[i]);
+  }
+  return filled;
 }
 
 /** Assemble everything the view needs from the raw multi-env responses. */
@@ -239,6 +294,8 @@ export function buildCostInsightsData(params: {
   currentItems: CostItem[];
   previousItems: CostItem[];
   recommendations?: CostRecommendationItem[];
+  /** Withheld-recommendation envs mapped to the binding's spec update time. */
+  staleRecommendationEnvs?: Map<string, string>;
   windowStart: string;
   windowEnd: string;
   now: Date;
@@ -248,6 +305,7 @@ export function buildCostInsightsData(params: {
     currentItems,
     previousItems,
     recommendations = [],
+    staleRecommendationEnvs = new Map<string, string>(),
     windowStart,
     windowEnd,
     now,
@@ -263,7 +321,13 @@ export function buildCostInsightsData(params: {
       windowEnd,
       now,
     ),
-    rows: aggregateRows(currentItems, previousItems, level, recommendations),
+    rows: aggregateRows(
+      currentItems,
+      previousItems,
+      level,
+      recommendations,
+      staleRecommendationEnvs,
+    ),
     series,
     seriesKeys,
   };
