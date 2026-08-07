@@ -129,6 +129,18 @@ describe('EventEntry', () => {
     expect(screen.queryByText('Event Message')).not.toBeInTheDocument();
   });
 
+  it('stays expanded when clicking inside the expanded panel', async () => {
+    const user = userEvent.setup();
+    renderEventEntry();
+
+    await user.click(screen.getByText('Scaled up replica set to 3'));
+    expect(screen.getByText('Event Message')).toBeInTheDocument();
+
+    await user.click(screen.getByText('comp-uid-1'));
+
+    expect(screen.getByText('Event Message')).toBeInTheDocument();
+  });
+
   it('falls back to prop values when metadata is missing', async () => {
     const user = userEvent.setup();
     renderEventEntry({

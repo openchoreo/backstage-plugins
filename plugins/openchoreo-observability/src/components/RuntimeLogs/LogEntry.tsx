@@ -34,7 +34,9 @@ interface LogEntryProps {
    * expansion survives the virtualizer unmounting the row off-screen.
    */
   expanded: boolean;
-  /** Called when the user clicks the row to expand or collapse it. */
+  /**
+   * Called when the user clicks the summary row to expand or collapse it.
+   */
   onToggleExpand: () => void;
   /**
    * Stable callback (typically backed by a ref) returning the table's
@@ -104,10 +106,9 @@ export const LogEntry: FC<LogEntryProps> = ({
   return (
     <Box
       className={`${classes.logRow} ${expanded ? classes.expandedRow : ''}`}
-      onClick={onToggleExpand}
       role="row"
     >
-      <Box className={classes.logRowMain}>
+      <Box className={classes.logRowMain} onClick={onToggleExpand}>
         {selectedFields.map(field => {
           if (field === LogEntryField.Timestamp) {
             return (
