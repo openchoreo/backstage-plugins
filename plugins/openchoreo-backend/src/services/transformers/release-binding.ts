@@ -19,6 +19,9 @@ const PROGRESSING_REASONS = [
   // plane seeds it with the project's latest release once one exists, so a
   // just-created binding sits here briefly. Pending, not an error.
   'ProjectReleaseNotSet',
+  // ProjectReleaseBinding's DataPlane Namespace is still being created or has
+  // not yet been observed as ready. Pending, not an error.
+  'NamespaceProgressing',
 ] as const;
 
 /** Reasons that represent an intentional non-deployed state, not an error. */
