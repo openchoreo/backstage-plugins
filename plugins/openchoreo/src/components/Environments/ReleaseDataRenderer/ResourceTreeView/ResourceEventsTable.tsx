@@ -113,11 +113,11 @@ export const ResourceEventsTable: FC<ResourceEventsTableProps> = ({
           const responseData = (response as any)?.data ?? response;
           const fetched = responseData?.events ?? [];
           // Sort by lastTimestamp descending (newest first)
-          fetched.sort(
-            (a: ResourceEvent, b: ResourceEvent) =>
-              new Date(b.lastTimestamp).getTime() -
-              new Date(a.lastTimestamp).getTime(),
-          );
+          fetched.sort((a: ResourceEvent, b: ResourceEvent) => {
+            const tb = new Date(b.lastTimestamp).getTime();
+            const ta = new Date(a.lastTimestamp).getTime();
+            return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta);
+          });
           setEvents(fetched);
         }
       } catch (err: any) {

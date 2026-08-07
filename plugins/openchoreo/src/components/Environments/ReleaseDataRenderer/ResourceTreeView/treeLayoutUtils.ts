@@ -11,6 +11,7 @@ import type {
   EdgeLine,
   TreeLayout,
 } from './treeTypes';
+import { nestHelmReleaseChildren } from './helmInventoryNesting';
 
 export const NODE_WIDTH = 320;
 export const NODE_HEIGHT = 64;
@@ -142,6 +143,8 @@ export function buildTreeNodes(
         parentIds,
       });
     }
+
+    nestHelmReleaseChildren(nodes, releaseNodeId);
   }
 
   return nodes;

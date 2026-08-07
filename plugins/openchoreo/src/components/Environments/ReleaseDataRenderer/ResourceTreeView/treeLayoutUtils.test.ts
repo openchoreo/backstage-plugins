@@ -157,6 +157,64 @@ describe('buildTreeNodes', () => {
     expect(svcNode.parentIds).toEqual(['dep-1']);
   });
 
+  it('nests HelmRelease inventory Deployments under the HelmRelease', () => {
+    const data: ResourceTreeData = {
+      renderedReleases: [
+        {
+          name: 'smollm2-obt-dev',
+          targetPlane: 'dp',
+          nodes: [
+            makeNode({
+              uid: 'hr-1',
+              kind: 'HelmRelease',
+              name: 'smollm2',
+              group: 'helm.toolkit.fluxcd.io',
+              version: 'v2',
+              namespace: 'obt-dev',
+              object: {
+                status: {
+                  inventory: {
+                    entries: [{ id: 'obt-dev_smollm2_apps_Deployment' }],
+                  },
+                },
+              },
+            }),
+            makeNode({
+              uid: 'dep-1',
+              kind: 'Deployment',
+              name: 'smollm2',
+              group: 'apps',
+              version: 'v1',
+              namespace: 'obt-dev',
+            }),
+            makeNode({
+              uid: 'pod-1',
+              kind: 'Pod',
+              name: 'smollm2-abc',
+              namespace: 'obt-dev',
+              parentRefs: [
+                {
+                  uid: 'dep-1',
+                  kind: 'Deployment',
+                  name: 'smollm2',
+                  version: 'v1',
+                  namespace: 'obt-dev',
+                },
+              ],
+            }),
+          ],
+        },
+      ],
+    };
+
+    const nodes = buildTreeNodes(data);
+    const dep = nodes.find(n => n.kind === 'Deployment')!;
+    const pod = nodes.find(n => n.kind === 'Pod')!;
+
+    expect(dep.parentIds).toEqual(['hr-1']);
+    expect(pod.parentIds).toEqual(['dep-1']);
+  });
+
   it('preserves resource node metadata', () => {
     const nodes = buildTreeNodes(singleReleaseData);
     const depNode = nodes.find(n => n.kind === 'Deployment')!;
