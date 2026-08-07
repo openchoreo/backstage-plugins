@@ -1,21 +1,62 @@
 import { Content, Page, Header } from '@backstage/core-components';
-import { HomePageStarredEntities } from '@backstage/plugin-home';
-import { RecentlyVisitedCard } from './RecentlyVisitedCard';
-import { HomePageSearchBar } from '@backstage/plugin-search';
+import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { SearchContextProvider } from '@backstage/plugin-search-react';
 import { Grid, Typography, Box } from '@material-ui/core';
 import { useStyles } from './styles';
 import { useUserInfo } from '../../hooks';
-import { useNamespacePermission } from '@openchoreo/backstage-plugin-react';
-import { HomePagePlatformDetailsCard } from '@openchoreo/backstage-plugin-platform-engineer-core';
+import {
+  HOME_CARD_REGISTRY,
+  getHomeCardConfig,
+  DEFAULT_HOME_CARD_CONFIG,
+  HomeCardPlacement,
+} from './cards';
+
+const useAlwaysVisible = () => true;
 
 /**
- * Custom HomePage that shows content based on user permissions
+ * Renders one card slot from the active layout config. Visibility hooks
+ * (e.g. permission gates) run here so a hidden card contributes no grid
+ * slot at all.
+ */
+const HomeCardSlot = ({ placement }: { placement: HomeCardPlacement }) => {
+  const classes = useStyles();
+  const definition = HOME_CARD_REGISTRY[placement.cardId];
+  const useVisibility = definition?.useVisibility ?? useAlwaysVisible;
+  const visible = useVisibility();
+
+  if (!definition || !visible) {
+    return null;
+  }
+
+  const CardComponent = definition.component;
+  return (
+    <Grid
+      item
+      xs={placement.size.xs ?? 12}
+      md={placement.size.md}
+      style={{ display: 'flex' }}
+    >
+      <Box className={classes.cardWrapper}>
+        <CardComponent />
+      </Box>
+    </Grid>
+  );
+};
+
+/**
+ * Custom HomePage composed of predefined cards. The set and order of
+ * cards comes from a named layout config (`openchoreo.home.cardConfig`,
+ * default `choreo-default`), so operators can switch layouts via
+ * app-config and the upcoming Backstage card-picker can build on the
+ * same registry.
  */
 export const HomePage = () => {
-  const classes = useStyles();
   const { userName, loading } = useUserInfo();
-  const { canView: canViewPlatformDetails } = useNamespacePermission();
+  const configApi = useApi(configApiRef);
+  const configName =
+    configApi.getOptionalString('openchoreo.home.cardConfig') ??
+    DEFAULT_HOME_CARD_CONFIG;
+  const cardConfig = getHomeCardConfig(configName);
 
   if (loading) {
     return (
@@ -33,44 +74,10 @@ export const HomePage = () => {
       <Page themeId="home">
         <Header title={`Welcome, ${userName}!`} />
         <Content>
-          <Grid container spacing={3}>
-            {/* Search Bar */}
-            <Grid item xs={12}>
-              <HomePageSearchBar
-                InputProps={{
-                  classes: {
-                    root: classes.searchBarInput,
-                    notchedOutline: classes.searchBarOutline,
-                  },
-                }}
-                placeholder="Search"
-              />
-            </Grid>
-
-            {/* Starred Entities and Recently Visited */}
-            <Grid item xs={12}>
-              <Grid container spacing={3} alignItems="stretch">
-                <Grid item xs={12} md={6} style={{ display: 'flex' }}>
-                  <Box className={classes.starredEntitiesWrapper}>
-                    <HomePageStarredEntities />
-                  </Box>
-                </Grid>
-                <Grid item xs={12} md={6} style={{ display: 'flex' }}>
-                  <Box className={classes.starredEntitiesWrapper}>
-                    <RecentlyVisitedCard />
-                  </Box>
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* Platform Details - visible only with namespace read permission */}
-            {canViewPlatformDetails && (
-              <Grid item xs={12}>
-                <Box className={classes.platformDetailsSection}>
-                  <HomePagePlatformDetailsCard />
-                </Box>
-              </Grid>
-            )}
+          <Grid container spacing={3} alignItems="stretch">
+            {cardConfig.cards.map(placement => (
+              <HomeCardSlot key={placement.cardId} placement={placement} />
+            ))}
           </Grid>
         </Content>
       </Page>

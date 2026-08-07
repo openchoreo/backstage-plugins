@@ -32,6 +32,19 @@ export interface Config {
     namespace?: string;
 
     /**
+     * Home page configuration.
+     * @deepVisibility frontend
+     */
+    home?: {
+      /**
+       * Named predefined card layout for the home page (e.g. 'choreo-default').
+       * Unknown names fall back to the default layout.
+       * @visibility frontend
+       */
+      cardConfig?: string;
+    };
+
+    /**
      * Feature flags for enabling/disabling OpenChoreo functionality.
      * These flags allow operators to toggle major features without code changes.
      * @deepVisibility frontend
