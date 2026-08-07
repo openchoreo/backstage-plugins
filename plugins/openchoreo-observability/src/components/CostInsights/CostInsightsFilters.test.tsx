@@ -17,8 +17,6 @@ function renderFilters(
     onViewChange: jest.fn(),
     timeRange: '1h',
     onTimeRangeChange: jest.fn(),
-    granularity: '1d',
-    onGranularityChange: jest.fn(),
     ...overrides,
   };
   return { props, ...render(<CostInsightsFilters {...props} />) };
@@ -28,7 +26,7 @@ describe('CostInsightsFilters', () => {
   it('renders the view toggle, environments and time range', () => {
     renderFilters();
     expect(screen.getByRole('button', { name: 'Table' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Graph' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Graphs' })).toBeInTheDocument();
     expect(
       screen.getByRole('textbox', { name: 'Environments' }),
     ).toBeInTheDocument();
@@ -37,25 +35,15 @@ describe('CostInsightsFilters', () => {
     ).toBeInTheDocument();
   });
 
-  it('hides the granularity selector in table view and shows it in graph view', () => {
-    const { rerender, props } = renderFilters({ view: 'table' });
-    expect(screen.queryByText('Time Granularity')).not.toBeInTheDocument();
-
-    rerender(<CostInsightsFilters {...props} view="graph" />);
-    expect(
-      screen.getAllByText('Time Granularity').length,
-    ).toBeGreaterThanOrEqual(1);
-  });
-
   it('emits the selected view when a toggle is clicked', () => {
     const { props } = renderFilters({ view: 'table' });
-    fireEvent.click(screen.getByRole('button', { name: 'Graph' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Graphs' }));
     expect(props.onViewChange).toHaveBeenCalledWith('graph');
   });
 
   it('disables the view toggles when disabled', () => {
     renderFilters({ disabled: true });
     expect(screen.getByRole('button', { name: 'Table' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Graph' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Graphs' })).toBeDisabled();
   });
 });

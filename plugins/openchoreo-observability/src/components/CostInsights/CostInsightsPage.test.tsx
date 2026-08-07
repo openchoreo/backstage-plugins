@@ -17,8 +17,8 @@ jest.mock('./CostSummaryCards', () => ({
 jest.mock('./CostInsightsTable', () => ({
   CostInsightsTable: () => <div data-testid="cost-table" />,
 }));
-jest.mock('./CostInsightsGraph', () => ({
-  CostInsightsGraph: () => <div data-testid="cost-graph" />,
+jest.mock('./CostInsightsGraphs', () => ({
+  CostInsightsGraphs: () => <div data-testid="cost-graph" />,
 }));
 
 const mockUseNamespaceEnvironments = jest.fn();
@@ -43,6 +43,7 @@ const data = {
     deltaPct: 10,
     forecastThisMonth: 500,
     efficiency: 0.3,
+    totalSaving: 0,
   },
   rows: [
     {
