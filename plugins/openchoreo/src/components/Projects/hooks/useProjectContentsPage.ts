@@ -54,6 +54,11 @@ export interface ProjectContentsPageParams {
   /** Cursor for the page to fetch; omit/undefined for the first page. */
   cursor?: string;
   limit: number;
+  /**
+   * Opaque value that re-runs the fetch when it changes. Bump it to refresh the
+   * current page in place (e.g. after a component is marked for deletion).
+   */
+  refreshToken?: number;
 }
 
 export interface ProjectContentsPageResult {
@@ -200,6 +205,7 @@ export function useProjectContentsPage(
     orderDir,
     cursor,
     limit,
+    refreshToken,
   } = params;
   const project = systemEntity.metadata.name;
   const namespace =
@@ -227,6 +233,7 @@ export function useProjectContentsPage(
       orderDir,
       cursor ?? 'first',
       limit,
+      refreshToken ?? 0,
     ],
     async () => {
       // A cursor request carries the original filter/order in the cursor, so we

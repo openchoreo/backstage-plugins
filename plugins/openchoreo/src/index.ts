@@ -36,12 +36,19 @@ export {
 } from './components/Namespaces';
 export {
   useDeleteEntityMenuItems,
+  useDeleteEntityDialog,
+  usePendingDeletionOverlay,
   useEntityExistsCheck,
+  getEntityDisplayType,
+  isDeletableEntityKind,
   DeletionBadge,
   DeletionWarning,
+  RowDeleteButton,
   isMarkedForDeletion,
   getDeletionTimestamp,
   type DeletePermissionInfo,
+  type UseDeleteEntityDialogOptions,
+  type UseDeleteEntityDialogResult,
 } from './components/DeleteEntity';
 export { useAnnotationEditorMenuItems } from './components/AnnotationEditor';
 export {

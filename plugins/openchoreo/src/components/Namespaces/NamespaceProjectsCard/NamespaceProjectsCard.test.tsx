@@ -27,6 +27,21 @@ jest.mock('./styles', () => ({
   }),
 }));
 
+// The card is the integration under test; the delete stack has its own suite.
+jest.mock('../../DeleteEntity', () => ({
+  isMarkedForDeletion: () => false,
+  DeletionBadge: () => null,
+  RowDeleteButton: () => null,
+  useDeleteEntityDialog: () => ({
+    requestDelete: jest.fn(),
+    DeleteDialog: () => null,
+  }),
+  usePendingDeletionOverlay: () => ({
+    markDeleted: jest.fn(),
+    overlay: (entities: Entity[]) => entities,
+  }),
+}));
+
 const namespace = {
   apiVersion: 'backstage.io/v1alpha1',
   kind: 'Domain',
