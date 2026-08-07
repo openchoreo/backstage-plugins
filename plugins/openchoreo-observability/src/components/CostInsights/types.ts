@@ -38,6 +38,8 @@ export interface CostRow {
   total: number;
   /** Cost-weighted average efficiency in 0..1. */
   efficiency: number;
+  /** Reclaimable spend (current total − recommended total), clamped ≥ 0. */
+  saving?: number;
   /** Percent change vs the previous equal-length window (null if unknown). */
   deltaPct: number | null;
   recommendation?: CostRowRecommendation;
@@ -57,12 +59,35 @@ export interface CostSummary {
   /** Linear extrapolation of the window's spend to the current calendar month. */
   forecastThisMonth: number;
   efficiency: number;
+  /** Aggregate reclaimable spend across the scope. */
+  totalSaving: number;
 }
 
 /** One stacked-bar time bucket: `{ timestamp, [dimensionValue]: cost }`. */
 export type CostSeriesPoint = {
   timestamp: string;
 } & Record<string, number | string>;
+
+/**
+ * One point on the forecast-divergence chart. `actual` covers the measured
+ * window; `atCurrent`/`ifApplied` are the two projections.
+ */
+export interface ForecastPoint {
+  timestamp: string;
+  actual?: number;
+  atCurrent?: number;
+  ifApplied?: number;
+}
+
+export interface ForecastData {
+  points: ForecastPoint[];
+  /** Projected month-end spend at the current rate. */
+  atCurrentTotal: number;
+  /** Projected month-end spend with recommendations applied. */
+  ifAppliedTotal: number;
+  /** Gap between the projections (the cost of doing nothing). */
+  leftOnTable: number;
+}
 
 export interface CostInsightsData {
   level: CostScopeLevel;
@@ -71,4 +96,6 @@ export interface CostInsightsData {
   series: CostSeriesPoint[];
   /** Distinct dimension values used as stack keys in the graph. */
   seriesKeys: string[];
+  /** Forecast-divergence chart data; null when the window can't be projected. */
+  forecast: ForecastData | null;
 }

@@ -17,7 +17,7 @@ import {
 } from './CostInsightsFilters';
 import { CostSummaryCards } from './CostSummaryCards';
 import { CostInsightsTable } from './CostInsightsTable';
-import { CostInsightsGraph } from './CostInsightsGraph';
+import { CostInsightsGraphs } from './CostInsightsGraphs';
 import { useNamespaceEnvironments } from './useNamespaceEnvironments';
 import { useDimensionTitles } from './useDimensionTitles';
 import { useCostInsights } from './useCostInsights';
@@ -238,8 +238,6 @@ export const CostInsightsPage = () => {
             customStartTime={customStartTime}
             customEndTime={customEndTime}
             onTimeRangeChange={onTimeRangeChange}
-            granularity={granularity}
-            onGranularityChange={onGranularityChange}
           />
         </Box>
 
@@ -252,8 +250,7 @@ export const CostInsightsPage = () => {
         {noEnvironments && (
           <Box className={classes.section}>
             <Alert severity="info">
-              No environments found for namespace “{namespace}”. Select another
-              namespace from the breadcrumb.
+              No environments found for namespace “{namespace}”.
             </Alert>
           </Box>
         )}
@@ -282,14 +279,17 @@ export const CostInsightsPage = () => {
               active={isRefetching}
               label="Refreshing cost data"
             />
-            <Box className={classes.section}>
-              <CostSummaryCards summary={data.summary} />
-            </Box>
+            {view !== 'graph' && (
+              <Box className={classes.section}>
+                <CostSummaryCards summary={data.summary} />
+              </Box>
+            )}
             <Box className={classes.section}>
               {view === 'graph' ? (
-                <CostInsightsGraph
-                  series={data.series}
-                  seriesKeys={data.seriesKeys}
+                <CostInsightsGraphs
+                  data={data}
+                  granularity={granularity}
+                  onGranularityChange={onGranularityChange}
                 />
               ) : (
                 <CostInsightsTable

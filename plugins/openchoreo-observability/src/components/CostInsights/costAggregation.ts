@@ -6,6 +6,8 @@ import type {
   CostSummary,
   CostSeriesPoint,
   CostInsightsData,
+  ForecastData,
+  ForecastPoint,
 } from './types';
 
 /** Derive the scope level from the breadcrumb selection depth. */
@@ -95,15 +97,53 @@ function groupBy<T>(items: T[], keyFn: (item: T) => string): Map<string, T[]> {
   return map;
 }
 
-/** Previous-window totals keyed by dimension value, for delta computation. */
-function previousTotalsByDimension(
-  previousItems: CostItem[],
+/** Cost totals keyed by dimension value (used for deltas and per-dim saving). */
+function totalsByDimension(
+  items: CostItem[],
   level: CostScopeLevel,
 ): Map<string, number> {
   const totals = new Map<string, number>();
-  for (const item of previousItems) {
+  for (const item of items) {
     const dim = dimensionOf(item, level);
     totals.set(dim, (totals.get(dim) ?? 0) + itemTotal(item));
+  }
+  return totals;
+}
+
+/** The dimension value a recommendation is grouped by at the given level. */
+function recDimensionOf(
+  rec: CostRecommendationItem,
+  level: CostScopeLevel,
+): string {
+  switch (level) {
+    case 'namespace':
+      return rec.project;
+    case 'project':
+      return rec.component;
+    case 'component':
+    default:
+      return rec.environment;
+  }
+}
+
+const recTotal = (rec: CostRecommendationItem): number =>
+  (rec.recommendation.cpuCost ?? 0) + (rec.recommendation.memoryCost ?? 0);
+
+/**
+ * Recommended (post-optimization) totals keyed by dimension value. At the
+ * component level, environments in `staleEnvs` are skipped (their recommendation
+ * is withheld).
+ */
+function recommendedTotalsByDimension(
+  recommendations: CostRecommendationItem[],
+  level: CostScopeLevel,
+  staleEnvs: Map<string, string>,
+): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const rec of recommendations) {
+    if (level === 'component' && staleEnvs.has(rec.environment)) continue;
+    const dim = recDimensionOf(rec, level);
+    totals.set(dim, (totals.get(dim) ?? 0) + recTotal(rec));
   }
   return totals;
 }
@@ -120,7 +160,12 @@ export function aggregateRows(
   recommendations: CostRecommendationItem[] = [],
   staleRecommendationEnvs: Map<string, string> = new Map(),
 ): CostRow[] {
-  const prevTotals = previousTotalsByDimension(previousItems, level);
+  const prevTotals = totalsByDimension(previousItems, level);
+  const recTotals = recommendedTotalsByDimension(
+    recommendations,
+    level,
+    staleRecommendationEnvs,
+  );
   const grouped = groupBy(currentItems, item => dimensionOf(item, level));
 
   // Recommendations are only meaningful at the component level, where rows are
@@ -181,6 +226,10 @@ export function aggregateRows(
       }
     }
 
+    const recDimTotal = recTotals.get(key);
+    const saving =
+      recDimTotal !== undefined ? Math.max(0, total - recDimTotal) : undefined;
+
     rows.push({
       key,
       label: key,
@@ -188,6 +237,7 @@ export function aggregateRows(
       memoryCost,
       total,
       efficiency: weightedEfficiency(items),
+      saving,
       deltaPct: percentChange(total, prevTotals.get(key)),
       recommendation,
       recommendationStale,
@@ -198,21 +248,37 @@ export function aggregateRows(
   return rows.sort((a, b) => b.total - a.total);
 }
 
-/** Overall summary cards (total + delta + forecast + efficiency). */
+/** Overall summary cards (total + delta + forecast + efficiency + saving). */
 export function computeSummary(
   currentItems: CostItem[],
   previousItems: CostItem[],
   windowStart: string,
   windowEnd: string,
   now: Date,
+  recommendations: CostRecommendationItem[],
+  level: CostScopeLevel,
+  staleRecommendationEnvs: Map<string, string>,
 ): CostSummary {
   const total = totalCost(currentItems);
   const prevTotal = totalCost(previousItems);
+  // Only dimensions with a (non-stale) recommendation contribute saving, each
+  // clamped at its own cost so unrelated spend isn't counted as reclaimable.
+  const currentTotals = totalsByDimension(currentItems, level);
+  const recTotals = recommendedTotalsByDimension(
+    recommendations,
+    level,
+    staleRecommendationEnvs,
+  );
+  let totalSaving = 0;
+  for (const [dim, recDimTotal] of recTotals) {
+    totalSaving += Math.max(0, (currentTotals.get(dim) ?? 0) - recDimTotal);
+  }
   return {
     totalCost: total,
     deltaPct: percentChange(total, prevTotal || undefined),
     forecastThisMonth: forecastThisMonth(total, windowStart, windowEnd, now),
     efficiency: weightedEfficiency(currentItems),
+    totalSaving,
   };
 }
 
@@ -288,10 +354,77 @@ function fillMissingBuckets(series: CostSeriesPoint[]): CostSeriesPoint[] {
   return filled;
 }
 
+/**
+ * Forecast divergence: "at current rate" projects the window rate across the
+ * whole month; "if applied" forks at the window end and reduces the rate only
+ * going forward. Independent of chart granularity.
+ */
+export function buildForecast(params: {
+  totalActual: number;
+  totalSaving: number;
+  windowStart: string;
+  windowEnd: string;
+  now: Date;
+}): ForecastData | null {
+  const { totalActual, totalSaving, windowStart, windowEnd, now } = params;
+  const startMs = new Date(windowStart).getTime();
+  const endMs = new Date(windowEnd).getTime();
+  const windowMs = endMs - startMs;
+  if (!Number.isFinite(windowMs) || windowMs <= 0) return null;
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const monthMs = monthEnd.getTime() - monthStart.getTime();
+  const remainingMs = monthEnd.getTime() - endMs;
+  if (!(remainingMs > 0)) return null;
+
+  const rate = totalActual / windowMs;
+  const savingFraction = totalActual > 0 ? totalSaving / totalActual : 0;
+  const atCurrentTotal = rate * monthMs;
+
+  // Current-month spend so far at the window rate. Deriving it from elapsed
+  // month-time (rather than totalActual) excludes any prior-month spend when the
+  // window crosses a month boundary.
+  const elapsedThisMonthMs = Math.max(0, endMs - monthStart.getTime());
+  const forkTotal = rate * elapsedThisMonthMs;
+  const ifAppliedTotal = forkTotal + rate * (1 - savingFraction) * remainingMs;
+
+  // One actual-cost line from the month start to now, drawn at the window rate
+  // so its shape is independent of the chart's time granularity. It forks at
+  // the current point (window end) into the two projections.
+  const points: ForecastPoint[] = [
+    { timestamp: monthStart.toISOString(), actual: 0 },
+  ];
+  points.push({
+    timestamp: windowEnd,
+    actual: forkTotal,
+    atCurrent: forkTotal,
+    ifApplied: forkTotal,
+  });
+  points.push({
+    timestamp: monthEnd.toISOString(),
+    atCurrent: atCurrentTotal,
+    ifApplied: ifAppliedTotal,
+  });
+
+  points.sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
+
+  return {
+    points,
+    atCurrentTotal,
+    ifAppliedTotal,
+    leftOnTable: Math.max(0, atCurrentTotal - ifAppliedTotal),
+  };
+}
+
 /** Assemble everything the view needs from the raw multi-env responses. */
 export function buildCostInsightsData(params: {
   level: CostScopeLevel;
   currentItems: CostItem[];
+  /** Time-bucketed items for the graph's time-series; defaults to currentItems. */
+  seriesItems?: CostItem[];
   previousItems: CostItem[];
   recommendations?: CostRecommendationItem[];
   /** Withheld-recommendation envs mapped to the binding's spec update time. */
@@ -303,6 +436,7 @@ export function buildCostInsightsData(params: {
   const {
     level,
     currentItems,
+    seriesItems,
     previousItems,
     recommendations = [],
     staleRecommendationEnvs = new Map<string, string>(),
@@ -311,16 +445,23 @@ export function buildCostInsightsData(params: {
     now,
   } = params;
 
-  const { series, seriesKeys } = buildSeries(currentItems, level);
+  const { series, seriesKeys } = buildSeries(
+    seriesItems ?? currentItems,
+    level,
+  );
+  const summary = computeSummary(
+    currentItems,
+    previousItems,
+    windowStart,
+    windowEnd,
+    now,
+    recommendations,
+    level,
+    staleRecommendationEnvs,
+  );
   return {
     level,
-    summary: computeSummary(
-      currentItems,
-      previousItems,
-      windowStart,
-      windowEnd,
-      now,
-    ),
+    summary,
     rows: aggregateRows(
       currentItems,
       previousItems,
@@ -330,5 +471,12 @@ export function buildCostInsightsData(params: {
     ),
     series,
     seriesKeys,
+    forecast: buildForecast({
+      totalActual: summary.totalCost,
+      totalSaving: summary.totalSaving,
+      windowStart,
+      windowEnd,
+      now,
+    }),
   };
 }

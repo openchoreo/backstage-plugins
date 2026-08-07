@@ -84,29 +84,51 @@ export function useCostInsights(
           component: scope.component,
         };
 
+        // Charts (all levels) and the component table both need recommendations.
+        const needsRecs = view === 'graph' || level === 'component';
+        const isGraph = view === 'graph';
+
         const perEnv = await Promise.allSettled(
           sortedEnvs.map(async env => {
+            // Accumulated cost drives rows/summary/scatter/saving in both views
+            // and shares the recommendation's (non-bucketed) pricing basis.
             const current = await api.getCosts(namespace!, env, {
               ...scopeOpts,
               startTime,
               endTime,
-              granularity: view === 'graph' ? granularity : undefined,
             });
+            // Time-bucketed cost drives the graph's time-series charts only; its
+            // per-bucket totals need not sum to the accumulated total. Degrade
+            // gracefully: a series failure shouldn't drop the env's other data.
+            const series = isGraph
+              ? await api
+                  .getCosts(namespace!, env, {
+                    ...scopeOpts,
+                    startTime,
+                    endTime,
+                    granularity,
+                  })
+                  .catch(() => ({ items: [] as CostItem[] }))
+              : { items: [] as CostItem[] };
             const previous = await api.getCosts(namespace!, env, {
               ...scopeOpts,
               startTime: prevStart,
               endTime: prevEnd,
             });
-            const recommendations =
-              level === 'component'
-                ? await api.getCostRecommendations(namespace!, env, {
+            // Degrade gracefully: a recommendation failure shouldn't drop the
+            // env's cost data with it.
+            const recommendations = needsRecs
+              ? await api
+                  .getCostRecommendations(namespace!, env, {
                     ...scopeOpts,
                     startTime,
                     endTime,
                   })
-                : { items: [] as CostRecommendationItem[] };
+                  .catch(() => ({ items: [] as CostRecommendationItem[] }))
+              : { items: [] as CostRecommendationItem[] };
             return {
               current: current.items,
+              series: series.items,
               previous: previous.items,
               recommendations: recommendations.items,
             };
@@ -118,6 +140,7 @@ export function useCostInsights(
             r,
           ): r is PromiseFulfilledResult<{
             current: CostItem[];
+            series: CostItem[];
             previous: CostItem[];
             recommendations: CostRecommendationItem[];
           }> => r.status === 'fulfilled',
@@ -137,6 +160,7 @@ export function useCostInsights(
         }
 
         const currentItems = fulfilled.flatMap(r => r.value.current);
+        const seriesItems = fulfilled.flatMap(r => r.value.series);
         const previousItems = fulfilled.flatMap(r => r.value.previous);
         const recommendations = fulfilled.flatMap(r => r.value.recommendations);
 
@@ -189,6 +213,7 @@ export function useCostInsights(
         return buildCostInsightsData({
           level,
           currentItems,
+          seriesItems,
           previousItems,
           recommendations,
           staleRecommendationEnvs,

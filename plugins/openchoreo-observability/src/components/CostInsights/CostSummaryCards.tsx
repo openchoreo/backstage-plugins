@@ -1,7 +1,8 @@
 import { FC } from 'react';
-import { Grid, Typography, makeStyles } from '@material-ui/core';
+import { Grid, Tooltip, Typography, makeStyles } from '@material-ui/core';
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { Card } from '@openchoreo/backstage-design-system';
 import type { CostSummary } from './types';
 import { formatUsd, formatEfficiency } from './format';
@@ -31,6 +32,12 @@ const useStyles = makeStyles(theme => ({
   down: { color: theme.palette.success.main },
   deltaIcon: { fontSize: 16 },
   muted: { color: theme.palette.text.secondary },
+  labelRow: { display: 'flex', alignItems: 'center', gap: theme.spacing(0.5) },
+  infoIcon: {
+    fontSize: 15,
+    color: theme.palette.text.secondary,
+    cursor: 'help',
+  },
 }));
 
 export interface CostSummaryCardsProps {
@@ -90,7 +97,15 @@ export const CostSummaryCards: FC<CostSummaryCardsProps> = ({ summary }) => {
       </Grid>
       <Grid item xs={12} sm={4}>
         <Card padding={16} className={classes.card}>
-          <Typography className={classes.label}>Efficiency</Typography>
+          <div className={classes.labelRow}>
+            <Typography className={classes.label}>Efficiency</Typography>
+            <Tooltip
+              title="Share of provisioned resources actually used (usage/requested) as a percentage, weighted by cost. Low efficiency means you are paying for capacity that sits idle."
+              arrow
+            >
+              <InfoOutlinedIcon className={classes.infoIcon} />
+            </Tooltip>
+          </div>
           <Typography component="div" className={classes.value}>
             {formatEfficiency(summary.efficiency)}
           </Typography>
