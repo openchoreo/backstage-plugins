@@ -44,6 +44,42 @@ describe('deriveBindingStatus', () => {
     expect(deriveBindingStatus(binding)).toBe('Ready');
   });
 
+  it('returns NotReady for ReleaseSynced reason while release is not synced', () => {
+    const binding = makeBinding([
+      {
+        type: 'Ready',
+        status: 'False',
+        reason: 'ReleaseSynced',
+        message: 'Release is not synced',
+      },
+    ]);
+    expect(deriveBindingStatus(binding)).toBe('NotReady');
+  });
+
+  it('returns NotReady for ResourceDependenciesPending reason on Ready', () => {
+    const binding = makeBinding([
+      {
+        type: 'Ready',
+        status: 'False',
+        reason: 'ResourceDependenciesPending',
+        message: '1 resource dependencies pending, 0 resolved',
+      },
+    ]);
+    expect(deriveBindingStatus(binding)).toBe('NotReady');
+  });
+
+  it('returns NotReady for ResourcesNotReady reason', () => {
+    const binding = makeBinding([
+      {
+        type: 'Ready',
+        status: 'False',
+        reason: 'ResourcesNotReady',
+        message: 'Deployment has unavailable replicas',
+      },
+    ]);
+    expect(deriveBindingStatus(binding)).toBe('NotReady');
+  });
+
   it('returns NotReady for ResourcesProgressing reason', () => {
     const binding = makeBinding([
       {
