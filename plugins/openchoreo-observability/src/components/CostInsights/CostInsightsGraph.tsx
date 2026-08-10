@@ -49,6 +49,120 @@ const useStyles = makeStyles(theme => ({
 const AFTER_REC_KEY = '__afterRec';
 const AFTER_REC_LABEL = 'If recommendations applied';
 
+export interface CostStackTooltipContentProps {
+  active?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: readonly any[];
+  label?: string | number;
+  seriesKeys: string[];
+  /** The hovered stacked segment, whose row is highlighted. */
+  activeKey: string | null;
+  colorFor: Map<string, string>;
+}
+
+/** Bar-chart hover tooltip: per-segment rows (active one highlighted) + total. */
+export const CostStackTooltipContent: FC<CostStackTooltipContentProps> = ({
+  active,
+  payload,
+  label,
+  seriesKeys,
+  activeKey,
+  colorFor,
+}) => {
+  const theme = useTheme();
+  const green = savingColor(theme.palette.type === 'dark');
+  if (!active || !payload?.length) return null;
+  const rows = payload.filter(e => seriesKeys.includes(String(e.dataKey)));
+  const afterRec = payload.find(e => e.dataKey === AFTER_REC_KEY);
+  const total = rows.reduce((sum, e) => sum + (Number(e.value) || 0), 0);
+  return (
+    <div
+      style={{
+        backgroundColor: theme.palette.background.paper,
+        border: `1px solid ${theme.palette.divider}`,
+        borderRadius: 4,
+        padding: theme.spacing(1, 1.5),
+        color: theme.palette.text.primary,
+        fontSize: 12,
+      }}
+    >
+      <div style={{ marginBottom: 4, fontWeight: 500 }}>
+        {formatBucket(String(label))}
+      </div>
+      {/* Top-to-bottom mirrors the stacked bar (top series first). */}
+      {[...rows].reverse().map(entry => {
+        const isActive = String(entry.dataKey) === activeKey;
+        return (
+          <div
+            key={String(entry.dataKey)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              lineHeight: 1.6,
+              margin: theme.spacing(0, -1),
+              padding: theme.spacing(0, 1),
+              borderRadius: 2,
+              backgroundColor: isActive
+                ? theme.palette.action.selected
+                : 'transparent',
+              fontWeight: isActive ? 600 : 400,
+            }}
+          >
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 2,
+                backgroundColor: colorFor.get(String(entry.dataKey)),
+                opacity: FILL_OPACITY,
+                flexShrink: 0,
+              }}
+            />
+            <span>{entry.name}</span>
+            <span style={{ marginLeft: 'auto' }}>
+              ${Number(entry.value).toFixed(2)}
+            </span>
+          </div>
+        );
+      })}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          lineHeight: 1.6,
+          marginTop: 4,
+          paddingTop: 4,
+          borderTop: `1px solid ${theme.palette.divider}`,
+          fontWeight: 600,
+        }}
+      >
+        <span>Total</span>
+        <span style={{ marginLeft: 'auto' }}>${total.toFixed(2)}</span>
+      </div>
+      {afterRec && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            lineHeight: 1.6,
+            marginTop: 4,
+            color: green,
+            fontWeight: 500,
+          }}
+        >
+          <span>{AFTER_REC_LABEL}</span>
+          <span style={{ marginLeft: 'auto' }}>
+            ${Number(afterRec.value).toFixed(2)}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export interface RecommendationOverlay {
   savingFraction: number;
 }
@@ -79,6 +193,9 @@ export const CostInsightsGraph: FC<CostInsightsGraphProps> = ({
   );
   // Legend-toggled series; hidden keys are dimmed in the legend and not drawn.
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  // The stacked segment the pointer is over, so its tooltip row can be
+  // highlighted. Cleared when the pointer leaves the chart.
+  const [activeKey, setActiveKey] = useState<string | null>(null);
   const toggle = (key: string) =>
     setHidden(prev => {
       const next = new Set(prev);
@@ -140,6 +257,7 @@ export const CostInsightsGraph: FC<CostInsightsGraphProps> = ({
               <ComposedChart
                 data={data}
                 margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+                onMouseLeave={() => setActiveKey(null)}
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -157,80 +275,16 @@ export const CostInsightsGraph: FC<CostInsightsGraphProps> = ({
                 />
                 <Tooltip
                   cursor={{ fill: theme.palette.action.hover }}
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload?.length) return null;
-                    const rows = payload.filter(e =>
-                      seriesKeys.includes(String(e.dataKey)),
-                    );
-                    const afterRec = payload.find(
-                      e => e.dataKey === AFTER_REC_KEY,
-                    );
-                    return (
-                      <div
-                        style={{
-                          backgroundColor: theme.palette.background.paper,
-                          border: `1px solid ${theme.palette.divider}`,
-                          borderRadius: 4,
-                          padding: theme.spacing(1, 1.5),
-                          color: theme.palette.text.primary,
-                          fontSize: 12,
-                        }}
-                      >
-                        <div style={{ marginBottom: 4, fontWeight: 500 }}>
-                          {formatBucket(String(label))}
-                        </div>
-                        {/* Top-to-bottom mirrors the stacked bar (top series first). */}
-                        {[...rows].reverse().map(entry => (
-                          <div
-                            key={String(entry.dataKey)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            <span
-                              style={{
-                                width: 10,
-                                height: 10,
-                                borderRadius: 2,
-                                backgroundColor: colorFor.get(
-                                  String(entry.dataKey),
-                                ),
-                                opacity: FILL_OPACITY,
-                                flexShrink: 0,
-                              }}
-                            />
-                            <span>{entry.name}</span>
-                            <span
-                              style={{ marginLeft: 'auto', fontWeight: 500 }}
-                            >
-                              ${Number(entry.value).toFixed(2)}
-                            </span>
-                          </div>
-                        ))}
-                        {afterRec && (
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              lineHeight: 1.6,
-                              marginTop: 4,
-                              color: green,
-                              fontWeight: 500,
-                            }}
-                          >
-                            <span>{AFTER_REC_LABEL}</span>
-                            <span style={{ marginLeft: 'auto' }}>
-                              ${Number(afterRec.value).toFixed(2)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }}
+                  content={props => (
+                    <CostStackTooltipContent
+                      active={props.active}
+                      payload={props.payload}
+                      label={props.label}
+                      seriesKeys={seriesKeys}
+                      activeKey={activeKey}
+                      colorFor={colorFor}
+                    />
+                  )}
                 />
                 <Legend
                   content={() => (
@@ -323,6 +377,7 @@ export const CostInsightsGraph: FC<CostInsightsGraphProps> = ({
                     name={key}
                     maxBarSize={MAX_BAR_SIZE}
                     hide={hidden.has(key)}
+                    onMouseEnter={() => setActiveKey(key)}
                   />
                 ))}
                 {recommendationOverlay && (

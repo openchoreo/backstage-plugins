@@ -1,15 +1,22 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { CostInsightsGraph } from './CostInsightsGraph';
+import {
+  CostInsightsGraph,
+  CostStackTooltipContent,
+} from './CostInsightsGraph';
 import type { CostSeriesPoint } from './types';
 
 // recharts measures 0×0 in jsdom; mock the primitives, invoking the custom
 // tooltip/legend render props so their code is exercised.
 jest.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
-  ComposedChart: ({ children }: any) => (
-    <div data-testid="bar-chart">{children}</div>
+  ComposedChart: ({ children, onMouseLeave }: any) => (
+    <div data-testid="bar-chart" onMouseLeave={onMouseLeave}>
+      {children}
+    </div>
   ),
-  Bar: ({ dataKey }: any) => <div data-testid="bar" data-key={dataKey} />,
+  Bar: ({ dataKey, onMouseEnter }: any) => (
+    <div data-testid="bar" data-key={dataKey} onMouseEnter={onMouseEnter} />
+  ),
   Line: ({ dataKey }: any) => <div data-testid="line" data-key={dataKey} />,
   CartesianGrid: () => null,
   XAxis: () => null,
@@ -115,5 +122,85 @@ describe('CostInsightsGraph', () => {
     });
     fireEvent.click(overlayItem);
     expect(overlayItem).toHaveStyle('text-decoration: line-through');
+  });
+
+  it('shows the stack total in the tooltip', () => {
+    render(<CostInsightsGraph series={series} seriesKeys={['gcp', 'shop']} />);
+    expect(screen.getByText('Total')).toBeInTheDocument();
+    // 10 (gcp) + 2 (shop); the __afterRec entry is excluded from the total.
+    expect(screen.getByText('$12.00')).toBeInTheDocument();
+  });
+
+  const isBold = (text: string) =>
+    screen
+      .getAllByText(text)
+      .some(el => el.closest('div')?.style.fontWeight === '600');
+
+  it('highlights the hovered bar segment in the tooltip and clears on leave', () => {
+    render(<CostInsightsGraph series={series} seriesKeys={['gcp', 'shop']} />);
+    expect(isBold('gcp')).toBe(false);
+
+    fireEvent.mouseEnter(screen.getAllByTestId('bar')[0]);
+    expect(isBold('gcp')).toBe(true);
+
+    fireEvent.mouseLeave(screen.getByTestId('bar-chart'));
+    expect(isBold('gcp')).toBe(false);
+  });
+});
+
+describe('CostStackTooltipContent', () => {
+  const colorFor = new Map([
+    ['onlinestore', '#111'],
+    ['web', '#222'],
+  ]);
+  const payload = [
+    { dataKey: 'onlinestore', name: 'onlinestore', value: 10 },
+    { dataKey: 'web', name: 'web', value: 5 },
+  ];
+
+  it('totals only the visible stacks', () => {
+    render(
+      <CostStackTooltipContent
+        active
+        payload={payload}
+        label="2026-07-01T00:00:00.000Z"
+        seriesKeys={['onlinestore', 'web']}
+        activeKey={null}
+        colorFor={colorFor}
+      />,
+    );
+    expect(screen.getByText('$15.00')).toBeInTheDocument();
+  });
+
+  it('highlights the hovered segment row and not the others', () => {
+    render(
+      <CostStackTooltipContent
+        active
+        payload={payload}
+        label="2026-07-01T00:00:00.000Z"
+        seriesKeys={['onlinestore', 'web']}
+        activeKey="onlinestore"
+        colorFor={colorFor}
+      />,
+    );
+    expect(screen.getByText('onlinestore').closest('div')).toHaveStyle(
+      'font-weight: 600',
+    );
+    expect(screen.getByText('web').closest('div')).toHaveStyle(
+      'font-weight: 400',
+    );
+  });
+
+  it('renders nothing when inactive', () => {
+    const { container } = render(
+      <CostStackTooltipContent
+        active={false}
+        payload={payload}
+        seriesKeys={['onlinestore', 'web']}
+        activeKey={null}
+        colorFor={colorFor}
+      />,
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 });

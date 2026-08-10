@@ -141,7 +141,7 @@ import {
   ObservabilityAlerts,
   ObservabilityWirelogs,
   ObservabilityProjectIncidents,
-  ObservabilityCostAnalysis,
+  ObservabilityCostInsightsSummaryCard,
   useComponentHasAnyCiliumEnabledEnvironment,
   type RenderLogRowAction,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
@@ -327,6 +327,15 @@ function OverviewContent() {
       <Grid item md={6} xs={12}>
         <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
       </Grid>
+      <EntitySwitch>
+        <EntitySwitch.Case if={isKind('component')}>
+          <FeatureGate feature="observability">
+            <Grid item md={3} sm={6} xs={12}>
+              <ObservabilityCostInsightsSummaryCard />
+            </Grid>
+          </FeatureGate>
+        </EntitySwitch.Case>
+      </EntitySwitch>
     </Grid>
   );
 }
@@ -735,6 +744,13 @@ const systemPage = (
         <Grid item xs={12}>
           <EntityCatalogGraphCard height={400} renderNode={CustomGraphNode} />
         </Grid>
+
+        {/* Row 4: Cost Insights summary */}
+        <FeatureGate feature="observability">
+          <Grid item md={3} sm={6} xs={12}>
+            <ObservabilityCostInsightsSummaryCard />
+          </Grid>
+        </FeatureGate>
       </Grid>
     </EntityLayout.Route>
     <EntityLayout.Route path="/definition" title="Definition">
@@ -785,11 +801,6 @@ const systemPage = (
     <EntityLayout.Route path="/rca-reports" title="RCA Reports">
       <FeatureGatedContent feature="observability">
         <ObservabilityRCA />
-      </FeatureGatedContent>
-    </EntityLayout.Route>
-    <EntityLayout.Route path="/cost-analysis" title="Cost Analysis">
-      <FeatureGatedContent feature="observability">
-        <ObservabilityCostAnalysis />
       </FeatureGatedContent>
     </EntityLayout.Route>
   </EntityLayoutWithDelete>

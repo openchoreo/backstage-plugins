@@ -69,6 +69,17 @@ describe('CostInsightsBreadcrumb', () => {
     expect(screen.queryByText('GCP Demo')).not.toBeInTheDocument();
   });
 
+  it('labels each level with its plural kind, matching the catalog header', async () => {
+    await renderBreadcrumb({
+      namespace: 'default',
+      project: 'gcp',
+      component: 'api',
+    });
+    expect(await screen.findByText('namespaces /')).toBeInTheDocument();
+    expect(await screen.findByText('projects /')).toBeInTheDocument();
+    expect(await screen.findByText('components /')).toBeInTheDocument();
+  });
+
   it('opens the namespace switcher and changes scope on selection', async () => {
     const { onScopeChange } = await renderBreadcrumb({ namespace: 'default' });
     await screen.findByText('Default NS');

@@ -171,7 +171,7 @@ const routes = (
       element={<CatalogGraphPage renderNode={CustomGraphNode} />}
     />
     <Route path="/platform-overview" element={<PlatformOverviewPage />} />
-    <Route path="/cost-insights" element={<CostInsightsPage />} />
+    <Route path="/cost-insights/*" element={<CostInsightsPage />} />
     {/*
       Standalone full-window exec terminal, opened in a new browser tab from the
       resource drawer. The page renders a fixed viewport overlay over the app

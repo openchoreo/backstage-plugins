@@ -15,16 +15,15 @@ import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { useGetComponentsByProject } from '../../hooks/useGetComponentsByProject';
 import type { CostScope } from './types';
 
-// Rendered inside the Backstage <Header> gradient bar (as the `subtitle`), so
-// text/border derive from `theme.page.fontColor` to stay legible on the purple
-// background — matching the entity CompactEntityHeader breadcrumb pills.
+// Rendered inside the gradient header bar, so text/border derive from
+// `theme.page.fontColor` to stay legible on the purple background.
 const useStyles = makeStyles(theme => ({
   root: {
     display: 'flex',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: theme.spacing(0.5),
-    marginTop: theme.spacing(1.5),
+    gap: theme.spacing(0.25),
+    marginTop: theme.spacing(0.5),
   },
   segment: {
     display: 'inline-flex',
@@ -33,7 +32,7 @@ const useStyles = makeStyles(theme => ({
     border: `1px solid ${theme.page.fontColor}33`,
     borderRadius: 6,
     backgroundColor: `${theme.page.fontColor}0D`,
-    padding: theme.spacing(0.25, 0.5, 0.25, 0.75),
+    padding: theme.spacing(0.125, 0.5, 0.125, 0.75),
     '&:hover': {
       backgroundColor: `${theme.page.fontColor}1A`,
     },
@@ -113,7 +112,7 @@ const ScopeSegment: FC<ScopeSegmentProps> = ({
     <>
       <span className={classes.segment}>
         <Typography component="span" className={classes.kind}>
-          {`${kind} /`}
+          {`${kind}s /`}
         </Typography>
         <Link
           component="button"

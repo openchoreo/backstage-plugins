@@ -263,28 +263,13 @@ const rcaReportsEntityContent = EntityContentBlueprint.make({
   },
 });
 
-const costAnalysisEntityContent = EntityContentBlueprint.make({
-  name: 'cost-analysis',
-  params: {
-    path: '/cost-analysis',
-    title: 'Cost Analysis',
-    filter: 'kind:system',
-    loader: () =>
-      import('./components/CostAnalysis').then(m => (
-        <FeatureGatedContent feature="observability">
-          <m.CostAnalysisPage />
-        </FeatureGatedContent>
-      )),
-  },
-});
-
 /**
  * NFS entry point for the OpenChoreo Observability plugin.
  *
  * Registers the three observability backend clients, the log-row-action
  * registry API, the component-page entity tabs (Logs, Events, Metrics,
  * Alerts, Wirelogs) and the system-page entity tabs (Logs, Traces,
- * Incidents, RCA Reports, Cost Analysis).
+ * Incidents, RCA Reports).
  */
 export default createFrontendPlugin({
   pluginId: 'openchoreo-observability',
@@ -304,6 +289,5 @@ export default createFrontendPlugin({
     tracesEntityContent,
     projectIncidentsEntityContent,
     rcaReportsEntityContent,
-    costAnalysisEntityContent,
   ],
 });

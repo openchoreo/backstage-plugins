@@ -20,6 +20,11 @@ jest.mock('./CostInsightsTable', () => ({
 jest.mock('./CostInsightsGraphs', () => ({
   CostInsightsGraphs: () => <div data-testid="cost-graph" />,
 }));
+// The Cost Analysis tab lazy-loads this; stub it so the tab can be exercised
+// without its catalog/permission dependencies.
+jest.mock('../CostAnalysis', () => ({
+  CostAnalysisPage: () => <div data-testid="cost-analysis" />,
+}));
 
 const mockUseNamespaceEnvironments = jest.fn();
 const mockUseDimensionTitles = jest.fn();
@@ -145,5 +150,24 @@ describe('CostInsightsPage', () => {
     });
     await renderPage();
     expect(screen.getByText('catalog down')).toBeInTheDocument();
+  });
+
+  it('offers both the Insights and Cost Analysis tabs', async () => {
+    await renderPage();
+    expect(screen.getByText('Insights')).toBeInTheDocument();
+    expect(screen.getByText('Cost Analysis')).toBeInTheDocument();
+  });
+
+  it('prompts to pick a project on the Cost Analysis tab when none is scoped', async () => {
+    await renderPage('/cost-analysis?namespace=default');
+    expect(
+      screen.getByText(/only available for a project scope/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('cost-analysis')).not.toBeInTheDocument();
+  });
+
+  it('renders the Cost Analysis reports once a project is scoped', async () => {
+    await renderPage('/cost-analysis?namespace=default&project=onlinestore');
+    expect(await screen.findByTestId('cost-analysis')).toBeInTheDocument();
   });
 });
