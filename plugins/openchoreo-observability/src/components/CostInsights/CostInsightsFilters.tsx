@@ -1,12 +1,5 @@
 import { FC } from 'react';
-import {
-  FormControl,
-  Grid,
-  InputLabel,
-  MenuItem,
-  Select,
-  makeStyles,
-} from '@material-ui/core';
+import { Grid, makeStyles } from '@material-ui/core';
 import ToggleButton from '@material-ui/lab/ToggleButton';
 import ToggleButtonGroup from '@material-ui/lab/ToggleButtonGroup';
 import {
@@ -41,8 +34,6 @@ export interface CostInsightsFiltersProps {
     customStartTime?: string;
     customEndTime?: string;
   }) => void;
-  granularity: string;
-  onGranularityChange: (granularity: string) => void;
   disabled?: boolean;
 }
 
@@ -64,12 +55,9 @@ export const CostInsightsFilters: FC<CostInsightsFiltersProps> = ({
   customStartTime,
   customEndTime,
   onTimeRangeChange,
-  granularity,
-  onGranularityChange,
   disabled = false,
 }) => {
   const classes = useStyles();
-  const isGraph = view === 'graph';
 
   return (
     <Grid container spacing={2} alignItems="center" wrap="nowrap">
@@ -94,7 +82,7 @@ export const CostInsightsFilters: FC<CostInsightsFiltersProps> = ({
             className={classes.toggleButton}
             disabled={disabled}
           >
-            Graph
+            Graphs
           </ToggleButton>
         </ToggleButtonGroup>
       </Grid>
@@ -120,28 +108,6 @@ export const CostInsightsFilters: FC<CostInsightsFiltersProps> = ({
           disabled={disabled}
         />
       </Grid>
-
-      {isGraph && (
-        <Grid item className={classes.control}>
-          <FormControl fullWidth variant="outlined" disabled={disabled}>
-            <InputLabel id="cost-granularity-label">
-              Time Granularity
-            </InputLabel>
-            <Select
-              labelId="cost-granularity-label"
-              label="Time Granularity"
-              value={granularity}
-              onChange={e => onGranularityChange(e.target.value as string)}
-            >
-              {GRANULARITY_OPTIONS.map(o => (
-                <MenuItem key={o.value} value={o.value}>
-                  {o.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-      )}
     </Grid>
   );
 };

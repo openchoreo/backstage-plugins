@@ -7,6 +7,7 @@ const summary = (over: Partial<CostSummary> = {}): CostSummary => ({
   deltaPct: 10,
   forecastThisMonth: 500,
   efficiency: 0.3,
+  totalSaving: 0,
   ...over,
 });
 
