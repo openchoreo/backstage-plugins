@@ -9,8 +9,16 @@ import { getName, getNamespace, getCreatedAt } from './common';
 
 type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
 
-/** Reasons on the Ready condition that indicate transient progress, not an error. */
+/**
+ * Reasons on the Ready condition that indicate transient progress, not an error.
+ * Keep aligned with ReleaseBinding controller condition reasons
+ * (internal/controller/releasebinding/controller_conditions.go).
+ */
 const PROGRESSING_REASONS = [
+  // Sync / dependency / rollout phases commonly seen right after deploy.
+  'ReleaseSynced',
+  'ResourceDependenciesPending',
+  'ResourcesNotReady',
   'ResourcesProgressing',
   'JobRunning',
   'ConnectionsPending',
