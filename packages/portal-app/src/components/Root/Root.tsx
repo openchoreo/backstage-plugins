@@ -1,4 +1,4 @@
-import { PropsWithChildren, useEffect } from 'react';
+import { Fragment, PropsWithChildren, useEffect } from 'react';
 import { makeStyles, Tooltip } from '@material-ui/core';
 import HomeIcon from '@material-ui/icons/Home';
 import ExtensionIcon from '@material-ui/icons/Extension';
@@ -39,7 +39,7 @@ import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
 import MonetizationOnIcon from '@material-ui/icons/MonetizationOn';
-import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
+import { usePortalAssistant } from '../../assistant/PortalAssistantIntegrationApi';
 // This app composes some OpenChoreo entity tabs itself via legacy
 // `EntityLayout.Route` JSX (see EntityPage.tsx), so they render OUTSIDE the
 // plugins' `PluginWrapperBlueprint` scope. Mount `OpenChoreoQueryProvider` here
@@ -186,10 +186,13 @@ const SignOutButton = () => {
 export const Root = ({ children }: PropsWithChildren<{}>) => {
   useSearchModalStyles();
   const a11yClasses = useA11yStyles();
+  // Assistant drawer slot — Fragment when no assistant integration is
+  // registered, so the tree below is identical either way.
+  const { AppWrapper = Fragment } = usePortalAssistant();
   return (
     <OpenChoreoQueryProvider>
       <ScaffolderPreselectionProvider>
-        <AssistantDrawerProvider>
+        <AppWrapper>
           {/*
           Mounted inside <Root> (which lives under <AppRouter> per
           convertLegacyAppRoot's children-recognition rules) so the
@@ -275,7 +278,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
               {children}
             </main>
           </SidebarPage>
-        </AssistantDrawerProvider>
+        </AppWrapper>
       </ScaffolderPreselectionProvider>
     </OpenChoreoQueryProvider>
   );

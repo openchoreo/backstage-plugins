@@ -24,18 +24,12 @@ import {
 import { permissionApiRef } from '@backstage/plugin-permission-react';
 import { visitsApiRef } from '@backstage/plugin-home';
 import { scmIntegrationsApiRef } from '@backstage/integration-react';
-import {
-  perchAgentApiRef,
-  PerchAgentClient,
-} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 
 import { apis } from './apis';
 import { openChoreoAuthApiRef } from './apis/authRefs';
 
 // Minimal stubs — none of the factories under test inspect dep state at
 // construction time beyond holding the reference.
-const stubDiscovery = { getBaseUrl: async () => 'http://localhost' } as any;
-const stubFetch = { fetch: globalThis.fetch ?? (() => undefined) } as any;
 const stubIdentity = {
   getCredentials: async () => ({}),
   getProfileInfo: async () => ({}),
@@ -70,19 +64,9 @@ describe('apis registry', () => {
       openChoreoAuthApiRef,
       visitsApiRef,
       storageApiRef,
-      perchAgentApiRef,
     ]) {
       expect(ids).toContain(ref.id);
     }
-  });
-
-  it('builds the PerchAgentClient via its factory', () => {
-    const f = findFactory(apis, perchAgentApiRef);
-    const instance = invoke(f, {
-      discoveryApi: stubDiscovery,
-      fetchApi: stubFetch,
-    });
-    expect(instance).toBeInstanceOf(PerchAgentClient);
   });
 
   it('builds the visits api', () => {

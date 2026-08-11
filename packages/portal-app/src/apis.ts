@@ -26,18 +26,6 @@ import { permissionApiRef } from '@backstage/plugin-permission-react';
 import { OpenChoreoFetchApi } from './apis/OpenChoreoFetchApi';
 import { OpenChoreoPermissionApi } from './apis/OpenChoreoPermissionApi';
 import { openChoreoAuthApiRef } from './apis/authRefs';
-// NOTE: ``perchAgentApiRef`` is also declared on
-// ``openchoreoPerchPlugin.apis`` in plugins/openchoreo-portal-assistant/src/plugin.ts.
-// That declaration is NOT picked up by the app at runtime because the plugin
-// exports plain React components — it never registers a routable or
-// component extension, so Backstage's plugin loader never visits its
-// ``apis`` array. The app-level factory below is the one actually wired in;
-// removing it causes ``NotImplementedError: No implementation available for
-// apiRef{plugin.openchoreo-portal-assistant.service}`` in AssistantDrawerProvider.
-import {
-  perchAgentApiRef,
-  PerchAgentClient,
-} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 
 export const apis: AnyApiFactory[] = [
   createApiFactory({
@@ -132,18 +120,5 @@ export const apis: AnyApiFactory[] = [
       identityApi: identityApiRef,
     },
     factory: deps => UserSettingsStorage.create(deps),
-  }),
-
-  // Assistant Agent client (Perch). Mirrors the registration on
-  // openchoreoPerchPlugin.apis — see the import-site comment for why
-  // both exist.
-  createApiFactory({
-    api: perchAgentApiRef,
-    deps: {
-      discoveryApi: discoveryApiRef,
-      fetchApi: fetchApiRef,
-    },
-    factory: ({ discoveryApi, fetchApi }) =>
-      new PerchAgentClient({ discoveryApi, fetchApi }),
   }),
 ];

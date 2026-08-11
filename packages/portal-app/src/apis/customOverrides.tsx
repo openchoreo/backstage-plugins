@@ -64,8 +64,6 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 import { KIND_ICONS } from '../kindIcons';
 import { openChoreoTokenDecorator } from '../scaffolder/openChoreoTokenDecorator';
-import { LogRowActionBlueprint } from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
-import { InvestigateLogButton } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 
 /**
  * Override `catalog-graph`'s default `api:catalog-graph` to include the
@@ -288,20 +286,6 @@ export const customAppModule = createFrontendModule({
             'stepFinishImportLocation.locations.viewButtonText': 'View Entity',
           },
         }),
-      },
-    }),
-    // Host-injected per-row action renderer for the observability
-    // runtime-logs tables. Wires the portal-assistant's
-    // InvestigateLogButton into ObservabilityRuntimeLogs /
-    // ObservabilityProjectRuntimeLogs without coupling the
-    // observability plugin to portal-assistant. Mirrors upstream's
-    // FormDecoratorBlueprint registration pattern.
-    LogRowActionBlueprint.make({
-      name: 'investigate-log',
-      params: {
-        renderer: (log, getLogsSnapshot) => (
-          <InvestigateLogButton log={log} getLogsSnapshot={getLogsSnapshot} />
-        ),
       },
     }),
     // Swap Backstage's built-in `<Progress />` bar (the Suspense fallback
