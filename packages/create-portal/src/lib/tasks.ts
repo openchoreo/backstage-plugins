@@ -147,12 +147,17 @@ export async function checkAppExistsTask(rootDir: string, name: string) {
   });
 }
 
-/** Ensures `path` exists as a directory. */
+/** Ensures `path` exists as an empty directory. */
 export async function checkPathExistsTask(path: string) {
   await Task.forItem('checking', path, async () => {
     await fs.mkdirs(path).catch(error => {
       throw new Error(`Failed to create portal directory: ${error.message}`);
     });
+    // The renderer writes straight into this directory, so refuse to run
+    // where it could overwrite existing files.
+    if ((await fs.readdir(path)).length > 0) {
+      throw new Error(`Portal directory must be empty: ${chalk.cyan(path)}`);
+    }
   });
 }
 
@@ -233,8 +238,9 @@ export async function buildAppTask(appDir: string) {
         '',
         `  ${chalk.cyan(`cd ${appDir} && yarn install`)}`,
         '',
-        'If the scaffold resolves @openchoreo/* from a private registry,',
-        'add an npmAuthToken under npmScopes.openchoreo in .yarnrc.yml.',
+        'If the scaffold resolves @openchoreo/* from a private registry, set',
+        'an npmAuthToken for the openchoreo scope in your user-level',
+        '~/.yarnrc.yml — never commit a registry token to the repo.',
       ].join('\n'),
     );
     throw error;

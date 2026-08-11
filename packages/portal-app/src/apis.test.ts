@@ -41,11 +41,7 @@ function invoke(factory: AnyApiFactory, deps: Record<string, unknown>) {
 describe('apis registry', () => {
   it('registers a factory for every required api ref (no silent drops)', () => {
     const ids = apis.map(f => f.api.id);
-    for (const ref of [
-      scmIntegrationsApiRef,
-      visitsApiRef,
-      storageApiRef,
-    ]) {
+    for (const ref of [scmIntegrationsApiRef, visitsApiRef, storageApiRef]) {
       expect(ids).toContain(ref.id);
     }
   });

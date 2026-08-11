@@ -20,15 +20,15 @@ const main = (argv: string[]) => {
       'Scaffolds a custom OpenChoreo Portal pinned to one portal release',
     )
     .option(
-      '--name [name]',
+      '--name <name>',
       'Portal name (lowercase letters, digits, dashes); skips the prompt',
     )
     .option(
-      '--path [directory]',
+      '--path <directory>',
       'Location to store the portal, defaulting to a new folder with the portal name',
     )
     .option(
-      '--registry [url]',
+      '--registry <url>',
       `npm registry the scaffold resolves @openchoreo/* packages from (default: ${DEFAULT_REGISTRY})`,
       DEFAULT_REGISTRY,
     )
@@ -37,7 +37,7 @@ const main = (argv: string[]) => {
       'Skip the install and type-check steps after scaffolding',
     )
     .option(
-      '--template-path [directory]',
+      '--template-path <directory>',
       'Use an external portal template instead of the built-in one',
     )
     .action(cmd => createPortal(cmd));

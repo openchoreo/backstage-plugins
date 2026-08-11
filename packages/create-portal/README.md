@@ -23,8 +23,9 @@ Flags:
 | `--skip-install`        | Skip `yarn install` + `yarn tsc` after scaffolding.                                            |
 | `--template-path <dir>` | Use an external template directory instead of the built-in one.                                |
 
-If `--registry` points at a private registry, add an `npmAuthToken` under
-`npmScopes.openchoreo` in the scaffold's `.yarnrc.yml` before installing.
+If `--registry` points at a private registry, set an `npmAuthToken` for the
+`openchoreo` scope in your user-level `~/.yarnrc.yml` before installing —
+don't commit registry tokens to the scaffold's `.yarnrc.yml`.
 
 The generated portal's README covers local development, adding plugins,
 branding, image builds, and the upgrade flow against the per-release
