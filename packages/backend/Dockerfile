@@ -1,10 +1,12 @@
-ARG BUILD_IMAGE=docker.io/node:22-bookworm-slim@sha256:813a7480f28fdadac1f7f5c824bcdad435b5bc1322a5968bbbdef8d058f9dff4
-# Google distroless doesn't have tags for minor and patches which forces to float
-# creating the same possible regression scenarios introduced in 22.23.0 
+ARG BUILD_IMAGE=docker.io/node:22-bookworm-slim@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436
+# Google distroless doesn't have tags for minor and patches which forces 
+# to float versions creating regression scenarios like the one introduced in 22.23.0 
 # as a result of a patch for CVE-2026-48931 which broke OpenChoreo
 # see https://github.com/openchoreo/backstage-plugins/pull/657
-# To solve this Minimus distroless can be used instead of Google distroless
-ARG RUNTIME_IMAGE=reg.mini.dev/node:v22.23.1@sha256:0da07560ce5c76bbedfc20f26ad14f27b063c705e9c906981b8c4ecde0f7daf7
+# This can be mitigated by looking at the image OCI annotations 
+# which can be used to pinpoint the exact version
+# e.g. docker inspect gcr.io/distroless/nodejs22-debian13:nonroot | jq '.[0].Annotations'
+ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:939d6f1671529d230f50b563578e9b5d206af58f038b10ebd7e1233023d4e167
 
 # ---------------------------------------------------------------------------
 # Stage 1 - Install all dependencies, compile TypeScript, build backend
@@ -102,17 +104,20 @@ FROM ${RUNTIME_IMAGE} AS final
 
 WORKDIR /app
 
-COPY --from=deps --chown=1000:1000 /app/package.json ./
-COPY --from=deps --chown=1000:1000 /app/node_modules ./node_modules
-COPY --from=deps --chown=1000:1000 /app/packages ./packages
+COPY --from=deps  --chown=1000:1000 /app/package.json ./
+COPY --from=deps  --chown=1000:1000 /app/node_modules ./node_modules
+COPY --from=deps  --chown=1000:1000 /app/packages ./packages
 COPY --from=build --chown=1000:1000 /app/packages/backend/dist/bundle/ ./
 COPY --chown=1000:1000 app-config.production.yaml ./app-config.yaml
-COPY --chown=1000:1000 templates/ ./templates
-COPY --chown=1000:1000 catalog-entities/ ./catalog-entities
+COPY --chown=1000:1000 templates/          ./templates
+COPY --chown=1000:1000 catalog-entities/   ./catalog-entities
 
-ENV NODE_ENV=production \
+# workaround for Helm chart having ["node","packages/backend"] as args
+# see https://github.com/openchoreo/openchoreo/blob/main/install/helm/openchoreo-control-plane/templates/backstage/deployment.yaml#L56-L62
+ENV PATH="/nodejs/bin:$PATH" \
+    NODE_ENV="production" \
     NODE_OPTIONS="--no-node-snapshot"
 
 USER 1000
-
-CMD ["packages/backend"]
+ENTRYPOINT []
+CMD ["node", "packages/backend"]
