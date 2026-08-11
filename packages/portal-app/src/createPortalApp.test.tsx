@@ -1,6 +1,11 @@
+import { PropsWithChildren } from 'react';
 import { render, waitFor } from '@testing-library/react';
-import { createFrontendModule } from '@backstage/frontend-plugin-api';
+import {
+  ApiBlueprint,
+  createFrontendModule,
+} from '@backstage/frontend-plugin-api';
 import { createPortalApp } from './createPortalApp';
+import { portalAssistantIntegrationApiRef } from './assistant/PortalAssistantIntegrationApi';
 
 describe('createPortalApp', () => {
   beforeEach(() => {
@@ -37,6 +42,38 @@ describe('createPortalApp', () => {
 
     const rendered = render(
       createPortalApp({ features: [extraModule] }).createRoot(),
+    );
+
+    await waitFor(() => {
+      expect(rendered.baseElement).toBeInTheDocument();
+    });
+  });
+
+  it('accepts an assistant integration registered through features', async () => {
+    // The seam contract a host app (packages/app, or a custom portal) relies
+    // on: an ApiBlueprint for portalAssistantIntegrationApiRef passed via
+    // `features` boots without conflicting with the shell's own factories.
+    const fakeAssistant = createFrontendModule({
+      pluginId: 'app',
+      extensions: [
+        ApiBlueprint.make({
+          name: 'assistant-integration',
+          params: defineParams =>
+            defineParams({
+              api: portalAssistantIntegrationApiRef,
+              deps: {},
+              factory: () => ({
+                AppWrapper: ({ children }: PropsWithChildren<{}>) => (
+                  <div data-testid="assistant-app-wrapper">{children}</div>
+                ),
+              }),
+            }),
+        }),
+      ],
+    });
+
+    const rendered = render(
+      createPortalApp({ features: [fakeAssistant] }).createRoot(),
     );
 
     await waitFor(() => {

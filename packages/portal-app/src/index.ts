@@ -7,10 +7,6 @@
  * code lives here (not in packages/app) so the custom-portal scaffold can
  * consume it — see the portal composition proposal.
  *
- * The package stays private until the migration cleans up the legacy-bridged
- * pieces; the PR that makes it publishable flips `private` and adds it to the
- * changeset linked group.
- *
  * @packageDocumentation
  */
 
@@ -18,3 +14,8 @@ export { createPortalApp } from './createPortalApp';
 export type { PortalAppOptions } from './createPortalApp';
 export { brandName, useBranding, DEFAULT_BRAND_NAME } from './branding';
 export type { BrandingConfig } from './branding';
+export {
+  portalAssistantIntegrationApiRef,
+  usePortalAssistant,
+} from './assistant/PortalAssistantIntegrationApi';
+export type { PortalAssistantIntegration } from './assistant/PortalAssistantIntegrationApi';
