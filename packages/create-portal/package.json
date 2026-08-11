@@ -1,0 +1,46 @@
+{
+  "name": "@openchoreo/create-portal",
+  "version": "0.1.0",
+  "description": "CLI that scaffolds a custom OpenChoreo Portal on the published @openchoreo/* portal packages",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openchoreo/backstage-plugins.git",
+    "directory": "packages/create-portal"
+  },
+  "backstage": {
+    "role": "cli"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "main": "dist/index.cjs.js",
+  "bin": "bin/create-portal",
+  "files": [
+    "bin",
+    "dist",
+    "templates"
+  ],
+  "scripts": {
+    "build": "backstage-cli package build",
+    "clean": "backstage-cli package clean",
+    "generate-template": "node scripts/generate-template.js",
+    "lint": "backstage-cli package lint",
+    "prepack": "node scripts/generate-template.js && backstage-cli package prepack",
+    "postpack": "backstage-cli package postpack",
+    "test": "backstage-cli package test"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.2.0",
+    "handlebars": "^4.7.8",
+    "inquirer": "^8.2.6"
+  },
+  "devDependencies": {
+    "@backstage/cli": "^0.36.2",
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^8.2.10"
+  }
+}

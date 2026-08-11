@@ -94,6 +94,43 @@ jobs:
           yarn workspaces foreach --all --no-private --topological --verbose \
             npm publish --tolerate-republish --access public --tag "${TAG}"
 
+      # Runs AFTER publish (the scaffold's pinned ^X.Y.Z versions must exist
+      # on the registry) and BEFORE the template push / Docker retag, so a
+      # broken scaffold aborts the release before anything user-visible moves.
+      - name: Smoke-test the portal scaffold
+        run: |
+          node packages/create-portal/bin/create-portal \
+            --name openchoreo-portal --path /tmp/verify-portal --skip-install
+          cd /tmp/verify-portal
+          yarn install --no-immutable
+          yarn tsc
+
+      - name: Push template to openchoreo/portal-template
+        env:
+          TEMPLATE_PUSH_TOKEN: ${{ secrets.PORTAL_TEMPLATE_PUSH_TOKEN }}
+        run: |
+          if [ -z "${TEMPLATE_PUSH_TOKEN}" ]; then
+            echo "::warning::PORTAL_TEMPLATE_PUSH_TOKEN not set — skipping the portal-template publish"
+            exit 0
+          fi
+          node packages/create-portal/bin/create-portal \
+            --name openchoreo-portal --path /tmp/portal-template-render --skip-install
+          rm -rf /tmp/portal-template-render/.git
+          git clone "https://x-access-token:${TEMPLATE_PUSH_TOKEN}@github.com/openchoreo/portal-template.git" /tmp/portal-template-repo
+          rsync -a --delete --exclude .git /tmp/portal-template-render/ /tmp/portal-template-repo/
+          cd /tmp/portal-template-repo
+          git add -A
+          git -c user.name=openchoreo-bot -c user.email=bot@openchoreo.dev \
+            commit -m "chore: portal template for ${RELEASE_TAG}" --allow-empty
+          git tag "${RELEASE_TAG}"
+          # Stable releases advance main; prereleases advance a force-pushed
+          # `next` branch so main only ever contains released templates.
+          if [ "${IS_PRERELEASE}" = "true" ]; then
+            git push --force origin HEAD:next "${RELEASE_TAG}"
+          else
+            git push origin HEAD:main "${RELEASE_TAG}"
+          fi
+
       - name: Login to GitHub container registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:

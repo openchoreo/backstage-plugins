@@ -3,3 +3,5 @@ dist-types
 coverage
 .vscode
 storybook-static
+packages/create-portal/templates/
+packages/create-portal/templates-src/
