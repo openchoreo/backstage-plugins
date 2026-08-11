@@ -4,6 +4,7 @@ import app from './App';
 describe('App', () => {
   it('should render', async () => {
     process.env = {
+      ...process.env,
       NODE_ENV: 'test',
       APP_CONFIG: [
         {

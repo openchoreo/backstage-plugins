@@ -117,6 +117,12 @@ jobs:
             --name openchoreo-portal --path /tmp/portal-template-render --skip-install
           rm -rf /tmp/portal-template-render/.git
           git clone "https://x-access-token:${TEMPLATE_PUSH_TOKEN}@github.com/openchoreo/portal-template.git" /tmp/portal-template-repo
+          # Release retries re-run this step; the tag from the first attempt
+          # already exists, so skip instead of failing the whole release.
+          if git -C /tmp/portal-template-repo rev-parse -q --verify "refs/tags/${RELEASE_TAG}" > /dev/null; then
+            echo "::notice::portal-template already has ${RELEASE_TAG} — skipping the template publish"
+            exit 0
+          fi
           rsync -a --delete --exclude .git /tmp/portal-template-render/ /tmp/portal-template-repo/
           cd /tmp/portal-template-repo
           git add -A
