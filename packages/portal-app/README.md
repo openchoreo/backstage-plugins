@@ -20,10 +20,10 @@ export default createPortalApp({
 
 ## Status
 
-This package is **private for now**. It is the landing place for app-shell
-pieces as they are migrated to the new frontend system — parts of the shell
-still run through `@backstage/core-compat-api` (legacy bridge) and are being
-migrated piece by piece. It becomes publishable once the migration removes the
-legacy-bridged internals (and the dependency on the private portal-assistant
-plugin is decoupled); that PR flips `private` and adds the package to the
-changeset linked group.
+This package is **published** as part of the lockstep OpenChoreo release. The
+shell is fully on the new frontend system and has no dependency on any private
+plugin: optional assistant features integrate through the
+`portalAssistantIntegrationApiRef` slots (see `usePortalAssistant`), which
+render nothing when no implementation is registered. The stock portal injects
+its assistant via `createPortalApp({ features })`; custom portals simply omit
+it.

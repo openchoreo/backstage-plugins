@@ -12,8 +12,9 @@ import {
   EntityContentBlueprint,
   EntityContentLayoutBlueprint,
 } from '@backstage/plugin-catalog-react/alpha';
-import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
+import { Fragment, PropsWithChildren } from 'react';
 import { OpenChoreoQueryProvider } from '@openchoreo/backstage-plugin-react';
+import { usePortalAssistant } from './assistant/PortalAssistantIntegrationApi';
 import { apis } from './apis';
 import { LEGACY_KIND_ICONS } from './kindIcons';
 import { appThemes } from './themes';
@@ -55,9 +56,18 @@ const scaffolderPreselectionWrapper = AppRootWrapperBlueprint.make({
   params: { component: ScaffolderPreselectionProvider },
 });
 
+// Assistant drawer slot — the shell has no dependency on any assistant
+// implementation; hosts register one via `portalAssistantIntegrationApiRef`.
+// Falls back to a Fragment so the tree is identical when no assistant is
+// installed.
+const AssistantAppWrapper = ({ children }: PropsWithChildren<{}>) => {
+  const { AppWrapper = Fragment } = usePortalAssistant();
+  return <AppWrapper>{children}</AppWrapper>;
+};
+
 const assistantDrawerWrapper = AppRootWrapperBlueprint.make({
   name: 'assistant-drawer',
-  params: { component: AssistantDrawerProvider },
+  params: { component: AssistantAppWrapper },
 });
 
 // Portal-only. Adopters get vanilla upstream api-docs behavior on API pages.

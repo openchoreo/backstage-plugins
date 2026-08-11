@@ -32,12 +32,15 @@ backend.add(portalBackendFeatures);
 // For production, config is in app-config.production.yaml with Helm-injected env vars
 // backend.add(import('@immobiliarelabs/backstage-plugin-gitlab-backend'));
 
+// portal-template:strip-start
 // Portal Assistant backend — forwards Portal Assistant frontend traffic to the
 // portal-assistant service in the OpenChoreo control plane. Plugin
 // self-disables when openchoreo.portalAssistantUrl is not set.
-// (Private package — deliberately not part of the published portal bundle.)
+// (Private package — deliberately not part of the published portal bundle;
+// the strip markers let the create-portal template generator drop this block.)
 backend.add(
   import('@openchoreo/backstage-plugin-openchoreo-portal-assistant-backend'),
 );
+// portal-template:strip-end
 
 backend.start();

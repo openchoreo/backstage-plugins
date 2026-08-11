@@ -1,0 +1,37 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-openchoreo-environment
+  title: Environment
+  description: Create a new environment for deploying components across your organization.
+spec:
+  owner: openchoreo-users
+  type: Environment
+  # Enable user token injection for user-based authorization at OpenChoreo API
+  EXPERIMENTAL_formDecorators:
+    - id: openchoreo:inject-user-token
+  parameters:
+    - title: Environment Details
+      required:
+        - environmentConfig
+      properties:
+        environmentConfig:
+          title: ' '
+          type: object
+          ui:field: EnvironmentFormWithYaml
+  steps:
+    - id: create-openchoreo-environment
+      name: Create OpenChoreo Environment
+      action: openchoreo:environment:create
+      input:
+        namespaceName: ${{ parameters.environmentConfig.namespace_name }}
+        environmentName: ${{ parameters.environmentConfig.environment_name }}
+        displayName: ${{ parameters.environmentConfig.displayName }}
+        description: ${{ parameters.environmentConfig.description }}
+        dataPlaneRef: ${{ parameters.environmentConfig.dataPlaneRef }}
+        isProduction: ${{ parameters.environmentConfig.isProduction }}
+  output:
+    links:
+      - title: View Environment
+        icon: catalog
+        entityRef: ${{ steps['create-openchoreo-environment'].output.entityRef }}
