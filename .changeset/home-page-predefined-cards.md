@@ -1,14 +1,15 @@
 ---
-'@openchoreo/backstage-plugin-common': patch
+'@openchoreo/backstage-portal-app': patch
 ---
 
-Home page predefined cards:
+Add predefined home page card modules (not yet wired into the home page):
 
-- Add `openchoreo.home.cardConfig` config key (frontend visibility) selecting
-  the named predefined card layout rendered on the portal home page (default:
-  `choreo-default`).
-- The home page renders its cards from a card registry + named layout configs
-  (search, my-projects, quick-actions, recent-deployments, starred-entities,
-  recently-visited, permission-gated platform-details).
+- A home card registry + named layout configs (search, my-projects,
+  quick-actions, recent-deployments, starred-entities, recently-visited,
+  permission-gated platform-details) under `components/Home/cards`.
 - New `RecentDeploymentsCard` showing the latest releases across the user's
   components with per-environment status.
+- Shared `getRelativeTime` helper (also adopted by `RecentlyVisitedCard`).
+
+The current home page is unchanged; a follow-up will render it from the
+card registry.

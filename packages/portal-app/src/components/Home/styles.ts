@@ -1,8 +1,10 @@
 import { makeStyles } from '@material-ui/core/styles';
 
 export const useStyles = makeStyles(theme => ({
-  /** Equal-height wrapper so cards sharing a grid row stretch together. */
-  cardWrapper: {
+  platformDetailsSection: {
+    marginBottom: theme.spacing(4),
+  },
+  starredEntitiesWrapper: {
     height: '100%',
     width: '100%',
     display: 'flex',

@@ -170,12 +170,6 @@ openchoreo:
   # Required by Backstage schema validation. Custom OpenChoreo kinds don't use owner.
   defaultOwner: 'openchoreo-users'
 
-  # Home page card layout. Selects a named predefined card config from
-  # packages/portal-app/src/components/Home/cards/configs.ts; unknown names
-  # fall back to choreo-default.
-  home:
-    cardConfig: choreo-default
-
   # Upstream URL the openchoreo-portal-assistant-backend plugin forwards
   # to (Portal Assistant). Env-var-gated: when OPENCHOREO_PORTAL_ASSISTANT_URL
   # is unset, Backstage substitutes the placeholder as undefined and the

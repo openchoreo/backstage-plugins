@@ -20,9 +20,9 @@ const choreoDefault: HomeCardConfig = {
 };
 
 /**
- * Named home page layouts. The active one is selected via the
- * `openchoreo.home.cardConfig` app-config key (default: choreo-default).
- * New predefined layouts register here.
+ * Named home page layouts. The active one is selected by name via
+ * `getHomeCardConfig` (default: choreo-default). New predefined layouts
+ * register here.
  */
 const HOME_CARD_CONFIGS: Record<string, HomeCardConfig> = {
   [choreoDefault.name]: choreoDefault,
