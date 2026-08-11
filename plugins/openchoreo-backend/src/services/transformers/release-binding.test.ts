@@ -92,6 +92,17 @@ describe('deriveBindingStatus', () => {
     expect(deriveBindingStatus(binding)).toBe('NotReady');
   });
 
+  it('returns NotReady for NamespaceProgressing reason', () => {
+    const binding = makeBinding([
+      {
+        type: 'Ready',
+        status: 'False',
+        reason: 'NamespaceProgressing',
+        message: 'Namespace is still being provisioned',
+      },
+    ]);
+    expect(deriveBindingStatus(binding)).toBe('NotReady');
+  });
   it('returns NotReady for JobRunning reason', () => {
     const binding = makeBinding([
       { type: 'Ready', status: 'False', reason: 'JobRunning' },
