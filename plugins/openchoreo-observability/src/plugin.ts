@@ -116,3 +116,9 @@ export const ObservabilityCostAnalysis = lazy(() =>
     default: m.CostAnalysisPage,
   })),
 );
+
+export const ObservabilityInsights = lazy(() =>
+  import('./components/Insights/ObservabilityInsightsPage').then(m => ({
+    default: m.ObservabilityInsightsPage,
+  })),
+);
