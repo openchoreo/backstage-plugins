@@ -38,6 +38,8 @@ import {
   perchAgentApiRef,
   PerchAgentClient,
 } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
+import { SonarQubeClient } from '@backstage-community/plugin-sonarqube';
+import { sonarQubeApiRef } from '@backstage-community/plugin-sonarqube-react';
 
 export const apis: AnyApiFactory[] = [
   createApiFactory({
@@ -145,5 +147,14 @@ export const apis: AnyApiFactory[] = [
     },
     factory: ({ discoveryApi, fetchApi }) =>
       new PerchAgentClient({ discoveryApi, fetchApi }),
+  }),
+  createApiFactory({
+    api: sonarQubeApiRef,
+    deps: {
+      discoveryApi: discoveryApiRef,
+      fetchApi: fetchApiRef,
+    },
+    factory: ({ discoveryApi, fetchApi }) =>
+      new SonarQubeClient({ discoveryApi, fetchApi }),
   }),
 ];
