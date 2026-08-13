@@ -2,6 +2,7 @@ import type { CostItem, CostRecommendationItem } from '../../types';
 import type {
   CostScope,
   CostScopeLevel,
+  CostScopeSelection,
   CostRow,
   CostSummary,
   CostSeriesPoint,
@@ -10,11 +11,46 @@ import type {
   ForecastPoint,
 } from './types';
 
-/** Derive the scope level from the breadcrumb selection depth. */
+/** Derive the scope level from a single scope's selection depth. */
 export function deriveLevel(scope: CostScope): CostScopeLevel {
   if (scope.component) return 'component';
   if (scope.project) return 'project';
   return 'namespace';
+}
+
+/**
+ * Flatten a multi-select selection to the deepest populated tier: the `level`
+ * whose rows the table shows, plus one atomic {@link CostScope} per selected
+ * item to query. Deeper selections win (components over projects over
+ * namespaces); an empty selection yields no scopes.
+ */
+export function expandSelection(selection: CostScopeSelection): {
+  level: CostScopeLevel;
+  scopes: CostScope[];
+} {
+  if (selection.components.length > 0) {
+    return {
+      level: 'component',
+      scopes: selection.components.map(c => ({
+        namespace: c.namespace,
+        project: c.project,
+        component: c.name,
+      })),
+    };
+  }
+  if (selection.projects.length > 0) {
+    return {
+      level: 'project',
+      scopes: selection.projects.map(p => ({
+        namespace: p.namespace,
+        project: p.name,
+      })),
+    };
+  }
+  return {
+    level: 'namespace',
+    scopes: selection.namespaces.map(namespace => ({ namespace })),
+  };
 }
 
 /** The field a cost item is grouped by at the given level. */

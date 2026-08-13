@@ -6,8 +6,15 @@ import {
   fetchApiRef,
   PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
-import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
-import { FeatureGatedContent } from '@openchoreo/backstage-plugin-react';
+import {
+  EntityCardBlueprint,
+  EntityContentBlueprint,
+} from '@backstage/plugin-catalog-react/alpha';
+import {
+  FeatureGate,
+  FeatureGatedContent,
+} from '@openchoreo/backstage-plugin-react';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
 import { rootRouteRef } from './routes';
 import {
@@ -264,12 +271,34 @@ const rcaReportsEntityContent = EntityContentBlueprint.make({
 });
 
 /**
+ * Cost Insights summary card, shown on the Component and Project (System)
+ * overview pages. Filtered to entities carrying the openchoreo namespace
+ * annotation (the scope the card resolves cost by) and gated on the
+ * observability feature so it vanishes when the host has it disabled.
+ */
+const costInsightsSummaryCard = EntityCardBlueprint.make({
+  name: 'cost-insights-summary',
+  params: {
+    filter: entity =>
+      ['component', 'system'].includes(entity.kind.toLowerCase()) &&
+      Boolean(entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE]),
+    loader: () =>
+      import('./components/CostInsights/CostInsightsSummaryCard').then(m => (
+        <FeatureGate feature="observability">
+          <m.CostInsightsSummaryCard />
+        </FeatureGate>
+      )),
+  },
+});
+
+/**
  * NFS entry point for the OpenChoreo Observability plugin.
  *
  * Registers the three observability backend clients, the log-row-action
  * registry API, the component-page entity tabs (Logs, Events, Metrics,
  * Alerts, Wirelogs) and the system-page entity tabs (Logs, Traces,
- * Incidents, RCA Reports).
+ * Incidents, RCA Reports), plus the Cost Insights summary card shown on the
+ * Component and Project overview pages.
  */
 export default createFrontendPlugin({
   pluginId: 'openchoreo-observability',
@@ -289,5 +318,6 @@ export default createFrontendPlugin({
     tracesEntityContent,
     projectIncidentsEntityContent,
     rcaReportsEntityContent,
+    costInsightsSummaryCard,
   ],
 });

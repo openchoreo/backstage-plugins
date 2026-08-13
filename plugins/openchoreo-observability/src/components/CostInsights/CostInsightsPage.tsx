@@ -1,7 +1,13 @@
 import { lazy, Suspense, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import {
+  Link as RouterLink,
+  Route,
+  Routes,
+  useLocation,
+  useSearchParams,
+} from 'react-router-dom';
 import { useApp } from '@backstage/core-plugin-api';
-import { Page, TabbedLayout } from '@backstage/core-components';
+import { Page, Content, Header } from '@backstage/core-components';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import type { Entity } from '@backstage/catalog-model';
 import { Box, Typography, makeStyles } from '@material-ui/core';
@@ -11,14 +17,9 @@ import {
   RefreshOverlay,
 } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import {
-  GradientPageHeader,
-  GradientPageHeaderTitle,
-  GradientPageHeaderKindChip,
-} from '@openchoreo/backstage-plugin-react';
 import { parseUrlTimeRange, writeUrlTimeRange } from '../../utils/urlTimeRange';
-import { CostInsightsBreadcrumb } from './CostInsightsBreadcrumb';
-import { deriveLevel } from './costAggregation';
+import { CostInsightsScopeFilters } from './CostInsightsScopeFilters';
+import { expandSelection } from './costAggregation';
 import {
   CostInsightsFilters,
   DEFAULT_GRANULARITY,
@@ -29,7 +30,12 @@ import { CostInsightsGraphs } from './CostInsightsGraphs';
 import { useNamespaceEnvironments } from './useNamespaceEnvironments';
 import { useDimensionTitles } from './useDimensionTitles';
 import { useCostInsights } from './useCostInsights';
-import type { CostScope, CostViewMode } from './types';
+import type {
+  CostComponentRef,
+  CostProjectRef,
+  CostScopeSelection,
+  CostViewMode,
+} from './types';
 
 // Cost Analysis is a heavier feature (report views, FinOps chat). Load it lazily
 // so it only enters the bundle when the Cost Analysis tab is opened.
@@ -39,6 +45,7 @@ const CostAnalysisPage = lazy(() =>
 
 const DEFAULT_NAMESPACE = 'default';
 const COST_DEFAULT_TIME_RANGE = '1h';
+const COST_INSIGHTS_PATH = '/cost-insights';
 
 // The catalog kind each table row maps to, so we reuse the app's registered
 // kind icons (same symbols the catalog shows).
@@ -50,23 +57,115 @@ const LEVEL_KIND: Record<string, string> = {
 
 const useStyles = makeStyles(theme => ({
   section: { marginTop: theme.spacing(2) },
+  analysisContent: { marginTop: theme.spacing(3) },
+  tabBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+  },
+  tab: {
+    padding: theme.spacing(1.5, 1),
+    fontSize: 14,
+    fontWeight: 500,
+    color: theme.palette.text.secondary,
+    textDecoration: 'none',
+    borderBottom: '2px solid transparent',
+    marginBottom: -1,
+    '&:hover': { color: theme.palette.text.primary },
+  },
+  tabActive: {
+    color: theme.palette.primary.main,
+    borderBottomColor: theme.palette.primary.main,
+    fontWeight: 600,
+  },
 }));
 
-// Reads the cost scope (namespace/project/component) from the URL query params,
-// shared by the page header and both tabs.
-function useCostScope() {
+const projectValue = (p: CostProjectRef) => `${p.namespace}/${p.name}`;
+const componentValue = (c: CostComponentRef) =>
+  `${c.namespace}/${c.project}/${c.name}`;
+
+/**
+ * Parse the multi-select scope from the URL. Reads the plural params
+ * (`namespaces`/`projects`/`components`) and falls back to the legacy singular
+ * params (`namespace`/`project`/`component`) so existing deep links still land
+ * on the right scope. An absent namespace defaults to `default`.
+ */
+function parseSelection(params: URLSearchParams): CostScopeSelection {
+  const nsRaw = params.get('namespaces');
+  const legacyNs = params.get('namespace');
+  let namespaces: string[];
+  if (nsRaw !== null) namespaces = nsRaw.split(',').filter(Boolean);
+  else if (legacyNs) namespaces = [legacyNs];
+  else namespaces = [DEFAULT_NAMESPACE];
+
+  const projRaw = params.get('projects');
+  const legacyProj = params.get('project');
+  let projects: CostProjectRef[];
+  if (projRaw !== null) {
+    projects = projRaw
+      .split(',')
+      .filter(Boolean)
+      .map(v => {
+        const [namespace, name] = v.split('/');
+        return { namespace, name };
+      });
+  } else if (legacyProj && namespaces.length > 0) {
+    projects = [{ namespace: namespaces[0], name: legacyProj }];
+  } else {
+    projects = [];
+  }
+
+  const compRaw = params.get('components');
+  const legacyComp = params.get('component');
+  let components: CostComponentRef[];
+  if (compRaw !== null) {
+    components = compRaw
+      .split(',')
+      .filter(Boolean)
+      .map(v => {
+        const [namespace, project, name] = v.split('/');
+        return { namespace, project, name };
+      });
+  } else if (legacyComp && projects.length > 0) {
+    components = [
+      {
+        namespace: projects[0].namespace,
+        project: projects[0].name,
+        name: legacyComp,
+      },
+    ];
+  } else {
+    components = [];
+  }
+
+  return { namespaces, projects, components };
+}
+
+function writeSelection(params: URLSearchParams, sel: CostScopeSelection) {
+  // Drop the legacy singular params so the plural ones are the single source.
+  params.delete('namespace');
+  params.delete('project');
+  params.delete('component');
+  params.set('namespaces', sel.namespaces.join(','));
+  if (sel.projects.length) {
+    params.set('projects', sel.projects.map(projectValue).join(','));
+  } else {
+    params.delete('projects');
+  }
+  if (sel.components.length) {
+    params.set('components', sel.components.map(componentValue).join(','));
+  } else {
+    params.delete('components');
+  }
+}
+
+// Reads the multi-select cost scope + a generic param updater from the URL,
+// shared by the page header, the filters, and both tabs.
+function useCostSelection() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const namespace = searchParams.get('namespace') || DEFAULT_NAMESPACE;
-  const project = searchParams.get('project') || undefined;
-  // A component is only meaningful when a project is also selected.
-  const component = project
-    ? searchParams.get('component') || undefined
-    : undefined;
-  const scope: CostScope = useMemo(
-    () => ({ namespace, project, component }),
-    [namespace, project, component],
-  );
+  const selection = useMemo(() => parseSelection(searchParams), [searchParams]);
 
   const update = useCallback(
     (mutator: (params: URLSearchParams) => void) => {
@@ -77,37 +176,33 @@ function useCostScope() {
     [searchParams, setSearchParams],
   );
 
-  const onScopeChange = useCallback(
-    (nextScope: CostScope) => {
+  const setSelection = useCallback(
+    (next: CostScopeSelection) => {
       update(params => {
-        const namespaceChanged = nextScope.namespace !== namespace;
-        if (nextScope.namespace) params.set('namespace', nextScope.namespace);
-        else params.delete('namespace');
-        if (nextScope.project) params.set('project', nextScope.project);
-        else params.delete('project');
-        if (nextScope.component) params.set('component', nextScope.component);
-        else params.delete('component');
+        const namespacesChanged =
+          next.namespaces.length !== selection.namespaces.length ||
+          next.namespaces.some(n => !selection.namespaces.includes(n));
+        writeSelection(params, next);
         // Environments belong to a namespace, so reset the selection when the
-        // namespace changes (the previous names may not exist in the new one).
-        if (namespaceChanged) params.delete('envs');
+        // namespace set changes (the previous names may not all exist now).
+        if (namespacesChanged) params.delete('envs');
       });
     },
-    [update, namespace],
+    [update, selection.namespaces],
   );
 
-  return { scope, onScopeChange, update, searchParams };
+  return { selection, setSelection, update, searchParams };
 }
 
 // The "Insights" tab: cost table/graph views, all state read from the URL.
 const CostInsightsInsightsTab = () => {
   const classes = useStyles();
   const app = useApp();
-  const { scope, onScopeChange, update, searchParams } = useCostScope();
+  const { selection, update, searchParams } = useCostSelection();
 
-  const { namespace, project } = scope;
-  const level = deriveLevel(scope);
+  const { level, scopes } = expandSelection(selection);
   // Raw dimension name to catalog title, so rows read "GCP Microservice Demo".
-  const titles = useDimensionTitles(level, scope);
+  const titles = useDimensionTitles(level, scopes);
 
   const view: CostViewMode =
     searchParams.get('view') === 'graph' ? 'graph' : 'table';
@@ -124,12 +219,12 @@ const CostInsightsInsightsTab = () => {
     [envsRaw],
   );
 
-  // --- Environments for the current namespace ---
+  // --- Environments across the selected namespaces ---
   const {
     environments,
     loading: envsLoading,
     error: envsError,
-  } = useNamespaceEnvironments(namespace);
+  } = useNamespaceEnvironments(selection.namespaces);
 
   // Default to every environment until the user narrows the selection, so the
   // page shows aggregated data immediately.
@@ -186,22 +281,10 @@ const CostInsightsInsightsTab = () => {
     [update],
   );
 
-  // Drill one level deeper by clicking a table row: namespace to project,
-  // project to component (component rows are leaf environments).
-  const onDrill = useCallback(
-    (key: string) => {
-      if (project) {
-        onScopeChange({ namespace, project, component: key });
-      } else {
-        onScopeChange({ namespace, project: key });
-      }
-    },
-    [namespace, project, onScopeChange],
-  );
-
   // --- Cost data ---
   const { data, loading, isRefetching, error, refresh } = useCostInsights({
-    scope,
+    scopes,
+    level,
     environments: selectedEnvironments,
     timeRange,
     customStartTime,
@@ -210,8 +293,14 @@ const CostInsightsInsightsTab = () => {
     granularity,
   });
 
+  // Optimize/Apply acts on a single ReleaseBinding, so it's only offered when
+  // exactly one component is in scope.
+  const optimizeScope =
+    level === 'component' && scopes.length === 1 ? scopes[0] : undefined;
+
+  const noScope = scopes.length === 0;
   const noEnvironments =
-    !envsLoading && !envsError && environments.length === 0;
+    !noScope && !envsLoading && !envsError && environments.length === 0;
 
   return (
     <>
@@ -230,6 +319,14 @@ const CostInsightsInsightsTab = () => {
         />
       </Box>
 
+      {noScope && (
+        <Box className={classes.section}>
+          <Alert severity="info">
+            Select one or more namespaces to view cost insights.
+          </Alert>
+        </Box>
+      )}
+
       {envsError && (
         <Box className={classes.section}>
           <Alert severity="error">{envsError}</Alert>
@@ -239,18 +336,21 @@ const CostInsightsInsightsTab = () => {
       {noEnvironments && (
         <Box className={classes.section}>
           <Alert severity="info">
-            No environments found for namespace “{namespace}”.
+            No environments found for the selected namespaces.
           </Alert>
         </Box>
       )}
 
-      {!noEnvironments && selectedEnvironments.length === 0 && !envsLoading && (
-        <Box className={classes.section}>
-          <Alert severity="info">
-            Select one or more environments to view cost insights.
-          </Alert>
-        </Box>
-      )}
+      {!noScope &&
+        !noEnvironments &&
+        selectedEnvironments.length === 0 &&
+        !envsLoading && (
+          <Box className={classes.section}>
+            <Alert severity="info">
+              Select one or more environments to view cost insights.
+            </Alert>
+          </Box>
+        )}
 
       {error && (
         <Box className={classes.section}>
@@ -279,18 +379,20 @@ const CostInsightsInsightsTab = () => {
               <CostInsightsTable
                 level={data.level}
                 rows={data.rows}
-                onDrill={data.level === 'component' ? undefined : onDrill}
                 icon={app.getSystemIcon(`kind:${LEVEL_KIND[data.level]}`)}
                 titles={titles}
-                scope={scope}
+                scope={optimizeScope}
                 onOptimized={refresh}
+                singleComponent={
+                  data.level === 'component' && scopes.length === 1
+                }
               />
             )}
           </Box>
         </Box>
       )}
 
-      {!loading && !data && !error && !noEnvironments && (
+      {!loading && !data && !error && !noScope && !noEnvironments && (
         <Box className={classes.section}>
           <Typography color="textSecondary">
             Select a scope and environments to view cost insights.
@@ -301,64 +403,106 @@ const CostInsightsInsightsTab = () => {
   );
 };
 
-// Two tabs: "Insights" (cost views) and "Cost Analysis" (FinOps reports). Cost
-// Analysis reads its project/namespace from entity context, so we synthesize a
-// System entity from the URL scope and provide it via EntityProvider.
-export const CostInsightsPage = () => {
+// The "Cost Analysis" tab (FinOps reports). It reads its project/namespace from
+// entity context, so we synthesize a System entity from the single selected
+// project; it's only available when exactly one project is in scope.
+const CostAnalysisTab = () => {
   const classes = useStyles();
-  const { scope, onScopeChange } = useCostScope();
-  const level = deriveLevel(scope);
+  const { selection } = useCostSelection();
 
-  // Cost Analysis is inherently project-scoped: the reports belong to a project.
-  const project = scope.project;
+  const project =
+    selection.projects.length === 1 ? selection.projects[0] : undefined;
 
-  const syntheticEntity: Entity = useMemo(
-    () => ({
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'System',
-      metadata: {
-        name: project ?? '',
-        // OpenChoreo catalog entities live in the default catalog namespace.
-        namespace: 'default',
-        annotations: { [CHOREO_ANNOTATIONS.NAMESPACE]: scope.namespace ?? '' },
-      },
-      spec: {},
-    }),
-    [project, scope.namespace],
+  const syntheticEntity: Entity | undefined = useMemo(
+    () =>
+      project
+        ? {
+            apiVersion: 'backstage.io/v1alpha1',
+            kind: 'System',
+            metadata: {
+              name: project.name,
+              // OpenChoreo catalog entities live in the default catalog namespace.
+              namespace: 'default',
+              annotations: {
+                [CHOREO_ANNOTATIONS.NAMESPACE]: project.namespace,
+              },
+            },
+            spec: {},
+          }
+        : undefined,
+    [project],
   );
+
+  if (!syntheticEntity) {
+    return (
+      <Box className={classes.section}>
+        <Alert severity="info">
+          Select a single project to view its cost analysis reports.
+        </Alert>
+      </Box>
+    );
+  }
+
+  return (
+    <Box className={classes.analysisContent}>
+      <EntityProvider entity={syntheticEntity}>
+        <Suspense fallback={<PageLoader />}>
+          <CostAnalysisPage />
+        </Suspense>
+      </EntityProvider>
+    </Box>
+  );
+};
+
+const CostInsightsTabBar = () => {
+  const classes = useStyles();
+  const location = useLocation();
+  const onCostAnalysis = location.pathname.endsWith('/cost-analysis');
+  const tabClass = (active: boolean) =>
+    active ? `${classes.tab} ${classes.tabActive}` : classes.tab;
+
+  return (
+    <Box className={classes.tabBar} role="tablist">
+      <RouterLink
+        to={{ pathname: COST_INSIGHTS_PATH, search: location.search }}
+        className={tabClass(!onCostAnalysis)}
+        role="tab"
+        aria-selected={!onCostAnalysis}
+      >
+        Insights
+      </RouterLink>
+      <RouterLink
+        to={{
+          pathname: `${COST_INSIGHTS_PATH}/cost-analysis`,
+          search: location.search,
+        }}
+        className={tabClass(onCostAnalysis)}
+        role="tab"
+        aria-selected={onCostAnalysis}
+      >
+        Analysis Reports
+      </RouterLink>
+    </Box>
+  );
+};
+
+export const CostInsightsPage = () => {
+  const { selection, setSelection } = useCostSelection();
 
   return (
     <Page themeId="tool">
-      <GradientPageHeader
-        titleRow={
-          <>
-            <GradientPageHeaderTitle>Cost Insights</GradientPageHeaderTitle>
-            <GradientPageHeaderKindChip label={level} />
-          </>
-        }
-      >
-        <CostInsightsBreadcrumb scope={scope} onScopeChange={onScopeChange} />
-      </GradientPageHeader>
-      <TabbedLayout>
-        <TabbedLayout.Route path="/" title="Insights">
-          <CostInsightsInsightsTab />
-        </TabbedLayout.Route>
-        <TabbedLayout.Route path="/cost-analysis" title="Cost Analysis">
-          {project ? (
-            <EntityProvider entity={syntheticEntity}>
-              <Suspense fallback={<PageLoader />}>
-                <CostAnalysisPage />
-              </Suspense>
-            </EntityProvider>
-          ) : (
-            <Box className={classes.section}>
-              <Alert severity="info">
-                Cost analysis reports are only available for a project scope.
-              </Alert>
-            </Box>
-          )}
-        </TabbedLayout.Route>
-      </TabbedLayout>
+      <Header title="Cost Insights" />
+      <Content>
+        <CostInsightsScopeFilters
+          selection={selection}
+          onChange={setSelection}
+        />
+        <CostInsightsTabBar />
+        <Routes>
+          <Route index element={<CostInsightsInsightsTab />} />
+          <Route path="cost-analysis" element={<CostAnalysisTab />} />
+        </Routes>
+      </Content>
     </Page>
   );
 };

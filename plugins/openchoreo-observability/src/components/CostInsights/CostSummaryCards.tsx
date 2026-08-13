@@ -27,6 +27,7 @@ const useStyles = makeStyles(theme => ({
     lineHeight: 1.1,
     color: theme.palette.text.primary,
   },
+  valueDense: { fontSize: '1.15rem' },
   delta: { display: 'inline-flex', alignItems: 'center', gap: 2 },
   up: { color: theme.palette.error.main },
   down: { color: theme.palette.success.main },
@@ -76,12 +77,18 @@ const DeltaChip: FC<{ deltaPct: number | null }> = ({ deltaPct }) => {
  * `Card` wrapper — so it can be reused both here and in the catalog overview's
  * cost summary card without nesting one `Card` inside another.
  */
-export const TotalCostContent: FC<{ summary: CostSummary }> = ({ summary }) => {
+export const TotalCostContent: FC<{
+  summary: CostSummary;
+  dense?: boolean;
+}> = ({ summary, dense }) => {
   const classes = useStyles();
   return (
     <>
       <Typography className={classes.label}>Total Cost</Typography>
-      <Typography component="div" className={classes.value}>
+      <Typography
+        component="div"
+        className={`${classes.value} ${dense ? classes.valueDense : ''}`}
+      >
         {formatUsd(summary.totalCost)}
       </Typography>
       <DeltaChip deltaPct={summary.deltaPct} />

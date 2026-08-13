@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { Box, Button, Typography, makeStyles } from '@material-ui/core';
-import { Link } from '@backstage/core-components';
+import { Link as RouterLink } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Card, Skeleton } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { TotalCostContent } from './CostSummaryCards';
+import { deriveLevel } from './costAggregation';
 import { useNamespaceEnvironments } from './useNamespaceEnvironments';
 import { useCostInsights } from './useCostInsights';
 import type { CostScope } from './types';
@@ -104,7 +105,8 @@ export const CostInsightsSummaryCard = () => {
   const envNames = useMemo(() => environments.map(e => e.name), [environments]);
 
   const { data, loading, error } = useCostInsights({
-    scope,
+    scopes: ready ? [scope] : [],
+    level: deriveLevel(scope),
     environments: ready ? envNames : [],
     timeRange: COST_SUMMARY_TIME_RANGE,
     view: 'table',
@@ -125,7 +127,7 @@ export const CostInsightsSummaryCard = () => {
         </Typography>
       );
     }
-    return <TotalCostContent summary={data.summary} />;
+    return <TotalCostContent summary={data.summary} dense />;
   };
 
   return (
@@ -141,11 +143,15 @@ export const CostInsightsSummaryCard = () => {
       </Box>
       {ready && (
         <Box className={classes.footer}>
-          <Link to={buildDeepLink(scope)} style={{ textDecoration: 'none' }}>
-            <Button variant="outlined" color="primary" size="small">
-              Go to Cost Insights
-            </Button>
-          </Link>
+          <Button
+            component={RouterLink}
+            to={buildDeepLink(scope)}
+            variant="outlined"
+            color="primary"
+            size="small"
+          >
+            Go to Cost Insights
+          </Button>
         </Box>
       )}
     </Card>

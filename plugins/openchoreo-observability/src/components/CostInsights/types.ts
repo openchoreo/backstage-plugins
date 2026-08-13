@@ -16,6 +16,30 @@ export interface CostScope {
   component?: string;
 }
 
+/** A project (System) qualified by the namespace it belongs to. */
+export interface CostProjectRef {
+  namespace: string;
+  name: string;
+}
+
+/** A component qualified by its namespace + project. */
+export interface CostComponentRef {
+  namespace: string;
+  project: string;
+  name: string;
+}
+
+/**
+ * The multi-select scope driving the page: independent Namespace / Project /
+ * Component selections. The deepest populated tier decides what the table shows;
+ * costs are aggregated across every selected item at that tier.
+ */
+export interface CostScopeSelection {
+  namespaces: string[];
+  projects: CostProjectRef[];
+  components: CostComponentRef[];
+}
+
 /** The four resource quantity strings (K8s notation) for a workload. */
 export type CostResourceQuantities = Pick<
   CostResourceProfile,

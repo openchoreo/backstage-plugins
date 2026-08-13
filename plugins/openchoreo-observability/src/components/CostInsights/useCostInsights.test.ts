@@ -47,7 +47,8 @@ const costItem = (over: Record<string, unknown> = {}) => ({
 const baseParams = (
   over: Partial<UseCostInsightsParams> = {},
 ): UseCostInsightsParams => ({
-  scope: { namespace: 'default' },
+  scopes: [{ namespace: 'default' }],
+  level: 'namespace',
   environments: ['dev'],
   timeRange: '1h',
   view: 'table',
@@ -88,6 +89,47 @@ describe('useCostInsights', () => {
     expect(result.current.error).toBeNull();
   });
 
+  it('fans out over every scope and environment and aggregates the union', async () => {
+    getCosts.mockImplementation((ns: string) =>
+      Promise.resolve({
+        items: [costItem({ namespace: ns, project: ns === 'a' ? 'p1' : 'p2' })],
+      }),
+    );
+
+    const { result } = renderHook(
+      () =>
+        useCostInsights(
+          baseParams({
+            scopes: [{ namespace: 'a' }, { namespace: 'b' }],
+            level: 'namespace',
+            environments: ['dev'],
+          }),
+        ),
+      { wrapper: createQueryWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // 2 scopes × 1 env × (current + previous) = 4 cost calls.
+    expect(getCosts).toHaveBeenCalledTimes(4);
+    const keys = result.current.data?.rows.map(r => r.key) ?? [];
+    expect(keys).toEqual(expect.arrayContaining(['p1', 'p2']));
+  });
+
+  it('dedupes repeated environments so requests and totals are not doubled', async () => {
+    const { result } = renderHook(
+      () => useCostInsights(baseParams({ environments: ['dev', 'dev'] })),
+      { wrapper: createQueryWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // The duplicate env collapses to one: 1 env × (current + previous) = 2 calls.
+    expect(getCosts).toHaveBeenCalledTimes(2);
+    // A single dev item (cpu 10 + mem 12), not double-counted.
+    expect(result.current.data?.summary.totalCost).toBe(22);
+  });
+
   it('requests recommendations at the component level', async () => {
     getCostRecommendations.mockResolvedValue({
       items: [
@@ -106,7 +148,10 @@ describe('useCostInsights', () => {
       () =>
         useCostInsights(
           baseParams({
-            scope: { namespace: 'default', project: 'gcp', component: 'comp' },
+            scopes: [
+              { namespace: 'default', project: 'gcp', component: 'comp' },
+            ],
+            level: 'component',
             environments: ['dev'],
           }),
         ),
@@ -142,7 +187,10 @@ describe('useCostInsights', () => {
       () =>
         useCostInsights(
           baseParams({
-            scope: { namespace: 'default', project: 'gcp', component: 'comp' },
+            scopes: [
+              { namespace: 'default', project: 'gcp', component: 'comp' },
+            ],
+            level: 'component',
             environments: ['dev'],
           }),
         ),
@@ -186,7 +234,10 @@ describe('useCostInsights', () => {
       () =>
         useCostInsights(
           baseParams({
-            scope: { namespace: 'default', project: 'gcp', component: 'comp' },
+            scopes: [
+              { namespace: 'default', project: 'gcp', component: 'comp' },
+            ],
+            level: 'component',
             environments: ['dev'],
           }),
         ),
@@ -242,7 +293,7 @@ describe('useCostInsights', () => {
 
   it('is disabled without a namespace or environments', async () => {
     const { result: noNs } = renderHook(
-      () => useCostInsights(baseParams({ scope: {} })),
+      () => useCostInsights(baseParams({ scopes: [] })),
       { wrapper: createQueryWrapper() },
     );
     const { result: noEnvs } = renderHook(

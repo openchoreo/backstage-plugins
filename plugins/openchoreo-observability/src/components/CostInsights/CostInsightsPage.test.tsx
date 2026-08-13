@@ -4,8 +4,8 @@ import { CostInsightsPage } from './CostInsightsPage';
 
 // Child components are exercised by their own tests; stub them to lightweight
 // markers so this suite focuses on the page's state wiring.
-jest.mock('./CostInsightsBreadcrumb', () => ({
-  CostInsightsBreadcrumb: () => <div data-testid="breadcrumb" />,
+jest.mock('./CostInsightsScopeFilters', () => ({
+  CostInsightsScopeFilters: () => <div data-testid="scope-filters" />,
 }));
 jest.mock('./CostInsightsFilters', () => ({
   CostInsightsFilters: () => <div data-testid="filters" />,
@@ -138,7 +138,7 @@ describe('CostInsightsPage', () => {
     });
     await renderPage();
     expect(
-      screen.getByText(/No environments found for namespace/i),
+      screen.getByText(/No environments found for the selected namespaces/i),
     ).toBeInTheDocument();
   });
 
@@ -152,16 +152,16 @@ describe('CostInsightsPage', () => {
     expect(screen.getByText('catalog down')).toBeInTheDocument();
   });
 
-  it('offers both the Insights and Cost Analysis tabs', async () => {
+  it('offers both the Insights and Analysis Reports tabs', async () => {
     await renderPage();
     expect(screen.getByText('Insights')).toBeInTheDocument();
-    expect(screen.getByText('Cost Analysis')).toBeInTheDocument();
+    expect(screen.getByText('Analysis Reports')).toBeInTheDocument();
   });
 
   it('prompts to pick a project on the Cost Analysis tab when none is scoped', async () => {
     await renderPage('/cost-analysis?namespace=default');
     expect(
-      screen.getByText(/only available for a project scope/i),
+      screen.getByText(/Select a single project to view its cost analysis/i),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('cost-analysis')).not.toBeInTheDocument();
   });

@@ -87,7 +87,7 @@ describe('CostInsightsSummaryCard', () => {
     expect(screen.getByText('Last 24 hours')).toBeInTheDocument();
     expect(screen.getByText('USD 42.00')).toBeInTheDocument();
 
-    const link = screen.getByRole('link', { name: /Go to Cost Insights/i });
+    const link = screen.getByRole('button', { name: /Go to Cost Insights/i });
     const href = link.getAttribute('href') ?? '';
     expect(href).toContain('/cost-insights?');
     expect(href).toContain('namespace=default');
@@ -102,15 +102,18 @@ describe('CostInsightsSummaryCard', () => {
     // Derived component scope is passed to the cost hook.
     expect(mockUseCostInsights).toHaveBeenCalledWith(
       expect.objectContaining({
-        scope: {
-          namespace: 'default',
-          project: 'onlinestore',
-          component: 'checkout',
-        },
+        level: 'component',
+        scopes: [
+          {
+            namespace: 'default',
+            project: 'onlinestore',
+            component: 'checkout',
+          },
+        ],
       }),
     );
 
-    const link = screen.getByRole('link', { name: /Go to Cost Insights/i });
+    const link = screen.getByRole('button', { name: /Go to Cost Insights/i });
     expect(link.getAttribute('href')).toContain('component=checkout');
   });
 
@@ -125,7 +128,7 @@ describe('CostInsightsSummaryCard', () => {
     expect(screen.queryByText('USD 42.00')).not.toBeInTheDocument();
     // The CTA still renders for a resolvable scope.
     expect(
-      screen.getByRole('link', { name: /Go to Cost Insights/i }),
+      screen.getByRole('button', { name: /Go to Cost Insights/i }),
     ).toBeInTheDocument();
   });
 
@@ -155,7 +158,7 @@ describe('CostInsightsSummaryCard', () => {
     await renderCard(unscopedEntity);
 
     expect(
-      screen.queryByRole('link', { name: /Go to Cost Insights/i }),
+      screen.queryByRole('button', { name: /Go to Cost Insights/i }),
     ).not.toBeInTheDocument();
     // The cost hook is called with no environments while unresolved.
     expect(mockUseCostInsights).toHaveBeenCalledWith(

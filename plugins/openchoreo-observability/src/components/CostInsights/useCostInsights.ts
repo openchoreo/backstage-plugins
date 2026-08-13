@@ -9,12 +9,20 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import { observabilityApiRef } from '../../api/ObservabilityApi';
 import type { CostItem, CostRecommendationItem } from '../../types';
-import { buildCostInsightsData, deriveLevel } from './costAggregation';
+import { buildCostInsightsData } from './costAggregation';
 import { fetchBindingInfoByEnv, normalizeEnv } from './optimizeChange';
-import type { CostInsightsData, CostScope, CostViewMode } from './types';
+import type {
+  CostInsightsData,
+  CostScope,
+  CostScopeLevel,
+  CostViewMode,
+} from './types';
 
 export interface UseCostInsightsParams {
-  scope: CostScope;
+  /** Atomic scopes to query (one per selected item at `level`). */
+  scopes: CostScope[];
+  /** The tier the rows are grouped by (deepest populated selection). */
+  level: CostScopeLevel;
   /** Selected environment names (multi-select). */
   environments: string[];
   timeRange: string;
@@ -24,6 +32,10 @@ export interface UseCostInsightsParams {
   /** Cost-API granularity (e.g. `1h`, `1d`), only used in graph view. */
   granularity: string;
 }
+
+/** Stable key for a scope, so the query cache and fan-out stay deterministic. */
+const scopeKey = (scope: CostScope): string =>
+  `${scope.namespace ?? ''}/${scope.project ?? ''}/${scope.component ?? ''}`;
 
 export interface UseCostInsightsResult {
   data: CostInsightsData | undefined;
@@ -45,20 +57,21 @@ export function useCostInsights(
   const api = useApi(observabilityApiRef);
   const discovery = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
-  const { scope, environments, timeRange, view, granularity } = params;
-  const namespace = scope.namespace;
-  const level = deriveLevel(scope);
-  const sortedEnvs = [...environments].sort();
+  const { scopes, level, environments, timeRange, view, granularity } = params;
+  // Dedupe so a repeated env or scope can't fan out duplicate requests and
+  // double-count the aggregated totals.
+  const sortedEnvs = [...new Set(environments)].sort();
+  const uniqueScopes = [...new Map(scopes.map(s => [scopeKey(s), s])).values()];
+  const sortedScopeKeys = uniqueScopes.map(scopeKey).sort();
 
-  const enabled = Boolean(namespace) && sortedEnvs.length > 0;
+  const enabled = uniqueScopes.length > 0 && sortedEnvs.length > 0;
 
   const { data, loading, isRefetching, error, refetch } =
     useOpenChoreoQuery<CostInsightsData>(
       [
         'cost-insights',
-        namespace ?? '',
-        scope.project ?? '',
-        scope.component ?? '',
+        level,
+        sortedScopeKeys.join('|'),
         sortedEnvs.join(','),
         timeRange,
         params.customStartTime ?? '',
@@ -79,30 +92,37 @@ export function useCostInsights(
         ).toISOString();
         const prevEnd = startTime;
 
-        const scopeOpts = {
-          project: scope.project,
-          component: scope.component,
-        };
-
         // Charts (all levels) and the component table both need recommendations.
         const needsRecs = view === 'graph' || level === 'component';
         const isGraph = view === 'graph';
 
-        const perEnv = await Promise.allSettled(
-          sortedEnvs.map(async env => {
+        // The cost API is per (namespace, environment) with an optional
+        // project/component filter, so fan out across every selected scope and
+        // environment and aggregate the flat items client-side.
+        const requests = uniqueScopes.flatMap(scope =>
+          sortedEnvs.map(env => ({ scope, env })),
+        );
+
+        const perRequest = await Promise.allSettled(
+          requests.map(async ({ scope, env }) => {
+            const ns = scope.namespace!;
+            const scopeOpts = {
+              project: scope.project,
+              component: scope.component,
+            };
             // Accumulated cost drives rows/summary/scatter/saving in both views
             // and shares the recommendation's (non-bucketed) pricing basis.
-            const current = await api.getCosts(namespace!, env, {
+            const current = await api.getCosts(ns, env, {
               ...scopeOpts,
               startTime,
               endTime,
             });
             // Time-bucketed cost drives the graph's time-series charts only; its
             // per-bucket totals need not sum to the accumulated total. Degrade
-            // gracefully: a series failure shouldn't drop the env's other data.
+            // gracefully: a series failure shouldn't drop the request's data.
             const series = isGraph
               ? await api
-                  .getCosts(namespace!, env, {
+                  .getCosts(ns, env, {
                     ...scopeOpts,
                     startTime,
                     endTime,
@@ -110,16 +130,16 @@ export function useCostInsights(
                   })
                   .catch(() => ({ items: [] as CostItem[] }))
               : { items: [] as CostItem[] };
-            const previous = await api.getCosts(namespace!, env, {
+            const previous = await api.getCosts(ns, env, {
               ...scopeOpts,
               startTime: prevStart,
               endTime: prevEnd,
             });
             // Degrade gracefully: a recommendation failure shouldn't drop the
-            // env's cost data with it.
+            // request's cost data with it.
             const recommendations = needsRecs
               ? await api
-                  .getCostRecommendations(namespace!, env, {
+                  .getCostRecommendations(ns, env, {
                     ...scopeOpts,
                     startTime,
                     endTime,
@@ -135,7 +155,7 @@ export function useCostInsights(
           }),
         );
 
-        const fulfilled = perEnv.filter(
+        const fulfilled = perRequest.filter(
           (
             r,
           ): r is PromiseFulfilledResult<{
@@ -146,13 +166,13 @@ export function useCostInsights(
           }> => r.status === 'fulfilled',
         );
 
-        // Only fail outright when *every* environment failed; otherwise show
-        // the environments that resolved (a single disabled env shouldn't blank
-        // the whole page).
+        // Only fail outright when *every* request failed; otherwise show the
+        // data that resolved (a single disabled env/scope shouldn't blank the
+        // whole page).
         if (fulfilled.length === 0) {
-          const firstRejected = perEnv.find(r => r.status === 'rejected') as
-            | PromiseRejectedResult
-            | undefined;
+          const firstRejected = perRequest.find(
+            r => r.status === 'rejected',
+          ) as PromiseRejectedResult | undefined;
           const reason = firstRejected?.reason;
           throw reason instanceof Error
             ? reason
@@ -169,16 +189,22 @@ export function useCostInsights(
         // started, the samples include the pre-change spec, so we withhold those
         // (keyed by env -> spec update time) and flag the row. For valid rows we
         // override the window-derived "current" request strings with live spec
-        // values (display + diff only; costs stay window-based).
+        // values (display + diff only; costs stay window-based). The binding
+        // lookup is per component, so this refinement runs only when a single
+        // component is in scope (the only case that shows Optimize anyway).
         const staleRecommendationEnvs = new Map<string, string>();
-        if (level === 'component' && recommendations.length > 0) {
+        const singleComponent =
+          level === 'component' && uniqueScopes.length === 1
+            ? uniqueScopes[0]
+            : undefined;
+        if (singleComponent && recommendations.length > 0) {
           const openchoreoBaseUrl = await discovery.getBaseUrl('openchoreo');
           const infoByEnv = await fetchBindingInfoByEnv({
             openchoreoBaseUrl,
             fetchApi,
-            namespaceName: namespace!,
-            projectName: scope.project!,
-            componentName: scope.component!,
+            namespaceName: singleComponent.namespace!,
+            projectName: singleComponent.project!,
+            componentName: singleComponent.component!,
           });
           const windowStartMs = new Date(startTime).getTime();
           // Buffer so the settling period right after a spec change (pods rolling

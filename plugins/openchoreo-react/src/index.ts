@@ -166,11 +166,6 @@ export {
   OpenChoreoEntityLayout,
   type OpenChoreoEntityLayoutProps,
   type ExtraContextMenuItem,
-  GradientPageHeader,
-  GradientPageHeaderTitle,
-  GradientPageHeaderKindChip,
-  useGradientPageHeaderStyles,
-  type GradientPageHeaderProps,
 } from './components/OpenChoreoEntityLayout';
 export {
   VirtualizedLogList,

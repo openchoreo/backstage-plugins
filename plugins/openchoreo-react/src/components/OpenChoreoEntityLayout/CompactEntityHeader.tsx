@@ -39,7 +39,6 @@ import {
   Skeleton,
   Spinner,
 } from '@openchoreo/backstage-design-system';
-import { useGradientPageHeaderStyles } from './GradientPageHeader';
 
 export interface CompactEntityHeaderProps {
   entity: Entity;
@@ -110,6 +109,31 @@ function toPluralLabel(label: string): string {
 // BackstageHeader are merged into the matching class keys by MUI's style system.
 const useStyles = makeStyles(
   theme => ({
+    header: {
+      gridArea: 'pageHeader',
+      padding: theme.spacing(2, 3),
+      width: '100%',
+      color: theme.page.fontColor,
+      backgroundImage: theme.page.backgroundImage,
+      backgroundPosition: 'center',
+      backgroundSize: 'cover',
+      boxShadow: theme.shadows[4],
+      [theme.breakpoints.down('sm')]: {
+        padding: theme.spacing(2),
+      },
+    },
+    topRow: {
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing(1),
+      minHeight: 40,
+      [theme.breakpoints.down('sm')]: {
+        flexWrap: 'wrap',
+        minHeight: 'auto',
+        rowGap: theme.spacing(0.75),
+      },
+    },
     chip: {
       color: theme.page.fontColor,
       borderColor: `${theme.page.fontColor}80`,
@@ -343,7 +367,6 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     loading = false,
   } = props;
   const classes = useStyles();
-  const shell = useGradientPageHeaderStyles();
   const navigate = useNavigate();
   const catalogApi = useApi(catalogApiRef);
   const [breadcrumbMenuAnchor, setBreadcrumbMenuAnchor] =
@@ -693,8 +716,8 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
   };
 
   return (
-    <header className={shell.header}>
-      <Box className={shell.topRow}>
+    <header className={classes.header}>
+      <Box className={classes.topRow}>
         <Typography variant="h5" className={classes.title}>
           {loading ? (
             entityName

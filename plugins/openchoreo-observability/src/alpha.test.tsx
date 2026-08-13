@@ -44,6 +44,8 @@ describe('openchoreo-observability alpha plugin', () => {
       `entity-content:${plugin}/traces`,
       `entity-content:${plugin}/project-incidents`,
       `entity-content:${plugin}/rca-reports`,
+      // overview cards
+      `entity-card:${plugin}/cost-insights-summary`,
     ]) {
       expect(ids).toContain(expected);
     }
