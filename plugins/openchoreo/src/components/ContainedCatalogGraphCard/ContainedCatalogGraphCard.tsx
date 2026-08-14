@@ -1,5 +1,27 @@
 import { useEffect, useRef, type ComponentProps } from 'react';
+import { makeStyles } from '@material-ui/core/styles';
 import { EntityCatalogGraphCard } from '@backstage/plugin-catalog-graph';
+import { CustomGraphNode } from '@openchoreo/backstage-plugin-react';
+
+/**
+ * Match the OverviewCard title convention used by DeploymentStatusCard /
+ * RuntimeHealthCard / OpenChoreoAboutCard so the "Relations" title on the
+ * graph card doesn't shout in `h5` while every neighbor sits at `h6`.
+ * Upstream `EntityCatalogGraphCard` renders through Backstage's `InfoCard`
+ * which passes `variant="h5"` to `CardHeader.titleTypographyProps` — no
+ * public prop to override that. We overwrite the resulting
+ * `.MuiCardHeader-title` styles from the outer wrapper instead.
+ */
+const useStyles = makeStyles(theme => ({
+  host: {
+    display: 'contents',
+    '& .MuiCardHeader-title': {
+      fontWeight: 600,
+      fontSize: theme.typography.h6.fontSize,
+      color: theme.palette.text.primary,
+    },
+  },
+}));
 
 /**
  * Wrapper around upstream `EntityCatalogGraphCard` that restores the
@@ -24,6 +46,7 @@ export function ContainedCatalogGraphCard(
   props: ComponentProps<typeof EntityCatalogGraphCard>,
 ) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const classes = useStyles();
 
   useEffect(() => {
     const host = hostRef.current;
@@ -41,14 +64,10 @@ export function ContainedCatalogGraphCard(
       const viewBox = svg.viewBox?.baseVal;
       if (!viewBox || viewBox.width <= 0 || viewBox.height <= 0) return;
 
-      // Browser uses `meet` scaling: the smaller axis ratio wins.
       const scaleX = r.width / viewBox.width;
       const scaleY = r.height / viewBox.height;
       const browserScale = Math.min(scaleX, scaleY);
 
-      // If the painted SVG already fits its viewBox (browser is scaling
-      // down or 1:1), upstream rendering matches the old portal — clear
-      // any prior transform we may have applied during a transient state.
       if (browserScale <= 1.01) {
         if (workspace.style.transform) {
           workspace.style.transform = '';
@@ -57,9 +76,6 @@ export function ContainedCatalogGraphCard(
         return;
       }
 
-      // Inverse-scale the workspace so the user sees content at natural
-      // size. Compensate for `xMidYMid meet` so the workspace stays at
-      // the same visual centre after scaling around (0, 0).
       const inverse = 1 / browserScale;
       const cx = viewBox.width / 2;
       const cy = viewBox.height / 2;
@@ -77,8 +93,6 @@ export function ContainedCatalogGraphCard(
       frame = requestAnimationFrame(sync);
     };
 
-    // `host` is `display: contents` and has no layout box, so observing it
-    // never fires. Watch the parent layout box (the card) instead.
     const ro = new ResizeObserver(schedule);
     const resizeTarget = host.parentElement;
     if (resizeTarget) ro.observe(resizeTarget);
@@ -93,9 +107,14 @@ export function ContainedCatalogGraphCard(
     };
   }, []);
 
+  // `renderNode` defaults to `CustomGraphNode` — the OpenChoreo-styled
+  // graph node with per-kind chip colors + icons. Callers that need the
+  // vanilla Backstage node can still override with `renderNode={undefined}`.
+  const { renderNode = CustomGraphNode, ...rest } = props;
+
   return (
-    <div ref={hostRef} style={{ display: 'contents' }}>
-      <EntityCatalogGraphCard {...props} />
+    <div ref={hostRef} className={classes.host}>
+      <EntityCatalogGraphCard renderNode={renderNode} {...rest} />
     </div>
   );
 }

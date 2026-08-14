@@ -51,7 +51,7 @@ import {
 import { AboutField } from '@backstage/plugin-catalog';
 import { useResourceDefinitionPermission } from '@openchoreo/backstage-plugin-react';
 
-const useStyles = makeStyles({
+const useStyles = makeStyles(theme => ({
   gridItemCard: {
     display: 'flex',
     flexDirection: 'column',
@@ -72,7 +72,18 @@ const useStyles = makeStyles({
   description: {
     wordBreak: 'break-word',
   },
-});
+  /**
+   * Title style matching the OverviewCard convention used by
+   * DeploymentStatusCard / RuntimeHealthCard / WorkflowsOverviewCard
+   * (see `plugins/openchoreo/src/components/Environments/OverviewCard/styles.ts`).
+   * Keeps the Component-overview grid visually consistent.
+   */
+  cardTitle: {
+    fontWeight: 600,
+    fontSize: theme.typography.h6.fontSize,
+    color: theme.palette.text.primary,
+  },
+}));
 
 function AboutCardSubheader() {
   const { entity } = useEntity();
@@ -363,6 +374,7 @@ export function OpenChoreoAboutCard({
     <Card className={cardClass}>
       <CardHeader
         title="About"
+        titleTypographyProps={{ className: classes.cardTitle }}
         action={
           <>
             {allowRefresh && canRefresh && (

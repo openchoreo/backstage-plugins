@@ -13,6 +13,11 @@ import Collapse from '@material-ui/core/Collapse';
 import { ResponseErrorPanel } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 
+/**
+ * Kinds owned by the platform layer that regular users typically can't
+ * access — hidden from the "related entity missing" warning to avoid noise
+ * users can't act on.
+ */
 const PLATFORM_KINDS = new Set([
   'workflowplane',
   'clusterworkflowplane',
