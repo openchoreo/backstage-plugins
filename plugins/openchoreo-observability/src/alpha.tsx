@@ -14,7 +14,10 @@ import {
   FeatureGate,
   FeatureGatedContent,
 } from '@openchoreo/backstage-plugin-react';
-import { CHOREO_ANNOTATIONS, isOpenChoreoManagedOfKind } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  isOpenChoreoManagedOfKind,
+} from '@openchoreo/backstage-plugin-common';
 
 import { rootRouteRef } from './routes';
 import {
