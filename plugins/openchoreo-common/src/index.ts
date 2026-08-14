@@ -298,6 +298,12 @@ export type {
 
 // Workflow status helpers (shared by build/workflow log + event tabs)
 export { isTerminalStatus, isStepLive } from './workflowStatus';
+export {
+  deriveWorkflowRunDisplayStatus,
+  type WorkflowRunStatusCondition,
+  type WorkflowRunStatusSource,
+  type WorkflowRunStatusTask,
+} from './workflowRunStatus';
 
 // Observability types — aligned with /api/v1/logs/query response schema
 import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
