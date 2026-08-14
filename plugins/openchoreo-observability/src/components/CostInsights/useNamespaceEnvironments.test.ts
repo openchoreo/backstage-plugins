@@ -62,6 +62,27 @@ describe('useNamespaceEnvironments', () => {
     expect(result.current.environments[0].displayName).toBe('dev');
   });
 
+  it('unions and dedupes environments across multiple namespaces', async () => {
+    getEntities
+      .mockResolvedValueOnce({ items: [envEntity('dev'), envEntity('prod')] })
+      .mockResolvedValueOnce({ items: [envEntity('dev'), envEntity('stage')] });
+
+    const { result } = renderHook(
+      () => useNamespaceEnvironments(['default', 'other']),
+      { wrapper: createQueryWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(getEntities).toHaveBeenCalledTimes(2);
+    // `dev` appears in both namespaces but collapses to a single option.
+    expect(result.current.environments.map(e => e.name)).toEqual([
+      'dev',
+      'prod',
+      'stage',
+    ]);
+  });
+
   it('does not query the catalog without a namespace', async () => {
     const { result } = renderHook(() => useNamespaceEnvironments(undefined), {
       wrapper: createQueryWrapper(),

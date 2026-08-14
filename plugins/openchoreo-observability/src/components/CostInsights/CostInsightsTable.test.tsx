@@ -96,6 +96,44 @@ describe('CostInsightsTable', () => {
     ).toBeInTheDocument();
   });
 
+  it('replaces the recommendation cells with a note when several components are in scope', () => {
+    const componentRows: CostRow[] = [
+      {
+        key: 'dev',
+        label: 'dev',
+        cpuCost: 2,
+        memoryCost: 3,
+        total: 5,
+        efficiency: 0.6,
+        deltaPct: null,
+        recommendation: {
+          cpuRequest: '50m',
+          cpuCost: 1,
+          memoryCost: 1,
+          total: 2,
+          current: { cpuRequest: '100m' },
+        },
+      },
+    ];
+    render(
+      <CostInsightsTable
+        level="component"
+        rows={componentRows}
+        scope={scope}
+        onOptimized={jest.fn()}
+        singleComponent={false}
+      />,
+    );
+    expect(
+      screen.getByText(/Select a single component to see recommended changes/i),
+    ).toBeInTheDocument();
+    // The recommended change, saving and Apply button are withheld.
+    expect(screen.queryByText('→ 50m')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Apply/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows the stale-recommendation notice with the spec update time', () => {
     const componentRows: CostRow[] = [
       {

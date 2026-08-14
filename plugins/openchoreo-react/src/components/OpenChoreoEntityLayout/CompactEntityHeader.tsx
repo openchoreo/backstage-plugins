@@ -106,8 +106,7 @@ function toPluralLabel(label: string): string {
 }
 
 // Named 'BackstageHeader' so that theme component overrides for
-// BackstageHeader (backgroundImage, boxShadow, minHeight, etc.) are
-// automatically merged into the matching class keys by MUI's style system.
+// BackstageHeader are merged into the matching class keys by MUI's style system.
 const useStyles = makeStyles(
   theme => ({
     header: {

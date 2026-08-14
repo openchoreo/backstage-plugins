@@ -36,6 +36,98 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
+export interface CostLineTooltipContentProps {
+  active?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: readonly any[];
+  label?: string | number;
+  /** The hovered line, whose row is highlighted. */
+  activeKey: string | null;
+  colorFor: Map<string, string>;
+}
+
+/** Line-chart hover tooltip: per-line rows (active one highlighted) + total. */
+export const CostLineTooltipContent: FC<CostLineTooltipContentProps> = ({
+  active,
+  payload,
+  label,
+  activeKey,
+  colorFor,
+}) => {
+  const theme = useTheme();
+  if (!active || !payload?.length) return null;
+  const total = payload.reduce((sum, e) => sum + (Number(e.value) || 0), 0);
+  return (
+    <div
+      style={{
+        backgroundColor: theme.palette.background.paper,
+        border: `1px solid ${theme.palette.divider}`,
+        borderRadius: 4,
+        padding: theme.spacing(1, 1.5),
+        color: theme.palette.text.primary,
+        fontSize: 12,
+      }}
+    >
+      <div style={{ marginBottom: 4, fontWeight: 500 }}>
+        {formatBucket(String(label))}
+      </div>
+      {/* Highest line first, so the order matches the chart. */}
+      {[...payload]
+        .sort((a, b) => Number(b.value) - Number(a.value))
+        .map(entry => {
+          const isActive = String(entry.dataKey) === activeKey;
+          return (
+            <div
+              key={String(entry.dataKey)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                lineHeight: 1.6,
+                margin: theme.spacing(0, -1),
+                padding: theme.spacing(0, 1),
+                borderRadius: 2,
+                backgroundColor: isActive
+                  ? theme.palette.action.selected
+                  : 'transparent',
+                fontWeight: isActive ? 600 : 400,
+              }}
+            >
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 2,
+                  backgroundColor: colorFor.get(String(entry.dataKey)),
+                  flexShrink: 0,
+                }}
+              />
+              <span>{entry.name}</span>
+              <span style={{ marginLeft: 'auto' }}>
+                ${Number(entry.value).toFixed(2)}
+              </span>
+            </div>
+          );
+        })}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          lineHeight: 1.6,
+          marginTop: 4,
+          paddingTop: 4,
+          borderTop: `1px solid ${theme.palette.divider}`,
+          fontWeight: 600,
+        }}
+      >
+        <span>Total</span>
+        <span style={{ marginLeft: 'auto' }}>${total.toFixed(2)}</span>
+      </div>
+    </div>
+  );
+};
+
 export interface CostLineChartProps {
   series: CostSeriesPoint[];
   seriesKeys: string[];
@@ -58,6 +150,9 @@ export const CostLineChart: FC<CostLineChartProps> = ({
   );
   // Legend-toggled series; hidden keys are dimmed in the legend and not drawn.
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  // The line the pointer is over, so its tooltip row can be highlighted.
+  // Cleared when the pointer leaves the chart.
+  const [activeKey, setActiveKey] = useState<string | null>(null);
   const toggle = (key: string) =>
     setHidden(prev => {
       const next = new Set(prev);
@@ -88,6 +183,7 @@ export const CostLineChart: FC<CostLineChartProps> = ({
           <LineChart
             data={series}
             margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+            onMouseLeave={() => setActiveKey(null)}
           >
             <CartesianGrid
               strokeDasharray="3 3"
@@ -104,55 +200,15 @@ export const CostLineChart: FC<CostLineChartProps> = ({
               tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
             />
             <Tooltip
-              content={({ active, payload, label }) => {
-                if (!active || !payload?.length) return null;
-                return (
-                  <div
-                    style={{
-                      backgroundColor: theme.palette.background.paper,
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 4,
-                      padding: theme.spacing(1, 1.5),
-                      color: theme.palette.text.primary,
-                      fontSize: 12,
-                    }}
-                  >
-                    <div style={{ marginBottom: 4, fontWeight: 500 }}>
-                      {formatBucket(String(label))}
-                    </div>
-                    {/* Highest line first, so the order matches the chart. */}
-                    {[...payload]
-                      .sort((a, b) => Number(b.value) - Number(a.value))
-                      .map(entry => (
-                        <div
-                          key={String(entry.dataKey)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            lineHeight: 1.6,
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: 10,
-                              height: 10,
-                              borderRadius: 2,
-                              backgroundColor: colorFor.get(
-                                String(entry.dataKey),
-                              ),
-                              flexShrink: 0,
-                            }}
-                          />
-                          <span>{entry.name}</span>
-                          <span style={{ marginLeft: 'auto', fontWeight: 500 }}>
-                            ${Number(entry.value).toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                  </div>
-                );
-              }}
+              content={props => (
+                <CostLineTooltipContent
+                  active={props.active}
+                  payload={props.payload}
+                  label={props.label}
+                  activeKey={activeKey}
+                  colorFor={colorFor}
+                />
+              )}
             />
             <Legend
               content={() => (
@@ -212,6 +268,7 @@ export const CostLineChart: FC<CostLineChartProps> = ({
                 connectNulls
                 hide={hidden.has(key)}
                 isAnimationActive={false}
+                onMouseEnter={() => setActiveKey(key)}
               />
             ))}
           </LineChart>

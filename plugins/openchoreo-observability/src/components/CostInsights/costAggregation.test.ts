@@ -1,6 +1,7 @@
 import type { CostItem, CostRecommendationItem } from '../../types';
 import {
   deriveLevel,
+  expandSelection,
   dimensionOf,
   totalCost,
   percentChange,
@@ -33,6 +34,53 @@ describe('deriveLevel', () => {
     expect(deriveLevel({ namespace: 'ns', project: 'p', component: 'c' })).toBe(
       'component',
     );
+  });
+});
+
+describe('expandSelection', () => {
+  it('expands namespaces when no project/component is selected', () => {
+    expect(
+      expandSelection({
+        namespaces: ['a', 'b'],
+        projects: [],
+        components: [],
+      }),
+    ).toEqual({
+      level: 'namespace',
+      scopes: [{ namespace: 'a' }, { namespace: 'b' }],
+    });
+  });
+
+  it('expands projects and ignores namespaces once a project is picked', () => {
+    expect(
+      expandSelection({
+        namespaces: ['a'],
+        projects: [{ namespace: 'a', name: 'p' }],
+        components: [],
+      }),
+    ).toEqual({
+      level: 'project',
+      scopes: [{ namespace: 'a', project: 'p' }],
+    });
+  });
+
+  it('expands components and takes precedence over projects', () => {
+    expect(
+      expandSelection({
+        namespaces: ['a'],
+        projects: [{ namespace: 'a', name: 'p' }],
+        components: [{ namespace: 'a', project: 'p', name: 'c' }],
+      }),
+    ).toEqual({
+      level: 'component',
+      scopes: [{ namespace: 'a', project: 'p', component: 'c' }],
+    });
+  });
+
+  it('yields an empty namespace scope list when nothing is selected', () => {
+    expect(
+      expandSelection({ namespaces: [], projects: [], components: [] }),
+    ).toEqual({ level: 'namespace', scopes: [] });
   });
 });
 

@@ -169,28 +169,28 @@ const ObservabilityAlertsContent = () => {
     [entity, project, filters.environment],
   );
 
-  // Open the parent project's Cost Analysis tab in a new browser tab,
-  // pre-filtered by alertId and with a time range that covers the alert's age.
+  // Open the Cost Analysis tab of the Cost Insights page in a new browser tab,
+  // scoped to this project and pre-filtered by alertId, environment and a time
+  // range covering the alert's age.
   const handleViewCostAnalysis = useCallback(
     (alert: AlertSummary) => {
-      const parentProject =
-        (entity.spec?.system as string | undefined) || project || '';
-      const catalogNs = entity.metadata.namespace || 'default';
-      if (!parentProject) return;
+      if (!project || !namespace) return;
 
       const timeRange = alert.timestamp
         ? pickRangeForAge(Date.now() - new Date(alert.timestamp).getTime())
         : '1h';
 
       const params = new URLSearchParams({
+        namespace,
+        project,
         q: alert.alertId,
         timeRange,
         ...(filters.environment ? { env: filters.environment } : {}),
       });
-      const url = `/catalog/${catalogNs}/system/${parentProject}/cost-analysis?${params.toString()}`;
+      const url = `/cost-insights/cost-analysis?${params.toString()}`;
       window.open(url, '_blank', 'noopener,noreferrer');
     },
-    [entity, project, filters.environment],
+    [namespace, project, filters.environment],
   );
 
   const renderError = (error: string) => {

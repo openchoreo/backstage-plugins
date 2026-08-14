@@ -172,6 +172,12 @@ export interface CostInsightsTableProps {
   scope?: CostScope;
   /** Called after an Optimize apply succeeds, so the page can refetch. */
   onOptimized?: () => void;
+  /**
+   * At the component level, whether exactly one component is in scope.
+   * Recommendations/savings/apply are per-component, so they're shown only then;
+   * with several components a note asks the user to select one.
+   */
+  singleComponent?: boolean;
 }
 
 const EmptyState: FC = () => {
@@ -246,11 +252,12 @@ const RecommendationCostTable: FC<CostInsightsTableProps> = ({
   titles,
   scope,
   onOptimized,
+  singleComponent = true,
 }) => {
   const classes = useStyles();
   const [orderBy, setOrderBy] = useState<
     'name' | 'total' | 'efficiency' | 'saving'
-  >('saving');
+  >(singleComponent ? 'saving' : 'total');
   const [order, setOrder] = useState<SortOrder>('desc');
 
   const onSort = (id: typeof orderBy) => {
@@ -324,6 +331,76 @@ const RecommendationCostTable: FC<CostInsightsTableProps> = ({
             const changes = recommendedChanges(row.recommendation);
             const saving = savingOf(row);
             const savingPct = savingPctOf(row);
+            let recommendationCells;
+            if (!singleComponent) {
+              recommendationCells = (
+                <TableCell colSpan={3} className={classes.staleNotice}>
+                  Select a single component to see recommended changes, savings
+                  and to apply those recommendations.
+                </TableCell>
+              );
+            } else if (row.recommendationStale) {
+              recommendationCells = (
+                <TableCell colSpan={3} className={classes.staleNotice}>
+                  The component's release binding was updated
+                  {row.recommendationStaleSince
+                    ? ` on ${formatSpecUpdateTime(
+                        row.recommendationStaleSince,
+                      )}`
+                    : ''}
+                  , after this time window started, so recommendations can't be
+                  shown. Select a time range that starts at least 5 minutes
+                  after that time. The buffer lets fresh cost data be collected
+                  for the updated spec.
+                </TableCell>
+              );
+            } else {
+              recommendationCells = (
+                <>
+                  <TableCell>
+                    {changes.length === 0 ? (
+                      <span className={classes.changeEmpty}>—</span>
+                    ) : (
+                      changes.map(c => (
+                        <div key={c.label} className={classes.change}>
+                          {c.label} {c.from}{' '}
+                          <span className={classes.changeNew}>→ {c.to}</span>
+                        </div>
+                      ))
+                    )}
+                  </TableCell>
+                  <TableCell className={classes.numeric}>
+                    {saving === null || saving <= 0 ? (
+                      '—'
+                    ) : (
+                      <>
+                        <div className={classes.savingMain}>
+                          {formatCost(saving)}
+                        </div>
+                        {savingPct !== null && (
+                          <div className={classes.subText}>
+                            {Math.round(savingPct)}%
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </TableCell>
+                  <TableCell className={classes.actionCell}>
+                    {scope &&
+                      onOptimized &&
+                      hasApplyableRecommendation(row.recommendation) && (
+                        <CostOptimizeButton
+                          env={row.key}
+                          recommendation={row.recommendation}
+                          scope={scope}
+                          onOptimized={onOptimized}
+                          disabled={changes.length === 0}
+                        />
+                      )}
+                  </TableCell>
+                </>
+              );
+            }
             return (
               <TableRow key={row.key} className={classes.recRow}>
                 <TableCell className={classes.envCell}>
@@ -353,64 +430,7 @@ const RecommendationCostTable: FC<CostInsightsTableProps> = ({
                     </span>
                   </span>
                 </TableCell>
-                {row.recommendationStale ? (
-                  <TableCell colSpan={3} className={classes.staleNotice}>
-                    The component's release binding was updated
-                    {row.recommendationStaleSince
-                      ? ` on ${formatSpecUpdateTime(
-                          row.recommendationStaleSince,
-                        )}`
-                      : ''}
-                    , after this time window started, so recommendations can't
-                    be shown. Select a time range that starts at least 5 minutes
-                    after that time. The buffer lets fresh cost data be
-                    collected for the updated spec.
-                  </TableCell>
-                ) : (
-                  <>
-                    <TableCell>
-                      {changes.length === 0 ? (
-                        <span className={classes.changeEmpty}>—</span>
-                      ) : (
-                        changes.map(c => (
-                          <div key={c.label} className={classes.change}>
-                            {c.label} {c.from}{' '}
-                            <span className={classes.changeNew}>→ {c.to}</span>
-                          </div>
-                        ))
-                      )}
-                    </TableCell>
-                    <TableCell className={classes.numeric}>
-                      {saving === null || saving <= 0 ? (
-                        '—'
-                      ) : (
-                        <>
-                          <div className={classes.savingMain}>
-                            {formatCost(saving)}
-                          </div>
-                          {savingPct !== null && (
-                            <div className={classes.subText}>
-                              {Math.round(savingPct)}%
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </TableCell>
-                    <TableCell className={classes.actionCell}>
-                      {scope &&
-                        onOptimized &&
-                        hasApplyableRecommendation(row.recommendation) && (
-                          <CostOptimizeButton
-                            env={row.key}
-                            recommendation={row.recommendation}
-                            scope={scope}
-                            onOptimized={onOptimized}
-                            disabled={changes.length === 0}
-                          />
-                        )}
-                    </TableCell>
-                  </>
-                )}
+                {recommendationCells}
               </TableRow>
             );
           })}

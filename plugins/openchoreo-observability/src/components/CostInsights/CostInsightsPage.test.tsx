@@ -4,8 +4,8 @@ import { CostInsightsPage } from './CostInsightsPage';
 
 // Child components are exercised by their own tests; stub them to lightweight
 // markers so this suite focuses on the page's state wiring.
-jest.mock('./CostInsightsBreadcrumb', () => ({
-  CostInsightsBreadcrumb: () => <div data-testid="breadcrumb" />,
+jest.mock('./CostInsightsScopeFilters', () => ({
+  CostInsightsScopeFilters: () => <div data-testid="scope-filters" />,
 }));
 jest.mock('./CostInsightsFilters', () => ({
   CostInsightsFilters: () => <div data-testid="filters" />,
@@ -19,6 +19,11 @@ jest.mock('./CostInsightsTable', () => ({
 }));
 jest.mock('./CostInsightsGraphs', () => ({
   CostInsightsGraphs: () => <div data-testid="cost-graph" />,
+}));
+// The Cost Analysis tab lazy-loads this; stub it so the tab can be exercised
+// without its catalog/permission dependencies.
+jest.mock('../CostAnalysis', () => ({
+  CostAnalysisPage: () => <div data-testid="cost-analysis" />,
 }));
 
 const mockUseNamespaceEnvironments = jest.fn();
@@ -133,7 +138,7 @@ describe('CostInsightsPage', () => {
     });
     await renderPage();
     expect(
-      screen.getByText(/No environments found for namespace/i),
+      screen.getByText(/No environments found for the selected namespaces/i),
     ).toBeInTheDocument();
   });
 
@@ -145,5 +150,24 @@ describe('CostInsightsPage', () => {
     });
     await renderPage();
     expect(screen.getByText('catalog down')).toBeInTheDocument();
+  });
+
+  it('offers both the Insights and Analysis Reports tabs', async () => {
+    await renderPage();
+    expect(screen.getByText('Insights')).toBeInTheDocument();
+    expect(screen.getByText('Analysis Reports')).toBeInTheDocument();
+  });
+
+  it('prompts to pick a project on the Cost Analysis tab when none is scoped', async () => {
+    await renderPage('/cost-analysis?namespace=default');
+    expect(
+      screen.getByText(/Select a single project to view its cost analysis/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('cost-analysis')).not.toBeInTheDocument();
+  });
+
+  it('renders the Cost Analysis reports once a project is scoped', async () => {
+    await renderPage('/cost-analysis?namespace=default&project=onlinestore');
+    expect(await screen.findByTestId('cost-analysis')).toBeInTheDocument();
   });
 });

@@ -27,6 +27,7 @@ const useStyles = makeStyles(theme => ({
     lineHeight: 1.1,
     color: theme.palette.text.primary,
   },
+  valueDense: { fontSize: '1.15rem' },
   delta: { display: 'inline-flex', alignItems: 'center', gap: 2 },
   up: { color: theme.palette.error.main },
   down: { color: theme.palette.success.main },
@@ -71,22 +72,52 @@ const DeltaChip: FC<{ deltaPct: number | null }> = ({ deltaPct }) => {
   );
 };
 
+/**
+ * The Total Cost card's inner content (label, headline value, delta), without a
+ * `Card` wrapper — so it can be reused both here and in the catalog overview's
+ * cost summary card without nesting one `Card` inside another.
+ */
+export const TotalCostContent: FC<{
+  summary: CostSummary;
+  dense?: boolean;
+}> = ({ summary, dense }) => {
+  const classes = useStyles();
+  return (
+    <>
+      <Typography className={classes.label}>Total Cost</Typography>
+      <Typography
+        component="div"
+        className={`${classes.value} ${dense ? classes.valueDense : ''}`}
+      >
+        {formatUsd(summary.totalCost)}
+      </Typography>
+      <DeltaChip deltaPct={summary.deltaPct} />
+    </>
+  );
+};
+
 export const CostSummaryCards: FC<CostSummaryCardsProps> = ({ summary }) => {
   const classes = useStyles();
   return (
     <Grid container spacing={2}>
       <Grid item xs={12} sm={4}>
         <Card padding={16} className={classes.card}>
-          <Typography className={classes.label}>Total Cost</Typography>
-          <Typography component="div" className={classes.value}>
-            {formatUsd(summary.totalCost)}
-          </Typography>
-          <DeltaChip deltaPct={summary.deltaPct} />
+          <TotalCostContent summary={summary} />
         </Card>
       </Grid>
       <Grid item xs={12} sm={4}>
         <Card padding={16} className={classes.card}>
-          <Typography className={classes.label}>Forecast this month</Typography>
+          <div className={classes.labelRow}>
+            <Typography className={classes.label}>
+              Forecast this month
+            </Typography>
+            <Tooltip
+              title="Extrapolates the selected time window's spend rate across the whole month. Hence the forecast can change with the time range you pick, especially when only part of that range has cost data."
+              arrow
+            >
+              <InfoOutlinedIcon className={classes.infoIcon} />
+            </Tooltip>
+          </div>
           <Typography component="div" className={classes.value}>
             {formatUsd(summary.forecastThisMonth)}
           </Typography>

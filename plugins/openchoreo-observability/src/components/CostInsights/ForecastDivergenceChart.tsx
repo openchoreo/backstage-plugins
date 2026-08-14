@@ -128,7 +128,7 @@ export const ForecastDivergenceChart: FC<ForecastDivergenceChartProps> = ({
       <ChartTitle
         title={title}
         className={classes.header}
-        info="Cumulative spend so far this month (solid), then two projections to month end: at the current rate, and if the cost recommendations are applied. The gap is the potential saving."
+        info="Cumulative spend so far this month (solid), then two projections to month end: at the current rate, and if the cost recommendations are applied. The gap is the potential saving. Extrapolates the selected time window's spend rate across the whole month. Hence the forecast can change with the time range you pick, especially when only part of that range has cost data."
       />
       <div className={classes.chart}>
         <ResponsiveContainer width="100%" height="100%">
