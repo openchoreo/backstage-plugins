@@ -5,15 +5,16 @@ import type { AppNode } from '@backstage/frontend-plugin-api';
 type Card = EntityContentLayoutProps['cards'][number];
 
 /**
- * OC plugin-ID prefix. Every OpenChoreo NFS plugin's `pluginId` starts
- * with this string — `openchoreo`, `openchoreo-ci`,
- * `openchoreo-observability`, `openchoreo-workflows`,
- * `openchoreo-portal-assistant`. Any blueprint whose extension source
- * plugin ID matches this prefix is considered "one of ours" — its cards
- * are rendered bespoke by the layout that owns them, so we drop them
- * from the "foreign" pass below to avoid double-rendering.
+ * Only the base `openchoreo` plugin's cards are placed bespoke by OC
+ * layouts (`DeploymentStatusCard`, `OpenChoreoAboutCard`, and friends).
+ * Cards from sibling OC plugins (`openchoreo-ci`, `openchoreo-observability`,
+ * `openchoreo-workflows`, `openchoreo-portal-assistant`) flow through
+ * `ForeignCardsSection` the same way adopter and upstream cards do — the
+ * base plugin doesn't depend on them, so it can't hardcode-import them
+ * into its layouts. Each sibling plugin controls its own card placement
+ * via `type: 'info' | 'content'` on its blueprint.
  */
-const OC_PLUGIN_ID_PREFIX = 'openchoreo';
+const BESPOKE_PLUGIN_ID = 'openchoreo';
 
 /**
  * Cards that reach a layout via `EntityContentLayoutProps.cards` are
@@ -59,9 +60,7 @@ export function selectForeignCards(cards: readonly Card[]): {
   info: Card[];
   content: Card[];
 } {
-  const foreign = cards.filter(
-    c => !pluginIdOf(c)?.startsWith(OC_PLUGIN_ID_PREFIX),
-  );
+  const foreign = cards.filter(c => pluginIdOf(c) !== BESPOKE_PLUGIN_ID);
   return {
     info: foreign.filter(c => c.type === 'info'),
     content: foreign.filter(c => !c.type || c.type === 'content'),

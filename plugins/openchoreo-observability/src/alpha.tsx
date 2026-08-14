@@ -291,6 +291,10 @@ const rcaReportsEntityContent = EntityContentBlueprint.make({
 const costInsightsSummaryCard = EntityCardBlueprint.make({
   name: 'cost-insights-summary',
   params: {
+    // Small summary tile — renders in the right-rail info column of any
+    // layout that uses `DefaultEntityContentLayout` or our
+    // `ForeignCardsSection` (base plugin's Component / System layouts).
+    type: 'info',
     filter: entity =>
       ['component', 'system'].includes(entity.kind.toLowerCase()) &&
       Boolean(entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE]),
