@@ -158,6 +158,8 @@ import { WorkflowsOrExternalCICard } from './WorkflowsOrExternalCICard';
 import { EntityJenkinsContent } from '@backstage-community/plugin-jenkins';
 import { EntityGithubActionsContent } from '@backstage-community/plugin-github-actions';
 import { EntityGitlabContent } from '@immobiliarelabs/backstage-plugin-gitlab';
+import { EntitySonarQubeContentPage } from '@backstage-community/plugin-sonarqube';
+import { isSonarQubeAvailable } from '@backstage-community/plugin-sonarqube-react';
 
 // Wires perch's per-row assistant button into the observability log
 // tables via the plugin's render-prop slot. Lives here (not inside the
@@ -459,6 +461,15 @@ const ServiceEntityPage = () => {
       >
         <EntityGitlabContent />
       </EntityLayout.Route>
+
+      {/* SonarQube code quality tab — only shown when annotation is present */}
+      <EntityLayout.Route
+        path="/sonarqube"
+        title="Code Quality"
+        if={isSonarQubeAvailable}
+      >
+        <EntitySonarQubeContentPage />
+      </EntityLayout.Route>
     </EntityLayoutWithDelete>
   );
 };
@@ -581,6 +592,15 @@ const GenericComponentEntityPage = () => {
         if={hasGitlabAnnotation}
       >
         <EntityGitlabContent />
+      </EntityLayout.Route>
+
+      {/* SonarQube code quality tab — only shown when annotation is present */}
+      <EntityLayout.Route
+        path="/sonarqube"
+        title="Code Quality"
+        if={isSonarQubeAvailable}
+      >
+        <EntitySonarQubeContentPage />
       </EntityLayout.Route>
     </EntityLayoutWithDelete>
   );

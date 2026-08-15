@@ -8,6 +8,7 @@
 
 import { createBackend } from '@backstage/backend-defaults';
 import { portalBackendFeatures } from '@openchoreo/backstage-portal-backend';
+import { conditionalSonarQube } from './sonarqube';
 
 // Guest mode: when OpenChoreo auth is explicitly disabled, the portal has no
 // IDP and needs guest sign-in plus an open default auth policy. These feed the
@@ -28,6 +29,8 @@ const backend = createBackend();
 backend.add(portalBackendFeatures);
 
 // External CI Platform Integrations
+// SonarQube: Proxies metrics API. Conditionally registers only if 'sonarqube' config is present.
+backend.add(conditionalSonarQube);
 // GitLab: Requires integrations.gitlab config at startup. Uncomment after configuring in app-config.local.yaml
 // For production, config is in app-config.production.yaml with Helm-injected env vars
 // backend.add(import('@immobiliarelabs/backstage-plugin-gitlab-backend'));
