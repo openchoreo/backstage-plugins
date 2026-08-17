@@ -6,6 +6,7 @@ import {
   PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
 import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
+import { isOpenChoreoManagedOfKind } from '@openchoreo/backstage-plugin-common';
 
 import { rootRouteRef } from './routes';
 import { openChoreoCiClientApiRef } from './api/OpenChoreoCiClientApi';
@@ -43,7 +44,8 @@ const workflowsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/workflows',
     title: 'Build',
-    filter: 'kind:component',
+    group: 'deployment',
+    filter: isOpenChoreoManagedOfKind('component'),
     loader: () => import('./components/Workflows').then(m => <m.Workflows />),
   },
 });

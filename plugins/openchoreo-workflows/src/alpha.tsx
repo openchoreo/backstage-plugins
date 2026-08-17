@@ -7,6 +7,7 @@ import {
   PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
 import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
+import { isOpenChoreoManagedOfKind } from '@openchoreo/backstage-plugin-common';
 
 import { rootRouteRef } from './routes';
 import { genericWorkflowsClientApiRef } from './api/GenericWorkflowsClientApi';
@@ -62,8 +63,9 @@ const workflowRunsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/runs',
     title: 'Runs',
+    group: 'deployment',
     filter: entity =>
-      ['workflow', 'clusterworkflow'].includes(entity.kind.toLowerCase()) &&
+      isOpenChoreoManagedOfKind('workflow', 'clusterworkflow')(entity) &&
       (entity.spec as { type?: string } | undefined)?.type === 'Generic',
     loader: () =>
       Promise.all([

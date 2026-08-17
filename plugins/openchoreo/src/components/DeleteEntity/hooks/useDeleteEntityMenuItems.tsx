@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import DeleteIcon from '@material-ui/icons/Delete';
-import { useNavigate } from 'react-router-dom';
-import { useApi, alertApiRef, IconComponent } from '@backstage/core-plugin-api';
+import { IconComponent } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
+import { useApi, alertApiRef } from '@backstage/core-plugin-api';
+import { useNavigate } from 'react-router-dom';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { isMarkedForDeletion } from '../utils';
@@ -34,12 +35,19 @@ export interface DeletePermissionInfo {
 }
 
 /**
- * Hook that provides delete menu items for EntityLayout's extraContextMenuItems.
+ * Hook that provides delete menu items for `EntityLayout`'s
+ * `extraContextMenuItems` prop. Used by the OpenChoreo thin override
+ * (`OpenChoreoCatalogEntityPageContent`) to wire delete actions into
+ * `OpenChoreoEntityLayout`, which has its own MUI-based context menu
+ * shape rather than consuming the canonical
+ * `inputs.contextMenuItems` blueprints.
  *
- * Supports component, project (system), namespace (domain), and all platform
- * resource kinds. When `deletePermission` is provided and `canDelete` is false,
- * the menu item is shown disabled with a tooltip. For component/project/domain
- * kinds (no upfront permission check), a 403 is handled in the confirmation dialog.
+ * External adopters using canonical Backstage chrome get the equivalent
+ * behavior from the `deleteEntityContextMenuItem` NFS blueprint (see
+ * `useDeleteEntityContextMenuItemProps`). Both mount the shared
+ * presentational `DeleteEntityDialog` and route the delete through
+ * `performEntityDelete`, so the UX and side effects stay consistent
+ * across the two paths.
  */
 export function useDeleteEntityMenuItems(
   entity: Entity,
@@ -63,7 +71,6 @@ export function useDeleteEntityMenuItems(
 
   const handleOpenDialog = useCallback(() => {
     setDialogOpen(true);
-    setError(null);
   }, []);
 
   const handleCloseDialog = useCallback(() => {
@@ -114,12 +121,10 @@ export function useDeleteEntityMenuItems(
       return [];
     }
 
-    // If deletePermission is provided and still loading, don't show the item yet
     if (deletePermission?.loading) {
       return [];
     }
 
-    // If deletePermission is provided and denied, show disabled item with tooltip
     if (deletePermission && !deletePermission.canDelete) {
       return [
         {

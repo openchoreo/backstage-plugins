@@ -98,5 +98,8 @@ export { TraitTypeOverviewCard } from './components/TraitTypeOverview';
 export { WorkflowOverviewCard } from './components/WorkflowOverview';
 export { ComponentWorkflowOverviewCard } from './components/ComponentWorkflowOverview';
 export { ResourceDefinitionTab } from './components/ResourceDefinition';
+export { OpenChoreoAboutCard } from './components/OpenChoreoAboutCard';
+export { ContainedCatalogGraphCard } from './components/ContainedCatalogGraphCard';
+export { EntityRelationWarning } from './components/EntityRelationWarning';
 export { useQueryParams } from './hooks/useQueryParams';
 export { ExecTerminalWindowPage } from './components/Terminal';

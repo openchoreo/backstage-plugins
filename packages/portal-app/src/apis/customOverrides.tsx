@@ -9,7 +9,11 @@
 
 import catalogGraphPluginAlphaBase from '@backstage/plugin-catalog-graph/alpha';
 import catalogPluginAlphaBase from '@backstage/plugin-catalog/alpha';
+import apiDocsPluginAlphaBase from '@backstage/plugin-api-docs/alpha';
+import techdocsPluginAlphaBase from '@backstage/plugin-techdocs/alpha';
 import scaffolderPluginAlphaBase from '@backstage/plugin-scaffolder/alpha';
+import type { Entity } from '@backstage/catalog-model';
+import { isTechDocsAvailable } from '@backstage/plugin-techdocs';
 import { createFrontendModule } from '@backstage/frontend-plugin-api';
 import { createTranslationMessages } from '@backstage/frontend-plugin-api';
 import {
@@ -160,21 +164,12 @@ export function createCachingCatalogApi(deps: {
  * reorder, upstream's NFS extension wins by default — so we override its
  * loader explicitly.
  *
- * Finally, overrides `page:catalog/entity` so the entity page rides through
- * our `OpenChoreoCatalogEntityPage` (which sets up `AsyncEntityProvider` +
- * `EntityLayoutWithDelete` wrapping `OpenChoreoEntityLayout` with the
- * dropdown-driven `CompactEntityHeader` and styled tab bar). The hand-
- * authored per-kind layouts in `entityPage` (Overview Grid, custom
- * EntityCatalogGraphCard, FailedBuildSnackbar, etc.) are rendered as
- * `<EntityLayout.Route>` children — `OpenChoreoEntityLayout` accepts the
- * same data key, so the legacy JSX slots in unchanged.
- *
- * NFS-contributed `EntityContentBlueprint`s (in `inputs.contents`) are
- * NOT mounted here because every tab the portal needs is already declared
- * by `entityPage`. If a future third-party plugin contributes a tab via
- * `EntityContentBlueprint`, switch this loader to a
- * `factory(originalFactory, { inputs })` form and merge `inputs.contents`
- * deduped by path.
+ * The `page:catalog/entity` chrome override that mounts `OpenChoreoEntityLayout`
+ * lives in `@openchoreo/backstage-plugin/alpha` as `openChoreoEntityPageOverride`
+ * and is wired into `createPortalApp`'s `features` array. Everything about the
+ * OC entity-page chrome — compact header, styled tab bar, delete / annotation
+ * context-menu extras, existence-check empty state — ships from the plugin so
+ * external adopters can adopt the same look with one import.
  */
 export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
   extensions: [
@@ -225,21 +220,53 @@ export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
               }),
           }),
       }),
-    catalogPluginAlphaBase.getExtension('page:catalog/entity').override({
-      params: {
-        loader: async () => {
-          const [{ OpenChoreoCatalogEntityPage }, { entityPage }] =
-            await Promise.all([
-              import('../components/catalog/OpenChoreoCatalogEntityPage'),
-              import('../components/catalog/EntityPage'),
-            ]);
-          return (
-            <OpenChoreoCatalogEntityPage>
-              {entityPage}
-            </OpenChoreoCatalogEntityPage>
-          );
-        },
-      },
+  ],
+});
+
+/**
+ * True when the component entity provides or consumes at least one API.
+ * Ports the legacy `hasApis` predicate that the pre-NFS `EntityPage.tsx`
+ * used to gate the `/apis` tab. Upstream `apiDocsPluginAlpha` only filters by
+ * `kind:component` — every component would otherwise show an empty APIs tab.
+ */
+function hasApis(entity: Entity): boolean {
+  if (entity.kind.toLowerCase() !== 'component') return false;
+  return (
+    entity.relations?.some(
+      r => r.type === 'providesApi' || r.type === 'consumesApi',
+    ) ?? false
+  );
+}
+
+/**
+ * Override upstream's `entity-content:api-docs/apis` (the "APIs" component
+ * tab) to hide the tab unless the component actually provides or consumes
+ * an API. Upstream's default `filter: { kind: 'component' }` shows the tab
+ * on every component regardless of whether it has APIs; the portal has
+ * always hidden it via `hasApis(entity)` in the legacy `EntityPage.tsx`.
+ */
+export const apiDocsPluginAlpha = apiDocsPluginAlphaBase.withOverrides({
+  extensions: [
+    apiDocsPluginAlphaBase
+      .getExtension('entity-content:api-docs/apis')
+      .override({
+        params: { filter: hasApis },
+      }),
+  ],
+});
+
+/**
+ * Override upstream's `entity-content:techdocs` (the "TechDocs" entity tab)
+ * to hide it unless the entity carries the `backstage.io/techdocs-ref`
+ * annotation. Upstream registers the tab with no filter — it appears on
+ * every entity page even when there's nothing to render. The portal has
+ * always hidden it via `isTechDocsAvailable(entity)` in the legacy
+ * `EntityPage.tsx`.
+ */
+export const techdocsPluginAlpha = techdocsPluginAlphaBase.withOverrides({
+  extensions: [
+    techdocsPluginAlphaBase.getExtension('entity-content:techdocs').override({
+      params: { filter: isTechDocsAvailable },
     }),
   ],
 });

@@ -10,9 +10,15 @@ import useAsync from 'react-use/esm/useAsync';
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
 import Collapse from '@material-ui/core/Collapse';
+import Grid from '@material-ui/core/Grid';
 import { ResponseErrorPanel } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 
+/**
+ * Kinds owned by the platform layer that regular users typically can't
+ * access — hidden from the "related entity missing" warning to avoid noise
+ * users can't act on.
+ */
 const PLATFORM_KINDS = new Set([
   'workflowplane',
   'clusterworkflowplane',
@@ -58,6 +64,10 @@ async function getRelationWarnings(entity: Entity, catalogApi: CatalogApi) {
  * Displays a collapsible warning alert if the entity has relations to other
  * entities that could not be found in the catalog. Platform-level entity
  * kinds are filtered out since users typically can't see them due to permissions.
+ *
+ * Wraps its own `<Grid item xs={12}>` so callers can drop it into an OC
+ * layout's Grid container without leaving an empty gap when the warning
+ * has nothing to show (all unresolved refs are platform-owned).
  */
 export function EntityRelationWarning() {
   const { entity } = useEntity();
@@ -69,9 +79,11 @@ export function EntityRelationWarning() {
 
   if (error) {
     return (
-      <Box mb={1}>
-        <ResponseErrorPanel error={error} />
-      </Box>
+      <Grid item xs={12}>
+        <Box mb={1}>
+          <ResponseErrorPanel error={error} />
+        </Box>
+      </Grid>
     );
   }
 
@@ -89,13 +101,15 @@ export function EntityRelationWarning() {
   }
 
   return (
-    <Alert severity="warning">
-      Some related entities could not be found in the catalog. This may be
-      because they don't exist or you may not have permission to view them.{' '}
-      <Button size="small" onClick={() => setExpanded(!expanded)}>
-        {expanded ? 'Hide' : 'Show'} details
-      </Button>
-      <Collapse in={expanded}>{userFacingRefs.join(', ')}</Collapse>
-    </Alert>
+    <Grid item xs={12}>
+      <Alert severity="warning">
+        Some related entities could not be found in the catalog. This may be
+        because they don't exist or you may not have permission to view them.{' '}
+        <Button size="small" onClick={() => setExpanded(!expanded)}>
+          {expanded ? 'Hide' : 'Show'} details
+        </Button>
+        <Collapse in={expanded}>{userFacingRefs.join(', ')}</Collapse>
+      </Alert>
+    </Grid>
   );
 }
