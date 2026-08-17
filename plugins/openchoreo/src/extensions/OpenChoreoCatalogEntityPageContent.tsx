@@ -34,6 +34,7 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
   domain: 'Namespace',
   buildplane: 'Build Plane',
   clusterbuildplane: 'Cluster Build Plane',
+  dataplane: 'Data Plane',
   clusterdataplane: 'Cluster Data Plane',
   workflowplane: 'Workflow Plane',
   clusterworkflowplane: 'Cluster Workflow Plane',
@@ -42,10 +43,13 @@ const KIND_DISPLAY_NAMES: Record<string, string> = {
   deploymentpipeline: 'Deployment Pipeline',
   componenttype: 'Component Type',
   resourcetype: 'Resource Type',
+  projecttype: 'Project Type',
   clustercomponenttype: 'Cluster Component Type',
   clusterresourcetype: 'Cluster Resource Type',
+  clusterprojecttype: 'Cluster Project Type',
   traittype: 'Trait Type',
   clustertraittype: 'Cluster Trait Type',
+  workflow: 'Workflow',
   clusterworkflow: 'Cluster Workflow',
   componentworkflow: 'Component Workflow',
 };
@@ -62,6 +66,8 @@ const PLATFORM_RESOURCE_KINDS = new Set([
   'clusterdataplane',
   'buildplane',
   'clusterbuildplane',
+  'workflowplane',
+  'clusterworkflowplane',
   'observabilityplane',
   'clusterobservabilityplane',
   'deploymentpipeline',
@@ -115,6 +121,13 @@ function useEntityFromUrl(): EntityLoadingStatus {
 }
 
 export interface OpenChoreoRoute {
+  /**
+   * Stable identifier for React keying. Sourced from the contributing
+   * extension's canonical id (e.g. `entity-content:openchoreo/component-deploy`)
+   * so state stays with the correct tab across re-orders or hot reloads,
+   * and two contributions sharing a path don't collide.
+   */
+  id: string;
   path: string;
   title: string;
   element: ReactElement;
@@ -220,7 +233,7 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
       >
         {routes.map(r => (
           <OpenChoreoEntityLayout.Route
-            key={r.path}
+            key={r.id}
             path={r.path}
             title={r.title}
             if={r.if}

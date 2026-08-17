@@ -88,19 +88,31 @@ export function ForeignCardsSection({ cards }: { cards: readonly Card[] }) {
   const { info, content } = selectForeignCards(cards);
   if (info.length === 0 && content.length === 0) return null;
 
+  // Every blueprint-produced card carries a stable extension id through
+  // `ExtensionBoundary` (see `extensionIdOf`). Cards without one are
+  // filtered out — using index as a fallback here would reassign state
+  // to the wrong card on reorder.
+  const withStableId = <T,>(items: T[], id: (item: T) => string | undefined) =>
+    items
+      .map(item => ({ item, id: id(item) }))
+      .filter((x): x is { item: T; id: string } => x.id !== undefined);
+
+  const stableContent = withStableId(content, extensionIdOf);
+  const stableInfo = withStableId(info, extensionIdOf);
+
   return (
     <>
-      {content.map((c, i) => (
-        <Grid item xs={12} key={extensionIdOf(c) ?? `foreign-content-${i}`}>
-          {c.element}
+      {stableContent.map(({ item, id }) => (
+        <Grid item xs={12} key={id}>
+          {item.element}
         </Grid>
       ))}
-      {info.length > 0 && (
-        <Grid item xs={12} md={4}>
+      {stableInfo.length > 0 && (
+        <Grid item xs={12} md={4} style={{ marginLeft: 'auto' }}>
           <Grid container spacing={3}>
-            {info.map((c, i) => (
-              <Grid item xs={12} key={extensionIdOf(c) ?? `foreign-info-${i}`}>
-                {c.element}
+            {stableInfo.map(({ item, id }) => (
+              <Grid item xs={12} key={id}>
+                {item.element}
               </Grid>
             ))}
           </Grid>

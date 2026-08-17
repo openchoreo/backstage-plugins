@@ -28,9 +28,10 @@ export function EntityWarningStrip() {
       </EntitySwitch>
       <EntitySwitch>
         <EntitySwitch.Case if={hasRelationWarnings}>
-          <Grid item xs={12}>
-            <EntityRelationWarning />
-          </Grid>
+          {/* EntityRelationWarning wraps its own <Grid item> so it can
+              return null without leaving an empty grid gap when all
+              unresolved refs are platform-owned. */}
+          <EntityRelationWarning />
         </EntitySwitch.Case>
       </EntitySwitch>
       <EntitySwitch>

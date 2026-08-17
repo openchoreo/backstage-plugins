@@ -331,10 +331,21 @@ Or ship your own `EntityContentLayoutBlueprint` with a tighter filter — first-
 Component pages that carry Jenkins / GitHub Actions / GitLab annotations will render an extra tab per platform — those come from the upstream community plugins, not from OpenChoreo. Register them in your `features` array if you want the tabs:
 
 ```ts
+import { createApp } from '@backstage/frontend-defaults';
 import techdocsPluginAlpha from '@backstage/plugin-techdocs/alpha';
 import jenkinsPluginAlpha from '@backstage-community/plugin-jenkins/alpha';
 import githubActionsPluginAlpha from '@backstage-community/plugin-github-actions/alpha';
 import gitlabPluginAlpha from '@immobiliarelabs/backstage-plugin-gitlab/alpha';
+
+const app = createApp({
+  features: [
+    // ...openchoreo plugins...
+    techdocsPluginAlpha,
+    jenkinsPluginAlpha,
+    githubActionsPluginAlpha,
+    gitlabPluginAlpha,
+  ],
+});
 ```
 
 ## Feature Flags

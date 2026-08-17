@@ -296,7 +296,7 @@ const costInsightsSummaryCard = EntityCardBlueprint.make({
     // `ForeignCardsSection` (base plugin's Component / System layouts).
     type: 'info',
     filter: entity =>
-      ['component', 'system'].includes(entity.kind.toLowerCase()) &&
+      isOpenChoreoManagedOfKind('component', 'system')(entity) &&
       Boolean(entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE]),
     loader: () =>
       import('./components/CostInsights/CostInsightsSummaryCard').then(m => (

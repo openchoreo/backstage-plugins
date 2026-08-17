@@ -108,8 +108,11 @@ export function ContainedCatalogGraphCard(
   }, []);
 
   // `renderNode` defaults to `CustomGraphNode` — the OpenChoreo-styled
-  // graph node with per-kind chip colors + icons. Callers that need the
-  // vanilla Backstage node can still override with `renderNode={undefined}`.
+  // graph node with per-kind chip colors + icons. Callers can pass a
+  // different `renderNode` function to override (note: `renderNode={undefined}`
+  // does NOT restore the vanilla Backstage node because the destructuring
+  // default triggers on `undefined`; pass an explicit `renderNode` component
+  // if that's the intent).
   const { renderNode = CustomGraphNode, ...rest } = props;
 
   return (

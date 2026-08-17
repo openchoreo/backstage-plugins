@@ -1,6 +1,8 @@
+import type { ReactElement } from 'react';
 import {
   coreExtensionData,
   createFrontendModule,
+  type AppNode,
 } from '@backstage/frontend-plugin-api';
 import catalogPluginAlphaBase from '@backstage/plugin-catalog/alpha';
 import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
@@ -105,20 +107,35 @@ export const openChoreoEntityPageOverride = createFrontendModule({
         // can group-sort the tab list before handing it to
         // `OpenChoreoEntityLayout` (which renders tabs in the order it
         // receives them, without any grouping logic of its own).
-        const decorated = inputs.contents.map((output, registrationIndex) => ({
-          route: {
-            path: output.get(coreExtensionData.routePath),
-            title: output.get(EntityContentBlueprint.dataRefs.title),
-            element: output.get(coreExtensionData.reactElement),
-            if: buildFilterFn(
-              output.get(EntityContentBlueprint.dataRefs.filterFunction),
-              output.get(EntityContentBlueprint.dataRefs.filterExpression),
-            ),
-          } satisfies OpenChoreoRoute,
-          group:
-            output.get(EntityContentBlueprint.dataRefs.group) ?? 'overview',
-          registrationIndex,
-        }));
+        const decorated = inputs.contents.map((output, registrationIndex) => {
+          const element = output.get(coreExtensionData.reactElement);
+          // Backstage wraps every blueprint-produced element in
+          // `ExtensionBoundary`, whose `node` prop carries the contributing
+          // extension's `AppNode`. `AppNode.spec.id` (e.g.
+          // `entity-content:openchoreo/component-deploy`) is the same stable
+          // string used by `app.extensions` config, so it's a natural React
+          // key. Fall back to `registrationIndex` (stable within a render)
+          // only if the wrapping shape ever changes.
+          const nodeId =
+            ((element as ReactElement).props as { node?: AppNode } | undefined)
+              ?.node?.spec.id;
+          const id = nodeId ?? `content-${registrationIndex}`;
+          return {
+            route: {
+              id,
+              path: output.get(coreExtensionData.routePath),
+              title: output.get(EntityContentBlueprint.dataRefs.title),
+              element,
+              if: buildFilterFn(
+                output.get(EntityContentBlueprint.dataRefs.filterFunction),
+                output.get(EntityContentBlueprint.dataRefs.filterExpression),
+              ),
+            } satisfies OpenChoreoRoute,
+            group:
+              output.get(EntityContentBlueprint.dataRefs.group) ?? 'overview',
+            registrationIndex,
+          };
+        });
 
         // Group priority: index in GROUP_ORDER; unknown groups go to the end
         // (via GROUP_ORDER.length). `registrationIndex` is the stable-sort
