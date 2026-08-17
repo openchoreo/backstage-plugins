@@ -77,7 +77,6 @@ import {
 
 import {
   Environments,
-  type RenderInvestigateAction,
   CellDiagram,
   DeploymentStatusCard,
   RuntimeHealthCard,
@@ -121,11 +120,7 @@ import {
 import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
 
 import { Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
-import {
-  FailedBuildSnackbar,
-  InvestigateLogButton,
-  InvestigateDependencyButton,
-} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
+import { usePortalAssistant } from '../../assistant/PortalAssistantIntegrationApi';
 import {
   WorkflowRunsContent,
   EntityNamespaceProvider,
@@ -143,7 +138,6 @@ import {
   ObservabilityProjectIncidents,
   ObservabilityCostInsightsSummaryCard,
   useComponentHasAnyCiliumEnabledEnvironment,
-  type RenderLogRowAction,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 import {
@@ -158,23 +152,6 @@ import { WorkflowsOrExternalCICard } from './WorkflowsOrExternalCICard';
 import { EntityJenkinsContent } from '@backstage-community/plugin-jenkins';
 import { EntityGithubActionsContent } from '@backstage-community/plugin-github-actions';
 import { EntityGitlabContent } from '@immobiliarelabs/backstage-plugin-gitlab';
-
-// Wires perch's per-row assistant button into the observability log
-// tables via the plugin's render-prop slot. Lives here (not inside the
-// observability plugin) so observability owns no dependency on perch —
-// the shell composes the two.
-const renderInvestigateLogAction: RenderLogRowAction = (
-  log,
-  getLogsSnapshot,
-) => <InvestigateLogButton log={log} getLogsSnapshot={getLogsSnapshot} />;
-
-// Same pattern for the deploy panel: the openchoreo plugin exposes a
-// render-prop slot for a status-aware "Investigate with AI" button and the
-// shell injects perch's button here, so the openchoreo plugin owns no
-// dependency on perch.
-const renderInvestigateDependencyAction: RenderInvestigateAction = scope => (
-  <InvestigateDependencyButton {...scope} />
-);
 
 const PLATFORM_KIND_DISPLAY_NAMES: Record<string, string> = {
   domain: 'Namespace',
@@ -291,15 +268,19 @@ const entityWarningContent = (
  * RuntimeHealthCard is gated by observability feature.
  */
 function OverviewContent() {
+  const assistant = usePortalAssistant();
   return (
     <Grid container spacing={3} alignItems="stretch">
       {entityWarningContent}
       <EntitySwitch>
         <EntitySwitch.Case if={isKind('component')}>
           {/* Failed-build prompt — renders nothing unless the latest run is in
-              a failed state. Sits inside the EntitySwitch so it inherits the
+              a failed state (and nothing at all when no assistant integration
+              is installed). Sits inside the EntitySwitch so it inherits the
               entity context and only mounts on component pages. */}
-          <FailedBuildSnackbar />
+          {assistant.BuildFailureNotifier ? (
+            <assistant.BuildFailureNotifier />
+          ) : null}
           {/* CI Status Card - shows external CI card if annotation present, otherwise OpenChoreo WorkflowsOverviewCard */}
           <WorkflowsOrExternalCICard />
           <Grid item md={4} xs={12}>
@@ -346,6 +327,7 @@ function OverviewContent() {
  */
 const ServiceEntityPage = () => {
   const { entity } = useEntity();
+  const assistant = usePortalAssistant();
   const hasAnyCiliumEnabledEnvironment =
     useComponentHasAnyCiliumEnabledEnvironment(entity);
 
@@ -361,26 +343,26 @@ const ServiceEntityPage = () => {
 
       <EntityLayout.Route path="/workflows" title="Build">
         <FeatureGatedContent feature="workflows">
-          {/* Auto-popping launcher — renders nothing unless the latest
-            run is in a failed state. The fixed pill on this tab was
-            intentionally removed; the snackbar still fires so a user
+          {/* Auto-popping assistant launcher — renders nothing unless the
+            latest run is in a failed state. The fixed pill on this tab was
+            intentionally removed; the notifier still fires so a user
             opening a failed build gets an "Investigate" prompt. */}
-          <FailedBuildSnackbar />
+          {assistant.BuildFailureNotifier ? (
+            <assistant.BuildFailureNotifier />
+          ) : null}
           <Workflows />
         </FeatureGatedContent>
       </EntityLayout.Route>
 
       <EntityLayout.Route path="/environments" title="Deploy">
         <Environments
-          renderInvestigateAction={renderInvestigateDependencyAction}
+          renderInvestigateAction={assistant.renderInvestigateAction}
         />
       </EntityLayout.Route>
 
       <EntityLayout.Route path="/runtime-logs" title="Logs">
         <FeatureGatedContent feature="observability">
-          <ObservabilityRuntimeLogs
-            renderRowAction={renderInvestigateLogAction}
-          />
+          <ObservabilityRuntimeLogs />
         </FeatureGatedContent>
       </EntityLayout.Route>
 
@@ -469,6 +451,7 @@ const ServiceEntityPage = () => {
  */
 const GenericComponentEntityPage = () => {
   const { entity } = useEntity();
+  const assistant = usePortalAssistant();
   const hasAnyCiliumEnabledEnvironment =
     useComponentHasAnyCiliumEnabledEnvironment(entity);
 
@@ -484,26 +467,26 @@ const GenericComponentEntityPage = () => {
 
       <EntityLayout.Route path="/workflows" title="Build">
         <FeatureGatedContent feature="workflows">
-          {/* Auto-popping launcher — renders nothing unless the latest
-            run is in a failed state. The fixed pill on this tab was
-            intentionally removed; the snackbar still fires so a user
+          {/* Auto-popping assistant launcher — renders nothing unless the
+            latest run is in a failed state. The fixed pill on this tab was
+            intentionally removed; the notifier still fires so a user
             opening a failed build gets an "Investigate" prompt. */}
-          <FailedBuildSnackbar />
+          {assistant.BuildFailureNotifier ? (
+            <assistant.BuildFailureNotifier />
+          ) : null}
           <Workflows />
         </FeatureGatedContent>
       </EntityLayout.Route>
 
       <EntityLayout.Route path="/environments" title="Deploy">
         <Environments
-          renderInvestigateAction={renderInvestigateDependencyAction}
+          renderInvestigateAction={assistant.renderInvestigateAction}
         />
       </EntityLayout.Route>
 
       <EntityLayout.Route path="/runtime-logs" title="Logs">
         <FeatureGatedContent feature="observability">
-          <ObservabilityRuntimeLogs
-            renderRowAction={renderInvestigateLogAction}
-          />
+          <ObservabilityRuntimeLogs />
         </FeatureGatedContent>
       </EntityLayout.Route>
 
@@ -783,9 +766,7 @@ const systemPage = (
     </EntityLayout.Route>
     <EntityLayout.Route path="/logs" title="Logs">
       <FeatureGatedContent feature="observability">
-        <ObservabilityProjectRuntimeLogs
-          renderRowAction={renderInvestigateLogAction}
-        />
+        <ObservabilityProjectRuntimeLogs />
       </FeatureGatedContent>
     </EntityLayout.Route>
     <EntityLayout.Route path="/traces" title="Traces">
