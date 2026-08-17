@@ -116,9 +116,9 @@ export const openChoreoEntityPageOverride = createFrontendModule({
           // string used by `app.extensions` config, so it's a natural React
           // key. Fall back to `registrationIndex` (stable within a render)
           // only if the wrapping shape ever changes.
-          const nodeId =
-            ((element as ReactElement).props as { node?: AppNode } | undefined)
-              ?.node?.spec.id;
+          const nodeId = (
+            (element as ReactElement).props as { node?: AppNode } | undefined
+          )?.node?.spec.id;
           const id = nodeId ?? `content-${registrationIndex}`;
           return {
             route: {
