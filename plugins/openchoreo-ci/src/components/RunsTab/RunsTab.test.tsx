@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RunsTab } from './RunsTab';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
+import { TestApiProvider } from '@backstage/test-utils';
+import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 
 // ---- Mocks ----
 
@@ -24,7 +26,7 @@ jest.mock('../../hooks', () => ({
 }));
 
 jest.mock('@backstage/core-components', () => ({
-  Table: ({ title, data, columns, emptyContent, onRowClick }: any) => (
+  Table: ({ title, data, columns, emptyContent, onRowClick, actions }: any) => (
     <div data-testid="table">
       <div data-testid="table-title">{title}</div>
       {data.length === 0 ? (
@@ -45,6 +47,19 @@ jest.mock('@backstage/core-components', () => ({
                   </span>
                 ) : null,
               )}
+              {actions?.map((action: any, k: number) => (
+                <button
+                  key={`action-${k}`}
+                  title={action.tooltip}
+                  data-testid={`action-${action.tooltip}-${i}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    action.onClick(e, row);
+                  }}
+                >
+                  {action.tooltip}
+                </button>
+              ))}
             </div>
           ))}
         </div>
@@ -78,6 +93,16 @@ const builds: ModelsBuild[] = [
   },
 ];
 
+const mockCiClient = {
+  deleteWorkflowRun: jest.fn(),
+};
+
+import { alertApiRef } from '@backstage/core-plugin-api';
+
+const mockAlertApi = {
+  post: jest.fn(),
+};
+
 function renderTab(
   overrides: Partial<React.ComponentProps<typeof RunsTab>> = {},
 ) {
@@ -90,7 +115,16 @@ function renderTab(
   };
 
   return {
-    ...render(<RunsTab {...defaultProps} {...overrides} />),
+    ...render(
+      <TestApiProvider
+        apis={[
+          [openChoreoCiClientApiRef, mockCiClient],
+          [alertApiRef, mockAlertApi],
+        ]}
+      >
+        <RunsTab {...defaultProps} {...overrides} />
+      </TestApiProvider>
+    ),
     props: { ...defaultProps, ...overrides },
   };
 }
@@ -179,5 +213,45 @@ describe('RunsTab', () => {
     await user.click(screen.getByTitle('Refresh builds'));
 
     expect(onRefresh).toHaveBeenCalled();
+  });
+  it('calls deleteWorkflowRun and onRefresh when delete action is confirmed', async () => {
+    const user = userEvent.setup();
+    const onRefresh = jest.fn();
+    mockCiClient.deleteWorkflowRun.mockResolvedValue(undefined);
+
+    renderTab({ onRefresh });
+
+    // Open dialog
+    await user.click(screen.getByTestId('action-Delete Run-0'));
+
+    expect(screen.getByText('Are you sure you want to delete workflow run "build-2"?')).toBeInTheDocument();
+
+    // Click confirm in the dialog
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(mockCiClient.deleteWorkflowRun).toHaveBeenCalledWith(
+      'dev-ns',
+      'my-project',
+      'api-service',
+      'build-2'
+    );
+    expect(onRefresh).toHaveBeenCalled();
+  });
+
+  it('shows error alert when delete action fails', async () => {
+    const user = userEvent.setup();
+    const onRefresh = jest.fn();
+    mockCiClient.deleteWorkflowRun.mockRejectedValue(new Error('Network error'));
+
+    renderTab({ onRefresh });
+
+    await user.click(screen.getByTestId('action-Delete Run-0'));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(mockAlertApi.post).toHaveBeenCalledWith({
+      message: 'Failed to delete run: Error: Network error',
+      severity: 'error',
+    });
+    expect(onRefresh).not.toHaveBeenCalled();
   });
 });
