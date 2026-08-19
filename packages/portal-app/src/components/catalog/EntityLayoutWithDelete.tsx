@@ -16,6 +16,7 @@ import {
   OpenChoreoEntityLayout,
   useResourceDefinitionPermission,
 } from '@openchoreo/backstage-plugin-react';
+import { AdditionalEntityContentRoutes } from './OpenChoreoCatalogEntityPage';
 
 const KIND_DISPLAY_NAMES: Record<string, string> = {
   system: 'Project',
@@ -194,6 +195,7 @@ function EntityLayoutWithDeleteContent({
         kindDisplayNames={mergedKindDisplayNames}
       >
         {children}
+        <AdditionalEntityContentRoutes />
       </OpenChoreoEntityLayout>
       <DeleteConfirmationDialog />
       <AnnotationEditorDialog />

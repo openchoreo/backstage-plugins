@@ -10,7 +10,10 @@
 import catalogGraphPluginAlphaBase from '@backstage/plugin-catalog-graph/alpha';
 import catalogPluginAlphaBase from '@backstage/plugin-catalog/alpha';
 import scaffolderPluginAlphaBase from '@backstage/plugin-scaffolder/alpha';
-import { createFrontendModule } from '@backstage/frontend-plugin-api';
+import {
+  coreExtensionData,
+  createFrontendModule,
+} from '@backstage/frontend-plugin-api';
 import { createTranslationMessages } from '@backstage/frontend-plugin-api';
 import {
   SignInPageBlueprint,
@@ -30,7 +33,11 @@ import {
   catalogApiRef,
   entityPresentationApiRef,
 } from '@backstage/plugin-catalog-react';
-import { DefaultEntityPresentationApi } from '@backstage/plugin-catalog';
+import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
+import {
+  DefaultEntityPresentationApi,
+  EntityLayout,
+} from '@backstage/plugin-catalog';
 import {
   discoveryApiRef,
   fetchApiRef,
@@ -148,6 +155,33 @@ export function createCachingCatalogApi(deps: {
   return new CachingCatalogApi(base, getUserRef);
 }
 
+const LEGACY_ENTITY_CONTENT_PATHS = new Set([
+  '/',
+  '/alerts',
+  '/api',
+  '/cell-diagram',
+  '/definition',
+  '/deploy',
+  '/diagram',
+  '/docs',
+  '/environments',
+  '/github-actions',
+  '/gitlab',
+  '/incidents',
+  '/jenkins',
+  '/kubernetes',
+  '/logs',
+  '/metrics',
+  '/rca-reports',
+  '/runs',
+  '/runtime-events',
+  '/runtime-logs',
+  '/traces',
+  '/try-out',
+  '/wirelogs',
+  '/workflows',
+]);
+
 /**
  * Override `catalog`'s default `api:catalog/entity-presentation` to provide
  * kind icons for OpenChoreo-specific entity kinds (Environment, DataPlane,
@@ -170,11 +204,9 @@ export function createCachingCatalogApi(deps: {
  * same data key, so the legacy JSX slots in unchanged.
  *
  * NFS-contributed `EntityContentBlueprint`s (in `inputs.contents`) are
- * NOT mounted here because every tab the portal needs is already declared
- * by `entityPage`. If a future third-party plugin contributes a tab via
- * `EntityContentBlueprint`, switch this loader to a
- * `factory(originalFactory, { inputs })` form and merge `inputs.contents`
- * deduped by path.
+ * merged into the OpenChoreo entity layouts below. Legacy routes still win
+ * on path collisions, so a host-authored tab and a plugin-authored tab do
+ * not render twice.
  */
 export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
   extensions: [
@@ -226,19 +258,45 @@ export const catalogPluginAlpha = catalogPluginAlphaBase.withOverrides({
           }),
       }),
     catalogPluginAlphaBase.getExtension('page:catalog/entity').override({
-      params: {
-        loader: async () => {
-          const [{ OpenChoreoCatalogEntityPage }, { entityPage }] =
-            await Promise.all([
-              import('../components/catalog/OpenChoreoCatalogEntityPage'),
-              import('../components/catalog/EntityPage'),
-            ]);
-          return (
-            <OpenChoreoCatalogEntityPage>
-              {entityPage}
-            </OpenChoreoCatalogEntityPage>
-          );
-        },
+      factory(originalFactory, { inputs }) {
+        return originalFactory({
+          params: {
+            loader: async () => {
+              const [{ OpenChoreoCatalogEntityPage }, { entityPage }] =
+                await Promise.all([
+                  import('../components/catalog/OpenChoreoCatalogEntityPage'),
+                  import('../components/catalog/EntityPage'),
+                ]);
+              const seenPaths = new Set(LEGACY_ENTITY_CONTENT_PATHS);
+              const additionalContent = inputs.contents.flatMap(output => {
+                const path = output.get(coreExtensionData.routePath);
+                if (seenPaths.has(path)) {
+                  return [];
+                }
+                seenPaths.add(path);
+                return (
+                  <EntityLayout.Route
+                    key={path}
+                    path={path}
+                    title={output.get(EntityContentBlueprint.dataRefs.title)}
+                    if={output.get(
+                      EntityContentBlueprint.dataRefs.filterFunction,
+                    )}
+                  >
+                    {output.get(coreExtensionData.reactElement)}
+                  </EntityLayout.Route>
+                );
+              });
+              return (
+                <OpenChoreoCatalogEntityPage
+                  additionalContent={additionalContent}
+                >
+                  {entityPage}
+                </OpenChoreoCatalogEntityPage>
+              );
+            },
+          },
+        });
       },
     }),
   ],

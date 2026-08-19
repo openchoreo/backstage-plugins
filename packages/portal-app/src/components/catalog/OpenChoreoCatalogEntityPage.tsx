@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useEffect, useRef } from 'react';
+import { createContext, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAsyncRetry from 'react-use/esm/useAsyncRetry';
 import type { Entity } from '@backstage/catalog-model';
@@ -77,6 +77,13 @@ interface OpenChoreoCatalogEntityPageProps {
    * fail `OpenChoreoEntityLayout`'s strict Route-child check.
    */
   children: ReactNode;
+  additionalContent?: ReactNode;
+}
+
+const AdditionalEntityContentContext = createContext<ReactNode>(null);
+
+export function AdditionalEntityContentRoutes() {
+  return <>{useContext(AdditionalEntityContentContext)}</>;
 }
 
 /**
@@ -89,10 +96,13 @@ interface OpenChoreoCatalogEntityPageProps {
  */
 export function OpenChoreoCatalogEntityPage({
   children,
+  additionalContent,
 }: OpenChoreoCatalogEntityPageProps) {
   return (
     <AsyncEntityProvider {...useEntityFromUrl()}>
-      {children}
+      <AdditionalEntityContentContext.Provider value={additionalContent}>
+        {children}
+      </AdditionalEntityContentContext.Provider>
     </AsyncEntityProvider>
   );
 }
