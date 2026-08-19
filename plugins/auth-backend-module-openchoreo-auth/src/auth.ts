@@ -1,6 +1,7 @@
 import {
   createBackendModule,
   coreServices,
+  LoggerService,
 } from '@backstage/backend-plugin-api';
 import {
   authProvidersExtensionPoint,
@@ -12,6 +13,52 @@ import {
 } from '@backstage/catalog-model';
 import { openChoreoAuthenticator } from './oidcAuthenticator';
 import { decodeJwtUnsafe } from './jwtUtils';
+
+type Logger = Pick<LoggerService, 'warn'>;
+
+const MAX_ENTITY_NAME_LENGTH = 63;
+
+export function toBackstageEntityName(value: string): string {
+  const normalized = value
+    .trim()
+    .toLocaleLowerCase('en-US')
+    .replace(/[^a-z0-9_.-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '')
+    .slice(0, MAX_ENTITY_NAME_LENGTH)
+    .replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
+
+  if (!normalized) {
+    throw new Error('Backstage entity name is empty after normalization');
+  }
+
+  return normalized;
+}
+
+export function extractGroups(
+  accessToken?: string,
+  userinfo?: { groups?: unknown; group?: unknown },
+  logger?: Logger,
+): string[] {
+  let groups: string[] = [];
+
+  if (accessToken) {
+    const payload = decodeJwtUnsafe(accessToken);
+    if (payload?.groups && Array.isArray(payload.groups)) {
+      groups = payload.groups;
+    } else if (!payload) {
+      logger?.warn('Failed to decode access token for group extraction');
+    }
+  }
+
+  if (userinfo?.groups && Array.isArray(userinfo.groups)) {
+    groups = [...new Set([...groups, ...userinfo.groups])];
+  } else if (userinfo?.group && typeof userinfo.group === 'string') {
+    groups = [...new Set([...groups, userinfo.group])];
+  }
+
+  return groups;
+}
 
 /**
  * OpenChoreo authentication backend module for Backstage.
@@ -35,6 +82,7 @@ import { decodeJwtUnsafe } from './jwtUtils';
  *         clientSecret: ${OPENCHOREO_AUTH_CLIENT_SECRET}
  *         authorizationUrl: ${OPENCHOREO_AUTH_AUTHORIZATION_URL}
  *         tokenUrl: ${OPENCHOREO_AUTH_TOKEN_URL}
+ *         audience: ${OPENCHOREO_AUTH_AUDIENCE}
  *         scope: 'openid profile email'
  * ```
  *
@@ -85,34 +133,15 @@ export const OpenChoreoAuthModule = createBackendModule({
               // Extract groups from access token (where the group claim is located)
               const accessToken = (info.result as any).session?.accessToken;
 
-              let groups: string[] = [];
-              if (accessToken) {
-                const payload = decodeJwtUnsafe(accessToken);
-                if (payload?.groups && Array.isArray(payload.groups)) {
-                  groups = payload.groups;
-                } else if (!payload) {
-                  logger.warn(
-                    'Failed to decode access token for group extraction',
-                  );
-                }
-              }
-
               // Also check userinfo for groups (OIDC standard)
               const userinfo = (info.result as any).fullProfile?.userinfo;
-              if (userinfo?.groups && Array.isArray(userinfo.groups)) {
-                groups = [...new Set([...groups, ...userinfo.groups])];
-              } else if (
-                userinfo?.group &&
-                typeof userinfo.group === 'string'
-              ) {
-                groups = [...new Set([...groups, userinfo.group])];
-              }
+              const groups = extractGroups(accessToken, userinfo, logger);
 
               // Build entity references
               const userEntityRef = stringifyEntityRef({
                 kind: 'User',
                 namespace: DEFAULT_NAMESPACE,
-                name: profile.email,
+                name: toBackstageEntityName(profile.email),
               });
 
               const ownershipEntityRefs = [
@@ -121,7 +150,7 @@ export const OpenChoreoAuthModule = createBackendModule({
                   stringifyEntityRef({
                     kind: 'Group',
                     namespace: DEFAULT_NAMESPACE,
-                    name: group.toLowerCase(),
+                    name: toBackstageEntityName(group),
                   }),
                 ),
               ];
