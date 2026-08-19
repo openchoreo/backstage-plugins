@@ -36,6 +36,72 @@ let discoveryCache: OIDCDiscoveryConfig | null = null;
 // Trusted JWKS URL resolved during initialize() from config/discovery
 let trustedJwksUrl: string | null = null;
 
+type OpenChoreoOAuthOptions = {
+  clientID: string;
+  clientSecret: string;
+  callbackURL: string;
+  authorizationURL: string;
+  tokenURL: string;
+  scope: string;
+  audience?: string;
+};
+
+export function buildOAuth2StrategyOptions({
+  audience,
+  ...options
+}: OpenChoreoOAuthOptions): OpenChoreoOAuthOptions {
+  return audience ? { ...options, audience } : options;
+}
+
+export function buildOAuthRequestOptions(
+  scope: string,
+  audience?: string,
+): Record<string, string> {
+  const options: Record<string, string> = { scope };
+  if (audience) {
+    options.audience = audience;
+  }
+  return options;
+}
+
+function addOAuthRequestParams(
+  params: Record<string, unknown>,
+  scope: string,
+  audience?: string,
+) {
+  params.scope = scope;
+  if (audience) {
+    params.audience = audience;
+  }
+  return params;
+}
+
+export function applyOAuth2StrategyParameterOverrides(
+  strategy: OAuth2Strategy,
+  scope: string,
+  audience?: string,
+) {
+  const originalAuthorizationParams =
+    strategy.authorizationParams?.bind(strategy);
+  strategy.authorizationParams = options =>
+    addOAuthRequestParams(
+      (originalAuthorizationParams?.(options) ?? {}) as Record<
+        string,
+        unknown
+      >,
+      scope,
+      audience,
+    );
+
+  const originalTokenParams = strategy.tokenParams?.bind(strategy);
+  strategy.tokenParams = options =>
+    addOAuthRequestParams(
+      (originalTokenParams?.(options) ?? {}) as Record<string, unknown>,
+      scope,
+      audience,
+    );
+}
+
 /**
  * Fetches OIDC discovery configuration from a metadata URL (synchronous with caching).
  * Returns null if discovery fails.
@@ -163,6 +229,7 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
     const clientSecret = config.getString('clientSecret');
     const scope =
       config.getOptionalString('scope')?.trim() || 'openid profile email';
+    const audience = config.getOptionalString('audience')?.trim();
 
     // Support both OIDC discovery and explicit URLs
     const metadataUrl = config.getOptionalString('metadataUrl');
@@ -202,14 +269,15 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
     trustedJwksUrl = discoveryCache?.jwks_uri ?? null;
 
     const strategy = new OAuth2Strategy(
-      {
+      buildOAuth2StrategyOptions({
         clientID,
         clientSecret,
         callbackURL: callbackUrl,
         authorizationURL,
         tokenURL,
         scope,
-      },
+        audience,
+      }),
       (
         accessToken: string,
         refreshToken: string,
@@ -236,9 +304,11 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
       },
     );
 
-    // passport-oauth2 omits scope from the authorization-code token exchange by default.
-    // Some IdPs require it; without it they return a token scoped to the client defaults
-    // rather than what was requested in /authorize.
+    applyOAuth2StrategyParameterOverrides(strategy, scope, audience);
+
+    // passport-oauth2 omits provider-specific parameters from the authorization-code token
+    // exchange by default. Some IdPs require them; without them they return a token scoped
+    // to the client defaults rather than what was requested in /authorize.
     const oauth2 = (strategy as any)._oauth2;
     const origGetOAuthAccessToken = oauth2.getOAuthAccessToken.bind(oauth2);
     oauth2.getOAuthAccessToken = function getOAuthAccessToken(
@@ -247,16 +317,20 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
       callback: any,
     ) {
       if (params?.grant_type === 'authorization_code') {
-        params.scope = scope;
+        addOAuthRequestParams(params, scope, audience);
       }
       return origGetOAuthAccessToken(code, params, callback);
     };
 
-    return { helper: PassportOAuthAuthenticatorHelper.from(strategy), scope };
+    return {
+      helper: PassportOAuthAuthenticatorHelper.from(strategy),
+      scope,
+      audience,
+    };
   },
 
-  async start(input, { helper, scope }) {
-    return helper.start(input, { scope });
+  async start(input, { helper, scope, audience }) {
+    return helper.start(input, buildOAuthRequestOptions(scope, audience));
   },
 
   async authenticate(input, { helper }) {
@@ -271,7 +345,7 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
     return { fullProfile, session };
   },
 
-  async refresh(input, { helper, scope }) {
+  async refresh(input, { helper, scope, audience }) {
     const { refreshToken } = input;
 
     // Check if this is our pseudo-refresh token
@@ -332,6 +406,9 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
     // Use config scope directly, same as start() does.
     // The frontend always sends hardcoded 'openid profile email' which doesn't
     // reflect the full scope configured for this provider.
-    return helper.refresh({ ...input, scope });
+    return helper.refresh({
+      ...input,
+      ...buildOAuthRequestOptions(scope, audience),
+    });
   },
 });
