@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/openchoreo-auth",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Authentication service for OpenChoreo API integration",
   "license": "Apache-2.0",
   "main": "src/index.ts",
