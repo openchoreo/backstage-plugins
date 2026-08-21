@@ -3,7 +3,7 @@ import {
   EntityProvider,
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   AuthService,
   LoggerService,
@@ -260,6 +260,18 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     ] = `provider:${this.getProviderName()}`;
   }
 
+  private shouldReconcileNamespacedEntity(entity: Entity): boolean {
+    const kind = entity.kind.toLocaleLowerCase('en-US');
+    if (kind === 'template' || kind.startsWith('cluster')) {
+      return false;
+    }
+
+    return Boolean(
+      entity.metadata.namespace ||
+        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE],
+    );
+  }
+
   async connect(connection: EntityProviderConnection): Promise<void> {
     this.connection = connection;
 
@@ -423,10 +435,32 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         `Found ${namespaces.length} namespaces from OpenChoreo`,
       );
 
+      const effectiveNamespaces =
+        namespaces.length > 0
+          ? namespaces
+          : ([
+              {
+                metadata: {
+                  name: 'default',
+                  annotations: {
+                    'openchoreo.io/display-name': 'Default',
+                    'openchoreo.io/description':
+                      'Default OpenChoreo namespace synthesized by the catalog provider',
+                  },
+                },
+              },
+            ] as NewNamespace[]);
+
+      if (namespaces.length === 0) {
+        this.logger.warn(
+          'OpenChoreo API returned no namespaces; falling back to namespace default because namespaced resources are still available',
+        );
+      }
+
       const allEntities: Entity[] = [];
 
       // Create Domain entities for each namespace
-      const domainEntities: Entity[] = namespaces.map(ns =>
+      const domainEntities: Entity[] = effectiveNamespaces.map(ns =>
         translateNewNamespaceToDomainEntity(
           ns as NewNamespace,
           this.translatorContext,
@@ -435,7 +469,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       allEntities.push(...domainEntities);
 
       // Get environments for each namespace
-      for (const ns of namespaces) {
+      for (const ns of effectiveNamespaces) {
         const nsName = getName(ns)!;
         try {
           const environments = await fetchAllPages<NewEnvironment>(cursor =>
@@ -469,7 +503,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Get notification channels for each namespace
-      for (const ns of namespaces) {
+      for (const ns of effectiveNamespaces) {
         const nsName = getName(ns)!;
         try {
           const notificationChannels =
@@ -510,7 +544,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Get dataplanes for each namespace
-      for (const ns of namespaces) {
+      for (const ns of effectiveNamespaces) {
         const nsName = getName(ns)!;
         try {
           const dataplanes = await fetchAllPages<NewDataPlane>(cursor =>
@@ -544,7 +578,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Get workflowplanes for each namespace
-      for (const ns of namespaces) {
+      for (const ns of effectiveNamespaces) {
         const nsName = getName(ns)!;
         try {
           const workflowplanes = await fetchAllPages<NewWorkflowPlane>(() =>
@@ -583,7 +617,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Get observabilityplanes for each namespace
-      for (const ns of namespaces) {
+      for (const ns of effectiveNamespaces) {
         const nsName = getName(ns)!;
         try {
           const observabilityplanes =
@@ -624,7 +658,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Get projects for each namespace and create System entities
-      for (const ns of namespaces) {
+      for (const ns of effectiveNamespaces) {
         const nsName = getName(ns)!;
         try {
           const projects = await fetchAllPages<NewProject>(cursor =>
@@ -891,7 +925,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Fetch Component Type Definitions and generate Template entities
-      for (const ns of namespaces) {
+      for (const ns of effectiveNamespaces) {
         const nsName = getName(ns)!;
         try {
           this.logger.info(
@@ -1046,7 +1080,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Get traits for each namespace
-      for (const ns of namespaces) {
+      for (const ns of effectiveNamespaces) {
         const nsName = getName(ns)!;
         try {
           const traits = await fetchAllPages<NewTrait>(cursor =>
@@ -1080,7 +1114,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Get resource types for each namespace
-      for (const ns of namespaces) {
+      for (const ns of effectiveNamespaces) {
         const nsName = getName(ns)!;
         try {
           const resourceTypes = await fetchAllPages<NewResourceType>(cursor =>
@@ -1210,7 +1244,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Get project types for each namespace
-      for (const ns of namespaces) {
+      for (const ns of effectiveNamespaces) {
         const nsName = getName(ns)!;
         try {
           const projectTypes = await fetchAllPages<NewProjectType>(cursor =>
@@ -1287,7 +1321,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Get resources for each namespace
-      for (const ns of namespaces) {
+      for (const ns of effectiveNamespaces) {
         const nsName = getName(ns)!;
         try {
           const resources = await fetchAllPages<NewResource>(cursor =>
@@ -1334,7 +1368,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Get workflows for each namespace
-      for (const ns of namespaces) {
+      for (const ns of effectiveNamespaces) {
         const nsName = getName(ns)!;
         try {
           const workflows = await fetchAllPages<NewWorkflow>(cursor =>
@@ -1906,6 +1940,29 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           locationKey: `provider:${this.getProviderName()}`,
         })),
       });
+
+      const namespacedEntities = allEntities.filter(entity =>
+        this.shouldReconcileNamespacedEntity(entity),
+      );
+
+      if (namespacedEntities.length > 0) {
+        await this.connection!.applyMutation({
+          type: 'delta',
+          added: namespacedEntities.map(entity => ({
+            entity,
+            locationKey: `provider:${this.getProviderName()}`,
+          })),
+          removed: [],
+        });
+
+        this.logger.info(
+          `Reconciled ${
+            namespacedEntities.length
+          } namespaced OpenChoreo entities via delta (${namespacedEntities
+            .map(entity => stringifyEntityRef(entity))
+            .join(', ')})`,
+        );
+      }
 
       this.logEntityCounts(allEntities, domainEntities.length);
     } catch (error) {
