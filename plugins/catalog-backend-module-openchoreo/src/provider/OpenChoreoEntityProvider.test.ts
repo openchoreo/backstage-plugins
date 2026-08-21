@@ -731,12 +731,38 @@ describe('OpenChoreoEntityProvider', () => {
     it('applies full mutation with correct locationKey', async () => {
       await runProvider();
 
-      expect(mockConnection.applyMutation).toHaveBeenCalledTimes(1);
+      expect(mockConnection.applyMutation).toHaveBeenCalledTimes(2);
       const mutation = mockConnection.applyMutation.mock.calls[0][0];
       expect(mutation.type).toBe('full');
       expect(mutation.entities[0].locationKey).toBe(
         'provider:OpenChoreoEntityProvider',
       );
+    });
+
+    it('reconciles namespaced OpenChoreo entities with a post-full delta', async () => {
+      await runProvider();
+
+      expect(mockConnection.applyMutation).toHaveBeenCalledTimes(2);
+      const mutation = mockConnection.applyMutation.mock.calls[1][0];
+      expect(mutation.type).toBe('delta');
+      expect(mutation.removed).toEqual([]);
+
+      const refs = mutation.added.map((item: any) => {
+        const entity = item.entity;
+        return `${entity.kind}:${entity.metadata.namespace ?? 'default'}/${
+          entity.metadata.name
+        }`;
+      });
+
+      expect(refs).toContain('Domain:default/test-ns');
+      expect(refs).toContain('System:test-ns/my-project');
+      expect(refs).toContain('Component:test-ns/api-service');
+      expect(refs).not.toContain(
+        'Template:openchoreo-cluster/template-idp-service',
+      );
+      expect(
+        refs.some((ref: string) => ref.startsWith('ClusterComponentType:')),
+      ).toBe(false);
     });
   });
 
@@ -1000,7 +1026,7 @@ describe('OpenChoreoEntityProvider', () => {
       // Environment from ns-ok should be present
       expect(findEntities(entities, 'Environment')).toHaveLength(1);
       // applyMutation should still be called
-      expect(mockConnection.applyMutation).toHaveBeenCalledTimes(1);
+      expect(mockConnection.applyMutation).toHaveBeenCalledTimes(2);
     });
 
     it('processes other namespaces when one fails for notification channels', async () => {
@@ -1032,7 +1058,7 @@ describe('OpenChoreoEntityProvider', () => {
       expect(
         findEntities(entities, 'ObservabilityAlertsNotificationChannel'),
       ).toHaveLength(1);
-      expect(mockConnection.applyMutation).toHaveBeenCalledTimes(1);
+      expect(mockConnection.applyMutation).toHaveBeenCalledTimes(2);
     });
   });
 
