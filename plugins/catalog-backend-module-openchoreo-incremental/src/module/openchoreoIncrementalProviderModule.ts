@@ -22,6 +22,18 @@ export const catalogModuleOpenchoreoIncrementalProvider = createBackendModule({
         logger: coreServices.logger,
       },
       async init({ extension, config, logger }) {
+        // Mirrors the gate in catalogModuleIncrementalIngestionEntityProvider:
+        // when incremental ingestion is disabled the wrapper module stays
+        // idle (and logs the single "module idle" line), so skip offering
+        // the provider too — nothing would consume it anyway.
+        const incrementalEnabled =
+          config.getOptionalBoolean(
+            'openchoreo.features.incrementalIngestion.enabled',
+          ) ?? false;
+        if (!incrementalEnabled) {
+          return;
+        }
+
         const provider = new OpenChoreoIncrementalEntityProvider({
           config,
           logger,

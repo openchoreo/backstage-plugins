@@ -75,6 +75,14 @@ export const portalFeatureLoaders = [
   // because openchoreo-backend depends on the AnnotationStore which is initialized
   // by the catalog module.
   () => import('@openchoreo/backstage-plugin-catalog-backend-module'),
+  // Incremental ingestion follows the same ordering rule as above (after
+  // catalog-backend-module, before openchoreo-backend). Inert unless
+  // openchoreo.features.incrementalIngestion.enabled is true, in which case
+  // it replaces the scheduled full-sync entity provider.
+  () =>
+    import(
+      '@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-incremental'
+    ),
   () => import('@openchoreo/backstage-plugin-backend'),
   () => import('@openchoreo/backstage-plugin-scaffolder-backend-module'),
   () =>

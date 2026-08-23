@@ -19,7 +19,24 @@
  * Exports the main catalog module for incremental entity processing.
  */
 
-import catalogModuleOpenchoreoIncrementalEntityProvider from './module/index';
+import { createBackendFeatureLoader } from '@backstage/backend-plugin-api';
+import catalogModuleOpenchoreoIncrementalEntityProvider, {
+  catalogModuleOpenchoreoIncrementalProvider,
+} from './module/index';
 
-export const catalogModuleOpenchoreoIncremental =
-  catalogModuleOpenchoreoIncrementalEntityProvider;
+/**
+ * The full incremental ingestion composition, installed with a single
+ * `backend.add(import(...))`.
+ *
+ * Yields the wrapper module (extension point + admin router + provider
+ * wrapping) first — it registers the `openchoreoIncrementalProvidersExtensionPoint`
+ * the provider module consumes — then the OpenChoreo provider module that
+ * registers `OpenChoreoIncrementalEntityProvider` through it. Both are inert
+ * unless `openchoreo.features.incrementalIngestion.enabled` is true.
+ */
+export const catalogModuleOpenchoreoIncremental = createBackendFeatureLoader({
+  *loader() {
+    yield catalogModuleOpenchoreoIncrementalEntityProvider;
+    yield catalogModuleOpenchoreoIncrementalProvider;
+  },
+});

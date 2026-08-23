@@ -9803,7 +9803,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-incremental@workspace:plugins/catalog-backend-module-openchoreo-incremental":
+"@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-incremental@workspace:^, @openchoreo/backstage-plugin-catalog-backend-module-openchoreo-incremental@workspace:plugins/catalog-backend-module-openchoreo-incremental":
   version: 0.0.0-use.local
   resolution: "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-incremental@workspace:plugins/catalog-backend-module-openchoreo-incremental"
   dependencies:
@@ -10450,6 +10450,7 @@ __metadata:
     "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth": "workspace:^"
     "@openchoreo/backstage-plugin-backend": "workspace:^"
     "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^"
+    "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-incremental": "workspace:^"
     "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-ci-backend": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-observability-backend": "workspace:^"

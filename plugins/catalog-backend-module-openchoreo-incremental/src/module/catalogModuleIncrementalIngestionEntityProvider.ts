@@ -123,6 +123,23 @@ export const catalogModuleOpenchoreoIncrementalEntityProvider =
           scheduler,
           events,
         }) {
+          // Incremental ingestion is opt-in: unless
+          // openchoreo.features.incrementalIngestion.enabled is true the
+          // module stays completely idle — no admin router, no wrapped
+          // providers (and therefore no migrations or scheduled tasks) —
+          // and the scheduled full-sync OpenChoreoEntityProvider from the
+          // sibling catalog module keeps running.
+          const incrementalEnabled =
+            config.getOptionalBoolean(
+              'openchoreo.features.incrementalIngestion.enabled',
+            ) ?? false;
+          if (!incrementalEnabled) {
+            logger.info(
+              'OpenChoreo incremental ingestion disabled (openchoreo.features.incrementalIngestion.enabled not set or false); module idle',
+            );
+            return;
+          }
+
           const client = await database.getClient();
 
           const providers = new WrapperProviders({

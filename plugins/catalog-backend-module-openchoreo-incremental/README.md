@@ -2,6 +2,32 @@
 
 The OpenChoreo Incremental Provider processes entities in small batches using cursor-based pagination with burst and rest cycles, providing optimal memory consumption, scalability, and controlled load for large OpenChoreo installations.
 
+## Enabling / disabling
+
+Incremental ingestion is **disabled by default**. The module is inert unless `openchoreo.features.incrementalIngestion.enabled` is `true` (default `false`): it registers no providers, runs no migrations, and exposes no admin routes — the scheduled full-sync `OpenChoreoEntityProvider` from `@openchoreo/backstage-plugin-catalog-backend-module` keeps running as usual.
+
+Enable it with:
+
+```yaml
+openchoreo:
+  features:
+    incrementalIngestion:
+      enabled: true # or set the env var OPENCHOREO_FEATURES_INCREMENTAL_INGESTION_ENABLED=true
+```
+
+When enabled, the scheduled full-sync entity provider in the sibling catalog module **stands down** (it logs `scheduled OpenChoreoEntityProvider standing down` and is not registered), so entities are not double-ingested.
+
+Tuning keys under `openchoreo.incremental` (only read while the feature is enabled):
+
+| Key             | Default | Meaning                                           |
+| --------------- | ------- | ------------------------------------------------- |
+| `burstLength`   | `10`    | seconds per ingestion burst                       |
+| `burstInterval` | `30`    | seconds between bursts                            |
+| `chunkSize`     | `100`   | entities per page (the API caps page size at 100) |
+| `restLength`    | `30`    | minutes of rest after a completed ingestion       |
+
+Database migrations on the plugin database (SQLite in dev, Postgres in prod) run lazily the first time the feature is enabled and a provider connects — not at install or startup while disabled.
+
 ## Installation
 
 ### 1. Add Workspace Dependency
