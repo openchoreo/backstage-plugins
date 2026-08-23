@@ -28,16 +28,14 @@ backend.add(
 
 ```yaml
 openchoreo:
-  api:
-    baseUrl: ${OPENCHOREO_API_URL}
-    token: ${OPENCHOREO_TOKEN}
+  baseUrl: ${OPENCHOREO_API_URL}
+  token: ${OPENCHOREO_TOKEN} # optional
+  defaultOwner: openchoreo-users # optional; defaults to 'openchoreo-users'
   incremental:
     burstLength: 10 # seconds - duration of each processing burst
     burstInterval: 30 # seconds - interval between bursts during active ingestion
     restLength: 30 # minutes - rest period after completing full ingestion
-    chunkSize: 50 # entities per API request
-    maxConcurrentRequests: 5 # max concurrent API calls during batch processing
-    batchDelayMs: 100 # delay in milliseconds between batch requests
+    chunkSize: 50 # entities per API request (max 100)
     rejectRemovalsAbovePercentage: 80 # reject sync if removals exceed this percentage
     rejectEmptySourceCollections: false # reject removals from empty collections
 ```
@@ -56,66 +54,54 @@ This approach prevents overwhelming the API server while ensuring regular catalo
 
 ### Cursor-Based Pagination
 
-The provider traverses OpenChoreo resources in three phases using continuation token-based pagination:
+The provider traverses OpenChoreo resources in three phases using cursor-based pagination:
 
-1. **Organizations Phase**: Fetches all organizations and builds an organization queue
-2. **Projects Phase**: For each organization, fetches all projects and builds a project queue
-3. **Components Phase**: For each project, fetches all components and their APIs
+1. **Namespaces Phase**: Fetches all namespaces and builds a namespace queue
+2. **Projects Phase**: For each namespace, fetches all projects
+3. **Components Phase**: For each namespace, fetches all components (flat, without a project filter)
 
-Each phase maintains its own API cursor (`orgApiCursor`, `projectApiCursor`, `componentApiCursor`) allowing safe resumption after interruptions. The cursor state tracks:
+Each phase maintains its own API cursor (`namespaceApiCursor`, `projectApiCursor`, `componentApiCursor`) allowing safe resumption after interruptions. The cursor state tracks:
 
-- Current phase (`orgs`, `projects`, `components`)
+- Current phase (`namespaces`, `projects`, `components`)
 - API pagination cursors for each resource type
-- Queues of organizations and projects to process
-- Current position in each queue
+- Queue of namespaces to process
+- Current position in the queue
 
 #### Pagination Mechanism
 
-The provider uses continuation token-based pagination with the following characteristics:
+The provider uses cursor-based pagination with the following characteristics:
 
-- **Continuation Tokens**: Opaque tokens that mark the position in the result set
-- **Resource Version**: Kubernetes-style resource versioning for consistency
-- **HasMore Flag**: Indicates if more results are available
-- **Limit Parameter**: Controls the number of items per page (0-512, default 100)
+- **Cursors**: Opaque `nextCursor` tokens that mark the position in the result set
+- **Limit Parameter**: Controls the number of items per page (1-100, default 100)
 
 Example response structure:
 
 ```json
 {
-  "data": {
-    "success": true,
-    "data": {
-      "items": [...],
-      "metadata": {
-        "resourceVersion": "12345",
-        "continue": "opaque-token",
-        "hasMore": true
-      }
-    }
+  "items": [...],
+  "pagination": {
+    "nextCursor": "opaque-token",
+    "remainingCount": 42
   }
 }
 ```
 
-#### HTTP 410 Error Handling
+`pagination.nextCursor` is absent when there are no more items.
 
-When a continuation token expires (HTTP 410 Gone), the provider automatically:
+#### Stuck-Cursor Guard
 
-1. Detects the expired token error
-2. Logs a warning with phase and cursor information
-3. Resets the cursor to start from the beginning
-4. Retries the ingestion process
-
-This ensures robust handling of long-running ingestion processes where tokens may expire.
+If the API ever returns the exact cursor that was just sent (which would loop
+the traversal forever), the provider throws an error for that batch. The
+ingestion engine then backs off and retries.
 
 ### Requirements
 
-Your OpenChoreo backend must support continuation token-based pagination. The provider validates API support at startup and requires:
+Your OpenChoreo backend must support cursor-based pagination on the
+`/api/v1/namespaces`, `/api/v1/namespaces/{namespaceName}/projects`, and
+`/api/v1/namespaces/{namespaceName}/components` list endpoints:
 
-- `metadata.resourceVersion` field in list responses
-- `metadata.continue` field for pagination tokens
-- `metadata.hasMore` flag to indicate more results
-- Support for `limit` and `continue` query parameters
-- HTTP 410 response for expired continuation tokens
+- `pagination.nextCursor` field in list responses
+- Support for `limit` and `cursor` query parameters
 
 ### State Persistence
 
@@ -219,7 +205,7 @@ class CustomIncrementalProvider
 ## Features
 
 - **Burst-Based Processing**: Controlled load with configurable burst and rest cycles
-- **Three-Phase Traversal**: Systematic ingestion of organizations → projects → components
+- **Three-Phase Traversal**: Systematic ingestion of namespaces → projects → components
 - **Cursor-Based Pagination**: Stable API cursors for efficient, resumable pagination
 - **Memory Efficient**: Processes entities in small chunks without loading large datasets
 - **Scalable**: Handles very large datasets efficiently with constant memory usage

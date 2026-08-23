@@ -53,6 +53,7 @@
     "@backstage/plugin-events-node": "^0.4.22",
     "@backstage/types": "^1.2.2",
     "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^",
+    "@openchoreo/backstage-plugin-common": "workspace:^",
     "@openchoreo/openchoreo-client-node": "workspace:^",
     "@opentelemetry/api": "^1.9.0",
     "express": "4.21.2",

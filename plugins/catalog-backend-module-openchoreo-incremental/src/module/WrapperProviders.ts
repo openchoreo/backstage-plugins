@@ -14,29 +14,37 @@
  * limitations under the License.
  */
 
-import type {
+import {
   LoggerService,
   RootConfigService,
   SchedulerService,
 } from '@backstage/backend-plugin-api';
-import type {
+import { stringifyError } from '@backstage/errors';
+import {
   EntityProvider,
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
-import type { EventsService } from '@backstage/plugin-events-node';
-import type express from 'express';
-import type { Knex } from 'knex';
-import type { applyDatabaseMigrations } from '../database/migrations';
-import type {
+import { createDeferred } from '@backstage/types';
+import express from 'express';
+import { Knex } from 'knex';
+import { Duration } from 'luxon';
+import { OpenChoreoIncrementalIngestionDatabaseManager } from '../database/OpenChoreoIncrementalIngestionDatabaseManager';
+import { applyDatabaseMigrations } from '../database/migrations';
+import { OpenChoreoIncrementalIngestionEngine } from '../engine/OpenChoreoIncrementalIngestionEngine';
+import { IncrementalProviderRouter } from '../router/routes';
+import {
   IncrementalEntityProvider,
   IncrementalEntityProviderOptions,
 } from '../types';
+import { EventsService } from '@backstage/plugin-events-node';
+
+const MINIMUM_SCHEDULER_INTERVAL_MS = 5000;
+const BURST_LENGTH_MARGIN_MINUTES = 1;
 
 /**
  * WrapperProviders class for managing incremental entity providers.
- * Handles initialization, database migrations, scheduling, and event
- * subscriptions for providers that support burst-based, resumable entity
- * ingestion.
+ * Handles initialization, database migrations, scheduling, and event subscriptions
+ * for providers that support burst-based, resumable entity ingestion.
  */
 
 /**
@@ -44,8 +52,12 @@ import type {
  * incremental ones.
  */
 export class WrapperProviders {
+  private migrate: Promise<void> | undefined;
+  private numberOfProvidersToConnect = 0;
+  private readonly readySignal = createDeferred();
+
   constructor(
-    readonly options: {
+    private readonly options: {
       config: RootConfigService;
       logger: LoggerService;
       client: Knex;
@@ -57,18 +69,32 @@ export class WrapperProviders {
 
   wrap(
     provider: IncrementalEntityProvider<unknown, unknown>,
-    _options: IncrementalEntityProviderOptions,
+    options: IncrementalEntityProviderOptions,
   ): EntityProvider {
+    this.numberOfProvidersToConnect += 1;
     return {
       getProviderName: () => provider.getProviderName(),
-      connect: async (_connection: EntityProviderConnection) => {
-        throw new Error('M3: not implemented');
+      connect: async connection => {
+        try {
+          await this.startProvider(provider, options, connection);
+        } finally {
+          this.numberOfProvidersToConnect -= 1;
+          if (this.numberOfProvidersToConnect === 0) {
+            this.readySignal.resolve();
+          }
+        }
       },
     };
   }
 
   adminRouter(): express.Router {
-    throw new Error('M3: not implemented');
+    return new IncrementalProviderRouter(
+      new OpenChoreoIncrementalIngestionDatabaseManager({
+        client: this.options.client,
+        logger: this.options.logger,
+      }),
+      this.options.logger,
+    ).createRouter();
   }
 
   /**
@@ -77,6 +103,88 @@ export class WrapperProviders {
    * all providers are ready before proceeding.
    */
   waitForReady(): Promise<void> {
-    throw new Error('M3: not implemented');
+    return this.readySignal;
+  }
+
+  private async startProvider(
+    provider: IncrementalEntityProvider<unknown, unknown>,
+    providerOptions: IncrementalEntityProviderOptions,
+    connection: EntityProviderConnection,
+  ) {
+    const logger = this.options.logger.child({
+      entityProvider: provider.getProviderName(),
+    });
+
+    try {
+      if (!this.migrate) {
+        this.migrate = Promise.resolve().then(async () => {
+          const apply =
+            this.options.applyDatabaseMigrations ?? applyDatabaseMigrations;
+          await apply(this.options.client);
+        });
+      }
+
+      await this.migrate;
+
+      const { burstInterval, burstLength, restLength } = providerOptions;
+
+      logger.info(`Connecting`);
+
+      const manager = new OpenChoreoIncrementalIngestionDatabaseManager({
+        client: this.options.client,
+        logger,
+      });
+      const engine = new OpenChoreoIncrementalIngestionEngine({
+        ...providerOptions,
+        ready: this.readySignal,
+        manager,
+        logger,
+        provider,
+        restLength,
+        connection,
+      });
+
+      let frequency = Duration.isDuration(burstInterval)
+        ? burstInterval
+        : Duration.fromObject(burstInterval);
+      if (frequency.as('milliseconds') < MINIMUM_SCHEDULER_INTERVAL_MS) {
+        frequency = Duration.fromMillis(MINIMUM_SCHEDULER_INTERVAL_MS);
+      }
+
+      let length = Duration.isDuration(burstLength)
+        ? burstLength
+        : Duration.fromObject(burstLength);
+      length = length.plus(
+        Duration.fromObject({ minutes: BURST_LENGTH_MARGIN_MINUTES }),
+      );
+
+      await this.options.scheduler.scheduleTask({
+        id: provider.getProviderName(),
+        fn: engine.taskFn.bind(engine),
+        frequency,
+        timeout: length,
+      });
+
+      const topics = engine.supportsEventTopics();
+      if (topics.length > 0) {
+        logger.info(
+          `Provider ${provider.getProviderName()} subscribing to events for topics: ${topics.join(
+            ',',
+          )}`,
+        );
+        await this.options.events.subscribe({
+          topics,
+          id: `catalog-backend-module-incremental-ingestion:${provider.getProviderName()}`,
+          onEvent: evt => engine.onEvent(evt),
+        });
+      }
+    } catch (error) {
+      logger.warn(
+        `Failed to initialize incremental ingestion provider ${provider.getProviderName()}, ${stringifyError(
+          error,
+        )}`,
+      );
+      throw error;
+    }
   }
 }

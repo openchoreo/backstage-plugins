@@ -48,15 +48,15 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
     throw new Error('M3: not implemented');
   }
 
-  async getCurrentIngestionRecord(_provider: string) {
+  async getCurrentIngestionRecord(_provider: string): Promise<any> {
     throw new Error('M3: not implemented');
   }
 
-  async getPreviousIngestionRecord(_provider: string) {
+  async getPreviousIngestionRecord(_provider: string): Promise<any> {
     throw new Error('M3: not implemented');
   }
 
-  async clearFinishedIngestions(_provider: string) {
+  async clearFinishedIngestions(_provider: string): Promise<any> {
     throw new Error('M3: not implemented');
   }
 
@@ -64,7 +64,7 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
     throw new Error('M3: not implemented');
   }
 
-  async purgeAndResetProvider(_provider: string) {
+  async purgeAndResetProvider(_provider: string): Promise<any> {
     throw new Error('M3: not implemented');
   }
 
@@ -72,19 +72,21 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
     throw new Error('M3: not implemented');
   }
 
-  async createProviderIngestionRecord(_provider: string) {
+  async createProviderIngestionRecord(_provider: string): Promise<any> {
     throw new Error('M3: not implemented');
   }
 
-  async computeRemoved(_provider: string, _ingestionId: string) {
+  async computeRemoved(_provider: string, _ingestionId: string): Promise<any> {
     throw new Error('M3: not implemented');
   }
 
-  async getEntityCountsByKind(_ingestionId: string) {
+  async getEntityCountsByKind(
+    _ingestionId: string,
+  ): Promise<{ [kind: string]: number }> {
     throw new Error('M3: not implemented');
   }
 
-  async healthcheck() {
+  async healthcheck(): Promise<Array<{ provider_name: string }>> {
     throw new Error('M3: not implemented');
   }
 
@@ -92,7 +94,7 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
     throw new Error('M3: not implemented');
   }
 
-  async cleanupProviders() {
+  async cleanupProviders(): Promise<any> {
     throw new Error('M3: not implemented');
   }
 
@@ -133,15 +135,15 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
     throw new Error('M3: not implemented');
   }
 
-  async getLastMark(_ingestionId: string) {
+  async getLastMark(_ingestionId: string): Promise<any> {
     throw new Error('M3: not implemented');
   }
 
-  async getFirstMark(_ingestionId: string) {
+  async getFirstMark(_ingestionId: string): Promise<any> {
     throw new Error('M3: not implemented');
   }
 
-  async getAllMarks(_ingestionId: string) {
+  async getAllMarks(_ingestionId: string): Promise<any> {
     throw new Error('M3: not implemented');
   }
 
@@ -157,7 +159,7 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
     throw new Error('M3: not implemented');
   }
 
-  async listProviders() {
+  async listProviders(): Promise<any> {
     throw new Error('M3: not implemented');
   }
 
