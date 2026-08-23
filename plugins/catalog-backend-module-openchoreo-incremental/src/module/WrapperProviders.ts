@@ -41,6 +41,13 @@ import { EventsService } from '@backstage/plugin-events-node';
 const MINIMUM_SCHEDULER_INTERVAL_MS = 5000;
 const BURST_LENGTH_MARGIN_MINUTES = 1;
 
+// Singleton promise for running the database migrations.
+// Module-level so that concurrent WrapperProviders instances (and repeated
+// connect calls) all await the same single migration run, preventing
+// duplicated concurrent migrations. The applier chosen by the first caller —
+// including a test-injected `applyDatabaseMigrations` override — is cached.
+let migrationsPromise: Promise<void> | undefined;
+
 /**
  * WrapperProviders class for managing incremental entity providers.
  * Handles initialization, database migrations, scheduling, and event subscriptions
@@ -52,7 +59,6 @@ const BURST_LENGTH_MARGIN_MINUTES = 1;
  * incremental ones.
  */
 export class WrapperProviders {
-  private migrate: Promise<void> | undefined;
   private numberOfProvidersToConnect = 0;
   private readonly readySignal = createDeferred();
 
@@ -116,15 +122,15 @@ export class WrapperProviders {
     });
 
     try {
-      if (!this.migrate) {
-        this.migrate = Promise.resolve().then(async () => {
+      if (!migrationsPromise) {
+        migrationsPromise = Promise.resolve().then(async () => {
           const apply =
             this.options.applyDatabaseMigrations ?? applyDatabaseMigrations;
           await apply(this.options.client);
         });
       }
 
-      await this.migrate;
+      await migrationsPromise;
 
       const { burstInterval, burstLength, restLength } = providerOptions;
 
