@@ -68,7 +68,9 @@
     "@backstage/backend-test-utils": "^1.11.3",
     "@backstage/cli": "^0.36.2",
     "@types/express": "4.17.23",
-    "@types/luxon": "^3.4.2"
+    "@types/luxon": "^3.4.2",
+    "@types/supertest": "2.0.16",
+    "supertest": "6.3.4"
   },
   "files": [
     "dist",

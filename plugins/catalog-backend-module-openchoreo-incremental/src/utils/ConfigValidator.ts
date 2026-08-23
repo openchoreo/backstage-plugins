@@ -52,13 +52,24 @@ export class ConfigValidator {
 
       return validatedConfig;
     } catch (error) {
+      if (
+        error instanceof OpenChoreoIncrementalIngestionError &&
+        error.code !== 'CONFIG_VALIDATION_ERROR'
+      ) {
+        // Business-rule failures (INVALID_BURST_TIMING, INVALID_API_BASE_URL)
+        // carry their own code; re-wrapping them would swallow it.
+        throw error;
+      }
+
       if (error instanceof Error && error.name === 'ZodError') {
-        const zodError = error as any;
+        const zodError = error as {
+          issues?: { path: (string | number)[]; message: string }[];
+        };
         const errorMessages =
-          zodError.errors
+          zodError.issues
             ?.map(
-              (err: any) =>
-                `${err.path?.join('.') || 'unknown'}: ${err.message}`,
+              issue =>
+                `${issue.path?.join('.') || 'unknown'}: ${issue.message}`,
             )
             .join(', ') || 'Unknown validation error';
 
