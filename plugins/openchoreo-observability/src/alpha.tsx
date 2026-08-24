@@ -14,7 +14,10 @@ import {
   FeatureGate,
   FeatureGatedContent,
 } from '@openchoreo/backstage-plugin-react';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  isOpenChoreoManagedOfKind,
+} from '@openchoreo/backstage-plugin-common';
 
 import { rootRouteRef } from './routes';
 import {
@@ -126,7 +129,8 @@ const runtimeLogsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/runtime-logs',
     title: 'Logs',
-    filter: 'kind:component',
+    group: 'runtime',
+    filter: isOpenChoreoManagedOfKind('component'),
     loader: () =>
       import('./components/RuntimeLogs/ObservabilityRuntimeLogsPage').then(
         m => (
@@ -143,7 +147,8 @@ const runtimeEventsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/runtime-events',
     title: 'Events',
-    filter: 'kind:component',
+    group: 'runtime',
+    filter: isOpenChoreoManagedOfKind('component'),
     loader: () =>
       import('./components/RuntimeEvents/ObservabilityRuntimeEventsPage').then(
         m => (
@@ -160,7 +165,8 @@ const metricsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/metrics',
     title: 'Metrics',
-    filter: 'kind:component',
+    group: 'runtime',
+    filter: isOpenChoreoManagedOfKind('component'),
     loader: () =>
       import('./components/Metrics/ObservabilityMetricsPage').then(m => (
         <FeatureGatedContent feature="observability">
@@ -175,7 +181,8 @@ const alertsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/alerts',
     title: 'Alerts',
-    filter: 'kind:component',
+    group: 'runtime',
+    filter: isOpenChoreoManagedOfKind('component'),
     loader: () =>
       import('./components/Alerts/ObservabilityAlertsPage').then(m => (
         <FeatureGatedContent feature="observability">
@@ -190,7 +197,8 @@ const wirelogsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/wirelogs',
     title: 'Wirelogs',
-    filter: 'kind:component',
+    group: 'runtime',
+    filter: isOpenChoreoManagedOfKind('component'),
     loader: () =>
       import('./components/Wirelogs/ObservabilityWirelogsPage').then(m => (
         <FeatureGatedContent feature="observability">
@@ -211,7 +219,8 @@ const projectRuntimeLogsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/logs',
     title: 'Logs',
-    filter: 'kind:system',
+    group: 'runtime',
+    filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
       import(
         './components/RuntimeLogs/ObservabilityProjectRuntimeLogsPage'
@@ -228,7 +237,8 @@ const tracesEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/traces',
     title: 'Traces',
-    filter: 'kind:system',
+    group: 'analysis',
+    filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
       import('./components/Traces/ObservabilityTracesPage').then(m => (
         <FeatureGatedContent feature="observability">
@@ -243,7 +253,8 @@ const projectIncidentsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/incidents',
     title: 'Incidents',
-    filter: 'kind:system',
+    group: 'analysis',
+    filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
       import('./components/Incidents/ObservabilityProjectIncidentsPage').then(
         m => (
@@ -260,7 +271,8 @@ const rcaReportsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/rca-reports',
     title: 'RCA Reports',
-    filter: 'kind:system',
+    group: 'analysis',
+    filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
       import('./components/RCA/RCAPage').then(m => (
         <FeatureGatedContent feature="observability">
@@ -279,8 +291,12 @@ const rcaReportsEntityContent = EntityContentBlueprint.make({
 const costInsightsSummaryCard = EntityCardBlueprint.make({
   name: 'cost-insights-summary',
   params: {
+    // Small summary tile — renders in the right-rail info column of any
+    // layout that uses `DefaultEntityContentLayout` or our
+    // `ForeignCardsSection` (base plugin's Component / System layouts).
+    type: 'info',
     filter: entity =>
-      ['component', 'system'].includes(entity.kind.toLowerCase()) &&
+      isOpenChoreoManagedOfKind('component', 'system')(entity) &&
       Boolean(entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE]),
     loader: () =>
       import('./components/CostInsights/CostInsightsSummaryCard').then(m => (

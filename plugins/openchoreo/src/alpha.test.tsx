@@ -5,6 +5,9 @@ const ALPHA_EXTENSION_NAMES = [
   ['api', 'open-choreo-client'],
   // self-contained response-cache provider
   ['plugin-wrapper', 'query-provider'],
+  // entity context menu items (delete + annotation edit)
+  ['entity-context-menu-item', 'delete-entity'],
+  ['entity-context-menu-item', 'edit-annotations'],
   // shared
   ['entity-content', 'resource-definition'],
   // component-page
@@ -53,6 +56,25 @@ const ALPHA_EXTENSION_NAMES = [
   // workflow family
   ['entity-card', 'workflow-overview'],
   ['entity-card', 'component-workflow-overview'],
+  // per-kind Overview layouts
+  ['entity-content-layout', 'component-overview'],
+  ['entity-content-layout', 'system-overview'],
+  ['entity-content-layout', 'domain-overview'],
+  ['entity-content-layout', 'resource-overview'],
+  ['entity-content-layout', 'environment-overview'],
+  ['entity-content-layout', 'dataplane-overview'],
+  ['entity-content-layout', 'cluster-dataplane-overview'],
+  ['entity-content-layout', 'workflow-plane-overview'],
+  ['entity-content-layout', 'cluster-workflow-plane-overview'],
+  ['entity-content-layout', 'observability-plane-overview'],
+  ['entity-content-layout', 'cluster-observability-plane-overview'],
+  ['entity-content-layout', 'deployment-pipeline-overview'],
+  ['entity-content-layout', 'component-type-overview'],
+  ['entity-content-layout', 'resource-type-overview'],
+  ['entity-content-layout', 'project-type-overview'],
+  ['entity-content-layout', 'trait-type-overview'],
+  ['entity-content-layout', 'workflow-overview-layout'],
+  ['entity-content-layout', 'component-workflow-overview-layout'],
 ] as const;
 
 describe('openchoreo alpha plugin', () => {
