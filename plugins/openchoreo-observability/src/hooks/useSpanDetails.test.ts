@@ -16,7 +16,9 @@ describe('useSpanDetails', () => {
 
   const options = {
     namespaceName: 'dev',
+    projectName: 'proj',
     environmentName: 'development',
+    componentName: 'comp',
   };
 
   const details = {
@@ -85,7 +87,9 @@ describe('useSpanDetails', () => {
       'trace-1',
       'span-1',
       'dev',
+      'proj',
       'development',
+      'comp',
     );
     await waitFor(() =>
       expect(result.current.getDetails('trace-1', 'span-1')).toEqual(details),
