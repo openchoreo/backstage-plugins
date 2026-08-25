@@ -1,17 +1,4 @@
-import { getComponentLineColor, componentColorResolver } from './colors';
-
-describe('getComponentLineColor', () => {
-  it('gives distinct colours to the first components', () => {
-    const colors = [0, 1, 2, 3].map(i => getComponentLineColor(i));
-    expect(new Set(colors).size).toBe(4);
-  });
-
-  it('cycles rather than running out', () => {
-    // Palette has 10 entries; index 10 wraps back to index 0's colour.
-    expect(getComponentLineColor(0)).toBe(getComponentLineColor(10));
-    expect(getComponentLineColor(100)).toEqual(expect.any(String));
-  });
-});
+import { componentColorResolver } from './colors';
 
 describe('componentColorResolver', () => {
   it('gives each component in the order its own colour', () => {

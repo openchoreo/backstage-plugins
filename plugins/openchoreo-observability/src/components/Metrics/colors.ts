@@ -1,13 +1,8 @@
-import { PALETTE_LIGHT, PALETTE_DARK } from '../CostInsights/chartUtils';
-
-/** Stable colour for the component at `index` in the chart's series order. */
-export const getComponentLineColor = (
-  index: number,
-  dark: boolean = false,
-): string => {
-  const palette = dark ? PALETTE_DARK : PALETTE_LIGHT;
-  return palette[index % palette.length];
-};
+import {
+  PALETTE_LIGHT,
+  PALETTE_DARK,
+  buildColorMap,
+} from '../CostInsights/chartUtils';
 
 /**
  * Resolve a stable colour per component over a fixed component order, so a
@@ -18,9 +13,7 @@ export const componentColorResolver = (
   components: string[],
   dark: boolean = false,
 ): ((component: string) => string) => {
-  const indexOf = new Map(
-    [...components].sort().map((name, index) => [name, index] as const),
-  );
-  return component =>
-    getComponentLineColor(indexOf.get(component) ?? 0, dark);
+  const palette = dark ? PALETTE_DARK : PALETTE_LIGHT;
+  const colorMap = buildColorMap([...components].sort(), palette);
+  return component => colorMap.get(component) ?? palette[0];
 };
