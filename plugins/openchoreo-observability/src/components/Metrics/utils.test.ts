@@ -8,6 +8,8 @@ import {
   formatMetricName,
   calculateTimeDomain,
   calculateMemoryYAxis,
+  calculateStep,
+  buildProjectSeries,
 } from './utils';
 import { MemoryUsageMetrics } from '../../types';
 
@@ -472,5 +474,93 @@ describe('calculateMemoryYAxis', () => {
 
     // Max is 100 MiB → niceStep = 25, finalMax = 100, 5 ticks
     expect(result?.domain[1]).toBe(100 * MiB);
+  });
+});
+
+describe('calculateStep', () => {
+  it.each([
+    ['10m', '15s'],
+    ['30m', '30s'],
+    ['1h', '1m'],
+    ['24h', '5m'],
+    ['7d', '30m'],
+    ['14d', '1h'],
+    ['30d', '2h'],
+    ['not-a-range', '1m'],
+  ])('maps %s to %s', (timeRange, expected) => {
+    expect(calculateStep(timeRange)).toBe(expected);
+  });
+
+  const custom = (minutes: number) =>
+    calculateStep(
+      'custom',
+      new Date(2024, 0, 1).toISOString(),
+      new Date(2024, 0, 1, 0, minutes).toISOString(),
+    );
+
+  it.each([
+    [30, '15s'],
+    [120, '30s'],
+    [24 * 60, '5m'],
+    [7 * 24 * 60, '30m'],
+    [14 * 24 * 60, '1h'],
+    [30 * 24 * 60, '2h'],
+  ])('scales a %i-minute custom range to %s', (minutes, expected) => {
+    expect(custom(minutes)).toBe(expected);
+  });
+
+  it('falls back to 1m when a custom bound is missing', () => {
+    expect(calculateStep('custom')).toBe('1m');
+    expect(calculateStep('custom', new Date().toISOString())).toBe('1m');
+    expect(calculateStep('custom', undefined, new Date().toISOString())).toBe(
+      '1m',
+    );
+  });
+
+  it('falls back to 1m when a custom range is inverted or zero-length', () => {
+    const later = new Date(2024, 0, 2).toISOString();
+    const earlier = new Date(2024, 0, 1).toISOString();
+    expect(calculateStep('custom', later, earlier)).toBe('1m');
+    expect(calculateStep('custom', earlier, earlier)).toBe('1m');
+    expect(calculateStep('custom', 'nonsense', later)).toBe('1m');
+  });
+});
+
+describe('buildProjectSeries', () => {
+  const points = [{ timestamp: '2024-01-01T00:00:00.000Z', value: 1 }];
+  const resource = {
+    cpuUsage: { cpuUsage: points, cpuRequests: points, cpuLimits: points },
+  };
+
+  it('keeps the grouping, narrowed to the selected metric group', () => {
+    expect(
+      buildProjectSeries<typeof resource>(
+        { api: resource, db: resource },
+        m => m.cpuUsage,
+      ),
+    ).toEqual({
+      api: { cpuUsage: points, cpuRequests: points, cpuLimits: points },
+      db: { cpuUsage: points, cpuRequests: points, cpuLimits: points },
+    });
+  });
+
+  it('keeps a component whose group is missing, with no series', () => {
+    expect(
+      buildProjectSeries<{ cpuUsage?: typeof resource.cpuUsage }>(
+        { api: {} },
+        m => m.cpuUsage,
+      ),
+    ).toEqual({ api: {} });
+  });
+
+  it('never has to escape a component name', () => {
+    const result = buildProjectSeries<typeof resource>(
+      { 'a::b': resource },
+      m => m.cpuUsage,
+    );
+
+    expect(Object.keys(result)).toEqual(['a::b']);
+    const group = result['a::b'];
+    expect('cpuUsage' in group && group.cpuUsage).toEqual(points);
   });
 });
