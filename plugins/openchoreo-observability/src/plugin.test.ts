@@ -1,5 +1,6 @@
 import {
   ObservabilityMetrics,
+  ObservabilityProjectMetrics,
   ObservabilityProjectRuntimeLogs,
   ObservabilityRuntimeEvents,
 } from './plugin';
@@ -7,6 +8,10 @@ import {
 describe('openchoreo-observability', () => {
   it('Should export ObservabilityMetrics', () => {
     expect(ObservabilityMetrics).toBeDefined();
+  });
+
+  it('Should export ObservabilityProjectMetrics', () => {
+    expect(ObservabilityProjectMetrics).toBeDefined();
   });
 
   it('Should export ObservabilityProjectRuntimeLogs', () => {

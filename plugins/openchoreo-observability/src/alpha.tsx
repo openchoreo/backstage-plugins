@@ -232,6 +232,24 @@ const projectRuntimeLogsEntityContent = EntityContentBlueprint.make({
   },
 });
 
+const projectMetricsEntityContent = EntityContentBlueprint.make({
+  name: 'project-metrics',
+  params: {
+    path: '/metrics',
+    title: 'Metrics',
+    group: 'runtime',
+    filter: isOpenChoreoManagedOfKind('system'),
+    loader: () =>
+      import('./components/Metrics/ObservabilityProjectMetricsPage').then(
+        m => (
+          <FeatureGatedContent feature="observability">
+            <m.ObservabilityProjectMetricsPage />
+          </FeatureGatedContent>
+        ),
+      ),
+  },
+});
+
 const tracesEntityContent = EntityContentBlueprint.make({
   name: 'traces',
   params: {
@@ -331,6 +349,7 @@ export default createFrontendPlugin({
     alertsEntityContent,
     wirelogsEntityContent,
     projectRuntimeLogsEntityContent,
+    projectMetricsEntityContent,
     tracesEntityContent,
     projectIncidentsEntityContent,
     rcaReportsEntityContent,
