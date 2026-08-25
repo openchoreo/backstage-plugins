@@ -5,3 +5,6 @@ packages/*/node_modules
 plugins/*/dist
 plugins/*/node_modules
 *.local.yaml
+# yarn berry
+.yarn/cache
+.yarn/install-state.gz
