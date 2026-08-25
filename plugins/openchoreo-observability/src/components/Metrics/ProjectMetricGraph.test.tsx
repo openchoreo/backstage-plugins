@@ -243,8 +243,8 @@ describe('ProjectMetricGraph', () => {
 
     expect(lines()).toHaveLength(72);
     // Every component still gets its lines; the palette cycles rather than
-    // inventing 24 near-identical hues.
+    // inventing 24 near-identical hues. Palette has 10 entries.
     const colours = new Set(lines().map(l => l.getAttribute('data-stroke')));
-    expect(colours.size).toBe(12);
+    expect(colours.size).toBe(10);
   });
 });
