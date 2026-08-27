@@ -45,6 +45,46 @@ export type HttpMetrics = {
 
 export type MetricType = 'resource' | 'http';
 
+/** The four component-level series shapes, each keyed by fixed metric names. */
+export type ComponentSeriesMap =
+  | CpuUsageMetrics
+  | MemoryUsageMetrics
+  | NetworkThroughputMetrics
+  | NetworkLatencyMetrics;
+
+/** `metricKey -> points` for one component, e.g. `{ cpuUsage: [...] }`. */
+export type MetricSeriesMap = Record<string, MetricsTimeSeriesItem[]>;
+
+/**
+ * `componentName -> that component's series`, the shape the project breakdown
+ * charts plot.
+ *
+ * Grouping is the structure rather than something spliced into a key, so the
+ * component is read from the outer key and nothing is ever parsed. The unique
+ * `dataKey` Recharts needs per line is generated inside the chart and never
+ * leaves it.
+ */
+export type SeriesByComponent = Record<string, ComponentSeriesMap>;
+
+/** A component whose fan-out request failed, kept so the page can render the
+ *  rest and still name what is missing. */
+export type FailedComponentMetrics = {
+  name: string;
+  error: string;
+};
+
+export type ProjectResourceMetrics = {
+  /** componentName -> that component's resource metrics */
+  byComponent: Record<string, ResourceMetrics>;
+  failedComponents: FailedComponentMetrics[];
+};
+
+export type ProjectHttpMetrics = {
+  /** componentName -> that component's HTTP metrics */
+  byComponent: Record<string, HttpMetrics>;
+  failedComponents: FailedComponentMetrics[];
+};
+
 // OTel span status ({ code: 'ok' | 'error' | 'unset', message? }) from the spec.
 export type SpanStatus = ObservabilityComponents['schemas']['SpanStatus'];
 

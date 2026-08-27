@@ -1,9 +1,9 @@
 import { DataKey } from 'recharts/types/util/types';
 import {
-  CpuUsageMetrics,
+  ComponentSeriesMap,
   MemoryUsageMetrics,
-  NetworkLatencyMetrics,
-  NetworkThroughputMetrics,
+  MetricSeriesMap,
+  SeriesByComponent,
 } from '../../types';
 
 /**
@@ -100,8 +100,8 @@ const niceCeil = (x: number): number => {
  * display unit (KiB/MiB/GiB). Returns undefined when the data has no
  * positive values, so the caller can fall back to Recharts defaults.
  */
-export const calculateMemoryYAxis = (
-  usageData: MemoryUsageMetrics,
+const memoryYAxisFrom = (
+  usageData: MetricSeriesMap,
 ): { ticks: number[]; domain: [number, number] } | undefined => {
   let max = 0;
   Object.values(usageData).forEach(series => {
@@ -129,6 +129,14 @@ export const calculateMemoryYAxis = (
   const ticks = Array.from({ length: numTicks }, (_, i) => i * niceStep * unit);
   return { ticks, domain: [0, finalMaxInUnit * unit] };
 };
+
+/** Component-level memory axis: series keyed by the fixed memory metric names. */
+export const calculateMemoryYAxis = (usageData: MemoryUsageMetrics) =>
+  memoryYAxisFrom(usageData);
+
+/** Project-level memory axis, over the chart's flattened lines. */
+export const calculateProjectMemoryYAxis = (series: MetricSeriesMap) =>
+  memoryYAxisFrom(series);
 
 /**
  * Parse time range string (e.g., "14d", "1h", "30m") to milliseconds
@@ -259,13 +267,7 @@ const injectPerMetricGaps = (
 /**
  * Transform metrics data structure to be compatible with Recharts
  */
-export const transformMetricsData = (
-  usageData:
-    | CpuUsageMetrics
-    | MemoryUsageMetrics
-    | NetworkThroughputMetrics
-    | NetworkLatencyMetrics,
-) => {
+const mergeSeriesByTimestamp = (usageData: MetricSeriesMap) => {
   const gapped = injectPerMetricGaps(usageData as Record<string, RawPoint[]>);
   const timeMap = new Map<string, MetricDataPoint>();
 
@@ -287,6 +289,14 @@ export const transformMetricsData = (
 
   return Array.from(timeMap.values()).sort((a, b) => a.timestamp - b.timestamp);
 };
+
+/** Component-level chart data: series keyed by fixed metric names. */
+export const transformMetricsData = (usageData: ComponentSeriesMap) =>
+  mergeSeriesByTimestamp(usageData);
+
+/** Project-level chart data, over the chart's flattened lines. */
+export const transformProjectMetricsData = (series: MetricSeriesMap) =>
+  mergeSeriesByTimestamp(series);
 
 /**
  * Metric configuration for CPU and Memory charts
@@ -379,6 +389,72 @@ export const getLineOpacity = (
 ): number => {
   return !hoveringDataKey || hoveringDataKey === metricKey ? 1 : 0.5;
 };
+
+/**
+ * Narrow a component-keyed metrics map to the one metric group the chart plots,
+ * keeping the grouping intact.
+ *
+ * `select` picks the group — `cpuUsage`, `memoryUsage`, `networkThroughput`,
+ * `networkLatency` — each of which is already a `metricKey -> points` map, so
+ * the project chart plots exactly the metric keys the component page plots.
+ */
+export const buildProjectSeries = <T>(
+  byComponent: Record<string, T>,
+  select: (metrics: T) => ComponentSeriesMap | undefined,
+): SeriesByComponent =>
+  Object.fromEntries(
+    Object.entries(byComponent).map(([component, metrics]) => [
+      component,
+      select(metrics) ?? ({} as ComponentSeriesMap),
+    ]),
+  );
+
+/**
+ * Pick a Prometheus `step` for the selected window so the chart gets roughly
+ * 120-720 points regardless of range. Shared by the component-level and
+ * project-level metrics hooks.
+ */
+export const calculateStep = (
+  timeRange: string,
+  startTime?: string,
+  endTime?: string,
+): string => {
+  switch (timeRange) {
+    case '10m':
+      return '15s';
+    case '30m':
+      return '30s';
+    case '1h':
+      return '1m';
+    case '24h':
+      return '5m';
+    case '7d':
+      return '30m';
+    case '14d':
+      return '1h';
+    case '30d':
+      return '2h';
+    case 'custom':
+      return stepForCustomRange(startTime, endTime);
+    default:
+      return '1m';
+  }
+};
+
+/** Pick a step that yields ~120-720 data points for the chosen window. */
+function stepForCustomRange(startTime?: string, endTime?: string): string {
+  if (!startTime || !endTime) return '1m';
+  const durationMs =
+    new Date(endTime).getTime() - new Date(startTime).getTime();
+  if (!Number.isFinite(durationMs) || durationMs <= 0) return '1m';
+  const minutes = durationMs / (60 * 1000);
+  if (minutes <= 30) return '15s';
+  if (minutes <= 120) return '30s';
+  if (minutes <= 24 * 60) return '5m';
+  if (minutes <= 7 * 24 * 60) return '30m';
+  if (minutes <= 14 * 24 * 60) return '1h';
+  return '2h';
+}
 
 /**
  * Format metric key to display name (e.g., 'cpuUsage' -> 'CPU Usage')
