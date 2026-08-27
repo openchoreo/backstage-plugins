@@ -75,6 +75,11 @@ export const ProjectHTTPMetricsSection = ({
     () => httpMetrics?.byComponent ?? {},
     [httpMetrics],
   );
+  // The fan-out is partial-tolerant: `useProjectMetrics` only throws when every
+  // component fails. A component missing from the charts is otherwise silent,
+  // so name it here. The resource fan-out is a separate request and carries its
+  // own failures, which the page reports.
+  const failedComponents = httpMetrics?.failedComponents ?? [];
 
   const throughputSeries = useMemo(
     () =>
@@ -133,6 +138,21 @@ export const ProjectHTTPMetricsSection = ({
 
   return (
     <>
+      {/* Partial success: the charts below are real, they are just missing the
+          named components. An error alert would overstate it. */}
+      {failedComponents.length > 0 && (
+        <Grid item xs={12}>
+          <Alert severity="info">
+            <Typography variant="body1">
+              No HTTP metrics for{' '}
+              {failedComponents.map(component => component.name).join(', ')}.
+              Observability may not be enabled for{' '}
+              {failedComponents.length === 1 ? 'it' : 'them'} in this
+              environment.
+            </Typography>
+          </Alert>
+        </Grid>
+      )}
       <Grid item xs={12} md={6}>
         <Card>
           <CardHeader title="Network Throughput" />

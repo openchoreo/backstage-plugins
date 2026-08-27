@@ -250,6 +250,31 @@ describe('ObservabilityProjectMetricsPage', () => {
       expect(screen.getByTestId('http-section')).toBeInTheDocument();
     });
 
+    it('keeps a deep-linked selection while the component list loads', async () => {
+      // Nothing to validate the URL against yet, so the selection stands and
+      // the page opens straight into mode 2 — no wasted aggregate request and
+      // no chart swap once the components arrive.
+      mockUseGetComponentsByProject.mockReturnValue({
+        components: [],
+        loading: true,
+        error: null,
+      });
+      selectComponents(['api']);
+
+      await renderPage();
+
+      expect(enabledArgOf(mockUseProjectMetrics)).toBe(true);
+      expect(enabledArgOf(mockUseMetrics)).toBe(false);
+      expect(mockUseProjectMetrics).toHaveBeenCalledWith(
+        expect.anything(),
+        ['api'],
+        'dev-ns',
+        'url-shortener',
+        'resource',
+        true,
+      );
+    });
+
     it('stays in mode 1 when the URL names a component the project lost', async () => {
       selectComponents(['deleted-component']);
 
