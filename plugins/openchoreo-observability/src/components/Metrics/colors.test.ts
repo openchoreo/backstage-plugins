@@ -22,8 +22,7 @@ describe('componentColorResolver', () => {
   });
 
   it('falls back to the first colour for an unknown component', () => {
-    expect(componentColorResolver(['api'])('ghost')).toEqual(
-      expect.any(String),
-    );
+    const colorOf = componentColorResolver(['api']);
+    expect(colorOf('ghost')).toBe(colorOf('api'));
   });
 });

@@ -102,11 +102,15 @@ const ObservabilityProjectMetricsContent = () => {
 
   // Names from the URL are filtered against the project's real components, so a
   // stale `?components=` param naming a deleted component falls back to the
-  // aggregate instead of fanning out to a 404.
+  // aggregate instead of fanning out to a 404. While the list is still loading
+  // there is nothing to validate against, so the URL is trusted — otherwise a
+  // deep link starts in aggregate mode, fires a wasted request, and swaps the
+  // charts once the components resolve.
   const selectedComponents = useMemo(() => {
+    if (componentsLoading) return filters.components ?? [];
     const known = new Set(components.map(component => component.name));
     return (filters.components ?? []).filter(name => known.has(name));
-  }, [components, filters.components]);
+  }, [components, componentsLoading, filters.components]);
 
   const isBreakdown = selectedComponents.length > 0;
 
