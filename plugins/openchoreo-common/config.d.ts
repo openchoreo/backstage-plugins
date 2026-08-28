@@ -116,6 +116,21 @@ export interface Config {
          */
         enabled?: boolean;
       };
+
+      /**
+       * Incremental catalog ingestion.
+       * When enabled, the burst-based incremental provider replaces the
+       * scheduled full-sync entity provider (which stands down).
+       * @deepVisibility frontend
+       */
+      incrementalIngestion?: {
+        /**
+         * Enable or disable incremental catalog ingestion.
+         * When false (default), the scheduled OpenChoreoEntityProvider runs.
+         * @visibility frontend
+         */
+        enabled?: boolean;
+      };
     };
 
     /**

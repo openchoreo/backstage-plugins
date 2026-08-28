@@ -254,6 +254,14 @@ openchoreo:
   events:
     enabled: ${OPENCHOREO_EVENTS_ENABLED}
 
+  # Incremental ingestion tuning. Only read when
+  # openchoreo.features.incrementalIngestion.enabled is true.
+  incremental:
+    burstLength: 16 # seconds per ingestion burst
+    burstInterval: 8 # seconds between bursts
+    chunkSize: 100 # entities per page; the API caps page size at 100
+    restLength: 60 # minutes of rest after a completed ingestion
+
   # Observability tuning.
   # Hard cap (seconds) on a single wirelogs SSE stream before the backend ends
   # it; the UI shows soft warnings at ~1/3 and ~2/3 of this value and a toast
@@ -289,6 +297,11 @@ openchoreo:
     # LLM API key Secret to be deployed.
     assistant:
       enabled: ${OPENCHOREO_FEATURES_ASSISTANT_ENABLED}
+    # Incremental catalog ingestion - burst-based, cursor-resumable ingestion.
+    # When enabled, replaces the scheduled full-sync entity provider.
+    # Environment variable: OPENCHOREO_FEATURES_INCREMENTAL_INGESTION_ENABLED
+    incrementalIngestion:
+      enabled: ${OPENCHOREO_FEATURES_INCREMENTAL_INGESTION_ENABLED}
     # Secret Management configuration
     # When disabled, hides the Secrets settings tab and disables secret APIs
     secretManagement:
