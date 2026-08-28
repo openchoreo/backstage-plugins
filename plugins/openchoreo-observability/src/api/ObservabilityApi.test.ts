@@ -314,3 +314,88 @@ describe('ObservabilityClient.getFinOpsReport', () => {
     expect(url).toContain('r1%2Fspecial');
   });
 });
+
+describe('ObservabilityClient.getTraceSpans', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resolveUrls.mockResolvedValue({ observerUrl: 'http://observer' });
+  });
+
+  it('passes the OTel status object through unchanged', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({
+        spans: [
+          {
+            spanId: 'span-1',
+            spanName: 'root',
+            startTime: 's',
+            endTime: 'e',
+            durationNs: 100,
+            status: { code: 'error', message: 'boom' },
+          },
+        ],
+        total: 1,
+        tookMs: 3,
+      }),
+    );
+
+    const client = createClient();
+    const result = await client.getTraceSpans(
+      'trace-1',
+      'ns1',
+      'project-a',
+      'dev',
+      'component-a',
+    );
+
+    const [url] = mockFetchApi.fetch.mock.calls[0];
+    expect(url).toBe('http://observer/api/v1alpha1/traces/trace-1/spans/query');
+    expect(result.spans[0].status).toBe('error');
+  });
+});
+
+describe('ObservabilityClient.getSpanDetails', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resolveUrls.mockResolvedValue({ observerUrl: 'http://observer' });
+  });
+
+  it('maps the status code and posts the search scope', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(
+      mockOkResponse({
+        spanId: 'span-1',
+        spanName: 'GET /api',
+        startTime: 's',
+        endTime: 'e',
+        durationNs: 100,
+        status: { code: 'ok' },
+        attributes: [{ key: 'http.method', value: 'GET' }],
+      }),
+    );
+
+    const client = createClient();
+    const result = await client.getSpanDetails(
+      'trace-1',
+      'span-1',
+      'ns1',
+      'proj1',
+      'dev',
+      'comp1',
+    );
+
+    const [url, init] = mockFetchApi.fetch.mock.calls[0];
+    expect(url).toBe(
+      'http://observer/api/v1alpha1/traces/trace-1/spans/span-1',
+    );
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body)).toEqual({
+      searchScope: {
+        namespace: 'ns1',
+        project: 'proj1',
+        component: 'comp1',
+        environment: 'dev',
+      },
+    });
+    expect(result.status).toBe('ok');
+  });
+});
