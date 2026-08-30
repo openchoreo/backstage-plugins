@@ -1,4 +1,4 @@
-import { PropsWithChildren, useEffect } from 'react';
+import { PropsWithChildren, useEffect, useMemo } from 'react';
 import { makeStyles, Tooltip } from '@material-ui/core';
 import HomeIcon from '@material-ui/icons/Home';
 import ExtensionIcon from '@material-ui/icons/Extension';
@@ -36,6 +36,12 @@ import SearchIcon from '@material-ui/icons/Search';
 import { MyGroupsSidebarItem } from '@backstage/plugin-org';
 import GroupIcon from '@material-ui/icons/People';
 import { identityApiRef, useApi } from '@backstage/core-plugin-api';
+import {
+  appTreeApiRef,
+  coreExtensionData,
+  routeResolutionApiRef,
+  useApi as useFrontendApi,
+} from '@backstage/frontend-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
 import MonetizationOnIcon from '@material-ui/icons/MonetizationOn';
@@ -58,6 +64,16 @@ const isMac =
   typeof navigator !== 'undefined' &&
   /Mac|iPhone|iPad/.test(navigator.userAgent);
 const searchShortcutLabel = `Search (${isMac ? '⌘K' : 'Ctrl+K'})`;
+
+const STATIC_SIDEBAR_PATHS = new Set([
+  '',
+  'api-docs',
+  'catalog',
+  'cost-insights',
+  'create',
+  'docs',
+  'platform-overview',
+]);
 
 const useSearchModalStyles = makeStyles({
   '@global': {
@@ -183,6 +199,60 @@ const SignOutButton = () => {
   );
 };
 
+const normalizeSidebarPath = (path: string) =>
+  path.replace(/^\/+/, '').replace(/\/+$/, '');
+
+const DynamicSidebarItems = () => {
+  const appTreeApi = useFrontendApi(appTreeApiRef);
+  const routeResolutionApi = useFrontendApi(routeResolutionApiRef);
+  const items = useMemo(() => {
+    const { tree } = appTreeApi.getTree();
+    const routesNode = tree.nodes.get('app/routes');
+    const pageNodes = routesNode?.edges.attachments.get('routes') ?? [];
+    return pageNodes.flatMap(node => {
+      if (!node.instance || node.spec.disabled) {
+        return [];
+      }
+      const routeRef = node.instance.getData(coreExtensionData.routeRef);
+      if (!routeRef) {
+        return [];
+      }
+      let to: string | undefined;
+      try {
+        to = routeResolutionApi.resolve(routeRef)?.();
+      } catch {
+        return [];
+      }
+      if (!to || STATIC_SIDEBAR_PATHS.has(normalizeSidebarPath(to))) {
+        return [];
+      }
+      const title =
+        node.instance.getData(coreExtensionData.title) ??
+        node.spec.plugin.title ??
+        node.spec.plugin.pluginId;
+      const icon =
+        node.instance.getData(coreExtensionData.icon) ?? node.spec.plugin.icon;
+      if (!title || !icon) {
+        return [];
+      }
+      return [{ id: node.spec.id, to, title, icon }];
+    });
+  }, [appTreeApi, routeResolutionApi]);
+
+  return (
+    <>
+      {items.map(item => (
+        <SidebarItem
+          key={item.id}
+          icon={() => <>{item.icon}</>}
+          to={item.to}
+          text={item.title}
+        />
+      ))}
+    </>
+  );
+};
+
 export const Root = ({ children }: PropsWithChildren<{}>) => {
   useSearchModalStyles();
   const a11yClasses = useA11yStyles();
@@ -253,6 +323,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
                 {/* End global nav */}
                 <SidebarScrollWrapper>
                   {/* Items in this group will be scrollable if they run out of space */}
+                  <DynamicSidebarItems />
                 </SidebarScrollWrapper>
               </SidebarGroup>
               <SidebarSpace />
