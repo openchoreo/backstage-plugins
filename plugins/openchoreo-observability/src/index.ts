@@ -10,6 +10,7 @@ export {
   ObservabilityWirelogs,
   ObservabilityProjectIncidents,
   ObservabilityCostAnalysis,
+  ObservabilityCostInsightsSummaryCard,
 } from './plugin';
 export type { RenderLogRowAction } from './components/RuntimeLogs/LogEntry';
 export {

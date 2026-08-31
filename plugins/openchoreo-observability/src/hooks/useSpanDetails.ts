@@ -6,7 +6,9 @@ import { SpanDetails } from '../types';
 
 interface UseSpanDetailsOptions {
   namespaceName: string;
+  projectName: string;
   environmentName: string;
+  componentName?: string;
 }
 
 /**
@@ -23,18 +25,42 @@ export function useSpanDetails(options: UseSpanDetailsOptions) {
   // Bumped whenever a fetch resolves so cache-backed reads re-render.
   const [, setVersion] = useState(0);
 
-  // Composite key for the local loading/error maps.
-  const makeKey = (traceId: string, spanId: string) => `${traceId}::${spanId}`;
+  // Composite key for the local loading/error maps. Scoped to match detailsKey
+  // so switching components can't reuse another scope's pending/error state.
+  const makeKey = useCallback(
+    (traceId: string, spanId: string) =>
+      [
+        options.namespaceName,
+        options.projectName,
+        options.environmentName,
+        options.componentName ?? '',
+        traceId,
+        spanId,
+      ].join('::'),
+    [
+      options.namespaceName,
+      options.projectName,
+      options.environmentName,
+      options.componentName,
+    ],
+  );
 
   const detailsKey = useCallback(
     (traceId: string, spanId: string) => [
       'span-details',
       options.namespaceName,
+      options.projectName,
       options.environmentName,
+      options.componentName ?? '',
       traceId,
       spanId,
     ],
-    [options.namespaceName, options.environmentName],
+    [
+      options.namespaceName,
+      options.projectName,
+      options.environmentName,
+      options.componentName,
+    ],
   );
 
   const fetchSpanDetails = useCallback(
@@ -61,7 +87,9 @@ export function useSpanDetails(options: UseSpanDetailsOptions) {
             traceId,
             spanId,
             options.namespaceName,
+            options.projectName,
             options.environmentName,
+            options.componentName,
           ),
         );
         setVersion(v => v + 1);
@@ -80,7 +108,7 @@ export function useSpanDetails(options: UseSpanDetailsOptions) {
         });
       }
     },
-    [observabilityApi, options, loadingMap, cache, detailsKey],
+    [observabilityApi, options, loadingMap, cache, detailsKey, makeKey],
   );
 
   const getDetails = useCallback(
@@ -92,13 +120,13 @@ export function useSpanDetails(options: UseSpanDetailsOptions) {
   const isLoading = useCallback(
     (traceId: string, spanId: string): boolean =>
       loadingMap.get(makeKey(traceId, spanId)) ?? false,
-    [loadingMap],
+    [loadingMap, makeKey],
   );
 
   const getError = useCallback(
     (traceId: string, spanId: string): string | undefined =>
       errorMap.get(makeKey(traceId, spanId)),
-    [errorMap],
+    [errorMap, makeKey],
   );
 
   return {

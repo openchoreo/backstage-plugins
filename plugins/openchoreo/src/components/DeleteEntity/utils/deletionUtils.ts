@@ -15,3 +15,24 @@ export function isMarkedForDeletion(entity: Entity): boolean {
 export function getDeletionTimestamp(entity: Entity): string | undefined {
   return entity.metadata.annotations?.[CHOREO_ANNOTATIONS.DELETION_TIMESTAMP];
 }
+
+/**
+ * Returns a copy of the entity carrying the deletion-timestamp annotation,
+ * so listings can show the "marked for deletion" badge immediately after a
+ * delete — before the catalog re-ingests the deletion from the control plane.
+ */
+export function markEntityForDeletionLocally(entity: Entity): Entity {
+  if (isMarkedForDeletion(entity)) {
+    return entity;
+  }
+  return {
+    ...entity,
+    metadata: {
+      ...entity.metadata,
+      annotations: {
+        ...(entity.metadata.annotations ?? {}),
+        [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: new Date().toISOString(),
+      },
+    },
+  };
+}

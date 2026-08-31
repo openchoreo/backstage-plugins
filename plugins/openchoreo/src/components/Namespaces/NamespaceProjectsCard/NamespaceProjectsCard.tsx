@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link, Table, TableColumn } from '@backstage/core-components';
 import { useApp } from '@backstage/core-plugin-api';
 import { Entity, RELATION_HAS_PART } from '@backstage/catalog-model';
@@ -6,7 +7,13 @@ import { Box, Button, Tooltip, Typography } from '@material-ui/core';
 import { Skeleton } from '@openchoreo/backstage-design-system';
 import AddIcon from '@material-ui/icons/Add';
 import { useNavigate } from 'react-router-dom';
-import { isMarkedForDeletion, DeletionBadge } from '../../DeleteEntity';
+import {
+  isMarkedForDeletion,
+  DeletionBadge,
+  RowDeleteButton,
+  useDeleteEntityDialog,
+  usePendingDeletionOverlay,
+} from '../../DeleteEntity';
 import {
   useRelatedEntitiesQuery,
   useScopedProjectCreatePermission,
@@ -29,6 +36,18 @@ export const NamespaceProjectsCard = () => {
     createDeniedTooltip,
   } = useScopedProjectCreatePermission();
   const navigate = useNavigate();
+
+  // Row-level project delete. The related-entities list has no refetch, so
+  // deleted rows are overlaid with the deletion mark until the catalog sync
+  // drops them.
+  const { markDeleted, overlay } = usePendingDeletionOverlay();
+  const { requestDelete, DeleteDialog } = useDeleteEntityDialog({
+    onDeleted: markDeleted,
+  });
+  const displayedSystems = useMemo(
+    () => overlay(systems || []),
+    [systems, overlay],
+  );
 
   const columns: TableColumn<Entity>[] = [
     {
@@ -69,6 +88,15 @@ export const NamespaceProjectsCard = () => {
         </Typography>
       ),
     },
+    {
+      title: '',
+      sorting: false,
+      width: '5%',
+      cellStyle: { textAlign: 'right', paddingRight: 8 },
+      render: (row: Entity) => (
+        <RowDeleteButton entity={row} onDelete={requestDelete} />
+      ),
+    },
   ];
 
   // While loading, render skeleton rows on the card's paper background instead
@@ -90,7 +118,7 @@ export const NamespaceProjectsCard = () => {
       <Table
         title="Has Projects"
         columns={loading ? skeletonColumns : columns}
-        data={loading ? skeletonRows : systems || []}
+        data={loading ? skeletonRows : displayedSystems}
         isLoading={false}
         onRowClick={(event, rowData) => {
           if (
@@ -153,6 +181,7 @@ export const NamespaceProjectsCard = () => {
           ),
         }}
       />
+      <DeleteDialog />
     </Box>
   );
 };

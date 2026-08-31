@@ -234,6 +234,120 @@ yarn add @openchoreo/backstage-plugin-api
 
 Note: You'll need a GitHub personal access token with `packages:read` permission to install from GitHub Packages.
 
+### Wiring the plugins into your Backstage app
+
+The plugins ship as [Backstage New Frontend System](https://backstage.io/docs/frontend-system/) features via their `/alpha` entry points. In `packages/app/src/App.tsx`:
+
+```ts
+import { createApp } from '@backstage/frontend-defaults';
+import openchoreoPluginAlpha, {
+  // Opt-in feature — see "Entity page chrome" below
+  openChoreoEntityPageOverride,
+} from '@openchoreo/backstage-plugin/alpha';
+import openchoreoCiPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-ci/alpha';
+import openchoreoObservabilityPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
+import openchoreoWorkflowsPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-workflows/alpha';
+
+const app = createApp({
+  features: [
+    openchoreoPluginAlpha,
+    openchoreoCiPluginAlpha,
+    openchoreoObservabilityPluginAlpha,
+    openchoreoWorkflowsPluginAlpha,
+    // Opt-in: applies the OpenChoreo compact header + styled tab bar to
+    // every entity page. Omit if you prefer vanilla Backstage chrome —
+    // tabs, cards, and per-kind Overview layouts still work either way.
+    openChoreoEntityPageOverride,
+  ],
+});
+```
+
+If you want the entire OpenChoreo portal (custom pages, sign-in, catalog view, everything), install `@openchoreo/backstage-portal-app` instead — that package composes all of the above plus a lot more:
+
+```ts
+import { createPortalApp } from '@openchoreo/backstage-portal-app';
+export default createPortalApp().createRoot();
+```
+
+### What you get automatically
+
+Installing `@openchoreo/backstage-plugin` (and the sibling plugins for CI / observability / workflows) contributes the following via NFS blueprints, consumed by upstream's canonical `page:catalog/entity`:
+
+- **Tabs** (`EntityContentBlueprint`) — Definition (~21 OC-owned kinds), Deploy (component / resource), Build (component), Cell Diagram (system), Logs / Events / Metrics / Alerts / Wirelogs (component), Logs / Traces / Incidents / RCA Reports / Cost Analysis (system), Runs (workflow)
+- **Cards** (`EntityCardBlueprint`) — 28 kind-scoped cards feeding the Overview tab (DeploymentStatusCard for component, EnvironmentStatusSummaryCard for environment, and so on)
+- **Per-kind Overview layouts** (`EntityContentLayoutBlueprint`) — 18 bespoke grids that arrange the cards in the same positions as the portal. Component, System (Project), Domain (Namespace), managed Resource, Environment, Dataplane / ClusterDataplane, WorkflowPlane / Cluster, ObservabilityPlane / Cluster, DeploymentPipeline, and every Type / Workflow family kind get a bespoke layout; upstream kinds (User, Group, API, vanilla Resource) fall back to Backstage's default 2-column info/content grid
+- **Context menu items** (`EntityContextMenuItemBlueprint`) — permission-gated "Delete" and "Edit annotations" entries in the entity's `...` menu
+- **The `OpenChoreoAboutCard` + `ContainedCatalogGraphCard`** components, exposed as regular React exports for direct use if you compose your own layouts
+
+### Entity page chrome
+
+The OpenChoreo portal uses a bespoke compact header + styled tab bar (`OpenChoreoEntityLayout`). This isn't the default — you opt in by adding `openChoreoEntityPageOverride` to your `features` array (see the snippet above). Without it, entity pages render inside upstream's canonical `<EntityLayout>` — same tabs, same Overview grids, different framing.
+
+### Tab ordering and grouping
+
+For adopters using upstream chrome, tab order comes from `app.pages.entity.config`. Our recommended defaults:
+
+```yaml
+app:
+  pages:
+    entity:
+      config:
+        defaultContentOrder: natural
+        groups:
+          - overview: { title: Overview }
+          - definition: { title: Definition }
+          - deployment: { title: Deployment, contentOrder: natural }
+          - runtime: { title: Runtime, contentOrder: natural }
+          - analysis: { title: Analysis, contentOrder: natural }
+          - external: { title: External }
+```
+
+Each of our `EntityContentBlueprint`s declares a `group` matching one of these ids — Build / Deploy / Cell Diagram / Runs go into `deployment`, Logs / Events / Metrics / Alerts / Wirelogs into `runtime`, Traces / Incidents / RCA / Cost into `analysis`, and Definition gets its own group.
+
+Note: `openChoreoEntityPageOverride` renders its own tab bar (via `OpenChoreoEntityLayout`) and doesn't read `groups` — the config block above only affects vanilla-chrome adopters.
+
+### Disabling or overriding individual pieces
+
+Everything the plugins contribute is a Backstage NFS extension, disable-able and override-able via app-config:
+
+```yaml
+app:
+  extensions:
+    # Turn off the OpenChoreo Component Overview layout and fall back to
+    # the upstream default 2-column info/content grid
+    - entity-content-layout:openchoreo/component-overview: false
+    # Hide the Wirelogs tab in your deployment
+    - entity-content:openchoreo-observability/wirelogs: false
+    # Move the Build tab into your own custom group
+    - entity-content:openchoreo-ci/workflows:
+        config:
+          group: engineering
+```
+
+Or ship your own `EntityContentLayoutBlueprint` with a tighter filter — first-matching-layout wins, so a narrower filter beats ours.
+
+### Community CI tabs
+
+Component pages that carry Jenkins / GitHub Actions / GitLab annotations will render an extra tab per platform — those come from the upstream community plugins, not from OpenChoreo. Register them in your `features` array if you want the tabs:
+
+```ts
+import { createApp } from '@backstage/frontend-defaults';
+import techdocsPluginAlpha from '@backstage/plugin-techdocs/alpha';
+import jenkinsPluginAlpha from '@backstage-community/plugin-jenkins/alpha';
+import githubActionsPluginAlpha from '@backstage-community/plugin-github-actions/alpha';
+import gitlabPluginAlpha from '@immobiliarelabs/backstage-plugin-gitlab/alpha';
+
+const app = createApp({
+  features: [
+    // ...openchoreo plugins...
+    techdocsPluginAlpha,
+    jenkinsPluginAlpha,
+    githubActionsPluginAlpha,
+    gitlabPluginAlpha,
+  ],
+});
+```
+
 ## Feature Flags
 
 OpenChoreo includes configurable feature flags that allow you to enable or disable major functionality without code changes.

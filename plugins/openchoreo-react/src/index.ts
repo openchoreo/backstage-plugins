@@ -193,6 +193,10 @@ export {
   useHasAnyAnnotation,
 } from './hooks/useEntityAnnotation';
 export {
+  useEntityDeletePermission,
+  type UseEntityDeletePermissionResult,
+} from './hooks/useEntityDeletePermission';
+export {
   useOpenChoreoFeatures,
   useWorkflowsEnabled,
   useObservabilityEnabled,
@@ -425,6 +429,7 @@ export {
   useReleaseBindingUpdatePermission,
   type UseReleaseBindingUpdatePermissionResult,
 } from './hooks/useReleaseBindingUpdatePermission';
+export { useEnvScopedPermission } from './hooks/useEnvScopedPermission';
 export {
   useResourceReleaseBindingUpdatePermission,
   type UseResourceReleaseBindingUpdatePermissionResult,

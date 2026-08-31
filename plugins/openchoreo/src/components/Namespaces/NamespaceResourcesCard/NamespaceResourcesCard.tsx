@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link, Table, TableColumn } from '@backstage/core-components';
 import { useApp } from '@backstage/core-plugin-api';
 import { Entity, RELATION_HAS_PART } from '@backstage/catalog-model';
@@ -6,6 +7,13 @@ import { Box, Typography } from '@material-ui/core';
 import { Skeleton } from '@openchoreo/backstage-design-system';
 import { useRelatedEntitiesQuery } from '@openchoreo/backstage-plugin-react';
 import { useNavigate } from 'react-router-dom';
+import {
+  isMarkedForDeletion,
+  DeletionBadge,
+  RowDeleteButton,
+  useDeleteEntityDialog,
+  usePendingDeletionOverlay,
+} from '../../DeleteEntity';
 import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import { useNamespaceResourcesCardStyles } from './styles';
 
@@ -28,8 +36,19 @@ export const NamespaceResourcesCard = () => {
     type: RELATION_HAS_PART,
   });
 
-  const resources = (entities || []).filter(
-    e => e.kind.toLowerCase() !== 'system',
+  // Row-level delete (components and resources; RowDeleteButton hides itself
+  // for non-deletable kinds like `api`). The related-entities list has no
+  // refetch, so deleted rows are overlaid with the deletion mark until the
+  // catalog sync drops them.
+  const { markDeleted, overlay } = usePendingDeletionOverlay();
+  const { requestDelete, DeleteDialog } = useDeleteEntityDialog({
+    onDeleted: markDeleted,
+  });
+
+  const resources = useMemo(
+    () =>
+      overlay((entities || []).filter(e => e.kind.toLowerCase() !== 'system')),
+    [entities, overlay],
   );
 
   const columns: TableColumn<Entity>[] = [
@@ -39,16 +58,26 @@ export const NamespaceResourcesCard = () => {
       highlight: true,
       render: (row: Entity) => {
         const Icon = app.getSystemIcon(`kind:${row.kind.toLowerCase()}`);
+        const name = row.metadata.title || row.metadata.name;
         return (
           <Box display="flex" alignItems="center" gridGap={6}>
             {Icon && <Icon fontSize="small" />}
-            <Link
-              to={`/catalog/${
-                row.metadata.namespace || 'default'
-              }/${row.kind.toLowerCase()}/${row.metadata.name}`}
-            >
-              {row.metadata.title || row.metadata.name}
-            </Link>
+            {isMarkedForDeletion(row) ? (
+              <>
+                <Typography variant="body2" color="textSecondary">
+                  {name}
+                </Typography>
+                <DeletionBadge />
+              </>
+            ) : (
+              <Link
+                to={`/catalog/${
+                  row.metadata.namespace || 'default'
+                }/${row.kind.toLowerCase()}/${row.metadata.name}`}
+              >
+                {name}
+              </Link>
+            )}
           </Box>
         );
       },
@@ -67,6 +96,15 @@ export const NamespaceResourcesCard = () => {
         <Typography variant="body2">
           {row.metadata.description || '-'}
         </Typography>
+      ),
+    },
+    {
+      title: '',
+      sorting: false,
+      width: '5%',
+      cellStyle: { textAlign: 'right', paddingRight: 8 },
+      render: (row: Entity) => (
+        <RowDeleteButton entity={row} onDelete={requestDelete} />
       ),
     },
   ];
@@ -93,7 +131,13 @@ export const NamespaceResourcesCard = () => {
         data={loading ? skeletonRows : resources}
         isLoading={false}
         onRowClick={(event, rowData) => {
-          if (loading || !rowData || !shouldNavigateOnRowClick(event)) return;
+          if (
+            loading ||
+            !rowData ||
+            !shouldNavigateOnRowClick(event) ||
+            isMarkedForDeletion(rowData)
+          )
+            return;
           const ns = rowData.metadata.namespace || 'default';
           navigate(
             `/catalog/${ns}/${rowData.kind.toLowerCase()}/${
@@ -119,6 +163,7 @@ export const NamespaceResourcesCard = () => {
         }}
         style={{ minWidth: 0, width: '100%', height: 'calc(100% - 10px)' }}
       />
+      <DeleteDialog />
     </Box>
   );
 };

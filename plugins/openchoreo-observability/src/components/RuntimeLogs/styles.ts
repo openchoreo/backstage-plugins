@@ -100,7 +100,6 @@ export const useLogsTableStyles = makeStyles(theme => ({
 
 export const useLogEntryStyles = makeStyles(theme => ({
   logRow: {
-    cursor: 'pointer',
     // Match MUI `<TableCell>`'s hardcoded light grey rather than
     // `palette.divider`, which is alpha-based and blends darker against
     // Backstage's Paper background.
@@ -119,7 +118,9 @@ export const useLogEntryStyles = makeStyles(theme => ({
   // 'center'` mirrors the default `vertical-align: middle` of MUI table cells,
   // so the LogLevel chip and timestamp stay centered when the Log column wraps
   // to multiple lines.
+  // `cursor` toggles row expansion. Expanded panel below it is selectable text.
   logRowMain: {
+    cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     width: '100%',

@@ -4,13 +4,6 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import type { CostScope, CostScopeLevel } from './types';
 
-// The catalog kind whose entities back each level's table rows.
-const KIND_BY_LEVEL: Record<CostScopeLevel, string> = {
-  namespace: 'System', // rows are projects (Project = System)
-  project: 'Component',
-  component: 'Environment',
-};
-
 /**
  * Maps the raw dimension names the cost API returns (project / component /
  * environment) to their catalog `metadata.title`, so table rows read "GCP
@@ -19,57 +12,100 @@ const KIND_BY_LEVEL: Record<CostScopeLevel, string> = {
  *
  * The dimension entity kind depends on the level: at the namespace level rows
  * are projects (System), at the project level components (Component), and at
- * the component level environments (Environment).
+ * the component level environments (Environment). Titles are fetched across
+ * every selected scope so multi-select rows all resolve.
  */
 export function useDimensionTitles(
   level: CostScopeLevel,
-  scope: CostScope,
+  scopes: CostScope[],
 ): Record<string, string> {
   const catalogApi = useApi(catalogApiRef);
+
+  const namespaces = [
+    ...new Set(scopes.map(s => s.namespace).filter(Boolean) as string[]),
+  ].sort();
+  const projectKeys =
+    level === 'project'
+      ? [...new Set(scopes.map(s => `${s.namespace}/${s.project}`))].sort()
+      : [];
 
   const { data } = useOpenChoreoQuery<Record<string, string>>(
     [
       'cost-insights-dimension-titles',
       level,
-      scope.namespace ?? '',
-      scope.project ?? '',
+      namespaces.join(','),
+      projectKeys.join(','),
     ],
     async () => {
-      const kind = KIND_BY_LEVEL[level];
+      const map: Record<string, string> = {};
+      // Names can collide across namespaces/projects. If the same name resolves
+      // to different titles it's ambiguous, so drop it and let the table fall
+      // back to the raw name rather than pick one non-deterministically.
+      const ambiguous = new Set<string>();
+      const record = (name: string, title: string | undefined) => {
+        if (!title) return;
+        const existing = map[name];
+        if (existing !== undefined && existing !== title) {
+          ambiguous.add(name);
+          return;
+        }
+        map[name] = title;
+      };
+      const pruneAmbiguous = () => {
+        for (const name of ambiguous) delete map[name];
+        return map;
+      };
 
-      // Components are namespace-scoped via annotations, not `metadata.namespace`.
-      const { items } = await catalogApi.getEntities({
-        filter:
-          kind === 'Component'
-            ? {
-                kind,
+      if (level === 'project') {
+        // Rows are components, namespace-scoped via annotations per project.
+        await Promise.all(
+          scopes.map(async scope => {
+            const { items } = await catalogApi.getEntities({
+              filter: {
+                kind: 'Component',
                 [`metadata.annotations.${CHOREO_ANNOTATIONS.NAMESPACE}`]:
                   scope.namespace!,
                 [`metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT}`]:
                   scope.project!,
+              },
+              fields: [
+                'metadata.name',
+                'metadata.title',
+                'metadata.annotations',
+              ],
+            });
+            for (const entity of items) {
+              const ann = entity.metadata.annotations ?? {};
+              if (
+                ann[CHOREO_ANNOTATIONS.NAMESPACE] !== scope.namespace ||
+                ann[CHOREO_ANNOTATIONS.PROJECT] !== scope.project
+              ) {
+                continue;
               }
-            : { kind, 'metadata.namespace': scope.namespace! },
-        fields: ['metadata.name', 'metadata.title', 'metadata.annotations'],
-      });
-
-      const map: Record<string, string> = {};
-      for (const entity of items) {
-        if (kind === 'Component') {
-          const ann = entity.metadata.annotations ?? {};
-          if (
-            ann[CHOREO_ANNOTATIONS.NAMESPACE] !== scope.namespace ||
-            ann[CHOREO_ANNOTATIONS.PROJECT] !== scope.project
-          ) {
-            continue;
-          }
-        }
-        if (entity.metadata.title) {
-          map[entity.metadata.name] = entity.metadata.title;
-        }
+              record(entity.metadata.name, entity.metadata.title);
+            }
+          }),
+        );
+        return pruneAmbiguous();
       }
-      return map;
+
+      // namespace level -> Systems (rows are projects); component level ->
+      // Environments (rows are envs). Both are keyed by metadata.namespace.
+      const kind = level === 'namespace' ? 'System' : 'Environment';
+      await Promise.all(
+        namespaces.map(async namespace => {
+          const { items } = await catalogApi.getEntities({
+            filter: { kind, 'metadata.namespace': namespace },
+            fields: ['metadata.name', 'metadata.title'],
+          });
+          for (const entity of items) {
+            record(entity.metadata.name, entity.metadata.title);
+          }
+        }),
+      );
+      return pruneAmbiguous();
     },
-    { enabled: Boolean(scope.namespace) },
+    { enabled: scopes.length > 0 },
   );
 
   return data ?? {};

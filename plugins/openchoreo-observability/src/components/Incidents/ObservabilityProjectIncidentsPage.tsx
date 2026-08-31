@@ -177,22 +177,20 @@ const ObservabilityProjectIncidentsContent = () => {
     [entity, projectName, filters.environment, filters.timeRange],
   );
 
-  // Open the Cost Analysis tab of this project entity in a new browser tab,
-  // pre-filtered by environment and time range.
+  // Open the Cost Analysis tab of the Cost Insights page in a new browser tab,
+  // scoped to this project and pre-filtered by environment and time range.
   const handleViewCostAnalysis = useCallback(
     (_incident: IncidentSummary) => {
-      const catalogNs = entity.metadata.namespace || 'default';
       const params = new URLSearchParams({
+        namespace,
+        project: projectName,
         ...(filters.environment ? { env: filters.environment } : {}),
         ...(filters.timeRange ? { timeRange: filters.timeRange } : {}),
       });
-      const query = params.toString();
-      const url = `/catalog/${catalogNs}/system/${projectName}/cost-analysis${
-        query ? `?${query}` : ''
-      }`;
+      const url = `/cost-insights/cost-analysis?${params.toString()}`;
       window.open(url, '_blank', 'noopener,noreferrer');
     },
-    [entity, projectName, filters.environment, filters.timeRange],
+    [namespace, projectName, filters.environment, filters.timeRange],
   );
 
   const handleAcknowledge = useCallback(

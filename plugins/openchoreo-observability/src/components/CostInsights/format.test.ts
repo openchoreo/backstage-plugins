@@ -1,11 +1,11 @@
 import { formatCost, formatUsd, formatEfficiency, formatDelta } from './format';
 
 describe('formatCost', () => {
-  it('renders costs with 5 decimal places so sub-cent values stay visible', () => {
-    expect(formatCost(0.00047)).toBe('0.00047');
-    expect(formatCost(0.00024)).toBe('0.00024');
-    expect(formatCost(22)).toBe('22.00000');
-    expect(formatCost(0)).toBe('0.00000');
+  it('renders costs rounded to 2 decimal places', () => {
+    expect(formatCost(0.00047)).toBe('0.00');
+    expect(formatCost(1.235)).toBe('1.24');
+    expect(formatCost(22)).toBe('22.00');
+    expect(formatCost(0)).toBe('0.00');
   });
 });
 

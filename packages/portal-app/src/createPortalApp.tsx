@@ -37,7 +37,9 @@ import { AppRouter, FlatRoutes } from '@backstage/core-app-api';
 // NFS plugin features (created in Step 2 — each plugin's `/alpha` exports a
 // `createFrontendPlugin` instance). These replace the API factory entries
 // that previously lived in `apis.ts`.
-import openchoreoPluginAlpha from '@openchoreo/backstage-plugin/alpha';
+import openchoreoPluginAlpha, {
+  openChoreoEntityPageOverride,
+} from '@openchoreo/backstage-plugin/alpha';
 import openchoreoCiPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-ci/alpha';
 import openchoreoObservabilityPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
 import openchoreoWorkflowsPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-workflows/alpha';
@@ -51,10 +53,12 @@ import platformEngineerCorePluginAlpha from '@openchoreo/backstage-plugin-platfo
 // - customTranslationsModule reinstates the catalog-import header overrides
 //   that previously rode via createApp.__experimentalTranslations
 import {
+  apiDocsPluginAlpha,
   catalogGraphPluginAlpha,
   catalogPluginAlpha,
   customAppModule,
   scaffolderPluginAlpha as upstreamScaffolderPluginAlpha,
+  techdocsPluginAlpha,
 } from './apis/customOverrides';
 
 // catalog-import NFS plugin — registered so the `/catalog-import` route ref
@@ -66,8 +70,21 @@ import catalogImportPluginAlpha from '@backstage/plugin-catalog-import/alpha';
 // `/api-docs` route (CustomApiExplorerPage) and the Kubernetes entity tab
 // reuses upstream `EntityKubernetesContent`; without these features the apis
 // they depend on are absent and the tabs throw `NotImplementedError`.
-import apiDocsPluginAlpha from '@backstage/plugin-api-docs/alpha';
 import kubernetesPluginAlpha from '@backstage/plugin-kubernetes/alpha';
+// Community CI plugins — each ships an `/alpha` that contributes their
+// entity-page tabs via `EntityContentBlueprint`. Registered so the Jenkins /
+// GitHub Actions / GitLab tabs continue to show up on Component pages once
+// the hand-authored `EntityPage.tsx` is gone. Each plugin filters itself by
+// the relevant annotation.
+//
+// `apiDocsPluginAlpha` and `techdocsPluginAlpha` come from
+// `./apis/customOverrides` instead of the raw upstream alphas — they extend
+// the default filters with `hasApis(entity)` and `isTechDocsAvailable(entity)`
+// so the "APIs" and "TechDocs" tabs are hidden when the entity doesn't
+// support them (the pre-NFS `EntityPage.tsx` predicates, ported).
+import jenkinsPluginAlpha from '@backstage-community/plugin-jenkins/alpha';
+import githubActionsPluginAlpha from '@backstage-community/plugin-github-actions/alpha';
+import gitlabPluginAlpha from '@immobiliarelabs/backstage-plugin-gitlab/alpha';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
@@ -169,7 +186,7 @@ const routes = (
       element={<CatalogGraphPage renderNode={CustomGraphNode} />}
     />
     <Route path="/platform-overview" element={<PlatformOverviewPage />} />
-    <Route path="/cost-insights" element={<CostInsightsPage />} />
+    <Route path="/cost-insights/*" element={<CostInsightsPage />} />
     <Route path="/delivery-insights" element={<DeliveryInsightsPage />} />
     {/*
       Standalone full-window exec terminal, opened in a new browser tab from the
@@ -224,11 +241,26 @@ export function createPortalApp(options?: PortalAppOptions) {
       catalogImportPluginAlpha,
       apiDocsPluginAlpha,
       kubernetesPluginAlpha,
-      openchoreoPluginAlpha,
+      techdocsPluginAlpha,
+      jenkinsPluginAlpha,
+      githubActionsPluginAlpha,
+      gitlabPluginAlpha,
+      // `openchoreoCiPluginAlpha` is registered BEFORE `openchoreoPluginAlpha`
+      // so that within the `deployment` tab group the "Build" tab (contributed
+      // by CI) shows before "Deploy" (contributed by the base plugin) — matching
+      // the pre-NFS `EntityPage.tsx` order. Tab ordering by group is handled by
+      // `openChoreoEntityPageOverride`'s sort; ties within a group fall back to
+      // registration order, which this line controls.
       openchoreoCiPluginAlpha,
+      openchoreoPluginAlpha,
       openchoreoObservabilityPluginAlpha,
       openchoreoWorkflowsPluginAlpha,
       platformEngineerCorePluginAlpha,
+      // Overrides the canonical `page:catalog/entity` loader to mount
+      // `OpenChoreoEntityLayout` (compact header + styled tab bar + delete /
+      // annotation menu items). Ships from `@openchoreo/backstage-plugin/alpha`
+      // so external adopters can opt in the same way.
+      openChoreoEntityPageOverride,
       ...(options?.features ?? []),
     ],
     bindRoutes({ bind }) {

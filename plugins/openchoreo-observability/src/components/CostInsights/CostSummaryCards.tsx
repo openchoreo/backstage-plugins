@@ -1,7 +1,8 @@
 import { FC } from 'react';
-import { Grid, Typography, makeStyles } from '@material-ui/core';
+import { Grid, Tooltip, Typography, makeStyles } from '@material-ui/core';
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { Card } from '@openchoreo/backstage-design-system';
 import type { CostSummary } from './types';
 import { formatUsd, formatEfficiency } from './format';
@@ -15,15 +16,29 @@ const useStyles = makeStyles(theme => ({
   },
   label: {
     fontWeight: 600,
-    fontSize: theme.typography.h6.fontSize,
+    fontSize: '0.75rem',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: theme.palette.text.secondary,
+  },
+  value: {
+    fontWeight: 700,
+    fontSize: '1.5rem',
+    lineHeight: 1.1,
     color: theme.palette.text.primary,
   },
-  value: { fontWeight: 700 },
+  valueDense: { fontSize: '1.15rem' },
   delta: { display: 'inline-flex', alignItems: 'center', gap: 2 },
   up: { color: theme.palette.error.main },
   down: { color: theme.palette.success.main },
   deltaIcon: { fontSize: 16 },
   muted: { color: theme.palette.text.secondary },
+  labelRow: { display: 'flex', alignItems: 'center', gap: theme.spacing(0.5) },
+  infoIcon: {
+    fontSize: 15,
+    color: theme.palette.text.secondary,
+    cursor: 'help',
+  },
 }));
 
 export interface CostSummaryCardsProps {
@@ -57,23 +72,53 @@ const DeltaChip: FC<{ deltaPct: number | null }> = ({ deltaPct }) => {
   );
 };
 
+/**
+ * The Total Cost card's inner content (label, headline value, delta), without a
+ * `Card` wrapper — so it can be reused both here and in the catalog overview's
+ * cost summary card without nesting one `Card` inside another.
+ */
+export const TotalCostContent: FC<{
+  summary: CostSummary;
+  dense?: boolean;
+}> = ({ summary, dense }) => {
+  const classes = useStyles();
+  return (
+    <>
+      <Typography className={classes.label}>Total Cost</Typography>
+      <Typography
+        component="div"
+        className={`${classes.value} ${dense ? classes.valueDense : ''}`}
+      >
+        {formatUsd(summary.totalCost)}
+      </Typography>
+      <DeltaChip deltaPct={summary.deltaPct} />
+    </>
+  );
+};
+
 export const CostSummaryCards: FC<CostSummaryCardsProps> = ({ summary }) => {
   const classes = useStyles();
   return (
     <Grid container spacing={2}>
       <Grid item xs={12} sm={4}>
         <Card padding={16} className={classes.card}>
-          <Typography className={classes.label}>Total Cost</Typography>
-          <Typography variant="h5" className={classes.value}>
-            {formatUsd(summary.totalCost)}
-          </Typography>
-          <DeltaChip deltaPct={summary.deltaPct} />
+          <TotalCostContent summary={summary} />
         </Card>
       </Grid>
       <Grid item xs={12} sm={4}>
         <Card padding={16} className={classes.card}>
-          <Typography className={classes.label}>Forecast this month</Typography>
-          <Typography variant="h5" className={classes.value}>
+          <div className={classes.labelRow}>
+            <Typography className={classes.label}>
+              Forecast this month
+            </Typography>
+            <Tooltip
+              title="Extrapolates the selected time window's spend rate across the whole month. Hence the forecast can change with the time range you pick, especially when only part of that range has cost data."
+              arrow
+            >
+              <InfoOutlinedIcon className={classes.infoIcon} />
+            </Tooltip>
+          </div>
+          <Typography component="div" className={classes.value}>
             {formatUsd(summary.forecastThisMonth)}
           </Typography>
           <Typography variant="body2" className={classes.muted}>
@@ -83,8 +128,16 @@ export const CostSummaryCards: FC<CostSummaryCardsProps> = ({ summary }) => {
       </Grid>
       <Grid item xs={12} sm={4}>
         <Card padding={16} className={classes.card}>
-          <Typography className={classes.label}>Efficiency</Typography>
-          <Typography variant="h5" className={classes.value}>
+          <div className={classes.labelRow}>
+            <Typography className={classes.label}>Efficiency</Typography>
+            <Tooltip
+              title="Share of provisioned resources actually used (usage/requested) as a percentage, weighted by cost. Low efficiency means you are paying for capacity that sits idle."
+              arrow
+            >
+              <InfoOutlinedIcon className={classes.infoIcon} />
+            </Tooltip>
+          </div>
+          <Typography component="div" className={classes.value}>
             {formatEfficiency(summary.efficiency)}
           </Typography>
         </Card>

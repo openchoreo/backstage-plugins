@@ -1,4 +1,9 @@
 export {
+  isOpenChoreoManagedEntity,
+  isOpenChoreoManagedOfKind,
+} from './entityFilters';
+
+export {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
   GENERIC_SECRET_TYPE_VALUE,

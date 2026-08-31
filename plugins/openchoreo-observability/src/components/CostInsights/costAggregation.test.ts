@@ -1,6 +1,7 @@
 import type { CostItem, CostRecommendationItem } from '../../types';
 import {
   deriveLevel,
+  expandSelection,
   dimensionOf,
   totalCost,
   percentChange,
@@ -9,6 +10,7 @@ import {
   aggregateRows,
   computeSummary,
   buildSeries,
+  buildForecast,
   buildCostInsightsData,
 } from './costAggregation';
 
@@ -32,6 +34,53 @@ describe('deriveLevel', () => {
     expect(deriveLevel({ namespace: 'ns', project: 'p', component: 'c' })).toBe(
       'component',
     );
+  });
+});
+
+describe('expandSelection', () => {
+  it('expands namespaces when no project/component is selected', () => {
+    expect(
+      expandSelection({
+        namespaces: ['a', 'b'],
+        projects: [],
+        components: [],
+      }),
+    ).toEqual({
+      level: 'namespace',
+      scopes: [{ namespace: 'a' }, { namespace: 'b' }],
+    });
+  });
+
+  it('expands projects and ignores namespaces once a project is picked', () => {
+    expect(
+      expandSelection({
+        namespaces: ['a'],
+        projects: [{ namespace: 'a', name: 'p' }],
+        components: [],
+      }),
+    ).toEqual({
+      level: 'project',
+      scopes: [{ namespace: 'a', project: 'p' }],
+    });
+  });
+
+  it('expands components and takes precedence over projects', () => {
+    expect(
+      expandSelection({
+        namespaces: ['a'],
+        projects: [{ namespace: 'a', name: 'p' }],
+        components: [{ namespace: 'a', project: 'p', name: 'c' }],
+      }),
+    ).toEqual({
+      level: 'component',
+      scopes: [{ namespace: 'a', project: 'p', component: 'c' }],
+    });
+  });
+
+  it('yields an empty namespace scope list when nothing is selected', () => {
+    expect(
+      expandSelection({ namespaces: [], projects: [], components: [] }),
+    ).toEqual({ level: 'namespace', scopes: [] });
   });
 });
 
@@ -174,11 +223,192 @@ describe('computeSummary', () => {
       '2026-07-01T00:00:00.000Z',
       '2026-07-01T01:00:00.000Z',
       now,
+      [],
+      'namespace',
+      new Map(),
     );
     expect(summary.totalCost).toBe(22);
     expect(summary.deltaPct).toBeCloseTo(((22 - 20) / 20) * 100);
     expect(summary.efficiency).toBeCloseTo(0.3);
     expect(summary.forecastThisMonth).toBeGreaterThan(0);
+    expect(summary.totalSaving).toBe(0);
+  });
+
+  it('counts saving only for dimensions that have a recommendation', () => {
+    const now = new Date('2026-07-15T00:00:00.000Z');
+    const current = [
+      costItem({ project: 'gcp', cpuCost: 10, memoryCost: 12 }), // total 22
+      costItem({ project: 'shop', cpuCost: 4, memoryCost: 4 }), // no rec
+    ];
+    const recommendations: CostRecommendationItem[] = [
+      {
+        component: 'comp',
+        environment: 'dev',
+        project: 'gcp',
+        namespace: 'default',
+        current: { cpuCost: 22, memoryCost: 0 },
+        recommendation: { cpuCost: 6, memoryCost: 6 }, // gcp rec total 12
+      },
+    ];
+    const summary = computeSummary(
+      current,
+      [],
+      '2026-07-01T00:00:00.000Z',
+      '2026-07-01T01:00:00.000Z',
+      now,
+      recommendations,
+      'namespace',
+      new Map(),
+    );
+    // Only gcp's own cost is reclaimable (22 - 12); shop's spend is untouched.
+    expect(summary.totalSaving).toBeCloseTo(22 - 12);
+  });
+
+  it('credits saving from a zero-cost recommendation', () => {
+    const now = new Date('2026-07-15T00:00:00.000Z');
+    const current = [costItem({ project: 'gcp', cpuCost: 5, memoryCost: 0 })];
+    const recommendations: CostRecommendationItem[] = [
+      {
+        component: 'comp',
+        environment: 'dev',
+        project: 'gcp',
+        namespace: 'default',
+        current: { cpuCost: 5, memoryCost: 0 },
+        recommendation: { cpuCost: 0, memoryCost: 0 }, // reclaim everything
+      },
+    ];
+    const summary = computeSummary(
+      current,
+      [],
+      '2026-07-01T00:00:00.000Z',
+      '2026-07-01T01:00:00.000Z',
+      now,
+      recommendations,
+      'namespace',
+      new Map(),
+    );
+    expect(summary.totalSaving).toBeCloseTo(5);
+  });
+
+  it('excludes stale environments from claimed saving', () => {
+    const now = new Date('2026-07-15T00:00:00.000Z');
+    const current = [
+      costItem({ environment: 'dev', cpuCost: 8, memoryCost: 0 }),
+    ];
+    const recommendations: CostRecommendationItem[] = [
+      {
+        component: 'comp',
+        environment: 'dev',
+        project: 'proj',
+        namespace: 'default',
+        current: { cpuCost: 8, memoryCost: 0 },
+        recommendation: { cpuCost: 2, memoryCost: 0 },
+      },
+    ];
+    const summary = computeSummary(
+      current,
+      [],
+      '2026-07-01T00:00:00.000Z',
+      '2026-07-01T01:00:00.000Z',
+      now,
+      recommendations,
+      'component',
+      new Map([['dev', '2026-07-01T00:00:00.000Z']]),
+    );
+    expect(summary.totalSaving).toBe(0);
+  });
+});
+
+describe('aggregateRows saving', () => {
+  it('sets a per-row saving from the recommended dimension total', () => {
+    const current = [costItem({ project: 'gcp', cpuCost: 10, memoryCost: 12 })];
+    const recommendations: CostRecommendationItem[] = [
+      {
+        component: 'comp',
+        environment: 'dev',
+        project: 'gcp',
+        namespace: 'default',
+        current: { cpuCost: 22, memoryCost: 0 },
+        recommendation: { cpuCost: 5, memoryCost: 5 }, // rec total 10
+      },
+    ];
+    const rows = aggregateRows(current, [], 'namespace', recommendations);
+    const gcp = rows.find(r => r.key === 'gcp')!;
+    expect(gcp.saving).toBe(22 - 10);
+  });
+
+  it('leaves saving undefined when no recommendation covers the row', () => {
+    const rows = aggregateRows(
+      [costItem({ project: 'gcp', cpuCost: 1, memoryCost: 1 })],
+      [],
+      'namespace',
+    );
+    expect(rows[0].saving).toBeUndefined();
+  });
+});
+
+describe('buildForecast', () => {
+  const now = new Date('2026-07-15T00:00:00.000Z');
+
+  it('forks the actual line into the two month-end projections', () => {
+    const forecast = buildForecast({
+      totalActual: 24,
+      totalSaving: 6,
+      windowStart: '2026-07-08T00:00:00.000Z',
+      windowEnd: '2026-07-09T00:00:00.000Z', // 1-day window, $24 -> $1/hour
+      now,
+    })!;
+    expect(forecast).not.toBeNull();
+    // $1/h over the 31-day month.
+    expect(forecast.atCurrentTotal).toBeCloseTo(24 * 31);
+    expect(forecast.ifAppliedTotal).toBeLessThan(forecast.atCurrentTotal);
+    expect(forecast.leftOnTable).toBeCloseTo(
+      forecast.atCurrentTotal - forecast.ifAppliedTotal,
+    );
+    const fork = forecast.points.find(p => p.actual !== undefined);
+    expect(fork?.atCurrent).toBe(fork?.ifApplied);
+  });
+
+  it('returns null for a non-positive window', () => {
+    expect(
+      buildForecast({
+        totalActual: 10,
+        totalSaving: 0,
+        windowStart: '2026-07-09T00:00:00.000Z',
+        windowEnd: '2026-07-09T00:00:00.000Z',
+        now,
+      }),
+    ).toBeNull();
+  });
+
+  it('returns null when the window ends past the month end', () => {
+    expect(
+      buildForecast({
+        totalActual: 10,
+        totalSaving: 0,
+        windowStart: '2026-07-30T00:00:00.000Z',
+        windowEnd: '2026-08-05T00:00:00.000Z',
+        now,
+      }),
+    ).toBeNull();
+  });
+
+  it('excludes prior-month spend when the window crosses the month boundary', () => {
+    // 3-day window (72h) spanning Jun 29 -> Jul 2 at $1/hour; only the 24h in
+    // July should count toward this month's cumulative fork.
+    const forecast = buildForecast({
+      totalActual: 72,
+      totalSaving: 0,
+      windowStart: '2026-06-29T00:00:00.000Z',
+      windowEnd: '2026-07-02T00:00:00.000Z',
+      now,
+    })!;
+    expect(forecast).not.toBeNull();
+    const fork = forecast.points.find(
+      p => p.actual !== undefined && p.atCurrent !== undefined,
+    );
+    expect(fork?.actual).toBeCloseTo(24); // not 72
+    expect(forecast.atCurrentTotal).toBeCloseTo(31 * 24); // $1/h * 31 days
   });
 });
 

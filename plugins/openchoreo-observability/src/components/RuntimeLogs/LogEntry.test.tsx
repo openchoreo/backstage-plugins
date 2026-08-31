@@ -127,6 +127,18 @@ describe('LogEntry', () => {
     expect(screen.queryByText('Full Log Message')).not.toBeInTheDocument();
   });
 
+  it('stays expanded when clicking inside the expanded panel', async () => {
+    const user = userEvent.setup();
+    renderLogEntry();
+
+    await user.click(screen.getByText('Server started on port 8080'));
+    expect(screen.getByText('Full Log Message')).toBeInTheDocument();
+
+    await user.click(screen.getByText('api-service-abc123'));
+
+    expect(screen.getByText('Full Log Message')).toBeInTheDocument();
+  });
+
   it('renders ERROR level chip', () => {
     renderLogEntry({
       log: { ...sampleLog, level: 'ERROR' },

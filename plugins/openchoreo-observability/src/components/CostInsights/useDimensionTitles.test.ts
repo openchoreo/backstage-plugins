@@ -25,7 +25,7 @@ describe('useDimensionTitles', () => {
     });
 
     const { result } = renderHook(
-      () => useDimensionTitles('namespace', { namespace: 'default' }),
+      () => useDimensionTitles('namespace', [{ namespace: 'default' }]),
       { wrapper: createQueryWrapper() },
     );
 
@@ -65,7 +65,9 @@ describe('useDimensionTitles', () => {
 
     const { result } = renderHook(
       () =>
-        useDimensionTitles('project', { namespace: 'default', project: 'gcp' }),
+        useDimensionTitles('project', [
+          { namespace: 'default', project: 'gcp' },
+        ]),
       { wrapper: createQueryWrapper() },
     );
 
@@ -82,8 +84,32 @@ describe('useDimensionTitles', () => {
     );
   });
 
+  it('drops a name that resolves to conflicting titles across namespaces', async () => {
+    // Two namespaces each have a System named "gcp" but with different titles.
+    getEntities
+      .mockResolvedValueOnce({
+        items: [{ metadata: { name: 'gcp', title: 'GCP Demo' } }],
+      })
+      .mockResolvedValueOnce({
+        items: [{ metadata: { name: 'gcp', title: 'Other GCP' } }],
+      });
+
+    const { result } = renderHook(
+      () =>
+        useDimensionTitles('namespace', [
+          { namespace: 'a' },
+          { namespace: 'b' },
+        ]),
+      { wrapper: createQueryWrapper() },
+    );
+
+    // Ambiguous name is omitted, so the table falls back to the raw name.
+    await waitFor(() => expect(getEntities).toHaveBeenCalledTimes(2));
+    expect(result.current).toEqual({});
+  });
+
   it('returns an empty map without a namespace', async () => {
-    const { result } = renderHook(() => useDimensionTitles('namespace', {}), {
+    const { result } = renderHook(() => useDimensionTitles('namespace', []), {
       wrapper: createQueryWrapper(),
     });
 

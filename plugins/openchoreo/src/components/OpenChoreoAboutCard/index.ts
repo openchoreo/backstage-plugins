@@ -1,0 +1,1 @@
+export { OpenChoreoAboutCard } from './OpenChoreoAboutCard';
