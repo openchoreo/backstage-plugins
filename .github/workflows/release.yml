@@ -13,41 +13,64 @@ env:
   IMAGE_NAME: openchoreo/openchoreo-ui
 
 jobs:
-  release:
-    name: Release
+  # npm publish runs before any Docker retag so a publish failure aborts the
+  # release before GHCR is mutated. The reverse ordering would leave the image
+  # retagged to vX.Y.Z (and possibly `latest`) without the corresponding
+  # @openchoreo/* packages on the npm registry.
+  publish-npm:
+    name: Publish to npm
     runs-on: ubuntu-24.04
+    # Bound to a protected environment with required reviewers. npm matches the
+    # OIDC claim against repository + workflow filename + THIS environment name,
+    # so renaming it here also requires updating every package's trusted
+    # publisher (`npm trust github @openchoreo/<pkg> --environment ...`).
+    environment: npm-publish
     permissions:
-      packages: write
+      contents: read
+      # Mints the OIDC token that npm exchanges for a short-lived publish
+      # credential (trusted publishing) and that signs the provenance
+      # attestation. No npm token exists anywhere in this workflow.
+      id-token: write
+    outputs:
+      release-tag: ${{ steps.release-vars.outputs.release-tag }}
+      git-sha-short: ${{ steps.release-vars.outputs.git-sha-short }}
+      is-prerelease: ${{ steps.release-vars.outputs.is-prerelease }}
+      latest: ${{ steps.release-vars.outputs.latest }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set commit SHA and release tag
-        run: |
-          echo "GIT_SHA_SHORT=$(git rev-parse --short=8 HEAD)" >> $GITHUB_ENV
-          RELEASE_TAG=${GITHUB_REF##*/}
-          echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
-          # Detect prerelease versions (SemVer tags containing a hyphen, e.g., v1.0.0-rc.1)
-          if [[ "${RELEASE_TAG}" == *-* ]]; then
-            echo "IS_PRERELEASE=true" >> $GITHUB_ENV
-          else
-            echo "IS_PRERELEASE=false" >> $GITHUB_ENV
-          fi
-
-      - name: Set latest flag
+      - name: Resolve release variables
+        id: release-vars
         run: |
           git fetch --tags --force
-          latest_tag=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
-          if [ "$latest_tag" == "${RELEASE_TAG}" ]; then
-            echo "LATEST=true" >> $GITHUB_ENV
+          GIT_SHA_SHORT=$(git rev-parse --short=8 HEAD)
+          RELEASE_TAG=${GITHUB_REF##*/}
+
+          # Detect prerelease versions (SemVer tags containing a hyphen, e.g., v1.0.0-rc.1)
+          if [[ "${RELEASE_TAG}" == *-* ]]; then
+            IS_PRERELEASE=true
           else
-            echo "LATEST=false" >> $GITHUB_ENV
+            IS_PRERELEASE=false
           fi
 
-      # npm publish runs before any Docker retag so a publish failure aborts
-      # the release before GHCR is mutated. The reverse ordering would leave
-      # the image retagged to vX.Y.Z (and possibly `latest`) without the
-      # corresponding @openchoreo/* packages on the npm registry.
+          latest_tag=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          if [ "$latest_tag" == "${RELEASE_TAG}" ]; then
+            LATEST=true
+          else
+            LATEST=false
+          fi
+
+          {
+            echo "release-tag=${RELEASE_TAG}"
+            echo "git-sha-short=${GIT_SHA_SHORT}"
+            echo "is-prerelease=${IS_PRERELEASE}"
+            echo "latest=${LATEST}"
+          } >> $GITHUB_OUTPUT
+
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
+          echo "IS_PRERELEASE=${IS_PRERELEASE}" >> $GITHUB_ENV
+          echo "LATEST=${LATEST}" >> $GITHUB_ENV
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -55,7 +78,8 @@ jobs:
           node-version: 22
           cache: 'yarn'
           # Intentionally no `registry-url:` — Yarn Berry ignores the .npmrc
-          # this would write. Auth is wired via YARN_NPM_AUTH_TOKEN below.
+          # this would write. The publish registry comes from
+          # `npmPublishRegistry` in .yarnrc.yml, and auth comes from OIDC.
 
       - name: Install dependencies
         run: yarn install --immutable
@@ -77,12 +101,17 @@ jobs:
         # exists before prepack reads it.
         run: yarn build:all
 
-      - name: Publish to GitHub Packages
+      - name: Publish to npm
+        # Auth is npm trusted publishing (OIDC) — there is deliberately no
+        # NPM_TOKEN / YARN_NPM_AUTH_TOKEN here. Yarn detects the GitHub Actions
+        # OIDC environment and exchanges the id-token for a short-lived
+        # registry credential (requires Yarn >= 4.10).
+        #
         # Dist-tag scheme: `latest` only for the highest stable version,
         # `next` for prereleases, `release-X.Y` for back-line patches so a
         # re-release of an older line never steals `latest` from a newer one.
         env:
-          YARN_NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          YARN_NPM_PUBLISH_PROVENANCE: 'true'
         run: |
           TAG=latest
           if [ "${IS_PRERELEASE}" = "true" ]; then
@@ -94,6 +123,18 @@ jobs:
           yarn workspaces foreach --all --no-private --topological --verbose \
             npm publish --tolerate-republish --access public --tag "${TAG}"
 
+  retag-image:
+    name: Retag release image
+    needs: publish-npm
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+    env:
+      RELEASE_TAG: ${{ needs.publish-npm.outputs.release-tag }}
+      GIT_SHA_SHORT: ${{ needs.publish-npm.outputs.git-sha-short }}
+      IS_PRERELEASE: ${{ needs.publish-npm.outputs.is-prerelease }}
+      LATEST: ${{ needs.publish-npm.outputs.latest }}
+    steps:
       - name: Login to GitHub container registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
