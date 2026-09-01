@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Page, Header, Content } from '@backstage/core-components';
+import { Content } from '@backstage/core-components';
 import { useApi, useRouteRef } from '@backstage/core-plugin-api';
 import { catalogApiRef, entityRouteRef } from '@backstage/plugin-catalog-react';
 import { makeStyles } from '@material-ui/core/styles';
@@ -29,6 +29,7 @@ import {
   APPLICATION_VIEW,
   CLUSTER_NAMESPACE,
   CLUSTER_SCOPED_KINDS,
+  PlatformPageShell,
   useProjects,
   useQueryParams,
   type ProjectEntry,
@@ -437,8 +438,7 @@ export function PlatformOverviewPage() {
   );
 
   return (
-    <Page themeId="tool">
-      <Header title="Platform Overview" subtitle={displayView.description} />
+    <PlatformPageShell subtitle={displayView.description}>
       <Content stretch noPadding className={classes.content}>
         <GraphKindFilter
           selectedKinds={selectedKinds}
@@ -455,6 +455,6 @@ export function PlatformOverviewPage() {
           onNodeClick={handleNodeClick}
         />
       </Content>
-    </Page>
+    </PlatformPageShell>
   );
 }

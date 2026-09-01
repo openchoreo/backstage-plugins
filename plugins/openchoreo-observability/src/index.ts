@@ -23,6 +23,10 @@ export type {
   CostResourceProfile,
 } from './types';
 export { CostInsightsPage } from './components/CostInsights/CostInsightsPage';
+export {
+  PlatformLogsContent,
+  PlatformLogsTabPage,
+} from './components/PlatformLogs';
 export { useComponentHasAnyCiliumEnabledEnvironment } from './hooks';
 export {
   logRowActionRendererApiRef,

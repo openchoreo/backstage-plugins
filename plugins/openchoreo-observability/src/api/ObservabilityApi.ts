@@ -20,6 +20,10 @@ import {
   CostRecommendationItem,
 } from '../types';
 import { LogsResponse } from '../components/RuntimeLogs/types';
+import {
+  PlatformLogsQueryOptions,
+  PlatformLogsResponse,
+} from '../components/PlatformLogs/types';
 import { EventsResponse } from '../components/RuntimeEvents/types';
 import { ObserverUrlCache } from './ObserverUrlCache';
 
@@ -38,6 +42,19 @@ export interface ObservabilityApi {
       sortOrder?: 'asc' | 'desc';
     },
   ): Promise<LogsResponse>;
+
+  /**
+   * Query platform (system component) logs from a specific observability plane.
+   *
+   * Takes the observer URL directly rather than resolving it from a
+   * namespace+environment pair like every other method here: platform logs are not
+   * scoped to an environment, so there is nothing for `ObserverUrlCache` to resolve.
+   * The caller picks the plane (its `spec.observerURL` is on the catalog entity).
+   */
+  getPlatformLogs(
+    observerUrl: string,
+    options?: PlatformLogsQueryOptions,
+  ): Promise<PlatformLogsResponse>;
 
   getRuntimeEvents(
     namespaceName: string,
@@ -831,6 +848,73 @@ export class ObservabilityClient implements ObservabilityApi {
 
     const data = await response.json();
     return data;
+  }
+
+  async getPlatformLogs(
+    observerUrl: string,
+    options?: PlatformLogsQueryOptions,
+  ): Promise<PlatformLogsResponse> {
+    const url = new URL(`${observerUrl}/api/v1alpha1/platform-logs`);
+
+    url.searchParams.set(
+      'startTime',
+      options?.startTime ?? new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    );
+    url.searchParams.set(
+      'endTime',
+      options?.endTime ?? new Date().toISOString(),
+    );
+    url.searchParams.set('limit', String(options?.limit ?? 100));
+    url.searchParams.set('sortOrder', options?.sortOrder ?? 'desc');
+
+    // Multi-value filters are comma-separated, matching the endpoint's
+    // `style: form, explode: false`. An empty list is not a filter, so it is
+    // omitted entirely rather than sent as an empty value.
+    const listParams: Array<[string, string[] | undefined]> = [
+      ['clusterInstance', options?.clusterInstances],
+      ['namespace', options?.namespaces],
+      ['podName', options?.podNames],
+      ['containerName', options?.containerNames],
+      ['logLevels', options?.logLevels],
+    ];
+    for (const [name, values] of listParams) {
+      if (values?.length) {
+        url.searchParams.set(name, values.join(','));
+      }
+    }
+
+    // The label selector goes over the wire as `kubectl -l` spells it. Plane
+    // attribution is expressed here rather than as its own parameter.
+    if (options?.labels) {
+      url.searchParams.set('labels', options.labels);
+    }
+    if (options?.searchQuery) {
+      url.searchParams.set('searchPhrase', options.searchQuery);
+    }
+
+    const response = await this.fetchApi.fetch(url.toString(), {
+      headers: { ...DIRECT_HEADER },
+    });
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      if (response.status === 403) {
+        throw new Error(
+          'You do not have permission to view platform logs. This requires a cluster-scoped role.',
+        );
+      }
+      if (response.status === 501) {
+        throw new Error(
+          'The logs module behind this observability plane does not support platform logs yet.',
+        );
+      }
+      throw new Error(
+        error ||
+          `Failed to fetch platform logs: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return await response.json();
   }
 
   async getRuntimeEvents(

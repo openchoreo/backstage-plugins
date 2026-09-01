@@ -21,7 +21,7 @@ import {
   isOpenChoreoManagedOfKind,
 } from '@openchoreo/backstage-plugin-common';
 
-import { rootRouteRef } from './routes';
+import { platformLogsRouteRef, rootRouteRef } from './routes';
 import {
   observabilityApiRef,
   ObservabilityClient,
@@ -342,6 +342,26 @@ const costInsightsPage = PageBlueprint.make({
   },
 });
 
+/**
+ * Logs tab of the Platform section, mounted under the path the
+ * platform-engineer-core plugin owns so the two render as tabs of one page.
+ * No title/icon, so it stays out of the sidebar — PlatformPageShell's tab bar
+ * is the only way in.
+ */
+const platformLogsPage = PageBlueprint.make({
+  name: 'platform-logs',
+  params: {
+    path: '/platform-overview/logs',
+    routeRef: platformLogsRouteRef,
+    // Page renders its own <Page><Header>; suppress outer PageLayout header.
+    noHeader: true,
+    loader: () =>
+      import('./components/PlatformLogs/PlatformLogsTabPage').then(m => (
+        <m.PlatformLogsTabPage />
+      )),
+  },
+});
+
 export default createFrontendPlugin({
   pluginId: 'openchoreo-observability',
   routes: { root: rootRouteRef },
@@ -352,6 +372,7 @@ export default createFrontendPlugin({
     finopsAgentApi,
     logRowActionRendererApi,
     costInsightsPage,
+    platformLogsPage,
     runtimeLogsEntityContent,
     runtimeEventsEntityContent,
     metricsEntityContent,

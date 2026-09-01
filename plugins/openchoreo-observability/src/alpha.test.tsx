@@ -47,6 +47,8 @@ describe('openchoreo-observability alpha plugin', () => {
       `entity-content:${plugin}/project-cost-analysis`,
       // overview cards
       `entity-card:${plugin}/cost-insights-summary`,
+      // Logs tab of the Platform section, mounted under platform-engineer-core's path
+      `page:${plugin}/platform-logs`,
     ]) {
       expect(ids).toContain(expected);
     }

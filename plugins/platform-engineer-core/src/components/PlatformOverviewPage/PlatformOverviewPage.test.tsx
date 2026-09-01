@@ -67,10 +67,12 @@ describe('PlatformOverviewPage', () => {
     });
   });
 
-  it('renders page header and graph view', async () => {
+  it('renders page header, tabs and graph view', async () => {
     await renderPage();
 
-    expect(screen.getByText('Platform Overview')).toBeInTheDocument();
+    expect(screen.getByText('Platform')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Overview' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Logs' })).toBeInTheDocument();
     expect(screen.getByTestId('graph-view')).toBeInTheDocument();
   });
 

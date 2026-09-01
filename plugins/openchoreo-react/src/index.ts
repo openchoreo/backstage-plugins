@@ -335,6 +335,10 @@ export {
   type UseLogsPermissionResult,
 } from './hooks/useLogsPermission';
 export {
+  usePlatformLogsPermission,
+  type UsePlatformLogsPermissionResult,
+} from './hooks/usePlatformLogsPermission';
+export {
   useEventsPermission,
   type UseEventsPermissionResult,
 } from './hooks/useEventsPermission';
@@ -655,6 +659,11 @@ export {
   PlatformOverviewGraphView,
   type PlatformOverviewGraphViewProps,
 } from './components/PlatformOverviewGraphView';
+export {
+  PlatformPageShell,
+  PLATFORM_PATH,
+  type PlatformPageShellProps,
+} from './components/PlatformPageShell';
 export {
   GraphMinimap,
   type GraphMinimapProps,
