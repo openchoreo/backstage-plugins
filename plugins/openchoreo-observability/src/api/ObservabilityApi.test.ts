@@ -435,10 +435,7 @@ describe('ObservabilityClient.getTraceSpans', () => {
 
     const [url] = mockFetchApi.fetch.mock.calls[0];
     expect(url).toBe('http://observer/api/v1alpha1/traces/trace-1/spans/query');
-    expect(result.spans[0].status).toEqual({
-      code: 'error',
-      message: 'boom',
-    });
+    expect(result.spans[0].status).toBe('error');
   });
 });
 
@@ -448,7 +445,7 @@ describe('ObservabilityClient.getSpanDetails', () => {
     resolveUrls.mockResolvedValue({ observerUrl: 'http://observer' });
   });
 
-  it('maps the status object into the span details', async () => {
+  it('maps the status code and posts the search scope', async () => {
     mockFetchApi.fetch.mockResolvedValueOnce(
       mockOkResponse({
         spanId: 'span-1',
@@ -466,13 +463,24 @@ describe('ObservabilityClient.getSpanDetails', () => {
       'trace-1',
       'span-1',
       'ns1',
+      'proj1',
       'dev',
+      'comp1',
     );
 
-    const [url] = mockFetchApi.fetch.mock.calls[0];
+    const [url, init] = mockFetchApi.fetch.mock.calls[0];
     expect(url).toBe(
       'http://observer/api/v1alpha1/traces/trace-1/spans/span-1',
     );
-    expect(result.status).toEqual({ code: 'ok' });
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body)).toEqual({
+      searchScope: {
+        namespace: 'ns1',
+        project: 'proj1',
+        component: 'comp1',
+        environment: 'dev',
+      },
+    });
+    expect(result.status).toBe('ok');
   });
 });
