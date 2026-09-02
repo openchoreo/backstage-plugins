@@ -13,6 +13,14 @@ export interface PlatformLogEntry {
   namespaceName?: string;
   podName?: string;
   containerName?: string;
+  podIp?: string;
+  nodeName?: string;
+  containerImage?: string;
+  /**
+   * Pod labels on the record, keyed as Kubernetes spells them, so a key can be copied
+   * out of the expanded row and pasted straight into the label filter.
+   */
+  labels?: Record<string, string>;
 }
 
 export interface PlatformLogsResponse {

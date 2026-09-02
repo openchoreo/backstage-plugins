@@ -1,5 +1,12 @@
-import { FC, MouseEvent, useState } from 'react';
-import { Typography, Chip, Box, IconButton, Tooltip } from '@material-ui/core';
+import { FC, MouseEvent, useMemo, useState } from 'react';
+import {
+  Typography,
+  Chip,
+  Box,
+  Collapse,
+  IconButton,
+  Tooltip,
+} from '@material-ui/core';
 import FileCopyOutlined from '@material-ui/icons/FileCopyOutlined';
 import { useLogEntryStyles } from '../RuntimeLogs/styles';
 import { getPlatformColumnStyle } from './columns';
@@ -27,6 +34,25 @@ const LEVEL_CHIP_CLASS_KEY: Record<
   UNDEFINED: 'undefinedChip',
 };
 
+/**
+ * The pod coordinates shown in the expanded panel, in the order an operator reads them:
+ * where it ran, then what ran. A field with no value is omitted rather than shown empty
+ * - records collected before the cluster stamp landed have no clusterInstance, and not
+ * every backend supplies every field.
+ */
+const METADATA_FIELDS: Array<{
+  label: string;
+  get: (log: PlatformLogEntry) => string | undefined;
+}> = [
+  { label: 'Cluster', get: log => log.clusterInstance },
+  { label: 'Node', get: log => log.nodeName },
+  { label: 'Namespace', get: log => log.namespaceName },
+  { label: 'Pod', get: log => log.podName },
+  { label: 'Pod IP', get: log => log.podIp },
+  { label: 'Container', get: log => log.containerName },
+  { label: 'Image', get: log => log.containerImage },
+];
+
 export const PlatformLogEntryRow: FC<PlatformLogEntryRowProps> = ({
   log,
   selectedFields,
@@ -35,6 +61,14 @@ export const PlatformLogEntryRow: FC<PlatformLogEntryRowProps> = ({
 }) => {
   const classes = useLogEntryStyles();
   const [copySuccess, setCopySuccess] = useState(false);
+
+  // Sorted so a pod's labels appear in the same order on every row, which makes them
+  // scannable when comparing two records.
+  const labelEntries = useMemo(
+    () =>
+      Object.entries(log.labels ?? {}).sort(([a], [b]) => a.localeCompare(b)),
+    [log.labels],
+  );
 
   const handleCopyLog = async (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -138,6 +172,58 @@ export const PlatformLogEntryRow: FC<PlatformLogEntryRowProps> = ({
           }
         })}
       </Box>
+
+      {expanded && (
+        <Collapse in={expanded} timeout="auto" unmountOnExit>
+          <Box className={classes.expandedContent}>
+            <Typography className={classes.expandedSectionTitle} gutterBottom>
+              Full Log Message
+            </Typography>
+            <Box className={classes.fullLogMessage}>{log.log}</Box>
+
+            <Box className={classes.metadataSection}>
+              <Typography
+                className={`${classes.metadataTitle} ${classes.expandedSectionTitle}`}
+              >
+                Metadata
+              </Typography>
+              <Box className={classes.metadataBox}>
+                <Box className={classes.metadataGrid}>
+                  {METADATA_FIELDS.map(({ label, get }) => {
+                    const value = get(log);
+                    return value ? (
+                      <Box key={label} className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>{label}:</span>
+                        <span className={classes.metadataValue}>{value}</span>
+                      </Box>
+                    ) : null;
+                  })}
+                </Box>
+              </Box>
+            </Box>
+
+            {labelEntries.length > 0 && (
+              <Box className={classes.metadataSection}>
+                <Typography
+                  className={`${classes.metadataTitle} ${classes.expandedSectionTitle}`}
+                >
+                  Pod Labels
+                </Typography>
+                <Box className={classes.metadataBox}>
+                  <Box className={classes.metadataGrid}>
+                    {labelEntries.map(([key, value]) => (
+                      <Box key={key} className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>{key}:</span>
+                        <span className={classes.metadataValue}>{value}</span>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        </Collapse>
+      )}
     </Box>
   );
 };
