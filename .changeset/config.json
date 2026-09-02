@@ -31,7 +31,7 @@
       "@openchoreo/backstage-portal-backend"
     ]
   ],
-  "access": "restricted",
+  "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": ["app", "backend"]

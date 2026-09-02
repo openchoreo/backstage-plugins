@@ -103,7 +103,14 @@ The `Changeset Check` workflow ([`.github/workflows/changeset-check.yml`](.githu
 
 ## Releasing
 
-Releases are tag-driven. Pushing a `v*.*.*` tag triggers the [release workflow](.github/workflows/release.yml), which retags the Docker image in GHCR **and** publishes every public `@openchoreo/*` package to GitHub Packages (`https://npm.pkg.github.com`). Authentication uses the auto-issued `GITHUB_TOKEN` — no extra secrets needed.
+Releases are tag-driven. Pushing a `v*.*.*` tag triggers the [release workflow](.github/workflows/release.yml), which publishes every public `@openchoreo/*` package to the **public npm registry** and then retags the Docker image in GHCR.
+
+**There are no publish secrets.** Authentication is [npm trusted publishing](https://docs.npmjs.com/trusted-publishers): the workflow mints a short-lived OIDC token (`id-token: write`) that npm exchanges for a publish credential. npm only accepts it from `openchoreo/backstage-plugins`, from `release.yml`, in the `npm-publish` environment — a trusted publisher is configured per package with those exact claims. As a side effect every published version gets a signed [provenance attestation](https://docs.npmjs.com/generating-provenance-statements).
+
+Two consequences worth knowing:
+
+- **Renaming `release.yml`, or the `npm-publish` environment, breaks publishing** until every package's trusted publisher is reconfigured (`npm trust github @openchoreo/<pkg> --repository openchoreo/backstage-plugins --file release.yml --environment npm-publish --allow-publish`). npm does not validate the config when it is saved, and a mismatch surfaces as a misleading `404` on publish, not an auth error.
+- **The publish job never installs dependencies.** `yarn install` executes lifecycle scripts from the whole transitive tree, so running it alongside `id-token: write` would let a compromised dependency mint a publish credential. The environment approval does not help — it gates job _start_, so scripts would still run after approval. Hence the build/publish split described below, and hence the publish job runs on Node 24 (whose bundled npm already supports OIDC) rather than installing an npm from the registry.
 
 ### Cutting a release
 
@@ -131,30 +138,68 @@ Releases are tag-driven. Pushing a `v*.*.*` tag triggers the [release workflow](
    git push origin v0.4.0
    ```
 
-5. **CI publishes**. The release workflow:
-   - Retags the existing Docker image (built earlier on the `main` push) to `vX.Y.Z` in GHCR.
-   - Runs `yarn install --immutable && yarn tsc && yarn build:all`, then `yarn workspaces foreach --all --no-private --topological --verbose npm publish --tolerate-republish --access public --tag <latest|next>` to publish npm packages to GitHub Packages.
+5. **Approve the publish**. The `publish-npm` job targets the protected `npm-publish` environment and waits in _Waiting_ until a required reviewer approves it from the workflow run page. Nothing is published — and no OIDC token is minted — before that approval.
+
+6. **CI publishes**. The release workflow:
+   - `build` (no OIDC access): runs `yarn install --immutable && yarn tsc && yarn build:all`, records the topological workspace order, runs `yarn workspaces foreach ... pack`, fails the release if any tarball still contains a `workspace:` specifier, and uploads the tarballs as an artifact.
+   - `publish-npm` (holds `id-token: write`): downloads those tarballs and runs `npm publish <tarball> --access public --tag <latest|next|release-X.Y> --provenance` in the recorded order. It does not check out the repository and does not install anything.
+   - `retag-image`: only after `publish-npm` succeeds, retags the existing Docker image (built earlier on the `main` push) to `vX.Y.Z` in GHCR. Ordering matters — a failed publish must not leave a `vX.Y.Z` image without the matching packages.
    - On **stable** tags (`vX.Y.Z`) publishes under the `latest` npm dist-tag.
    - On **prerelease** tags (`vX.Y.Z-rc.N`, `vX.Y.Z-test.N`, etc. — any tag containing a hyphen) publishes under the `next` dist-tag, leaving `latest` untouched.
+   - On a **back-line** stable tag (a `vX.Y.Z` that is not the highest stable tag) publishes under `release-X.Y`, so re-releasing an older line never steals `latest` from a newer one.
 
-`yarn npm publish` (not `npm publish` or `changeset publish`) is required so that Yarn Berry rewrites `workspace:^` deps to concrete versions at pack time. `npm publish` and `changeset publish` (which shells out to `npm publish` on non-pnpm repos) leak `workspace:^` strings into the tarball and break installs for external consumers.
+The split is why packing and publishing use different tools. **`yarn pack` must produce the tarballs** — Yarn Berry rewrites `workspace:^` deps to concrete versions at pack time, whereas `npm pack` and `changeset publish` leak `workspace:^` strings into the tarball and break installs for external consumers. **`npm publish` must upload them** — it is the reference implementation of the OIDC exchange, and it lets the publishing job avoid `yarn install` entirely.
+
+Because a leaked `workspace:` specifier cannot be fixed without a version bump, the build job verifies every tarball and fails the release before anything reaches the registry.
 
 ### Verifying a release
 
+Query the exact version you just released, not the bare package name — a bare
+name resolves the `latest` dist-tag, which a prerelease deliberately does not
+move, so it would report the previous release as if nothing had happened.
+
 ```bash
-yarn npm info @openchoreo/backstage-plugin --registry=https://npm.pkg.github.com
-yarn npm info @openchoreo/backstage-design-system --registry=https://npm.pkg.github.com
+VERSION=1.3.0-rc.1   # the version just released, without the leading v
+
+yarn npm info "@openchoreo/backstage-plugin@${VERSION}"
+yarn npm info "@openchoreo/backstage-design-system@${VERSION}"
 ```
 
-Both should show the new version. Confirm under `dist-tags` that stable releases moved `latest` and prereleases moved `next`. To confirm `workspace:^` rewriting worked, inspect the `dependencies` field of any published `@openchoreo/*` package — every version specifier should be a concrete range (e.g. `^1.1.0`), never `workspace:^`.
+Both should show that version. Then confirm the dist-tags moved as intended — stable releases move `latest`, prereleases move `next`:
+
+```bash
+npm view @openchoreo/backstage-plugin dist-tags
+```
+
+To confirm `workspace:^` rewriting worked, inspect the `dependencies` field of any published `@openchoreo/*` package — every version specifier should be a concrete range (e.g. `^1.1.0`), never `workspace:^`.
+
+Confirm provenance was attached:
+
+```bash
+npm view "@openchoreo/backstage-plugin@${VERSION}" dist.attestations
+```
+
+This prints the attestation block when provenance is present and nothing at all when it is absent. (Avoid `npm view --json | jq '.dist.attestations'` — without a pinned version npm may return an array of matching versions rather than a single object, and the `jq` path silently yields `null` on npm 12.)
+
+Output means the OIDC path worked. Empty output means the package was published without provenance — investigate before shipping the release.
+
+Finally, prove an unauthenticated consumer can install it. In a scratch directory with no `.npmrc` and no npm login:
+
+```bash
+yarn add @openchoreo/backstage-plugin@next
+```
 
 ### Re-running a tag
 
-The publish step is idempotent — `--tolerate-republish` makes `yarn npm publish` skip packages whose versions already exist on the registry and exit cleanly. Useful when a transient failure leaves some packages published and others not.
+The publish step is idempotent: before publishing each tarball it runs `npm view <name>@<version>` and skips anything already on the registry. Useful when a transient failure leaves some packages published and others not. Re-running still requires a fresh environment approval.
+
+### Registry history
+
+`@openchoreo/*` packages were published to GitHub Packages (`https://npm.pkg.github.com`) until the move to public npm. Versions from `1.1.0` through the `1.2.x` line were copied across by [`scripts/migrate-gh-packages-to-npmjs.js`](scripts/migrate-gh-packages-to-npmjs.js) and carry no provenance attestation (they predate trusted publishing). Versions older than `1.1.0` were not migrated and remain available only from GitHub Packages, which is now frozen and receives no new releases. Everything from `1.3.0` onward is published to npm by CI with provenance.
 
 ### One-time local dry run
 
-Before the first real release, validate the publish path locally. Yarn Berry's `yarn npm publish` does not accept a `--dry-run` flag, so the equivalent offline check is `yarn pack` on every public workspace — `yarn pack` runs the same workspace-protocol rewriter that `yarn npm publish` does, just stopping before the upload:
+CI already runs this check on every release (see the build job), so it is not required before a release. It remains useful when changing packaging, dependencies, or the Yarn version, since it reproduces exactly what the build job packs:
 
 ```bash
 yarn install --immutable

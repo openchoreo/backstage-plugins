@@ -220,19 +220,25 @@ For day-to-day development commands (test, lint, build, plugin development workf
 
 ## Installation
 
-The plugins are published to GitHub Packages. To install them in your Backstage application:
+The plugins are published to the public npm registry under the [`@openchoreo`](https://www.npmjs.com/org/openchoreo) scope. No registry configuration or authentication is required:
 
 ```bash
-# Configure npm to use GitHub Packages for @openchoreo scope
-echo "@openchoreo:registry=https://npm.pkg.github.com" >> .npmrc
-
-# Install the plugins you need
 yarn add @openchoreo/backstage-plugin
 yarn add @openchoreo/backstage-plugin-backend
 yarn add @openchoreo/backstage-plugin-api
 ```
 
-Note: You'll need a GitHub personal access token with `packages:read` permission to install from GitHub Packages.
+Releases from `1.3.0` onward are published from CI using [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) and carry a signed [provenance attestation](https://docs.npmjs.com/generating-provenance-statements) linking the tarball to the workflow run that built it.
+
+To check a published version without installing anything:
+
+```bash
+npm view @openchoreo/backstage-plugin dist.attestations
+```
+
+To audit a whole dependency tree, `npm audit signatures` works in projects installed with npm (it reads an npm lockfile, so it does not apply to a Yarn Berry workspace).
+
+Versions `1.1.0` through `1.2.x` were migrated from GitHub Packages and predate trusted publishing, so they have no attestation. Versions older than `1.1.0` were not migrated and remain available only from GitHub Packages.
 
 ### Wiring the plugins into your Backstage app
 
