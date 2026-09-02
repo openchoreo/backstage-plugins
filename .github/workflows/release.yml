@@ -177,18 +177,28 @@ jobs:
           name: npm-tarballs
 
       - name: Setup Node.js
+        # Node 24 (LTS) bundles npm 11.19.0. Node 22 bundles npm 10.x, which
+        # predates OIDC support — on npm < 11.5.1 the registry treats the
+        # publish as anonymous and returns a misleading 404 rather than an auth
+        # error. Using a Node line that already ships a capable npm avoids
+        # installing any registry-resolved tooling inside this job: nothing
+        # executable is fetched from the npm registry while the OIDC token is
+        # reachable. Node itself comes from nodejs.org via setup-node.
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 24
 
-      - name: Install a trusted-publishing capable npm
-        # Node 22 bundles npm 10.x, which predates OIDC support. On npm < 11.5.1
-        # the registry treats the publish as anonymous and returns a misleading
-        # 404 rather than an auth error. Pinned to a major so releases are
-        # reproducible.
+      - name: Verify npm supports trusted publishing
+        # Fail loudly here rather than as a confusing 404 at publish time if a
+        # future Node 24.x ever ships an npm below the OIDC floor.
         run: |
-          npm install -g npm@12
-          npm --version
+          MIN=11.5.1
+          NPM_VERSION=$(npm --version)
+          echo "npm ${NPM_VERSION} (minimum ${MIN})"
+          if [ "$(printf '%s\n' "$MIN" "$NPM_VERSION" | sort -V | head -n1)" != "$MIN" ]; then
+            echo "::error::npm ${NPM_VERSION} is older than ${MIN}; trusted publishing would fail as a 404."
+            exit 1
+          fi
 
       - name: Publish to npm
         # Auth is npm trusted publishing (OIDC) — there is deliberately no
