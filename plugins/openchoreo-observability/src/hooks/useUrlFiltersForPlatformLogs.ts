@@ -29,6 +29,7 @@ const parseList = (raw: string | null): string[] =>
  *   empty value (`labels=`) means "search everything" rather than "use the default"
  * - `logLevel`: comma-separated levels; absent means all
  * - `timeRange` + `from`/`to`, `search`, `sort`, `fields`
+ * - `live`: tail for new entries; ignored on a custom (absolute) time range
  */
 export function useUrlFiltersForPlatformLogs() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -78,6 +79,9 @@ export function useUrlFiltersForPlatformLogs() {
       searchQuery: searchParams.get('search') || undefined,
       sortOrder,
       selectedFields,
+      // Only relative ranges can tail: a custom range has a fixed upper bound, so
+      // re-running it returns the same rows forever.
+      isLive: searchParams.get('live') === 'true' && timeRange !== 'custom',
     };
   }, [searchParams]);
 
@@ -125,6 +129,16 @@ export function useUrlFiltersForPlatformLogs() {
       if (next.sortOrder !== undefined) {
         if (next.sortOrder === 'asc') params.set('sort', 'asc');
         else params.delete('sort');
+      }
+
+      if (next.isLive !== undefined) {
+        if (next.isLive) params.set('live', 'true');
+        else params.delete('live');
+      }
+      // Switching to a custom range silently stops tailing; leaving live=true in the
+      // URL would show a Live button that is on but never updates.
+      if (next.timeRange === 'custom') {
+        params.delete('live');
       }
 
       setSearchParams(params, { replace: true });

@@ -117,6 +117,64 @@ describe('useUrlFiltersForPlatformLogs', () => {
       expect(result.current.filters.logLevel).toEqual(PLATFORM_LOG_LEVELS);
     });
 
+    it('round-trips live tail', () => {
+      const { result } = renderFilters('/');
+      expect(result.current.filters.isLive).toBe(false);
+
+      act(() => {
+        result.current.updateFilters({ isLive: true });
+      });
+
+      expect(result.current.filters.isLive).toBe(true);
+    });
+
+    // A custom range has a fixed upper bound, so re-running it returns the same rows
+    // forever. Leaving live=true in the URL would show a Live button that is on and
+    // never updates.
+    it('stops tailing when the range becomes custom', () => {
+      const { result } = renderFilters('/?live=true');
+      expect(result.current.filters.isLive).toBe(true);
+
+      act(() => {
+        result.current.updateFilters({
+          timeRange: 'custom',
+          customStartTime: '2026-09-01T00:00:00.000Z',
+          customEndTime: '2026-09-01T01:00:00.000Z',
+        });
+      });
+
+      expect(result.current.filters.isLive).toBe(false);
+    });
+
+    // Switching to custom clears the flag rather than parking it: something that polls
+    // the server every 5s should not silently restart when the range changes back.
+    it('does not resume tailing when the range goes custom and back', () => {
+      const { result } = renderFilters('/?live=true');
+
+      act(() => {
+        result.current.updateFilters({
+          timeRange: 'custom',
+          customStartTime: '2026-09-01T00:00:00.000Z',
+          customEndTime: '2026-09-01T01:00:00.000Z',
+        });
+      });
+      act(() => {
+        result.current.updateFilters({ timeRange: '10m' });
+      });
+
+      expect(result.current.filters.timeRange).toBe('10m');
+      expect(result.current.filters.isLive).toBe(false);
+    });
+
+    it('ignores live on a custom range even if the URL asks for it', () => {
+      const { result } = renderFilters(
+        '/?live=true&timeRange=custom&from=2026-09-01T00:00:00.000Z&to=2026-09-01T01:00:00.000Z',
+      );
+
+      expect(result.current.filters.timeRange).toBe('custom');
+      expect(result.current.filters.isLive).toBe(false);
+    });
+
     it('round-trips the selected plane', () => {
       const { result } = renderFilters('/');
 

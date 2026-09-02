@@ -10,6 +10,9 @@ import {
   PlatformLogsFilters,
 } from '../components/PlatformLogs/types';
 
+/** Poll interval while tailing, matched to the component logs page. */
+const LIVE_POLL_MS = 5000;
+
 export interface UsePlatformLogsResult {
   logs: PlatformLogEntry[];
   loading: boolean;
@@ -106,6 +109,10 @@ export function usePlatformLogs(
       pageSize,
       getCursor: last => last.timestamp,
       enabled: enabled && !!observerUrl && !noLevels,
+      // Tailing re-runs the first page. A relative range recomputes its window each
+      // time, so new entries arrive; the URL layer already refuses to set this on a
+      // custom range, where the window is fixed and polling would return the same rows.
+      refetchInterval: filters.isLive ? LIVE_POLL_MS : false,
     },
   );
 

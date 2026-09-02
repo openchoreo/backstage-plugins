@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import { Box, Typography, Button } from '@material-ui/core';
+import { useEffect, useMemo, useState } from 'react';
+import { Box, Button, Typography } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import {
   PageLoader,
@@ -15,20 +15,26 @@ import {
   usePlatformLogs,
   useUrlFiltersForPlatformLogs,
 } from '../../hooks';
-import { PlatformLogsFilter } from './PlatformLogsFilter';
+import { PlatformLogsFilterRow } from './PlatformLogsFilterRow';
+import { PlatformLogsResultBar } from './PlatformLogsResultBar';
 import { PlatformLogsTable } from './PlatformLogsTable';
-import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
+import { PlatformLogsToolbar } from './PlatformLogsToolbar';
 
 const PAGE_SIZE = 50;
 
 const PlatformLogsView = () => {
-  const classes = useRuntimeLogsStyles();
   const { filters, updateFilters } = useUrlFiltersForPlatformLogs();
   const {
     planes,
     loading: planesLoading,
     error: planesError,
   } = useObservabilityPlanes();
+
+  // Deliberately not in the URL and not remembered: the page always opens with the
+  // filters folded, so the first thing anyone sees is logs rather than controls. A
+  // shared link then looks the same for whoever opens it, and the chips carry what is
+  // actually applied.
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const selectedPlane = useMemo(
     () => planes.find(p => p.name === filters.observabilityPlane),
@@ -77,50 +83,65 @@ const PlatformLogsView = () => {
 
   return (
     <Box position="relative">
-      <RefreshOverlay active={isRefetching} label="Refreshing logs" />
+      {/* Suppressed while tailing: the 5s poll would otherwise flash it constantly. */}
+      <RefreshOverlay
+        active={isRefetching && !filters.isLive}
+        label="Refreshing logs"
+      />
 
-      <PlatformLogsFilter
+      <PlatformLogsToolbar
         filters={filters}
         onFiltersChange={updateFilters}
         planes={planes}
         planesLoading={planesLoading}
+        filtersOpen={filtersOpen}
+        onToggleFilters={() => setFiltersOpen(open => !open)}
+        onRefresh={refresh}
+        disabled={loading}
+      />
+
+      <PlatformLogsFilterRow
+        open={filtersOpen}
+        filters={filters}
+        onFiltersChange={updateFilters}
         facets={facets}
         disabled={loading}
       />
 
       {planeMissingObserver && (
-        <Alert severity="warning" className={classes.errorContainer}>
-          <Typography variant="body1">
-            {selectedPlane?.displayName} does not publish an Observer URL, so it
-            cannot be queried.
-          </Typography>
-        </Alert>
+        <Box mt={2}>
+          <Alert severity="warning">
+            <Typography variant="body2">
+              {selectedPlane?.displayName} does not publish an Observer URL, so
+              it cannot be queried.
+            </Typography>
+          </Alert>
+        </Box>
       )}
 
       {error && (
-        <Alert severity="error" className={classes.errorContainer}>
-          <Typography variant="body1">{error}</Typography>
-          <Button onClick={refresh} color="inherit" size="small">
-            Retry
-          </Button>
-        </Alert>
+        <Box mt={2}>
+          <Alert
+            severity="error"
+            action={
+              <Button onClick={refresh} color="inherit" size="small">
+                Retry
+              </Button>
+            }
+          >
+            {error}
+          </Alert>
+        </Box>
       )}
 
       {!planeMissingObserver && (
         <>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            my={2}
-          >
-            <Typography variant="body2" color="textSecondary">
-              {totalCount} {totalCount === 1 ? 'entry' : 'entries'}
-            </Typography>
-            <Button onClick={refresh} size="small" disabled={loading}>
-              Refresh
-            </Button>
-          </Box>
+          <PlatformLogsResultBar
+            totalCount={totalCount}
+            filters={filters}
+            onFiltersChange={updateFilters}
+            disabled={loading}
+          />
 
           <PlatformLogsTable
             selectedFields={filters.selectedFields}

@@ -62,6 +62,8 @@ export interface PlatformLogsFilters {
   customEndTime?: string;
   searchQuery?: string;
   sortOrder?: 'asc' | 'desc';
+  /** Poll for new entries. Only meaningful on a relative time range. */
+  isLive?: boolean;
 }
 
 export type PlatformLogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
