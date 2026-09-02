@@ -11,6 +11,7 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import {
   useObservabilityPlanes,
+  usePlatformLogFacets,
   usePlatformLogs,
   useUrlFiltersForPlatformLogs,
 } from '../../hooks';
@@ -53,6 +54,8 @@ const PlatformLogsView = () => {
     refresh,
   } = usePlatformLogs(selectedPlane?.observerUrl, filters, PAGE_SIZE);
 
+  const facets = usePlatformLogFacets(logs, filters.observabilityPlane);
+
   if (planesLoading) {
     return <PageLoader />;
   }
@@ -81,6 +84,7 @@ const PlatformLogsView = () => {
         onFiltersChange={updateFilters}
         planes={planes}
         planesLoading={planesLoading}
+        facets={facets}
         disabled={loading}
       />
 

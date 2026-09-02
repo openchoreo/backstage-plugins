@@ -13,6 +13,8 @@ import { Skeleton } from '@openchoreo/backstage-design-system';
 import { TimeRangeFilter } from '@openchoreo/backstage-plugin-react';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 import type { ObservabilityPlaneOption } from '../../hooks/useObservabilityPlanes';
+import type { PlatformLogFacets } from '../../hooks/usePlatformLogFacets';
+import { FacetSelect } from './FacetSelect';
 import {
   PLATFORM_LOG_LEVELS,
   PlatformLogField,
@@ -24,21 +26,17 @@ interface PlatformLogsFilterProps {
   onFiltersChange: (filters: Partial<PlatformLogsFilters>) => void;
   planes: ObservabilityPlaneOption[];
   planesLoading: boolean;
+  /** Values seen in the logs loaded so far, offered by the coordinate pickers. */
+  facets: PlatformLogFacets;
   disabled?: boolean;
 }
-
-/** Turns `a, b , ,c` into `['a','b','c']` so the free-text lists tolerate spacing. */
-const parseCsv = (value: string): string[] =>
-  value
-    .split(',')
-    .map(v => v.trim())
-    .filter(Boolean);
 
 export const PlatformLogsFilter: FC<PlatformLogsFilterProps> = ({
   filters,
   onFiltersChange,
   planes,
   planesLoading,
+  facets,
   disabled = false,
 }) => {
   const [searchInput, handleSearchChange] = useDebouncedSearch(
@@ -48,21 +46,6 @@ export const PlatformLogsFilter: FC<PlatformLogsFilterProps> = ({
   const [labelsInput, handleLabelsChange] = useDebouncedSearch(
     filters.labels,
     value => onFiltersChange({ labels: value }),
-  );
-
-  // v1 has no facet endpoint, so cluster / namespace / pod / container are free text
-  // rather than pickers populated from the data. Comma-separated, matching the API.
-  const [namespacesInput, handleNamespacesChange] = useDebouncedSearch(
-    filters.namespaces.join(','),
-    value => onFiltersChange({ namespaces: parseCsv(value) }),
-  );
-  const [podsInput, handlePodsChange] = useDebouncedSearch(
-    filters.podNames.join(','),
-    value => onFiltersChange({ podNames: parseCsv(value) }),
-  );
-  const [clustersInput, handleClustersChange] = useDebouncedSearch(
-    filters.clusterInstances.join(','),
-    value => onFiltersChange({ clusterInstances: parseCsv(value) }),
   );
 
   const handleLogLevelChange = (event: ChangeEvent<{ value: unknown }>) => {
@@ -150,38 +133,42 @@ export const PlatformLogsFilter: FC<PlatformLogsFilterProps> = ({
         />
       </Grid>
 
-      <Grid item xs={12} md={2}>
-        <TextField
-          fullWidth
+      <Grid item xs={12} md={3}>
+        <FacetSelect
           label="Clusters"
-          placeholder="cluster1, cluster2"
-          variant="outlined"
-          value={clustersInput}
-          onChange={handleClustersChange}
+          options={facets.clusterInstances}
+          selected={filters.clusterInstances}
+          onChange={clusterInstances => onFiltersChange({ clusterInstances })}
           disabled={disabled}
         />
       </Grid>
 
-      <Grid item xs={12} md={2}>
-        <TextField
-          fullWidth
+      <Grid item xs={12} md={3}>
+        <FacetSelect
           label="Namespaces"
-          placeholder="openchoreo-control-plane"
-          variant="outlined"
-          value={namespacesInput}
-          onChange={handleNamespacesChange}
+          options={facets.namespaces}
+          selected={filters.namespaces}
+          onChange={namespaces => onFiltersChange({ namespaces })}
           disabled={disabled}
         />
       </Grid>
 
-      <Grid item xs={12} md={2}>
-        <TextField
-          fullWidth
+      <Grid item xs={12} md={3}>
+        <FacetSelect
           label="Pods"
-          placeholder="controller-manager-..."
-          variant="outlined"
-          value={podsInput}
-          onChange={handlePodsChange}
+          options={facets.podNames}
+          selected={filters.podNames}
+          onChange={podNames => onFiltersChange({ podNames })}
+          disabled={disabled}
+        />
+      </Grid>
+
+      <Grid item xs={12} md={3}>
+        <FacetSelect
+          label="Containers"
+          options={facets.containerNames}
+          selected={filters.containerNames}
+          onChange={containerNames => onFiltersChange({ containerNames })}
           disabled={disabled}
         />
       </Grid>

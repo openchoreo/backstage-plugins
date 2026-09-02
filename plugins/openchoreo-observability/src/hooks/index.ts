@@ -29,6 +29,11 @@ export { useProjectIncidents } from './useProjectIncidents';
 export { useUpdateIncident } from './useUpdateIncident';
 export { usePlatformLogs } from './usePlatformLogs';
 export {
+  usePlatformLogFacets,
+  mergeFacets,
+  type PlatformLogFacets,
+} from './usePlatformLogFacets';
+export {
   useObservabilityPlanes,
   type ObservabilityPlaneOption,
 } from './useObservabilityPlanes';
