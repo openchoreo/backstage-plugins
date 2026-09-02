@@ -6,11 +6,14 @@ import {
   Divider,
   FormControl,
   Grid,
+  IconButton,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
   TextField,
 } from '@material-ui/core';
+import ClearIcon from '@material-ui/icons/Clear';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
 import type { PlatformLogFacets } from '../../hooks/usePlatformLogFacets';
 import { FacetSelect } from './FacetSelect';
@@ -39,7 +42,7 @@ export const PlatformLogsFilterRow: FC<PlatformLogsFilterRowProps> = ({
   disabled = false,
 }) => {
   const classes = usePlatformLogsFilterRowStyles();
-  const [labelsInput, handleLabelsChange] = useDebouncedSearch(
+  const [labelsInput, handleLabelsChange, clearLabels] = useDebouncedSearch(
     filters.labels,
     value => onFiltersChange({ labels: value }),
   );
@@ -107,6 +110,21 @@ export const PlatformLogsFilterRow: FC<PlatformLogsFilterRowProps> = ({
               value={labelsInput}
               onChange={handleLabelsChange}
               disabled={disabled}
+              InputProps={{
+                endAdornment: labelsInput ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      edge="end"
+                      aria-label="Clear labels"
+                      onClick={clearLabels}
+                      disabled={disabled}
+                    >
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              }}
             />
           </Grid>
           <Grid item xs={12} md={3}>

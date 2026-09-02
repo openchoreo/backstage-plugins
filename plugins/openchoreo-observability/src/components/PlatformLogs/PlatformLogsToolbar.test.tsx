@@ -126,6 +126,26 @@ describe('PlatformLogsToolbar', () => {
     );
   });
 
+  // Search is the one filter with no chip, so the field itself is the only way to
+  // clear it.
+  it('offers no clear button while the search is empty', () => {
+    renderToolbar();
+
+    expect(
+      screen.queryByRole('button', { name: 'Clear search' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears the search from its button', async () => {
+    const { onFiltersChange } = renderToolbar(
+      base({ searchQuery: 'reconcile' }),
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+
+    expect(onFiltersChange).toHaveBeenCalledWith({ searchQuery: '' });
+  });
+
   it('toggles live tail', async () => {
     const { onFiltersChange } = renderToolbar();
 

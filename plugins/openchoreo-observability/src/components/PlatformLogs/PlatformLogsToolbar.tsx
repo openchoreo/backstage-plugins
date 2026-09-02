@@ -4,12 +4,15 @@ import {
   Button,
   Chip,
   FormControl,
+  IconButton,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
   TextField,
   Tooltip,
 } from '@material-ui/core';
+import ClearIcon from '@material-ui/icons/Clear';
 import FiberManualRecord from '@material-ui/icons/FiberManualRecord';
 import FilterListIcon from '@material-ui/icons/FilterList';
 import Refresh from '@material-ui/icons/Refresh';
@@ -52,7 +55,7 @@ export const PlatformLogsToolbar: FC<PlatformLogsToolbarProps> = ({
   disabled = false,
 }) => {
   const classes = usePlatformLogsToolbarStyles();
-  const [searchInput, handleSearchChange] = useDebouncedSearch(
+  const [searchInput, handleSearchChange, clearSearch] = useDebouncedSearch(
     filters.searchQuery,
     value => onFiltersChange({ searchQuery: value }),
   );
@@ -120,6 +123,21 @@ export const PlatformLogsToolbar: FC<PlatformLogsToolbarProps> = ({
           onChange={handleSearchChange}
           disabled={disabled}
           inputProps={{ 'aria-label': 'Search log messages' }}
+          InputProps={{
+            endAdornment: searchInput ? (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  edge="end"
+                  aria-label="Clear search"
+                  onClick={clearSearch}
+                  disabled={disabled}
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          }}
         />
 
         <Button
