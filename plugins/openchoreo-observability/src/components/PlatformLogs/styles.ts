@@ -18,7 +18,9 @@ export const usePlatformLogsToolbarStyles = makeStyles(theme => ({
     minWidth: 190,
   },
   timeRange: {
-    minWidth: 170,
+    // The trigger only ever shows a short preset ("Last 10 minutes"); the picker itself
+    // opens in a popover, so the field does not need room for a date range.
+    width: 158,
   },
   search: {
     // The one control that should absorb spare width: a log search is often long.
@@ -60,6 +62,34 @@ export const usePlatformLogsToolbarStyles = makeStyles(theme => ({
   clearAll: {
     textTransform: 'none',
     color: theme.palette.text.secondary,
+  },
+}));
+
+export const useFacetSelectStyles = makeStyles(theme => ({
+  // Sits where Autocomplete would put its tags, so it reads as the field's value.
+  summary: {
+    paddingLeft: theme.spacing(0.5),
+    color: theme.palette.text.primary,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: '100%',
+  },
+  // "All" is the absence of a filter, so it reads as placeholder rather than value.
+  summaryEmpty: {
+    paddingLeft: theme.spacing(0.5),
+    color: theme.palette.text.disabled,
+  },
+  option: {
+    display: 'flex',
+    alignItems: 'center',
+    minWidth: 0,
+    width: '100%',
+  },
+  optionLabel: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
 }));
 

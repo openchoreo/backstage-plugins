@@ -107,6 +107,7 @@ export const PlatformLogsToolbar: FC<PlatformLogsToolbarProps> = ({
             customEndTime={filters.customEndTime}
             onChange={onFiltersChange}
             disabled={disabled}
+            size="small"
           />
         </Box>
 
