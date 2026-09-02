@@ -23,6 +23,7 @@ import type { ObservabilityPlaneOption } from '../../hooks/useObservabilityPlane
 import { activeFilters, clearedFilters } from './activeFilters';
 import { usePlatformLogsToolbarStyles } from './styles';
 import { PlatformLogsFilters } from './types';
+import { validateSearchPhrase } from './validation';
 
 interface PlatformLogsToolbarProps {
   filters: PlatformLogsFilters;
@@ -57,8 +58,12 @@ export const PlatformLogsToolbar: FC<PlatformLogsToolbarProps> = ({
   const classes = usePlatformLogsToolbarStyles();
   const [searchInput, handleSearchChange, clearSearch] = useDebouncedSearch(
     filters.searchQuery,
-    value => onFiltersChange({ searchQuery: value }),
+    value => {
+      if (!validateSearchPhrase(value)) onFiltersChange({ searchQuery: value });
+    },
   );
+
+  const searchError = validateSearchPhrase(searchInput);
 
   const chips = activeFilters(filters);
 
@@ -119,6 +124,8 @@ export const PlatformLogsToolbar: FC<PlatformLogsToolbarProps> = ({
           size="small"
           variant="outlined"
           placeholder="Search log messages…"
+          error={Boolean(searchError)}
+          helperText={searchError}
           value={searchInput}
           onChange={handleSearchChange}
           disabled={disabled}

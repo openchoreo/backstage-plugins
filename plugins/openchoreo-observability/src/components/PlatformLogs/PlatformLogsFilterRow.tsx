@@ -19,6 +19,7 @@ import type { PlatformLogFacets } from '../../hooks/usePlatformLogFacets';
 import { FacetSelect } from './FacetSelect';
 import { usePlatformLogsFilterRowStyles } from './styles';
 import { PLATFORM_LOG_LEVELS, PlatformLogsFilters } from './types';
+import { validateLabelSelector } from './validation';
 
 interface PlatformLogsFilterRowProps {
   open: boolean;
@@ -44,8 +45,16 @@ export const PlatformLogsFilterRow: FC<PlatformLogsFilterRowProps> = ({
   const classes = usePlatformLogsFilterRowStyles();
   const [labelsInput, handleLabelsChange, clearLabels] = useDebouncedSearch(
     filters.labels,
-    value => onFiltersChange({ labels: value }),
+    // Only applied once it parses. Every intermediate state of a selector is invalid, so
+    // firing on the debounce alone meant pausing mid-pair produced a rejected query.
+    value => {
+      if (!validateLabelSelector(value)) onFiltersChange({ labels: value });
+    },
   );
+
+  // Validated against what is typed, not what is applied, so the reason shows up as soon
+  // as the field is wrong rather than after the debounce.
+  const labelsError = validateLabelSelector(labelsInput);
 
   const allLevels = filters.logLevel.length === PLATFORM_LOG_LEVELS.length;
 
@@ -104,9 +113,14 @@ export const PlatformLogsFilterRow: FC<PlatformLogsFilterRowProps> = ({
               fullWidth
               size="small"
               variant="outlined"
+              id="platform-logs-labels"
               label="Labels"
               placeholder="openchoreo.dev/plane=controlplane"
-              helperText="Pod label selector. Comma means AND. Clear it to search everything."
+              error={Boolean(labelsError)}
+              helperText={
+                labelsError ??
+                'Pod label selector. Comma means AND. Clear it to search everything.'
+              }
               value={labelsInput}
               onChange={handleLabelsChange}
               disabled={disabled}
