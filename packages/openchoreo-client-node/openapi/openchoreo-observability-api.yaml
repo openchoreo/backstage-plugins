@@ -318,12 +318,12 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1alpha1/traces/{traceId}/spans/{spanId}:
-    get:
+    post:
       tags:
         - Traces
       summary: Get details of a span for a trace
       description: Get details of a span for a trace from the observer service
-      operationId: getSpanDetailsForTrace
+      operationId: querySpanDetailsForTrace
       parameters:
         - name: traceId
           in: path
@@ -337,6 +337,12 @@ paths:
           description: The ID of the span
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TraceSpanDetailsRequest'
       responses:
         '200':
           description: Span details queried successfully
@@ -1298,6 +1304,14 @@ components:
         tookMs:
           type: integer
           description: The time taken to query the spans in milliseconds
+
+    # Request schema for span details
+    TraceSpanDetailsRequest:
+      type: object
+      properties:
+        searchScope:
+          $ref: '#/components/schemas/ComponentSearchScope'
+      required: [searchScope]
 
     TraceSpanDetailsResponse:
       type: object
