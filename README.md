@@ -228,13 +228,17 @@ yarn add @openchoreo/backstage-plugin-backend
 yarn add @openchoreo/backstage-plugin-api
 ```
 
-Releases are published from CI using [npm trusted publishing](https://docs.npmjs.com/trusted-publishers), so every version carries a signed [provenance attestation](https://docs.npmjs.com/generating-provenance-statements) linking the tarball to the workflow run that built it. Verify with:
+Releases from `1.3.0` onward are published from CI using [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) and carry a signed [provenance attestation](https://docs.npmjs.com/generating-provenance-statements) linking the tarball to the workflow run that built it.
+
+To check a published version without installing anything:
 
 ```bash
-npm audit signatures
+npm view @openchoreo/backstage-plugin dist.attestations
 ```
 
-Versions released before the move to npm (`1.2.x` and earlier) were migrated from GitHub Packages and have no attestation. Versions older than `1.1.0` remain available only from GitHub Packages.
+To audit a whole dependency tree, `npm audit signatures` works in projects installed with npm (it reads an npm lockfile, so it does not apply to a Yarn Berry workspace).
+
+Versions `1.1.0` through `1.2.x` were migrated from GitHub Packages and predate trusted publishing, so they have no attestation. Versions older than `1.1.0` were not migrated and remain available only from GitHub Packages.
 
 ### Wiring the plugins into your Backstage app
 

@@ -51,6 +51,22 @@ const { execFileSync } = require('child_process');
 
 const GH_REGISTRY = 'https://npm.pkg.github.com';
 const NPM_REGISTRY = 'https://registry.npmjs.org';
+const SCOPE = '@openchoreo';
+
+// `--registry` alone is not enough: a scope-specific registry in any .npmrc
+// (`@openchoreo:registry=...`) takes precedence over it for scoped packages
+// (npm/npm#10117). Pin the scope explicitly so a stale GitHub Packages setting
+// on the operator's machine cannot redirect a publish back to the old registry.
+const REGISTRY_ARGS = [
+  '--registry',
+  NPM_REGISTRY,
+  `--${SCOPE}:registry=${NPM_REGISTRY}`,
+];
+
+// Scratch dist-tag used while copying versions, removed once the real tags are
+// replicated. Deliberately unlikely to collide with a tag the source registry
+// actually uses.
+const SCRATCH_TAG = 'x-migration-scratch';
 
 // Versions below this floor stay on GitHub Packages only. 1.1.0 is the oldest
 // line the published docs still reference.
@@ -228,13 +244,24 @@ async function repackTarball(tarballUrl, token, workDir) {
 
 function parseArgs(argv) {
   const args = { execute: false, since: DEFAULT_SINCE, only: null };
+  const requireValue = (flag, value) => {
+    if (value === undefined || value.startsWith('--')) {
+      throw new Error(`${flag} requires a value`);
+    }
+    return value;
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--execute') args.execute = true;
-    else if (a === '--since') args.since = argv[++i];
-    else if (a === '--only') args.only = argv[++i];
+    else if (a === '--since') args.since = requireValue(a, argv[++i]);
+    else if (a === '--only') args.only = requireValue(a, argv[++i]);
     else if (a === '--help' || a === '-h') args.help = true;
     else throw new Error(`unknown argument: ${a}`);
+  }
+  // An unparseable floor would silently fall back to lexical comparison in
+  // compareVersions and migrate the wrong set of versions.
+  if (!parseVersion(args.since)) {
+    throw new Error(`--since must be a semver version, got: ${args.since}`);
   }
   return args;
 }
@@ -283,21 +310,14 @@ async function migratePackage(name, args, token, summary) {
     const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'oc-migrate-'));
     try {
       const tgz = await repackTarball(dist.tarball, token, workDir);
-      // --tag backfill keeps every intermediate publish off `latest`; the real
-      // dist-tags are replicated from the source registry once all versions
-      // have landed.
+      // The scratch tag keeps every intermediate publish off `latest`; the
+      // real dist-tags are replicated from the source registry once all
+      // versions have landed.
       execFileSync(
         'npm',
-        [
-          'publish',
-          tgz,
-          '--access',
-          'public',
-          '--tag',
-          'backfill',
-          '--registry',
-          NPM_REGISTRY,
-        ],
+        ['publish', tgz, '--access', 'public', '--tag', SCRATCH_TAG].concat(
+          REGISTRY_ARGS,
+        ),
         { stdio: 'inherit' },
       );
       published++;
@@ -328,31 +348,26 @@ async function migratePackage(name, args, token, summary) {
     }
     execFileSync(
       'npm',
-      [
-        'dist-tag',
-        'add',
-        `${name}@${version}`,
-        tag,
-        '--registry',
-        NPM_REGISTRY,
-      ],
+      ['dist-tag', 'add', `${name}@${version}`, tag].concat(REGISTRY_ARGS),
       { stdio: 'inherit' },
     );
   }
 
-  // Always attempt the cleanup, not just when this run published something —
-  // a resumed run can inherit a stale `backfill` tag from an earlier attempt
-  // that published versions but did not reach this point. Absence is fine.
-  if (args.execute) {
+  // Always attempt the cleanup, not just when this run published something — a
+  // resumed run can inherit a scratch tag from an earlier attempt that
+  // published versions but did not reach this point. Absence is fine. Guard
+  // against the unlikely case where the source registry genuinely uses this
+  // tag name, which the replication above would then have recreated.
+  if (args.execute && !(SCRATCH_TAG in sourceTags)) {
     try {
       execFileSync(
         'npm',
-        ['dist-tag', 'rm', name, 'backfill', '--registry', NPM_REGISTRY],
+        ['dist-tag', 'rm', name, SCRATCH_TAG].concat(REGISTRY_ARGS),
         { stdio: 'pipe' },
       );
-      console.log('  removed scratch dist-tag: backfill');
+      console.log(`  removed scratch dist-tag: ${SCRATCH_TAG}`);
     } catch {
-      // no backfill tag on this package — nothing to clean up
+      // no scratch tag on this package — nothing to clean up
     }
   }
 
@@ -365,7 +380,16 @@ async function migratePackage(name, args, token, summary) {
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (err) {
+    // Usage errors are the operator's typo, not a crash — no stack trace.
+    console.error(`${err.message}\n`);
+    console.error('Usage: node scripts/migrate-gh-packages-to-npmjs.js \\');
+    console.error('         [--execute] [--since <semver>] [--only <package>]');
+    process.exit(2);
+  }
   if (args.help) {
     console.log(fs.readFileSync(__filename, 'utf8').split('*/')[0]);
     return;

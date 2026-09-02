@@ -151,20 +151,34 @@ Two consequences worth knowing:
 
 ### Verifying a release
 
+Query the exact version you just released, not the bare package name — a bare
+name resolves the `latest` dist-tag, which a prerelease deliberately does not
+move, so it would report the previous release as if nothing had happened.
+
 ```bash
-yarn npm info @openchoreo/backstage-plugin
-yarn npm info @openchoreo/backstage-design-system
+VERSION=1.3.0-rc.1   # the version just released, without the leading v
+
+yarn npm info "@openchoreo/backstage-plugin@${VERSION}"
+yarn npm info "@openchoreo/backstage-design-system@${VERSION}"
 ```
 
-Both should show the new version. Confirm under `dist-tags` that stable releases moved `latest` and prereleases moved `next`. To confirm `workspace:^` rewriting worked, inspect the `dependencies` field of any published `@openchoreo/*` package — every version specifier should be a concrete range (e.g. `^1.1.0`), never `workspace:^`.
+Both should show that version. Then confirm the dist-tags moved as intended — stable releases move `latest`, prereleases move `next`:
+
+```bash
+npm view @openchoreo/backstage-plugin dist-tags
+```
+
+To confirm `workspace:^` rewriting worked, inspect the `dependencies` field of any published `@openchoreo/*` package — every version specifier should be a concrete range (e.g. `^1.1.0`), never `workspace:^`.
 
 Confirm provenance was attached:
 
 ```bash
-npm view @openchoreo/backstage-plugin --json | jq '.dist.attestations'
+npm view "@openchoreo/backstage-plugin@${VERSION}" dist.attestations
 ```
 
-A non-null result means the OIDC path worked. `null` means the package was published without provenance — investigate before shipping the release.
+This prints the attestation block when provenance is present and nothing at all when it is absent. (Avoid `npm view --json | jq '.dist.attestations'` — without a pinned version npm may return an array of matching versions rather than a single object, and the `jq` path silently yields `null` on npm 12.)
+
+Output means the OIDC path worked. Empty output means the package was published without provenance — investigate before shipping the release.
 
 Finally, prove an unauthenticated consumer can install it. In a scratch directory with no `.npmrc` and no npm login:
 
@@ -178,7 +192,7 @@ The publish step is idempotent — `--tolerate-republish` makes `yarn npm publis
 
 ### Registry history
 
-`@openchoreo/*` packages were published to GitHub Packages (`https://npm.pkg.github.com`) until the move to public npm. Versions `>= 1.1.0` were copied across by [`scripts/migrate-gh-packages-to-npmjs.js`](scripts/migrate-gh-packages-to-npmjs.js) and carry no provenance attestation (they predate trusted publishing). Versions older than `1.1.0` were not migrated and remain available only from GitHub Packages, which is now frozen and receives no new releases.
+`@openchoreo/*` packages were published to GitHub Packages (`https://npm.pkg.github.com`) until the move to public npm. Versions from `1.1.0` through the `1.2.x` line were copied across by [`scripts/migrate-gh-packages-to-npmjs.js`](scripts/migrate-gh-packages-to-npmjs.js) and carry no provenance attestation (they predate trusted publishing). Versions older than `1.1.0` were not migrated and remain available only from GitHub Packages, which is now frozen and receives no new releases. Everything from `1.3.0` onward is published to npm by CI with provenance.
 
 ### One-time local dry run
 
