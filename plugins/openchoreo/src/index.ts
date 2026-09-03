@@ -100,6 +100,11 @@ export { ComponentWorkflowOverviewCard } from './components/ComponentWorkflowOve
 export { ResourceDefinitionTab } from './components/ResourceDefinition';
 export { OpenChoreoAboutCard } from './components/OpenChoreoAboutCard';
 export { ContainedCatalogGraphCard } from './components/ContainedCatalogGraphCard';
+export { EntityWarningStrip } from './extensions/entityLayouts/EntityWarningStrip';
+export {
+  ForeignCardsSection,
+  selectForeignCards,
+} from './extensions/entityLayouts/foreignCards';
 export { EntityRelationWarning } from './components/EntityRelationWarning';
 export { useQueryParams } from './hooks/useQueryParams';
 export { ExecTerminalWindowPage } from './components/Terminal';

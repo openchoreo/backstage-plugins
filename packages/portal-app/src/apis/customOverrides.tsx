@@ -9,9 +9,16 @@
 
 import catalogGraphPluginAlphaBase from '@backstage/plugin-catalog-graph/alpha';
 import catalogPluginAlphaBase from '@backstage/plugin-catalog/alpha';
+import catalogImportPluginAlphaBase from '@backstage/plugin-catalog-import/alpha';
 import apiDocsPluginAlphaBase from '@backstage/plugin-api-docs/alpha';
 import techdocsPluginAlphaBase from '@backstage/plugin-techdocs/alpha';
 import scaffolderPluginAlphaBase from '@backstage/plugin-scaffolder/alpha';
+import searchPluginAlphaBase from '@backstage/plugin-search/alpha';
+import userSettingsPluginAlphaBase from '@backstage/plugin-user-settings/alpha';
+import { SearchContextProvider } from '@backstage/plugin-search-react';
+import { RequirePermission } from '@backstage/plugin-permission-react';
+import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
+import { CustomGraphNode } from '@openchoreo/backstage-plugin-react';
 import type { Entity } from '@backstage/catalog-model';
 import { isTechDocsAvailable } from '@backstage/plugin-techdocs';
 import { createFrontendModule } from '@backstage/frontend-plugin-api';
@@ -80,6 +87,15 @@ import { InvestigateLogButton } from '@openchoreo/backstage-plugin-openchoreo-po
 export const catalogGraphPluginAlpha =
   catalogGraphPluginAlphaBase.withOverrides({
     extensions: [
+      // Override `page:catalog-graph` to pass renderNode={CustomGraphNode}.
+      catalogGraphPluginAlphaBase.getExtension('page:catalog-graph').override({
+        params: {
+          loader: () =>
+            import('@backstage/plugin-catalog-graph').then(m => (
+              <m.CatalogGraphPage renderNode={CustomGraphNode} />
+            )),
+        },
+      }),
       catalogGraphPluginAlphaBase.getExtension('api:catalog-graph').override({
         params: defineParams =>
           defineParams({
@@ -252,17 +268,57 @@ export const apiDocsPluginAlpha = apiDocsPluginAlphaBase.withOverrides({
       .override({
         params: { filter: hasApis },
       }),
+    // /api-docs → host's CustomApiExplorerPage instead of upstream's default.
+    apiDocsPluginAlphaBase.getExtension('page:api-docs').override({
+      params: {
+        // CustomApiExplorerPage mounts its own <PageWithHeader title="APIs">.
+        noHeader: true,
+        loader: () =>
+          import('../components/catalog/CustomApiExplorerPage').then(m => (
+            <m.CustomApiExplorerPage />
+          )),
+      },
+    }),
+    // Portal-only: raw OpenAPI YAML viewer instead of upstream's ApiDefinitionCard.
+    apiDocsPluginAlphaBase
+      .getExtension('entity-content:api-docs/definition')
+      .override({
+        params: {
+          loader: async () =>
+            import('../components/apiOverview/ApiOpenApiDefinitionTab').then(
+              m => <m.ApiOpenApiDefinitionTab />,
+            ),
+        },
+      }),
   ],
 });
 
-/**
- * Override upstream's `entity-content:techdocs` (the "TechDocs" entity tab)
- * to hide it unless the entity carries the `backstage.io/techdocs-ref`
- * annotation. Upstream registers the tab with no filter — it appears on
- * every entity page even when there's nothing to render. The portal has
- * always hidden it via `isTechDocsAvailable(entity)` in the legacy
- * `EntityPage.tsx`.
- */
+// /catalog-import → host's CustomCatalogImportPage, gated by permission.
+export const catalogImportPluginAlpha =
+  catalogImportPluginAlphaBase.withOverrides({
+    extensions: [
+      catalogImportPluginAlphaBase
+        .getExtension('page:catalog-import')
+        .override({
+          params: {
+            // CustomCatalogImportPage mounts its own <Page><Header>.
+            noHeader: true,
+            loader: () =>
+              import('../components/catalog/CustomCatalogImportPage').then(
+                m => (
+                  <RequirePermission
+                    permission={catalogEntityCreatePermission}
+                  >
+                    <m.CustomCatalogImportPage />
+                  </RequirePermission>
+                ),
+              ),
+          },
+        }),
+    ],
+  });
+
+// Hide TechDocs entity tab unless `backstage.io/techdocs-ref` is set.
 export const techdocsPluginAlpha = techdocsPluginAlphaBase.withOverrides({
   extensions: [
     techdocsPluginAlphaBase.getExtension('entity-content:techdocs').override({
@@ -344,6 +400,39 @@ export const customAppModule = createFrontendModule({
     }),
   ],
 });
+
+// /search → host's SearchPage (software-catalog only, kind dropdown filter).
+export const searchPluginAlpha = searchPluginAlphaBase.withOverrides({
+  extensions: [
+    searchPluginAlphaBase.getExtension('page:search').override({
+      params: {
+        noHeader: true,
+        loader: () =>
+          import('../components/search/SearchPage').then(m => (
+            <SearchContextProvider>{m.searchPage}</SearchContextProvider>
+          )),
+      },
+    }),
+  ],
+});
+
+// /settings → legacy SettingsLayout chrome with three curated tabs
+// (General / Access Control / Secrets). Bypasses upstream SubPageBlueprint
+// collection.
+export const userSettingsPluginAlpha =
+  userSettingsPluginAlphaBase.withOverrides({
+    extensions: [
+      userSettingsPluginAlphaBase.getExtension('page:user-settings').override({
+        params: {
+          noHeader: true,
+          loader: () =>
+            import('../components/settings/OpenChoreoUserSettingsPage').then(
+              m => <m.OpenChoreoUserSettingsPage />,
+            ),
+        },
+      }),
+    ],
+  });
 
 export const scaffolderPluginAlpha = scaffolderPluginAlphaBase.withOverrides({
   extensions: [

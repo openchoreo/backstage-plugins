@@ -6,16 +6,11 @@ import {
   Page,
   SupportButton,
 } from '@backstage/core-components';
-import {
-  useApi,
-  configApiRef,
-  createRoutableExtension,
-} from '@backstage/core-plugin-api';
+import { useApi, configApiRef } from '@backstage/core-plugin-api';
 import { useTranslationRef } from '@backstage/frontend-plugin-api';
 import {
   ImportInfoCard,
   ImportStepper,
-  catalogImportPlugin,
 } from '@backstage/plugin-catalog-import';
 import { catalogImportTranslationRef } from '@backstage/plugin-catalog-import/alpha';
 import Box from '@material-ui/core/Box';
@@ -40,7 +35,7 @@ const useStyles = makeStyles({
   },
 });
 
-const CustomCatalogImportPageContent = () => {
+export const CustomCatalogImportPage = () => {
   const classes = useStyles();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -94,12 +89,3 @@ const CustomCatalogImportPageContent = () => {
   );
 };
 
-// Routable extension on the catalog-import plugin so the `importPage` routeRef
-// keeps its path for useRouteRef consumers and bound external routes.
-export const CustomCatalogImportPage = catalogImportPlugin.provide(
-  createRoutableExtension({
-    name: 'CustomCatalogImportPage',
-    component: () => Promise.resolve(CustomCatalogImportPageContent),
-    mountPoint: catalogImportPlugin.routes.importPage,
-  }),
-);

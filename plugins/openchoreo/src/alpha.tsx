@@ -3,6 +3,7 @@ import {
   createFrontendPlugin,
   discoveryApiRef,
   fetchApiRef,
+  PageBlueprint,
   PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
 import {
@@ -32,6 +33,7 @@ export { openChoreoEntityPageOverride } from './extensions/openChoreoEntityPageO
 import {
   rootCatalogEnvironmentRouteRef,
   accessControlRouteRef,
+  execTerminalRouteRef,
   resourceEnvironmentsRouteRef,
 } from './routes';
 import { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
@@ -74,9 +76,10 @@ const resourceDefinitionEntityContent = EntityContentBlueprint.make({
     path: '/definition',
     title: 'Definition',
     group: 'definition',
-    // Any OC-managed entity gets the Definition tab. The MANAGED label
-    // already implies OC-owned; a separate kind list is redundant.
-    filter: isOpenChoreoManagedEntity,
+    // API entities are excluded — upstream api-docs owns their /definition tab.
+    filter: entity =>
+      isOpenChoreoManagedEntity(entity) &&
+      entity.kind.toLowerCase() !== 'api',
     loader: () =>
       import('./components/ResourceDefinition').then(m => (
         <m.ResourceDefinitionTab />
@@ -754,16 +757,32 @@ const componentWorkflowOverviewLayout = EntityContentLayoutBlueprint.make({
   },
 });
 
+// Opened via window.open() from the resource drawer; no title/icon = no nav item.
+const execTerminalPage = PageBlueprint.make({
+  name: 'exec-terminal',
+  params: {
+    path: '/exec-terminal',
+    routeRef: execTerminalRouteRef,
+    noHeader: true,
+    loader: () =>
+      import('./components/Terminal/ExecTerminalWindowPage').then(m => (
+        <m.ExecTerminalWindowPage />
+      )),
+  },
+});
+
 export default createFrontendPlugin({
   pluginId: 'openchoreo',
   routes: {
     catalogEnvironment: rootCatalogEnvironmentRouteRef,
     accessControl: accessControlRouteRef,
+    execTerminal: execTerminalRouteRef,
     resourceEnvironments: resourceEnvironmentsRouteRef,
   },
   extensions: [
     openChoreoClientApi,
     queryProvider,
+    execTerminalPage,
     deleteEntityContextMenuItem,
     editAnnotationsEntityContextMenuItem,
     resourceDefinitionEntityContent,

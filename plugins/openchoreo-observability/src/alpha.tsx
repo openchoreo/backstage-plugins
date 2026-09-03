@@ -1,9 +1,11 @@
+import MonetizationOnIcon from '@material-ui/icons/MonetizationOn';
 import {
   ApiBlueprint,
   createExtensionInput,
   createFrontendPlugin,
   discoveryApiRef,
   fetchApiRef,
+  PageBlueprint,
   PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
 import {
@@ -307,15 +309,23 @@ const costInsightsSummaryCard = EntityCardBlueprint.make({
   },
 });
 
-/**
- * NFS entry point for the OpenChoreo Observability plugin.
- *
- * Registers the three observability backend clients, the log-row-action
- * registry API, the component-page entity tabs (Logs, Events, Metrics,
- * Alerts, Wirelogs) and the system-page entity tabs (Logs, Traces,
- * Incidents, RCA Reports), plus the Cost Insights summary card shown on the
- * Component and Project overview pages.
- */
+// Ships title + icon so adopters auto-get a sidebar entry via DefaultNavContent.
+const costInsightsPage = PageBlueprint.make({
+  name: 'cost-insights',
+  params: {
+    path: '/cost-insights',
+    routeRef: rootRouteRef,
+    title: 'Cost Insights',
+    icon: <MonetizationOnIcon />,
+    // Page renders its own <Page><Header>; suppress outer PageLayout header.
+    noHeader: true,
+    loader: () =>
+      import('./components/CostInsights/CostInsightsPage').then(m => (
+        <m.CostInsightsPage />
+      )),
+  },
+});
+
 export default createFrontendPlugin({
   pluginId: 'openchoreo-observability',
   routes: { root: rootRouteRef },
@@ -325,6 +335,7 @@ export default createFrontendPlugin({
     rcaAgentApi,
     finopsAgentApi,
     logRowActionRendererApi,
+    costInsightsPage,
     runtimeLogsEntityContent,
     runtimeEventsEntityContent,
     metricsEntityContent,

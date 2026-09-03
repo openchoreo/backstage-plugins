@@ -30,10 +30,10 @@ import {
   CLUSTER_NAMESPACE,
   CLUSTER_SCOPED_KINDS,
   useProjects,
+  useQueryParams,
   type ProjectEntry,
   type EntityNode,
 } from '@openchoreo/backstage-plugin-react';
-import { useQueryParams } from '@openchoreo/backstage-plugin';
 
 const useStyles = makeStyles(theme => ({
   content: {
