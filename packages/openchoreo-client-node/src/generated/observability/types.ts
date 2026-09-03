@@ -155,13 +155,13 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
-    put?: never;
     /**
      * Get details of a span for a trace
      * @description Get details of a span for a trace from the observer service
      */
-    post: operations['querySpanDetailsForTrace'];
+    get: operations['getSpanDetailsForTrace'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -808,9 +808,6 @@ export interface components {
       total?: number;
       /** @description The time taken to query the spans in milliseconds */
       tookMs?: number;
-    };
-    TraceSpanDetailsRequest: {
-      searchScope: components['schemas']['ComponentSearchScope'];
     };
     TraceSpanDetailsResponse: {
       /** @description The span ID */
@@ -1756,7 +1753,7 @@ export interface operations {
       };
     };
   };
-  querySpanDetailsForTrace: {
+  getSpanDetailsForTrace: {
     parameters: {
       query?: never;
       header?: never;
@@ -1768,11 +1765,7 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['TraceSpanDetailsRequest'];
-      };
-    };
+    requestBody?: never;
     responses: {
       /** @description Span details queried successfully */
       200: {
