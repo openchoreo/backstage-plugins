@@ -1,5 +1,11 @@
 # @openchoreo/backstage-plugin-openchoreo-observability
 
+## 1.2.5
+
+### Patch Changes
+
+- 39ecb1c: Fetch span details via the new `POST /traces/{traceId}/spans/{spanId}` endpoint with `searchScope` in the body, and read span `status` from its `code` field so expanding a trace no longer crashes.
+
 ## 1.2.3
 
 ### Patch Changes
