@@ -21,8 +21,8 @@ permissions:
   pull-requests: write
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: openchoreo/openchoreo-ui
+  OCI_REGISTRY_HOST: ${{ vars.OCI_REGISTRY_HOST || 'ghcr.io' }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || 'openchoreo/openchoreo-ui' }}
 
 jobs:
   lint:
@@ -172,12 +172,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Login to GitHub container registry
+      - name: Login to container registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ env.OCI_REGISTRY_HOST }}
+          username: ${{ env.OCI_REGISTRY_HOST == 'ghcr.io' && (secrets.OCI_REGISTRY_USERNAME || github.actor) || secrets.OCI_REGISTRY_USERNAME }}
+          password: ${{ env.OCI_REGISTRY_HOST == 'ghcr.io' && (secrets.OCI_REGISTRY_PASSWORD || github.token) || secrets.OCI_REGISTRY_PASSWORD }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
@@ -187,9 +187,9 @@ jobs:
         run: |
           SHA=$(git rev-parse --short=8 HEAD)
           echo "GIT_SHA_SHORT=$SHA" >> $GITHUB_OUTPUT
-          TAGS="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$SHA"
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            TAGS="$TAGS,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-dev"
+          TAGS="$OCI_REGISTRY_HOST/$IMAGE_NAME:$SHA"
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            TAGS="$TAGS,$OCI_REGISTRY_HOST/$IMAGE_NAME:latest-dev"
           fi
           echo "TAGS=$TAGS" >> $GITHUB_OUTPUT
 
@@ -197,8 +197,8 @@ jobs:
         id: check-image
         run: |
           SHA=$(git rev-parse --short=8 HEAD)
-          if docker buildx imagetools inspect "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${SHA}" >/dev/null 2>&1; then
-            echo "Image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${SHA} already exists. Skipping build."
+          if docker buildx imagetools inspect "$OCI_REGISTRY_HOST/$IMAGE_NAME:${SHA}" >/dev/null 2>&1; then
+            echo "Image $OCI_REGISTRY_HOST/$IMAGE_NAME:${SHA} already exists. Skipping build."
             echo "skip=true" >> $GITHUB_OUTPUT
           else
             echo "Image not found. Proceeding with build."
