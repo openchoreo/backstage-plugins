@@ -142,15 +142,20 @@ export class ObservabilityUrlResolver {
   /**
    * Resolve observability URLs for a namespace without a specific environment —
    * used by scopes that aggregate across environments (e.g. the Insights pages at
-   * namespace/project level). Lists the namespace's environments and returns the
-   * first one that resolves to an observability plane.
+   * namespace/project level).
    *
-   * This assumes every environment in a namespace reports to the same
-   * observability plane, which is how a namespace is expected to be configured.
-   * If a namespace ever spans several planes, a namespace-wide query resolves to
-   * whichever plane its first environment uses and would therefore only see that
-   * plane's data; aggregating across planes would need a different shape than a
-   * single resolved URL.
+   * A single resolved URL can only answer for a namespace whose environments all
+   * report to the same observability plane. Rather than assume that, this resolves
+   * every environment and checks it: if they disagree, a namespace-wide query would
+   * silently return one plane's data as though it were the whole namespace, so it
+   * fails instead and says how to scope around it. Aggregating across planes is not
+   * a resolver concern — distribution metrics like lead-time and MTTR percentiles do
+   * not re-aggregate from per-plane results, so it would need a different shape.
+   *
+   * Environments that fail to resolve are logged and skipped, as before; the check
+   * compares the ones that did resolve. All of them are resolved rather than stopping
+   * at the first, which costs more calls on a cache miss — `resolveForEnvironment`
+   * memoises each one, and the namespace-level answer is cached below.
    */
   async resolveForNamespace(
     namespaceName: string,
@@ -191,32 +196,62 @@ export class ObservabilityUrlResolver {
       );
     }
 
+    const settled = await Promise.allSettled(
+      envNames.map(envName =>
+        this.resolveForEnvironment(namespaceName, envName, token),
+      ),
+    );
+
+    const resolved: Array<{
+      envName: string;
+      observerUrl: string;
+      result: ObservabilityUrlsResult;
+    }> = [];
     let lastError: Error | undefined;
-    for (const envName of envNames) {
-      try {
-        const result = await this.resolveForEnvironment(
-          namespaceName,
-          envName,
-          token,
-        );
-        if (result.observerUrl) {
-          this.putInCache(cacheKey, result);
-          return result;
+
+    settled.forEach((outcome, index) => {
+      const envName = envNames[index];
+      if (outcome.status === 'fulfilled') {
+        const { observerUrl } = outcome.value;
+        if (observerUrl) {
+          resolved.push({ envName, observerUrl, result: outcome.value });
         }
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        this.logger?.debug(
-          `Failed to resolve observability URLs via environment '${envName}' in namespace '${namespaceName}': ${lastError.message}`,
-        );
+        return;
       }
+      lastError =
+        outcome.reason instanceof Error
+          ? outcome.reason
+          : new Error(String(outcome.reason));
+      this.logger?.debug(
+        `Failed to resolve observability URLs via environment '${envName}' in namespace '${namespaceName}': ${lastError.message}`,
+      );
+    });
+
+    if (resolved.length === 0) {
+      throw (
+        lastError ??
+        new Error(
+          `No environment in namespace '${namespaceName}' resolved to an observability plane`,
+        )
+      );
     }
 
-    throw (
-      lastError ??
-      new Error(
-        `No environment in namespace '${namespaceName}' resolved to an observability plane`,
-      )
-    );
+    const distinctUrls = [...new Set(resolved.map(entry => entry.observerUrl))];
+    if (distinctUrls.length > 1) {
+      const mapping = resolved
+        .map(entry => `${entry.envName} -> ${entry.observerUrl}`)
+        .sort()
+        .join(', ');
+      throw new Error(
+        `Namespace '${namespaceName}' spans ${distinctUrls.length} observability planes (${mapping}), ` +
+          `so a namespace-wide query would report only one plane's data as if it covered the namespace. ` +
+          `Scope the query to a single environment instead.`,
+      );
+    }
+
+    const [{ result }] = resolved;
+    this.putInCache(cacheKey, result);
+    return result;
   }
 
   /**
