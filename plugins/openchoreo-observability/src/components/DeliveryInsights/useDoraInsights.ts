@@ -32,7 +32,14 @@ export function useDoraInsights(
     data: DoraMetricsResponse;
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Keyed for the same reason as `result`: without a key, an error outlives the
+  // query that produced it. Clearing the scope early-returns from the effect
+  // below without running the fetch, so an unkeyed error would stay on screen
+  // with no active query behind it.
+  const [failure, setFailure] = useState<{
+    key: string;
+    message: string;
+  } | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
   const refetch = useCallback(() => setReloadToken(token => token + 1), []);
@@ -56,7 +63,7 @@ export function useDoraInsights(
     const fetchInsights = async () => {
       try {
         setLoading(true);
-        setError(null);
+        setFailure(null);
 
         const endTime = new Date();
         const startTime = new Date(
@@ -73,9 +80,13 @@ export function useDoraInsights(
         }
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : 'Failed to fetch DORA metrics',
-          );
+          setFailure({
+            key: queryKey,
+            message:
+              err instanceof Error
+                ? err.message
+                : 'Failed to fetch DORA metrics',
+          });
         }
       } finally {
         if (!cancelled) {
@@ -95,6 +106,9 @@ export function useDoraInsights(
   // than shown under the current selection. A failed *refresh* of the current
   // key keeps its last good data alongside the error, which is intended.
   const data = result?.key === queryKey ? result.data : null;
+  // Same rule for the error: it belongs to the query that raised it. A failed
+  // refresh of the current key still surfaces, because the key matches.
+  const error = failure?.key === queryKey ? failure.message : null;
 
   return { data, loading, error, refetch };
 }

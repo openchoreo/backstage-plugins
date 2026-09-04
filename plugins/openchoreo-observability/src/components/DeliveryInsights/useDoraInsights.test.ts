@@ -89,6 +89,23 @@ describe('useDoraInsights', () => {
     expect(result.current.data?.summary.deploymentFrequency?.total).toBe(7);
   });
 
+  it('drops a failed query’s error once the scope is cleared', async () => {
+    getDoraMetrics.mockRejectedValueOnce(new Error('observer unavailable'));
+    const { result, rerender } = renderHook(
+      ({ scope }: { scope: { namespace: string } | null }) =>
+        useDoraInsights(scope, 30, 'daily'),
+      { initialProps: { scope: { namespace: 'default' } } as any },
+    );
+    await waitFor(() =>
+      expect(result.current.error).toBe('observer unavailable'),
+    );
+
+    // Clearing the scope early-returns from the effect without fetching, so an
+    // unkeyed error would remain on screen with nothing running behind it.
+    rerender({ scope: null } as any);
+    expect(result.current.error).toBeNull();
+  });
+
   it('stays idle without a scope', async () => {
     const { result } = renderHook(() => useDoraInsights(null, 30, 'daily'));
     await waitFor(() => expect(result.current.loading).toBe(false));
