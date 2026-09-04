@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: openchoreo/openchoreo-ui
+  OCI_REGISTRY_HOST: ${{ vars.OCI_REGISTRY_HOST || 'ghcr.io' }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || 'openchoreo/openchoreo-ui' }}
 
 jobs:
   release:
@@ -94,30 +94,30 @@ jobs:
           yarn workspaces foreach --all --no-private --topological --verbose \
             npm publish --tolerate-republish --access public --tag "${TAG}"
 
-      - name: Login to GitHub container registry
+      - name: Login to container registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ env.OCI_REGISTRY_HOST }}
+          username: ${{ env.OCI_REGISTRY_HOST == 'ghcr.io' && (secrets.OCI_REGISTRY_USERNAME || github.actor) || secrets.OCI_REGISTRY_USERNAME }}
+          password: ${{ env.OCI_REGISTRY_HOST == 'ghcr.io' && (secrets.OCI_REGISTRY_PASSWORD || github.token) || secrets.OCI_REGISTRY_PASSWORD }}
 
       - name: Retag existing image with release version
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          if ! docker buildx imagetools inspect "${IMAGE}:${{ env.GIT_SHA_SHORT }}" > /dev/null 2>&1; then
-            echo "::error::Image ${IMAGE}:${{ env.GIT_SHA_SHORT }} not found. Ensure the commit was pushed to a release branch before tagging."
+          IMAGE="$OCI_REGISTRY_HOST/$IMAGE_NAME"
+          if ! docker buildx imagetools inspect "${IMAGE}:${GIT_SHA_SHORT}" > /dev/null 2>&1; then
+            echo "::error::Image ${IMAGE}:${GIT_SHA_SHORT} not found. Ensure the commit was pushed to a release branch before tagging."
             exit 1
           fi
-          echo "Retagging ${IMAGE}:${{ env.GIT_SHA_SHORT }} -> ${IMAGE}:${{ env.RELEASE_TAG }}"
+          echo "Retagging ${IMAGE}:${GIT_SHA_SHORT} -> ${IMAGE}:${RELEASE_TAG}"
           docker buildx imagetools create \
-            --tag "${IMAGE}:${{ env.RELEASE_TAG }}" \
-            "${IMAGE}:${{ env.GIT_SHA_SHORT }}"
+            --tag "${IMAGE}:${RELEASE_TAG}" \
+            "${IMAGE}:${GIT_SHA_SHORT}"
 
       - name: Tag latest if highest stable version
         if: env.LATEST == 'true' && env.IS_PRERELEASE == 'false'
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          echo "Retagging ${IMAGE}:${{ env.RELEASE_TAG }} -> ${IMAGE}:latest"
+          IMAGE="$OCI_REGISTRY_HOST/$IMAGE_NAME"
+          echo "Retagging ${IMAGE}:${RELEASE_TAG} -> ${IMAGE}:latest"
           docker buildx imagetools create \
             --tag "${IMAGE}:latest" \
-            "${IMAGE}:${{ env.RELEASE_TAG }}"
+            "${IMAGE}:${RELEASE_TAG}"
