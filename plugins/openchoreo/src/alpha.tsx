@@ -757,6 +757,77 @@ const componentWorkflowOverviewLayout = EntityContentLayoutBlueprint.make({
   },
 });
 
+// Scaffolder form field extensions. Adopters get the fields registered
+// automatically when they install this plugin, so any OC template
+// referencing `ui:field: <Name>` renders correctly.
+import { AdvancedConfigurationFieldExtension } from './scaffolder/AdvancedConfigurationField';
+import { BuildAndDeployFieldExtension } from './scaffolder/BuildAndDeployField';
+import { BuildTemplateParametersFieldExtension } from './scaffolder/BuildTemplateParameters';
+import { BuildTemplatePickerFieldExtension } from './scaffolder/BuildTemplatePicker';
+import { BuildWorkflowParametersFieldExtension } from './scaffolder/BuildWorkflowParameters';
+import { BuildWorkflowPickerFieldExtension } from './scaffolder/BuildWorkflowPicker';
+import { ClusterComponentTypeYamlEditorFieldExtension } from './scaffolder/ClusterComponentTypeYamlEditor';
+import { ClusterProjectTypeYamlEditorFieldExtension } from './scaffolder/ClusterProjectTypeYamlEditor';
+import { ClusterResourceTypeYamlEditorFieldExtension } from './scaffolder/ClusterResourceTypeYamlEditor';
+import { ClusterTraitYamlEditorFieldExtension } from './scaffolder/ClusterTraitYamlEditor';
+import { ClusterWorkflowYamlEditorFieldExtension } from './scaffolder/ClusterWorkflowYamlEditor';
+import { ComponentNamePickerFieldExtension } from './scaffolder/ComponentNamePicker';
+import { ComponentTypeYamlEditorFieldExtension } from './scaffolder/ComponentTypeYamlEditor';
+import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
+import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
+import { DeploymentPipelineFormWithYamlFieldExtension } from './scaffolder/DeploymentPipelineFormWithYaml';
+import { DeploymentPipelinePickerFieldExtension } from './scaffolder/DeploymentPipelinePicker';
+import { DeploymentSourcePickerFieldExtension } from './scaffolder/DeploymentSourcePicker';
+import { EnvironmentFormWithYamlFieldExtension } from './scaffolder/EnvironmentFormWithYaml';
+import { GitSourceFieldExtension } from './scaffolder/GitSourceField';
+import { NamespaceEntityPickerFieldExtension } from './scaffolder/NamespaceEntityPicker';
+import { NotificationChannelFormWithYamlFieldExtension } from './scaffolder/NotificationChannelFormWithYaml';
+import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
+import { ProjectParametersFieldExtension } from './scaffolder/ProjectParametersField';
+import { ProjectTypeYamlEditorFieldExtension } from './scaffolder/ProjectTypeYamlEditor';
+import { ResourceNamePickerFieldExtension } from './scaffolder/ResourceNamePicker';
+import { ResourceParametersFieldExtension } from './scaffolder/ResourceParametersField';
+import { ResourceTypeYamlEditorFieldExtension } from './scaffolder/ResourceTypeYamlEditor';
+import { SwitchFieldExtension } from './scaffolder/SwitchField';
+import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
+import { TraitsFieldExtension } from './scaffolder/TraitsField';
+import { WorkloadDetailsFieldExtension } from './scaffolder/WorkloadDetailsField';
+
+const scaffolderFieldExtensions = [
+  AdvancedConfigurationFieldExtension,
+  BuildAndDeployFieldExtension,
+  BuildTemplateParametersFieldExtension,
+  BuildTemplatePickerFieldExtension,
+  BuildWorkflowParametersFieldExtension,
+  BuildWorkflowPickerFieldExtension,
+  ClusterComponentTypeYamlEditorFieldExtension,
+  ClusterProjectTypeYamlEditorFieldExtension,
+  ClusterResourceTypeYamlEditorFieldExtension,
+  ClusterTraitYamlEditorFieldExtension,
+  ClusterWorkflowYamlEditorFieldExtension,
+  ComponentNamePickerFieldExtension,
+  ComponentTypeYamlEditorFieldExtension,
+  ComponentWorkflowYamlEditorFieldExtension,
+  ContainerImageFieldExtension,
+  DeploymentPipelineFormWithYamlFieldExtension,
+  DeploymentPipelinePickerFieldExtension,
+  DeploymentSourcePickerFieldExtension,
+  EnvironmentFormWithYamlFieldExtension,
+  GitSourceFieldExtension,
+  NamespaceEntityPickerFieldExtension,
+  NotificationChannelFormWithYamlFieldExtension,
+  ProjectNamespaceFieldExtension,
+  ProjectParametersFieldExtension,
+  ProjectTypeYamlEditorFieldExtension,
+  ResourceNamePickerFieldExtension,
+  ResourceParametersFieldExtension,
+  ResourceTypeYamlEditorFieldExtension,
+  SwitchFieldExtension,
+  TraitYamlEditorFieldExtension,
+  TraitsFieldExtension,
+  WorkloadDetailsFieldExtension,
+];
+
 // Opened via window.open() from the resource drawer; no title/icon = no nav item.
 const execTerminalPage = PageBlueprint.make({
   name: 'exec-terminal',
@@ -821,6 +892,7 @@ export default createFrontendPlugin({
     traitTypeOverviewCard,
     workflowOverviewCard,
     componentWorkflowOverviewCard,
+    ...scaffolderFieldExtensions,
     // per-kind Overview layouts
     componentServiceOverviewLayout,
     systemOverviewLayout,

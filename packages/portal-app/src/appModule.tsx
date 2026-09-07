@@ -18,7 +18,7 @@ import { apis } from './apis';
 import { LEGACY_KIND_ICONS } from './kindIcons';
 import { appThemes } from './themes';
 import { PortalNavContent } from './components/Root/PortalNavContent';
-import { ScaffolderPreselectionProvider } from './scaffolder/ScaffolderPreselectionContext';
+import { ScaffolderPreselectionProvider } from '@openchoreo/backstage-plugin';
 
 const apiExtensions = apis.map(factory =>
   ApiBlueprint.make({

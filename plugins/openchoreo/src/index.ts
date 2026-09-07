@@ -102,6 +102,10 @@ export { OpenChoreoAboutCard } from './components/OpenChoreoAboutCard';
 export { ContainedCatalogGraphCard } from './components/ContainedCatalogGraphCard';
 export { EntityWarningStrip } from './extensions/entityLayouts/EntityWarningStrip';
 export {
+  ScaffolderPreselectionProvider,
+  useScaffolderPreselection,
+} from './scaffolder/ScaffolderPreselectionContext';
+export {
   ForeignCardsSection,
   selectForeignCards,
 } from './extensions/entityLayouts/foreignCards';
