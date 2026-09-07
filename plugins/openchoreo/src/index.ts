@@ -1,5 +1,8 @@
 export { choreoPlugin } from './plugin';
 export { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
+export { openChoreoAuthApiRef } from './api/authRefs';
+export { OpenChoreoFetchApi } from './api/OpenChoreoFetchApi';
+export { OpenChoreoPermissionApi } from './api/OpenChoreoPermissionApi';
 // Exported so external Backstage hosts can register the API factory in
 // their packages/app/src/apis.ts. Without this, hosts that do not include
 // the plugin in their auto-discovered routes tree get a NotImplementedError

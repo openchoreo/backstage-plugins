@@ -5,6 +5,12 @@ the chat drawer, the global FAB, and the contextual launchers mounted on
 component pages (failed-build snackbar, build-tab launcher, logs-tab "Ask
 Perch" pill).
 
+## Requirements
+
+Requires [`@openchoreo/backstage-plugin`](../openchoreo) (the OpenChoreo
+core plugin) to be installed in the same Backstage app. The core plugin
+provides the fetch / permission / auth APIs this plugin uses.
+
 ## Status: internal plugin
 
 This plugin is part of the OpenChoreo Backstage app. It is **not** published

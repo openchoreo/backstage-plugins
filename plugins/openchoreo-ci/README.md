@@ -4,6 +4,12 @@ Welcome to the openchoreo-ci plugin!
 
 _This plugin was created through the Backstage CLI_
 
+## Requirements
+
+Requires [`@openchoreo/backstage-plugin`](../openchoreo) (the OpenChoreo
+core plugin) to be installed in the same Backstage app. The core plugin
+provides the fetch / permission / auth APIs this plugin uses.
+
 ## Getting started
 
 Your plugin has been added to the example app in this repository, meaning you'll be able to access it by running `yarn start` in the root directory, and then navigating to [/openchoreo-ci](http://localhost:3000/openchoreo-ci).

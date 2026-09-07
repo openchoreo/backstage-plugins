@@ -69,6 +69,7 @@
     "remend": "^1.0.0"
   },
   "peerDependencies": {
+    "@openchoreo/backstage-plugin": "^1.2.0",
     "react": "^18.0.0",
     "react-router-dom": "^6.0.0"
   },

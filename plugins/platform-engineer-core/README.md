@@ -2,6 +2,12 @@
 
 This is the frontend plugin for the Platform Engineer Core, which provides a comprehensive view of all environments across the platform for platform engineers.
 
+## Requirements
+
+Requires [`@openchoreo/backstage-plugin`](../openchoreo) (the OpenChoreo
+core plugin) to be installed in the same Backstage app. The core plugin
+provides the fetch / permission / auth APIs this plugin uses.
+
 ## Features
 
 - View all environments across organizations in a card-based layout

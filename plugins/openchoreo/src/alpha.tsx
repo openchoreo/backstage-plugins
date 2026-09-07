@@ -1,11 +1,16 @@
 import {
   ApiBlueprint,
+  configApiRef,
   createFrontendPlugin,
   discoveryApiRef,
   fetchApiRef,
+  identityApiRef,
+  oauthRequestApiRef,
   PageBlueprint,
   PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
+import { permissionApiRef } from '@backstage/plugin-permission-react';
+import { OAuth2 } from '@backstage/core-app-api';
 import {
   EntityCardBlueprint,
   EntityContentBlueprint,
@@ -38,6 +43,9 @@ import {
 } from './routes';
 import { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
 import { OpenChoreoClient } from './api/OpenChoreoClient';
+import { openChoreoAuthApiRef } from './api/authRefs';
+import { OpenChoreoFetchApi } from './api/OpenChoreoFetchApi';
+import { OpenChoreoPermissionApi } from './api/OpenChoreoPermissionApi';
 
 const openChoreoClientApi = ApiBlueprint.make({
   name: 'open-choreo-client',
@@ -47,6 +55,83 @@ const openChoreoClientApi = ApiBlueprint.make({
       deps: { discoveryApi: discoveryApiRef, fetchApi: fetchApiRef },
       factory: ({ discoveryApi, fetchApi }) =>
         new OpenChoreoClient(discoveryApi, fetchApi),
+    }),
+});
+
+// OAuth2 client for the OpenChoreo IDP. Consumed by fetch/permission
+// overrides below and by the portal's SignInPage.
+const openChoreoAuthApi = ApiBlueprint.make({
+  name: 'openchoreo-auth',
+  params: defineParams =>
+    defineParams({
+      api: openChoreoAuthApiRef,
+      deps: {
+        discoveryApi: discoveryApiRef,
+        oauthRequestApi: oauthRequestApiRef,
+        configApi: configApiRef,
+      },
+      factory: ({ discoveryApi, oauthRequestApi, configApi }) => {
+        const env =
+          configApi.getOptionalString('auth.environment') ?? 'development';
+        const scopeStr = configApi.getOptionalString(
+          'openchoreo.features.auth.scope',
+        );
+        const scopes = scopeStr?.split(/\s+/).filter(Boolean) ?? [];
+        const defaultScopes = scopes.length
+          ? scopes
+          : ['openid', 'profile', 'email'];
+        return OAuth2.create({
+          discoveryApi,
+          oauthRequestApi,
+          configApi,
+          provider: {
+            id: 'openchoreo-auth',
+            title: 'OpenChoreo',
+            icon: () => null,
+          },
+          environment: env,
+          defaultScopes,
+        });
+      },
+    }),
+});
+
+// Overrides Backstage's default fetchApiRef to inject Backstage + OC IDP tokens.
+const openChoreoFetchApi = ApiBlueprint.make({
+  name: 'fetch',
+  params: defineParams =>
+    defineParams({
+      api: fetchApiRef,
+      deps: {
+        identityApi: identityApiRef,
+        oauthApi: openChoreoAuthApiRef,
+        configApi: configApiRef,
+      },
+      factory: ({ identityApi, oauthApi, configApi }) =>
+        new OpenChoreoFetchApi(identityApi, oauthApi, configApi),
+    }),
+});
+
+// Overrides Backstage's default permissionApiRef to include the IDP token
+// in permission checks against OpenChoreo.
+const openChoreoPermissionApi = ApiBlueprint.make({
+  name: 'permission',
+  params: defineParams =>
+    defineParams({
+      api: permissionApiRef,
+      deps: {
+        configApi: configApiRef,
+        discoveryApi: discoveryApiRef,
+        identityApi: identityApiRef,
+        oauthApi: openChoreoAuthApiRef,
+      },
+      factory: ({ configApi, discoveryApi, identityApi, oauthApi }) =>
+        new OpenChoreoPermissionApi({
+          config: configApi,
+          discovery: discoveryApi,
+          identity: identityApi,
+          oauthApi,
+        }),
     }),
 });
 
@@ -851,6 +936,9 @@ export default createFrontendPlugin({
   },
   extensions: [
     openChoreoClientApi,
+    openChoreoAuthApi,
+    openChoreoFetchApi,
+    openChoreoPermissionApi,
     queryProvider,
     execTerminalPage,
     deleteEntityContextMenuItem,
