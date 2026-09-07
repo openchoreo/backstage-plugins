@@ -61,6 +61,7 @@
     "@backstage/plugin-catalog-graph": "^0.6.4",
     "@backstage/plugin-catalog-react": "^3.0.0",
     "@backstage/plugin-permission-react": "^0.5.1",
+    "@backstage/plugin-scaffolder-react": "^2.0.0",
     "@backstage/plugin-techdocs-common": "^0.1.1",
     "@backstage/theme": "^0.7.3",
     "@dagrejs/dagre": "^2.0.4",

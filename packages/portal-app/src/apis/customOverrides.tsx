@@ -306,9 +306,7 @@ export const catalogImportPluginAlpha =
             loader: () =>
               import('../components/catalog/CustomCatalogImportPage').then(
                 m => (
-                  <RequirePermission
-                    permission={catalogEntityCreatePermission}
-                  >
+                  <RequirePermission permission={catalogEntityCreatePermission}>
                     <m.CustomCatalogImportPage />
                   </RequirePermission>
                 ),

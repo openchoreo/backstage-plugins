@@ -46,8 +46,7 @@ const homePage = PageBlueprint.make({
     icon: <HomeIcon />,
     // Page renders its own <Page><Header>; suppress outer PageLayout header.
     noHeader: true,
-    loader: () =>
-      import('./components/Home').then(m => <m.HomePage />),
+    loader: () => import('./components/Home').then(m => <m.HomePage />),
   },
 });
 

@@ -78,8 +78,7 @@ const resourceDefinitionEntityContent = EntityContentBlueprint.make({
     group: 'definition',
     // API entities are excluded — upstream api-docs owns their /definition tab.
     filter: entity =>
-      isOpenChoreoManagedEntity(entity) &&
-      entity.kind.toLowerCase() !== 'api',
+      isOpenChoreoManagedEntity(entity) && entity.kind.toLowerCase() !== 'api',
     loader: () =>
       import('./components/ResourceDefinition').then(m => (
         <m.ResourceDefinitionTab />
