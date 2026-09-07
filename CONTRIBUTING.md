@@ -129,16 +129,16 @@ Two consequences worth knowing:
 
 3. **Merge** the version PR to `main`.
 
-4. **Tag the merge commit and push**:
+4. **Tag the merge commit.** Prefer the **Release Orchestrator** workflow (Actions → _Release Orchestrator_ → _Run workflow_), which validates the `VERSION` file, refuses to reuse an existing tag, and waits for `build-and-test` to pass at the target commit before tagging. Tagging by hand works — `release.yml` triggers on any `v*.*.*` tag push — but skips all of those checks:
 
    ```bash
    git checkout main && git pull
-   git tag v0.4.0           # stable release
-   # or: git tag v0.4.0-rc.1  # prerelease
-   git push origin v0.4.0
+   git tag v1.3.0             # stable release
+   # or: git tag v1.3.0-rc.1  # prerelease
+   git push origin v1.3.0
    ```
 
-5. **Approve the publish**. The `publish-npm` job targets the protected `npm-publish` environment and waits in _Waiting_ until a required reviewer approves it from the workflow run page. Nothing is published — and no OIDC token is minted — before that approval.
+5. **Approve the publish when prompted.** The `build` job starts immediately and takes roughly fifteen minutes; only then does `publish-npm` reach the protected `npm-publish` environment and sit in _Waiting_ for a required reviewer. Do not expect an approval prompt straight after pushing the tag. Nothing is published — and no OIDC token is minted — before that approval.
 
 6. **CI publishes**. The release workflow:
    - `build` (no OIDC access): runs `yarn install --immutable && yarn tsc && yarn build:all`, records the topological workspace order, runs `yarn workspaces foreach ... pack`, fails the release if any tarball still contains a `workspace:` specifier, and uploads the tarballs as an artifact.

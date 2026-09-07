@@ -214,19 +214,35 @@ For day-to-day development commands (test, lint, build, plugin development workf
 
 - **`@openchoreo/backstage-plugin`** - Frontend UI components
 - **`@openchoreo/backstage-plugin-backend`** - Backend API services
-- **`@openchoreo/backstage-plugin-api`** - Shared API client library
+- **`@openchoreo/backstage-plugin-common`** - Shared types and API client
+- **`@openchoreo/backstage-plugin-react`** - Shared React components and hooks
+- **`@openchoreo/backstage-design-system`** - Design system primitives
 - **`@openchoreo/backstage-plugin-catalog-backend-module`** - Catalog entity provider
 - **`@openchoreo/backstage-plugin-scaffolder-backend-module`** - Scaffolder actions
 
 ## Installation
 
-The plugins are published to the public npm registry under the [`@openchoreo`](https://www.npmjs.com/org/openchoreo) scope. No registry configuration or authentication is required:
+The plugins are published to the public npm registry under the [`@openchoreo`](https://www.npmjs.com/org/openchoreo) scope. No registry configuration or authentication is required.
+
+In your **app** workspace:
 
 ```bash
-yarn add @openchoreo/backstage-plugin
-yarn add @openchoreo/backstage-plugin-backend
-yarn add @openchoreo/backstage-plugin-api
+yarn workspace app add \
+  @openchoreo/backstage-design-system \
+  @openchoreo/backstage-plugin-common \
+  @openchoreo/backstage-plugin-react \
+  @openchoreo/backstage-plugin
 ```
+
+In your **backend** workspace:
+
+```bash
+yarn workspace backend add \
+  @openchoreo/backstage-plugin-backend \
+  @openchoreo/backstage-plugin-catalog-backend-module
+```
+
+See the [installation guide](https://openchoreo.dev/docs/platform-engineer-guide/backstage-plugins/installing-into-existing-backstage/) for the full wiring, including the optional tab packs.
 
 Releases from `1.3.0` onward are published from CI using [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) and carry a signed [provenance attestation](https://docs.npmjs.com/generating-provenance-statements) linking the tarball to the workflow run that built it.
 
