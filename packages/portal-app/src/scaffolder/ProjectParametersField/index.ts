@@ -1,1 +1,0 @@
-export { ProjectParametersFieldExtension } from './extensions';

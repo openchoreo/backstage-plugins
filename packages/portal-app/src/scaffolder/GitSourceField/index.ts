@@ -1,1 +1,0 @@
-export { GitSourceFieldExtension } from './extensions';

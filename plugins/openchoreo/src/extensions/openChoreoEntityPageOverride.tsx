@@ -93,6 +93,7 @@ function buildFilterFn(
 const GROUP_ORDER = [
   'overview',
   'definition',
+  'documentation',
   'deployment',
   'runtime',
   'analysis',

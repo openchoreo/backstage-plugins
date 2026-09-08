@@ -1,1 +1,0 @@
-export { ProjectTypeYamlEditorFieldExtension } from './extensions';

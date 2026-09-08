@@ -1,1 +1,0 @@
-export { ResourceNamePickerFieldExtension } from './extensions';
