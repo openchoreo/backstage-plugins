@@ -7,25 +7,57 @@ export interface FieldChangeDef {
   value: PrimitiveValue;
 }
 
+export type TargetKind = 'ReleaseBinding' | 'ResourceReleaseBinding';
+
 export interface ResourceChangeDef {
+  target_kind?: TargetKind;
   release_binding: string;
   fields?: FieldChangeDef[];
   env?: Array<{ key: string; value: string }>;
   files?: Array<{ key: string; mount_path: string; value: string }>;
 }
 
-const ALLOWED_OVERRIDE_CATEGORIES = new Set([
-  'workloadOverrides',
-  'traitEnvironmentConfigs',
-  'componentTypeEnvironmentConfigs',
-]);
+/** Reports predating the target_kind field describe Component bindings. */
+export function resolveTargetKind(change: {
+  target_kind?: string | null;
+}): TargetKind {
+  return change.target_kind === 'ResourceReleaseBinding'
+    ? 'ResourceReleaseBinding'
+    : 'ReleaseBinding';
+}
 
-export function applyJsonPointer(doc: any, pointer: string, value: any): void {
+export function bindingEndpoint(targetKind: TargetKind): string {
+  return targetKind === 'ResourceReleaseBinding'
+    ? 'resource-release-binding'
+    : 'release-binding';
+}
+
+export function bindingLabel(targetKind: TargetKind): string {
+  return targetKind === 'ResourceReleaseBinding'
+    ? 'resource release binding'
+    : 'release binding';
+}
+
+const ALLOWED_OVERRIDE_CATEGORIES: Record<TargetKind, Set<string>> = {
+  ReleaseBinding: new Set([
+    'workloadOverrides',
+    'traitEnvironmentConfigs',
+    'componentTypeEnvironmentConfigs',
+  ]),
+  ResourceReleaseBinding: new Set(['resourceTypeEnvironmentConfigs']),
+};
+
+export function applyJsonPointer(
+  doc: any,
+  pointer: string,
+  value: any,
+  targetKind: TargetKind = 'ReleaseBinding',
+): void {
   const keys = pointer.replace(/^\//, '').split('/');
   if (
     keys.length < 3 ||
     keys[0] !== 'spec' ||
-    !ALLOWED_OVERRIDE_CATEGORIES.has(keys[1])
+    !ALLOWED_OVERRIDE_CATEGORIES[targetKind].has(keys[1])
   ) {
     throw new Error(`Invalid pointer: '${pointer}'`);
   }
@@ -90,7 +122,21 @@ export async function applyResourceChange(opts: {
 }): Promise<void> {
   const { backendBaseUrl, fetchApi, namespaceName, change } = opts;
 
-  const bindingUrl = `${backendBaseUrl}/release-binding?namespaceName=${encodeURIComponent(
+  const targetKind = resolveTargetKind(change);
+  const label = bindingLabel(targetKind);
+
+  if (
+    targetKind === 'ResourceReleaseBinding' &&
+    ((change.env?.length ?? 0) > 0 || (change.files?.length ?? 0) > 0)
+  ) {
+    throw new Error(
+      'ResourceReleaseBinding changes support only field updates under /spec/resourceTypeEnvironmentConfigs',
+    );
+  }
+
+  const bindingUrl = `${backendBaseUrl}/${bindingEndpoint(
+    targetKind,
+  )}?namespaceName=${encodeURIComponent(
     namespaceName,
   )}&bindingName=${encodeURIComponent(change.release_binding)}`;
 
@@ -98,8 +144,8 @@ export async function applyResourceChange(opts: {
   if (!getResponse.ok) {
     const detail =
       getResponse.status === 404
-        ? `Release binding '${change.release_binding}' not found`
-        : `Failed to get release binding: ${getResponse.statusText}`;
+        ? `Not found: ${label} '${change.release_binding}'`
+        : `Failed to get ${label}: ${getResponse.statusText}`;
     throw new Error(detail);
   }
 
@@ -113,7 +159,7 @@ export async function applyResourceChange(opts: {
     applyFileChange(updated, f.key, f.mount_path, f.value);
   }
   for (const f of change.fields ?? []) {
-    applyJsonPointer(updated, f.json_pointer, f.value);
+    applyJsonPointer(updated, f.json_pointer, f.value, targetKind);
   }
 
   const putResponse = await fetchApi.fetch(bindingUrl, {
@@ -123,8 +169,6 @@ export async function applyResourceChange(opts: {
   });
 
   if (!putResponse.ok) {
-    throw new Error(
-      `Failed to update release binding: ${putResponse.statusText}`,
-    );
+    throw new Error(`Failed to update ${label}: ${putResponse.statusText}`);
   }
 }

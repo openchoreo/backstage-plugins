@@ -296,7 +296,7 @@ describe('applyResourceChange', () => {
         namespaceName,
         change: { release_binding: 'missing-binding' },
       }),
-    ).rejects.toThrow("Release binding 'missing-binding' not found");
+    ).rejects.toThrow("Not found: release binding 'missing-binding'");
   });
 
   it('throws with a generic message on non-404 GET failure', async () => {
@@ -347,5 +347,123 @@ describe('applyResourceChange', () => {
     const getUrl = mockFetchApi.fetch.mock.calls[0][0] as string;
     expect(getUrl).toContain('namespaceName=my%20namespace');
     expect(getUrl).toContain('bindingName=my%20binding');
+  });
+
+  it('routes a ResourceReleaseBinding change to the resource endpoint', async () => {
+    const binding = {
+      metadata: { name: 'pg-development' },
+      spec: { resourceTypeEnvironmentConfigs: { persistenceEnabled: true } },
+    };
+    mockFetchApi.fetch
+      .mockResolvedValueOnce(makeGetResponse(binding))
+      .mockResolvedValueOnce(makePutResponse());
+
+    await applyResourceChange({
+      backendBaseUrl: baseUrl,
+      fetchApi: mockFetchApi as any,
+      namespaceName,
+      change: {
+        target_kind: 'ResourceReleaseBinding',
+        release_binding: 'pg-development',
+        fields: [
+          {
+            json_pointer: '/spec/resourceTypeEnvironmentConfigs/memory',
+            value: '256Mi',
+          },
+        ],
+      },
+    });
+
+    const expectedUrl = `${baseUrl}/resource-release-binding?namespaceName=dev&bindingName=pg-development`;
+    expect(mockFetchApi.fetch).toHaveBeenNthCalledWith(1, expectedUrl);
+
+    const [putUrl, putOpts] = mockFetchApi.fetch.mock.calls[1];
+    expect(putUrl).toBe(expectedUrl);
+    expect(JSON.parse(putOpts.body).spec).toEqual({
+      resourceTypeEnvironmentConfigs: {
+        persistenceEnabled: true,
+        memory: '256Mi',
+      },
+    });
+  });
+
+  it('routes a change with no target_kind to the release binding endpoint', async () => {
+    mockFetchApi.fetch
+      .mockResolvedValueOnce(makeGetResponse({ metadata: {}, spec: {} }))
+      .mockResolvedValueOnce(makePutResponse());
+
+    await applyResourceChange({
+      backendBaseUrl: baseUrl,
+      fetchApi: mockFetchApi as any,
+      namespaceName,
+      change: { release_binding: 'my-binding' },
+    });
+
+    expect(mockFetchApi.fetch).toHaveBeenNthCalledWith(
+      1,
+      `${baseUrl}/release-binding?namespaceName=dev&bindingName=my-binding`,
+    );
+  });
+
+  it('rejects env changes on a ResourceReleaseBinding without calling the API', async () => {
+    await expect(
+      applyResourceChange({
+        backendBaseUrl: baseUrl,
+        fetchApi: mockFetchApi as any,
+        namespaceName,
+        change: {
+          target_kind: 'ResourceReleaseBinding',
+          release_binding: 'pg-development',
+          env: [{ key: 'FOO', value: 'bar' }],
+        },
+      }),
+    ).rejects.toThrow('support only field updates');
+
+    expect(mockFetchApi.fetch).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// applyJsonPointer target kind allowlist
+// ---------------------------------------------------------------------------
+
+describe('applyJsonPointer target kinds', () => {
+  it('allows resourceTypeEnvironmentConfigs only for ResourceReleaseBinding', () => {
+    const doc: any = {};
+    applyJsonPointer(
+      doc,
+      '/spec/resourceTypeEnvironmentConfigs/memory',
+      '256Mi',
+      'ResourceReleaseBinding',
+    );
+    expect(doc.spec.resourceTypeEnvironmentConfigs.memory).toBe('256Mi');
+
+    expect(() =>
+      applyJsonPointer(
+        {},
+        '/spec/resourceTypeEnvironmentConfigs/memory',
+        '256Mi',
+      ),
+    ).toThrow('Invalid pointer');
+  });
+
+  it('rejects component override categories for ResourceReleaseBinding', () => {
+    expect(() =>
+      applyJsonPointer(
+        {},
+        '/spec/componentTypeEnvironmentConfigs/replicas',
+        2,
+        'ResourceReleaseBinding',
+      ),
+    ).toThrow('Invalid pointer');
+
+    expect(() =>
+      applyJsonPointer(
+        {},
+        '/spec/workloadOverrides/container/replicas',
+        2,
+        'ResourceReleaseBinding',
+      ),
+    ).toThrow('Invalid pointer');
   });
 });
