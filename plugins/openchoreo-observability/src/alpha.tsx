@@ -240,13 +240,11 @@ const projectMetricsEntityContent = EntityContentBlueprint.make({
     group: 'runtime',
     filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
-      import('./components/Metrics/ObservabilityProjectMetricsPage').then(
-        m => (
-          <FeatureGatedContent feature="observability">
-            <m.ObservabilityProjectMetricsPage />
-          </FeatureGatedContent>
-        ),
-      ),
+      import('./components/Metrics/ObservabilityProjectMetricsPage').then(m => (
+        <FeatureGatedContent feature="observability">
+          <m.ObservabilityProjectMetricsPage />
+        </FeatureGatedContent>
+      )),
   },
 });
 
