@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 type ParamValue = string | string[] | undefined;
@@ -39,10 +39,20 @@ export function useQueryParams<T extends Record<string, ParamValue>>(
 ): [T, (updates: Partial<T>, options?: { replace?: boolean }) => void] {
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Callers typically pass an inline config literal, so `config` gets a new
+  // identity every render. Hold the latest in refs and drive memoization
+  // from URL state only, so `values`/`setValues` don't churn each render
+  // (which would re-trigger any consumer effect that depends on them).
+  const configRef = useRef(config);
+  configRef.current = config;
+  const searchParamsRef = useRef(searchParams);
+  searchParamsRef.current = searchParams;
+
   const values = useMemo(() => {
+    const cfg = configRef.current;
     const result = {} as Record<string, ParamValue>;
 
-    for (const [key, conf] of Object.entries(config)) {
+    for (const [key, conf] of Object.entries(cfg)) {
       const raw = searchParams.get(key);
 
       if (conf.parse) {
@@ -55,14 +65,15 @@ export function useQueryParams<T extends Record<string, ParamValue>>(
     }
 
     return result as T;
-  }, [searchParams, config]);
+  }, [searchParams]);
 
   const setValues = useCallback(
     (updates: Partial<T>, options?: { replace?: boolean }) => {
-      const newParams = new URLSearchParams(searchParams);
+      const cfg = configRef.current;
+      const newParams = new URLSearchParams(searchParamsRef.current);
 
       for (const [key, value] of Object.entries(updates)) {
-        const conf = config[key as keyof T];
+        const conf = cfg[key as keyof T];
 
         if (value === undefined || value === null) {
           newParams.delete(key);
@@ -80,7 +91,6 @@ export function useQueryParams<T extends Record<string, ParamValue>>(
             newParams.delete(key);
           }
         } else {
-          // Check if value equals default - if so, remove from URL
           const defaultVal = conf?.defaultValue;
           if (value === defaultVal) {
             newParams.delete(key);
@@ -92,7 +102,7 @@ export function useQueryParams<T extends Record<string, ParamValue>>(
 
       setSearchParams(newParams, { replace: options?.replace ?? true });
     },
-    [searchParams, setSearchParams, config],
+    [setSearchParams],
   );
 
   return [values, setValues];

@@ -4,12 +4,10 @@ import {
   createFrontendPlugin,
   discoveryApiRef,
   fetchApiRef,
-  identityApiRef,
   oauthRequestApiRef,
   PageBlueprint,
   PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
-import { permissionApiRef } from '@backstage/plugin-permission-react';
 import { OAuth2 } from '@backstage/core-app-api';
 import {
   EntityCardBlueprint,
@@ -34,6 +32,7 @@ import {
 } from './components/AnnotationEditor/useAnnotationEditorContextMenuItemProps';
 
 export { openChoreoEntityPageOverride } from './extensions/openChoreoEntityPageOverride';
+export { openChoreoAppModule } from './appModule';
 
 import {
   rootCatalogEnvironmentRouteRef,
@@ -44,8 +43,6 @@ import {
 import { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
 import { OpenChoreoClient } from './api/OpenChoreoClient';
 import { openChoreoAuthApiRef } from './api/authRefs';
-import { OpenChoreoFetchApi } from './api/OpenChoreoFetchApi';
-import { OpenChoreoPermissionApi } from './api/OpenChoreoPermissionApi';
 
 const openChoreoClientApi = ApiBlueprint.make({
   name: 'open-choreo-client',
@@ -58,8 +55,8 @@ const openChoreoClientApi = ApiBlueprint.make({
     }),
 });
 
-// OAuth2 client for the OpenChoreo IDP. Consumed by fetch/permission
-// overrides below and by the portal's SignInPage.
+// OAuth2 client for the OpenChoreo IDP. Consumed by the openChoreoAppModule's
+// fetch/permission overrides and by the portal's SignInPage.
 const openChoreoAuthApi = ApiBlueprint.make({
   name: 'openchoreo-auth',
   params: defineParams =>
@@ -93,45 +90,6 @@ const openChoreoAuthApi = ApiBlueprint.make({
           defaultScopes,
         });
       },
-    }),
-});
-
-// Overrides Backstage's default fetchApiRef to inject Backstage + OC IDP tokens.
-const openChoreoFetchApi = ApiBlueprint.make({
-  name: 'fetch',
-  params: defineParams =>
-    defineParams({
-      api: fetchApiRef,
-      deps: {
-        identityApi: identityApiRef,
-        oauthApi: openChoreoAuthApiRef,
-        configApi: configApiRef,
-      },
-      factory: ({ identityApi, oauthApi, configApi }) =>
-        new OpenChoreoFetchApi(identityApi, oauthApi, configApi),
-    }),
-});
-
-// Overrides Backstage's default permissionApiRef to include the IDP token
-// in permission checks against OpenChoreo.
-const openChoreoPermissionApi = ApiBlueprint.make({
-  name: 'permission',
-  params: defineParams =>
-    defineParams({
-      api: permissionApiRef,
-      deps: {
-        configApi: configApiRef,
-        discoveryApi: discoveryApiRef,
-        identityApi: identityApiRef,
-        oauthApi: openChoreoAuthApiRef,
-      },
-      factory: ({ configApi, discoveryApi, identityApi, oauthApi }) =>
-        new OpenChoreoPermissionApi({
-          config: configApi,
-          discovery: discoveryApi,
-          identity: identityApi,
-          oauthApi,
-        }),
     }),
 });
 
@@ -213,6 +171,20 @@ const runtimeHealthCard = EntityCardBlueprint.make({
 });
 
 // ─── System (project) page tabs + cards (kind:system) ─────────────────────
+const projectDeployEntityContent = EntityContentBlueprint.make({
+  name: 'project-deploy',
+  params: {
+    path: '/deploy',
+    title: 'Deploy',
+    group: 'deployment',
+    filter: isOpenChoreoManagedOfKind('system'),
+    loader: () =>
+      import('./components/ProjectEnvironments').then(m => (
+        <m.ProjectEnvironments />
+      )),
+  },
+});
+
 const cellDiagramEntityContent = EntityContentBlueprint.make({
   name: 'cell-diagram',
   params: {
@@ -223,6 +195,39 @@ const cellDiagramEntityContent = EntityContentBlueprint.make({
     loader: () =>
       import('./components/CellDiagram/CellDiagram').then(m => (
         <m.CellDiagram />
+      )),
+  },
+});
+
+const projectDiagramEntityContent = EntityContentBlueprint.make({
+  name: 'project-diagram',
+  params: {
+    path: '/diagram',
+    title: 'Diagram',
+    group: 'deployment',
+    filter: isOpenChoreoManagedOfKind('system'),
+    loader: () =>
+      Promise.all([
+        import('./components/ContainedCatalogGraphCard'),
+        import('@backstage/plugin-catalog-graph'),
+        import('@backstage/catalog-model'),
+      ]).then(([contained, graph, model]) => (
+        <contained.ContainedCatalogGraphCard
+          direction={graph.Direction.TOP_BOTTOM}
+          title="System Diagram"
+          height={700}
+          relations={[
+            model.RELATION_PART_OF,
+            model.RELATION_HAS_PART,
+            model.RELATION_API_CONSUMED_BY,
+            model.RELATION_API_PROVIDED_BY,
+            model.RELATION_CONSUMES_API,
+            model.RELATION_PROVIDES_API,
+            model.RELATION_DEPENDENCY_OF,
+            model.RELATION_DEPENDS_ON,
+          ]}
+          unidirectional={false}
+        />
       )),
   },
 });
@@ -844,73 +849,7 @@ const componentWorkflowOverviewLayout = EntityContentLayoutBlueprint.make({
 // Scaffolder form field extensions. Adopters get the fields registered
 // automatically when they install this plugin, so any OC template
 // referencing `ui:field: <Name>` renders correctly.
-import { AdvancedConfigurationFieldExtension } from './scaffolder/AdvancedConfigurationField';
-import { BuildAndDeployFieldExtension } from './scaffolder/BuildAndDeployField';
-import { BuildTemplateParametersFieldExtension } from './scaffolder/BuildTemplateParameters';
-import { BuildTemplatePickerFieldExtension } from './scaffolder/BuildTemplatePicker';
-import { BuildWorkflowParametersFieldExtension } from './scaffolder/BuildWorkflowParameters';
-import { BuildWorkflowPickerFieldExtension } from './scaffolder/BuildWorkflowPicker';
-import { ClusterComponentTypeYamlEditorFieldExtension } from './scaffolder/ClusterComponentTypeYamlEditor';
-import { ClusterProjectTypeYamlEditorFieldExtension } from './scaffolder/ClusterProjectTypeYamlEditor';
-import { ClusterResourceTypeYamlEditorFieldExtension } from './scaffolder/ClusterResourceTypeYamlEditor';
-import { ClusterTraitYamlEditorFieldExtension } from './scaffolder/ClusterTraitYamlEditor';
-import { ClusterWorkflowYamlEditorFieldExtension } from './scaffolder/ClusterWorkflowYamlEditor';
-import { ComponentNamePickerFieldExtension } from './scaffolder/ComponentNamePicker';
-import { ComponentTypeYamlEditorFieldExtension } from './scaffolder/ComponentTypeYamlEditor';
-import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
-import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
-import { DeploymentPipelineFormWithYamlFieldExtension } from './scaffolder/DeploymentPipelineFormWithYaml';
-import { DeploymentPipelinePickerFieldExtension } from './scaffolder/DeploymentPipelinePicker';
-import { DeploymentSourcePickerFieldExtension } from './scaffolder/DeploymentSourcePicker';
-import { EnvironmentFormWithYamlFieldExtension } from './scaffolder/EnvironmentFormWithYaml';
-import { GitSourceFieldExtension } from './scaffolder/GitSourceField';
-import { NamespaceEntityPickerFieldExtension } from './scaffolder/NamespaceEntityPicker';
-import { NotificationChannelFormWithYamlFieldExtension } from './scaffolder/NotificationChannelFormWithYaml';
-import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
-import { ProjectParametersFieldExtension } from './scaffolder/ProjectParametersField';
-import { ProjectTypeYamlEditorFieldExtension } from './scaffolder/ProjectTypeYamlEditor';
-import { ResourceNamePickerFieldExtension } from './scaffolder/ResourceNamePicker';
-import { ResourceParametersFieldExtension } from './scaffolder/ResourceParametersField';
-import { ResourceTypeYamlEditorFieldExtension } from './scaffolder/ResourceTypeYamlEditor';
-import { SwitchFieldExtension } from './scaffolder/SwitchField';
-import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
-import { TraitsFieldExtension } from './scaffolder/TraitsField';
-import { WorkloadDetailsFieldExtension } from './scaffolder/WorkloadDetailsField';
-
-const scaffolderFieldExtensions = [
-  AdvancedConfigurationFieldExtension,
-  BuildAndDeployFieldExtension,
-  BuildTemplateParametersFieldExtension,
-  BuildTemplatePickerFieldExtension,
-  BuildWorkflowParametersFieldExtension,
-  BuildWorkflowPickerFieldExtension,
-  ClusterComponentTypeYamlEditorFieldExtension,
-  ClusterProjectTypeYamlEditorFieldExtension,
-  ClusterResourceTypeYamlEditorFieldExtension,
-  ClusterTraitYamlEditorFieldExtension,
-  ClusterWorkflowYamlEditorFieldExtension,
-  ComponentNamePickerFieldExtension,
-  ComponentTypeYamlEditorFieldExtension,
-  ComponentWorkflowYamlEditorFieldExtension,
-  ContainerImageFieldExtension,
-  DeploymentPipelineFormWithYamlFieldExtension,
-  DeploymentPipelinePickerFieldExtension,
-  DeploymentSourcePickerFieldExtension,
-  EnvironmentFormWithYamlFieldExtension,
-  GitSourceFieldExtension,
-  NamespaceEntityPickerFieldExtension,
-  NotificationChannelFormWithYamlFieldExtension,
-  ProjectNamespaceFieldExtension,
-  ProjectParametersFieldExtension,
-  ProjectTypeYamlEditorFieldExtension,
-  ResourceNamePickerFieldExtension,
-  ResourceParametersFieldExtension,
-  ResourceTypeYamlEditorFieldExtension,
-  SwitchFieldExtension,
-  TraitYamlEditorFieldExtension,
-  TraitsFieldExtension,
-  WorkloadDetailsFieldExtension,
-];
+import { scaffolderFieldExtensions } from './scaffolder/extensions';
 
 // Opened via window.open() from the resource drawer; no title/icon = no nav item.
 const execTerminalPage = PageBlueprint.make({
@@ -937,8 +876,6 @@ export default createFrontendPlugin({
   extensions: [
     openChoreoClientApi,
     openChoreoAuthApi,
-    openChoreoFetchApi,
-    openChoreoPermissionApi,
     queryProvider,
     execTerminalPage,
     deleteEntityContextMenuItem,
@@ -947,7 +884,9 @@ export default createFrontendPlugin({
     componentDeployEntityContent,
     deploymentStatusCard,
     runtimeHealthCard,
+    projectDeployEntityContent,
     cellDiagramEntityContent,
+    projectDiagramEntityContent,
     projectContentsCard,
     deploymentPipelineCard,
     namespaceProjectsCard,

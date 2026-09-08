@@ -1,1 +1,0 @@
-export { ProjectNamespaceFieldExtension } from './extensions';

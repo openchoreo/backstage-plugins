@@ -60,30 +60,6 @@ const useSearchModalStyles = makeStyles(theme => ({
   },
 }));
 
-const useSkipLinkStyles = makeStyles(theme => ({
-  skipLink: {
-    position: 'absolute',
-    left: -9999,
-    top: 'auto',
-    width: 1,
-    height: 1,
-    overflow: 'hidden',
-    zIndex: theme.zIndex.tooltip + 1,
-    '&:focus': {
-      left: theme.spacing(2),
-      top: theme.spacing(2),
-      width: 'auto',
-      height: 'auto',
-      padding: theme.spacing(1, 2),
-      backgroundColor: theme.palette.background.paper,
-      color: theme.palette.text.primary,
-      border: `2px solid ${theme.palette.primary.main}`,
-      borderRadius: 4,
-      textDecoration: 'none',
-    },
-  },
-}));
-
 const useSidebarLogoStyles = makeStyles(theme => ({
   root: {
     width: sidebarConfig.drawerWidthClosed,
@@ -181,7 +157,6 @@ const CREATE_ID = 'page:scaffolder';
 
 export function PortalNavContent({ navItems }: NavContentComponentProps) {
   useSearchModalStyles();
-  const skipLinkClasses = useSkipLinkStyles();
   const home = navItems.take(HOME_ID);
   const catalog = navItems.take(CATALOG_ID);
   const platform = navItems.take(PLATFORM_ID);
@@ -191,9 +166,6 @@ export function PortalNavContent({ navItems }: NavContentComponentProps) {
 
   return (
     <Sidebar>
-      <a href="#main-content" className={skipLinkClasses.skipLink}>
-        Skip to main content
-      </a>
       <SidebarLogo />
       <Tooltip title={searchShortcutLabel} placement="right" arrow>
         <div>

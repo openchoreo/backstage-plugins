@@ -3,10 +3,8 @@ import openchoreoPlugin from './alpha';
 const ALPHA_EXTENSION_NAMES = [
   // backend client
   ['api', 'open-choreo-client'],
-  // OpenChoreo IDP auth + fetch/permission overrides
+  // OpenChoreo IDP auth (fetch/permission overrides live in openChoreoAppModule)
   ['api', 'openchoreo-auth'],
-  ['api', 'fetch'],
-  ['api', 'permission'],
   // self-contained response-cache provider
   ['plugin-wrapper', 'query-provider'],
   // routed page (opened via window.open from the resource drawer)
@@ -21,7 +19,9 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-card', 'deployment-status'],
   ['entity-card', 'runtime-health'],
   // system-page
+  ['entity-content', 'project-deploy'],
   ['entity-content', 'cell-diagram'],
+  ['entity-content', 'project-diagram'],
   ['entity-card', 'project-contents'],
   ['entity-card', 'deployment-pipeline'],
   // domain-page

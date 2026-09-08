@@ -284,6 +284,22 @@ const rcaReportsEntityContent = EntityContentBlueprint.make({
   },
 });
 
+const projectCostAnalysisEntityContent = EntityContentBlueprint.make({
+  name: 'project-cost-analysis',
+  params: {
+    path: '/cost-analysis',
+    title: 'Cost Analysis',
+    group: 'analysis',
+    filter: isOpenChoreoManagedOfKind('system'),
+    loader: () =>
+      import('./components/CostAnalysis/CostAnalysisPage').then(m => (
+        <FeatureGatedContent feature="observability">
+          <m.CostAnalysisPage />
+        </FeatureGatedContent>
+      )),
+  },
+});
+
 /**
  * Cost Insights summary card, shown on the Component and Project (System)
  * overview pages. Filtered to entities carrying the openchoreo namespace
@@ -345,6 +361,7 @@ export default createFrontendPlugin({
     tracesEntityContent,
     projectIncidentsEntityContent,
     rcaReportsEntityContent,
+    projectCostAnalysisEntityContent,
     costInsightsSummaryCard,
   ],
 });

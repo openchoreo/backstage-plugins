@@ -1,1 +1,0 @@
-export { ClusterProjectTypeYamlEditorFieldExtension } from './extensions';

@@ -1,4 +1,3 @@
-export { NamespaceEntityPickerFieldExtension } from './extensions';
 export {
   NamespaceSelectField,
   type NamespaceSelectFieldProps,

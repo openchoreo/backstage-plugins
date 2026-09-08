@@ -10,6 +10,7 @@ import type { FrontendFeature } from '@backstage/frontend-plugin-api';
 import { appModule } from './appModule';
 
 import openchoreoPluginAlpha, {
+  openChoreoAppModule,
   openChoreoEntityPageOverride,
 } from '@openchoreo/backstage-plugin/alpha';
 import openchoreoCiPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-ci/alpha';
@@ -53,6 +54,9 @@ export function createPortalApp(options?: PortalAppOptions) {
     features: [
       // APIs first so overrides below win via last-write-wins.
       appModule,
+      // Ships OC fetch/permission overrides on pluginId 'app' so they
+      // replace Backstage's default core.fetch / plugin.permission.api.
+      openChoreoAppModule,
       customAppModule,
       upstreamScaffolderPluginAlpha,
       catalogGraphPluginAlpha,

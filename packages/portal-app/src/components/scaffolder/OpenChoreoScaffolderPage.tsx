@@ -2,7 +2,7 @@ import useAsync from 'react-use/esm/useAsync';
 import { ScaffolderPage } from '@backstage/plugin-scaffolder';
 import { formFieldsApiRef } from '@backstage/plugin-scaffolder-react/alpha';
 import { useApi } from '@backstage/core-plugin-api';
-import { Progress } from '@backstage/core-components';
+import { Progress, ResponseErrorPanel } from '@backstage/core-components';
 import { ScaffolderLayout } from '../../scaffolder/ScaffolderLayout';
 import { CustomTemplateListPage } from './CustomTemplateListPage';
 import { OpenChoreoTemplateOutputs } from './OpenChoreoTemplateOutputs';
@@ -13,11 +13,13 @@ import { CustomReviewStep } from '../../scaffolder/CustomReviewState';
 // `formFields` prop instead of the pre-NFS JSX-children pattern.
 export function OpenChoreoScaffolderPage() {
   const formFieldsApi = useApi(formFieldsApiRef);
-  const { value: formFields, loading } = useAsync(
-    () => formFieldsApi.loadFormFields(),
-    [formFieldsApi],
-  );
+  const {
+    value: formFields,
+    loading,
+    error,
+  } = useAsync(() => formFieldsApi.loadFormFields(), [formFieldsApi]);
   if (loading) return <Progress />;
+  if (error) return <ResponseErrorPanel error={error} />;
   return (
     <ScaffolderLayout>
       <ScaffolderPage
