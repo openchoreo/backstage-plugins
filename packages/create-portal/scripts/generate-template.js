@@ -329,10 +329,27 @@ function generateTemplate({
   // .yarnrc.yml -> .yarnrc.yml.hbs: the monorepo config plus the scoped
   // registry knob ({{registry}} filled at scaffold time). Derived from the
   // live file so a yarn version bump flows through automatically.
-  const yarnrc = fs.readFileSync(path.join(REPO_ROOT, '.yarnrc.yml'), 'utf8');
+  //
+  // The monorepo age-gates freshly published npm versions
+  // (npmMinimalAgeGate), but the scaffold pins @openchoreo/* versions
+  // published the same day as the CLI — pre-approve the scope so a
+  // release-day `yarn install` (and the release workflow's scaffold smoke
+  // test, minutes after publish) isn't refused. Every other dependency
+  // keeps the age gate.
+  let yarnrc = fs
+    .readFileSync(path.join(REPO_ROOT, '.yarnrc.yml'), 'utf8')
+    .trimEnd();
+  if (/^npmPreapprovedPackages:$/m.test(yarnrc)) {
+    yarnrc = yarnrc.replace(
+      /^npmPreapprovedPackages:$/m,
+      `npmPreapprovedPackages:\n  - '@openchoreo/*'`,
+    );
+  } else if (yarnrc.includes('npmMinimalAgeGate')) {
+    yarnrc += `\n\nnpmPreapprovedPackages:\n  - '@openchoreo/*'`;
+  }
   writeFileEnsured(
     path.join(outputDir, '.yarnrc.yml.hbs'),
-    `${yarnrc.trimEnd()}\n\n` +
+    `${yarnrc}\n\n` +
       `npmScopes:\n` +
       `  openchoreo:\n` +
       `    npmRegistryServer: '{{registry}}'\n`,

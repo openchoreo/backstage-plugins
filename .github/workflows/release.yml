@@ -268,6 +268,11 @@ jobs:
         # lifecycle scripts here cannot reach a publish credential.
         run: yarn install --immutable
 
+      - name: Render the portal template
+        # templates/ is gitignored (rendered at pack time, not committed), so
+        # a fresh checkout must render it before the CLI can run.
+        run: yarn workspace @openchoreo/create-portal generate-template
+
       # Runs AFTER publish (the scaffold's pinned ^X.Y.Z versions must exist
       # on the registry) and BEFORE the template push / Docker retag, so a
       # broken scaffold aborts the release before anything user-visible moves.

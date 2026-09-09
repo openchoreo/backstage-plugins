@@ -54,10 +54,17 @@ describe('generateTemplate', () => {
       'packages/backend/src/index.ts',
       'packages/backend/Dockerfile',
       'plugins/README.md',
-      '.yarn/releases/yarn-4.4.1.cjs',
     ]) {
       expect(files).toContain(expected);
     }
+
+    // The scaffold ships whatever yarn bundle the monorepo pins — assert
+    // against the live yarnPath so yarn bumps don't break this test.
+    const yarnPath = fs
+      .readFileSync(joinPath(__dirname, '../../../.yarnrc.yml'), 'utf8')
+      .match(/^yarnPath:\s*(\S+)$/m)?.[1];
+    expect(yarnPath).toBeDefined();
+    expect(files).toContain(yarnPath);
   });
 
   it('pins every @openchoreo/* dependency to the CLI version and keeps no stray workspace ranges', async () => {
