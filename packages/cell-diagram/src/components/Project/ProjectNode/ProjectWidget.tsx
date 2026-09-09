@@ -26,6 +26,9 @@ export function ProjectWidget(props: ProjectWidgetProps) {
   } = useContext(DiagramContext);
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const headPorts = useRef<PortModel[]>([]);
+  // Records the pointer position at mousedown so a click that follows a canvas
+  // pan/node drag can be told apart from a genuine click (see handleOnWidgetClick).
+  const pointerDownAt = useRef<{ x: number; y: number } | null>(null);
 
   const displayName: string = node.project.name;
 
@@ -42,6 +45,23 @@ export function ProjectWidget(props: ProjectWidgetProps) {
     if (onComponentDoubleClick) {
       onComponentDoubleClick(node.project.id);
     }
+  };
+
+  const handleMouseDown = (event: MouseEvent<HTMLDivElement>) => {
+    pointerDownAt.current = { x: event.clientX, y: event.clientY };
+  };
+
+  // Single-click navigation. Only fires when the pointer didn't travel far
+  // between mousedown and click, so panning the canvas or dragging the node
+  // doesn't accidentally navigate away.
+  const handleOnWidgetClick = (event: MouseEvent<HTMLDivElement>) => {
+    const start = pointerDownAt.current;
+    pointerDownAt.current = null;
+    if (!start) return;
+    const moved =
+      Math.abs(event.clientX - start.x) + Math.abs(event.clientY - start.y);
+    if (moved > 4) return;
+    handleOnWidgetDoubleClick();
   };
 
   const handleMouseEnter = () => {
@@ -66,6 +86,8 @@ export function ProjectWidget(props: ProjectWidgetProps) {
         isFocused={node.getID() === focusedNodeId}
         onMouseOver={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onMouseDown={handleMouseDown}
+        onClick={handleOnWidgetClick}
         onDoubleClick={handleOnWidgetDoubleClick}
         onContextMenu={handleOnContextMenu}
       >

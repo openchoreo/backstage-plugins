@@ -1,0 +1,1 @@
+export { NamespaceCellDiagram } from './NamespaceCellDiagram';

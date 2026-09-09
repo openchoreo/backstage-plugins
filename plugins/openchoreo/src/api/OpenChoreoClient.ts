@@ -59,6 +59,7 @@ const API_ENDPOINTS = {
   PROMOTE_DEPLOYMENT: '/promote-deployment',
   DELETE_RELEASE_BINDING: '/delete-release-binding',
   CELL_DIAGRAM: '/cell-diagram',
+  NAMESPACE_CELL_DIAGRAM: '/namespace-cell-diagram',
   DEPLOYEMNT_WORKLOAD: '/workload',
   UPDATE_BINDING: '/update-binding',
   ROLLOUT_RESTART_BINDING: '/rollout-restart-binding',
@@ -918,6 +919,18 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         }),
         ...(options?.startTime && { startTime: options.startTime }),
         ...(options?.endTime && { endTime: options.endTime }),
+      },
+    });
+  }
+
+  async getNamespaceCellDiagramInfo(namespaceName: string): Promise<any> {
+    if (!namespaceName) {
+      return undefined;
+    }
+
+    return this.apiFetch(API_ENDPOINTS.NAMESPACE_CELL_DIAGRAM, {
+      params: {
+        namespaceName,
       },
     });
   }
