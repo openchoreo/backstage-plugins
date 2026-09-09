@@ -21,11 +21,11 @@ import { JSONSchema7 } from 'json-schema';
 import validator from '@rjsf/validator-ajv8';
 import { TraitConfigToggle } from '@openchoreo/backstage-plugin-react';
 import { useTraitsStyles } from './styles';
+import { generateUiSchemaWithTitles } from './uiSchema';
 import { ComponentTrait } from '../../api/OpenChoreoClientApi';
 import { ResponseError } from '@backstage/errors';
 import { extractEntityMetadata } from '../../utils/entityUtils';
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
-import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
 
 interface EditTraitDialogProps {
   open: boolean;
@@ -61,77 +61,6 @@ function hasEmptyRequiredFields(
     }
   }
   return false;
-}
-
-/**
- * Recursively generates a UI Schema with sanitized titles for all fields
- * that don't already have a title in the JSON Schema.
- */
-function generateUiSchemaWithTitles(
-  schema: any,
-  hideErrors: boolean = false,
-): any {
-  if (!schema || typeof schema !== 'object') {
-    return {};
-  }
-
-  const uiSchema: any = {};
-
-  // Handle object properties
-  if (schema.properties) {
-    Object.entries(schema.properties).forEach(
-      ([key, propSchema]: [string, any]) => {
-        if (!propSchema || typeof propSchema !== 'object') {
-          return;
-        }
-
-        // If the property doesn't have a title, add one in the UI schema
-        const fieldUiSchema: any = {};
-
-        if (!propSchema.title) {
-          fieldUiSchema['ui:title'] = sanitizeLabel(key);
-        }
-
-        // Hide errors if requested
-        if (hideErrors) {
-          fieldUiSchema['ui:options'] = {
-            ...fieldUiSchema['ui:options'],
-            hideError: true,
-          };
-        }
-
-        uiSchema[key] = fieldUiSchema;
-
-        // Recursively handle nested objects
-        if (propSchema.type === 'object' && propSchema.properties) {
-          const nestedUiSchema = generateUiSchemaWithTitles(
-            propSchema,
-            hideErrors,
-          );
-          uiSchema[key] = {
-            ...uiSchema[key],
-            ...nestedUiSchema,
-          };
-        }
-
-        // Handle array items
-        if (propSchema.type === 'array' && propSchema.items) {
-          const itemsUiSchema = generateUiSchemaWithTitles(
-            propSchema.items,
-            hideErrors,
-          );
-          if (Object.keys(itemsUiSchema).length > 0) {
-            uiSchema[key] = {
-              ...uiSchema[key],
-              items: itemsUiSchema,
-            };
-          }
-        }
-      },
-    );
-  }
-
-  return uiSchema;
 }
 
 export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
