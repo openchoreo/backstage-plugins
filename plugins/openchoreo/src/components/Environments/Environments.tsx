@@ -23,13 +23,15 @@ import {
   ForbiddenState,
   useReleaseBindingPermission,
   useEnvironmentReadPermission,
+  usePortalAssistant,
 } from '@openchoreo/backstage-plugin-react';
 
 export interface EnvironmentsProps {
   /**
-   * Host-app slot for the deploy-panel "investigate" button. Injected by
-   * ``packages/app`` (which owns the portal-assistant dependency) and
-   * forwarded to the detail panel via context. See
+   * Host-app slot for the deploy-panel "investigate" button, forwarded to
+   * the detail panel via context. When omitted (the NFS deploy tab mounts
+   * this component propless) it falls back to the assistant integration
+   * API's ``renderInvestigateAction`` slot. See
    * ``EnvironmentsContextValue.renderInvestigateAction``.
    */
   renderInvestigateAction?: RenderInvestigateAction;
@@ -142,6 +144,13 @@ export const Environments = ({
     [notification, refetch, navigateToList],
   );
 
+  // Deploy-panel investigate action: an explicit prop wins; otherwise fall
+  // back to the assistant integration API (absent when no assistant is
+  // installed, so the detail panel renders no affordance).
+  const { renderInvestigateAction: apiInvestigateAction } =
+    usePortalAssistant();
+  const investigateAction = renderInvestigateAction ?? apiInvestigateAction;
+
   // Context value
   const contextValue = useMemo(
     () => ({
@@ -168,7 +177,7 @@ export const Environments = ({
       beginAwaitingNewRelease,
       selection,
       setSelection,
-      renderInvestigateAction,
+      renderInvestigateAction: investigateAction,
     }),
     [
       environments,
@@ -193,7 +202,7 @@ export const Environments = ({
       awaitingNewRelease,
       beginAwaitingNewRelease,
       selection,
-      renderInvestigateAction,
+      investigateAction,
     ],
   );
 

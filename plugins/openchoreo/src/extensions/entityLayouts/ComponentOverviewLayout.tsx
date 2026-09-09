@@ -1,6 +1,9 @@
 import Grid from '@material-ui/core/Grid';
 import type { EntityContentLayoutProps } from '@backstage/plugin-catalog-react/alpha';
-import { FeatureGate } from '@openchoreo/backstage-plugin-react';
+import {
+  BuildFailureNotifierSlot,
+  FeatureGate,
+} from '@openchoreo/backstage-plugin-react';
 import {
   WorkflowsOverviewCard,
   DeploymentStatusCard,
@@ -12,19 +15,17 @@ import { ContainedCatalogGraphCard } from '../../components/ContainedCatalogGrap
 import { ForeignCardsSection } from './foreignCards';
 
 /**
- * The Component-kind Overview layout. The portal separately overlays
- * `FailedBuildSnackbar` (private `openchoreo-portal-assistant` plugin,
- * not shipped to adopters) and `WorkflowsOrExternalCICard` (portal-only
- * adapter over Jenkins/GitHub Actions/GitLab) at the app layer; adopters
- * get the plain `WorkflowsOverviewCard` here. Both are opt-in
- * customizations rather than portal defaults, applied via the portal's
- * thin `page:catalog/entity` override.
+ * The Component-kind Overview layout. `BuildFailureNotifierSlot` renders the
+ * host app's assistant prompt for a failed build run (nothing when no
+ * assistant integration is registered — the stock portal's is private and
+ * not shipped to adopters).
  */
 export default function ComponentOverviewLayout({
   cards,
 }: EntityContentLayoutProps) {
   return (
     <Grid container spacing={3} alignItems="stretch">
+      <BuildFailureNotifierSlot />
       <EntityWarningStrip />
       <Grid item md={4} xs={12}>
         <WorkflowsOverviewCard />
