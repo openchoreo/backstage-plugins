@@ -148,6 +148,13 @@ auth:
       dangerouslyAllowOutsideDevelopment: ${BACKSTAGE_GUEST_DANGEROUSLY_ALLOW_OUTSIDE_DEVELOPMENT}
 
 catalog:
+  # The Dockerfile ships this file AS /app/app-config.yaml (it replaces the
+  # base config, not layers on it), so the global kind allowlist must be
+  # restated here — without it Backstage's defaults apply, which exclude the
+  # OpenChoreo kinds.
+  rules:
+    - allow:
+        [Component, System, API, Resource, Location, User, Group, Environment]
   locations:
     # Placeholder groups for Backstage entity owner references
     - type: file

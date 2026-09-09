@@ -76,7 +76,7 @@ openchoreo:
     secretManagement:
       enabled: true    # Set to false to hide Secrets settings tab
     assistant:
-      enabled: true   # Opt-in. Set to true after deploying perch-agent and OPENCHOREO_PERCH_AGENT_URL
+      enabled: false # Opt-in. Set to true after deploying the Portal Assistant and uncommenting `portalAssistantUrl` above
 
 # Thunder IDP configuration (k3d cluster)
 thunder:
