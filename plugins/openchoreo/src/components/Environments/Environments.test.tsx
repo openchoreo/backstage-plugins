@@ -51,12 +51,14 @@ jest.mock('@backstage/core-components', () => ({
   Progress: () => <div data-testid="progress">Loading...</div>,
 }));
 
-// Mock permission hooks from @openchoreo/backstage-plugin-react
+// Mock permission + assistant hooks from @openchoreo/backstage-plugin-react
 const mockUseEnvironmentReadPermission = jest.fn();
 const mockUseReleaseBindingPermission = jest.fn();
+const mockUsePortalAssistant = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   useEnvironmentReadPermission: () => mockUseEnvironmentReadPermission(),
   useReleaseBindingPermission: () => mockUseReleaseBindingPermission(),
+  usePortalAssistant: () => mockUsePortalAssistant(),
   ForbiddenState: (props: any) => (
     <div data-testid="forbidden-state">
       <span>{props.message}</span>
@@ -69,12 +71,29 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
   ),
 }));
 
-// Mock the EnvironmentsRouter (renders child views)
-jest.mock('./EnvironmentsRouter', () => ({
-  EnvironmentsRouter: () => (
-    <div data-testid="environments-router">Environments Content</div>
-  ),
-}));
+// Mock the EnvironmentsRouter (renders child views). The probe also renders
+// whatever investigate action reached the context, so tests can assert the
+// prop/API precedence without the real detail panel.
+jest.mock('./EnvironmentsRouter', () => {
+  const { useEnvironmentsContext } = jest.requireActual(
+    './EnvironmentsContext',
+  );
+  return {
+    EnvironmentsRouter: () => {
+      const { renderInvestigateAction } = useEnvironmentsContext();
+      return (
+        <div data-testid="environments-router">
+          Environments Content
+          {renderInvestigateAction?.({
+            component: 'checkout',
+            caseType: 'runtime_debug',
+            status: 'Failed',
+          }) ?? null}
+        </div>
+      );
+    },
+  };
+});
 
 // Mock NotificationBanner
 jest.mock('./components', () => ({
@@ -108,6 +127,7 @@ describe('Environments', () => {
       canViewBindings: true,
       loading: false,
     });
+    mockUsePortalAssistant.mockReturnValue({});
   });
 
   it('mounts the router during initial load instead of a generic spinner', () => {
@@ -150,6 +170,66 @@ describe('Environments', () => {
       expect(screen.getByTestId('environments-router')).toBeInTheDocument();
     });
     expect(screen.getByText('Environments Content')).toBeInTheDocument();
+  });
+
+  it('falls back to the assistant integration API for the investigate action', async () => {
+    mockUsePortalAssistant.mockReturnValue({
+      renderInvestigateAction: () => <button type="button">from-api</button>,
+    });
+    mockUseEnvironmentData.mockReturnValue({
+      environments: [],
+      loading: false,
+      isRefetching: false,
+      isForbidden: false,
+      refetch: mockRefetch,
+    });
+
+    renderWithRouter(<Environments />);
+
+    await waitFor(() => {
+      expect(screen.getByText('from-api')).toBeInTheDocument();
+    });
+  });
+
+  it('prefers an explicit investigate-action prop over the API slot', async () => {
+    mockUsePortalAssistant.mockReturnValue({
+      renderInvestigateAction: () => <button type="button">from-api</button>,
+    });
+    mockUseEnvironmentData.mockReturnValue({
+      environments: [],
+      loading: false,
+      isRefetching: false,
+      isForbidden: false,
+      refetch: mockRefetch,
+    });
+
+    renderWithRouter(
+      <Environments
+        renderInvestigateAction={() => <button type="button">from-prop</button>}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('from-prop')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('from-api')).not.toBeInTheDocument();
+  });
+
+  it('provides no investigate action when no assistant is registered', async () => {
+    mockUseEnvironmentData.mockReturnValue({
+      environments: [],
+      loading: false,
+      isRefetching: false,
+      isForbidden: false,
+      refetch: mockRefetch,
+    });
+
+    renderWithRouter(<Environments />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('environments-router')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('shows forbidden state when API returns forbidden', () => {
