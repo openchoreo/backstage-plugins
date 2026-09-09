@@ -74,6 +74,8 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
   ForbiddenState: (props: any) => (
     <div data-testid="forbidden-state">{props.message}</div>
   ),
+  // Renders nothing, like the real slot with no assistant registered.
+  BuildFailureNotifierSlot: () => null,
 }));
 
 // Mock @openchoreo/backstage-plugin-common

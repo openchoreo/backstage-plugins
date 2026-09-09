@@ -61,3 +61,5 @@ e2e-test-report/
 
 
 .backstage-db/
+# create-portal rendered template (generated at prepack/CI; templates-src/ is the source)
+packages/create-portal/templates/
