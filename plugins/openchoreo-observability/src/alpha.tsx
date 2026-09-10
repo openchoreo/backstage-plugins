@@ -1,4 +1,5 @@
 import MonetizationOnIcon from '@material-ui/icons/MonetizationOn';
+import SpeedIcon from '@material-ui/icons/Speed';
 import {
   ApiBlueprint,
   createExtensionInput,
@@ -21,7 +22,7 @@ import {
   isOpenChoreoManagedOfKind,
 } from '@openchoreo/backstage-plugin-common';
 
-import { rootRouteRef } from './routes';
+import { deliveryInsightsRouteRef, rootRouteRef } from './routes';
 import {
   observabilityApiRef,
   ObservabilityClient,
@@ -342,6 +343,25 @@ const costInsightsPage = PageBlueprint.make({
   },
 });
 
+// Ships title + icon so adopters auto-get a sidebar entry via DefaultNavContent,
+// the same as cost insights above. The portal app curates its own sidebar and
+// takes this by id -- see PortalNavContent.
+const deliveryInsightsPage = PageBlueprint.make({
+  name: 'delivery-insights',
+  params: {
+    path: '/delivery-insights',
+    routeRef: deliveryInsightsRouteRef,
+    title: 'Delivery Insights',
+    icon: <SpeedIcon />,
+    // Page renders its own <Page><Header>; suppress outer PageLayout header.
+    noHeader: true,
+    loader: () =>
+      import('./components/DeliveryInsights/DeliveryInsightsPage').then(m => (
+        <m.DeliveryInsightsPage />
+      )),
+  },
+});
+
 export default createFrontendPlugin({
   pluginId: 'openchoreo-observability',
   routes: { root: rootRouteRef },
@@ -352,6 +372,7 @@ export default createFrontendPlugin({
     finopsAgentApi,
     logRowActionRendererApi,
     costInsightsPage,
+    deliveryInsightsPage,
     runtimeLogsEntityContent,
     runtimeEventsEntityContent,
     metricsEntityContent,

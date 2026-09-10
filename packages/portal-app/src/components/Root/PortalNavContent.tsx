@@ -152,6 +152,7 @@ const HOME_ID = 'page:openchoreo-portal-app/home';
 const CATALOG_ID = 'page:catalog';
 const PLATFORM_ID = 'page:platform-engineer-core/platform-overview';
 const COST_INSIGHTS_ID = 'page:openchoreo-observability/cost-insights';
+const DELIVERY_INSIGHTS_ID = 'page:openchoreo-observability/delivery-insights';
 const APIS_ID = 'page:api-docs';
 const CREATE_ID = 'page:scaffolder';
 
@@ -161,6 +162,7 @@ export function PortalNavContent({ navItems }: NavContentComponentProps) {
   const catalog = navItems.take(CATALOG_ID);
   const platform = navItems.take(PLATFORM_ID);
   const costInsights = navItems.take(COST_INSIGHTS_ID);
+  const deliveryInsights = navItems.take(DELIVERY_INSIGHTS_ID);
   const apis = navItems.take(APIS_ID);
   const create = navItems.take(CREATE_ID);
 
@@ -187,6 +189,7 @@ export function PortalNavContent({ navItems }: NavContentComponentProps) {
         {catalog && <NavItemLink item={catalog} />}
         {platform && <NavItemLink item={platform} />}
         {costInsights && <NavItemLink item={costInsights} />}
+        {deliveryInsights && <NavItemLink item={deliveryInsights} />}
         <MyGroupsSidebarItem
           singularTitle="My Group"
           pluralTitle="My Groups"

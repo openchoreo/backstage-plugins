@@ -32,17 +32,17 @@ export async function createRouter({
     if (authEnabled) {
       await httpAuth.credentials(req, { allow: ['user'] });
     }
+    // environmentName is optional: when absent, URLs resolve at namespace level
+    // (used by cross-environment scopes such as the Insights pages).
     const { namespaceName, environmentName } = req.query;
-    if (!namespaceName || !environmentName) {
-      return res
-        .status(400)
-        .json({ error: 'namespaceName and environmentName are required' });
+    if (!namespaceName) {
+      return res.status(400).json({ error: 'namespaceName is required' });
     }
     const userToken = getUserTokenFromRequest(req);
     try {
       const urls = await observabilityService.resolveUrls(
         namespaceName as string,
-        environmentName as string,
+        (environmentName as string | undefined) ?? '',
         userToken,
       );
       return res.status(200).json(urls);
