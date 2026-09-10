@@ -16,9 +16,11 @@ A scope bar keeps the plane, time range, search, live tail and refresh visible;
 the coordinate pickers, labels and log levels fold away behind a Filters button
 and render as removable chips, so a collapsed row never hides what is narrowing
 the query. The cluster, namespace, pod and container pickers are multi-select
-and populated from the logs loaded so far, narrowing hierarchically as
-selections are made, and stay free text because that pool comes from results
-rather than a facet endpoint and is therefore never complete. The labels and
+and populated from the logs on screen, recomputed on every fetch so they always
+describe the current results. They stay free text because those options come
+from results rather than a facet endpoint: narrowing on one coordinate leaves it
+offering only what was picked, so reaching a sibling means clearing the filter or
+typing the value. The labels and
 search fields are validated as you type, so a half-typed label selector is
 explained on the field rather than sent and rejected. Expanding a row reveals
 the full message, the pod's coordinates and its labels.

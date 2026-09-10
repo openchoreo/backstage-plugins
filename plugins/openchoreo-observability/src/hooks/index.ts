@@ -30,14 +30,8 @@ export { useUpdateIncident } from './useUpdateIncident';
 export { usePlatformLogs } from './usePlatformLogs';
 export {
   usePlatformLogFacets,
-  mergeCoordinates,
   deriveFacets,
-  pruneDescendantSelections,
-  scopeKey,
-  EMPTY_INDEX,
   type PlatformLogFacets,
-  type CoordinateIndex,
-  type CoordinateTuple,
 } from './usePlatformLogFacets';
 export {
   useObservabilityPlanes,

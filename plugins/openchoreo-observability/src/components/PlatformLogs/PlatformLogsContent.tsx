@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Typography } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import {
@@ -10,13 +10,11 @@ import {
   usePlatformLogsPermission,
 } from '@openchoreo/backstage-plugin-react';
 import {
-  pruneDescendantSelections,
   useObservabilityPlanes,
   usePlatformLogFacets,
   usePlatformLogs,
   useUrlFiltersForPlatformLogs,
 } from '../../hooks';
-import { PlatformLogsFilters } from './types';
 import { PlatformLogsFilterRow } from './PlatformLogsFilterRow';
 import { PlatformLogsResultBar } from './PlatformLogsResultBar';
 import { PlatformLogsTable } from './PlatformLogsTable';
@@ -62,20 +60,7 @@ const PlatformLogsView = () => {
     refresh,
   } = usePlatformLogs(selectedPlane?.observerUrl, filters, PAGE_SIZE);
 
-  const { facets, index: coordinateIndex } = usePlatformLogFacets(
-    logs,
-    filters,
-  );
-
-  // Changing a coordinate filter also clears the descendant selections it puts out of
-  // reach, so switching namespace cannot leave a pod from the old one applied and the
-  // query returning nothing. Applied as one update, so no intermediate state is invalid.
-  const handleFiltersChange = useCallback(
-    (patch: Partial<PlatformLogsFilters>) => {
-      updateFilters(pruneDescendantSelections(filters, patch, coordinateIndex));
-    },
-    [filters, coordinateIndex, updateFilters],
-  );
+  const facets = usePlatformLogFacets(logs, filters);
 
   if (planesLoading) {
     return <PageLoader />;
@@ -106,7 +91,7 @@ const PlatformLogsView = () => {
 
       <PlatformLogsToolbar
         filters={filters}
-        onFiltersChange={handleFiltersChange}
+        onFiltersChange={updateFilters}
         planes={planes}
         planesLoading={planesLoading}
         filtersOpen={filtersOpen}
@@ -118,7 +103,7 @@ const PlatformLogsView = () => {
       <PlatformLogsFilterRow
         open={filtersOpen}
         filters={filters}
-        onFiltersChange={handleFiltersChange}
+        onFiltersChange={updateFilters}
         facets={facets}
         disabled={loading}
       />
@@ -154,7 +139,7 @@ const PlatformLogsView = () => {
           <PlatformLogsResultBar
             totalCount={totalCount}
             filters={filters}
-            onFiltersChange={handleFiltersChange}
+            onFiltersChange={updateFilters}
             disabled={loading}
           />
 
