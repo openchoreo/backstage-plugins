@@ -96,9 +96,7 @@ const ObservabilityTracesContent = () => {
 
   const spanDetails = useSpanDetails({
     namespaceName: namespace,
-    projectName,
     environmentName: filters.environment?.name ?? '',
-    componentName,
   });
 
   const handleFiltersChange = useCallback(

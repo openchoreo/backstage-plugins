@@ -1,1 +1,0 @@
-export { ComponentWorkflowYamlEditorFieldExtension } from './extensions';

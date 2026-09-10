@@ -1,10 +1,11 @@
+import BubbleChartIcon from '@material-ui/icons/BubbleChart';
 import {
   createFrontendPlugin,
   PageBlueprint,
   PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
 
-import { rootRouteRef } from './routes';
+import { platformOverviewRouteRef, rootRouteRef } from './routes';
 
 const platformEngineerDashboardPage = PageBlueprint.make({
   name: 'platform-engineer-dashboard',
@@ -18,9 +19,24 @@ const platformEngineerDashboardPage = PageBlueprint.make({
   },
 });
 
-// Wraps this plugin's own extensions in the TanStack Query provider (see the
-// openchoreo plugin's alpha for the full rationale). Shares the one `queryClient`
-// singleton across all OpenChoreo plugins.
+// Ships title + icon so adopters auto-get a sidebar entry via DefaultNavContent.
+const platformOverviewPage = PageBlueprint.make({
+  name: 'platform-overview',
+  params: {
+    path: '/platform-overview',
+    routeRef: platformOverviewRouteRef,
+    title: 'Platform',
+    icon: <BubbleChartIcon />,
+    // Page renders its own <Page><Header>; suppress outer PageLayout header.
+    noHeader: true,
+    loader: () =>
+      import('./components/PlatformOverviewPage').then(m => (
+        <m.PlatformOverviewPage />
+      )),
+  },
+});
+
+// Wraps this plugin's extensions in the shared OpenChoreoQueryProvider.
 const queryProvider = PluginWrapperBlueprint.make({
   name: 'query-provider',
   params: defineParams =>
@@ -34,11 +50,12 @@ const queryProvider = PluginWrapperBlueprint.make({
     }),
 });
 
-/**
- * NFS entry point for the Platform Engineer Core plugin.
- */
 export default createFrontendPlugin({
   pluginId: 'platform-engineer-core',
   routes: { root: rootRouteRef },
-  extensions: [queryProvider, platformEngineerDashboardPage],
+  extensions: [
+    queryProvider,
+    platformEngineerDashboardPage,
+    platformOverviewPage,
+  ],
 });

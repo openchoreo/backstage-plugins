@@ -3,8 +3,12 @@ import openchoreoPlugin from './alpha';
 const ALPHA_EXTENSION_NAMES = [
   // backend client
   ['api', 'open-choreo-client'],
+  // OpenChoreo IDP auth (fetch/permission overrides live in openChoreoAppModule)
+  ['api', 'openchoreo-auth'],
   // self-contained response-cache provider
   ['plugin-wrapper', 'query-provider'],
+  // routed page (opened via window.open from the resource drawer)
+  ['page', 'exec-terminal'],
   // entity context menu items (delete + annotation edit)
   ['entity-context-menu-item', 'delete-entity'],
   ['entity-context-menu-item', 'edit-annotations'],
@@ -15,7 +19,9 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-card', 'deployment-status'],
   ['entity-card', 'runtime-health'],
   // system-page
+  ['entity-content', 'project-deploy'],
   ['entity-content', 'cell-diagram'],
+  ['entity-content', 'project-diagram'],
   ['entity-card', 'project-contents'],
   ['entity-card', 'deployment-pipeline'],
   // domain-page
@@ -56,6 +62,39 @@ const ALPHA_EXTENSION_NAMES = [
   // workflow family
   ['entity-card', 'workflow-overview'],
   ['entity-card', 'component-workflow-overview'],
+  // scaffolder form fields
+  ['scaffolder-form-field', 'advanced-configuration-field'],
+  ['scaffolder-form-field', 'build-and-deploy-field'],
+  ['scaffolder-form-field', 'build-template-parameters'],
+  ['scaffolder-form-field', 'build-template-picker'],
+  ['scaffolder-form-field', 'build-workflow-parameters'],
+  ['scaffolder-form-field', 'build-workflow-picker'],
+  ['scaffolder-form-field', 'cluster-component-type-yaml-editor'],
+  ['scaffolder-form-field', 'cluster-project-type-yaml-editor'],
+  ['scaffolder-form-field', 'cluster-resource-type-yaml-editor'],
+  ['scaffolder-form-field', 'cluster-trait-yaml-editor'],
+  ['scaffolder-form-field', 'cluster-workflow-yaml-editor'],
+  ['scaffolder-form-field', 'component-name-picker'],
+  ['scaffolder-form-field', 'component-type-yaml-editor'],
+  ['scaffolder-form-field', 'component-workflow-yaml-editor'],
+  ['scaffolder-form-field', 'container-image-field'],
+  ['scaffolder-form-field', 'deployment-pipeline-form-with-yaml'],
+  ['scaffolder-form-field', 'deployment-pipeline-picker'],
+  ['scaffolder-form-field', 'deployment-source-picker'],
+  ['scaffolder-form-field', 'environment-form-with-yaml'],
+  ['scaffolder-form-field', 'git-source-field'],
+  ['scaffolder-form-field', 'namespace-entity-picker'],
+  ['scaffolder-form-field', 'notification-channel-form-with-yaml'],
+  ['scaffolder-form-field', 'project-namespace-field'],
+  ['scaffolder-form-field', 'project-parameters-field'],
+  ['scaffolder-form-field', 'project-type-yaml-editor'],
+  ['scaffolder-form-field', 'resource-name-picker'],
+  ['scaffolder-form-field', 'resource-parameters-field'],
+  ['scaffolder-form-field', 'resource-type-yaml-editor'],
+  ['scaffolder-form-field', 'switch-field'],
+  ['scaffolder-form-field', 'trait-yaml-editor'],
+  ['scaffolder-form-field', 'traits-field'],
+  ['scaffolder-form-field', 'workload-details-field'],
   // per-kind Overview layouts
   ['entity-content-layout', 'component-overview'],
   ['entity-content-layout', 'system-overview'],

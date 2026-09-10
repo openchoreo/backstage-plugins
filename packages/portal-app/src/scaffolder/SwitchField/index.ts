@@ -1,1 +1,0 @@
-export { SwitchFieldExtension } from './extensions';

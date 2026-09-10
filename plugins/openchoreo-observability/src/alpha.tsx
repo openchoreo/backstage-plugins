@@ -1,9 +1,12 @@
+import MonetizationOnIcon from '@material-ui/icons/MonetizationOn';
+import SpeedIcon from '@material-ui/icons/Speed';
 import {
   ApiBlueprint,
   createExtensionInput,
   createFrontendPlugin,
   discoveryApiRef,
   fetchApiRef,
+  PageBlueprint,
   PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
 import {
@@ -19,7 +22,7 @@ import {
   isOpenChoreoManagedOfKind,
 } from '@openchoreo/backstage-plugin-common';
 
-import { rootRouteRef } from './routes';
+import { deliveryInsightsRouteRef, rootRouteRef } from './routes';
 import {
   observabilityApiRef,
   ObservabilityClient,
@@ -282,6 +285,22 @@ const rcaReportsEntityContent = EntityContentBlueprint.make({
   },
 });
 
+const projectCostAnalysisEntityContent = EntityContentBlueprint.make({
+  name: 'project-cost-analysis',
+  params: {
+    path: '/cost-analysis',
+    title: 'Cost Analysis',
+    group: 'analysis',
+    filter: isOpenChoreoManagedOfKind('system'),
+    loader: () =>
+      import('./components/CostAnalysis/CostAnalysisPage').then(m => (
+        <FeatureGatedContent feature="observability">
+          <m.CostAnalysisPage />
+        </FeatureGatedContent>
+      )),
+  },
+});
+
 /**
  * Cost Insights summary card, shown on the Component and Project (System)
  * overview pages. Filtered to entities carrying the openchoreo namespace
@@ -307,15 +326,42 @@ const costInsightsSummaryCard = EntityCardBlueprint.make({
   },
 });
 
-/**
- * NFS entry point for the OpenChoreo Observability plugin.
- *
- * Registers the three observability backend clients, the log-row-action
- * registry API, the component-page entity tabs (Logs, Events, Metrics,
- * Alerts, Wirelogs) and the system-page entity tabs (Logs, Traces,
- * Incidents, RCA Reports), plus the Cost Insights summary card shown on the
- * Component and Project overview pages.
- */
+// Ships title + icon so adopters auto-get a sidebar entry via DefaultNavContent.
+const costInsightsPage = PageBlueprint.make({
+  name: 'cost-insights',
+  params: {
+    path: '/cost-insights',
+    routeRef: rootRouteRef,
+    title: 'Cost Insights',
+    icon: <MonetizationOnIcon />,
+    // Page renders its own <Page><Header>; suppress outer PageLayout header.
+    noHeader: true,
+    loader: () =>
+      import('./components/CostInsights/CostInsightsPage').then(m => (
+        <m.CostInsightsPage />
+      )),
+  },
+});
+
+// Ships title + icon so adopters auto-get a sidebar entry via DefaultNavContent,
+// the same as cost insights above. The portal app curates its own sidebar and
+// takes this by id -- see PortalNavContent.
+const deliveryInsightsPage = PageBlueprint.make({
+  name: 'delivery-insights',
+  params: {
+    path: '/delivery-insights',
+    routeRef: deliveryInsightsRouteRef,
+    title: 'Delivery Insights',
+    icon: <SpeedIcon />,
+    // Page renders its own <Page><Header>; suppress outer PageLayout header.
+    noHeader: true,
+    loader: () =>
+      import('./components/DeliveryInsights/DeliveryInsightsPage').then(m => (
+        <m.DeliveryInsightsPage />
+      )),
+  },
+});
+
 export default createFrontendPlugin({
   pluginId: 'openchoreo-observability',
   routes: { root: rootRouteRef },
@@ -325,6 +371,8 @@ export default createFrontendPlugin({
     rcaAgentApi,
     finopsAgentApi,
     logRowActionRendererApi,
+    costInsightsPage,
+    deliveryInsightsPage,
     runtimeLogsEntityContent,
     runtimeEventsEntityContent,
     metricsEntityContent,
@@ -334,6 +382,7 @@ export default createFrontendPlugin({
     tracesEntityContent,
     projectIncidentsEntityContent,
     rcaReportsEntityContent,
+    projectCostAnalysisEntityContent,
     costInsightsSummaryCard,
   ],
 });

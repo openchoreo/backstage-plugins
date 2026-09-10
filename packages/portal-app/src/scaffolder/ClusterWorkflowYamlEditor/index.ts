@@ -1,1 +1,0 @@
-export { ClusterWorkflowYamlEditorFieldExtension } from './extensions';

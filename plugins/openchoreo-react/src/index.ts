@@ -187,6 +187,7 @@ export {
   useAutoLoadWhenEmpty,
   type UseAutoLoadWhenEmptyOptions,
 } from './hooks/useAutoLoadWhenEmpty';
+export { useQueryParams } from './hooks/useQueryParams';
 export {
   useEntityAnnotation,
   useHasAnnotation,

@@ -107,9 +107,7 @@ export interface ObservabilityApi {
     traceId: string,
     spanId: string,
     namespaceName: string,
-    projectName: string,
     environmentName: string,
-    componentName?: string,
   ): Promise<SpanDetails>;
 
   getRCAReports(
@@ -477,7 +475,7 @@ export class ObservabilityClient implements ObservabilityApi {
         endTime: s.endTime ?? '',
         durationNs: s.durationNs ?? 0,
         parentSpanId: s.parentSpanId,
-        status: s.status?.code,
+        status: s.status,
       })),
       total: data.total ?? 0,
       tookMs: data.tookMs ?? 0,
@@ -488,9 +486,7 @@ export class ObservabilityClient implements ObservabilityApi {
     traceId: string,
     spanId: string,
     namespaceName: string,
-    projectName: string,
     environmentName: string,
-    componentName?: string,
   ): Promise<SpanDetails> {
     const { observerUrl } = await this.urlCache.resolveUrls(
       namespaceName,
@@ -502,16 +498,7 @@ export class ObservabilityClient implements ObservabilityApi {
         traceId,
       )}/spans/${encodeURIComponent(spanId)}`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
-        body: JSON.stringify({
-          searchScope: {
-            namespace: namespaceName,
-            project: projectName,
-            ...(componentName ? { component: componentName } : {}),
-            environment: environmentName,
-          },
-        }),
+        headers: { ...DIRECT_HEADER },
       },
     );
 
@@ -532,7 +519,7 @@ export class ObservabilityClient implements ObservabilityApi {
       endTime: data.endTime ?? '',
       durationNs: data.durationNs ?? 0,
       parentSpanId: data.parentSpanId,
-      status: data.status?.code,
+      status: data.status,
       attributes: data.attributes,
       resourceAttributes: data.resourceAttributes,
     };

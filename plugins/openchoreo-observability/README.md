@@ -4,6 +4,13 @@ Welcome to the openchoreo-observability plugin!
 
 _This plugin was created through the Backstage CLI_
 
+## Requirements
+
+This plugin requires [`@openchoreo/backstage-plugin`](../openchoreo) (the
+OpenChoreo core plugin) to be installed in the same Backstage app. The
+core plugin registers the fetch / permission / auth API implementations
+this plugin needs to reach the OpenChoreo backend.
+
 ## Features
 
 - **Logs**: Component-level and project-level runtime logs with filtering
