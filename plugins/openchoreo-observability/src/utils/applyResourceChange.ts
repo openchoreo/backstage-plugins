@@ -21,9 +21,16 @@ export interface ResourceChangeDef {
 export function resolveTargetKind(change: {
   target_kind?: string | null;
 }): TargetKind {
-  return change.target_kind === 'ResourceReleaseBinding'
-    ? 'ResourceReleaseBinding'
-    : 'ReleaseBinding';
+  if (change.target_kind === null || change.target_kind === undefined) {
+    return 'ReleaseBinding';
+  }
+  if (
+    change.target_kind === 'ReleaseBinding' ||
+    change.target_kind === 'ResourceReleaseBinding'
+  ) {
+    return change.target_kind;
+  }
+  throw new Error(`Unsupported target_kind: '${change.target_kind}'`);
 }
 
 export function bindingEndpoint(targetKind: TargetKind): string {
@@ -47,6 +54,14 @@ const ALLOWED_OVERRIDE_CATEGORIES: Record<TargetKind, Set<string>> = {
   ResourceReleaseBinding: new Set(['resourceTypeEnvironmentConfigs']),
 };
 
+// Only the first two segments are allowlisted, so without this any deeper
+// segment could walk into Object.prototype and pollute it globally.
+const UNSAFE_POINTER_SEGMENTS = new Set([
+  '__proto__',
+  'prototype',
+  'constructor',
+]);
+
 export function applyJsonPointer(
   doc: any,
   pointer: string,
@@ -57,7 +72,8 @@ export function applyJsonPointer(
   if (
     keys.length < 3 ||
     keys[0] !== 'spec' ||
-    !ALLOWED_OVERRIDE_CATEGORIES[targetKind].has(keys[1])
+    !ALLOWED_OVERRIDE_CATEGORIES[targetKind].has(keys[1]) ||
+    keys.some(key => UNSAFE_POINTER_SEGMENTS.has(key))
   ) {
     throw new Error(`Invalid pointer: '${pointer}'`);
   }

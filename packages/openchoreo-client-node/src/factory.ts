@@ -96,6 +96,29 @@ export interface OpenChoreoAIRCAAgentClientConfig {
   logger?: LoggerService;
 }
 
+const LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
+
+/**
+ * Guards against sending a bearer token over an insecure transport. HTTPS is
+ * always allowed; plain HTTP is only allowed to loopback addresses (local dev).
+ */
+function assertSecureTokenTransport(baseUrl: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    throw new Error(`Invalid OpenChoreo API baseUrl: '${baseUrl}'`);
+  }
+  const isHttps = parsed.protocol === 'https:';
+  const isLoopbackHttp =
+    parsed.protocol === 'http:' && LOOPBACK_HOSTNAMES.has(parsed.hostname);
+  if (!isHttps && !isLoopbackHttp) {
+    throw new Error(
+      `Refusing to send bearer token to insecure baseUrl '${baseUrl}'; use HTTPS or a loopback address`,
+    );
+  }
+}
+
 /**
  * Creates an OpenChoreo API client (new 1.0 API)
  *
@@ -110,6 +133,10 @@ export function createOpenChoreoApiClient(config: OpenChoreoClientConfig) {
 
   // Strip /api/v1 suffix since OpenAPI spec paths already include it
   const baseUrl = rawBaseUrl.replace(/\/api\/v1\/?$/, '');
+
+  if (token) {
+    assertSecureTokenTransport(baseUrl);
+  }
 
   logger?.debug(`Creating OpenChoreo API client with baseUrl: ${baseUrl}`);
 

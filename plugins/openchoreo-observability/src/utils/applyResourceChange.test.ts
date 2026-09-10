@@ -427,6 +427,73 @@ describe('applyResourceChange', () => {
 // applyJsonPointer target kind allowlist
 // ---------------------------------------------------------------------------
 
+describe('applyJsonPointer prototype pollution', () => {
+  afterEach(() => {
+    delete (Object.prototype as any).polluted;
+    delete (Object.prototype as any).toString2;
+  });
+
+  it.each(['__proto__', 'prototype', 'constructor'])(
+    'rejects %s as a pointer segment',
+    segment => {
+      expect(() =>
+        applyJsonPointer(
+          {},
+          `/spec/componentTypeEnvironmentConfigs/${segment}/polluted`,
+          'PWNED',
+        ),
+      ).toThrow('Invalid pointer');
+    },
+  );
+
+  it('does not pollute Object.prototype via __proto__', () => {
+    expect(() =>
+      applyJsonPointer(
+        { spec: {} },
+        '/spec/componentTypeEnvironmentConfigs/__proto__/polluted',
+        'PWNED',
+      ),
+    ).toThrow('Invalid pointer');
+
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
+  it('rejects an unsafe segment as the final key', () => {
+    expect(() =>
+      applyJsonPointer(
+        { spec: {} },
+        '/spec/componentTypeEnvironmentConfigs/__proto__',
+        'PWNED',
+      ),
+    ).toThrow('Invalid pointer');
+  });
+
+  it('rejects unsafe segments for ResourceReleaseBinding too', () => {
+    expect(() =>
+      applyJsonPointer(
+        { spec: {} },
+        '/spec/resourceTypeEnvironmentConfigs/__proto__/polluted',
+        'PWNED',
+        'ResourceReleaseBinding',
+      ),
+    ).toThrow('Invalid pointer');
+
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
+  it('still allows ordinary nested field paths', () => {
+    const doc: any = { spec: {} };
+    applyJsonPointer(
+      doc,
+      '/spec/componentTypeEnvironmentConfigs/resources/requests/cpu',
+      '50m',
+    );
+    expect(
+      doc.spec.componentTypeEnvironmentConfigs.resources.requests.cpu,
+    ).toBe('50m');
+  });
+});
+
 describe('applyJsonPointer target kinds', () => {
   it('allows resourceTypeEnvironmentConfigs only for ResourceReleaseBinding', () => {
     const doc: any = {};
