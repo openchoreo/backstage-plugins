@@ -1,6 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { PlatformLogsToolbar } from './PlatformLogsToolbar';
+import {
+  PlatformLogsToolbar,
+  planeScope,
+  planeScopeShort,
+} from './PlatformLogsToolbar';
 import {
   DEFAULT_PLATFORM_LOG_FIELDS,
   PLATFORM_LOG_LEVELS,
@@ -28,8 +32,22 @@ const base = (
   ...over,
 });
 
+const clusterPlane = {
+  ref: 'clusterobservabilityplane:default/default',
+  displayName: 'default',
+  kind: 'ClusterObservabilityPlane',
+  namespace: 'default',
+  observerUrl: 'http://c',
+};
+
 const planes = [
-  { name: 'default', displayName: 'default', observerUrl: 'http://o' },
+  {
+    ref: 'observabilityplane:default/default',
+    displayName: 'default',
+    kind: 'ObservabilityPlane',
+    namespace: 'default',
+    observerUrl: 'http://o',
+  },
 ];
 
 const renderToolbar = (
@@ -168,5 +186,47 @@ describe('PlatformLogsToolbar', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Refresh' }));
 
     expect(onRefresh).toHaveBeenCalled();
+  });
+});
+
+// Both kinds are listed together and both are commonly named "default", so the name
+// alone leaves the picker showing two identical rows.
+describe('plane scope labels', () => {
+  it('names the kind of a cluster-scoped plane', () => {
+    expect(planeScope(clusterPlane)).toBe('ClusterObservabilityPlane');
+    expect(planeScopeShort(clusterPlane)).toBe('cluster');
+  });
+
+  it('adds the namespace for a namespaced plane', () => {
+    expect(planeScope(planes[0])).toBe('ObservabilityPlane · default');
+    expect(planeScopeShort(planes[0])).toBe('ns: default');
+  });
+
+  it('tells two same-named planes apart', () => {
+    expect(planeScope(planes[0])).not.toBe(planeScope(clusterPlane));
+    expect(planeScopeShort(planes[0])).not.toBe(planeScopeShort(clusterPlane));
+  });
+});
+
+describe('PlatformLogsToolbar plane picker', () => {
+  it('shows the scope beside the name in the closed field', () => {
+    renderToolbar(base({ observabilityPlane: clusterPlane.ref }), {
+      planes: [...planes, clusterPlane],
+    });
+
+    expect(screen.getByText('default (cluster)')).toBeInTheDocument();
+  });
+
+  it('distinguishes same-named planes in the open list', async () => {
+    renderToolbar(base(), { planes: [...planes, clusterPlane] });
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /Observability Plane/ }),
+    );
+
+    expect(
+      screen.getByText('ObservabilityPlane · default'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('ClusterObservabilityPlane')).toBeInTheDocument();
   });
 });

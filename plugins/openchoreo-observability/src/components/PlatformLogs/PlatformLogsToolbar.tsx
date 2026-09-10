@@ -11,6 +11,7 @@ import {
   Select,
   TextField,
   Tooltip,
+  Typography,
 } from '@material-ui/core';
 import ClearIcon from '@material-ui/icons/Clear';
 import FiberManualRecord from '@material-ui/icons/FiberManualRecord';
@@ -19,11 +20,38 @@ import Refresh from '@material-ui/icons/Refresh';
 import { Skeleton } from '@openchoreo/backstage-design-system';
 import { TimeRangeFilter } from '@openchoreo/backstage-plugin-react';
 import { useDebouncedSearch } from '../../hooks/useDebouncedSearch';
-import type { ObservabilityPlaneOption } from '../../hooks/useObservabilityPlanes';
+import {
+  CLUSTER_OBSERVABILITY_PLANE_KIND,
+  type ObservabilityPlaneOption,
+} from '../../hooks/useObservabilityPlanes';
 import { activeFilters, clearedFilters } from './activeFilters';
 import { usePlatformLogsToolbarStyles } from './styles';
 import { PlatformLogsFilters } from './types';
 import { validateSearchPhrase } from './validation';
+
+const isClusterScoped = (plane: ObservabilityPlaneOption) =>
+  plane.kind === CLUSTER_OBSERVABILITY_PLANE_KIND;
+
+/**
+ * What distinguishes two planes that share a name, spelled out under the name in the
+ * open list. A cluster-scoped plane has no meaningful namespace, so naming its kind is
+ * the whole answer; a namespaced one needs the namespace as well.
+ */
+export function planeScope(plane: ObservabilityPlaneOption): string {
+  return isClusterScoped(plane)
+    ? CLUSTER_OBSERVABILITY_PLANE_KIND
+    : `ObservabilityPlane · ${plane.namespace}`;
+}
+
+/**
+ * The same distinction for the closed field, which shares a row with everything else
+ * and has no room for a kind name. "ns:" is kept on the namespace because a plane
+ * named "default" in namespace "default" is otherwise indistinguishable from the
+ * cluster-scoped one beside it - which is exactly the case this is here for.
+ */
+export function planeScopeShort(plane: ObservabilityPlaneOption): string {
+  return isClusterScoped(plane) ? 'cluster' : `ns: ${plane.namespace}`;
+}
 
 interface PlatformLogsToolbarProps {
   filters: PlatformLogsFilters;
@@ -98,10 +126,22 @@ export const PlatformLogsToolbar: FC<PlatformLogsToolbarProps> = ({
                   observabilityPlane: event.target.value as string,
                 })
               }
+              // Without this the closed field renders the chosen item's children,
+              // which here are two lines and would break the bar's height.
+              renderValue={value => {
+                const plane = planes.find(p => p.ref === value);
+                if (!plane) return value as string;
+                return `${plane.displayName} (${planeScopeShort(plane)})`;
+              }}
             >
               {planes.map(plane => (
-                <MenuItem key={plane.name} value={plane.name}>
-                  {plane.displayName}
+                <MenuItem key={plane.ref} value={plane.ref}>
+                  <span className={classes.planeOption}>
+                    <span>{plane.displayName}</span>
+                    <Typography variant="caption" color="textSecondary">
+                      {planeScope(plane)}
+                    </Typography>
+                  </span>
                 </MenuItem>
               ))}
             </Select>

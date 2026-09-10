@@ -37,7 +37,7 @@ const PlatformLogsView = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const selectedPlane = useMemo(
-    () => planes.find(p => p.name === filters.observabilityPlane),
+    () => planes.find(p => p.ref === filters.observabilityPlane),
     [planes, filters.observabilityPlane],
   );
 
@@ -45,7 +45,7 @@ const PlatformLogsView = () => {
   // with none selected there is nothing to query and nothing to look at.
   useEffect(() => {
     if (!planesLoading && planes.length > 0 && !selectedPlane) {
-      updateFilters({ observabilityPlane: planes[0].name });
+      updateFilters({ observabilityPlane: planes[0].ref });
     }
   }, [planesLoading, planes, selectedPlane, updateFilters]);
 

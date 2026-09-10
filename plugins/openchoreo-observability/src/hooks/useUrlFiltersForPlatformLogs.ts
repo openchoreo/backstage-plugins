@@ -23,7 +23,7 @@ const parseList = (raw: string | null): string[] =>
  * page keeps no filter state of its own.
  *
  * Query parameters:
- * - `plane`: ObservabilityPlane entity name (the observer to query)
+ * - `plane`: full entity ref of the observability plane (the observer to query)
  * - `cluster`, `ns`, `pod`, `container`: comma-separated filter lists
  * - `labels`: Kubernetes label selector; defaults to the control plane, and an explicit
  *   empty value (`labels=`) means "search everything" rather than "use the default"

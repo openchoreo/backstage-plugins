@@ -17,6 +17,12 @@ export const usePlatformLogsToolbarStyles = makeStyles(theme => ({
   plane: {
     minWidth: 190,
   },
+  planeOption: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    lineHeight: 1.3,
+  },
   timeRange: {
     // The trigger only ever shows a short preset ("Last 10 minutes"); the picker itself
     // opens in a popover, so the field does not need room for a date range.

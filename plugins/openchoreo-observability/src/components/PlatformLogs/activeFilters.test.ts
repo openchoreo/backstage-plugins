@@ -73,6 +73,17 @@ describe('activeFilters', () => {
     expect(activeFilters(base({ logLevel: ['ERROR'] }))).toHaveLength(1);
   });
 
+  // Selecting no level matches nothing and the query is not even sent. Left off the
+  // row, an empty table would come with no explanation and no chip to clear.
+  it('counts an empty level selection as a filter', () => {
+    const chips = activeFilters(base({ logLevel: [] }));
+
+    expect(chips).toHaveLength(1);
+    expect(chips[0].id).toBe('logLevel');
+    expect(chips[0].label).toBe('Level: none');
+    expect(chips[0].cleared).toEqual({ logLevel: PLATFORM_LOG_LEVELS });
+  });
+
   it('truncates a long single value so one chip cannot take the row', () => {
     const [chip] = activeFilters(
       base({ labels: 'openchoreo.dev/plane=controlplane,tier=infrastructure' }),

@@ -64,11 +64,15 @@ export function activeFilters(filters: PlatformLogsFilters): ActiveFilter[] {
         }
       : null,
     // All levels selected is the same query as no level filter, so it is not "active".
-    filters.logLevel.length > 0 &&
+    // None selected very much is: it matches nothing, and the query is not even sent.
+    // Leaving it off the row would explain an empty table with no chip to clear.
     filters.logLevel.length < PLATFORM_LOG_LEVELS.length
       ? {
           id: 'logLevel' as const,
-          label: `Level: ${filters.logLevel.join(', ')}`,
+          label:
+            filters.logLevel.length === 0
+              ? 'Level: none'
+              : `Level: ${filters.logLevel.join(', ')}`,
           cleared: { logLevel: [...PLATFORM_LOG_LEVELS] },
         }
       : null,
