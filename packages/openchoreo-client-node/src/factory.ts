@@ -186,6 +186,10 @@ export function createOpenChoreoObservabilityApiClient(
 ) {
   const { baseUrl, token, fetchApi, logger } = config;
 
+  if (token) {
+    assertSecureTokenTransport(baseUrl);
+  }
+
   logger?.debug(
     `Creating OpenChoreo Observability API client with baseUrl: ${baseUrl}`,
   );
@@ -238,6 +242,10 @@ export function createOpenChoreoAIRCAAgentApiClient(
   config: OpenChoreoAIRCAAgentClientConfig,
 ) {
   const { baseUrl, token, fetchApi, logger } = config;
+
+  if (token) {
+    assertSecureTokenTransport(baseUrl);
+  }
 
   logger?.debug(
     `Creating OpenChoreo AI RCA Agent API client with baseUrl: ${baseUrl}`,
