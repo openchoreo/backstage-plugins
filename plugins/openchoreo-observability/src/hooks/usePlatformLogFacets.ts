@@ -56,6 +56,27 @@ const tupleKey = (t: CoordinateTuple) =>
 const str = (value: unknown) => (typeof value === 'string' ? value : '');
 
 /**
+ * Identifies the query the pool describes: everything that decides which coordinates
+ * the API could return, minus the coordinate selections themselves.
+ *
+ * The time range goes in as the *relative* token rather than a resolved window, so
+ * tailing a '1h' range polls without ever resetting the pool.
+ *
+ * Exported for tests.
+ */
+export function scopeKey(filters: PlatformLogsFilters): string {
+  return [
+    filters.observabilityPlane,
+    filters.labels,
+    filters.searchQuery ?? '',
+    filters.logLevel.join(','),
+    filters.timeRange,
+    filters.customStartTime ?? '',
+    filters.customEndTime ?? '',
+  ].join(KEY_SEPARATOR);
+}
+
+/**
  * Folds the coordinates in `logs` into `index`, returning `index` itself when nothing is
  * new.
  *
@@ -198,9 +219,10 @@ export function pruneDescendantSelections(
  * offered - which is why the pickers stay free-text as well as selectable.
  *
  * Tuples accumulate rather than being recomputed from the current result set, so a
- * namespace whose rows have scrolled out of view is still offered. The pool resets when
- * the observability plane changes, since another plane describes different clusters and
- * pods entirely.
+ * namespace whose rows have scrolled out of view is still offered. That accumulation is
+ * scoped: the pool resets whenever the query itself changes shape - a different plane,
+ * label selector, search phrase, level set or time window - because a pool gathered
+ * under the old one describes rows the new query cannot return. See `scopeKey`.
  *
  * Returns the index alongside the options because pruning a stale selection needs it.
  */
@@ -208,22 +230,22 @@ export function usePlatformLogFacets(
   logs: PlatformLogEntry[],
   filters: PlatformLogsFilters,
 ): { facets: PlatformLogFacets; index: CoordinateIndex } {
-  const planeKey = filters.observabilityPlane;
+  const scope = scopeKey(filters);
 
   const [state, setState] = useState<{
-    plane: string;
+    scope: string;
     index: CoordinateIndex;
-  }>({ plane: planeKey, index: EMPTY_INDEX });
+  }>({ scope, index: EMPTY_INDEX });
 
   useEffect(() => {
     setState(prev => {
-      const samePlane = prev.plane === planeKey;
-      const base = samePlane ? prev.index : EMPTY_INDEX;
+      const sameScope = prev.scope === scope;
+      const base = sameScope ? prev.index : EMPTY_INDEX;
       const index = mergeCoordinates(base, logs);
-      if (samePlane && index === base) return prev;
-      return { plane: planeKey, index };
+      if (sameScope && index === base) return prev;
+      return { scope, index };
     });
-  }, [logs, planeKey]);
+  }, [logs, scope]);
 
   const { index } = state;
   const { clusterInstances, namespaces, podNames, containerNames } = filters;

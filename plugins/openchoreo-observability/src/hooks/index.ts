@@ -33,6 +33,7 @@ export {
   mergeCoordinates,
   deriveFacets,
   pruneDescendantSelections,
+  scopeKey,
   EMPTY_INDEX,
   type PlatformLogFacets,
   type CoordinateIndex,

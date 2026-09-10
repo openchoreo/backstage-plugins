@@ -5,6 +5,7 @@ import {
   EMPTY_INDEX,
   mergeCoordinates,
   pruneDescendantSelections,
+  scopeKey,
   usePlatformLogFacets,
 } from './usePlatformLogFacets';
 import {
@@ -276,6 +277,42 @@ describe('pruneDescendantSelections', () => {
   });
 });
 
+describe('scopeKey', () => {
+  it('ignores the coordinate selections', () => {
+    // Those are what deriveFacets narrows by; resetting on them would throw away the
+    // tuples a level needs to offer a way back to its other options.
+    expect(
+      scopeKey(
+        filters({
+          clusterInstances: ['cluster1'],
+          namespaces: ['ns-a'],
+          podNames: ['pod-a1'],
+          containerNames: ['c-a1'],
+        }),
+      ),
+    ).toBe(scopeKey(filters()));
+  });
+
+  it.each([
+    ['the plane', { observabilityPlane: 'eu-plane' }],
+    ['the label selector', { labels: 'openchoreo.dev/plane=dataplane' }],
+    ['the search phrase', { searchQuery: 'reconcile failed' }],
+    ['the level set', { logLevel: ['ERROR'] }],
+    ['the time range', { timeRange: '24h' }],
+    ['a custom window edge', { customStartTime: '2026-08-14T00:00:00Z' }],
+  ])('changes when %s changes', (_name, over) => {
+    expect(scopeKey(filters(over))).not.toBe(scopeKey(filters()));
+  });
+
+  it('is unchanged by sort order, columns and tailing', () => {
+    // None of these alter which coordinates the query can return, so resetting on them
+    // would only throw the pool away for nothing.
+    expect(
+      scopeKey(filters({ sortOrder: 'asc', selectedFields: [], isLive: true })),
+    ).toBe(scopeKey(filters()));
+  });
+});
+
 describe('usePlatformLogFacets', () => {
   // The reason tuples accumulate instead of being recomputed: once a namespace is
   // selected the results only contain that namespace, so a recomputed pool would offer
@@ -335,6 +372,45 @@ describe('usePlatformLogFacets', () => {
     });
 
     expect(result.current.facets.clusterInstances).toEqual(['cluster2']);
+  });
+
+  it('discards the pool when the label selector changes', () => {
+    const { result, rerender } = renderHook(
+      ({ logs, labels }) => usePlatformLogFacets(logs, filters({ labels })),
+      {
+        initialProps: {
+          logs: [entry({ podName: 'controlplane-pod' })],
+          labels: 'openchoreo.dev/plane=controlplane',
+        },
+      },
+    );
+    expect(result.current.facets.podNames).toEqual(['controlplane-pod']);
+
+    rerender({
+      logs: [entry({ podName: 'dataplane-pod' })],
+      labels: 'openchoreo.dev/plane=dataplane',
+    });
+
+    expect(result.current.facets.podNames).toEqual(['dataplane-pod']);
+  });
+
+  it('keeps the pool while tailing a relative range', () => {
+    // Live polling re-runs the same query, so the window moving underneath it must not
+    // count as a new scope - the pickers would flicker on every poll.
+    const { result, rerender } = renderHook(
+      ({ logs, isLive }) => usePlatformLogFacets(logs, filters({ isLive })),
+      {
+        initialProps: {
+          logs: [entry({ podName: 'pod-a1' })],
+          isLive: true,
+        },
+      },
+    );
+    expect(result.current.facets.podNames).toEqual(['pod-a1']);
+
+    rerender({ logs: [entry({ podName: 'pod-a2' })], isLive: true });
+
+    expect(result.current.facets.podNames).toEqual(['pod-a1', 'pod-a2']);
   });
 
   it('starts empty before any logs have loaded', () => {
