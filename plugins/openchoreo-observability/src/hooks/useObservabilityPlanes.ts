@@ -1,5 +1,8 @@
 import { useApi } from '@backstage/core-plugin-api';
-import { DEFAULT_NAMESPACE, stringifyEntityRef } from '@backstage/catalog-model';
+import {
+  DEFAULT_NAMESPACE,
+  stringifyEntityRef,
+} from '@backstage/catalog-model';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
@@ -47,23 +50,25 @@ export function useObservabilityPlanes() {
       catalogApi.getEntities({ filter: { kind: 'ClusterObservabilityPlane' } }),
     ]);
 
-    return [...namespaced.items, ...clusterScoped.items]
-      .map(entity => ({
-        ref: stringifyEntityRef(entity),
-        displayName: entity.metadata.title || entity.metadata.name,
-        kind: entity.kind,
-        namespace: entity.metadata.namespace || DEFAULT_NAMESPACE,
-        observerUrl:
-          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.OBSERVER_URL],
-      }))
-      // Same-named planes are common - a cluster-scoped and a namespaced one both
-      // called "default" - so ties fall back to the ref the picker labels them by,
-      // which keeps the order stable rather than dependent on catalog response order.
-      .sort(
-        (a, b) =>
-          a.displayName.localeCompare(b.displayName) ||
-          a.ref.localeCompare(b.ref),
-      );
+    return (
+      [...namespaced.items, ...clusterScoped.items]
+        .map(entity => ({
+          ref: stringifyEntityRef(entity),
+          displayName: entity.metadata.title || entity.metadata.name,
+          kind: entity.kind,
+          namespace: entity.metadata.namespace || DEFAULT_NAMESPACE,
+          observerUrl:
+            entity.metadata.annotations?.[CHOREO_ANNOTATIONS.OBSERVER_URL],
+        }))
+        // Same-named planes are common - a cluster-scoped and a namespaced one both
+        // called "default" - so ties fall back to the ref the picker labels them by,
+        // which keeps the order stable rather than dependent on catalog response order.
+        .sort(
+          (a, b) =>
+            a.displayName.localeCompare(b.displayName) ||
+            a.ref.localeCompare(b.ref),
+        )
+    );
   });
 
   return {

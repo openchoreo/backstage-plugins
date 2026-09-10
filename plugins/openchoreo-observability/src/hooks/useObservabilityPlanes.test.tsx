@@ -100,9 +100,7 @@ describe('useObservabilityPlanes', () => {
     const { result } = setup();
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(
-      result.current.planes.map(p => [p.kind, p.namespace]),
-    ).toEqual(
+    expect(result.current.planes.map(p => [p.kind, p.namespace])).toEqual(
       expect.arrayContaining([
         ['ObservabilityPlane', 'team-a'],
         ['ClusterObservabilityPlane', 'default'],
