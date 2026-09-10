@@ -28,7 +28,8 @@ const parseList = (raw: string | null): string[] =>
  * - `labels`: Kubernetes label selector; defaults to the control plane, and an explicit
  *   empty value (`labels=`) means "search everything" rather than "use the default"
  * - `logLevel`: comma-separated levels; absent means all
- * - `timeRange` + `from`/`to`, `search`, `sort`, `fields`
+ * - `timeRange` + `from`/`to`, `search`, `fields`
+ * - `sort`: `desc` for newest first; absent means the oldest-first default
  * - `live`: tail for new entries; ignored on a custom (absolute) time range
  */
 export function useUrlFiltersForPlatformLogs() {
@@ -46,8 +47,10 @@ export function useUrlFiltersForPlatformLogs() {
             new Set(parseList(logLevelParam)).has(level),
           );
 
+    // Oldest first by default: a platform log is usually read forwards, from the
+    // first sign of trouble onwards, so the page opens at the start of the window.
     const rawSortOrder = searchParams.get('sort');
-    const sortOrder: 'asc' | 'desc' = rawSortOrder === 'asc' ? 'asc' : 'desc';
+    const sortOrder: 'asc' | 'desc' = rawSortOrder === 'desc' ? 'desc' : 'asc';
 
     // Absent means "use the default"; present-but-empty means the operator cleared it
     // to search everything the plane holds. Collapsing those two would make the
@@ -126,8 +129,9 @@ export function useUrlFiltersForPlatformLogs() {
         if (next.searchQuery) params.set('search', next.searchQuery);
         else params.delete('search');
       }
+      // Only the non-default direction is written, so a default view keeps a clean URL.
       if (next.sortOrder !== undefined) {
-        if (next.sortOrder === 'asc') params.set('sort', 'asc');
+        if (next.sortOrder === 'desc') params.set('sort', 'desc');
         else params.delete('sort');
       }
 

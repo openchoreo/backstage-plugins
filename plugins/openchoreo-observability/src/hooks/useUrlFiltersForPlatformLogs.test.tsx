@@ -29,8 +29,20 @@ describe('useUrlFiltersForPlatformLogs', () => {
         labels: DEFAULT_PLATFORM_LABEL_SELECTOR,
         logLevel: PLATFORM_LOG_LEVELS,
         selectedFields: DEFAULT_PLATFORM_LOG_FIELDS,
-        sortOrder: 'desc',
+        sortOrder: 'asc',
       });
+    });
+
+    it('reads newest first from the sort param', () => {
+      expect(
+        renderFilters('/?sort=desc').result.current.filters.sortOrder,
+      ).toBe('desc');
+    });
+
+    it('falls back to oldest first for an unrecognised sort param', () => {
+      expect(
+        renderFilters('/?sort=sideways').result.current.filters.sortOrder,
+      ).toBe('asc');
     });
 
     // The distinction the whole "clear the filter to search everything" flow rests on:
@@ -105,6 +117,22 @@ describe('useUrlFiltersForPlatformLogs', () => {
       });
 
       expect(result.current.filters.labels).toBe('');
+    });
+
+    // Only the non-default direction reaches the URL, so a default view stays clean
+    // and a shared link carries a sort only when the sender changed it.
+    it('round-trips the sort order, writing only the non-default one', () => {
+      const { result } = renderFilters('/');
+
+      act(() => {
+        result.current.updateFilters({ sortOrder: 'desc' });
+      });
+      expect(result.current.filters.sortOrder).toBe('desc');
+
+      act(() => {
+        result.current.updateFilters({ sortOrder: 'asc' });
+      });
+      expect(result.current.filters.sortOrder).toBe('asc');
     });
 
     it('elides the log level param when every level is selected', () => {

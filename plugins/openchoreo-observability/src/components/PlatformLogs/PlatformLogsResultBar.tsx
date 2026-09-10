@@ -38,7 +38,7 @@ export const PlatformLogsResultBar: FC<PlatformLogsResultBarProps> = ({
   disabled = false,
 }) => {
   const classes = usePlatformLogsResultStyles();
-  const sortOrder = filters.sortOrder ?? 'desc';
+  const sortOrder = filters.sortOrder ?? 'asc';
 
   const handleFieldsChange = (event: ChangeEvent<{ value: unknown }>) => {
     let selectedFields = event.target.value as PlatformLogField[];
@@ -88,7 +88,7 @@ export const PlatformLogsResultBar: FC<PlatformLogsResultBarProps> = ({
               )
             }
           >
-            {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
+            {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
           </Button>
         </Tooltip>
 

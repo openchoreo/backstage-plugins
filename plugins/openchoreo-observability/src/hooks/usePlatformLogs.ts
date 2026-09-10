@@ -41,7 +41,7 @@ export function usePlatformLogs(
 ): UsePlatformLogsResult {
   const observabilityApi = useApi(observabilityApiRef);
 
-  const sortOrder = filters.sortOrder ?? 'desc';
+  const sortOrder = filters.sortOrder ?? 'asc';
   // All levels selected is the same query as no level filter, so send nothing and keep
   // the URL and the request shorter. None selected means the operator has filtered
   // everything out; the query is disabled rather than sent.
@@ -109,9 +109,11 @@ export function usePlatformLogs(
       pageSize,
       getCursor: last => last.timestamp,
       enabled: enabled && !!observerUrl && !noLevels,
-      // Tailing re-runs the first page. A relative range recomputes its window each
-      // time, so new entries arrive; the URL layer already refuses to set this on a
-      // custom range, where the window is fixed and polling would return the same rows.
+      // Tailing re-runs the first page against a freshly computed window. Newest
+      // first that page is the window's leading edge, so new entries show up there;
+      // oldest first - the default - it is the trailing edge and they land on the last
+      // page instead. The URL layer already refuses to tail a custom range at all,
+      // where the window is fixed and polling would return the same rows.
       refetchInterval: filters.isLive ? LIVE_POLL_MS : false,
     },
   );
