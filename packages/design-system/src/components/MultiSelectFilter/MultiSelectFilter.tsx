@@ -34,19 +34,21 @@ export interface MultiSelectFilterProps {
   allValues: string[];
   selected: Set<string>;
   onChange: (selected: Set<string>) => void;
+  emptyLabel?: string;
 }
 
 /**
- * Builds the trigger value: "All" / "None" / the single selected value /
- * "<first value> +N" for a multi-selection. `selectedOptions` must be in menu
+ * Builds the trigger value: "All" / the empty label / the single selected value
+ * / "<first value> +N" for a multi-selection. `selectedOptions` must be in menu
  * order so the shown value is stable.
  */
 function triggerValue(
   selectedOptions: MultiSelectOption[],
   total: number,
+  emptyLabel: string,
 ): string {
   if (total === 0 || selectedOptions.length === total) return 'All';
-  if (selectedOptions.length === 0) return 'None';
+  if (selectedOptions.length === 0) return emptyLabel;
   const [first, ...rest] = selectedOptions;
   return rest.length === 0 ? first.label : `${first.label} +${rest.length}`;
 }
@@ -63,6 +65,7 @@ export const MultiSelectFilter = ({
   allValues,
   selected,
   onChange,
+  emptyLabel = 'None',
 }: MultiSelectFilterProps) => {
   const classes = useStyles();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -114,7 +117,8 @@ export const MultiSelectFilter = ({
             disabled={allValues.length === 0}
           >
             <span className={classes.buttonLabel}>
-              {label}: {triggerValue(selectedOptions, allValues.length)}
+              {label}:{' '}
+              {triggerValue(selectedOptions, allValues.length, emptyLabel)}
             </span>
           </Button>
         </span>

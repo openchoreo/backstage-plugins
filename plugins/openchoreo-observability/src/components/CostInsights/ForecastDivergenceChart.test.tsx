@@ -10,8 +10,14 @@ jest.mock('recharts', () => ({
   ComposedChart: ({ children }: any) => (
     <div data-testid="forecast-chart">{children}</div>
   ),
+  // Both the areas (actual, forecast) and the if-applied line are "series".
+  Area: ({ dataKey, children }: any) => (
+    <div data-testid="series" data-key={dataKey}>
+      {children}
+    </div>
+  ),
   Line: ({ dataKey, children }: any) => (
-    <div data-testid="line" data-key={dataKey}>
+    <div data-testid="series" data-key={dataKey}>
       {children}
     </div>
   ),
@@ -26,23 +32,23 @@ jest.mock('recharts', () => ({
   CartesianGrid: () => null,
   XAxis: () => null,
   YAxis: () => null,
-  // Render both tooltip branches: the pre-fork "actual" point and the two
-  // post-fork projections.
+  // Render both tooltip branches: the pre-fork "accumulated cost" point and the
+  // two post-fork projections.
   Tooltip: ({ content }: any) => (
     <>
       {content?.({
         active: true,
         label: JUL9,
-        payload: [{ dataKey: 'actual', name: 'so far', value: 24 }],
+        payload: [{ dataKey: 'actual', name: 'accumulated cost', value: 24 }],
       })}
       {content?.({
         active: true,
         label: AUG1,
         payload: [
-          { dataKey: 'atCurrent', name: 'at current rate', value: 90 },
+          { dataKey: 'forecast', name: 'forecast at current rate', value: 90 },
           {
             dataKey: 'ifApplied',
-            name: 'if recommendations applied',
+            name: 'forecast if recommendations applied',
             value: 70,
           },
         ],
@@ -57,10 +63,10 @@ const forecast: ForecastData = {
     {
       timestamp: '2026-07-09T00:00:00.000Z',
       actual: 24,
-      atCurrent: 24,
+      forecast: 24,
       ifApplied: 24,
     },
-    { timestamp: '2026-08-01T00:00:00.000Z', atCurrent: 90, ifApplied: 70 },
+    { timestamp: '2026-08-01T00:00:00.000Z', forecast: 90, ifApplied: 70 },
   ],
   atCurrentTotal: 90,
   ifAppliedTotal: 70,
@@ -68,29 +74,34 @@ const forecast: ForecastData = {
 };
 
 describe('ForecastDivergenceChart', () => {
-  it('renders the three projection lines with a clickable legend', () => {
+  it('renders the accumulated area plus the two forecast series with a legend', () => {
     render(<ForecastDivergenceChart forecast={forecast} />);
     expect(
-      screen.getAllByTestId('line').map(l => l.getAttribute('data-key')),
-    ).toEqual(['actual', 'atCurrent', 'ifApplied']);
+      screen.getAllByTestId('series').map(l => l.getAttribute('data-key')),
+    ).toEqual(['actual', 'forecast', 'ifApplied']);
     // Appears in both the legend and the (mock-invoked) tooltip.
-    expect(screen.getAllByText('so far').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('at current rate').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('accumulated cost').length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText('forecast at current rate').length,
+    ).toBeGreaterThan(0);
   });
 
   it('renders both tooltip branches and the end labels', () => {
     render(<ForecastDivergenceChart forecast={forecast} />);
-    // Pre-fork tooltip shows only "so far"; post-fork shows both projections.
+    // Pre-fork tooltip shows only the accumulated cost; post-fork shows both
+    // projections.
     expect(screen.getByText('$24.00')).toBeInTheDocument();
     expect(screen.getByText('$90.00')).toBeInTheDocument();
     expect(screen.getByText('$70.00')).toBeInTheDocument();
-    // End labels drawn at the last point.
-    expect(screen.getAllByText('at current rate').length).toBeGreaterThan(1);
+    // End labels drawn at the last point (legend + tooltip + end label).
+    expect(
+      screen.getAllByText('forecast at current rate').length,
+    ).toBeGreaterThan(1);
   });
 
-  it('toggles a line off via its legend item', () => {
+  it('toggles a series off via its legend item', () => {
     render(<ForecastDivergenceChart forecast={forecast} />);
-    const legendItem = screen.getByRole('button', { name: 'so far' });
+    const legendItem = screen.getByRole('button', { name: 'accumulated cost' });
     fireEvent.click(legendItem);
     expect(legendItem).toHaveStyle('text-decoration: line-through');
   });
@@ -98,6 +109,8 @@ describe('ForecastDivergenceChart', () => {
   it('renders an empty state when there is no forecast', () => {
     render(<ForecastDivergenceChart forecast={null} />);
     expect(screen.queryByTestId('forecast-chart')).not.toBeInTheDocument();
-    expect(screen.getByText(/Not enough data to project/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Not enough data yet to forecast/i),
+    ).toBeInTheDocument();
   });
 });

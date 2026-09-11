@@ -17,6 +17,7 @@ import {
   RefreshOverlay,
 } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { TimeRangeFilter } from '@openchoreo/backstage-plugin-react';
 import { parseUrlTimeRange, writeUrlTimeRange } from '../../utils/urlTimeRange';
 import { CostInsightsScopeFilters } from './CostInsightsScopeFilters';
 import { expandSelection } from './costAggregation';
@@ -24,9 +25,9 @@ import {
   CostInsightsFilters,
   DEFAULT_GRANULARITY,
 } from './CostInsightsFilters';
-import { CostSummaryCards } from './CostSummaryCards';
 import { CostInsightsTable } from './CostInsightsTable';
 import { CostInsightsGraphs } from './CostInsightsGraphs';
+import { ForecastDivergenceChart } from './ForecastDivergenceChart';
 import { useNamespaceEnvironments } from './useNamespaceEnvironments';
 import { useDimensionTitles } from './useDimensionTitles';
 import { useCostInsights } from './useCostInsights';
@@ -34,7 +35,6 @@ import type {
   CostComponentRef,
   CostProjectRef,
   CostScopeSelection,
-  CostViewMode,
 } from './types';
 
 // Cost Analysis is a heavier feature (report views, FinOps chat). Load it lazily
@@ -57,6 +57,12 @@ const LEVEL_KIND: Record<string, string> = {
 
 const useStyles = makeStyles(theme => ({
   section: { marginTop: theme.spacing(2) },
+  timeRangeRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: theme.spacing(1),
+  },
   analysisContent: { marginTop: theme.spacing(3) },
   tabBar: {
     display: 'flex',
@@ -84,6 +90,14 @@ const useStyles = makeStyles(theme => ({
 const projectValue = (p: CostProjectRef) => `${p.namespace}/${p.name}`;
 const componentValue = (c: CostComponentRef) =>
   `${c.namespace}/${c.project}/${c.name}`;
+
+// The API's component-scoped "not enabled" message is wrong for this
+// platform-level feature.
+function friendlyCostError(message: string): string {
+  return /observability is not enabled/i.test(message)
+    ? 'Cost Insights have not been enabled'
+    : message;
+}
 
 /**
  * Parse the multi-select scope from the URL. Reads the plural params
@@ -204,8 +218,6 @@ const CostInsightsInsightsTab = () => {
   // Raw dimension name to catalog title, so rows read "GCP Microservice Demo".
   const titles = useDimensionTitles(level, scopes);
 
-  const view: CostViewMode =
-    searchParams.get('view') === 'graph' ? 'graph' : 'table';
   const granularity = searchParams.get('granularity') || DEFAULT_GRANULARITY;
   const { timeRange, customStartTime, customEndTime } = parseUrlTimeRange(
     searchParams,
@@ -251,15 +263,6 @@ const CostInsightsInsightsTab = () => {
     [update, allEnvNames.length],
   );
 
-  const onViewChange = useCallback(
-    (nextView: CostViewMode) =>
-      update(params => {
-        if (nextView === 'table') params.delete('view');
-        else params.set('view', nextView);
-      }),
-    [update],
-  );
-
   const onTimeRangeChange = useCallback(
     (next: {
       timeRange: string;
@@ -289,7 +292,6 @@ const CostInsightsInsightsTab = () => {
     timeRange,
     customStartTime,
     customEndTime,
-    view,
     granularity,
   });
 
@@ -310,12 +312,9 @@ const CostInsightsInsightsTab = () => {
           environmentsLoading={envsLoading}
           selectedEnvironments={selectedEnvironments}
           onEnvironmentsChange={onEnvironmentsChange}
-          view={view}
-          onViewChange={onViewChange}
-          timeRange={timeRange}
-          customStartTime={customStartTime}
-          customEndTime={customEndTime}
-          onTimeRangeChange={onTimeRangeChange}
+          onRefresh={refresh}
+          refreshing={loading || isRefetching}
+          disabled={noScope}
         />
       </Box>
 
@@ -329,7 +328,7 @@ const CostInsightsInsightsTab = () => {
 
       {envsError && (
         <Box className={classes.section}>
-          <Alert severity="error">{envsError}</Alert>
+          <Alert severity="error">{friendlyCostError(envsError)}</Alert>
         </Box>
       )}
 
@@ -354,7 +353,7 @@ const CostInsightsInsightsTab = () => {
 
       {error && (
         <Box className={classes.section}>
-          <Alert severity="error">{error}</Alert>
+          <Alert severity="error">{friendlyCostError(error)}</Alert>
         </Box>
       )}
 
@@ -363,31 +362,40 @@ const CostInsightsInsightsTab = () => {
       {!loading && data && (
         <Box position="relative">
           <RefreshOverlay active={isRefetching} label="Refreshing cost data" />
-          {view !== 'graph' && (
-            <Box className={classes.section}>
-              <CostSummaryCards summary={data.summary} />
-            </Box>
-          )}
+          {/* Forecast covers the whole month, so it sits above the time range. */}
           <Box className={classes.section}>
-            {view === 'graph' ? (
-              <CostInsightsGraphs
-                data={data}
-                granularity={granularity}
-                onGranularityChange={onGranularityChange}
-              />
-            ) : (
-              <CostInsightsTable
-                level={data.level}
-                rows={data.rows}
-                icon={app.getSystemIcon(`kind:${LEVEL_KIND[data.level]}`)}
-                titles={titles}
-                scope={optimizeScope}
-                onOptimized={refresh}
-                singleComponent={
-                  data.level === 'component' && scopes.length === 1
-                }
-              />
-            )}
+            <ForecastDivergenceChart forecast={data.forecast} />
+          </Box>
+          <Box className={`${classes.section} ${classes.timeRangeRow}`}>
+            <Typography variant="body2" color="textSecondary">
+              Time range for everything below
+            </Typography>
+            <TimeRangeFilter
+              value={timeRange}
+              customStartTime={customStartTime}
+              customEndTime={customEndTime}
+              onChange={onTimeRangeChange}
+            />
+          </Box>
+          <Box className={classes.section}>
+            <CostInsightsGraphs
+              data={data}
+              granularity={granularity}
+              onGranularityChange={onGranularityChange}
+            />
+          </Box>
+          <Box className={classes.section}>
+            <CostInsightsTable
+              level={data.level}
+              rows={data.rows}
+              icon={app.getSystemIcon(`kind:${LEVEL_KIND[data.level]}`)}
+              titles={titles}
+              scope={optimizeScope}
+              onOptimized={refresh}
+              singleComponent={
+                data.level === 'component' && scopes.length === 1
+              }
+            />
           </Box>
         </Box>
       )}

@@ -185,8 +185,6 @@ export function PortalNavContent({ navItems }: NavContentComponentProps) {
       <SidebarGroup label="Menu" icon={<MenuIcon />}>
         {home && <NavItemLink item={home} />}
         {catalog && <NavItemLink item={catalog} />}
-        {platform && <NavItemLink item={platform} />}
-        {costInsights && <NavItemLink item={costInsights} />}
         <MyGroupsSidebarItem
           singularTitle="My Group"
           pluralTitle="My Groups"
@@ -196,6 +194,10 @@ export function PortalNavContent({ navItems }: NavContentComponentProps) {
         {create && <NavItemLink item={create} />}
         <SidebarScrollWrapper />
       </SidebarGroup>
+      <SidebarDivider />
+      {platform && <NavItemLink item={platform} />}
+      {costInsights && <NavItemLink item={costInsights} />}
+      <SidebarDivider />
       <SidebarSpace />
       <SidebarDivider />
       <SidebarGroup

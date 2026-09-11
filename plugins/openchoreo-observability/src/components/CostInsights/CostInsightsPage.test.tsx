@@ -11,14 +11,18 @@ jest.mock('./CostInsightsFilters', () => ({
   CostInsightsFilters: () => <div data-testid="filters" />,
   DEFAULT_GRANULARITY: '1d',
 }));
-jest.mock('./CostSummaryCards', () => ({
-  CostSummaryCards: () => <div data-testid="summary-cards" />,
-}));
 jest.mock('./CostInsightsTable', () => ({
   CostInsightsTable: () => <div data-testid="cost-table" />,
 }));
 jest.mock('./CostInsightsGraphs', () => ({
   CostInsightsGraphs: () => <div data-testid="cost-graph" />,
+}));
+jest.mock('./ForecastDivergenceChart', () => ({
+  ForecastDivergenceChart: () => <div data-testid="forecast" />,
+}));
+jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  ...jest.requireActual('@openchoreo/backstage-plugin-react'),
+  TimeRangeFilter: () => <div data-testid="time-range" />,
 }));
 // The Cost Analysis tab lazy-loads this; stub it so the tab can be exercised
 // without its catalog/permission dependencies.
@@ -46,10 +50,10 @@ const data = {
   summary: {
     totalCost: 22,
     deltaPct: 10,
-    forecastThisMonth: 500,
     efficiency: 0.3,
     totalSaving: 0,
   },
+  forecast: null,
   rows: [
     {
       key: 'gcp',
@@ -90,18 +94,13 @@ describe('CostInsightsPage', () => {
     setupDefaults();
   });
 
-  it('renders the filters, summary cards and table in table view', async () => {
+  it('renders the filters, forecast, graphs and table on one page', async () => {
     await renderPage();
     expect(screen.getByTestId('filters')).toBeInTheDocument();
-    expect(screen.getByTestId('summary-cards')).toBeInTheDocument();
-    expect(screen.getByTestId('cost-table')).toBeInTheDocument();
-    expect(screen.queryByTestId('cost-graph')).not.toBeInTheDocument();
-  });
-
-  it('renders the graph instead of the table in graph view', async () => {
-    await renderPage('/?namespace=default&view=graph');
+    expect(screen.getByTestId('forecast')).toBeInTheDocument();
+    expect(screen.getByTestId('time-range')).toBeInTheDocument();
     expect(screen.getByTestId('cost-graph')).toBeInTheDocument();
-    expect(screen.queryByTestId('cost-table')).not.toBeInTheDocument();
+    expect(screen.getByTestId('cost-table')).toBeInTheDocument();
   });
 
   it('shows a loader while cost data loads', async () => {
@@ -115,7 +114,7 @@ describe('CostInsightsPage', () => {
     await renderPage();
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.queryByTestId('cost-table')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('summary-cards')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('cost-graph')).not.toBeInTheDocument();
   });
 
   it('shows an error alert when the cost query fails', async () => {
@@ -128,6 +127,20 @@ describe('CostInsightsPage', () => {
     });
     await renderPage();
     expect(screen.getByText('Failed to load cost data')).toBeInTheDocument();
+  });
+
+  it('rewrites the "observability not enabled" error for the platform view', async () => {
+    mockUseCostInsights.mockReturnValue({
+      data: undefined,
+      loading: false,
+      isRefetching: false,
+      error: 'Observability is not enabled for this component',
+      refresh: jest.fn(),
+    });
+    await renderPage();
+    expect(
+      screen.getByText('Cost Insights have not been enabled'),
+    ).toBeInTheDocument();
   });
 
   it('prompts to pick another namespace when it has no environments', async () => {
