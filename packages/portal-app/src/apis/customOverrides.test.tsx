@@ -77,15 +77,17 @@ describe('customOverrides', () => {
     ).toBe('app');
   });
 
-  it('registers extensions on the customAppModule (SignInPage, Translation, LogRowAction, Progress swap)', () => {
+  it('registers extensions on the customAppModule (SignInPage, Translation, LogRowAction, Progress + PageLayout swaps)', () => {
     const extensions = ((customAppModule as any).extensions ?? []) as Array<{
       id: string;
     }>;
     expect(Array.isArray(extensions)).toBe(true);
 
     // SignInPage, Translation override (catalog-import), LogRowAction renderer,
-    // and the core-progress swappable-component override (PageLoader).
-    expect(extensions).toHaveLength(4);
+    // and the two swappable-component overrides: core-progress (PageLoader) and
+    // core-page-layout (OpenChoreoPageLayout).
+    expect(extensions).toHaveLength(5);
     expect(extensions.map(e => e.id)).toContain('component:app/progress');
+    expect(extensions.map(e => e.id)).toContain('component:app/page-layout');
   });
 });

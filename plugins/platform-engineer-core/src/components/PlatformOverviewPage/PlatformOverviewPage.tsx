@@ -37,13 +37,6 @@ import {
 
 const useStyles = makeStyles(theme => ({
   content: {
-    // The graph fills the viewport. As a sub-page this renders as a bare sibling of
-    // the page's header, with no <Page> grid to stretch into, so bound the height
-    // here instead. `--bui-header-height` is published on <html> by the header
-    // itself; `--bui-space-6` is its margin-bottom, which offsetHeight excludes.
-    height:
-      'calc(100dvh - var(--bui-header-height, 0px) - var(--bui-space-6, 1.5rem))',
-    padding: 0,
     minHeight: 0,
     display: 'flex',
     flexDirection: 'column',
@@ -438,7 +431,7 @@ export function PlatformOverviewPage() {
   );
 
   return (
-    <Content className={classes.content}>
+    <Content stretch noPadding className={classes.content}>
       <GraphKindFilter
         selectedKinds={selectedKinds}
         onKindsChange={handleKindsChange}

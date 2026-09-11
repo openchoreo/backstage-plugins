@@ -44,10 +44,13 @@ The Logs tab is the first example, and ships as
 `page:openchoreo-observability/platform-logs`; that is the id to use when
 disabling or reconfiguring it under `app.extensions`).
 
-Two consequences for anyone already using the Platform section. The Overview tab
-now lives at `/platform-overview/overview` — the bare `/platform-overview` still
-works and redirects there. And the header and tab bar come from Backstage rather
-than from OpenChoreo chrome, so per-tab subtitles are gone and switching tabs no
-longer carries the query string across, which means a tab's filters are not
-preserved on a round trip to the other tab. Each tab's filters still live in its
-own URL, so permalinks are unaffected.
+The section's chrome now comes from the portal's `core.page-layout` rather than a
+shell each tab mounted for itself, so the header and tab bar render once for the
+whole section instead of remounting on every tab switch. It looks the same: a
+tabbed page keeps the portal's standard `<Header>` rather than picking up
+Backstage's own toolbar, and switching tabs still carries the query string, so a
+round trip between tabs preserves the filters each had set. The only thing lost is
+the per-tab header subtitle.
+
+The Overview tab now lives at `/platform-overview/overview`; the bare
+`/platform-overview` still works and redirects there.
