@@ -45,6 +45,10 @@ jest.mock('./hooks', () => ({
   useClusterRoles: () => mockUseClusterRoles(),
 }));
 
+jest.mock('../../hooks/useQueryParams', () => ({
+  useQueryParams: () => [{ tab: '', action: '' }, jest.fn()],
+}));
+
 jest.mock('./RolesTab', () => ({
   RolesTab: () => <div data-testid="roles-tab">RolesTab</div>,
 }));

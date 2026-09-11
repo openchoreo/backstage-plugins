@@ -1,1 +1,0 @@
-export { WorkloadDetailsFieldExtension } from './extensions';

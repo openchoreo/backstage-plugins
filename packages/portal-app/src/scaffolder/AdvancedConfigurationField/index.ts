@@ -1,1 +1,0 @@
-export { AdvancedConfigurationFieldExtension } from './extensions';

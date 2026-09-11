@@ -33,8 +33,16 @@ app:
           - runtime: { title: Runtime, contentOrder: natural }
           - analysis: { title: Analysis, contentOrder: natural }
           - external: { title: External }
-  # Suppress upstream cards that duplicate OC layouts.
+  # Suppress upstream cards that duplicate OC layouts + default themes so
+  # our openchoreo-* themes win the theme picker.
   extensions:
+    - theme:app/light: false
+    - theme:app/dark: false
+    # `page:kubernetes` is the plugin's standalone /kubernetes page — it
+    # calls useEntity() inside its router and throws when opened without
+    # an entity context. We only want the plugin's entity-page tab, not
+    # this broken top-level page.
+    - page:kubernetes: false
     - entity-card:catalog/about: false
     - entity-card:catalog/links: false
     - entity-card:catalog/labels: false
@@ -47,6 +55,12 @@ app:
     - entity-card:api-docs/provided-apis: false
     - entity-card:api-docs/consumed-apis: false
     - entity-card:api-docs/has-apis: false
+    # ApiDefinitionCard already lives on the Definition tab; hide the
+    # standalone card on API Overview to avoid duplication.
+    - entity-card:api-docs/definition: false
+    # Providers/Consumers rendered directly by ApiOverviewLayout, so
+    # suppress the auto-contributed cards to prevent duplicates in
+    # ForeignCardsSection.
     - entity-card:api-docs/providing-components: false
     - entity-card:api-docs/consuming-components: false
     # GitLab cards throw when GitLab annotations are absent.

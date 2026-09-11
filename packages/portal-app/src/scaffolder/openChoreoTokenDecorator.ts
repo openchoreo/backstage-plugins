@@ -1,6 +1,6 @@
 import { createScaffolderFormDecorator } from '@backstage/plugin-scaffolder-react/alpha';
 import { configApiRef } from '@backstage/core-plugin-api';
-import { openChoreoAuthApiRef } from '../apis/authRefs';
+import { openChoreoAuthApiRef } from '@openchoreo/backstage-plugin';
 
 /**
  * Form decorator that injects the user's OpenChoreo auth token as a secret.

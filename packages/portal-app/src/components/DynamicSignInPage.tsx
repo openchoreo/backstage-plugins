@@ -1,7 +1,7 @@
 import { SignInPage } from '@backstage/core-components';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import type { SignInPageProps } from '@backstage/plugin-app-react';
-import { openChoreoAuthApiRef } from '../apis/authRefs';
+import { openChoreoAuthApiRef } from '@openchoreo/backstage-plugin';
 import { brandName, useBranding } from '../branding';
 
 /**

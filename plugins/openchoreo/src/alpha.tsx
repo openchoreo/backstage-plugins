@@ -1,10 +1,14 @@
 import {
   ApiBlueprint,
+  configApiRef,
   createFrontendPlugin,
   discoveryApiRef,
   fetchApiRef,
+  oauthRequestApiRef,
+  PageBlueprint,
   PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
+import { OAuth2 } from '@backstage/core-app-api';
 import {
   EntityCardBlueprint,
   EntityContentBlueprint,
@@ -28,14 +32,17 @@ import {
 } from './components/AnnotationEditor/useAnnotationEditorContextMenuItemProps';
 
 export { openChoreoEntityPageOverride } from './extensions/openChoreoEntityPageOverride';
+export { openChoreoAppModule } from './appModule';
 
 import {
   rootCatalogEnvironmentRouteRef,
   accessControlRouteRef,
+  execTerminalRouteRef,
   resourceEnvironmentsRouteRef,
 } from './routes';
 import { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
 import { OpenChoreoClient } from './api/OpenChoreoClient';
+import { openChoreoAuthApiRef } from './api/authRefs';
 
 const openChoreoClientApi = ApiBlueprint.make({
   name: 'open-choreo-client',
@@ -45,6 +52,44 @@ const openChoreoClientApi = ApiBlueprint.make({
       deps: { discoveryApi: discoveryApiRef, fetchApi: fetchApiRef },
       factory: ({ discoveryApi, fetchApi }) =>
         new OpenChoreoClient(discoveryApi, fetchApi),
+    }),
+});
+
+// OAuth2 client for the OpenChoreo IDP. Consumed by the openChoreoAppModule's
+// fetch/permission overrides and by the portal's SignInPage.
+const openChoreoAuthApi = ApiBlueprint.make({
+  name: 'openchoreo-auth',
+  params: defineParams =>
+    defineParams({
+      api: openChoreoAuthApiRef,
+      deps: {
+        discoveryApi: discoveryApiRef,
+        oauthRequestApi: oauthRequestApiRef,
+        configApi: configApiRef,
+      },
+      factory: ({ discoveryApi, oauthRequestApi, configApi }) => {
+        const env =
+          configApi.getOptionalString('auth.environment') ?? 'development';
+        const scopeStr = configApi.getOptionalString(
+          'openchoreo.features.auth.scope',
+        );
+        const scopes = scopeStr?.split(/\s+/).filter(Boolean) ?? [];
+        const defaultScopes = scopes.length
+          ? scopes
+          : ['openid', 'profile', 'email'];
+        return OAuth2.create({
+          discoveryApi,
+          oauthRequestApi,
+          configApi,
+          provider: {
+            id: 'openchoreo-auth',
+            title: 'OpenChoreo',
+            icon: () => null,
+          },
+          environment: env,
+          defaultScopes,
+        });
+      },
     }),
 });
 
@@ -74,9 +119,9 @@ const resourceDefinitionEntityContent = EntityContentBlueprint.make({
     path: '/definition',
     title: 'Definition',
     group: 'definition',
-    // Any OC-managed entity gets the Definition tab. The MANAGED label
-    // already implies OC-owned; a separate kind list is redundant.
-    filter: isOpenChoreoManagedEntity,
+    // API entities are excluded — upstream api-docs owns their /definition tab.
+    filter: entity =>
+      isOpenChoreoManagedEntity(entity) && entity.kind.toLowerCase() !== 'api',
     loader: () =>
       import('./components/ResourceDefinition').then(m => (
         <m.ResourceDefinitionTab />
@@ -126,6 +171,20 @@ const runtimeHealthCard = EntityCardBlueprint.make({
 });
 
 // ─── System (project) page tabs + cards (kind:system) ─────────────────────
+const projectDeployEntityContent = EntityContentBlueprint.make({
+  name: 'project-deploy',
+  params: {
+    path: '/deploy',
+    title: 'Deploy',
+    group: 'deployment',
+    filter: isOpenChoreoManagedOfKind('system'),
+    loader: () =>
+      import('./components/ProjectEnvironments').then(m => (
+        <m.ProjectEnvironments />
+      )),
+  },
+});
+
 const cellDiagramEntityContent = EntityContentBlueprint.make({
   name: 'cell-diagram',
   params: {
@@ -136,6 +195,39 @@ const cellDiagramEntityContent = EntityContentBlueprint.make({
     loader: () =>
       import('./components/CellDiagram/CellDiagram').then(m => (
         <m.CellDiagram />
+      )),
+  },
+});
+
+const projectDiagramEntityContent = EntityContentBlueprint.make({
+  name: 'project-diagram',
+  params: {
+    path: '/diagram',
+    title: 'Diagram',
+    group: 'deployment',
+    filter: isOpenChoreoManagedOfKind('system'),
+    loader: () =>
+      Promise.all([
+        import('./components/ContainedCatalogGraphCard'),
+        import('@backstage/plugin-catalog-graph'),
+        import('@backstage/catalog-model'),
+      ]).then(([contained, graph, model]) => (
+        <contained.ContainedCatalogGraphCard
+          direction={graph.Direction.TOP_BOTTOM}
+          title="System Diagram"
+          height={700}
+          relations={[
+            model.RELATION_PART_OF,
+            model.RELATION_HAS_PART,
+            model.RELATION_API_CONSUMED_BY,
+            model.RELATION_API_PROVIDED_BY,
+            model.RELATION_CONSUMES_API,
+            model.RELATION_PROVIDES_API,
+            model.RELATION_DEPENDENCY_OF,
+            model.RELATION_DEPENDS_ON,
+          ]}
+          unidirectional={false}
+        />
       )),
   },
 });
@@ -754,23 +846,47 @@ const componentWorkflowOverviewLayout = EntityContentLayoutBlueprint.make({
   },
 });
 
+// Scaffolder form field extensions. Adopters get the fields registered
+// automatically when they install this plugin, so any OC template
+// referencing `ui:field: <Name>` renders correctly.
+import { scaffolderFieldExtensions } from './scaffolder/extensions';
+
+// Opened via window.open() from the resource drawer; no title/icon = no nav item.
+const execTerminalPage = PageBlueprint.make({
+  name: 'exec-terminal',
+  params: {
+    path: '/exec-terminal',
+    routeRef: execTerminalRouteRef,
+    noHeader: true,
+    loader: () =>
+      import('./components/Terminal/ExecTerminalWindowPage').then(m => (
+        <m.ExecTerminalWindowPage />
+      )),
+  },
+});
+
 export default createFrontendPlugin({
   pluginId: 'openchoreo',
   routes: {
     catalogEnvironment: rootCatalogEnvironmentRouteRef,
     accessControl: accessControlRouteRef,
+    execTerminal: execTerminalRouteRef,
     resourceEnvironments: resourceEnvironmentsRouteRef,
   },
   extensions: [
     openChoreoClientApi,
+    openChoreoAuthApi,
     queryProvider,
+    execTerminalPage,
     deleteEntityContextMenuItem,
     editAnnotationsEntityContextMenuItem,
     resourceDefinitionEntityContent,
     componentDeployEntityContent,
     deploymentStatusCard,
     runtimeHealthCard,
+    projectDeployEntityContent,
     cellDiagramEntityContent,
+    projectDiagramEntityContent,
     projectContentsCard,
     deploymentPipelineCard,
     namespaceProjectsCard,
@@ -802,6 +918,7 @@ export default createFrontendPlugin({
     traitTypeOverviewCard,
     workflowOverviewCard,
     componentWorkflowOverviewCard,
+    ...scaffolderFieldExtensions,
     // per-kind Overview layouts
     componentServiceOverviewLayout,
     systemOverviewLayout,
