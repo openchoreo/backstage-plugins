@@ -5,8 +5,9 @@
 '@openchoreo/backstage-portal-app': minor
 ---
 
-Add a centralized Platform Logs dashboard for logs from OpenChoreo's own
-components, as a Logs tab under Platform. It filters on raw Kubernetes
+Add a centralized Platform Logs dashboard for everything an observability plane
+collects — OpenChoreo's own system components included — as a Logs tab under
+Platform. It filters on raw Kubernetes
 coordinates — observability plane, cluster, namespace, pod, container, pod
 labels, level, time range and message search — so a platform engineer can reach
 any log the observability plane holds, including components OpenChoreo depends

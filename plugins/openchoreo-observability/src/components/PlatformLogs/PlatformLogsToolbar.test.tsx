@@ -84,6 +84,30 @@ describe('PlatformLogsToolbar', () => {
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
 
+  // The component logs view leads with search and ends its filters with the time
+  // range. Presence alone would not catch a reordering back.
+  it('leads with search and puts the time range after it', () => {
+    renderToolbar();
+
+    const search = screen.getByLabelText('Search log messages');
+    const timeRange = screen.getByTestId('time-range');
+
+    /* eslint-disable-next-line no-bitwise */
+    const searchComesFirst = Boolean(
+      search.compareDocumentPosition(timeRange) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(searchComesFirst).toBe(true);
+  });
+
+  it('names the refresh button rather than leaving it an icon', () => {
+    renderToolbar();
+
+    expect(screen.getByRole('button', { name: 'Refresh' })).toHaveTextContent(
+      'Refresh',
+    );
+  });
+
   it('toggles the filter row and reports its state', async () => {
     const { onToggleFilters } = renderToolbar(base(), { filtersOpen: false });
 

@@ -148,17 +148,6 @@ export const PlatformLogsToolbar: FC<PlatformLogsToolbarProps> = ({
           )}
         </FormControl>
 
-        <Box className={classes.timeRange}>
-          <TimeRangeFilter
-            value={filters.timeRange}
-            customStartTime={filters.customStartTime}
-            customEndTime={filters.customEndTime}
-            onChange={onFiltersChange}
-            disabled={disabled}
-            size="small"
-          />
-        </Box>
-
         <TextField
           className={classes.search}
           size="small"
@@ -186,6 +175,17 @@ export const PlatformLogsToolbar: FC<PlatformLogsToolbarProps> = ({
             ) : null,
           }}
         />
+
+        <Box className={classes.timeRange}>
+          <TimeRangeFilter
+            value={filters.timeRange}
+            customStartTime={filters.customStartTime}
+            customEndTime={filters.customEndTime}
+            onChange={onFiltersChange}
+            disabled={disabled}
+            size="small"
+          />
+        </Box>
 
         <Button
           variant={filtersOpen ? 'contained' : 'outlined'}
@@ -229,20 +229,16 @@ export const PlatformLogsToolbar: FC<PlatformLogsToolbarProps> = ({
           </span>
         </Tooltip>
 
-        <Tooltip title="Refresh">
-          <span>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={onRefresh}
-              disabled={disabled}
-              className={classes.action}
-              aria-label="Refresh"
-            >
-              <Refresh fontSize="small" />
-            </Button>
-          </span>
-        </Tooltip>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={onRefresh}
+          disabled={disabled}
+          className={classes.action}
+          startIcon={<Refresh fontSize="small" />}
+        >
+          Refresh
+        </Button>
       </Box>
 
       {chips.length > 0 && (
