@@ -2,6 +2,7 @@
 '@openchoreo/backstage-plugin-openchoreo-observability': minor
 '@openchoreo/backstage-plugin-common': minor
 '@openchoreo/backstage-plugin-react': minor
+'@openchoreo/backstage-plugin-platform-engineer-core': minor
 'app': minor
 ---
 
@@ -32,3 +33,21 @@ Adds the cluster-scoped `openchoreo.platformlogs.view` permission and a
 `usePlatformLogsPermission` hook for gating it. Unlike the component logs
 permission this one takes no entity, because platform logs are not owned by any
 project or component.
+
+The Platform section is assembled through Backstage's own sub-page mechanism
+rather than a shared shell component. `page:platform-engineer-core/platform-overview`
+is now a container page that renders whatever tabs are attached to its `pages`
+input, so any plugin can contribute a Platform tab with a `SubPageBlueprint`
+pointed at that id — no dependency on the platform-engineer-core package needed.
+The Logs tab is the first example, and ships as
+`sub-page:openchoreo-observability/platform-logs` (it was
+`page:openchoreo-observability/platform-logs`; that is the id to use when
+disabling or reconfiguring it under `app.extensions`).
+
+Two consequences for anyone already using the Platform section. The Overview tab
+now lives at `/platform-overview/overview` — the bare `/platform-overview` still
+works and redirects there. And the header and tab bar come from Backstage rather
+than from OpenChoreo chrome, so per-tab subtitles are gone and switching tabs no
+longer carries the query string across, which means a tab's filters are not
+preserved on a round trip to the other tab. Each tab's filters still live in its
+own URL, so permalinks are unaffected.

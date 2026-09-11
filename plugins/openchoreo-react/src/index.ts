@@ -660,11 +660,6 @@ export {
   type PlatformOverviewGraphViewProps,
 } from './components/PlatformOverviewGraphView';
 export {
-  PlatformPageShell,
-  PLATFORM_PATH,
-  type PlatformPageShellProps,
-} from './components/PlatformPageShell';
-export {
   GraphMinimap,
   type GraphMinimapProps,
 } from './components/GraphMinimap';
