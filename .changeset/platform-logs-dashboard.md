@@ -2,7 +2,7 @@
 '@openchoreo/backstage-plugin-openchoreo-observability': minor
 '@openchoreo/backstage-plugin-common': minor
 '@openchoreo/backstage-plugin-react': minor
-'@openchoreo/backstage-portal-app': minor
+'app': minor
 ---
 
 Add a centralized Platform Logs dashboard for everything an observability plane
