@@ -51,7 +51,6 @@ const baseParams = (
   level: 'namespace',
   environments: ['dev'],
   timeRange: '1h',
-  view: 'table',
   granularity: '1d',
   ...over,
 });
@@ -80,10 +79,11 @@ describe('useCostInsights', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    // 2 envs × (current + previous) = 4 cost calls; recommendations only at the
-    // component level, so none here.
-    expect(getCosts).toHaveBeenCalledTimes(4);
-    expect(getCostRecommendations).not.toHaveBeenCalled();
+    // 2 envs × (current + series + month-to-date + previous) = 8 cost calls;
+    // recommendations are fetched twice per env (selected window + month-to-date
+    // for the forecast's "if applied" curve) = 4.
+    expect(getCosts).toHaveBeenCalledTimes(8);
+    expect(getCostRecommendations).toHaveBeenCalledTimes(4);
     expect(result.current.data?.level).toBe('namespace');
     expect(result.current.data?.rows.map(r => r.key)).toContain('gcp');
     expect(result.current.error).toBeNull();
@@ -110,8 +110,8 @@ describe('useCostInsights', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    // 2 scopes × 1 env × (current + previous) = 4 cost calls.
-    expect(getCosts).toHaveBeenCalledTimes(4);
+    // 2 scopes × 1 env × (current + series + month-to-date + previous) = 8 calls.
+    expect(getCosts).toHaveBeenCalledTimes(8);
     const keys = result.current.data?.rows.map(r => r.key) ?? [];
     expect(keys).toEqual(expect.arrayContaining(['p1', 'p2']));
   });
@@ -124,8 +124,9 @@ describe('useCostInsights', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    // The duplicate env collapses to one: 1 env × (current + previous) = 2 calls.
-    expect(getCosts).toHaveBeenCalledTimes(2);
+    // The duplicate env collapses to one: 1 env ×
+    // (current + series + month-to-date + previous) = 4 calls.
+    expect(getCosts).toHaveBeenCalledTimes(4);
     // A single dev item (cpu 10 + mem 12), not double-counted.
     expect(result.current.data?.summary.totalCost).toBe(22);
   });
@@ -160,9 +161,25 @@ describe('useCostInsights', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(getCostRecommendations).toHaveBeenCalledTimes(1);
+    // Selected window + month-to-date recommendations = 2 calls.
+    expect(getCostRecommendations).toHaveBeenCalledTimes(2);
     const devRow = result.current.data?.rows.find(r => r.key === 'dev');
     expect(devRow?.recommendation?.total).toBe(8);
+  });
+
+  it('fetches only current + previous cost in summary-only mode', async () => {
+    const { result } = renderHook(
+      () => useCostInsights(baseParams({ summaryOnly: true })),
+      { wrapper: createQueryWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // 1 env × (current + previous); series, month-to-date and recommendations
+    // are skipped.
+    expect(getCosts).toHaveBeenCalledTimes(2);
+    expect(getCostRecommendations).not.toHaveBeenCalled();
+    expect(result.current.data?.summary.totalCost).toBe(22);
   });
 
   it('withholds a recommendation when the binding changed after the window started', async () => {
@@ -250,16 +267,16 @@ describe('useCostInsights', () => {
     expect(devRow?.recommendation?.current?.cpuRequest).toBe('250m');
   });
 
-  it('passes the granularity only in graph view', async () => {
+  it('passes the granularity on the bucketed time-series request', async () => {
     const { result } = renderHook(
-      () => useCostInsights(baseParams({ view: 'graph', granularity: '6h' })),
+      () => useCostInsights(baseParams({ granularity: '6h' })),
       { wrapper: createQueryWrapper() },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    // Graph view fetches an accumulated window (no granularity) plus a bucketed
-    // time-series window that carries the granularity.
+    // Fetches an accumulated window (no granularity) plus a bucketed time-series
+    // window that carries the granularity.
     const opts = getCosts.mock.calls.map(c => c[2]);
     expect(opts).toEqual(
       expect.arrayContaining([expect.objectContaining({ granularity: '6h' })]),
@@ -279,7 +296,7 @@ describe('useCostInsights', () => {
     );
 
     const { result } = renderHook(
-      () => useCostInsights(baseParams({ view: 'graph', granularity: '6h' })),
+      () => useCostInsights(baseParams({ granularity: '6h' })),
       { wrapper: createQueryWrapper() },
     );
 

@@ -98,30 +98,6 @@ export function percentChange(
   return ((current - previous) / previous) * 100;
 }
 
-/** Milliseconds in the calendar month that contains `now`. */
-export function monthDurationMs(now: Date): number {
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return end.getTime() - start.getTime();
-}
-
-/**
- * Forecast the current calendar month's spend by extrapolating the window's
- * spend rate. `windowStart`/`windowEnd` bound the measured window.
- */
-export function forecastThisMonth(
-  total: number,
-  windowStart: string,
-  windowEnd: string,
-  now: Date,
-): number {
-  const windowMs =
-    new Date(windowEnd).getTime() - new Date(windowStart).getTime();
-  if (!Number.isFinite(windowMs) || windowMs <= 0) return total;
-  const ratePerMs = total / windowMs;
-  return ratePerMs * monthDurationMs(now);
-}
-
 function groupBy<T>(items: T[], keyFn: (item: T) => string): Map<string, T[]> {
   const map = new Map<string, T[]>();
   for (const item of items) {
@@ -284,13 +260,10 @@ export function aggregateRows(
   return rows.sort((a, b) => b.total - a.total);
 }
 
-/** Overall summary cards (total + delta + forecast + efficiency + saving). */
+/** Overall summary (total + delta + efficiency + saving). */
 export function computeSummary(
   currentItems: CostItem[],
   previousItems: CostItem[],
-  windowStart: string,
-  windowEnd: string,
-  now: Date,
   recommendations: CostRecommendationItem[],
   level: CostScopeLevel,
   staleRecommendationEnvs: Map<string, string>,
@@ -312,7 +285,6 @@ export function computeSummary(
   return {
     totalCost: total,
     deltaPct: percentChange(total, prevTotal || undefined),
-    forecastThisMonth: forecastThisMonth(total, windowStart, windowEnd, now),
     efficiency: weightedEfficiency(currentItems),
     totalSaving,
   };
@@ -391,55 +363,66 @@ function fillMissingBuckets(series: CostSeriesPoint[]): CostSeriesPoint[] {
 }
 
 /**
- * Forecast divergence: "at current rate" projects the window rate across the
- * whole month; "if applied" forks at the window end and reduces the rate only
- * going forward. Independent of chart granularity.
+ * Accumulates the month-to-date costs into the actual-cost curve, then projects
+ * month-end spend from the average rate so far — at the current rate and if the
+ * recommendations are applied (`savingFraction` cuts only the remaining spend).
  */
 export function buildForecast(params: {
-  totalActual: number;
-  totalSaving: number;
-  windowStart: string;
-  windowEnd: string;
+  mtdItems: CostItem[];
+  savingFraction: number;
+  monthStart: Date;
   now: Date;
 }): ForecastData | null {
-  const { totalActual, totalSaving, windowStart, windowEnd, now } = params;
-  const startMs = new Date(windowStart).getTime();
-  const endMs = new Date(windowEnd).getTime();
-  const windowMs = endMs - startMs;
-  if (!Number.isFinite(windowMs) || windowMs <= 0) return null;
+  const { mtdItems, savingFraction, monthStart, now } = params;
+  const monthStartMs = monthStart.getTime();
+  const nowMs = now.getTime();
+  // Last minute of the month, so the chart ends on its final day at 23:59
+  const monthEnd = new Date(
+    new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime() - 60 * 1000,
+  );
+  const elapsedMs = nowMs - monthStartMs;
+  const remainingMs = monthEnd.getTime() - nowMs;
+  if (!(elapsedMs > 0) || !(remainingMs > 0)) return null;
 
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const monthMs = monthEnd.getTime() - monthStart.getTime();
-  const remainingMs = monthEnd.getTime() - endMs;
-  if (!(remainingMs > 0)) return null;
+  const byBucket = groupBy(mtdItems, item => {
+    const t = new Date(item.startTime).getTime();
+    return Number.isNaN(t) ? item.startTime : new Date(t).toISOString();
+  });
+  const buckets = [...byBucket.entries()]
+    .map(([ts, items]) => ({
+      ms: new Date(ts).getTime(),
+      total: totalCost(items),
+    }))
+    .filter(b => Number.isFinite(b.ms) && b.ms >= monthStartMs && b.ms <= nowMs)
+    .sort((a, b) => a.ms - b.ms);
 
-  const rate = totalActual / windowMs;
-  const savingFraction = totalActual > 0 ? totalSaving / totalActual : 0;
-  const atCurrentTotal = rate * monthMs;
-
-  // Current-month spend so far at the window rate. Deriving it from elapsed
-  // month-time (rather than totalActual) excludes any prior-month spend when the
-  // window crosses a month boundary.
-  const elapsedThisMonthMs = Math.max(0, endMs - monthStart.getTime());
-  const forkTotal = rate * elapsedThisMonthMs;
-  const ifAppliedTotal = forkTotal + rate * (1 - savingFraction) * remainingMs;
-
-  // One actual-cost line from the month start to now, drawn at the window rate
-  // so its shape is independent of the chart's time granularity. It forks at
-  // the current point (window end) into the two projections.
   const points: ForecastPoint[] = [
     { timestamp: monthStart.toISOString(), actual: 0 },
   ];
+  let cumulative = 0;
+  for (const b of buckets) {
+    cumulative += b.total;
+    points.push({
+      timestamp: new Date(b.ms).toISOString(),
+      actual: cumulative,
+    });
+  }
+  const actualMTD = cumulative;
+
+  const rate = actualMTD / elapsedMs;
+  const atCurrentTotal = actualMTD + rate * remainingMs;
+  const ifAppliedTotal = actualMTD + rate * (1 - savingFraction) * remainingMs;
+
+  // Fork at "now" so the actual curve and both projections join.
   points.push({
-    timestamp: windowEnd,
-    actual: forkTotal,
-    atCurrent: forkTotal,
-    ifApplied: forkTotal,
+    timestamp: now.toISOString(),
+    actual: actualMTD,
+    forecast: actualMTD,
+    ifApplied: actualMTD,
   });
   points.push({
     timestamp: monthEnd.toISOString(),
-    atCurrent: atCurrentTotal,
+    forecast: atCurrentTotal,
     ifApplied: ifAppliedTotal,
   });
 
@@ -465,8 +448,12 @@ export function buildCostInsightsData(params: {
   recommendations?: CostRecommendationItem[];
   /** Withheld-recommendation envs mapped to the binding's spec update time. */
   staleRecommendationEnvs?: Map<string, string>;
-  windowStart: string;
-  windowEnd: string;
+  /** Month-to-date time-bucketed costs (month start → now) for the forecast. */
+  monthToDateItems?: CostItem[];
+  /** Month-to-date recommendations (month start until now) for the "if applied" curve. */
+  monthToDateRecommendations?: CostRecommendationItem[];
+  /** Start of the current calendar month, for the forecast window. */
+  monthStart: Date;
   now: Date;
 }): CostInsightsData {
   const {
@@ -476,8 +463,9 @@ export function buildCostInsightsData(params: {
     previousItems,
     recommendations = [],
     staleRecommendationEnvs = new Map<string, string>(),
-    windowStart,
-    windowEnd,
+    monthToDateItems = [],
+    monthToDateRecommendations = [],
+    monthStart,
     now,
   } = params;
 
@@ -488,13 +476,24 @@ export function buildCostInsightsData(params: {
   const summary = computeSummary(
     currentItems,
     previousItems,
-    windowStart,
-    windowEnd,
-    now,
     recommendations,
     level,
     staleRecommendationEnvs,
   );
+  // The "if applied" forecast uses a month-to-date saving fraction: recommendations
+  // measured over month start to now vs the month-to-date cost, so the curve is
+  // independent of the selected time range (which only drives the breakdown below).
+  const mtdSummary = computeSummary(
+    monthToDateItems,
+    [],
+    monthToDateRecommendations,
+    level,
+    staleRecommendationEnvs,
+  );
+  const savingFraction =
+    mtdSummary.totalCost > 0
+      ? mtdSummary.totalSaving / mtdSummary.totalCost
+      : 0;
   return {
     level,
     summary,
@@ -508,10 +507,9 @@ export function buildCostInsightsData(params: {
     series,
     seriesKeys,
     forecast: buildForecast({
-      totalActual: summary.totalCost,
-      totalSaving: summary.totalSaving,
-      windowStart,
-      windowEnd,
+      mtdItems: monthToDateItems,
+      savingFraction,
+      monthStart,
       now,
     }),
   };

@@ -13,37 +13,35 @@ function renderFilters(
     environments,
     selectedEnvironments: ['dev'],
     onEnvironmentsChange: jest.fn(),
-    view: 'table' as const,
-    onViewChange: jest.fn(),
-    timeRange: '1h',
-    onTimeRangeChange: jest.fn(),
     ...overrides,
   };
   return { props, ...render(<CostInsightsFilters {...props} />) };
 }
 
 describe('CostInsightsFilters', () => {
-  it('renders the view toggle, environments and time range', () => {
+  it('renders the environments select', () => {
     renderFilters();
-    expect(screen.getByRole('button', { name: 'Table' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Graphs' })).toBeInTheDocument();
     expect(
       screen.getByRole('textbox', { name: 'Environments' }),
     ).toBeInTheDocument();
+  });
+
+  it('renders a refresh button and invokes onRefresh when clicked', () => {
+    const onRefresh = jest.fn();
+    renderFilters({ onRefresh });
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    expect(onRefresh).toHaveBeenCalled();
+  });
+
+  it('disables the refresh button while refreshing', () => {
+    renderFilters({ onRefresh: jest.fn(), refreshing: true });
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeDisabled();
+  });
+
+  it('omits the refresh button when no handler is given', () => {
+    renderFilters();
     expect(
-      screen.getByRole('textbox', { name: 'Time Range' }),
-    ).toBeInTheDocument();
-  });
-
-  it('emits the selected view when a toggle is clicked', () => {
-    const { props } = renderFilters({ view: 'table' });
-    fireEvent.click(screen.getByRole('button', { name: 'Graphs' }));
-    expect(props.onViewChange).toHaveBeenCalledWith('graph');
-  });
-
-  it('disables the view toggles when disabled', () => {
-    renderFilters({ disabled: true });
-    expect(screen.getByRole('button', { name: 'Table' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Graphs' })).toBeDisabled();
+      screen.queryByRole('button', { name: 'Refresh' }),
+    ).not.toBeInTheDocument();
   });
 });

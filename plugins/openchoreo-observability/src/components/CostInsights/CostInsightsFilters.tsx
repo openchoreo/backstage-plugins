@@ -1,13 +1,8 @@
 import { FC } from 'react';
-import { Grid, makeStyles } from '@material-ui/core';
-import ToggleButton from '@material-ui/lab/ToggleButton';
-import ToggleButtonGroup from '@material-ui/lab/ToggleButtonGroup';
-import {
-  TimeRangeFilter,
-  type Environment,
-} from '@openchoreo/backstage-plugin-react';
+import { Button, Grid, Tooltip, makeStyles } from '@material-ui/core';
+import Refresh from '@material-ui/icons/Refresh';
+import { type Environment } from '@openchoreo/backstage-plugin-react';
 import { EnvironmentMultiSelect } from './EnvironmentMultiSelect';
-import type { CostViewMode } from './types';
 
 export const GRANULARITY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: '1h', label: '1 hour' },
@@ -24,22 +19,14 @@ export interface CostInsightsFiltersProps {
   environmentsLoading?: boolean;
   selectedEnvironments: string[];
   onEnvironmentsChange: (names: string[]) => void;
-  view: CostViewMode;
-  onViewChange: (view: CostViewMode) => void;
-  timeRange: string;
-  customStartTime?: string;
-  customEndTime?: string;
-  onTimeRangeChange: (next: {
-    timeRange: string;
-    customStartTime?: string;
-    customEndTime?: string;
-  }) => void;
+  /** Refetch the cost data. */
+  onRefresh?: () => void;
+  /** Disables the refresh button while a fetch is in flight. */
+  refreshing?: boolean;
   disabled?: boolean;
 }
 
-const useStyles = makeStyles(theme => ({
-  toggleGroup: { height: '100%' },
-  toggleButton: { textTransform: 'none', padding: theme.spacing(0, 2) },
+const useStyles = makeStyles(() => ({
   spacer: { flexGrow: 1 },
   control: { minWidth: 220 },
 }));
@@ -49,44 +36,14 @@ export const CostInsightsFilters: FC<CostInsightsFiltersProps> = ({
   environmentsLoading = false,
   selectedEnvironments,
   onEnvironmentsChange,
-  view,
-  onViewChange,
-  timeRange,
-  customStartTime,
-  customEndTime,
-  onTimeRangeChange,
+  onRefresh,
+  refreshing = false,
   disabled = false,
 }) => {
   const classes = useStyles();
 
   return (
     <Grid container spacing={2} alignItems="center" wrap="nowrap">
-      <Grid item>
-        <ToggleButtonGroup
-          exclusive
-          size="medium"
-          value={view}
-          onChange={(_e, next) => next && onViewChange(next as CostViewMode)}
-          className={classes.toggleGroup}
-          aria-label="View mode"
-        >
-          <ToggleButton
-            value="table"
-            className={classes.toggleButton}
-            disabled={disabled}
-          >
-            Table
-          </ToggleButton>
-          <ToggleButton
-            value="graph"
-            className={classes.toggleButton}
-            disabled={disabled}
-          >
-            Graphs
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Grid>
-
       <Grid item className={classes.spacer} />
 
       <Grid item className={classes.control}>
@@ -99,15 +56,20 @@ export const CostInsightsFilters: FC<CostInsightsFiltersProps> = ({
         />
       </Grid>
 
-      <Grid item className={classes.control}>
-        <TimeRangeFilter
-          value={timeRange}
-          customStartTime={customStartTime}
-          customEndTime={customEndTime}
-          onChange={onTimeRangeChange}
-          disabled={disabled}
-        />
-      </Grid>
+      {onRefresh && (
+        <Grid item>
+          <Tooltip title="Refresh">
+            <Button
+              variant="outlined"
+              startIcon={<Refresh />}
+              onClick={onRefresh}
+              disabled={disabled || refreshing}
+            >
+              Refresh
+            </Button>
+          </Tooltip>
+        </Grid>
+      )}
     </Grid>
   );
 };

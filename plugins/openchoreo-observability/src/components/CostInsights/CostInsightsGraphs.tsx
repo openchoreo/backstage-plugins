@@ -8,7 +8,6 @@ import {
   makeStyles,
 } from '@material-ui/core';
 import type { CostInsightsData } from './types';
-import { ForecastDivergenceChart } from './ForecastDivergenceChart';
 import { CostEfficiencyScatter } from './CostEfficiencyScatter';
 import { CostLineChart } from './CostLineChart';
 import { CostInsightsGraph } from './CostInsightsGraph';
@@ -23,7 +22,7 @@ const useStyles = makeStyles(theme => ({
   groupHeader: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     gap: theme.spacing(2),
     marginBottom: theme.spacing(2),
   },
@@ -52,10 +51,7 @@ export const CostInsightsGraphs: FC<CostInsightsGraphsProps> = ({
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12} md={6}>
-        <ForecastDivergenceChart forecast={data.forecast} />
-      </Grid>
-      <Grid item xs={12} md={6}>
+      <Grid item xs={12}>
         <CostEfficiencyScatter rows={data.rows} />
       </Grid>
       <Grid item xs={12}>

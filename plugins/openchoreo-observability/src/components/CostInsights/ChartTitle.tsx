@@ -14,15 +14,26 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.text.secondary,
     cursor: 'help',
   },
+  subtitle: {
+    marginLeft: theme.spacing(0.5),
+    color: theme.palette.text.secondary,
+  },
 }));
 
 export interface ChartTitleProps {
   title: string;
   info: string;
+  /** Optional muted text shown after the title */
+  subtitle?: string;
   className?: string;
 }
 
-export const ChartTitle: FC<ChartTitleProps> = ({ title, info, className }) => {
+export const ChartTitle: FC<ChartTitleProps> = ({
+  title,
+  info,
+  subtitle,
+  className,
+}) => {
   const classes = useStyles();
   return (
     <div className={`${classes.root} ${className ?? ''}`.trim()}>
@@ -30,6 +41,11 @@ export const ChartTitle: FC<ChartTitleProps> = ({ title, info, className }) => {
       <Tooltip title={info} arrow>
         <InfoOutlinedIcon className={classes.icon} />
       </Tooltip>
+      {subtitle && (
+        <Typography variant="caption" className={classes.subtitle}>
+          {subtitle}
+        </Typography>
+      )}
     </div>
   );
 };
