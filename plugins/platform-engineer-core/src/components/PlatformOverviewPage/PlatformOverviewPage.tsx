@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Page, Header, Content } from '@backstage/core-components';
+import { Content } from '@backstage/core-components';
 import { useApi, useRouteRef } from '@backstage/core-plugin-api';
 import { catalogApiRef, entityRouteRef } from '@backstage/plugin-catalog-react';
 import { makeStyles } from '@material-ui/core/styles';
@@ -223,12 +223,6 @@ export function PlatformOverviewPage() {
     return buildDynamicView(effectiveKinds);
   }, [selectedKinds, clusterSelected]);
 
-  // The user-facing view (for description/subtitle) uses the raw selected kinds
-  const displayView = useMemo(
-    () => buildDynamicView(selectedKinds),
-    [selectedKinds],
-  );
-
   // --- Clear excluded projects when scope changes or system kind is deselected ---
   // --- Also strip cluster kinds from URL when cluster scope is toggled off ---
   const currentScope = params.scope;
@@ -437,24 +431,21 @@ export function PlatformOverviewPage() {
   );
 
   return (
-    <Page themeId="tool">
-      <Header title="Platform Overview" subtitle={displayView.description} />
-      <Content stretch noPadding className={classes.content}>
-        <GraphKindFilter
-          selectedKinds={selectedKinds}
-          onKindsChange={handleKindsChange}
-          clusterScopeActive={clusterSelected}
-          leading={scopeLeading}
-          trailing={projectTrailing}
-        />
-        <PlatformOverviewGraphView
-          view={effectiveView}
-          namespaces={selectedScopes}
-          projects={showProjectFilter ? activeProjectFilter : undefined}
-          allProjects={showProjectFilter ? projects : undefined}
-          onNodeClick={handleNodeClick}
-        />
-      </Content>
-    </Page>
+    <Content stretch noPadding className={classes.content}>
+      <GraphKindFilter
+        selectedKinds={selectedKinds}
+        onKindsChange={handleKindsChange}
+        clusterScopeActive={clusterSelected}
+        leading={scopeLeading}
+        trailing={projectTrailing}
+      />
+      <PlatformOverviewGraphView
+        view={effectiveView}
+        namespaces={selectedScopes}
+        projects={showProjectFilter ? activeProjectFilter : undefined}
+        allProjects={showProjectFilter ? projects : undefined}
+        onNodeClick={handleNodeClick}
+      />
+    </Content>
   );
 }

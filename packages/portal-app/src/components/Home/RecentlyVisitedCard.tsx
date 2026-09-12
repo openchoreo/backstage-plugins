@@ -47,8 +47,21 @@ const PAGE_OVERRIDES: Record<string, PageOverride> = {
   '/': { label: 'Home', chipLabel: 'home', Icon: HomeIcon },
   '/catalog': { label: 'Catalog', chipLabel: 'catalog', Icon: CategoryIcon },
   '/search': { label: 'Search', chipLabel: 'search', Icon: SearchIcon },
+  // The Platform section's tabs are sub-pages, so a visit records the tab's own
+  // path; `/platform-overview` itself only ever appears in transit through the
+  // index redirect, but keep it as an alias in case a visit lands mid-redirect.
   '/platform-overview': {
     label: 'Platform Overview',
+    chipLabel: 'platform',
+    Icon: BubbleChartIcon,
+  },
+  '/platform-overview/overview': {
+    label: 'Platform Overview',
+    chipLabel: 'platform',
+    Icon: BubbleChartIcon,
+  },
+  '/platform-overview/logs': {
+    label: 'Platform Logs',
     chipLabel: 'platform',
     Icon: BubbleChartIcon,
   },

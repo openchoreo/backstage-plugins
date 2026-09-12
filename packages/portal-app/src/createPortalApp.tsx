@@ -75,9 +75,14 @@ export function createPortalApp(options?: PortalAppOptions) {
       // the `deployment` tab group Build (CI) shows before Deploy (base).
       openchoreoCiPluginAlpha,
       openchoreoPluginAlpha,
+      // `platformEngineerCorePluginAlpha` before `openchoreoObservabilityPluginAlpha`
+      // so the Platform section's Overview tab is collected before the Logs tab
+      // observability contributes. Extension inputs keep registration order, and the
+      // first tab is also where `/platform-overview` redirects to. `app-config.yaml`
+      // pins the same order explicitly under `app.extensions`.
+      platformEngineerCorePluginAlpha,
       openchoreoObservabilityPluginAlpha,
       openchoreoWorkflowsPluginAlpha,
-      platformEngineerCorePluginAlpha,
       portalAppPlugin,
       // Mounts OpenChoreoEntityLayout as the page:catalog/entity chrome.
       openChoreoEntityPageOverride,

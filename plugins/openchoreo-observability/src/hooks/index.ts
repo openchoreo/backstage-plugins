@@ -27,3 +27,14 @@ export { useComponentAlerts } from './useComponentAlerts';
 export { useUrlFiltersForIncidents } from './useUrlFiltersForIncidents';
 export { useProjectIncidents } from './useProjectIncidents';
 export { useUpdateIncident } from './useUpdateIncident';
+export { usePlatformLogs } from './usePlatformLogs';
+export {
+  usePlatformLogFacets,
+  deriveFacets,
+  type PlatformLogFacets,
+} from './usePlatformLogFacets';
+export {
+  useObservabilityPlanes,
+  type ObservabilityPlaneOption,
+} from './useObservabilityPlanes';
+export { useUrlFiltersForPlatformLogs } from './useUrlFiltersForPlatformLogs';

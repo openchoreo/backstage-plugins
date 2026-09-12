@@ -36,6 +36,12 @@ app:
   # Suppress upstream cards that duplicate OC layouts + default themes so
   # our openchoreo-* themes win the theme picker.
   extensions:
+    # Tab order of the Platform section. Extensions named here are ordered ahead of
+    # the rest, in this order, so Overview stays the first tab — which is also where
+    # `/platform-overview` redirects to. Without this the order would depend on the
+    # `features` array order in `createPortalApp`.
+    - sub-page:platform-engineer-core/overview
+    - sub-page:openchoreo-observability/platform-logs
     - theme:app/light: false
     - theme:app/dark: false
     # `page:kubernetes` is the plugin's standalone /kubernetes page — it

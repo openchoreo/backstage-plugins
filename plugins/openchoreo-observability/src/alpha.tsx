@@ -7,6 +7,7 @@ import {
   fetchApiRef,
   PageBlueprint,
   PluginWrapperBlueprint,
+  SubPageBlueprint,
 } from '@backstage/frontend-plugin-api';
 import {
   EntityCardBlueprint,
@@ -21,7 +22,7 @@ import {
   isOpenChoreoManagedOfKind,
 } from '@openchoreo/backstage-plugin-common';
 
-import { rootRouteRef } from './routes';
+import { platformLogsRouteRef, rootRouteRef } from './routes';
 import {
   observabilityApiRef,
   ObservabilityClient,
@@ -342,6 +343,35 @@ const costInsightsPage = PageBlueprint.make({
   },
 });
 
+/**
+ * Logs tab of the Platform section.
+ *
+ * Attached by extension id to the page the platform-engineer-core plugin owns, so
+ * this plugin needs no dependency on that one — the coupling stays the string it
+ * already was, now an extension id rather than a URL path. If that plugin is absent
+ * the extension is simply orphaned and never renders, and no Logs tab appears.
+ *
+ * The absolute URL is unchanged: `/platform-overview` + `logs`. Sub-pages never
+ * produce a sidebar entry, so the old "omit title/icon to stay out of the nav" trick
+ * is no longer needed — and `title` is what labels the tab.
+ */
+const platformLogsTab = SubPageBlueprint.make({
+  name: 'platform-logs',
+  attachTo: {
+    id: 'page:platform-engineer-core/platform-overview',
+    input: 'pages',
+  },
+  params: {
+    path: 'logs',
+    title: 'Logs',
+    routeRef: platformLogsRouteRef,
+    loader: () =>
+      import('./components/PlatformLogs/PlatformLogsTabPage').then(m => (
+        <m.PlatformLogsTabPage />
+      )),
+  },
+});
+
 export default createFrontendPlugin({
   pluginId: 'openchoreo-observability',
   routes: { root: rootRouteRef },
@@ -352,6 +382,7 @@ export default createFrontendPlugin({
     finopsAgentApi,
     logRowActionRendererApi,
     costInsightsPage,
+    platformLogsTab,
     runtimeLogsEntityContent,
     runtimeEventsEntityContent,
     metricsEntityContent,

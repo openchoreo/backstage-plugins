@@ -47,8 +47,29 @@ describe('openchoreo-observability alpha plugin', () => {
       `entity-content:${plugin}/project-cost-analysis`,
       // overview cards
       `entity-card:${plugin}/cost-insights-summary`,
+      // Logs tab of the Platform section, attached to platform-engineer-core's page
+      `sub-page:${plugin}/platform-logs`,
     ]) {
       expect(ids).toContain(expected);
     }
+  });
+
+  // The attach point is a bare extension-id string with no compile-time check, and a
+  // wrong one fails silently — the node is collected as an orphan and the tab simply
+  // never appears. Pin it.
+  it('attaches the platform logs tab to the platform-engineer-core page', () => {
+    const extensions = (observabilityPlugin as any).extensions as Array<{
+      id: string;
+      attachTo: { id: string; input: string };
+    }>;
+
+    const logsTab = extensions.find(
+      e => e.id === 'sub-page:openchoreo-observability/platform-logs',
+    );
+
+    expect(logsTab?.attachTo).toEqual({
+      id: 'page:platform-engineer-core/platform-overview',
+      input: 'pages',
+    });
   });
 });
