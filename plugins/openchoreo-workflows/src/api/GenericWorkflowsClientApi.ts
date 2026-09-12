@@ -71,6 +71,9 @@ export interface GenericWorkflowsClientApi {
     runName: string,
     task?: string,
   ): Promise<WorkflowRunEventEntry[]>;
+
+  /** Delete a specific workflow run */
+  deleteWorkflowRun(namespaceName: string, runName: string): Promise<void>;
 }
 
 /**

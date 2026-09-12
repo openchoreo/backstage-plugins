@@ -107,6 +107,14 @@ export interface OpenChoreoCiClientApi {
     step: string,
     hasLiveObservability: boolean,
   ): Promise<WorkflowRunEventEntry[]>;
+
+  /** Delete a specific workflow run */
+  deleteWorkflowRun(
+    namespaceName: string,
+    projectName: string,
+    componentName: string,
+    runName: string,
+  ): Promise<void>;
 }
 
 // ============================================
