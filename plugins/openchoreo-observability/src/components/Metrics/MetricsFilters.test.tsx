@@ -65,3 +65,46 @@ describe('MetricsFilters', () => {
     expect(disabledSelects.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe('component selector', () => {
+  const components = [
+    { uid: '1', name: 'api', displayName: 'API' },
+    { uid: '2', name: 'worker', displayName: 'Worker' },
+  ] as any;
+
+  it('is hidden on the component page, which passes no components', () => {
+    renderFilters();
+
+    expect(screen.queryByText('Components')).not.toBeInTheDocument();
+  });
+
+  it('is hidden for a project with no components', () => {
+    renderFilters({ components: [] });
+
+    expect(screen.queryByText('Components')).not.toBeInTheDocument();
+  });
+
+  it('renders once the project has components', () => {
+    renderFilters({ components });
+
+    expect(screen.getAllByText('Components').length).toBeGreaterThanOrEqual(1);
+  });
+
+  // Matches RuntimeLogs/LogsFilter: no `displayEmpty`, so MUI skips
+  // `renderValue` for an empty array and the "All" placeholder does not render.
+  // Deliberately consistent with the Logs tab rather than individually correct.
+  it('renders no placeholder text when nothing is selected', () => {
+    renderFilters({ components });
+
+    expect(screen.queryByText('All')).not.toBeInTheDocument();
+  });
+
+  it('lists the selected component names', () => {
+    renderFilters({
+      components,
+      filters: { ...baseFilters, components: ['api', 'worker'] },
+    });
+
+    expect(screen.getByText('api, worker')).toBeInTheDocument();
+  });
+});
