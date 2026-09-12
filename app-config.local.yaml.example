@@ -77,6 +77,17 @@ openchoreo:
       enabled: true    # Set to false to hide Secrets settings tab
     assistant:
       enabled: true   # Opt-in. Set to true after deploying perch-agent and OPENCHOREO_PERCH_AGENT_URL
+    incrementalIngestion:
+      enabled: false  # Opt-in; replaces the scheduled full-sync provider when true
+
+  # Incremental ingestion tuning (optional). Only read when
+  # features.incrementalIngestion.enabled is true; uncomment to override
+  # the built-in defaults shown here.
+  # incremental:
+  #   burstLength: 10 # seconds per ingestion burst (default: 10)
+  #   burstInterval: 30 # seconds between bursts (default: 30)
+  #   chunkSize: 100 # entities per page; the API caps page size at 100 (default: 100)
+  #   restLength: 30 # minutes of rest after a completed ingestion (default: 30)
 
 # Thunder IDP configuration (k3d cluster)
 thunder:

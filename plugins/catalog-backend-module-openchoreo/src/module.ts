@@ -110,6 +110,16 @@ export const catalogModuleOpenchoreo = createBackendModule({
         const eventsEnabled =
           openchoreoConfig?.getOptionalBoolean('events.enabled') ?? true;
 
+        // Incremental ingestion (registered by the portal from
+        // @openchoreo/backstage-plugin-catalog-backend-module-openchoreo-incremental)
+        // replaces this module's scheduled full-sync provider; when it is
+        // enabled the scheduled provider stands down so entities are not
+        // double-ingested.
+        const incrementalIngestionEnabled =
+          openchoreoConfig?.getOptionalBoolean(
+            'features.incrementalIngestion.enabled',
+          ) ?? false;
+
         const taskRunner = scheduler.createScheduledTaskRunner({
           frequency: { seconds: frequency },
           timeout: { seconds: timeout },
@@ -205,18 +215,24 @@ export const catalogModuleOpenchoreo = createBackendModule({
         // Register the scheduled OpenChoreo entity provider. When
         // events are disabled we pass `undefined` so the provider's
         // `connect()` skips its event subscriptions.
-        catalog.addEntityProvider(
-          new OpenChoreoEntityProvider(
-            taskRunner,
-            logger,
-            config,
-            tokenService,
-            eventsEnabled ? events : undefined,
-            catalogService,
-            auth,
-            urlReader,
-          ),
-        );
+        if (incrementalIngestionEnabled) {
+          logger.info(
+            'Incremental ingestion enabled (openchoreo.features.incrementalIngestion.enabled=true); scheduled OpenChoreoEntityProvider standing down',
+          );
+        } else {
+          catalog.addEntityProvider(
+            new OpenChoreoEntityProvider(
+              taskRunner,
+              logger,
+              config,
+              tokenService,
+              eventsEnabled ? events : undefined,
+              catalogService,
+              auth,
+              urlReader,
+            ),
+          );
+        }
 
         // Create and register the ScaffolderEntityProvider for immediate insertions
         // Pass 'OpenChoreoEntityProvider' so it uses the same location key bucket
