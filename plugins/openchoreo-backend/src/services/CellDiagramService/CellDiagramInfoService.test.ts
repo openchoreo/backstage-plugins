@@ -865,5 +865,55 @@ describe('CellDiagramInfoService', () => {
 
       expect(org).toBeUndefined();
     });
+
+    it('returns undefined when a project fails to build (no partial namespace)', async () => {
+      // proj-a builds fine; proj-b's component fetch fails, so
+      // fetchProjectInfo('proj-b') resolves undefined. The namespace must fail
+      // rather than return a partial diagram missing proj-b (and its links).
+      mockGET.mockImplementation((path: string, req: any) => {
+        if (path.endsWith('/projects')) {
+          return Promise.resolve(
+            createOkResponse({
+              items: [
+                { metadata: { name: 'proj-a' } },
+                { metadata: { name: 'proj-b' } },
+              ],
+              pagination: {},
+            }),
+          );
+        }
+        const project = req?.params?.query?.project;
+        if (path.endsWith('/components')) {
+          if (project === 'proj-b') {
+            return Promise.resolve({
+              data: undefined,
+              error: { message: 'fail' },
+              response: {
+                ok: false,
+                status: 500,
+                statusText: 'Internal Server Error',
+              },
+            });
+          }
+          return Promise.resolve(
+            createOkResponse({
+              items: [k8sComponent('a-svc', 'deployment/service')],
+              pagination: {},
+            }),
+          );
+        }
+        return Promise.resolve(
+          createOkResponse({ items: [], pagination: {} }),
+        );
+      });
+
+      const service = createService();
+      const org = await service.fetchNamespaceInfo(
+        { namespaceName: 'test-ns' },
+        'token',
+      );
+
+      expect(org).toBeUndefined();
+    });
   });
 });

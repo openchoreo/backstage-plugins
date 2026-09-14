@@ -343,6 +343,14 @@ export class CellDiagramInfoService implements CellDiagramService {
           this.fetchProjectInfo({ projectName, namespaceName }, token),
         ),
       );
+      // Fail rather than return a partial namespace: silently dropping a failed
+      // project would also drop its cross-project connections and present an
+      // incomplete diagram as a success.
+      if (built.some(project => project === undefined)) {
+        throw new Error(
+          `Failed to build one or more projects in namespace '${namespaceName}'`,
+        );
+      }
       const projects = built.filter((p): p is Project => p !== undefined);
 
       this.addCrossProjectConnections(projects);

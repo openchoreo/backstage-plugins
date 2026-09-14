@@ -51,9 +51,9 @@ export function ProjectWidget(props: ProjectWidgetProps) {
     pointerDownAt.current = { x: event.clientX, y: event.clientY };
   };
 
-  // Single-click navigation. Only fires when the pointer didn't travel far
-  // between mousedown and click, so panning the canvas or dragging the node
-  // doesn't accidentally navigate away.
+  // Single-click activation (the host decides what it does — e.g. open a
+  // preview). Only fires when the pointer didn't travel far between mousedown
+  // and click, so panning the canvas or dragging the node doesn't trigger it.
   const handleOnWidgetClick = (event: MouseEvent<HTMLDivElement>) => {
     const start = pointerDownAt.current;
     pointerDownAt.current = null;
@@ -88,7 +88,6 @@ export function ProjectWidget(props: ProjectWidgetProps) {
         onMouseLeave={handleMouseLeave}
         onMouseDown={handleMouseDown}
         onClick={handleOnWidgetClick}
-        onDoubleClick={handleOnWidgetDoubleClick}
         onContextMenu={handleOnContextMenu}
       >
         <ProjectHeadWidget
@@ -107,6 +106,9 @@ export function ProjectWidget(props: ProjectWidgetProps) {
           <ProjectName>{displayName}</ProjectName>
         </Tooltip>
 
+        {/* Visual affordance only — activation is handled by the cell's onClick
+            (which also covers clicks landing on this icon), so onComponentDoubleClick
+            fires exactly once per click. */}
         <Box
           sx={{
             position: 'absolute',
@@ -114,7 +116,6 @@ export function ProjectWidget(props: ProjectWidgetProps) {
             padding: '8px',
             cursor: 'pointer',
           }}
-          onClick={handleOnWidgetDoubleClick}
         >
           <Fade in={isHovered} timeout={350}>
             <Tooltip
