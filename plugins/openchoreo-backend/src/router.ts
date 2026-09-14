@@ -351,9 +351,7 @@ export async function createRouter({
       const { namespaceName } = req.query;
 
       if (!namespaceName) {
-        throw new InputError(
-          'namespaceName is a required query parameter',
-        );
+        throw new InputError('namespaceName is a required query parameter');
       }
 
       const userToken = getUserTokenFromRequest(req);

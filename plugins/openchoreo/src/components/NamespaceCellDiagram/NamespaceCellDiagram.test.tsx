@@ -32,7 +32,9 @@ jest.mock('@backstage/catalog-model', () => ({
 jest.mock('@openchoreo/cell-diagram', () => ({
   CellDiagram: ({ organization, project, onComponentDoubleClick }: any) => {
     if (project) {
-      return <div data-testid={`preview-${project.id}`}>{project.id} preview</div>;
+      return (
+        <div data-testid={`preview-${project.id}`}>{project.id} preview</div>
+      );
     }
     return (
       <div data-testid="namespace-cell-diagram-view">
@@ -69,12 +71,9 @@ jest.mock(
 jest.mock('@material-ui/core/Typography', () => ({ children }: any) => (
   <span>{children}</span>
 ));
-jest.mock(
-  '@material-ui/core/Button',
-  () =>
-    ({ children, onClick }: any) =>
-      <button onClick={onClick}>{children}</button>,
-);
+jest.mock('@material-ui/core/Button', () => ({ children, onClick }: any) => (
+  <button onClick={onClick}>{children}</button>
+));
 jest.mock(
   '@material-ui/core/IconButton',
   () =>

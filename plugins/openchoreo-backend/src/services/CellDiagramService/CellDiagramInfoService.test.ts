@@ -722,9 +722,7 @@ describe('CellDiagramInfoService', () => {
             }),
           );
         }
-        return Promise.resolve(
-          createOkResponse({ items: [], pagination: {} }),
-        );
+        return Promise.resolve(createOkResponse({ items: [], pagination: {} }));
       });
     };
 
@@ -852,7 +850,11 @@ describe('CellDiagramInfoService', () => {
       mockGET.mockResolvedValueOnce({
         data: undefined,
         error: { message: 'fail' },
-        response: { ok: false, status: 500, statusText: 'Internal Server Error' },
+        response: {
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+        },
       });
 
       const service = createService();

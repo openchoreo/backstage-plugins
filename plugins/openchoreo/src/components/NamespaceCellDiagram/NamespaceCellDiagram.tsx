@@ -155,7 +155,10 @@ export const NamespaceCellDiagram = () => {
       )}
 
       {hasNoProjects && (
-        <Box className={classes.centered} data-testid="namespace-cell-diagram-empty">
+        <Box
+          className={classes.centered}
+          data-testid="namespace-cell-diagram-empty"
+        >
           <EmptyState
             title="No projects yet"
             description="This namespace does not have any projects. Create one to see it on the cell diagram."
