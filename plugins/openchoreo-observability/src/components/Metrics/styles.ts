@@ -14,6 +14,13 @@ export const useMetricsActionsStyles = makeStyles((theme: Theme) => ({
   },
 }));
 
+// Matches the CostInsights view toggle, so the two observability filter bars
+// present their view switch the same way.
+export const useMetricsViewToggleStyles = makeStyles((theme: Theme) => ({
+  toggleGroup: { height: '100%' },
+  toggleButton: { textTransform: 'none', padding: theme.spacing(0, 2) },
+}));
+
 export const useMetricGraphStyles = makeStyles((theme: Theme) => ({
   chartContainer: {
     width: '100%',

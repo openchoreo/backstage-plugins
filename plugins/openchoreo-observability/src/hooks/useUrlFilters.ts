@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Filters } from '../types';
+import type { Filters, MetricsViewMode } from '../types';
 import { Environment } from '@openchoreo/backstage-plugin-react';
 import { useAutoSelectFirstEnvironment } from './useAutoSelectFirstEnvironment';
 import { parseUrlTimeRange, writeUrlTimeRange } from '../utils/urlTimeRange';
@@ -18,6 +18,9 @@ interface UseUrlFiltersOptions {
  * - `timeRange`: Time range value (defaults to '10m')
  * - `components`: Comma-separated component IDs
  * - `q`: Search query string
+ * - `view`: Project metrics view, `total` or `breakdown`. Absent on every
+ *   other page, and absent from a link written before the view existed. The
+ *   page derives the default in that case.
  *
  * @example
  * ```tsx
@@ -41,6 +44,11 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
     const components =
       searchParams.get('components')?.split(',').filter(Boolean) || [];
     const searchQuery = searchParams.get('q') || '';
+    const viewParam = searchParams.get('view');
+    const view =
+      viewParam === 'total' || viewParam === 'breakdown'
+        ? (viewParam as MetricsViewMode)
+        : undefined;
 
     // Find environment by name
     const environment = envName
@@ -57,6 +65,7 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
       ...parseUrlTimeRange(searchParams),
       components,
       searchQuery,
+      view,
     };
   }, [searchParams, environments]);
 
@@ -84,6 +93,10 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
         } else {
           newParams.delete('components');
         }
+      }
+
+      if (newFilters.view !== undefined) {
+        newParams.set('view', newFilters.view);
       }
 
       if (newFilters.searchQuery !== undefined) {

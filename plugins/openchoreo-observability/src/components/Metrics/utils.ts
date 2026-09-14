@@ -3,7 +3,6 @@ import {
   ComponentSeriesMap,
   MemoryUsageMetrics,
   MetricSeriesMap,
-  SeriesByComponent,
 } from '../../types';
 
 /**
@@ -389,25 +388,6 @@ export const getLineOpacity = (
 ): number => {
   return !hoveringDataKey || hoveringDataKey === metricKey ? 1 : 0.5;
 };
-
-/**
- * Narrow a component-keyed metrics map to the one metric group the chart plots,
- * keeping the grouping intact.
- *
- * `select` picks the group — `cpuUsage`, `memoryUsage`, `networkThroughput`,
- * `networkLatency` — each of which is already a `metricKey -> points` map, so
- * the project chart plots exactly the metric keys the component page plots.
- */
-export const buildProjectSeries = <T>(
-  byComponent: Record<string, T>,
-  select: (metrics: T) => ComponentSeriesMap | undefined,
-): SeriesByComponent =>
-  Object.fromEntries(
-    Object.entries(byComponent).map(([component, metrics]) => [
-      component,
-      select(metrics) ?? ({} as ComponentSeriesMap),
-    ]),
-  );
 
 /**
  * Pick a Prometheus `step` for the selected window so the chart gets roughly

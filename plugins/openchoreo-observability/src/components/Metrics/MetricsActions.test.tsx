@@ -34,4 +34,12 @@ describe('MetricsActions', () => {
 
     expect(screen.getByRole('button', { name: /refresh/i })).toBeDisabled();
   });
+
+  // The view lives in the filter bar, next to the selector it governs.
+  it('carries no view control', () => {
+    render(<MetricsActions disabled={false} onRefresh={jest.fn()} />);
+
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByText(/breakdown/i)).toBeNull();
+  });
 });

@@ -56,15 +56,13 @@ export type ComponentSeriesMap =
 export type MetricSeriesMap = Record<string, MetricsTimeSeriesItem[]>;
 
 /**
- * `componentName -> that component's series`, the shape the project breakdown
- * charts plot.
+ * `componentName -> points` for one metric: the lines of one breakdown chart.
  *
- * Grouping is the structure rather than something spliced into a key, so the
- * component is read from the outer key and nothing is ever parsed. The unique
- * `dataKey` Recharts needs per line is generated inside the chart and never
- * leaves it.
+ * The component is the key, so nothing is ever spliced into a string or
+ * parsed. The unique `dataKey` Recharts needs per line is generated inside the
+ * chart and never leaves it.
  */
-export type SeriesByComponent = Record<string, ComponentSeriesMap>;
+export type ComponentPoints = Record<string, MetricsTimeSeriesItem[]>;
 
 /** A component whose fan-out request failed, kept so the page can render the
  *  rest and still name what is missing. */
@@ -73,15 +71,16 @@ export type FailedComponentMetrics = {
   error: string;
 };
 
-export type ProjectResourceMetrics = {
-  /** componentName -> that component's resource metrics */
-  byComponent: Record<string, ResourceMetrics>;
-  failedComponents: FailedComponentMetrics[];
-};
-
-export type ProjectHttpMetrics = {
-  /** componentName -> that component's HTTP metrics */
-  byComponent: Record<string, HttpMetrics>;
+/**
+ * The per-component fan-out, keyed metric first so each chart reads one entry.
+ *
+ * Resource and HTTP fan-outs share this shape. Metric keys are unique across
+ * every group (`cpuUsage`, `memoryLimits`, `latencyP99`, ...), so one flat map
+ * holds either.
+ */
+export type ProjectMetrics = {
+  /** metricKey -> componentName -> points, e.g. `byMetric.cpuUsage.api` */
+  byMetric: Record<string, ComponentPoints>;
   failedComponents: FailedComponentMetrics[];
 };
 
@@ -127,7 +126,17 @@ export interface Filters {
   components?: string[];
   searchQuery?: string;
   rcaStatus?: RCAStatus;
+  /** Project metrics only. Which of the two views the charts show. */
+  view?: MetricsViewMode;
 }
+
+/**
+ * The two views of the project Metrics tab.
+ *
+ * - `total` — one project-wide aggregate, charted like the component tab.
+ * - `breakdown` — one line per selected component, one chart per metric.
+ */
+export type MetricsViewMode = 'total' | 'breakdown';
 
 export type RCAStatus = 'pending' | 'completed' | 'failed';
 

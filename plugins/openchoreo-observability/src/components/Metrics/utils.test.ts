@@ -9,7 +9,6 @@ import {
   calculateTimeDomain,
   calculateMemoryYAxis,
   calculateStep,
-  buildProjectSeries,
 } from './utils';
 import { MemoryUsageMetrics } from '../../types';
 
@@ -523,44 +522,5 @@ describe('calculateStep', () => {
     expect(calculateStep('custom', later, earlier)).toBe('1m');
     expect(calculateStep('custom', earlier, earlier)).toBe('1m');
     expect(calculateStep('custom', 'nonsense', later)).toBe('1m');
-  });
-});
-
-describe('buildProjectSeries', () => {
-  const points = [{ timestamp: '2024-01-01T00:00:00.000Z', value: 1 }];
-  const resource = {
-    cpuUsage: { cpuUsage: points, cpuRequests: points, cpuLimits: points },
-  };
-
-  it('keeps the grouping, narrowed to the selected metric group', () => {
-    expect(
-      buildProjectSeries<typeof resource>(
-        { api: resource, db: resource },
-        m => m.cpuUsage,
-      ),
-    ).toEqual({
-      api: { cpuUsage: points, cpuRequests: points, cpuLimits: points },
-      db: { cpuUsage: points, cpuRequests: points, cpuLimits: points },
-    });
-  });
-
-  it('keeps a component whose group is missing, with no series', () => {
-    expect(
-      buildProjectSeries<{ cpuUsage?: typeof resource.cpuUsage }>(
-        { api: {} },
-        m => m.cpuUsage,
-      ),
-    ).toEqual({ api: {} });
-  });
-
-  it('never has to escape a component name', () => {
-    const result = buildProjectSeries<typeof resource>(
-      { 'a::b': resource },
-      m => m.cpuUsage,
-    );
-
-    expect(Object.keys(result)).toEqual(['a::b']);
-    const group = result['a::b'];
-    expect('cpuUsage' in group && group.cpuUsage).toEqual(points);
   });
 });

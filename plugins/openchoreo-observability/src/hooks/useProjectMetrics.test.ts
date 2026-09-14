@@ -2,7 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useApi } from '@backstage/core-plugin-api';
 import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useProjectMetrics } from './useProjectMetrics';
-import { ProjectResourceMetrics } from '../types';
+import { ProjectMetrics } from '../types';
 
 jest.mock('@backstage/core-plugin-api', () => {
   const actual = jest.requireActual('@backstage/core-plugin-api');
@@ -57,7 +57,7 @@ describe('useProjectMetrics', () => {
     (useApi as jest.Mock).mockReturnValue({ getMetrics });
   });
 
-  it('fans out one request per component and merges results by component name', async () => {
+  it('fans out one request per component and keys the results by metric', async () => {
     getMetrics.mockImplementation((_env, componentName) =>
       Promise.resolve(metricsFor(componentName === 'api' ? 0.5 : 0.25)),
     );
@@ -82,10 +82,16 @@ describe('useProjectMetrics', () => {
       expect.objectContaining({ type: 'resource' }),
     );
 
-    const metrics = result.current.metrics as ProjectResourceMetrics;
-    expect(Object.keys(metrics.byComponent).sort()).toEqual(['api', 'worker']);
-    expect(metrics.byComponent.api.cpuUsage.cpuUsage[0].value).toBe(0.5);
-    expect(metrics.byComponent.worker.cpuUsage.cpuUsage[0].value).toBe(0.25);
+    const metrics = result.current.metrics as ProjectMetrics;
+    // Only `cpuUsage` carries points. The empty series add no key, so a chart
+    // never lists a component with no line.
+    expect(Object.keys(metrics.byMetric)).toEqual(['cpuUsage']);
+    expect(Object.keys(metrics.byMetric.cpuUsage).sort()).toEqual([
+      'api',
+      'worker',
+    ]);
+    expect(metrics.byMetric.cpuUsage.api[0].value).toBe(0.5);
+    expect(metrics.byMetric.cpuUsage.worker[0].value).toBe(0.25);
     expect(metrics.failedComponents).toEqual([]);
     expect(result.current.error).toBeUndefined();
   });
@@ -115,8 +121,11 @@ describe('useProjectMetrics', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    const metrics = result.current.metrics as ProjectResourceMetrics;
-    expect(Object.keys(metrics.byComponent).sort()).toEqual(['api', 'db']);
+    const metrics = result.current.metrics as ProjectMetrics;
+    expect(Object.keys(metrics.byMetric.cpuUsage).sort()).toEqual([
+      'api',
+      'db',
+    ]);
     expect(metrics.failedComponents).toEqual([
       {
         name: 'worker',
@@ -143,9 +152,10 @@ describe('useProjectMetrics', () => {
   });
 
   it('requests HTTP metrics when metricType is http', async () => {
+    const point = [{ timestamp: '2026-03-05T10:00:00.000Z', value: 7 }];
     getMetrics.mockResolvedValue({
       networkThroughput: {
-        requestCount: [],
+        requestCount: point,
         successfulRequestCount: [],
         unsuccessfulRequestCount: [],
       },
@@ -153,7 +163,7 @@ describe('useProjectMetrics', () => {
         meanLatency: [],
         latencyP50: [],
         latencyP90: [],
-        latencyP99: [],
+        latencyP99: point,
       },
     });
 
@@ -168,6 +178,11 @@ describe('useProjectMetrics', () => {
       'project-a',
       expect.objectContaining({ type: 'http' }),
     );
+    // The same metric-first shape as the resource fan-out.
+    expect((result.current.metrics as ProjectMetrics).byMetric).toEqual({
+      requestCount: { api: point },
+      latencyP99: { api: point },
+    });
   });
 
   it('scales the step with the selected time range', async () => {

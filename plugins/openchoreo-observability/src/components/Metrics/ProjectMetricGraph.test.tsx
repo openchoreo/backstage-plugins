@@ -40,16 +40,12 @@ const points = [
   { timestamp: '2026-03-05T10:01:00.000Z', value: 2 },
 ];
 
-/** Full cpu group (usage/requests/limits) for each named component. */
-const cpuFor = (names: string[]) =>
-  Object.fromEntries(
-    names.map(name => [
-      name,
-      { cpuUsage: points, cpuRequests: points, cpuLimits: points },
-    ]),
-  );
+/** One metric's points for each named component, as `byMetric[key]` holds. */
+const seriesFor = (names: string[]) =>
+  Object.fromEntries(names.map(name => [name, points]));
 
 const lines = () => screen.getAllByTestId('line');
+const lineNames = () => lines().map(l => l.getAttribute('data-name'));
 
 /** The legend entries recharts would show, given the lines the chart declared. */
 const legendEntries = () => {
@@ -69,49 +65,38 @@ const legendEntries = () => {
 };
 
 describe('ProjectMetricGraph', () => {
-  it('renders three lines per component', () => {
+  it('renders one line per component, in name order', () => {
     render(
       <ProjectMetricGraph
-        seriesByComponent={cpuFor(['api', 'db', 'worker'])}
+        series={seriesFor(['worker', 'api', 'db'])}
         colorOf={componentColorResolver(['api', 'db', 'worker'])}
         usageType="cpu"
         timeRange="1h"
       />,
     );
 
-    expect(lines()).toHaveLength(9);
+    expect(lines()).toHaveLength(3);
+    expect(lineNames()).toEqual(['api', 'db', 'worker']);
   });
 
-  it("gives all three of a component's lines its one colour", () => {
+  it('gives each component its own colour', () => {
     render(
       <ProjectMetricGraph
-        seriesByComponent={cpuFor(['api', 'db'])}
+        series={seriesFor(['api', 'db'])}
         colorOf={componentColorResolver(['api', 'db'])}
         usageType="cpu"
         timeRange="1h"
       />,
     );
 
-    const byComponent = new Map<string, Set<string>>();
-    lines().forEach(line => {
-      const component = line.getAttribute('data-name')!.split(' · ')[0];
-      const colours = byComponent.get(component) ?? new Set<string>();
-      colours.add(line.getAttribute('data-stroke')!);
-      byComponent.set(component, colours);
-    });
-
-    expect([...byComponent.keys()].sort()).toEqual(['api', 'db']);
-    byComponent.forEach(colours => expect(colours.size).toBe(1));
-    const allColours = new Set(
-      [...byComponent.values()].flatMap(set => [...set]),
-    );
-    expect(allColours.size).toBe(2);
+    const colours = lines().map(l => l.getAttribute('data-stroke'));
+    expect(new Set(colours).size).toBe(2);
   });
 
   it('draws every line solid', () => {
     render(
       <ProjectMetricGraph
-        seriesByComponent={cpuFor(['api', 'db'])}
+        series={seriesFor(['api', 'db'])}
         colorOf={componentColorResolver(['api', 'db'])}
         usageType="cpu"
         timeRange="1h"
@@ -119,31 +104,14 @@ describe('ProjectMetricGraph', () => {
     );
 
     const dashes = lines().map(l => l.getAttribute('data-dash'));
-    expect(dashes).toHaveLength(6);
+    expect(dashes).toHaveLength(2);
     expect(dashes.every(dash => dash === 'solid')).toBe(true);
   });
 
-  it('names each line with its component and metric', () => {
+  it('lists components in the legend, one entry each', () => {
     render(
       <ProjectMetricGraph
-        seriesByComponent={cpuFor(['api'])}
-        colorOf={componentColorResolver(['api'])}
-        usageType="cpu"
-        timeRange="1h"
-      />,
-    );
-
-    expect(lines().map(l => l.getAttribute('data-name'))).toEqual([
-      'api · CPU Usage',
-      'api · CPU Requests',
-      'api · CPU Limits',
-    ]);
-  });
-
-  it('lists components in the legend, one entry each rather than one per line', () => {
-    render(
-      <ProjectMetricGraph
-        seriesByComponent={cpuFor(['api', 'db'])}
+        series={seriesFor(['api', 'db'])}
         colorOf={componentColorResolver(['api', 'db'])}
         usageType="cpu"
         timeRange="1h"
@@ -156,21 +124,20 @@ describe('ProjectMetricGraph', () => {
   it('plots a component whose name contains the old key separator', () => {
     render(
       <ProjectMetricGraph
-        seriesByComponent={cpuFor(['a::b'])}
+        series={seriesFor(['a::b'])}
         colorOf={componentColorResolver(['a::b'])}
         usageType="cpu"
         timeRange="1h"
       />,
     );
 
-    expect(lines()).toHaveLength(3);
-    expect(legendEntries()).toEqual(['a::b']);
+    expect(lineNames()).toEqual(['a::b']);
   });
 
   it('renders the empty overlay and no lines for empty input', () => {
     render(
       <ProjectMetricGraph
-        seriesByComponent={{}}
+        series={{}}
         colorOf={componentColorResolver([])}
         usageType="cpu"
         timeRange="1h"
@@ -181,52 +148,32 @@ describe('ProjectMetricGraph', () => {
     expect(screen.getByText('No data available')).toBeInTheDocument();
   });
 
-  it('drops a component whose every series is empty instead of throwing', () => {
-    render(
-      <ProjectMetricGraph
-        seriesByComponent={{
-          ...cpuFor(['api']),
-          silent: { cpuUsage: [], cpuRequests: [], cpuLimits: [] },
-        }}
-        colorOf={componentColorResolver(['api', 'silent'])}
-        usageType="cpu"
-        timeRange="1h"
-      />,
-    );
-
-    expect(lines()).toHaveLength(3);
-    expect(legendEntries()).toEqual(['api']);
-  });
-
   it('keeps a component on its own colour when another drops out', () => {
     const order = ['api', 'db'];
     const colorOf = componentColorResolver(order);
 
     const { rerender } = render(
       <ProjectMetricGraph
-        seriesByComponent={cpuFor(order)}
+        series={seriesFor(order)}
         colorOf={colorOf}
         usageType="cpu"
         timeRange="1h"
       />,
     );
     const dbColour = lines()
-      .filter(l => l.getAttribute('data-name')!.startsWith('db'))
+      .filter(l => l.getAttribute('data-name') === 'db')
       .map(l => l.getAttribute('data-stroke'))[0];
 
     rerender(
       <ProjectMetricGraph
-        seriesByComponent={{
-          api: { cpuUsage: [], cpuRequests: [], cpuLimits: [] },
-          ...cpuFor(['db']),
-        }}
+        series={seriesFor(['db'])}
         colorOf={colorOf}
         usageType="cpu"
         timeRange="1h"
       />,
     );
 
-    expect(lines()).toHaveLength(3);
+    expect(lines()).toHaveLength(1);
     expect(lines()[0].getAttribute('data-stroke')).toBe(dbColour);
   });
 
@@ -234,15 +181,15 @@ describe('ProjectMetricGraph', () => {
     const names = Array.from({ length: 24 }, (_, i) => `component-${i}`);
     render(
       <ProjectMetricGraph
-        seriesByComponent={cpuFor(names)}
+        series={seriesFor(names)}
         colorOf={componentColorResolver(names)}
         usageType="cpu"
         timeRange="1h"
       />,
     );
 
-    expect(lines()).toHaveLength(72);
-    // Every component still gets its lines; the palette cycles rather than
+    expect(lines()).toHaveLength(24);
+    // Every component still gets its line; the palette cycles rather than
     // inventing 24 near-identical hues. Palette has 10 entries.
     const colours = new Set(lines().map(l => l.getAttribute('data-stroke')));
     expect(colours.size).toBe(10);

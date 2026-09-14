@@ -7,14 +7,17 @@ import {
   MenuItem,
   Select,
 } from '@material-ui/core';
+import ToggleButton from '@material-ui/lab/ToggleButton';
+import ToggleButtonGroup from '@material-ui/lab/ToggleButtonGroup';
 import { Skeleton } from '@openchoreo/backstage-design-system';
-import { Filters } from '../../types';
+import { Filters, MetricsViewMode } from '../../types';
 import { Component } from '../../hooks/useGetComponentsByProject';
 import {
   EnvironmentFilter,
   TimeRangeFilter,
   Environment,
 } from '@openchoreo/backstage-plugin-react';
+import { useMetricsViewToggleStyles } from './styles';
 
 interface MetricsFiltersProps {
   filters: Filters;
@@ -25,6 +28,11 @@ interface MetricsFiltersProps {
    *  to pick between and the selector is hidden. */
   components?: Component[];
   componentsLoading?: boolean;
+  /** Project-level only. The two views are opposing, not on and off, so they
+   *  get a segmented control rather than a switch. The component page passes
+   *  no handler and the control does not render there. */
+  viewMode?: MetricsViewMode;
+  onViewModeChange?: (view: MetricsViewMode) => void;
   disabled?: boolean;
 }
 
@@ -35,16 +43,55 @@ export const MetricsFilters = ({
   environmentsLoading = false,
   components = [],
   componentsLoading = false,
+  viewMode = 'total',
+  onViewModeChange,
   disabled = false,
 }: MetricsFiltersProps) => {
+  const classes = useMetricsViewToggleStyles();
+
   const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
     onFiltersChange({ components: event.target.value as string[] });
   };
 
+  // The selector belongs to the breakdown view alone. Showing it greyed out in
+  // the total view would advertise a control that does nothing there.
+  const showComponentSelector =
+    components.length > 0 && (!onViewModeChange || viewMode === 'breakdown');
+
   return (
     <Grid container spacing={3}>
+      {onViewModeChange && (
+        <Grid item xs={12} md={3}>
+          <ToggleButtonGroup
+            exclusive
+            size="medium"
+            value={viewMode}
+            onChange={(_event, next) =>
+              next && onViewModeChange(next as MetricsViewMode)
+            }
+            className={classes.toggleGroup}
+            aria-label="Metrics view"
+          >
+            <ToggleButton
+              value="total"
+              className={classes.toggleButton}
+              disabled={disabled}
+            >
+              Project
+            </ToggleButton>
+            <ToggleButton
+              value="breakdown"
+              className={classes.toggleButton}
+              disabled={disabled}
+            >
+              By component
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Grid>
+      )}
+
       <Grid item xs={12} md={3}>
-        {components.length > 0 && (
+        {showComponentSelector && (
           <FormControl
             fullWidth
             disabled={disabled || componentsLoading}
@@ -63,7 +110,14 @@ export const MetricsFilters = ({
                 renderValue={selected => {
                   const selectedArray = selected as string[];
                   if (selectedArray.length === 0) return 'All';
-                  return selectedArray.join(', ');
+                  // Same label as the checkbox row, so the closed select and
+                  // the open list name a component the same way.
+                  return selectedArray
+                    .map(name => {
+                      const match = components.find(c => c.name === name);
+                      return match?.displayName || name;
+                    })
+                    .join(', ');
                 }}
               >
                 {components.map(component => (
@@ -82,9 +136,7 @@ export const MetricsFilters = ({
         )}
       </Grid>
 
-      <Grid item xs={12} md={3}>
-        {/* TODO: Add Filters for Metrics */}
-      </Grid>
+      {/* TODO: Add Filters for Metrics */}
 
       <Grid item xs={12} md={3}>
         <EnvironmentFilter
