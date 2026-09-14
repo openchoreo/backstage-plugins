@@ -69,9 +69,8 @@ export interface DeliveryInsightsContentProps {
  * The Delivery Insights (DORA metrics) surface, per the Insights wireframe:
  * filter bar (range / granularity / environment), four KPI tiles with rating +
  * delta + sparkline, four trend charts, a one-level-down breakdown table, a
- * per-environment section, and a "how these are calculated" footnote. Serves
- * the namespace, project, and component levels — scope/level are the only
- * differences between them.
+ * and a per-environment section. Serves the namespace, project, and component
+ * levels — scope/level are the only differences between them.
  *
  * Fully controlled: the hosting page owns the filter state so it can keep it in
  * the URL, making a given view bookmarkable.
@@ -410,44 +409,6 @@ export const DeliveryInsightsContent = ({
               </Typography>
             </Box>
           )}
-
-          <Box
-            mt={3}
-            p={2}
-            border={1}
-            borderColor="divider"
-            borderRadius={10}
-            style={{ borderStyle: 'dashed' }}
-          >
-            <details>
-              <summary style={{ cursor: 'pointer', fontWeight: 650 }}>
-                How these metrics are calculated
-              </summary>
-              <Box mt={1.5}>
-                <Typography
-                  variant="body2"
-                  component="div"
-                  color="textSecondary"
-                >
-                  <b>Deployment Frequency</b> — successful deployments per
-                  bucket, de-noised by rendered-release identity.
-                  <br />
-                  <b>Lead Time</b> — deploy-ready time minus commit-authored
-                  time; commit provenance is carried on the Workload.
-                  <br />
-                  <b>Change Failure Rate</b> — deployments with a failed rollout
-                  or an attributed incident ÷ total deployments.
-                  <br />
-                  <b>MTTR</b> — incident resolved minus triggered, or the
-                  health-based recovery transition.
-                  <br />
-                  Ratings use standard DORA thresholds. Source: data-plane
-                  delivery events + incident store, rolled up into the Delivery
-                  Insights store.
-                </Typography>
-              </Box>
-            </details>
-          </Box>
         </>
       )}
     </Box>
