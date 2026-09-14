@@ -1,16 +1,26 @@
-import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import Box from '@material-ui/core/Box';
 import { catalogApiRef, useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import { useNavigate } from 'react-router-dom';
-import { Organization } from '@openchoreo/cell-diagram';
+import { Organization, Project } from '@openchoreo/cell-diagram';
 import {
   useChoreoTokens,
   PageLoader,
 } from '@openchoreo/backstage-design-system';
 import { EmptyState } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
+import { ProjectCellPreview } from './ProjectCellPreview';
 import { useNamespaceCellDiagramStyles } from './styles';
 
 const CellView = lazy(() =>
@@ -40,8 +50,21 @@ export const NamespaceCellDiagram = () => {
   const [loading, setLoading] = useState(false);
   const [hasFetchedOnce, setHasFetchedOnce] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
+  // The project whose preview popover is open, plus the cell it's anchored to.
+  const [preview, setPreview] = useState<{
+    projectId: string;
+    anchorEl: HTMLElement | null;
+  } | null>(null);
 
   const namespaceName = entity.metadata.name;
+
+  const projectsById = useMemo(() => {
+    const map = new Map<string, Project>();
+    for (const project of organization?.projects ?? []) {
+      map.set(project.id, project);
+    }
+    return map;
+  }, [organization]);
 
   // Keep navigation dependencies out of the click callback's identity so the
   // memoized diagram doesn't re-render when they change.
@@ -70,6 +93,17 @@ export const NamespaceCellDiagram = () => {
       // Swallow — a failed lookup just leaves the user on the namespace diagram.
     }
   }, []);
+
+  // Clicking a cell opens an in-place preview anchored to that cell. The
+  // cell-diagram lib renders each cell with id={project.id}, so we anchor the
+  // popover to that element.
+  const openPreview = useCallback((projectId: string) => {
+    if (!projectId) return;
+    const anchorEl = document.getElementById(projectId);
+    setPreview({ projectId, anchorEl });
+  }, []);
+
+  const closePreview = useCallback(() => setPreview(null), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,9 +136,22 @@ export const NamespaceCellDiagram = () => {
           <MemoCellView
             organization={organization}
             mode={mode}
-            onComponentDoubleClick={navigateToProject}
+            onComponentDoubleClick={openPreview}
           />
         </Suspense>
+      )}
+
+      {preview && (
+        <ProjectCellPreview
+          anchorEl={preview.anchorEl}
+          project={projectsById.get(preview.projectId)}
+          mode={mode}
+          onClose={closePreview}
+          onOpenFull={() => {
+            void navigateToProject(preview.projectId);
+            closePreview();
+          }}
+        />
       )}
 
       {hasNoProjects && (

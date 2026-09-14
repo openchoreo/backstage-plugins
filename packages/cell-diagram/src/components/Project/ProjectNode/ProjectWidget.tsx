@@ -2,7 +2,7 @@ import { MouseEvent, useContext, useEffect, useRef, useState } from 'react';
 import Fade from '@mui/material/Fade';
 import Box from '@mui/material/Box';
 import Tooltip from '@mui/material/Tooltip';
-import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
 import { DiagramEngine, PortModel } from '@projectstorm/react-diagrams';
 import { ProjectModel } from './ProjectModel';
 import { ProjectHeadWidget } from './ProjectHeadWidget/ProjectHeadWidget';
@@ -118,12 +118,12 @@ export function ProjectWidget(props: ProjectWidgetProps) {
         >
           <Fade in={isHovered} timeout={350}>
             <Tooltip
-              title="View Project"
+              title="Preview Project"
               placement="bottom"
               enterNextDelay={1000}
             >
-              <OpenInNewRoundedIcon
-                sx={{ color: colors.OUTLINE_VARIANT, fontSize: 20 }}
+              <ZoomInRoundedIcon
+                sx={{ color: colors.OUTLINE_VARIANT, fontSize: 26 }}
               />
             </Tooltip>
           </Fade>

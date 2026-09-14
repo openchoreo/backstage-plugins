@@ -26,22 +26,69 @@ jest.mock('@backstage/catalog-model', () => ({
     `domain:${e?.metadata?.namespace}/${e?.metadata?.name}`,
 }));
 
-// Stub the diagram lib: render one clickable button per cell so we can drive
-// the single-click navigation path without the real canvas.
+// Stub the diagram lib: in org mode render one clickable button per cell
+// (with id={p.id}, matching the real lib, so the preview can anchor to it); in
+// project mode render a preview marker.
 jest.mock('@openchoreo/cell-diagram', () => ({
-  CellDiagram: ({ organization, onComponentDoubleClick }: any) => (
-    <div data-testid="namespace-cell-diagram-view">
-      {organization?.projects?.map((p: any) => (
-        <button
-          key={p.id}
-          data-testid={`cell-${p.id}`}
-          onClick={() => onComponentDoubleClick?.(p.id)}
-        >
-          {p.id}
+  CellDiagram: ({ organization, project, onComponentDoubleClick }: any) => {
+    if (project) {
+      return <div data-testid={`preview-${project.id}`}>{project.id} preview</div>;
+    }
+    return (
+      <div data-testid="namespace-cell-diagram-view">
+        {organization?.projects?.map((p: any) => (
+          <button
+            key={p.id}
+            id={p.id}
+            data-testid={`cell-${p.id}`}
+            onClick={() => onComponentDoubleClick?.(p.id)}
+          >
+            {p.id}
+          </button>
+        ))}
+      </div>
+    );
+  },
+}));
+
+// Minimal MUI/Backstage stubs for the preview popover.
+jest.mock('@material-ui/core/Popper', () => ({
+  __esModule: true,
+  default: ({ open, children }: any) =>
+    open ? <div data-testid="preview-popover">{children}</div> : null,
+}));
+jest.mock('@material-ui/core/Paper', () => ({ children }: any) => (
+  <div data-testid="preview-panel">{children}</div>
+));
+jest.mock(
+  '@material-ui/core/ClickAwayListener',
+  () =>
+    ({ children }: any) =>
+      children,
+);
+jest.mock('@material-ui/core/Typography', () => ({ children }: any) => (
+  <span>{children}</span>
+));
+jest.mock(
+  '@material-ui/core/Button',
+  () =>
+    ({ children, onClick }: any) =>
+      <button onClick={onClick}>{children}</button>,
+);
+jest.mock(
+  '@material-ui/core/IconButton',
+  () =>
+    ({ children, onClick, ['aria-label']: ariaLabel }: any) =>
+      (
+        <button aria-label={ariaLabel} onClick={onClick}>
+          {children}
         </button>
-      ))}
-    </div>
-  ),
+      ),
+);
+jest.mock('@material-ui/icons/Close', () => () => <span>close</span>);
+jest.mock('@material-ui/icons/OpenInNew', () => () => <span>open</span>);
+jest.mock('@backstage/core-components', () => ({
+  Progress: () => <div data-testid="progress" />,
 }));
 
 jest.mock('@openchoreo/backstage-design-system', () => ({
@@ -89,7 +136,11 @@ function setupMockClient(
       id: 'test-ns',
       name: 'test-ns',
       projects: [
-        { id: 'proj-a', name: 'proj-a', components: [] },
+        {
+          id: 'proj-a',
+          name: 'proj-a',
+          components: [{ id: 'svc-1', label: 'svc-1' }],
+        },
         { id: 'proj-b', name: 'proj-b', components: [] },
       ],
     }),
@@ -127,7 +178,7 @@ describe('NamespaceCellDiagram', () => {
     expect(screen.getByTestId('cell-proj-b')).toBeInTheDocument();
   });
 
-  it('navigates to a project cell-diagram tab when a cell is clicked', async () => {
+  it('opens an in-place preview when a cell is clicked', async () => {
     setupMockClient();
 
     await act(async () => {
@@ -139,10 +190,61 @@ describe('NamespaceCellDiagram', () => {
       await userEvent.click(cell);
     });
 
+    // Preview panel renders that project's diagram + name; no navigation yet.
+    await waitFor(() => {
+      expect(screen.getByTestId('preview-proj-a')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('preview-project-name')).toHaveTextContent(
+      'proj-a',
+    );
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('navigates to the project cell-diagram tab from the preview', async () => {
+    setupMockClient();
+
+    await act(async () => {
+      render(<NamespaceCellDiagram />);
+    });
+
+    const cell = await screen.findByTestId('cell-proj-a');
+    await act(async () => {
+      await userEvent.click(cell);
+    });
+    await screen.findByTestId('preview-proj-a');
+
+    const openFull = screen.getByRole('button', { name: /go to project/i });
+    await act(async () => {
+      await userEvent.click(openFull);
+    });
+
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
         '/catalog/default/system/proj-a/cell-diagram',
       );
+    });
+  });
+
+  it('closes the preview via the close button', async () => {
+    setupMockClient();
+
+    await act(async () => {
+      render(<NamespaceCellDiagram />);
+    });
+
+    const cell = await screen.findByTestId('cell-proj-a');
+    await act(async () => {
+      await userEvent.click(cell);
+    });
+    await screen.findByTestId('preview-proj-a');
+
+    const close = screen.getByRole('button', { name: /close preview/i });
+    await act(async () => {
+      await userEvent.click(close);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('preview-proj-a')).not.toBeInTheDocument();
     });
   });
 
