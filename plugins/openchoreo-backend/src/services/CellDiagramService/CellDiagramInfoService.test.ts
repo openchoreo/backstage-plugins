@@ -902,9 +902,7 @@ describe('CellDiagramInfoService', () => {
             }),
           );
         }
-        return Promise.resolve(
-          createOkResponse({ items: [], pagination: {} }),
-        );
+        return Promise.resolve(createOkResponse({ items: [], pagination: {} }));
       });
 
       const service = createService();
