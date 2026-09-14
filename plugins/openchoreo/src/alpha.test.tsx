@@ -25,6 +25,7 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-card', 'project-contents'],
   ['entity-card', 'deployment-pipeline'],
   // domain-page
+  ['entity-content', 'namespace-cell-diagram'],
   ['entity-card', 'namespace-projects'],
   ['entity-card', 'namespace-resources'],
   // managed resource
