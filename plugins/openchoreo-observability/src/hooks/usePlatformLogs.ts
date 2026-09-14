@@ -30,8 +30,8 @@ export interface UsePlatformLogsResult {
  *
  * Cursor-paginated over timestamps, the same way component logs are: "load more" walks
  * the window edge using the last row's timestamp as the new endTime when descending, or
- * startTime when ascending. There is no facet endpoint in v1, so the filter pickers are
- * free-text and this hook simply forwards whatever they hold.
+ * startTime when ascending. This hook simply forwards whatever the filters hold; what
+ * the pickers offer is `usePlatformLogFilterValues`' problem, not this one's.
  */
 export function usePlatformLogs(
   observerUrl: string | undefined,

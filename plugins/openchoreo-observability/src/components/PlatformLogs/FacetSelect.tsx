@@ -1,15 +1,35 @@
-import { FC, useEffect, useRef, useState } from 'react';
-import { Checkbox, TextField, Typography } from '@material-ui/core';
+import { FC, useEffect, useRef } from 'react';
+import {
+  Checkbox,
+  CircularProgress,
+  TextField,
+  Typography,
+} from '@material-ui/core';
 import { Autocomplete } from '@material-ui/lab';
 import { useFacetSelectStyles } from './styles';
 
 interface FacetSelectProps {
   label: string;
-  /** Values seen in the logs loaded so far. May be empty before the first result. */
+  /**
+   * The values on offer, in the order they should be shown - by record count when the
+   * observer answered, alphabetical when they were derived from the loaded rows.
+   */
   options: string[];
+  /**
+   * Records carrying each value, when that is known. Kept beside `options` rather than
+   * folded into them so every value MUI handles stays a plain string: under `freeSolo`
+   * a typed entry arrives as a string, and object options would make the selection a
+   * mix of the two.
+   */
+  counts?: Record<string, number>;
   selected: string[];
   onChange: (selected: string[]) => void;
-  disabled?: boolean;
+  /** Whether the list is open. Owned by the parent, so only one picker opens at a time. */
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Reports what has been typed, for narrowing the values server-side. */
+  onSearchChange?: (text: string) => void;
+  loading?: boolean;
 }
 
 /**
@@ -27,20 +47,25 @@ function summarise(selected: string[]): string {
 }
 
 /**
- * A multi-select for one of the coordinate filters, offering the values seen so far
- * while still accepting anything typed.
+ * A multi-select for one of the coordinate filters, offering the values on hand while
+ * still accepting anything typed.
  *
- * `freeSolo` is not a nicety here. The options come from loaded results rather than a
- * facet endpoint, so the list is necessarily incomplete - a pod that has not logged in
- * the current window is missing from it. Without free text the picker would be strictly
- * less capable than the plain text box it replaced.
+ * `freeSolo` is not a nicety here. Even when the observer answers, the list is bounded
+ * by the time window and capped at the values carrying the most records, and when it
+ * cannot answer the list is whatever the loaded rows happened to mention. A pod that
+ * has not logged lately is missing either way, so without free text the picker would be
+ * strictly less capable than the plain text box it replaced.
  */
 export const FacetSelect: FC<FacetSelectProps> = ({
   label,
   options,
+  counts,
   selected,
   onChange,
-  disabled = false,
+  open,
+  onOpenChange,
+  onSearchChange,
+  loading = false,
 }) => {
   const classes = useFacetSelectStyles();
   const summary = summarise(selected);
@@ -48,7 +73,10 @@ export const FacetSelect: FC<FacetSelectProps> = ({
   // The dropdown is controlled so it can be closed explicitly. MUI's Autocomplete has
   // no click-away handling of its own: it closes only from the input's `onBlur`, so a
   // click that never blurs the input leaves the popup orphaned and open.
-  const [open, setOpen] = useState(false);
+  //
+  // The state lives with the parent, which is what keeps a second picker from opening
+  // over the first and makes "which one is open" a thing the row can act on. The
+  // outside-click handling stays here, because it needs this component's DOM node.
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -63,13 +91,13 @@ export const FacetSelect: FC<FacetSelectProps> = ({
       // `.MuiAutocomplete-popper` selector never matches. Picking an option would then
       // read as a click away and close the list before the click could select.
       if (target && rootRef.current?.contains(target)) return;
-      setOpen(false);
+      onOpenChange(false);
     };
 
     document.addEventListener('mousedown', closeOnOutsideMouseDown);
     return () =>
       document.removeEventListener('mousedown', closeOnOutsideMouseDown);
-  }, [open]);
+  }, [open, onOpenChange]);
 
   return (
     <div ref={rootRef}>
@@ -84,10 +112,16 @@ export const FacetSelect: FC<FacetSelectProps> = ({
         disablePortal
         size="small"
         open={open}
-        onOpen={() => setOpen(true)}
-        onClose={() => setOpen(false)}
-        disabled={disabled}
+        onOpen={() => onOpenChange(true)}
+        onClose={() => onOpenChange(false)}
+        loading={loading}
         options={options}
+        // Reported only while someone is typing. Selecting an option also fires this,
+        // with reason 'reset' as MUI clears the input, and taking that for a search
+        // would leave the next open narrowed by text nobody can see.
+        onInputChange={(_, value, reason) =>
+          onSearchChange?.(reason === 'input' ? value : '')
+        }
         value={selected}
         // Autocomplete hands back (string | string[]) under freeSolo; the multiple form
         // is always an array of the entered/selected strings.
@@ -107,6 +141,11 @@ export const FacetSelect: FC<FacetSelectProps> = ({
               disableRipple
             />
             <span className={classes.optionLabel}>{option}</span>
+            {counts?.[option] !== undefined && (
+              <Typography variant="caption" className={classes.optionCount}>
+                {counts[option].toLocaleString()}
+              </Typography>
+            )}
           </span>
         )}
         renderInput={params => (
@@ -125,6 +164,14 @@ export const FacetSelect: FC<FacetSelectProps> = ({
                 >
                   {summary}
                 </Typography>
+              ),
+              // Composed before MUI's own adornment rather than replacing it: that one
+              // holds the dropdown arrow.
+              endAdornment: (
+                <>
+                  {loading && <CircularProgress color="inherit" size={16} />}
+                  {params.InputProps.endAdornment}
+                </>
               ),
             }}
           />

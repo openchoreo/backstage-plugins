@@ -21,6 +21,8 @@ import {
 } from '../types';
 import { LogsResponse } from '../components/RuntimeLogs/types';
 import {
+  PlatformLogFilterValuesQueryOptions,
+  PlatformLogFilterValuesResponse,
   PlatformLogsQueryOptions,
   PlatformLogsResponse,
 } from '../components/PlatformLogs/types';
@@ -55,6 +57,20 @@ export interface ObservabilityApi {
     observerUrl: string,
     options?: PlatformLogsQueryOptions,
   ): Promise<PlatformLogsResponse>;
+
+  /**
+   * List the distinct values one platform logs filter can take, so a picker can offer
+   * the values reachable in the whole matching set rather than only those that appear
+   * in the page of records already loaded.
+   *
+   * Resolves to `null` when this plane cannot answer - an observer predating the
+   * endpoint, or a logs adapter that cannot aggregate. That is a different thing from
+   * an empty list, and the caller is expected to fall back rather than show nothing.
+   */
+  getPlatformLogFilterValues(
+    observerUrl: string,
+    options: PlatformLogFilterValuesQueryOptions,
+  ): Promise<PlatformLogFilterValuesResponse | null>;
 
   getRuntimeEvents(
     namespaceName: string,
@@ -233,6 +249,45 @@ export const observabilityApiRef = createApiRef<ObservabilityApi>({
 });
 
 const DIRECT_HEADER = { 'x-openchoreo-direct': 'true' };
+
+/**
+ * Writes the filters shared by the platform logs record query and its filter values
+ * query onto a URL.
+ *
+ * Shared rather than duplicated because the contract is that the two take the same
+ * parameters: a filter values answer only describes the records the log query would
+ * return if both spell the query the same way.
+ *
+ * Multi-value filters are comma-separated, matching the endpoints'
+ * `style: form, explode: false`. An empty list is not a filter, so it is omitted
+ * entirely rather than sent as an empty value. The label selector goes over the wire as
+ * `kubectl -l` spells it; plane attribution is expressed there rather than as its own
+ * parameter.
+ */
+function setPlatformLogsRecordParams(
+  url: URL,
+  options: Omit<PlatformLogsQueryOptions, 'limit' | 'sortOrder'>,
+): void {
+  const listParams: Array<[string, string[] | undefined]> = [
+    ['clusterInstance', options.clusterInstances],
+    ['namespace', options.namespaces],
+    ['podName', options.podNames],
+    ['containerName', options.containerNames],
+    ['logLevels', options.logLevels],
+  ];
+  for (const [name, values] of listParams) {
+    if (values?.length) {
+      url.searchParams.set(name, values.join(','));
+    }
+  }
+
+  if (options.labels) {
+    url.searchParams.set('labels', options.labels);
+  }
+  if (options.searchQuery) {
+    url.searchParams.set('searchPhrase', options.searchQuery);
+  }
+}
 
 export class ObservabilityClient implements ObservabilityApi {
   private readonly fetchApi: FetchApi;
@@ -867,30 +922,7 @@ export class ObservabilityClient implements ObservabilityApi {
     url.searchParams.set('limit', String(options?.limit ?? 100));
     url.searchParams.set('sortOrder', options?.sortOrder ?? 'desc');
 
-    // Multi-value filters are comma-separated, matching the endpoint's
-    // `style: form, explode: false`. An empty list is not a filter, so it is
-    // omitted entirely rather than sent as an empty value.
-    const listParams: Array<[string, string[] | undefined]> = [
-      ['clusterInstance', options?.clusterInstances],
-      ['namespace', options?.namespaces],
-      ['podName', options?.podNames],
-      ['containerName', options?.containerNames],
-      ['logLevels', options?.logLevels],
-    ];
-    for (const [name, values] of listParams) {
-      if (values?.length) {
-        url.searchParams.set(name, values.join(','));
-      }
-    }
-
-    // The label selector goes over the wire as `kubectl -l` spells it. Plane
-    // attribution is expressed here rather than as its own parameter.
-    if (options?.labels) {
-      url.searchParams.set('labels', options.labels);
-    }
-    if (options?.searchQuery) {
-      url.searchParams.set('searchPhrase', options.searchQuery);
-    }
+    setPlatformLogsRecordParams(url, options ?? {});
 
     const response = await this.fetchApi.fetch(url.toString(), {
       headers: { ...DIRECT_HEADER },
@@ -911,6 +943,66 @@ export class ObservabilityClient implements ObservabilityApi {
       throw new Error(
         error ||
           `Failed to fetch platform logs: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return await response.json();
+  }
+
+  async getPlatformLogFilterValues(
+    observerUrl: string,
+    options: PlatformLogFilterValuesQueryOptions,
+  ): Promise<PlatformLogFilterValuesResponse | null> {
+    const url = new URL(
+      `${observerUrl}/api/v1alpha1/platform-logs/filter-values`,
+    );
+
+    url.searchParams.set('filter', options.filter);
+    url.searchParams.set(
+      'startTime',
+      options.startTime ?? new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    );
+    url.searchParams.set(
+      'endTime',
+      options.endTime ?? new Date().toISOString(),
+    );
+
+    // The record query goes over the wire whole, the named filter's own selections
+    // included: the observer ignores those, and sending a query with them stripped
+    // would leave it unable to tell "not selected" from "excluded for this call".
+    setPlatformLogsRecordParams(url, options);
+
+    if (options.valueSearch) {
+      url.searchParams.set('valueSearch', options.valueSearch);
+    }
+    if (options.maxValues) {
+      url.searchParams.set('maxValues', String(options.maxValues));
+    }
+
+    const response = await this.fetchApi.fetch(url.toString(), {
+      headers: { ...DIRECT_HEADER },
+    });
+
+    if (!response.ok) {
+      // Answered rather than thrown: an observer that predates the endpoint (404) and
+      // a logs adapter that cannot aggregate (501) are both "this plane cannot answer",
+      // which the caller handles by falling back to the values it derived itself.
+      // Throwing would also earn a retry, and neither status improves on a second ask.
+      //
+      // Deliberately unlike getPlatformLogs, which throws on 501: there, no logs at all
+      // is the whole answer and has to be said out loud. Here the page still works.
+      if (response.status === 404 || response.status === 501) {
+        return null;
+      }
+      const error = await this.parseError(response);
+      if (response.status === 403) {
+        throw new Error(
+          'You do not have permission to view platform logs. This requires a cluster-scoped role.',
+        );
+      }
+      throw new Error(
+        error ||
+          `Failed to fetch platform log filter values: ${response.status} ${response.statusText}`,
       );
     }
 

@@ -34,6 +34,11 @@ export {
   type PlatformLogFacets,
 } from './usePlatformLogFacets';
 export {
+  usePlatformLogFilterValues,
+  type UsePlatformLogFilterValuesResult,
+} from './usePlatformLogFilterValues';
+export { useDebouncedValue } from './useDebouncedValue';
+export {
   useObservabilityPlanes,
   type ObservabilityPlaneOption,
 } from './useObservabilityPlanes';
