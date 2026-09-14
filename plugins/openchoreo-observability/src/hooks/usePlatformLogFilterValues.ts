@@ -122,7 +122,13 @@ export function usePlatformLogFilterValues(
   // may describe the picker opened before this one. The response echoes the filter it
   // answered for precisely so it can be told apart; without this check, opening Pods
   // straight after Namespaces briefly lists namespaces under the Pods label.
-  const answered = data && data.filter === filter ? data : null;
+  //
+  // The level check is not the same thing. Every level selected and none selected both
+  // send no level filter, so they key alike, and the disabled no-level query reads the
+  // all-level answer straight out of the cache - values for records the table is not
+  // even showing. Keying them apart would not help while keepPreviousData is offering
+  // the previous answer anyway, so the answer is refused here instead.
+  const answered = !noLevels && data && data.filter === filter ? data : null;
 
   return {
     values: answered ? answered.values : null,

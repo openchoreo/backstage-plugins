@@ -170,6 +170,23 @@ describe('usePlatformLogFilterValues', () => {
     expect(result.current.error).toMatch(/observer exploded/);
   });
 
+  // Every level selected and none selected both send no level filter, so they key
+  // alike. The no-level query is disabled, but a disabled query still reads its entry
+  // from the cache - which would offer values counted over records the table is not
+  // showing, because with no level selected it is showing none.
+  it('does not serve the all-level answer when no level is selected', async () => {
+    const { result, rerender } = renderHook(
+      ({ f }: { f: PlatformLogsFilters }) =>
+        usePlatformLogFilterValues('http://observer.example', 'podName', f, ''),
+      { wrapper: createQueryWrapper(), initialProps: { f: filters() } },
+    );
+    await waitFor(() => expect(result.current.values).not.toBeNull());
+
+    rerender({ f: filters({ logLevel: [] }) });
+
+    expect(result.current.values).toBeNull();
+  });
+
   // The previous picker's answer is held while the new one loads, so it has to be told
   // apart - otherwise opening Pods after Namespaces lists namespaces under Pods.
   it('ignores an answer describing a different filter', async () => {

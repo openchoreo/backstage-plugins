@@ -5,12 +5,13 @@
 Populate the platform logs filter pickers from the observability plane rather than
 from the log lines on screen.
 
-Opening a picker now asks the plane which values that filter can take across
-everything matching the current query, so it offers the whole plane rather than only
-what the loaded page happened to mention — a pod that has not logged recently is
-reachable, and picking a namespace no longer leaves the namespace picker showing that
-one value with no way back to the others. Each value carries how many records use it,
-and typing narrows the list at the plane rather than in the browser.
+Opening a picker now asks the plane which values that filter can take across every
+record matching the current query, rather than only those the loaded page happened to
+mention — so a pod that logged inside the time window is offered even when none of its
+lines are on the page yet, and picking a namespace no longer leaves the namespace
+picker showing that one value with no way back to the others. Each value carries how
+many records use it, and typing narrows the list at the plane rather than in the
+browser.
 
 The plane is asked one filter at a time, and only for the picker being opened: each
 answer costs it an aggregation, and a page view that never opens the filters costs

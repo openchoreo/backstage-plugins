@@ -18,10 +18,10 @@ A scope bar keeps the plane, time range, search, live tail and refresh visible;
 the coordinate pickers, labels and log levels fold away behind a Filters button
 and render as removable chips, so a collapsed row never hides what is narrowing
 the query. The cluster, namespace, pod and container pickers are multi-select
-and ask the observability plane for their values when opened, so they offer what
-the whole plane holds rather than only what is on screen. They stay free text
-because that list is still bounded - by the time window, and by the values
-carrying the most records. The labels and
+and ask the observability plane for their values when opened, so they offer
+everything the current query matches rather than only what is on screen. They
+stay free text because that list is still bounded - by the time window, and by
+the values carrying the most records. The labels and
 search fields are validated as you type, so a half-typed label selector is
 explained on the field rather than sent and rejected. Expanding a row reveals
 the full message, the pod's coordinates and its labels.
