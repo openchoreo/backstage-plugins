@@ -1,7 +1,5 @@
 import type { CostResourceProfile } from '../../types';
 
-export type CostViewMode = 'table' | 'graph';
-
 /**
  * The scope level is derived from how deep the breadcrumb selection goes:
  * - `namespace`: rows are projects
@@ -80,8 +78,6 @@ export interface CostRow {
 export interface CostSummary {
   totalCost: number;
   deltaPct: number | null;
-  /** Linear extrapolation of the window's spend to the current calendar month. */
-  forecastThisMonth: number;
   efficiency: number;
   /** Aggregate reclaimable spend across the scope. */
   totalSaving: number;
@@ -93,13 +89,15 @@ export type CostSeriesPoint = {
 } & Record<string, number | string>;
 
 /**
- * One point on the forecast-divergence chart. `actual` covers the measured
- * window; `atCurrent`/`ifApplied` are the two projections.
+ * One point on the current-cost-and-forecast chart. `actual` is the accumulated
+ * spend so far this calendar month (month start till today); `forecast`/`ifApplied`
+ * are the two projections from today to month end (they share today's value with
+ * `actual` so the areas/lines join).
  */
 export interface ForecastPoint {
   timestamp: string;
   actual?: number;
-  atCurrent?: number;
+  forecast?: number;
   ifApplied?: number;
 }
 

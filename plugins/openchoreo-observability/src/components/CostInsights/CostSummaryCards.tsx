@@ -1,19 +1,11 @@
 import { FC } from 'react';
-import { Grid, Tooltip, Typography, makeStyles } from '@material-ui/core';
+import { Typography, makeStyles } from '@material-ui/core';
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
-import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
-import { Card } from '@openchoreo/backstage-design-system';
 import type { CostSummary } from './types';
-import { formatUsd, formatEfficiency } from './format';
+import { formatUsd } from './format';
 
 const useStyles = makeStyles(theme => ({
-  card: {
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(0.5),
-  },
   label: {
     fontWeight: 600,
     fontSize: '0.75rem',
@@ -33,17 +25,7 @@ const useStyles = makeStyles(theme => ({
   down: { color: theme.palette.success.main },
   deltaIcon: { fontSize: 16 },
   muted: { color: theme.palette.text.secondary },
-  labelRow: { display: 'flex', alignItems: 'center', gap: theme.spacing(0.5) },
-  infoIcon: {
-    fontSize: 15,
-    color: theme.palette.text.secondary,
-    cursor: 'help',
-  },
 }));
-
-export interface CostSummaryCardsProps {
-  summary: CostSummary;
-}
 
 const DeltaChip: FC<{ deltaPct: number | null }> = ({ deltaPct }) => {
   const classes = useStyles();
@@ -74,8 +56,8 @@ const DeltaChip: FC<{ deltaPct: number | null }> = ({ deltaPct }) => {
 
 /**
  * The Total Cost card's inner content (label, headline value, delta), without a
- * `Card` wrapper — so it can be reused both here and in the catalog overview's
- * cost summary card without nesting one `Card` inside another.
+ * `Card` wrapper — so the catalog overview's cost summary card can render it
+ * without nesting one `Card` inside another.
  */
 export const TotalCostContent: FC<{
   summary: CostSummary;
@@ -93,55 +75,5 @@ export const TotalCostContent: FC<{
       </Typography>
       <DeltaChip deltaPct={summary.deltaPct} />
     </>
-  );
-};
-
-export const CostSummaryCards: FC<CostSummaryCardsProps> = ({ summary }) => {
-  const classes = useStyles();
-  return (
-    <Grid container spacing={2}>
-      <Grid item xs={12} sm={4}>
-        <Card padding={16} className={classes.card}>
-          <TotalCostContent summary={summary} />
-        </Card>
-      </Grid>
-      <Grid item xs={12} sm={4}>
-        <Card padding={16} className={classes.card}>
-          <div className={classes.labelRow}>
-            <Typography className={classes.label}>
-              Forecast this month
-            </Typography>
-            <Tooltip
-              title="Extrapolates the selected time window's spend rate across the whole month. Hence the forecast can change with the time range you pick, especially when only part of that range has cost data."
-              arrow
-            >
-              <InfoOutlinedIcon className={classes.infoIcon} />
-            </Tooltip>
-          </div>
-          <Typography component="div" className={classes.value}>
-            {formatUsd(summary.forecastThisMonth)}
-          </Typography>
-          <Typography variant="body2" className={classes.muted}>
-            at current rate
-          </Typography>
-        </Card>
-      </Grid>
-      <Grid item xs={12} sm={4}>
-        <Card padding={16} className={classes.card}>
-          <div className={classes.labelRow}>
-            <Typography className={classes.label}>Efficiency</Typography>
-            <Tooltip
-              title="Share of provisioned resources actually used (usage/requested) as a percentage, weighted by cost. Low efficiency means you are paying for capacity that sits idle."
-              arrow
-            >
-              <InfoOutlinedIcon className={classes.infoIcon} />
-            </Tooltip>
-          </div>
-          <Typography component="div" className={classes.value}>
-            {formatEfficiency(summary.efficiency)}
-          </Typography>
-        </Card>
-      </Grid>
-    </Grid>
   );
 };

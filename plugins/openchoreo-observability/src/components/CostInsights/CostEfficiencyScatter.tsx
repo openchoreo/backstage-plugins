@@ -3,7 +3,6 @@ import { Paper, Typography, makeStyles, useTheme } from '@material-ui/core';
 import {
   Cell,
   LabelList,
-  ReferenceArea,
   ResponsiveContainer,
   Scatter,
   ScatterChart,
@@ -35,6 +34,14 @@ const useStyles = makeStyles(theme => ({
     overflowY: 'auto',
     fontSize: 12,
     color: theme.palette.text.primary,
+  },
+  legendHeading: {
+    fontWeight: 600,
+    fontSize: '0.7rem',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: theme.palette.text.secondary,
+    padding: theme.spacing(0, 0, 0.5, 0),
   },
   legendRow: {
     display: 'flex',
@@ -143,24 +150,12 @@ export const CostEfficiencyScatter: FC<CostEfficiencyScatterProps> = ({
       <ChartTitle
         title={title}
         className={classes.header}
-        info="Each bubble is one dimension: x is resource efficiency, y is spend, and bubble size is the estimated saving. Bubbles in the shaded band are low-efficiency spend worth reviewing first."
+        info="Each bubble is one dimension: x is resource efficiency, y is spend, and bubble size is the estimated saving. Low-efficiency, high-spend bubbles are worth reviewing first."
       />
       <div className={classes.body}>
         <div className={classes.chart}>
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 8, right: 16, bottom: 24, left: 0 }}>
-              <ReferenceArea
-                x1={0}
-                x2={LOW_EFFICIENCY_THRESHOLD * 100}
-                fill={dark ? '#b06636' : '#a53f63'}
-                fillOpacity={0.08}
-                label={{
-                  value: 'LOW EFFICIENCY',
-                  position: 'insideBottomLeft',
-                  fontSize: 10,
-                  fill: theme.palette.text.secondary,
-                }}
-              />
               <XAxis
                 type="number"
                 dataKey="x"
@@ -232,6 +227,9 @@ export const CostEfficiencyScatter: FC<CostEfficiencyScatterProps> = ({
           </ResponsiveContainer>
         </div>
         <div className={classes.legend}>
+          <div className={classes.legendHeading}>
+            {anySaving ? 'Potential savings' : 'Spend'}
+          </div>
           {points.slice(0, LEGEND_LIMIT).map(p => (
             <div
               key={p.label}

@@ -195,6 +195,8 @@ export const CostInsightsScopeFilters: FC<CostInsightsScopeFiltersProps> = ({
         allValues={projectOptions.map(o => o.value)}
         selected={selectedProjects}
         onChange={onProjectsChange}
+        // Empty selection means all projects.
+        emptyLabel="All"
       />
       <MultiSelectFilter
         label="Components"
@@ -202,6 +204,8 @@ export const CostInsightsScopeFilters: FC<CostInsightsScopeFiltersProps> = ({
         allValues={componentOptions.map(o => o.value)}
         selected={selectedComponents}
         onChange={onComponentsChange}
+        // Empty selection means all components.
+        emptyLabel="All"
       />
     </Box>
   );

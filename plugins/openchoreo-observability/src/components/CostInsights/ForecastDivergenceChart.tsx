@@ -1,6 +1,7 @@
 import { FC, useMemo, useState } from 'react';
 import { Paper, Typography, makeStyles, useTheme } from '@material-ui/core';
 import {
+  Area,
   CartesianGrid,
   ComposedChart,
   LabelList,
@@ -59,7 +60,7 @@ export interface ForecastDivergenceChartProps {
 
 export const ForecastDivergenceChart: FC<ForecastDivergenceChartProps> = ({
   forecast,
-  title = 'Spend forecast',
+  title = 'Accumulated cost and forecast',
 }) => {
   const classes = useStyles();
   const theme = useTheme();
@@ -67,7 +68,7 @@ export const ForecastDivergenceChart: FC<ForecastDivergenceChartProps> = ({
   const blue = (dark ? PALETTE_DARK : PALETTE_LIGHT)[0];
   const green = savingColor(dark);
 
-  // Legend-toggled lines; hidden keys are dimmed in the legend and not drawn.
+  // Legend-toggled series; hidden keys are dimmed in the legend and not drawn.
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const toggle = (key: string) =>
     setHidden(prev => {
@@ -76,10 +77,23 @@ export const ForecastDivergenceChart: FC<ForecastDivergenceChartProps> = ({
       else next.add(key);
       return next;
     });
+  // strokeDasharray per series: solid for actual cost, dashes for the current-rate
+  // forecast, round dots for the if-applied forecast.
+  const DASH = { actual: undefined, forecast: '8 6', ifApplied: '1 9' };
   const legendItems = [
-    { key: 'actual', name: 'so far', color: blue, dashed: false },
-    { key: 'atCurrent', name: 'at current rate', color: blue, dashed: true },
-    { key: 'ifApplied', name: 'if applied', color: green, dashed: true },
+    { key: 'actual', name: 'accumulated cost', color: blue, dash: DASH.actual },
+    {
+      key: 'forecast',
+      name: 'forecast at current rate',
+      color: blue,
+      dash: DASH.forecast,
+    },
+    {
+      key: 'ifApplied',
+      name: 'forecast if recommendations applied',
+      color: green,
+      dash: DASH.ifApplied,
+    },
   ];
 
   const data = useMemo(
@@ -91,11 +105,20 @@ export const ForecastDivergenceChart: FC<ForecastDivergenceChartProps> = ({
     [forecast],
   );
 
+  // Month label from the first (month-start) point.
+  const monthLabel =
+    data.length > 0
+      ? new Date(data[0].t).toLocaleDateString(undefined, {
+          month: 'long',
+          year: 'numeric',
+        })
+      : '';
+
   if (!forecast || data.length === 0) {
     return (
       <Paper variant="outlined" className={classes.empty}>
         <Typography color="textSecondary">
-          Not enough data to project a forecast for this window.
+          Not enough data yet to forecast this month's cost.
         </Typography>
       </Paper>
     );
@@ -127,14 +150,15 @@ export const ForecastDivergenceChart: FC<ForecastDivergenceChartProps> = ({
     <Paper variant="outlined" className={classes.container}>
       <ChartTitle
         title={title}
+        subtitle={monthLabel}
         className={classes.header}
-        info="Cumulative spend so far this month (solid), then two projections to month end: at the current rate, and if the cost recommendations are applied. The gap is the potential saving. Extrapolates the selected time window's spend rate across the whole month. Hence the forecast can change with the time range you pick, especially when only part of that range has cost data."
+        info="The solid part shows the accumulated cost so far this calendar month. Each point is the running total from the 1st to that date. Then two forecast projections to month end; the forecast cost at the current rate, and the forecast cost if recommendations are applied. The gap between them is the potential saving."
       />
       <div className={classes.chart}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={data}
-            margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+            margin={{ top: 24, right: 16, bottom: 8, left: 0 }}
           >
             <CartesianGrid
               strokeDasharray="3 3"
@@ -156,12 +180,18 @@ export const ForecastDivergenceChart: FC<ForecastDivergenceChartProps> = ({
             <Tooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
-                // Up to now the point is on the single actual line, so show only
-                // "so far"; past now show the two projections.
-                const actual = payload.find(e => e.dataKey === 'actual');
+                // Up to today the point is on the actual-cost curve, so show only
+                // "actual cost"; past today show the two projections.
+                const defined = payload.filter(
+                  e =>
+                    e.value !== null &&
+                    e.value !== undefined &&
+                    Number.isFinite(Number(e.value)),
+                );
+                const actual = defined.find(e => e.dataKey === 'actual');
                 const shown = actual
                   ? [actual]
-                  : payload.filter(e => e.dataKey !== 'actual');
+                  : defined.filter(e => e.dataKey !== 'actual');
                 if (!shown.length) return null;
                 return (
                   <div
@@ -198,41 +228,54 @@ export const ForecastDivergenceChart: FC<ForecastDivergenceChartProps> = ({
                 );
               }}
             />
-            <Line
+            <Area
               dataKey="actual"
-              name="so far"
+              name="accumulated cost"
               stroke={blue}
               strokeWidth={2}
+              fill={blue}
+              fillOpacity={0.28}
               dot={false}
               connectNulls
               hide={hidden.has('actual')}
               isAnimationActive={false}
             />
-            <Line
-              dataKey="atCurrent"
-              name="at current rate"
+            <Area
+              dataKey="forecast"
+              name="forecast at current rate"
               stroke={blue}
               strokeWidth={2}
-              strokeDasharray="5 4"
+              strokeDasharray={DASH.forecast}
+              fill={blue}
+              fillOpacity={0.08}
               dot={false}
               connectNulls
-              hide={hidden.has('atCurrent')}
+              hide={hidden.has('forecast')}
               isAnimationActive={false}
             >
-              <LabelList content={endLabel('at current rate', blue, -12)} />
-            </Line>
+              <LabelList
+                content={endLabel('forecast at current rate', blue, -12)}
+              />
+            </Area>
             <Line
               dataKey="ifApplied"
-              name="if recommendations applied"
+              name="forecast if recommendations applied"
               stroke={green}
-              strokeWidth={2}
-              strokeDasharray="5 4"
+              strokeWidth={3}
+              strokeDasharray={DASH.ifApplied}
+              strokeLinecap="round"
               dot={false}
               connectNulls
               hide={hidden.has('ifApplied')}
               isAnimationActive={false}
             >
-              <LabelList content={endLabel('if applied', green, 14)} />
+              <LabelList
+                content={endLabel(
+                  'forecast if recommendations are applied',
+                  green,
+                  14,
+                )}
+              />
             </Line>
           </ComposedChart>
         </ResponsiveContainer>
@@ -253,16 +296,23 @@ export const ForecastDivergenceChart: FC<ForecastDivergenceChartProps> = ({
               textDecoration: hidden.has(item.key) ? 'line-through' : 'none',
             }}
           >
-            <span
-              style={{
-                width: 14,
-                height: 0,
-                borderTop: `2px ${item.dashed ? 'dashed' : 'solid'} ${
-                  item.color
-                }`,
-                flexShrink: 0,
-              }}
-            />
+            <svg
+              width={26}
+              height={8}
+              style={{ flexShrink: 0, overflow: 'visible' }}
+              aria-hidden
+            >
+              <line
+                x1={0}
+                y1={4}
+                x2={26}
+                y2={4}
+                stroke={item.color}
+                strokeWidth={item.dash === DASH.ifApplied ? 3 : 2}
+                strokeDasharray={item.dash}
+                strokeLinecap="round"
+              />
+            </svg>
             {item.name}
           </span>
         ))}

@@ -109,9 +109,9 @@ export const CostInsightsSummaryCard = () => {
     level: deriveLevel(scope),
     environments: ready ? envNames : [],
     timeRange: COST_SUMMARY_TIME_RANGE,
-    view: 'table',
-    // Table view ignores granularity; a valid value keeps the hook's key stable.
+    // This card only reads the summary; a valid granularity keeps the key stable.
     granularity: '1h',
+    summaryOnly: true,
   });
 
   const busy = envsLoading || loading;

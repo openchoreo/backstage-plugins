@@ -5,8 +5,6 @@ import {
   dimensionOf,
   totalCost,
   percentChange,
-  monthDurationMs,
-  forecastThisMonth,
   aggregateRows,
   computeSummary,
   buildSeries,
@@ -111,33 +109,6 @@ describe('totalCost & percentChange', () => {
   });
 });
 
-describe('forecastThisMonth', () => {
-  it('extrapolates the window rate to the calendar month', () => {
-    const now = new Date('2026-07-15T00:00:00.000Z');
-    const monthMs = monthDurationMs(now); // July = 31 days
-    // 1-hour window costing $1 means rate $1/hour.
-    const forecast = forecastThisMonth(
-      1,
-      '2026-07-01T00:00:00.000Z',
-      '2026-07-01T01:00:00.000Z',
-      now,
-    );
-    expect(forecast).toBeCloseTo(monthMs / (60 * 60 * 1000));
-  });
-
-  it('falls back to the raw total for a non-positive window', () => {
-    const now = new Date('2026-07-15T00:00:00.000Z');
-    expect(
-      forecastThisMonth(
-        42,
-        '2026-07-01T00:00:00Z',
-        '2026-07-01T00:00:00Z',
-        now,
-      ),
-    ).toBe(42);
-  });
-});
-
 describe('aggregateRows', () => {
   it('aggregates across environments and cost-weights efficiency', () => {
     // Same project "gcp" seen in two environments; efficiency should be
@@ -212,7 +183,6 @@ describe('aggregateRows', () => {
 
 describe('computeSummary', () => {
   it('produces total, delta and efficiency', () => {
-    const now = new Date('2026-07-15T00:00:00.000Z');
     const current = [
       costItem({ cpuCost: 10, memoryCost: 12, efficiency: 0.3 }),
     ];
@@ -220,9 +190,6 @@ describe('computeSummary', () => {
     const summary = computeSummary(
       current,
       previous,
-      '2026-07-01T00:00:00.000Z',
-      '2026-07-01T01:00:00.000Z',
-      now,
       [],
       'namespace',
       new Map(),
@@ -230,12 +197,10 @@ describe('computeSummary', () => {
     expect(summary.totalCost).toBe(22);
     expect(summary.deltaPct).toBeCloseTo(((22 - 20) / 20) * 100);
     expect(summary.efficiency).toBeCloseTo(0.3);
-    expect(summary.forecastThisMonth).toBeGreaterThan(0);
     expect(summary.totalSaving).toBe(0);
   });
 
   it('counts saving only for dimensions that have a recommendation', () => {
-    const now = new Date('2026-07-15T00:00:00.000Z');
     const current = [
       costItem({ project: 'gcp', cpuCost: 10, memoryCost: 12 }), // total 22
       costItem({ project: 'shop', cpuCost: 4, memoryCost: 4 }), // no rec
@@ -253,9 +218,6 @@ describe('computeSummary', () => {
     const summary = computeSummary(
       current,
       [],
-      '2026-07-01T00:00:00.000Z',
-      '2026-07-01T01:00:00.000Z',
-      now,
       recommendations,
       'namespace',
       new Map(),
@@ -265,7 +227,6 @@ describe('computeSummary', () => {
   });
 
   it('credits saving from a zero-cost recommendation', () => {
-    const now = new Date('2026-07-15T00:00:00.000Z');
     const current = [costItem({ project: 'gcp', cpuCost: 5, memoryCost: 0 })];
     const recommendations: CostRecommendationItem[] = [
       {
@@ -280,9 +241,6 @@ describe('computeSummary', () => {
     const summary = computeSummary(
       current,
       [],
-      '2026-07-01T00:00:00.000Z',
-      '2026-07-01T01:00:00.000Z',
-      now,
       recommendations,
       'namespace',
       new Map(),
@@ -291,7 +249,6 @@ describe('computeSummary', () => {
   });
 
   it('excludes stale environments from claimed saving', () => {
-    const now = new Date('2026-07-15T00:00:00.000Z');
     const current = [
       costItem({ environment: 'dev', cpuCost: 8, memoryCost: 0 }),
     ];
@@ -308,9 +265,6 @@ describe('computeSummary', () => {
     const summary = computeSummary(
       current,
       [],
-      '2026-07-01T00:00:00.000Z',
-      '2026-07-01T01:00:00.000Z',
-      now,
       recommendations,
       'component',
       new Map([['dev', '2026-07-01T00:00:00.000Z']]),
@@ -348,67 +302,56 @@ describe('aggregateRows saving', () => {
 });
 
 describe('buildForecast', () => {
-  const now = new Date('2026-07-15T00:00:00.000Z');
+  // Use local Date constructors so the internally-computed month boundaries line
+  // up with the inputs regardless of the test runner's timezone.
+  const now = new Date(2026, 6, 15); // Jul 15
+  const monthStart = new Date(2026, 6, 1); // Jul 1
+  // Daily buckets Jul 1..Jul 14, $24 each -> $336 month-to-date.
+  const mtdItems = Array.from({ length: 14 }, (_, i) =>
+    costItem({
+      startTime: new Date(2026, 6, i + 1).toISOString(),
+      cpuCost: 12,
+      memoryCost: 12,
+    }),
+  );
 
-  it('forks the actual line into the two month-end projections', () => {
+  it('accumulates the actual curve and forks into two month-end projections', () => {
     const forecast = buildForecast({
-      totalActual: 24,
-      totalSaving: 6,
-      windowStart: '2026-07-08T00:00:00.000Z',
-      windowEnd: '2026-07-09T00:00:00.000Z', // 1-day window, $24 -> $1/hour
+      mtdItems,
+      savingFraction: 0.25,
+      monthStart,
       now,
     })!;
     expect(forecast).not.toBeNull();
-    // $1/h over the 31-day month.
-    expect(forecast.atCurrentTotal).toBeCloseTo(24 * 31);
+    // The actual curve starts at zero on the month start.
+    expect(forecast.points[0]).toMatchObject({ actual: 0 });
+    // Fork at "now" carries the month-to-date total on all three series.
+    const fork = forecast.points.find(
+      p => p.actual !== undefined && p.forecast !== undefined,
+    );
+    expect(fork?.actual).toBeCloseTo(336);
+    expect(fork?.forecast).toBe(fork?.actual);
+    expect(fork?.ifApplied).toBe(fork?.actual);
+    // Extrapolated to the full ~31-day month at the same $24/day rate.
+    expect(forecast.atCurrentTotal).toBeCloseTo(744, 0);
+    // Recommendations cut only the remaining spend, so it lands between the
+    // month-to-date total and the at-current projection.
     expect(forecast.ifAppliedTotal).toBeLessThan(forecast.atCurrentTotal);
+    expect(forecast.ifAppliedTotal).toBeGreaterThan(336);
     expect(forecast.leftOnTable).toBeCloseTo(
       forecast.atCurrentTotal - forecast.ifAppliedTotal,
     );
-    const fork = forecast.points.find(p => p.actual !== undefined);
-    expect(fork?.atCurrent).toBe(fork?.ifApplied);
   });
 
-  it('returns null for a non-positive window', () => {
+  it('returns null before any time has elapsed this month', () => {
     expect(
       buildForecast({
-        totalActual: 10,
-        totalSaving: 0,
-        windowStart: '2026-07-09T00:00:00.000Z',
-        windowEnd: '2026-07-09T00:00:00.000Z',
-        now,
+        mtdItems: [],
+        savingFraction: 0,
+        monthStart,
+        now: monthStart,
       }),
     ).toBeNull();
-  });
-
-  it('returns null when the window ends past the month end', () => {
-    expect(
-      buildForecast({
-        totalActual: 10,
-        totalSaving: 0,
-        windowStart: '2026-07-30T00:00:00.000Z',
-        windowEnd: '2026-08-05T00:00:00.000Z',
-        now,
-      }),
-    ).toBeNull();
-  });
-
-  it('excludes prior-month spend when the window crosses the month boundary', () => {
-    // 3-day window (72h) spanning Jun 29 -> Jul 2 at $1/hour; only the 24h in
-    // July should count toward this month's cumulative fork.
-    const forecast = buildForecast({
-      totalActual: 72,
-      totalSaving: 0,
-      windowStart: '2026-06-29T00:00:00.000Z',
-      windowEnd: '2026-07-02T00:00:00.000Z',
-      now,
-    })!;
-    expect(forecast).not.toBeNull();
-    const fork = forecast.points.find(
-      p => p.actual !== undefined && p.atCurrent !== undefined,
-    );
-    expect(fork?.actual).toBeCloseTo(24); // not 72
-    expect(forecast.atCurrentTotal).toBeCloseTo(31 * 24); // $1/h * 31 days
   });
 });
 
@@ -451,7 +394,7 @@ describe('buildSeries', () => {
 
 describe('buildCostInsightsData', () => {
   it('assembles the level, summary, rows and series into one payload', () => {
-    const now = new Date('2026-07-15T00:00:00.000Z');
+    const now = new Date(2026, 6, 15);
     const data = buildCostInsightsData({
       level: 'namespace',
       currentItems: [
@@ -471,8 +414,7 @@ describe('buildCostInsightsData', () => {
       previousItems: [
         costItem({ project: 'gcp', cpuCost: 10, memoryCost: 10 }),
       ],
-      windowStart: '2026-07-01T00:00:00.000Z',
-      windowEnd: '2026-07-01T01:00:00.000Z',
+      monthStart: new Date(2026, 6, 1),
       now,
     });
 
