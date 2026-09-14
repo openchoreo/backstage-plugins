@@ -78,7 +78,6 @@ describe('TracesTable', () => {
 
     expect(screen.getByText('Trace Name')).toBeInTheDocument();
     expect(screen.getByText('Start Time')).toBeInTheDocument();
-    expect(screen.getByText('End Time')).toBeInTheDocument();
     expect(screen.getByText('Duration')).toBeInTheDocument();
     expect(screen.getByText('Number of Spans')).toBeInTheDocument();
     expect(screen.getByText('Details')).toBeInTheDocument();
@@ -156,5 +155,13 @@ describe('TracesTable', () => {
     const { container } = renderTable();
 
     expect(container.querySelector('[class*="errorStripe"]')).toBeNull();
+  });
+
+  // Start time and duration provide enough timing information without cluttering the table.
+  it('does not display end time in the traces table', () => {
+    renderTable();
+
+    expect(screen.queryByText('End Time')).not.toBeInTheDocument();
+    expect(screen.queryByText(sampleTrace.endTime)).not.toBeInTheDocument();
   });
 });
