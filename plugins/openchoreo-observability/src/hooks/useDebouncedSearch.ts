@@ -10,13 +10,15 @@ const DEFAULT_DEBOUNCE_MS = 1000;
  *   When this changes externally (e.g. URL reset), the local input is updated.
  * @param onChange - Called with the debounced search string after the user stops typing.
  * @param debounceMs - Debounce delay in milliseconds (default: 1000).
- * @returns A tuple of [searchInput, handleSearchChange] for binding to an input element.
+ * @returns A tuple of [searchInput, handleSearchChange, clear] for binding to an input
+ *   element. `clear` empties the field and reports it straight away, skipping the
+ *   debounce: a clear button that took a second to take effect would read as broken.
  */
 export function useDebouncedSearch(
   externalValue: string | undefined,
   onChange: (value: string) => void,
   debounceMs = DEFAULT_DEBOUNCE_MS,
-): [string, (e: ChangeEvent<HTMLInputElement>) => void] {
+): [string, (e: ChangeEvent<HTMLInputElement>) => void, () => void] {
   const [searchInput, setSearchInput] = useState(externalValue || '');
 
   // Sync local state when the external value is reset (e.g. filter reset from URL)
@@ -36,5 +38,12 @@ export function useDebouncedSearch(
     setSearchInput(e.target.value);
   };
 
-  return [searchInput, handleSearchChange];
+  // Any debounce still pending from earlier typing re-runs with the emptied value, so
+  // it cannot resurrect what was cleared.
+  const clear = () => {
+    setSearchInput('');
+    onChange('');
+  };
+
+  return [searchInput, handleSearchChange, clear];
 }

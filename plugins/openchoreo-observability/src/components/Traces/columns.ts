@@ -7,7 +7,6 @@ import { makeColumnStyle } from '@openchoreo/backstage-plugin-react';
 export type TracesColumn =
   | 'traceName'
   | 'startTime'
-  | 'endTime'
   | 'duration'
   | 'spanCount'
   | 'details';
@@ -19,9 +18,8 @@ export type TracesColumn =
  * total (88%) leaves the same trailing whitespace MUI's table did.
  */
 export const getColumnStyle = makeColumnStyle<TracesColumn>({
-  traceName: '0 0 12%',
+  traceName: '0 0 32%',
   startTime: '0 0 20%',
-  endTime: '0 0 20%',
   duration: '0 0 12%',
   spanCount: '0 0 12%',
   details: '0 0 12%',

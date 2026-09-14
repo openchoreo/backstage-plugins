@@ -991,6 +991,20 @@ export const openchoreoLogsViewPermission = createPermission({
 });
 
 /**
+ * Permission to view platform (system component) logs.
+ *
+ * Deliberately NOT resource-based. Platform logs are not owned by any project or
+ * component, and because collection is not gated this reads every log the
+ * observability plane holds - user workload logs included - with no ownership check.
+ * It maps to the cluster-scoped `platformlogs:view` action, which only a
+ * cluster-scoped role binding can satisfy.
+ */
+export const openchoreoPlatformLogsViewPermission = createPermission({
+  name: 'openchoreo.platformlogs.view',
+  attributes: { action: 'read' },
+});
+
+/**
  * Permission to view Kubernetes events for a component.
  * Resource-based: requires the specific component context.
  */
@@ -1141,6 +1155,7 @@ export const openchoreoPermissions = [
   openchoreoClusterRoleMappingDeletePermission,
   openchoreoExecPermission,
   openchoreoLogsViewPermission,
+  openchoreoPlatformLogsViewPermission,
   openchoreoEventsViewPermission,
   openchoreoMetricsViewPermission,
   openchoreoTracesViewPermission,
@@ -1267,6 +1282,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.clusterrolemapping.delete': 'clusterauthzrolebinding:delete',
   'openchoreo.exec': 'component:exec',
   'openchoreo.logs.view': 'logs:view',
+  'openchoreo.platformlogs.view': 'platformlogs:view',
   'openchoreo.events.view': 'events:view',
   'openchoreo.alerts.view': 'alerts:view',
   'openchoreo.wirelogs.view': 'wirelogs:view',

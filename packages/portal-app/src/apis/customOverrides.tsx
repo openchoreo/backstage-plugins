@@ -28,8 +28,9 @@ import {
   SwappableComponentBlueprint,
   TranslationBlueprint,
 } from '@backstage/plugin-app-react';
-import { Progress } from '@backstage/frontend-plugin-api';
+import { PageLayout, Progress } from '@backstage/frontend-plugin-api';
 import { PageLoader } from '@openchoreo/backstage-design-system';
+import { OpenChoreoPageLayout } from '../components/PageLayout/OpenChoreoPageLayout';
 import { catalogImportTranslationRef } from '@backstage/plugin-catalog-import/alpha';
 import {
   catalogGraphApiRef,
@@ -394,6 +395,21 @@ export const customAppModule = createFrontendModule({
         defineParams({
           component: Progress,
           loader: () => () => <PageLoader />,
+        }),
+    }),
+    // Swap the page chrome Backstage wraps routable pages in. Upstream renders a
+    // `@backstage/ui` toolbar; every OpenChoreo page sets `noHeader: true` and
+    // mounts its own MUI `<Page><Header>`, so the two only ever met on the Platform
+    // section, whose tabs come from Backstage's sub-page mechanism and therefore
+    // get their header from here. `OpenChoreoPageLayout` gives a tabbed page the
+    // same purple header the rest of the portal uses and leaves every other page
+    // exactly as upstream had it.
+    SwappableComponentBlueprint.make({
+      name: 'page-layout',
+      params: defineParams =>
+        defineParams({
+          component: PageLayout,
+          loader: () => OpenChoreoPageLayout,
         }),
     }),
   ],

@@ -24,6 +24,10 @@ export type {
 } from './types';
 export { CostInsightsPage } from './components/CostInsights/CostInsightsPage';
 export { DeliveryInsightsPage } from './components/DeliveryInsights/DeliveryInsightsPage';
+export {
+  PlatformLogsContent,
+  PlatformLogsTabPage,
+} from './components/PlatformLogs';
 export { useComponentHasAnyCiliumEnabledEnvironment } from './hooks';
 export {
   logRowActionRendererApiRef,

@@ -10,3 +10,10 @@ export const rootRouteRef = createRouteRef({
 export const deliveryInsightsRouteRef = createRouteRef({
   id: 'openchoreo-observability.delivery-insights',
 });
+
+// The Logs tab of the Platform section. Separate from rootRouteRef (bound to
+// /cost-insights): this is a sub-page of the page the platform-engineer-core
+// plugin owns, so it resolves to that page's path plus `logs`.
+export const platformLogsRouteRef = createRouteRef({
+  id: 'openchoreo-observability.platform-logs',
+});

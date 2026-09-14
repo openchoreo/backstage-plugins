@@ -335,6 +335,10 @@ export {
   type UseLogsPermissionResult,
 } from './hooks/useLogsPermission';
 export {
+  usePlatformLogsPermission,
+  type UsePlatformLogsPermissionResult,
+} from './hooks/usePlatformLogsPermission';
+export {
   useEventsPermission,
   type UseEventsPermissionResult,
 } from './hooks/useEventsPermission';

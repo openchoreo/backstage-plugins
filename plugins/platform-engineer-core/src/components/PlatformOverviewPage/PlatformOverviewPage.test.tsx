@@ -67,10 +67,12 @@ describe('PlatformOverviewPage', () => {
     });
   });
 
-  it('renders page header and graph view', async () => {
+  // The Platform title and the Overview/Logs tab bar are no longer this component's
+  // to render — it is the body of a sub-page, and the page it attaches to supplies
+  // the chrome. See `plugins/platform-engineer-core/src/alpha.tsx`.
+  it('renders the graph view', async () => {
     await renderPage();
 
-    expect(screen.getByText('Platform Overview')).toBeInTheDocument();
     expect(screen.getByTestId('graph-view')).toBeInTheDocument();
   });
 

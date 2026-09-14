@@ -50,7 +50,6 @@ const HEADER_COLUMNS: {
 }[] = [
   { key: 'traceName', label: 'Trace Name' },
   { key: 'startTime', label: 'Start Time' },
-  { key: 'endTime', label: 'End Time' },
   { key: 'duration', label: 'Duration' },
   { key: 'spanCount', label: 'Number of Spans' },
   { key: 'details', label: 'Details', align: 'right' },
@@ -151,12 +150,6 @@ export const TracesTable: FC<TracesTableProps> = ({
             className={`${classes.cell} ${classes.traceCell}`}
           >
             {trace.startTime}
-          </Box>
-          <Box
-            style={getColumnStyle('endTime')}
-            className={`${classes.cell} ${classes.traceCell}`}
-          >
-            {trace.endTime}
           </Box>
           <Box
             style={getColumnStyle('duration')}
