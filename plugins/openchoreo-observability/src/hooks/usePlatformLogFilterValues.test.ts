@@ -35,7 +35,6 @@ const answered = (over: Record<string, unknown> = {}) => ({
   filter: 'podName',
   values: [{ value: 'controller-manager-abc', count: 412 }],
   totalValues: 1,
-  totalRelation: 'eq',
   tookMs: 3,
   ...over,
 });

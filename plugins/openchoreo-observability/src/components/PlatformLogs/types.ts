@@ -69,8 +69,6 @@ export interface PlatformLogFilterValuesResponse {
   values: PlatformLogFilterValue[];
   /** How many distinct values match, of which at most `maxValues` were returned. */
   totalValues: number;
-  /** Whether `totalValues` is exact (`eq`) or a lower bound (`gte`). */
-  totalRelation: 'eq' | 'gte';
   tookMs: number;
 }
 

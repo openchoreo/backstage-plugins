@@ -144,7 +144,6 @@ describe('ObservabilityClient.getPlatformLogFilterValues', () => {
       filter: 'podName',
       values: [{ value: 'controller-manager-abc', count: 412 }],
       totalValues: 1,
-      totalRelation: 'eq',
       tookMs: 3,
     });
 
@@ -281,7 +280,6 @@ describe('ObservabilityClient.getPlatformLogFilterValues', () => {
       filter: 'podName',
       values: [{ value: 'controller-manager-abc', count: 412 }],
       totalValues: 1,
-      totalRelation: 'eq',
       tookMs: 3,
     });
   });
