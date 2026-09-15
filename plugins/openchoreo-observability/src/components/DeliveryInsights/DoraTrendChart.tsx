@@ -29,7 +29,9 @@ export interface DoraTrendChartProps {
   /**
    * Points with a `bucketStart` ISO string plus the series' value fields. A
    * `null` value marks a bucket with no measurement, which recharts renders as
-   * a gap rather than interpolating across it (`connectNulls` is off).
+   * a gap rather than interpolating across it (`connectNulls` is off). Line
+   * series therefore draw dots as well: a measurement between two gaps has no
+   * segment to draw and would otherwise be invisible.
    */
   data: Array<Record<string, string | number | null>>;
   series: DoraChartSeries[];
@@ -129,7 +131,13 @@ export const DoraTrendChart = ({
                     name={s.label}
                     stroke={s.color}
                     strokeWidth={2}
-                    dot={false}
+                    // A measurement whose neighbouring buckets are null has no
+                    // segment to draw, and connectNulls is off by design, so
+                    // without a dot it renders as nothing at all. Lead time and
+                    // MTTR are sparse by nature -- they only have a value for
+                    // buckets that actually recorded one -- so an isolated
+                    // point is the normal case, not an edge case.
+                    dot={{ r: 2 }}
                   />
                 ))}
               </LineChart>
