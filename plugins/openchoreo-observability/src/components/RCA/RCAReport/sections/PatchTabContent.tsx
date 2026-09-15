@@ -555,7 +555,11 @@ export const PatchTabContent = ({
     [chatContext, reportId],
   );
 
-  const renderActionButtons = (index: number, action: RecommendedAction) => {
+  const renderActionButtons = (
+    index: number,
+    action: RecommendedAction,
+    unsupported = false,
+  ) => {
     const localStatus = actionStates.get(index)?.status;
 
     if (localStatus === 'applying') {
@@ -602,7 +606,8 @@ export const PatchTabContent = ({
     }
 
     const busy = phase === 'running';
-    const disableActions = busy || permissionLoading || !canUpdateRca;
+    const disableActions =
+      unsupported || busy || permissionLoading || !canUpdateRca;
     return (
       <Box display="flex" style={{ gap: 8 }}>
         <Tooltip title={deniedTooltip}>
@@ -858,7 +863,7 @@ export const PatchTabContent = ({
 
             <Box className={classes.patchActionFooter}>
               <Box />
-              {renderActionButtons(index, action)}
+              {renderActionButtons(index, action, unsupported)}
             </Box>
           </Box>
         );
