@@ -254,7 +254,21 @@ const deploymentPipelineCard = EntityCardBlueprint.make({
   },
 });
 
-// ─── Domain (namespace) page cards (kind:domain) ──────────────────────────
+// ─── Domain (namespace) page tabs + cards (kind:domain) ───────────────────
+const namespaceCellDiagramEntityContent = EntityContentBlueprint.make({
+  name: 'namespace-cell-diagram',
+  params: {
+    path: '/cell-diagram',
+    title: 'Cell Diagram',
+    group: 'deployment',
+    filter: isOpenChoreoManagedOfKind('domain'),
+    loader: () =>
+      import('./components/NamespaceCellDiagram').then(m => (
+        <m.NamespaceCellDiagram />
+      )),
+  },
+});
+
 const namespaceProjectsCard = EntityCardBlueprint.make({
   name: 'namespace-projects',
   params: {
@@ -889,6 +903,7 @@ export default createFrontendPlugin({
     projectDiagramEntityContent,
     projectContentsCard,
     deploymentPipelineCard,
+    namespaceCellDiagramEntityContent,
     namespaceProjectsCard,
     namespaceResourcesCard,
     resourceDeployEntityContent,

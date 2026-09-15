@@ -687,4 +687,231 @@ describe('CellDiagramInfoService', () => {
       expect(api!.connections!.some(c => c.type === 'datastore')).toBe(true);
     });
   });
+
+  describe('fetchNamespaceInfo', () => {
+    // Path-aware mock: fetchNamespaceInfo fans out per-project component/workload
+    // calls concurrently, so a sequential mockResolvedValueOnce would race.
+    const wireNamespace = (opts: {
+      projects: string[];
+      componentsByProject: Record<string, any[]>;
+      workloadsByProject: Record<string, any[]>;
+    }) => {
+      mockGET.mockImplementation((path: string, req: any) => {
+        if (path.endsWith('/projects')) {
+          return Promise.resolve(
+            createOkResponse({
+              items: opts.projects.map(name => ({ metadata: { name } })),
+              pagination: {},
+            }),
+          );
+        }
+        const project = req?.params?.query?.project;
+        if (path.endsWith('/components')) {
+          return Promise.resolve(
+            createOkResponse({
+              items: opts.componentsByProject[project] ?? [],
+              pagination: {},
+            }),
+          );
+        }
+        if (path.endsWith('/workloads')) {
+          return Promise.resolve(
+            createOkResponse({
+              items: opts.workloadsByProject[project] ?? [],
+              pagination: {},
+            }),
+          );
+        }
+        return Promise.resolve(createOkResponse({ items: [], pagination: {} }));
+      });
+    };
+
+    it('aggregates all projects in the namespace into an organization', async () => {
+      wireNamespace({
+        projects: ['proj-a', 'proj-b'],
+        componentsByProject: {
+          'proj-a': [k8sComponent('a-svc', 'deployment/service')],
+          'proj-b': [k8sComponent('b-svc', 'deployment/service')],
+        },
+        workloadsByProject: { 'proj-a': [], 'proj-b': [] },
+      });
+
+      const service = createService();
+      const org = await service.fetchNamespaceInfo(
+        { namespaceName: 'test-ns' },
+        'token',
+      );
+
+      expect(org).toBeDefined();
+      expect(org!.id).toBe('test-ns');
+      expect(org!.name).toBe('test-ns');
+      expect(org!.projects.map(p => p.id).sort()).toEqual(['proj-a', 'proj-b']);
+    });
+
+    it('derives a cross-cell OrgConnection from a cross-project dependency', async () => {
+      wireNamespace({
+        projects: ['proj-a', 'proj-b'],
+        componentsByProject: {
+          'proj-a': [k8sComponent('a-svc', 'deployment/service')],
+          'proj-b': [k8sComponent('b-svc', 'deployment/service')],
+        },
+        workloadsByProject: {
+          // a-svc depends on b-svc which lives in proj-b → cross-project edge
+          'proj-a': [
+            k8sWorkload('a-svc', {
+              dependencies: {
+                endpoints: [
+                  { name: 'api', component: 'b-svc', project: 'proj-b' },
+                ],
+              },
+            }),
+          ],
+          'proj-b': [],
+        },
+      });
+
+      const service = createService();
+      const org = await service.fetchNamespaceInfo(
+        { namespaceName: 'test-ns' },
+        'token',
+      );
+
+      const projA = org!.projects.find(p => p.id === 'proj-a');
+      expect(projA!.connections).toHaveLength(1);
+      const link = projA!.connections![0];
+      expect(link.source.boundary).toBe('eb');
+      expect((link.target as any).projectId).toBe('proj-b');
+      expect((link.target as any).boundary).toBe('wb');
+
+      // proj-b has no outbound cross-project deps.
+      const projB = org!.projects.find(p => p.id === 'proj-b');
+      expect(projB!.connections ?? []).toHaveLength(0);
+    });
+
+    it('does not duplicate OrgConnections for multiple deps on the same target project', async () => {
+      wireNamespace({
+        projects: ['proj-a', 'proj-b'],
+        componentsByProject: {
+          'proj-a': [
+            k8sComponent('a-svc', 'deployment/service'),
+            k8sComponent('a-worker', 'deployment/service'),
+          ],
+          'proj-b': [k8sComponent('b-svc', 'deployment/service')],
+        },
+        workloadsByProject: {
+          'proj-a': [
+            k8sWorkload('a-svc', {
+              dependencies: {
+                endpoints: [
+                  { name: 'api', component: 'b-svc', project: 'proj-b' },
+                ],
+              },
+            }),
+            k8sWorkload('a-worker', {
+              dependencies: {
+                endpoints: [
+                  { name: 'events', component: 'b-svc', project: 'proj-b' },
+                ],
+              },
+            }),
+          ],
+          'proj-b': [],
+        },
+      });
+
+      const service = createService();
+      const org = await service.fetchNamespaceInfo(
+        { namespaceName: 'test-ns' },
+        'token',
+      );
+
+      const projA = org!.projects.find(p => p.id === 'proj-a');
+      expect(projA!.connections).toHaveLength(1);
+    });
+
+    it('returns an empty organization when the namespace has no projects', async () => {
+      wireNamespace({
+        projects: [],
+        componentsByProject: {},
+        workloadsByProject: {},
+      });
+
+      const service = createService();
+      const org = await service.fetchNamespaceInfo(
+        { namespaceName: 'empty-ns' },
+        'token',
+      );
+
+      expect(org).toBeDefined();
+      expect(org!.projects).toEqual([]);
+    });
+
+    it('returns undefined when listing projects fails', async () => {
+      mockGET.mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'fail' },
+        response: {
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+        },
+      });
+
+      const service = createService();
+      const org = await service.fetchNamespaceInfo(
+        { namespaceName: 'test-ns' },
+        'token',
+      );
+
+      expect(org).toBeUndefined();
+    });
+
+    it('returns undefined when a project fails to build (no partial namespace)', async () => {
+      // proj-a builds fine; proj-b's component fetch fails, so
+      // fetchProjectInfo('proj-b') resolves undefined. The namespace must fail
+      // rather than return a partial diagram missing proj-b (and its links).
+      mockGET.mockImplementation((path: string, req: any) => {
+        if (path.endsWith('/projects')) {
+          return Promise.resolve(
+            createOkResponse({
+              items: [
+                { metadata: { name: 'proj-a' } },
+                { metadata: { name: 'proj-b' } },
+              ],
+              pagination: {},
+            }),
+          );
+        }
+        const project = req?.params?.query?.project;
+        if (path.endsWith('/components')) {
+          if (project === 'proj-b') {
+            return Promise.resolve({
+              data: undefined,
+              error: { message: 'fail' },
+              response: {
+                ok: false,
+                status: 500,
+                statusText: 'Internal Server Error',
+              },
+            });
+          }
+          return Promise.resolve(
+            createOkResponse({
+              items: [k8sComponent('a-svc', 'deployment/service')],
+              pagination: {},
+            }),
+          );
+        }
+        return Promise.resolve(createOkResponse({ items: [], pagination: {} }));
+      });
+
+      const service = createService();
+      const org = await service.fetchNamespaceInfo(
+        { namespaceName: 'test-ns' },
+        'token',
+      );
+
+      expect(org).toBeUndefined();
+    });
+  });
 });

@@ -1,4 +1,4 @@
-import { Project } from '@openchoreo/cell-diagram';
+import { Organization, Project } from '@openchoreo/cell-diagram';
 import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
 import type {
   WorkloadResource,
@@ -256,6 +256,13 @@ export interface CellDiagramService {
     },
     token?: string,
   ): Promise<Project | undefined>;
+
+  fetchNamespaceInfo(
+    request: {
+      namespaceName: string;
+    },
+    token?: string,
+  ): Promise<Organization | undefined>;
 }
 
 export interface WorkloadService {

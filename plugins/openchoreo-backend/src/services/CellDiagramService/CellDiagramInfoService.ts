@@ -1,11 +1,21 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { Config } from '@backstage/config';
 
-import {
+import type {
   Project,
   Component,
   Connection as CellDiagramConnection,
+  Organization,
+  OrgConnection,
+  CellBounds,
 } from '@openchoreo/cell-diagram';
+
+// CellBounds boundary values, referenced by string literal rather than by
+// importing the enum. The `@openchoreo/cell-diagram` entrypoint pulls in
+// react-diagrams (a browser lib that references `self`), so importing any
+// runtime value from it would break the backend at load time.
+const EAST_BOUND = 'eb' as CellBounds; // org egress
+const WEST_BOUND = 'wb' as CellBounds; // org ingress
 import { CellDiagramService } from '../../types';
 import {
   createOpenChoreoApiClient,
@@ -272,6 +282,143 @@ export class CellDiagramInfoService implements CellDiagramService {
         `Error fetching project info for ${projectName}: ${error}`,
       );
       return undefined;
+    }
+  }
+
+  /**
+   * Namespace-level (organization) cell diagram. Lists every project in the
+   * namespace, builds each project's architecture model (no runtime
+   * observations — the org view is architecture-only), and derives cross-cell
+   * links from each project's outbound cross-project dependencies.
+   */
+  async fetchNamespaceInfo(
+    { namespaceName }: { namespaceName: string },
+    token?: string,
+  ): Promise<Organization | undefined> {
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const projectItems = await fetchAllPages(cursor =>
+        client
+          .GET('/api/v1/namespaces/{namespaceName}/projects', {
+            params: {
+              path: { namespaceName },
+              query: { limit: 100, cursor },
+            },
+          })
+          .then(res => {
+            if (res.error || !res.response.ok) {
+              throw new Error(
+                `Failed to fetch projects: ${res.response.status} ${res.response.statusText}`,
+              );
+            }
+            return res.data;
+          }),
+      );
+
+      const projectNames = projectItems
+        .map(p => p.metadata?.name)
+        .filter((name): name is string => Boolean(name));
+
+      if (projectNames.length === 0) {
+        this.logger.info(
+          `No projects in namespace '${namespaceName}'; returning empty organization`,
+        );
+        return {
+          id: namespaceName,
+          name: namespaceName,
+          projects: [],
+          modelVersion: '1.0.0',
+        };
+      }
+
+      // Build each project's architecture model in parallel. No environment is
+      // passed, so fetchProjectInfo skips the observability enrichment.
+      const built = await Promise.all(
+        projectNames.map(projectName =>
+          this.fetchProjectInfo({ projectName, namespaceName }, token),
+        ),
+      );
+      // Fail rather than return a partial namespace: silently dropping a failed
+      // project would also drop its cross-project connections and present an
+      // incomplete diagram as a success.
+      if (built.some(project => project === undefined)) {
+        throw new Error(
+          `Failed to build one or more projects in namespace '${namespaceName}'`,
+        );
+      }
+      const projects = built.filter((p): p is Project => p !== undefined);
+
+      this.addCrossProjectConnections(projects);
+
+      return {
+        id: namespaceName,
+        name: namespaceName,
+        projects,
+        modelVersion: '1.0.0',
+      };
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error fetching namespace info for ${namespaceName}: ${error}`,
+      );
+      return undefined;
+    }
+  }
+
+  /**
+   * Derives org-level (cell-to-cell) connections from each project's
+   * cross-project component dependencies. buildEndpointConnections marks such
+   * dependencies with `onPlatform === false` and encodes the target project in
+   * the connection id (`namespace:project:component:endpoint`). We add one
+   * OrgConnection per distinct source→target project pair, routed East (egress)
+   * → West (ingress), which the cell-diagram lib renders as a link between the
+   * two cells.
+   */
+  private addCrossProjectConnections(projects: Project[]): void {
+    const projectIds = new Set(projects.map(p => p.id));
+
+    for (const project of projects) {
+      const seenTargets = new Set<string>();
+      const orgConnections: OrgConnection[] = [];
+
+      for (const component of project.components) {
+        for (const conn of component.connections ?? []) {
+          // Only outbound cross-project endpoint deps (onPlatform === false).
+          if (conn.onPlatform !== false) continue;
+
+          const targetProjectId = (conn.id ?? '').split(':')[1];
+          if (
+            !targetProjectId ||
+            targetProjectId === project.id ||
+            !projectIds.has(targetProjectId) ||
+            seenTargets.has(targetProjectId)
+          ) {
+            continue;
+          }
+
+          seenTargets.add(targetProjectId);
+          orgConnections.push({
+            id: `${project.id}->${targetProjectId}`,
+            label: `${project.name} → ${targetProjectId}`,
+            source: { boundary: EAST_BOUND },
+            target: {
+              projectId: targetProjectId,
+              boundary: WEST_BOUND,
+            },
+          });
+        }
+      }
+
+      if (orgConnections.length > 0) {
+        project.connections = [
+          ...(project.connections ?? []),
+          ...orgConnections,
+        ];
+      }
     }
   }
 

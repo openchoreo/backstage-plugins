@@ -12,6 +12,11 @@ import { CellBounds } from './components/Cell/CellNode/CellModel';
 import { AdvancedLinkModel } from './components/Project/AdvancedLink/AdvancedLinkModel';
 import { BaseEvent } from '@projectstorm/react-canvas-core';
 
+// Re-export CellBounds so consumers building Organization/OrgConnection models
+// (e.g. the backend namespace aggregator) can reference boundary values without
+// reaching into internal component paths.
+export { CellBounds } from './components/Cell/CellNode/CellModel';
+
 export interface Organization {
   id: string;
   name: string;

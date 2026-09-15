@@ -345,6 +345,26 @@ export async function createRouter({
     },
   );
 
+  router.get(
+    '/namespace-cell-diagram',
+    async (req: express.Request, res: express.Response) => {
+      const { namespaceName } = req.query;
+
+      if (!namespaceName) {
+        throw new InputError('namespaceName is a required query parameter');
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+
+      res.json(
+        await cellDiagramInfoService.fetchNamespaceInfo(
+          { namespaceName: namespaceName as string },
+          userToken,
+        ),
+      );
+    },
+  );
+
   // Endpoint for listing traits
   router.get('/traits', async (req, res) => {
     const { namespaceName, page, pageSize } = req.query;
