@@ -102,7 +102,9 @@ describe('ObservabilityUrlResolver.resolveForNamespace', () => {
   });
 
   it('resolves through the namespace environments and caches the result', async () => {
-    const get = jest
+    // Named for this test rather than `get`: the module-level `get` the platform
+    // suite drives is in scope here, and shadowing it trips no-shadow.
+    const namespaceGet = jest
       .fn()
       .mockResolvedValueOnce(ok({ items: [{ metadata: { name: 'dev' } }] }))
       .mockResolvedValueOnce(ok({ spec: { dataPlaneRef: undefined } }))
@@ -110,7 +112,7 @@ describe('ObservabilityUrlResolver.resolveForNamespace', () => {
       .mockResolvedValueOnce(
         ok({ spec: { observerURL: 'https://observer.example.com' } }),
       );
-    mockedCreateClient.mockReturnValue({ GET: get } as any);
+    mockedCreateClient.mockReturnValue({ GET: namespaceGet } as any);
 
     const resolver = new ObservabilityUrlResolver({
       baseUrl: 'https://api.example.com',
@@ -118,12 +120,12 @@ describe('ObservabilityUrlResolver.resolveForNamespace', () => {
 
     const first = await resolver.resolveForNamespace('org-1', 'user-a-token');
     expect(first.observerUrl).toBe('https://observer.example.com');
-    expect(get).toHaveBeenCalledTimes(4);
+    expect(namespaceGet).toHaveBeenCalledTimes(4);
 
     // Second call for the *same* token should hit the cache: no new HTTP calls.
     const second = await resolver.resolveForNamespace('org-1', 'user-a-token');
     expect(second).toEqual(first);
-    expect(get).toHaveBeenCalledTimes(4);
+    expect(namespaceGet).toHaveBeenCalledTimes(4);
   });
 
   it('does not leak a cached result across callers with different tokens', async () => {
