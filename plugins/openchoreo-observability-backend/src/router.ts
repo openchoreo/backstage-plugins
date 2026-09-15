@@ -154,5 +154,70 @@ export async function createRouter({
     }
   });
 
+  router.get('/resource-release-binding', async (req, res) => {
+    if (authEnabled) {
+      await httpAuth.credentials(req, { allow: ['user'] });
+    }
+    const { namespaceName, bindingName } = req.query;
+    if (!namespaceName || !bindingName) {
+      return res
+        .status(400)
+        .json({ error: 'namespaceName and bindingName are required' });
+    }
+    const userToken = getUserTokenFromRequest(req);
+    try {
+      const { data, error, response } =
+        await observabilityService.getResourceReleaseBinding(
+          namespaceName as string,
+          bindingName as string,
+          userToken,
+        );
+      if (error) {
+        return res.status(response.status).json(error);
+      }
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch resource release binding',
+      });
+    }
+  });
+
+  router.put('/resource-release-binding', async (req, res) => {
+    if (authEnabled) {
+      await httpAuth.credentials(req, { allow: ['user'] });
+    }
+    const { namespaceName, bindingName } = req.query;
+    if (!namespaceName || !bindingName) {
+      return res
+        .status(400)
+        .json({ error: 'namespaceName and bindingName are required' });
+    }
+    const userToken = getUserTokenFromRequest(req);
+    try {
+      const { data, error, response } =
+        await observabilityService.updateResourceReleaseBinding(
+          namespaceName as string,
+          bindingName as string,
+          req.body,
+          userToken,
+        );
+      if (error) {
+        return res.status(response.status).json(error);
+      }
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update resource release binding',
+      });
+    }
+  });
+
   return router;
 }

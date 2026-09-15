@@ -91,6 +91,48 @@ export class ObservabilityService {
     );
   }
 
+  async getResourceReleaseBinding(
+    namespaceName: string,
+    bindingName: string,
+    userToken?: string,
+  ) {
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      logger: this.logger,
+      token: userToken,
+    });
+    return client.GET(
+      '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}',
+      {
+        params: {
+          path: { namespaceName, resourceReleaseBindingName: bindingName },
+        },
+      },
+    );
+  }
+
+  async updateResourceReleaseBinding(
+    namespaceName: string,
+    bindingName: string,
+    body: any,
+    userToken?: string,
+  ) {
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      logger: this.logger,
+      token: userToken,
+    });
+    return client.PUT(
+      '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}',
+      {
+        params: {
+          path: { namespaceName, resourceReleaseBindingName: bindingName },
+        },
+        body,
+      },
+    );
+  }
+
   /**
    * Fetches the `openchoreo.dev/networkpolicyprovider` annotation from a
    * DataPlane or ClusterDataPlane CR.

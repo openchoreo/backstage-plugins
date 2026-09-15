@@ -27,7 +27,11 @@ import {
   applyJsonPointer,
   applyEnvChange,
   applyFileChange,
+  resolveTargetKind,
+  bindingEndpoint,
+  bindingLabel,
 } from '../../../../utils/applyResourceChange';
+import type { TargetKind } from '../../../../utils/applyResourceChange';
 
 interface ChatContext {
   namespaceName: string;
@@ -152,6 +156,26 @@ function extractPatchSections(rc: ResourceChange): PatchSection[] {
       envVars: envVars.length > 0 ? envVars : undefined,
       files: files.length > 0 ? files : undefined,
     });
+  }
+
+  // A ResourceReleaseBinding has no traits or componentType overrides — every
+  // field lives under spec.resourceTypeEnvironmentConfigs.
+  if (resolveTargetKind(rc) === 'ResourceReleaseBinding') {
+    const resourceFields: EditableField[] = [];
+    for (const f of (rc.fields ?? []) as FieldChange[]) {
+      const label = f.json_pointer
+        .replace(/^\/spec\/resourceTypeEnvironmentConfigs\//, '')
+        .split('/')
+        .join('.');
+      resourceFields.push({ label, value: f.value, fieldIdx: fieldIdx++ });
+    }
+    if (resourceFields.length > 0) {
+      sections.push({
+        title: 'Resource Overrides',
+        fieldTree: buildFieldTree(resourceFields),
+      });
+    }
+    return sections;
   }
 
   // Group field changes by section (componentType vs trait instances)
@@ -302,22 +326,37 @@ export const PatchTabContent = ({
           rcIdx: number;
           resourceChange: ResourceChange;
         }
-        const bindingPatches = new Map<string, BindingPatch[]>();
+        interface BindingGroup {
+          bindingName: string;
+          targetKind: TargetKind;
+          patches: BindingPatch[];
+        }
+        // Keyed by kind + name: a ReleaseBinding and a ResourceReleaseBinding
+        // may share a name but are distinct objects on different endpoints.
+        const bindingPatches = new Map<string, BindingGroup>();
         for (const { index: actionIndex, action } of actions) {
           const resourceChange = action.change as ResourceChange;
           if (!resourceChange) continue;
-          const name = resourceChange.release_binding;
-          const patches = bindingPatches.get(name) ?? [];
-          patches.push({ actionIndex, rcIdx: 0, resourceChange });
-          bindingPatches.set(name, patches);
+          const bindingName = resourceChange.release_binding;
+          const targetKind = resolveTargetKind(resourceChange);
+          const key = `${targetKind}:${bindingName}`;
+          const group = bindingPatches.get(key) ?? {
+            bindingName,
+            targetKind,
+            patches: [],
+          };
+          group.patches.push({ actionIndex, rcIdx: 0, resourceChange });
+          bindingPatches.set(key, group);
         }
 
         // Apply patches per binding: GET once → apply all changes → PUT once
         const failedActions = new Set<number>();
-        for (const [bindingName, patches] of bindingPatches) {
-          const bindingUrl = `${
-            chatContext.backendBaseUrl
-          }/release-binding?namespaceName=${encodeURIComponent(
+        for (const [, group] of bindingPatches) {
+          const { bindingName, targetKind, patches } = group;
+          const label = bindingLabel(targetKind);
+          const bindingUrl = `${chatContext.backendBaseUrl}/${bindingEndpoint(
+            targetKind,
+          )}?namespaceName=${encodeURIComponent(
             chatContext.namespaceName,
           )}&bindingName=${encodeURIComponent(bindingName)}`;
 
@@ -326,8 +365,8 @@ export const PatchTabContent = ({
           if (!getResponse.ok) {
             const detail =
               getResponse.status === 404
-                ? `Release binding '${bindingName}' not found`
-                : `Failed to get release binding: ${getResponse.statusText}`;
+                ? `Not found: ${label} '${bindingName}'`
+                : `Failed to get ${label}: ${getResponse.statusText}`;
             for (const { actionIndex } of patches) {
               resultStates.set(actionIndex, {
                 status: 'failed',
@@ -344,6 +383,18 @@ export const PatchTabContent = ({
           try {
             for (const { actionIndex, rcIdx, resourceChange } of patches) {
               let itemIdx = 0;
+
+              // The agent rejects these server-side; fail loudly rather than
+              // silently dropping them if one still reaches us.
+              if (
+                targetKind === 'ResourceReleaseBinding' &&
+                ((resourceChange.env?.length ?? 0) > 0 ||
+                  (resourceChange.files?.length ?? 0) > 0)
+              ) {
+                throw new Error(
+                  'ResourceReleaseBinding changes support only field updates under /spec/resourceTypeEnvironmentConfigs',
+                );
+              }
 
               // Apply env changes
               for (const e of (resourceChange.env ?? []) as EnvVarChange[]) {
@@ -376,7 +427,7 @@ export const PatchTabContent = ({
                   itemIdx,
                   f.value,
                 );
-                applyJsonPointer(updated, f.json_pointer, patchVal);
+                applyJsonPointer(updated, f.json_pointer, patchVal, targetKind);
                 itemIdx++;
               }
             }
@@ -409,7 +460,7 @@ export const PatchTabContent = ({
             for (const { actionIndex } of patches) {
               resultStates.set(actionIndex, {
                 status: 'failed',
-                details: `Failed to update release binding: ${putResponse.statusText}`,
+                details: `Failed to update ${label}: ${putResponse.statusText}`,
               });
               failedActions.add(actionIndex);
             }

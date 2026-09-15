@@ -375,6 +375,12 @@ export interface components {
       change?: components['schemas']['ResourceChange'];
     };
     ResourceChange: {
+      /**
+       * @description Which binding kind to modify. 'ReleaseBinding' for a Component, 'ResourceReleaseBinding' for a Resource (e.g. a managed Postgres). ResourceReleaseBinding targets support only `fields` (paths under /spec/resourceTypeEnvironmentConfigs) — not `env` or `files`. Defaults to 'ReleaseBinding' for older reports that predate this field.
+       * @default ReleaseBinding
+       * @enum {string}
+       */
+      target_kind: 'ReleaseBinding' | 'ResourceReleaseBinding';
       release_binding: string;
       /** @default [] */
       env: components['schemas']['EnvVarChange'][];
