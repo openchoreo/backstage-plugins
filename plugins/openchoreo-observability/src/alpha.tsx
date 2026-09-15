@@ -1,3 +1,4 @@
+import AssignmentIcon from '@material-ui/icons/Assignment';
 import MonetizationOnIcon from '@material-ui/icons/MonetizationOn';
 import SpeedIcon from '@material-ui/icons/Speed';
 import {
@@ -24,6 +25,7 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 
 import {
+  auditLogsRouteRef,
   deliveryInsightsRouteRef,
   platformLogsRouteRef,
   rootRouteRef,
@@ -331,6 +333,29 @@ const costInsightsSummaryCard = EntityCardBlueprint.make({
   },
 });
 
+/**
+ * The audit trail, as a top-level page: it spans every namespace and is gated
+ * at cluster scope, so there is no entity to hang it off. Ships title + icon so
+ * adopters auto-get a sidebar entry via DefaultNavContent.
+ */
+const auditLogsPage = PageBlueprint.make({
+  name: 'audit-logs',
+  params: {
+    path: '/audit-logs',
+    routeRef: auditLogsRouteRef,
+    title: 'Audit Logs',
+    icon: <AssignmentIcon />,
+    // Page renders its own <Page><Header>; suppress outer PageLayout header.
+    noHeader: true,
+    loader: () =>
+      import('./components/AuditLogs/AuditLogsPage').then(m => (
+        <FeatureGatedContent feature="observability">
+          <m.AuditLogsPage />
+        </FeatureGatedContent>
+      )),
+  },
+});
+
 // Ships title + icon so adopters auto-get a sidebar entry via DefaultNavContent.
 const costInsightsPage = PageBlueprint.make({
   name: 'cost-insights',
@@ -398,7 +423,7 @@ const platformLogsTab = SubPageBlueprint.make({
 
 export default createFrontendPlugin({
   pluginId: 'openchoreo-observability',
-  routes: { root: rootRouteRef },
+  routes: { root: rootRouteRef, auditLogs: auditLogsRouteRef },
   extensions: [
     observabilityApi,
     queryProvider,
@@ -408,6 +433,7 @@ export default createFrontendPlugin({
     costInsightsPage,
     deliveryInsightsPage,
     platformLogsTab,
+    auditLogsPage,
     runtimeLogsEntityContent,
     runtimeEventsEntityContent,
     metricsEntityContent,

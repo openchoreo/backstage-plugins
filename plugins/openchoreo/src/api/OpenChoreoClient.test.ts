@@ -68,6 +68,28 @@ describe('OpenChoreoClient — cell diagram', () => {
     });
   });
 
+  describe('getNamespaceCellDiagramInfo', () => {
+    it('requests /namespace-cell-diagram with the namespace name', async () => {
+      fetchMock.mockResolvedValueOnce(
+        makeJsonResponse({ id: 'test-ns', projects: [] }),
+      );
+
+      const result = await client.getNamespaceCellDiagramInfo('test-ns');
+
+      const [calledUrl] = fetchMock.mock.calls[0];
+      expect(calledUrl).toContain('/namespace-cell-diagram');
+      expect(calledUrl).toContain('namespaceName=test-ns');
+      expect(result).toEqual({ id: 'test-ns', projects: [] });
+    });
+
+    it('returns undefined without fetching when no namespace is given', async () => {
+      const result = await client.getNamespaceCellDiagramInfo('');
+
+      expect(result).toBeUndefined();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+  });
+
   describe('rolloutRestartReleaseBinding', () => {
     it('POSTs to /rollout-restart-binding with entity metadata and bindingName', async () => {
       const result = { status: 'restarted' };

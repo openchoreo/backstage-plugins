@@ -60,7 +60,10 @@ const formatCustomLabel = (start?: string, end?: string): string => {
 const useStyles = makeStyles(theme => ({
   trigger: {
     cursor: 'pointer',
-    '& input': { cursor: 'pointer' },
+    // The field opens a panel rather than taking input, so selecting its text
+    // is never useful — and dragging across it left part of the value
+    // highlighted.
+    '& input': { cursor: 'pointer', userSelect: 'none' },
   },
   panel: {
     display: 'flex',
@@ -126,6 +129,7 @@ export const TimeRangeFilter: FC<TimeRangeFilterProps> = ({
   const classes = useStyles();
   const anchorRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
+  const [anchorWidth, setAnchorWidth] = useState<number | undefined>();
   const [showCustomPanel, setShowCustomPanel] = useState(false);
   const [draftStart, setDraftStart] = useState<Date | null>(
     toDate(customStartTime),
@@ -140,6 +144,9 @@ export const TimeRangeFilter: FC<TimeRangeFilterProps> = ({
 
   const openDropdown = () => {
     if (disabled) return;
+    // Captured on open rather than read during render: a ref holds nothing on
+    // the first render, and the anchor can be resized between openings.
+    setAnchorWidth(anchorRef.current?.offsetWidth);
     setShowCustomPanel(value === 'custom');
     if (!draftStart || !draftEnd) {
       const now = new Date();
@@ -224,7 +231,14 @@ export const TimeRangeFilter: FC<TimeRangeFilterProps> = ({
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         marginThreshold={8}
-        PaperProps={{ elevation: 3, className: classes.panel }}
+        PaperProps={{
+          elevation: 3,
+          className: classes.panel,
+          // At least as wide as the field it drops from: the preset list alone
+          // is narrower than the trigger, which left the panel hanging under
+          // part of it.
+          style: { minWidth: anchorWidth },
+        }}
       >
         {showCustomPanel && (
           <Box className={classes.sidePanel}>

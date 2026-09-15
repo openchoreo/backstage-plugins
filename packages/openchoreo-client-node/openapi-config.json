@@ -19,7 +19,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "8340b423",
-  "lastSyncDate": "2026-06-19T14:55:17+05:30",
-  "lastSyncDescription": "feat(api): add ProjectReleaseBinding endpoints (#3918)"
+  "lastSyncCommit": "c0e6cd4c",
+  "lastSyncDate": "2026-09-08T00:00:00+05:30",
+  "lastSyncDescription": "feat: migrate url-shortener postgres to a Resource (#4081)"
 }

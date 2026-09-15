@@ -20,8 +20,11 @@ describe('plugin', () => {
               observerUrl: 'https://observer.example.com',
               rcaAgentUrl: 'https://rca.example.com',
             }),
+            resolvePlatformUrls: jest.fn(),
             getReleaseBinding: jest.fn(),
             updateReleaseBinding: jest.fn(),
+            getResourceReleaseBinding: jest.fn(),
+            updateResourceReleaseBinding: jest.fn(),
             fetchDataPlaneNetPolProvider: jest.fn(),
           }),
         }),
@@ -49,8 +52,11 @@ describe('plugin', () => {
             resolveUrls: jest
               .fn()
               .mockRejectedValue(new Error('Failed to resolve URLs')),
+            resolvePlatformUrls: jest.fn(),
             getReleaseBinding: jest.fn(),
             updateReleaseBinding: jest.fn(),
+            getResourceReleaseBinding: jest.fn(),
+            updateResourceReleaseBinding: jest.fn(),
             fetchDataPlaneNetPolProvider: jest.fn(),
           }),
         }),
@@ -77,8 +83,11 @@ describe('plugin', () => {
             resolveUrls: jest
               .fn()
               .mockRejectedValue(new ObservabilityNotConfiguredError('org-1')),
+            resolvePlatformUrls: jest.fn(),
             getReleaseBinding: jest.fn(),
             updateReleaseBinding: jest.fn(),
+            getResourceReleaseBinding: jest.fn(),
+            updateResourceReleaseBinding: jest.fn(),
             fetchDataPlaneNetPolProvider: jest.fn(),
           }),
         }),

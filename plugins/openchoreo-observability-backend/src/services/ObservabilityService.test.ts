@@ -2,10 +2,13 @@ import { mockServices } from '@backstage/backend-test-utils';
 import { ObservabilityService } from './ObservabilityService';
 
 const mockGET = jest.fn();
+const mockPUT = jest.fn();
+const mockCreateClient = jest.fn(() => ({ GET: mockGET, PUT: mockPUT }));
 
 jest.mock('@openchoreo/openchoreo-client-node', () => ({
   ...jest.requireActual('@openchoreo/openchoreo-client-node'),
-  createOpenChoreoApiClient: jest.fn(() => ({ GET: mockGET })),
+  createOpenChoreoApiClient: (...args: unknown[]) =>
+    (mockCreateClient as any)(...args),
 }));
 
 const createOkResponse = <T>(data: T) => ({
@@ -101,5 +104,87 @@ describe('ObservabilityService.fetchDataPlaneNetPolProvider', () => {
     expect(result).toBeUndefined();
     expect(mockGET).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalled();
+  });
+});
+
+describe('ObservabilityService release binding methods', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const baseUrl =
+    'http://openchoreo-api.openchoreo-control-plane.svc.cluster.local:8080/api/v1';
+  const service = ObservabilityService.create(logger, baseUrl);
+
+  const COMPONENT_PATH =
+    '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}';
+  const RESOURCE_PATH =
+    '/api/v1/namespaces/{namespaceName}/resourcereleasebindings/{resourceReleaseBindingName}';
+
+  it('reads a component release binding', async () => {
+    mockGET.mockResolvedValueOnce(
+      createOkResponse({ metadata: { name: 'rb' } }),
+    );
+
+    await service.getReleaseBinding('ns-1', 'rb', 'user-token');
+
+    expect(mockGET).toHaveBeenCalledWith(COMPONENT_PATH, {
+      params: { path: { namespaceName: 'ns-1', releaseBindingName: 'rb' } },
+    });
+  });
+
+  it('reads a resource release binding from its own endpoint', async () => {
+    mockGET.mockResolvedValueOnce(
+      createOkResponse({ metadata: { name: 'rrb' } }),
+    );
+
+    await service.getResourceReleaseBinding('ns-1', 'rrb', 'user-token');
+
+    expect(mockGET).toHaveBeenCalledWith(RESOURCE_PATH, {
+      params: {
+        path: { namespaceName: 'ns-1', resourceReleaseBindingName: 'rrb' },
+      },
+    });
+  });
+
+  it('writes a resource release binding with the full spec', async () => {
+    const body = {
+      spec: { resourceTypeEnvironmentConfigs: { size: 'large' } },
+    };
+    mockPUT.mockResolvedValueOnce(createOkResponse(body));
+
+    await service.updateResourceReleaseBinding(
+      'ns-1',
+      'rrb',
+      body,
+      'user-token',
+    );
+
+    expect(mockPUT).toHaveBeenCalledWith(RESOURCE_PATH, {
+      params: {
+        path: { namespaceName: 'ns-1', resourceReleaseBindingName: 'rrb' },
+      },
+      body,
+    });
+  });
+
+  it('forwards the caller token so the API can authorize the write', async () => {
+    mockPUT.mockResolvedValueOnce(createOkResponse({}));
+
+    await service.updateResourceReleaseBinding('ns-1', 'rrb', {}, 'user-token');
+
+    expect(mockCreateClient).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl, token: 'user-token' }),
+    );
+  });
+
+  it('omits the token when the caller has none', async () => {
+    mockGET.mockResolvedValueOnce(createOkResponse({}));
+
+    await service.getResourceReleaseBinding('ns-1', 'rrb', undefined);
+
+    expect(mockCreateClient).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl, token: undefined }),
+    );
   });
 });

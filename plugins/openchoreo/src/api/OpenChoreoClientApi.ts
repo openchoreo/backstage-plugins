@@ -924,6 +924,9 @@ export interface OpenChoreoClientApi {
     },
   ): Promise<any>;
 
+  /** Fetch namespace-level (organization) cell diagram info — all cells in a namespace */
+  getNamespaceCellDiagramInfo(namespaceName: string): Promise<any>;
+
   /** Fetch total bindings count for dashboard */
   fetchTotalBindingsCount(components: ComponentInfo[]): Promise<number>;
 

@@ -20,6 +20,54 @@ export class ObserverUrlCache {
   }
 
   /**
+   * Resolves the observer serving platform-wide reads — the audit trail, which
+   * has no environment to resolve through. Cached under its own key alongside
+   * the per-environment entries.
+   */
+  async resolvePlatformUrls(): Promise<{ observerUrl: string }> {
+    const cacheKey = 'platform';
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) {
+      return { observerUrl: cached.observerUrl };
+    }
+
+    const baseUrl = await this.discoveryApi.getBaseUrl(
+      'openchoreo-observability-backend',
+    );
+    const response = await this.fetchApi.fetch(
+      `${baseUrl}/resolve-platform-urls`,
+    );
+
+    if (!response.ok) {
+      let error;
+      try {
+        error = await response.json();
+      } catch {
+        throw new Error(
+          `Failed to resolve the platform observer URL: ${response.status} ${response.statusText}`,
+        );
+      }
+      throw new Error(
+        error.error ||
+          `Failed to resolve the platform observer URL: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+
+    if (!data?.observerUrl) {
+      throw new Error('Observability is not enabled for this deployment');
+    }
+
+    this.cache.set(cacheKey, {
+      observerUrl: data.observerUrl,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    });
+
+    return { observerUrl: data.observerUrl };
+  }
+
+  /**
    * Resolve observer/agent URLs. Pass an empty `environmentName` to resolve at
    * namespace level (cross-environment scopes such as the Insights pages).
    */
