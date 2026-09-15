@@ -21,6 +21,7 @@ import {
   INSIGHTS_TIME_RANGES,
   fillSeriesGaps,
   formatDurationMs,
+  collectionWarning,
   formatPercent,
   measuredRates,
   nullUnmeasuredRates,
@@ -136,6 +137,7 @@ export const DeliveryInsightsContent = ({
     () => fillSeriesGaps(buckets, data?.series?.mttr, ['meanMs']),
     [buckets, data?.series?.mttr],
   );
+  const configWarning = collectionWarning(data?.collection);
   const cfrSeries = useMemo(
     () => nullUnmeasuredRates(data?.series?.changeFailureRate),
     [data?.series?.changeFailureRate],
@@ -221,6 +223,12 @@ export const DeliveryInsightsContent = ({
       {error && (
         <Box mb={2}>
           <Alert severity="error">{error}</Alert>
+        </Box>
+      )}
+
+      {!error && configWarning && (
+        <Box mb={2}>
+          <Alert severity="info">{configWarning}</Alert>
         </Box>
       )}
 

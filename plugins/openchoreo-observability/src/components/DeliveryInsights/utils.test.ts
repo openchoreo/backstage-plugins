@@ -1,4 +1,5 @@
 import {
+  collectionWarning,
   fillSeriesGaps,
   mapWithConcurrency,
   measuredRates,
@@ -138,5 +139,49 @@ describe('change failure rate buckets with no deployments', () => {
   it('handles an absent series', () => {
     expect(nullUnmeasuredRates(undefined)).toEqual([]);
     expect(measuredRates(undefined)).toEqual([]);
+  });
+});
+
+describe('collectionWarning', () => {
+  it('says nothing when the observer collects everything', () => {
+    expect(
+      collectionWarning({
+        aggregationEnabled: true,
+        eventsSourceEnabled: true,
+      }),
+    ).toBeNull();
+  });
+
+  it('says nothing when the field is absent', () => {
+    // An observer predating the field may well be collecting; a wrong warning
+    // is worse than none.
+    expect(collectionWarning(undefined)).toBeNull();
+  });
+
+  it('warns that nothing is being collected when aggregation is off', () => {
+    const msg = collectionWarning({ aggregationEnabled: false });
+    expect(msg).toContain('not collecting');
+    expect(msg).toContain('aggregationEnabled');
+  });
+
+  it('takes aggregation off as the more fundamental of the two', () => {
+    // With the aggregator off the events source is moot; reporting it would
+    // send someone to fix the wrong flag.
+    const msg = collectionWarning({
+      aggregationEnabled: false,
+      eventsSourceEnabled: false,
+    });
+    expect(msg).toContain('aggregationEnabled');
+    expect(msg).not.toContain('eventsSourceEnabled');
+  });
+
+  it('names the three affected metrics when only the events source is off', () => {
+    const msg = collectionWarning({
+      aggregationEnabled: true,
+      eventsSourceEnabled: false,
+    });
+    expect(msg).toContain('eventsSourceEnabled');
+    // MTTR still works off incidents, so the warning must not imply otherwise.
+    expect(msg).toContain('Mean time to recovery');
   });
 });

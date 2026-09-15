@@ -1,4 +1,4 @@
-import { DoraClassification } from '../../types';
+import { DoraClassification, DoraCollectionState } from '../../types';
 
 /** Formats a millisecond duration as a compact human string (e.g. 45m, 3.2h, 2.1d). */
 export function formatDurationMs(ms: number | null | undefined): string {
@@ -153,6 +153,40 @@ export function measuredRates(
   points: readonly CfrSeriesPoint[] | undefined,
 ): number[] {
   return (points ?? []).filter(p => p.total > 0).map(p => p.rate);
+}
+
+/**
+ * The warning to show above the page for the observer's current collection
+ * configuration, or null when it is collecting everything.
+ *
+ * Both states below produce a successful, entirely plausible-looking empty
+ * response, which is what makes them worth calling out: without this the page
+ * is indistinguishable from one belonging to a team that has not deployed.
+ */
+export function collectionWarning(
+  collection: DoraCollectionState | undefined,
+): string | null {
+  // Absent on an observer predating the field. Saying nothing is the safe
+  // reading: it may well be collecting, and a wrong warning is worse than none.
+  if (!collection) {
+    return null;
+  }
+  if (collection.aggregationEnabled === false) {
+    return (
+      'This observer is not collecting delivery data, so these metrics stay ' +
+      'empty however much is deployed. Enable the DORA aggregator on the ' +
+      'observability plane (observer.deliveryInsights.aggregationEnabled).'
+    );
+  }
+  if (collection.eventsSourceEnabled === false) {
+    return (
+      'Deployment frequency, lead time and change failure rate have no input ' +
+      'on this observer: the delivery events source is disabled ' +
+      '(observer.deliveryInsights.eventsSourceEnabled). Mean time to recovery ' +
+      'is derived from incidents and is unaffected.'
+    );
+  }
+  return null;
 }
 
 export const BREAKDOWN_CONCURRENCY = 6;

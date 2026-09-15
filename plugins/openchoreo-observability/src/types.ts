@@ -305,7 +305,23 @@ export interface DoraMttrSummary {
   deltaPct: number | null;
 }
 
+/**
+ * What the observer is collecting, reported on every metrics response. An empty
+ * result is otherwise ambiguous: a scope that deployed nothing looks exactly
+ * like an observer that was never configured to collect.
+ */
+export interface DoraCollectionState {
+  /** False means nothing is being written, so every metric stays empty. */
+  aggregationEnabled?: boolean;
+  /**
+   * False leaves deployment frequency, lead time and change failure rate
+   * without input. MTTR is derived from incidents and is unaffected.
+   */
+  eventsSourceEnabled?: boolean;
+}
+
 export interface DoraMetricsResponse {
+  collection?: DoraCollectionState;
   scope: DoraSearchScope;
   granularity: DoraGranularity;
   window: { startTime: string; endTime: string; generatedAt: string };
