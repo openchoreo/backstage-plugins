@@ -133,3 +133,154 @@ describe('ObservabilityClient.getPlatformLogs', () => {
     },
   );
 });
+
+describe('ObservabilityClient.getPlatformLogFilterValues', () => {
+  // The sibling describe clears within its own scope, and `lastRequestUrl` reads the
+  // first call, so without this each test would inspect the one before it.
+  beforeEach(() => jest.clearAllMocks());
+
+  const okValues = () =>
+    okResponse({
+      filter: 'podName',
+      values: [{ value: 'controller-manager-abc', count: 412 }],
+      totalValues: 1,
+      tookMs: 3,
+    });
+
+  it('asks the plane directly, naming the filter', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(okValues());
+
+    await createClient().getPlatformLogFilterValues('http://observer.example', {
+      filter: 'podName',
+    });
+
+    const url = lastRequestUrl();
+    expect(url.origin + url.pathname).toBe(
+      'http://observer.example/api/v1alpha1/platform-logs/filter-values',
+    );
+    expect(url.searchParams.get('filter')).toBe('podName');
+    expect(resolveUrls).not.toHaveBeenCalled();
+  });
+
+  // The same parameters as the record query, because the values only describe the
+  // records that query would return if both spell it the same way.
+  it('sends the record query, the named filter included', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(okValues());
+
+    await createClient().getPlatformLogFilterValues('http://observer.example', {
+      filter: 'podName',
+      clusterInstances: ['cluster1'],
+      namespaces: ['openchoreo-control-plane', 'cert-manager'],
+      podNames: ['already-selected'],
+      containerNames: ['manager'],
+      labels: 'openchoreo.dev/plane=controlplane',
+      logLevels: ['ERROR', 'WARN'],
+      searchQuery: 'reconcile',
+    });
+
+    const params = lastRequestUrl().searchParams;
+    expect(params.get('clusterInstance')).toBe('cluster1');
+    expect(params.get('namespace')).toBe(
+      'openchoreo-control-plane,cert-manager',
+    );
+    // Sent, not stripped: the observer excludes it when counting, and a query with it
+    // removed would be indistinguishable from nothing being selected.
+    expect(params.get('podName')).toBe('already-selected');
+    expect(params.get('containerName')).toBe('manager');
+    expect(params.get('labels')).toBe('openchoreo.dev/plane=controlplane');
+    expect(params.get('logLevels')).toBe('ERROR,WARN');
+    expect(params.get('searchPhrase')).toBe('reconcile');
+  });
+
+  it('sends no paging, because no records come back', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(okValues());
+
+    await createClient().getPlatformLogFilterValues('http://observer.example', {
+      filter: 'namespace',
+    });
+
+    const params = lastRequestUrl().searchParams;
+    expect(params.has('limit')).toBe(false);
+    expect(params.has('sortOrder')).toBe(false);
+  });
+
+  it('passes the type-ahead text and the cap when given', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(okValues());
+
+    await createClient().getPlatformLogFilterValues('http://observer.example', {
+      filter: 'podName',
+      valueSearch: 'controller',
+      maxValues: 50,
+    });
+
+    const params = lastRequestUrl().searchParams;
+    expect(params.get('valueSearch')).toBe('controller');
+    expect(params.get('maxValues')).toBe('50');
+  });
+
+  it('omits the type-ahead text and the cap when unset', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(okValues());
+
+    await createClient().getPlatformLogFilterValues('http://observer.example', {
+      filter: 'podName',
+    });
+
+    const params = lastRequestUrl().searchParams;
+    expect(params.has('valueSearch')).toBe(false);
+    expect(params.has('maxValues')).toBe(false);
+  });
+
+  // Answered, not thrown: an observer predating the endpoint and an adapter that cannot
+  // aggregate are both "this plane cannot answer", which the caller handles by falling
+  // back. Unlike the record query, where a 501 means there are no logs to show at all.
+  it.each([404, 501])(
+    'answers null for a %s rather than throwing',
+    async status => {
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: false,
+        status,
+        statusText: 'nope',
+        json: () => Promise.resolve({ message: '' }),
+        text: () => Promise.resolve(''),
+      });
+
+      await expect(
+        createClient().getPlatformLogFilterValues('http://observer.example', {
+          filter: 'podName',
+        }),
+      ).resolves.toBeNull();
+    },
+  );
+
+  it('still explains a 403', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      statusText: 'nope',
+      json: () => Promise.resolve({ message: '' }),
+      text: () => Promise.resolve(''),
+    });
+
+    await expect(
+      createClient().getPlatformLogFilterValues('http://observer.example', {
+        filter: 'podName',
+      }),
+    ).rejects.toThrow(/permission/i);
+  });
+
+  it('returns the values the observer reported', async () => {
+    mockFetchApi.fetch.mockResolvedValueOnce(okValues());
+
+    const result = await createClient().getPlatformLogFilterValues(
+      'http://observer.example',
+      { filter: 'podName' },
+    );
+
+    expect(result).toEqual({
+      filter: 'podName',
+      values: [{ value: 'controller-manager-abc', count: 412 }],
+      totalValues: 1,
+      tookMs: 3,
+    });
+  });
+});

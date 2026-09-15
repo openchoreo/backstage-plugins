@@ -1,21 +1,47 @@
+import { useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FacetSelect } from './FacetSelect';
 
-const renderSelect = (
-  props: Partial<Parameters<typeof FacetSelect>[0]> = {},
-) => {
-  const onChange = jest.fn();
-  render(
+type FacetSelectProps = Parameters<typeof FacetSelect>[0];
+
+/**
+ * Holds `open` the way the filter row does, so the component behaves as it does in the
+ * app: it reports that it wants to open or close, and something else decides.
+ */
+const Harness = ({
+  onOpenChange,
+  ...props
+}: Omit<FacetSelectProps, 'open' | 'onOpenChange'> & {
+  onOpenChange?: (open: boolean) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  return (
     <FacetSelect
+      {...props}
+      open={open}
+      onOpenChange={isOpen => {
+        setOpen(isOpen);
+        onOpenChange?.(isOpen);
+      }}
+    />
+  );
+};
+
+const renderSelect = (props: Partial<FacetSelectProps> = {}) => {
+  const onChange = jest.fn();
+  const onOpenChange = jest.fn();
+  render(
+    <Harness
       label="Namespaces"
       options={['cert-manager', 'openchoreo-control-plane']}
       selected={[]}
       onChange={onChange}
+      onOpenChange={onOpenChange}
       {...props}
     />,
   );
-  return { onChange };
+  return { onChange, onOpenChange };
 };
 
 describe('FacetSelect', () => {
@@ -47,9 +73,9 @@ describe('FacetSelect', () => {
     expect(onChange).toHaveBeenCalledWith(['cert-manager']);
   });
 
-  // The options come from loaded results, never a complete list — a pod that has not
-  // logged in the current window is missing from it. Without this the picker would be
-  // strictly less capable than the text box it replaced.
+  // The list is never complete: the observer caps it and bounds it by the window, and
+  // the fallback only knows what the loaded rows mentioned. Without this the picker
+  // would be strictly less capable than the text box it replaced.
   it('accepts a value that is not in the list', async () => {
     const { onChange } = renderSelect();
 
@@ -108,7 +134,7 @@ describe('FacetSelect', () => {
       const onChange = jest.fn();
       const { container } = render(
         <div>
-          <FacetSelect
+          <Harness
             label="Namespaces"
             options={['cert-manager', 'openchoreo-control-plane']}
             selected={[]}
@@ -183,5 +209,74 @@ describe('FacetSelect', () => {
     renderSelect({ options: [] });
 
     expect(screen.getByText('All')).toBeInTheDocument();
+  });
+});
+
+describe('FacetSelect values from the observer', () => {
+  it('shows how many records carry each value', async () => {
+    renderSelect({
+      options: ['openchoreo-control-plane', 'cert-manager'],
+      counts: { 'openchoreo-control-plane': 412, 'cert-manager': 1088 },
+    });
+
+    await userEvent.click(screen.getByLabelText('Namespaces'));
+
+    expect(screen.getByText('412')).toBeInTheDocument();
+    // Grouped, because a bare 1088 next to 412 reads as the smaller number.
+    expect(screen.getByText('1,088')).toBeInTheDocument();
+  });
+
+  // The fallback values are derived from loaded rows and carry no count. A zero would
+  // be a lie, so nothing is shown at all.
+  it('shows no count for a value that has none', async () => {
+    renderSelect({
+      options: ['openchoreo-control-plane', 'cert-manager'],
+      counts: { 'openchoreo-control-plane': 412 },
+    });
+
+    await userEvent.click(screen.getByLabelText('Namespaces'));
+
+    expect(screen.getByText('412')).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: /cert-manager/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('reports opening and closing rather than deciding for itself', async () => {
+    const { onOpenChange } = renderSelect();
+
+    await userEvent.click(screen.getByLabelText('Namespaces'));
+    expect(onOpenChange).toHaveBeenCalledWith(true);
+
+    fireEvent.mouseDown(document.body);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it('reports what is typed, for narrowing the values', async () => {
+    const onSearchChange = jest.fn();
+    renderSelect({ onSearchChange });
+
+    await userEvent.type(screen.getByLabelText('Namespaces'), 'cert');
+
+    expect(onSearchChange).toHaveBeenLastCalledWith('cert');
+  });
+
+  // Selecting an option makes MUI clear the input, which arrives here as a change with
+  // reason 'reset'. Treated as a search it would leave the next picker narrowed by text
+  // nobody can see.
+  it('clears the reported search when a value is selected', async () => {
+    const onSearchChange = jest.fn();
+    renderSelect({ onSearchChange });
+
+    await userEvent.type(screen.getByLabelText('Namespaces'), 'cert');
+    await userEvent.click(screen.getByRole('option', { name: /cert-manager/ }));
+
+    expect(onSearchChange).toHaveBeenLastCalledWith('');
+  });
+
+  it('shows progress while the values are being fetched', () => {
+    renderSelect({ loading: true });
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 });

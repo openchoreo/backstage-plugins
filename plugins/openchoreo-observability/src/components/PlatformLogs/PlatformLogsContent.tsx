@@ -60,7 +60,9 @@ const PlatformLogsView = () => {
     refresh,
   } = usePlatformLogs(selectedPlane?.observerUrl, filters, PAGE_SIZE);
 
-  const facets = usePlatformLogFacets(logs, filters);
+  // Used for whichever pickers the observer has not answered for: it is asked one
+  // filter at a time, and a plane whose observer predates the endpoint never answers.
+  const fallbackFacets = usePlatformLogFacets(logs, filters);
 
   if (planesLoading) {
     return <PageLoader />;
@@ -104,8 +106,8 @@ const PlatformLogsView = () => {
         open={filtersOpen}
         filters={filters}
         onFiltersChange={updateFilters}
-        facets={facets}
-        disabled={loading}
+        fallbackFacets={fallbackFacets}
+        observerUrl={selectedPlane?.observerUrl}
       />
 
       {planeMissingObserver && (

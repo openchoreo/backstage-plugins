@@ -4,9 +4,6 @@ import type { CostInsightsData } from './types';
 
 // The individual charts are covered by their own suites; stub them so this
 // suite focuses on the container's layout and the granularity control.
-jest.mock('./ForecastDivergenceChart', () => ({
-  ForecastDivergenceChart: () => <div data-testid="forecast" />,
-}));
 jest.mock('./CostEfficiencyScatter', () => ({
   CostEfficiencyScatter: () => <div data-testid="scatter" />,
 }));
@@ -27,7 +24,6 @@ const data = (over: Partial<CostInsightsData> = {}): CostInsightsData => ({
   summary: {
     totalCost: 100,
     deltaPct: null,
-    forecastThisMonth: 200,
     efficiency: 0.5,
     totalSaving: 0,
   },
@@ -39,7 +35,7 @@ const data = (over: Partial<CostInsightsData> = {}): CostInsightsData => ({
 });
 
 describe('CostInsightsGraphs', () => {
-  it('renders all four charts and the granularity selector', () => {
+  it('renders the scatter and time-series charts with the granularity selector', () => {
     render(
       <CostInsightsGraphs
         data={data()}
@@ -47,7 +43,6 @@ describe('CostInsightsGraphs', () => {
         onGranularityChange={jest.fn()}
       />,
     );
-    expect(screen.getByTestId('forecast')).toBeInTheDocument();
     expect(screen.getByTestId('scatter')).toBeInTheDocument();
     expect(screen.getByTestId('line')).toBeInTheDocument();
     expect(screen.getByTestId('bar')).toBeInTheDocument();
@@ -86,7 +81,6 @@ describe('CostInsightsGraphs', () => {
           summary: {
             totalCost: 100,
             deltaPct: null,
-            forecastThisMonth: 200,
             efficiency: 0.5,
             totalSaving: 40,
           },

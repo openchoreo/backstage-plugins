@@ -97,6 +97,14 @@ export const useFacetSelectStyles = makeStyles(theme => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
+  // Pushed to the far edge so the counts line up as a column rather than trailing each
+  // value at a different offset.
+  optionCount: {
+    marginLeft: 'auto',
+    paddingLeft: theme.spacing(1),
+    color: theme.palette.text.secondary,
+    fontVariantNumeric: 'tabular-nums',
+  },
 }));
 
 export const usePlatformLogsFilterRowStyles = makeStyles(theme => ({

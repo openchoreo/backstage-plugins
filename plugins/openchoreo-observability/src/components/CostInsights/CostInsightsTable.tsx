@@ -39,6 +39,7 @@ function formatSpecUpdateTime(iso: string): string {
 
 const useStyles = makeStyles(theme => ({
   numeric: { textAlign: 'right', whiteSpace: 'nowrap' },
+  numericSort: { flexDirection: 'row-reverse' },
   up: { color: theme.palette.error.main },
   down: { color: theme.palette.success.main },
   savings: { color: theme.palette.success.main, fontWeight: 600 },
@@ -299,8 +300,9 @@ const RecommendationCostTable: FC<CostInsightsTableProps> = ({
     });
   }, [rows, titles, order, orderBy]);
 
-  const sortLabel = (id: typeof orderBy, label: string) => (
+  const sortLabel = (id: typeof orderBy, label: string, numeric = false) => (
     <TableSortLabel
+      className={numeric ? classes.numericSort : undefined}
       active={orderBy === id}
       direction={orderBy === id ? order : 'asc'}
       onClick={() => onSort(id)}
@@ -316,12 +318,12 @@ const RecommendationCostTable: FC<CostInsightsTableProps> = ({
           <TableRow>
             <TableCell>{sortLabel('name', 'Environment')}</TableCell>
             <TableCell className={classes.numeric}>
-              {sortLabel('total', 'Current cost (USD)')}
+              {sortLabel('total', 'Current cost (USD)', true)}
             </TableCell>
             <TableCell>{sortLabel('efficiency', 'Efficiency')}</TableCell>
             <TableCell>Recommended change</TableCell>
             <TableCell className={classes.numeric}>
-              {sortLabel('saving', 'Saving (USD)')}
+              {sortLabel('saving', 'Saving (USD)', true)}
             </TableCell>
             <TableCell className={classes.actionCell} />
           </TableRow>
@@ -480,8 +482,9 @@ const StandardCostTable: FC<CostInsightsTableProps> = ({
     });
   }, [rows, titles, order, orderBy]);
 
-  const sortLabel = (id: SortId, label: string) => (
+  const sortLabel = (id: SortId, label: string, numeric = false) => (
     <TableSortLabel
+      className={numeric ? classes.numericSort : undefined}
       active={orderBy === id}
       direction={orderBy === id ? order : 'asc'}
       onClick={() => onSort(id)}
@@ -502,31 +505,31 @@ const StandardCostTable: FC<CostInsightsTableProps> = ({
               className={classes.numeric}
               sortDirection={orderBy === 'cpuCost' ? order : false}
             >
-              {sortLabel('cpuCost', 'CPU (USD)')}
+              {sortLabel('cpuCost', 'CPU (USD)', true)}
             </TableCell>
             <TableCell
               className={classes.numeric}
               sortDirection={orderBy === 'memoryCost' ? order : false}
             >
-              {sortLabel('memoryCost', 'Memory (USD)')}
+              {sortLabel('memoryCost', 'Memory (USD)', true)}
             </TableCell>
             <TableCell
               className={classes.numeric}
               sortDirection={orderBy === 'efficiency' ? order : false}
             >
-              {sortLabel('efficiency', 'Efficiency')}
+              {sortLabel('efficiency', 'Efficiency', true)}
             </TableCell>
             <TableCell
               className={classes.numeric}
               sortDirection={orderBy === 'total' ? order : false}
             >
-              {sortLabel('total', 'Total (USD)')}
+              {sortLabel('total', 'Total (USD)', true)}
             </TableCell>
             <TableCell
               className={classes.numeric}
               sortDirection={orderBy === 'deltaPct' ? order : false}
             >
-              {sortLabel('deltaPct', 'Inc/dec vs prev window')}
+              {sortLabel('deltaPct', 'Inc/dec vs prev window', true)}
             </TableCell>
           </TableRow>
         </TableHead>
