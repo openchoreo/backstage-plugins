@@ -1,0 +1,32 @@
+diff --git a/dist/components/CustomHomepage/CustomHomepageButtons.esm.js b/dist/components/CustomHomepage/CustomHomepageButtons.esm.js
+index 3662bec654e01d8d0b97b58798591c9ea67b9d66..70afbdb10c356feb04194135d8d8172187e3bf28 100644
+--- a/dist/components/CustomHomepage/CustomHomepageButtons.esm.js
++++ b/dist/components/CustomHomepage/CustomHomepageButtons.esm.js
+@@ -45,6 +45,18 @@ const CustomHomepageButtons = (props) => {
+       startIcon: /* @__PURE__ */ jsx(EditIcon, {}),
+       children: t("customHomepageButtons.edit")
+     }
++  ) : !editMode ? /* @__PURE__ */ jsx(
++    Button,
++    {
++      variant: "contained",
++      onClick: () => {
++        changeEditMode(true);
++        setAddWidgetDialogOpen(true);
++      },
++      size: "small",
++      startIcon: /* @__PURE__ */ jsx(AddIcon, {}),
++      children: t("customHomepageButtons.addWidget")
++    }
+   ) : /* @__PURE__ */ jsxs(Fragment, { children: [
+     /* @__PURE__ */ jsx(Button, { variant: "contained", onClick: cancel, size: "small", children: t("customHomepageButtons.cancel") }),
+     defaultConfigAvailable && /* @__PURE__ */ jsx(
+@@ -81,7 +93,7 @@ const CustomHomepageButtons = (props) => {
+         children: t("customHomepageButtons.addWidget")
+       }
+     ),
+-    numWidgets > 0 && /* @__PURE__ */ jsx(
++    /* @__PURE__ */ jsx(
+       Button,
+       {
+         className: styles.contentHeaderBtn,
