@@ -32,10 +32,10 @@ in a query narrow the result set without widening what the caller may read.
   `event_id`. A tie group wider than a page cannot move the boundary, so paging
   stops there rather than re-requesting the same window.
 - **Observer resolution**: the trail has no environment to resolve through, so
-  `ObservabilityUrlResolver` gains `resolveForPlatform` (ClusterObservabilityPlane
-  `default`, falling back to the namespaced plane), exposed as
-  `GET /resolve-platform-urls` and overridable via
-  `openchoreo.observability.auditLogs.observerUrl`.
+  `ObservabilityUrlResolver` gains `resolveForPlatform`, which reads the audit
+  observer the API advertises at `/api/v1alpha1/metadata`, exposed as
+  `GET /resolve-platform-urls`. An installation that reports audit logs disabled
+  gets an empty state rather than a query error.
 - **Permission**: `openchoreo.auditlogs.view` → `auditlogs:view`, a cluster-scoped
   (non-resource) permission, with a `useAuditLogsPermission` hook.
 - **UI**: a query bar whose vocabulary is the filter set the API actually accepts

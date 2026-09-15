@@ -23,6 +23,7 @@ import {
 } from '@openchoreo/backstage-design-system';
 import {
   AuditLogsForbiddenError,
+  AuditLogsNotEnabledError,
   AuditLogsNotSupportedError,
 } from '../../api/AuditLogsErrors';
 import { useAuditEvent } from '../../hooks/useAuditEvent';
@@ -222,6 +223,7 @@ export const AuditLogsPage = () => {
       : undefined;
 
   const error = records.error ?? summary.error;
+  const notEnabled = error instanceof AuditLogsNotEnabledError;
   const notSupported = error instanceof AuditLogsNotSupportedError;
   const forbidden = error instanceof AuditLogsForbiddenError;
 
@@ -234,6 +236,15 @@ export const AuditLogsPage = () => {
           title="You cannot read the audit trail"
           message="This needs the auditlogs:view permission at cluster scope."
           guidance="The trail covers every team, so it is granted on its own rather than with a project's observability access. Ask a platform administrator."
+        />
+      );
+    }
+
+    if (notEnabled) {
+      return (
+        <EmptyState
+          title="Audit logs are not enabled"
+          description="No observer is configured to serve the audit trail for this installation."
         />
       );
     }

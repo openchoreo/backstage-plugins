@@ -250,6 +250,7 @@ export const TokenFilterBar = ({
 }: TokenFilterBarProps) => {
   const classes = useTokenFilterBarStyles();
   const fieldRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const chipNodes = useRef(new Map<string, HTMLDivElement>());
   const chipWidths = useRef(new Map<string, number>());
   const [, remeasured] = useState({});
@@ -442,6 +443,8 @@ export const TokenFilterBar = ({
     else if (added.kind === 'free') onToggleToken(null, added.value);
     setDraft('');
     setDebouncedQuery('');
+    setOpen(false);
+    inputRef.current?.blur();
   };
 
   const listHeader =
@@ -653,6 +656,7 @@ export const TokenFilterBar = ({
               // empty, so a label that floated down would sit on top of them.
               InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
               placeholder={tokens.length === 0 ? emptyPlaceholder : placeholder}
+              inputRef={inputRef}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
               inputProps={{ ...params.inputProps, 'aria-label': ariaLabel }}

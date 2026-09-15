@@ -31,6 +31,7 @@ describe('resolveFilterPath', () => {
 
   it('accepts an unambiguous last segment', () => {
     expect(resolveFilterPath('project')).toBe('resource.project');
+    expect(resolveFilterPath('resource')).toBe('resource.resource');
     expect(resolveFilterPath('session_id')).toBe('actor.session_id');
   });
 

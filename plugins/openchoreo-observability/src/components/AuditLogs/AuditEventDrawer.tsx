@@ -124,14 +124,12 @@ export const AuditEventDrawer = ({
                 },
               ]
             : []),
-          // `resource.resource` has no filter of its own: it is only set where it
-          // repeats the name.
           ...(resource.resource
             ? [
                 {
                   key: 'resource',
                   value: resource.resource,
-                  path: 'resource.name' as const,
+                  path: 'resource.resource' as const,
                 },
               ]
             : []),

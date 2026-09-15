@@ -6,16 +6,16 @@ jest.mock('./factory', () => ({
   createOpenChoreoApiClient: () => ({ GET: get }),
 }));
 
-const ok = (data: unknown) => ({
-  data,
+const advertised = (auditLogs: unknown) => ({
+  data: { features: { auditLogs } },
   error: undefined,
   response: { ok: true, status: 200, statusText: 'OK' },
 });
 
-const notFound = () => ({
+const failed = (status: number, statusText: string) => ({
   data: undefined,
-  error: { message: 'not found' },
-  response: { ok: false, status: 404, statusText: 'Not Found' },
+  error: { message: statusText },
+  response: { ok: false, status, statusText },
 });
 
 describe('ObservabilityUrlResolver.resolveForPlatform', () => {
@@ -26,53 +26,20 @@ describe('ObservabilityUrlResolver.resolveForPlatform', () => {
     resolver = new ObservabilityUrlResolver({ baseUrl: 'http://api' });
   });
 
-  it('reads the cluster-scoped plane named default', async () => {
+  it('uses the audit observer the API advertises', async () => {
     get.mockResolvedValueOnce(
-      ok({ spec: { observerURL: 'http://observer:11080' } }),
+      advertised({ enabled: true, observerURL: 'http://audit-observer:11080' }),
     );
 
     await expect(resolver.resolveForPlatform()).resolves.toEqual({
-      observerUrl: 'http://observer:11080',
-      rcaAgentUrl: undefined,
-      finopsAgentUrl: undefined,
+      observerUrl: 'http://audit-observer:11080',
     });
-
-    expect(get).toHaveBeenCalledWith(
-      '/api/v1/clusterobservabilityplanes/{clusterObservabilityPlaneName}',
-      { params: { path: { clusterObservabilityPlaneName: 'default' } } },
-    );
+    expect(get).toHaveBeenCalledWith('/api/v1alpha1/metadata');
   });
 
-  it('falls back to the namespaced plane when there is no cluster-scoped one', async () => {
-    get
-      .mockResolvedValueOnce(notFound())
-      .mockResolvedValueOnce(
-        ok({ spec: { observerURL: 'http://ns-observer:11080' } }),
-      );
-
-    await expect(resolver.resolveForPlatform()).resolves.toMatchObject({
-      observerUrl: 'http://ns-observer:11080',
-    });
-
-    expect(get).toHaveBeenLastCalledWith(
-      '/api/v1/namespaces/{namespaceName}/observabilityplanes/{observabilityPlaneName}',
-      {
-        params: {
-          path: { namespaceName: 'default', observabilityPlaneName: 'default' },
-        },
-      },
-    );
-  });
-
-  it('returns nothing when neither plane exists', async () => {
-    get.mockResolvedValue(notFound());
-
-    await expect(resolver.resolveForPlatform()).resolves.toEqual({});
-  });
-
-  it('caches a resolved URL rather than walking the chain per query', async () => {
+  it('caches an advertised observer rather than asking per query', async () => {
     get.mockResolvedValueOnce(
-      ok({ spec: { observerURL: 'http://observer:11080' } }),
+      advertised({ enabled: true, observerURL: 'http://audit-observer:11080' }),
     );
 
     await resolver.resolveForPlatform();
@@ -81,13 +48,39 @@ describe('ObservabilityUrlResolver.resolveForPlatform', () => {
     expect(get).toHaveBeenCalledTimes(1);
   });
 
-  it('does not cache an unresolved lookup, so a later install is picked up', async () => {
-    get.mockResolvedValue(notFound());
+  it('reports audit logs disabled, without caching it', async () => {
+    get.mockResolvedValue(advertised({ enabled: false }));
 
-    await resolver.resolveForPlatform();
+    await expect(resolver.resolveForPlatform()).resolves.toEqual({
+      auditLogsEnabled: false,
+    });
     await resolver.resolveForPlatform();
 
-    // Two lookups per call: cluster-scoped, then namespaced.
-    expect(get).toHaveBeenCalledTimes(4);
+    // Asked again, so a trail enabled later is picked up.
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it('fails on an enabled trail with no observer, rather than calling it disabled', async () => {
+    get.mockResolvedValueOnce(advertised({ enabled: true }));
+
+    await expect(resolver.resolveForPlatform()).rejects.toThrow(
+      'Platform metadata reports audit logs enabled without an observer URL',
+    );
+  });
+
+  it('fails when the control plane has no metadata endpoint', async () => {
+    get.mockResolvedValueOnce(failed(404, 'Not Found'));
+
+    await expect(resolver.resolveForPlatform()).rejects.toThrow(
+      'Failed to get platform metadata: 404 Not Found',
+    );
+  });
+
+  it('fails when the metadata endpoint errors', async () => {
+    get.mockResolvedValueOnce(failed(500, 'Internal Server Error'));
+
+    await expect(resolver.resolveForPlatform()).rejects.toThrow(
+      'Failed to get platform metadata: 500 Internal Server Error',
+    );
   });
 });

@@ -78,6 +78,17 @@ describe('createRouter', () => {
     });
   });
 
+  it('should pass on an installation reporting audit logs disabled', async () => {
+    observabilityService.resolvePlatformUrls.mockResolvedValue({
+      auditLogsEnabled: false,
+    });
+
+    const response = await request(app).get('/resolve-platform-urls');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ auditLogsEnabled: false });
+  });
+
   it('should report a failed platform resolution without the cause', async () => {
     observabilityService.resolvePlatformUrls.mockRejectedValue(
       new Error('ClusterObservabilityPlane lookup failed'),

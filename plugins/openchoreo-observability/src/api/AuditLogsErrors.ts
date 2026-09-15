@@ -16,6 +16,17 @@ export class AuditLogsNotSupportedError extends Error {
 }
 
 /**
+ * The installation reports that audit logs cannot be queried: no observer is
+ * configured to serve the trail, so there is nothing to send a query to.
+ */
+export class AuditLogsNotEnabledError extends Error {
+  constructor(message?: string) {
+    super(message || 'Audit logs are not enabled for this installation');
+    this.name = 'AuditLogsNotEnabledError';
+  }
+}
+
+/**
  * The observer refused the read. `auditlogs:view` is evaluated at cluster
  * scope there, so this can happen even when the portal's own permission check
  * passed — the observer is the authority.

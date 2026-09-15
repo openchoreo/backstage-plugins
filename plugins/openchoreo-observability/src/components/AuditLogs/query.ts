@@ -162,6 +162,9 @@ export function tokensToFilters(
       case 'resource.component':
         resource.component = take('resource.component', values);
         break;
+      case 'resource.resource':
+        resource.resource = take('resource.resource', values);
+        break;
       case 'resource.name':
         resource.name = take('resource.name', values);
         break;
