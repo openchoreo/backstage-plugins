@@ -475,13 +475,14 @@ eventForwarder:
 
 ### Configuration
 
-| Setting                                                  | Environment Variable                                       | Default | Description                                                                                                                                                                                            |
-| -------------------------------------------------------- | ---------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `openchoreo.observability.wirelogs.streamTimeoutSeconds` | `OPENCHOREO_OBSERVABILITY_WIRELOGS_STREAM_TIMEOUT_SECONDS` | `900`   | Hard cap (seconds) on a single wirelogs SSE stream before the backend ends it. The UI shows soft warnings at ~1/3 and ~2/3 of this value and a toast when the server stops it. Defaults to 15 minutes. |
+| Setting                                                  | Environment Variable                                       | Default | Description                                                                                                                                                                                                                                    |
+| -------------------------------------------------------- | ---------------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `openchoreo.observability.wirelogs.streamTimeoutSeconds` | `OPENCHOREO_OBSERVABILITY_WIRELOGS_STREAM_TIMEOUT_SECONDS` | `900`   | Hard cap (seconds) on a single wirelogs SSE stream before the backend ends it. The UI shows soft warnings at ~1/3 and ~2/3 of this value and a toast when the server stops it. Defaults to 15 minutes.                                         |
+| `openchoreo.observability.auditLogs.observerUrl`         | `OPENCHOREO_OBSERVABILITY_AUDIT_OBSERVER_URL`              | unset   | Observer serving the audit trail read by the Audit Logs page. Unset resolves it from the `ClusterObservabilityPlane` (or namespaced `ObservabilityPlane`) named `default`. Set it only where the trail is served separately from runtime logs. |
 
 **Production (Helm):**
 
-The Helm chart injects this environment variable. You can configure it via Helm values:
+The Helm chart injects the wirelogs environment variable. You can configure it via Helm values:
 
 ```yaml
 backstage:

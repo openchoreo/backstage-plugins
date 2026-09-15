@@ -18,6 +18,11 @@ export interface MultiSelectOption {
   label: string;
   /** Optional count shown right-aligned in the menu item. */
   count?: number;
+  /**
+   * Fixed: shown, checked, and not toggleable — for a value the view cannot
+   * function without. Clear and Select all leave it alone.
+   */
+  disabled?: boolean;
 }
 
 /** A group of options. Provide a `label` to render a heading; omit for a flat list. */
@@ -35,6 +40,12 @@ export interface MultiSelectFilterProps {
   selected: Set<string>;
   onChange: (selected: Set<string>) => void;
   emptyLabel?: string;
+  /**
+   * Summarise the selection on the trigger. Turn it off where the menu is the
+   * only place the selection matters, so the trigger keeps a stable width.
+   */
+  showSelection?: boolean;
+  disabled?: boolean;
 }
 
 /**
@@ -66,6 +77,8 @@ export const MultiSelectFilter = ({
   selected,
   onChange,
   emptyLabel = 'None',
+  showSelection = true,
+  disabled = false,
 }: MultiSelectFilterProps) => {
   const classes = useStyles();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -73,7 +86,6 @@ export const MultiSelectFilter = ({
 
   const allSelected =
     allValues.length > 0 && selected.size === allValues.length;
-  const noneSelected = selected.size === 0;
   const isFiltering = allValues.length > 0 && !allSelected;
 
   // Selected options in menu order, for a stable trigger label + tooltip.
@@ -86,7 +98,16 @@ export const MultiSelectFilter = ({
       ? selectedOptions.map(option => option.label).join(', ')
       : '';
 
+  // Values the caller has fixed: they survive Clear, because a view that needs
+  // them would otherwise be left unusable by one click.
+  const fixedValues = orderedOptions
+    .filter(option => option.disabled)
+    .map(option => option.value);
+
   const toggle = (value: string) => {
+    // Guarded here rather than only on the menu item: MUI disables that with
+    // `pointer-events`, which is styling, not a rule.
+    if (fixedValues.includes(value)) return;
     const next = new Set(selected);
     if (next.has(value)) {
       next.delete(value);
@@ -114,11 +135,16 @@ export const MultiSelectFilter = ({
             aria-label={`Filter by ${label.toLowerCase()}`}
             aria-haspopup="menu"
             aria-expanded={open}
-            disabled={allValues.length === 0}
+            disabled={disabled || allValues.length === 0}
           >
             <span className={classes.buttonLabel}>
-              {label}:{' '}
-              {triggerValue(selectedOptions, allValues.length, emptyLabel)}
+              {showSelection
+                ? `${label}: ${triggerValue(
+                    selectedOptions,
+                    allValues.length,
+                    emptyLabel,
+                  )}`
+                : label}
             </span>
           </Button>
         </span>
@@ -145,8 +171,8 @@ export const MultiSelectFilter = ({
           <Button
             color="primary"
             className={classes.menuActionButton}
-            disabled={noneSelected}
-            onClick={() => onChange(new Set())}
+            disabled={[...selected].every(value => fixedValues.includes(value))}
+            onClick={() => onChange(new Set(fixedValues))}
           >
             Clear
           </Button>
@@ -167,6 +193,7 @@ export const MultiSelectFilter = ({
             <MenuItem
               key={`group-${groupIndex}-${option.value}`}
               dense
+              disabled={option.disabled}
               className={classes.menuItem}
               onClick={() => toggle(option.value)}
             >
@@ -176,6 +203,7 @@ export const MultiSelectFilter = ({
                 color="primary"
                 className={classes.checkbox}
                 checked={selected.has(option.value)}
+                disabled={option.disabled}
                 tabIndex={-1}
                 disableRipple
                 inputProps={{ 'aria-label': option.label }}

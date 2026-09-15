@@ -25,6 +25,7 @@ interface CacheEntry {
 }
 
 const DEFAULT_PLANE_NAME = 'default';
+const DEFAULT_NAMESPACE = 'default';
 const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -36,6 +37,10 @@ const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
  *
  * **Build observability** (namespace-based):
  *   WorkflowPlane (or ClusterWorkflowPlane) → ObservabilityPlane → observerURL
+ *
+ * **Platform observability** (no scope):
+ *   ClusterObservabilityPlane `default` (or namespaced ObservabilityPlane
+ *   `default`) → observerURL
  */
 export class ObservabilityUrlResolver {
   private readonly baseUrl: string;
@@ -134,6 +139,41 @@ export class ObservabilityUrlResolver {
       namespaceName,
       observabilityPlaneRef!,
     );
+
+    this.putInCache(cacheKey, result);
+    return result;
+  }
+
+  /**
+   * Resolve observability URLs for a platform-wide read — one that has no
+   * environment to resolve through, such as the audit trail.
+   *
+   * Chain: ClusterObservabilityPlane `default`, falling back to
+   * ObservabilityPlane `default` in the `default` namespace. A single-cluster
+   * install has the cluster-scoped plane; an install that keeps its planes
+   * namespaced has the second.
+   */
+  async resolveForPlatform(token?: string): Promise<ObservabilityUrlsResult> {
+    const cacheKey = 'platform';
+    const cached = this.getFromCache(cacheKey);
+    if (cached) return cached;
+
+    const client = this.createClient(token);
+
+    const clusterPlane = await this.getObservabilityPlaneUrls(client, '', {
+      kind: 'ClusterObservabilityPlane',
+      name: DEFAULT_PLANE_NAME,
+    });
+
+    // `getObservabilityPlaneUrls` answers a 404 with `{}`, so an absent
+    // observer URL is the signal to try the namespaced plane rather than an
+    // error to report.
+    const result = clusterPlane.observerUrl
+      ? clusterPlane
+      : await this.getObservabilityPlaneUrls(client, DEFAULT_NAMESPACE, {
+          kind: 'ObservabilityPlane',
+          name: DEFAULT_PLANE_NAME,
+        });
 
     this.putInCache(cacheKey, result);
     return result;

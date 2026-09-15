@@ -78,6 +78,7 @@ export {
   openchoreoExecPermission,
   openchoreoLogsViewPermission,
   openchoreoPlatformLogsViewPermission,
+  openchoreoAuditLogsViewPermission,
   openchoreoEventsViewPermission,
   openchoreoAlertsViewPermission,
   openchoreoWirelogsViewPermission,
