@@ -12,7 +12,7 @@ import { Link } from 'react-router-dom';
 import { useComponentCreatePermission } from '@openchoreo/backstage-plugin-react';
 import { useStyles } from './styles';
 
-export const QuickActionsSection: React.FC = () => {
+export const QuickActionsSection = () => {
   const classes = useStyles();
   const { canCreate, loading: createPermLoading } =
     useComponentCreatePermission();

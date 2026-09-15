@@ -2,6 +2,7 @@ import { Content, Page, Header } from '@backstage/core-components';
 import {
   HomePageStarredEntities,
   CustomHomepageGrid,
+  type LayoutConfiguration,
 } from '@backstage/plugin-home';
 import { HomePageSearchBar } from '@backstage/plugin-search';
 import { SearchContextProvider } from '@backstage/plugin-search-react';
@@ -20,6 +21,14 @@ import {
 /**
  * Custom HomePage that shows content based on user permissions
  */
+const defaultLayout: LayoutConfiguration[] = [
+  { component: 'HomePageStarredEntities', x: 0, y: 0, width: 6, height: 4 },
+  { component: 'RecentlyVisited', x: 6, y: 0, width: 6, height: 4 },
+  { component: 'MyProjects', x: 0, y: 4, width: 4, height: 4 },
+  { component: 'QuickActions', x: 4, y: 4, width: 4, height: 4 },
+  { component: 'RecentDeployments', x: 8, y: 4, width: 4, height: 4 },
+];
+
 export const HomePage = () => {
   const classes = useStyles();
   const { userName, loading } = useUserInfo();
@@ -55,7 +64,7 @@ export const HomePage = () => {
           </Box>
 
           {/* Customizable widget grid. */}
-          <CustomHomepageGrid preventDuplicateWidgets>
+          <CustomHomepageGrid config={defaultLayout}>
             <HomePageStarredEntities />
             <RecentlyVisitedHomeWidget />
             <MyProjectsHomeWidget />
