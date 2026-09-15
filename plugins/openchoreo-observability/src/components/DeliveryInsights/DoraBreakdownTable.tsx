@@ -144,9 +144,9 @@ export const DoraBreakdownTable = ({
         <TableHead>
           <TableRow>
             <TableCell>{childLabel}</TableCell>
-            <TableCell align="right">Deploy freq</TableCell>
-            <TableCell align="right">Lead time (p50)</TableCell>
-            <TableCell align="right">Change failure</TableCell>
+            <TableCell align="right">Deployments</TableCell>
+            <TableCell align="right">Lead time p50</TableCell>
+            <TableCell align="right">Change failure rate</TableCell>
             <TableCell align="right">MTTR</TableCell>
             <TableCell>DORA rating</TableCell>
           </TableRow>

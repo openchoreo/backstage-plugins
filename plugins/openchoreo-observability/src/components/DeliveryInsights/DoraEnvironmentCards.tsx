@@ -66,7 +66,7 @@ export const DoraEnvironmentCards = ({ rows }: DoraEnvironmentCardsProps) => {
         const s = row.summary;
         const metrics = [
           {
-            label: 'Deploys',
+            label: 'Deployments',
             value: s?.deploymentFrequency
               ? `${s.deploymentFrequency.total}`
               : '—',
@@ -76,7 +76,7 @@ export const DoraEnvironmentCards = ({ rows }: DoraEnvironmentCardsProps) => {
             value: formatDurationMs(s?.leadTime?.p50Ms),
           },
           {
-            label: 'Change failure',
+            label: 'Change failure rate',
             value:
               s?.changeFailureRate && s.changeFailureRate.total > 0
                 ? formatPercent(s.changeFailureRate.rate)

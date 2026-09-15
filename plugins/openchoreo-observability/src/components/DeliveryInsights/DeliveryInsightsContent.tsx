@@ -185,7 +185,7 @@ export const DeliveryInsightsContent = ({
           select
           size="small"
           variant="outlined"
-          label="Env"
+          label="Environment"
           value={envFilter}
           onChange={event => onEnvFilterChange(event.target.value)}
           style={{ minWidth: 160 }}
@@ -285,7 +285,7 @@ export const DeliveryInsightsContent = ({
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <DoraTrendChart
-                  title="Deployments"
+                  title="Deployment Frequency"
                   granularity={granularity}
                   data={series?.deploymentFrequency ?? []}
                   series={[
@@ -393,7 +393,7 @@ export const DeliveryInsightsContent = ({
               <>
                 <Box mt={3} mb={1.5}>
                   <Typography variant="subtitle1" style={{ fontWeight: 650 }}>
-                    Deployment metrics by environment
+                    Delivery performance by environment
                   </Typography>
                 </Box>
                 <DoraEnvironmentCards rows={breakdown.envRows} />
