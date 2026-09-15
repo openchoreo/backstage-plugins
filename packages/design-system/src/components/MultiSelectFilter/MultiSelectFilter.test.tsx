@@ -192,6 +192,70 @@ describe('MultiSelectFilter', () => {
     expect(screen.getByRole('button', { name: 'Clear' })).toBeDisabled();
   });
 
+  describe('fixed options', () => {
+    const groups = [
+      {
+        options: [
+          { value: 'time', label: 'Time', disabled: true },
+          { value: 'surface', label: 'Surface' },
+        ],
+      },
+    ];
+
+    it('keeps a fixed option out of reach', () => {
+      const onChange = jest.fn();
+      render(
+        <MultiSelectFilter
+          label="Columns"
+          groups={groups}
+          allValues={['time', 'surface']}
+          selected={new Set(['time', 'surface'])}
+          onChange={onChange}
+        />,
+      );
+
+      fireEvent.click(screen.getByLabelText('Filter by columns'));
+      fireEvent.click(screen.getByText('Time'));
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('leaves fixed options selected when clearing', () => {
+      const onChange = jest.fn();
+      render(
+        <MultiSelectFilter
+          label="Columns"
+          groups={groups}
+          allValues={['time', 'surface']}
+          selected={new Set(['time', 'surface'])}
+          onChange={onChange}
+        />,
+      );
+
+      fireEvent.click(screen.getByLabelText('Filter by columns'));
+      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+
+      // Clearing a view's mandatory columns would leave it unusable.
+      expect(onChange).toHaveBeenCalledWith(new Set(['time']));
+    });
+
+    it('has nothing left to clear once only the fixed ones remain', () => {
+      render(
+        <MultiSelectFilter
+          label="Columns"
+          groups={groups}
+          allValues={['time', 'surface']}
+          selected={new Set(['time'])}
+          onChange={jest.fn()}
+        />,
+      );
+
+      fireEvent.click(screen.getByLabelText('Filter by columns'));
+
+      expect(screen.getByRole('button', { name: 'Clear' })).toBeDisabled();
+    });
+  });
+
   it('disables the trigger when there are no selectable values', () => {
     render(
       <MultiSelectFilter

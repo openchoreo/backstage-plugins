@@ -59,6 +59,26 @@ export async function createRouter({
     }
   });
 
+  // Platform-wide observer, for reads with no environment to resolve through
+  // (the audit trail). Takes no query parameters for that reason.
+  router.get('/resolve-platform-urls', async (req, res) => {
+    if (authEnabled) {
+      await httpAuth.credentials(req, { allow: ['user'] });
+    }
+    const userToken = getUserTokenFromRequest(req);
+    try {
+      const urls = await observabilityService.resolvePlatformUrls(userToken);
+      return res.status(200).json(urls);
+    } catch (error) {
+      return res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to resolve the platform observer URL',
+      });
+    }
+  });
+
   router.get('/dataplane-netpol-provider', async (req, res) => {
     if (authEnabled) {
       await httpAuth.credentials(req, { allow: ['user'] });

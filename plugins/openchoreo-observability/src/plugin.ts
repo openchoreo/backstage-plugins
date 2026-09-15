@@ -117,6 +117,12 @@ export const ObservabilityCostAnalysis = lazy(() =>
   })),
 );
 
+export const ObservabilityAuditLogs = lazy(() =>
+  import('./components/AuditLogs/AuditLogsPage').then(m => ({
+    default: m.AuditLogsPage,
+  })),
+);
+
 export const ObservabilityCostInsightsSummaryCard = lazy(() =>
   import('./components/CostInsights/CostInsightsSummaryCard').then(m => ({
     default: m.CostInsightsSummaryCard,

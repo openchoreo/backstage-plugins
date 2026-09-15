@@ -24,15 +24,25 @@ export class ObservabilityService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
   private readonly resolver: ObservabilityUrlResolver;
+  private readonly auditObserverUrl?: string;
 
-  static create(logger: LoggerService, baseUrl: string): ObservabilityService {
-    return new ObservabilityService(logger, baseUrl);
+  static create(
+    logger: LoggerService,
+    baseUrl: string,
+    auditObserverUrl?: string,
+  ): ObservabilityService {
+    return new ObservabilityService(logger, baseUrl, auditObserverUrl);
   }
 
-  private constructor(logger: LoggerService, baseUrl: string) {
+  private constructor(
+    logger: LoggerService,
+    baseUrl: string,
+    auditObserverUrl?: string,
+  ) {
     this.logger = logger;
     this.baseUrl = baseUrl;
     this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
+    this.auditObserverUrl = auditObserverUrl;
   }
 
   /**
@@ -53,6 +63,24 @@ export class ObservabilityService {
       environmentName,
       userToken,
     );
+  }
+
+  /**
+   * Resolves the observer URL for a platform-wide read — the audit trail,
+   * which has no environment to resolve through.
+   *
+   * `openchoreo.observability.auditLogs.observerUrl` wins when set, for a
+   * deployment whose trail is served by an observer other than the default
+   * plane's.
+   */
+  async resolvePlatformUrls(userToken?: string): Promise<{
+    observerUrl?: string;
+  }> {
+    if (this.auditObserverUrl) {
+      return { observerUrl: this.auditObserverUrl };
+    }
+    const { observerUrl } = await this.resolver.resolveForPlatform(userToken);
+    return { observerUrl };
   }
 
   async getReleaseBinding(
@@ -198,7 +226,14 @@ export const observabilityServiceRef = createServiceRef<
         const baseUrl =
           deps.config.getOptionalString('openchoreo.baseUrl') ||
           'http://localhost:8080';
-        return ObservabilityService.create(deps.logger, baseUrl);
+        const auditObserverUrl = deps.config.getOptionalString(
+          'openchoreo.observability.auditLogs.observerUrl',
+        );
+        return ObservabilityService.create(
+          deps.logger,
+          baseUrl,
+          auditObserverUrl,
+        );
       },
     }),
 });

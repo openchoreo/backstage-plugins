@@ -1106,6 +1106,19 @@ export const openchoreoIncidentsViewPermission = createPermission({
 });
 
 /**
+ * Permission to read the audit trail.
+ *
+ * Not resource-based: the trail spans every namespace, so the observer
+ * evaluates `auditlogs:view` at cluster scope. The tenancy filters a query
+ * carries narrow the result set and never widen authorization — working in a
+ * project does not confer the right to read its audit trail.
+ */
+export const openchoreoAuditLogsViewPermission = createPermission({
+  name: 'openchoreo.auditlogs.view',
+  attributes: { action: 'read' },
+});
+
+/**
  * All OpenChoreo permissions exported as an array.
  * Useful for registering all permissions with the permission framework.
  */
@@ -1166,6 +1179,7 @@ export const openchoreoPermissions = [
   openchoreoAlertsViewPermission,
   openchoreoWirelogsViewPermission,
   openchoreoIncidentsViewPermission,
+  openchoreoAuditLogsViewPermission,
   openchoreoTraitCreatePermission,
   openchoreoComponentTypeCreatePermission,
   openchoreoResourceTypeCreatePermission,
@@ -1283,6 +1297,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.exec': 'component:exec',
   'openchoreo.logs.view': 'logs:view',
   'openchoreo.platformlogs.view': 'platformlogs:view',
+  'openchoreo.auditlogs.view': 'auditlogs:view',
   'openchoreo.events.view': 'events:view',
   'openchoreo.alerts.view': 'alerts:view',
   'openchoreo.wirelogs.view': 'wirelogs:view',

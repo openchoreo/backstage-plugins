@@ -1,0 +1,382 @@
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { renderInTestApp } from '@backstage/test-utils';
+import { AuditLogsPage } from './AuditLogsPage';
+import {
+  AuditLogsForbiddenError,
+  AuditLogsNotSupportedError,
+} from '../../api/AuditLogsErrors';
+import { AuditLogRecord } from './types';
+
+const mockUseAuditLogsPermission = jest.fn();
+
+// The page pulls TimeRangeFilter and the permission hook from this package,
+// while its own modules read TIME_RANGE_OPTIONS and calculateTimeRange from it
+// — so the real implementations of those two are kept.
+jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  TIME_RANGE_OPTIONS: jest.requireActual('@openchoreo/backstage-plugin-react')
+    .TIME_RANGE_OPTIONS,
+  calculateTimeRange: jest.requireActual('@openchoreo/backstage-plugin-react')
+    .calculateTimeRange,
+  useAuditLogsPermission: () => mockUseAuditLogsPermission(),
+  ForbiddenState: ({ title, message }: any) => (
+    <div data-testid="forbidden-state">
+      {title}
+      {message}
+    </div>
+  ),
+  EmptyState: ({ title, description }: any) => (
+    <div data-testid="empty-state">
+      {title}
+      {description}
+    </div>
+  ),
+  TimeRangeFilter: ({ value }: any) => (
+    <div data-testid="time-range">{value}</div>
+  ),
+}));
+
+jest.mock('@openchoreo/backstage-design-system', () => ({
+  PageLoader: () => <div data-testid="page-loader" />,
+  RefreshOverlay: ({ active }: any) => (
+    <div data-testid="refresh-overlay">{String(active)}</div>
+  ),
+  Skeleton: () => <div data-testid="skeleton" />,
+}));
+
+const mockUseAuditLogs = jest.fn();
+const mockUseAuditQuerySummary = jest.fn();
+
+jest.mock('../../hooks/useAuditLogs', () => ({
+  useAuditLogs: (...args: any[]) => mockUseAuditLogs(...args),
+  AUDIT_PAGE_SIZE: 100,
+}));
+
+jest.mock('../../hooks/useAuditQuerySummary', () => ({
+  useAuditQuerySummary: (...args: any[]) => mockUseAuditQuerySummary(...args),
+}));
+
+jest.mock('./AuditQueryBar', () => ({
+  AuditQueryBar: ({ tokens }: any) => (
+    <div data-testid="query-bar">{tokens.length} filters</div>
+  ),
+}));
+
+jest.mock('./AuditLenses', () => ({
+  AuditLenses: ({ total }: any) => <div data-testid="lenses">{total}</div>,
+}));
+
+jest.mock('./AuditLogsTable', () => ({
+  AuditLogsTable: ({ records, loading }: any) => (
+    <div data-testid="audit-table">
+      <span data-testid="record-count">{records.length}</span>
+      <span data-testid="table-loading">{String(loading)}</span>
+    </div>
+  ),
+}));
+
+// Lazy-loaded in the page; the chart itself is recharts' concern.
+jest.mock('./AuditTimeline', () => ({
+  __esModule: true,
+  default: ({ timeline }: any) => (
+    <div data-testid="audit-timeline">
+      {timeline ? timeline.interval : 'unknown'}
+    </div>
+  ),
+}));
+
+jest.mock('./AuditEventDrawer', () => ({
+  __esModule: true,
+  default: ({ open, record }: any) => (
+    <div data-testid="audit-drawer">
+      {String(open)}
+      <span data-testid="drawer-record">{record?.event_id ?? 'none'}</span>
+    </div>
+  ),
+}));
+
+jest.mock('./AuditColumnsPicker', () => ({
+  AuditColumnsPicker: ({ columns }: any) => (
+    <div data-testid="columns-picker">{columns.length}</div>
+  ),
+}));
+
+const record: AuditLogRecord = {
+  schema_version: '1.0',
+  event_id: 'e-1',
+  event_time: '2026-09-03T10:00:00.000Z',
+  actor: { type: 'user', id: 'dilani@openchoreo.dev' },
+  action: 'create_project',
+  category: 'management',
+  result: 'success',
+};
+
+const recordsResult = (over: Record<string, unknown> = {}) => ({
+  records: [record],
+  loading: false,
+  loadingMore: false,
+  isRefetching: false,
+  error: null,
+  hasMore: false,
+  loadMore: jest.fn(),
+  refresh: jest.fn(),
+  ...over,
+});
+
+const summaryResult = (over: Record<string, unknown> = {}) => ({
+  total: 1,
+  timeline: undefined,
+  loading: false,
+  isRefetching: false,
+  error: null,
+  refetch: jest.fn(),
+  ...over,
+});
+
+describe('AuditLogsPage', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseAuditLogsPermission.mockReturnValue({
+      canViewAuditLogs: true,
+      loading: false,
+      deniedTooltip: '',
+      permissionName: 'openchoreo.auditlogs.view',
+    });
+    mockUseAuditLogs.mockReturnValue(recordsResult());
+    mockUseAuditQuerySummary.mockReturnValue(summaryResult());
+  });
+
+  it('renders the trail when the user may read it', async () => {
+    await renderInTestApp(<AuditLogsPage />);
+
+    expect(screen.getByTestId('record-count')).toHaveTextContent('1');
+    expect(screen.getByTestId('query-bar')).toBeInTheDocument();
+  });
+
+  it('shows the forbidden state instead of an empty table when denied', async () => {
+    mockUseAuditLogsPermission.mockReturnValue({
+      canViewAuditLogs: false,
+      loading: false,
+      deniedTooltip: 'nope',
+      permissionName: 'openchoreo.auditlogs.view',
+    });
+
+    await renderInTestApp(<AuditLogsPage />);
+
+    expect(screen.getByTestId('forbidden-state')).toHaveTextContent(
+      'auditlogs:view',
+    );
+    expect(screen.queryByTestId('audit-table')).not.toBeInTheDocument();
+  });
+
+  it('shows the forbidden state when the observer itself refuses the read', async () => {
+    mockUseAuditLogs.mockReturnValue(
+      recordsResult({
+        records: [],
+        error: new AuditLogsForbiddenError(),
+      }),
+    );
+
+    await renderInTestApp(<AuditLogsPage />);
+
+    expect(screen.getByTestId('forbidden-state')).toBeInTheDocument();
+  });
+
+  it('says the deployment does not serve the trail on a 501', async () => {
+    mockUseAuditLogs.mockReturnValue(
+      recordsResult({
+        records: [],
+        error: new AuditLogsNotSupportedError(),
+      }),
+    );
+
+    await renderInTestApp(<AuditLogsPage />);
+
+    expect(screen.getByTestId('empty-state')).toHaveTextContent(
+      'cannot be queried for audit records',
+    );
+    // An unsupported read must not look like "nothing happened".
+    expect(screen.queryByTestId('audit-table')).not.toBeInTheDocument();
+  });
+
+  it('waits for the permission check before deciding what to show', async () => {
+    mockUseAuditLogsPermission.mockReturnValue({
+      canViewAuditLogs: false,
+      loading: true,
+      deniedTooltip: '',
+      permissionName: 'openchoreo.auditlogs.view',
+    });
+
+    await renderInTestApp(<AuditLogsPage />);
+
+    expect(screen.getByTestId('page-loader')).toBeInTheDocument();
+    expect(screen.queryByTestId('forbidden-state')).not.toBeInTheDocument();
+  });
+
+  it('surfaces an ordinary query error above the table', async () => {
+    mockUseAuditLogs.mockReturnValue(
+      recordsResult({ records: [], error: new Error('opensearch is down') }),
+    );
+
+    await renderInTestApp(<AuditLogsPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText('opensearch is down')).toBeInTheDocument(),
+    );
+    // The table stays, so a transient failure does not wipe the view.
+    expect(screen.getByTestId('audit-table')).toBeInTheDocument();
+  });
+
+  it('asks for the timeline only while the chart is shown', async () => {
+    await renderInTestApp(<AuditLogsPage />);
+
+    expect(mockUseAuditQuerySummary).toHaveBeenCalledWith(
+      expect.objectContaining({ includeTimeline: true }),
+    );
+  });
+
+  describe('chart section', () => {
+    const header = () =>
+      screen.getByRole('button', { name: /events over time/i });
+
+    it('collapses the chart and stops asking for the aggregation', async () => {
+      await renderInTestApp(<AuditLogsPage />);
+      expect(screen.getByTestId('audit-timeline')).toBeInTheDocument();
+
+      await userEvent.click(header());
+
+      // The body unmounts rather than hiding, which is what makes collapsing
+      // also stop the aggregation being requested.
+      await waitFor(() =>
+        expect(screen.queryByTestId('audit-timeline')).not.toBeInTheDocument(),
+      );
+      expect(mockUseAuditQuerySummary).toHaveBeenLastCalledWith(
+        expect.objectContaining({ includeTimeline: false }),
+      );
+    });
+
+    it('expands it again, so the toggle is not one-way', async () => {
+      await renderInTestApp(<AuditLogsPage />);
+
+      await userEvent.click(header());
+      await waitFor(() =>
+        expect(screen.queryByTestId('audit-timeline')).not.toBeInTheDocument(),
+      );
+
+      await userEvent.click(header());
+
+      await waitFor(() =>
+        expect(screen.getByTestId('audit-timeline')).toBeInTheDocument(),
+      );
+    });
+
+    it('keeps the header visible while collapsed, so the chart stays findable', async () => {
+      await renderInTestApp(<AuditLogsPage />);
+
+      await userEvent.click(header());
+
+      expect(header()).toBeInTheDocument();
+      expect(header()).toHaveAttribute('aria-expanded', 'false');
+    });
+  });
+
+  it('does not gate the query on a permission check that has not resolved', async () => {
+    await renderInTestApp(<AuditLogsPage />);
+
+    expect(mockUseAuditLogs).toHaveBeenCalledWith(
+      expect.objectContaining({ enabled: true }),
+    );
+  });
+
+  it('re-keys both queries on Refresh, so a custom window is not answered from cache', async () => {
+    await renderInTestApp(<AuditLogsPage />);
+
+    expect(mockUseAuditLogs).toHaveBeenLastCalledWith(
+      expect.objectContaining({ generation: 0 }),
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /refresh/i }));
+
+    // A custom range resolves to the same two timestamps every time, so the
+    // generation is the only thing that moves the key.
+    await waitFor(() =>
+      expect(mockUseAuditLogs).toHaveBeenLastCalledWith(
+        expect.objectContaining({ generation: 1 }),
+      ),
+    );
+    expect(mockUseAuditQuerySummary).toHaveBeenLastCalledWith(
+      expect.objectContaining({ generation: 1 }),
+    );
+  });
+
+  describe('the open record', () => {
+    it('keeps the drawer open when the record leaves the result set', async () => {
+      const { rerender } = await renderInTestApp(<AuditLogsPage />, {
+        routeEntries: ['/?event=e-1'],
+      });
+
+      await waitFor(() =>
+        expect(screen.getByTestId('drawer-record')).toHaveTextContent('e-1'),
+      );
+
+      // Drilling on an attribute re-queries; the record need not come back on
+      // the first page of the narrowed, oldest-first set.
+      mockUseAuditLogs.mockReturnValue(recordsResult({ records: [] }));
+      rerender(<AuditLogsPage />);
+
+      await waitFor(() =>
+        expect(screen.getByTestId('audit-drawer')).toHaveTextContent('true'),
+      );
+      expect(screen.getByTestId('drawer-record')).toHaveTextContent('e-1');
+    });
+
+    it('stays shut when nothing is selected', async () => {
+      await renderInTestApp(<AuditLogsPage />);
+
+      expect(screen.getByTestId('drawer-record')).toHaveTextContent('none');
+      expect(screen.getByTestId('audit-drawer')).toHaveTextContent('false');
+    });
+  });
+
+  describe('last updated', () => {
+    const shownTime = () =>
+      screen.getByText(/Last updated at:/).textContent ?? '';
+
+    beforeEach(() => {
+      jest.useFakeTimers({
+        doNotFake: ['queueMicrotask', 'setImmediate', 'nextTick'],
+      });
+      jest.setSystemTime(new Date('2026-09-03T10:00:00.000Z'));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('holds still across a render that fetched nothing', async () => {
+      await renderInTestApp(<AuditLogsPage />);
+      const before = shownTime();
+
+      jest.setSystemTime(new Date('2026-09-03T10:05:00.000Z'));
+      // Refresh re-renders the page; the mocked query never reports a fetch,
+      // so there is no new truth to stamp.
+      await userEvent.click(screen.getByRole('button', { name: /refresh/i }), {
+        advanceTimers: jest.advanceTimersByTime,
+      });
+
+      expect(shownTime()).toBe(before);
+    });
+
+    it('advances when a background refetch settles, which is how Live stamps it', async () => {
+      mockUseAuditLogs.mockReturnValue(recordsResult({ isRefetching: true }));
+      const { rerender } = await renderInTestApp(<AuditLogsPage />);
+      const before = shownTime();
+
+      jest.setSystemTime(new Date('2026-09-03T10:05:00.000Z'));
+      mockUseAuditLogs.mockReturnValue(recordsResult({ isRefetching: false }));
+      rerender(<AuditLogsPage />);
+
+      await waitFor(() => expect(shownTime()).not.toBe(before));
+    });
+  });
+});

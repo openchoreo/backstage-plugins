@@ -257,6 +257,13 @@ openchoreo:
   observability:
     wirelogs:
       streamTimeoutSeconds: ${OPENCHOREO_OBSERVABILITY_WIRELOGS_STREAM_TIMEOUT_SECONDS}
+    # The audit trail is read from an observer with no environment to resolve
+    # through, so it comes from the ClusterObservabilityPlane (or the
+    # namespaced ObservabilityPlane) named `default`. Set this to point the
+    # Audit Logs page at a different observer — a deployment whose trail is
+    # served separately from its runtime logs.
+    auditLogs:
+      observerUrl: ${OPENCHOREO_OBSERVABILITY_AUDIT_OBSERVER_URL}
 
   # Feature flags for enabling/disabling OpenChoreo functionality
   # These can be controlled via Helm values: backstage.features.*

@@ -172,6 +172,19 @@ export {
   type VirtualizedLogListProps,
 } from './components/VirtualizedLogList';
 export { makeColumnStyle } from './components/VirtualizedLogList/columnStyle';
+export {
+  TokenFilterBar,
+  buildPathAliases,
+  parseFilterDraft,
+  resolvePath,
+  type TokenFilterBarProps,
+  type FilterFieldDef,
+  type FilterToken,
+  type FilterValueOption,
+  type FilterValuesProvider,
+  type FilterValuesRequest,
+  type FilterValuesState,
+} from './components/TokenFilterBar';
 
 // Hooks
 export {
@@ -342,6 +355,10 @@ export {
   useEventsPermission,
   type UseEventsPermissionResult,
 } from './hooks/useEventsPermission';
+export {
+  useAuditLogsPermission,
+  type UseAuditLogsPermissionResult,
+} from './hooks/useAuditLogsPermission';
 export {
   useMetricsPermission,
   type UseMetricsPermissionResult,

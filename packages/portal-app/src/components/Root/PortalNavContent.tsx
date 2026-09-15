@@ -151,6 +151,7 @@ const NavItemLink = ({ item }: { item: NavContentNavItem }) => (
 const HOME_ID = 'page:openchoreo-portal-app/home';
 const CATALOG_ID = 'page:catalog';
 const PLATFORM_ID = 'page:platform-engineer-core/platform-overview';
+const AUDIT_LOGS_ID = 'page:openchoreo-observability/audit-logs';
 const COST_INSIGHTS_ID = 'page:openchoreo-observability/cost-insights';
 const APIS_ID = 'page:api-docs';
 const CREATE_ID = 'page:scaffolder';
@@ -160,6 +161,7 @@ export function PortalNavContent({ navItems }: NavContentComponentProps) {
   const home = navItems.take(HOME_ID);
   const catalog = navItems.take(CATALOG_ID);
   const platform = navItems.take(PLATFORM_ID);
+  const auditLogs = navItems.take(AUDIT_LOGS_ID);
   const costInsights = navItems.take(COST_INSIGHTS_ID);
   const apis = navItems.take(APIS_ID);
   const create = navItems.take(CREATE_ID);
@@ -196,6 +198,7 @@ export function PortalNavContent({ navItems }: NavContentComponentProps) {
       </SidebarGroup>
       <SidebarDivider />
       {platform && <NavItemLink item={platform} />}
+      {auditLogs && <NavItemLink item={auditLogs} />}
       {costInsights && <NavItemLink item={costInsights} />}
       <SidebarDivider />
       <SidebarSpace />

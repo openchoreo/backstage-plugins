@@ -10,3 +10,11 @@ export const rootRouteRef = createRouteRef({
 export const platformLogsRouteRef = createRouteRef({
   id: 'openchoreo-observability.platform-logs',
 });
+
+/**
+ * The Audit Logs page's own route. A separate ref from `rootRouteRef`, which
+ * the Cost Insights page is already bound to — one ref cannot name two paths.
+ */
+export const auditLogsRouteRef = createRouteRef({
+  id: 'openchoreo-observability.audit-logs',
+});

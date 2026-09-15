@@ -21,6 +21,7 @@ describe('createRouter', () => {
   beforeEach(async () => {
     observabilityService = {
       resolveUrls: jest.fn(),
+      resolvePlatformUrls: jest.fn(),
       getReleaseBinding: jest.fn(),
       updateReleaseBinding: jest.fn(),
       getResourceReleaseBinding: jest.fn(),
@@ -60,6 +61,32 @@ describe('createRouter', () => {
     expect(response.body).toEqual({
       observerUrl: 'https://observer.example.com',
       rcaAgentUrl: 'https://rca.example.com',
+    });
+  });
+
+  it('should resolve the platform observer URL with no scope parameters', async () => {
+    observabilityService.resolvePlatformUrls.mockResolvedValue({
+      observerUrl: 'https://observer.example.com',
+    });
+
+    const response = await request(app).get('/resolve-platform-urls');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      observerUrl: 'https://observer.example.com',
+    });
+  });
+
+  it('should report a failed platform resolution as a 500', async () => {
+    observabilityService.resolvePlatformUrls.mockRejectedValue(
+      new Error('ClusterObservabilityPlane lookup failed'),
+    );
+
+    const response = await request(app).get('/resolve-platform-urls');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toMatchObject({
+      error: 'ClusterObservabilityPlane lookup failed',
     });
   });
 
