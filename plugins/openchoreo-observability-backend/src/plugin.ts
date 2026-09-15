@@ -55,6 +55,7 @@ export const openchoreoObservabilityBackendPlugin = createBackendPlugin({
         httpRouter.use(
           await createRouter({
             httpAuth,
+            logger,
             observabilityService,
             tokenService,
             authEnabled,

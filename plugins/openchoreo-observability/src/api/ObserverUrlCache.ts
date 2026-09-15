@@ -55,7 +55,7 @@ export class ObserverUrlCache {
 
     const data = await response.json();
 
-    if (!data.observerUrl) {
+    if (!data?.observerUrl) {
       throw new Error('Observability is not enabled for this deployment');
     }
 

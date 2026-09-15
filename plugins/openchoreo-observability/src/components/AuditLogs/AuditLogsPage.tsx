@@ -25,6 +25,7 @@ import {
   AuditLogsForbiddenError,
   AuditLogsNotSupportedError,
 } from '../../api/AuditLogsErrors';
+import { useAuditEvent } from '../../hooks/useAuditEvent';
 import { useAuditLogs } from '../../hooks/useAuditLogs';
 import { useAuditQuerySummary } from '../../hooks/useAuditQuerySummary';
 import { useUrlFiltersForAuditLogs } from '../../hooks/useUrlFiltersForAuditLogs';
@@ -122,7 +123,11 @@ export const AuditLogsPage = () => {
   // I last see the truth" is the question this answers, so a render caused by
   // opening a picker or selecting a row must not advance it.
   const [lastUpdated, setLastUpdated] = useState(() => new Date());
-  const fetching = records.loading || records.isRefetching;
+  const fetching =
+    records.loading ||
+    records.isRefetching ||
+    summary.loading ||
+    summary.isRefetching;
   const wasFetching = useRef(fetching);
   useEffect(() => {
     if (wasFetching.current && !fetching) setLastUpdated(new Date());
@@ -190,15 +195,25 @@ export const AuditLogsPage = () => {
     [filters.selectedEventId, records.records],
   );
 
+  // A link carries the event id but not the page it was on.
+  const { record: fetchedRecord } = useAuditEvent({
+    window: auditWindow,
+    eventId: filters.selectedEventId,
+    enabled: canViewAuditLogs && !loadedRecord,
+  });
+
   // Held rather than looked up each render: a refetch empties the list briefly,
   // and the record need not return on the first page of a narrowed query.
   const [selectedRecord, setSelectedRecord] = useState<
     AuditLogRecord | undefined
   >(undefined);
   useEffect(() => {
+    const record = loadedRecord ?? fetchedRecord;
     if (!filters.selectedEventId) setSelectedRecord(undefined);
-    else if (loadedRecord) setSelectedRecord(loadedRecord);
-  }, [filters.selectedEventId, loadedRecord]);
+    else if (record?.event_id === filters.selectedEventId) {
+      setSelectedRecord(record);
+    }
+  }, [filters.selectedEventId, loadedRecord, fetchedRecord]);
 
   // Guarded so picking a different row never shows the previous record.
   const drawerRecord =

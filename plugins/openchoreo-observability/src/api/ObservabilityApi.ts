@@ -1407,7 +1407,10 @@ export class ObservabilityClient implements ObservabilityApi {
   ): Promise<Error> {
     let body: { errorCode?: string; message?: string; error?: string } = {};
     try {
-      body = await response.json();
+      const parsed = await response.json();
+      // A body of JSON `null` parses without throwing, and reading through it
+      // would lose the status the caller acts on.
+      if (parsed && typeof parsed === 'object') body = parsed;
     } catch {
       // A non-JSON body (a gateway error page) leaves the status to speak.
     }

@@ -473,7 +473,7 @@ export const useAuditDrawerStyles = makeStyles(theme => ({
     display: 'flex',
     alignItems: 'center',
     gap: theme.spacing(1),
-    marginBottom: theme.spacing(1),
+    marginBottom: theme.spacing(1.5),
   },
   sectionTitle: {
     fontSize: '0.75rem',
@@ -481,7 +481,11 @@ export const useAuditDrawerStyles = makeStyles(theme => ({
     textTransform: 'uppercase',
     letterSpacing: '0.04em',
     color: theme.palette.text.secondary,
+    marginBottom: theme.spacing(1.5),
   },
+  // For a title sharing a row with other content, where the row carries the
+  // spacing: a margin of its own would lift it off the row's centre line.
+  inlineSectionTitle: { marginBottom: 0 },
   kv: {
     display: 'grid',
     gridTemplateColumns: '148px minmax(0, 1fr)',
@@ -548,7 +552,7 @@ export const useAuditDrawerStyles = makeStyles(theme => ({
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: theme.spacing(1),
-    marginBottom: theme.spacing(1),
+    marginBottom: theme.spacing(1.5),
   },
   path: {
     display: 'flex',
@@ -566,6 +570,11 @@ export const useAuditDrawerStyles = makeStyles(theme => ({
     backgroundColor: theme.palette.action.hover,
     padding: theme.spacing(0.25, 0.75),
     maxWidth: '100%',
+  },
+  pathSegmentDrill: {
+    font: 'inherit',
+    cursor: 'pointer',
+    '&:hover': { borderColor: theme.palette.primary.main },
   },
   pathKey: {
     fontSize: '0.625rem',

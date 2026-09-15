@@ -254,6 +254,22 @@ describe('MultiSelectFilter', () => {
 
       expect(screen.getByRole('button', { name: 'Clear' })).toBeDisabled();
     });
+
+    it('still offers Clear when a removable value stands in for a fixed one', () => {
+      render(
+        <MultiSelectFilter
+          label="Columns"
+          groups={groups}
+          allValues={['time', 'surface']}
+          selected={new Set(['surface'])}
+          onChange={jest.fn()}
+        />,
+      );
+
+      fireEvent.click(screen.getByLabelText('Filter by columns'));
+
+      expect(screen.getByRole('button', { name: 'Clear' })).toBeEnabled();
+    });
   });
 
   it('disables the trigger when there are no selectable values', () => {

@@ -106,7 +106,9 @@ const FramedPopoverPaper = ({ children, ...paperProps }: PaperProps) => {
 export function buildPathAliases(paths: string[]): Map<string, string> {
   const bySegment = new Map<string, string[]>();
   for (const path of paths) {
-    const segment = path.split('.').pop() as string;
+    // Keyed lowercase, valued canonical: typing is matched case-insensitively,
+    // but the query carries the caller's spelling.
+    const segment = (path.split('.').pop() as string).toLowerCase();
     const existing = bySegment.get(segment);
     if (existing) existing.push(path);
     else bySegment.set(segment, [path]);
@@ -114,7 +116,7 @@ export function buildPathAliases(paths: string[]): Map<string, string> {
 
   const aliases = new Map<string, string>();
   for (const [segment, matches] of bySegment) {
-    if (matches.length === 1 && matches[0] !== segment) {
+    if (matches.length === 1 && matches[0].toLowerCase() !== segment) {
       aliases.set(segment, matches[0]);
     }
   }
@@ -127,7 +129,8 @@ export function resolvePath(
   aliases: Map<string, string>,
 ): string | null {
   const normalized = key.trim().toLowerCase();
-  if (paths.includes(normalized)) return normalized;
+  const match = paths.find(path => path.toLowerCase() === normalized);
+  if (match) return match;
   return aliases.get(normalized) ?? null;
 }
 
@@ -192,6 +195,13 @@ export interface TokenFilterBarProps {
    */
   useValues?: FilterValuesProvider;
   /**
+   * Whether a field can carry a typed value. A field whose values are a closed
+   * set refuses anything outside it, so offering one would build a filter the
+   * query cannot express. Open-valued fields take anything, which is the
+   * default when this is omitted.
+   */
+  isValueAllowed?: (path: string, value: string) => boolean;
+  /**
    * The field names the empty-state hint offers as examples, as one phrase.
    * Defaults to the first four of `fields`, which is rarely the best four.
    */
@@ -227,6 +237,7 @@ export const TokenFilterBar = ({
   onRemoveToken,
   onClear,
   useValues,
+  isValueAllowed,
   exampleFields,
   label,
   allowFreeText = true,
@@ -304,9 +315,15 @@ export const TokenFilterBar = ({
       const key = tokenKey(token);
       const node = chipNodes.current.get(key);
       if (!node || chipWidths.current.has(key)) continue;
+      // Margins included: the row has to fit the chip plus its gaps, and
+      // `getBoundingClientRect` reports only the chip.
+      const style = getComputedStyle(node);
+      const margins =
+        (parseFloat(style.marginLeft) || 0) +
+        (parseFloat(style.marginRight) || 0);
       chipWidths.current.set(
         key,
-        Math.ceil(node.getBoundingClientRect().width),
+        Math.ceil(node.getBoundingClientRect().width + margins),
       );
       learned = true;
     }
@@ -341,6 +358,14 @@ export const TokenFilterBar = ({
   const totalValues = showingCurrentField ? state.totalValues ?? 0 : 0;
   const awaitingValues = pickable && Boolean(state.stale);
 
+  // A value the field cannot carry: offering it would spend a click on a filter
+  // that goes nowhere, so it is refused where the reader can see why.
+  const refusedValue =
+    path !== null &&
+    Boolean(query) &&
+    isValueAllowed !== undefined &&
+    !isValueAllowed(path, query);
+
   const options = useMemo<BarOption[]>(() => {
     if (path === null) {
       const needle = query.toLowerCase();
@@ -362,7 +387,11 @@ export const TokenFilterBar = ({
     // A typed value the list does not offer is still filterable — the only way
     // to use a near-unique field, and the fallback when a source serves records
     // but no aggregation.
-    if (query && !values.some(value => value.value === query)) {
+    if (
+      query &&
+      !refusedValue &&
+      !values.some(value => value.value === query)
+    ) {
       rows.push({ kind: 'value', path, value: query });
     }
     for (const value of values) {
@@ -374,7 +403,7 @@ export const TokenFilterBar = ({
       });
     }
     return rows;
-  }, [allowFreeText, fields, path, query, values]);
+  }, [allowFreeText, fields, path, query, refusedValue, values]);
 
   const selected = useMemo<BarOption[]>(
     () => tokens.map(token => ({ kind: 'token', token })),
@@ -432,6 +461,9 @@ export const TokenFilterBar = ({
   );
 
   const hint = (() => {
+    if (refusedValue) {
+      return `${path} does not take "${query}". Pick one of the values it does.`;
+    }
     if (path !== null && !pickable) {
       return `${path} has no list to pick from. Paste the exact value you have.`;
     }

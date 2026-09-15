@@ -3,8 +3,8 @@ import { Box, Button, Drawer, IconButton, Typography } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
 import { JsonViewer } from '@openchoreo/backstage-design-system';
 import { useAuditDrawerStyles, useAuditResultPillStyles } from './styles';
-import { AUDIT_RESULTS, AuditFilterPath, AuditLogRecord } from './types';
-import { fullTime, relativeAge, resultLabel } from './format';
+import { AuditFilterPath, AuditLogRecord } from './types';
+import { fullTime, relativeAge, resultLabel, surfaceLabel } from './format';
 
 export interface AuditEventDrawerProps {
   record?: AuditLogRecord;
@@ -36,7 +36,7 @@ const Field = ({ label, children, absent, hint, mono }: FieldProps) => {
         ) : (
           <span className={classes.absent}>{absent ?? 'Not recorded.'}</span>
         )}
-        {hint && <span className={classes.valueHint}>{hint}</span>}
+        {hasValue && hint && <span className={classes.valueHint}>{hint}</span>}
       </dd>
     </>
   );
@@ -64,15 +64,17 @@ export const AuditEventDrawer = ({
   // Adds to the query rather than replacing it, then closes: the point of the
   // drill is to see the records that share this value, and the drawer sits over
   // the list that now shows them.
+  const addFilter = (path: AuditFilterPath, value: string) => {
+    onAddToken(path, value);
+    onClose();
+  };
+
   const drill = (path: AuditFilterPath, value: string) => (
     <button
       type="button"
       className={classes.drill}
       title={`Filter by ${path}:${value}`}
-      onClick={() => {
-        onAddToken(path, value);
-        onClose();
-      }}
+      onClick={() => addFilter(path, value)}
     >
       {value}
     </button>
@@ -94,7 +96,47 @@ export const AuditEventDrawer = ({
   };
 
   const resource = record?.resource ?? undefined;
-  const resultNote = AUDIT_RESULTS.find(r => r.id === record?.result)?.note;
+  const scope: Array<{ key: string; value: string; path?: AuditFilterPath }> =
+    resource
+      ? [
+          resource.namespace
+            ? {
+                key: 'namespace',
+                value: resource.namespace,
+                path: 'resource.namespace',
+              }
+            : { key: 'scope', value: 'cluster' },
+          ...(resource.project
+            ? [
+                {
+                  key: 'project',
+                  value: resource.project,
+                  path: 'resource.project' as const,
+                },
+              ]
+            : []),
+          ...(resource.component
+            ? [
+                {
+                  key: 'component',
+                  value: resource.component,
+                  path: 'resource.component' as const,
+                },
+              ]
+            : []),
+          // `resource.resource` has no filter of its own: it is only set where it
+          // repeats the name.
+          ...(resource.resource
+            ? [
+                {
+                  key: 'resource',
+                  value: resource.resource,
+                  path: 'resource.name' as const,
+                },
+              ]
+            : []),
+        ]
+      : [];
   // A result this client predates gets no pill styling rather than borrowing
   // another outcome's, which would misreport it.
   const pillClass = record
@@ -126,11 +168,7 @@ export const AuditEventDrawer = ({
               <span className={`${classes.pill} ${pillClass}`}>
                 {resultLabel(record.result)}
               </span>
-              {record.surface && (
-                <span>
-                  {record.surface === 'mcp' ? 'via MCP' : 'via the REST API'}
-                </span>
-              )}
+              {record.surface && <span>{surfaceLabel(record.surface)}</span>}
               <span>
                 {fullTime(record.event_time)} · {relativeAge(record.event_time)}
               </span>
@@ -140,13 +178,7 @@ export const AuditEventDrawer = ({
           <Box className={classes.body}>
             {record.result === 'unauthenticated' && (
               <Box className={classes.notice}>
-                <span>
-                  <b>Refused at the boundary.</b> The request never resolved to
-                  an operation, so there is no action, category or resource to
-                  record, and no reason for the rejection. OpenChoreo does not
-                  see sign-in attempts. Check your identity provider's logs for
-                  why this was refused.
-                </span>
+                <span>Authentication failed due to token rejection.</span>
               </Box>
             )}
 
@@ -156,7 +188,7 @@ export const AuditEventDrawer = ({
                 <Field
                   label="Actor"
                   mono
-                  hint="From the token's sub claim. Only unique within the issuer."
+                  hint="Token's sub claim. Only unique within the issuer."
                 >
                   {drill('actor.id', record.actor.id)}
                 </Field>
@@ -171,12 +203,8 @@ export const AuditEventDrawer = ({
                 <Field
                   label="Session"
                   mono
-                  hint={
-                    record.actor.session_id
-                      ? "From the sid claim. Match it against the IdP's login record."
-                      : undefined
-                  }
-                  absent="No sid claim. OIDC makes it optional, and client-credentials tokens never carry one."
+                  hint="Token's sid claim."
+                  absent="No sid claim."
                 >
                   {record.actor.session_id
                     ? drill('actor.session_id', record.actor.session_id)
@@ -224,15 +252,7 @@ export const AuditEventDrawer = ({
                     ? drill('operation_id', record.operation_id)
                     : undefined}
                 </Field>
-                <Field
-                  label="Surface"
-                  mono
-                  hint={
-                    record.surface === 'mcp'
-                      ? 'MCP calls the REST API, so this is the only record of it. The tool name is not stored.'
-                      : undefined
-                  }
-                >
+                <Field label="Surface" mono>
                   {record.surface
                     ? drill('surface', record.surface)
                     : undefined}
@@ -241,89 +261,83 @@ export const AuditEventDrawer = ({
                   label="Request line"
                   mono
                   // No filter accepts a method or path, so this stays text.
-                  absent="An MCP tools/call has no request line of its own."
+                  absent="No request line."
                 >
                   {record.http?.path
                     ? `${record.http.method ?? ''} ${record.http.path}`.trim()
                     : undefined}
                 </Field>
-                <Field label="Outcome" hint={resultNote}>
-                  {drill('result', record.result)}
-                </Field>
+                <Field label="Outcome">{drill('result', record.result)}</Field>
               </dl>
             </Box>
 
             {resource && (
               <Box className={classes.section}>
                 <Box className={classes.whereHead}>
-                  <Typography className={classes.sectionTitle}>
+                  <Typography
+                    className={`${classes.sectionTitle} ${classes.inlineSectionTitle}`}
+                  >
                     Where
                   </Typography>
                   <Box className={classes.path}>
-                    {[
-                      resource.namespace
-                        ? (['namespace', resource.namespace] as const)
-                        : (['scope', 'cluster'] as const),
-                      ...(resource.project
-                        ? [['project', resource.project] as const]
-                        : []),
-                      ...(resource.component
-                        ? [['component', resource.component] as const]
-                        : []),
-                      ...(resource.resource
-                        ? [['resource', resource.resource] as const]
-                        : []),
-                    ].map(([key, value]) => (
-                      <span key={key} className={classes.pathSegment}>
-                        <span className={classes.pathKey}>{key}</span>
-                        <span className={classes.pathValue}>{value}</span>
-                      </span>
-                    ))}
+                    {scope.map(({ key, value, path }) => {
+                      const content = (
+                        <>
+                          <span className={classes.pathKey}>{key}</span>
+                          <span className={classes.pathValue}>{value}</span>
+                        </>
+                      );
+                      return path ? (
+                        <button
+                          key={key}
+                          type="button"
+                          className={`${classes.pathSegment} ${classes.pathSegmentDrill}`}
+                          title={`Filter by ${path}:${value}`}
+                          onClick={() => addFilter(path, value)}
+                        >
+                          {content}
+                        </button>
+                      ) : (
+                        <span key={key} className={classes.pathSegment}>
+                          {content}
+                        </span>
+                      );
+                    })}
                   </Box>
                 </Box>
-                <Typography variant="caption" color="textSecondary">
-                  What the decision was made against. It is recorded before
-                  policy runs, so denied events carry it too.
-                </Typography>
-                <Box marginTop={1}>
-                  <dl className={classes.kv}>
-                    <Field label="Resource type" mono>
-                      {resource.type
-                        ? drill('resource.type', resource.type)
-                        : undefined}
-                    </Field>
-                    <Field
-                      label="Environment"
-                      mono
-                      hint="Namespace-qualified. Not a level of the hierarchy; it comes from the ABAC attributes a CEL condition reads."
-                      absent="This operation is not environment-scoped."
-                    >
-                      {resource.environment
-                        ? drill('resource.environment', resource.environment)
-                        : undefined}
-                    </Field>
-                    <Field label="Name" mono>
-                      {resource.name
-                        ? drill('resource.name', resource.name)
-                        : undefined}
-                    </Field>
-                    <Field
-                      label="Resource UID"
-                      mono
-                      // No filter accepts uid: it is absent on deletes and on
-                      // non-CRUD mutations, so filtering by it would exclude
-                      // exactly the operations an investigation wants.
-                      hint={
-                        resource.uid
-                          ? 'Server-generated and never reused, so a delete and recreate cannot be mistaken for an update.'
-                          : undefined
-                      }
-                      absent="The operation returned no object."
-                    >
-                      {resource.uid}
-                    </Field>
-                  </dl>
-                </Box>
+                <dl className={classes.kv}>
+                  <Field label="Resource type" mono>
+                    {resource.type
+                      ? drill('resource.type', resource.type)
+                      : undefined}
+                  </Field>
+                  <Field
+                    label="Environment"
+                    mono
+                    hint="Namespace-qualified environment."
+                    absent="No environment."
+                  >
+                    {resource.environment
+                      ? drill('resource.environment', resource.environment)
+                      : undefined}
+                  </Field>
+                  <Field label="Name" mono>
+                    {resource.name
+                      ? drill('resource.name', resource.name)
+                      : undefined}
+                  </Field>
+                  <Field
+                    label="Resource UID"
+                    mono
+                    // No filter accepts uid: it is absent on deletes and on
+                    // non-CRUD mutations, so filtering by it would exclude
+                    // exactly the operations an investigation wants.
+                    hint="Kubernetes object UID."
+                    absent="No Kubernetes object UID."
+                  >
+                    {resource.uid}
+                  </Field>
+                </dl>
               </Box>
             )}
 
@@ -332,45 +346,20 @@ export const AuditEventDrawer = ({
                 Correlation
               </Typography>
               <dl className={classes.kv}>
-                <Field
-                  label="Event ID"
-                  mono
-                  hint="A UUID v7, so sorting by it sorts by time."
-                >
+                <Field label="Event ID" mono>
                   {drill('event_id', record.event_id)}
                 </Field>
-                <Field
-                  label="Request ID"
-                  mono
-                  hint="Matches the access log line for the same request."
-                >
+                <Field label="Request ID" mono>
                   {record.request_id
                     ? drill('request_id', record.request_id)
                     : undefined}
                 </Field>
-                <Field
-                  label="Client"
-                  mono
-                  hint={
-                    record.user_agent
-                      ? 'Client-supplied, so treat it as a claim, not proof.'
-                      : undefined
-                  }
-                  absent="no User-Agent header sent"
-                >
+                <Field label="Client" mono absent="no User-Agent header sent">
                   {record.user_agent
                     ? drill('user_agent', record.user_agent)
                     : undefined}
                 </Field>
-                <Field
-                  label="Source IP"
-                  mono
-                  absent={
-                    record.surface === 'mcp'
-                      ? 'Not available for a direct MCP client. There is no RemoteAddr and no forwarding header.'
-                      : 'not recorded'
-                  }
-                >
+                <Field label="Source IP" mono absent="No source IP found.">
                   {record.source_ip
                     ? drill('source_ip', record.source_ip)
                     : undefined}
@@ -383,15 +372,15 @@ export const AuditEventDrawer = ({
                 <Field
                   label="Collected from"
                   mono
-                  hint="Stamped by the collector, not by the service. Worth comparing with Producer."
-                  absent="Not reported by this backend."
+                  hint="Collector provided information."
+                  absent="No collector information found."
                 >
                   {record.collector?.podName}
                 </Field>
                 <Field
                   label="Schema version"
                   mono
-                  hint="Major bumps on a removal or a changed field, minor on an addition."
+                  hint="Audit event schema version."
                 >
                   {record.schema_version}
                 </Field>
@@ -400,7 +389,9 @@ export const AuditEventDrawer = ({
 
             <Box className={classes.section}>
               <Box className={classes.sectionHead}>
-                <Typography className={classes.sectionTitle}>
+                <Typography
+                  className={`${classes.sectionTitle} ${classes.inlineSectionTitle}`}
+                >
                   Record as published
                 </Typography>
                 <span className={classes.grow} />

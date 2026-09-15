@@ -14,6 +14,7 @@ import {
   AuditPickableFilter,
   AuditQueryToken,
   isPickableFilter,
+  isSupportedFilterValue,
 } from './types';
 import { AuditWindow } from './query';
 import { useAuditFilterValues } from '../../hooks/useAuditFilterValues';
@@ -90,8 +91,17 @@ export const AuditQueryBar = ({
       enabled: enabled && pickable,
     });
 
+    // The aggregation reports what the trail holds, which on a closed filter
+    // can include a value the request body has no room for.
+    const values =
+      auditPath === null
+        ? result.values
+        : result.values.filter(value =>
+            isSupportedFilterValue(auditPath, value.value),
+          );
+
     return {
-      values: result.values,
+      values,
       totalValues: result.totalValues,
       loading: result.loading,
       // The cache is shared with the outcome tiles, which keep `result` warm,
@@ -114,6 +124,9 @@ export const AuditQueryBar = ({
       }
       onClear={onClear}
       useValues={useValues}
+      isValueAllowed={(path, value) =>
+        isSupportedFilterValue(path as AuditFilterPath, value)
+      }
       label="Filters"
       exampleFields="actor, action, result, namespace"
       freeTextNote="sent as searchPhrase"

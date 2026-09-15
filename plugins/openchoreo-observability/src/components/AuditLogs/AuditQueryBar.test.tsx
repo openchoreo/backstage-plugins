@@ -137,6 +137,42 @@ describe('AuditQueryBar', () => {
     expect(onToggleToken).toHaveBeenCalledWith('result', 'denied');
   });
 
+  it('leaves out a closed filter value the request body cannot carry', async () => {
+    mockUseAuditFilterValues.mockReturnValue({
+      ...noValues,
+      // The trail holds a surface this client's schema predates.
+      values: [
+        { value: 'rest', count: 40 },
+        { value: 'grpc', count: 2 },
+      ],
+      resolvedFilter: 'surface',
+      totalValues: 2,
+    });
+
+    render(<AuditQueryBar {...defaults} />);
+
+    await userEvent.type(
+      screen.getByLabelText('Filter audit records'),
+      'surface:',
+    );
+
+    expect(screen.getByText('rest')).toBeInTheDocument();
+    expect(screen.queryByText('grpc')).not.toBeInTheDocument();
+  });
+
+  it('refuses a typed value a closed filter has no room for', async () => {
+    const onToggleToken = jest.fn();
+    render(<AuditQueryBar {...defaults} onToggleToken={onToggleToken} />);
+
+    await userEvent.type(
+      screen.getByLabelText('Filter audit records'),
+      'surface:grpc',
+    );
+
+    expect(screen.queryByText('grpc')).not.toBeInTheDocument();
+    expect(screen.getByText(/does not take "grpc"/)).toBeInTheDocument();
+  });
+
   it('offers a typed value the list does not carry', async () => {
     const onToggleToken = jest.fn();
     render(<AuditQueryBar {...defaults} onToggleToken={onToggleToken} />);

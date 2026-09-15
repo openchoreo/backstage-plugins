@@ -90,6 +90,35 @@ describe('useUrlFiltersForAuditLogs', () => {
     ]);
   });
 
+  it('ignores a closed filter carrying a value the API rejects', () => {
+    const { result } = renderWithUrl(
+      '/audit-logs?f=result:unknown&f=surface:grpc&f=category:management',
+    );
+
+    expect(result.current.filters.tokens).toEqual([
+      { path: 'category', value: 'management' },
+    ]);
+  });
+
+  it('keeps any value on a filter that takes free text', () => {
+    const { result } = renderWithUrl(
+      '/audit-logs?f=action:promote_release&f=actor.type:robot',
+    );
+
+    expect(result.current.filters.tokens).toEqual([
+      { path: 'action', value: 'promote_release' },
+      { path: 'actor.type', value: 'robot' },
+    ]);
+  });
+
+  it('refuses to write a closed filter value the API cannot express', () => {
+    const { result } = renderWithUrl('/audit-logs');
+
+    act(() => result.current.addToken('surface', 'grpc'));
+
+    expect(result.current.filters.tokens).toEqual([]);
+  });
+
   it('keeps every free-text token, not just the last', () => {
     const { result } = renderWithUrl('/audit-logs');
 

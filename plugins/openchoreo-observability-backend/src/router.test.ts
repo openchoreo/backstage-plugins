@@ -38,6 +38,7 @@ describe('createRouter', () => {
     };
     const router = await createRouter({
       httpAuth: mockServices.httpAuth(),
+      logger: mockServices.logger.mock(),
       observabilityService,
       tokenService,
       authEnabled: true,
@@ -77,7 +78,7 @@ describe('createRouter', () => {
     });
   });
 
-  it('should report a failed platform resolution as a 500', async () => {
+  it('should report a failed platform resolution without the cause', async () => {
     observabilityService.resolvePlatformUrls.mockRejectedValue(
       new Error('ClusterObservabilityPlane lookup failed'),
     );
@@ -85,8 +86,8 @@ describe('createRouter', () => {
     const response = await request(app).get('/resolve-platform-urls');
 
     expect(response.status).toBe(500);
-    expect(response.body).toMatchObject({
-      error: 'ClusterObservabilityPlane lookup failed',
+    expect(response.body).toEqual({
+      error: 'Failed to resolve the platform observer URL',
     });
   });
 

@@ -24,6 +24,17 @@ export function verbOf(action?: string): string | undefined {
   return KNOWN_VERBS.includes(verb) ? verb : undefined;
 }
 
+/**
+ * How the call arrived. `surface` is open on the record where the filter is
+ * closed, so a value this client predates is named rather than described as one
+ * of the two it knows.
+ */
+export function surfaceLabel(surface: string): string {
+  if (surface === 'mcp') return 'via MCP';
+  if (surface === 'rest') return 'via the REST API';
+  return `via ${surface}`;
+}
+
 /** `unauthenticated` is too long for a table pill; everything else fits. */
 export function resultLabel(result: string): string {
   return result === 'unauthenticated' ? 'unauth' : result;
@@ -64,7 +75,12 @@ export function fullTime(iso: string): string {
  * already leads with its own name (`occ/1.4.2`).
  */
 export function shortUserAgent(userAgent: string): string {
-  const browser = userAgent.match(/(Chrome|Firefox|Version|Edg)\/(\d+)/);
+  // Edge carries `Chrome/` ahead of its own token, so the generic match below
+  // would name it Chrome.
+  const edge = userAgent.match(/Edg\/(\d+)/);
+  if (edge) return `Edge ${edge[1]}`;
+
+  const browser = userAgent.match(/(Chrome|Firefox|Version)\/(\d+)/);
   if (browser) {
     const name = browser[1] === 'Version' ? 'Safari' : browser[1];
     return `${name} ${browser[2]}`;

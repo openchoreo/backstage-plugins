@@ -6,6 +6,7 @@ import {
   resultLabel,
   scopeSegments,
   shortUserAgent,
+  surfaceLabel,
   verbOf,
 } from './format';
 
@@ -46,6 +47,17 @@ describe('relativeAge', () => {
   });
 });
 
+describe('surfaceLabel', () => {
+  it('describes the surfaces it knows', () => {
+    expect(surfaceLabel('mcp')).toBe('via MCP');
+    expect(surfaceLabel('rest')).toBe('via the REST API');
+  });
+
+  it('names an unknown surface rather than calling it REST', () => {
+    expect(surfaceLabel('grpc')).toBe('via grpc');
+  });
+});
+
 describe('shortUserAgent', () => {
   it('pulls the recognisable token out of a browser agent', () => {
     expect(
@@ -59,6 +71,14 @@ describe('shortUserAgent', () => {
         'Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 Version/17.4 Safari/605.1.15',
       ),
     ).toBe('Safari 17');
+  });
+
+  it('names Edge by its own token, which trails the Chrome one', () => {
+    expect(
+      shortUserAgent(
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0',
+      ),
+    ).toBe('Edge 140');
   });
 
   it('keeps the leading token of an agent that names itself', () => {

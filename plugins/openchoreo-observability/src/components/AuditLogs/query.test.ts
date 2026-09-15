@@ -88,6 +88,29 @@ describe('resolveAuditWindow', () => {
       clamped: false,
     });
   });
+
+  it('orders a reversed custom range instead of sending it', () => {
+    const result = resolveAuditWindow('custom', {
+      startTime: '2026-09-08T00:00:00.000Z',
+      endTime: '2026-09-01T00:00:00.000Z',
+    });
+
+    expect(result).toEqual({
+      startTime: '2026-09-01T00:00:00.000Z',
+      endTime: '2026-09-08T00:00:00.000Z',
+      clamped: false,
+    });
+  });
+
+  it('clamps a reversed range that is also too wide', () => {
+    const result = resolveAuditWindow('custom', {
+      startTime: '2026-01-01T00:00:00.000Z',
+      endTime: '2020-01-01T00:00:00.000Z',
+    });
+
+    expect(result.clamped).toBe(true);
+    expect(result.endTime).toBe('2026-01-01T00:00:00.000Z');
+  });
 });
 
 describe('suggestTimelineInterval', () => {

@@ -46,6 +46,7 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
 
 const mockUseAuditLogs = jest.fn();
 const mockUseAuditQuerySummary = jest.fn();
+const mockUseAuditEvent = jest.fn();
 
 jest.mock('../../hooks/useAuditLogs', () => ({
   useAuditLogs: (...args: any[]) => mockUseAuditLogs(...args),
@@ -54,6 +55,10 @@ jest.mock('../../hooks/useAuditLogs', () => ({
 
 jest.mock('../../hooks/useAuditQuerySummary', () => ({
   useAuditQuerySummary: (...args: any[]) => mockUseAuditQuerySummary(...args),
+}));
+
+jest.mock('../../hooks/useAuditEvent', () => ({
+  useAuditEvent: (...args: any[]) => mockUseAuditEvent(...args),
 }));
 
 jest.mock('./AuditQueryBar', () => ({
@@ -144,6 +149,11 @@ describe('AuditLogsPage', () => {
     });
     mockUseAuditLogs.mockReturnValue(recordsResult());
     mockUseAuditQuerySummary.mockReturnValue(summaryResult());
+    mockUseAuditEvent.mockReturnValue({
+      record: undefined,
+      loading: false,
+      error: null,
+    });
   });
 
   it('renders the trail when the user may read it', async () => {
@@ -335,6 +345,35 @@ describe('AuditLogsPage', () => {
 
       expect(screen.getByTestId('drawer-record')).toHaveTextContent('none');
       expect(screen.getByTestId('audit-drawer')).toHaveTextContent('false');
+    });
+
+    it('opens a linked record that is on none of the loaded pages', async () => {
+      const deepLinked = { ...record, event_id: 'e-9' };
+      mockUseAuditEvent.mockReturnValue({
+        record: deepLinked,
+        loading: false,
+        error: null,
+      });
+
+      await renderInTestApp(<AuditLogsPage />, {
+        routeEntries: ['/?event=e-9'],
+      });
+
+      await waitFor(() =>
+        expect(screen.getByTestId('drawer-record')).toHaveTextContent('e-9'),
+      );
+    });
+
+    it('looks a linked record up only while the loaded pages lack it', async () => {
+      await renderInTestApp(<AuditLogsPage />, {
+        routeEntries: ['/?event=e-1'],
+      });
+
+      // `e-1` is the loaded record, so a by-id read would ask again for what is
+      // already on screen.
+      expect(mockUseAuditEvent).toHaveBeenLastCalledWith(
+        expect.objectContaining({ eventId: 'e-1', enabled: false }),
+      );
     });
   });
 

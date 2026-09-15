@@ -15,6 +15,14 @@ import { useAuditFilterValues } from '../../hooks/useAuditFilterValues';
  */
 const LENS_RESULTS: AuditResult[] = ['success', 'failure', 'denied'];
 
+/** Stands in for a count the aggregation did not answer. Zero would be a claim. */
+const UNKNOWN_COUNT = '—';
+
+const unknownNote = (unsupported: boolean): string =>
+  unsupported
+    ? 'This deployment serves the records but cannot count them, so this is unknown.'
+    : 'The count could not be loaded. The records below are unaffected.';
+
 export interface AuditLensesProps {
   window: AuditWindow;
   tokens: AuditQueryToken[];
@@ -27,7 +35,7 @@ export interface AuditLensesProps {
 interface LensTileProps {
   label: string;
   value: ReactNode;
-  note: string;
+  note?: string;
   color?: string;
   onClick?: () => void;
   active?: boolean;
@@ -69,7 +77,7 @@ const LensTile = ({
         {label}
       </span>
       <span className={classes.lensValue}>{value}</span>
-      <span className={classes.lensNote}>{note}</span>
+      {note && <span className={classes.lensNote}>{note}</span>}
     </>
   );
 
@@ -109,7 +117,12 @@ export const AuditLenses = ({
   const classes = useAuditLensesStyles();
   const colors = useResultColor();
 
-  const { values, loading } = useAuditFilterValues({
+  const {
+    values,
+    loading,
+    error: resultsError,
+    unsupported: resultsUnsupported,
+  } = useAuditFilterValues({
     window: auditWindow,
     tokens,
     filter: 'result',
@@ -118,14 +131,18 @@ export const AuditLenses = ({
 
   // Only the count is wanted here, not the list — asking for one value keeps a
   // high-cardinality aggregation's payload to nothing.
-  const { totalValues: distinctActors, loading: actorsLoading } =
-    useAuditFilterValues({
-      window: auditWindow,
-      tokens,
-      filter: 'actor.id',
-      maxValues: 1,
-      enabled,
-    });
+  const {
+    totalValues: distinctActors,
+    loading: actorsLoading,
+    error: actorsError,
+    unsupported: actorsUnsupported,
+  } = useAuditFilterValues({
+    window: auditWindow,
+    tokens,
+    filter: 'actor.id',
+    maxValues: 1,
+    enabled,
+  });
 
   const countByResult = new Map(
     values.map(value => [value.value, value.count]),
@@ -160,16 +177,18 @@ export const AuditLenses = ({
                 loading ? (
                   <Skeleton variant="text" width={56} />
                 ) : (
-                  count.toLocaleString()
+                  <>{resultsError ? UNKNOWN_COUNT : count.toLocaleString()}</>
                 )
               }
-              note={result.note}
               color={colors[result.id]}
               onClick={onlyThisResult(result.id)}
               active={
                 selectedResults.length === 1 && selectedResults[0] === result.id
               }
-              quiet={!loading && count === 0}
+              quiet={!loading && !resultsError && count === 0}
+              tooltip={
+                resultsError ? unknownNote(resultsUnsupported) : undefined
+              }
             />
           );
         },
@@ -180,11 +199,15 @@ export const AuditLenses = ({
           actorsLoading ? (
             <Skeleton variant="text" width={40} />
           ) : (
-            formatTotal(distinctActors)
+            <>{actorsError ? UNKNOWN_COUNT : formatTotal(distinctActors)}</>
           )
         }
         note="users, service accounts and agents"
-        tooltip="How many different actor.id values appear in this window."
+        tooltip={
+          actorsError
+            ? unknownNote(actorsUnsupported)
+            : 'How many different actor.id values appear in this window.'
+        }
       />
     </Box>
   );

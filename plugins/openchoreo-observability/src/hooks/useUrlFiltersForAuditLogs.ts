@@ -7,6 +7,7 @@ import {
   AuditFilterPath,
   AuditLogsFilters,
   AuditQueryToken,
+  isSupportedFilterValue,
 } from '../components/AuditLogs/types';
 import { parseUrlTimeRange, writeUrlTimeRange } from '../utils/urlTimeRange';
 
@@ -31,7 +32,9 @@ function decodeToken(raw: string): AuditQueryToken | null {
   const path = raw.slice(0, separator);
   const value = raw.slice(separator + 1);
   if (!value || !VALID_PATHS.has(path)) return null;
-  return { path: path as AuditFilterPath, value };
+  const filterPath = path as AuditFilterPath;
+  if (!isSupportedFilterValue(filterPath, value)) return null;
+  return { path: filterPath, value };
 }
 
 /**
@@ -140,7 +143,11 @@ export function useUrlFiltersForAuditLogs() {
         // Appended, not set: `buildAuditQuery` joins several free-text tokens
         // into one `searchPhrase`, so setting would drop all but the last.
         if (token.path === null) params.append('search', token.value);
-        else params.append('f', encodeToken(token));
+        // Every write funnels through here, so a value a closed filter cannot
+        // express is refused once rather than at each caller that can offer one.
+        else if (isSupportedFilterValue(token.path, token.value)) {
+          params.append('f', encodeToken(token));
+        }
       }
     },
     [],

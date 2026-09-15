@@ -1,4 +1,4 @@
-import { HttpAuthService } from '@backstage/backend-plugin-api';
+import { HttpAuthService, LoggerService } from '@backstage/backend-plugin-api';
 import express from 'express';
 import Router from 'express-promise-router';
 import {
@@ -13,11 +13,13 @@ import {
 
 export async function createRouter({
   httpAuth,
+  logger,
   observabilityService,
   tokenService,
   authEnabled,
 }: {
   httpAuth: HttpAuthService;
+  logger: LoggerService;
   observabilityService: typeof observabilityServiceRef.T;
   tokenService: OpenChoreoTokenService;
   authEnabled: boolean;
@@ -70,11 +72,12 @@ export async function createRouter({
       const urls = await observabilityService.resolvePlatformUrls(userToken);
       return res.status(200).json(urls);
     } catch (error) {
+      // The cause names cluster-internal resources.
+      logger.error('Failed to resolve the platform observer URL', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return res.status(500).json({
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to resolve the platform observer URL',
+        error: 'Failed to resolve the platform observer URL',
       });
     }
   });

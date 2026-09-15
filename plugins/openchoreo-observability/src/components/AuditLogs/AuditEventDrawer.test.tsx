@@ -67,6 +67,49 @@ describe('AuditEventDrawer', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('filters by a scope chip, and by name for the resource level', async () => {
+    const onAddToken = jest.fn();
+    render(
+      <AuditEventDrawer
+        {...defaults}
+        record={{
+          ...record,
+          resource: {
+            type: 'component',
+            namespace: 'default',
+            project: 'shop',
+            component: 'cart',
+            resource: 'cart',
+            name: 'cart',
+          },
+        }}
+        onAddToken={onAddToken}
+      />,
+    );
+
+    await userEvent.click(screen.getByTitle('Filter by resource.project:shop'));
+    expect(onAddToken).toHaveBeenCalledWith('resource.project', 'shop');
+
+    const resourceChip = screen
+      .getByText('resource', { selector: 'span' })
+      .closest('button');
+    expect(resourceChip).toHaveAttribute(
+      'title',
+      'Filter by resource.name:cart',
+    );
+  });
+
+  it('leaves the cluster scope as text, since no filter selects it', () => {
+    render(
+      <AuditEventDrawer
+        {...defaults}
+        record={{ ...record, resource: { type: 'clustercomponenttype' } }}
+      />,
+    );
+
+    expect(screen.getByText('cluster').closest('button')).toBeNull();
+  });
+
   it('says why a value is missing rather than leaving it blank', () => {
     render(<AuditEventDrawer {...defaults} />);
 

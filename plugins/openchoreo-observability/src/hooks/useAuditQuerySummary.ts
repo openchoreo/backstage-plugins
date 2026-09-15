@@ -69,6 +69,7 @@ export function useAuditQuerySummary(
       auditWindow.endTime,
       JSON.stringify(tokens),
       includeTimeline,
+      isLive,
       generation,
     ],
     () => {

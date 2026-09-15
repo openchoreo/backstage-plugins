@@ -1,6 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { TokenFilterBar } from './TokenFilterBar';
+import {
+  TokenFilterBar,
+  buildPathAliases,
+  resolvePath,
+} from './TokenFilterBar';
 import { FilterFieldDef, FilterToken } from './types';
 
 const fields: FilterFieldDef[] = [
@@ -195,6 +199,42 @@ describe('TokenFilterBar', () => {
     expect(screen.getByText(/no list to pick from/)).toBeInTheDocument();
   });
 
+  it('refuses a typed value the field cannot carry, and says so', async () => {
+    const onToggleToken = jest.fn();
+    render(
+      <TokenFilterBar
+        {...defaults}
+        tokens={[]}
+        onToggleToken={onToggleToken}
+        isValueAllowed={(path, value) =>
+          path !== 'result' || value === 'denied'
+        }
+      />,
+    );
+
+    await userEvent.type(screen.getByRole('textbox'), 'result:granted');
+
+    expect(screen.queryByText('granted')).not.toBeInTheDocument();
+    expect(screen.getByText(/does not take "granted"/)).toBeInTheDocument();
+  });
+
+  it('still takes a typed value on a field with no closed set', async () => {
+    const onToggleToken = jest.fn();
+    render(
+      <TokenFilterBar
+        {...defaults}
+        tokens={[]}
+        onToggleToken={onToggleToken}
+        isValueAllowed={path => path !== 'result'}
+      />,
+    );
+
+    await userEvent.type(screen.getByRole('textbox'), 'actor.id:alice@x.dev');
+    await userEvent.click(screen.getByText('alice@x.dev'));
+
+    expect(onToggleToken).toHaveBeenCalledWith('actor.id', 'alice@x.dev');
+  });
+
   it('removes the last filter on backspace in an empty field', async () => {
     const onRemoveToken = jest.fn();
     render(
@@ -209,5 +249,38 @@ describe('TokenFilterBar', () => {
     await userEvent.keyboard('{Backspace}');
 
     expect(onRemoveToken).toHaveBeenCalledWith(null, 'occ');
+  });
+});
+
+describe('resolvePath', () => {
+  const paths = ['result', 'resource.project', 'resource.apiVersion'];
+  const aliases = buildPathAliases(paths);
+
+  it('matches a field however it was typed, and answers with the canonical path', () => {
+    expect(resolvePath('Result', paths, aliases)).toBe('result');
+    expect(resolvePath('resource.apiversion', paths, aliases)).toBe(
+      'resource.apiVersion',
+    );
+    expect(resolvePath('  RESOURCE.PROJECT ', paths, aliases)).toBe(
+      'resource.project',
+    );
+  });
+
+  it('resolves a last segment that names one field', () => {
+    expect(resolvePath('project', paths, aliases)).toBe('resource.project');
+    expect(resolvePath('apiVersion', paths, aliases)).toBe(
+      'resource.apiVersion',
+    );
+  });
+
+  it('gives nothing for a key that names no field', () => {
+    expect(resolvePath('namespace', paths, aliases)).toBeNull();
+  });
+
+  it('leaves a segment two fields share unresolved', () => {
+    const ambiguous = ['actor.id', 'resource.id'];
+    expect(
+      resolvePath('id', ambiguous, buildPathAliases(ambiguous)),
+    ).toBeNull();
   });
 });

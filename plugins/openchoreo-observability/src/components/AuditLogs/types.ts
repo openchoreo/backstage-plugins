@@ -103,9 +103,17 @@ export interface AuditLogsResourceFilter {
 }
 
 export type AuditSortOrder = 'asc' | 'desc';
-export type AuditCategory = 'management' | 'authorization' | 'access';
 export type AuditResult = 'success' | 'failure' | 'denied' | 'unauthenticated';
-export type AuditSurface = 'rest' | 'mcp';
+
+export const AUDIT_CATEGORIES = [
+  'management',
+  'authorization',
+  'access',
+] as const;
+export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
+
+export const AUDIT_SURFACES = ['rest', 'mcp'] as const;
+export type AuditSurface = (typeof AUDIT_SURFACES)[number];
 
 /**
  * A filter set over the trail. Multi-value fields OR within a field; fields AND
@@ -309,7 +317,7 @@ export const AUDIT_COLUMNS: AuditColumn[] = [
   { id: 'producer', label: 'Producer', field: 'producer' },
   { id: 'request', label: 'Request ID', field: 'request_id' },
   { id: 'ip', label: 'Source IP', field: 'source_ip' },
-  { id: 'ua', label: 'Client', field: 'user_agent', defaultOn: true },
+  { id: 'ua', label: 'Client', field: 'user_agent' },
   { id: 'http', label: 'Request line', field: 'http.method + http.path' },
 ];
 
@@ -317,32 +325,38 @@ export const AUDIT_DEFAULT_COLUMNS = AUDIT_COLUMNS.filter(
   c => c.fixed || c.defaultOn,
 ).map(c => c.id);
 
-/**
- * The four outcomes, with what each one means. Closed at schema 1.0 — a record
- * carrying an unknown result still renders, it just has no note.
- */
+/** The four outcomes. Closed at schema 1.0. */
 export const AUDIT_RESULTS: Array<{
   id: AuditResult;
   label: string;
-  note: string;
 }> = [
-  { id: 'success', label: 'Successful', note: 'The action completed.' },
-  {
-    id: 'failure',
-    label: 'Failed',
-    note: 'The action ran and errored.',
-  },
-  {
-    id: 'denied',
-    label: 'Denied',
-    note: 'Signed in, but refused by policy.',
-  },
-  {
-    id: 'unauthenticated',
-    label: 'Unauthenticated',
-    note: 'Refused at the boundary, before any action was resolved.',
-  },
+  { id: 'success', label: 'Successful' },
+  { id: 'failure', label: 'Failed' },
+  { id: 'denied', label: 'Denied' },
+  { id: 'unauthenticated', label: 'Unauthenticated' },
 ];
+
+/**
+ * The fields whose filter takes an enum rather than free text. The server
+ * rejects a value outside the set, so such a filter is a failed request rather
+ * than a narrower query.
+ */
+const CLOSED_FILTER_VALUES: Partial<
+  Record<AuditFilterPath, readonly string[]>
+> = {
+  category: AUDIT_CATEGORIES,
+  result: AUDIT_RESULTS.map(result => result.id),
+  surface: AUDIT_SURFACES,
+};
+
+/** Whether `value` is one this filter accepts. Open-valued fields take any. */
+export function isSupportedFilterValue(
+  path: AuditFilterPath,
+  value: string,
+): boolean {
+  const allowed = CLOSED_FILTER_VALUES[path];
+  return !allowed || allowed.includes(value);
+}
 
 /** The window the query covers, at most 366 days wide. */
 export const AUDIT_MAX_WINDOW_DAYS = 366;

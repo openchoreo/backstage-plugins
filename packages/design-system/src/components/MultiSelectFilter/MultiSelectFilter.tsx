@@ -171,7 +171,7 @@ export const MultiSelectFilter = ({
           <Button
             color="primary"
             className={classes.menuActionButton}
-            disabled={selected.size === fixedValues.length}
+            disabled={[...selected].every(value => fixedValues.includes(value))}
             onClick={() => onChange(new Set(fixedValues))}
           >
             Clear

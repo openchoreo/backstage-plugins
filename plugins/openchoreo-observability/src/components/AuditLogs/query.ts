@@ -47,7 +47,14 @@ export function resolveAuditWindow(
   timeRange: string,
   custom?: { startTime?: string; endTime?: string },
 ): AuditWindow {
-  const { startTime, endTime } = calculateTimeRange(timeRange, custom);
+  const range = calculateTimeRange(timeRange, custom);
+  // A hand-edited `from`/`to` pair can arrive either way round. Left reversed,
+  // the span is negative, which skips the clamp below and earns a 400.
+  const reversed =
+    new Date(range.startTime).getTime() > new Date(range.endTime).getTime();
+  const startTime = reversed ? range.endTime : range.startTime;
+  const endTime = reversed ? range.startTime : range.endTime;
+
   const start = new Date(startTime).getTime();
   const end = new Date(endTime).getTime();
   const maxSpan = AUDIT_MAX_WINDOW_DAYS * DAY_MS;
