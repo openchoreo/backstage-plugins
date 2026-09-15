@@ -362,18 +362,9 @@ export const DeliveryInsightsContent = ({
             </Grid>
           </Box>
 
-          <Box
-            mt={3}
-            mb={1.5}
-            display="flex"
-            alignItems="baseline"
-            style={{ gap: 10 }}
-          >
+          <Box mt={3} mb={1.5}>
             <Typography variant="subtitle1" style={{ fontWeight: 650 }}>
               {labels.title}
-            </Typography>
-            <Typography variant="caption" color="textSecondary">
-              Sorted by deployment frequency
             </Typography>
           </Box>
           <DoraBreakdownTable

@@ -194,7 +194,9 @@ export function useDoraBreakdown(
         ]);
 
         if (!cancelled) {
-          // Most active first, mirroring the wireframe's "sorted by deployment frequency".
+          // Most active first. The table's leading Deployments column renders this
+          // ordering as a descending bar, so the sort explains itself and needs no
+          // caption above the table.
           summaries.sort(
             (a, b) =>
               (b.summary?.deploymentFrequency?.total ?? 0) -
