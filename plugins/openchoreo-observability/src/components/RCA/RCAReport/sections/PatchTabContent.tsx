@@ -28,6 +28,7 @@ import {
   applyEnvChange,
   applyFileChange,
   resolveTargetKind,
+  tryResolveTargetKind,
   bindingEndpoint,
   bindingLabel,
 } from '../../../../utils/applyResourceChange';
@@ -132,6 +133,9 @@ function buildFieldTree(fields: EditableField[]): FieldNode[] {
 }
 
 function extractPatchSections(rc: ResourceChange): PatchSection[] {
+  const targetKind = tryResolveTargetKind(rc);
+  if (targetKind === null) return [];
+
   const sections: PatchSection[] = [];
   let fieldIdx = 0;
 
@@ -160,7 +164,7 @@ function extractPatchSections(rc: ResourceChange): PatchSection[] {
 
   // A ResourceReleaseBinding has no traits or componentType overrides — every
   // field lives under spec.resourceTypeEnvironmentConfigs.
-  if (resolveTargetKind(rc) === 'ResourceReleaseBinding') {
+  if (targetKind === 'ResourceReleaseBinding') {
     const resourceFields: EditableField[] = [];
     for (const f of (rc.fields ?? []) as FieldChange[]) {
       const label = f.json_pointer
@@ -551,7 +555,11 @@ export const PatchTabContent = ({
     [chatContext, reportId],
   );
 
-  const renderActionButtons = (index: number, action: RecommendedAction) => {
+  const renderActionButtons = (
+    index: number,
+    action: RecommendedAction,
+    unsupported = false,
+  ) => {
     const localStatus = actionStates.get(index)?.status;
 
     if (localStatus === 'applying') {
@@ -598,7 +606,8 @@ export const PatchTabContent = ({
     }
 
     const busy = phase === 'running';
-    const disableActions = busy || permissionLoading || !canUpdateRca;
+    const disableActions =
+      unsupported || busy || permissionLoading || !canUpdateRca;
     return (
       <Box display="flex" style={{ gap: 8 }}>
         <Tooltip title={deniedTooltip}>
@@ -693,7 +702,9 @@ export const PatchTabContent = ({
         const rc = action.change as ResourceChange | undefined;
         const sections = rc ? extractPatchSections(rc) : [];
         const state = actionStates.get(index)?.status;
+        const unsupported = !!rc && tryResolveTargetKind(rc) === null;
         const disabled =
+          unsupported ||
           isRunning ||
           action.status === 'applied' ||
           action.status === 'dismissed' ||
@@ -712,6 +723,13 @@ export const PatchTabContent = ({
             >
               <FormattedText text={action.description} disableMarkdown />
             </Typography>
+
+            {unsupported && (
+              <Typography variant="caption" color="textSecondary">
+                This fix targets a binding type this portal version cannot
+                apply.
+              </Typography>
+            )}
 
             {sections.length > 0 && (
               <Box display="flex" flexDirection="column" style={{ gap: 16 }}>
@@ -845,7 +863,7 @@ export const PatchTabContent = ({
 
             <Box className={classes.patchActionFooter}>
               <Box />
-              {renderActionButtons(index, action)}
+              {renderActionButtons(index, action, unsupported)}
             </Box>
           </Box>
         );

@@ -17,10 +17,11 @@ export interface ResourceChangeDef {
   files?: Array<{ key: string; mount_path: string; value: string }>;
 }
 
-/** Reports predating the target_kind field describe Component bindings. */
-export function resolveTargetKind(change: {
+/** Returns null for a kind this portal version cannot route. */
+export function tryResolveTargetKind(change: {
   target_kind?: string | null;
-}): TargetKind {
+}): TargetKind | null {
+  // Reports predating the target_kind field describe Component bindings.
   if (change.target_kind === null || change.target_kind === undefined) {
     return 'ReleaseBinding';
   }
@@ -30,7 +31,17 @@ export function resolveTargetKind(change: {
   ) {
     return change.target_kind;
   }
-  throw new Error(`Unsupported target_kind: '${change.target_kind}'`);
+  return null;
+}
+
+export function resolveTargetKind(change: {
+  target_kind?: string | null;
+}): TargetKind {
+  const kind = tryResolveTargetKind(change);
+  if (kind === null) {
+    throw new Error(`Unsupported target_kind: '${change.target_kind}'`);
+  }
+  return kind;
 }
 
 export function bindingEndpoint(targetKind: TargetKind): string {
@@ -66,7 +77,7 @@ export function applyJsonPointer(
   doc: any,
   pointer: string,
   value: any,
-  targetKind: TargetKind = 'ReleaseBinding',
+  targetKind: TargetKind,
 ): void {
   const keys = pointer.replace(/^\//, '').split('/');
   if (
