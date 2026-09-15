@@ -119,6 +119,42 @@ export async function mapWithConcurrency<T, R>(
 }
 
 /** Max concurrent breakdown metric requests (see `mapWithConcurrency`). */
+/** A change-failure-rate bucket as the observer returns it. */
+export interface CfrSeriesPoint {
+  bucketStart: string;
+  rate: number;
+  failed: number;
+  total: number;
+}
+
+/**
+ * The change-failure-rate series is zero-filled, so a bucket that deployed
+ * nothing still carries `rate: 0`. Plotted raw that reads as "nothing failed"
+ * across a stretch where nothing shipped, which is the opposite of what it
+ * means -- the tile, the breakdown table and the environment cards all show a
+ * dash for the same bucket. Nulling it marks the bucket unmeasured so the chart
+ * breaks the line instead of running it flat along the axis.
+ */
+export function nullUnmeasuredRates(
+  points: readonly CfrSeriesPoint[] | undefined,
+): Array<Record<string, string | number | null>> {
+  return (points ?? []).map(point => ({
+    ...point,
+    rate: point.total > 0 ? point.rate : null,
+  }));
+}
+
+/**
+ * The same buckets dropped rather than nulled, for the tile's sparkline: it
+ * takes `number[]` and scales on the min and max, so a null would skew the
+ * baseline rather than register as absent.
+ */
+export function measuredRates(
+  points: readonly CfrSeriesPoint[] | undefined,
+): number[] {
+  return (points ?? []).filter(p => p.total > 0).map(p => p.rate);
+}
+
 export const BREAKDOWN_CONCURRENCY = 6;
 
 /** Short bucket label for chart axes: "Jul 7" (daily/weekly) or "Jul 2026" (monthly). */

@@ -22,6 +22,8 @@ import {
   fillSeriesGaps,
   formatDurationMs,
   formatPercent,
+  measuredRates,
+  nullUnmeasuredRates,
 } from './utils';
 
 const CHART_COLORS = {
@@ -133,6 +135,14 @@ export const DeliveryInsightsContent = ({
   const mttrSeries = useMemo(
     () => fillSeriesGaps(buckets, data?.series?.mttr, ['meanMs']),
     [buckets, data?.series?.mttr],
+  );
+  const cfrSeries = useMemo(
+    () => nullUnmeasuredRates(data?.series?.changeFailureRate),
+    [data?.series?.changeFailureRate],
+  );
+  const cfrSparkData = useMemo(
+    () => measuredRates(data?.series?.changeFailureRate),
+    [data?.series?.changeFailureRate],
   );
 
   if (!scope || !level) {
@@ -261,7 +271,7 @@ export const DeliveryInsightsContent = ({
                 subText={
                   cfr ? `${cfr.failed} of ${cfr.total} failed` : undefined
                 }
-                sparkData={series?.changeFailureRate?.map(p => p.rate)}
+                sparkData={cfrSparkData}
               />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
@@ -330,7 +340,7 @@ export const DeliveryInsightsContent = ({
                 <DoraTrendChart
                   title="Change Failure Rate"
                   granularity={granularity}
-                  data={series?.changeFailureRate ?? []}
+                  data={cfrSeries}
                   series={[
                     {
                       dataKey: 'rate',

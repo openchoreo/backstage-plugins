@@ -1,4 +1,9 @@
-import { fillSeriesGaps, mapWithConcurrency } from './utils';
+import {
+  fillSeriesGaps,
+  mapWithConcurrency,
+  measuredRates,
+  nullUnmeasuredRates,
+} from './utils';
 
 describe('fillSeriesGaps', () => {
   const buckets = [
@@ -96,5 +101,42 @@ describe('mapWithConcurrency', () => {
     const fn = jest.fn();
     await expect(mapWithConcurrency([], 4, fn)).resolves.toEqual([]);
     expect(fn).not.toHaveBeenCalled();
+  });
+});
+
+describe('change failure rate buckets with no deployments', () => {
+  // The observer zero-fills this series, so an idle day arrives as rate 0 rather
+  // than absent -- the shape that made a three-week gap render as a flat 0%.
+  const series = [
+    { bucketStart: '2026-09-08T00:00:00Z', rate: 0, failed: 0, total: 0 },
+    { bucketStart: '2026-09-09T00:00:00Z', rate: 0.25, failed: 1, total: 4 },
+    { bucketStart: '2026-09-10T00:00:00Z', rate: 0, failed: 0, total: 3 },
+  ];
+
+  it('nulls a rate no deployment measured, keeping a real zero', () => {
+    expect(nullUnmeasuredRates(series).map(p => p.rate)).toEqual([
+      null,
+      0.25,
+      0,
+    ]);
+  });
+
+  it('keeps the other fields so the tooltip still has its counts', () => {
+    expect(nullUnmeasuredRates(series)[1]).toMatchObject({
+      bucketStart: '2026-09-09T00:00:00Z',
+      failed: 1,
+      total: 4,
+    });
+  });
+
+  it('drops unmeasured buckets from the sparkline rather than nulling them', () => {
+    // Sparkline takes number[] and scales on min/max, so a null would drag the
+    // baseline down instead of being ignored.
+    expect(measuredRates(series)).toEqual([0.25, 0]);
+  });
+
+  it('handles an absent series', () => {
+    expect(nullUnmeasuredRates(undefined)).toEqual([]);
+    expect(measuredRates(undefined)).toEqual([]);
   });
 });
