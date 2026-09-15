@@ -9,6 +9,8 @@ import {
   applyEnvChange,
   applyFileChange,
   applyResourceChange,
+  resolveTargetKind,
+  tryResolveTargetKind,
 } from './applyResourceChange';
 
 // ---------------------------------------------------------------------------
@@ -22,6 +24,7 @@ describe('applyJsonPointer', () => {
       doc,
       '/spec/componentTypeEnvironmentConfigs/resources/requests/cpu',
       '50m',
+      'ReleaseBinding',
     );
     expect(
       doc.spec.componentTypeEnvironmentConfigs.resources.requests.cpu,
@@ -30,13 +33,23 @@ describe('applyJsonPointer', () => {
 
   it('sets a value at a valid spec/workloadOverrides pointer', () => {
     const doc: any = {};
-    applyJsonPointer(doc, '/spec/workloadOverrides/container/replicas', 2);
+    applyJsonPointer(
+      doc,
+      '/spec/workloadOverrides/container/replicas',
+      2,
+      'ReleaseBinding',
+    );
     expect(doc.spec.workloadOverrides.container.replicas).toBe(2);
   });
 
   it('sets a value at a valid spec/traitEnvironmentConfigs pointer', () => {
     const doc: any = {};
-    applyJsonPointer(doc, '/spec/traitEnvironmentConfigs/my-trait/timeout', 30);
+    applyJsonPointer(
+      doc,
+      '/spec/traitEnvironmentConfigs/my-trait/timeout',
+      30,
+      'ReleaseBinding',
+    );
     expect(doc.spec.traitEnvironmentConfigs['my-trait'].timeout).toBe(30);
   });
 
@@ -52,6 +65,7 @@ describe('applyJsonPointer', () => {
       doc,
       '/spec/componentTypeEnvironmentConfigs/resources/requests/cpu',
       '50m',
+      'ReleaseBinding',
     );
     expect(
       doc.spec.componentTypeEnvironmentConfigs.resources.requests.cpu,
@@ -64,6 +78,7 @@ describe('applyJsonPointer', () => {
       doc,
       '/spec/componentTypeEnvironmentConfigs/resources/requests/cpu',
       '10m',
+      'ReleaseBinding',
     );
     expect(
       doc.spec.componentTypeEnvironmentConfigs.resources.requests.cpu,
@@ -72,20 +87,25 @@ describe('applyJsonPointer', () => {
 
   it('throws for pointer with fewer than 3 segments', () => {
     expect(() =>
-      applyJsonPointer({}, '/spec/componentTypeEnvironmentConfigs', 'x'),
+      applyJsonPointer(
+        {},
+        '/spec/componentTypeEnvironmentConfigs',
+        'x',
+        'ReleaseBinding',
+      ),
     ).toThrow('Invalid pointer');
   });
 
   it('throws for pointer not starting with /spec/', () => {
-    expect(() => applyJsonPointer({}, '/metadata/name/foo', 'x')).toThrow(
-      'Invalid pointer',
-    );
+    expect(() =>
+      applyJsonPointer({}, '/metadata/name/foo', 'x', 'ReleaseBinding'),
+    ).toThrow('Invalid pointer');
   });
 
   it('throws for pointer with a disallowed spec category', () => {
-    expect(() => applyJsonPointer({}, '/spec/containers/0/image', 'x')).toThrow(
-      'Invalid pointer',
-    );
+    expect(() =>
+      applyJsonPointer({}, '/spec/containers/0/image', 'x', 'ReleaseBinding'),
+    ).toThrow('Invalid pointer');
   });
 });
 
@@ -441,6 +461,7 @@ describe('applyJsonPointer prototype pollution', () => {
           {},
           `/spec/componentTypeEnvironmentConfigs/${segment}/polluted`,
           'PWNED',
+          'ReleaseBinding',
         ),
       ).toThrow('Invalid pointer');
     },
@@ -452,6 +473,7 @@ describe('applyJsonPointer prototype pollution', () => {
         { spec: {} },
         '/spec/componentTypeEnvironmentConfigs/__proto__/polluted',
         'PWNED',
+        'ReleaseBinding',
       ),
     ).toThrow('Invalid pointer');
 
@@ -464,6 +486,7 @@ describe('applyJsonPointer prototype pollution', () => {
         { spec: {} },
         '/spec/componentTypeEnvironmentConfigs/__proto__',
         'PWNED',
+        'ReleaseBinding',
       ),
     ).toThrow('Invalid pointer');
   });
@@ -487,6 +510,7 @@ describe('applyJsonPointer prototype pollution', () => {
       doc,
       '/spec/componentTypeEnvironmentConfigs/resources/requests/cpu',
       '50m',
+      'ReleaseBinding',
     );
     expect(
       doc.spec.componentTypeEnvironmentConfigs.resources.requests.cpu,
@@ -510,6 +534,7 @@ describe('applyJsonPointer target kinds', () => {
         {},
         '/spec/resourceTypeEnvironmentConfigs/memory',
         '256Mi',
+        'ReleaseBinding',
       ),
     ).toThrow('Invalid pointer');
   });
@@ -532,5 +557,33 @@ describe('applyJsonPointer target kinds', () => {
         'ResourceReleaseBinding',
       ),
     ).toThrow('Invalid pointer');
+  });
+});
+
+describe('target kind resolution', () => {
+  it('treats a missing kind as a component binding', () => {
+    expect(tryResolveTargetKind({})).toBe('ReleaseBinding');
+    expect(tryResolveTargetKind({ target_kind: null })).toBe('ReleaseBinding');
+  });
+
+  it('passes through both known kinds', () => {
+    expect(tryResolveTargetKind({ target_kind: 'ReleaseBinding' })).toBe(
+      'ReleaseBinding',
+    );
+    expect(
+      tryResolveTargetKind({ target_kind: 'ResourceReleaseBinding' }),
+    ).toBe('ResourceReleaseBinding');
+  });
+
+  it('returns null rather than throwing for a kind it cannot route', () => {
+    expect(tryResolveTargetKind({ target_kind: 'ProjectReleaseBinding' })).toBe(
+      null,
+    );
+  });
+
+  it('still throws on the apply path so a bad kind is never misrouted', () => {
+    expect(() =>
+      resolveTargetKind({ target_kind: 'ProjectReleaseBinding' }),
+    ).toThrow('Unsupported target_kind');
   });
 });
