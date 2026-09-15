@@ -17,6 +17,7 @@ import { DoraMetricTile } from './DoraMetricTile';
 import { DoraTrendChart } from './DoraTrendChart';
 import { DoraBreakdownTable } from './DoraBreakdownTable';
 import { DoraEnvironmentCards } from './DoraEnvironmentCards';
+import { useNamespaceEnvironments } from '../CostInsights/useNamespaceEnvironments';
 import {
   INSIGHTS_TIME_RANGES,
   fillSeriesGaps,
@@ -110,6 +111,19 @@ export const DeliveryInsightsContent = ({
     rangeDays,
     granularity,
   );
+
+  // The breakdown knows which environments have data, but only by name. The
+  // catalog holds the display name, which is what every other filter shows
+  // (logs, metrics, cost), so look it up and fall back to the name.
+  const { environments: catalogEnvironments } = useNamespaceEnvironments(
+    scope?.namespace,
+  );
+  const environmentLabel = useMemo(() => {
+    const byName = new Map(
+      catalogEnvironments.map(env => [env.name, env.displayName || env.name]),
+    );
+    return (name: string) => byName.get(name) ?? name;
+  }, [catalogEnvironments]);
 
   // The breakdown issues its own metric requests, so a refresh has to reload
   // both or the table and env cards keep showing an older snapshot than the
@@ -205,7 +219,7 @@ export const DeliveryInsightsContent = ({
           <MenuItem value="">All environments</MenuItem>
           {breakdown.environments.map(env => (
             <MenuItem key={env} value={env}>
-              {env}
+              {environmentLabel(env)}
             </MenuItem>
           ))}
         </TextField>
