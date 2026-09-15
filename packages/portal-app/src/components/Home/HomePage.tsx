@@ -24,9 +24,6 @@ import {
 const defaultLayout: LayoutConfiguration[] = [
   { component: 'HomePageStarredEntities', x: 0, y: 0, width: 6, height: 4 },
   { component: 'RecentlyVisited', x: 6, y: 0, width: 6, height: 4 },
-  { component: 'MyProjects', x: 0, y: 4, width: 4, height: 4 },
-  { component: 'QuickActions', x: 4, y: 4, width: 4, height: 4 },
-  { component: 'RecentDeployments', x: 8, y: 4, width: 4, height: 4 },
 ];
 
 export const HomePage = () => {
