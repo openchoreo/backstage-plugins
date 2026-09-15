@@ -32,6 +32,7 @@ import {
 } from './components/AnnotationEditor/useAnnotationEditorContextMenuItemProps';
 
 export { openChoreoEntityPageOverride } from './extensions/openChoreoEntityPageOverride';
+export { openChoreoEntityGroupsModule } from './extensions/openChoreoEntityGroupsModule';
 export { openChoreoAppModule } from './appModule';
 
 import {
@@ -135,7 +136,7 @@ const componentDeployEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/environments',
     title: 'Deploy',
-    group: 'deployment',
+    group: 'deploy',
     filter: isOpenChoreoManagedOfKind('component'),
     loader: () =>
       import('./components/Environments/Environments').then(m => (
@@ -176,7 +177,7 @@ const projectDeployEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/deploy',
     title: 'Deploy',
-    group: 'deployment',
+    group: 'deploy',
     filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
       import('./components/ProjectEnvironments').then(m => (
@@ -190,7 +191,7 @@ const cellDiagramEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/cell-diagram',
     title: 'Cell Diagram',
-    group: 'deployment',
+    group: 'cell-diagram',
     filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
       import('./components/CellDiagram/CellDiagram').then(m => (
@@ -204,7 +205,7 @@ const projectDiagramEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/diagram',
     title: 'Diagram',
-    group: 'deployment',
+    group: 'diagram',
     filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
       Promise.all([
@@ -260,7 +261,7 @@ const namespaceCellDiagramEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/cell-diagram',
     title: 'Cell Diagram',
-    group: 'deployment',
+    group: 'cell-diagram',
     filter: isOpenChoreoManagedOfKind('domain'),
     loader: () =>
       import('./components/NamespaceCellDiagram').then(m => (
@@ -298,7 +299,7 @@ const resourceDeployEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/environments',
     title: 'Deploy',
-    group: 'deployment',
+    group: 'deploy',
     filter: isOpenChoreoManagedOfKind('resource'),
     loader: () =>
       import('./components/ResourceEnvironments').then(m => (
@@ -865,6 +866,18 @@ const componentWorkflowOverviewLayout = EntityContentLayoutBlueprint.make({
 // referencing `ui:field: <Name>` renders correctly.
 import { scaffolderFieldExtensions } from './scaffolder/extensions';
 
+// Injects the signed-in user's IDP token as the OPENCHOREO_USER_TOKEN
+// secret on any template that opts in via `EXPERIMENTAL_formDecorators:
+// [{ id: openchoreo:inject-user-token }]`. See the decorator file for the
+// full rationale.
+import { FormDecoratorBlueprint } from '@backstage/plugin-scaffolder-react/alpha';
+import { openChoreoTokenDecorator } from './scaffolder/openChoreoTokenDecorator';
+
+const openChoreoUserTokenFormDecorator = FormDecoratorBlueprint.make({
+  name: 'openchoreo-user-token',
+  params: { decorator: openChoreoTokenDecorator },
+});
+
 // Opened via window.open() from the resource drawer; no title/icon = no nav item.
 const execTerminalPage = PageBlueprint.make({
   name: 'exec-terminal',
@@ -934,6 +947,7 @@ export default createFrontendPlugin({
     workflowOverviewCard,
     componentWorkflowOverviewCard,
     ...scaffolderFieldExtensions,
+    openChoreoUserTokenFormDecorator,
     // per-kind Overview layouts
     componentServiceOverviewLayout,
     systemOverviewLayout,

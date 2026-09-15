@@ -92,11 +92,25 @@ function buildFilterFn(
  */
 const GROUP_ORDER = [
   'overview',
-  'definition',
   'documentation',
+  'definition',
+  'development',
+  'build',
+  'deploy',
+  'cell-diagram',
+  'diagram',
+  'logs',
+  'events',
+  'metrics',
+  'alerts',
+  'wirelogs',
+  'traces',
+  'incidents',
+  'rca-reports',
+  'cost-analysis',
   'deployment',
-  'runtime',
-  'analysis',
+  'operation',
+  'observability',
   'external',
 ] as const;
 export const openChoreoEntityPageOverride = createFrontendModule({

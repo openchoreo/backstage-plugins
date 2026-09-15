@@ -44,7 +44,7 @@ const workflowsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/workflows',
     title: 'Build',
-    group: 'deployment',
+    group: 'build',
     filter: isOpenChoreoManagedOfKind('component'),
     loader: () => import('./components/Workflows').then(m => <m.Workflows />),
   },

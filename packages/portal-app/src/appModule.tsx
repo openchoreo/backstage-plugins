@@ -13,7 +13,6 @@ import {
   EntityContentLayoutBlueprint,
 } from '@backstage/plugin-catalog-react/alpha';
 import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
-import { OpenChoreoQueryProvider } from '@openchoreo/backstage-plugin-react';
 import { apis } from './apis';
 import { LEGACY_KIND_ICONS } from './kindIcons';
 import { appThemes } from './themes';
@@ -43,12 +42,11 @@ const navContent = NavContentBlueprint.make({
   params: { component: PortalNavContent },
 });
 
-// Wraps the app root so page overrides attaching under upstream plugin
-// scopes (page:catalog/entity, page:api-docs, ...) inherit query context.
-const openChoreoQueryWrapper = AppRootWrapperBlueprint.make({
-  name: 'openchoreo-query',
-  params: { component: OpenChoreoQueryProvider },
-});
+// (The OpenChoreoQueryProvider app-root wrapper is now shipped by
+// `openChoreoAppModule` in `@openchoreo/backstage-plugin/alpha` — it used to
+// live here as `openChoreoQueryWrapper` but was moved to the plugin so
+// external adopters get it automatically. Do not re-add it here or the
+// extension ID `app-root-wrapper:app/openchoreo-query` collides.)
 
 const scaffolderPreselectionWrapper = AppRootWrapperBlueprint.make({
   name: 'scaffolder-preselection',
@@ -92,7 +90,6 @@ export const appModule = createFrontendModule({
     iconBundle,
     ...themeExtensions,
     navContent,
-    openChoreoQueryWrapper,
     scaffolderPreselectionWrapper,
     assistantDrawerWrapper,
     apiTryOutEntityContent,
