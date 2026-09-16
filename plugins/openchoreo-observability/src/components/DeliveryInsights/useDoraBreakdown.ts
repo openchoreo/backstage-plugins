@@ -72,6 +72,11 @@ export function useDoraBreakdown(
   // Refresh does not blank the page.
   const queryKey = `${level ?? ''}/${scopeKey}/${rangeDays}/${granularity}`;
   const loadedKey = useRef<string | null>(null);
+  // The environment list is a property of the namespace alone, so it survives a
+  // change of window or granularity but not a change of namespace -- where
+  // keeping it would offer, and the caller would auto-select, an environment
+  // that belongs to somewhere else.
+  const loadedEnvironmentNamespace = useRef<string | null>(null);
 
   useEffect(() => {
     if (!level || !scope) {
@@ -86,6 +91,9 @@ export function useDoraBreakdown(
           setRows([]);
           setEnvRows([]);
         }
+        if (loadedEnvironmentNamespace.current !== scope.namespace) {
+          setEnvironments([]);
+        }
         setLoading(true);
         setError(null);
 
@@ -99,6 +107,7 @@ export function useDoraBreakdown(
         const envNames = envEntities.map(e => e.metadata.name);
         if (!cancelled) {
           setEnvironments(envNames);
+          loadedEnvironmentNamespace.current = scope.namespace;
         }
 
         let children: DoraBreakdownRow[] = [];
@@ -174,6 +183,19 @@ export function useDoraBreakdown(
                 name,
                 scope: { ...scope, environment: name },
               }));
+
+        // The environment list is loaded; the summaries are not asked for until
+        // the caller has settled on one of them. Every metric below a namespace
+        // or project is scoped to a single environment by design -- unscoped it
+        // would aggregate across observability planes, which percentiles cannot
+        // do -- so a request made while the filter is still empty is one nobody
+        // can serve meaningfully. Component level is already per-environment,
+        // and a namespace with no environments has nothing to wait for.
+        const awaitingEnvironment =
+          level !== 'component' && !scope.environment && envNames.length > 0;
+        if (awaitingEnvironment) {
+          return;
+        }
 
         const endTime = new Date();
         const startTime = new Date(

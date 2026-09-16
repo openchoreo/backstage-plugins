@@ -127,14 +127,24 @@ export const DeliveryInsightsContent = ({
     return envFilter ? { ...scope, environment: envFilter } : scope;
   }, [scope, envFilter]);
 
-  const { data, loading, error, refetch } = useDoraInsights(
-    effectiveScope,
-    rangeDays,
-    granularity,
-  );
   const breakdown = useDoraBreakdown(
     level,
     level === 'component' ? scope : effectiveScope,
+    rangeDays,
+    granularity,
+  );
+
+  // Every request here is scoped to one environment, so none is made until the
+  // filter holds one this namespace actually has. Without that the page opens
+  // on an unscoped request -- and makes another after each namespace change,
+  // which clears the filter -- asking for figures aggregated across
+  // observability planes that no observer answers for, only to replace them a
+  // moment later once the filter settles.
+  const environmentReady =
+    Boolean(envFilter) && breakdown.environments.includes(envFilter);
+
+  const { data, loading, error, refetch } = useDoraInsights(
+    environmentReady ? effectiveScope : null,
     rangeDays,
     granularity,
   );
