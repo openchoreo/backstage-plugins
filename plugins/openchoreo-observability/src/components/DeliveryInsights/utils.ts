@@ -189,6 +189,52 @@ export function collectionWarning(
   return null;
 }
 
+/** Approximate days per bucket, for deciding how many a window would produce. */
+const GRANULARITY_DAYS: Record<DoraGranularity, number> = {
+  daily: 1,
+  weekly: 7,
+  monthly: 30,
+};
+
+/** Fewer buckets than this and the chart is a couple of columns, not a trend. */
+const MIN_BUCKETS = 2;
+/** More than this and the marks are too narrow to read in a card-width chart. */
+const MAX_BUCKETS = 90;
+
+/**
+ * The granularities worth offering for a window, widest-first by bucket count.
+ *
+ * A window and a bucket size only make a chart together. A year of daily buckets
+ * is 365 marks in a few hundred pixels, and a week of monthly buckets is one --
+ * both are technically servable, which is why the pairing has to be constrained
+ * here rather than left to the reader to avoid.
+ */
+export function granularitiesForRange(rangeDays: number): DoraGranularity[] {
+  const allowed = (Object.keys(GRANULARITY_DAYS) as DoraGranularity[]).filter(
+    granularity => {
+      const buckets = rangeDays / GRANULARITY_DAYS[granularity];
+      return buckets >= MIN_BUCKETS && buckets <= MAX_BUCKETS;
+    },
+  );
+  // Never leave the control empty: an unusual window still needs a bucket size,
+  // and the finest one is the least wrong for a short window.
+  return allowed.length > 0 ? allowed : ['daily'];
+}
+
+/**
+ * The granularity to use for a window: the current one where it still fits, and
+ * otherwise the coarsest that does -- changing the range should not leave a
+ * selection that cannot be charted.
+ */
+export function resolveGranularity(
+  rangeDays: number,
+  current: DoraGranularity,
+): DoraGranularity {
+  const allowed = granularitiesForRange(rangeDays);
+  if (allowed.includes(current)) return current;
+  return allowed[allowed.length - 1];
+}
+
 export const BREAKDOWN_CONCURRENCY = 6;
 
 /** Short bucket label for chart axes: "Jul 7" (daily/weekly) or "Jul 2026" (monthly). */

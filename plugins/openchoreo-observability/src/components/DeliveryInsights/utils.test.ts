@@ -1,6 +1,8 @@
 import {
   collectionWarning,
   fillSeriesGaps,
+  granularitiesForRange,
+  resolveGranularity,
   mapWithConcurrency,
   measuredRates,
   nullUnmeasuredRates,
@@ -183,5 +185,31 @@ describe('collectionWarning', () => {
     expect(msg).toContain('eventsSourceEnabled');
     // MTTR still works off incidents, so the warning must not imply otherwise.
     expect(msg).toContain('Mean time to recovery');
+  });
+});
+
+describe('granularity for a window', () => {
+  // A window and a bucket size only make a chart together: a year of daily
+  // buckets is 365 marks in a card, a week of monthly buckets is one.
+  it.each([
+    [7, ['daily']],
+    [30, ['daily', 'weekly']],
+    [90, ['daily', 'weekly', 'monthly']],
+    [365, ['weekly', 'monthly']],
+  ])('offers the sizes that chart for %i days', (days, expected) => {
+    expect(granularitiesForRange(days)).toEqual(expected);
+  });
+
+  it('never leaves the control with nothing to choose', () => {
+    expect(granularitiesForRange(1)).toEqual(['daily']);
+  });
+
+  it('keeps a granularity that still fits the new range', () => {
+    expect(resolveGranularity(90, 'weekly')).toBe('weekly');
+  });
+
+  it('moves off one the new range no longer offers', () => {
+    // 12 months has no daily option; monthly is the coarsest that fits.
+    expect(resolveGranularity(365, 'daily')).toBe('monthly');
   });
 });

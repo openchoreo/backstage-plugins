@@ -24,9 +24,17 @@ import {
   formatDurationMs,
   collectionWarning,
   formatPercent,
+  granularitiesForRange,
+  resolveGranularity,
   measuredRates,
   nullUnmeasuredRates,
 } from './utils';
+
+const GRANULARITY_LABELS: Record<DoraGranularity, string> = {
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+};
 
 const CHART_COLORS = {
   deployments: '#1f77b4',
@@ -161,6 +169,20 @@ export const DeliveryInsightsContent = ({
     }
   }, [envFilter, breakdown.environments, onEnvFilterChange]);
 
+  const granularityOptions = useMemo(
+    () => granularitiesForRange(rangeDays),
+    [rangeDays],
+  );
+  // Changing the range can strand the granularity on a value it no longer
+  // offers, which would leave the control showing a selection that is not in
+  // its own list. Move it to the nearest one that fits.
+  useEffect(() => {
+    const resolved = resolveGranularity(rangeDays, granularity);
+    if (resolved !== granularity) {
+      onGranularityChange(resolved);
+    }
+  }, [rangeDays, granularity, onGranularityChange]);
+
   const configWarning = collectionWarning(data?.collection);
   const cfrSeries = useMemo(
     () => nullUnmeasuredRates(data?.series?.changeFailureRate),
@@ -193,7 +215,7 @@ export const DeliveryInsightsContent = ({
           select
           size="small"
           variant="outlined"
-          label="Range"
+          label="Time range"
           value={rangeDays}
           onChange={event => onRangeDaysChange(Number(event.target.value))}
         >
@@ -213,9 +235,11 @@ export const DeliveryInsightsContent = ({
             onGranularityChange(event.target.value as DoraGranularity)
           }
         >
-          <MenuItem value="daily">Daily</MenuItem>
-          <MenuItem value="weekly">Weekly</MenuItem>
-          <MenuItem value="monthly">Monthly</MenuItem>
+          {granularityOptions.map(option => (
+            <MenuItem key={option} value={option}>
+              {GRANULARITY_LABELS[option]}
+            </MenuItem>
+          ))}
         </TextField>
         <TextField
           select
