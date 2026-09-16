@@ -9,6 +9,24 @@ interface CachedUrls {
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+/**
+ * A namespace whose environments report to different observability planes, so no
+ * single observer can answer for the namespace as a whole.
+ *
+ * Distinguished from a failure because callers act on it: the Delivery Insights
+ * page drops its "all environments" option rather than showing an error.
+ */
+export class NamespaceSpansObservabilityPlanesError extends Error {
+  /** environment name -> the observer URL it resolves through. */
+  readonly planesByEnvironment: Record<string, string>;
+
+  constructor(message: string, planesByEnvironment: Record<string, string>) {
+    super(message);
+    this.name = 'NamespaceSpansObservabilityPlanesError';
+    this.planesByEnvironment = planesByEnvironment;
+  }
+}
+
 export class ObserverUrlCache {
   private readonly discoveryApi: DiscoveryApi;
   private readonly fetchApi: FetchApi;
@@ -107,6 +125,15 @@ export class ObserverUrlCache {
       } catch {
         throw new Error(
           `Failed to resolve observer URLs: ${response.status} ${response.statusText}`,
+        );
+      }
+      if (
+        response.status === 409 &&
+        error.code === 'NAMESPACE_SPANS_OBSERVABILITY_PLANES'
+      ) {
+        throw new NamespaceSpansObservabilityPlanesError(
+          error.error ?? 'Namespace spans multiple observability planes',
+          error.planesByEnvironment ?? {},
         );
       }
       throw new Error(

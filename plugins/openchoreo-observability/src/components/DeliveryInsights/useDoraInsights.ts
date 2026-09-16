@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { observabilityApiRef } from '../../api/ObservabilityApi';
+import { NamespaceSpansObservabilityPlanesError } from '../../api/ObserverUrlCache';
 import {
   DoraGranularity,
   DoraMetricsResponse,
@@ -11,6 +12,12 @@ export interface UseDoraInsightsResult {
   data: DoraMetricsResponse | null;
   loading: boolean;
   error: string | null;
+  /**
+   * Set when the scope's environments report to different observability planes,
+   * so no single observer can answer for it. Not an error: the caller drops its
+   * all-environments option and scopes to one environment instead.
+   */
+  spansMultiplePlanes: boolean;
   refetch: () => void;
 }
 
@@ -39,6 +46,7 @@ export function useDoraInsights(
   const [failure, setFailure] = useState<{
     key: string;
     message: string;
+    spansMultiplePlanes?: boolean;
   } | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -86,6 +94,8 @@ export function useDoraInsights(
               err instanceof Error
                 ? err.message
                 : 'Failed to fetch DORA metrics',
+            spansMultiplePlanes:
+              err instanceof NamespaceSpansObservabilityPlanesError,
           });
         }
       } finally {
@@ -108,7 +118,12 @@ export function useDoraInsights(
   const data = result?.key === queryKey ? result.data : null;
   // Same rule for the error: it belongs to the query that raised it. A failed
   // refresh of the current key still surfaces, because the key matches.
-  const error = failure?.key === queryKey ? failure.message : null;
+  const spansMultiplePlanes =
+    failure?.key === queryKey ? failure.spansMultiplePlanes ?? false : false;
+  // A namespace spanning planes is a shape the caller handles, not a failure to
+  // report, so it is withheld from `error` and surfaced on its own.
+  const error =
+    failure?.key === queryKey && !spansMultiplePlanes ? failure.message : null;
 
-  return { data, loading, error, refetch };
+  return { data, loading, error, spansMultiplePlanes, refetch };
 }

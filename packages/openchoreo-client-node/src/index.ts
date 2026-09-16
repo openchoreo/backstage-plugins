@@ -26,6 +26,7 @@ export {
 
 // Export observability URL resolver
 export {
+  NamespaceSpansObservabilityPlanesError,
   ObservabilityUrlResolver,
   type ObservabilityUrlsResult,
   type ObservabilityUrlResolverOptions,

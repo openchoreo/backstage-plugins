@@ -1,4 +1,7 @@
-import { ObservabilityUrlResolver } from './observability-url-resolver';
+import {
+  NamespaceSpansObservabilityPlanesError,
+  ObservabilityUrlResolver,
+} from './observability-url-resolver';
 
 const get = jest.fn();
 const mockedCreateClient = jest.fn((..._args: any[]) => ({ GET: get }));
@@ -243,6 +246,29 @@ describe('ObservabilityUrlResolver.resolveForNamespace', () => {
     await expect(resolver.resolveForNamespace('org-1')).rejects.toThrow(
       /dev -> https:\/\/observer-dev\.example\.com/,
     );
+  });
+
+  it('reports the condition as a type carrying the mapping', async () => {
+    // The page drops its all-environments option on this, so it has to be
+    // distinguishable from a lookup failure without matching on the message.
+    mockedCreateClient.mockReturnValue({
+      GET: routingGet({
+        dev: 'https://observer-dev.example.com',
+        prod: 'https://observer-prod.example.com',
+      }),
+    } as any);
+
+    const resolver = new ObservabilityUrlResolver({
+      baseUrl: 'https://api.example.com',
+    });
+
+    const err = await resolver.resolveForNamespace('org-1').catch(e => e);
+    expect(err).toBeInstanceOf(NamespaceSpansObservabilityPlanesError);
+    // The mapping travels with it so the UI can say which environments differ.
+    expect(err.planesByEnvironment).toEqual({
+      dev: 'https://observer-dev.example.com',
+      prod: 'https://observer-prod.example.com',
+    });
   });
 
   it('resolves when every environment agrees on one plane', async () => {

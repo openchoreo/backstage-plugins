@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -100,11 +100,8 @@ export const DeliveryInsightsContent = ({
     return envFilter ? { ...scope, environment: envFilter } : scope;
   }, [scope, envFilter]);
 
-  const { data, loading, error, refetch } = useDoraInsights(
-    effectiveScope,
-    rangeDays,
-    granularity,
-  );
+  const { data, loading, error, spansMultiplePlanes, refetch } =
+    useDoraInsights(effectiveScope, rangeDays, granularity);
   const breakdown = useDoraBreakdown(
     level,
     level === 'component' ? scope : effectiveScope,
@@ -151,6 +148,25 @@ export const DeliveryInsightsContent = ({
     () => fillSeriesGaps(buckets, data?.series?.mttr, ['meanMs']),
     [buckets, data?.series?.mttr],
   );
+  // A namespace whose environments report to different observability planes has
+  // no observer that can answer for all of them, so the aggregate view is not
+  // just empty -- it cannot be computed. Drop the option and settle on a single
+  // environment rather than leaving a choice that always fails.
+  useEffect(() => {
+    if (
+      spansMultiplePlanes &&
+      !envFilter &&
+      breakdown.environments.length > 0
+    ) {
+      onEnvFilterChange(breakdown.environments[0]);
+    }
+  }, [
+    spansMultiplePlanes,
+    envFilter,
+    breakdown.environments,
+    onEnvFilterChange,
+  ]);
+
   const configWarning = collectionWarning(data?.collection);
   const cfrSeries = useMemo(
     () => nullUnmeasuredRates(data?.series?.changeFailureRate),
@@ -216,7 +232,9 @@ export const DeliveryInsightsContent = ({
           onChange={event => onEnvFilterChange(event.target.value)}
           style={{ minWidth: 160 }}
         >
-          <MenuItem value="">All environments</MenuItem>
+          {!spansMultiplePlanes && (
+            <MenuItem value="">All environments</MenuItem>
+          )}
           {breakdown.environments.map(env => (
             <MenuItem key={env} value={env}>
               {environmentLabel(env)}
@@ -240,7 +258,17 @@ export const DeliveryInsightsContent = ({
         </Box>
       )}
 
-      {!error && configWarning && (
+      {!error && spansMultiplePlanes && (
+        <Box mb={2}>
+          <Alert severity="info">
+            This namespace's environments report to different observability
+            planes, so there is no single source for a combined view. Metrics
+            are shown one environment at a time.
+          </Alert>
+        </Box>
+      )}
+
+      {!error && !spansMultiplePlanes && configWarning && (
         <Box mb={2}>
           <Alert severity="info">{configWarning}</Alert>
         </Box>

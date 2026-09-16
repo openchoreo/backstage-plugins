@@ -42,6 +42,39 @@ const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
  *   ClusterObservabilityPlane `default` (or namespaced ObservabilityPlane
  *   `default`) → observerURL
  */
+/**
+ * Thrown when a namespace's environments report to more than one observability
+ * plane, so no single observer can answer for the namespace as a whole.
+ *
+ * This is a property of the deployment, not a failure: per-environment queries
+ * still work. Callers act on it -- the Delivery Insights page drops its "all
+ * environments" option -- which is why it is a distinct type rather than a
+ * message to match on.
+ */
+export class NamespaceSpansObservabilityPlanesError extends Error {
+  /** environment name -> the observer URL it resolves through. */
+  readonly planesByEnvironment: Record<string, string>;
+
+  constructor(
+    namespaceName: string,
+    planesByEnvironment: Record<string, string>,
+  ) {
+    const mapping = Object.entries(planesByEnvironment)
+      .map(([envName, url]) => `${envName} -> ${url}`)
+      .sort()
+      .join(', ');
+    super(
+      `Namespace '${namespaceName}' spans ${
+        new Set(Object.values(planesByEnvironment)).size
+      } ` +
+        `observability planes (${mapping}), so a namespace-wide query would report only one ` +
+        `plane's data as if it covered the namespace. Scope the query to a single environment instead.`,
+    );
+    this.name = 'NamespaceSpansObservabilityPlanesError';
+    this.planesByEnvironment = planesByEnvironment;
+  }
+}
+
 export class ObservabilityUrlResolver {
   private readonly baseUrl: string;
   private readonly logger?: LoggerService;
@@ -278,14 +311,11 @@ export class ObservabilityUrlResolver {
 
     const distinctUrls = [...new Set(resolved.map(entry => entry.observerUrl))];
     if (distinctUrls.length > 1) {
-      const mapping = resolved
-        .map(entry => `${entry.envName} -> ${entry.observerUrl}`)
-        .sort()
-        .join(', ');
-      throw new Error(
-        `Namespace '${namespaceName}' spans ${distinctUrls.length} observability planes (${mapping}), ` +
-          `so a namespace-wide query would report only one plane's data as if it covered the namespace. ` +
-          `Scope the query to a single environment instead.`,
+      throw new NamespaceSpansObservabilityPlanesError(
+        namespaceName,
+        Object.fromEntries(
+          resolved.map(entry => [entry.envName, entry.observerUrl]),
+        ),
       );
     }
 
