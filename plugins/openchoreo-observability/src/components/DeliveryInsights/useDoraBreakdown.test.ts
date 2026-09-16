@@ -75,4 +75,78 @@ describe('useDoraBreakdown', () => {
     // the section rather than erroring.
     expect(result.current.envRows.map(r => r.name)).toEqual(['dev', 'prod']);
   });
+
+  // The cards render off envRows alone -- they take no loading or error prop --
+  // so rows left over from the previous scope would sit under the new headline
+  // numbers, or stay on screen if the new request failed.
+  describe('rows belong to the query that produced them', () => {
+    const envsFor = (namespace: string) => async ({ filter }: any) => {
+      if (filter.kind === 'Environment') {
+        return {
+          items:
+            filter['metadata.namespace'] === namespace
+              ? [envEntity('dev', namespace)]
+              : [],
+        };
+      }
+      return { items: [] };
+    };
+
+    it('drops the previous scope rows before the new request lands', async () => {
+      getEntities.mockImplementation(envsFor('ns-a'));
+      const { result, rerender } = renderHook(
+        ({ ns }: { ns: string }) =>
+          useDoraBreakdown('domain', { namespace: ns }, 30, 'daily'),
+        { initialProps: { ns: 'ns-a' } },
+      );
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.envRows).toHaveLength(1);
+
+      // A slow second scope: the rows must go as the request starts, not when
+      // it finishes.
+      let release: (v: any) => void = () => {};
+      getEntities.mockImplementation(
+        () => new Promise(resolve => (release = resolve)),
+      );
+      rerender({ ns: 'ns-b' });
+
+      await waitFor(() => expect(result.current.loading).toBe(true));
+      expect(result.current.envRows).toEqual([]);
+      expect(result.current.rows).toEqual([]);
+      release({ items: [] });
+    });
+
+    it('does not leave the previous scope rows up when the request fails', async () => {
+      getEntities.mockImplementation(envsFor('ns-a'));
+      const { result, rerender } = renderHook(
+        ({ ns }: { ns: string }) =>
+          useDoraBreakdown('domain', { namespace: ns }, 30, 'daily'),
+        { initialProps: { ns: 'ns-a' } },
+      );
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.envRows).toHaveLength(1);
+
+      getEntities.mockRejectedValue(new Error('catalog unavailable'));
+      rerender({ ns: 'ns-b' });
+
+      await waitFor(() => expect(result.current.error).toBe('catalog unavailable'));
+      expect(result.current.envRows).toEqual([]);
+    });
+
+    it('keeps the rows up across a refetch of the same query', async () => {
+      getEntities.mockImplementation(envsFor('ns-a'));
+      const { result } = renderHook(() =>
+        useDoraBreakdown('domain', { namespace: 'ns-a' }, 30, 'daily'),
+      );
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.envRows).toHaveLength(1);
+
+      // Refresh asks the same question again; blanking the page for it would be
+      // a worse answer than the one already on screen.
+      result.current.refetch();
+      expect(result.current.envRows).toHaveLength(1);
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.envRows).toHaveLength(1);
+    });
+  });
 });

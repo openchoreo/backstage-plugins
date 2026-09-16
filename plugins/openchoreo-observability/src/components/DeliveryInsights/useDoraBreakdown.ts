@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
@@ -64,6 +64,15 @@ export function useDoraBreakdown(
       }`
     : '';
 
+  // The rows on screen belong to one query. Asking a different question --
+  // another scope, window or granularity -- makes them answers to a question
+  // nobody asked any more, so they go before the new request starts rather than
+  // sitting under the new headline numbers until it lands, or staying put if it
+  // fails. A plain refetch asks the same question again and keeps them, so
+  // Refresh does not blank the page.
+  const queryKey = `${level ?? ''}/${scopeKey}/${rangeDays}/${granularity}`;
+  const loadedKey = useRef<string | null>(null);
+
   useEffect(() => {
     if (!level || !scope) {
       setLoading(false);
@@ -73,6 +82,10 @@ export function useDoraBreakdown(
 
     const fetchBreakdown = async () => {
       try {
+        if (loadedKey.current !== queryKey) {
+          setRows([]);
+          setEnvRows([]);
+        }
         setLoading(true);
         setError(null);
 
@@ -204,6 +217,7 @@ export function useDoraBreakdown(
           );
           setRows(summaries);
           setEnvRows(level === 'component' ? summaries : envSummaries);
+          loadedKey.current = queryKey;
         }
       } catch (err) {
         if (!cancelled) {
@@ -228,6 +242,7 @@ export function useDoraBreakdown(
     scopeKey,
     rangeDays,
     granularity,
+    queryKey,
     reloadToken,
     catalogApi,
     observabilityApi,
