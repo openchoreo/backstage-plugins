@@ -1,5 +1,8 @@
+import { createTheme } from '@material-ui/core/styles';
 import {
+  classificationColors,
   dataAvailabilityWarning,
+  deltaColor,
   fillSeriesGaps,
   granularitiesForRange,
   resolveGranularity,
@@ -211,5 +214,33 @@ describe('granularity for a window', () => {
   it('moves off one the new range no longer offers', () => {
     // 12 months has no daily option; monthly is the coarsest that fits.
     expect(resolveGranularity(365, 'daily')).toBe('monthly');
+  });
+});
+
+// Hard-coded light-theme hexes were unreadable against the dark theme, so both
+// the rating chips and the deltas now come off the palette.
+describe('theme-derived colors', () => {
+  const light = createTheme({ palette: { type: 'light' } });
+  const dark = createTheme({ palette: { type: 'dark' } });
+
+  it('reads the delta colors off the palette', () => {
+    expect(deltaColor(light, true)).toBe(light.palette.success.main);
+    expect(deltaColor(light, false)).toBe(light.palette.error.main);
+    expect(deltaColor(dark, true)).toBe(dark.palette.success.main);
+  });
+
+  it('gives every classification a distinct chip color', () => {
+    const colors = classificationColors(light);
+    const texts = Object.values(colors).map(c => c.text);
+    expect(new Set(texts).size).toBe(texts.length);
+  });
+
+  it('flips the label shade with the theme so the chips stay legible', () => {
+    expect(classificationColors(light).Elite.text).toBe(
+      light.palette.success.dark,
+    );
+    expect(classificationColors(dark).Elite.text).toBe(
+      dark.palette.success.light,
+    );
   });
 });

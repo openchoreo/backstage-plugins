@@ -9,12 +9,13 @@ import {
   TableRow,
   Typography,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { makeStyles, useTheme } from '@material-ui/core/styles';
 import { Progress } from '@backstage/core-components';
 import { DoraClassification } from '../../types';
 import { DoraBreakdownRow } from './useDoraBreakdown';
 import {
-  CLASSIFICATION_COLORS,
+  classificationColors,
+  deltaColor,
   formatDurationMs,
   formatPercent,
 } from './utils';
@@ -114,6 +115,8 @@ export const DoraBreakdownTable = ({
   onSelectEnvironment,
 }: DoraBreakdownTableProps) => {
   const classes = useStyles();
+  const theme = useTheme();
+  const ratingColors = classificationColors(theme);
 
   if (loading) {
     return <Progress />;
@@ -158,7 +161,7 @@ export const DoraBreakdownTable = ({
             const cfr = row.summary?.changeFailureRate;
             const mttr = row.summary?.mttr;
             const rating = overallRating(row.summary);
-            const colors = CLASSIFICATION_COLORS[rating];
+            const colors = ratingColors[rating];
             const delta = df?.deltaPct ?? null;
             // Entity-backed rows (projects/components) drill the page scope
             // down a level; environment rows apply the environment filter.
@@ -222,7 +225,7 @@ export const DoraBreakdownTable = ({
                     <Typography
                       component="span"
                       className={classes.miniDelta}
-                      style={{ color: delta > 0 ? '#1e7e34' : '#c62828' }}
+                      style={{ color: deltaColor(theme, delta > 0) }}
                     >
                       {delta > 0 ? '+' : ''}
                       {delta.toFixed(0)}%

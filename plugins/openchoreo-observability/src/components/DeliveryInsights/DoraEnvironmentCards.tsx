@@ -1,5 +1,5 @@
 import { Card, CardContent, Grid, Typography } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { Theme, makeStyles, useTheme } from '@material-ui/core/styles';
 import { DoraBreakdownRow } from './useDoraBreakdown';
 import { formatDurationMs, formatPercent } from './utils';
 
@@ -33,15 +33,17 @@ const useStyles = makeStyles(theme => ({
 }));
 
 // Wireframe pin colors: production red, staging amber, everything else green.
-function pinColor(env: string): string {
+// Taken from the theme so the pins stay visible in both the light and the dark
+// theme.
+function pinColor(theme: Theme, env: string): string {
   const name = env.toLowerCase();
   if (name.startsWith('prod')) {
-    return '#d03b3b';
+    return theme.palette.error.main;
   }
   if (name.startsWith('stag')) {
-    return '#fab219';
+    return theme.palette.warning.main;
   }
-  return '#0ca30c';
+  return theme.palette.success.main;
 }
 
 export interface DoraEnvironmentCardsProps {
@@ -55,6 +57,7 @@ export interface DoraEnvironmentCardsProps {
  */
 export const DoraEnvironmentCards = ({ rows }: DoraEnvironmentCardsProps) => {
   const classes = useStyles();
+  const theme = useTheme();
 
   if (rows.length === 0) {
     return null;
@@ -91,7 +94,7 @@ export const DoraEnvironmentCards = ({ rows }: DoraEnvironmentCardsProps) => {
                 <div className={classes.header}>
                   <span
                     className={classes.pin}
-                    style={{ background: pinColor(row.name) }}
+                    style={{ background: pinColor(theme, row.name) }}
                   />
                   <Typography variant="body1" className={classes.name}>
                     {row.name}

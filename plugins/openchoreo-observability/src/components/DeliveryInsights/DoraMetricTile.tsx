@@ -1,9 +1,9 @@
 import { Box, Card, CardContent, Chip, Typography } from '@material-ui/core';
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
 import ArrowUpwardIcon from '@material-ui/icons/ArrowUpward';
-import { makeStyles } from '@material-ui/core/styles';
+import { makeStyles, useTheme } from '@material-ui/core/styles';
 import { DoraClassification } from '../../types';
-import { CLASSIFICATION_COLORS } from './utils';
+import { classificationColors, deltaColor } from './utils';
 
 const SPARK_W = 84;
 const SPARK_H = 30;
@@ -71,6 +71,7 @@ export interface DoraMetricTileProps {
 }
 
 const Sparkline = ({ data }: { data: number[] }) => {
+  const theme = useTheme();
   if (data.length < 2) {
     return null;
   }
@@ -95,7 +96,7 @@ const Sparkline = ({ data }: { data: number[] }) => {
       <polyline
         points={points}
         fill="none"
-        stroke="#1f77b4"
+        stroke={theme.palette.primary.main}
         strokeWidth={1.8}
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -114,11 +115,12 @@ export const DoraMetricTile = ({
   sparkData,
 }: DoraMetricTileProps) => {
   const classes = useStyles();
-  const colors = CLASSIFICATION_COLORS[classification];
+  const theme = useTheme();
+  const colors = classificationColors(theme)[classification];
 
   const deltaIsImprovement =
     deltaPct !== null && deltaPct >= 0 === positiveDeltaIsGood;
-  const deltaColor = deltaIsImprovement ? '#1e7e34' : '#c62828';
+  const deltaTextColor = deltaColor(theme, deltaIsImprovement);
 
   return (
     <Card
@@ -151,7 +153,7 @@ export const DoraMetricTile = ({
             <Typography
               variant="caption"
               className={classes.delta}
-              style={{ color: deltaColor }}
+              style={{ color: deltaTextColor }}
             >
               {deltaPct > 0 ? (
                 <ArrowUpwardIcon className={classes.deltaIcon} />

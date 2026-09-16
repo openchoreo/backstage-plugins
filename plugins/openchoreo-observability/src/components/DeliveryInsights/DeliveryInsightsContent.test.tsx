@@ -1,16 +1,19 @@
 import { screen } from '@testing-library/react';
 import { renderInTestApp } from '@backstage/test-utils';
 import { DeliveryInsightsContent } from './DeliveryInsightsContent';
+import { InsightsLevel } from './useDoraBreakdown';
 
 // The data hooks and the scope filters have their own suites; stub them so this
 // one is about what the page chooses to render.
+const insightsResult = {
+  data: undefined,
+  loading: false,
+  error: null as string | null,
+  refetch: () => {},
+};
+
 jest.mock('./useDoraInsights', () => ({
-  useDoraInsights: () => ({
-    data: undefined,
-    loading: false,
-    error: null,
-    refetch: () => {},
-  }),
+  useDoraInsights: () => insightsResult,
 }));
 
 const envRows = [
@@ -18,15 +21,17 @@ const envRows = [
   { name: 'production', scope: { namespace: 'default' } },
 ];
 
+const breakdownResult = {
+  rows: [],
+  envRows,
+  environments: ['development', 'production'],
+  loading: false,
+  error: null as string | null,
+  refetch: () => {},
+};
+
 jest.mock('./useDoraBreakdown', () => ({
-  useDoraBreakdown: () => ({
-    rows: [],
-    envRows,
-    environments: ['development', 'production'],
-    loading: false,
-    error: null,
-    refetch: () => {},
-  }),
+  useDoraBreakdown: () => breakdownResult,
 }));
 
 jest.mock('../CostInsights/useNamespaceEnvironments', () => ({
@@ -37,11 +42,16 @@ jest.mock('../ScopeFilters', () => ({
   ScopeFilters: () => <div data-testid="scope-filters" />,
 }));
 
-const render = (envFilter: string) =>
+beforeEach(() => {
+  insightsResult.error = null;
+  breakdownResult.error = null;
+});
+
+const render = (envFilter: string, level: InsightsLevel = 'domain') =>
   renderInTestApp(
     <DeliveryInsightsContent
       scope={{ namespace: 'default' }}
-      level="domain"
+      level={level}
       onScopeChange={() => {}}
       rangeDays={30}
       granularity="daily"
@@ -69,6 +79,59 @@ describe('DeliveryInsightsContent per-environment cards', () => {
     await render('production');
     expect(
       screen.getByText('Delivery performance by environment'),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('DeliveryInsightsContent observability notice', () => {
+  it('reports a missing observability plane as info, not as an error', async () => {
+    insightsResult.error = 'Observability is not enabled for this component';
+    await render('development', 'system');
+
+    const notice = screen.getByText(
+      'No delivery metrics yet: the observability plane is not enabled. ' +
+        'Enable it to start tracking deployment frequency, lead time, change ' +
+        'failure rate, and time to restore.',
+    );
+    expect(notice).toBeInTheDocument();
+    expect(notice.closest('.MuiAlert-standardInfo')).not.toBeNull();
+    expect(notice.closest('.MuiAlert-standardError')).toBeNull();
+  });
+
+  // The plane is platform-level, so the copy must not claim a namespace or a
+  // project failed to enable something.
+  it.each(['domain', 'system', 'component'] as const)(
+    'says the same thing at %s level',
+    async level => {
+      insightsResult.error = 'Observability is not enabled for this component';
+      await render('development', level);
+
+      expect(
+        screen.getByText(/the observability plane is not enabled/),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it('keeps a genuine failure an error', async () => {
+    insightsResult.error = 'Failed to fetch metrics: Bad Gateway';
+    await render('development');
+
+    const alert = screen.getByText('Failed to fetch metrics: Bad Gateway');
+    expect(alert.closest('.MuiAlert-standardError')).not.toBeNull();
+  });
+
+  // The banner above already explains it; a second red copy under the
+  // breakdown made one missing setup look like two failures.
+  it('does not repeat the notice under the breakdown table', async () => {
+    insightsResult.error = 'Observability is not enabled for this component';
+    breakdownResult.error = 'Observability is not enabled for this component';
+    await render('development');
+
+    expect(
+      screen.queryByText('Observability is not enabled for this component'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Nothing to break down in this scope yet.'),
     ).toBeInTheDocument();
   });
 });

@@ -1,3 +1,5 @@
+import { Theme, alpha } from '@material-ui/core/styles';
+import { PaletteColor } from '@material-ui/core/styles/createPalette';
 import {
   DoraClassification,
   DoraDataAvailability,
@@ -31,16 +33,45 @@ export function formatPercent(rate: number | null | undefined): string {
   return `${(rate * 100).toFixed(1)}%`;
 }
 
-export const CLASSIFICATION_COLORS: Record<
-  DoraClassification,
-  { background: string; text: string }
-> = {
-  Elite: { background: '#e6f4ea', text: '#1e7e34' },
-  High: { background: '#e3f2fd', text: '#0d5aa7' },
-  Medium: { background: '#fff3e0', text: '#b26a00' },
-  Low: { background: '#fdecea', text: '#c62828' },
-  Unknown: { background: '#f5f5f5', text: '#616161' },
-};
+export interface ClassificationColor {
+  background: string;
+  text: string;
+}
+
+/**
+ * Chip colors for a DORA classification, derived from the theme so the tiles
+ * and the breakdown table stay legible in both the light and the dark theme.
+ * The background is the palette color at low opacity over whatever surface the
+ * chip sits on; the label takes the shade that contrasts with it.
+ */
+export function classificationColors(
+  theme: Theme,
+): Record<DoraClassification, ClassificationColor> {
+  const dark = theme.palette.type === 'dark';
+  const tint = (color: PaletteColor): ClassificationColor => ({
+    background: alpha(color.main, dark ? 0.24 : 0.14),
+    text: dark ? color.light : color.dark,
+  });
+
+  return {
+    Elite: tint(theme.palette.success),
+    High: tint(theme.palette.info),
+    Medium: tint(theme.palette.warning),
+    Low: tint(theme.palette.error),
+    Unknown: {
+      background: alpha(theme.palette.text.secondary, dark ? 0.24 : 0.14),
+      text: theme.palette.text.secondary,
+    },
+  };
+}
+
+/**
+ * Color for a period-over-period delta: green when the change is an
+ * improvement for that metric, red when it is a regression.
+ */
+export function deltaColor(theme: Theme, isImprovement: boolean): string {
+  return isImprovement ? theme.palette.success.main : theme.palette.error.main;
+}
 
 /**
  * Whether a positive delta is an improvement for this metric: more deployments is

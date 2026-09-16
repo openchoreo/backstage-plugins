@@ -46,6 +46,22 @@ const CHART_COLORS = {
   mttr: '#9467bd',
 };
 
+/**
+ * The API reports a missing observer URL as a component-scoped error, but an
+ * observability plane is platform-level: it is not something a namespace or a
+ * project enables, it is either deployed or it is not. Nothing is broken
+ * either -- the page just has no data source yet -- so say that once, plainly,
+ * rather than repeating the API's scope-specific phrasing in red.
+ */
+const NOT_ENABLED_NOTICE =
+  'No delivery metrics yet: the observability plane is not enabled. Enable it ' +
+  'to start tracking deployment frequency, lead time, change failure rate, ' +
+  'and time to restore.';
+
+function isNotEnabled(error: string | null): boolean {
+  return error !== null && /observability is not enabled/i.test(error);
+}
+
 const BREAKDOWN_LABELS: Record<
   InsightsLevel,
   { child: string; title: string }
@@ -189,6 +205,10 @@ export const DeliveryInsightsContent = ({
   }, [rangeDays, granularity, onGranularityChange]);
 
   const configWarning = dataAvailabilityWarning(data?.dataAvailability);
+  const notEnabled = isNotEnabled(error);
+  // The banner above already explains a missing observability plane, so don't
+  // repeat it in red under the breakdown; fall through to its empty state.
+  const breakdownError = isNotEnabled(breakdown.error) ? null : breakdown.error;
   const cfrSeries = useMemo(
     () => nullUnmeasuredRates(data?.series?.changeFailureRate),
     [data?.series?.changeFailureRate],
@@ -283,7 +303,11 @@ export const DeliveryInsightsContent = ({
 
       {error && (
         <Box mb={2}>
-          <Alert severity="error">{error}</Alert>
+          {notEnabled ? (
+            <Alert severity="info">{NOT_ENABLED_NOTICE}</Alert>
+          ) : (
+            <Alert severity="error">{error}</Alert>
+          )}
         </Box>
       )}
 
@@ -450,7 +474,7 @@ export const DeliveryInsightsContent = ({
             childLabel={labels.child}
             rows={breakdown.rows}
             loading={breakdown.loading}
-            error={breakdown.error}
+            error={breakdownError}
             onDrill={level === 'component' ? undefined : onDrill}
             onSelectEnvironment={
               level === 'component' ? onEnvFilterChange : undefined
