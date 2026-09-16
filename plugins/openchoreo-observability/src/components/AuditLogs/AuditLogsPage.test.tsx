@@ -26,12 +26,6 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
       {message}
     </div>
   ),
-  EmptyState: ({ title, description }: any) => (
-    <div data-testid="empty-state">
-      {title}
-      {description}
-    </div>
-  ),
   TimeRangeFilter: ({ value }: any) => (
     <div data-testid="time-range">{value}</div>
   ),
@@ -175,7 +169,7 @@ describe('AuditLogsPage', () => {
     await renderInTestApp(<AuditLogsPage />);
 
     expect(screen.getByTestId('forbidden-state')).toHaveTextContent(
-      'auditlogs:view',
+      'You do not have permission to view audit logs.',
     );
     expect(screen.queryByTestId('audit-table')).not.toBeInTheDocument();
   });
@@ -203,9 +197,9 @@ describe('AuditLogsPage', () => {
 
     await renderInTestApp(<AuditLogsPage />);
 
-    expect(screen.getByTestId('empty-state')).toHaveTextContent(
-      'cannot be queried for audit records',
-    );
+    expect(
+      screen.getByText(/cannot be queried for audit records/),
+    ).toBeInTheDocument();
     // An unsupported read must not look like "nothing happened".
     expect(screen.queryByTestId('audit-table')).not.toBeInTheDocument();
   });
@@ -220,9 +214,7 @@ describe('AuditLogsPage', () => {
 
     await renderInTestApp(<AuditLogsPage />);
 
-    expect(screen.getByTestId('empty-state')).toHaveTextContent(
-      'Audit logs are not enabled',
-    );
+    expect(screen.getByText('Audit Logs Disabled')).toBeInTheDocument();
     expect(screen.queryByTestId('audit-table')).not.toBeInTheDocument();
   });
 
