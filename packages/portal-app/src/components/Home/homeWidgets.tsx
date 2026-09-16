@@ -10,7 +10,6 @@ import {
 export const RecentlyVisitedHomeWidget = homePlugin.provide(
   createCardExtension({
     name: 'RecentlyVisited',
-    title: 'Recently Visited',
     components: async () => ({ Content: RecentlyVisitedCard }),
     layout: {
       height: { minRows: 4 },
@@ -22,7 +21,6 @@ export const RecentlyVisitedHomeWidget = homePlugin.provide(
 export const MyProjectsHomeWidget = homePlugin.provide(
   createCardExtension({
     name: 'MyProjects',
-    title: 'My Projects',
     components: async () => ({ Content: MyProjectsWidget }),
     layout: {
       height: { minRows: 4 },
@@ -46,7 +44,6 @@ export const QuickActionsHomeWidget = homePlugin.provide(
 export const RecentDeploymentsHomeWidget = homePlugin.provide(
   createCardExtension({
     name: 'RecentDeployments',
-    title: 'Recent Deployments',
     components: async () => ({ Content: RecentDeploymentsCard }),
     layout: {
       height: { minRows: 4 },
