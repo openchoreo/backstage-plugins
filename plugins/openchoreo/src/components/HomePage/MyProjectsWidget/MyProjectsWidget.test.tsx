@@ -39,7 +39,9 @@ describe('MyProjectsWidget', () => {
       if (filter.kind === 'Component') {
         return { items: [componentWithAnnotations] };
       }
-      return { items: [{ metadata: { name: 'p1' } }, { metadata: { name: 'p2' } }] };
+      return {
+        items: [{ metadata: { name: 'p1' } }, { metadata: { name: 'p2' } }],
+      };
     });
     fetchTotalBindingsCount.mockResolvedValue(5);
   });

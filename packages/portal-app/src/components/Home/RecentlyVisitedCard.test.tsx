@@ -99,6 +99,8 @@ describe('RecentlyVisitedContent', () => {
     expect(
       screen.queryByText('No recently visited pages.'),
     ).not.toBeInTheDocument();
-    expect(container.querySelectorAll('.MuiSkeleton-root').length).toBeGreaterThan(0);
+    expect(
+      container.querySelectorAll('.MuiSkeleton-root').length,
+    ).toBeGreaterThan(0);
   });
 });
