@@ -1,7 +1,21 @@
-import { Box, Typography } from '@material-ui/core';
+import { Box, Typography, makeStyles } from '@material-ui/core';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Card } from '@openchoreo/backstage-design-system';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
+
+const useStyles = makeStyles({
+  row: {
+    alignItems: 'flex-start',
+  },
+  value: {
+    display: '-webkit-box',
+    WebkitLineClamp: 3,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    wordBreak: 'break-word',
+  },
+});
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -43,6 +57,7 @@ function formatValue(value: unknown): string {
 
 export const ResourceParametersCard = () => {
   const classes = useDataplaneOverviewStyles();
+  const ownClasses = useStyles();
   const { entity } = useEntity();
 
   const parameters = (entity.spec as any)?.parameters as
@@ -65,9 +80,11 @@ export const ResourceParametersCard = () => {
       ) : (
         <Box>
           {paramEntries.map(([key, value]) => (
-            <Box key={key} className={classes.infoRow}>
+            <Box key={key} className={`${classes.infoRow} ${ownClasses.row}`}>
               <Typography className={classes.infoLabel}>{key}</Typography>
-              <Typography className={classes.infoValue}>
+              <Typography
+                className={`${classes.infoValue} ${ownClasses.value}`}
+              >
                 {formatValue(value)}
               </Typography>
             </Box>
