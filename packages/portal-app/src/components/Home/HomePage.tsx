@@ -1,6 +1,9 @@
 import { Content, Page, Header } from '@backstage/core-components';
-import { HomePageStarredEntities } from '@backstage/plugin-home';
-import { RecentlyVisitedCard } from './RecentlyVisitedCard';
+import {
+  HomePageStarredEntities,
+  CustomHomepageGrid,
+  type LayoutConfiguration,
+} from '@backstage/plugin-home';
 import { HomePageSearchBar } from '@backstage/plugin-search';
 import { SearchContextProvider } from '@backstage/plugin-search-react';
 import { Grid, Typography, Box } from '@material-ui/core';
@@ -8,10 +11,21 @@ import { useStyles } from './styles';
 import { useUserInfo } from '../../hooks';
 import { useNamespacePermission } from '@openchoreo/backstage-plugin-react';
 import { HomePagePlatformDetailsCard } from '@openchoreo/backstage-plugin-platform-engineer-core';
+import {
+  RecentlyVisitedHomeWidget,
+  MyProjectsHomeWidget,
+  QuickActionsHomeWidget,
+  RecentDeploymentsHomeWidget,
+} from './homeWidgets';
 
 /**
  * Custom HomePage that shows content based on user permissions
  */
+const defaultLayout: LayoutConfiguration[] = [
+  { component: 'HomePageStarredEntities', x: 0, y: 0, width: 6, height: 4 },
+  { component: 'RecentlyVisited', x: 6, y: 0, width: 6, height: 4 },
+];
+
 export const HomePage = () => {
   const classes = useStyles();
   const { userName, loading } = useUserInfo();
@@ -33,45 +47,38 @@ export const HomePage = () => {
       <Page themeId="home">
         <Header title={`Welcome, ${userName}!`} />
         <Content>
-          <Grid container spacing={3}>
-            {/* Search Bar */}
-            <Grid item xs={12}>
-              <HomePageSearchBar
-                InputProps={{
-                  classes: {
-                    root: classes.searchBarInput,
-                    notchedOutline: classes.searchBarOutline,
-                  },
-                }}
-                placeholder="Search"
-              />
-            </Grid>
+          {/* Search Bar */}
+          <Box mb={3}>
+            <HomePageSearchBar
+              InputProps={{
+                classes: {
+                  root: classes.searchBarInput,
+                  notchedOutline: classes.searchBarOutline,
+                },
+              }}
+              placeholder="Search"
+            />
+          </Box>
 
-            {/* Starred Entities and Recently Visited */}
-            <Grid item xs={12}>
-              <Grid container spacing={3} alignItems="stretch">
-                <Grid item xs={12} md={6} style={{ display: 'flex' }}>
-                  <Box className={classes.starredEntitiesWrapper}>
-                    <HomePageStarredEntities />
-                  </Box>
-                </Grid>
-                <Grid item xs={12} md={6} style={{ display: 'flex' }}>
-                  <Box className={classes.starredEntitiesWrapper}>
-                    <RecentlyVisitedCard />
-                  </Box>
-                </Grid>
-              </Grid>
-            </Grid>
+          {/* Customizable widget grid. */}
+          <CustomHomepageGrid config={defaultLayout}>
+            <HomePageStarredEntities />
+            <RecentlyVisitedHomeWidget />
+            <MyProjectsHomeWidget />
+            <QuickActionsHomeWidget />
+            <RecentDeploymentsHomeWidget />
+          </CustomHomepageGrid>
 
-            {/* Platform Details - visible only with namespace read permission */}
-            {canViewPlatformDetails && (
+          {/* Platform Details stays outside the grid on purpose. */}
+          {canViewPlatformDetails && (
+            <Grid container spacing={3} style={{ marginTop: 24 }}>
               <Grid item xs={12}>
                 <Box className={classes.platformDetailsSection}>
                   <HomePagePlatformDetailsCard />
                 </Box>
               </Grid>
-            )}
-          </Grid>
+            </Grid>
+          )}
         </Content>
       </Page>
     </SearchContextProvider>

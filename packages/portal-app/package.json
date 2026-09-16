@@ -52,6 +52,7 @@
     "@backstage/plugin-catalog-import": "^0.13.13",
     "@backstage/plugin-catalog-react": "^3.0.0",
     "@backstage/plugin-home": "^0.9.6",
+    "@backstage/plugin-home-react": "^0.1.38",
     "@backstage/plugin-kubernetes": "^0.12.19",
     "@backstage/plugin-org": "^0.7.4",
     "@backstage/plugin-permission-common": "^0.9.9",
