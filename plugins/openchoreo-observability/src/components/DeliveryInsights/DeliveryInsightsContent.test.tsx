@@ -89,9 +89,7 @@ describe('DeliveryInsightsContent observability notice', () => {
     await render('development', 'system');
 
     const notice = screen.getByText(
-      'No delivery metrics yet: the observability plane is not enabled. ' +
-        'Enable it to start tracking deployment frequency, lead time, change ' +
-        'failure rate, and time to restore.',
+      'No delivery metrics. Observability plane is not enabled.',
     );
     expect(notice).toBeInTheDocument();
     expect(notice.closest('.MuiAlert-standardInfo')).not.toBeNull();
@@ -107,7 +105,7 @@ describe('DeliveryInsightsContent observability notice', () => {
       await render('development', level);
 
       expect(
-        screen.getByText(/the observability plane is not enabled/),
+        screen.getByText(/Observability plane is not enabled/),
       ).toBeInTheDocument();
     },
   );

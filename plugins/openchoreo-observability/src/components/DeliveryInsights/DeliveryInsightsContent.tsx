@@ -54,9 +54,7 @@ const CHART_COLORS = {
  * rather than repeating the API's scope-specific phrasing in red.
  */
 const NOT_ENABLED_NOTICE =
-  'No delivery metrics yet: the observability plane is not enabled. Enable it ' +
-  'to start tracking deployment frequency, lead time, change failure rate, ' +
-  'and time to restore.';
+  'No delivery metrics. Observability plane is not enabled.';
 
 function isNotEnabled(error: string | null): boolean {
   return error !== null && /observability is not enabled/i.test(error);
