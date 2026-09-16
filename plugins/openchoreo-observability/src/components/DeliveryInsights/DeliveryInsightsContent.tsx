@@ -227,6 +227,9 @@ export const DeliveryInsightsContent = ({
           label="Time range"
           value={rangeDays}
           onChange={event => onRangeDaysChange(Number(event.target.value))}
+          // Sized to the label rather than the value: "90d" is narrower than
+          // "Time range", and an outlined label that does not fit wraps.
+          style={{ minWidth: 130 }}
         >
           {INSIGHTS_TIME_RANGES.map(option => (
             <MenuItem key={option.days} value={option.days}>
@@ -243,6 +246,7 @@ export const DeliveryInsightsContent = ({
           onChange={event =>
             onGranularityChange(event.target.value as DoraGranularity)
           }
+          style={{ minWidth: 130 }}
         >
           {granularityOptions.map(option => (
             <MenuItem key={option} value={option}>
