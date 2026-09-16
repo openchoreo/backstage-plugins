@@ -29,11 +29,7 @@ interface SummaryWidgetWrapperProps {
   refreshing?: boolean;
   errorMessage?: string;
   variant?: 'default' | 'cards';
-  /**
-   * Render only the metrics body, without the surrounding InfoCard, title or
-   * icon. Use when an outer frame already supplies the card and heading — e.g.
-   * a home page widget whose card extension owns the title. Defaults to false.
-   */
+  /** Render only the metrics body (no InfoCard/title) when an outer frame owns the card. */
   disableCard?: boolean;
 }
 
@@ -186,8 +182,6 @@ export const SummaryWidgetWrapper = ({
   if (disableCard) {
     return (
       <Box position="relative">
-        {/* Only a background refresh (content already shown) — never the first
-            load or error state, which own the whole card. */}
         <RefreshOverlay active={refreshing && !loading && !errorMessage} />
         {renderContent()}
       </Box>

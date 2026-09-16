@@ -213,13 +213,9 @@ const DeploymentItemSkeleton = () => {
   );
 };
 
-/**
- * Body-only content for the "Recent Deployments" home widget — "what just
- * shipped". Built from the catalog Component list plus per-component
- * environment info; the fan-out is capped at MAX_COMPONENTS to keep the
- * landing page cheap. The surrounding card and title come from the widget's
- * card extension.
- */
+// Body-only content for the "Recent Deployments" home widget. Built from the
+// catalog Component list + per-component environment info, capped at
+// MAX_COMPONENTS. The card and title come from the widget's card extension.
 export const RecentDeploymentsContent = () => {
   const catalogApi = useApi(catalogApiRef);
   const client = useApi(openChoreoClientApiRef);

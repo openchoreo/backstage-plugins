@@ -13,10 +13,7 @@ import { useComponentCreatePermission } from '@openchoreo/backstage-plugin-react
 import { useStyles } from './styles';
 
 interface QuickActionsSectionProps {
-  /**
-   * Hide the built-in "Quick Actions" heading, letting an outer frame own the
-   * title (e.g. a home page widget card extension). Defaults to false.
-   */
+  /** Hide the "Quick Actions" heading when an outer frame owns the title. */
   hideTitle?: boolean;
 }
 

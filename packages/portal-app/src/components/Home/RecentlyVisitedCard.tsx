@@ -248,11 +248,8 @@ const VisitItemSkeleton = () => {
   );
 };
 
-/**
- * Body-only content for the "Recently Visited" home widget. The surrounding
- * card and title are supplied by the widget's card extension, so this renders
- * just the list (and an inline show-more toggle).
- */
+// Body-only content for the "Recently Visited" home widget; the card and title
+// come from the widget's card extension.
 export const RecentlyVisitedContent = () => {
   const visitsApi = useApi(visitsApiRef);
   const [collapsed, setCollapsed] = useState(true);

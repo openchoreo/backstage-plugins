@@ -7,16 +7,11 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 interface MyProjectsWidgetProps {
-  /**
-   * Render only the metrics body, letting an outer frame own the card and
-   * title (e.g. a home page widget card extension). Defaults to false.
-   */
+  /** Render only the metrics body, letting an outer frame own the card and title. */
   disableCard?: boolean;
 }
 
-/**
- * A widget that displays project metrics for developers
- */
+// Widget showing project/component/deployment metrics for developers.
 export const MyProjectsWidget = ({
   disableCard = false,
 }: MyProjectsWidgetProps = {}) => {

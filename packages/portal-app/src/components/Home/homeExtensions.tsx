@@ -4,17 +4,11 @@ import {
   HomePageLayoutBlueprint,
 } from '@backstage/plugin-home-react/alpha';
 
-/**
- * Home page widgets and layout for the OpenChoreo portal, built on Backstage's
- * new frontend system. Each widget is a `HomePageWidgetBlueprint`; the card
- * frame and title come from the widget's card extension, so the loaded
- * components render body content only (no InfoCard/title of their own) to avoid
- * duplicated headers.
- *
- * The `name` param is the widget's `core.extensionName`, referenced from the
- * default layout in `HomePageLayout.tsx`. Extension names are prefixed to avoid
- * clashing with the home plugin's built-in widgets.
- */
+// Home page widgets + layout (new frontend system). Each widget's card
+// extension owns the card frame and title, so the components render body-only
+// to avoid duplicate titles. `params.name` is the widget's core.extensionName
+// (used in the default layout); the `oc-` id prefix avoids clashing with the
+// home plugin's built-in widgets.
 const defaultWidgetLayout = {
   height: { minRows: 4 },
   width: { minColumns: 4 },
@@ -89,11 +83,8 @@ const homeLayout = HomePageLayoutBlueprint.make({
   },
 });
 
-/**
- * Contributes the custom home layout and widgets to the home plugin's
- * `page:home`. The layout attaches to an internal input, so this must be a
- * module of the `home` plugin.
- */
+// Contributes the layout + widgets to `page:home`. The layout uses an
+// internal input, so this must be a module of the `home` plugin.
 export const homeModule = createFrontendModule({
   pluginId: 'home',
   extensions: [
