@@ -67,9 +67,6 @@ export class ObserverUrlCache {
     return { observerUrl: data.observerUrl };
   }
 
-  /**
-   * Resolve observer/agent URLs for one namespace and environment.
-   */
   async resolveUrls(
     namespaceName: string,
     environmentName: string,
@@ -93,9 +90,7 @@ export class ObserverUrlCache {
     );
     const url = new URL(`${baseUrl}/resolve-urls`);
     url.searchParams.set('namespaceName', namespaceName);
-    if (environmentName) {
-      url.searchParams.set('environmentName', environmentName);
-    }
+    url.searchParams.set('environmentName', environmentName);
 
     const response = await this.fetchApi.fetch(url.toString());
 

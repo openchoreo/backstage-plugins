@@ -1,10 +1,9 @@
 import { ObservabilityUrlResolver } from './observability-url-resolver';
 
 const get = jest.fn();
-const mockedCreateClient = jest.fn((..._args: any[]) => ({ GET: get }));
 
 jest.mock('./factory', () => ({
-  createOpenChoreoApiClient: (...args: any[]) => mockedCreateClient(...args),
+  createOpenChoreoApiClient: () => ({ GET: get }),
 }));
 
 const ok = (data: unknown) => ({
