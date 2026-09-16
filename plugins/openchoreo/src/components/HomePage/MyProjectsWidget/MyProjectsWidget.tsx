@@ -6,10 +6,20 @@ import FolderIcon from '@material-ui/icons/Folder';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
+interface MyProjectsWidgetProps {
+  /**
+   * Render only the metrics body, letting an outer frame own the card and
+   * title (e.g. a home page widget card extension). Defaults to false.
+   */
+  disableCard?: boolean;
+}
+
 /**
  * A widget that displays project metrics for developers
  */
-export const MyProjectsWidget = () => {
+export const MyProjectsWidget = ({
+  disableCard = false,
+}: MyProjectsWidgetProps = {}) => {
   const [componentsCount, setComponentsCount] = useState<number>(0);
   const [projectsCount, setProjectsCount] = useState<number>(0);
   const [componentBindingsCount, setComponentBindingsCount] =
@@ -88,6 +98,7 @@ export const MyProjectsWidget = () => {
 
   return (
     <SummaryWidgetWrapper
+      disableCard={disableCard}
       icon={<FolderIcon fontSize="inherit" />}
       title="My Projects"
       metrics={[

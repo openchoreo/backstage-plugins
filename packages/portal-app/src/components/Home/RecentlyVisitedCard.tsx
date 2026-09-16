@@ -1,7 +1,7 @@
 import { useState, ComponentType } from 'react';
 import useAsync from 'react-use/esm/useAsync';
 import { useApi, useApp, IconComponent } from '@backstage/core-plugin-api';
-import { InfoCard, Link } from '@backstage/core-components';
+import { Link } from '@backstage/core-components';
 import { visitsApiRef, Visit } from '@backstage/plugin-home';
 import { parseEntityRef } from '@backstage/catalog-model';
 import { EntityRefLink } from '@backstage/plugin-catalog-react';
@@ -248,7 +248,12 @@ const VisitItemSkeleton = () => {
   );
 };
 
-export const RecentlyVisitedCard = () => {
+/**
+ * Body-only content for the "Recently Visited" home widget. The surrounding
+ * card and title are supplied by the widget's card extension, so this renders
+ * just the list (and an inline show-more toggle).
+ */
+export const RecentlyVisitedContent = () => {
   const visitsApi = useApi(visitsApiRef);
   const [collapsed, setCollapsed] = useState(true);
 
@@ -301,19 +306,17 @@ export const RecentlyVisitedCard = () => {
   }
 
   return (
-    <InfoCard
-      title="Recently Visited"
-      actions={
-        showToggle ? (
-          <Button variant="text" onClick={() => setCollapsed(prev => !prev)}>
-            {collapsed ? 'View more' : 'View less'}
-          </Button>
-        ) : undefined
-      }
-    >
+    <>
       <List dense disablePadding>
         {body}
       </List>
-    </InfoCard>
+      {showToggle && (
+        <Box display="flex" justifyContent="flex-end">
+          <Button variant="text" onClick={() => setCollapsed(prev => !prev)}>
+            {collapsed ? 'View more' : 'View less'}
+          </Button>
+        </Box>
+      )}
+    </>
   );
 };

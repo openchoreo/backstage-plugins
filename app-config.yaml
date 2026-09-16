@@ -42,6 +42,19 @@ app:
     # `features` array order in `createPortalApp`.
     - sub-page:platform-engineer-core/overview
     - sub-page:openchoreo-observability/platform-logs
+    # Home page: serve the composable home at `/` (the plugin default is
+    # `/home`). The custom layout and OpenChoreo widgets are contributed by
+    # portal-app's home module; here we trim the home plugin's built-in widgets
+    # down to Starred Entities (the rest are replaced by OpenChoreo widgets or
+    # unused).
+    - page:home:
+        config:
+          path: /
+    - home-page-widget:home/toolkit: false
+    - home-page-widget:home/random-joke: false
+    - home-page-widget:home/most-visited: false
+    - home-page-widget:home/recently-visited: false
+    - home-page-widget:home/world-clock: false
     - theme:app/light: false
     - theme:app/dark: false
     # `page:kubernetes` is the plugin's standalone /kubernetes page — it

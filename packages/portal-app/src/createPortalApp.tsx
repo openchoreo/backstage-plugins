@@ -34,7 +34,9 @@ import kubernetesPluginAlpha from '@backstage/plugin-kubernetes/alpha';
 import jenkinsPluginAlpha from '@backstage-community/plugin-jenkins/alpha';
 import githubActionsPluginAlpha from '@backstage-community/plugin-github-actions/alpha';
 import gitlabPluginAlpha from '@immobiliarelabs/backstage-plugin-gitlab/alpha';
+import homePluginAlpha from '@backstage/plugin-home/alpha';
 import { portalAppPlugin } from './portalPlugin';
+import { homeModule } from './components/Home';
 
 /** Options for {@link createPortalApp}. */
 export interface PortalAppOptions {
@@ -83,6 +85,10 @@ export function createPortalApp(options?: PortalAppOptions) {
       platformEngineerCorePluginAlpha,
       openchoreoObservabilityPluginAlpha,
       openchoreoWorkflowsPluginAlpha,
+      // Home plugin provides `page:home`; our module contributes the custom
+      // layout and widgets, and app-config points `page:home` at `/`.
+      homePluginAlpha,
+      homeModule,
       portalAppPlugin,
       // Mounts OpenChoreoEntityLayout as the page:catalog/entity chrome.
       openChoreoEntityPageOverride,
