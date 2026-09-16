@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -151,6 +151,16 @@ export const DeliveryInsightsContent = ({
     () => fillSeriesGaps(buckets, data?.series?.mttr, ['meanMs']),
     [buckets, data?.series?.mttr],
   );
+  // Every query is scoped to one environment. A namespace's environments can sit
+  // on different observability planes, and no single observer answers for all of
+  // them, so there is no combined view to offer -- settle on the first available
+  // rather than leaving an unscoped state that cannot be served.
+  useEffect(() => {
+    if (!envFilter && breakdown.environments.length > 0) {
+      onEnvFilterChange(breakdown.environments[0]);
+    }
+  }, [envFilter, breakdown.environments, onEnvFilterChange]);
+
   const configWarning = collectionWarning(data?.collection);
   const cfrSeries = useMemo(
     () => nullUnmeasuredRates(data?.series?.changeFailureRate),
@@ -216,7 +226,6 @@ export const DeliveryInsightsContent = ({
           onChange={event => onEnvFilterChange(event.target.value)}
           style={{ minWidth: 160 }}
         >
-          <MenuItem value="">All environments</MenuItem>
           {breakdown.environments.map(env => (
             <MenuItem key={env} value={env}>
               {environmentLabel(env)}

@@ -68,8 +68,7 @@ export class ObserverUrlCache {
   }
 
   /**
-   * Resolve observer/agent URLs. Pass an empty `environmentName` to resolve at
-   * namespace level (cross-environment scopes such as the Insights pages).
+   * Resolve observer/agent URLs for one namespace and environment.
    */
   async resolveUrls(
     namespaceName: string,

@@ -91,30 +91,12 @@ describe('createRouter', () => {
     });
   });
 
-  it('should resolve observer URLs at namespace level when environmentName is omitted', async () => {
-    observabilityService.resolveUrls.mockResolvedValue({
-      observerUrl: 'https://observer.example.com',
-      rcaAgentUrl: 'https://rca.example.com',
-    });
-
-    const response = await request(app)
-      .get('/resolve-urls')
-      .query({ namespaceName: 'org-1' });
-
-    expect(response.status).toBe(200);
-    expect(observabilityService.resolveUrls).toHaveBeenCalledWith(
-      'org-1',
-      '',
-      undefined,
-    );
-  });
-
-  it('should return 400 when resolve-urls is missing namespaceName', async () => {
+  it('should return 400 when resolve-urls is missing parameters', async () => {
     const response = await request(app).get('/resolve-urls').query({});
 
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({
-      error: 'namespaceName is required',
+      error: 'namespaceName and environmentName are required',
     });
   });
 
