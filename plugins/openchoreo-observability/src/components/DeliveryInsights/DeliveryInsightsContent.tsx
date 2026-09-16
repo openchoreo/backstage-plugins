@@ -102,9 +102,10 @@ export const DeliveryInsightsContent = ({
   onEnvFilterChange,
   onDrill,
 }: DeliveryInsightsContentProps) => {
-  // The environment filter narrows the headline tiles/charts (and the
-  // project/component breakdown children inherit it); the per-environment
-  // section always shows all environments, so it hides while a filter is on.
+  // The environment filter narrows the headline tiles/charts, and the
+  // project/component breakdown children inherit it. The per-environment cards
+  // below do not: they scope each card explicitly, so they stay a comparison
+  // across environments whatever the filter says.
   const effectiveScope = useMemo((): DoraSearchScope | null => {
     if (!scope) {
       return null;
@@ -456,18 +457,20 @@ export const DeliveryInsightsContent = ({
             }
           />
 
-          {level !== 'component' &&
-            !envFilter &&
-            breakdown.envRows.length > 0 && (
-              <>
-                <Box mt={3} mb={1.5}>
-                  <Typography variant="subtitle1" style={{ fontWeight: 650 }}>
-                    Delivery performance by environment
-                  </Typography>
-                </Box>
-                <DoraEnvironmentCards rows={breakdown.envRows} />
-              </>
-            )}
+          {/* Not gated on the environment filter. These cards slice the current
+              scope per environment, each with its own explicitly scoped query, so
+              they stay a comparison across environments while the charts above
+              show the one that is selected. */}
+          {level !== 'component' && breakdown.envRows.length > 0 && (
+            <>
+              <Box mt={3} mb={1.5}>
+                <Typography variant="subtitle1" style={{ fontWeight: 650 }}>
+                  Delivery performance by environment
+                </Typography>
+              </Box>
+              <DoraEnvironmentCards rows={breakdown.envRows} />
+            </>
+          )}
 
           {data && (
             <Box mt={2}>
