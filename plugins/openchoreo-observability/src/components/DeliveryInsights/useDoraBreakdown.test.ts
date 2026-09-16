@@ -80,17 +80,19 @@ describe('useDoraBreakdown', () => {
   // so rows left over from the previous scope would sit under the new headline
   // numbers, or stay on screen if the new request failed.
   describe('rows belong to the query that produced them', () => {
-    const envsFor = (namespace: string) => async ({ filter }: any) => {
-      if (filter.kind === 'Environment') {
-        return {
-          items:
-            filter['metadata.namespace'] === namespace
-              ? [envEntity('dev', namespace)]
-              : [],
-        };
-      }
-      return { items: [] };
-    };
+    const envsFor =
+      (namespace: string) =>
+      async ({ filter }: any) => {
+        if (filter.kind === 'Environment') {
+          return {
+            items:
+              filter['metadata.namespace'] === namespace
+                ? [envEntity('dev', namespace)]
+                : [],
+          };
+        }
+        return { items: [] };
+      };
 
     it('drops the previous scope rows before the new request lands', async () => {
       getEntities.mockImplementation(envsFor('ns-a'));
@@ -129,7 +131,9 @@ describe('useDoraBreakdown', () => {
       getEntities.mockRejectedValue(new Error('catalog unavailable'));
       rerender({ ns: 'ns-b' });
 
-      await waitFor(() => expect(result.current.error).toBe('catalog unavailable'));
+      await waitFor(() =>
+        expect(result.current.error).toBe('catalog unavailable'),
+      );
       expect(result.current.envRows).toEqual([]);
     });
 
