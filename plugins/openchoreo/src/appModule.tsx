@@ -6,15 +6,16 @@ import {
   fetchApiRef,
   identityApiRef,
 } from '@backstage/frontend-plugin-api';
+import { AppRootWrapperBlueprint } from '@backstage/plugin-app-react';
 import { permissionApiRef } from '@backstage/plugin-permission-react';
+import { OpenChoreoQueryProvider } from '@openchoreo/backstage-plugin-react';
 import { openChoreoAuthApiRef } from './api/authRefs';
 import { OpenChoreoFetchApi } from './api/OpenChoreoFetchApi';
 import { OpenChoreoPermissionApi } from './api/OpenChoreoPermissionApi';
 
-// Attached to pluginId 'app' so extension IDs match Backstage's default
-// api extensions (api:app/core.fetch, api:app/plugin.permission.api) and
-// override them. Registering these under pluginId 'openchoreo' would
-// trigger API_FACTORY_CONFLICT at app startup.
+// pluginId: 'app' so extension IDs match `api:app/core.fetch` /
+// `api:app/plugin.permission.api` and override them — otherwise
+// API_FACTORY_CONFLICT.
 const openChoreoFetchApi = ApiBlueprint.make({
   name: fetchApiRef.id,
   params: defineParams =>
@@ -51,7 +52,19 @@ const openChoreoPermissionApi = ApiBlueprint.make({
     }),
 });
 
+// App-root query provider so trees rendered outside this plugin's scope
+// (e.g. openChoreoEntityPageOverride under pluginId 'catalog') still see a
+// QueryClient. AppRootWrapperBlueprint only accepts app-plugin modules.
+const openChoreoQueryWrapper = AppRootWrapperBlueprint.make({
+  name: 'openchoreo-query',
+  params: { component: OpenChoreoQueryProvider },
+});
+
 export const openChoreoAppModule = createFrontendModule({
   pluginId: 'app',
-  extensions: [openChoreoFetchApi, openChoreoPermissionApi],
+  extensions: [
+    openChoreoFetchApi,
+    openChoreoPermissionApi,
+    openChoreoQueryWrapper,
+  ],
 });

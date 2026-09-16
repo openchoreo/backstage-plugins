@@ -13,7 +13,6 @@ import {
   EntityContentLayoutBlueprint,
 } from '@backstage/plugin-catalog-react/alpha';
 import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
-import { OpenChoreoQueryProvider } from '@openchoreo/backstage-plugin-react';
 import { apis } from './apis';
 import { LEGACY_KIND_ICONS } from './kindIcons';
 import { appThemes } from './themes';
@@ -43,13 +42,6 @@ const navContent = NavContentBlueprint.make({
   params: { component: PortalNavContent },
 });
 
-// Wraps the app root so page overrides attaching under upstream plugin
-// scopes (page:catalog/entity, page:api-docs, ...) inherit query context.
-const openChoreoQueryWrapper = AppRootWrapperBlueprint.make({
-  name: 'openchoreo-query',
-  params: { component: OpenChoreoQueryProvider },
-});
-
 const scaffolderPreselectionWrapper = AppRootWrapperBlueprint.make({
   name: 'scaffolder-preselection',
   params: { component: ScaffolderPreselectionProvider },
@@ -66,7 +58,7 @@ const apiTryOutEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/try-out',
     title: 'Try Out',
-    group: 'runtime',
+    group: 'api-try-out',
     filter: { kind: 'api' },
     loader: () =>
       import('@openchoreo/backstage-plugin').then(m => <m.ApiTryOut />),
@@ -92,7 +84,6 @@ export const appModule = createFrontendModule({
     iconBundle,
     ...themeExtensions,
     navContent,
-    openChoreoQueryWrapper,
     scaffolderPreselectionWrapper,
     assistantDrawerWrapper,
     apiTryOutEntityContent,

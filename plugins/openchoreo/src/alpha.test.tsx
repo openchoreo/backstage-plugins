@@ -64,6 +64,8 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-card', 'workflow-overview'],
   ['entity-card', 'component-workflow-overview'],
   // scaffolder form fields
+  // Injects the signed-in user's OpenChoreo IDP token as a template secret.
+  ['scaffolder-form-decorator', 'openchoreo-user-token'],
   ['scaffolder-form-field', 'advanced-configuration-field'],
   ['scaffolder-form-field', 'build-and-deploy-field'],
   ['scaffolder-form-field', 'build-template-parameters'],

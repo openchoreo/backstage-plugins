@@ -137,7 +137,7 @@ const runtimeLogsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/runtime-logs',
     title: 'Logs',
-    group: 'runtime',
+    group: 'logs',
     filter: isOpenChoreoManagedOfKind('component'),
     loader: () =>
       import('./components/RuntimeLogs/ObservabilityRuntimeLogsPage').then(
@@ -155,7 +155,7 @@ const runtimeEventsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/runtime-events',
     title: 'Events',
-    group: 'runtime',
+    group: 'events',
     filter: isOpenChoreoManagedOfKind('component'),
     loader: () =>
       import('./components/RuntimeEvents/ObservabilityRuntimeEventsPage').then(
@@ -173,7 +173,7 @@ const metricsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/metrics',
     title: 'Metrics',
-    group: 'runtime',
+    group: 'metrics',
     filter: isOpenChoreoManagedOfKind('component'),
     loader: () =>
       import('./components/Metrics/ObservabilityMetricsPage').then(m => (
@@ -189,7 +189,7 @@ const alertsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/alerts',
     title: 'Alerts',
-    group: 'runtime',
+    group: 'alerts',
     filter: isOpenChoreoManagedOfKind('component'),
     loader: () =>
       import('./components/Alerts/ObservabilityAlertsPage').then(m => (
@@ -205,7 +205,7 @@ const wirelogsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/wirelogs',
     title: 'Wirelogs',
-    group: 'runtime',
+    group: 'wirelogs',
     filter: isOpenChoreoManagedOfKind('component'),
     loader: () =>
       import('./components/Wirelogs/ObservabilityWirelogsPage').then(m => (
@@ -227,7 +227,7 @@ const projectRuntimeLogsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/logs',
     title: 'Logs',
-    group: 'runtime',
+    group: 'logs',
     filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
       import(
@@ -245,7 +245,7 @@ const tracesEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/traces',
     title: 'Traces',
-    group: 'analysis',
+    group: 'traces',
     filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
       import('./components/Traces/ObservabilityTracesPage').then(m => (
@@ -261,7 +261,7 @@ const projectIncidentsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/incidents',
     title: 'Incidents',
-    group: 'analysis',
+    group: 'incidents',
     filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
       import('./components/Incidents/ObservabilityProjectIncidentsPage').then(
@@ -279,7 +279,7 @@ const rcaReportsEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/rca-reports',
     title: 'RCA Reports',
-    group: 'analysis',
+    group: 'rca-reports',
     filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
       import('./components/RCA/RCAPage').then(m => (
@@ -295,7 +295,7 @@ const projectCostAnalysisEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/cost-analysis',
     title: 'Cost Analysis',
-    group: 'analysis',
+    group: 'cost-analysis',
     filter: isOpenChoreoManagedOfKind('system'),
     loader: () =>
       import('./components/CostAnalysis/CostAnalysisPage').then(m => (

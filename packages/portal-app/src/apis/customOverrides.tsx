@@ -54,11 +54,6 @@ import {
 import { CatalogClient } from '@backstage/catalog-client';
 import { CachingCatalogApi } from '@openchoreo/backstage-plugin-react';
 import {
-  formDecoratorsApiRef,
-  DefaultScaffolderFormDecoratorsApi,
-} from '@backstage/plugin-scaffolder/alpha';
-import { FormDecoratorBlueprint } from '@backstage/plugin-scaffolder-react/alpha';
-import {
   RELATION_DEPLOYS_TO,
   RELATION_DEPLOYED_BY,
   RELATION_USES_PIPELINE,
@@ -75,7 +70,6 @@ import {
   RELATION_BUILDS,
 } from '@openchoreo/backstage-plugin-common';
 import { KIND_ICONS } from '../kindIcons';
-import { openChoreoTokenDecorator } from '../scaffolder/openChoreoTokenDecorator';
 import { LogRowActionBlueprint } from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
 import { InvestigateLogButton } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 
@@ -469,31 +463,9 @@ export const scaffolderPluginAlpha = scaffolderPluginAlphaBase.withOverrides({
           ),
       },
     }),
-    // Inject the OpenChoreo IDP-token decorator alongside any other
-    // FormDecoratorBlueprint extensions plugins may contribute. The
-    // earlier shape (`params: defineParams => defineParams({ factory: () => create({decorators: [openChoreoTokenDecorator]}) })`)
-    // discarded `inputs.formDecorators`, silently dropping every other
-    // plugin's decorator. Using `factory(originalFactory, { inputs })`
-    // preserves the upstream accumulation and then concats ours.
-    scaffolderPluginAlphaBase
-      .getExtension('api:scaffolder/form-decorators')
-      .override({
-        factory(originalFactory, { inputs }) {
-          const contributed = inputs.formDecorators.map(e =>
-            e.get(FormDecoratorBlueprint.dataRefs.formDecoratorLoader),
-          );
-          return originalFactory({
-            params: defineParams =>
-              defineParams({
-                api: formDecoratorsApiRef,
-                deps: {},
-                factory: () =>
-                  DefaultScaffolderFormDecoratorsApi.create({
-                    decorators: [openChoreoTokenDecorator, ...contributed],
-                  }),
-              }),
-          });
-        },
-      }),
+    // (The OpenChoreo IDP-token form decorator is now shipped by
+    // `@openchoreo/backstage-plugin`'s alpha via `FormDecoratorBlueprint`.
+    // Portal-app gets it through the normal plugin channel — no override
+    // needed here. See `plugins/openchoreo/src/scaffolder/openChoreoTokenDecorator.ts`.)
   ],
 });

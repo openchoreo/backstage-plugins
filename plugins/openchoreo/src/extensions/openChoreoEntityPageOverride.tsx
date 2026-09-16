@@ -9,16 +9,8 @@ import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
 import type { Entity } from '@backstage/catalog-model';
 import type { OpenChoreoRoute } from './OpenChoreoCatalogEntityPageContent';
 
-/**
- * Combine an `EntityContentBlueprint`'s `filterFunction` /
- * `filterExpression` into a single predicate.
- *
- * Handles the subset the OC / upstream plugins use in practice: callable
- * functions (any shape) and simple `kind:x,y` / `type:x,y` string
- * expressions. Complex expressions (`is:`, `has:`, negation, combinations)
- * hit the fallback branch and warn once; if we see them in the wild, extend
- * this parser rather than pulling in an upstream-internal import.
- */
+// Handles callable filters + simple `kind:x,y` / `type:x,y` expressions.
+// Other expression shapes warn and hide the tab.
 function buildFilterFn(
   filterFunction: ((entity: Entity) => boolean) | undefined,
   filterExpression: string | undefined,
@@ -47,56 +39,37 @@ function buildFilterFn(
   return entity => matchers.every(fn => fn(entity));
 }
 
-/**
- * Overrides upstream's `page:catalog/entity` with the OpenChoreo-branded
- * chrome (compact header + styled tab bar via `OpenChoreoEntityLayout`).
- *
- * This module is what makes the portal look like OpenChoreo. External
- * adopters who install `@openchoreo/backstage-plugin` and want the OC
- * chrome opt in by adding it to their `createApp({ features })` list:
- *
- * ```ts
- * import openchoreoPluginAlpha, {
- *   openChoreoEntityPageOverride,
- * } from '@openchoreo/backstage-plugin/alpha';
- * createApp({ features: [openchoreoPluginAlpha, openChoreoEntityPageOverride] });
- * ```
- *
- * Without this feature, adopters get vanilla Backstage `<EntityLayout>`
- * chrome instead — but still get all OC tabs, cards, layouts, and context
- * menu items via the plugin's regular extensions.
- *
- * Tabs come out sorted by `group` metadata against `GROUP_ORDER` below
- * (stable within a group). Ideally this override wouldn't exist at all — on
- * Backstage 1.52+, `EntityHeaderLayoutBlueprint` lets you contribute chrome
- * as a proper layout, and canonical `catalogEntityPage` handles sorting
- * (from `app.pages.entity.config.groups`) + rendering. We're pinned to
- * 1.51 which lacks that primitive, so this module bridges the gap.
- *
- * TODO(nfs-native): once Backstage is bumped to >= 1.52, replace this
- * override with an `EntityHeaderLayoutBlueprint` contributing
- * `OpenChoreoEntityLayout`. That deletes this file, deletes
- * `OpenChoreoCatalogEntityPageContent.tsx`, drops the `buildFilterFn`
- * helper, and moves tab ordering into app-config where it belongs.
- */
+// Overrides `page:catalog/entity` with the OpenChoreo chrome
+// (`OpenChoreoEntityLayout`). Adopters opt in via `createApp({ features })`.
+// Mutually exclusive with `openChoreoEntityGroupsModule`.
+//
+// TODO(nfs-native): replace with `EntityHeaderLayoutBlueprint` once we're
+// on Backstage >= 1.52; drops this file + OpenChoreoCatalogEntityPageContent.
 
-/**
- * Hardcoded tab-group order for the portal. Mirrors — and stays in sync
- * with — `app.pages.entity.config.groups` in `app-config.yaml`, which is
- * what adopters using canonical `<EntityLayout>` chrome (i.e. without this
- * override) see. Any tab whose `group` isn't in this list drops to the end
- * (registration order preserved among the tail).
- *
- * When we go NFS-native (see TODO above), delete this constant — the
- * canonical entity page reads groups from app-config directly.
- */
+// Tab-group order for the flat tab bar. Tabs whose `group` is missing here
+// fall to the end in registration order.
 const GROUP_ORDER = [
   'overview',
-  'definition',
   'documentation',
+  'definition',
+  'api-try-out',
+  'development',
+  'build',
+  'deploy',
+  'cell-diagram',
+  'diagram',
+  'logs',
+  'events',
+  'metrics',
+  'alerts',
+  'wirelogs',
+  'traces',
+  'incidents',
+  'rca-reports',
+  'cost-analysis',
   'deployment',
-  'runtime',
-  'analysis',
+  'operation',
+  'observability',
   'external',
 ] as const;
 export const openChoreoEntityPageOverride = createFrontendModule({
@@ -104,19 +77,10 @@ export const openChoreoEntityPageOverride = createFrontendModule({
   extensions: [
     catalogPluginAlphaBase.getExtension('page:catalog/entity').override({
       factory(originalFactory, { inputs }) {
-        // Read each content's `group` metadata alongside its route data so we
-        // can group-sort the tab list before handing it to
-        // `OpenChoreoEntityLayout` (which renders tabs in the order it
-        // receives them, without any grouping logic of its own).
         const decorated = inputs.contents.map((output, registrationIndex) => {
           const element = output.get(coreExtensionData.reactElement);
-          // Backstage wraps every blueprint-produced element in
-          // `ExtensionBoundary`, whose `node` prop carries the contributing
-          // extension's `AppNode`. `AppNode.spec.id` (e.g.
-          // `entity-content:openchoreo/component-deploy`) is the same stable
-          // string used by `app.extensions` config, so it's a natural React
-          // key. Fall back to `registrationIndex` (stable within a render)
-          // only if the wrapping shape ever changes.
+          // ExtensionBoundary wraps the element; its `node` prop carries the
+          // contributing extension's AppNode id — used as the stable React key.
           const nodeId = (
             (element as ReactElement).props as { node?: AppNode } | undefined
           )?.node?.spec.id;
@@ -138,10 +102,7 @@ export const openChoreoEntityPageOverride = createFrontendModule({
           };
         });
 
-        // Group priority: index in GROUP_ORDER; unknown groups go to the end
-        // (via GROUP_ORDER.length). `registrationIndex` is the stable-sort
-        // tiebreaker so within a group we preserve the order plugins were
-        // registered in `createPortalApp`'s `features` array.
+        // Sort by GROUP_ORDER (unknown → end), tie-break on registration order.
         const groupPriority = (group: string) => {
           const i = (GROUP_ORDER as readonly string[]).indexOf(group);
           return i === -1 ? GROUP_ORDER.length : i;
