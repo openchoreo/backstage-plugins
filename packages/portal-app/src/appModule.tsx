@@ -64,7 +64,7 @@ const apiTryOutEntityContent = EntityContentBlueprint.make({
   params: {
     path: '/try-out',
     title: 'Try Out',
-    group: 'runtime',
+    group: 'api-try-out',
     filter: { kind: 'api' },
     loader: () =>
       import('@openchoreo/backstage-plugin').then(m => <m.ApiTryOut />),

@@ -39,8 +39,8 @@ export const openChoreoEntityGroupsModule = createFrontendModule({
         return originalFactory({
           config: {
             ...config,
-            // Cast: config schema constrains icon to string; we only set title.
-            groups: [OC_ENTITY_CONTENT_GROUPS as any],
+            // OC groups first, adopter's app-config groups merge on top.
+            groups: [OC_ENTITY_CONTENT_GROUPS as any, ...(config.groups ?? [])],
           },
         });
       },

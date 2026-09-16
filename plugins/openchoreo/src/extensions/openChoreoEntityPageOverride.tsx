@@ -52,6 +52,7 @@ const GROUP_ORDER = [
   'overview',
   'documentation',
   'definition',
+  'api-try-out',
   'development',
   'build',
   'deploy',
