@@ -27,7 +27,7 @@ jest.mock('@backstage/plugin-catalog-react', () => ({
   ),
 }));
 
-import { RecentDeploymentsCard } from './RecentDeploymentsCard';
+import { RecentDeploymentsContent } from './RecentDeploymentsCard';
 
 const component = (name: string, type = 'deployment/service'): Entity => ({
   apiVersion: 'backstage.io/v1alpha1',
@@ -50,12 +50,12 @@ function renderCard() {
         [openChoreoClientApiRef, { fetchEnvironmentInfo }],
       ]}
     >
-      <RecentDeploymentsCard />
+      <RecentDeploymentsContent />
     </TestApiProvider>,
   );
 }
 
-describe('RecentDeploymentsCard', () => {
+describe('RecentDeploymentsContent', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

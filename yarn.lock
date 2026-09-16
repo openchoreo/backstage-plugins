@@ -10349,6 +10349,7 @@ __metadata:
     "@backstage/plugin-catalog-import": "npm:^0.13.13"
     "@backstage/plugin-catalog-react": "npm:^3.0.0"
     "@backstage/plugin-home": "npm:^0.9.6"
+    "@backstage/plugin-home-react": "npm:^0.1.38"
     "@backstage/plugin-kubernetes": "npm:^0.12.19"
     "@backstage/plugin-org": "npm:^0.7.4"
     "@backstage/plugin-permission-common": "npm:^0.9.9"

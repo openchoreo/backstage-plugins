@@ -148,7 +148,7 @@ const NavItemLink = ({ item }: { item: NavContentNavItem }) => (
 
 // Curated sidebar: only these pages appear. Other auto-discovered pages
 // remain routable but have no nav entry.
-const HOME_ID = 'page:openchoreo-portal-app/home';
+const HOME_ID = 'page:home';
 const CATALOG_ID = 'page:catalog';
 const PLATFORM_ID = 'page:platform-engineer-core/platform-overview';
 const AUDIT_LOGS_ID = 'page:openchoreo-observability/audit-logs';

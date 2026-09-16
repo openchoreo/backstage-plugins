@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import useAsync from 'react-use/esm/useAsync';
 import { useApi } from '@backstage/core-plugin-api';
-import { InfoCard } from '@backstage/core-components';
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { catalogApiRef, EntityRefLink } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
@@ -214,13 +213,10 @@ const DeploymentItemSkeleton = () => {
   );
 };
 
-/**
- * Home page card listing the most recent deployments across the user's
- * components — "what just shipped". Built from the catalog Component list
- * plus per-component environment info; the fan-out is capped at
- * MAX_COMPONENTS to keep the landing page cheap.
- */
-export const RecentDeploymentsCard = () => {
+// Body-only content for the "Recent Deployments" home widget. Built from the
+// catalog Component list + per-component environment info, capped at
+// MAX_COMPONENTS. The card and title come from the widget's card extension.
+export const RecentDeploymentsContent = () => {
   const catalogApi = useApi(catalogApiRef);
   const client = useApi(openChoreoClientApiRef);
   const [collapsed, setCollapsed] = useState(true);
@@ -334,20 +330,17 @@ export const RecentDeploymentsCard = () => {
   }
 
   return (
-    <InfoCard
-      title="Recent Deployments"
-      subheader="Latest releases across your components"
-      actions={
-        showToggle ? (
-          <Button variant="text" onClick={() => setCollapsed(prev => !prev)}>
-            {collapsed ? 'View more' : 'View less'}
-          </Button>
-        ) : undefined
-      }
-    >
+    <>
       <List dense disablePadding>
         {body}
       </List>
-    </InfoCard>
+      {showToggle && (
+        <Box display="flex" justifyContent="flex-end">
+          <Button variant="text" onClick={() => setCollapsed(prev => !prev)}>
+            {collapsed ? 'View more' : 'View less'}
+          </Button>
+        </Box>
+      )}
+    </>
   );
 };

@@ -29,6 +29,8 @@ interface SummaryWidgetWrapperProps {
   refreshing?: boolean;
   errorMessage?: string;
   variant?: 'default' | 'cards';
+  /** Render only the metrics body (no InfoCard/title) when an outer frame owns the card. */
+  disableCard?: boolean;
 }
 
 export const SummaryWidgetWrapper = ({
@@ -40,6 +42,7 @@ export const SummaryWidgetWrapper = ({
   refreshing = false,
   errorMessage,
   variant = 'default',
+  disableCard = false,
 }: SummaryWidgetWrapperProps) => {
   const classes = useStyles();
 
@@ -175,6 +178,15 @@ export const SummaryWidgetWrapper = ({
       </>
     );
   };
+
+  if (disableCard) {
+    return (
+      <Box position="relative">
+        <RefreshOverlay active={refreshing && !loading && !errorMessage} />
+        {renderContent()}
+      </Box>
+    );
+  }
 
   return (
     <Box position="relative">

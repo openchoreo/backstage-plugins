@@ -12,7 +12,14 @@ import { Link } from 'react-router-dom';
 import { useComponentCreatePermission } from '@openchoreo/backstage-plugin-react';
 import { useStyles } from './styles';
 
-export const QuickActionsSection: React.FC = () => {
+interface QuickActionsSectionProps {
+  /** Hide the "Quick Actions" heading when an outer frame owns the title. */
+  hideTitle?: boolean;
+}
+
+export const QuickActionsSection = ({
+  hideTitle = false,
+}: QuickActionsSectionProps = {}) => {
   const classes = useStyles();
   const { canCreate, loading: createPermLoading } =
     useComponentCreatePermission();
@@ -47,7 +54,7 @@ export const QuickActionsSection: React.FC = () => {
 
   return (
     <Box className={classes.overviewSection}>
-      <Typography variant="h3">Quick Actions</Typography>
+      {!hideTitle && <Typography variant="h3">Quick Actions</Typography>}
       <Grid container spacing={2} className={classes.quickActionsContainer}>
         {quickActions.map((action, index) => (
           <Grid item xs={12} sm={6} md={6} key={index}>

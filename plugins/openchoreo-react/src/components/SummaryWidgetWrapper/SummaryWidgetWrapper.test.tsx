@@ -115,6 +115,23 @@ describe('SummaryWidgetWrapper', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
+  it('renders only the metrics body (no card frame/title) when disableCard is set', () => {
+    render(
+      <SummaryWidgetWrapper
+        icon={<span data-testid="icon" />}
+        title="Deployments"
+        metrics={metrics}
+        disableCard
+      />,
+    );
+
+    // The InfoCard title and icon are dropped; the metrics still render.
+    expect(screen.queryByText('Deployments')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('icon')).not.toBeInTheDocument();
+    expect(screen.getByText('Running')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
   it('renders metric cards in the "cards" variant', () => {
     render(
       <SummaryWidgetWrapper

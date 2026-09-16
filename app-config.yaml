@@ -42,6 +42,16 @@ app:
     # `features` array order in `createPortalApp`.
     - sub-page:platform-engineer-core/overview
     - sub-page:openchoreo-observability/platform-logs
+    # Serve the composable home at `/` and trim built-in home widgets
+    # (Starred Entities is kept; the rest are replaced by OpenChoreo widgets).
+    - page:home:
+        config:
+          path: /
+    - home-page-widget:home/toolkit: false
+    - home-page-widget:home/random-joke: false
+    - home-page-widget:home/most-visited: false
+    - home-page-widget:home/recently-visited: false
+    - home-page-widget:home/world-clock: false
     - theme:app/light: false
     - theme:app/dark: false
     # `page:kubernetes` is the plugin's standalone /kubernetes page — it

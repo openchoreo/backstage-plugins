@@ -1,1 +1,1 @@
-export { HomePage } from './HomePage';
+export { homeModule } from './homeExtensions';
