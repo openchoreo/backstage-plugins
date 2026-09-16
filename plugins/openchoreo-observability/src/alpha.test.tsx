@@ -45,6 +45,9 @@ describe('openchoreo-observability alpha plugin', () => {
       `entity-content:${plugin}/project-incidents`,
       `entity-content:${plugin}/rca-reports`,
       `entity-content:${plugin}/project-cost-analysis`,
+      // sidebar pages
+      `page:${plugin}/cost-insights`,
+      `page:${plugin}/delivery-insights`,
       // overview cards
       `entity-card:${plugin}/cost-insights-summary`,
       // Logs tab of the Platform section, attached to platform-engineer-core's page

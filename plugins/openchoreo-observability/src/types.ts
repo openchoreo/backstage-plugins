@@ -244,6 +244,144 @@ export interface InvestigationStep {
   rationale?: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// Delivery Insights (DORA metrics)
+// ---------------------------------------------------------------------------
+
+export type DoraGranularity = 'daily' | 'weekly' | 'monthly';
+
+export type DoraMetricName =
+  | 'deploymentFrequency'
+  | 'leadTime'
+  | 'changeFailureRate'
+  | 'mttr';
+
+/** DORA performance tier for a summary value, computed by the observer. */
+export type DoraClassification =
+  | 'Elite'
+  | 'High'
+  | 'Medium'
+  | 'Low'
+  | 'Unknown';
+
+/** Scope of a DORA query: namespace-only = org level; add project/component to narrow. */
+export interface DoraSearchScope {
+  namespace: string;
+  project?: string;
+  component?: string;
+  environment?: string;
+}
+
+export interface DoraFrequencySummary {
+  total: number;
+  perDay: number;
+  classification: DoraClassification;
+  /** Change vs the preceding window of equal length (%); null without a baseline. */
+  deltaPct: number | null;
+}
+
+export interface DoraLeadTimeSummary {
+  p50Ms: number | null;
+  p95Ms: number | null;
+  /** Fraction of deployments carrying commit provenance (lead-time input). */
+  coverage: number;
+  classification: DoraClassification;
+  deltaPct: number | null;
+}
+
+export interface DoraChangeFailureRateSummary {
+  rate: number;
+  failed: number;
+  total: number;
+  classification: DoraClassification;
+  deltaPct: number | null;
+}
+
+export interface DoraMttrSummary {
+  meanMs: number | null;
+  p50Ms: number | null;
+  recoveries: number;
+  classification: DoraClassification;
+  deltaPct: number | null;
+}
+
+/**
+ * Why the metrics beside it might be empty, reported on every response. An empty
+ * result is otherwise ambiguous: a scope that deployed nothing looks exactly
+ * like an observer that was never configured to collect.
+ */
+export interface DoraDataAvailability {
+  /** False means nothing is being written, so every metric stays empty. */
+  collecting?: boolean;
+  /**
+   * Whether the deployed logs adapter can serve the delivery event sweep.
+   * Observed rather than configured: an adapter that cannot answers 501 and the
+   * aggregator stands the sweep down. False leaves deployment frequency, lead
+   * time and change failure rate without input; MTTR comes from incidents and is
+   * unaffected.
+   */
+  deliveryEvents?: boolean;
+}
+
+export interface DoraMetricsResponse {
+  dataAvailability?: DoraDataAvailability;
+  scope: DoraSearchScope;
+  granularity: DoraGranularity;
+  window: { startTime: string; endTime: string; generatedAt: string };
+  summary: {
+    deploymentFrequency?: DoraFrequencySummary;
+    leadTime?: DoraLeadTimeSummary;
+    changeFailureRate?: DoraChangeFailureRateSummary;
+    mttr?: DoraMttrSummary;
+  };
+  series: {
+    /** Zero-filled: one entry per bucket in the window. */
+    deploymentFrequency?: { bucketStart: string; count: number }[];
+    /** Only buckets with data appear. */
+    leadTime?: {
+      bucketStart: string;
+      p50Ms: number;
+      p75Ms: number;
+      p95Ms: number;
+    }[];
+    /** Zero-filled: one entry per bucket in the window. */
+    changeFailureRate?: {
+      bucketStart: string;
+      rate: number;
+      failed: number;
+      total: number;
+    }[];
+    /** Only buckets with data appear. */
+    mttr?: {
+      bucketStart: string;
+      meanMs: number;
+      p50Ms: number;
+      count: number;
+    }[];
+  };
+}
+
+export interface DoraDeployment {
+  deployedAt: string;
+  projectName: string;
+  componentName: string;
+  environmentName: string;
+  componentRelease: string;
+  /** Full commit SHA; empty when provenance is missing. */
+  commit: string;
+  outcome: 'success' | 'failed' | 'in_progress';
+  failedBy: string;
+  failureReason: string;
+  incidentId: string;
+  leadTimeMs: number | null;
+}
+
+export interface DoraDeploymentsResponse {
+  deployments: DoraDeployment[];
+  totalCount: number;
+  tookMs: number;
+}
+
 // -- Cost Insights types (from the observer FinOps cost/recommendation APIs) --
 
 /**

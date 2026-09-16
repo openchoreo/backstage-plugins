@@ -1,5 +1,6 @@
 import AssignmentIcon from '@material-ui/icons/Assignment';
 import MonetizationOnIcon from '@material-ui/icons/MonetizationOn';
+import SpeedIcon from '@material-ui/icons/Speed';
 import {
   ApiBlueprint,
   createExtensionInput,
@@ -25,6 +26,7 @@ import {
 
 import {
   auditLogsRouteRef,
+  deliveryInsightsRouteRef,
   platformLogsRouteRef,
   rootRouteRef,
 } from './routes';
@@ -371,6 +373,25 @@ const costInsightsPage = PageBlueprint.make({
   },
 });
 
+// Ships title + icon so adopters auto-get a sidebar entry via DefaultNavContent,
+// the same as cost insights above. The portal app curates its own sidebar and
+// takes this by id -- see PortalNavContent.
+const deliveryInsightsPage = PageBlueprint.make({
+  name: 'delivery-insights',
+  params: {
+    path: '/delivery-insights',
+    routeRef: deliveryInsightsRouteRef,
+    title: 'Delivery Insights',
+    icon: <SpeedIcon />,
+    // Page renders its own <Page><Header>; suppress outer PageLayout header.
+    noHeader: true,
+    loader: () =>
+      import('./components/DeliveryInsights/DeliveryInsightsPage').then(m => (
+        <m.DeliveryInsightsPage />
+      )),
+  },
+});
+
 /**
  * Logs tab of the Platform section.
  *
@@ -410,6 +431,7 @@ export default createFrontendPlugin({
     finopsAgentApi,
     logRowActionRendererApi,
     costInsightsPage,
+    deliveryInsightsPage,
     platformLogsTab,
     auditLogsPage,
     runtimeLogsEntityContent,
