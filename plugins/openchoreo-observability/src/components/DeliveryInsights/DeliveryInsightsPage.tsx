@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Page, Header, Content } from '@backstage/core-components';
 import { Box, Chip, makeStyles } from '@material-ui/core';
-import { ScopeBreadcrumb, ScopeSelection } from '../ScopeBreadcrumb';
+import { ScopeSelection } from '../ScopeFilters';
 import { DoraGranularity, DoraSearchScope } from '../../types';
 import { DeliveryInsightsContent } from './DeliveryInsightsContent';
 import { InsightsLevel } from './useDoraBreakdown';
@@ -176,19 +176,13 @@ export const DeliveryInsightsPage = () => {
           </Box>
         }
         pageTitleOverride="Delivery Insights"
-        subtitle={
-          <ScopeBreadcrumb
-            scope={scope}
-            onScopeChange={onScopeChange}
-            queryKeyPrefix="insights-scope"
-          />
-        }
       />
       <Content>
         <Box className={classes.section}>
           <DeliveryInsightsContent
             scope={scope}
             level={level}
+            onScopeChange={onScopeChange}
             rangeDays={rangeDays}
             granularity={granularity}
             envFilter={environment}

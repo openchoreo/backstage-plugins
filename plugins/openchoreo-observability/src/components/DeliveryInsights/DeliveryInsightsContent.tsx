@@ -17,6 +17,7 @@ import { DoraMetricTile } from './DoraMetricTile';
 import { DoraTrendChart } from './DoraTrendChart';
 import { DoraBreakdownTable } from './DoraBreakdownTable';
 import { DoraEnvironmentCards } from './DoraEnvironmentCards';
+import { ScopeFilters, type ScopeSelection } from '../ScopeFilters';
 import { useNamespaceEnvironments } from '../CostInsights/useNamespaceEnvironments';
 import {
   INSIGHTS_TIME_RANGES,
@@ -62,6 +63,8 @@ export interface DeliveryInsightsContentProps {
   scope: DoraSearchScope | null;
   /** Scope level driving breakdown labels and sections; null while loading. */
   level: InsightsLevel | null;
+  /** Scope selection lives in the filter bar, so the page owns the state. */
+  onScopeChange: (next: ScopeSelection) => void;
   /** Trailing window length in days (see `INSIGHTS_TIME_RANGES`). */
   rangeDays: number;
   granularity: DoraGranularity;
@@ -90,6 +93,7 @@ export interface DeliveryInsightsContentProps {
 export const DeliveryInsightsContent = ({
   scope,
   level,
+  onScopeChange,
   rangeDays,
   granularity,
   envFilter,
@@ -211,6 +215,11 @@ export const DeliveryInsightsContent = ({
   return (
     <Box>
       <Box display="flex" alignItems="center" style={{ gap: 12 }} mb={2}>
+        <ScopeFilters
+          scope={scope ?? {}}
+          onScopeChange={onScopeChange}
+          queryKeyPrefix="insights-scope"
+        />
         <TextField
           select
           size="small"

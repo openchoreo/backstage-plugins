@@ -9,18 +9,6 @@ import type { DeliveryInsightsContentProps } from './DeliveryInsightsContent';
 // round-trip through the URL can be asserted from the next render's props.
 let lastProps: DeliveryInsightsContentProps;
 
-jest.mock('../ScopeBreadcrumb', () => ({
-  ScopeBreadcrumb: ({ onScopeChange }: any) => (
-    <button
-      type="button"
-      data-testid="breadcrumb"
-      onClick={() => onScopeChange({ namespace: 'other' })}
-    >
-      switch-namespace
-    </button>
-  ),
-}));
-
 jest.mock('./DeliveryInsightsContent', () => ({
   DeliveryInsightsContent: (props: DeliveryInsightsContentProps) => {
     lastProps = props;
@@ -40,6 +28,13 @@ jest.mock('./DeliveryInsightsContent', () => ({
         </button>
         <button type="button" onClick={() => props.onEnvFilterChange('prod')}>
           env-prod
+        </button>
+        <button
+          type="button"
+          data-testid="switch-namespace"
+          onClick={() => props.onScopeChange({ namespace: 'other' })}
+        >
+          switch-namespace
         </button>
       </div>
     );
@@ -145,7 +140,7 @@ describe('DeliveryInsightsPage', () => {
     // Environment names are namespace-scoped, so carrying the filter across a
     // namespace switch would silently return no data. The deeper project
     // selection is dropped too.
-    fireEvent.click(screen.getByTestId('breadcrumb'));
+    fireEvent.click(screen.getByTestId('switch-namespace'));
     expect(lastProps.scope).toMatchObject({ namespace: 'other' });
     expect(lastProps.scope?.project).toBeUndefined();
     expect(lastProps.envFilter).toBe('');
