@@ -1,5 +1,5 @@
 import {
-  NamespaceSpansObservabilityPlanesError,
+  NamespaceWideObservabilityUnavailableError,
   ObservabilityUrlResolver,
 } from './observability-url-resolver';
 
@@ -263,12 +263,35 @@ describe('ObservabilityUrlResolver.resolveForNamespace', () => {
     });
 
     const err = await resolver.resolveForNamespace('org-1').catch(e => e);
-    expect(err).toBeInstanceOf(NamespaceSpansObservabilityPlanesError);
+    expect(err).toBeInstanceOf(NamespaceWideObservabilityUnavailableError);
+    expect(err.reason).toBe('spans-multiple-planes');
     // The mapping travels with it so the UI can say which environments differ.
     expect(err.planesByEnvironment).toEqual({
       dev: 'https://observer-dev.example.com',
       prod: 'https://observer-prod.example.com',
     });
+  });
+
+  it('refuses a namespace-wide answer when an environment did not resolve', async () => {
+    // Agreement among the environments that resolved says nothing about the one
+    // that did not. Counting it as agreement is what would let a split namespace
+    // look unified whenever a single lookup fails.
+    mockedCreateClient.mockReturnValue({
+      GET: routingGet({
+        dev: 'https://observer-dev.example.com',
+        prod: 'https://observer-dev.example.com',
+        staging: '',
+      }),
+    } as any);
+
+    const resolver = new ObservabilityUrlResolver({
+      baseUrl: 'https://api.example.com',
+    });
+
+    const err = await resolver.resolveForNamespace('org-1').catch(e => e);
+    expect(err).toBeInstanceOf(NamespaceWideObservabilityUnavailableError);
+    expect(err.reason).toBe('environments-unresolved');
+    expect(err.unresolvedEnvironments).toEqual(['staging']);
   });
 
   it('resolves when every environment agrees on one plane', async () => {

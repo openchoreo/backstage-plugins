@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { observabilityApiRef } from '../../api/ObservabilityApi';
-import { NamespaceSpansObservabilityPlanesError } from '../../api/ObserverUrlCache';
+import {
+  NamespaceWideObservabilityUnavailableError,
+  type NamespaceWideUnavailableReason,
+} from '../../api/ObserverUrlCache';
 import {
   DoraGranularity,
   DoraMetricsResponse,
@@ -13,11 +16,12 @@ export interface UseDoraInsightsResult {
   loading: boolean;
   error: string | null;
   /**
-   * Set when the scope's environments report to different observability planes,
-   * so no single observer can answer for it. Not an error: the caller drops its
-   * all-environments option and scopes to one environment instead.
+   * Set when no single observer can answer for the scope as a whole -- its
+   * environments report to different observability planes, or some could not be
+   * resolved at all. Not an error: the caller drops its all-environments option
+   * and scopes to one environment instead.
    */
-  spansMultiplePlanes: boolean;
+  namespaceWideUnavailable: NamespaceWideUnavailableReason | null;
   refetch: () => void;
 }
 
@@ -46,7 +50,7 @@ export function useDoraInsights(
   const [failure, setFailure] = useState<{
     key: string;
     message: string;
-    spansMultiplePlanes?: boolean;
+    namespaceWideUnavailable?: NamespaceWideUnavailableReason;
   } | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -94,8 +98,10 @@ export function useDoraInsights(
               err instanceof Error
                 ? err.message
                 : 'Failed to fetch DORA metrics',
-            spansMultiplePlanes:
-              err instanceof NamespaceSpansObservabilityPlanesError,
+            namespaceWideUnavailable:
+              err instanceof NamespaceWideObservabilityUnavailableError
+                ? err.reason
+                : undefined,
           });
         }
       } finally {

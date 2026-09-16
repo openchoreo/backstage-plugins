@@ -16,14 +16,28 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
  * Distinguished from a failure because callers act on it: the Delivery Insights
  * page drops its "all environments" option rather than showing an error.
  */
-export class NamespaceSpansObservabilityPlanesError extends Error {
+export type NamespaceWideUnavailableReason =
+  | 'spans-multiple-planes'
+  | 'environments-unresolved';
+
+export class NamespaceWideObservabilityUnavailableError extends Error {
+  readonly reason: NamespaceWideUnavailableReason;
   /** environment name -> the observer URL it resolves through. */
   readonly planesByEnvironment: Record<string, string>;
+  /** Environments that produced no observer URL, and so could not be compared. */
+  readonly unresolvedEnvironments: string[];
 
-  constructor(message: string, planesByEnvironment: Record<string, string>) {
+  constructor(
+    message: string,
+    reason: NamespaceWideUnavailableReason,
+    planesByEnvironment: Record<string, string>,
+    unresolvedEnvironments: string[],
+  ) {
     super(message);
-    this.name = 'NamespaceSpansObservabilityPlanesError';
+    this.name = 'NamespaceWideObservabilityUnavailableError';
+    this.reason = reason;
     this.planesByEnvironment = planesByEnvironment;
+    this.unresolvedEnvironments = unresolvedEnvironments;
   }
 }
 
@@ -129,11 +143,13 @@ export class ObserverUrlCache {
       }
       if (
         response.status === 409 &&
-        error.code === 'NAMESPACE_SPANS_OBSERVABILITY_PLANES'
+        error.code === 'NAMESPACE_WIDE_OBSERVABILITY_UNAVAILABLE'
       ) {
-        throw new NamespaceSpansObservabilityPlanesError(
-          error.error ?? 'Namespace spans multiple observability planes',
+        throw new NamespaceWideObservabilityUnavailableError(
+          error.error ?? 'A namespace-wide view is not available',
+          error.reason ?? 'environments-unresolved',
           error.planesByEnvironment ?? {},
+          error.unresolvedEnvironments ?? [],
         );
       }
       throw new Error(

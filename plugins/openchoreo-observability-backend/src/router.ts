@@ -10,7 +10,7 @@ import {
   createUserTokenMiddleware,
   getUserTokenFromRequest,
 } from '@openchoreo/openchoreo-auth';
-import { NamespaceSpansObservabilityPlanesError } from '@openchoreo/openchoreo-client-node';
+import { NamespaceWideObservabilityUnavailableError } from '@openchoreo/openchoreo-client-node';
 
 export async function createRouter({
   httpAuth,
@@ -58,11 +58,13 @@ export async function createRouter({
       // observer can answer for the namespace. 409 with a code, so a caller can
       // act on it -- the Delivery Insights page drops its all-environments
       // option -- rather than matching on the message.
-      if (error instanceof NamespaceSpansObservabilityPlanesError) {
+      if (error instanceof NamespaceWideObservabilityUnavailableError) {
         return res.status(409).json({
           error: error.message,
-          code: 'NAMESPACE_SPANS_OBSERVABILITY_PLANES',
+          code: 'NAMESPACE_WIDE_OBSERVABILITY_UNAVAILABLE',
+          reason: error.reason,
           planesByEnvironment: error.planesByEnvironment,
+          unresolvedEnvironments: error.unresolvedEnvironments,
         });
       }
       return res.status(500).json({
