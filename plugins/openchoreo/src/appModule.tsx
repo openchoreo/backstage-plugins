@@ -13,10 +13,9 @@ import { openChoreoAuthApiRef } from './api/authRefs';
 import { OpenChoreoFetchApi } from './api/OpenChoreoFetchApi';
 import { OpenChoreoPermissionApi } from './api/OpenChoreoPermissionApi';
 
-// Attached to pluginId 'app' so extension IDs match Backstage's default
-// api extensions (api:app/core.fetch, api:app/plugin.permission.api) and
-// override them. Registering these under pluginId 'openchoreo' would
-// trigger API_FACTORY_CONFLICT at app startup.
+// pluginId: 'app' so extension IDs match `api:app/core.fetch` /
+// `api:app/plugin.permission.api` and override them — otherwise
+// API_FACTORY_CONFLICT.
 const openChoreoFetchApi = ApiBlueprint.make({
   name: fetchApiRef.id,
   params: defineParams =>
@@ -53,15 +52,9 @@ const openChoreoPermissionApi = ApiBlueprint.make({
     }),
 });
 
-// Wrap the entire app root in the shared TanStack QueryClientProvider so
-// any React tree rendered outside this plugin's own scope (notably
-// openChoreoEntityPageOverride, which mounts under pluginId 'catalog') can
-// still call useQuery / useOpenChoreoQuery. PluginWrapperBlueprint alone
-// (used in alpha.tsx) only covers this plugin's own extensions.
-//
-// AppRootWrapperBlueprint's `app/root` input is `internal: true` and only
-// accepts contributions from a module of the 'app' plugin — hence why this
-// lives here in openChoreoAppModule and not in the plugin itself.
+// App-root query provider so trees rendered outside this plugin's scope
+// (e.g. openChoreoEntityPageOverride under pluginId 'catalog') still see a
+// QueryClient. AppRootWrapperBlueprint only accepts app-plugin modules.
 const openChoreoQueryWrapper = AppRootWrapperBlueprint.make({
   name: 'openchoreo-query',
   params: { component: OpenChoreoQueryProvider },

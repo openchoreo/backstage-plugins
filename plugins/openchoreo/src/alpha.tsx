@@ -861,15 +861,7 @@ const componentWorkflowOverviewLayout = EntityContentLayoutBlueprint.make({
   },
 });
 
-// Scaffolder form field extensions. Adopters get the fields registered
-// automatically when they install this plugin, so any OC template
-// referencing `ui:field: <Name>` renders correctly.
 import { scaffolderFieldExtensions } from './scaffolder/extensions';
-
-// Injects the signed-in user's IDP token as the OPENCHOREO_USER_TOKEN
-// secret on any template that opts in via `EXPERIMENTAL_formDecorators:
-// [{ id: openchoreo:inject-user-token }]`. See the decorator file for the
-// full rationale.
 import { FormDecoratorBlueprint } from '@backstage/plugin-scaffolder-react/alpha';
 import { openChoreoTokenDecorator } from './scaffolder/openChoreoTokenDecorator';
 
