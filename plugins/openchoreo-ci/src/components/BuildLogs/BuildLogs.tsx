@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Typography,
   Box,
@@ -6,9 +6,13 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  IconButton,
+  Tooltip,
 } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { Alert } from '@material-ui/lab';
+import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
+import CheckIcon from '@material-ui/icons/Check';
 import {
   isStepLive,
   isTerminalStatus,
@@ -28,6 +32,50 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 interface LogsContentProps {
   build: ModelsBuild;
 }
+
+/**
+ * Copies a completed step's full log output to the clipboard, briefly swapping
+ * to a check-mark on success. Mirrors the copy affordance in RunMetadataContent.
+ */
+const CopyLogsButton = ({
+  text,
+  className,
+}: {
+  text: string;
+  className?: string;
+}) => {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return undefined;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(text).then(
+      () => setCopied(true),
+      () => setCopied(false),
+    );
+  }, [text]);
+
+  return (
+    <Tooltip title={copied ? 'Copied!' : 'Copy logs'}>
+      <IconButton
+        size="small"
+        className={className}
+        onClick={handleCopy}
+        aria-label="Copy logs"
+      >
+        {copied ? (
+          <CheckIcon fontSize="small" color="primary" />
+        ) : (
+          <FileCopyOutlinedIcon fontSize="small" />
+        )}
+      </IconButton>
+    </Tooltip>
+  );
+};
 
 function deduplicateLogs(logs: ComponentLogEntry[]): ComponentLogEntry[] {
   const seen = new Set<string>();
@@ -329,6 +377,13 @@ export const LogsContent = ({ build }: LogsContentProps) => {
             <AccordionDetails>
               {activeStepName === step.name ? (
                 <Box className={classes.logsContainer}>
+                  {isTerminalStatus(step.phase) && activeLogs.length > 0 && (
+                    <CopyLogsButton
+                      text={activeLogs.map(e => e.log).join('\n')}
+                      className={classes.copyButton}
+                    />
+                  )}
+
                   {logsLoading && activeLogs.length === 0 && (
                     <Box className={classes.inlineLoadingContainer}>
                       <CircularProgress size={18} />

@@ -81,8 +81,7 @@ export function selectForeignCards(cards: readonly Card[]): {
  * both Backstage's own filter chain and the adopter's config.
  *
  * Grid semantics: `content` cards stack full-width; `info` cards stack
- * into a fixed narrow (md=4) right rail. Matches the shape upstream's
- * `DefaultEntityContentLayout` uses.
+ * into a fixed narrow (md=4) left-aligned rail.
  */
 export function ForeignCardsSection({ cards }: { cards: readonly Card[] }) {
   const { info, content } = selectForeignCards(cards);
@@ -108,7 +107,7 @@ export function ForeignCardsSection({ cards }: { cards: readonly Card[] }) {
         </Grid>
       ))}
       {stableInfo.length > 0 && (
-        <Grid item xs={12} md={4} style={{ marginLeft: 'auto' }}>
+        <Grid item xs={12} md={4}>
           <Grid container spacing={3}>
             {stableInfo.map(({ item, id }) => (
               <Grid item xs={12} key={id}>

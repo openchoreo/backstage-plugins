@@ -26,6 +26,7 @@ export const useStyles = makeStyles(theme => ({
     marginLeft: theme.spacing(1),
   },
   logsContainer: {
+    position: 'relative',
     flex: 'auto',
     backgroundColor: theme.palette.type === 'dark' ? '#1e1e1e' : '#f5f5f5',
     fontFamily:
@@ -37,6 +38,20 @@ export const useStyles = makeStyles(theme => ({
     borderRadius: theme.shape.borderRadius,
     whiteSpace: 'pre-wrap',
     padding: theme.spacing(2),
+  },
+  copyButton: {
+    position: 'absolute',
+    top: theme.spacing(1),
+    right: theme.spacing(1),
+    zIndex: 1,
+    padding: theme.spacing(0.5),
+    backgroundColor: 'transparent',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
+    '& svg': {
+      fontSize: '1rem',
+    },
   },
   logText: {
     fontSize: '12px',
