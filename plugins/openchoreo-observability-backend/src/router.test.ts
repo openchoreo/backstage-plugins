@@ -5,7 +5,6 @@ import {
 } from '@backstage/backend-test-utils';
 import express from 'express';
 import request from 'supertest';
-import { NamespaceWideObservabilityUnavailableError } from '@openchoreo/openchoreo-client-node';
 
 import { createRouter } from './router';
 import {
@@ -108,33 +107,6 @@ describe('createRouter', () => {
       '',
       undefined,
     );
-  });
-
-  it('answers 409 with a code when the namespace spans observability planes', async () => {
-    // Not a 500: the caller acts on this shape rather than reporting a failure,
-    // so it needs a status and code it can branch on.
-    observabilityService.resolveUrls.mockRejectedValue(
-      new NamespaceWideObservabilityUnavailableError(
-        'org-1',
-        {
-          dev: 'https://observer-dev.example.com',
-          prod: 'https://observer-prod.example.com',
-        },
-        [],
-      ),
-    );
-
-    const response = await request(app)
-      .get('/resolve-urls')
-      .query({ namespaceName: 'org-1' });
-
-    expect(response.status).toBe(409);
-    expect(response.body.code).toBe('NAMESPACE_WIDE_OBSERVABILITY_UNAVAILABLE');
-    expect(response.body.reason).toBe('spans-multiple-planes');
-    expect(response.body.planesByEnvironment).toEqual({
-      dev: 'https://observer-dev.example.com',
-      prod: 'https://observer-prod.example.com',
-    });
   });
 
   it('should return 400 when resolve-urls is missing namespaceName', async () => {

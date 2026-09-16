@@ -9,38 +9,6 @@ interface CachedUrls {
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-/**
- * A namespace whose environments report to different observability planes, so no
- * single observer can answer for the namespace as a whole.
- *
- * Distinguished from a failure because callers act on it: the Delivery Insights
- * page drops its "all environments" option rather than showing an error.
- */
-export type NamespaceWideUnavailableReason =
-  | 'spans-multiple-planes'
-  | 'environments-unresolved';
-
-export class NamespaceWideObservabilityUnavailableError extends Error {
-  readonly reason: NamespaceWideUnavailableReason;
-  /** environment name -> the observer URL it resolves through. */
-  readonly planesByEnvironment: Record<string, string>;
-  /** Environments that produced no observer URL, and so could not be compared. */
-  readonly unresolvedEnvironments: string[];
-
-  constructor(
-    message: string,
-    reason: NamespaceWideUnavailableReason,
-    planesByEnvironment: Record<string, string>,
-    unresolvedEnvironments: string[],
-  ) {
-    super(message);
-    this.name = 'NamespaceWideObservabilityUnavailableError';
-    this.reason = reason;
-    this.planesByEnvironment = planesByEnvironment;
-    this.unresolvedEnvironments = unresolvedEnvironments;
-  }
-}
-
 export class ObserverUrlCache {
   private readonly discoveryApi: DiscoveryApi;
   private readonly fetchApi: FetchApi;
@@ -139,17 +107,6 @@ export class ObserverUrlCache {
       } catch {
         throw new Error(
           `Failed to resolve observer URLs: ${response.status} ${response.statusText}`,
-        );
-      }
-      if (
-        response.status === 409 &&
-        error.code === 'NAMESPACE_WIDE_OBSERVABILITY_UNAVAILABLE'
-      ) {
-        throw new NamespaceWideObservabilityUnavailableError(
-          error.error ?? 'A namespace-wide view is not available',
-          error.reason ?? 'environments-unresolved',
-          error.planesByEnvironment ?? {},
-          error.unresolvedEnvironments ?? [],
         );
       }
       throw new Error(

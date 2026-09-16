@@ -2,10 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { observabilityApiRef } from '../../api/ObservabilityApi';
 import {
-  NamespaceWideObservabilityUnavailableError,
-  type NamespaceWideUnavailableReason,
-} from '../../api/ObserverUrlCache';
-import {
   DoraGranularity,
   DoraMetricsResponse,
   DoraSearchScope,
@@ -15,13 +11,6 @@ export interface UseDoraInsightsResult {
   data: DoraMetricsResponse | null;
   loading: boolean;
   error: string | null;
-  /**
-   * Set when no single observer can answer for the scope as a whole -- its
-   * environments report to different observability planes, or some could not be
-   * resolved at all. Not an error: the caller drops its all-environments option
-   * and scopes to one environment instead.
-   */
-  namespaceWideUnavailable: NamespaceWideUnavailableReason | null;
   refetch: () => void;
 }
 
@@ -50,7 +39,6 @@ export function useDoraInsights(
   const [failure, setFailure] = useState<{
     key: string;
     message: string;
-    namespaceWideUnavailable?: NamespaceWideUnavailableReason;
   } | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -98,10 +86,6 @@ export function useDoraInsights(
               err instanceof Error
                 ? err.message
                 : 'Failed to fetch DORA metrics',
-            namespaceWideUnavailable:
-              err instanceof NamespaceWideObservabilityUnavailableError
-                ? err.reason
-                : undefined,
           });
         }
       } finally {
@@ -124,12 +108,7 @@ export function useDoraInsights(
   const data = result?.key === queryKey ? result.data : null;
   // Same rule for the error: it belongs to the query that raised it. A failed
   // refresh of the current key still surfaces, because the key matches.
-  const spansMultiplePlanes =
-    failure?.key === queryKey ? failure.spansMultiplePlanes ?? false : false;
-  // A namespace spanning planes is a shape the caller handles, not a failure to
-  // report, so it is withheld from `error` and surfaced on its own.
-  const error =
-    failure?.key === queryKey && !spansMultiplePlanes ? failure.message : null;
+  const error = failure?.key === queryKey ? failure.message : null;
 
-  return { data, loading, error, spansMultiplePlanes, refetch };
+  return { data, loading, error, refetch };
 }

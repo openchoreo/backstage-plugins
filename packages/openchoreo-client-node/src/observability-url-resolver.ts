@@ -42,63 +42,6 @@ const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
  *   ClusterObservabilityPlane `default` (or namespaced ObservabilityPlane
  *   `default`) → observerURL
  */
-/** Why a namespace-wide view could not be served. */
-export type NamespaceWideUnavailableReason =
-  | 'spans-multiple-planes'
-  | 'environments-unresolved';
-
-/**
- * Thrown when no single observer can answer for a namespace as a whole.
- *
- * Two causes, and both have to block the namespace-wide view. The obvious one is
- * environments reporting to different observability planes. The other is an
- * environment that could not be resolved at all -- a missing plane, a lookup
- * that failed, an RBAC-filtered read -- because an unresolved environment cannot
- * be shown to agree with the rest. Counting it as agreement is what would let a
- * genuinely split namespace look unified whenever one lookup happened to fail.
- *
- * This is a property of the deployment, not a failure: per-environment queries
- * still work. Callers act on it -- the Delivery Insights page drops its "all
- * environments" option -- which is why it is a distinct type rather than a
- * message to match on.
- */
-export class NamespaceWideObservabilityUnavailableError extends Error {
-  readonly reason: NamespaceWideUnavailableReason;
-  /** environment name -> the observer URL it resolves through. */
-  readonly planesByEnvironment: Record<string, string>;
-  /** Environments that produced no observer URL, and so could not be compared. */
-  readonly unresolvedEnvironments: string[];
-
-  constructor(
-    namespaceName: string,
-    planesByEnvironment: Record<string, string>,
-    unresolvedEnvironments: string[],
-  ) {
-    const planeCount = new Set(Object.values(planesByEnvironment)).size;
-    const reason: NamespaceWideUnavailableReason =
-      planeCount > 1 ? 'spans-multiple-planes' : 'environments-unresolved';
-    const mapping = Object.entries(planesByEnvironment)
-      .map(([envName, url]) => `${envName} -> ${url}`)
-      .sort()
-      .join(', ');
-    super(
-      reason === 'spans-multiple-planes'
-        ? `Namespace '${namespaceName}' spans ${planeCount} observability planes (${mapping}), ` +
-            `so a namespace-wide query would report only one plane's data as if it covered the ` +
-            `namespace. Scope the query to a single environment instead.`
-        : `Namespace '${namespaceName}' has environments that could not be resolved to an ` +
-            `observability plane (${unresolvedEnvironments
-              .sort()
-              .join(', ')}), so it cannot be ` +
-            `shown that one observer covers the namespace. Scope the query to a single environment instead.`,
-    );
-    this.name = 'NamespaceWideObservabilityUnavailableError';
-    this.reason = reason;
-    this.planesByEnvironment = planesByEnvironment;
-    this.unresolvedEnvironments = unresolvedEnvironments;
-  }
-}
-
 export class ObservabilityUrlResolver {
   private readonly baseUrl: string;
   private readonly logger?: LoggerService;
@@ -306,21 +249,15 @@ export class ObservabilityUrlResolver {
     }> = [];
     let lastError: Error | undefined;
 
-    const unresolvedEnvironments: string[] = [];
-
     settled.forEach((outcome, index) => {
       const envName = envNames[index];
       if (outcome.status === 'fulfilled') {
         const { observerUrl } = outcome.value;
         if (observerUrl) {
           resolved.push({ envName, observerUrl, result: outcome.value });
-        } else {
-          // Resolved, but to no plane -- it cannot be compared with the rest.
-          unresolvedEnvironments.push(envName);
         }
         return;
       }
-      unresolvedEnvironments.push(envName);
       lastError =
         outcome.reason instanceof Error
           ? outcome.reason
@@ -339,18 +276,16 @@ export class ObservabilityUrlResolver {
       );
     }
 
-    // Fail closed. Agreement among the environments that resolved says nothing
-    // about the ones that did not, so anything unresolved blocks the
-    // namespace-wide answer rather than being counted as agreement -- otherwise
-    // a split namespace looks unified whenever a single lookup fails.
     const distinctUrls = [...new Set(resolved.map(entry => entry.observerUrl))];
-    if (distinctUrls.length > 1 || unresolvedEnvironments.length > 0) {
-      throw new NamespaceWideObservabilityUnavailableError(
-        namespaceName,
-        Object.fromEntries(
-          resolved.map(entry => [entry.envName, entry.observerUrl]),
-        ),
-        unresolvedEnvironments,
+    if (distinctUrls.length > 1) {
+      const mapping = resolved
+        .map(entry => `${entry.envName} -> ${entry.observerUrl}`)
+        .sort()
+        .join(', ');
+      throw new Error(
+        `Namespace '${namespaceName}' spans ${distinctUrls.length} observability planes (${mapping}), ` +
+          `so a namespace-wide query would report only one plane's data as if it covered the namespace. ` +
+          `Scope the query to a single environment instead.`,
       );
     }
 

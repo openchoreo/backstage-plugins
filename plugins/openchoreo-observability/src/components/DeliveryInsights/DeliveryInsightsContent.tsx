@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -100,8 +100,11 @@ export const DeliveryInsightsContent = ({
     return envFilter ? { ...scope, environment: envFilter } : scope;
   }, [scope, envFilter]);
 
-  const { data, loading, error, namespaceWideUnavailable, refetch } =
-    useDoraInsights(effectiveScope, rangeDays, granularity);
+  const { data, loading, error, refetch } = useDoraInsights(
+    effectiveScope,
+    rangeDays,
+    granularity,
+  );
   const breakdown = useDoraBreakdown(
     level,
     level === 'component' ? scope : effectiveScope,
@@ -148,26 +151,6 @@ export const DeliveryInsightsContent = ({
     () => fillSeriesGaps(buckets, data?.series?.mttr, ['meanMs']),
     [buckets, data?.series?.mttr],
   );
-  // A namespace whose environments report to different observability planes has
-  // no observer that can answer for all of them -- either because they report to
-  // different planes, or because one could not be resolved and so cannot be shown
-  // to agree. Either way the aggregate is not just empty, it cannot be computed:
-  // drop the option and settle on a single environment.
-  useEffect(() => {
-    if (
-      namespaceWideUnavailable &&
-      !envFilter &&
-      breakdown.environments.length > 0
-    ) {
-      onEnvFilterChange(breakdown.environments[0]);
-    }
-  }, [
-    namespaceWideUnavailable,
-    envFilter,
-    breakdown.environments,
-    onEnvFilterChange,
-  ]);
-
   const configWarning = collectionWarning(data?.collection);
   const cfrSeries = useMemo(
     () => nullUnmeasuredRates(data?.series?.changeFailureRate),
@@ -233,9 +216,7 @@ export const DeliveryInsightsContent = ({
           onChange={event => onEnvFilterChange(event.target.value)}
           style={{ minWidth: 160 }}
         >
-          {!namespaceWideUnavailable && (
-            <MenuItem value="">All environments</MenuItem>
-          )}
+          <MenuItem value="">All environments</MenuItem>
           {breakdown.environments.map(env => (
             <MenuItem key={env} value={env}>
               {environmentLabel(env)}
@@ -259,17 +240,7 @@ export const DeliveryInsightsContent = ({
         </Box>
       )}
 
-      {!error && namespaceWideUnavailable && (
-        <Box mb={2}>
-          <Alert severity="info">
-            {namespaceWideUnavailable === 'spans-multiple-planes'
-              ? 'These environments report to different observability planes, so there is no single source for a combined view. Metrics are shown one environment at a time.'
-              : 'Some environments could not be resolved to an observability plane, so a combined view cannot be shown to cover all of them. Metrics are shown one environment at a time.'}
-          </Alert>
-        </Box>
-      )}
-
-      {!error && !namespaceWideUnavailable && configWarning && (
+      {!error && configWarning && (
         <Box mb={2}>
           <Alert severity="info">{configWarning}</Alert>
         </Box>
