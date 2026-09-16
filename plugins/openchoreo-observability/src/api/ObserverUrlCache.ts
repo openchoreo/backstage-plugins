@@ -1,4 +1,5 @@
 import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
+import { AuditLogsNotEnabledError } from './AuditLogsErrors';
 
 interface CachedUrls {
   observerUrl: string;
@@ -55,6 +56,9 @@ export class ObserverUrlCache {
 
     const data = await response.json();
 
+    if (data?.auditLogsEnabled === false) {
+      throw new AuditLogsNotEnabledError();
+    }
     if (!data?.observerUrl) {
       throw new Error('Observability is not enabled for this deployment');
     }

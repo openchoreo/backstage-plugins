@@ -110,6 +110,33 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1alpha1/metadata': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get platform metadata
+     * @description Returns how this OpenChoreo installation is configured, so clients can adapt
+     *     their behavior — for example, whether audit logs can be queried and which
+     *     observer serves them.
+     *
+     *     Requires authentication but no specific permission. The document grants no
+     *     access: querying audit logs still requires `auditlogs:view` on the observer.
+     *
+     *     Clients must ignore fields they do not recognize.
+     */
+    get: operations['getMetadata'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/namespaces': {
     parameters: {
       query?: never;
@@ -2673,6 +2700,28 @@ export interface components {
        * @example Project is ready
        */
       message?: string;
+    };
+    /** @description How this OpenChoreo installation is configured */
+    MetadataResponse: {
+      features: components['schemas']['MetadataFeatures'];
+    };
+    /** @description Optional platform features and how clients reach them */
+    MetadataFeatures: {
+      auditLogs: components['schemas']['AuditLogsFeature'];
+    };
+    /** @description Audit trail read path */
+    AuditLogsFeature: {
+      /**
+       * @description Whether clients can query audit logs through observerURL
+       * @example true
+       */
+      enabled: boolean;
+      /**
+       * Format: uri
+       * @description Base URL of the observer that serves the audit trail. Omitted when enabled is false.
+       * @example https://observer.example.com
+       */
+      observerURL?: string;
     };
     /** @description Server version information */
     VersionResponse: {
@@ -7053,6 +7102,28 @@ export interface operations {
           'application/json': components['schemas']['OAuthProtectedResourceMetadata'];
         };
       };
+    };
+  };
+  getMetadata: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Platform metadata */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MetadataResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
     };
   };
   listNamespaces: {

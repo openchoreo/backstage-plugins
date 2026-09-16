@@ -67,7 +67,7 @@ describe('AuditEventDrawer', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('filters by a scope chip, and by name for the resource level', async () => {
+  it('filters the resource level by resource.resource, not by the name', async () => {
     const onAddToken = jest.fn();
     render(
       <AuditEventDrawer
@@ -75,28 +75,21 @@ describe('AuditEventDrawer', () => {
         record={{
           ...record,
           resource: {
-            type: 'component',
+            type: 'resourcereleasebinding',
             namespace: 'default',
             project: 'shop',
-            component: 'cart',
-            resource: 'cart',
-            name: 'cart',
+            resource: 'orders-db',
+            name: 'orders-db-production',
           },
         }}
         onAddToken={onAddToken}
       />,
     );
 
-    await userEvent.click(screen.getByTitle('Filter by resource.project:shop'));
-    expect(onAddToken).toHaveBeenCalledWith('resource.project', 'shop');
-
-    const resourceChip = screen
-      .getByText('resource', { selector: 'span' })
-      .closest('button');
-    expect(resourceChip).toHaveAttribute(
-      'title',
-      'Filter by resource.name:cart',
+    await userEvent.click(
+      screen.getByTitle('Filter by resource.resource:orders-db'),
     );
+    expect(onAddToken).toHaveBeenCalledWith('resource.resource', 'orders-db');
   });
 
   it('leaves the cluster scope as text, since no filter selects it', () => {

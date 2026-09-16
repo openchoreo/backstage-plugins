@@ -235,6 +235,47 @@ describe('TokenFilterBar', () => {
     expect(onToggleToken).toHaveBeenCalledWith('actor.id', 'alice@x.dev');
   });
 
+  it('lets go of the field once a value is picked', async () => {
+    const onToggleToken = jest.fn();
+    const useValues = jest.fn().mockReturnValue({
+      values: [{ value: 'denied', count: 3 }],
+    });
+    render(
+      <TokenFilterBar
+        {...defaults}
+        tokens={[]}
+        onToggleToken={onToggleToken}
+        useValues={useValues}
+      />,
+    );
+
+    const input = screen.getByRole('textbox');
+    await userEvent.type(input, 'result:');
+    await userEvent.click(screen.getByText('denied'));
+
+    expect(onToggleToken).toHaveBeenCalledWith('result', 'denied');
+    expect(input).not.toHaveFocus();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('lets go of the field once free text is added', async () => {
+    const onToggleToken = jest.fn();
+    render(
+      <TokenFilterBar
+        {...defaults}
+        tokens={[]}
+        onToggleToken={onToggleToken}
+        allowFreeText
+      />,
+    );
+
+    const input = screen.getByRole('textbox');
+    await userEvent.type(input, 'occ{enter}');
+
+    expect(onToggleToken).toHaveBeenCalledWith(null, 'occ');
+    expect(input).not.toHaveFocus();
+  });
+
   it('removes the last filter on backspace in an empty field', async () => {
     const onRemoveToken = jest.fn();
     render(

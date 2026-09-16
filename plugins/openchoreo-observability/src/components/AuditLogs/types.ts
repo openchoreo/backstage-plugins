@@ -88,9 +88,8 @@ export interface AuditLogsActorFilter {
  * Filters on the record's `resource` group. These narrow the result set and
  * never widen authorization.
  *
- * `uid` and `resource` have no filter: `uid` is absent on deletes, so filtering
- * by it would exclude the operations an investigation most often wants, and
- * `resource` only ever duplicates `name` today.
+ * `uid` has no filter: it is absent on deletes, so filtering by it would exclude
+ * the operations an investigation most often wants.
  */
 export interface AuditLogsResourceFilter {
   type?: string[];
@@ -99,6 +98,12 @@ export interface AuditLogsResourceFilter {
   environment?: string[];
   project?: string[];
   component?: string[];
+  /**
+   * The OpenChoreo Resource in the hierarchy, the sibling of `component`. On a
+   * release or binding this is the parent Resource, not the object `name`
+   * records.
+   */
+  resource?: string[];
   name?: string[];
 }
 
@@ -207,6 +212,7 @@ export const AUDIT_PICKABLE_FILTERS = [
   'resource.environment',
   'resource.project',
   'resource.component',
+  'resource.resource',
   'resource.name',
   'action',
   'category',
@@ -260,6 +266,8 @@ export const AUDIT_FILTER_DESCRIPTIONS: Record<AuditFilterPath, string> = {
     'namespace-qualified environment, e.g. default/production',
   'resource.project': 'the project the decision was authorized at',
   'resource.component': 'the component the decision was authorized at',
+  'resource.resource':
+    'the Resource the decision was authorized at, the sibling of component',
   'resource.name': 'name the handler recorded',
   action: 'semantic action name policy is written against',
   category: 'management, authorization or access',

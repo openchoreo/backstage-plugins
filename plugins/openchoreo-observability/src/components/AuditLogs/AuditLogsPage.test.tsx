@@ -4,6 +4,7 @@ import { renderInTestApp } from '@backstage/test-utils';
 import { AuditLogsPage } from './AuditLogsPage';
 import {
   AuditLogsForbiddenError,
+  AuditLogsNotEnabledError,
   AuditLogsNotSupportedError,
 } from '../../api/AuditLogsErrors';
 import { AuditLogRecord } from './types';
@@ -206,6 +207,22 @@ describe('AuditLogsPage', () => {
       'cannot be queried for audit records',
     );
     // An unsupported read must not look like "nothing happened".
+    expect(screen.queryByTestId('audit-table')).not.toBeInTheDocument();
+  });
+
+  it('says audit logs are not enabled when the installation reports so', async () => {
+    mockUseAuditLogs.mockReturnValue(
+      recordsResult({
+        records: [],
+        error: new AuditLogsNotEnabledError(),
+      }),
+    );
+
+    await renderInTestApp(<AuditLogsPage />);
+
+    expect(screen.getByTestId('empty-state')).toHaveTextContent(
+      'Audit logs are not enabled',
+    );
     expect(screen.queryByTestId('audit-table')).not.toBeInTheDocument();
   });
 

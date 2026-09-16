@@ -1,4 +1,5 @@
 import { ObserverUrlCache } from './ObserverUrlCache';
+import { AuditLogsNotEnabledError } from './AuditLogsErrors';
 
 const mockDiscoveryApi = {
   getBaseUrl: jest.fn(),
@@ -134,5 +135,30 @@ describe('ObserverUrlCache', () => {
     expect(result1.observerUrl).toBe('http://observer-ns1-dev');
     expect(result2.observerUrl).toBe('http://observer-ns2-prod');
     expect(mockFetchApi.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  describe('resolvePlatformUrls', () => {
+    it('returns the platform observer', async () => {
+      mockFetchApi.fetch.mockResolvedValue(
+        mockOkResponse({ observerUrl: 'http://audit-observer' }),
+      );
+
+      await expect(createCache().resolvePlatformUrls()).resolves.toEqual({
+        observerUrl: 'http://audit-observer',
+      });
+      expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+        'http://localhost/api/obs/resolve-platform-urls',
+      );
+    });
+
+    it('reports audit logs not enabled as its own error', async () => {
+      mockFetchApi.fetch.mockResolvedValue(
+        mockOkResponse({ auditLogsEnabled: false }),
+      );
+
+      await expect(createCache().resolvePlatformUrls()).rejects.toBeInstanceOf(
+        AuditLogsNotEnabledError,
+      );
+    });
   });
 });

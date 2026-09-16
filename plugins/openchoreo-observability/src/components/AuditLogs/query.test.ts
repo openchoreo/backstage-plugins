@@ -20,6 +20,17 @@ describe('tokensToFilters', () => {
     });
   });
 
+  it('keeps the Resource level apart from the name', () => {
+    const tokens: AuditQueryToken[] = [
+      { path: 'resource.resource', value: 'orders-db' },
+      { path: 'resource.name', value: 'orders-db-production' },
+    ];
+
+    expect(tokensToFilters(tokens)).toEqual({
+      resource: { resource: ['orders-db'], name: ['orders-db-production'] },
+    });
+  });
+
   it('ORs values on one path into a single field', () => {
     const tokens: AuditQueryToken[] = [
       { path: 'result', value: 'denied' },
