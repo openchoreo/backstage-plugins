@@ -1,4 +1,8 @@
-import { DoraClassification, DoraCollectionState } from '../../types';
+import {
+  DoraClassification,
+  DoraCollectionState,
+  DoraGranularity,
+} from '../../types';
 
 /** Formats a millisecond duration as a compact human string (e.g. 45m, 3.2h, 2.1d). */
 export function formatDurationMs(ms: number | null | undefined): string {

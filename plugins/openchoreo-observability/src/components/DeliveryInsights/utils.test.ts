@@ -148,8 +148,8 @@ describe('collectionWarning', () => {
   it('says nothing when the observer collects everything', () => {
     expect(
       collectionWarning({
-        aggregationEnabled: true,
-        eventsSourceEnabled: true,
+        enabled: true,
+        eventsSourceAvailable: true,
       }),
     ).toBeNull();
   });

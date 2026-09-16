@@ -4,10 +4,11 @@ import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import {
   useGetComponentsByProject,
-  useOpenChoreoQuery,
-} from '@openchoreo/backstage-plugin-react';
+  type Component,
+} from '../../hooks/useGetComponentsByProject';
 
 /**
  * A namespace → project → component selection. Each level is optional; an absent
@@ -100,8 +101,8 @@ export const ScopeFilters: FC<ScopeFiltersProps> = ({
   const { components: projectComponents } =
     useGetComponentsByProject(projectEntity);
   const components: Option[] = projectComponents
-    .map(c => ({ name: c.name, label: c.displayName || c.name }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .map((c: Component) => ({ name: c.name, label: c.displayName || c.name }))
+    .sort((a: Option, b: Option) => a.label.localeCompare(b.label));
 
   return (
     <>
