@@ -67,8 +67,7 @@ export const HomePageLayout = ({ widgets }: HomePageLayoutProps) => {
             />
           </Box>
 
-          {/* Editable widget grid — layout persists per user via StorageApi. */}
-          <CustomHomepageGrid config={defaultLayout}>
+          <CustomHomepageGrid config={defaultLayout} containerPadding={[0, 10]}>
             {widgets.map((widget, index) => (
               <Fragment key={widget.name ?? index}>{widget.component}</Fragment>
             ))}
