@@ -171,19 +171,20 @@ export function collectionWarning(
   if (!collection) {
     return null;
   }
-  if (collection.aggregationEnabled === false) {
+  if (collection.enabled === false) {
     return (
       'This observer is not collecting delivery data, so these metrics stay ' +
-      'empty however much is deployed. Enable the DORA aggregator on the ' +
-      'observability plane (observer.deliveryInsights.aggregationEnabled).'
+      'empty however much is deployed. Enable Delivery Insights on the ' +
+      'observability plane (observer.deliveryInsights.enabled).'
     );
   }
-  if (collection.eventsSourceEnabled === false) {
+  if (collection.eventsSourceAvailable === false) {
     return (
       'Deployment frequency, lead time and change failure rate have no input ' +
-      'on this observer: the delivery events source is disabled ' +
-      '(observer.deliveryInsights.eventsSourceEnabled). Mean time to recovery ' +
-      'is derived from incidents and is unaffected.'
+      'on this observer: its logging backend cannot serve the delivery event ' +
+      'sweep, which needs an adapter that filters events by reason across every ' +
+      'namespace. Mean time to recovery is derived from incidents and is ' +
+      'unaffected.'
     );
   }
   return null;

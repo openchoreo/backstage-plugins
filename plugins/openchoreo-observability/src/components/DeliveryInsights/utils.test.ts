@@ -161,28 +161,28 @@ describe('collectionWarning', () => {
   });
 
   it('warns that nothing is being collected when aggregation is off', () => {
-    const msg = collectionWarning({ aggregationEnabled: false });
+    const msg = collectionWarning({ enabled: false });
     expect(msg).toContain('not collecting');
-    expect(msg).toContain('aggregationEnabled');
+    expect(msg).toContain('deliveryInsights.enabled');
   });
 
-  it('takes aggregation off as the more fundamental of the two', () => {
-    // With the aggregator off the events source is moot; reporting it would
-    // send someone to fix the wrong flag.
+  it('takes not collecting as the more fundamental of the two', () => {
+    // With nothing collecting, adapter capability is moot; reporting it would
+    // point someone at the wrong problem.
     const msg = collectionWarning({
-      aggregationEnabled: false,
-      eventsSourceEnabled: false,
+      enabled: false,
+      eventsSourceAvailable: false,
     });
-    expect(msg).toContain('aggregationEnabled');
-    expect(msg).not.toContain('eventsSourceEnabled');
+    expect(msg).toContain('deliveryInsights.enabled');
+    expect(msg).not.toContain('delivery event sweep');
   });
 
   it('names the three affected metrics when only the events source is off', () => {
     const msg = collectionWarning({
-      aggregationEnabled: true,
-      eventsSourceEnabled: false,
+      enabled: true,
+      eventsSourceAvailable: false,
     });
-    expect(msg).toContain('eventsSourceEnabled');
+    expect(msg).toContain('cannot serve the delivery event sweep');
     // MTTR still works off incidents, so the warning must not imply otherwise.
     expect(msg).toContain('Mean time to recovery');
   });

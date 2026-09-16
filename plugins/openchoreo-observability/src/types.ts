@@ -312,12 +312,15 @@ export interface DoraMttrSummary {
  */
 export interface DoraCollectionState {
   /** False means nothing is being written, so every metric stays empty. */
-  aggregationEnabled?: boolean;
+  enabled?: boolean;
   /**
-   * False leaves deployment frequency, lead time and change failure rate
-   * without input. MTTR is derived from incidents and is unaffected.
+   * Whether the deployed logs adapter can serve the delivery event sweep.
+   * Observed rather than configured: an adapter that cannot answers 501 and the
+   * aggregator stands the sweep down. False leaves deployment frequency, lead
+   * time and change failure rate without input; MTTR comes from incidents and is
+   * unaffected.
    */
-  eventsSourceEnabled?: boolean;
+  eventsSourceAvailable?: boolean;
 }
 
 export interface DoraMetricsResponse {
