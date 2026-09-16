@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Page, Header, Content } from '@backstage/core-components';
-import { Box, Chip, makeStyles } from '@material-ui/core';
+import { Box, makeStyles } from '@material-ui/core';
 import { ScopeSelection } from '../ScopeFilters';
 import { DoraGranularity, DoraSearchScope } from '../../types';
 import { DeliveryInsightsContent } from './DeliveryInsightsContent';
@@ -17,7 +17,7 @@ const GRANULARITIES: DoraGranularity[] = ['daily', 'weekly', 'monthly'];
 /**
  * The DORA query level implied by how deep the scope selection goes. The
  * observer's scope names follow the catalog kinds (Namespace = Domain,
- * Project = System), so the header chip shows the OpenChoreo term instead.
+ * Project = System) rather than the OpenChoreo terms the filters use.
  */
 function deriveLevel(scope: ScopeSelection): InsightsLevel {
   if (scope.component) {
@@ -29,30 +29,8 @@ function deriveLevel(scope: ScopeSelection): InsightsLevel {
   return 'domain';
 }
 
-const LEVEL_LABEL: Record<InsightsLevel, string> = {
-  domain: 'namespace',
-  system: 'project',
-  component: 'component',
-};
-
 const useStyles = makeStyles(theme => ({
   section: { marginTop: theme.spacing(2) },
-  titleRow: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: theme.spacing(1.5),
-  },
-  // Mirrors the entity header's kind chip: legible on the gradient bar in both
-  // themes via `theme.page.fontColor`.
-  levelChip: {
-    color: theme.page.fontColor,
-    borderColor: `${theme.page.fontColor}80`,
-    fontSize: '0.7rem',
-    fontWeight: 600,
-    height: 24,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
 }));
 
 /**
@@ -162,21 +140,7 @@ export const DeliveryInsightsPage = () => {
 
   return (
     <Page themeId="tool">
-      <Header
-        title={
-          <Box component="span" className={classes.titleRow}>
-            <span>Delivery Insights</span>
-            <Chip
-              component="span"
-              label={LEVEL_LABEL[level]}
-              variant="outlined"
-              size="small"
-              className={classes.levelChip}
-            />
-          </Box>
-        }
-        pageTitleOverride="Delivery Insights"
-      />
+      <Header title="Delivery Insights" />
       <Content>
         <Box className={classes.section}>
           <DeliveryInsightsContent

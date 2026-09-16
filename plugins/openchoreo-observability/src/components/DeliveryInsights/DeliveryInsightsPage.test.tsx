@@ -45,10 +45,12 @@ const renderPage = (route = '/') =>
   renderInTestApp(<DeliveryInsightsPage />, { routeEntries: [route] });
 
 describe('DeliveryInsightsPage', () => {
-  it('defaults to the org-wide (namespace) scope', async () => {
+  it('defaults to the namespace-wide scope', async () => {
     await renderPage();
     expect(screen.getByText('Delivery Insights')).toBeInTheDocument();
-    expect(screen.getByText('namespace')).toBeInTheDocument();
+    // The header carries the title alone. The scope is shown by the filters,
+    // which say more than a chip restating the level could.
+    expect(screen.queryByText('namespace')).not.toBeInTheDocument();
     expect(lastProps.scope).toEqual({
       namespace: 'default',
       project: undefined,
@@ -59,7 +61,6 @@ describe('DeliveryInsightsPage', () => {
 
   it('derives the project level from the URL', async () => {
     await renderPage('/?namespace=acme&project=checkout');
-    expect(screen.getByText('project')).toBeInTheDocument();
     expect(lastProps.level).toBe('system');
     expect(lastProps.scope).toMatchObject({
       namespace: 'acme',
@@ -69,7 +70,6 @@ describe('DeliveryInsightsPage', () => {
 
   it('derives the component level from the URL', async () => {
     await renderPage('/?namespace=acme&project=checkout&component=api');
-    expect(screen.getByText('component')).toBeInTheDocument();
     expect(lastProps.level).toBe('component');
     expect(lastProps.scope).toMatchObject({
       namespace: 'acme',
