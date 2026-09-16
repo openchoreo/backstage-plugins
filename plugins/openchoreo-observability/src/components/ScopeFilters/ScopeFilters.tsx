@@ -130,6 +130,8 @@ export const ScopeFilters: FC<ScopeFiltersProps> = ({
         label="Project"
         value={scope.project ?? ALL}
         disabled={!scope.namespace}
+        SelectProps={{ displayEmpty: true }}
+        InputLabelProps={{ shrink: true }}
         onChange={event =>
           onScopeChange({
             namespace: scope.namespace,
@@ -153,6 +155,8 @@ export const ScopeFilters: FC<ScopeFiltersProps> = ({
         label="Component"
         value={scope.component ?? ALL}
         disabled={!scope.project}
+        SelectProps={{ displayEmpty: true }}
+        InputLabelProps={{ shrink: true }}
         onChange={event =>
           onScopeChange({
             namespace: scope.namespace,
