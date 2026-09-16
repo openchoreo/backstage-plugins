@@ -306,13 +306,13 @@ export interface DoraMttrSummary {
 }
 
 /**
- * What the observer is collecting, reported on every metrics response. An empty
+ * Why the metrics beside it might be empty, reported on every response. An empty
  * result is otherwise ambiguous: a scope that deployed nothing looks exactly
  * like an observer that was never configured to collect.
  */
-export interface DoraCollectionState {
+export interface DoraDataAvailability {
   /** False means nothing is being written, so every metric stays empty. */
-  enabled?: boolean;
+  collecting?: boolean;
   /**
    * Whether the deployed logs adapter can serve the delivery event sweep.
    * Observed rather than configured: an adapter that cannot answers 501 and the
@@ -320,11 +320,11 @@ export interface DoraCollectionState {
    * time and change failure rate without input; MTTR comes from incidents and is
    * unaffected.
    */
-  eventsSourceAvailable?: boolean;
+  deliveryEvents?: boolean;
 }
 
 export interface DoraMetricsResponse {
-  collection?: DoraCollectionState;
+  dataAvailability?: DoraDataAvailability;
   scope: DoraSearchScope;
   granularity: DoraGranularity;
   window: { startTime: string; endTime: string; generatedAt: string };

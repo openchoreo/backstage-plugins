@@ -23,7 +23,7 @@ import {
   INSIGHTS_TIME_RANGES,
   fillSeriesGaps,
   formatDurationMs,
-  collectionWarning,
+  dataAvailabilityWarning,
   formatPercent,
   granularitiesForRange,
   resolveGranularity,
@@ -187,7 +187,7 @@ export const DeliveryInsightsContent = ({
     }
   }, [rangeDays, granularity, onGranularityChange]);
 
-  const configWarning = collectionWarning(data?.collection);
+  const configWarning = dataAvailabilityWarning(data?.dataAvailability);
   const cfrSeries = useMemo(
     () => nullUnmeasuredRates(data?.series?.changeFailureRate),
     [data?.series?.changeFailureRate],

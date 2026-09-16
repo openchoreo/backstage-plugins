@@ -1,5 +1,5 @@
 import {
-  collectionWarning,
+  dataAvailabilityWarning,
   fillSeriesGaps,
   granularitiesForRange,
   resolveGranularity,
@@ -144,12 +144,12 @@ describe('change failure rate buckets with no deployments', () => {
   });
 });
 
-describe('collectionWarning', () => {
+describe('dataAvailabilityWarning', () => {
   it('says nothing when the observer collects everything', () => {
     expect(
-      collectionWarning({
-        enabled: true,
-        eventsSourceAvailable: true,
+      dataAvailabilityWarning({
+        collecting: true,
+        deliveryEvents: true,
       }),
     ).toBeNull();
   });
@@ -157,11 +157,11 @@ describe('collectionWarning', () => {
   it('says nothing when the field is absent', () => {
     // An observer predating the field may well be collecting; a wrong warning
     // is worse than none.
-    expect(collectionWarning(undefined)).toBeNull();
+    expect(dataAvailabilityWarning(undefined)).toBeNull();
   });
 
   it('warns that nothing is being collected when aggregation is off', () => {
-    const msg = collectionWarning({ enabled: false });
+    const msg = dataAvailabilityWarning({ collecting: false });
     expect(msg).toContain('not collecting');
     expect(msg).toContain('deliveryInsights.enabled');
   });
@@ -169,18 +169,18 @@ describe('collectionWarning', () => {
   it('takes not collecting as the more fundamental of the two', () => {
     // With nothing collecting, adapter capability is moot; reporting it would
     // point someone at the wrong problem.
-    const msg = collectionWarning({
-      enabled: false,
-      eventsSourceAvailable: false,
+    const msg = dataAvailabilityWarning({
+      collecting: false,
+      deliveryEvents: false,
     });
     expect(msg).toContain('deliveryInsights.enabled');
     expect(msg).not.toContain('delivery event sweep');
   });
 
   it('names the three affected metrics when only the events source is off', () => {
-    const msg = collectionWarning({
-      enabled: true,
-      eventsSourceAvailable: false,
+    const msg = dataAvailabilityWarning({
+      collecting: true,
+      deliveryEvents: false,
     });
     expect(msg).toContain('cannot serve the delivery event sweep');
     // MTTR still works off incidents, so the warning must not imply otherwise.

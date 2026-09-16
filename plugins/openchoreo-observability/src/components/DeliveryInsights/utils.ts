@@ -1,6 +1,6 @@
 import {
   DoraClassification,
-  DoraCollectionState,
+  DoraDataAvailability,
   DoraGranularity,
 } from '../../types';
 
@@ -160,29 +160,29 @@ export function measuredRates(
 }
 
 /**
- * The warning to show above the page for the observer's current collection
- * configuration, or null when it is collecting everything.
+ * The warning to show above the page when the observer cannot produce some of
+ * these metrics, or null when it can produce them all.
  *
  * Both states below produce a successful, entirely plausible-looking empty
  * response, which is what makes them worth calling out: without this the page
  * is indistinguishable from one belonging to a team that has not deployed.
  */
-export function collectionWarning(
-  collection: DoraCollectionState | undefined,
+export function dataAvailabilityWarning(
+  availability: DoraDataAvailability | undefined,
 ): string | null {
   // Absent on an observer predating the field. Saying nothing is the safe
   // reading: it may well be collecting, and a wrong warning is worse than none.
-  if (!collection) {
+  if (!availability) {
     return null;
   }
-  if (collection.enabled === false) {
+  if (availability.collecting === false) {
     return (
       'This observer is not collecting delivery data, so these metrics stay ' +
       'empty however much is deployed. Enable Delivery Insights on the ' +
       'observability plane (observer.deliveryInsights.enabled).'
     );
   }
-  if (collection.eventsSourceAvailable === false) {
+  if (availability.deliveryEvents === false) {
     return (
       'Deployment frequency, lead time and change failure rate have no input ' +
       'on this observer: its logging backend cannot serve the delivery event ' +
