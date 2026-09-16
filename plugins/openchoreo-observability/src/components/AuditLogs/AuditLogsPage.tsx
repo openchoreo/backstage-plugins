@@ -8,10 +8,9 @@ import {
   useState,
 } from 'react';
 import { Box, Grid, Typography } from '@material-ui/core';
-import { Content, Header, Page } from '@backstage/core-components';
+import { Content, EmptyState, Header, Page } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import {
-  EmptyState,
   ForbiddenState,
   TimeRangeFilter,
   useAuditLogsPermission,
@@ -71,8 +70,11 @@ export const AuditLogsPage = () => {
     selectEvent,
   } = useUrlFiltersForAuditLogs();
 
-  const { canViewAuditLogs, loading: permissionLoading } =
-    useAuditLogsPermission();
+  const {
+    canViewAuditLogs,
+    loading: permissionLoading,
+    permissionName,
+  } = useAuditLogsPermission();
 
   // Live is session state rather than a URL parameter: a shared link should
   // open on the window it was taken from, not start polling in someone else's
@@ -233,9 +235,9 @@ export const AuditLogsPage = () => {
     if (!canViewAuditLogs || forbidden) {
       return (
         <ForbiddenState
-          title="You cannot read the audit trail"
-          message="This needs the auditlogs:view permission at cluster scope."
-          guidance="The trail covers every team, so it is granted on its own rather than with a project's observability access. Ask a platform administrator."
+          message="You do not have permission to view audit logs."
+          permissionName={permissionName}
+          variant="fullpage"
         />
       );
     }
@@ -243,8 +245,9 @@ export const AuditLogsPage = () => {
     if (notEnabled) {
       return (
         <EmptyState
-          title="Audit logs are not enabled"
-          description="No observer is configured to serve the audit trail for this installation."
+          missing="info"
+          title="Audit Logs Disabled"
+          description="The audit logs feature is currently disabled."
         />
       );
     }
@@ -252,6 +255,7 @@ export const AuditLogsPage = () => {
     if (notSupported) {
       return (
         <EmptyState
+          missing="info"
           title="This deployment cannot be queried for audit records"
           description="Records are still being written. The configured logs adapter just does not answer audit queries. Deployments that forward their trail to an external SIEM and keep no local copy land here too."
         />
