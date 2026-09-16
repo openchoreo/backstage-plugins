@@ -10,7 +10,7 @@ import {
   Typography,
 } from '@material-ui/core';
 import CheckIcon from '@material-ui/icons/Check';
-import { Alert } from '@material-ui/lab';
+import { Alert, AlertTitle } from '@material-ui/lab';
 import {
   useApi,
   fetchApiRef,
@@ -194,6 +194,17 @@ export const CostOptimizeButton = ({
           {changes.length === 1 ? 'change' : 'changes'})
         </DialogTitle>
         <DialogContent dividers>
+          <Box mb={2}>
+            <Alert severity="warning">
+              <AlertTitle>Note</AlertTitle>
+              These values are recommendations derived from the resource usage
+              observed over the selected period. They may not account for
+              traffic spikes, periodic jobs or start-up requirements outside
+              that window, and under-sizing a workload can lead to CPU
+              throttling or out-of-memory restarts. Apply them only if you agree
+              they reflect what this component needs.
+            </Alert>
+          </Box>
           <ChangesList
             sections={[{ title: 'Component Overrides', changes }]}
             emptyMessage="No changes to apply"
