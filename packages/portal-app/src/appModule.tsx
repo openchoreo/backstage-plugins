@@ -42,12 +42,6 @@ const navContent = NavContentBlueprint.make({
   params: { component: PortalNavContent },
 });
 
-// (The OpenChoreoQueryProvider app-root wrapper is now shipped by
-// `openChoreoAppModule` in `@openchoreo/backstage-plugin/alpha` — it used to
-// live here as `openChoreoQueryWrapper` but was moved to the plugin so
-// external adopters get it automatically. Do not re-add it here or the
-// extension ID `app-root-wrapper:app/openchoreo-query` collides.)
-
 const scaffolderPreselectionWrapper = AppRootWrapperBlueprint.make({
   name: 'scaffolder-preselection',
   params: { component: ScaffolderPreselectionProvider },
