@@ -13,26 +13,28 @@ interface FormattedTextProps {
 }
 
 // Entity tag patterns:
-//   Raw form: <comp:name>, <proj:name>, <env:name>, <ns:name>
+//   Raw form: <comp:name>, <proj:name>, <env:name>, <ns:name>, <resource:name>
 //   Escaped form: {{comp:name}}, {{proj:name}}, etc. (used after pre-processing for markdown safety)
-const ENTITY_TAG_PATTERN = /(?:<|{{)(comp|proj|env|ns):([^>}]+)(?:>|}})/;
+const ENTITY_TAG_PATTERN =
+  /(?:<|{{)(comp|proj|env|ns|resource):([^>}]+)(?:>|}})/;
 
 // ISO 8601 timestamp pattern (e.g., 2023-10-05T14:48:00Z or 2023-10-05T14:48:00.123456Z)
 const ISO_TIMESTAMP_PATTERN = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/;
 
 // Combined pattern to split text by entity tags (both forms) and timestamps, keeping delimiters
 const SPLIT_PATTERN =
-  /((?:<|{{)(?:comp|proj|env|ns):[^>}]+(?:>|}})|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)/g;
+  /((?:<|{{)(?:comp|proj|env|ns|resource):[^>}]+(?:>|}})|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)/g;
 
 // Convert <tag:name> to {{tag:name}} so ReactMarkdown doesn't strip them as HTML
 function escapeEntityTags(text: string): string {
-  return text.replace(/<((?:comp|proj|env|ns):[^>]+)>/g, '{{$1}}');
+  return text.replace(/<((?:comp|proj|env|ns|resource):[^>]+)>/g, '{{$1}}');
 }
 
 // Map tag type to Backstage catalog kind
 const TAG_TO_KIND: Record<string, string> = {
   comp: 'component',
   proj: 'system',
+  resource: 'resource',
 };
 
 function formatTimestamp(isoString: string): string {
