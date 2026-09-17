@@ -116,6 +116,22 @@ export interface Config {
          */
         enabled?: boolean;
       };
+
+      /**
+       * Delivery Insights (DORA metrics) configuration.
+       * Controls the Delivery Insights page in the portal navigation.
+       * @deepVisibility frontend
+       */
+      deliveryInsights?: {
+        /**
+         * Enable or disable the Delivery Insights page.
+         * Opt-in: defaults to false. This is a feature preview, and separate
+         * from the Observer flag that collects the data -- both are needed for
+         * the page to show anything.
+         * @visibility frontend
+         */
+        enabled?: boolean;
+      };
     };
 
     /**

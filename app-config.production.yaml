@@ -314,6 +314,13 @@ openchoreo:
     # LLM API key Secret to be deployed.
     assistant:
       enabled: ${OPENCHOREO_FEATURES_ASSISTANT_ENABLED}
+    # Delivery Insights (DORA metrics) page
+    # Opt-in: defaults to false. Feature preview, and separate from the Observer
+    # flag that collects the data (observer.deliveryInsights.enabled on the
+    # observability plane) -- both are needed for the page to show anything.
+    # When disabled, hides the Delivery Insights sidebar item.
+    deliveryInsights:
+      enabled: ${OPENCHOREO_FEATURES_DELIVERY_INSIGHTS_ENABLED}
     # Secret Management configuration
     # When disabled, hides the Secrets settings tab and disables secret APIs
     secretManagement:

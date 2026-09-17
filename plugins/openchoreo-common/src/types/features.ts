@@ -35,6 +35,13 @@ export interface OpenChoreoFeatures {
    * `perch-agent` service and an LLM API key Secret to be deployed.
    */
   assistant: { enabled: boolean };
+  /**
+   * Delivery Insights (DORA metrics) page.
+   * Opt-in: defaults to false because it is a feature preview, and because the
+   * data behind it is only produced when the Observer is separately configured
+   * to collect it.
+   */
+  deliveryInsights: { enabled: boolean };
 }
 
 /**
@@ -46,4 +53,5 @@ export type FeatureName =
   | 'auth'
   | 'authz'
   | 'secretManagement'
-  | 'assistant';
+  | 'assistant'
+  | 'deliveryInsights';

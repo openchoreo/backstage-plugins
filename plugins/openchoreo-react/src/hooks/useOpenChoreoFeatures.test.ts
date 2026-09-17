@@ -7,6 +7,7 @@ import {
   useAuthzEnabled,
   useSecretManagementEnabled,
   useAssistantEnabled,
+  useDeliveryInsightsEnabled,
 } from './useOpenChoreoFeatures';
 
 const mockGetOptionalConfig = jest.fn();
@@ -31,7 +32,7 @@ describe('useOpenChoreoFeatures', () => {
     jest.clearAllMocks();
   });
 
-  it('returns defaults when no config (all on except assistant and secret management)', () => {
+  it('returns defaults when no config (all on except assistant, secret management and delivery insights)', () => {
     mockGetOptionalConfig.mockReturnValue(undefined);
     const { result } = renderHook(() => useOpenChoreoFeatures());
     expect(result.current).toEqual({
@@ -41,6 +42,7 @@ describe('useOpenChoreoFeatures', () => {
       authz: { enabled: true },
       secretManagement: { enabled: false },
       assistant: { enabled: false },
+      deliveryInsights: { enabled: false },
     });
   });
 
@@ -53,6 +55,7 @@ describe('useOpenChoreoFeatures', () => {
         'authz.enabled': true,
         'secretManagement.enabled': true,
         'assistant.enabled': true,
+        'deliveryInsights.enabled': true,
       }),
     );
     const { result } = renderHook(() => useOpenChoreoFeatures());
@@ -63,6 +66,7 @@ describe('useOpenChoreoFeatures', () => {
       authz: { enabled: true },
       secretManagement: { enabled: true },
       assistant: { enabled: true },
+      deliveryInsights: { enabled: true },
     });
   });
 
@@ -91,6 +95,7 @@ describe('useOpenChoreoFeatures', () => {
       authz: { enabled: true },
       secretManagement: { enabled: false },
       assistant: { enabled: false },
+      deliveryInsights: { enabled: false },
     });
   });
 });
@@ -106,6 +111,7 @@ describe('helper hooks', () => {
         'authz.enabled': false,
         'secretManagement.enabled': true,
         'assistant.enabled': true,
+        'deliveryInsights.enabled': true,
       }),
     );
   });
@@ -138,5 +144,16 @@ describe('helper hooks', () => {
   it('useAssistantEnabled returns assistant flag', () => {
     const { result } = renderHook(() => useAssistantEnabled());
     expect(result.current).toBe(true);
+  });
+
+  it('useDeliveryInsightsEnabled returns deliveryInsights flag', () => {
+    const { result } = renderHook(() => useDeliveryInsightsEnabled());
+    expect(result.current).toBe(true);
+  });
+
+  it('useDeliveryInsightsEnabled is false when the flag is absent', () => {
+    mockGetOptionalConfig.mockReturnValue(makeFeaturesConfig({}));
+    const { result } = renderHook(() => useDeliveryInsightsEnabled());
+    expect(result.current).toBe(false);
   });
 });

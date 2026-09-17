@@ -32,7 +32,10 @@ import type {
   NavContentComponentProps,
   NavContentNavItem,
 } from '@backstage/plugin-app-react';
-import { queryClient } from '@openchoreo/backstage-plugin-react';
+import {
+  queryClient,
+  useDeliveryInsightsEnabled,
+} from '@openchoreo/backstage-plugin-react';
 import LogoFull from './LogoFull';
 import LogoIcon from './LogoIcon';
 import { CustomSearchModal } from '../search/CustomSearchModal';
@@ -165,6 +168,9 @@ export function PortalNavContent({ navItems }: NavContentComponentProps) {
   const auditLogs = navItems.take(AUDIT_LOGS_ID);
   const costInsights = navItems.take(COST_INSIGHTS_ID);
   const deliveryInsights = navItems.take(DELIVERY_INSIGHTS_ID);
+  // Taken either way, so the item does not fall through to the generic list
+  // below when the feature is off; whether it is rendered is decided here.
+  const deliveryInsightsEnabled = useDeliveryInsightsEnabled();
   const apis = navItems.take(APIS_ID);
   const create = navItems.take(CREATE_ID);
 
@@ -202,7 +208,9 @@ export function PortalNavContent({ navItems }: NavContentComponentProps) {
       {platform && <NavItemLink item={platform} />}
       {auditLogs && <NavItemLink item={auditLogs} />}
       {costInsights && <NavItemLink item={costInsights} />}
-      {deliveryInsights && <NavItemLink item={deliveryInsights} />}
+      {deliveryInsightsEnabled && deliveryInsights && (
+        <NavItemLink item={deliveryInsights} />
+      )}
       <SidebarDivider />
       <SidebarSpace />
       <SidebarDivider />

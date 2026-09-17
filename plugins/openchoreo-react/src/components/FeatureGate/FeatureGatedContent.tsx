@@ -28,6 +28,7 @@ export function FeatureGatedContent({
       authz: 'Authorization',
       secretManagement: 'Secret Management',
       assistant: 'Portal Assistant',
+      deliveryInsights: 'Delivery Insights',
     };
 
     return (
