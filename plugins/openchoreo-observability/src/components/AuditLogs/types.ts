@@ -57,7 +57,7 @@ export interface AuditLogRecord {
   action: string;
   /** `management`, `authorization` or `access` at schema 1.0. */
   category: string;
-  /** `success`, `failure`, `denied` or `unauthenticated` at schema 1.0. */
+  /** `success`, `failure` or `denied` at schema 1.0. */
   result: string;
   request_id?: string;
   source_ip?: string;
@@ -108,7 +108,7 @@ export interface AuditLogsResourceFilter {
 }
 
 export type AuditSortOrder = 'asc' | 'desc';
-export type AuditResult = 'success' | 'failure' | 'denied' | 'unauthenticated';
+export type AuditResult = 'success' | 'failure' | 'denied';
 
 export const AUDIT_CATEGORIES = [
   'management',
@@ -333,7 +333,7 @@ export const AUDIT_DEFAULT_COLUMNS = AUDIT_COLUMNS.filter(
   c => c.fixed || c.defaultOn,
 ).map(c => c.id);
 
-/** The four outcomes. Closed at schema 1.0. */
+/** The three outcomes. Closed at schema 1.0. */
 export const AUDIT_RESULTS: Array<{
   id: AuditResult;
   label: string;
@@ -341,7 +341,6 @@ export const AUDIT_RESULTS: Array<{
   { id: 'success', label: 'Successful' },
   { id: 'failure', label: 'Failed' },
   { id: 'denied', label: 'Denied' },
-  { id: 'unauthenticated', label: 'Unauthenticated' },
 ];
 
 /**

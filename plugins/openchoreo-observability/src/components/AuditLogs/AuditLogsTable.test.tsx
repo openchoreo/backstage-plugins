@@ -80,7 +80,7 @@ describe('AuditLogsTable', () => {
           record({
             action: '',
             category: '',
-            result: 'unauthenticated',
+            result: 'failure',
             resource: null,
           }),
         ]}
@@ -88,7 +88,6 @@ describe('AuditLogsTable', () => {
     );
 
     expect(screen.getByText('no action resolved')).toBeInTheDocument();
-    expect(screen.getByText('unauth')).toBeInTheDocument();
   });
 
   it('only renders the selected columns', () => {
