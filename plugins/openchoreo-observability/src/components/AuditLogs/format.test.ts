@@ -1,27 +1,12 @@
 import {
   actorInitials,
-  bucketTick,
   formatTotal,
   relativeAge,
   resultLabel,
   scopeSegments,
   shortUserAgent,
   surfaceLabel,
-  verbOf,
 } from './format';
-
-describe('verbOf', () => {
-  it('reads the leading verb of an action name', () => {
-    expect(verbOf('create_project')).toBe('create');
-    expect(verbOf('read_audit_log')).toBe('read');
-  });
-
-  it('gives no verb rather than guessing one', () => {
-    expect(verbOf('promote_release')).toBeUndefined();
-    expect(verbOf('')).toBeUndefined();
-    expect(verbOf(undefined)).toBeUndefined();
-  });
-});
 
 describe('resultLabel', () => {
   it('shortens only the outcome too long for a pill', () => {
@@ -128,21 +113,5 @@ describe('formatTotal', () => {
   it('groups a count for reading', () => {
     expect(formatTotal(1517)).toBe((1517).toLocaleString());
     expect(formatTotal(0)).toBe('0');
-  });
-});
-
-describe('bucketTick', () => {
-  it('drops the hour once the window is wider than two days', () => {
-    const wide = bucketTick('2026-09-03T10:00:00.000Z', 7 * 86_400_000);
-    expect(wide).toMatch(/Sep/);
-    expect(wide).not.toMatch(/:/);
-  });
-
-  it('keeps the time for a window inside two days', () => {
-    expect(bucketTick('2026-09-03T10:00:00.000Z', 3_600_000)).toMatch(/:/);
-  });
-
-  it('returns nothing for a timestamp it cannot read', () => {
-    expect(bucketTick('not-a-date', 0)).toBe('');
   });
 });
