@@ -71,6 +71,28 @@ describe('useCostInsights', () => {
     getCostRecommendations.mockResolvedValue({ items: [] });
   });
 
+  it("issues a pair's six requests together rather than in a chain", async () => {
+    const release: Array<() => void> = [];
+    const hold = () =>
+      new Promise(resolve => {
+        release.push(() => resolve({ items: [] }));
+      });
+    getCosts.mockImplementation(hold);
+    getCostRecommendations.mockImplementation(hold);
+
+    const { result } = renderHook(() => useCostInsights(baseParams()), {
+      wrapper: createQueryWrapper(),
+    });
+
+    // Four cost windows and two recommendation windows, all in flight at once:
+    // none of them resolves until the test lets them.
+    await waitFor(() => expect(getCosts).toHaveBeenCalledTimes(4));
+    expect(getCostRecommendations).toHaveBeenCalledTimes(2);
+
+    release.forEach(resolve => resolve());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+  });
+
   it('fetches a current and previous window per environment and aggregates', async () => {
     const { result } = renderHook(
       () => useCostInsights(baseParams({ environments: ['dev', 'prod'] })),

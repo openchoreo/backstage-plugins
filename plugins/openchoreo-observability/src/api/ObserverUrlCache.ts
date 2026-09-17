@@ -1,6 +1,12 @@
 import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 import { AuditLogsNotEnabledError } from './AuditLogsErrors';
 
+type ResolvedUrls = {
+  observerUrl: string;
+  rcaAgentUrl?: string;
+  finopsAgentUrl?: string;
+};
+
 interface CachedUrls {
   observerUrl: string;
   rcaAgentUrl?: string;
@@ -14,6 +20,7 @@ export class ObserverUrlCache {
   private readonly discoveryApi: DiscoveryApi;
   private readonly fetchApi: FetchApi;
   private readonly cache = new Map<string, CachedUrls>();
+  private readonly inFlight = new Map<string, Promise<ResolvedUrls>>();
 
   constructor(options: { discoveryApi: DiscoveryApi; fetchApi: FetchApi }) {
     this.discoveryApi = options.discoveryApi;
@@ -74,11 +81,7 @@ export class ObserverUrlCache {
   async resolveUrls(
     namespaceName: string,
     environmentName: string,
-  ): Promise<{
-    observerUrl: string;
-    rcaAgentUrl?: string;
-    finopsAgentUrl?: string;
-  }> {
+  ): Promise<ResolvedUrls> {
     const cacheKey = `${namespaceName}/${environmentName}`;
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() < cached.expiresAt) {
@@ -89,6 +92,23 @@ export class ObserverUrlCache {
       };
     }
 
+    const pending = this.inFlight.get(cacheKey);
+    if (pending) return pending;
+
+    const request = this.fetchUrls(namespaceName, environmentName, cacheKey);
+    this.inFlight.set(cacheKey, request);
+    try {
+      return await request;
+    } finally {
+      this.inFlight.delete(cacheKey);
+    }
+  }
+
+  private async fetchUrls(
+    namespaceName: string,
+    environmentName: string,
+    cacheKey: string,
+  ): Promise<ResolvedUrls> {
     const baseUrl = await this.discoveryApi.getBaseUrl(
       'openchoreo-observability-backend',
     );
