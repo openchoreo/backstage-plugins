@@ -166,7 +166,7 @@ describe('dataAvailabilityWarning', () => {
   it('warns that nothing is being collected when aggregation is off', () => {
     const msg = dataAvailabilityWarning({ collecting: false });
     expect(msg).toContain('not collecting');
-    expect(msg).toContain('deliveryInsights.enabled');
+    expect(msg).toContain('featurePreview.deliveryInsights.enabled');
   });
 
   it('takes not collecting as the more fundamental of the two', () => {
@@ -176,7 +176,7 @@ describe('dataAvailabilityWarning', () => {
       collecting: false,
       deliveryEvents: false,
     });
-    expect(msg).toContain('deliveryInsights.enabled');
+    expect(msg).toContain('featurePreview.deliveryInsights.enabled');
     expect(msg).not.toContain('delivery event sweep');
   });
 

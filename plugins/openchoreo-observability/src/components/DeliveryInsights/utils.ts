@@ -210,7 +210,8 @@ export function dataAvailabilityWarning(
     return (
       'This observer is not collecting delivery data, so these metrics stay ' +
       'empty however much is deployed. Enable Delivery Insights on the ' +
-      'observability plane (observer.deliveryInsights.enabled).'
+      'observability plane ' +
+      '(observer.featurePreview.deliveryInsights.enabled).'
     );
   }
   if (availability.deliveryEvents === false) {
