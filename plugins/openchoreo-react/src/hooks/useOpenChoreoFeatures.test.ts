@@ -7,6 +7,7 @@ import {
   useAuthzEnabled,
   useSecretManagementEnabled,
   useAssistantEnabled,
+  useDeliveryInsightsEnabled,
 } from './useOpenChoreoFeatures';
 
 const mockGetOptionalConfig = jest.fn();
@@ -110,6 +111,7 @@ describe('helper hooks', () => {
         'authz.enabled': false,
         'secretManagement.enabled': true,
         'assistant.enabled': true,
+        'deliveryInsights.enabled': true,
       }),
     );
   });
@@ -142,5 +144,16 @@ describe('helper hooks', () => {
   it('useAssistantEnabled returns assistant flag', () => {
     const { result } = renderHook(() => useAssistantEnabled());
     expect(result.current).toBe(true);
+  });
+
+  it('useDeliveryInsightsEnabled returns deliveryInsights flag', () => {
+    const { result } = renderHook(() => useDeliveryInsightsEnabled());
+    expect(result.current).toBe(true);
+  });
+
+  it('useDeliveryInsightsEnabled is false when the flag is absent', () => {
+    mockGetOptionalConfig.mockReturnValue(makeFeaturesConfig({}));
+    const { result } = renderHook(() => useDeliveryInsightsEnabled());
+    expect(result.current).toBe(false);
   });
 });
