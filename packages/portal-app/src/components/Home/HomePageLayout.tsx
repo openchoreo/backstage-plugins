@@ -21,6 +21,11 @@ const defaultLayout: LayoutConfiguration[] = [
   { component: 'OpenChoreoRecentlyVisited', x: 6, y: 0, width: 6, height: 4 },
 ];
 
+// Per-breakpoint columns. The default `md: 10` can't fit two width-6 cards, so
+// on ~1200px (14") screens the second card overlaps. `md: 12` keeps them side
+// by side; smaller breakpoints stay <= 6 cols so cards stack full-width.
+const gridCols = { xxs: 2, xs: 4, sm: 6, md: 12, lg: 12, xl: 12 };
+
 // Home page shell (welcome header, search, Platform Details) around the
 // editable widget grid.
 export const HomePageLayout = ({ widgets }: HomePageLayoutProps) => {
@@ -57,7 +62,11 @@ export const HomePageLayout = ({ widgets }: HomePageLayoutProps) => {
             />
           </Box>
 
-          <CustomHomepageGrid config={defaultLayout} containerPadding={[0, 10]}>
+          <CustomHomepageGrid
+            config={defaultLayout}
+            cols={gridCols}
+            containerPadding={[0, 10]}
+          >
             {widgets.map((widget, index) => (
               <Fragment key={widget.name ?? index}>{widget.component}</Fragment>
             ))}
