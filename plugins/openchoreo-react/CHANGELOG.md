@@ -1,6 +1,6 @@
 # @openchoreo/backstage-plugin-react
 
-## 2.0.0-next.0
+## 1.3.0-next.0
 
 ### Minor Changes
 
@@ -209,8 +209,8 @@
 - Updated dependencies [a958b80]
 - Updated dependencies [ce31a0e]
 - Updated dependencies [0a7d538]
-  - @openchoreo/backstage-design-system@2.0.0-next.0
-  - @openchoreo/backstage-plugin-common@2.0.0-next.0
+  - @openchoreo/backstage-design-system@1.3.0-next.0
+  - @openchoreo/backstage-plugin-common@1.3.0-next.0
 
 ## 1.2.0
 

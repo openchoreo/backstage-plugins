@@ -1,6 +1,6 @@
 # @openchoreo/cell-diagram
 
-## 2.0.0-next.0
+## 1.3.0-next.0
 
 ### Minor Changes
 

@@ -1,6 +1,6 @@
 # @openchoreo/backstage-plugin-openchoreo-workflows
 
-## 2.0.0-next.0
+## 1.3.0-next.0
 
 ### Patch Changes
 
@@ -47,9 +47,9 @@
 - Updated dependencies [cc2fe12]
 - Updated dependencies [23f804a]
 - Updated dependencies [0c85b6b]
-  - @openchoreo/backstage-design-system@2.0.0-next.0
-  - @openchoreo/backstage-plugin-react@2.0.0-next.0
-  - @openchoreo/backstage-plugin@2.0.0-next.0
+  - @openchoreo/backstage-design-system@1.3.0-next.0
+  - @openchoreo/backstage-plugin-react@1.3.0-next.0
+  - @openchoreo/backstage-plugin@1.3.0-next.0
 
 ## 1.2.0
 

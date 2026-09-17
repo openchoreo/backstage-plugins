@@ -282,12 +282,12 @@
 - Updated dependencies [435463f]
 - Updated dependencies [6729dc3]
 - Updated dependencies [0c85b6b]
-  - @openchoreo/backstage-design-system@2.0.0-next.0
-  - @openchoreo/backstage-plugin-openchoreo-observability@2.0.0-next.0
-  - @openchoreo/backstage-plugin-common@2.0.0-next.0
-  - @openchoreo/backstage-plugin-react@2.0.0-next.0
-  - @openchoreo/backstage-plugin@2.0.0-next.0
-  - @openchoreo/backstage-plugin-openchoreo-ci@2.0.0-next.0
-  - @openchoreo/backstage-plugin-openchoreo-workflows@2.0.0-next.0
-  - @openchoreo/backstage-plugin-platform-engineer-core@2.0.0-next.0
-  - @openchoreo/backstage-plugin-openchoreo-portal-assistant@2.0.0-next.0
+  - @openchoreo/backstage-design-system@1.3.0-next.0
+  - @openchoreo/backstage-plugin-openchoreo-observability@1.3.0-next.0
+  - @openchoreo/backstage-plugin-common@1.3.0-next.0
+  - @openchoreo/backstage-plugin-react@1.3.0-next.0
+  - @openchoreo/backstage-plugin@1.3.0-next.0
+  - @openchoreo/backstage-plugin-openchoreo-ci@1.3.0-next.0
+  - @openchoreo/backstage-plugin-openchoreo-workflows@1.3.0-next.0
+  - @openchoreo/backstage-plugin-platform-engineer-core@1.3.0-next.0
+  - @openchoreo/backstage-plugin-openchoreo-portal-assistant@1.3.0-next.0
