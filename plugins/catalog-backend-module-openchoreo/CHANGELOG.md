@@ -1,5 +1,38 @@
 # @openchoreo/backstage-plugin-catalog-backend-module
 
+## 1.3.0-next.0
+
+### Patch Changes
+
+- 67ba0da: Refresh the parent System when a component is removed so its now-dangling
+  `hasPart` relation is dropped. Without this, deleting a component left the
+  project page showing "Some related entities could not be found in the catalog"
+  until the catalog was rebuilt, because the System's relations are only
+  recomputed when it is re-processed and the periodic full sync re-emits it
+  unchanged.
+- 9eb3d31: Register the Jenkins frontend plugin so the build-status card and tab work.
+  `EntityLatestJenkinsRunCard` and `EntityJenkinsContent` are entity cards and
+  tabs rather than routes, so `convertLegacyAppRoot` never discovered the plugin
+  and `jenkinsApiRef` had no factory — the entity page threw
+  `NotImplementedError: No implementation available for apiRef{plugin.jenkins.service2}`.
+  Same fix already applied for api-docs and kubernetes.
+
+  Also clarifies the scaffolder's CI identifier field: it takes a Jenkins job
+  **full name** (`my-folder/my-job`), not a `/job/...` URL path. The plugin adds
+  the `/job/` segments itself, so a URL-style value resolves to a folder literally
+  named `job` and 404s.
+
+- Updated dependencies [4c7f96c]
+- Updated dependencies [a3e7d3f]
+- Updated dependencies [c234b33]
+- Updated dependencies [a958b80]
+- Updated dependencies [ce31a0e]
+- Updated dependencies [0a7d538]
+- Updated dependencies [435463f]
+  - @openchoreo/backstage-plugin-common@1.3.0-next.0
+  - @openchoreo/openchoreo-client-node@1.3.0-next.0
+  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@1.3.0-next.0
+
 ## 1.2.0
 
 ### Minor Changes

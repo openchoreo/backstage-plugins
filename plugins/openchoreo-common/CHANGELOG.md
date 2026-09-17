@@ -1,5 +1,141 @@
 # @openchoreo/backstage-plugin-common
 
+## 1.3.0-next.0
+
+### Minor Changes
+
+- 4c7f96c: Add an **Audit Logs** sidebar page that reads the observer's audit trail — who
+  changed what, where, and whether it was allowed.
+
+  A top-level page rather than an entity tab: the trail spans every namespace and
+  the observer evaluates `auditlogs:view` at cluster scope, so the tenancy filters
+  in a query narrow the result set without widening what the caller may read.
+
+  - **Data layer**: `ObservabilityClient` gains `queryAuditLogs` and
+    `queryAuditLogFilterValues`, typed against the observer's `AuditLogs`
+    operations. Record fields keep their snake_case spelling and the query's own
+    controls stay camelCase, so a response can be compared against an exported
+    SIEM line key for key. The observer's distinguishable failures become typed
+    errors — `501` (the adapter does not serve the trail) and `403` — because each
+    asks the UI for a different answer and a flattened error string cannot carry
+    them.
+  - **Paging**: the API has no continuation token, so a page is continued by
+    closing the window up to the last record read — `endTime` down when
+    descending, `startTime` up when ascending. The window is half-open, so
+    descending never repeats a record but cannot reach records sharing the
+    boundary's exact `event_time` beyond one page's `limit`; ascending reaches all
+    of them and repeats the boundary record, which the hook de-duplicates by
+    `event_id`. A tie group wider than a page cannot move the boundary, so paging
+    stops there rather than re-requesting the same window.
+  - **Observer resolution**: the trail has no environment to resolve through, so
+    `ObservabilityUrlResolver` gains `resolveForPlatform`, which reads the audit
+    observer the API advertises at `/api/v1alpha1/metadata`, exposed as
+    `GET /resolve-platform-urls`. An installation that reports audit logs disabled
+    gets an empty state rather than a query error.
+  - **Permission**: `openchoreo.auditlogs.view` → `auditlogs:view`, a cluster-scoped
+    (non-resource) permission, with a `useAuditLogsPermission` hook.
+  - **UI**: a query bar whose vocabulary is the filter set the API actually accepts
+    — values are picked from the observer's own aggregation, one filter per request
+    and only while a picker is open; outcome tiles counted on a faceted basis so
+    selecting Denied does not zero the others; an opt-in stacked timeline; and a
+    virtualized record table with a detail drawer whose values drill back into the
+    query. Filters live in the URL, so a finding is a link.
+  - **Shared components**: `TokenFilterBar` is added to
+    `@openchoreo/backstage-plugin-react` — a view supplies its own vocabulary and
+    a value provider, so nothing audit-specific reaches the shared package.
+    `MultiSelectFilter` gains an optional `disabled` on an option, for a value a
+    view cannot function without: it is shown checked, cannot be toggled, and
+    survives Clear. Two changes to `TimeRangeFilter` affect every consumer
+    (Runtime Logs, Platform Logs, Metrics, Traces): its dropdown panel is now at
+    least as wide as the field it drops from, rather than narrower and offset,
+    and its read-only trigger no longer lets a drag select part of the value.
+  - **Performance**: rows are windowed (`@tanstack/react-virtual`) and memoized,
+    the chart and drawer are `React.lazy`, the timeline aggregation is requested
+    once per query rather than per page and not at all while the chart is
+    collapsed, and Live polls only the newest page instead of every loaded one.
+
+- 0a7d538: Add a centralized Platform Logs dashboard for everything an observability plane
+  collects — OpenChoreo's own system components included — as a Logs tab under
+  Platform. It filters on raw Kubernetes
+  coordinates — observability plane, cluster, namespace, pod, container, pod
+  labels, level, time range and message search — so a platform engineer can reach
+  any log the observability plane holds, including components OpenChoreo depends
+  on but does not ship.
+
+  A scope bar keeps the plane, time range, search, live tail and refresh visible;
+  the coordinate pickers, labels and log levels fold away behind a Filters button
+  and render as removable chips, so a collapsed row never hides what is narrowing
+  the query. The cluster, namespace, pod and container pickers are multi-select
+  and ask the observability plane for their values when opened, so they offer
+  everything the current query matches rather than only what is on screen. They
+  stay free text because that list is still bounded - by the time window, and by
+  the values carrying the most records. The labels and
+  search fields are validated as you type, so a half-typed label selector is
+  explained on the field rather than sent and rejected. Expanding a row reveals
+  the full message, the pod's coordinates and its labels.
+
+  Every filter lives in the URL, so a filtered view is a shareable permalink.
+
+  Adds the cluster-scoped `openchoreo.platformlogs.view` permission and a
+  `usePlatformLogsPermission` hook for gating it. Unlike the component logs
+  permission this one takes no entity, because platform logs are not owned by any
+  project or component.
+
+  The Platform section is assembled through Backstage's own sub-page mechanism
+  rather than a shared shell component. `page:platform-engineer-core/platform-overview`
+  is now a container page that renders whatever tabs are attached to its `pages`
+  input, so any plugin can contribute a Platform tab with a `SubPageBlueprint`
+  pointed at that id — no dependency on the platform-engineer-core package needed.
+  The Logs tab is the first example, and ships as
+  `sub-page:openchoreo-observability/platform-logs` (it was
+  `page:openchoreo-observability/platform-logs`; that is the id to use when
+  disabling or reconfiguring it under `app.extensions`).
+
+  The section's chrome now comes from the portal's `core.page-layout` rather than a
+  shell each tab mounted for itself, so the header and tab bar render once for the
+  whole section instead of remounting on every tab switch. It looks the same: a
+  tabbed page keeps the portal's standard `<Header>` rather than picking up
+  Backstage's own toolbar, and switching tabs still carries the query string, so a
+  round trip between tabs preserves the filters each had set. The only thing lost is
+  the per-tab header subtitle.
+
+  The Overview tab now lives at `/platform-overview/overview`; the bare
+  `/platform-overview` still works and redirects there.
+
+### Patch Changes
+
+- a958b80: Put the Delivery Insights page behind the `openchoreo.features.deliveryInsights`
+  flag, off by default. It is a feature preview, and the page has nothing to show
+  unless the Observer is separately configured to collect the data.
+- ce31a0e: Migrate entity pages to the Backstage New Frontend System. The hand-authored `EntityPage.tsx` in `packages/portal-app` (and its supporting files `EntityLayoutWithDelete.tsx`, `OpenChoreoCatalogEntityPage.tsx`, `WorkflowsOrExternalCICard.tsx`) is gone; tabs, cards, per-kind Overview layouts, and delete / annotation context menu items now ship as NFS blueprints from the plugins. Adopters installing `@openchoreo/backstage-plugin` in their own Backstage get the same OpenChoreo tabs and Overview grids as the portal automatically — no hand-authored `EntityPage.tsx` required.
+
+  **New public exports from `@openchoreo/backstage-plugin`:**
+
+  - `openChoreoEntityPageOverride` (from `/alpha`) — opt-in FrontendModule that swaps the canonical entity-page chrome for `OpenChoreoEntityLayout` (compact header + styled tab bar + delete / annotation menu items). Included by default in `@openchoreo/backstage-portal-app`. Adopters omit it to keep vanilla Backstage `<EntityLayout>` chrome — tabs and Overview layouts still work either way.
+  - `OpenChoreoAboutCard`, `ContainedCatalogGraphCard`, `EntityRelationWarning` — previously portal-internal, now shipped as React components.
+
+  **New NFS blueprints (all in `@openchoreo/backstage-plugin/alpha`):**
+
+  - 18 `EntityContentLayoutBlueprint`s — one per OC-owned kind (Component, System, Domain, managed Resource, Environment, Dataplane / Cluster, WorkflowPlane / Cluster, ObservabilityPlane / Cluster, DeploymentPipeline, Component/Resource/Project/Trait Type families, Workflow / ClusterWorkflow, ComponentWorkflow). Each layout arranges bespoke OC cards in curated grid positions, then appends any adopter-contributed or upstream-default cards at the tail so third-party plugins compose visually.
+  - 2 `EntityContextMenuItemBlueprint`s — permission-gated "Delete" and "Edit Annotations" actions. Both routes (canonical chrome + `openChoreoEntityPageOverride`) share the same presentational `DeleteEntityDialog` and `performEntityDelete` dispatch from PR #675.
+  - `group` annotation on every `EntityContentBlueprint` (definition / deployment / runtime / analysis / external) for tab-ordering via `app.pages.entity.config`.
+  - Upstream community CI plugins (`techdocs`, `jenkins`, `github-actions`, `gitlab`) registered so their annotation-gated tabs continue to appear on Component entities. The `api-docs/apis` and `techdocs` tabs are filter-tightened via app-side overrides so they only show when `providesApi`/`consumesApi` relations or `backstage.io/techdocs-ref` annotations are present (matching the pre-NFS `EntityPage.tsx` behavior).
+
+  **Every OC blueprint is scoped to the `openchoreo.io/managed=true` label.** Two new helpers in `@openchoreo/backstage-plugin-common`: `isOpenChoreoManagedEntity` and `isOpenChoreoManagedOfKind(...kinds)`. Under NFS feature discovery, blueprints auto-attach — this label prevents OC UI leaking onto adopter entities of the same kind (Component, System, Domain, or any name that collides with an OC kind like `Environment`/`Workflow`) that aren't OC-owned.
+
+  **Portal `app-config.yaml` and `app-config.production.yaml` add:**
+
+  - `app.pages.entity.config.groups` — recommended tab ordering (overview / definition / deployment / runtime / analysis / external).
+  - `app.extensions` — suppresses 20 upstream cards that duplicate OC layouts (`catalog/about`, `catalog/links`, `catalog/labels`, `catalog/depends-on-*`, `catalog/has-*`, `catalog-graph/relations`, `api-docs/*-apis`, `api-docs/providing-components`, `api-docs/consuming-components`, and 6 unconditional GitLab cards that throw when GitLab annotations are absent).
+
+  See the README's Installation section for the recommended `app.pages.entity.config` block and per-extension override examples adopters can copy selectively.
+
+- Updated dependencies [4c7f96c]
+- Updated dependencies [a3e7d3f]
+- Updated dependencies [c234b33]
+- Updated dependencies [435463f]
+  - @openchoreo/openchoreo-client-node@1.3.0-next.0
+
 ## 1.2.0
 
 ### Minor Changes
