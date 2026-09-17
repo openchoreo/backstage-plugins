@@ -376,6 +376,12 @@ const costInsightsPage = PageBlueprint.make({
 // Ships title + icon so adopters auto-get a sidebar entry via DefaultNavContent,
 // the same as cost insights above. The portal app curates its own sidebar and
 // takes this by id -- see PortalNavContent.
+//
+// The route stays in-tree whatever the flag says, so routing stays valid and a
+// link to it never breaks; the page itself renders the disabled empty state when
+// the feature is off, the same way the observability-gated tabs above do. A
+// preview that only hid its menu entry would still serve the page to anyone
+// holding the URL.
 const deliveryInsightsPage = PageBlueprint.make({
   name: 'delivery-insights',
   params: {
@@ -387,7 +393,9 @@ const deliveryInsightsPage = PageBlueprint.make({
     noHeader: true,
     loader: () =>
       import('./components/DeliveryInsights/DeliveryInsightsPage').then(m => (
-        <m.DeliveryInsightsPage />
+        <FeatureGatedContent feature="deliveryInsights">
+          <m.DeliveryInsightsPage />
+        </FeatureGatedContent>
       )),
   },
 });
