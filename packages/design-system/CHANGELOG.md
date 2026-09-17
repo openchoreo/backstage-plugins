@@ -1,5 +1,117 @@
 # @openchoreo/backstage-design-system
 
+## 2.0.0-next.0
+
+### Minor Changes
+
+- f39a20c: Add app-config-driven branding groundwork: `resolveBrandTokens(base, brand?)`
+  pure helper (brand primary → derived token slots; identity when no overrides)
+  and `ChoreoTokensProvider` with a context-aware `useChoreoTokens`. The portal
+  app gains an `app.branding.*` frontend-visible config schema (name, iconLogo,
+  fullLogo, theme.light/dark.primaryColor) wired into the theme providers,
+  sidebar logos, and sign-in card. Default behavior with no branding config is
+  unchanged.
+- 4c7f96c: Add an **Audit Logs** sidebar page that reads the observer's audit trail — who
+  changed what, where, and whether it was allowed.
+
+  A top-level page rather than an entity tab: the trail spans every namespace and
+  the observer evaluates `auditlogs:view` at cluster scope, so the tenancy filters
+  in a query narrow the result set without widening what the caller may read.
+
+  - **Data layer**: `ObservabilityClient` gains `queryAuditLogs` and
+    `queryAuditLogFilterValues`, typed against the observer's `AuditLogs`
+    operations. Record fields keep their snake_case spelling and the query's own
+    controls stay camelCase, so a response can be compared against an exported
+    SIEM line key for key. The observer's distinguishable failures become typed
+    errors — `501` (the adapter does not serve the trail) and `403` — because each
+    asks the UI for a different answer and a flattened error string cannot carry
+    them.
+  - **Paging**: the API has no continuation token, so a page is continued by
+    closing the window up to the last record read — `endTime` down when
+    descending, `startTime` up when ascending. The window is half-open, so
+    descending never repeats a record but cannot reach records sharing the
+    boundary's exact `event_time` beyond one page's `limit`; ascending reaches all
+    of them and repeats the boundary record, which the hook de-duplicates by
+    `event_id`. A tie group wider than a page cannot move the boundary, so paging
+    stops there rather than re-requesting the same window.
+  - **Observer resolution**: the trail has no environment to resolve through, so
+    `ObservabilityUrlResolver` gains `resolveForPlatform`, which reads the audit
+    observer the API advertises at `/api/v1alpha1/metadata`, exposed as
+    `GET /resolve-platform-urls`. An installation that reports audit logs disabled
+    gets an empty state rather than a query error.
+  - **Permission**: `openchoreo.auditlogs.view` → `auditlogs:view`, a cluster-scoped
+    (non-resource) permission, with a `useAuditLogsPermission` hook.
+  - **UI**: a query bar whose vocabulary is the filter set the API actually accepts
+    — values are picked from the observer's own aggregation, one filter per request
+    and only while a picker is open; outcome tiles counted on a faceted basis so
+    selecting Denied does not zero the others; an opt-in stacked timeline; and a
+    virtualized record table with a detail drawer whose values drill back into the
+    query. Filters live in the URL, so a finding is a link.
+  - **Shared components**: `TokenFilterBar` is added to
+    `@openchoreo/backstage-plugin-react` — a view supplies its own vocabulary and
+    a value provider, so nothing audit-specific reaches the shared package.
+    `MultiSelectFilter` gains an optional `disabled` on an option, for a value a
+    view cannot function without: it is shown checked, cannot be toggled, and
+    survives Clear. Two changes to `TimeRangeFilter` affect every consumer
+    (Runtime Logs, Platform Logs, Metrics, Traces): its dropdown panel is now at
+    least as wide as the field it drops from, rather than narrower and offset,
+    and its read-only trigger no longer lets a drag select part of the value.
+  - **Performance**: rows are windowed (`@tanstack/react-virtual`) and memoized,
+    the chart and drawer are `React.lazy`, the timeline aggregation is requested
+    once per query rather than per page and not at all while the chart is
+    collapsed, and Live polls only the newest page instead of every loaded one.
+
+- 526e7ac: Make the Cost Insights scope filters (Namespaces, Projects, Components) read
+  the way they behave, and improve the page's load time.
+
+  - **Every option is ticked when the filter says "All".** Removed the earlier
+    contradiction where nothing was selected when the filter said "All".
+  - **One tier is narrowed at a time.** A dropdown is enabled once its parent
+    holds a single item. A disabled trigger says on hover what to select to unlock it.
+  - **Namespaces default to all**, rather than to the `default` namespace. A tier
+    holding exactly one option reads as that option's name — `Namespaces: default`,
+    instead of a bare "All".
+
+  `MultiSelectFilter` gains four optional props for this: `showOnlyAction` (a
+  per-row **Only** action, so narrowing an all-ticked list to one value is one
+  click), `hideClear` (for filters where an empty selection is not a state),
+  `disabledHint` (tooltip explaining why the filter is disabled), and
+  `nameSoleOption` (a lone option shows its name instead of "All"). All four
+  default to off, so existing consumers are unaffected.
+
+  Each environment's cost requests are parallelized rather than awaited in sequence.
+
+  Cost Insights now opens on the last 24 hours at 1-hour granularity, so the
+  time-series charts land on a readable number of buckets instead of one.
+
+- d00d48b: Improve the Cost Insights view UX.
+
+  - **Single page**: removed the Table/Graphs toggle - the graphs and the cost
+    table now render on one page (table after the graphs), and the Total Cost /
+    Forecast this month / Efficiency tiles were removed.
+  - **Accumulated cost & forecast chart**: the former "Spend forecast" chart is
+    renamed to **"Accumulated cost and forecast"** and reworked. It always covers the
+    current calendar month (no longer affected by the time-range filter): it shows
+    the actual cost accumulated from the 1st to today, then projects month-end
+    spend at the current rate and if the recommendations are applied. The two
+    forecast lines are now visually distinct (dashed vs dotted), and the axis ends on
+    the month's last day. The time-range selector moved below this chart since it
+    only drives the views under it.
+  - **Cost vs efficiency**: added a "Potential savings" legend heading and removed
+    the red low-efficiency shaded region.
+  - **Refresh**: added a Refresh button to re-fetch cost data without a page
+    reload.
+  - **Scope filters**: the Project and Component filters now show "All" (not
+    "None") when nothing is explicitly selected, since an empty selection
+    aggregates everything. `MultiSelectFilter` gained an optional `emptyLabel`
+    prop for this.
+  - **Fixes**: the platform-level "not enabled" message now reads "Cost Insights
+    have not been enabled" instead of the component-scoped observability message,
+    and the numeric cost-table column headers are right-aligned with their values.
+  - **Sidebar**: moved "Platform" and "Cost Insights" into their own
+    divider-bounded section after "API", separating platform concerns from the
+    main menu.
+
 ## 1.2.0
 
 ### Minor Changes

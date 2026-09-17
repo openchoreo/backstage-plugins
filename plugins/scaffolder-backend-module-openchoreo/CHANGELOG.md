@@ -1,5 +1,25 @@
 # @openchoreo/backstage-plugin-scaffolder-backend-module
 
+## 2.0.0-next.0
+
+### Patch Changes
+
+- 9130de9: Authenticate backend-to-backend calls (scaffolder catalog reads and the
+  sign-in `cache-capabilities` hook) with a service identity so they no longer
+  return `401` once the default auth policy is enforced.
+- Updated dependencies [4c7f96c]
+- Updated dependencies [a3e7d3f]
+- Updated dependencies [c234b33]
+- Updated dependencies [a958b80]
+- Updated dependencies [ce31a0e]
+- Updated dependencies [0a7d538]
+- Updated dependencies [67ba0da]
+- Updated dependencies [9eb3d31]
+- Updated dependencies [435463f]
+  - @openchoreo/backstage-plugin-common@2.0.0-next.0
+  - @openchoreo/openchoreo-client-node@2.0.0-next.0
+  - @openchoreo/backstage-plugin-catalog-backend-module@2.0.0-next.0
+
 ## 1.2.0
 
 ### Minor Changes
