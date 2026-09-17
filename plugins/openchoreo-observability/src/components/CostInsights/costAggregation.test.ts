@@ -75,6 +75,44 @@ describe('expandSelection', () => {
     });
   });
 
+  it('keeps several projects as the rows themselves', () => {
+    expect(
+      expandSelection({
+        namespaces: ['a'],
+        projects: [
+          { namespace: 'a', name: 'p1' },
+          { namespace: 'a', name: 'p2' },
+        ],
+        components: [],
+      }),
+    ).toEqual({
+      level: 'namespace',
+      scopes: [
+        { namespace: 'a', project: 'p1' },
+        { namespace: 'a', project: 'p2' },
+      ],
+    });
+  });
+
+  it('keeps several components as the rows themselves', () => {
+    expect(
+      expandSelection({
+        namespaces: ['a'],
+        projects: [{ namespace: 'a', name: 'p' }],
+        components: [
+          { namespace: 'a', project: 'p', name: 'c1' },
+          { namespace: 'a', project: 'p', name: 'c2' },
+        ],
+      }),
+    ).toEqual({
+      level: 'project',
+      scopes: [
+        { namespace: 'a', project: 'p', component: 'c1' },
+        { namespace: 'a', project: 'p', component: 'c2' },
+      ],
+    });
+  });
+
   it('yields an empty namespace scope list when nothing is selected', () => {
     expect(
       expandSelection({ namespaces: [], projects: [], components: [] }),

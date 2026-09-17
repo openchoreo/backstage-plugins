@@ -12,7 +12,7 @@ export const GRANULARITY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: '7d', label: '1 week' },
 ];
 
-export const DEFAULT_GRANULARITY = '1d';
+export const DEFAULT_GRANULARITY = '1h';
 
 export interface CostInsightsFiltersProps {
   environments: Environment[];

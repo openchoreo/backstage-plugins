@@ -59,6 +59,47 @@ describe('ObserverUrlCache', () => {
     expect(mockFetchApi.fetch).toHaveBeenCalledTimes(1);
   });
 
+  it('shares one request between callers that miss together', async () => {
+    let release: (value: unknown) => void = () => {};
+    mockFetchApi.fetch.mockReturnValue(
+      new Promise(resolve => {
+        release = resolve;
+      }),
+    );
+    const cache = createCache();
+
+    const resolves = Promise.all([
+      cache.resolveUrls('ns1', 'dev'),
+      cache.resolveUrls('ns1', 'dev'),
+      cache.resolveUrls('ns1', 'dev'),
+    ]);
+    release(mockOkResponse({ observerUrl: 'http://observer' }));
+
+    // The cache is only written once a response lands, so concurrent callers
+    // have to share the in-flight request to avoid resolving it three times.
+    const urls = { observerUrl: 'http://observer' };
+    expect(await resolves).toEqual([urls, urls, urls]);
+    expect(mockFetchApi.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries after a failed shared request instead of caching the failure', async () => {
+    mockFetchApi.fetch.mockRejectedValueOnce(new Error('network down'));
+    const cache = createCache();
+
+    await expect(cache.resolveUrls('ns1', 'dev')).rejects.toThrow(
+      'network down',
+    );
+
+    mockFetchApi.fetch.mockResolvedValue(
+      mockOkResponse({ observerUrl: 'http://observer' }),
+    );
+    await expect(cache.resolveUrls('ns1', 'dev')).resolves.toEqual({
+      observerUrl: 'http://observer',
+      rcaAgentUrl: undefined,
+      finopsAgentUrl: undefined,
+    });
+  });
+
   it('re-fetches after TTL expires', async () => {
     const now = Date.now();
     jest.spyOn(Date, 'now').mockReturnValue(now);

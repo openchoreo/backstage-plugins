@@ -19,32 +19,33 @@ export function deriveLevel(scope: CostScope): CostScopeLevel {
 }
 
 /**
- * Flatten a multi-select selection to the deepest populated tier: the `level`
- * whose rows the table shows, plus one atomic {@link CostScope} per selected
- * item to query. Deeper selections win (components over projects over
- * namespaces); an empty selection yields no scopes.
+ * Flatten a selection to the deepest populated tier: one {@link CostScope} per
+ * selected item, plus the `level` the table's rows sit at. A single selection
+ * drills into its children (one project shows its components).
  */
 export function expandSelection(selection: CostScopeSelection): {
   level: CostScopeLevel;
   scopes: CostScope[];
 } {
-  if (selection.components.length > 0) {
+  const componentScopes = selection.components.map(c => ({
+    namespace: c.namespace,
+    project: c.project,
+    component: c.name,
+  }));
+  if (componentScopes.length > 0) {
     return {
-      level: 'component',
-      scopes: selection.components.map(c => ({
-        namespace: c.namespace,
-        project: c.project,
-        component: c.name,
-      })),
+      level: componentScopes.length === 1 ? 'component' : 'project',
+      scopes: componentScopes,
     };
   }
-  if (selection.projects.length > 0) {
+  const projectScopes = selection.projects.map(p => ({
+    namespace: p.namespace,
+    project: p.name,
+  }));
+  if (projectScopes.length > 0) {
     return {
-      level: 'project',
-      scopes: selection.projects.map(p => ({
-        namespace: p.namespace,
-        project: p.name,
-      })),
+      level: projectScopes.length === 1 ? 'project' : 'namespace',
+      scopes: projectScopes,
     };
   }
   return {

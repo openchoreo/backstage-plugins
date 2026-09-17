@@ -112,66 +112,77 @@ export function useCostInsights(
               project: scope.project,
               component: scope.component,
             };
-            // Accumulated cost drives rows/summary/scatter/saving in both views
-            // and shares the recommendation's (non-bucketed) pricing basis.
-            const current = await api.getCosts(ns, env, {
-              ...scopeOpts,
-              startTime,
-              endTime,
+            const noCosts = () => ({ items: [] as CostItem[] });
+            const noRecommendations = () => ({
+              items: [] as CostRecommendationItem[],
             });
-            // Time-bucketed cost drives the graph's time-series charts; its
-            // per-bucket totals need not sum to the accumulated total. Degrade
-            // gracefully: a series failure shouldn't drop the request's data.
-            // The summary-only card skips all of these.
-            const series = summaryOnly
-              ? { items: [] as CostItem[] }
-              : await api
-                  .getCosts(ns, env, {
-                    ...scopeOpts,
-                    startTime,
-                    endTime,
-                    granularity,
-                  })
-                  .catch(() => ({ items: [] as CostItem[] }));
-            // Month-to-date daily cost for the forecast chart
-            const monthToDate = summaryOnly
-              ? { items: [] as CostItem[] }
-              : await api
-                  .getCosts(ns, env, {
-                    ...scopeOpts,
-                    startTime: monthStartIso,
-                    endTime: nowIso,
-                    granularity: '1d',
-                  })
-                  .catch(() => ({ items: [] as CostItem[] }));
-            // Month-to-date recommendations drive the forecast's "if applied"
-            // curve: the saving rate is measured over month start to now, then
-            // extrapolated to month end (same window as the actual curve).
-            const monthToDateRecommendations = summaryOnly
-              ? { items: [] as CostRecommendationItem[] }
-              : await api
-                  .getCostRecommendations(ns, env, {
-                    ...scopeOpts,
-                    startTime: monthStartIso,
-                    endTime: nowIso,
-                  })
-                  .catch(() => ({ items: [] as CostRecommendationItem[] }));
-            const previous = await api.getCosts(ns, env, {
-              ...scopeOpts,
-              startTime: prevStart,
-              endTime: prevEnd,
-            });
-            // Degrade gracefully: a recommendation failure shouldn't drop the
-            // request's cost data with it.
-            const recommendations = summaryOnly
-              ? { items: [] as CostRecommendationItem[] }
-              : await api
-                  .getCostRecommendations(ns, env, {
-                    ...scopeOpts,
-                    startTime,
-                    endTime,
-                  })
-                  .catch(() => ({ items: [] as CostRecommendationItem[] }));
+            // None of the six requests depend on each other, so run them in parallel
+            const [
+              current,
+              series,
+              monthToDate,
+              monthToDateRecommendations,
+              previous,
+              recommendations,
+            ] = await Promise.all([
+              // Accumulated cost drives rows/summary/scatter/saving in both
+              // views and shares the recommendation's (non-bucketed) pricing
+              // basis.
+              api.getCosts(ns, env, { ...scopeOpts, startTime, endTime }),
+              // Time-bucketed cost drives the graph's time-series charts; its
+              // per-bucket totals need not sum to the accumulated total. Degrade
+              // gracefully: a series failure shouldn't drop the request's data.
+              // The summary-only card skips all of these.
+              summaryOnly
+                ? noCosts()
+                : api
+                    .getCosts(ns, env, {
+                      ...scopeOpts,
+                      startTime,
+                      endTime,
+                      granularity,
+                    })
+                    .catch(noCosts),
+              // Month-to-date daily cost for the forecast chart
+              summaryOnly
+                ? noCosts()
+                : api
+                    .getCosts(ns, env, {
+                      ...scopeOpts,
+                      startTime: monthStartIso,
+                      endTime: nowIso,
+                      granularity: '1d',
+                    })
+                    .catch(noCosts),
+              // Month-to-date recommendations drive the forecast's "if applied"
+              // curve: the saving rate is measured over month start to now, then
+              // extrapolated to month end (same window as the actual curve).
+              summaryOnly
+                ? noRecommendations()
+                : api
+                    .getCostRecommendations(ns, env, {
+                      ...scopeOpts,
+                      startTime: monthStartIso,
+                      endTime: nowIso,
+                    })
+                    .catch(noRecommendations),
+              api.getCosts(ns, env, {
+                ...scopeOpts,
+                startTime: prevStart,
+                endTime: prevEnd,
+              }),
+              // Degrade gracefully: a recommendation failure shouldn't drop the
+              // request's cost data with it.
+              summaryOnly
+                ? noRecommendations()
+                : api
+                    .getCostRecommendations(ns, env, {
+                      ...scopeOpts,
+                      startTime,
+                      endTime,
+                    })
+                    .catch(noRecommendations),
+            ]);
             return {
               current: current.items,
               series: series.items,

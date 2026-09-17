@@ -272,6 +272,95 @@ describe('MultiSelectFilter', () => {
     });
   });
 
+  it('names a lone option rather than calling it "All" when asked to', () => {
+    const soleOption = {
+      label: 'Namespaces',
+      groups: [{ options: [{ value: 'default', label: 'default' }] }],
+      allValues: ['default'],
+      selected: new Set(['default']),
+      onChange: jest.fn(),
+    };
+    const { rerender } = render(<MultiSelectFilter {...soleOption} />);
+    expect(screen.getByLabelText('Filter by namespaces')).toHaveTextContent(
+      'Namespaces: All',
+    );
+
+    rerender(<MultiSelectFilter {...soleOption} nameSoleOption />);
+    expect(screen.getByLabelText('Filter by namespaces')).toHaveTextContent(
+      'Namespaces: default',
+    );
+  });
+
+  it('narrows to a single value from the Only action', () => {
+    const onChange = jest.fn();
+    render(
+      <MultiSelectFilter
+        label="Kind"
+        groups={flatGroups}
+        allValues={kinds}
+        selected={new Set(kinds)}
+        onChange={onChange}
+        showOnlyAction
+      />,
+    );
+    openMenu('Kind');
+    fireEvent.click(screen.getByRole('button', { name: 'Only Resource' }));
+    expect(onChange).toHaveBeenCalledWith(new Set(['resource']));
+  });
+
+  it('leaves out Clear where an empty selection is no state', () => {
+    render(
+      <MultiSelectFilter
+        label="Kind"
+        groups={flatGroups}
+        allValues={kinds}
+        selected={new Set(kinds)}
+        onChange={jest.fn()}
+        hideClear
+      />,
+    );
+    openMenu('Kind');
+    expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull();
+  });
+
+  it('explains on hover why it is disabled', async () => {
+    render(
+      <MultiSelectFilter
+        label="Projects"
+        groups={flatGroups}
+        allValues={kinds}
+        selected={new Set(kinds)}
+        onChange={jest.fn()}
+        disabled
+        disabledHint="Select a single namespace"
+      />,
+    );
+    // The tooltip listens on the span wrapping the disabled button.
+    fireEvent.mouseOver(
+      screen.getByLabelText('Filter by projects').parentElement!,
+    );
+    expect(
+      await screen.findByText('Select a single namespace'),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the selection tooltip on a disabled filter with no hint', async () => {
+    render(
+      <MultiSelectFilter
+        label="Columns"
+        groups={flatGroups}
+        allValues={kinds}
+        selected={new Set(['resource'])}
+        onChange={jest.fn()}
+        disabled
+      />,
+    );
+    fireEvent.mouseOver(
+      screen.getByLabelText('Filter by columns').parentElement!,
+    );
+    expect(await screen.findByText('Resource')).toBeInTheDocument();
+  });
+
   it('disables the trigger when there are no selectable values', () => {
     render(
       <MultiSelectFilter

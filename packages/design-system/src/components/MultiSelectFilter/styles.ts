@@ -68,5 +68,14 @@ export const useStyles = makeStyles((theme: Theme) => {
       padding: theme.spacing(0.5),
       marginRight: theme.spacing(0.75),
     },
+    // Revealed on hover.
+    onlyAction: {
+      textTransform: 'none',
+      minWidth: 'auto',
+      padding: theme.spacing(0, 0.5),
+      fontSize: '0.75rem',
+      opacity: 0,
+      '$menuItem:hover &, &:focus': { opacity: 1 },
+    },
   };
 });
