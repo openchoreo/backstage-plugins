@@ -1,11 +1,46 @@
-import { formatCost, formatUsd, formatEfficiency, formatDelta } from './format';
+import {
+  isNegligibleCost,
+  formatCost,
+  formatCostUsd,
+  formatUsd,
+  formatEfficiency,
+  formatDelta,
+} from './format';
+
+describe('isNegligibleCost', () => {
+  it('flags non-zero costs that round away at 2 decimals', () => {
+    expect(isNegligibleCost(0.00047)).toBe(true);
+    expect(isNegligibleCost(0.0049)).toBe(true);
+  });
+
+  it('leaves zero and costs that survive rounding alone', () => {
+    expect(isNegligibleCost(0)).toBe(false);
+    expect(isNegligibleCost(0.005)).toBe(false);
+    expect(isNegligibleCost(1.23)).toBe(false);
+  });
+});
 
 describe('formatCost', () => {
   it('renders costs rounded to 2 decimal places', () => {
-    expect(formatCost(0.00047)).toBe('0.00');
     expect(formatCost(1.235)).toBe('1.24');
     expect(formatCost(22)).toBe('22.00');
     expect(formatCost(0)).toBe('0.00');
+  });
+
+  it('distinguishes a negligible cost from a zero one', () => {
+    expect(formatCost(0.00047)).toBe('<0.01');
+    expect(formatCost(0.005)).toBe('0.01');
+  });
+});
+
+describe('formatCostUsd', () => {
+  it('renders a dollar-prefixed cost with 2 decimals', () => {
+    expect(formatCostUsd(3.04)).toBe('$3.04');
+    expect(formatCostUsd(0)).toBe('$0.00');
+  });
+
+  it('distinguishes a negligible cost from a zero one', () => {
+    expect(formatCostUsd(0.00086)).toBe('<$0.01');
   });
 });
 
@@ -14,6 +49,10 @@ describe('formatUsd', () => {
     expect(formatUsd(12)).toBe('USD 12.00');
     expect(formatUsd(0.005)).toBe('USD 0.01');
     expect(formatUsd(0)).toBe('USD 0.00');
+  });
+
+  it('distinguishes a negligible cost from a zero one', () => {
+    expect(formatUsd(0.0004)).toBe('<USD 0.01');
   });
 });
 

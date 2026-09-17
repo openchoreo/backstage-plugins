@@ -7,13 +7,22 @@ jest.mock('recharts', () => ({
   ScatterChart: ({ children }: any) => (
     <div data-testid="scatter-chart">{children}</div>
   ),
-  Scatter: ({ data, children }: any) => (
+  Scatter: ({ data, children, shape: Shape }: any) => (
     <div data-testid="scatter" data-count={data?.length}>
+      {Shape && (
+        <svg data-testid="shapes">
+          <Shape cx={10} cy={10} size={120} />
+          <Shape cx={50} cy={50} size={900} />
+        </svg>
+      )}
       {children}
     </div>
   ),
+  Symbols: (props: any) => <path data-testid="symbol" data-size={props.size} />,
   Cell: () => null,
-  LabelList: () => null,
+  LabelList: ({ style }: any) => (
+    <span data-testid="label-list" data-pointer-events={style?.pointerEvents} />
+  ),
   ReferenceArea: () => null,
   ZAxis: () => null,
   XAxis: () => null,
@@ -71,6 +80,22 @@ describe('CostEfficiencyScatter', () => {
     expect(screen.getByTestId('scatter').getAttribute('data-count')).toBe('2');
     fireEvent.click(screen.getByRole('button', { name: /gcp/ }));
     expect(screen.getByTestId('scatter').getAttribute('data-count')).toBe('1');
+  });
+
+  it('lets pointer events through the rank label so the bubble stays hoverable', () => {
+    render(<CostEfficiencyScatter rows={rows} />);
+    expect(
+      screen.getByTestId('label-list').getAttribute('data-pointer-events'),
+    ).toBe('none');
+  });
+
+  it('pads small bubbles with a transparent hit circle, leaving large ones alone', () => {
+    const { container } = render(<CostEfficiencyScatter rows={rows} />);
+    expect(screen.getAllByTestId('symbol')).toHaveLength(2);
+    const hitAreas = container.querySelectorAll('circle[fill="transparent"]');
+    expect(hitAreas).toHaveLength(1);
+    expect(hitAreas[0].getAttribute('r')).toBe('11');
+    expect(hitAreas[0].getAttribute('cx')).toBe('10');
   });
 
   it('renders an empty state without rows', () => {

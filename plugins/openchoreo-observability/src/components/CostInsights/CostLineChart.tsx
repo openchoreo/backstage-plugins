@@ -19,6 +19,7 @@ import {
   formatAxisCost,
   formatBucket,
 } from './chartUtils';
+import { formatCostUsd } from './format';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -104,7 +105,7 @@ export const CostLineTooltipContent: FC<CostLineTooltipContentProps> = ({
               />
               <span>{entry.name}</span>
               <span style={{ marginLeft: 'auto' }}>
-                ${Number(entry.value).toFixed(2)}
+                {formatCostUsd(Number(entry.value))}
               </span>
             </div>
           );
@@ -122,7 +123,7 @@ export const CostLineTooltipContent: FC<CostLineTooltipContentProps> = ({
         }}
       >
         <span>Total</span>
-        <span style={{ marginLeft: 'auto' }}>${total.toFixed(2)}</span>
+        <span style={{ marginLeft: 'auto' }}>{formatCostUsd(total)}</span>
       </div>
     </div>
   );
