@@ -320,6 +320,36 @@ describe('CostInsightsTable', () => {
     expect(dimensionCells()).toEqual(['shop', 'gcp']);
   });
 
+  it('marks costs less than 0.005 as "<0.01" so they can be differentiated from a true zero', () => {
+    render(
+      <CostInsightsTable
+        level="namespace"
+        rows={[
+          {
+            key: 'checkout',
+            label: 'checkout',
+            cpuCost: 0.00063,
+            memoryCost: 0.00086,
+            total: 0.00149,
+            efficiency: 0.05,
+            deltaPct: null,
+          },
+          {
+            key: 'idle',
+            label: 'idle',
+            cpuCost: 0,
+            memoryCost: 0,
+            total: 0,
+            efficiency: 0,
+            deltaPct: null,
+          },
+        ]}
+      />,
+    );
+    expect(screen.getAllByText('<0.01')).toHaveLength(3);
+    expect(screen.getAllByText('0.00')).toHaveLength(3);
+  });
+
   it('renders an empty state when there are no rows', () => {
     render(<CostInsightsTable level="namespace" rows={[]} />);
     expect(

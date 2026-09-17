@@ -1,4 +1,4 @@
-import { FC, useMemo, useState } from 'react';
+import { FC, SVGProps, useMemo, useState } from 'react';
 import { Paper, Typography, makeStyles, useTheme } from '@material-ui/core';
 import {
   Cell,
@@ -6,6 +6,7 @@ import {
   ResponsiveContainer,
   Scatter,
   ScatterChart,
+  Symbols,
   Tooltip,
   XAxis,
   YAxis,
@@ -14,10 +15,33 @@ import {
 import type { CostRow } from './types';
 import { ChartTitle } from './ChartTitle';
 import { formatAxisCost } from './chartUtils';
-import { formatCost, formatEfficiency } from './format';
+import { formatCost, formatCostUsd, formatEfficiency } from './format';
 
 const LOW_EFFICIENCY_THRESHOLD = 0.4;
 const LEGEND_LIMIT = 10;
+
+/** Minimum hoverable bubble radius, in px. */
+const MIN_HIT_RADIUS = 11;
+
+type BubbleShapeProps = SVGProps<SVGPathElement> & {
+  cx?: number;
+  cy?: number;
+  size?: number;
+};
+
+/** Bubble plus a transparent hit circle, so small ones stay hoverable. */
+const BubbleShape = (props: BubbleShapeProps) => {
+  const { cx, cy, size } = props;
+  const radius = Math.sqrt(Math.max(size ?? 0, 0) / Math.PI);
+  return (
+    <g>
+      <Symbols {...props} type="circle" />
+      {cx !== undefined && cy !== undefined && radius < MIN_HIT_RADIUS && (
+        <circle cx={cx} cy={cy} r={MIN_HIT_RADIUS} fill="transparent" />
+      )}
+    </g>
+  );
+};
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -199,9 +223,9 @@ export const CostEfficiencyScatter: FC<CostEfficiencyScatterProps> = ({
                       <div style={{ fontWeight: 600, marginBottom: 2 }}>
                         {p.rank}. {p.label}
                       </div>
-                      <div>cost ${formatCost(p.y)}</div>
+                      <div>cost {formatCostUsd(p.y)}</div>
                       <div>efficiency {formatEfficiency(p.x / 100)}</div>
-                      <div>potential saving ${formatCost(p.saving)}</div>
+                      <div>potential saving {formatCostUsd(p.saving)}</div>
                     </div>
                   );
                 }}
@@ -209,6 +233,7 @@ export const CostEfficiencyScatter: FC<CostEfficiencyScatterProps> = ({
               <Scatter
                 data={points.filter(p => !hidden.has(p.label))}
                 fillOpacity={0.85}
+                shape={BubbleShape}
               >
                 {points
                   .filter(p => !hidden.has(p.label))
@@ -221,6 +246,7 @@ export const CostEfficiencyScatter: FC<CostEfficiencyScatterProps> = ({
                   fill="#fff"
                   fontSize={11}
                   fontWeight={600}
+                  style={{ pointerEvents: 'none' }}
                 />
               </Scatter>
             </ScatterChart>

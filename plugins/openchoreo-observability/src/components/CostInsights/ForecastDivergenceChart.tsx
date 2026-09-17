@@ -20,6 +20,7 @@ import {
   formatBucket,
   savingColor,
 } from './chartUtils';
+import { formatCostUsd } from './format';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -220,7 +221,7 @@ export const ForecastDivergenceChart: FC<ForecastDivergenceChartProps> = ({
                       >
                         <span>{entry.name}</span>
                         <span style={{ marginLeft: 'auto', fontWeight: 500 }}>
-                          ${Number(entry.value).toFixed(2)}
+                          {formatCostUsd(Number(entry.value))}
                         </span>
                       </div>
                     ))}

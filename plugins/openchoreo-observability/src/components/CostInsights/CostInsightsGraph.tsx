@@ -24,6 +24,7 @@ import {
   formatBucket,
   savingColor,
 } from './chartUtils';
+import { formatCostUsd } from './format';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -121,7 +122,7 @@ export const CostStackTooltipContent: FC<CostStackTooltipContentProps> = ({
             />
             <span>{entry.name}</span>
             <span style={{ marginLeft: 'auto' }}>
-              ${Number(entry.value).toFixed(2)}
+              {formatCostUsd(Number(entry.value))}
             </span>
           </div>
         );
@@ -139,7 +140,7 @@ export const CostStackTooltipContent: FC<CostStackTooltipContentProps> = ({
         }}
       >
         <span>Total</span>
-        <span style={{ marginLeft: 'auto' }}>${total.toFixed(2)}</span>
+        <span style={{ marginLeft: 'auto' }}>{formatCostUsd(total)}</span>
       </div>
       {afterRec && (
         <div
@@ -155,7 +156,7 @@ export const CostStackTooltipContent: FC<CostStackTooltipContentProps> = ({
         >
           <span>{AFTER_REC_LABEL}</span>
           <span style={{ marginLeft: 'auto' }}>
-            ${Number(afterRec.value).toFixed(2)}
+            {formatCostUsd(Number(afterRec.value))}
           </span>
         </div>
       )}
