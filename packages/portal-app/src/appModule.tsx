@@ -12,7 +12,15 @@ import {
   EntityContentBlueprint,
   EntityContentLayoutBlueprint,
 } from '@backstage/plugin-catalog-react/alpha';
-import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
+import {
+  AssistantDrawerProvider,
+  FailedBuildSnackbar,
+  InvestigateDependencyButton,
+} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
+import {
+  portalAssistantIntegrationApiRef,
+  type PortalAssistantIntegration,
+} from '@openchoreo/backstage-plugin-react';
 import { apis } from './apis';
 import { LEGACY_KIND_ICONS } from './kindIcons';
 import { appThemes } from './themes';
@@ -52,6 +60,25 @@ const assistantDrawerWrapper = AppRootWrapperBlueprint.make({
   params: { component: AssistantDrawerProvider },
 });
 
+// Fills the `portalAssistantIntegrationApiRef` slots the OpenChoreo plugins
+// expose: the failed-build notifier (Overview/Build tabs) and the deploy-panel
+// "Investigate with AI" action. `AppWrapper` is unset — the drawer provider is
+// already mounted via `assistantDrawerWrapper` above.
+const assistantIntegration = ApiBlueprint.make({
+  name: 'portal-assistant-integration',
+  params: defineParams =>
+    defineParams({
+      api: portalAssistantIntegrationApiRef,
+      deps: {},
+      factory: (): PortalAssistantIntegration => ({
+        BuildFailureNotifier: FailedBuildSnackbar,
+        renderInvestigateAction: scope => (
+          <InvestigateDependencyButton {...scope} />
+        ),
+      }),
+    }),
+});
+
 // Portal-only. Adopters get vanilla upstream api-docs behavior on API pages.
 const apiTryOutEntityContent = EntityContentBlueprint.make({
   name: 'api-try-out',
@@ -86,6 +113,7 @@ export const appModule = createFrontendModule({
     navContent,
     scaffolderPreselectionWrapper,
     assistantDrawerWrapper,
+    assistantIntegration,
     apiTryOutEntityContent,
     apiOverviewLayout,
   ],
