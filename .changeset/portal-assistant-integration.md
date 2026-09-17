@@ -2,7 +2,6 @@
 '@openchoreo/backstage-plugin-react': minor
 '@openchoreo/backstage-plugin': minor
 '@openchoreo/backstage-plugin-openchoreo-ci': minor
-'app': minor
 ---
 
 Restore the Portal Assistant surfaces that were dropped in the New Frontend
