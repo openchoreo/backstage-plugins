@@ -38,6 +38,7 @@ import {
   useBuildPermission,
   useOpenChoreoMutation,
   ForbiddenState,
+  BuildFailureNotifierSlot,
 } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
@@ -457,13 +458,18 @@ export const Workflows = () => {
     }
 
     return (
-      <WorkflowRunDetailsPage
-        run={selectedRun}
-        onBack={handleBack}
-        initialTab={routingState.runDetailsTab}
-        onTabChange={tab => setRunDetailsTab(tab)}
-        gitFieldMapping={gitFieldMapping}
-      />
+      <>
+        {/* Assistant prompt for a failed run — the URL-run targeting in the
+            notifier needs it mounted on /run/<name> pages too. */}
+        <BuildFailureNotifierSlot />
+        <WorkflowRunDetailsPage
+          run={selectedRun}
+          onBack={handleBack}
+          initialTab={routingState.runDetailsTab}
+          onTabChange={tab => setRunDetailsTab(tab)}
+          gitFieldMapping={gitFieldMapping}
+        />
+      </>
     );
   }
 
@@ -477,6 +483,7 @@ export const Workflows = () => {
 
   return (
     <Box className={classes.container}>
+      <BuildFailureNotifierSlot />
       <Box className={classes.header}>
         <Typography variant="h5" className={classes.headerTitle}>
           Workflows
