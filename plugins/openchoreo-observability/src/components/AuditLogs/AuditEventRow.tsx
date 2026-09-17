@@ -19,7 +19,6 @@ import {
   resultLabel,
   scopeSegments,
   shortUserAgent,
-  verbOf,
 } from './format';
 
 export interface AuditEventRowProps {
@@ -55,24 +54,10 @@ export const AuditEventRow = memo(function AuditEventRow({
   );
 
   const resource = record.resource ?? undefined;
-  const verb = verbOf(record.action);
-
-  const accentByResult: Record<string, string> = {
-    failure: classes.accentFailure,
-    denied: classes.accentDenied,
-    unauthenticated: classes.accentUnauthenticated,
-  };
-  const accent = accentByResult[record.result] ?? classes.accentSuccess;
 
   const avatarByActorType: Record<string, string> = {
     service_account: classes.avatarService,
     anonymous: classes.avatarAnonymous,
-  };
-
-  const verbClassByVerb: Record<string, string> = {
-    create: classes.verbCreate,
-    delete: classes.verbDelete,
-    update: classes.verbUpdate,
   };
 
   const COPY_TITLES: Record<typeof copyState, string> = {
@@ -160,18 +145,7 @@ export const AuditEventRow = memo(function AuditEventRow({
         return cell(
           id,
           record.action ? (
-            <div className={classes.truncate}>
-              {verb && (
-                <span
-                  className={`${classes.verb} ${verbClassByVerb[verb] ?? ''}`}
-                >
-                  {verb}
-                </span>
-              )}
-              <span className={classes.mono} style={{ display: 'inline' }}>
-                {record.action}
-              </span>
-            </div>
+            <span className={classes.mono}>{record.action}</span>
           ) : (
             // action carries no omitempty, so a rejection publishes it as an
             // empty string rather than omitting it — say why it is blank.
@@ -323,9 +297,7 @@ export const AuditEventRow = memo(function AuditEventRow({
       role="row"
       tabIndex={0}
       aria-selected={selected}
-      className={`${classes.row} ${accent} ${
-        selected ? classes.rowSelected : ''
-      }`}
+      className={`${classes.row} ${selected ? classes.rowSelected : ''}`}
       onClick={() => onSelect(record.event_id)}
       onKeyDown={handleKeyDown}
     >

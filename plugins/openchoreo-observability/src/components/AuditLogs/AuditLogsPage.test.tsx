@@ -62,25 +62,11 @@ jest.mock('./AuditQueryBar', () => ({
   ),
 }));
 
-jest.mock('./AuditLenses', () => ({
-  AuditLenses: ({ total }: any) => <div data-testid="lenses">{total}</div>,
-}));
-
 jest.mock('./AuditLogsTable', () => ({
   AuditLogsTable: ({ records, loading }: any) => (
     <div data-testid="audit-table">
       <span data-testid="record-count">{records.length}</span>
       <span data-testid="table-loading">{String(loading)}</span>
-    </div>
-  ),
-}));
-
-// Lazy-loaded in the page; the chart itself is recharts' concern.
-jest.mock('./AuditTimeline', () => ({
-  __esModule: true,
-  default: ({ timeline }: any) => (
-    <div data-testid="audit-timeline">
-      {timeline ? timeline.interval : 'unknown'}
     </div>
   ),
 }));
@@ -125,7 +111,6 @@ const recordsResult = (over: Record<string, unknown> = {}) => ({
 
 const summaryResult = (over: Record<string, unknown> = {}) => ({
   total: 1,
-  timeline: undefined,
   loading: false,
   isRefetching: false,
   error: null,
@@ -244,59 +229,6 @@ describe('AuditLogsPage', () => {
     );
     // The table stays, so a transient failure does not wipe the view.
     expect(screen.getByTestId('audit-table')).toBeInTheDocument();
-  });
-
-  it('asks for the timeline only while the chart is shown', async () => {
-    await renderInTestApp(<AuditLogsPage />);
-
-    expect(mockUseAuditQuerySummary).toHaveBeenCalledWith(
-      expect.objectContaining({ includeTimeline: true }),
-    );
-  });
-
-  describe('chart section', () => {
-    const header = () =>
-      screen.getByRole('button', { name: /events over time/i });
-
-    it('collapses the chart and stops asking for the aggregation', async () => {
-      await renderInTestApp(<AuditLogsPage />);
-      expect(screen.getByTestId('audit-timeline')).toBeInTheDocument();
-
-      await userEvent.click(header());
-
-      // The body unmounts rather than hiding, which is what makes collapsing
-      // also stop the aggregation being requested.
-      await waitFor(() =>
-        expect(screen.queryByTestId('audit-timeline')).not.toBeInTheDocument(),
-      );
-      expect(mockUseAuditQuerySummary).toHaveBeenLastCalledWith(
-        expect.objectContaining({ includeTimeline: false }),
-      );
-    });
-
-    it('expands it again, so the toggle is not one-way', async () => {
-      await renderInTestApp(<AuditLogsPage />);
-
-      await userEvent.click(header());
-      await waitFor(() =>
-        expect(screen.queryByTestId('audit-timeline')).not.toBeInTheDocument(),
-      );
-
-      await userEvent.click(header());
-
-      await waitFor(() =>
-        expect(screen.getByTestId('audit-timeline')).toBeInTheDocument(),
-      );
-    });
-
-    it('keeps the header visible while collapsed, so the chart stays findable', async () => {
-      await renderInTestApp(<AuditLogsPage />);
-
-      await userEvent.click(header());
-
-      expect(header()).toBeInTheDocument();
-      expect(header()).toHaveAttribute('aria-expanded', 'false');
-    });
   });
 
   it('does not gate the query on a permission check that has not resolved', async () => {

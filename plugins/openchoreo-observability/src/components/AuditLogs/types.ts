@@ -376,7 +376,6 @@ export interface AuditLogsFilters {
   customEndTime?: string;
   columns: string[];
   sortOrder: AuditSortOrder;
-  showChart: boolean;
   /** The record whose detail drawer is open, by `event_id`. */
   selectedEventId?: string;
 }

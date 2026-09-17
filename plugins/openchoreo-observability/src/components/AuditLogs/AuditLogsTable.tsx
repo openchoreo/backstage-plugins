@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import {
   Box,
   Button,
@@ -11,6 +11,7 @@ import {
   VirtualizedLogList,
   useAutoLoadWhenEmpty,
 } from '@openchoreo/backstage-plugin-react';
+import { useFillPageHeight } from '../../hooks/useFillPageHeight';
 import { AuditEventRow } from './AuditEventRow';
 import { getAuditColumnStyle } from './columns';
 import { useAuditTableStyles } from './styles';
@@ -30,8 +31,10 @@ export interface AuditLogsTableProps {
   hasFilters?: boolean;
 }
 
-// The viewport minus the header, query bar, lenses and actions row above it.
-const TABLE_HEIGHT = 'calc(100vh - 420px)';
+// Below this the table stops shrinking and the page scrolls instead: a short
+// screen still gets a usable number of rows.
+const MIN_TABLE_HEIGHT = 320;
+const FALLBACK_TABLE_HEIGHT = 'calc(100vh - 320px)';
 const ROW_HEIGHT_ESTIMATE = 46;
 const SKELETON_ROWS = 8;
 
@@ -53,6 +56,11 @@ export const AuditLogsTable = ({
   hasFilters = false,
 }: AuditLogsTableProps) => {
   const classes = useAuditTableStyles();
+  const paperRef = useRef<HTMLDivElement>(null);
+  const tableHeight = useFillPageHeight(paperRef, {
+    minHeight: MIN_TABLE_HEIGHT,
+    fallback: FALLBACK_TABLE_HEIGHT,
+  });
 
   // The virtualizer renders no load-more sentinel for an empty list, so the
   // "0 rows but hasMore" case needs its own trigger.
@@ -126,7 +134,12 @@ export const AuditLogsTable = ({
   return (
     // `grid` rather than `table`: the rows are selectable, and `aria-selected`
     // is only meaningful on a row inside a grid.
-    <Paper className={classes.tablePaper} role="grid" aria-label="Audit logs">
+    <Paper
+      ref={paperRef}
+      className={classes.tablePaper}
+      role="grid"
+      aria-label="Audit logs"
+    >
       {records.length === 0 ? (
         <>
           {header}
@@ -175,7 +188,7 @@ export const AuditLogsTable = ({
       ) : (
         <VirtualizedLogList
           itemCount={records.length}
-          maxHeight={TABLE_HEIGHT}
+          maxHeight={tableHeight}
           estimatedRowHeight={ROW_HEIGHT_ESTIMATE}
           getItemKey={getRowKey}
           hasMore={hasMore}

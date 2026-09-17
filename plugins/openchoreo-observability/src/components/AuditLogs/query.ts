@@ -69,36 +69,6 @@ export function resolveAuditWindow(
   return { startTime, endTime, clamped: false };
 }
 
-/**
- * Picks a bucket width for the timeline: about 60 buckets across the window,
- * in the `<count><unit>` notation the API takes. The server coarsens anything
- * that would exceed 500 buckets and reports what it used, so this is a request
- * rather than a promise.
- */
-export function suggestTimelineInterval(
-  startTime: string,
-  endTime: string,
-): string {
-  const spanMs = new Date(endTime).getTime() - new Date(startTime).getTime();
-  const targetMs = spanMs / 60;
-  const candidates: Array<[number, string]> = [
-    [60_000, '1m'],
-    [5 * 60_000, '5m'],
-    [15 * 60_000, '15m'],
-    [30 * 60_000, '30m'],
-    [60 * 60_000, '1h'],
-    [2 * 60 * 60_000, '2h'],
-    [4 * 60 * 60_000, '4h'],
-    [6 * 60 * 60_000, '6h'],
-    [12 * 60 * 60_000, '12h'],
-    [DAY_MS, '1d'],
-    [2 * DAY_MS, '2d'],
-    [7 * DAY_MS, '1w'],
-  ];
-  const match = candidates.find(([ms]) => ms >= targetMs);
-  return match ? match[1] : '2w';
-}
-
 const take = (path: AuditFilterPath, values: string[]): string[] =>
   values.slice(0, FILTER_VALUE_CAPS[path] ?? MAX_FILTER_VALUES);
 
@@ -218,25 +188,14 @@ export function buildAuditQuery(args: {
   tokens: AuditQueryToken[];
   limit?: number;
   sortOrder?: 'asc' | 'desc';
-  includeTimeline?: boolean;
-  timelineInterval?: string;
 }): AuditLogsQueryRequest {
-  const {
-    window,
-    tokens,
-    limit,
-    sortOrder,
-    includeTimeline,
-    timelineInterval,
-  } = args;
+  const { window, tokens, limit, sortOrder } = args;
 
   return {
     startTime: window.startTime,
     endTime: window.endTime,
     ...(limit !== undefined ? { limit } : {}),
     ...(sortOrder ? { sortOrder } : {}),
-    ...(includeTimeline ? { includeTimeline: true } : {}),
-    ...(includeTimeline && timelineInterval ? { timelineInterval } : {}),
     ...tokensToFilters(tokens),
   };
 }

@@ -21,18 +21,6 @@ describe('useUrlFiltersForAuditLogs', () => {
     expect(result.current.filters.sortOrder).toBe('asc');
     expect(result.current.filters.tokens).toEqual([]);
     expect(result.current.filters.columns).toEqual(AUDIT_DEFAULT_COLUMNS);
-    expect(result.current.filters.showChart).toBe(true);
-  });
-
-  it('round-trips the chart toggle through the URL', () => {
-    const { result } = renderWithUrl('/audit-logs');
-    expect(result.current.filters.showChart).toBe(true);
-
-    act(() => result.current.updateFilters({ showChart: false }));
-    expect(result.current.filters.showChart).toBe(false);
-
-    act(() => result.current.updateFilters({ showChart: true }));
-    expect(result.current.filters.showChart).toBe(true);
   });
 
   it('reads newest-first back from the URL', () => {
@@ -47,12 +35,6 @@ describe('useUrlFiltersForAuditLogs', () => {
     act(() => result.current.updateFilters({ sortOrder: 'asc' }));
 
     expect(result.current.filters.sortOrder).toBe('asc');
-  });
-
-  it('reads a collapsed chart back from the URL', () => {
-    const { result } = renderWithUrl('/audit-logs?chart=0');
-
-    expect(result.current.filters.showChart).toBe(false);
   });
 
   it('reads repeated f params as filter tokens', () => {

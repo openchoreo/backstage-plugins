@@ -79,7 +79,6 @@ const sameSet = (a: string[], b: string[]): boolean =>
  * - `cols`: comma-separated column ids; absent means the default set
  * - `sort`: `desc` (absent means oldest first, which is how a trail is read)
  * - `live`: `true` to poll the newest page
- * - `chart`: `0` to collapse the histogram, which also stops requesting it
  * - `event`: the `event_id` whose detail drawer is open
  */
 export function useUrlFiltersForAuditLogs() {
@@ -105,7 +104,6 @@ export function useUrlFiltersForAuditLogs() {
       customEndTime,
       columns,
       sortOrder: searchParams.get('sort') === 'desc' ? 'desc' : 'asc',
-      showChart: searchParams.get('chart') !== '0',
       selectedEventId: searchParams.get('event') ?? undefined,
     };
   }, [searchParams]);
@@ -175,11 +173,6 @@ export function useUrlFiltersForAuditLogs() {
         if (next.sortOrder !== undefined) {
           if (next.sortOrder === 'asc') params.delete('sort');
           else params.set('sort', next.sortOrder);
-        }
-
-        if (next.showChart !== undefined) {
-          if (next.showChart) params.delete('chart');
-          else params.set('chart', '0');
         }
 
         if (next.selectedEventId !== undefined) {

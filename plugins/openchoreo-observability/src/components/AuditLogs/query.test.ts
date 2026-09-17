@@ -1,9 +1,4 @@
-import {
-  buildAuditQuery,
-  resolveAuditWindow,
-  suggestTimelineInterval,
-  tokensToFilters,
-} from './query';
+import { buildAuditQuery, resolveAuditWindow, tokensToFilters } from './query';
 import { AuditQueryToken } from './types';
 
 describe('tokensToFilters', () => {
@@ -124,17 +119,6 @@ describe('resolveAuditWindow', () => {
   });
 });
 
-describe('suggestTimelineInterval', () => {
-  it.each([
-    ['2026-09-08T00:00:00Z', '2026-09-08T01:00:00Z', '1m'],
-    ['2026-09-08T00:00:00Z', '2026-09-09T00:00:00Z', '30m'],
-    ['2026-09-01T00:00:00Z', '2026-09-08T00:00:00Z', '4h'],
-    ['2026-08-01T00:00:00Z', '2026-09-01T00:00:00Z', '1d'],
-  ])('picks %s → %s as %s', (start, end, expected) => {
-    expect(suggestTimelineInterval(start, end)).toBe(expected);
-  });
-});
-
 describe('buildAuditQuery', () => {
   const auditWindow = {
     startTime: '2026-09-01T00:00:00.000Z',
@@ -157,26 +141,5 @@ describe('buildAuditQuery', () => {
       sortOrder: 'desc',
       result: ['denied'],
     });
-  });
-
-  it('omits the timeline interval unless the timeline is asked for', () => {
-    const withoutTimeline = buildAuditQuery({
-      window: auditWindow,
-      tokens: [],
-      timelineInterval: '15m',
-    });
-
-    expect(withoutTimeline).not.toHaveProperty('includeTimeline');
-    expect(withoutTimeline).not.toHaveProperty('timelineInterval');
-
-    const withTimeline = buildAuditQuery({
-      window: auditWindow,
-      tokens: [],
-      includeTimeline: true,
-      timelineInterval: '15m',
-    });
-
-    expect(withTimeline.includeTimeline).toBe(true);
-    expect(withTimeline.timelineInterval).toBe('15m');
   });
 });

@@ -18,7 +18,6 @@ import {
 import {
   PageLoader,
   RefreshOverlay,
-  Skeleton,
 } from '@openchoreo/backstage-design-system';
 import {
   AuditLogsForbiddenError,
@@ -29,24 +28,15 @@ import { useAuditEvent } from '../../hooks/useAuditEvent';
 import { useAuditLogs } from '../../hooks/useAuditLogs';
 import { useAuditQuerySummary } from '../../hooks/useAuditQuerySummary';
 import { useUrlFiltersForAuditLogs } from '../../hooks/useUrlFiltersForAuditLogs';
-import { AuditChartSection } from './AuditChartSection';
-import { AuditLenses } from './AuditLenses';
 import { AuditLogsActions } from './AuditLogsActions';
 import { AuditLogsTable } from './AuditLogsTable';
 import { AuditQueryBar } from './AuditQueryBar';
-import { AuditTimelineLegend } from './AuditTimelineLegend';
 import { resolveAuditWindow } from './query';
 import { useAuditPageStyles } from './styles';
-import {
-  AuditFilterPath,
-  AuditLogRecord,
-  AuditResult,
-  AuditSortOrder,
-} from './types';
+import { AuditFilterPath, AuditLogRecord, AuditSortOrder } from './types';
 
-// recharts is a heavy dependency and the drawer is only opened on a click, so
-// neither belongs in the bundle a reader of the table has to download.
-const AuditTimeline = lazy(() => import('./AuditTimeline'));
+// The drawer is only opened on a click, so it does not belong in the bundle a
+// reader of the table has to download.
 const AuditEventDrawer = lazy(() => import('./AuditEventDrawer'));
 
 /**
@@ -65,7 +55,6 @@ export const AuditLogsPage = () => {
     toggleToken,
     removeToken,
     addToken,
-    setPathTokens,
     clearTokens,
     selectEvent,
   } = useUrlFiltersForAuditLogs();
@@ -107,7 +96,6 @@ export const AuditLogsPage = () => {
   const summary = useAuditQuerySummary({
     window: auditWindow,
     tokens: filters.tokens,
-    includeTimeline: filters.showChart,
     isLive,
     generation: windowGeneration,
     enabled: canViewAuditLogs,
@@ -160,27 +148,6 @@ export const AuditLogsPage = () => {
       updateFilters({ sortOrder });
     },
     [updateFilters],
-  );
-
-  const handleSelectRange = useCallback(
-    (startTime: string, endTime: string) => {
-      updateFilters({
-        timeRange: 'custom',
-        customStartTime: startTime,
-        customEndTime: endTime,
-      });
-    },
-    [updateFilters],
-  );
-
-  const handleSelectResults = useCallback(
-    (values: AuditResult[]) => setPathTokens('result', values),
-    [setPathTokens],
-  );
-
-  const handleToggleChart = useCallback(
-    () => updateFilters({ showChart: !filters.showChart }),
-    [filters.showChart, updateFilters],
   );
 
   const handleAddToken = useCallback(
@@ -299,33 +266,6 @@ export const AuditLogsPage = () => {
           </Alert>
         )}
 
-        <Box className={classes.section}>
-          <AuditLenses
-            window={auditWindow}
-            tokens={filters.tokens}
-            total={summary.total}
-            onSelectResults={handleSelectResults}
-            enabled={canViewAuditLogs}
-          />
-        </Box>
-
-        {/* The header stays whether or not the chart is open, so a collapsed
-            chart is still discoverable; only the body is mounted on expand,
-            which is also what gates the timeline aggregation. */}
-        <AuditChartSection
-          expanded={filters.showChart}
-          onToggle={handleToggleChart}
-          meta={<AuditTimelineLegend interval={summary.timeline?.interval} />}
-        >
-          <Suspense fallback={<Skeleton variant="rect" height={168} />}>
-            <AuditTimeline
-              timeline={summary.timeline}
-              loading={summary.loading}
-              onSelectRange={handleSelectRange}
-            />
-          </Suspense>
-        </AuditChartSection>
-
         <AuditLogsActions
           total={summary.total}
           loaded={records.records.length}
@@ -358,7 +298,7 @@ export const AuditLogsPage = () => {
         </Box>
 
         {isLive && (
-          <Typography variant="caption" color="textSecondary">
+          <Typography variant="caption" color="textSecondary" display="block">
             Live: checking for new events every 10 seconds. Turn it off to load
             older records.
           </Typography>

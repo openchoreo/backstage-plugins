@@ -1,29 +1,5 @@
 import { AuditLogActor, AuditLogResource } from './types';
 
-/** Verbs an action name starts with, for the tag in front of the action. */
-const KNOWN_VERBS = [
-  'create',
-  'update',
-  'delete',
-  'trigger',
-  'generate',
-  'exec',
-  'read',
-  'view',
-  'list',
-];
-
-/**
- * The leading verb of an action name (`create_project` → `create`), or
- * undefined when the name does not start with one — better no tag than a tag
- * that guesses.
- */
-export function verbOf(action?: string): string | undefined {
-  if (!action) return undefined;
-  const verb = action.split('_')[0];
-  return KNOWN_VERBS.includes(verb) ? verb : undefined;
-}
-
 /**
  * How the call arrived. `surface` is open on the record where the filter is
  * closed, so a value this client predates is named rather than described as one
@@ -113,19 +89,4 @@ export function scopeSegments(resource?: AuditLogResource | null): string[] {
 /** A count, grouped for reading. The API counts fully, so it is exact. */
 export function formatTotal(total: number): string {
   return total.toLocaleString();
-}
-
-/** Local time of day, for a timeline axis tick. */
-export function bucketTick(iso: string, spanMs: number): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  // Past a couple of days, the hour stops being the useful part of the label.
-  if (spanMs > 2 * 86400000) {
-    return date.toLocaleDateString([], { day: '2-digit', month: 'short' });
-  }
-  return date.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
 }
