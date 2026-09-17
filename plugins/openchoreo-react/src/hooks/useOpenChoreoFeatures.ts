@@ -5,7 +5,8 @@ import type { OpenChoreoFeatures } from '@openchoreo/backstage-plugin-common';
 /**
  * Default feature configuration when no config is provided.
  * All features are enabled by default EXCEPT `assistant`, which is opt-in
- * because it requires the `perch-agent` service + LLM API key.
+ * because it requires the `perch-agent` service + LLM API key, and
+ * `deliveryInsights`, which is a feature preview.
  */
 const defaultFeatures: OpenChoreoFeatures = {
   workflows: { enabled: true },
@@ -14,6 +15,7 @@ const defaultFeatures: OpenChoreoFeatures = {
   authz: { enabled: true },
   secretManagement: { enabled: false },
   assistant: { enabled: false },
+  deliveryInsights: { enabled: false },
 };
 
 /**
@@ -65,6 +67,11 @@ export function useOpenChoreoFeatures(): OpenChoreoFeatures {
           enabled:
             featuresConfig.getOptionalBoolean('assistant.enabled') ?? false,
         },
+        deliveryInsights: {
+          enabled:
+            featuresConfig.getOptionalBoolean('deliveryInsights.enabled') ??
+            false,
+        },
       };
     } catch {
       // If config reading fails, use defaults to avoid breaking the app
@@ -79,6 +86,17 @@ export function useOpenChoreoFeatures(): OpenChoreoFeatures {
 export function useWorkflowsEnabled(): boolean {
   const features = useOpenChoreoFeatures();
   return features.workflows.enabled;
+}
+
+/**
+ * Helper hook to check if the Delivery Insights feature is enabled.
+ *
+ * Off unless asked for: it is a feature preview, and the page has nothing to
+ * show unless the Observer is separately configured to collect the data.
+ */
+export function useDeliveryInsightsEnabled(): boolean {
+  const features = useOpenChoreoFeatures();
+  return features.deliveryInsights.enabled;
 }
 
 /**

@@ -31,7 +31,7 @@ describe('useOpenChoreoFeatures', () => {
     jest.clearAllMocks();
   });
 
-  it('returns defaults when no config (all on except assistant and secret management)', () => {
+  it('returns defaults when no config (all on except assistant, secret management and delivery insights)', () => {
     mockGetOptionalConfig.mockReturnValue(undefined);
     const { result } = renderHook(() => useOpenChoreoFeatures());
     expect(result.current).toEqual({
@@ -41,6 +41,7 @@ describe('useOpenChoreoFeatures', () => {
       authz: { enabled: true },
       secretManagement: { enabled: false },
       assistant: { enabled: false },
+      deliveryInsights: { enabled: false },
     });
   });
 
@@ -53,6 +54,7 @@ describe('useOpenChoreoFeatures', () => {
         'authz.enabled': true,
         'secretManagement.enabled': true,
         'assistant.enabled': true,
+        'deliveryInsights.enabled': true,
       }),
     );
     const { result } = renderHook(() => useOpenChoreoFeatures());
@@ -63,6 +65,7 @@ describe('useOpenChoreoFeatures', () => {
       authz: { enabled: true },
       secretManagement: { enabled: true },
       assistant: { enabled: true },
+      deliveryInsights: { enabled: true },
     });
   });
 
@@ -91,6 +94,7 @@ describe('useOpenChoreoFeatures', () => {
       authz: { enabled: true },
       secretManagement: { enabled: false },
       assistant: { enabled: false },
+      deliveryInsights: { enabled: false },
     });
   });
 });
