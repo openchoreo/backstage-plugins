@@ -11,11 +11,6 @@ export function surfaceLabel(surface: string): string {
   return `via ${surface}`;
 }
 
-/** `unauthenticated` is too long for a table pill; everything else fits. */
-export function resultLabel(result: string): string {
-  return result === 'unauthenticated' ? 'unauth' : result;
-}
-
 /**
  * Compact relative age (`4m ago`, `3d ago`) — the table shows it under the
  * absolute time, where the shared `formatRelativeTime`'s long form would wrap.

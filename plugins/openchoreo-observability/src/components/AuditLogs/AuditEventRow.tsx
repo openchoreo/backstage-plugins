@@ -16,7 +16,6 @@ import {
   absoluteTime,
   actorInitials,
   relativeAge,
-  resultLabel,
   scopeSegments,
   shortUserAgent,
 } from './format';
@@ -190,7 +189,7 @@ export const AuditEventRow = memo(function AuditEventRow({
         return cell(
           id,
           <span className={`${classes.pill} ${pillClass}`}>
-            {resultLabel(record.result)}
+            {record.result}
           </span>,
         );
       case 'surface':

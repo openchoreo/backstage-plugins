@@ -17,10 +17,6 @@ export const useAuditResultPillStyles = makeStyles(theme => ({
     color: theme.palette.warning.dark,
     backgroundColor: theme.palette.warning.light,
   },
-  unauthenticated: {
-    color: theme.palette.text.secondary,
-    backgroundColor: theme.palette.action.hover,
-  },
 }));
 
 export const useAuditPageStyles = makeStyles(theme => ({
@@ -423,14 +419,5 @@ export const useAuditDrawerStyles = makeStyles(theme => ({
     lineHeight: 1.5,
     whiteSpace: 'nowrap',
     flex: '0 0 auto',
-  },
-  notice: {
-    display: 'flex',
-    gap: theme.spacing(1),
-    padding: theme.spacing(1.5),
-    borderRadius: theme.shape.borderRadius,
-    backgroundColor: theme.palette.action.hover,
-    fontSize: '0.8125rem',
-    marginBottom: theme.spacing(2),
   },
 }));

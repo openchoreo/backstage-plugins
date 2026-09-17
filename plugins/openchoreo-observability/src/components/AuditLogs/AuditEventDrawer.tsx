@@ -4,7 +4,7 @@ import CloseIcon from '@material-ui/icons/Close';
 import { JsonViewer } from '@openchoreo/backstage-design-system';
 import { useAuditDrawerStyles, useAuditResultPillStyles } from './styles';
 import { AuditFilterPath, AuditLogRecord } from './types';
-import { fullTime, relativeAge, resultLabel, surfaceLabel } from './format';
+import { fullTime, relativeAge, surfaceLabel } from './format';
 
 export interface AuditEventDrawerProps {
   record?: AuditLogRecord;
@@ -164,7 +164,7 @@ export const AuditEventDrawer = ({
             </div>
             <Box className={classes.meta}>
               <span className={`${classes.pill} ${pillClass}`}>
-                {resultLabel(record.result)}
+                {record.result}
               </span>
               {record.surface && <span>{surfaceLabel(record.surface)}</span>}
               <span>
@@ -174,12 +174,6 @@ export const AuditEventDrawer = ({
           </Box>
 
           <Box className={classes.body}>
-            {record.result === 'unauthenticated' && (
-              <Box className={classes.notice}>
-                <span>Authentication failed due to token rejection.</span>
-              </Box>
-            )}
-
             <Box className={classes.section}>
               <Typography className={classes.sectionTitle}>Who</Typography>
               <dl className={classes.kv}>

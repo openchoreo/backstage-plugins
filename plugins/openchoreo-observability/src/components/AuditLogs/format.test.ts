@@ -2,19 +2,10 @@ import {
   actorInitials,
   formatTotal,
   relativeAge,
-  resultLabel,
   scopeSegments,
   shortUserAgent,
   surfaceLabel,
 } from './format';
-
-describe('resultLabel', () => {
-  it('shortens only the outcome too long for a pill', () => {
-    expect(resultLabel('unauthenticated')).toBe('unauth');
-    expect(resultLabel('success')).toBe('success');
-    expect(resultLabel('denied')).toBe('denied');
-  });
-});
 
 describe('relativeAge', () => {
   const now = Date.parse('2026-09-14T12:00:00.000Z');
