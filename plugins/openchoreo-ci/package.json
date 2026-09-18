@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-openchoreo-ci",
-  "version": "1.3.0-rc.1",
+  "version": "1.3.0-rc.2",
   "license": "Apache-2.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -69,7 +69,7 @@
     "yaml": "^2.8.1"
   },
   "peerDependencies": {
-    "@openchoreo/backstage-plugin": "^1.3.0-rc.1",
+    "@openchoreo/backstage-plugin": "^1.3.0-rc.2",
     "react": "^18.0.0",
     "react-router-dom": "^6.0.0"
   },

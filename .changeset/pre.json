@@ -36,6 +36,7 @@
   "changesets": [
     "app-branding-groundwork",
     "audit-logs-drop-unauthenticated",
+    "audit-logs-keep-records-on-live-off",
     "audit-logs-shared-states",
     "audit-logs-simplify-view",
     "audit-logs-view",
@@ -45,6 +46,7 @@
     "composable-home-page",
     "conditional-dangerous-auth-flags",
     "configurable-image-publishing",
+    "cost-analysis-report-route",
     "cost-insights-cascading-scope-filters",
     "cost-insights-graphs-dashboard",
     "cost-insights-recommendations-apply",
@@ -68,6 +70,7 @@
     "npm-latest-dist-tag-guard",
     "old-lemons-speak",
     "pin-node-22-22",
+    "platform-logs-clickable-fields",
     "platform-logs-dashboard",
     "platform-logs-filter-values",
     "platform-version-display",

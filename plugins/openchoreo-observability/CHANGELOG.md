@@ -1,5 +1,16 @@
 # @openchoreo/backstage-plugin-openchoreo-observability
 
+## 1.3.0-next.2
+
+### Minor Changes
+
+- 88cb693: Platform logs: cluster, namespace, pod, container and pod-label values in an expanded log row are now buttons that add the value to the active filters. List filters gain the value alongside what is already selected; a label is ANDed onto the selector, replacing any existing value for the same key.
+
+### Patch Changes
+
+- 0133a8a: Audit logs: turning Live off now only stops polling. The records already fetched stay on screen instead of being cleared and reloaded.
+- 854df53: Fix "View report" in Cost Insights → Analysis Reports, which showed an empty Insights tab instead of the report. The tab's nested route now accepts the report id, the report link carries the query string that holds the selected project and environment, and the Analysis Reports tab stays selected while a report is open.
+
 ## 1.3.0-next.0
 
 ### Minor Changes
