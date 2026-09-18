@@ -9,7 +9,11 @@ import {
 import { useLogsTableStyles } from '../RuntimeLogs/styles';
 import { PlatformLogEntryRow } from './PlatformLogEntryRow';
 import { getPlatformColumnStyle } from './columns';
-import { PlatformLogEntry, PlatformLogField } from './types';
+import {
+  PlatformLogEntry,
+  PlatformLogField,
+  PlatformLogsFilters,
+} from './types';
 
 interface PlatformLogsTableProps {
   selectedFields: PlatformLogField[];
@@ -18,6 +22,9 @@ interface PlatformLogsTableProps {
   hasMore: boolean;
   /** Called when the user scrolls near the end of the list. */
   onLoadMore: () => void;
+  /** The applied filters, so an expanded row can add its values to them. */
+  filters?: PlatformLogsFilters;
+  onFiltersChange?: (filters: Partial<PlatformLogsFilters>) => void;
 }
 
 // Matches the runtime logs table: full viewport minus the header, filters and
@@ -30,6 +37,8 @@ export const PlatformLogsTable: FC<PlatformLogsTableProps> = ({
   loading,
   hasMore,
   onLoadMore,
+  filters,
+  onFiltersChange,
 }) => {
   const classes = useLogsTableStyles();
 
@@ -135,6 +144,8 @@ export const PlatformLogsTable: FC<PlatformLogsTableProps> = ({
                 selectedFields={selectedFields}
                 expanded={expanded.has(key)}
                 onToggleExpand={() => toggle(key)}
+                filters={filters}
+                onFiltersChange={onFiltersChange}
               />
             );
           }}

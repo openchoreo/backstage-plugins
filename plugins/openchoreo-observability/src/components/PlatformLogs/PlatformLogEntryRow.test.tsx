@@ -1,7 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PlatformLogEntryRow } from './PlatformLogEntryRow';
-import { DEFAULT_PLATFORM_LOG_FIELDS, PlatformLogEntry } from './types';
+import {
+  DEFAULT_PLATFORM_LOG_FIELDS,
+  PlatformLogEntry,
+  PlatformLogsFilters,
+} from './types';
 
 const fullLog: PlatformLogEntry = {
   timestamp: '2026-08-14T16:31:00.000Z',
@@ -98,5 +102,112 @@ describe('PlatformLogEntryRow', () => {
     await userEvent.click(screen.getByText('reconcile failed'));
 
     expect(onToggleExpand).toHaveBeenCalled();
+  });
+
+  describe('adding values to the filters', () => {
+    const applied: Pick<
+      PlatformLogsFilters,
+      | 'clusterInstances'
+      | 'namespaces'
+      | 'podNames'
+      | 'containerNames'
+      | 'labels'
+    > = {
+      clusterInstances: [],
+      namespaces: [],
+      podNames: ['other-pod'],
+      containerNames: [],
+      labels: 'openchoreo.dev/plane=controlplane',
+    };
+
+    const renderFilterable = (
+      onFiltersChange = jest.fn(),
+      onToggleExpand = jest.fn(),
+      filters = applied,
+    ) =>
+      render(
+        <PlatformLogEntryRow
+          log={fullLog}
+          selectedFields={DEFAULT_PLATFORM_LOG_FIELDS}
+          expanded
+          onToggleExpand={onToggleExpand}
+          filters={filters}
+          onFiltersChange={onFiltersChange}
+        />,
+      );
+
+    it('appends a clicked pod to the pods already selected', async () => {
+      const onFiltersChange = jest.fn();
+      const onToggleExpand = jest.fn();
+      renderFilterable(onFiltersChange, onToggleExpand);
+
+      await userEvent.click(
+        screen.getByRole('button', {
+          name: 'controller-manager-7f58b689b5-pwsb5',
+        }),
+      );
+
+      expect(onFiltersChange).toHaveBeenCalledWith({
+        podNames: ['other-pod', 'controller-manager-7f58b689b5-pwsb5'],
+      });
+      // The click is on the panel, not the row; it must not fold the panel away.
+      expect(onToggleExpand).not.toHaveBeenCalled();
+    });
+
+    it('ANDs a clicked label onto the selector', async () => {
+      const onFiltersChange = jest.fn();
+      renderFilterable(onFiltersChange);
+
+      await userEvent.click(
+        screen.getByTitle(
+          'Filter by app.kubernetes.io/name=openchoreo-control-plane',
+        ),
+      );
+
+      expect(onFiltersChange).toHaveBeenCalledWith({
+        labels:
+          'openchoreo.dev/plane=controlplane,app.kubernetes.io/name=openchoreo-control-plane',
+      });
+    });
+
+    it('disables values that are already applied', () => {
+      renderFilterable(jest.fn(), jest.fn(), {
+        ...applied,
+        podNames: ['controller-manager-7f58b689b5-pwsb5'],
+      });
+
+      expect(
+        screen.getByRole('button', {
+          name: 'controller-manager-7f58b689b5-pwsb5',
+        }),
+      ).toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: 'controlplane' }),
+      ).toBeDisabled();
+    });
+
+    // Node, pod IP and image have no filter; a button would promise a query the page
+    // cannot send.
+    it('leaves fields without a filter as plain text', () => {
+      renderFilterable();
+
+      for (const value of [
+        'k3d-openchoreo-server-0',
+        '10.0.0.7',
+        'ghcr.io/openchoreo/controller:latest-dev',
+      ]) {
+        expect(
+          screen.queryByRole('button', { name: value }),
+        ).not.toBeInTheDocument();
+      }
+    });
+  });
+
+  it('shows values as plain text when the row cannot change the filters', () => {
+    renderRow(fullLog, true);
+
+    expect(
+      screen.queryByRole('button', { name: 'manager' }),
+    ).not.toBeInTheDocument();
   });
 });
