@@ -132,11 +132,16 @@ export const AuditLogsPage = () => {
   // Live polls the first page, which oldest-first means the start of the
   // window — it would sit on week-old records and never show new activity. So
   // turning it on also flips the order, visibly, rather than querying one way
-  // while the sort button claims the other.
+  // while the sort button claims the other. Turning it on also starts a new
+  // generation so polling begins from the newest page; turning it off keeps the
+  // generation, so the records already fetched stay and only the polling stops.
   const handleLiveChange = useCallback(
     (next: boolean) => {
       setIsLive(next);
-      if (next) updateFilters({ sortOrder: 'desc' });
+      if (next) {
+        setWindowGeneration(generation => generation + 1);
+        updateFilters({ sortOrder: 'desc' });
+      }
     },
     [updateFilters],
   );
