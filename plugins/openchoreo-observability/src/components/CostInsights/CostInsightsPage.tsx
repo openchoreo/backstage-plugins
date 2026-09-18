@@ -476,7 +476,10 @@ const CostAnalysisTab = () => {
 const CostInsightsTabBar = () => {
   const classes = useStyles();
   const location = useLocation();
-  const onCostAnalysis = location.pathname.endsWith('/cost-analysis');
+  const analysisPath = `${COST_INSIGHTS_PATH}/cost-analysis`;
+  const onCostAnalysis =
+    location.pathname === analysisPath ||
+    location.pathname.startsWith(`${analysisPath}/`);
   const tabClass = (active: boolean) =>
     active ? `${classes.tab} ${classes.tabActive}` : classes.tab;
 
@@ -492,7 +495,7 @@ const CostInsightsTabBar = () => {
       </RouterLink>
       <RouterLink
         to={{
-          pathname: `${COST_INSIGHTS_PATH}/cost-analysis`,
+          pathname: analysisPath,
           search: location.search,
         }}
         className={tabClass(onCostAnalysis)}
@@ -519,7 +522,7 @@ export const CostInsightsPage = () => {
         <CostInsightsTabBar />
         <Routes>
           <Route index element={<CostInsightsInsightsTab />} />
-          <Route path="cost-analysis" element={<CostAnalysisTab />} />
+          <Route path="cost-analysis/*" element={<CostAnalysisTab />} />
         </Routes>
       </Content>
     </Page>
