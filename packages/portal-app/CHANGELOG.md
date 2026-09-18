@@ -1,5 +1,14 @@
 # @openchoreo/backstage-portal-app
 
+## 1.3.0-next.2
+
+### Patch Changes
+
+- Updated dependencies [0133a8a]
+- Updated dependencies [854df53]
+- Updated dependencies [88cb693]
+  - @openchoreo/backstage-plugin-openchoreo-observability@1.3.0-next.2
+
 ## 0.2.0-next.0
 
 ### Minor Changes
