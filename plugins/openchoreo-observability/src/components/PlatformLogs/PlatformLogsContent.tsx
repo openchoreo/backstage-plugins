@@ -151,6 +151,8 @@ const PlatformLogsView = () => {
             loading={loading}
             hasMore={hasMore}
             onLoadMore={loadMore}
+            filters={filters}
+            onFiltersChange={updateFilters}
           />
         </>
       )}
