@@ -53,7 +53,6 @@ export function useAuditQuerySummary(
       auditWindow.startTime,
       auditWindow.endTime,
       JSON.stringify(tokens),
-      isLive,
       generation,
     ],
     () => {

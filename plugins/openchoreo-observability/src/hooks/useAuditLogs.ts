@@ -89,9 +89,11 @@ export interface UseAuditLogsResult {
  *
  * Live mode polls the newest page rather than re-reading every page loaded so
  * far — one request a tick instead of one per page — so `hasMore` is withheld
- * while it is on and the list stays a single page. `isLive` is part of the
- * query key, so turning it on lands on the newest page rather than re-fetching
- * a deep scroll position.
+ * while it is on and the list stays a single page. `isLive` is deliberately not
+ * part of the query key: turning Live off must only stop the polling and leave
+ * the records it fetched on screen. The caller bumps `generation` when Live is
+ * turned on, so it lands on the newest page rather than re-fetching a deep
+ * scroll position.
  */
 export function useAuditLogs(options: UseAuditLogsOptions): UseAuditLogsResult {
   const observabilityApi = useApi(observabilityApiRef);
@@ -122,7 +124,6 @@ export function useAuditLogs(options: UseAuditLogsOptions): UseAuditLogsResult {
       JSON.stringify(tokens),
       sortOrder,
       limit,
-      isLive,
       generation,
     ],
     async boundary => {

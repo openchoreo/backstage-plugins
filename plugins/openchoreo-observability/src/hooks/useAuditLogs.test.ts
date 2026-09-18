@@ -224,6 +224,30 @@ describe('useAuditLogs', () => {
     expect(result.current.hasMore).toBe(false);
   });
 
+  it('keeps the records fetched while live when Live is turned off', async () => {
+    queryAuditLogs.mockResolvedValue({
+      records: [
+        makeRecord('a', '2026-09-05T10:00:00.000Z'),
+        makeRecord('b', '2026-09-04T10:00:00.000Z'),
+      ],
+    });
+
+    const { result, rerender } = renderHook(
+      ({ isLive }) => useAuditLogs({ ...options, isLive }),
+      { wrapper: createQueryWrapper(), initialProps: { isLive: true } },
+    );
+
+    await waitFor(() => expect(result.current.records).toHaveLength(2));
+    const calls = queryAuditLogs.mock.calls.length;
+
+    rerender({ isLive: false });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.records.map(r => r.event_id)).toEqual(['a', 'b']);
+    expect(queryAuditLogs).toHaveBeenCalledTimes(calls);
+    expect(result.current.hasMore).toBe(true);
+  });
+
   it('does not query while the permission check withholds enabled', () => {
     const { result } = renderHook(
       () => useAuditLogs({ ...options, enabled: false }),
