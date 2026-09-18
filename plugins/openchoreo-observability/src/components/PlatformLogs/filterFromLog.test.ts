@@ -38,6 +38,14 @@ describe('addLabelToSelector', () => {
     ).toBe('openchoreo.dev/plane=dataplane,app=web');
   });
 
+  // The field accepts a key repeated with the same value; replacing only the first
+  // would leave two values for it.
+  it('collapses a repeated key into the one new term', () => {
+    expect(addLabelToSelector('app=web,tier=fe,app=web', 'app', 'db')).toBe(
+      'app=db,tier=fe',
+    );
+  });
+
   it('normalises spacing and trailing commas', () => {
     expect(addLabelToSelector(' a = 1 , ', 'b', '2')).toBe('a=1,b=2');
   });

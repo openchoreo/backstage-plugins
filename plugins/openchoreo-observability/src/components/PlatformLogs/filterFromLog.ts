@@ -36,10 +36,14 @@ export function addLabelToSelector(
   // rebuilding it term by term would quietly rewrite it into something else.
   if (validateLabelSelector(selector)) return null;
 
-  const terms = selectorTerms(selector);
-  const existing = terms.findIndex(([k]) => k === key);
-  if (existing === -1) terms.push([key, value]);
-  else terms[existing] = [key, value];
+  // The first term for the key takes the new value in place and any repeats are
+  // dropped: the field accepts `app=web,app=web`, and replacing only the first would
+  // leave `app=db,app=web`, which matches nothing.
+  const all = selectorTerms(selector);
+  const first = all.findIndex(([k]) => k === key);
+  const terms = all.filter(([k], i) => k !== key || i === first);
+  if (first === -1) terms.push([key, value]);
+  else terms[first] = [key, value];
 
   const next = terms.map(([k, v]) => `${k}=${v}`).join(',');
   return validateLabelSelector(next) ? null : next;
