@@ -1,5 +1,217 @@
 # @openchoreo/backstage-plugin-react
 
+## 1.3.0
+
+### Minor Changes
+
+- 4c7f96c: Add an **Audit Logs** sidebar page that reads the observer's audit trail — who
+  changed what, where, and whether it was allowed.
+
+  A top-level page rather than an entity tab: the trail spans every namespace and
+  the observer evaluates `auditlogs:view` at cluster scope, so the tenancy filters
+  in a query narrow the result set without widening what the caller may read.
+
+  - **Data layer**: `ObservabilityClient` gains `queryAuditLogs` and
+    `queryAuditLogFilterValues`, typed against the observer's `AuditLogs`
+    operations. Record fields keep their snake_case spelling and the query's own
+    controls stay camelCase, so a response can be compared against an exported
+    SIEM line key for key. The observer's distinguishable failures become typed
+    errors — `501` (the adapter does not serve the trail) and `403` — because each
+    asks the UI for a different answer and a flattened error string cannot carry
+    them.
+  - **Paging**: the API has no continuation token, so a page is continued by
+    closing the window up to the last record read — `endTime` down when
+    descending, `startTime` up when ascending. The window is half-open, so
+    descending never repeats a record but cannot reach records sharing the
+    boundary's exact `event_time` beyond one page's `limit`; ascending reaches all
+    of them and repeats the boundary record, which the hook de-duplicates by
+    `event_id`. A tie group wider than a page cannot move the boundary, so paging
+    stops there rather than re-requesting the same window.
+  - **Observer resolution**: the trail has no environment to resolve through, so
+    `ObservabilityUrlResolver` gains `resolveForPlatform`, which reads the audit
+    observer the API advertises at `/api/v1alpha1/metadata`, exposed as
+    `GET /resolve-platform-urls`. An installation that reports audit logs disabled
+    gets an empty state rather than a query error.
+  - **Permission**: `openchoreo.auditlogs.view` → `auditlogs:view`, a cluster-scoped
+    (non-resource) permission, with a `useAuditLogsPermission` hook.
+  - **UI**: a query bar whose vocabulary is the filter set the API actually accepts
+    — values are picked from the observer's own aggregation, one filter per request
+    and only while a picker is open; outcome tiles counted on a faceted basis so
+    selecting Denied does not zero the others; an opt-in stacked timeline; and a
+    virtualized record table with a detail drawer whose values drill back into the
+    query. Filters live in the URL, so a finding is a link.
+  - **Shared components**: `TokenFilterBar` is added to
+    `@openchoreo/backstage-plugin-react` — a view supplies its own vocabulary and
+    a value provider, so nothing audit-specific reaches the shared package.
+    `MultiSelectFilter` gains an optional `disabled` on an option, for a value a
+    view cannot function without: it is shown checked, cannot be toggled, and
+    survives Clear. Two changes to `TimeRangeFilter` affect every consumer
+    (Runtime Logs, Platform Logs, Metrics, Traces): its dropdown panel is now at
+    least as wide as the field it drops from, rather than narrower and offset,
+    and its read-only trigger no longer lets a drag select part of the value.
+  - **Performance**: rows are windowed (`@tanstack/react-virtual`) and memoized,
+    the chart and drawer are `React.lazy`, the timeline aggregation is requested
+    once per query rather than per page and not at all while the chart is
+    collapsed, and Live polls only the newest page instead of every loaded one.
+
+- 45caff4: Reorganise the Cost Insights view into tabs and improve the graph/tooltip UX.
+
+  - **Tabs**: the Cost Insights page now hosts two tabs — **Insights** (the
+    existing table/graph views) and **Cost Analysis** (the FinOps report list,
+    moved here from the project catalog entity page). The Cost Analysis tab
+    reuses the existing `CostAnalysisPage` via a synthesised entity context and
+    only enables its reports once a project scope is selected. The route is now
+    `/cost-insights/*`, and the Incidents "View Cost Analysis" deep link points
+    to the new location. The Cost Analysis tab was removed from the catalog
+    system page (both the legacy `EntityPage` and the new-frontend-system
+    `alpha` registration).
+  - **Consistent header**: extracted the catalog entity header's gradient bar
+    into a reusable `GradientPageHeader` (exported from
+    `@openchoreo/backstage-plugin-react`), and used it for the Cost Insights
+    header so its purple bar, title sizing and tab seam match the catalog.
+    `CompactEntityHeader` now consumes the same shell. Breadcrumb level labels
+    are pluralised (`namespaces` / `projects` / `components`) to match the
+    catalog.
+  - **Overview summary card**: the catalog Overview tab now shows a Cost
+    Insights summary card at both the project and component levels,
+    displaying the last-24-hour total cost (reusing the Total Cost card and,
+    for a component, summed across its environments) with a "Go to Cost
+    Insights" button that deep-links into the full view.
+  - **Chart tooltips**: the stacked bar chart and the line chart tooltips now
+    show the **Total** of the visible series and **highlight the row** for the
+    segment/line under the pointer.
+  - **Forecast clarity**: the "Forecast this month" summary card and the spend
+    forecast chart gained an info tooltip explaining that the forecast projects
+    the selected time window's rate across the month, so it can change with the
+    chosen range and the amount of data available.
+
+- 67ba0da: New `useEntityDeletePermission` hook checks the kind-mapped delete permission
+  for a given entity (sharing the mapping used by
+  `useResourceDefinitionPermission`), so listings can gate per-row actions. The
+  `RowDeleteButton` now renders disabled with an explanatory tooltip when the
+  logged-in user lacks permission to delete the row's entity.
+- 762b22a: Complete the New Frontend System migration for the portal shell and
+  distribute scaffolder field extensions through the base plugin.
+
+  **Portal**: `convertLegacyAppRoot` and `Root.tsx` are gone. Themes, icons,
+  sidebar (`NavContentBlueprint`), provider stack, and every route now
+  ship as NFS blueprints.
+
+  **Adopter-facing additions**:
+
+  - `@openchoreo/backstage-plugin/alpha` — `execTerminalPage`, 32
+    `FormFieldBlueprint`s for OC template fields, plus new component
+    exports (`ScaffolderPreselectionProvider`, `EntityWarningStrip`,
+    `ForeignCardsSection`)
+  - `@openchoreo/backstage-plugin-openchoreo-observability/alpha` —
+    `costInsightsPage` with sidebar auto-discovery
+  - `@openchoreo/backstage-plugin-platform-engineer-core/alpha` —
+    `platformOverviewPage` with sidebar auto-discovery; `PlatformOverviewPage`
+    source moved from portal-app
+  - `@openchoreo/backstage-plugin-react` — `useQueryParams` (backwards-compat
+    re-export left in `@openchoreo/backstage-plugin`)
+
+- 0a7d538: Add a centralized Platform Logs dashboard for everything an observability plane
+  collects — OpenChoreo's own system components included — as a Logs tab under
+  Platform. It filters on raw Kubernetes
+  coordinates — observability plane, cluster, namespace, pod, container, pod
+  labels, level, time range and message search — so a platform engineer can reach
+  any log the observability plane holds, including components OpenChoreo depends
+  on but does not ship.
+
+  A scope bar keeps the plane, time range, search, live tail and refresh visible;
+  the coordinate pickers, labels and log levels fold away behind a Filters button
+  and render as removable chips, so a collapsed row never hides what is narrowing
+  the query. The cluster, namespace, pod and container pickers are multi-select
+  and ask the observability plane for their values when opened, so they offer
+  everything the current query matches rather than only what is on screen. They
+  stay free text because that list is still bounded - by the time window, and by
+  the values carrying the most records. The labels and
+  search fields are validated as you type, so a half-typed label selector is
+  explained on the field rather than sent and rejected. Expanding a row reveals
+  the full message, the pod's coordinates and its labels.
+
+  Every filter lives in the URL, so a filtered view is a shareable permalink.
+
+  Adds the cluster-scoped `openchoreo.platformlogs.view` permission and a
+  `usePlatformLogsPermission` hook for gating it. Unlike the component logs
+  permission this one takes no entity, because platform logs are not owned by any
+  project or component.
+
+  The Platform section is assembled through Backstage's own sub-page mechanism
+  rather than a shared shell component. `page:platform-engineer-core/platform-overview`
+  is now a container page that renders whatever tabs are attached to its `pages`
+  input, so any plugin can contribute a Platform tab with a `SubPageBlueprint`
+  pointed at that id — no dependency on the platform-engineer-core package needed.
+  The Logs tab is the first example, and ships as
+  `sub-page:openchoreo-observability/platform-logs` (it was
+  `page:openchoreo-observability/platform-logs`; that is the id to use when
+  disabling or reconfiguring it under `app.extensions`).
+
+  The section's chrome now comes from the portal's `core.page-layout` rather than a
+  shell each tab mounted for itself, so the header and tab bar render once for the
+  whole section instead of remounting on every tab switch. It looks the same: a
+  tabbed page keeps the portal's standard `<Header>` rather than picking up
+  Backstage's own toolbar, and switching tabs still carries the query string, so a
+  round trip between tabs preserves the filters each had set. The only thing lost is
+  the per-tab header subtitle.
+
+  The Overview tab now lives at `/platform-overview/overview`; the bare
+  `/platform-overview` still works and redirects there.
+
+- d7f12e6: Restore the Portal Assistant surfaces that were dropped in the New Frontend
+  System entity-page migration.
+
+  Introduce a decoupled assistant-integration contract in
+  `@openchoreo/backstage-plugin-react` (`portalAssistantIntegrationApiRef`,
+  `usePortalAssistant`, `BuildFailureNotifierSlot`) so no plugin depends on the
+  private portal-assistant plugin. The OpenChoreo plugins consume it: the
+  component Overview layout and the Workflows (Build) page mount
+  `BuildFailureNotifierSlot`, and the deploy panel (`Environments`) falls back
+  to the contract's `renderInvestigateAction` slot when mounted propless.
+
+  The portal app registers the provider for these slots (the composition root
+  owns the portal-assistant dependency), wiring the failed-build launcher and
+  the deploy-panel "Investigate with AI" action back in. With the assistant
+  feature enabled, the failed-build prompt reappears on the Overview and Build
+  tabs and the investigate action on a pending/failed deployment. When no
+  assistant is registered every slot renders nothing.
+
+### Patch Changes
+
+- 202d582: Extend the component-level **Cost Insights** table to show right-sizing
+  recommendations and apply them in one click.
+
+  - **Recommendation table**: per-environment rows show the current cost (with
+    cpu/memory breakdown), an efficiency bar, the recommended resource-request
+    change (e.g. `cpu 100m → 12m`), the resulting saving (with percentage), and an
+    **Apply** button.
+  - **Apply action**: resolves the environment's ReleaseBinding, shows a
+    confirm-diff dialog, and applies the recommended CPU/memory. Gated on the
+    env-scoped `releasebinding:update` permission; the button is disabled when
+    there is nothing to apply.
+  - **Stale-recommendation guard**: recommendations are withheld (with an
+    explanatory notice showing the spec update time) when the binding was updated
+    after the selected window started, plus a 5-minute settling buffer, so
+    pre-change usage can't produce misleading recommendations.
+  - **Polish**: costs rounded to 2 decimals, more prominent summary-card values,
+    gap-filling for missing graph buckets, and a full loader (no stale data) when
+    the window/scope changes.
+
+- a958b80: Put the Delivery Insights page behind the `openchoreo.features.deliveryInsights`
+  flag, off by default. It is a feature preview, and the page has nothing to show
+  unless the Observer is separately configured to collect the data.
+- c2acee5: Support frameless rendering for widgets embedded in a home page card. `SummaryWidgetWrapper` gains a `disableCard` prop and `MyProjectsWidget` forwards it; `QuickActionsSection` gains a `hideTitle` prop. These let the components render body-only content when an outer card extension already provides the card frame and title, avoiding duplicated headers.
+- Updated dependencies [f39a20c]
+- Updated dependencies [4c7f96c]
+- Updated dependencies [526e7ac]
+- Updated dependencies [d00d48b]
+- Updated dependencies [a958b80]
+- Updated dependencies [ce31a0e]
+- Updated dependencies [0a7d538]
+  - @openchoreo/backstage-design-system@1.3.0
+  - @openchoreo/backstage-plugin-common@1.3.0
+
 ## 1.3.0-next.0
 
 ### Minor Changes

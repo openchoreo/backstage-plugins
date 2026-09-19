@@ -1,5 +1,16 @@
 # @openchoreo/backstage-plugin-openchoreo-workflows-backend
 
+## 1.3.0
+
+### Patch Changes
+
+- Updated dependencies [4c7f96c]
+- Updated dependencies [a3e7d3f]
+- Updated dependencies [c234b33]
+- Updated dependencies [435463f]
+  - @openchoreo/openchoreo-client-node@1.3.0
+  - @openchoreo/openchoreo-auth@1.3.0
+
 ## 1.3.0-next.0
 
 ### Patch Changes

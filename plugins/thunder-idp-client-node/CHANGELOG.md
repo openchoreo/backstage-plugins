@@ -1,5 +1,7 @@
 # @openchoreo/backstage-plugin-thunder-idp-client-node
 
+## 1.3.0
+
 ## 1.2.0
 
 ### Patch Changes

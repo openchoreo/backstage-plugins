@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-openchoreo-observability",
-  "version": "1.3.0-rc.2",
+  "version": "1.3.0",
   "license": "Apache-2.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -68,7 +68,7 @@
     "remend": "^1.0.0"
   },
   "peerDependencies": {
-    "@openchoreo/backstage-plugin": "^1.3.0-rc.2",
+    "@openchoreo/backstage-plugin": "^1.3.0",
     "react": "^18.0.0",
     "react-router-dom": "^6.0.0"
   },

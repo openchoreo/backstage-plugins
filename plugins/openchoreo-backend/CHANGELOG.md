@@ -1,5 +1,37 @@
 # @openchoreo/backstage-plugin-backend
 
+## 1.3.0
+
+### Minor Changes
+
+- 36f0982: Surface the deployed OpenChoreo platform version in the Console. The backend
+  gains a `GET /platform-version` route proxying the OpenChoreo API server's
+  public `/version` endpoint; the frontend gains `getPlatformVersion()` on the
+  client and a `PlatformAboutCard` component. The stock portal shows the card
+  in Settings → General next to the stock user-settings cards.
+
+### Patch Changes
+
+- 4278619: Treat ReleaseBinding Ready reasons `ReleaseSynced`, `ResourceDependenciesPending`,
+  and `ResourcesNotReady` as progressing (NotReady) instead of Failed.
+- eb94bf1: Fix Deploy UI showing Failed for ProjectReleaseBinding during namespace provisioning
+- Updated dependencies [4c7f96c]
+- Updated dependencies [a3e7d3f]
+- Updated dependencies [c234b33]
+- Updated dependencies [a958b80]
+- Updated dependencies [497b480]
+- Updated dependencies [ce31a0e]
+- Updated dependencies [0a7d538]
+- Updated dependencies [67ba0da]
+- Updated dependencies [9eb3d31]
+- Updated dependencies [435463f]
+  - @openchoreo/backstage-plugin-common@1.3.0
+  - @openchoreo/openchoreo-client-node@1.3.0
+  - @openchoreo/cell-diagram@1.3.0
+  - @openchoreo/backstage-plugin-catalog-backend-module@1.3.0
+  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@1.3.0
+  - @openchoreo/openchoreo-auth@1.3.0
+
 ## 1.3.0-next.0
 
 ### Minor Changes

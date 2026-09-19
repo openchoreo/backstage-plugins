@@ -1,5 +1,11 @@
 # @openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users
 
+## 1.3.0
+
+### Patch Changes
+
+- @openchoreo/backstage-plugin-thunder-idp-client-node@1.3.0
+
 ## 1.2.0
 
 ### Patch Changes
