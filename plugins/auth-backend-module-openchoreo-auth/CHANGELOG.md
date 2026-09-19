@@ -1,6 +1,6 @@
 # @openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth
 
-## 2.0.0
+## 1.3.0
 
 ### Patch Changes
 

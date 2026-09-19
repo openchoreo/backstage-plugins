@@ -1,6 +1,6 @@
 # @openchoreo/backstage-plugin
 
-## 2.0.0
+## 1.3.0
 
 ### Minor Changes
 
@@ -152,10 +152,10 @@
 - Updated dependencies [762b22a]
 - Updated dependencies [0a7d538]
 - Updated dependencies [d7f12e6]
-  - @openchoreo/backstage-design-system@2.0.0
-  - @openchoreo/backstage-plugin-common@2.0.0
-  - @openchoreo/backstage-plugin-react@2.0.0
-  - @openchoreo/cell-diagram@2.0.0
+  - @openchoreo/backstage-design-system@1.3.0
+  - @openchoreo/backstage-plugin-common@1.3.0
+  - @openchoreo/backstage-plugin-react@1.3.0
+  - @openchoreo/cell-diagram@1.3.0
 
 ## 1.3.0-next.0
 

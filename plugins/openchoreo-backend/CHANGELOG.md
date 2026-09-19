@@ -1,6 +1,6 @@
 # @openchoreo/backstage-plugin-backend
 
-## 2.0.0
+## 1.3.0
 
 ### Minor Changes
 
@@ -25,11 +25,11 @@
 - Updated dependencies [67ba0da]
 - Updated dependencies [9eb3d31]
 - Updated dependencies [435463f]
-  - @openchoreo/backstage-plugin-common@2.0.0
-  - @openchoreo/openchoreo-client-node@2.0.0
-  - @openchoreo/cell-diagram@2.0.0
-  - @openchoreo/backstage-plugin-catalog-backend-module@2.0.0
-  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@2.0.0
+  - @openchoreo/backstage-plugin-common@1.3.0
+  - @openchoreo/openchoreo-client-node@1.3.0
+  - @openchoreo/cell-diagram@1.3.0
+  - @openchoreo/backstage-plugin-catalog-backend-module@1.3.0
+  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@1.3.0
   - @openchoreo/openchoreo-auth@1.3.0
 
 ## 1.3.0-next.0

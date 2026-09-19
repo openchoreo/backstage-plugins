@@ -1,6 +1,6 @@
 # @openchoreo/backstage-plugin-catalog-backend-module
 
-## 2.0.0
+## 1.3.0
 
 ### Patch Changes
 
@@ -29,9 +29,9 @@
 - Updated dependencies [ce31a0e]
 - Updated dependencies [0a7d538]
 - Updated dependencies [435463f]
-  - @openchoreo/backstage-plugin-common@2.0.0
-  - @openchoreo/openchoreo-client-node@2.0.0
-  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@2.0.0
+  - @openchoreo/backstage-plugin-common@1.3.0
+  - @openchoreo/openchoreo-client-node@1.3.0
+  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@1.3.0
   - @openchoreo/openchoreo-auth@1.3.0
 
 ## 1.3.0-next.0

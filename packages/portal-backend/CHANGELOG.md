@@ -1,6 +1,6 @@
 # @openchoreo/backstage-portal-backend
 
-## 2.0.0
+## 1.3.0
 
 ### Minor Changes
 
@@ -23,15 +23,15 @@
 - Updated dependencies [4278619]
 - Updated dependencies [435463f]
 - Updated dependencies [eb94bf1]
-  - @openchoreo/backstage-plugin-openchoreo-observability-backend@2.0.0
-  - @openchoreo/backstage-plugin-scaffolder-backend-module@2.0.0
-  - @openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth@2.0.0
-  - @openchoreo/backstage-plugin-backend@2.0.0
-  - @openchoreo/backstage-plugin-catalog-backend-module@2.0.0
-  - @openchoreo/backstage-plugin-openchoreo-ci-backend@2.0.0
-  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@2.0.0
-  - @openchoreo/backstage-plugin-openchoreo-workflows-backend@2.0.0
-  - @openchoreo/backstage-plugin-platform-engineer-core-backend@2.0.0
+  - @openchoreo/backstage-plugin-openchoreo-observability-backend@1.3.0
+  - @openchoreo/backstage-plugin-scaffolder-backend-module@1.3.0
+  - @openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth@1.3.0
+  - @openchoreo/backstage-plugin-backend@1.3.0
+  - @openchoreo/backstage-plugin-catalog-backend-module@1.3.0
+  - @openchoreo/backstage-plugin-openchoreo-ci-backend@1.3.0
+  - @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy@1.3.0
+  - @openchoreo/backstage-plugin-openchoreo-workflows-backend@1.3.0
+  - @openchoreo/backstage-plugin-platform-engineer-core-backend@1.3.0
   - @openchoreo/openchoreo-auth@1.3.0
   - @openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users@1.3.0
 

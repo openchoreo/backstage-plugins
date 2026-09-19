@@ -1,6 +1,6 @@
 # @openchoreo/backstage-plugin-common
 
-## 2.0.0
+## 1.3.0
 
 ### Minor Changes
 
@@ -134,7 +134,7 @@
 - Updated dependencies [a3e7d3f]
 - Updated dependencies [c234b33]
 - Updated dependencies [435463f]
-  - @openchoreo/openchoreo-client-node@2.0.0
+  - @openchoreo/openchoreo-client-node@1.3.0
 
 ## 1.3.0-next.0
 
