@@ -1,5 +1,20 @@
 # @openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [4c7f96c]
+- Updated dependencies [a3e7d3f]
+- Updated dependencies [c234b33]
+- Updated dependencies [a958b80]
+- Updated dependencies [ce31a0e]
+- Updated dependencies [0a7d538]
+- Updated dependencies [435463f]
+  - @openchoreo/backstage-plugin-common@2.0.0
+  - @openchoreo/openchoreo-client-node@2.0.0
+  - @openchoreo/openchoreo-auth@1.3.0
+
 ## 1.3.0-next.0
 
 ### Patch Changes

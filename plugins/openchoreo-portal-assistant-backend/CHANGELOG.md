@@ -1,5 +1,7 @@
 # @openchoreo/backstage-plugin-openchoreo-portal-assistant-backend
 
+## 1.3.0
+
 ## 2.0.0
 
 ### Major Changes
