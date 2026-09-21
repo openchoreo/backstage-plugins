@@ -52,14 +52,6 @@ const hasAnyPoints = (metrics?: ResourceMetrics | null): boolean =>
   Object.values(metrics?.memoryUsage ?? {}).some(series => series?.length > 0);
 
 /**
- * How many components the breakdown selects for the user when they switch to
- * it. The breakdown sends one request per component, so a 30-component project
- * must not fan out 30 ways on one click. The selector shows exactly which ones
- * are on, and the user adds the rest.
- */
-export const AUTO_SELECTED_COMPONENT_LIMIT = 1;
-
-/**
  * Project (System entity) Metrics tab.
  *
  * Two views over the same filter bar, chosen by the segmented control:
@@ -206,8 +198,8 @@ const ObservabilityProjectMetricsContent = () => {
   };
 
   // The control changes the charts on click. Entering the breakdown with no
-  // selection would show nothing, so it selects components up to the fan-out
-  // limit; leaving it clears the selection, so the URL matches the charts.
+  // selection would show nothing, so it selects every component. Leaving it
+  // clears the selection, so the URL matches the charts.
   const handleViewModeChange = (next: MetricsViewMode) => {
     if (next === viewMode) return;
 
@@ -220,9 +212,7 @@ const ObservabilityProjectMetricsContent = () => {
       view: 'breakdown',
       components: hasSelection
         ? selectedComponents
-        : components
-            .slice(0, AUTO_SELECTED_COMPONENT_LIMIT)
-            .map(component => component.name),
+        : components.map(component => component.name),
     });
   };
 

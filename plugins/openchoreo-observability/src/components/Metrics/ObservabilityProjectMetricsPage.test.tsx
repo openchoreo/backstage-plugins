@@ -2,10 +2,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderInTestApp } from '@backstage/test-utils';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
-import {
-  AUTO_SELECTED_COMPONENT_LIMIT,
-  ObservabilityProjectMetricsPage,
-} from './ObservabilityProjectMetricsPage';
+import { ObservabilityProjectMetricsPage } from './ObservabilityProjectMetricsPage';
 
 // ---- Mocks (own hooks and child components only) ----
 
@@ -668,14 +665,14 @@ describe('ObservabilityProjectMetricsPage', () => {
       await userEvent.click(screen.getByTestId('view-breakdown'));
 
       // Charting nothing would be the old dead state, so the view arrives with
-      // a selection already made.
+      // every component already selected.
       expect(updateFilters).toHaveBeenCalledWith({
         view: 'breakdown',
-        components: ['api', 'worker'].slice(0, AUTO_SELECTED_COMPONENT_LIMIT),
+        components: ['api', 'worker'],
       });
     });
 
-    it('selects no more components than the fan-out limit', async () => {
+    it('selects every component in a large project', async () => {
       const all = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
       mockUseGetComponentsByProject.mockReturnValue({
         components: all.map(name => ({ name })),
@@ -687,12 +684,11 @@ describe('ObservabilityProjectMetricsPage', () => {
       await renderPage();
       await userEvent.click(screen.getByTestId('view-breakdown'));
 
-      // One request per selected component, so a large project must not fan
-      // out every way on one click.
-      expect(all.length).toBeGreaterThan(AUTO_SELECTED_COMPONENT_LIMIT);
+      // One request per selected component, and the breakdown selects them
+      // all, so the click fans out every way.
       expect(updateFilters).toHaveBeenCalledWith({
         view: 'breakdown',
-        components: all.slice(0, AUTO_SELECTED_COMPONENT_LIMIT),
+        components: all,
       });
     });
 
