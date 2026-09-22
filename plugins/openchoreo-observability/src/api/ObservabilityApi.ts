@@ -103,7 +103,7 @@ export interface ObservabilityApi {
 
   getMetrics(
     environmentName: string,
-    componentName: string,
+    componentName: string | undefined,
     namespaceName: string,
     projectName: string,
     options?: {
@@ -350,7 +350,7 @@ export class ObservabilityClient implements ObservabilityApi {
 
   async getMetrics(
     environmentName: string,
-    componentName: string,
+    componentName: string | undefined,
     namespaceName: string,
     projectName: string,
     options?: {
@@ -368,8 +368,8 @@ export class ObservabilityClient implements ObservabilityApi {
     const searchScope = {
       namespace: namespaceName,
       project: projectName,
-      component: componentName,
       environment: environmentName,
+      ...(componentName ? { component: componentName } : {}),
     };
 
     const baseBody = {

@@ -9,6 +9,7 @@ export { useComponentHasAnyCiliumEnabledEnvironment } from './useComponentHasAny
 export { useFilters } from './useFilters';
 export { useUrlFilters } from './useUrlFilters';
 export { useMetrics } from './useMetrics';
+export { useProjectMetrics } from './useProjectMetrics';
 export { useTraces } from './useTraces';
 export { useTraceSpans } from './useTraceSpans';
 export { useSpanDetails } from './useSpanDetails';
