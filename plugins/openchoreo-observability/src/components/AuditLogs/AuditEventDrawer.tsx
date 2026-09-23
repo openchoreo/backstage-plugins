@@ -180,7 +180,7 @@ export const AuditEventDrawer = ({
                 <Field
                   label="Actor"
                   mono
-                  hint="Token's sub claim. Only unique within the issuer."
+                  hint="Identity claim, set per actor type. Only unique within the issuer."
                 >
                   {drill('actor.id', record.actor.id)}
                 </Field>
