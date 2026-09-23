@@ -580,6 +580,8 @@ export interface ReleaseBindingResponse {
   statusMessage?: string;
   endpoints?: ReleaseBindingEndpoint[];
   conditions?: ReleaseBindingCondition[];
+  /** The raw K8s ReleaseBinding resource, used to display the full definition */
+  resource?: Record<string, unknown>;
 }
 
 export interface ReleaseBindingCondition {
