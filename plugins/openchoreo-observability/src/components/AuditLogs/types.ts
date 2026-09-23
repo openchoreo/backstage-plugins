@@ -255,7 +255,8 @@ export function isPickableFilter(
  * matters next to `actor.id`.
  */
 export const AUDIT_FILTER_DESCRIPTIONS: Record<AuditFilterPath, string> = {
-  'actor.id': 'the token’s validated sub claim — unique only within the issuer',
+  'actor.id':
+    'readable identity claim, set per actor type. unique only within the issuer',
   'actor.type': 'kind of subject: user, service account or anonymous',
   'actor.issuer': 'the token’s iss claim — what makes an actor id unique',
   'actor.session_id': 'the token’s sid claim, joining one login’s actions',
