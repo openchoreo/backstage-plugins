@@ -127,6 +127,25 @@ export async function createRouter({
     );
   });
 
+  // DELETE /workflow-runs/:runName - Delete a workflow run
+  router.delete('/workflow-runs/:runName', requireAuth, async (req, res) => {
+    const { runName } = req.params;
+    const { namespaceName } = req.query;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    await workflowService.deleteWorkflowRun(
+      namespaceName as string,
+      runName,
+      userToken,
+    );
+    res.status(204).end();
+  });
+
   // GET /workflow-runs/:runName/logs - Get workflow run logs
   router.get('/workflow-runs/:runName/logs', async (req, res) => {
     const { runName } = req.params;

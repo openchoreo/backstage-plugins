@@ -71,6 +71,27 @@ export async function createRouter({
     );
   });
 
+  router.delete('/workflow-run', requireAuth, async (req, res) => {
+    const { componentName, projectName, namespaceName, runName } = req.query;
+
+    if (!componentName || !projectName || !namespaceName || !runName) {
+      throw new InputError(
+        'componentName, projectName, namespaceName and runName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    await workflowService.deleteWorkflowRun(
+      namespaceName as string,
+      projectName as string,
+      componentName as string,
+      runName as string,
+      userToken,
+    );
+    res.status(204).end();
+  });
+
   router.get('/workflow-run', async (req, res) => {
     const { componentName, projectName, namespaceName, runName } = req.query;
 
