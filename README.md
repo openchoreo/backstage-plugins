@@ -214,25 +214,37 @@ For day-to-day development commands (test, lint, build, plugin development workf
 
 - **`@openchoreo/backstage-plugin`** - Frontend UI components
 - **`@openchoreo/backstage-plugin-backend`** - Backend API services
-- **`@openchoreo/backstage-plugin-api`** - Shared API client library
+- **`@openchoreo/backstage-plugin-common`** - Shared types and API client
+- **`@openchoreo/backstage-plugin-react`** - Shared React components and hooks
+- **`@openchoreo/backstage-design-system`** - Design system primitives
 - **`@openchoreo/backstage-plugin-catalog-backend-module`** - Catalog entity provider
 - **`@openchoreo/backstage-plugin-scaffolder-backend-module`** - Scaffolder actions
 
 ## Installation
 
-The plugins are published to GitHub Packages. To install them in your Backstage application:
+The plugins are published to the public npm registry under the [`@openchoreo`](https://www.npmjs.com/org/openchoreo) scope. No registry configuration or authentication is required.
+
+In your **app** workspace:
 
 ```bash
-# Configure npm to use GitHub Packages for @openchoreo scope
-echo "@openchoreo:registry=https://npm.pkg.github.com" >> .npmrc
-
-# Install the plugins you need
-yarn add @openchoreo/backstage-plugin
-yarn add @openchoreo/backstage-plugin-backend
-yarn add @openchoreo/backstage-plugin-api
+yarn workspace app add \
+  @openchoreo/backstage-design-system \
+  @openchoreo/backstage-plugin-common \
+  @openchoreo/backstage-plugin-react \
+  @openchoreo/backstage-plugin
 ```
 
-Note: You'll need a GitHub personal access token with `packages:read` permission to install from GitHub Packages.
+In your **backend** workspace:
+
+```bash
+yarn workspace backend add \
+  @openchoreo/backstage-plugin-backend \
+  @openchoreo/backstage-plugin-catalog-backend-module
+```
+
+See the [installation guide](https://openchoreo.dev/docs/platform-engineer-guide/backstage-plugins/installing-into-existing-backstage/) for the full wiring.
+
+Releases from `1.2.6` onward on this line are published from CI using [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) and carry a signed [provenance attestation](https://docs.npmjs.com/generating-provenance-statements). Versions `1.1.0` through `1.2.5` were migrated from GitHub Packages and predate trusted publishing, so they have no attestation.
 
 ## Feature Flags
 

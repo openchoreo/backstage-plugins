@@ -30,7 +30,7 @@
       "@openchoreo/cell-diagram"
     ]
   ],
-  "access": "restricted",
+  "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": ["app", "backend"]

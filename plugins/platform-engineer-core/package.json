@@ -28,8 +28,7 @@
     "access": "public",
     "main": "dist/index.esm.js",
     "types": "dist/index.d.ts",
-    "alpha": "dist/alpha.esm.js",
-    "registry": "https://npm.pkg.github.com"
+    "alpha": "dist/alpha.esm.js"
   },
   "backstage": {
     "role": "frontend-plugin",
