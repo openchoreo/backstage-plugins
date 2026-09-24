@@ -34,8 +34,10 @@ export const useStyles = makeStyles(theme => ({
   },
   filterSection: {
     paddingBottom: theme.spacing(4),
-    [theme.breakpoints.down('sm')]: {
-      display: 'none', // Hide on mobile, will show in drawer
+    // Hidden only on xs (drawer takes over); visible from sm up so the kind
+    // picker stays available in the sm–md range, matching the header/drawer.
+    [theme.breakpoints.down('xs')]: {
+      display: 'none',
     },
   },
   filterDrawer: {

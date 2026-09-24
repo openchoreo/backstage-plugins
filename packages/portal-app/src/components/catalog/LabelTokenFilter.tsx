@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
@@ -127,7 +127,7 @@ function useLabelVocabulary(kind: string | undefined): LabelVocabulary {
 /** Token-style catalog filter: type a label key, then pick its values. */
 export const LabelTokenFilter = () => {
   const classes = useStyles();
-  const { filters, updateFilters } = useEntityList();
+  const { filters, updateFilters, queryParameters } = useEntityList();
   const kind = filters.kind?.value;
   const vocab = useLabelVocabulary(kind);
 
@@ -135,6 +135,46 @@ export const LabelTokenFilter = () => {
     string,
     EntityLabelFilter | undefined
   >;
+
+  // Label selections carried in the URL, keyed by filter key (`label_<key>`).
+  const queryLabelValues = useMemo(() => {
+    const params = queryParameters as Record<
+      string,
+      string | string[] | undefined
+    >;
+    const result: Record<string, string[]> = {};
+    for (const [key, value] of Object.entries(params)) {
+      if (!key.startsWith(FILTER_PREFIX)) continue;
+      const values = [value].flat().filter((v): v is string => Boolean(v));
+      if (values.length) result[key] = values;
+    }
+    return result;
+  }, [queryParameters]);
+
+  // Restore label filters from the URL on load / when it changes. Gated on the
+  // serialized URL value so the user's own edits (which write the same values
+  // back) don't loop or get overridden.
+  const prevQueryLabelsRef = useRef('');
+  useEffect(() => {
+    const serialized = JSON.stringify(queryLabelValues);
+    if (prevQueryLabelsRef.current === serialized) return;
+    prevQueryLabelsRef.current = serialized;
+
+    const patch: Record<string, EntityLabelFilter | undefined> = {};
+    for (const [filterKey, values] of Object.entries(queryLabelValues)) {
+      const current = activeFilters[filterKey]?.values ?? [];
+      const same =
+        current.length === values.length &&
+        current.every(v => values.includes(v));
+      if (!same) {
+        patch[filterKey] = new EntityLabelFilter(
+          filterKey.slice(FILTER_PREFIX.length),
+          values,
+        );
+      }
+    }
+    if (Object.keys(patch).length) updateFilters(patch as any);
+  }, [queryLabelValues, activeFilters, updateFilters]);
 
   const fields = useMemo<FilterFieldDef[]>(
     () =>
@@ -161,8 +201,9 @@ export const LabelTokenFilter = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
-  // Hide when this kind has no labels.
-  if (!vocab.loading && vocab.keys.length === 0) {
+  // Hide when this kind has no labels — but keep the bar while label filters are
+  // active so they can still be cleared after switching to such a kind.
+  if (!vocab.loading && vocab.keys.length === 0 && tokens.length === 0) {
     return null;
   }
 

@@ -71,11 +71,10 @@ export const CatalogSearchField = () => {
     return () => clearTimeout(handle);
   }, [search, updateFilters]);
 
-  // Adopt a text filter arriving via the URL (e.g. a deep link).
+  // Sync with the URL text filter — adopt deep links, and clear when it's
+  // removed so the debounce doesn't re-apply the stale value.
   useEffect(() => {
-    if (queryParamTextFilter) {
-      setSearch(queryParamTextFilter);
-    }
+    setSearch(queryParamTextFilter ?? '');
   }, [queryParamTextFilter]);
 
   return (
