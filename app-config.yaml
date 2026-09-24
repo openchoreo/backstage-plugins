@@ -418,6 +418,11 @@ catalog:
       target: ../../templates/create-openchoreo-notification-channel/template.yaml
       rules:
         - allow: [Template]
+    # Custom template: create a repository then a component in one flow.
+    - type: file
+      target: ../../templates/create-component-with-repo/template.yaml
+      rules:
+        - allow: [Template]
     # - type: file
     #   target: ../../templates/create-openchoreo-component/template.yaml
     #   rules:

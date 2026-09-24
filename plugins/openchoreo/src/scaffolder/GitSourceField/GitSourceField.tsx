@@ -11,6 +11,10 @@ import {
   Typography,
   Tooltip,
   Grid,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  FormLabel,
 } from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import AddIcon from '@material-ui/icons/Add';
@@ -29,12 +33,26 @@ import {
 import { useSecretManagementEnabled } from '@openchoreo/backstage-plugin-react';
 import { GitSecretDialog } from '../GitSecretField/GitSecretDialog';
 import { CLUSTER_WORKFLOW_NAMESPACE } from '../types';
+import {
+  RepoCreationFields,
+  RepoCreationConfig,
+} from './RepoCreationFields';
 
 export interface GitSourceData {
   repo_url: string;
   branch: string;
   component_path: string;
   git_secret_ref: string;
+  // create-repo fields (present only when repo creation is enabled)
+  mode?: 'existing' | 'create';
+  provider?: string;
+  repo_host?: string;
+  repoUrl?: string;
+  owner?: string;
+  repo_name?: string;
+  visibility?: string;
+  runtime?: string;
+  starter_url?: string;
 }
 
 interface TargetPlaneRef {
@@ -59,12 +77,7 @@ const DIVIDER = '__divider__';
 export const GitSourceFieldSchema = {
   returnValue: {
     type: 'object' as const,
-    properties: {
-      repo_url: { type: 'string' as const },
-      branch: { type: 'string' as const },
-      component_path: { type: 'string' as const },
-      git_secret_ref: { type: 'string' as const },
-    },
+    additionalProperties: true,
   },
 };
 
@@ -75,12 +88,34 @@ export const GitSourceField = ({
   uiSchema,
   rawErrors,
 }: FieldExtensionComponentProps<GitSourceData>) => {
+  // Repo creation config injected by the converter when providers are configured.
+  const repoCreation = uiSchema?.['ui:options']?.repoCreation as
+    | RepoCreationConfig
+    | undefined;
+  const repoCreationEnabled = Boolean(repoCreation?.providers?.length);
+
   const data: GitSourceData = {
     repo_url: formData?.repo_url ?? '',
     branch: formData?.branch ?? 'main',
     component_path: formData?.component_path ?? '.',
     git_secret_ref: formData?.git_secret_ref ?? '',
+    // create-repo defaults only when the feature is enabled, so templates
+    // without repo creation keep their original git_source shape.
+    ...(repoCreationEnabled
+      ? {
+          mode: formData?.mode ?? 'existing',
+          provider: formData?.provider ?? '',
+          repo_host: formData?.repo_host ?? '',
+          repoUrl: formData?.repoUrl ?? '',
+          owner: formData?.owner ?? '',
+          repo_name: formData?.repo_name ?? '',
+          visibility: formData?.visibility ?? 'private',
+          runtime: formData?.runtime ?? '',
+          starter_url: formData?.starter_url ?? '',
+        }
+      : {}),
   };
+  const createMode = repoCreationEnabled && data.mode === 'create';
 
   // Git secret state
   const [secrets, setSecrets] = useState<GitSecret[]>([]);
@@ -281,6 +316,7 @@ export const GitSourceField = ({
   formDataRef.current = formData;
 
   useEffect(() => {
+    if (formDataRef.current?.mode === 'create') return; // create-mode owns its fields
     if (!visibleFields) return; // No annotation — all fields visible, nothing to prune
 
     const visibleKeyCount = [
@@ -448,6 +484,45 @@ export const GitSourceField = ({
 
   return (
     <Box>
+      {repoCreationEnabled && (
+        <Box mb={2}>
+          <FormControl component="fieldset">
+            <FormLabel component="legend">Repository</FormLabel>
+            <RadioGroup
+              row
+              value={data.mode}
+              onChange={e =>
+                onChange({
+                  ...data,
+                  mode: e.target.value as GitSourceData['mode'],
+                })
+              }
+            >
+              <FormControlLabel
+                value="existing"
+                control={<Radio color="primary" />}
+                label="Use existing repository"
+              />
+              <FormControlLabel
+                value="create"
+                control={<Radio color="primary" />}
+                label="Create new repository"
+              />
+            </RadioGroup>
+          </FormControl>
+        </Box>
+      )}
+
+      {createMode && (
+        <RepoCreationFields
+          data={data}
+          config={repoCreation!}
+          onChange={onChange}
+          hasError={hasError}
+        />
+      )}
+
+      {!createMode && (
       <Grid container spacing={2}>
         {/* Row 1: Git Repository URL (full width) */}
         {showRepoUrl && (
@@ -595,8 +670,9 @@ export const GitSourceField = ({
           </Grid>
         )}
       </Grid>
+      )}
 
-      {showSecretRef && (
+      {showSecretRef && !createMode && (
         <GitSecretDialog
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
@@ -612,6 +688,20 @@ export const gitSourceFieldValidation = (
   value: GitSourceData,
   validation: FieldValidation,
 ) => {
+  // Create-repo mode: validate the repo details instead of an existing URL.
+  if (value?.mode === 'create') {
+    if (!value.owner?.trim()) {
+      validation.addError('Owner / Organization is required');
+    }
+    if (!value.repo_name?.trim()) {
+      validation.addError('Repository name is required');
+    }
+    if (!value.repoUrl?.trim()) {
+      validation.addError('Repository details are incomplete');
+    }
+    return;
+  }
+
   // Only validate fields that have values — conditional rendering
   // may hide some fields, so we only require them when present
   if (

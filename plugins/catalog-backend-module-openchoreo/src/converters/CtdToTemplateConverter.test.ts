@@ -712,4 +712,85 @@ describe('CtdToTemplateConverter', () => {
       expect(options.allowedTraits).toBeUndefined();
     });
   });
+
+  describe('repo creation config', () => {
+    const ctd: ComponentType = {
+      metadata: { workloadType: 'deployment', name: 'web-service' },
+      spec: { inputParametersSchema: { type: 'object', properties: {} } },
+    };
+    const gitProviders = [
+      { provider: 'github', host: 'github.com', publishAction: 'publish:github' },
+    ];
+    const gitSourceOf = (c: CtdToTemplateConverter) => {
+      const params = c.convertCtdToTemplateEntity(ctd, 'test-org').spec
+        ?.parameters as any[];
+      return params[1].properties.buildAndDeploy.properties.git_source;
+    };
+
+    it('injects repoCreation options and publish step when enabled', () => {
+      const c = new CtdToTemplateConverter({ gitProviders });
+      const gitSource = gitSourceOf(c);
+      expect(gitSource['ui:options'].repoCreation).toBeDefined();
+      expect(gitSource.properties.mode).toBeDefined();
+
+      const steps = c.convertCtdToTemplateEntity(ctd, 'test-org').spec
+        ?.steps as any[];
+      expect(steps.some(s => s.id === 'publish-github')).toBe(true);
+    });
+
+    it('uses URL mode (fetch:plain) when no skeleton config is present', () => {
+      const c = new CtdToTemplateConverter({ gitProviders });
+      const gitSource = gitSourceOf(c);
+      expect(gitSource['ui:options'].repoCreation.starterMode).toBe('url');
+      expect(gitSource.properties.starter_url).toBeDefined();
+
+      const steps = c.convertCtdToTemplateEntity(ctd, 'test-org').spec
+        ?.steps as any[];
+      const fetch = steps.find(s => s.id === 'fetch-skeleton');
+      expect(fetch.action).toBe('fetch:plain');
+      expect(fetch.if).toContain('starter_url');
+      expect(fetch.input.url).toBe(
+        '${{ parameters.buildAndDeploy.git_source.starter_url }}',
+      );
+    });
+
+    it('uses config mode (fetch:template) when starterSkeletons.baseUrl is set', () => {
+      const c = new CtdToTemplateConverter({
+        gitProviders,
+        starterSkeletons: {
+          baseUrl: 'https://github.com/org/skel/tree/main',
+          defaultRuntimes: ['nodejs'],
+        },
+      });
+      const gitSource = gitSourceOf(c);
+      expect(gitSource['ui:options'].repoCreation.starterMode).toBe('config');
+      expect(gitSource['ui:options'].repoCreation.runtimes).toEqual(['nodejs']);
+
+      const steps = c.convertCtdToTemplateEntity(ctd, 'test-org').spec
+        ?.steps as any[];
+      const fetch = steps.find(s => s.id === 'fetch-skeleton');
+      expect(fetch.action).toBe('fetch:template');
+      expect(fetch.input.url).toContain('/tree/main/');
+    });
+
+    it('omits repoCreation and publish steps when disabled by config', () => {
+      const c = new CtdToTemplateConverter({
+        gitProviders,
+        repoCreationEnabled: false,
+      });
+      const gitSource = gitSourceOf(c);
+      expect(gitSource['ui:options'].repoCreation).toBeUndefined();
+      expect(gitSource.properties.mode).toBeUndefined();
+
+      const steps = c.convertCtdToTemplateEntity(ctd, 'test-org').spec
+        ?.steps as any[];
+      expect(steps.some(s => s.id.startsWith('publish-'))).toBe(false);
+      expect(steps).toHaveLength(1);
+      expect(steps[0].id).toBe('create-component');
+      // repo_url falls back to the existing-repo field.
+      expect(steps[0].input.repo_url).toBe(
+        '${{ parameters.buildAndDeploy.git_source.repo_url }}',
+      );
+    });
+  });
 });

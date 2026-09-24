@@ -288,6 +288,13 @@ openchoreo:
     wirelogs:
       streamTimeoutSeconds: ${OPENCHOREO_OBSERVABILITY_WIRELOGS_STREAM_TIMEOUT_SECONDS}
 
+  # Scaffolder options for the generated component templates.
+  scaffolder:
+    # In-wizard repo creation (create/existing toggle + fetch/publish steps).
+    # Disabled in production; enable per-environment when git integrations are set.
+    repoCreation:
+      enabled: false
+
   # Feature flags for enabling/disabling OpenChoreo functionality
   # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED, OPENCHOREO_FEATURES_AUTHZ_ENABLED, OPENCHOREO_FEATURES_ASSISTANT_ENABLED
   features:

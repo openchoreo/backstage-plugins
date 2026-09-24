@@ -126,6 +126,17 @@ export const scaffolderFieldExtensions = [
     }),
   ),
   makeFormFieldExtension(
+    'component-type-selector-field',
+    () =>
+      import('./ComponentTypeSelectorField/ComponentTypeSelectorField'),
+    m => ({
+      name: 'ComponentTypeSelectorField',
+      component: m.ComponentTypeSelectorField,
+      schema: m.ComponentTypeSelectorFieldSchema,
+      validation: m.componentTypeSelectorFieldValidation,
+    }),
+  ),
+  makeFormFieldExtension(
     'component-type-yaml-editor',
     () => import('./ComponentTypeYamlEditor/ComponentTypeYamlEditorExtension'),
     m => ({
@@ -254,6 +265,16 @@ export const scaffolderFieldExtensions = [
       name: 'ProjectTypeYamlEditor',
       component: m.ProjectTypeYamlEditorExtension,
       validation: m.projectTypeYamlEditorValidation,
+    }),
+  ),
+  makeFormFieldExtension(
+    'repo-create-field',
+    () => import('./RepoCreateField/RepoCreateField'),
+    m => ({
+      name: 'RepoCreateField',
+      component: m.RepoCreateField,
+      schema: m.RepoCreateFieldSchema,
+      validation: m.repoCreateFieldValidation,
     }),
   ),
   makeFormFieldExtension(
