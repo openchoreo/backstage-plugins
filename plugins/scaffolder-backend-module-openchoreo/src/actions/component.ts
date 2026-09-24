@@ -98,6 +98,13 @@ export const createComponentAction = (
           z
             .string({ description: 'The description of the component' })
             .optional(),
+        owner: z =>
+          z
+            .string({
+              description:
+                'Entity ref of the owning group (e.g. group:default/team-a). Persisted as the backstage.io/owner annotation on the Component CR.',
+            })
+            .optional(),
         componentType: z =>
           z.string({ description: 'The type of the component' }),
         component_type_kind: z =>
@@ -366,6 +373,7 @@ export const createComponentAction = (
             'componentName',
             'displayName',
             'description',
+            'owner',
             'componentType',
             'deploymentSource',
             'containerImage',
@@ -460,6 +468,7 @@ export const createComponentAction = (
           componentName: ctx.input.componentName,
           displayName: ctx.input.displayName,
           description: ctx.input.description,
+          owner: ctx.input.owner,
           namespaceName: namespaceName,
           projectName: projectName,
           componentType: ctx.input.componentType,
@@ -677,13 +686,19 @@ export const createComponentAction = (
             config.getOptionalString('openchoreo.defaultOwner') || 'guests';
           const componentTypeUtils = ComponentTypeUtils.fromConfig(config);
 
+          // Honour the selected owner for the immediate insert so the catalog
+          // links the component to its group right away. Subsequent scheduled
+          // syncs resolve the same owner from the CR's backstage.io/owner
+          // annotation (see resolveComponentOwner), so the two paths agree.
+          const componentOwner = ctx.input.owner?.trim() || defaultOwner;
+
           // Use the shared translation utility for consistency with scheduled sync
           const entity = translateComponentToEntity(
             component,
             namespaceName,
             projectName,
             {
-              defaultOwner,
+              defaultOwner: componentOwner,
               componentTypeUtils,
               locationKey: 'provider:OpenChoreoEntityProvider',
             },

@@ -244,6 +244,18 @@ export class CtdToTemplateConverter {
           type: 'string',
           description: 'Brief description of what this component does',
         },
+        owner: {
+          title: 'Owner',
+          type: 'string',
+          description:
+            'The group that owns this component.',
+          'ui:field': 'OwnerPicker',
+          'ui:options': {
+            catalogFilter: {
+              kind: ['Group'],
+            },
+          },
+        },
       },
     };
 
@@ -585,6 +597,7 @@ export class CtdToTemplateConverter {
           componentName: '${{ parameters.component_name }}',
           displayName: '${{ parameters.displayName }}',
           description: '${{ parameters.description }}',
+          owner: '${{ parameters.owner }}',
 
           // Component Type
           componentType: componentType.metadata.name,
