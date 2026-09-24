@@ -135,7 +135,9 @@ function readGitProviders(config: Config): GitProviderConfig[] {
 }
 
 /** Read `openchoreo.scaffolder.starterSkeletons` config, if present. */
-function readStarterSkeletons(config: Config): StarterSkeletonConfig | undefined {
+function readStarterSkeletons(
+  config: Config,
+): StarterSkeletonConfig | undefined {
   const cfg = config.getOptionalConfig(
     'openchoreo.scaffolder.starterSkeletons',
   );
@@ -206,8 +208,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       defaultOwner: this.defaultOwner,
       gitProviders: readGitProviders(config),
       repoCreationEnabled:
-        config.getOptionalBoolean('openchoreo.scaffolder.repoCreation.enabled') ??
-        true,
+        config.getOptionalBoolean(
+          'openchoreo.scaffolder.repoCreation.enabled',
+        ) ?? true,
       starterSkeletons: readStarterSkeletons(config),
     });
     // Initialize RTD to Template converter — generates per-type Resource

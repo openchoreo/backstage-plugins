@@ -131,7 +131,10 @@ export const LabelTokenFilter = () => {
   const kind = filters.kind?.value;
   const vocab = useLabelVocabulary(kind);
 
-  const activeFilters = filters as Record<string, EntityLabelFilter | undefined>;
+  const activeFilters = filters as Record<
+    string,
+    EntityLabelFilter | undefined
+  >;
 
   const fields = useMemo<FilterFieldDef[]>(
     () =>

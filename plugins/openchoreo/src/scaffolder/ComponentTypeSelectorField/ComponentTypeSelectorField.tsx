@@ -104,7 +104,8 @@ export const ComponentTypeSelectorField = ({
         const res = await catalogApi.getEntities({
           filter: {
             kind: 'Template',
-            [`metadata.annotations.${CHOREO_ANNOTATIONS.CTD_GENERATED}`]: 'true',
+            [`metadata.annotations.${CHOREO_ANNOTATIONS.CTD_GENERATED}`]:
+              'true',
           },
         });
         if (ignore) return;
@@ -118,7 +119,10 @@ export const ComponentTypeSelectorField = ({
             return {
               key: `${kind}:${ann[CHOREO_ANNOTATIONS.CTD_NAME]}`,
               name: ann[CHOREO_ANNOTATIONS.CTD_NAME] ?? '',
-              title: (e.metadata.title as string) ?? ann[CHOREO_ANNOTATIONS.CTD_NAME] ?? '',
+              title:
+                (e.metadata.title as string) ??
+                ann[CHOREO_ANNOTATIONS.CTD_NAME] ??
+                '',
               kind,
               workloadType: ann[CHOREO_ANNOTATIONS.WORKLOAD_TYPE] ?? '',
               namespace: e.metadata.namespace ?? 'default',
@@ -235,9 +239,7 @@ export const ComponentTypeSelectorField = ({
           <Typography variant="body2">Loading parameters…</Typography>
         </Box>
       )}
-      {schemaError && (
-        <FormHelperText error>{schemaError}</FormHelperText>
-      )}
+      {schemaError && <FormHelperText error>{schemaError}</FormHelperText>}
       {!schemaLoading && schema && formData?.componentType && (
         <Box mt={2}>
           <ComponentTypeParamsForm

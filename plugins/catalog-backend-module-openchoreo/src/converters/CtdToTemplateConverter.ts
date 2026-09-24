@@ -247,8 +247,7 @@ export class CtdToTemplateConverter {
         owner: {
           title: 'Owner',
           type: 'string',
-          description:
-            'The group that owns this component.',
+          description: 'The group that owns this component.',
           'ui:field': 'OwnerPicker',
           'ui:options': {
             catalogFilter: {
@@ -393,10 +392,7 @@ export class CtdToTemplateConverter {
         },
         // build-from-source branch
         workflow_name: workflowField,
-        git_source: this.generateGitSourceField(
-          componentType,
-          namespaceName,
-        ),
+        git_source: this.generateGitSourceField(componentType, namespaceName),
         workflow_parameters: {
           title: 'Workflow Parameters',
           type: 'object',
@@ -648,7 +644,10 @@ export class CtdToTemplateConverter {
         if: createMode,
         action: 'fetch:template',
         input: {
-          url: `${baseUrl.replace(/\/$/, '')}/\${{ parameters.buildAndDeploy.git_source.runtime }}`,
+          url: `${baseUrl.replace(
+            /\/$/,
+            '',
+          )}/\${{ parameters.buildAndDeploy.git_source.runtime }}`,
           values: {
             componentName: '${{ parameters.component_name }}',
             description: '${{ parameters.description }}',

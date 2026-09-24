@@ -29,7 +29,7 @@ describe('extractMetadataLabels', () => {
         labels: {
           'metadata.openchoreo.dev/cloud-provider': 'azure',
           'acme.com/team': 'payments',
-          'tier': 'gold',
+          tier: 'gold',
           'openchoreo.io/managed': 'true',
           'openchoreo.dev/project': 'checkout',
           'app.kubernetes.io/name': 'checkout',

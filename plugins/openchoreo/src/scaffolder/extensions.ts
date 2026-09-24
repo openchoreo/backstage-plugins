@@ -127,8 +127,7 @@ export const scaffolderFieldExtensions = [
   ),
   makeFormFieldExtension(
     'component-type-selector-field',
-    () =>
-      import('./ComponentTypeSelectorField/ComponentTypeSelectorField'),
+    () => import('./ComponentTypeSelectorField/ComponentTypeSelectorField'),
     m => ({
       name: 'ComponentTypeSelectorField',
       component: m.ComponentTypeSelectorField,

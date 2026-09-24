@@ -33,10 +33,7 @@ import {
 import { useSecretManagementEnabled } from '@openchoreo/backstage-plugin-react';
 import { GitSecretDialog } from '../GitSecretField/GitSecretDialog';
 import { CLUSTER_WORKFLOW_NAMESPACE } from '../types';
-import {
-  RepoCreationFields,
-  RepoCreationConfig,
-} from './RepoCreationFields';
+import { RepoCreationFields, RepoCreationConfig } from './RepoCreationFields';
 
 export interface GitSourceData {
   repo_url: string;
@@ -523,153 +520,153 @@ export const GitSourceField = ({
       )}
 
       {!createMode && (
-      <Grid container spacing={2}>
-        {/* Row 1: Git Repository URL (full width) */}
-        {showRepoUrl && (
-          <Grid item xs={12}>
-            <TextField
-              label="Git Repository URL"
-              value={data.repo_url}
-              onChange={e => updateField('repo_url', e.target.value)}
-              fullWidth
-              variant="outlined"
-              required
-              error={hasError && !data.repo_url}
-              helperText="URL of the Git repository containing your source code"
-              autoComplete="url"
-            />
-          </Grid>
-        )}
+        <Grid container spacing={2}>
+          {/* Row 1: Git Repository URL (full width) */}
+          {showRepoUrl && (
+            <Grid item xs={12}>
+              <TextField
+                label="Git Repository URL"
+                value={data.repo_url}
+                onChange={e => updateField('repo_url', e.target.value)}
+                fullWidth
+                variant="outlined"
+                required
+                error={hasError && !data.repo_url}
+                helperText="URL of the Git repository containing your source code"
+                autoComplete="url"
+              />
+            </Grid>
+          )}
 
-        {/* Row 2: Branch (half) + Application Path (half) */}
-        {showBranch && (
-          <Grid item xs={12} sm={showAppPath ? 6 : 12}>
-            <TextField
-              label="Branch"
-              value={data.branch}
-              onChange={e => updateField('branch', e.target.value)}
-              fullWidth
-              variant="outlined"
-              required
-              error={hasError && !data.branch}
-              helperText="Git branch to build from"
-              autoComplete="off"
-            />
-          </Grid>
-        )}
-        {showAppPath && (
-          <Grid item xs={12} sm={showBranch ? 6 : 12}>
-            <TextField
-              label="Application Path"
-              value={data.component_path}
-              onChange={e => updateField('component_path', e.target.value)}
-              fullWidth
-              variant="outlined"
-              helperText="Path to the application directory within the repository"
-              autoComplete="off"
-            />
-          </Grid>
-        )}
+          {/* Row 2: Branch (half) + Application Path (half) */}
+          {showBranch && (
+            <Grid item xs={12} sm={showAppPath ? 6 : 12}>
+              <TextField
+                label="Branch"
+                value={data.branch}
+                onChange={e => updateField('branch', e.target.value)}
+                fullWidth
+                variant="outlined"
+                required
+                error={hasError && !data.branch}
+                helperText="Git branch to build from"
+                autoComplete="off"
+              />
+            </Grid>
+          )}
+          {showAppPath && (
+            <Grid item xs={12} sm={showBranch ? 6 : 12}>
+              <TextField
+                label="Application Path"
+                value={data.component_path}
+                onChange={e => updateField('component_path', e.target.value)}
+                fullWidth
+                variant="outlined"
+                helperText="Path to the application directory within the repository"
+                autoComplete="off"
+              />
+            </Grid>
+          )}
 
-        {/* Row 3: Git Secret (full width) */}
-        {showSecretRef && (
-          <Grid item xs={12}>
-            <FormControl fullWidth error={!!secretsError}>
-              <Autocomplete
-                options={secretOptions}
-                value={getSecretDisplayValue()}
-                onChange={handleSecretChange}
-                loading={secretsLoading}
-                getOptionLabel={option => {
-                  if (option === CREATE_NEW_SECRET)
-                    return 'Create New Git Secret';
-                  if (option === NO_SECRET) return 'No Secret';
-                  if (option === DIVIDER) return '';
-                  return option;
-                }}
-                renderOption={option => {
-                  if (option === CREATE_NEW_SECRET) {
-                    if (!canCreateSecret) {
-                      return (
-                        <Tooltip
-                          title={createDisabledReason}
-                          placement="bottom-start"
-                        >
-                          <span
-                            style={{ pointerEvents: 'auto', width: '100%' }}
+          {/* Row 3: Git Secret (full width) */}
+          {showSecretRef && (
+            <Grid item xs={12}>
+              <FormControl fullWidth error={!!secretsError}>
+                <Autocomplete
+                  options={secretOptions}
+                  value={getSecretDisplayValue()}
+                  onChange={handleSecretChange}
+                  loading={secretsLoading}
+                  getOptionLabel={option => {
+                    if (option === CREATE_NEW_SECRET)
+                      return 'Create New Git Secret';
+                    if (option === NO_SECRET) return 'No Secret';
+                    if (option === DIVIDER) return '';
+                    return option;
+                  }}
+                  renderOption={option => {
+                    if (option === CREATE_NEW_SECRET) {
+                      if (!canCreateSecret) {
+                        return (
+                          <Tooltip
+                            title={createDisabledReason}
+                            placement="bottom-start"
                           >
-                            <Box
-                              display="flex"
-                              alignItems="center"
-                              style={{ gap: 8 }}
+                            <span
+                              style={{ pointerEvents: 'auto', width: '100%' }}
                             >
-                              <AddIcon fontSize="small" color="disabled" />
-                              <Typography color="textSecondary">
-                                Create New Git Secret
-                              </Typography>
-                            </Box>
-                          </span>
-                        </Tooltip>
+                              <Box
+                                display="flex"
+                                alignItems="center"
+                                style={{ gap: 8 }}
+                              >
+                                <AddIcon fontSize="small" color="disabled" />
+                                <Typography color="textSecondary">
+                                  Create New Git Secret
+                                </Typography>
+                              </Box>
+                            </span>
+                          </Tooltip>
+                        );
+                      }
+                      return (
+                        <Box
+                          display="flex"
+                          alignItems="center"
+                          style={{ gap: 8 }}
+                        >
+                          <AddIcon fontSize="small" color="primary" />
+                          <Typography color="primary">
+                            Create New Git Secret
+                          </Typography>
+                        </Box>
                       );
                     }
-                    return (
-                      <Box
-                        display="flex"
-                        alignItems="center"
-                        style={{ gap: 8 }}
-                      >
-                        <AddIcon fontSize="small" color="primary" />
-                        <Typography color="primary">
-                          Create New Git Secret
-                        </Typography>
-                      </Box>
-                    );
+                    if (option === NO_SECRET) {
+                      return <Typography>No Secret</Typography>;
+                    }
+                    if (option === DIVIDER) {
+                      return <Divider style={{ margin: 0, width: '100%' }} />;
+                    }
+                    return <Typography>{option}</Typography>;
+                  }}
+                  getOptionDisabled={option =>
+                    option === DIVIDER ||
+                    (option === CREATE_NEW_SECRET && !canCreateSecret)
                   }
-                  if (option === NO_SECRET) {
-                    return <Typography>No Secret</Typography>;
-                  }
-                  if (option === DIVIDER) {
-                    return <Divider style={{ margin: 0, width: '100%' }} />;
-                  }
-                  return <Typography>{option}</Typography>;
-                }}
-                getOptionDisabled={option =>
-                  option === DIVIDER ||
-                  (option === CREATE_NEW_SECRET && !canCreateSecret)
-                }
-                renderInput={params => (
-                  <TextField
-                    {...params}
-                    label="Git Secret"
-                    variant="outlined"
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {secretsLoading ? (
-                            <CircularProgress size={20} />
-                          ) : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      label="Git Secret"
+                      variant="outlined"
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {secretsLoading ? (
+                              <CircularProgress size={20} />
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                  noOptionsText={secretNoOptionsText}
+                />
+                {secretsError && (
+                  <FormHelperText error>{secretsError}</FormHelperText>
                 )}
-                noOptionsText={secretNoOptionsText}
-              />
-              {secretsError && (
-                <FormHelperText error>{secretsError}</FormHelperText>
-              )}
-              {!secretsError && (
-                <FormHelperText>
-                  Secret reference for private repository credentials (optional
-                  for public repos)
-                </FormHelperText>
-              )}
-            </FormControl>
-          </Grid>
-        )}
-      </Grid>
+                {!secretsError && (
+                  <FormHelperText>
+                    Secret reference for private repository credentials
+                    (optional for public repos)
+                  </FormHelperText>
+                )}
+              </FormControl>
+            </Grid>
+          )}
+        </Grid>
       )}
 
       {showSecretRef && !createMode && (

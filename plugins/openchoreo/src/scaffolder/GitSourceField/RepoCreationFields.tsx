@@ -47,7 +47,8 @@ export const RepoCreationFields = ({
   const starterMode = config.starterMode ?? 'url';
 
   // Default to the only host when there's exactly one.
-  const host = data.repo_host || (providers.length === 1 ? providers[0].host : '');
+  const host =
+    data.repo_host || (providers.length === 1 ? providers[0].host : '');
   const providerOf = (h: string) =>
     providers.find(p => p.host === h)?.provider ?? '';
 
@@ -55,7 +56,11 @@ export const RepoCreationFields = ({
     const next = { ...data, ...patch };
     const nextHost = next.repo_host || '';
     next.provider = providerOf(nextHost);
-    next.repoUrl = buildRepoUrl(nextHost, next.owner ?? '', next.repo_name ?? '');
+    next.repoUrl = buildRepoUrl(
+      nextHost,
+      next.owner ?? '',
+      next.repo_name ?? '',
+    );
     onChange(next);
   };
 

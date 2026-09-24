@@ -719,7 +719,11 @@ describe('CtdToTemplateConverter', () => {
       spec: { inputParametersSchema: { type: 'object', properties: {} } },
     };
     const gitProviders = [
-      { provider: 'github', host: 'github.com', publishAction: 'publish:github' },
+      {
+        provider: 'github',
+        host: 'github.com',
+        publishAction: 'publish:github',
+      },
     ];
     const gitSourceOf = (c: CtdToTemplateConverter) => {
       const params = c.convertCtdToTemplateEntity(ctd, 'test-org').spec

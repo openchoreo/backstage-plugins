@@ -1354,25 +1354,25 @@ export function translateNewProjectToEntity(
 ): Entity {
   return applyMetadataLabels(
     translateProjectToEntity(
-    {
-      name: getName(project)!,
-      displayName: getDisplayName(project),
-      description: getDescription(project),
-      namespaceName: getNamespace(project) ?? namespaceName,
-      uid: getUid(project),
-      deletionTimestamp: getDeletionTimestamp(project),
-      deploymentPipelineRef: project.spec?.deploymentPipelineRef?.name,
-      projectTypeName: project.spec?.type?.name,
-      projectTypeKind: project.spec?.type?.kind as
-        | 'ProjectType'
-        | 'ClusterProjectType'
-        | undefined,
-    },
-    namespaceName,
-    {
-      locationKey: ctx.providerName,
-      defaultOwner: resolveProjectOwner(project, ctx.defaultOwner),
-    },
+      {
+        name: getName(project)!,
+        displayName: getDisplayName(project),
+        description: getDescription(project),
+        namespaceName: getNamespace(project) ?? namespaceName,
+        uid: getUid(project),
+        deletionTimestamp: getDeletionTimestamp(project),
+        deploymentPipelineRef: project.spec?.deploymentPipelineRef?.name,
+        projectTypeName: project.spec?.type?.name,
+        projectTypeKind: project.spec?.type?.kind as
+          | 'ProjectType'
+          | 'ClusterProjectType'
+          | undefined,
+      },
+      namespaceName,
+      {
+        locationKey: ctx.providerName,
+        defaultOwner: resolveProjectOwner(project, ctx.defaultOwner),
+      },
     ),
     project,
   );
@@ -1469,67 +1469,67 @@ export function translateNewEnvironmentToEntity(
   const ingress = env.spec?.gateway?.ingress;
   return applyMetadataLabels(
     translateEnvironmentToEntity(
-    {
-      name: getName(env)!,
-      displayName: getDisplayName(env),
-      description: getDescription(env),
-      uid: getUid(env),
-      isProduction: env.spec?.isProduction,
-      dataPlaneRef: env.spec?.dataPlaneRef
-        ? {
-            kind: env.spec.dataPlaneRef.kind,
-            name: env.spec.dataPlaneRef.name,
-          }
-        : undefined,
-      dnsPrefix: ingress?.external?.http?.host,
-      gateway: ingress
-        ? {
-            ingress: {
-              external: ingress.external
-                ? {
-                    name: ingress.external.name,
-                    namespace: ingress.external.namespace,
-                    http: ingress.external.http
-                      ? {
-                          host: ingress.external.http.host,
-                          port: ingress.external.http.port,
-                        }
-                      : undefined,
-                    https: ingress.external.https
-                      ? {
-                          host: ingress.external.https.host,
-                          port: ingress.external.https.port,
-                        }
-                      : undefined,
-                  }
-                : undefined,
-              internal: ingress.internal
-                ? {
-                    name: ingress.internal.name,
-                    namespace: ingress.internal.namespace,
-                    http: ingress.internal.http
-                      ? {
-                          host: ingress.internal.http.host,
-                          port: ingress.internal.http.port,
-                        }
-                      : undefined,
-                    https: ingress.internal.https
-                      ? {
-                          host: ingress.internal.https.host,
-                          port: ingress.internal.https.port,
-                        }
-                      : undefined,
-                  }
-                : undefined,
-            },
-          }
-        : undefined,
-      createdAt: getCreatedAt(env),
-      status: isReady(env) ? 'Ready' : 'Not Ready',
-      deletionTimestamp: getDeletionTimestamp(env),
-    },
-    namespaceName,
-    { locationKey: ctx.providerName },
+      {
+        name: getName(env)!,
+        displayName: getDisplayName(env),
+        description: getDescription(env),
+        uid: getUid(env),
+        isProduction: env.spec?.isProduction,
+        dataPlaneRef: env.spec?.dataPlaneRef
+          ? {
+              kind: env.spec.dataPlaneRef.kind,
+              name: env.spec.dataPlaneRef.name,
+            }
+          : undefined,
+        dnsPrefix: ingress?.external?.http?.host,
+        gateway: ingress
+          ? {
+              ingress: {
+                external: ingress.external
+                  ? {
+                      name: ingress.external.name,
+                      namespace: ingress.external.namespace,
+                      http: ingress.external.http
+                        ? {
+                            host: ingress.external.http.host,
+                            port: ingress.external.http.port,
+                          }
+                        : undefined,
+                      https: ingress.external.https
+                        ? {
+                            host: ingress.external.https.host,
+                            port: ingress.external.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+                internal: ingress.internal
+                  ? {
+                      name: ingress.internal.name,
+                      namespace: ingress.internal.namespace,
+                      http: ingress.internal.http
+                        ? {
+                            host: ingress.internal.http.host,
+                            port: ingress.internal.http.port,
+                          }
+                        : undefined,
+                      https: ingress.internal.https
+                        ? {
+                            host: ingress.internal.https.host,
+                            port: ingress.internal.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+              },
+            }
+          : undefined,
+        createdAt: getCreatedAt(env),
+        status: isReady(env) ? 'Ready' : 'Not Ready',
+        deletionTimestamp: getDeletionTimestamp(env),
+      },
+      namespaceName,
+      { locationKey: ctx.providerName },
     ),
     env,
   );
@@ -1583,76 +1583,76 @@ export function translateNewDataplaneToEntity(
 
   return applyMetadataLabels(
     {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'Dataplane',
-    metadata: {
-      name: dpName,
-      namespace: namespaceName,
-      title: getDisplayName(dp) || dpName,
-      description: getDescription(dp) || `${dpName} dataplane`,
-      tags: ['openchoreo', 'dataplane', 'infrastructure'],
-      annotations: {
-        ...managedAnnotations(ctx.providerName),
-        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-        [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(dp) || '',
-        [CHOREO_ANNOTATIONS.STATUS]: isCreated(dp) ? 'Ready' : 'Not Ready',
-        [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
-        ...mapAgentConnectionAnnotations(dp.status?.agentConnection),
-        ...(getDeletionTimestamp(dp) && {
-          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(dp)!,
-        }),
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Dataplane',
+      metadata: {
+        name: dpName,
+        namespace: namespaceName,
+        title: getDisplayName(dp) || dpName,
+        description: getDescription(dp) || `${dpName} dataplane`,
+        tags: ['openchoreo', 'dataplane', 'infrastructure'],
+        annotations: {
+          ...managedAnnotations(ctx.providerName),
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(dp) || '',
+          [CHOREO_ANNOTATIONS.STATUS]: isCreated(dp) ? 'Ready' : 'Not Ready',
+          [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
+          ...mapAgentConnectionAnnotations(dp.status?.agentConnection),
+          ...(getDeletionTimestamp(dp) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(dp)!,
+          }),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/dataplane': 'true',
+        },
       },
-      labels: {
-        [CHOREO_LABELS.MANAGED]: 'true',
-        'openchoreo.io/dataplane': 'true',
+      spec: {
+        domain: `default/${namespaceName}`,
+        gateway: ingress
+          ? {
+              ingress: {
+                external: ingress.external
+                  ? {
+                      name: ingress.external.name,
+                      namespace: ingress.external.namespace,
+                      http: ingress.external.http
+                        ? {
+                            host: ingress.external.http.host,
+                            port: ingress.external.http.port,
+                          }
+                        : undefined,
+                      https: ingress.external.https
+                        ? {
+                            host: ingress.external.https.host,
+                            port: ingress.external.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+                internal: ingress.internal
+                  ? {
+                      name: ingress.internal.name,
+                      namespace: ingress.internal.namespace,
+                      http: ingress.internal.http
+                        ? {
+                            host: ingress.internal.http.host,
+                            port: ingress.internal.http.port,
+                          }
+                        : undefined,
+                      https: ingress.internal.https
+                        ? {
+                            host: ingress.internal.https.host,
+                            port: ingress.internal.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+              },
+            }
+          : undefined,
+        observabilityPlaneRef: normalizedObsRef,
       },
-    },
-    spec: {
-      domain: `default/${namespaceName}`,
-      gateway: ingress
-        ? {
-            ingress: {
-              external: ingress.external
-                ? {
-                    name: ingress.external.name,
-                    namespace: ingress.external.namespace,
-                    http: ingress.external.http
-                      ? {
-                          host: ingress.external.http.host,
-                          port: ingress.external.http.port,
-                        }
-                      : undefined,
-                    https: ingress.external.https
-                      ? {
-                          host: ingress.external.https.host,
-                          port: ingress.external.https.port,
-                        }
-                      : undefined,
-                  }
-                : undefined,
-              internal: ingress.internal
-                ? {
-                    name: ingress.internal.name,
-                    namespace: ingress.internal.namespace,
-                    http: ingress.internal.http
-                      ? {
-                          host: ingress.internal.http.host,
-                          port: ingress.internal.http.port,
-                        }
-                      : undefined,
-                    https: ingress.internal.https
-                      ? {
-                          host: ingress.internal.https.host,
-                          port: ingress.internal.https.port,
-                        }
-                      : undefined,
-                  }
-                : undefined,
-            },
-          }
-        : undefined,
-      observabilityPlaneRef: normalizedObsRef,
-    },
     },
     dp,
   );
@@ -1675,34 +1675,34 @@ export function translateNewWorkflowPlaneToEntity(
 
   return applyMetadataLabels(
     {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'WorkflowPlane',
-    metadata: {
-      name: bpName,
-      namespace: namespaceName,
-      title: getDisplayName(bp) || bpName,
-      description: getDescription(bp) || `${bpName} workflow plane`,
-      tags: ['openchoreo', 'workflowplane', 'infrastructure'],
-      annotations: {
-        ...managedAnnotations(ctx.providerName),
-        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-        [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(bp) || '',
-        [CHOREO_ANNOTATIONS.STATUS]: isCreated(bp) ? 'Ready' : 'Not Ready',
-        [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
-        ...mapAgentConnectionAnnotations(bp.status?.agentConnection),
-        ...(getDeletionTimestamp(bp) && {
-          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(bp)!,
-        }),
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'WorkflowPlane',
+      metadata: {
+        name: bpName,
+        namespace: namespaceName,
+        title: getDisplayName(bp) || bpName,
+        description: getDescription(bp) || `${bpName} workflow plane`,
+        tags: ['openchoreo', 'workflowplane', 'infrastructure'],
+        annotations: {
+          ...managedAnnotations(ctx.providerName),
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(bp) || '',
+          [CHOREO_ANNOTATIONS.STATUS]: isCreated(bp) ? 'Ready' : 'Not Ready',
+          [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
+          ...mapAgentConnectionAnnotations(bp.status?.agentConnection),
+          ...(getDeletionTimestamp(bp) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(bp)!,
+          }),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/workflowplane': 'true',
+        },
       },
-      labels: {
-        [CHOREO_LABELS.MANAGED]: 'true',
-        'openchoreo.io/workflowplane': 'true',
+      spec: {
+        domain: `default/${namespaceName}`,
+        observabilityPlaneRef: normalizedObsRef,
       },
-    },
-    spec: {
-      domain: `default/${namespaceName}`,
-      observabilityPlaneRef: normalizedObsRef,
-    },
     },
     bp,
   );
@@ -1721,36 +1721,36 @@ export function translateNewObservabilityPlaneToEntity(
 
   return applyMetadataLabels(
     {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'ObservabilityPlane',
-    metadata: {
-      name: opName,
-      namespace: namespaceName,
-      title: getDisplayName(op) || opName,
-      description: getDescription(op) || `${opName} observability plane`,
-      tags: ['openchoreo', 'observabilityplane', 'infrastructure'],
-      annotations: {
-        ...managedAnnotations(ctx.providerName),
-        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-        [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(op) || '',
-        [CHOREO_ANNOTATIONS.STATUS]: isCreated(op) ? 'Ready' : 'Not Ready',
-        ...(op.spec?.observerURL && {
-          [CHOREO_ANNOTATIONS.OBSERVER_URL]: op.spec.observerURL,
-        }),
-        ...mapAgentConnectionAnnotations(op.status?.agentConnection),
-        ...(getDeletionTimestamp(op) && {
-          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(op)!,
-        }),
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ObservabilityPlane',
+      metadata: {
+        name: opName,
+        namespace: namespaceName,
+        title: getDisplayName(op) || opName,
+        description: getDescription(op) || `${opName} observability plane`,
+        tags: ['openchoreo', 'observabilityplane', 'infrastructure'],
+        annotations: {
+          ...managedAnnotations(ctx.providerName),
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(op) || '',
+          [CHOREO_ANNOTATIONS.STATUS]: isCreated(op) ? 'Ready' : 'Not Ready',
+          ...(op.spec?.observerURL && {
+            [CHOREO_ANNOTATIONS.OBSERVER_URL]: op.spec.observerURL,
+          }),
+          ...mapAgentConnectionAnnotations(op.status?.agentConnection),
+          ...(getDeletionTimestamp(op) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(op)!,
+          }),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/observabilityplane': 'true',
+        },
       },
-      labels: {
-        [CHOREO_LABELS.MANAGED]: 'true',
-        'openchoreo.io/observabilityplane': 'true',
+      spec: {
+        domain: `default/${namespaceName}`,
+        observerURL: op.spec?.observerURL,
       },
-    },
-    spec: {
-      domain: `default/${namespaceName}`,
-      observerURL: op.spec?.observerURL,
-    },
     },
     op,
   );
@@ -1787,37 +1787,39 @@ export function translateNewDeploymentPipelineToEntity(
 
   return applyMetadataLabels(
     {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'DeploymentPipeline',
-    metadata: {
-      name: pipelineName,
-      namespace: namespaceName,
-      title: getDisplayName(pipeline) || pipelineName,
-      description:
-        getDescription(pipeline) || `Deployment pipeline ${pipelineName}`,
-      tags: ['openchoreo', 'deployment-pipeline', 'platform-engineering'],
-      annotations: {
-        ...managedAnnotations(ctx.providerName),
-        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-        ...(getCreatedAt(pipeline) && {
-          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(pipeline)!,
-        }),
-        [CHOREO_ANNOTATIONS.STATUS]: isReady(pipeline) ? 'Ready' : 'Not Ready',
-        ...(getDeletionTimestamp(pipeline) && {
-          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]:
-            getDeletionTimestamp(pipeline)!,
-        }),
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'DeploymentPipeline',
+      metadata: {
+        name: pipelineName,
+        namespace: namespaceName,
+        title: getDisplayName(pipeline) || pipelineName,
+        description:
+          getDescription(pipeline) || `Deployment pipeline ${pipelineName}`,
+        tags: ['openchoreo', 'deployment-pipeline', 'platform-engineering'],
+        annotations: {
+          ...managedAnnotations(ctx.providerName),
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          ...(getCreatedAt(pipeline) && {
+            [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(pipeline)!,
+          }),
+          [CHOREO_ANNOTATIONS.STATUS]: isReady(pipeline)
+            ? 'Ready'
+            : 'Not Ready',
+          ...(getDeletionTimestamp(pipeline) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]:
+              getDeletionTimestamp(pipeline)!,
+          }),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/deployment-pipeline': 'true',
+        },
       },
-      labels: {
-        [CHOREO_LABELS.MANAGED]: 'true',
-        'openchoreo.io/deployment-pipeline': 'true',
+      spec: {
+        namespaceName: namespaceName,
+        domain: `default/${namespaceName}`,
+        promotionPaths,
       },
-    },
-    spec: {
-      namespaceName: namespaceName,
-      domain: `default/${namespaceName}`,
-      promotionPaths,
-    },
     },
     pipeline,
   );
@@ -2045,20 +2047,20 @@ export function translateNewResourceToEntity(
     'ResourceType';
   return applyMetadataLabels(
     translateResourceToEntity(
-    {
-      name: getName(resource)!,
-      uid: getUid(resource),
-      displayName: getDisplayName(resource),
-      description: getDescription(resource),
-      projectName: spec?.owner?.projectName ?? '',
-      typeName: spec?.type?.name ?? '',
-      typeKind,
-      parameters: spec?.parameters as Record<string, unknown> | undefined,
-      createdAt: getCreatedAt(resource),
-      deletionTimestamp: getDeletionTimestamp(resource),
-    },
-    namespaceName,
-    { locationKey: ctx.providerName, defaultOwner: ctx.defaultOwner },
+      {
+        name: getName(resource)!,
+        uid: getUid(resource),
+        displayName: getDisplayName(resource),
+        description: getDescription(resource),
+        projectName: spec?.owner?.projectName ?? '',
+        typeName: spec?.type?.name ?? '',
+        typeKind,
+        parameters: spec?.parameters as Record<string, unknown> | undefined,
+        createdAt: getCreatedAt(resource),
+        deletionTimestamp: getDeletionTimestamp(resource),
+      },
+      namespaceName,
+      { locationKey: ctx.providerName, defaultOwner: ctx.defaultOwner },
     ),
     resource,
   );
@@ -2132,76 +2134,76 @@ export function translateNewClusterDataplaneToEntity(
 
   return applyMetadataLabels(
     {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'ClusterDataplane',
-    metadata: {
-      name: cdpName,
-      namespace: 'openchoreo-cluster',
-      title: getDisplayName(cdp) || cdpName,
-      description: getDescription(cdp) || `${cdpName} cluster data plane`,
-      tags: ['openchoreo', 'cluster-dataplane', 'infrastructure'],
-      annotations: {
-        ...managedAnnotations(ctx.providerName),
-        [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cdp) || '',
-        [CHOREO_ANNOTATIONS.STATUS]: isCreated(cdp) ? 'Ready' : 'Not Ready',
-        ...(obsRefName && {
-          [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
-        }),
-        ...mapAgentConnectionAnnotations(cdp.status?.agentConnection),
-        ...(getDeletionTimestamp(cdp) && {
-          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cdp)!,
-        }),
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ClusterDataplane',
+      metadata: {
+        name: cdpName,
+        namespace: 'openchoreo-cluster',
+        title: getDisplayName(cdp) || cdpName,
+        description: getDescription(cdp) || `${cdpName} cluster data plane`,
+        tags: ['openchoreo', 'cluster-dataplane', 'infrastructure'],
+        annotations: {
+          ...managedAnnotations(ctx.providerName),
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cdp) || '',
+          [CHOREO_ANNOTATIONS.STATUS]: isCreated(cdp) ? 'Ready' : 'Not Ready',
+          ...(obsRefName && {
+            [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
+          }),
+          ...mapAgentConnectionAnnotations(cdp.status?.agentConnection),
+          ...(getDeletionTimestamp(cdp) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cdp)!,
+          }),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/cluster-dataplane': 'true',
+        },
       },
-      labels: {
-        [CHOREO_LABELS.MANAGED]: 'true',
-        'openchoreo.io/cluster-dataplane': 'true',
+      spec: {
+        gateway: ingress
+          ? {
+              ingress: {
+                external: ingress.external
+                  ? {
+                      name: ingress.external.name,
+                      namespace: ingress.external.namespace,
+                      http: ingress.external.http
+                        ? {
+                            host: ingress.external.http.host,
+                            port: ingress.external.http.port,
+                          }
+                        : undefined,
+                      https: ingress.external.https
+                        ? {
+                            host: ingress.external.https.host,
+                            port: ingress.external.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+                internal: ingress.internal
+                  ? {
+                      name: ingress.internal.name,
+                      namespace: ingress.internal.namespace,
+                      http: ingress.internal.http
+                        ? {
+                            host: ingress.internal.http.host,
+                            port: ingress.internal.http.port,
+                          }
+                        : undefined,
+                      https: ingress.internal.https
+                        ? {
+                            host: ingress.internal.https.host,
+                            port: ingress.internal.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+              },
+            }
+          : undefined,
+        observabilityPlaneRef: obsRefName,
       },
-    },
-    spec: {
-      gateway: ingress
-        ? {
-            ingress: {
-              external: ingress.external
-                ? {
-                    name: ingress.external.name,
-                    namespace: ingress.external.namespace,
-                    http: ingress.external.http
-                      ? {
-                          host: ingress.external.http.host,
-                          port: ingress.external.http.port,
-                        }
-                      : undefined,
-                    https: ingress.external.https
-                      ? {
-                          host: ingress.external.https.host,
-                          port: ingress.external.https.port,
-                        }
-                      : undefined,
-                  }
-                : undefined,
-              internal: ingress.internal
-                ? {
-                    name: ingress.internal.name,
-                    namespace: ingress.internal.namespace,
-                    http: ingress.internal.http
-                      ? {
-                          host: ingress.internal.http.host,
-                          port: ingress.internal.http.port,
-                        }
-                      : undefined,
-                    https: ingress.internal.https
-                      ? {
-                          host: ingress.internal.https.host,
-                          port: ingress.internal.https.port,
-                        }
-                      : undefined,
-                  }
-                : undefined,
-            },
-          }
-        : undefined,
-      observabilityPlaneRef: obsRefName,
-    },
     },
     cdp,
   );
@@ -2219,35 +2221,35 @@ export function translateNewClusterObservabilityPlaneToEntity(
 
   return applyMetadataLabels(
     {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'ClusterObservabilityPlane',
-    metadata: {
-      name: copName,
-      namespace: 'openchoreo-cluster',
-      title: getDisplayName(cop) || copName,
-      description:
-        getDescription(cop) || `${copName} cluster observability plane`,
-      tags: ['openchoreo', 'cluster-observabilityplane', 'infrastructure'],
-      annotations: {
-        ...managedAnnotations(ctx.providerName),
-        [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cop) || '',
-        [CHOREO_ANNOTATIONS.STATUS]: isCreated(cop) ? 'Ready' : 'Not Ready',
-        ...(cop.spec?.observerURL && {
-          [CHOREO_ANNOTATIONS.OBSERVER_URL]: cop.spec.observerURL,
-        }),
-        ...mapAgentConnectionAnnotations(cop.status?.agentConnection),
-        ...(getDeletionTimestamp(cop) && {
-          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cop)!,
-        }),
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ClusterObservabilityPlane',
+      metadata: {
+        name: copName,
+        namespace: 'openchoreo-cluster',
+        title: getDisplayName(cop) || copName,
+        description:
+          getDescription(cop) || `${copName} cluster observability plane`,
+        tags: ['openchoreo', 'cluster-observabilityplane', 'infrastructure'],
+        annotations: {
+          ...managedAnnotations(ctx.providerName),
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cop) || '',
+          [CHOREO_ANNOTATIONS.STATUS]: isCreated(cop) ? 'Ready' : 'Not Ready',
+          ...(cop.spec?.observerURL && {
+            [CHOREO_ANNOTATIONS.OBSERVER_URL]: cop.spec.observerURL,
+          }),
+          ...mapAgentConnectionAnnotations(cop.status?.agentConnection),
+          ...(getDeletionTimestamp(cop) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cop)!,
+          }),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/cluster-observabilityplane': 'true',
+        },
       },
-      labels: {
-        [CHOREO_LABELS.MANAGED]: 'true',
-        'openchoreo.io/cluster-observabilityplane': 'true',
+      spec: {
+        observerURL: cop.spec?.observerURL,
       },
-    },
-    spec: {
-      observerURL: cop.spec?.observerURL,
-    },
     },
     cop,
   );
@@ -2267,34 +2269,34 @@ export function translateNewClusterWorkflowPlaneToEntity(
 
   return applyMetadataLabels(
     {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'ClusterWorkflowPlane',
-    metadata: {
-      name: cbpName,
-      namespace: 'openchoreo-cluster',
-      title: getDisplayName(cbp) || cbpName,
-      description: getDescription(cbp) || `${cbpName} cluster workflow plane`,
-      tags: ['openchoreo', 'cluster-workflowplane', 'infrastructure'],
-      annotations: {
-        ...managedAnnotations(ctx.providerName),
-        [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cbp) || '',
-        [CHOREO_ANNOTATIONS.STATUS]: isCreated(cbp) ? 'Ready' : 'Not Ready',
-        ...(obsRefName && {
-          [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
-        }),
-        ...mapAgentConnectionAnnotations(cbp.status?.agentConnection),
-        ...(getDeletionTimestamp(cbp) && {
-          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cbp)!,
-        }),
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ClusterWorkflowPlane',
+      metadata: {
+        name: cbpName,
+        namespace: 'openchoreo-cluster',
+        title: getDisplayName(cbp) || cbpName,
+        description: getDescription(cbp) || `${cbpName} cluster workflow plane`,
+        tags: ['openchoreo', 'cluster-workflowplane', 'infrastructure'],
+        annotations: {
+          ...managedAnnotations(ctx.providerName),
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cbp) || '',
+          [CHOREO_ANNOTATIONS.STATUS]: isCreated(cbp) ? 'Ready' : 'Not Ready',
+          ...(obsRefName && {
+            [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
+          }),
+          ...mapAgentConnectionAnnotations(cbp.status?.agentConnection),
+          ...(getDeletionTimestamp(cbp) && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: getDeletionTimestamp(cbp)!,
+          }),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/cluster-workflowplane': 'true',
+        },
       },
-      labels: {
-        [CHOREO_LABELS.MANAGED]: 'true',
-        'openchoreo.io/cluster-workflowplane': 'true',
+      spec: {
+        observabilityPlaneRef: obsRefName,
       },
-    },
-    spec: {
-      observabilityPlaneRef: obsRefName,
-    },
     },
     cbp,
   );
