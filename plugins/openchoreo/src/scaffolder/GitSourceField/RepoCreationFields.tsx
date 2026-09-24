@@ -64,13 +64,19 @@ export const RepoCreationFields = ({
     onChange(next);
   };
 
-  // Seed provider/host once when there's a single configured provider.
+  // Seed the single provider's host, and pre-select a runtime in config mode so
+  // fetch:template never resolves to the skeleton root (`<baseUrl>/`).
   useEffect(() => {
+    const patch: Partial<GitSourceData> = {};
     if (providers.length === 1 && data.repo_host !== providers[0].host) {
-      update({ repo_host: providers[0].host });
+      patch.repo_host = providers[0].host;
     }
+    if (starterMode === 'config' && !data.runtime && runtimes.length > 0) {
+      patch.runtime = runtimes[0];
+    }
+    if (Object.keys(patch).length > 0) update(patch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [providers, data.repo_host]);
+  }, [providers, data.repo_host, data.runtime, starterMode, runtimes]);
 
   return (
     <Grid container spacing={2}>

@@ -81,10 +81,13 @@ export const ComponentTypeSelectorField = ({
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
 
-  const namespaceName: string =
+  // May arrive as an entity ref (e.g. `domain:default/engineering`); the catalog
+  // metadata namespace is the last segment.
+  const rawNamespaceName: string =
     (formContext?.formData as any)?.project_namespace?.namespace_name ||
     (formContext?.formData as any)?.namespace_name ||
     '';
+  const namespaceName = rawNamespaceName.split('/').pop() ?? '';
 
   const [options, setOptions] = useState<ComponentTypeOption[]>([]);
   const [optionsError, setOptionsError] = useState<string | null>(null);

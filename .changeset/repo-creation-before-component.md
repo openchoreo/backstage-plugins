@@ -9,9 +9,9 @@ component, in a single scaffolder flow.
 **Dynamic component templates (provider-agnostic).** The generated per-ComponentType
 templates now offer an "Use existing repository / Create new repository" choice in
 the Build-from-Source flow. Available git providers are discovered from
-`integrations.*`, so whatever is configured (GitHub, GitLab, Bitbucket, …) is
-offered without code changes; the converter emits one conditional `publish:<provider>`
-step per configured provider and resolves the created repo URL back into the build
+`integrations.*` — GitHub, GitLab, and Gitea are supported (their repo URL needs
+only owner + repo); the converter emits one conditional `publish:<provider>` step
+per configured provider and resolves the created repo URL back into the build
 workflow. The provider picker only appears when more than one provider is configured.
 
 - New config `openchoreo.scaffolder.repoCreation.enabled` (default `true`) is a master

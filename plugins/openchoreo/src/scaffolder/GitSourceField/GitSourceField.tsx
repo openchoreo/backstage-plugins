@@ -479,6 +479,84 @@ export const GitSourceField = ({
     return null;
   }
 
+  // Shared between existing- and create-repo modes: a created private repo still
+  // needs a git secret for the build to clone it.
+  const secretSelector = (
+    <FormControl fullWidth error={!!secretsError}>
+      <Autocomplete
+        options={secretOptions}
+        value={getSecretDisplayValue()}
+        onChange={handleSecretChange}
+        loading={secretsLoading}
+        getOptionLabel={option => {
+          if (option === CREATE_NEW_SECRET) return 'Create New Git Secret';
+          if (option === NO_SECRET) return 'No Secret';
+          if (option === DIVIDER) return '';
+          return option;
+        }}
+        renderOption={option => {
+          if (option === CREATE_NEW_SECRET) {
+            if (!canCreateSecret) {
+              return (
+                <Tooltip title={createDisabledReason} placement="bottom-start">
+                  <span style={{ pointerEvents: 'auto', width: '100%' }}>
+                    <Box display="flex" alignItems="center" style={{ gap: 8 }}>
+                      <AddIcon fontSize="small" color="disabled" />
+                      <Typography color="textSecondary">
+                        Create New Git Secret
+                      </Typography>
+                    </Box>
+                  </span>
+                </Tooltip>
+              );
+            }
+            return (
+              <Box display="flex" alignItems="center" style={{ gap: 8 }}>
+                <AddIcon fontSize="small" color="primary" />
+                <Typography color="primary">Create New Git Secret</Typography>
+              </Box>
+            );
+          }
+          if (option === NO_SECRET) {
+            return <Typography>No Secret</Typography>;
+          }
+          if (option === DIVIDER) {
+            return <Divider style={{ margin: 0, width: '100%' }} />;
+          }
+          return <Typography>{option}</Typography>;
+        }}
+        getOptionDisabled={option =>
+          option === DIVIDER ||
+          (option === CREATE_NEW_SECRET && !canCreateSecret)
+        }
+        renderInput={params => (
+          <TextField
+            {...params}
+            label="Git Secret"
+            variant="outlined"
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {secretsLoading ? <CircularProgress size={20} /> : null}
+                  {params.InputProps.endAdornment}
+                </>
+              ),
+            }}
+          />
+        )}
+        noOptionsText={secretNoOptionsText}
+      />
+      {secretsError && <FormHelperText error>{secretsError}</FormHelperText>}
+      {!secretsError && (
+        <FormHelperText>
+          Secret reference for private repository credentials (optional for
+          public repos)
+        </FormHelperText>
+      )}
+    </FormControl>
+  );
+
   return (
     <Box>
       {repoCreationEnabled && (
@@ -571,105 +649,15 @@ export const GitSourceField = ({
           {/* Row 3: Git Secret (full width) */}
           {showSecretRef && (
             <Grid item xs={12}>
-              <FormControl fullWidth error={!!secretsError}>
-                <Autocomplete
-                  options={secretOptions}
-                  value={getSecretDisplayValue()}
-                  onChange={handleSecretChange}
-                  loading={secretsLoading}
-                  getOptionLabel={option => {
-                    if (option === CREATE_NEW_SECRET)
-                      return 'Create New Git Secret';
-                    if (option === NO_SECRET) return 'No Secret';
-                    if (option === DIVIDER) return '';
-                    return option;
-                  }}
-                  renderOption={option => {
-                    if (option === CREATE_NEW_SECRET) {
-                      if (!canCreateSecret) {
-                        return (
-                          <Tooltip
-                            title={createDisabledReason}
-                            placement="bottom-start"
-                          >
-                            <span
-                              style={{ pointerEvents: 'auto', width: '100%' }}
-                            >
-                              <Box
-                                display="flex"
-                                alignItems="center"
-                                style={{ gap: 8 }}
-                              >
-                                <AddIcon fontSize="small" color="disabled" />
-                                <Typography color="textSecondary">
-                                  Create New Git Secret
-                                </Typography>
-                              </Box>
-                            </span>
-                          </Tooltip>
-                        );
-                      }
-                      return (
-                        <Box
-                          display="flex"
-                          alignItems="center"
-                          style={{ gap: 8 }}
-                        >
-                          <AddIcon fontSize="small" color="primary" />
-                          <Typography color="primary">
-                            Create New Git Secret
-                          </Typography>
-                        </Box>
-                      );
-                    }
-                    if (option === NO_SECRET) {
-                      return <Typography>No Secret</Typography>;
-                    }
-                    if (option === DIVIDER) {
-                      return <Divider style={{ margin: 0, width: '100%' }} />;
-                    }
-                    return <Typography>{option}</Typography>;
-                  }}
-                  getOptionDisabled={option =>
-                    option === DIVIDER ||
-                    (option === CREATE_NEW_SECRET && !canCreateSecret)
-                  }
-                  renderInput={params => (
-                    <TextField
-                      {...params}
-                      label="Git Secret"
-                      variant="outlined"
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {secretsLoading ? (
-                              <CircularProgress size={20} />
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                  noOptionsText={secretNoOptionsText}
-                />
-                {secretsError && (
-                  <FormHelperText error>{secretsError}</FormHelperText>
-                )}
-                {!secretsError && (
-                  <FormHelperText>
-                    Secret reference for private repository credentials
-                    (optional for public repos)
-                  </FormHelperText>
-                )}
-              </FormControl>
+              {secretSelector}
             </Grid>
           )}
         </Grid>
       )}
 
-      {showSecretRef && !createMode && (
+      {createMode && showSecretRef && <Box mt={2}>{secretSelector}</Box>}
+
+      {showSecretRef && (
         <GitSecretDialog
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}

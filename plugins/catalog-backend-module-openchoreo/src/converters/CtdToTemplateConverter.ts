@@ -64,13 +64,11 @@ export interface CtdConverterConfig {
   starterSkeletons?: StarterSkeletonConfig;
 }
 
-/** Maps an `integrations.*` key to its scaffolder publish action id. */
+// Providers whose repoUrl needs only owner + repo. Azure/Bitbucket need extra
+// fields (organization/project/workspace), so they're excluded for now.
 const PROVIDER_PUBLISH_ACTIONS: Record<string, string> = {
   github: 'publish:github',
   gitlab: 'publish:gitlab',
-  bitbucketCloud: 'publish:bitbucketCloud',
-  bitbucketServer: 'publish:bitbucketServer',
-  azure: 'publish:azure',
   gitea: 'publish:gitea',
 };
 
