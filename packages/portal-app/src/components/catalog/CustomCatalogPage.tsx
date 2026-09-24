@@ -4,7 +4,7 @@ import FilterListIcon from '@material-ui/icons/FilterList';
 import { PageWithHeader, Content } from '@backstage/core-components';
 import { EntityListProvider } from '@backstage/plugin-catalog-react';
 import { ChoreoEntityKindPicker } from './ChoreoEntityKindPicker';
-import { StarredFilter } from './CustomPersonalFilters';
+import { CatalogFilterControls } from './CatalogFilterControls';
 import { CatalogCardList } from './CatalogCardList';
 import { ContextAwareCreateButton } from './ContextAwareCreateButton';
 import { SelectedKindProvider } from './SelectedKindContext';
@@ -58,14 +58,11 @@ export const CustomCatalogPage = ({
                 className={classes.filterDrawer}
               >
                 <Box className={classes.filterDrawerContent}>
-                  <Box className={classes.filterGrid}>
-                    <Box className={classes.filterItem}>
-                      <ChoreoEntityKindPicker initialFilter={initialKind} />
-                    </Box>
-                    <Box className={classes.filterItem}>
-                      <StarredFilter />
-                    </Box>
-                  </Box>
+                  <CatalogFilterControls
+                    layout="stack"
+                    includeKind
+                    initialKind={initialKind}
+                  />
                 </Box>
               </Drawer>
 

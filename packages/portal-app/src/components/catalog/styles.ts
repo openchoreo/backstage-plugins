@@ -12,7 +12,7 @@ export const useStyles = makeStyles(theme => ({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: theme.spacing(2),
-    [theme.breakpoints.up('md')]: {
+    [theme.breakpoints.up('sm')]: {
       display: 'none',
     },
   },
@@ -39,12 +39,13 @@ export const useStyles = makeStyles(theme => ({
     },
   },
   filterDrawer: {
-    [theme.breakpoints.up('md')]: {
+    [theme.breakpoints.up('sm')]: {
       display: 'none',
     },
   },
   filterDrawerContent: {
-    width: 250,
+    width: 320,
+    maxWidth: '85vw',
     padding: theme.spacing(2),
   },
   filterGrid: {
@@ -72,6 +73,21 @@ export const useStyles = makeStyles(theme => ({
 }));
 
 export const usePersonalFilterStyles = makeStyles(theme => ({
+  // Match the outlined token/search inputs: height, radius, paper background.
+  // `&&` outranks MUI's `.MuiChip-sizeSmall` / `.MuiChip-outlined`.
+  filterControl: {
+    // Matches the token filter's resting height (`inputRoot.minHeight` = 38).
+    '&&': {
+      height: 38,
+      borderRadius: 8,
+      backgroundColor: theme.palette.background.paper,
+    },
+    '& .MuiChip-label': {
+      paddingLeft: theme.spacing(1.5),
+      paddingRight: theme.spacing(1),
+      fontSize: '0.875rem',
+    },
+  },
   container: {
     display: 'flex',
     marginTop: theme.spacing(2.5),
@@ -130,11 +146,28 @@ export const useCardListStyles = makeStyles(theme => {
   };
 
   return {
-    searchAndTitle: {
+    // Title row: title left, create button right.
+    titleRow: {
       display: 'flex',
-      justifyContent: 'space-between',
+      flexWrap: 'wrap' as const,
       alignItems: 'center',
-      marginBottom: theme.spacing(2),
+      justifyContent: 'space-between',
+      gap: theme.spacing(1),
+      marginBottom: theme.spacing(1.5),
+    },
+    // Right-aligned actions in the title row (the create button).
+    titleActions: {
+      display: 'flex',
+      flexWrap: 'wrap' as const,
+      alignItems: 'center',
+      gap: theme.spacing(1),
+      '& .MuiButton-root': {
+        height: 38,
+      },
+    },
+    // Wraps the inline (desktop) filter controls; adds space before the table.
+    filterRowWrap: {
+      marginBottom: theme.spacing(4),
     },
     titleText: {
       fontSize: '1rem',

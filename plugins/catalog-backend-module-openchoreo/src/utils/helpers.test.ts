@@ -1,10 +1,13 @@
 import {
+  applyMetadataLabels,
   buildComponentDependsOnRefs,
+  extractMetadataLabels,
   extractWorkloadResourceDependencies,
   filterDependenciesWithSchema,
   type EndpointSchemaLookup,
 } from './helpers';
 import type { WorkloadDependency } from './types';
+import type { Entity } from '@backstage/catalog-model';
 import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 
 type NewWorkload = OpenChoreoComponents['schemas']['Workload'];
@@ -17,6 +20,71 @@ const dep = (
 ): WorkloadDependency => ({
   visibility: 'public',
   ...overrides,
+});
+
+describe('extractMetadataLabels', () => {
+  it('keeps every label with its full key (nothing excluded)', () => {
+    const resource = {
+      metadata: {
+        labels: {
+          'metadata.openchoreo.dev/cloud-provider': 'azure',
+          'acme.com/team': 'payments',
+          'tier': 'gold',
+          'openchoreo.io/managed': 'true',
+          'openchoreo.dev/project': 'checkout',
+          'app.kubernetes.io/name': 'checkout',
+        },
+      },
+    };
+    expect(extractMetadataLabels(resource)).toEqual({
+      'metadata.openchoreo.dev/cloud-provider': 'azure',
+      'acme.com/team': 'payments',
+      tier: 'gold',
+      'openchoreo.io/managed': 'true',
+      'openchoreo.dev/project': 'checkout',
+      'app.kubernetes.io/name': 'checkout',
+    });
+  });
+
+  it('skips empty values and returns {} when there are no labels', () => {
+    expect(
+      extractMetadataLabels({ metadata: { labels: { tier: '' } } }),
+    ).toEqual({});
+    expect(extractMetadataLabels({})).toEqual({});
+    expect(extractMetadataLabels({ metadata: {} })).toEqual({});
+  });
+});
+
+describe('applyMetadataLabels', () => {
+  const baseEntity = (): Entity => ({
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'Component',
+    metadata: { name: 'checkout', labels: { 'openchoreo.io/managed': 'true' } },
+    spec: {},
+  });
+
+  it('merges all labels (full keys) while preserving existing labels', () => {
+    const entity = applyMetadataLabels(baseEntity(), {
+      metadata: {
+        labels: {
+          'metadata.openchoreo.dev/team': 'payments',
+          'openchoreo.io/component': 'checkout',
+        },
+      },
+    });
+    expect(entity.metadata.labels).toEqual({
+      'openchoreo.io/managed': 'true',
+      'metadata.openchoreo.dev/team': 'payments',
+      'openchoreo.io/component': 'checkout',
+    });
+  });
+
+  it('returns the entity unchanged when there are no metadata labels', () => {
+    const entity = baseEntity();
+    const result = applyMetadataLabels(entity, { metadata: { labels: {} } });
+    expect(result).toBe(entity);
+    expect(result.metadata.labels).toEqual({ 'openchoreo.io/managed': 'true' });
+  });
 });
 
 describe('filterDependenciesWithSchema', () => {

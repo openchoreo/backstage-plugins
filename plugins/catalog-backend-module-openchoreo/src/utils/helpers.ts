@@ -57,6 +57,39 @@ export function resolveComponentOwner(
 }
 
 // ────────────────────────────────────────────────────────────────────────
+// Catalog metadata labels
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns all non-empty labels on a CR with their full keys intact. Full keys
+ * are kept so distinct prefixed labels (`a.com/team` vs `b.com/team`) don't
+ * collide; the UI shortens them for display.
+ */
+export function extractMetadataLabels(resource: {
+  metadata?: { labels?: Record<string, string> };
+}): Record<string, string> {
+  const labels = resource.metadata?.labels ?? {};
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(labels)) {
+    if (typeof value === 'string' && value.length > 0) {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+/** Merges a CR's labels into a translated entity's `metadata.labels`, additively. */
+export function applyMetadataLabels<T extends Entity>(
+  entity: T,
+  resource: { metadata?: { labels?: Record<string, string> } },
+): T {
+  const extra = extractMetadataLabels(resource);
+  if (Object.keys(extra).length === 0) return entity;
+  entity.metadata.labels = { ...(entity.metadata.labels ?? {}), ...extra };
+  return entity;
+}
+
+// ────────────────────────────────────────────────────────────────────────
 // Workload extraction
 // ────────────────────────────────────────────────────────────────────────
 

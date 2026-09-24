@@ -41,7 +41,11 @@ import type {
   NotificationEmailConfig,
   NotificationWebhookConfig,
 } from '../kinds';
-import { normalizeObservabilityPlaneRef, resolveProjectOwner } from './helpers';
+import {
+  applyMetadataLabels,
+  normalizeObservabilityPlaneRef,
+  resolveProjectOwner,
+} from './helpers';
 
 type ModelsComponent = ComponentResponse;
 
@@ -1313,28 +1317,31 @@ export function translateNewNamespaceToDomainEntity(
   const createdAt = getCreatedAt(namespace);
   const status = namespace.status?.phase;
 
-  return {
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'Domain',
-    metadata: {
-      name: name!,
-      title: displayName || name!,
-      description: description || name!,
-      tags: ['openchoreo', 'namespace', 'domain'],
-      annotations: {
-        ...managedAnnotations(ctx.providerName),
-        [CHOREO_ANNOTATIONS.NAMESPACE]: name!,
-        ...(createdAt && { [CHOREO_ANNOTATIONS.CREATED_AT]: createdAt }),
-        ...(status && { [CHOREO_ANNOTATIONS.STATUS]: status }),
+  return applyMetadataLabels(
+    {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Domain',
+      metadata: {
+        name: name!,
+        title: displayName || name!,
+        description: description || name!,
+        tags: ['openchoreo', 'namespace', 'domain'],
+        annotations: {
+          ...managedAnnotations(ctx.providerName),
+          [CHOREO_ANNOTATIONS.NAMESPACE]: name!,
+          ...(createdAt && { [CHOREO_ANNOTATIONS.CREATED_AT]: createdAt }),
+          ...(status && { [CHOREO_ANNOTATIONS.STATUS]: status }),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+        },
       },
-      labels: {
-        [CHOREO_LABELS.MANAGED]: 'true',
+      spec: {
+        owner: ctx.defaultOwner,
       },
     },
-    spec: {
-      owner: ctx.defaultOwner,
-    },
-  };
+    namespace,
+  );
 }
 
 /**
@@ -1345,7 +1352,8 @@ export function translateNewProjectToEntity(
   namespaceName: string,
   ctx: NewApiTranslatorContext,
 ): Entity {
-  return translateProjectToEntity(
+  return applyMetadataLabels(
+    translateProjectToEntity(
     {
       name: getName(project)!,
       displayName: getDisplayName(project),
@@ -1365,6 +1373,8 @@ export function translateNewProjectToEntity(
       locationKey: ctx.providerName,
       defaultOwner: resolveProjectOwner(project, ctx.defaultOwner),
     },
+    ),
+    project,
   );
 }
 
@@ -1445,7 +1455,7 @@ export function translateNewComponentToEntity(
       [CHOREO_ANNOTATIONS.WORKLOAD]: workloadName,
     };
   }
-  return entity;
+  return applyMetadataLabels(entity, component);
 }
 
 /**
@@ -1457,7 +1467,8 @@ export function translateNewEnvironmentToEntity(
   ctx: NewApiTranslatorContext,
 ): EnvironmentEntityV1alpha1 {
   const ingress = env.spec?.gateway?.ingress;
-  return translateEnvironmentToEntity(
+  return applyMetadataLabels(
+    translateEnvironmentToEntity(
     {
       name: getName(env)!,
       displayName: getDisplayName(env),
@@ -1519,6 +1530,8 @@ export function translateNewEnvironmentToEntity(
     },
     namespaceName,
     { locationKey: ctx.providerName },
+    ),
+    env,
   );
 }
 
@@ -1531,21 +1544,24 @@ export function translateNewNotificationChannelToEntity(
   namespaceName: string,
   ctx: NewApiTranslatorContext,
 ): ObservabilityAlertsNotificationChannelEntityV1alpha1 {
-  return translateNotificationChannelToEntity(
-    {
-      name: getName(channel)!,
-      displayName: getDisplayName(channel),
-      description: getDescription(channel),
-      environment: channel.spec?.environment ?? '',
-      isEnvDefault: channel.spec?.isEnvDefault,
-      type: channel.spec?.type as 'email' | 'webhook',
-      emailConfig: channel.spec?.emailConfig,
-      webhookConfig: channel.spec?.webhookConfig,
-      createdAt: getCreatedAt(channel),
-      deletionTimestamp: getDeletionTimestamp(channel),
-    },
-    namespaceName,
-    { locationKey: ctx.providerName },
+  return applyMetadataLabels(
+    translateNotificationChannelToEntity(
+      {
+        name: getName(channel)!,
+        displayName: getDisplayName(channel),
+        description: getDescription(channel),
+        environment: channel.spec?.environment ?? '',
+        isEnvDefault: channel.spec?.isEnvDefault,
+        type: channel.spec?.type as 'email' | 'webhook',
+        emailConfig: channel.spec?.emailConfig,
+        webhookConfig: channel.spec?.webhookConfig,
+        createdAt: getCreatedAt(channel),
+        deletionTimestamp: getDeletionTimestamp(channel),
+      },
+      namespaceName,
+      { locationKey: ctx.providerName },
+    ),
+    channel,
   );
 }
 
@@ -1565,7 +1581,8 @@ export function translateNewDataplaneToEntity(
     namespaceName,
   );
 
-  return {
+  return applyMetadataLabels(
+    {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'Dataplane',
     metadata: {
@@ -1636,7 +1653,9 @@ export function translateNewDataplaneToEntity(
         : undefined,
       observabilityPlaneRef: normalizedObsRef,
     },
-  };
+    },
+    dp,
+  );
 }
 
 /**
@@ -1654,7 +1673,8 @@ export function translateNewWorkflowPlaneToEntity(
     namespaceName,
   );
 
-  return {
+  return applyMetadataLabels(
+    {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'WorkflowPlane',
     metadata: {
@@ -1683,7 +1703,9 @@ export function translateNewWorkflowPlaneToEntity(
       domain: `default/${namespaceName}`,
       observabilityPlaneRef: normalizedObsRef,
     },
-  };
+    },
+    bp,
+  );
 }
 
 /**
@@ -1697,7 +1719,8 @@ export function translateNewObservabilityPlaneToEntity(
 ): ObservabilityPlaneEntityV1alpha1 {
   const opName = getName(op)!;
 
-  return {
+  return applyMetadataLabels(
+    {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'ObservabilityPlane',
     metadata: {
@@ -1728,7 +1751,9 @@ export function translateNewObservabilityPlaneToEntity(
       domain: `default/${namespaceName}`,
       observerURL: op.spec?.observerURL,
     },
-  };
+    },
+    op,
+  );
 }
 
 /**
@@ -1760,7 +1785,8 @@ export function translateNewDeploymentPipelineToEntity(
         })) || [],
     })) || [];
 
-  return {
+  return applyMetadataLabels(
+    {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'DeploymentPipeline',
     metadata: {
@@ -1792,7 +1818,9 @@ export function translateNewDeploymentPipelineToEntity(
       domain: `default/${namespaceName}`,
       promotionPaths,
     },
-  };
+    },
+    pipeline,
+  );
 }
 
 /**
@@ -1803,19 +1831,22 @@ export function translateNewComponentTypeToEntity(
   namespaceName: string,
   ctx: NewApiTranslatorContext,
 ): ComponentTypeEntityV1alpha1 {
-  return translateComponentTypeToEntity(
-    {
-      name: getName(ct)!,
-      displayName: getDisplayName(ct),
-      description: getDescription(ct),
-      workloadType: ct.spec?.workloadType,
-      allowedWorkflows: ct.spec?.allowedWorkflows,
-      allowedTraits: ct.spec?.allowedTraits,
-      createdAt: getCreatedAt(ct),
-      deletionTimestamp: getDeletionTimestamp(ct),
-    },
-    namespaceName,
-    { locationKey: ctx.providerName },
+  return applyMetadataLabels(
+    translateComponentTypeToEntity(
+      {
+        name: getName(ct)!,
+        displayName: getDisplayName(ct),
+        description: getDescription(ct),
+        workloadType: ct.spec?.workloadType,
+        allowedWorkflows: ct.spec?.allowedWorkflows,
+        allowedTraits: ct.spec?.allowedTraits,
+        createdAt: getCreatedAt(ct),
+        deletionTimestamp: getDeletionTimestamp(ct),
+      },
+      namespaceName,
+      { locationKey: ctx.providerName },
+    ),
+    ct,
   );
 }
 
@@ -1827,16 +1858,19 @@ export function translateNewTraitToEntity(
   namespaceName: string,
   ctx: NewApiTranslatorContext,
 ): TraitTypeEntityV1alpha1 {
-  return translateTraitToEntity(
-    {
-      name: getName(trait)!,
-      displayName: getDisplayName(trait),
-      description: getDescription(trait),
-      createdAt: getCreatedAt(trait),
-      deletionTimestamp: getDeletionTimestamp(trait),
-    },
-    namespaceName,
-    { locationKey: ctx.providerName },
+  return applyMetadataLabels(
+    translateTraitToEntity(
+      {
+        name: getName(trait)!,
+        displayName: getDisplayName(trait),
+        description: getDescription(trait),
+        createdAt: getCreatedAt(trait),
+        deletionTimestamp: getDeletionTimestamp(trait),
+      },
+      namespaceName,
+      { locationKey: ctx.providerName },
+    ),
+    trait,
   );
 }
 
@@ -1852,22 +1886,25 @@ export function translateNewWorkflowToEntity(
     wf.metadata?.labels?.['openchoreo.dev/workflow-type'] === 'component';
   const wpRef = (wf as any).spec?.workflowPlaneRef;
   const ttl = (wf as any).spec?.ttlAfterCompletion;
-  return translateWorkflowToEntity(
-    {
-      name: getName(wf)!,
-      displayName: getDisplayName(wf),
-      description: getDescription(wf),
-      createdAt: getCreatedAt(wf),
-      parameters: extractWorkflowParameters((wf as any).spec),
-      type: isCI ? 'CI' : 'Generic',
-      deletionTimestamp: getDeletionTimestamp(wf),
-      ...(wpRef && {
-        workflowPlaneRef: { kind: wpRef.kind, name: wpRef.name },
-      }),
-      ...(ttl && { ttlAfterCompletion: ttl }),
-    },
-    namespaceName,
-    { locationKey: ctx.providerName },
+  return applyMetadataLabels(
+    translateWorkflowToEntity(
+      {
+        name: getName(wf)!,
+        displayName: getDisplayName(wf),
+        description: getDescription(wf),
+        createdAt: getCreatedAt(wf),
+        parameters: extractWorkflowParameters((wf as any).spec),
+        type: isCI ? 'CI' : 'Generic',
+        deletionTimestamp: getDeletionTimestamp(wf),
+        ...(wpRef && {
+          workflowPlaneRef: { kind: wpRef.kind, name: wpRef.name },
+        }),
+        ...(ttl && { ttlAfterCompletion: ttl }),
+      },
+      namespaceName,
+      { locationKey: ctx.providerName },
+    ),
+    wf,
   );
 }
 
@@ -1879,18 +1916,21 @@ export function translateNewClusterComponentTypeToEntity(
   cct: NewClusterComponentType,
   ctx: NewApiTranslatorContext,
 ): ClusterComponentTypeEntityV1alpha1 {
-  return translateClusterComponentTypeToEntity(
-    {
-      name: getName(cct)!,
-      displayName: getDisplayName(cct),
-      description: getDescription(cct),
-      workloadType: cct.spec?.workloadType,
-      allowedWorkflows: cct.spec?.allowedWorkflows,
-      allowedTraits: cct.spec?.allowedTraits,
-      createdAt: getCreatedAt(cct),
-      deletionTimestamp: getDeletionTimestamp(cct),
-    },
-    { locationKey: ctx.providerName },
+  return applyMetadataLabels(
+    translateClusterComponentTypeToEntity(
+      {
+        name: getName(cct)!,
+        displayName: getDisplayName(cct),
+        description: getDescription(cct),
+        workloadType: cct.spec?.workloadType,
+        allowedWorkflows: cct.spec?.allowedWorkflows,
+        allowedTraits: cct.spec?.allowedTraits,
+        createdAt: getCreatedAt(cct),
+        deletionTimestamp: getDeletionTimestamp(cct),
+      },
+      { locationKey: ctx.providerName },
+    ),
+    cct,
   );
 }
 
@@ -1902,16 +1942,19 @@ export function translateNewClusterResourceTypeToEntity(
   crt: NewClusterResourceType,
   ctx: NewApiTranslatorContext,
 ): ClusterResourceTypeEntityV1alpha1 {
-  return translateClusterResourceTypeToEntity(
-    {
-      name: getName(crt)!,
-      displayName: getDisplayName(crt),
-      description: getDescription(crt),
-      retainPolicy: crt.spec?.retainPolicy,
-      createdAt: getCreatedAt(crt),
-      deletionTimestamp: getDeletionTimestamp(crt),
-    },
-    { locationKey: ctx.providerName },
+  return applyMetadataLabels(
+    translateClusterResourceTypeToEntity(
+      {
+        name: getName(crt)!,
+        displayName: getDisplayName(crt),
+        description: getDescription(crt),
+        retainPolicy: crt.spec?.retainPolicy,
+        createdAt: getCreatedAt(crt),
+        deletionTimestamp: getDeletionTimestamp(crt),
+      },
+      { locationKey: ctx.providerName },
+    ),
+    crt,
   );
 }
 
@@ -1923,17 +1966,20 @@ export function translateNewResourceTypeToEntity(
   namespaceName: string,
   ctx: NewApiTranslatorContext,
 ): ResourceTypeEntityV1alpha1 {
-  return translateResourceTypeToEntity(
-    {
-      name: getName(rt)!,
-      displayName: getDisplayName(rt),
-      description: getDescription(rt),
-      retainPolicy: rt.spec?.retainPolicy,
-      createdAt: getCreatedAt(rt),
-      deletionTimestamp: getDeletionTimestamp(rt),
-    },
-    namespaceName,
-    { locationKey: ctx.providerName },
+  return applyMetadataLabels(
+    translateResourceTypeToEntity(
+      {
+        name: getName(rt)!,
+        displayName: getDisplayName(rt),
+        description: getDescription(rt),
+        retainPolicy: rt.spec?.retainPolicy,
+        createdAt: getCreatedAt(rt),
+        deletionTimestamp: getDeletionTimestamp(rt),
+      },
+      namespaceName,
+      { locationKey: ctx.providerName },
+    ),
+    rt,
   );
 }
 
@@ -1945,15 +1991,18 @@ export function translateNewClusterProjectTypeToEntity(
   cpt: NewClusterProjectType,
   ctx: NewApiTranslatorContext,
 ): ClusterProjectTypeEntityV1alpha1 {
-  return translateClusterProjectTypeToEntity(
-    {
-      name: getName(cpt)!,
-      displayName: getDisplayName(cpt),
-      description: getDescription(cpt),
-      createdAt: getCreatedAt(cpt),
-      deletionTimestamp: getDeletionTimestamp(cpt),
-    },
-    { locationKey: ctx.providerName },
+  return applyMetadataLabels(
+    translateClusterProjectTypeToEntity(
+      {
+        name: getName(cpt)!,
+        displayName: getDisplayName(cpt),
+        description: getDescription(cpt),
+        createdAt: getCreatedAt(cpt),
+        deletionTimestamp: getDeletionTimestamp(cpt),
+      },
+      { locationKey: ctx.providerName },
+    ),
+    cpt,
   );
 }
 
@@ -1965,16 +2014,19 @@ export function translateNewProjectTypeToEntity(
   namespaceName: string,
   ctx: NewApiTranslatorContext,
 ): ProjectTypeEntityV1alpha1 {
-  return translateProjectTypeToEntity(
-    {
-      name: getName(pt)!,
-      displayName: getDisplayName(pt),
-      description: getDescription(pt),
-      createdAt: getCreatedAt(pt),
-      deletionTimestamp: getDeletionTimestamp(pt),
-    },
-    namespaceName,
-    { locationKey: ctx.providerName },
+  return applyMetadataLabels(
+    translateProjectTypeToEntity(
+      {
+        name: getName(pt)!,
+        displayName: getDisplayName(pt),
+        description: getDescription(pt),
+        createdAt: getCreatedAt(pt),
+        deletionTimestamp: getDeletionTimestamp(pt),
+      },
+      namespaceName,
+      { locationKey: ctx.providerName },
+    ),
+    pt,
   );
 }
 
@@ -1991,7 +2043,8 @@ export function translateNewResourceToEntity(
   const typeKind =
     (spec?.type?.kind as 'ResourceType' | 'ClusterResourceType' | undefined) ??
     'ResourceType';
-  return translateResourceToEntity(
+  return applyMetadataLabels(
+    translateResourceToEntity(
     {
       name: getName(resource)!,
       uid: getUid(resource),
@@ -2006,6 +2059,8 @@ export function translateNewResourceToEntity(
     },
     namespaceName,
     { locationKey: ctx.providerName, defaultOwner: ctx.defaultOwner },
+    ),
+    resource,
   );
 }
 
@@ -2016,15 +2071,18 @@ export function translateNewClusterTraitToEntity(
   ct: NewClusterTrait,
   ctx: NewApiTranslatorContext,
 ): ClusterTraitTypeEntityV1alpha1 {
-  return translateClusterTraitToEntity(
-    {
-      name: getName(ct)!,
-      displayName: getDisplayName(ct),
-      description: getDescription(ct),
-      createdAt: getCreatedAt(ct),
-      deletionTimestamp: getDeletionTimestamp(ct),
-    },
-    { locationKey: ctx.providerName },
+  return applyMetadataLabels(
+    translateClusterTraitToEntity(
+      {
+        name: getName(ct)!,
+        displayName: getDisplayName(ct),
+        description: getDescription(ct),
+        createdAt: getCreatedAt(ct),
+        deletionTimestamp: getDeletionTimestamp(ct),
+      },
+      { locationKey: ctx.providerName },
+    ),
+    ct,
   );
 }
 
@@ -2039,21 +2097,24 @@ export function translateNewClusterWorkflowToEntity(
     cwf.metadata?.labels?.['openchoreo.dev/workflow-type'] === 'component';
   const wpRef = (cwf as any).spec?.workflowPlaneRef;
   const ttl = (cwf as any).spec?.ttlAfterCompletion;
-  return translateClusterWorkflowToEntity(
-    {
-      name: getName(cwf)!,
-      displayName: getDisplayName(cwf),
-      description: getDescription(cwf),
-      createdAt: getCreatedAt(cwf),
-      parameters: extractWorkflowParameters((cwf as any).spec),
-      type: isCI ? 'CI' : 'Generic',
-      deletionTimestamp: getDeletionTimestamp(cwf),
-      ...(wpRef && {
-        workflowPlaneRef: { kind: wpRef.kind, name: wpRef.name },
-      }),
-      ...(ttl && { ttlAfterCompletion: ttl }),
-    },
-    { locationKey: ctx.providerName },
+  return applyMetadataLabels(
+    translateClusterWorkflowToEntity(
+      {
+        name: getName(cwf)!,
+        displayName: getDisplayName(cwf),
+        description: getDescription(cwf),
+        createdAt: getCreatedAt(cwf),
+        parameters: extractWorkflowParameters((cwf as any).spec),
+        type: isCI ? 'CI' : 'Generic',
+        deletionTimestamp: getDeletionTimestamp(cwf),
+        ...(wpRef && {
+          workflowPlaneRef: { kind: wpRef.kind, name: wpRef.name },
+        }),
+        ...(ttl && { ttlAfterCompletion: ttl }),
+      },
+      { locationKey: ctx.providerName },
+    ),
+    cwf,
   );
 }
 
@@ -2069,7 +2130,8 @@ export function translateNewClusterDataplaneToEntity(
   const obsPlaneRef = cdp.spec?.observabilityPlaneRef;
   const obsRefName = obsPlaneRef?.name;
 
-  return {
+  return applyMetadataLabels(
+    {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'ClusterDataplane',
     metadata: {
@@ -2140,7 +2202,9 @@ export function translateNewClusterDataplaneToEntity(
         : undefined,
       observabilityPlaneRef: obsRefName,
     },
-  };
+    },
+    cdp,
+  );
 }
 
 /**
@@ -2153,7 +2217,8 @@ export function translateNewClusterObservabilityPlaneToEntity(
 ): ClusterObservabilityPlaneEntityV1alpha1 {
   const copName = getName(cop)!;
 
-  return {
+  return applyMetadataLabels(
+    {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'ClusterObservabilityPlane',
     metadata: {
@@ -2183,7 +2248,9 @@ export function translateNewClusterObservabilityPlaneToEntity(
     spec: {
       observerURL: cop.spec?.observerURL,
     },
-  };
+    },
+    cop,
+  );
 }
 
 /**
@@ -2198,7 +2265,8 @@ export function translateNewClusterWorkflowPlaneToEntity(
   const obsPlaneRef = cbp.spec?.observabilityPlaneRef;
   const obsRefName = obsPlaneRef?.name;
 
-  return {
+  return applyMetadataLabels(
+    {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'ClusterWorkflowPlane',
     metadata: {
@@ -2227,5 +2295,7 @@ export function translateNewClusterWorkflowPlaneToEntity(
     spec: {
       observabilityPlaneRef: obsRefName,
     },
-  };
+    },
+    cbp,
+  );
 }
