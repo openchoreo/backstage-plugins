@@ -12,7 +12,7 @@
     "directory": "packages/test-utils"
   },
   "backstage": {
-    "role": "node-library"
+    "role": "common-library"
   },
   "scripts": {
     "test": "backstage-cli package test",
