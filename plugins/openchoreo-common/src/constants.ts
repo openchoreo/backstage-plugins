@@ -83,6 +83,12 @@ export const CHOREO_LABELS = {
   SECRET_TYPE: 'openchoreo.dev/secret-type',
 } as const;
 
+/** Display form of a label key: the segment after the last `/`. */
+export function labelDisplayName(key: string): string {
+  const slash = key.lastIndexOf('/');
+  return slash === -1 ? key : key.slice(slash + 1);
+}
+
 /**
  * Value set on the {@link CHOREO_LABELS.SECRET_TYPE} label to mark a
  * SecretReference as holding git credentials. Workflows and CI build dialogs

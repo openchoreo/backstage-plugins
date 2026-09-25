@@ -11,6 +11,10 @@ import {
   Typography,
   Tooltip,
   Grid,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  FormLabel,
 } from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import AddIcon from '@material-ui/icons/Add';
@@ -29,12 +33,23 @@ import {
 import { useSecretManagementEnabled } from '@openchoreo/backstage-plugin-react';
 import { GitSecretDialog } from '../GitSecretField/GitSecretDialog';
 import { CLUSTER_WORKFLOW_NAMESPACE } from '../types';
+import { RepoCreationFields, RepoCreationConfig } from './RepoCreationFields';
 
 export interface GitSourceData {
   repo_url: string;
   branch: string;
   component_path: string;
   git_secret_ref: string;
+  // create-repo fields (present only when repo creation is enabled)
+  mode?: 'existing' | 'create';
+  provider?: string;
+  repo_host?: string;
+  repoUrl?: string;
+  owner?: string;
+  repo_name?: string;
+  visibility?: string;
+  runtime?: string;
+  starter_url?: string;
 }
 
 interface TargetPlaneRef {
@@ -59,12 +74,7 @@ const DIVIDER = '__divider__';
 export const GitSourceFieldSchema = {
   returnValue: {
     type: 'object' as const,
-    properties: {
-      repo_url: { type: 'string' as const },
-      branch: { type: 'string' as const },
-      component_path: { type: 'string' as const },
-      git_secret_ref: { type: 'string' as const },
-    },
+    additionalProperties: true,
   },
 };
 
@@ -75,12 +85,34 @@ export const GitSourceField = ({
   uiSchema,
   rawErrors,
 }: FieldExtensionComponentProps<GitSourceData>) => {
+  // Repo creation config injected by the converter when providers are configured.
+  const repoCreation = uiSchema?.['ui:options']?.repoCreation as
+    | RepoCreationConfig
+    | undefined;
+  const repoCreationEnabled = Boolean(repoCreation?.providers?.length);
+
   const data: GitSourceData = {
     repo_url: formData?.repo_url ?? '',
     branch: formData?.branch ?? 'main',
     component_path: formData?.component_path ?? '.',
     git_secret_ref: formData?.git_secret_ref ?? '',
+    // create-repo defaults only when the feature is enabled, so templates
+    // without repo creation keep their original git_source shape.
+    ...(repoCreationEnabled
+      ? {
+          mode: formData?.mode ?? 'existing',
+          provider: formData?.provider ?? '',
+          repo_host: formData?.repo_host ?? '',
+          repoUrl: formData?.repoUrl ?? '',
+          owner: formData?.owner ?? '',
+          repo_name: formData?.repo_name ?? '',
+          visibility: formData?.visibility ?? 'private',
+          runtime: formData?.runtime ?? '',
+          starter_url: formData?.starter_url ?? '',
+        }
+      : {}),
   };
+  const createMode = repoCreationEnabled && data.mode === 'create';
 
   // Git secret state
   const [secrets, setSecrets] = useState<GitSecret[]>([]);
@@ -281,6 +313,7 @@ export const GitSourceField = ({
   formDataRef.current = formData;
 
   useEffect(() => {
+    if (formDataRef.current?.mode === 'create') return; // create-mode owns its fields
     if (!visibleFields) return; // No annotation — all fields visible, nothing to prune
 
     const visibleKeyCount = [
@@ -446,155 +479,183 @@ export const GitSourceField = ({
     return null;
   }
 
+  // Shared between existing- and create-repo modes: a created private repo still
+  // needs a git secret for the build to clone it.
+  const secretSelector = (
+    <FormControl fullWidth error={!!secretsError}>
+      <Autocomplete
+        options={secretOptions}
+        value={getSecretDisplayValue()}
+        onChange={handleSecretChange}
+        loading={secretsLoading}
+        getOptionLabel={option => {
+          if (option === CREATE_NEW_SECRET) return 'Create New Git Secret';
+          if (option === NO_SECRET) return 'No Secret';
+          if (option === DIVIDER) return '';
+          return option;
+        }}
+        renderOption={option => {
+          if (option === CREATE_NEW_SECRET) {
+            if (!canCreateSecret) {
+              return (
+                <Tooltip title={createDisabledReason} placement="bottom-start">
+                  <span style={{ pointerEvents: 'auto', width: '100%' }}>
+                    <Box display="flex" alignItems="center" style={{ gap: 8 }}>
+                      <AddIcon fontSize="small" color="disabled" />
+                      <Typography color="textSecondary">
+                        Create New Git Secret
+                      </Typography>
+                    </Box>
+                  </span>
+                </Tooltip>
+              );
+            }
+            return (
+              <Box display="flex" alignItems="center" style={{ gap: 8 }}>
+                <AddIcon fontSize="small" color="primary" />
+                <Typography color="primary">Create New Git Secret</Typography>
+              </Box>
+            );
+          }
+          if (option === NO_SECRET) {
+            return <Typography>No Secret</Typography>;
+          }
+          if (option === DIVIDER) {
+            return <Divider style={{ margin: 0, width: '100%' }} />;
+          }
+          return <Typography>{option}</Typography>;
+        }}
+        getOptionDisabled={option =>
+          option === DIVIDER ||
+          (option === CREATE_NEW_SECRET && !canCreateSecret)
+        }
+        renderInput={params => (
+          <TextField
+            {...params}
+            label="Git Secret"
+            variant="outlined"
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {secretsLoading ? <CircularProgress size={20} /> : null}
+                  {params.InputProps.endAdornment}
+                </>
+              ),
+            }}
+          />
+        )}
+        noOptionsText={secretNoOptionsText}
+      />
+      {secretsError && <FormHelperText error>{secretsError}</FormHelperText>}
+      {!secretsError && (
+        <FormHelperText>
+          Secret reference for private repository credentials (optional for
+          public repos)
+        </FormHelperText>
+      )}
+    </FormControl>
+  );
+
   return (
     <Box>
-      <Grid container spacing={2}>
-        {/* Row 1: Git Repository URL (full width) */}
-        {showRepoUrl && (
-          <Grid item xs={12}>
-            <TextField
-              label="Git Repository URL"
-              value={data.repo_url}
-              onChange={e => updateField('repo_url', e.target.value)}
-              fullWidth
-              variant="outlined"
-              required
-              error={hasError && !data.repo_url}
-              helperText="URL of the Git repository containing your source code"
-              autoComplete="url"
-            />
-          </Grid>
-        )}
-
-        {/* Row 2: Branch (half) + Application Path (half) */}
-        {showBranch && (
-          <Grid item xs={12} sm={showAppPath ? 6 : 12}>
-            <TextField
-              label="Branch"
-              value={data.branch}
-              onChange={e => updateField('branch', e.target.value)}
-              fullWidth
-              variant="outlined"
-              required
-              error={hasError && !data.branch}
-              helperText="Git branch to build from"
-              autoComplete="off"
-            />
-          </Grid>
-        )}
-        {showAppPath && (
-          <Grid item xs={12} sm={showBranch ? 6 : 12}>
-            <TextField
-              label="Application Path"
-              value={data.component_path}
-              onChange={e => updateField('component_path', e.target.value)}
-              fullWidth
-              variant="outlined"
-              helperText="Path to the application directory within the repository"
-              autoComplete="off"
-            />
-          </Grid>
-        )}
-
-        {/* Row 3: Git Secret (full width) */}
-        {showSecretRef && (
-          <Grid item xs={12}>
-            <FormControl fullWidth error={!!secretsError}>
-              <Autocomplete
-                options={secretOptions}
-                value={getSecretDisplayValue()}
-                onChange={handleSecretChange}
-                loading={secretsLoading}
-                getOptionLabel={option => {
-                  if (option === CREATE_NEW_SECRET)
-                    return 'Create New Git Secret';
-                  if (option === NO_SECRET) return 'No Secret';
-                  if (option === DIVIDER) return '';
-                  return option;
-                }}
-                renderOption={option => {
-                  if (option === CREATE_NEW_SECRET) {
-                    if (!canCreateSecret) {
-                      return (
-                        <Tooltip
-                          title={createDisabledReason}
-                          placement="bottom-start"
-                        >
-                          <span
-                            style={{ pointerEvents: 'auto', width: '100%' }}
-                          >
-                            <Box
-                              display="flex"
-                              alignItems="center"
-                              style={{ gap: 8 }}
-                            >
-                              <AddIcon fontSize="small" color="disabled" />
-                              <Typography color="textSecondary">
-                                Create New Git Secret
-                              </Typography>
-                            </Box>
-                          </span>
-                        </Tooltip>
-                      );
-                    }
-                    return (
-                      <Box
-                        display="flex"
-                        alignItems="center"
-                        style={{ gap: 8 }}
-                      >
-                        <AddIcon fontSize="small" color="primary" />
-                        <Typography color="primary">
-                          Create New Git Secret
-                        </Typography>
-                      </Box>
-                    );
-                  }
-                  if (option === NO_SECRET) {
-                    return <Typography>No Secret</Typography>;
-                  }
-                  if (option === DIVIDER) {
-                    return <Divider style={{ margin: 0, width: '100%' }} />;
-                  }
-                  return <Typography>{option}</Typography>;
-                }}
-                getOptionDisabled={option =>
-                  option === DIVIDER ||
-                  (option === CREATE_NEW_SECRET && !canCreateSecret)
-                }
-                renderInput={params => (
-                  <TextField
-                    {...params}
-                    label="Git Secret"
-                    variant="outlined"
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {secretsLoading ? (
-                            <CircularProgress size={20} />
-                          ) : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
-                )}
-                noOptionsText={secretNoOptionsText}
+      {repoCreationEnabled && (
+        <Box mb={2}>
+          <FormControl component="fieldset">
+            <FormLabel component="legend">Repository</FormLabel>
+            <RadioGroup
+              row
+              value={data.mode}
+              onChange={e =>
+                onChange({
+                  ...data,
+                  mode: e.target.value as GitSourceData['mode'],
+                })
+              }
+            >
+              <FormControlLabel
+                value="existing"
+                control={<Radio color="primary" />}
+                label="Use existing repository"
               />
-              {secretsError && (
-                <FormHelperText error>{secretsError}</FormHelperText>
-              )}
-              {!secretsError && (
-                <FormHelperText>
-                  Secret reference for private repository credentials (optional
-                  for public repos)
-                </FormHelperText>
-              )}
-            </FormControl>
-          </Grid>
-        )}
-      </Grid>
+              <FormControlLabel
+                value="create"
+                control={<Radio color="primary" />}
+                label="Create new repository"
+              />
+            </RadioGroup>
+          </FormControl>
+        </Box>
+      )}
+
+      {createMode && (
+        <RepoCreationFields
+          data={data}
+          config={repoCreation!}
+          onChange={onChange}
+          hasError={hasError}
+        />
+      )}
+
+      {!createMode && (
+        <Grid container spacing={2}>
+          {/* Row 1: Git Repository URL (full width) */}
+          {showRepoUrl && (
+            <Grid item xs={12}>
+              <TextField
+                label="Git Repository URL"
+                value={data.repo_url}
+                onChange={e => updateField('repo_url', e.target.value)}
+                fullWidth
+                variant="outlined"
+                required
+                error={hasError && !data.repo_url}
+                helperText="URL of the Git repository containing your source code"
+                autoComplete="url"
+              />
+            </Grid>
+          )}
+
+          {/* Row 2: Branch (half) + Application Path (half) */}
+          {showBranch && (
+            <Grid item xs={12} sm={showAppPath ? 6 : 12}>
+              <TextField
+                label="Branch"
+                value={data.branch}
+                onChange={e => updateField('branch', e.target.value)}
+                fullWidth
+                variant="outlined"
+                required
+                error={hasError && !data.branch}
+                helperText="Git branch to build from"
+                autoComplete="off"
+              />
+            </Grid>
+          )}
+          {showAppPath && (
+            <Grid item xs={12} sm={showBranch ? 6 : 12}>
+              <TextField
+                label="Application Path"
+                value={data.component_path}
+                onChange={e => updateField('component_path', e.target.value)}
+                fullWidth
+                variant="outlined"
+                helperText="Path to the application directory within the repository"
+                autoComplete="off"
+              />
+            </Grid>
+          )}
+
+          {/* Row 3: Git Secret (full width) */}
+          {showSecretRef && (
+            <Grid item xs={12}>
+              {secretSelector}
+            </Grid>
+          )}
+        </Grid>
+      )}
+
+      {createMode && showSecretRef && <Box mt={2}>{secretSelector}</Box>}
 
       {showSecretRef && (
         <GitSecretDialog
@@ -612,6 +673,20 @@ export const gitSourceFieldValidation = (
   value: GitSourceData,
   validation: FieldValidation,
 ) => {
+  // Create-repo mode: validate the repo details instead of an existing URL.
+  if (value?.mode === 'create') {
+    if (!value.owner?.trim()) {
+      validation.addError('Owner / Organization is required');
+    }
+    if (!value.repo_name?.trim()) {
+      validation.addError('Repository name is required');
+    }
+    if (!value.repoUrl?.trim()) {
+      validation.addError('Repository details are incomplete');
+    }
+    return;
+  }
+
   // Only validate fields that have values — conditional rendering
   // may hide some fields, so we only require them when present
   if (

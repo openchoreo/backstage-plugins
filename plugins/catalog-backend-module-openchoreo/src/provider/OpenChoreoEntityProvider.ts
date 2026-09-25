@@ -27,7 +27,11 @@ import {
   ComponentTypeUtils,
 } from '@openchoreo/backstage-plugin-common';
 import { DeploymentPipelineEntityV1alpha1 } from '../kinds';
-import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
+import {
+  CtdToTemplateConverter,
+  GitProviderConfig,
+  StarterSkeletonConfig,
+} from '../converters/CtdToTemplateConverter';
 import {
   RemoteTemplateContext,
   RemoteTemplateFetcher,
@@ -112,6 +116,49 @@ type NewClusterWorkflowPlane =
 type NewClusterWorkflow = OpenChoreoComponents['schemas']['ClusterWorkflow'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 
+/** Read configured `integrations.*` into provider-agnostic git providers. */
+function readGitProviders(config: Config): GitProviderConfig[] {
+  const integrations = config.getOptionalConfig('integrations');
+  if (!integrations) return [];
+
+  const providers: GitProviderConfig[] = [];
+  for (const provider of integrations.keys()) {
+    const publishAction =
+      CtdToTemplateConverter.publishActionForProvider(provider);
+    if (!publishAction) continue;
+    for (const entry of integrations.getOptionalConfigArray(provider) ?? []) {
+      const host = entry.getOptionalString('host');
+      if (host) providers.push({ provider, host, publishAction });
+    }
+  }
+  return providers;
+}
+
+/** Read `openchoreo.scaffolder.starterSkeletons` config, if present. */
+function readStarterSkeletons(
+  config: Config,
+): StarterSkeletonConfig | undefined {
+  const cfg = config.getOptionalConfig(
+    'openchoreo.scaffolder.starterSkeletons',
+  );
+  if (!cfg) return undefined;
+
+  const runtimesCfg = cfg.getOptionalConfig('runtimes');
+  const runtimes = runtimesCfg
+    ? Object.fromEntries(
+        runtimesCfg
+          .keys()
+          .map(k => [k, runtimesCfg.getStringArray(k)] as const),
+      )
+    : undefined;
+
+  return {
+    baseUrl: cfg.getOptionalString('baseUrl'),
+    runtimes,
+    defaultRuntimes: cfg.getOptionalStringArray('defaultRuntimes'),
+  };
+}
+
 /**
  * Provides entities from OpenChoreo API
  */
@@ -155,9 +202,16 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       config.getOptionalString('openchoreo.defaultOwner') || 'openchoreo-users';
     // Qualify with 'default' namespace so owner resolves correctly for entities in non-default namespaces
     this.defaultOwner = `group:default/${ownerName}`;
-    // Initialize CTD to Template converter
+    // Initialize CTD to Template converter. Git providers and skeletons are
+    // read from config so in-wizard repo creation stays provider-agnostic.
     this.ctdConverter = new CtdToTemplateConverter({
       defaultOwner: this.defaultOwner,
+      gitProviders: readGitProviders(config),
+      repoCreationEnabled:
+        config.getOptionalBoolean(
+          'openchoreo.scaffolder.repoCreation.enabled',
+        ) ?? true,
+      starterSkeletons: readStarterSkeletons(config),
     });
     // Initialize RTD to Template converter — generates per-type Resource
     // wizards from (Cluster)ResourceType entities.

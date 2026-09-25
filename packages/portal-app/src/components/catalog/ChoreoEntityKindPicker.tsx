@@ -21,6 +21,12 @@ const useStyles = makeStyles((theme: Theme) =>
       display: 'flex',
       alignItems: 'center',
       gap: theme.spacing(1.5),
+      // In the mobile filter drawer, stack the label above a full-width select.
+      [theme.breakpoints.down('sm')]: {
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        gap: theme.spacing(0.5),
+      },
     },
     label: {
       fontWeight: 'bold',
@@ -31,6 +37,11 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     select: {
       minWidth: 270,
+      // Fill the drawer width instead of overflowing at 270px.
+      [theme.breakpoints.down('sm')]: {
+        minWidth: 0,
+        width: '100%',
+      },
     },
     renderValue: {
       display: 'flex',
