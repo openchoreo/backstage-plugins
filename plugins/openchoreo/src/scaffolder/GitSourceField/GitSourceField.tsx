@@ -106,7 +106,7 @@ export const GitSourceField = ({
           repoUrl: formData?.repoUrl ?? '',
           owner: formData?.owner ?? '',
           repo_name: formData?.repo_name ?? '',
-          visibility: formData?.visibility ?? 'private',
+          visibility: formData?.visibility ?? 'public',
           runtime: formData?.runtime ?? '',
           starter_url: formData?.starter_url ?? '',
         }
