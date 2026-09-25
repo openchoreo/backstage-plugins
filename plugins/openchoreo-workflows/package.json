@@ -1,6 +1,6 @@
 {
   "name": "@openchoreo/backstage-plugin-openchoreo-workflows",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "license": "Apache-2.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -66,7 +66,7 @@
     "yaml": "^2.8.2"
   },
   "peerDependencies": {
-    "@openchoreo/backstage-plugin": "^1.3.0",
+    "@openchoreo/backstage-plugin": "^1.3.1",
     "react": "^18.0.0",
     "react-router-dom": "^6.0.0"
   },
