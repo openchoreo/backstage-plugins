@@ -122,6 +122,8 @@ export {
   PipelineFlowVisualization,
   type PipelineFlowVisualizationProps,
   type PipelinePromotionPath,
+  type PipelineEnvironmentHook,
+  type PipelineHookEffect,
 } from './components/PipelineFlowVisualization';
 export {
   buildEnvPipelineNodes,
@@ -509,6 +511,14 @@ export {
   useClusterTraitCreatePermission,
   type UseClusterTraitCreatePermissionResult,
 } from './hooks/useClusterTraitCreatePermission';
+export {
+  useHookCreatePermission,
+  type UseHookCreatePermissionResult,
+} from './hooks/useHookCreatePermission';
+export {
+  useClusterHookCreatePermission,
+  type UseClusterHookCreatePermissionResult,
+} from './hooks/useClusterHookCreatePermission';
 export {
   useClusterComponentTypePermission,
   type UseClusterComponentTypePermissionResult,

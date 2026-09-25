@@ -27,7 +27,11 @@ import {
   ComponentTypeUtils,
 } from '@openchoreo/backstage-plugin-common';
 import { DeploymentPipelineEntityV1alpha1 } from '../kinds';
-import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
+import {
+  CtdToTemplateConverter,
+  GitProviderConfig,
+  StarterSkeletonConfig,
+} from '../converters/CtdToTemplateConverter';
 import {
   RemoteTemplateContext,
   RemoteTemplateFetcher,
@@ -56,6 +60,8 @@ import {
   translateNewClusterDataplaneToEntity,
   translateNewClusterObservabilityPlaneToEntity,
   translateNewClusterTraitToEntity,
+  translateNewClusterHookToEntity,
+  translateNewHookToEntity,
   translateNewClusterWorkflowPlaneToEntity,
   translateNewClusterWorkflowToEntity,
   translateNewComponentToEntity,
@@ -104,6 +110,8 @@ type NewClusterComponentType =
 type NewClusterResourceType =
   OpenChoreoComponents['schemas']['ClusterResourceType'];
 type NewClusterTrait = OpenChoreoComponents['schemas']['ClusterTrait'];
+type NewHook = OpenChoreoComponents['schemas']['Hook'];
+type NewClusterHook = OpenChoreoComponents['schemas']['ClusterHook'];
 type NewClusterDataPlane = OpenChoreoComponents['schemas']['ClusterDataPlane'];
 type NewClusterObservabilityPlane =
   OpenChoreoComponents['schemas']['ClusterObservabilityPlane'];
@@ -111,6 +119,49 @@ type NewClusterWorkflowPlane =
   OpenChoreoComponents['schemas']['ClusterWorkflowPlane'];
 type NewClusterWorkflow = OpenChoreoComponents['schemas']['ClusterWorkflow'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
+
+/** Read configured `integrations.*` into provider-agnostic git providers. */
+function readGitProviders(config: Config): GitProviderConfig[] {
+  const integrations = config.getOptionalConfig('integrations');
+  if (!integrations) return [];
+
+  const providers: GitProviderConfig[] = [];
+  for (const provider of integrations.keys()) {
+    const publishAction =
+      CtdToTemplateConverter.publishActionForProvider(provider);
+    if (!publishAction) continue;
+    for (const entry of integrations.getOptionalConfigArray(provider) ?? []) {
+      const host = entry.getOptionalString('host');
+      if (host) providers.push({ provider, host, publishAction });
+    }
+  }
+  return providers;
+}
+
+/** Read `openchoreo.scaffolder.starterSkeletons` config, if present. */
+function readStarterSkeletons(
+  config: Config,
+): StarterSkeletonConfig | undefined {
+  const cfg = config.getOptionalConfig(
+    'openchoreo.scaffolder.starterSkeletons',
+  );
+  if (!cfg) return undefined;
+
+  const runtimesCfg = cfg.getOptionalConfig('runtimes');
+  const runtimes = runtimesCfg
+    ? Object.fromEntries(
+        runtimesCfg
+          .keys()
+          .map(k => [k, runtimesCfg.getStringArray(k)] as const),
+      )
+    : undefined;
+
+  return {
+    baseUrl: cfg.getOptionalString('baseUrl'),
+    runtimes,
+    defaultRuntimes: cfg.getOptionalStringArray('defaultRuntimes'),
+  };
+}
 
 /**
  * Provides entities from OpenChoreo API
@@ -155,9 +206,16 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       config.getOptionalString('openchoreo.defaultOwner') || 'openchoreo-users';
     // Qualify with 'default' namespace so owner resolves correctly for entities in non-default namespaces
     this.defaultOwner = `group:default/${ownerName}`;
-    // Initialize CTD to Template converter
+    // Initialize CTD to Template converter. Git providers and skeletons are
+    // read from config so in-wizard repo creation stays provider-agnostic.
     this.ctdConverter = new CtdToTemplateConverter({
       defaultOwner: this.defaultOwner,
+      gitProviders: readGitProviders(config),
+      repoCreationEnabled:
+        config.getOptionalBoolean(
+          'openchoreo.scaffolder.repoCreation.enabled',
+        ) ?? true,
+      starterSkeletons: readStarterSkeletons(config),
     });
     // Initialize RTD to Template converter — generates per-type Resource
     // wizards from (Cluster)ResourceType entities.
@@ -1079,6 +1137,40 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         }
       }
 
+      // Get hooks for each namespace (deployment hooks, alpha)
+      for (const ns of namespaces) {
+        const nsName = getName(ns)!;
+        try {
+          const hooks = await fetchAllPages<NewHook>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/hooks', {
+                params: {
+                  path: { namespaceName: nsName },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(`Failed to fetch hooks for ${nsName}`);
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${hooks.length} hooks in namespace: ${nsName}`,
+          );
+
+          const hookEntities: Entity[] = hooks.map(hook =>
+            translateNewHookToEntity(hook, nsName, this.translatorContext),
+          );
+          allEntities.push(...hookEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch hooks for namespace ${nsName}: ${error}`,
+          );
+        }
+      }
+
       // Get resource types for each namespace
       for (const ns of namespaces) {
         const nsName = getName(ns)!;
@@ -1727,6 +1819,41 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         this.logger.warn(`Failed to fetch cluster traits: ${error}`);
       }
 
+      // Fetch cluster hooks (once, not per namespace; deployment hooks, alpha)
+      try {
+        const clusterHooks = await fetchAllPages<NewClusterHook>(cursor =>
+          client
+            .GET('/api/v1/clusterhooks', {
+              params: { query: { limit: 100, cursor } },
+            })
+            .then(res => {
+              if (res.error) throw new Error('Failed to fetch cluster hooks');
+              return res.data;
+            }),
+        );
+
+        this.logger.debug(`Found ${clusterHooks.length} cluster hooks`);
+
+        const chEntities: Entity[] = clusterHooks
+          .map(ch => {
+            try {
+              return translateNewClusterHookToEntity(
+                ch,
+                this.translatorContext,
+              ) as Entity;
+            } catch (err) {
+              this.logger.warn(
+                `Failed to translate ClusterHook ${getName(ch)}: ${err}`,
+              );
+              return null;
+            }
+          })
+          .filter((e): e is Entity => e !== null);
+        allEntities.push(...chEntities);
+      } catch (error) {
+        this.logger.warn(`Failed to fetch cluster hooks: ${error}`);
+      }
+
       // Fetch cluster workflows (once, not per namespace)
       try {
         const clusterWorkflows = await fetchAllPages<NewClusterWorkflow>(
@@ -1975,8 +2102,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     const clusterWorkflowCount = allEntities.filter(
       e => e.kind === 'ClusterWorkflow',
     ).length;
+    const hookCount = allEntities.filter(e => e.kind === 'Hook').length;
+    const clusterHookCount = allEntities.filter(
+      e => e.kind === 'ClusterHook',
+    ).length;
     this.logger.info(
-      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${notificationChannelCount} notification channels, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${resourceTypeCount} resource types, ${projectTypeCount} project types, ${resourceCount} resources, ${clusterComponentTypeCount} cluster component types, ${clusterResourceTypeCount} cluster resource types, ${clusterProjectTypeCount} cluster project types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
+      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${notificationChannelCount} notification channels, ${dataplaneCount} dataplanes, ${workflowplaneCount} workflowplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${resourceTypeCount} resource types, ${projectTypeCount} project types, ${resourceCount} resources, ${clusterComponentTypeCount} cluster component types, ${clusterResourceTypeCount} cluster resource types, ${clusterProjectTypeCount} cluster project types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterWorkflowPlaneCount} cluster workflow planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows, ${hookCount} hooks, ${clusterHookCount} cluster hooks)`,
     );
   }
 }

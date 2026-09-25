@@ -1,11 +1,18 @@
 import { type ReactNode, useMemo } from 'react';
-import { Box, Chip, IconButton, Tooltip, Typography } from '@material-ui/core';
+import {
+  Box,
+  Chip,
+  IconButton,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+} from '@material-ui/core';
+import { useTheme } from '@material-ui/core/styles';
 import { PageLoader, Spinner } from '@openchoreo/backstage-design-system';
 import { TablePagination } from '@material-ui/core';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import { useApp, useRouteRef } from '@backstage/core-plugin-api';
 import {
-  EntitySearchBar,
   EntityRefLink,
   entityRouteRef,
   FavoriteEntity,
@@ -31,13 +38,7 @@ import { pickCatalogSeed, type CatalogSeedEntry } from './catalogSeed';
 import { deriveCatalogLoadState } from './catalogLoadState';
 import { useSelectedKind } from './SelectedKindContext';
 import { kindDisplayNames } from '../../utils/kindUtils';
-import {
-  StarredChip,
-  TypeChip,
-  ProjectChip,
-  ComponentChip,
-  NamespaceChip,
-} from './CustomPersonalFilters';
+import { CatalogFilterControls } from './CatalogFilterControls';
 
 const kindPluralNames: Record<string, string> = {
   Namespace: 'Namespaces',
@@ -150,6 +151,9 @@ interface CatalogCardListProps {
 
 export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
   const classes = useCardListStyles();
+  const theme = useTheme();
+  // Inline filters on desktop; on mobile (< sm) they move into the drawer.
+  const isDesktop = useMediaQuery(theme.breakpoints.up('sm'));
   const navigate = useNavigate();
   const entityRoute = useRouteRef(entityRouteRef);
   const {
@@ -326,7 +330,7 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
 
   return (
     <Box>
-      <Box className={classes.searchAndTitle}>
+      <Box className={classes.titleRow}>
         <Box display="flex" alignItems="center" style={{ gap: 8 }}>
           <Typography className={classes.titleText}>{titleText}</Typography>
           {/* Quiet inline spinner next to the count while a background
@@ -344,18 +348,13 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
             </Box>
           )}
         </Box>
-        <Box display="flex" alignItems="center" style={{ gap: 8 }}>
-          <NamespaceChip />
-          <ProjectChip />
-          <ComponentChip />
-          <TypeChip />
-          <StarredChip />
-          <form onSubmit={e => e.preventDefault()}>
-            <EntitySearchBar />
-          </form>
-          {actionButton}
-        </Box>
+        <Box className={classes.titleActions}>{actionButton}</Box>
       </Box>
+      {isDesktop && (
+        <Box className={classes.filterRowWrap}>
+          <CatalogFilterControls layout="row" />
+        </Box>
+      )}
 
       {firstLoad && <PageLoader minHeight={240} />}
       {!loading && displayEntities.length === 0 && (

@@ -1,4 +1,8 @@
-export type { EnvironmentEntityV1alpha1 } from './EnvironmentEntityV1alpha1';
+export type {
+  EnvironmentEntityV1alpha1,
+  EnvironmentHookBinding,
+  EnvironmentHookSet,
+} from './EnvironmentEntityV1alpha1';
 export type { DataplaneEntityV1alpha1 } from './DataplaneEntityV1alpha1';
 export type { WorkflowPlaneEntityV1alpha1 } from './WorkflowPlaneEntityV1alpha1';
 export type { ObservabilityPlaneEntityV1alpha1 } from './ObservabilityPlaneEntityV1alpha1';
@@ -12,6 +16,13 @@ export type { TraitTypeEntityV1alpha1 } from './TraitTypeEntityV1alpha1';
 export type { WorkflowEntityV1alpha1 } from './WorkflowEntityV1alpha1';
 export type { ClusterComponentTypeEntityV1alpha1 } from './ClusterComponentTypeEntityV1alpha1';
 export type { ClusterTraitTypeEntityV1alpha1 } from './ClusterTraitTypeEntityV1alpha1';
+export type {
+  HookEntityV1alpha1,
+  HookEntityParameter,
+  HookEntitySubjectRef,
+  HookEntityWorkflowRef,
+} from './HookEntityV1alpha1';
+export type { ClusterHookEntityV1alpha1 } from './ClusterHookEntityV1alpha1';
 export type { ClusterDataplaneEntityV1alpha1 } from './ClusterDataplaneEntityV1alpha1';
 export type { ClusterObservabilityPlaneEntityV1alpha1 } from './ClusterObservabilityPlaneEntityV1alpha1';
 export type { ClusterWorkflowPlaneEntityV1alpha1 } from './ClusterWorkflowPlaneEntityV1alpha1';

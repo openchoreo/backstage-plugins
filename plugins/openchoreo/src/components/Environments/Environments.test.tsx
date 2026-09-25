@@ -47,6 +47,11 @@ jest.mock('./hooks', () => ({
 }));
 
 // Mock @backstage/core-components
+// Deployment hooks (alpha) read Environment entities from the catalog.
+jest.mock('./hooks/useEnvironmentHookRows', () => ({
+  useEnvironmentHookRows: () => new Map(),
+}));
+
 jest.mock('@backstage/core-components', () => ({
   Progress: () => <div data-testid="progress">Loading...</div>,
 }));

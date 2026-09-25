@@ -8,6 +8,7 @@ import {
   type ImmediateCatalogService,
   translateEnvironmentToEntity,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
+import { hookSetSchema, toApiHookSet, type HookSetInput } from './hookBindings';
 
 export const createEnvironmentAction = (
   config: Config,
@@ -43,6 +44,7 @@ export const createEnvironmentAction = (
           z.boolean({
             description: 'Whether this is a production environment',
           }),
+        hooks: z => hookSetSchema(z),
       },
       output: {
         environmentName: z =>
@@ -90,6 +92,8 @@ export const createEnvironmentAction = (
       const dataPlaneRef = dataPlaneRefName
         ? { kind: dataPlaneRefKind, name: dataPlaneRefName }
         : undefined;
+
+      const hooks = toApiHookSet(ctx.input.hooks as HookSetInput | undefined);
 
       // Get the base URL from configuration
       const baseUrl = config.getString('openchoreo.baseUrl');
@@ -141,6 +145,7 @@ export const createEnvironmentAction = (
               spec: {
                 dataPlaneRef,
                 isProduction: ctx.input.isProduction,
+                ...(hooks ? { hooks } : {}),
               },
             },
           },
@@ -179,6 +184,9 @@ export const createEnvironmentAction = (
                   ? { kind: dataPlaneRefKind, name: dataPlaneRefName }
                   : undefined),
               dnsPrefix: undefined,
+              // Carry hook bindings into the catalog entity so pages that
+              // show them are right before the next scheduled sync.
+              ...(hooks ? { hooks } : {}),
               createdAt:
                 data?.metadata?.creationTimestamp || new Date().toISOString(),
               status: undefined,

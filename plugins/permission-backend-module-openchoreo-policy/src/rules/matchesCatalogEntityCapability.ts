@@ -130,6 +130,7 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   resourcetype: 'namespace-scoped',
   projecttype: 'namespace-scoped',
   traittype: 'namespace-scoped',
+  hook: 'namespace-scoped',
   workflow: 'namespace-scoped',
   componentworkflow: 'namespace-scoped',
   environment: 'namespace-scoped',
@@ -140,6 +141,7 @@ const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
   clusterresourcetype: 'cluster-scoped',
   clusterprojecttype: 'cluster-scoped',
   clustertraittype: 'cluster-scoped',
+  clusterhook: 'cluster-scoped',
   clusterworkflow: 'cluster-scoped',
 };
 
@@ -152,6 +154,7 @@ const CLUSTER_SCOPED_KINDS = new Set([
   'clusterresourcetype',
   'clusterprojecttype',
   'clustertraittype',
+  'clusterhook',
   'clusterworkflow',
 ]);
 

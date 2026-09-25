@@ -62,6 +62,9 @@ export function transformEnvironment(
           },
         }
       : undefined,
+    ...(environment.spec?.hooks && {
+      hooks: environment.spec.hooks as EnvironmentResponse['hooks'],
+    }),
     createdAt: getCreatedAt(environment) ?? '',
     status: deriveStatus(environment),
   };

@@ -15,6 +15,7 @@ import { WorkloadInfoService } from './services/WorkloadService/WorkloadInfoServ
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { ClusterTraitInfoService } from './services/ClusterTraitService/ClusterTraitInfoService';
+import { HookInfoService } from './services/HookService/HookInfoService';
 import { ClusterComponentTypeInfoService } from './services/ClusterComponentTypeService/ClusterComponentTypeInfoService';
 import { ResourceTypeInfoService } from './services/ResourceTypeService/ResourceTypeInfoService';
 import { ClusterResourceTypeInfoService } from './services/ClusterResourceTypeService/ClusterResourceTypeInfoService';
@@ -127,6 +128,8 @@ export const choreoPlugin = createBackendPlugin({
           baseUrl,
         );
 
+        const hookInfoService = new HookInfoService(logger, baseUrl);
+
         const clusterComponentTypeInfoService =
           new ClusterComponentTypeInfoService(logger, baseUrl);
 
@@ -235,6 +238,7 @@ export const choreoPlugin = createBackendPlugin({
             dashboardInfoService,
             traitInfoService,
             clusterTraitInfoService,
+            hookInfoService,
             clusterComponentTypeInfoService,
             resourceTypeInfoService,
             clusterResourceTypeInfoService,

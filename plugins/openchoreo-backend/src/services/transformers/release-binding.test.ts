@@ -244,6 +244,52 @@ describe('deriveBindingStatus', () => {
   });
 });
 
+// The hook gate holds a new release back without touching the one already
+// running, so a gate reason on Ready must not read as a failed deployment.
+// The controller leaves ResourcesReady at the previous generation while it
+// blocks, which is what tells "something is serving" apart from a first deploy.
+describe('deriveBindingStatus with the deployment-hook gate', () => {
+  const gated = (reason: string, serving: boolean) =>
+    makeBinding(
+      [
+        { type: 'Ready', status: 'False', reason, observedGeneration: 5 },
+        ...(serving
+          ? [
+              {
+                type: 'ResourcesReady',
+                status: 'True',
+                reason: 'Ready',
+                observedGeneration: 4,
+              },
+            ]
+          : []),
+      ],
+      5,
+    );
+
+  it('is Pending while hooks run for a first deploy', () => {
+    expect(deriveBindingStatus(gated('HooksRunning', false))).toBe('NotReady');
+  });
+
+  it('stays Active while hooks run for a new release over a serving one', () => {
+    expect(deriveBindingStatus(gated('HooksRunning', true))).toBe('Ready');
+  });
+
+  it('stays Active when the gate blocks a new release over a serving one', () => {
+    for (const reason of ['HookFailed', 'HookTimedOut', 'PlaneUnavailable']) {
+      expect(deriveBindingStatus(gated(reason, true))).toBe('Ready');
+    }
+  });
+
+  it('is Failed when the gate blocks a first deploy', () => {
+    expect(deriveBindingStatus(gated('HookFailed', false))).toBe('Failed');
+  });
+
+  it('does not treat a non-gate failure as Active because of old resources', () => {
+    expect(deriveBindingStatus(gated('RenderingFailed', true))).toBe('Failed');
+  });
+});
+
 describe('deriveBindingStatusDetailed', () => {
   it('returns reason and message for Failed status', () => {
     const binding = makeBinding([
