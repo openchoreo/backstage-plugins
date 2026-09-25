@@ -1,5 +1,14 @@
 # @openchoreo/backstage-plugin-openchoreo-observability
 
+## 1.3.1
+
+### Patch Changes
+
+- 3ec1d9e: Describe `actor.id` in the audit log filter and event drawer as the identity
+  claim set per actor type, rather than as the token's `sub` claim. Which claim
+  is recorded now depends on the actor's auth mechanism, so a service account
+  shows a client id where a person shows a username.
+
 ## 1.3.0
 
 ### Minor Changes
