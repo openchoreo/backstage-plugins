@@ -221,7 +221,6 @@ export {
   useSecretManagementEnabled,
   useAssistantEnabled,
   useDeliveryInsightsEnabled,
-  useHooksEnabled,
 } from './hooks/useOpenChoreoFeatures';
 export {
   useComponentEntityDetails,

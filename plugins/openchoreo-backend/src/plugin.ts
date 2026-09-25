@@ -83,12 +83,6 @@ export const choreoPlugin = createBackendPlugin({
         const authEnabled =
           config.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
 
-        // Deployment hooks (alpha), off by default; the control plane must also
-        // run with --enable-hooks.
-        const hooksEnabled =
-          config.getOptionalBoolean('openchoreo.features.hooks.enabled') ??
-          false;
-
         // Hard cap on a single wirelogs SSE stream. Wirelogs have no upstream
         // timeout (the openchoreo-api disables the write deadline for SSE), so
         // the backend proxy enforces one to stop runaway streams. Default 15m.
@@ -263,7 +257,6 @@ export const choreoPlugin = createBackendPlugin({
             auth,
             tokenService,
             authEnabled,
-            hooksEnabled,
             wirelogsStreamTimeoutMs,
             logger,
           }),

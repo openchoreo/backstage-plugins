@@ -1564,16 +1564,12 @@ describe('createRouter', () => {
     });
   });
 
-  // Deployment hooks (alpha). The routes are off unless the portal enables the
-  // feature, so a portal without hooks never exposes gate data or a retry.
+  // Deployment hooks (alpha): gate data and retry for one release binding.
   describe('release binding hooks', () => {
     let hooksApp: express.Express;
 
     beforeEach(async () => {
-      const router = await createRouter({
-        ...services,
-        hooksEnabled: true,
-      } as any);
+      const router = await createRouter(services as any);
       hooksApp = express();
       hooksApp.use(router);
       hooksApp.use(mockErrorHandler());
@@ -1619,16 +1615,6 @@ describe('createRouter', () => {
           .get('/release-bindings/api-prod/hooks')
           .query({ namespaceName: 'acme' });
         expect(response.status).toBe(403);
-      });
-
-      it('returns 404 without calling the API when hooks are disabled', async () => {
-        const response = await request(app)
-          .get('/release-bindings/api-prod/hooks')
-          .query({ namespaceName: 'acme' });
-        expect(response.status).toBe(404);
-        expect(
-          services.environmentInfoService.fetchReleaseBindingHooks,
-        ).not.toHaveBeenCalled();
       });
     });
 
@@ -1678,17 +1664,6 @@ describe('createRouter', () => {
           .query({ namespaceName: 'acme' })
           .send({ phase: 'preDeploy' });
         expect(response.status).toBe(403);
-      });
-
-      it('returns 404 without calling the API when hooks are disabled', async () => {
-        const response = await request(app)
-          .post('/release-bindings/api-prod/hooks/image-scan/retry')
-          .query({ namespaceName: 'acme' })
-          .send({ phase: 'preDeploy' });
-        expect(response.status).toBe(404);
-        expect(
-          services.environmentInfoService.retryReleaseBindingHook,
-        ).not.toHaveBeenCalled();
       });
     });
   });

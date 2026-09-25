@@ -11,11 +11,9 @@ import {
   EntityKindFilter,
   useEntityList,
 } from '@backstage/plugin-catalog-react';
-import { useHooksEnabled } from '@openchoreo/backstage-plugin-react';
 import { kindDisplayNames, kindCategories } from '../../utils/kindUtils';
 
 /** Kinds that only exist when the deployment hooks (alpha) feature is on. */
-const HOOK_KINDS = new Set(['hook', 'clusterhook']);
 import { useAllKinds } from '../../hooks/useAllKinds';
 import { useSelectedKind } from './SelectedKindContext';
 
@@ -167,7 +165,6 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
   // visible picker writes it — the hidden mobile/desktop twin would otherwise
   // fight over the context with its own lagging `selectedKind`.
   const { setSelectedKind: publishSelectedKind } = useSelectedKind();
-  const hooksEnabled = useHooksEnabled();
   useEffect(() => {
     if (!hidden) {
       publishSelectedKind(selectedKind);
@@ -188,7 +185,6 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
     const available = new Set<string>();
     allKinds.forEach((_value, key) => {
       const lowerKey = key.toLowerCase();
-      if (!hooksEnabled && HOOK_KINDS.has(lowerKey)) return;
       if (
         !allowedKinds ||
         allowedKinds.some(a => a.toLowerCase() === lowerKey)
@@ -197,7 +193,7 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
       }
     });
     return available;
-  }, [allKinds, allowedKinds, hooksEnabled]);
+  }, [allKinds, allowedKinds]);
 
   // Build grouped menu items
   const menuItems = useMemo(() => {

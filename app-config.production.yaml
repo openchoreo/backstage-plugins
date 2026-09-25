@@ -340,10 +340,6 @@ openchoreo:
     # When disabled, hides the Secrets settings tab and disables secret APIs
     secretManagement:
       enabled: ${OPENCHOREO_FEATURES_SECRET_MANAGEMENT_ENABLED}
-    # Deployment hooks (alpha): Hook / ClusterHook kinds, pipeline hook bindings, release gate UI
-    # Opt-in; the control plane must run with --enable-hooks
-    hooks:
-      enabled: ${OPENCHOREO_FEATURES_HOOKS_ENABLED}
 
 thunder:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)

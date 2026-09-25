@@ -21,12 +21,6 @@ jest.mock('@backstage/plugin-catalog-react', () => ({
   useEntity: () => ({ entity }),
 }));
 
-let hooksEnabled = false;
-jest.mock('@openchoreo/backstage-plugin-react', () => ({
-  ...jest.requireActual('@openchoreo/backstage-plugin-react'),
-  useHooksEnabled: () => hooksEnabled,
-}));
-
 function renderUseDeploymentPipeline(
   fetchDeploymentPipeline: jest.Mock,
   getEntities: jest.Mock = jest.fn().mockResolvedValue({ items: [] }),
@@ -127,12 +121,7 @@ describe('useDeploymentPipeline', () => {
       ],
     };
 
-    afterEach(() => {
-      hooksEnabled = false;
-    });
-
     it("returns each environment's bindings, keyed by environment, for the pipeline lanes", async () => {
-      hooksEnabled = true;
       const getEntities = jest.fn().mockResolvedValue(environments);
       const { result } = renderUseDeploymentPipeline(
         jest.fn().mockResolvedValue(pipeline),
@@ -163,19 +152,6 @@ describe('useDeploymentPipeline', () => {
           filter: { kind: 'Environment', 'metadata.namespace': 'default' },
         }),
       );
-    });
-
-    it('draws no bindings and skips the catalog lookup when the feature is off', async () => {
-      const getEntities = jest.fn().mockResolvedValue(environments);
-      const { result } = renderUseDeploymentPipeline(
-        jest.fn().mockResolvedValue(pipeline),
-        getEntities,
-      );
-
-      await waitFor(() => expect(result.current.loading).toBe(false));
-
-      expect(result.current.data!.environmentHooks).toBeUndefined();
-      expect(getEntities).not.toHaveBeenCalled();
     });
   });
 

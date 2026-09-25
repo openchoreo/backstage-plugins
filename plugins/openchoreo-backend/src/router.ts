@@ -119,7 +119,6 @@ export async function createRouter({
   auth,
   tokenService,
   authEnabled,
-  hooksEnabled = false,
   wirelogsStreamTimeoutMs,
   logger,
 }: {
@@ -151,8 +150,6 @@ export async function createRouter({
   auth: AuthService;
   tokenService: OpenChoreoTokenService;
   authEnabled: boolean;
-  /** Deployment hooks (alpha); `openchoreo.features.hooks.enabled` */
-  hooksEnabled?: boolean;
   /** Hard cap (ms) on a single wirelogs SSE stream before the server ends it. */
   wirelogsStreamTimeoutMs: number;
   logger: LoggerService;
@@ -1122,39 +1119,27 @@ export async function createRouter({
   // Deployment hooks (alpha): gate status and retry for one release binding.
   // Authorization (releasebinding:view / releasebinding:update) is enforced by
   // the control plane on the forwarded user token.
-  const requireHooksEnabled: express.RequestHandler = (_req, _res, next) => {
-    if (!hooksEnabled) {
-      throw new NotFoundError('Deployment hooks are not enabled');
+  router.get('/release-bindings/:bindingName/hooks', async (req, res) => {
+    const { namespaceName } = req.query;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
     }
-    next();
-  };
 
-  router.get(
-    '/release-bindings/:bindingName/hooks',
-    requireHooksEnabled,
-    async (req, res) => {
-      const { namespaceName } = req.query;
-
-      if (!namespaceName) {
-        throw new InputError('namespaceName is a required query parameter');
-      }
-
-      const userToken = getUserTokenFromRequest(req);
-      res.json(
-        await environmentInfoService.fetchReleaseBindingHooks(
-          {
-            namespaceName: namespaceName as string,
-            bindingName: req.params.bindingName,
-          },
-          userToken,
-        ),
-      );
-    },
-  );
+    const userToken = getUserTokenFromRequest(req);
+    res.json(
+      await environmentInfoService.fetchReleaseBindingHooks(
+        {
+          namespaceName: namespaceName as string,
+          bindingName: req.params.bindingName,
+        },
+        userToken,
+      ),
+    );
+  });
 
   router.post(
     '/release-bindings/:bindingName/hooks/:hookName/retry',
-    requireHooksEnabled,
     requireAuth,
     async (req, res) => {
       const { namespaceName } = req.query;
