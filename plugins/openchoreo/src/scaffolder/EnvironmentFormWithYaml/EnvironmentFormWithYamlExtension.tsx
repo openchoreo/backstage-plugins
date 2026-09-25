@@ -21,10 +21,7 @@ import {
 } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
-import {
-  YamlEditor,
-  useHooksEnabled,
-} from '@openchoreo/backstage-plugin-react';
+import { YamlEditor } from '@openchoreo/backstage-plugin-react';
 import { FormYamlToggle } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import YAML from 'yaml';
@@ -180,7 +177,6 @@ export const EnvironmentFormWithYamlExtension = ({
 }: FieldExtensionComponentProps<EnvironmentFormData>) => {
   const classes = useStyles();
   const catalogApi = useApi(catalogApiRef);
-  const hooksEnabled = useHooksEnabled();
 
   const [mode, setMode] = useState<'form' | 'yaml'>('form');
   const [yamlContent, setYamlContent] = useState('');
@@ -219,7 +215,6 @@ export const EnvironmentFormWithYamlExtension = ({
   // component types an appliesTo selector may name.
   const hookEditorOptions = useHookEditorOptions(
     data.namespace_name ? extractName(data.namespace_name) : '',
-    hooksEnabled,
   );
 
   // Fetch Dataplane and ClusterDataplane entities filtered by selected namespace
@@ -585,20 +580,18 @@ export const EnvironmentFormWithYamlExtension = ({
               </Typography>
             </Grid>
 
-            {hooksEnabled && (
-              <Grid item xs={12}>
-                <HookBindingEditor
-                  environmentName={data.environment_name}
-                  hookSet={data.hooks}
-                  hooks={hookEditorOptions.hooks}
-                  subjectTypes={hookEditorOptions.subjectTypes}
-                  onChange={hooks => updateField('hooks', hooks)}
-                  // Errors appear once the user tries to go on (the form
-                  // reports its validation errors as rawErrors).
-                  showErrors={!!rawErrors?.length}
-                />
-              </Grid>
-            )}
+            <Grid item xs={12}>
+              <HookBindingEditor
+                environmentName={data.environment_name}
+                hookSet={data.hooks}
+                hooks={hookEditorOptions.hooks}
+                subjectTypes={hookEditorOptions.subjectTypes}
+                onChange={hooks => updateField('hooks', hooks)}
+                // Errors appear once the user tries to go on (the form
+                // reports its validation errors as rawErrors).
+                showErrors={!!rawErrors?.length}
+              />
+            </Grid>
           </Grid>
         </div>
       ) : (

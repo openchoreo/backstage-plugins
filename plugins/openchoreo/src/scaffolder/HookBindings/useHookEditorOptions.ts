@@ -44,18 +44,18 @@ export function hookEntityToOption(e: {
 /**
  * Loads what the hook-binding editor offers for one namespace: the Hooks in it
  * plus every ClusterHook, and the component types an appliesTo selector may
- * name. Returns empty lists while disabled or without a namespace.
+ * name. Returns empty lists without a namespace.
  */
-export function useHookEditorOptions(
-  namespaceName: string,
-  enabled: boolean,
-): { hooks: HookOption[]; subjectTypes: SubjectTypeOption[] } {
+export function useHookEditorOptions(namespaceName: string): {
+  hooks: HookOption[];
+  subjectTypes: SubjectTypeOption[];
+} {
   const catalogApi = useApi(catalogApiRef);
   const [hooks, setHooks] = useState<HookOption[]>([]);
   const [subjectTypes, setSubjectTypes] = useState<SubjectTypeOption[]>([]);
 
   useEffect(() => {
-    if (!enabled || !namespaceName) {
+    if (!namespaceName) {
       setHooks([]);
       setSubjectTypes([]);
       return;
@@ -102,7 +102,7 @@ export function useHookEditorOptions(
     };
     fetchHooks();
     fetchTypes();
-  }, [enabled, namespaceName, catalogApi]);
+  }, [namespaceName, catalogApi]);
 
   return { hooks, subjectTypes };
 }

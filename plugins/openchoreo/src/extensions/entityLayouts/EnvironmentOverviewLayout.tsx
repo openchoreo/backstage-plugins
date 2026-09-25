@@ -14,7 +14,6 @@ import {
   EnvironmentGatewayConfigurationCard,
   EnvironmentHooksCard,
 } from '../../components/EnvironmentOverview';
-import { useHooksEnabled } from '@openchoreo/backstage-plugin-react';
 import { EntityWarningStrip } from './EntityWarningStrip';
 import { OpenChoreoAboutCard } from '../../components/OpenChoreoAboutCard';
 import { ContainedCatalogGraphCard } from '../../components/ContainedCatalogGraphCard';
@@ -23,7 +22,6 @@ import { ForeignCardsSection } from './foreignCards';
 export default function EnvironmentOverviewLayout({
   cards,
 }: EntityContentLayoutProps) {
-  const hooksEnabled = useHooksEnabled();
   return (
     <Grid container spacing={3} alignItems="stretch">
       <EntityWarningStrip />
@@ -33,11 +31,9 @@ export default function EnvironmentOverviewLayout({
       <Grid item md={6} xs={12}>
         <EnvironmentPromotionCard />
       </Grid>
-      {hooksEnabled && (
-        <Grid item xs={12}>
-          <EnvironmentHooksCard />
-        </Grid>
-      )}
+      <Grid item xs={12}>
+        <EnvironmentHooksCard />
+      </Grid>
       <Grid item xs={12}>
         <EnvironmentDeployedComponentsCard />
       </Grid>
