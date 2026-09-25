@@ -22,7 +22,7 @@ interface Props {
   hasError?: boolean;
 }
 
-const VISIBILITIES = ['private', 'public'];
+const VISIBILITIES = ['public', 'private'];
 
 /** Build the scaffolder publish `repoUrl` (`host?owner=..&repo=..`). */
 const buildRepoUrl = (host: string, owner: string, repo: string): string =>
@@ -131,7 +131,7 @@ export const RepoCreationFields = ({
         <TextField
           select
           label="Visibility"
-          value={data.visibility || 'private'}
+          value={data.visibility || 'public'}
           onChange={e => update({ visibility: e.target.value })}
           fullWidth
           variant="outlined"
