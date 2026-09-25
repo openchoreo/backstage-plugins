@@ -1,4 +1,5 @@
 import { mockErrorHandler } from '@backstage/backend-test-utils';
+import { NotAllowedError } from '@backstage/errors';
 import express from 'express';
 import request from 'supertest';
 import { createRouter } from './router';
@@ -35,6 +36,8 @@ function createMockServices() {
       fetchProjectEnvironmentInfo: jest.fn(),
       fetchProjectReleaseBindings: jest.fn(),
       updateProjectReleaseBinding: jest.fn(),
+      fetchReleaseBindingHooks: jest.fn(),
+      retryReleaseBindingHook: jest.fn(),
     },
     cellDiagramInfoService: {
       fetchProjectInfo: jest.fn(),
@@ -72,6 +75,12 @@ function createMockServices() {
     clusterTraitInfoService: {
       fetchClusterTraits: jest.fn(),
       fetchClusterTraitSchema: jest.fn(),
+    },
+    hookInfoService: {
+      listHooks: jest.fn(),
+      getHook: jest.fn(),
+      listClusterHooks: jest.fn(),
+      getClusterHook: jest.fn(),
     },
     clusterComponentTypeInfoService: {
       fetchClusterComponentTypes: jest.fn(),
@@ -1486,6 +1495,201 @@ describe('createRouter', () => {
       expect(response.status).toBe(200);
       expect(response.text).toContain('event: timeout');
       expect(response.text).not.toContain('Failed to open wirelogs stream');
+    });
+  });
+
+  // Deployment hooks (alpha). The list routes forward the user token so the
+  // API's authz filter applies per caller; a 403 from the API must reach the
+  // portal as a 403, not a 500, so the UI can show "no access" rather than
+  // "broken".
+  describe('GET /hooks', () => {
+    it('lists hooks for a namespace with the user token', async () => {
+      const list = { success: true, data: { items: [{ name: 'notify' }] } };
+      services.hookInfoService.listHooks.mockResolvedValue(list);
+
+      const response = await request(app)
+        .get('/hooks')
+        .query({ namespaceName: 'acme' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(list);
+      expect(services.hookInfoService.listHooks).toHaveBeenCalledWith(
+        'acme',
+        'mock-user-token',
+      );
+    });
+
+    it('returns 400 when namespaceName is missing', async () => {
+      const response = await request(app).get('/hooks');
+      expect(response.status).toBe(400);
+      expect(services.hookInfoService.listHooks).not.toHaveBeenCalled();
+    });
+
+    it('passes a NotAllowedError from the API through as 403', async () => {
+      services.hookInfoService.listHooks.mockRejectedValue(
+        new NotAllowedError('no hook:view'),
+      );
+      const response = await request(app)
+        .get('/hooks')
+        .query({ namespaceName: 'acme' });
+      expect(response.status).toBe(403);
+    });
+  });
+
+  describe('GET /cluster-hooks', () => {
+    it('lists cluster hooks with the user token', async () => {
+      const list = { success: true, data: { items: [{ name: 'scan' }] } };
+      services.hookInfoService.listClusterHooks.mockResolvedValue(list);
+
+      const response = await request(app).get('/cluster-hooks');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(list);
+      expect(services.hookInfoService.listClusterHooks).toHaveBeenCalledWith(
+        'mock-user-token',
+      );
+    });
+
+    it('fetches one cluster hook by name', async () => {
+      services.hookInfoService.getClusterHook.mockResolvedValue({
+        success: true,
+        data: { name: 'scan' },
+      });
+      const response = await request(app).get('/cluster-hooks/scan');
+      expect(response.status).toBe(200);
+      expect(services.hookInfoService.getClusterHook).toHaveBeenCalledWith(
+        'scan',
+        'mock-user-token',
+      );
+    });
+  });
+
+  // Deployment hooks (alpha). The routes are off unless the portal enables the
+  // feature, so a portal without hooks never exposes gate data or a retry.
+  describe('release binding hooks', () => {
+    let hooksApp: express.Express;
+
+    beforeEach(async () => {
+      const router = await createRouter({
+        ...services,
+        hooksEnabled: true,
+      } as any);
+      hooksApp = express();
+      hooksApp.use(router);
+      hooksApp.use(mockErrorHandler());
+    });
+
+    describe('GET /release-bindings/:bindingName/hooks', () => {
+      it('returns the gate of the binding', async () => {
+        const gate = {
+          key: 'k1',
+          preDeploy: [{ name: 'image-scan', phase: 'Failed' }],
+          postDeploy: [],
+        };
+        services.environmentInfoService.fetchReleaseBindingHooks.mockResolvedValue(
+          gate,
+        );
+
+        const response = await request(hooksApp)
+          .get('/release-bindings/api-prod/hooks')
+          .query({ namespaceName: 'acme' });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(gate);
+        expect(
+          services.environmentInfoService.fetchReleaseBindingHooks,
+        ).toHaveBeenCalledWith(
+          { namespaceName: 'acme', bindingName: 'api-prod' },
+          'mock-user-token',
+        );
+      });
+
+      it('returns 400 when namespaceName is missing', async () => {
+        const response = await request(hooksApp).get(
+          '/release-bindings/api-prod/hooks',
+        );
+        expect(response.status).toBe(400);
+      });
+
+      it('passes a NotAllowedError from the API through as 403', async () => {
+        services.environmentInfoService.fetchReleaseBindingHooks.mockRejectedValue(
+          new NotAllowedError('no releasebinding:view'),
+        );
+        const response = await request(hooksApp)
+          .get('/release-bindings/api-prod/hooks')
+          .query({ namespaceName: 'acme' });
+        expect(response.status).toBe(403);
+      });
+
+      it('returns 404 without calling the API when hooks are disabled', async () => {
+        const response = await request(app)
+          .get('/release-bindings/api-prod/hooks')
+          .query({ namespaceName: 'acme' });
+        expect(response.status).toBe(404);
+        expect(
+          services.environmentInfoService.fetchReleaseBindingHooks,
+        ).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('POST /release-bindings/:bindingName/hooks/:hookName/retry', () => {
+      it('forwards the phase and returns the annotated binding', async () => {
+        services.environmentInfoService.retryReleaseBindingHook.mockResolvedValue(
+          { name: 'api-prod' },
+        );
+
+        const response = await request(hooksApp)
+          .post('/release-bindings/api-prod/hooks/image-scan/retry')
+          .query({ namespaceName: 'acme' })
+          .send({ phase: 'preDeploy' });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ name: 'api-prod' });
+        expect(
+          services.environmentInfoService.retryReleaseBindingHook,
+        ).toHaveBeenCalledWith(
+          {
+            namespaceName: 'acme',
+            bindingName: 'api-prod',
+            hookName: 'image-scan',
+            phase: 'preDeploy',
+          },
+          'mock-user-token',
+        );
+      });
+
+      it('returns 400 for a phase the control plane does not know', async () => {
+        const response = await request(hooksApp)
+          .post('/release-bindings/api-prod/hooks/image-scan/retry')
+          .query({ namespaceName: 'acme' })
+          .send({ phase: 'deploy' });
+        expect(response.status).toBe(400);
+        expect(
+          services.environmentInfoService.retryReleaseBindingHook,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('passes a NotAllowedError from the API through as 403', async () => {
+        services.environmentInfoService.retryReleaseBindingHook.mockRejectedValue(
+          new NotAllowedError('no releasebinding:update'),
+        );
+        const response = await request(hooksApp)
+          .post('/release-bindings/api-prod/hooks/image-scan/retry')
+          .query({ namespaceName: 'acme' })
+          .send({ phase: 'preDeploy' });
+        expect(response.status).toBe(403);
+      });
+
+      it('returns 404 without calling the API when hooks are disabled', async () => {
+        const response = await request(app)
+          .post('/release-bindings/api-prod/hooks/image-scan/retry')
+          .query({ namespaceName: 'acme' })
+          .send({ phase: 'preDeploy' });
+        expect(response.status).toBe(404);
+        expect(
+          services.environmentInfoService.retryReleaseBindingHook,
+        ).not.toHaveBeenCalled();
+      });
     });
   });
 });

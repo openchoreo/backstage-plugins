@@ -294,6 +294,10 @@ openchoreo:
     # When disabled, hides the Secrets settings tab and disables secret APIs
     secretManagement:
       enabled: ${OPENCHOREO_FEATURES_SECRET_MANAGEMENT_ENABLED}
+    # Deployment hooks (alpha): Hook / ClusterHook kinds, pipeline hook bindings, release gate UI
+    # Opt-in; the control plane must run with --enable-hooks
+    hooks:
+      enabled: ${OPENCHOREO_FEATURES_HOOKS_ENABLED}
     # OpenChoreo Assistant chat agent (FAB, drawer, contextual launchers)
     # Opt-in: defaults to false. Requires the perch-agent service and an
     # LLM API key Secret to be deployed. When disabled, hides the chat tab,
@@ -408,6 +412,14 @@ catalog:
         - allow: [Template]
     - type: file
       target: ../../templates/create-openchoreo-clustertrait/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: ../../templates/create-openchoreo-hook/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: ../../templates/create-openchoreo-clusterhook/template.yaml
       rules:
         - allow: [Template]
     - type: file

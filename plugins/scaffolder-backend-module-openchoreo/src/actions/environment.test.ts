@@ -136,3 +136,145 @@ describe('createEnvironmentAction', () => {
     );
   });
 });
+
+describe('createEnvironmentAction — deployment hooks', () => {
+  let mockCatalog: { insertEntity: jest.Mock };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCatalog = { insertEntity: jest.fn().mockResolvedValue(undefined) };
+  });
+
+  const hooks = {
+    preDeploy: [
+      {
+        name: 'image-scan',
+        hookRef: { kind: 'ClusterHook', name: 'trivy-image-scan' },
+        onFailure: 'Block',
+        timeout: '20m',
+      },
+    ],
+    postDeploy: [
+      {
+        name: 'notify',
+        hookRef: { name: 'slack-notify' },
+        mode: 'Async',
+      },
+    ],
+  };
+
+  // The gate only sees what reaches spec.hooks, so a binding lost here would
+  // silently disable a security scan.
+  it('forwards hook bindings in the request body with the CRD defaults filled', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse('production'));
+    const action = createEnvironmentAction(buildConfig(), mockCatalog as any);
+    await action.handler(
+      buildCtx({ input: { environmentName: 'production', hooks } }) as any,
+    );
+    expect(mockPOST.mock.calls[0][1].body.spec.hooks).toEqual({
+      preDeploy: [
+        {
+          name: 'image-scan',
+          hookRef: { kind: 'ClusterHook', name: 'trivy-image-scan' },
+          mode: 'Sync',
+          onFailure: 'Block',
+          timeout: '20m',
+          retries: 0,
+        },
+      ],
+      postDeploy: [
+        {
+          name: 'notify',
+          hookRef: { kind: 'Hook', name: 'slack-notify' },
+          mode: 'Async',
+          retries: 0,
+        },
+      ],
+    });
+  });
+
+  // The portal form submits its own shape: blank parameters as "" and a
+  // form-only hookSpec. Neither may reach the Environment: "" would override
+  // the hook's default with an empty value.
+  it('drops blank parameters and the form-only hookSpec from what it sends', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse('production'));
+    const action = createEnvironmentAction(buildConfig(), mockCatalog as any);
+    const formHooks = {
+      preDeploy: [
+        {
+          name: 'image-scan',
+          hookRef: { kind: 'ClusterHook', name: 'trivy-image-scan' },
+          mode: 'Sync',
+          parameters: { severity: 'HIGH', message: '' },
+          hookSpec: {
+            kind: 'ClusterHook',
+            name: 'trivy-image-scan',
+            parameters: [],
+          },
+        },
+        {
+          name: 'smoke',
+          hookRef: { name: 'e2e' },
+          parameters: { suite: '' },
+        },
+      ],
+    };
+    await action.handler(
+      buildCtx({
+        input: { environmentName: 'production', hooks: formHooks },
+      }) as any,
+    );
+    const sent = mockPOST.mock.calls[0][1].body.spec.hooks.preDeploy;
+    expect(sent[0].parameters).toEqual({ severity: 'HIGH' });
+    expect(sent[0]).not.toHaveProperty('hookSpec');
+    expect(sent[1]).not.toHaveProperty('parameters');
+  });
+
+  it('omits the hooks key for an environment without bindings', async () => {
+    mockPOST.mockResolvedValueOnce(successResponse());
+    const action = createEnvironmentAction(buildConfig(), mockCatalog as any);
+    await action.handler(buildCtx() as any);
+    expect(mockPOST.mock.calls[0][1].body.spec).not.toHaveProperty('hooks');
+
+    mockPOST.mockResolvedValueOnce(successResponse());
+    await action.handler(
+      buildCtx({ input: { hooks: { preDeploy: [], postDeploy: [] } } }) as any,
+    );
+    expect(mockPOST.mock.calls[1][1].body.spec).not.toHaveProperty('hooks');
+  });
+
+  it('carries hook bindings into the immediately inserted catalog entity', async () => {
+    const { translateEnvironmentToEntity } = jest.requireMock(
+      '@openchoreo/backstage-plugin-catalog-backend-module',
+    );
+    mockPOST.mockResolvedValueOnce(successResponse('production'));
+    const action = createEnvironmentAction(buildConfig(), mockCatalog as any);
+    await action.handler(
+      buildCtx({ input: { environmentName: 'production', hooks } }) as any,
+    );
+    expect(translateEnvironmentToEntity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hooks: expect.objectContaining({
+          preDeploy: [expect.objectContaining({ name: 'image-scan' })],
+        }),
+      }),
+      'my-ns',
+      expect.anything(),
+    );
+    expect(mockCatalog.insertEntity).toHaveBeenCalled();
+  });
+
+  it('surfaces the webhook message verbatim when the API rejects the environment', async () => {
+    const message =
+      'spec.hooks.postDeploy[0].onFailure: Invalid value: "Block": Block is only valid for preDeploy hooks; the release is already rendered when a postDeploy hook fails';
+    mockPOST.mockResolvedValueOnce({
+      data: undefined,
+      error: { message },
+      response: { ok: false, status: 400 },
+    });
+    const action = createEnvironmentAction(buildConfig(), mockCatalog as any);
+    const ctx = buildCtx({ input: { hooks } });
+    await expect(action.handler(ctx as any)).rejects.toThrow(message);
+    expect(mockCatalog.insertEntity).not.toHaveBeenCalled();
+  });
+});

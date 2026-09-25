@@ -50,6 +50,8 @@ export const CHOREO_ANNOTATIONS = {
   PTD_DISPLAY_NAME: 'openchoreo.io/ptd-display-name',
   PTD_GENERATED: 'openchoreo.io/ptd-generated',
   PTD_KIND: 'openchoreo.io/ptd-kind',
+  // Deployment hooks (alpha): `<Workflow|ClusterWorkflow>/<name>` the hook runs
+  WORKFLOW_REF: 'openchoreo.io/workflow-ref',
   // Deletion tracking
   DELETION_TIMESTAMP: 'openchoreo.io/deletion-timestamp',
   // Agent connection status
@@ -191,6 +193,18 @@ export const RELATION_USES_WORKFLOW = 'usesWorkflow';
  * This is the inverse of RELATION_USES_WORKFLOW.
  */
 export const RELATION_WORKFLOW_USED_BY = 'workflowUsedBy';
+
+/**
+ * Relation type: DeploymentPipeline bindsHook Hook / ClusterHook.
+ * Emitted for every hook bound on a promotion target (deployment hooks, alpha).
+ */
+export const RELATION_BINDS_HOOK = 'bindsHook';
+
+/**
+ * Relation type: Hook / ClusterHook hookBoundBy DeploymentPipeline.
+ * This is the inverse of RELATION_BINDS_HOOK.
+ */
+export const RELATION_HOOK_BOUND_BY = 'hookBoundBy';
 
 /**
  * A relation indicating that an Environment sends alerts to an

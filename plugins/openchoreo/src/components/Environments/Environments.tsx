@@ -10,6 +10,7 @@ import {
   useEnvironmentPolling,
   useEnvironmentRouting,
 } from './hooks';
+import { useEnvironmentHookRows } from './hooks/useEnvironmentHookRows';
 import type { PendingAction } from './types';
 import { useEnvironmentsStyles } from './styles';
 import { EnvironmentsRouter } from './EnvironmentsRouter';
@@ -52,6 +53,10 @@ export const Environments = ({
   const { environments, loading, error, isRefetching, isForbidden, refetch } =
     useEnvironmentData(entity);
   const { displayEnvironments, isPending } = useStaleEnvironments(environments);
+  const hooksByEnvironment = useEnvironmentHookRows(
+    displayEnvironments,
+    entity.metadata.namespace || 'default',
+  );
 
   // Permission checks
   const { canViewEnvironments, loading: environmentReadPermissionLoading } =
@@ -177,6 +182,7 @@ export const Environments = ({
       beginAwaitingNewRelease,
       selection,
       setSelection,
+      hooksByEnvironment,
       renderInvestigateAction: investigateAction,
     }),
     [
@@ -202,6 +208,7 @@ export const Environments = ({
       awaitingNewRelease,
       beginAwaitingNewRelease,
       selection,
+      hooksByEnvironment,
       investigateAction,
     ],
   );

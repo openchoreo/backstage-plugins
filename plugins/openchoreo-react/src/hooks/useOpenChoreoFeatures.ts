@@ -16,6 +16,7 @@ const defaultFeatures: OpenChoreoFeatures = {
   secretManagement: { enabled: false },
   assistant: { enabled: false },
   deliveryInsights: { enabled: false },
+  hooks: { enabled: false },
 };
 
 /**
@@ -71,6 +72,9 @@ export function useOpenChoreoFeatures(): OpenChoreoFeatures {
           enabled:
             featuresConfig.getOptionalBoolean('deliveryInsights.enabled') ??
             false,
+        },
+        hooks: {
+          enabled: featuresConfig.getOptionalBoolean('hooks.enabled') ?? false,
         },
       };
     } catch {
@@ -138,4 +142,13 @@ export function useSecretManagementEnabled(): boolean {
 export function useAssistantEnabled(): boolean {
   const features = useOpenChoreoFeatures();
   return features.assistant.enabled;
+}
+
+/**
+ * Helper hook to check if deployment hooks (alpha) are enabled.
+ * Defaults to false (opt-in); requires the control plane's `--enable-hooks`.
+ */
+export function useHooksEnabled(): boolean {
+  const features = useOpenChoreoFeatures();
+  return features.hooks.enabled;
 }

@@ -63,6 +63,21 @@ export function buildReleaseDetailsPath(
 }
 
 /**
+ * Build path to a deployment hook's run page (deployment hooks, alpha)
+ */
+export function buildHookRunPath(
+  basePath: string,
+  envName: string,
+  phase: 'preDeploy' | 'postDeploy',
+  hookName: string,
+): string {
+  const encodedEnv = encodeURIComponent(envName.toLowerCase());
+  return `${basePath}/hook/${encodedEnv}/${phase}/${encodeURIComponent(
+    hookName,
+  )}`;
+}
+
+/**
  * Build path to workload config page
  */
 export function buildWorkloadConfigPath(basePath: string): string {

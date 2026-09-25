@@ -254,6 +254,28 @@ describe('transformEnvironment', () => {
     const noSpec = { metadata: baseMeta };
     expect(transformEnvironment(noSpec).isProduction).toBe(false);
   });
+
+  // Hook bindings live on the Environment; dropping them here would hide the
+  // gate from every portal view and from the environment edit form.
+  it('carries hook bindings and omits the key when there are none', () => {
+    const hooks: OpenChoreoComponents['schemas']['HookSet'] = {
+      preDeploy: [
+        {
+          name: 'image-scan',
+          hookRef: { kind: 'ClusterHook', name: 'trivy-image-scan' },
+          mode: 'Sync',
+          onFailure: 'Block',
+          retries: 0,
+        },
+      ],
+    };
+    const withHooks = transformEnvironment({
+      ...environment,
+      spec: { ...environment.spec, hooks },
+    });
+    expect(withHooks.hooks).toEqual(hooks);
+    expect(transformEnvironment(environment)).not.toHaveProperty('hooks');
+  });
 });
 
 // ---------------------------------------------------------------------------

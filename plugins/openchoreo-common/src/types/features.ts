@@ -42,6 +42,12 @@ export interface OpenChoreoFeatures {
    * to collect it.
    */
   deliveryInsights: { enabled: boolean };
+  /**
+   * Deployment hooks (alpha): Hook / ClusterHook catalog kinds, hook bindings on
+   * deployment pipelines, and the release gate UI. Opt-in: defaults to false and
+   * requires the control plane to run with `--enable-hooks`.
+   */
+  hooks: { enabled: boolean };
 }
 
 /**
@@ -54,4 +60,5 @@ export type FeatureName =
   | 'authz'
   | 'secretManagement'
   | 'assistant'
-  | 'deliveryInsights';
+  | 'deliveryInsights'
+  | 'hooks';

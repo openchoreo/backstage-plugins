@@ -85,6 +85,148 @@ export interface TargetEnvironmentRef {
 }
 
 // ---------------------------------------------------------------------------
+// Deployment hooks (alpha)
+// ---------------------------------------------------------------------------
+
+export type HookType = 'Workflow';
+export type HookRefKind = 'Hook' | 'ClusterHook';
+export type HookMode = 'Sync' | 'Async';
+export type HookFailurePolicy = 'Block' | 'Ignore' | 'Alert';
+/** Why a hook ran. Reported through the deployment context; not configurable on a binding. */
+export type DeploymentTrigger = 'ReleaseChange' | 'BindingCreate';
+export type HookSubjectRefKind = 'ComponentType' | 'ClusterComponentType';
+export type HookSubjectSelectorKind = 'ComponentType' | 'ClusterComponentType';
+export type HookPhase =
+  | 'Pending'
+  | 'Running'
+  | 'Succeeded'
+  | 'Failed'
+  | 'TimedOut'
+  | 'Skipped'
+  | 'Dispatched'
+  | 'DispatchFailed'
+  | 'PlaneUnavailable';
+
+/** One workflow input and where its value comes from (exactly one source). */
+export interface HookParameter {
+  name: string;
+  /** Fixed literal; a binding cannot override it */
+  value?: string;
+  /** CEL `${deployment.…}` expression over the deployment context */
+  from?: string;
+  /** Used when the binding supplies nothing */
+  default?: string;
+  /** Lets a binding replace the `from` value */
+  overridable?: boolean;
+  /** Every binding must supply the value */
+  required?: boolean;
+  /** Optional OpenAPI v3 fragment for the value */
+  schema?: Record<string, unknown>;
+}
+
+export interface HookSubjectRef {
+  kind: HookSubjectRefKind;
+  name: string;
+}
+
+export interface HookWorkflowRef {
+  kind: 'Workflow' | 'ClusterWorkflow';
+  name: string;
+}
+
+export interface HookSpec {
+  type?: HookType;
+  workflowRef: HookWorkflowRef;
+  parameters?: HookParameter[];
+  /** Component types the hook is enabled for; empty means every component */
+  enabledTo?: HookSubjectRef[];
+}
+
+export interface HookResponse {
+  name: string;
+  namespaceName: string;
+  displayName?: string;
+  description?: string;
+  /** Format: date-time */
+  createdAt: string;
+  spec: HookSpec;
+}
+
+export interface ClusterHookResponse {
+  name: string;
+  displayName?: string;
+  description?: string;
+  /** Format: date-time */
+  createdAt: string;
+  spec: HookSpec;
+}
+
+export interface HookRef {
+  kind?: HookRefKind;
+  name: string;
+}
+
+export interface HookSubjectSelector {
+  kind: HookSubjectSelectorKind;
+  name: string;
+}
+
+/** A hook bound on a promotion target as a pre-deploy or post-deploy step. */
+export interface HookBinding {
+  name: string;
+  hookRef: HookRef;
+  mode?: HookMode;
+  /** String values for the hook's default / required / from+overridable parameters */
+  parameters?: Record<string, string>;
+  appliesTo?: HookSubjectSelector[];
+  onFailure?: HookFailurePolicy;
+  /** Sync only, Go duration such as `30m` */
+  timeout?: string;
+  /** Sync only, 0–5 */
+  retries?: number;
+}
+
+export interface HookSet {
+  preDeploy?: HookBinding[];
+  postDeploy?: HookBinding[];
+}
+
+/** Observed state of one hook binding for the current gate key (ReleaseBinding.status.gate). */
+export interface DeploymentHookStatus {
+  name: string;
+  hookRef?: HookRef;
+  mode?: HookMode;
+  phase?: HookPhase;
+  reason?: string;
+  message?: string;
+  workflowRunRef?: string;
+  attempt?: number;
+  /** Format: date-time */
+  startedAt?: string;
+  /** Format: date-time */
+  finishedAt?: string;
+}
+
+export interface GatePassRecord {
+  key: string;
+  release?: string;
+  hookSetHash?: string;
+  /** Format: date-time */
+  passedAt?: string;
+}
+
+export interface DeploymentGateStatus {
+  key?: string;
+  passedKey?: string;
+  hookSetHash?: string;
+  lastPassedRelease?: string;
+  postDeployKey?: string;
+  history?: GatePassRecord[];
+  preDeploy?: DeploymentHookStatus[];
+  postDeploy?: DeploymentHookStatus[];
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -442,6 +584,8 @@ export interface EnvironmentResponse {
   isProduction: boolean;
   dnsPrefix?: string;
   gateway?: GatewaySpec;
+  /** Deployment hooks (alpha) run for every component deployment into this environment */
+  hooks?: HookSet;
   /** Format: date-time */
   createdAt: string;
   status?: string;
@@ -580,6 +724,8 @@ export interface ReleaseBindingResponse {
   statusMessage?: string;
   endpoints?: ReleaseBindingEndpoint[];
   conditions?: ReleaseBindingCondition[];
+  /** Deployment hooks (alpha): gate state; absent when the pipeline binds no hooks */
+  gate?: DeploymentGateStatus;
 }
 
 export interface ReleaseBindingCondition {

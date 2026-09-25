@@ -45,6 +45,10 @@ import type {
   RoleBindingsLookup,
   ResourceEventsResponse,
   PodLogsResponse,
+  HookRun,
+  HookRunStatus,
+  HookRunLogs,
+  HookRunEvent,
   ResourceEnvironment,
   ResourceTypeOutput,
 } from './OpenChoreoClientApi';
@@ -53,6 +57,9 @@ import type { Environment } from '../components/RuntimeLogs/types';
 // ============================================
 // API Endpoints
 // ============================================
+
+/** Hook runs are WorkflowRuns, served by the workflows backend. */
+const WORKFLOWS_BACKEND_PLUGIN_ID = 'openchoreo-workflows-backend';
 
 const API_ENDPOINTS = {
   ENVIRONMENT_INFO: '/deploy',
@@ -243,9 +250,13 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       method?: HttpMethod;
       body?: unknown;
       params?: Record<string, string>;
+      /** Backend plugin to call; defaults to openchoreo */
+      pluginId?: string;
     },
   ): Promise<T> {
-    const baseUrl = await this.discovery.getBaseUrl('openchoreo');
+    const baseUrl = await this.discovery.getBaseUrl(
+      options?.pluginId ?? 'openchoreo',
+    );
     const url = new URL(`${baseUrl}${endpoint}`);
 
     if (options?.params) {
@@ -362,6 +373,65 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         bindingName,
       },
     });
+  }
+
+  async retryReleaseBindingHook(
+    namespaceName: string,
+    bindingName: string,
+    hookName: string,
+    phase: 'preDeploy' | 'postDeploy',
+  ): Promise<unknown> {
+    return this.apiFetch(
+      `${API_ENDPOINTS.RELEASE_BINDINGS}/${encodeURIComponent(
+        bindingName,
+      )}/hooks/${encodeURIComponent(hookName)}/retry`,
+      { method: 'POST', params: { namespaceName }, body: { phase } },
+    );
+  }
+
+  async fetchHookRun(namespaceName: string, runName: string): Promise<HookRun> {
+    return this.apiFetch<HookRun>(
+      `/workflow-runs/${encodeURIComponent(runName)}`,
+      { params: { namespaceName }, pluginId: WORKFLOWS_BACKEND_PLUGIN_ID },
+    );
+  }
+
+  async fetchHookRunStatus(
+    namespaceName: string,
+    runName: string,
+  ): Promise<HookRunStatus> {
+    return this.apiFetch<HookRunStatus>(
+      `/workflow-runs/${encodeURIComponent(runName)}/status`,
+      { params: { namespaceName }, pluginId: WORKFLOWS_BACKEND_PLUGIN_ID },
+    );
+  }
+
+  async fetchHookRunLogs(
+    namespaceName: string,
+    runName: string,
+    task?: string,
+  ): Promise<HookRunLogs> {
+    return this.apiFetch<HookRunLogs>(
+      `/workflow-runs/${encodeURIComponent(runName)}/logs`,
+      {
+        params: task ? { namespaceName, task } : { namespaceName },
+        pluginId: WORKFLOWS_BACKEND_PLUGIN_ID,
+      },
+    );
+  }
+
+  async fetchHookRunEvents(
+    namespaceName: string,
+    runName: string,
+    task?: string,
+  ): Promise<HookRunEvent[]> {
+    return this.apiFetch<HookRunEvent[]>(
+      `/workflow-runs/${encodeURIComponent(runName)}/events`,
+      {
+        params: task ? { namespaceName, task } : { namespaceName },
+        pluginId: WORKFLOWS_BACKEND_PLUGIN_ID,
+      },
+    );
   }
 
   async patchComponent(entity: Entity, autoDeploy: boolean): Promise<any> {
