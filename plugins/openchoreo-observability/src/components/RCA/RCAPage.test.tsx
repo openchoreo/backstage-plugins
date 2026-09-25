@@ -170,6 +170,14 @@ describe('RCAPage', () => {
     expect(screen.getByTestId('rca-table')).toBeInTheDocument();
   });
 
+  it('defaults the time range to the last 24 hours', async () => {
+    await renderPage();
+
+    expect(mockUseUrlFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ defaultTimeRange: '24h' }),
+    );
+  });
+
   it('passes environments to filters', async () => {
     await renderPage();
 
