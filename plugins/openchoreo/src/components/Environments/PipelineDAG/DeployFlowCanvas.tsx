@@ -28,6 +28,8 @@ import { useDeployFlowCanvasStyles } from '../styles';
 import { MiniEnvironmentNode } from '../components/MiniEnvironmentNode';
 import { SetupCard } from '../components/SetupCard';
 import { useEnvironmentsContext } from '../EnvironmentsContext';
+import { useEnvironmentRouting } from '../hooks/useEnvironmentRouting';
+import { hookSectionsHeight } from '../hooks/hookModel';
 import { makeIsTargetProjectBlocked } from '../utils/projectDeployment';
 import type { ActionTrackers, Environment } from '../types';
 
@@ -87,7 +89,8 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
   const tokens = useChoreoTokens();
   const theme = useTheme();
   const isNarrow = useMediaQuery(theme.breakpoints.down('sm'));
-  const { componentError } = useEnvironmentsContext();
+  const { componentError, hooksByEnvironment } = useEnvironmentsContext();
+  const { navigateToHookRun } = useEnvironmentRouting();
 
   const direction = isNarrow ? 'TB' : 'LR';
   const layout = useMemo(() => {
@@ -97,14 +100,18 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
       direction,
       defaultWidth: MINI_ENV_NODE_WIDTH,
       defaultHeight: MINI_ENV_NODE_HEIGHT,
+      // Cards grow to fit their Before / After deploy hook rows.
       nodeSize: node => ({
         width: node.isSetup ? MINI_SETUP_NODE_WIDTH : MINI_ENV_NODE_WIDTH,
-        height: node.isSetup ? MINI_SETUP_NODE_HEIGHT : MINI_ENV_NODE_HEIGHT,
+        height: node.isSetup
+          ? MINI_SETUP_NODE_HEIGHT
+          : MINI_ENV_NODE_HEIGHT +
+            hookSectionsHeight(hooksByEnvironment.get(node.id)),
       }),
       nodesep: 24,
       ranksep: 60,
     });
-  }, [environments, direction]);
+  }, [environments, direction, hooksByEnvironment]);
 
   const contentWidth = layout?.width ?? 0;
   const contentHeight = layout?.height ?? 0;
@@ -288,6 +295,10 @@ export const DeployFlowCanvas: FC<DeployFlowCanvasProps> = ({
                   onOpenOverrides={() => onOpenOverrides(env)}
                   onOpenReleaseDetails={() => onOpenReleaseDetails(env)}
                   onPromote={target => onPromote(env, target)}
+                  hooks={hooksByEnvironment.get(env.name)}
+                  onOpenHook={(phase, hookName) =>
+                    navigateToHookRun(env.name, phase, hookName)
+                  }
                 />
               </Box>
             );

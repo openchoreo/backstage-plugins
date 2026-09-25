@@ -8,6 +8,7 @@ import {
   useSecretManagementEnabled,
   useAssistantEnabled,
   useDeliveryInsightsEnabled,
+  useHooksEnabled,
 } from './useOpenChoreoFeatures';
 
 const mockGetOptionalConfig = jest.fn();
@@ -43,6 +44,7 @@ describe('useOpenChoreoFeatures', () => {
       secretManagement: { enabled: false },
       assistant: { enabled: false },
       deliveryInsights: { enabled: false },
+      hooks: { enabled: false },
     });
   });
 
@@ -56,6 +58,7 @@ describe('useOpenChoreoFeatures', () => {
         'secretManagement.enabled': true,
         'assistant.enabled': true,
         'deliveryInsights.enabled': true,
+        'hooks.enabled': true,
       }),
     );
     const { result } = renderHook(() => useOpenChoreoFeatures());
@@ -67,6 +70,7 @@ describe('useOpenChoreoFeatures', () => {
       secretManagement: { enabled: true },
       assistant: { enabled: true },
       deliveryInsights: { enabled: true },
+      hooks: { enabled: true },
     });
   });
 
@@ -96,6 +100,7 @@ describe('useOpenChoreoFeatures', () => {
       secretManagement: { enabled: false },
       assistant: { enabled: false },
       deliveryInsights: { enabled: false },
+      hooks: { enabled: false },
     });
   });
 });
@@ -112,6 +117,7 @@ describe('helper hooks', () => {
         'secretManagement.enabled': true,
         'assistant.enabled': true,
         'deliveryInsights.enabled': true,
+        'hooks.enabled': true,
       }),
     );
   });
@@ -155,5 +161,9 @@ describe('helper hooks', () => {
     mockGetOptionalConfig.mockReturnValue(makeFeaturesConfig({}));
     const { result } = renderHook(() => useDeliveryInsightsEnabled());
     expect(result.current).toBe(false);
+  });
+  it('useHooksEnabled returns hooks flag', () => {
+    const { result } = renderHook(() => useHooksEnabled());
+    expect(result.current).toBe(true);
   });
 });

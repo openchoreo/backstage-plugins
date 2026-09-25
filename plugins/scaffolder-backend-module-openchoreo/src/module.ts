@@ -18,6 +18,8 @@ import { createClusterComponentTypeDefinitionAction } from './actions/clusterCom
 import { createClusterResourceTypeDefinitionAction } from './actions/clusterResourceType';
 import { createClusterProjectTypeDefinitionAction } from './actions/clusterProjectType';
 import { createClusterTraitDefinitionAction } from './actions/clusterTrait';
+import { createHookDefinitionAction } from './actions/hook';
+import { createClusterHookDefinitionAction } from './actions/clusterHook';
 import { createClusterWorkflowDefinitionAction } from './actions/clusterWorkflow';
 import { createEnvironmentAction } from './actions/environment';
 import { createNotificationChannelAction } from './actions/notificationChannel';
@@ -69,6 +71,8 @@ export const scaffolderModule = createBackendModule({
           createClusterResourceTypeDefinitionAction(config, immediateCatalog),
           createClusterProjectTypeDefinitionAction(config, immediateCatalog),
           createClusterTraitDefinitionAction(config, immediateCatalog),
+          createHookDefinitionAction(config, immediateCatalog),
+          createClusterHookDefinitionAction(config, immediateCatalog),
           createClusterWorkflowDefinitionAction(config, immediateCatalog),
           createDeploymentPipelineAction(config, immediateCatalog),
         );

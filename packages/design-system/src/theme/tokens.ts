@@ -403,6 +403,9 @@ export const lightTokens: ThemeTokens = {
     clustercomponenttype: { accent: '#f59e0b', tint: '#fffbeb' },
     clusterresourcetype: { accent: '#6b7280', tint: '#f3f4f6' },
     clustertraittype: { accent: '#10b981', tint: '#ecfdf5' },
+    // Deployment hooks sit between the amber pipeline and the violet workflow.
+    hook: { accent: '#db2777', tint: '#fdf2f8' },
+    clusterhook: { accent: '#db2777', tint: '#fdf2f8' },
     clusterdataplane: { accent: '#6b7280', tint: '#f3f4f6' },
     clusterobservabilityplane: { accent: '#8b5cf6', tint: '#f3f0ff' },
     clusterworkflowplane: { accent: '#3b82f6', tint: '#eff6ff' },
@@ -642,6 +645,8 @@ export const darkTokens: ThemeTokens = {
     clustercomponenttype: { accent: '#fbbf24', tint: '#2a2010' },
     clusterresourcetype: { accent: '#9ca3af', tint: '#1f2128' },
     clustertraittype: { accent: '#34d399', tint: '#162a22' },
+    hook: { accent: '#f472b6', tint: '#2a1520' },
+    clusterhook: { accent: '#f472b6', tint: '#2a1520' },
     clusterdataplane: { accent: '#9ca3af', tint: '#1f2128' },
     clusterobservabilityplane: { accent: '#a78bfa', tint: '#1e1a2e' },
     clusterworkflowplane: { accent: '#60a5fa', tint: '#151c2e' },

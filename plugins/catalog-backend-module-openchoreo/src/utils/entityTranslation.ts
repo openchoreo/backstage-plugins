@@ -28,6 +28,8 @@ import type {
   WorkflowEntityV1alpha1,
   ClusterComponentTypeEntityV1alpha1,
   ClusterTraitTypeEntityV1alpha1,
+  HookEntityV1alpha1,
+  ClusterHookEntityV1alpha1,
   ClusterWorkflowEntityV1alpha1,
   ClusterDataplaneEntityV1alpha1,
   ClusterObservabilityPlaneEntityV1alpha1,
@@ -37,6 +39,7 @@ import type {
   ClusterProjectTypeEntityV1alpha1,
   ProjectTypeEntityV1alpha1,
   DeploymentPipelineEntityV1alpha1,
+  EnvironmentHookSet,
   ObservabilityAlertsNotificationChannelEntityV1alpha1,
   NotificationEmailConfig,
   NotificationWebhookConfig,
@@ -67,6 +70,9 @@ type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 type NewClusterComponentType =
   OpenChoreoComponents['schemas']['ClusterComponentType'];
 type NewClusterTrait = OpenChoreoComponents['schemas']['ClusterTrait'];
+type NewHook = OpenChoreoComponents['schemas']['Hook'];
+type NewClusterHook = OpenChoreoComponents['schemas']['ClusterHook'];
+type NewHookSpec = OpenChoreoComponents['schemas']['HookSpec'];
 type NewClusterWorkflow = OpenChoreoComponents['schemas']['ClusterWorkflow'];
 type NewClusterDataPlane = OpenChoreoComponents['schemas']['ClusterDataPlane'];
 type NewClusterObservabilityPlane =
@@ -427,6 +433,7 @@ export function translateEnvironmentToEntity(
         };
       };
     };
+    hooks?: EnvironmentHookSet;
     createdAt?: string;
     status?: string;
     deletionTimestamp?: string;
@@ -495,6 +502,8 @@ export function translateEnvironmentToEntity(
       dataPlaneRef: environment.dataPlaneRef?.name,
       dnsPrefix: environment.dnsPrefix,
       ...(environment.gateway && { gateway: environment.gateway }),
+      // Deployment hooks (alpha): carried through verbatim
+      ...(environment.hooks && { hooks: environment.hooks }),
     },
   };
 
@@ -719,6 +728,144 @@ export function translateTraitToEntity(
     spec: {
       domain: `default/${namespaceName}`,
     },
+  };
+}
+
+/**
+ * Hook spec fields carried into the entity spec verbatim (deployment hooks, alpha).
+ */
+export interface HookSpecInput {
+  type?: string;
+  workflowRef: { kind?: string; name: string };
+  enabledTo?: Array<{ kind: string; name: string }>;
+  parameters?: Array<{
+    name: string;
+    value?: string;
+    from?: string;
+    default?: string;
+    overridable?: boolean;
+    required?: boolean;
+  }>;
+}
+
+function hookSpecToEntitySpec(spec: HookSpecInput): {
+  type?: string;
+  workflowRef: HookEntityV1alpha1['spec']['workflowRef'];
+  enabledTo?: HookEntityV1alpha1['spec']['enabledTo'];
+  parameters?: HookEntityV1alpha1['spec']['parameters'];
+} {
+  return {
+    ...(spec.type && { type: spec.type }),
+    workflowRef: {
+      kind: spec.workflowRef.kind || 'ClusterWorkflow',
+      name: spec.workflowRef.name,
+    },
+    ...(spec.enabledTo && {
+      enabledTo: spec.enabledTo.map(e => ({ kind: e.kind, name: e.name })),
+    }),
+    ...(spec.parameters && {
+      parameters: spec.parameters.map(p => ({
+        name: p.name,
+        ...(p.value !== undefined && { value: p.value }),
+        ...(p.from !== undefined && { from: p.from }),
+        ...(p.default !== undefined && { default: p.default }),
+        ...(p.overridable !== undefined && { overridable: p.overridable }),
+        ...(p.required !== undefined && { required: p.required }),
+      })),
+    }),
+  };
+}
+
+function workflowRefAnnotation(spec: HookSpecInput): string {
+  return `${spec.workflowRef.kind || 'ClusterWorkflow'}/${
+    spec.workflowRef.name
+  }`;
+}
+
+/**
+ * Translates an OpenChoreo Hook to a Backstage Hook entity (deployment hooks, alpha).
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateHookToEntity(
+  hook: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    createdAt?: string;
+    deletionTimestamp?: string;
+    spec: HookSpecInput;
+  },
+  namespaceName: string,
+  config: EntityTranslationConfig,
+): HookEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'Hook',
+    metadata: {
+      name: hook.name,
+      namespace: namespaceName,
+      title: hook.displayName || hook.name,
+      description: hook.description || `${hook.name} deployment hook`,
+      tags: ['openchoreo', 'hook', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: hook.createdAt || '',
+        [CHOREO_ANNOTATIONS.WORKFLOW_REF]: workflowRefAnnotation(hook.spec),
+        ...(hook.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: hook.deletionTimestamp,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      domain: `default/${namespaceName}`,
+      ...hookSpecToEntitySpec(hook.spec),
+    },
+  };
+}
+
+/**
+ * Translates an OpenChoreo ClusterHook to a Backstage ClusterHook entity.
+ * Cluster-scoped: no namespace param, entity namespace is 'openchoreo-cluster', no domain.
+ */
+export function translateClusterHookToEntity(
+  hook: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    createdAt?: string;
+    deletionTimestamp?: string;
+    spec: HookSpecInput;
+  },
+  config: EntityTranslationConfig,
+): ClusterHookEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ClusterHook',
+    metadata: {
+      name: hook.name,
+      namespace: 'openchoreo-cluster',
+      title: hook.displayName || hook.name,
+      description: hook.description || `${hook.name} cluster deployment hook`,
+      tags: ['openchoreo', 'cluster-hook', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: hook.createdAt || '',
+        [CHOREO_ANNOTATIONS.WORKFLOW_REF]: workflowRefAnnotation(hook.spec),
+        ...(hook.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: hook.deletionTimestamp,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: hookSpecToEntitySpec(hook.spec),
   };
 }
 
@@ -1524,6 +1671,9 @@ export function translateNewEnvironmentToEntity(
               },
             }
           : undefined,
+        ...(env.spec?.hooks && {
+          hooks: env.spec.hooks as unknown as EnvironmentHookSet,
+        }),
         createdAt: getCreatedAt(env),
         status: isReady(env) ? 'Ready' : 'Not Ready',
         deletionTimestamp: getDeletionTimestamp(env),
@@ -1873,6 +2023,60 @@ export function translateNewTraitToEntity(
       { locationKey: ctx.providerName },
     ),
     trait,
+  );
+}
+
+function newHookSpec(spec: NewHookSpec | undefined): HookSpecInput {
+  return {
+    type: spec?.type,
+    workflowRef: {
+      kind: spec?.workflowRef?.kind,
+      name: spec?.workflowRef?.name ?? '',
+    },
+    enabledTo: spec?.enabledTo,
+    parameters: spec?.parameters,
+  };
+}
+
+/**
+ * Translates a new-API Hook into a Backstage Hook entity.
+ */
+export function translateNewHookToEntity(
+  hook: NewHook,
+  namespaceName: string,
+  ctx: NewApiTranslatorContext,
+): HookEntityV1alpha1 {
+  return translateHookToEntity(
+    {
+      name: getName(hook)!,
+      displayName: getDisplayName(hook),
+      description: getDescription(hook),
+      createdAt: getCreatedAt(hook),
+      deletionTimestamp: getDeletionTimestamp(hook),
+      spec: newHookSpec(hook.spec),
+    },
+    namespaceName,
+    { locationKey: ctx.providerName },
+  );
+}
+
+/**
+ * Translates a new-API ClusterHook into a Backstage ClusterHook entity.
+ */
+export function translateNewClusterHookToEntity(
+  hook: NewClusterHook,
+  ctx: NewApiTranslatorContext,
+): ClusterHookEntityV1alpha1 {
+  return translateClusterHookToEntity(
+    {
+      name: getName(hook)!,
+      displayName: getDisplayName(hook),
+      description: getDescription(hook),
+      createdAt: getCreatedAt(hook),
+      deletionTimestamp: getDeletionTimestamp(hook),
+      spec: newHookSpec(hook.spec),
+    },
+    { locationKey: ctx.providerName },
   );
 }
 

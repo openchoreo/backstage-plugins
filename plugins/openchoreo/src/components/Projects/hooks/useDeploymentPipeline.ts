@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import {
@@ -6,15 +7,20 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 import {
   useOpenChoreoQuery,
+  type PipelineEnvironmentHook,
   type PipelinePromotionPath,
 } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import { pipelineEnvironmentHooks } from '../../DeploymentPipelineOverview/pipelineHooks';
+import { useEnvironmentHooks } from '../../DeploymentPipelineOverview/useEnvironmentHooks';
 
 interface DeploymentPipelineData {
   name: string;
   resourceName: string;
   environments: string[];
   promotionPaths: PipelinePromotionPath[];
+  /** Deployment hooks (alpha) of each environment, keyed by environment name */
+  environmentHooks?: Record<string, PipelineEnvironmentHook[]>;
   dataPlane?: string;
   pipelineEntityRef?: string;
 }
@@ -26,6 +32,10 @@ export const useDeploymentPipeline = () => {
   // Get project and namespace from system entity
   const projectName = entity.metadata.name;
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  // Hooks are bound on the target Environment, which lives in the project's
+  // catalog namespace alongside the pipeline.
+  const catalogNamespace = entity.metadata.namespace || 'default';
+  const environmentHooks = useEnvironmentHooks(catalogNamespace);
 
   const { data, loading, isRefetching, error, refetch } = useOpenChoreoQuery(
     ['deployment-pipeline', namespace, projectName],
@@ -91,5 +101,17 @@ export const useDeploymentPipeline = () => {
     { enabled: !!projectName && !!namespace },
   );
 
-  return { data: data ?? null, loading, isRefetching, error, refetch };
+  const withHooks = useMemo(() => {
+    if (!data) return null;
+    if (environmentHooks.size === 0) return data;
+    return {
+      ...data,
+      environmentHooks: pipelineEnvironmentHooks(
+        environmentHooks,
+        catalogNamespace,
+      ),
+    };
+  }, [data, environmentHooks, catalogNamespace]);
+
+  return { data: withHooks, loading, isRefetching, error, refetch };
 };

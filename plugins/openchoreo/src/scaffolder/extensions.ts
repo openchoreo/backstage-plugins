@@ -74,6 +74,16 @@ export const scaffolderFieldExtensions = [
     }),
   ),
   makeFormFieldExtension(
+    'cluster-hook-form-with-yaml',
+    () => import('./HookFormWithYaml/HookFormWithYamlExtension'),
+    m => ({
+      name: 'ClusterHookFormWithYaml',
+      component: m.ClusterHookFormWithYamlExtension,
+      schema: m.HookFormWithYamlSchema,
+      validation: m.clusterHookFormWithYamlValidation,
+    }),
+  ),
+  makeFormFieldExtension(
     'cluster-project-type-yaml-editor',
     () =>
       import(
@@ -215,6 +225,16 @@ export const scaffolderFieldExtensions = [
       component: m.GitSourceField,
       schema: m.GitSourceFieldSchema,
       validation: m.gitSourceFieldValidation,
+    }),
+  ),
+  makeFormFieldExtension(
+    'hook-form-with-yaml',
+    () => import('./HookFormWithYaml/HookFormWithYamlExtension'),
+    m => ({
+      name: 'HookFormWithYaml',
+      component: m.HookFormWithYamlExtension,
+      schema: m.HookFormWithYamlSchema,
+      validation: m.hookFormWithYamlValidation,
     }),
   ),
   makeFormFieldExtension(

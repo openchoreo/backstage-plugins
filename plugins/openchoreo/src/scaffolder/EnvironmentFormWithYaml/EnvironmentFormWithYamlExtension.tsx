@@ -21,7 +21,10 @@ import {
 } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
-import { YamlEditor } from '@openchoreo/backstage-plugin-react';
+import {
+  YamlEditor,
+  useHooksEnabled,
+} from '@openchoreo/backstage-plugin-react';
 import { FormYamlToggle } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import YAML from 'yaml';
@@ -30,6 +33,14 @@ import {
   NamespaceSelectField,
   type NamespaceOption,
 } from '../NamespaceEntityPicker';
+import { HookBindingEditor } from '../HookBindings/HookBindingEditor';
+import { useHookEditorOptions } from '../HookBindings/useHookEditorOptions';
+import {
+  hookSetFromYaml,
+  hookSetToYaml,
+  validateHookSet,
+  type HookSetFormData,
+} from '../HookBindings/hookBindingValidation';
 
 export interface EnvironmentFormData {
   environment_name: string;
@@ -38,6 +49,8 @@ export interface EnvironmentFormData {
   description: string;
   dataPlaneRef: string;
   isProduction: boolean;
+  /** Deployment hooks (alpha) bound on the environment */
+  hooks?: HookSetFormData;
 }
 
 const DEFAULT_FORM_DATA: EnvironmentFormData = {
@@ -60,6 +73,7 @@ const DEFAULT_ENVIRONMENT_TEMPLATE: {
   spec: {
     dataPlaneRef: string | { kind: string; name: string };
     isProduction: boolean;
+    hooks?: ReturnType<typeof hookSetToYaml>;
   };
 } = {
   apiVersion: 'openchoreo.dev/v1alpha1',
@@ -100,6 +114,8 @@ function formToYaml(data: EnvironmentFormData): string {
     };
   }
   template.spec.isProduction = data.isProduction;
+  const hooks = hookSetToYaml(data.hooks);
+  if (hooks) template.spec.hooks = hooks;
   return YAML.stringify(template, { indent: 2 });
 }
 
@@ -148,6 +164,7 @@ function yamlToForm(
       parsed.metadata?.annotations?.['openchoreo.dev/description'] || '',
     dataPlaneRef: matchedDataplane?.entityRef || '',
     isProduction: parsed.spec?.isProduction ?? false,
+    hooks: hookSetFromYaml(parsed.spec?.hooks),
   };
 }
 
@@ -163,6 +180,7 @@ export const EnvironmentFormWithYamlExtension = ({
 }: FieldExtensionComponentProps<EnvironmentFormData>) => {
   const classes = useStyles();
   const catalogApi = useApi(catalogApiRef);
+  const hooksEnabled = useHooksEnabled();
 
   const [mode, setMode] = useState<'form' | 'yaml'>('form');
   const [yamlContent, setYamlContent] = useState('');
@@ -196,6 +214,13 @@ export const EnvironmentFormWithYamlExtension = ({
   useEffect(() => {
     formDataRef.current = formData;
   });
+
+  // Deployment hooks (alpha): hooks bindable in the selected namespace and the
+  // component types an appliesTo selector may name.
+  const hookEditorOptions = useHookEditorOptions(
+    data.namespace_name ? extractName(data.namespace_name) : '',
+    hooksEnabled,
+  );
 
   // Fetch Dataplane and ClusterDataplane entities filtered by selected namespace
   useEffect(() => {
@@ -319,7 +344,10 @@ export const EnvironmentFormWithYamlExtension = ({
   }, [data.environment_name, data.namespace_name, catalogApi]);
 
   const updateField = useCallback(
-    (field: keyof EnvironmentFormData, value: string | boolean) => {
+    (
+      field: keyof EnvironmentFormData,
+      value: string | boolean | HookSetFormData | undefined,
+    ) => {
       const updated = { ...data, [field]: value };
       onChange(updated);
     },
@@ -556,6 +584,21 @@ export const EnvironmentFormWithYamlExtension = ({
                 Mark this as a production environment.
               </Typography>
             </Grid>
+
+            {hooksEnabled && (
+              <Grid item xs={12}>
+                <HookBindingEditor
+                  environmentName={data.environment_name}
+                  hookSet={data.hooks}
+                  hooks={hookEditorOptions.hooks}
+                  subjectTypes={hookEditorOptions.subjectTypes}
+                  onChange={hooks => updateField('hooks', hooks)}
+                  // Errors appear once the user tries to go on (the form
+                  // reports its validation errors as rawErrors).
+                  showErrors={!!rawErrors?.length}
+                />
+              </Grid>
+            )}
           </Grid>
         </div>
       ) : (
@@ -602,6 +645,7 @@ export const EnvironmentFormWithYamlSchema = {
       description: { type: 'string' as const },
       dataPlaneRef: { type: 'string' as const },
       isProduction: { type: 'boolean' as const },
+      hooks: { type: 'object' as const },
     },
   },
 };
@@ -622,5 +666,11 @@ export const environmentFormWithYamlValidation = (
   }
   if (!value?.dataPlaneRef || value.dataPlaneRef.trim() === '') {
     validation.addError('Data Plane is required');
+  }
+  // Deployment hooks (alpha): each binding carries its hook's spec (set by the
+  // editor), so the parameter and enabledTo rules block submit here too. The
+  // control plane's webhook enforces them again.
+  for (const err of validateHookSet(value?.hooks, [])) {
+    validation.addError(err);
   }
 };

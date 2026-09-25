@@ -12,6 +12,8 @@ import {
 import { EnvironmentEntityV1alpha1 } from '../kinds/EnvironmentEntityV1alpha1';
 import {
   CHOREO_ANNOTATIONS,
+  RELATION_BINDS_HOOK,
+  RELATION_HOOK_BOUND_BY,
   RELATION_HOSTED_ON,
   RELATION_HOSTS,
 } from '@openchoreo/backstage-plugin-common';
@@ -107,6 +109,44 @@ export class EnvironmentEntityProcessor implements CatalogProcessor {
             source: dataplaneRef,
             target: sourceRef,
             type: RELATION_HOSTS,
+          }),
+        );
+      }
+
+      // Deployment hooks (alpha): bindsHook / hookBoundBy for every hook bound
+      // on this environment, so the hook entity page can list the environments
+      // that bind it. Kind defaults to Hook (CRD default).
+      const emittedHooks = new Set<string>();
+      const bindings = [
+        ...(entity.spec.hooks?.preDeploy ?? []),
+        ...(entity.spec.hooks?.postDeploy ?? []),
+      ];
+      for (const binding of bindings) {
+        const hookName = binding.hookRef?.name;
+        if (!hookName) continue;
+        const isCluster = binding.hookRef.kind === 'ClusterHook';
+        const key = `${isCluster ? 'clusterhook' : 'hook'}:${hookName}`;
+        if (emittedHooks.has(key)) continue;
+        emittedHooks.add(key);
+        const hookRef = {
+          kind: isCluster ? 'clusterhook' : 'hook',
+          namespace: isCluster
+            ? 'openchoreo-cluster'
+            : entity.metadata.namespace || 'default',
+          name: hookName,
+        };
+        emit(
+          processingResult.relation({
+            source: sourceRef,
+            target: hookRef,
+            type: RELATION_BINDS_HOOK,
+          }),
+        );
+        emit(
+          processingResult.relation({
+            source: hookRef,
+            target: sourceRef,
+            type: RELATION_HOOK_BOUND_BY,
           }),
         );
       }

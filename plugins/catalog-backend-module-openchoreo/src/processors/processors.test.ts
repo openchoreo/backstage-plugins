@@ -17,6 +17,8 @@ import {
   RELATION_PIPELINE_USED_BY,
   RELATION_NOTIFIES,
   RELATION_NOTIFIED_BY,
+  RELATION_BINDS_HOOK,
+  RELATION_HOOK_BOUND_BY,
 } from '@openchoreo/backstage-plugin-common';
 
 import { ClusterComponentTypeEntityProcessor } from './ClusterComponentTypeEntityProcessor';
@@ -27,6 +29,8 @@ import { ProjectTypeEntityProcessor } from './ProjectTypeEntityProcessor';
 import { ClusterDataplaneEntityProcessor } from './ClusterDataplaneEntityProcessor';
 import { ClusterObservabilityPlaneEntityProcessor } from './ClusterObservabilityPlaneEntityProcessor';
 import { ClusterTraitTypeEntityProcessor } from './ClusterTraitTypeEntityProcessor';
+import { HookEntityProcessor } from './HookEntityProcessor';
+import { ClusterHookEntityProcessor } from './ClusterHookEntityProcessor';
 import { ClusterWorkflowEntityProcessor } from './ClusterWorkflowEntityProcessor';
 import { ClusterWorkflowPlaneEntityProcessor } from './ClusterWorkflowPlaneEntityProcessor';
 import { ComponentEntityProcessor } from './ComponentEntityProcessor';
@@ -168,6 +172,53 @@ describe('EnvironmentEntityProcessor', () => {
           type: RELATION_HOSTED_ON,
         }),
       );
+    });
+
+    // The hook entity page lists "bound by" from these relations; kind
+    // defaults to Hook and the same hook bound twice yields one pair.
+    it('emits bindsHook/hookBoundBy for each distinct hook bound on the environment', async () => {
+      const emit = jest.fn();
+      const entity = {
+        kind: 'Environment',
+        metadata: { name: 'prod', namespace: 'my-ns' },
+        spec: {
+          type: 'production',
+          hooks: {
+            preDeploy: [
+              { name: 'scan', hookRef: { kind: 'ClusterHook', name: 'trivy' } },
+              {
+                name: 'scan-again',
+                hookRef: { kind: 'ClusterHook', name: 'trivy' },
+              },
+            ],
+            postDeploy: [{ name: 'notify', hookRef: { name: 'slack' } }],
+          },
+        },
+      } as any;
+      await processor.postProcessEntity(entity, mockLocation, emit);
+      const envRef = { kind: 'environment', namespace: 'my-ns', name: 'prod' };
+      expect(emit).toHaveBeenCalledWith(
+        processingResult.relation({
+          source: envRef,
+          target: {
+            kind: 'clusterhook',
+            namespace: 'openchoreo-cluster',
+            name: 'trivy',
+          },
+          type: RELATION_BINDS_HOOK,
+        }),
+      );
+      expect(emit).toHaveBeenCalledWith(
+        processingResult.relation({
+          source: { kind: 'hook', namespace: 'my-ns', name: 'slack' },
+          target: envRef,
+          type: RELATION_HOOK_BOUND_BY,
+        }),
+      );
+      const bindRelations = emit.mock.calls.filter(
+        (c: any[]) => c[0].relation?.type === RELATION_BINDS_HOOK,
+      );
+      expect(bindRelations).toHaveLength(2);
     });
   });
 
@@ -650,6 +701,114 @@ describe('ClusterTraitTypeEntityProcessor', () => {
       emit,
     );
     expect(emit).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HookEntityProcessor / ClusterHookEntityProcessor (deployment hooks, alpha)
+// ---------------------------------------------------------------------------
+// A hook's only real edge is the workflow it runs: the hook page links to it
+// and the workflow page must list the hooks built on it, so the pair of
+// relations has to point at the right kind (Workflow in the same namespace vs
+// ClusterWorkflow in openchoreo-cluster).
+describe('HookEntityProcessor', () => {
+  const processor = new HookEntityProcessor();
+
+  it('validateEntityKind returns true only for Hook', async () => {
+    expect(await processor.validateEntityKind({ kind: 'Hook' } as any)).toBe(
+      true,
+    );
+    expect(
+      await processor.validateEntityKind({ kind: 'ClusterHook' } as any),
+    ).toBe(false);
+  });
+
+  it('emits partOf domain and usesWorkflow to a namespaced Workflow', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'Hook',
+      metadata: { name: 'notify', namespace: 'my-ns' },
+      spec: {
+        domain: 'my-ns',
+        workflowRef: { kind: 'Workflow', name: 'slack' },
+      },
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'hook', namespace: 'my-ns', name: 'notify' },
+        target: { kind: 'domain', namespace: 'my-ns', name: 'my-ns' },
+        type: RELATION_PART_OF,
+      }),
+    );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'hook', namespace: 'my-ns', name: 'notify' },
+        target: { kind: 'workflow', namespace: 'my-ns', name: 'slack' },
+        type: RELATION_USES_WORKFLOW,
+      }),
+    );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'workflow', namespace: 'my-ns', name: 'slack' },
+        target: { kind: 'hook', namespace: 'my-ns', name: 'notify' },
+        type: RELATION_WORKFLOW_USED_BY,
+      }),
+    );
+  });
+
+  it('points a ClusterWorkflow ref at the openchoreo-cluster namespace', async () => {
+    const emit = jest.fn();
+    await processor.postProcessEntity(
+      {
+        kind: 'Hook',
+        metadata: { name: 'scan', namespace: 'my-ns' },
+        spec: { workflowRef: { kind: 'ClusterWorkflow', name: 'trivy' } },
+      } as any,
+      mockLocation,
+      emit,
+    );
+    expect(emit).toHaveBeenCalledWith(
+      processingResult.relation({
+        source: { kind: 'hook', namespace: 'my-ns', name: 'scan' },
+        target: {
+          kind: 'clusterworkflow',
+          namespace: 'openchoreo-cluster',
+          name: 'trivy',
+        },
+        type: RELATION_USES_WORKFLOW,
+      }),
+    );
+  });
+});
+
+describe('ClusterHookEntityProcessor', () => {
+  const processor = new ClusterHookEntityProcessor();
+
+  it('validateEntityKind returns true only for ClusterHook', async () => {
+    expect(
+      await processor.validateEntityKind({ kind: 'ClusterHook' } as any),
+    ).toBe(true);
+    expect(await processor.validateEntityKind({ kind: 'Hook' } as any)).toBe(
+      false,
+    );
+  });
+
+  it('emits no domain relation, only usesWorkflow to the ClusterWorkflow', async () => {
+    const emit = jest.fn();
+    await processor.postProcessEntity(
+      {
+        kind: 'ClusterHook',
+        metadata: { name: 'scan', namespace: 'openchoreo-cluster' },
+        spec: { workflowRef: { kind: 'ClusterWorkflow', name: 'trivy' } },
+      } as any,
+      mockLocation,
+      emit,
+    );
+    const types = emit.mock.calls.map((c: any[]) => c[0].relation.type);
+    expect(types.sort()).toEqual(
+      [RELATION_USES_WORKFLOW, RELATION_WORKFLOW_USED_BY].sort(),
+    );
   });
 });
 
@@ -1195,6 +1354,44 @@ describe('DeploymentPipelineEntityProcessor', () => {
     expect(
       await processor.validateEntityKind({ kind: 'Component' } as any),
     ).toBe(false);
+  });
+
+  // Hooks are bound on Environments now; a stale `hooks` field on a pipeline
+  // target must not make the pipeline show up as a hook's "bound by".
+  it('emits no hook relations, even if a target still carries hooks', async () => {
+    const emit = jest.fn();
+    const entity = {
+      kind: 'DeploymentPipeline',
+      metadata: { name: 'pipe', namespace: 'my-ns' },
+      spec: {
+        namespaceName: 'my-ns',
+        promotionPaths: [
+          {
+            sourceEnvironment: 'dev',
+            targetEnvironments: [
+              {
+                name: 'prod',
+                hooks: {
+                  preDeploy: [
+                    {
+                      name: 'scan',
+                      hookRef: { kind: 'ClusterHook', name: 'trivy' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+    } as any;
+    await processor.postProcessEntity(entity, mockLocation, emit);
+    const hookRelations = emit.mock.calls.filter((c: any[]) =>
+      [RELATION_BINDS_HOOK, RELATION_HOOK_BOUND_BY].includes(
+        c[0].relation?.type,
+      ),
+    );
+    expect(hookRelations).toHaveLength(0);
   });
 
   it('does not emit usesPipeline/pipelineUsedBy from projectRefs', async () => {

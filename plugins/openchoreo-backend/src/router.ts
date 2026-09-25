@@ -20,6 +20,7 @@ import { ProjectInfoService } from './services/ProjectService/ProjectInfoService
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { ClusterTraitInfoService } from './services/ClusterTraitService/ClusterTraitInfoService';
+import { HookInfoService } from './services/HookService/HookInfoService';
 import { ClusterComponentTypeInfoService } from './services/ClusterComponentTypeService/ClusterComponentTypeInfoService';
 import { ResourceTypeInfoService } from './services/ResourceTypeService/ResourceTypeInfoService';
 import { ClusterResourceTypeInfoService } from './services/ClusterResourceTypeService/ClusterResourceTypeInfoService';
@@ -58,6 +59,7 @@ const CLUSTER_SCOPED_KINDS = [
   'clusterresourcetypes',
   'clusterprojecttypes',
   'clustertraits',
+  'clusterhooks',
   'clusterworkflows',
   'clusterdataplanes',
   'clusterobservabilityplanes',
@@ -72,6 +74,7 @@ const VALID_PLATFORM_RESOURCE_KINDS = [
   'projecttypes',
   'resources',
   'traits',
+  'hooks',
   'workflows',
   'component-workflows',
   'components',
@@ -97,6 +100,7 @@ export async function createRouter({
   dashboardInfoService,
   traitInfoService,
   clusterTraitInfoService,
+  hookInfoService,
   clusterComponentTypeInfoService,
   resourceTypeInfoService,
   clusterResourceTypeInfoService,
@@ -115,6 +119,7 @@ export async function createRouter({
   auth,
   tokenService,
   authEnabled,
+  hooksEnabled = false,
   wirelogsStreamTimeoutMs,
   logger,
 }: {
@@ -127,6 +132,7 @@ export async function createRouter({
   dashboardInfoService: DashboardInfoService;
   traitInfoService: TraitInfoService;
   clusterTraitInfoService: ClusterTraitInfoService;
+  hookInfoService: HookInfoService;
   clusterComponentTypeInfoService: ClusterComponentTypeInfoService;
   resourceTypeInfoService: ResourceTypeInfoService;
   clusterResourceTypeInfoService: ClusterResourceTypeInfoService;
@@ -145,6 +151,8 @@ export async function createRouter({
   auth: AuthService;
   tokenService: OpenChoreoTokenService;
   authEnabled: boolean;
+  /** Deployment hooks (alpha); `openchoreo.features.hooks.enabled` */
+  hooksEnabled?: boolean;
   /** Hard cap (ms) on a single wirelogs SSE stream before the server ends it. */
   wirelogsStreamTimeoutMs: number;
   logger: LoggerService;
@@ -427,6 +435,53 @@ export async function createRouter({
     res.json(
       await clusterTraitInfoService.fetchClusterTraitSchema(
         clusterTraitName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Deployment hooks (alpha) — read-only; definitions are edited through
+  // /platform-resources with kinds `hooks` / `clusterhooks`.
+  router.get('/hooks', async (req, res) => {
+    const { namespaceName } = req.query;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+    res.json(
+      await hookInfoService.listHooks(namespaceName as string, userToken),
+    );
+  });
+
+  router.get('/hooks/:hookName', async (req, res) => {
+    const { namespaceName } = req.query;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+    res.json(
+      await hookInfoService.getHook(
+        namespaceName as string,
+        req.params.hookName,
+        userToken,
+      ),
+    );
+  });
+
+  router.get('/cluster-hooks', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await hookInfoService.listClusterHooks(userToken));
+  });
+
+  router.get('/cluster-hooks/:clusterHookName', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(
+      await hookInfoService.getClusterHook(
+        req.params.clusterHookName,
         userToken,
       ),
     );
@@ -1063,6 +1118,69 @@ export async function createRouter({
     );
     res.json({ success: true, data: { items } });
   });
+
+  // Deployment hooks (alpha): gate status and retry for one release binding.
+  // Authorization (releasebinding:view / releasebinding:update) is enforced by
+  // the control plane on the forwarded user token.
+  const requireHooksEnabled: express.RequestHandler = (_req, _res, next) => {
+    if (!hooksEnabled) {
+      throw new NotFoundError('Deployment hooks are not enabled');
+    }
+    next();
+  };
+
+  router.get(
+    '/release-bindings/:bindingName/hooks',
+    requireHooksEnabled,
+    async (req, res) => {
+      const { namespaceName } = req.query;
+
+      if (!namespaceName) {
+        throw new InputError('namespaceName is a required query parameter');
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+      res.json(
+        await environmentInfoService.fetchReleaseBindingHooks(
+          {
+            namespaceName: namespaceName as string,
+            bindingName: req.params.bindingName,
+          },
+          userToken,
+        ),
+      );
+    },
+  );
+
+  router.post(
+    '/release-bindings/:bindingName/hooks/:hookName/retry',
+    requireHooksEnabled,
+    requireAuth,
+    async (req, res) => {
+      const { namespaceName } = req.query;
+      const { phase } = req.body ?? {};
+
+      if (!namespaceName) {
+        throw new InputError('namespaceName is a required query parameter');
+      }
+      if (phase !== 'preDeploy' && phase !== 'postDeploy') {
+        throw new InputError("phase must be 'preDeploy' or 'postDeploy'");
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+      res.json(
+        await environmentInfoService.retryReleaseBindingHook(
+          {
+            namespaceName: namespaceName as string,
+            bindingName: req.params.bindingName,
+            hookName: req.params.hookName,
+            phase,
+          },
+          userToken,
+        ),
+      );
+    },
+  );
 
   router.get('/resource-release-bindings', async (req, res) => {
     const { resourceName, projectName, namespaceName } = req.query;

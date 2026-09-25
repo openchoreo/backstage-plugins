@@ -41,6 +41,10 @@ import {
   openchoreoResourceDeletePermission,
   openchoreoClusterTraitUpdatePermission,
   openchoreoClusterTraitDeletePermission,
+  openchoreoHookUpdatePermission,
+  openchoreoHookDeletePermission,
+  openchoreoClusterHookUpdatePermission,
+  openchoreoClusterHookDeletePermission,
   openchoreoClusterDataplaneUpdatePermission,
   openchoreoClusterDataplaneDeletePermission,
   openchoreoClusterWorkflowplaneUpdatePermission,
@@ -185,6 +189,16 @@ export const KIND_TO_PERMISSIONS: Record<string, PermissionEntry> = {
   clustertraittype: {
     update: openchoreoClusterTraitUpdatePermission,
     delete: openchoreoClusterTraitDeletePermission,
+    isResourceScoped: false,
+  },
+  hook: {
+    update: openchoreoHookUpdatePermission,
+    delete: openchoreoHookDeletePermission,
+    isResourceScoped: true,
+  },
+  clusterhook: {
+    update: openchoreoClusterHookUpdatePermission,
+    delete: openchoreoClusterHookDeletePermission,
     isResourceScoped: false,
   },
   clusterdataplane: {

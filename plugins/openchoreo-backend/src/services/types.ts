@@ -26,6 +26,18 @@ export type ApiListResponse<T> = APIResponse & {
 };
 
 /**
+ * Envelope for a single `T`. Declared as a sibling of {@link ApiListResponse}
+ * rather than extending `APIResponse`, whose `data` index signature an
+ * interface-typed payload cannot satisfy.
+ */
+export interface ApiItemResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  code?: string;
+}
+
+/**
  * An output entry declared on a (Cluster)ResourceType. The "kind" is implicit
  * in which of value / secretKeyRef / configMapKeyRef is set.
  */

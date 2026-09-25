@@ -38,6 +38,7 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-card', 'environment-promotion'],
   ['entity-card', 'environment-deployed-components'],
   ['entity-card', 'environment-gateway-configuration'],
+  ['entity-card', 'environment-hooks'],
   // dataplane
   ['entity-card', 'dataplane-status'],
   ['entity-card', 'dataplane-environments'],
@@ -60,6 +61,9 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-card', 'component-type-overview'],
   ['entity-card', 'resource-type-overview'],
   ['entity-card', 'trait-type-overview'],
+  // deployment hooks (alpha)
+  ['entity-card', 'hook-overview'],
+  ['entity-card', 'hook-bindings'],
   // workflow family
   ['entity-card', 'workflow-overview'],
   ['entity-card', 'component-workflow-overview'],
@@ -75,6 +79,7 @@ const ALPHA_EXTENSION_NAMES = [
   ['scaffolder-form-field', 'cluster-component-type-yaml-editor'],
   ['scaffolder-form-field', 'cluster-project-type-yaml-editor'],
   ['scaffolder-form-field', 'cluster-resource-type-yaml-editor'],
+  ['scaffolder-form-field', 'cluster-hook-form-with-yaml'],
   ['scaffolder-form-field', 'cluster-trait-yaml-editor'],
   ['scaffolder-form-field', 'cluster-workflow-yaml-editor'],
   ['scaffolder-form-field', 'component-name-picker'],
@@ -83,6 +88,7 @@ const ALPHA_EXTENSION_NAMES = [
   ['scaffolder-form-field', 'component-workflow-yaml-editor'],
   ['scaffolder-form-field', 'container-image-field'],
   ['scaffolder-form-field', 'deployment-pipeline-form-with-yaml'],
+  ['scaffolder-form-field', 'hook-form-with-yaml'],
   ['scaffolder-form-field', 'deployment-pipeline-picker'],
   ['scaffolder-form-field', 'deployment-source-picker'],
   ['scaffolder-form-field', 'environment-form-with-yaml'],
@@ -117,6 +123,7 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-content-layout', 'resource-type-overview'],
   ['entity-content-layout', 'project-type-overview'],
   ['entity-content-layout', 'trait-type-overview'],
+  ['entity-content-layout', 'hook-overview-layout'],
   ['entity-content-layout', 'workflow-overview-layout'],
   ['entity-content-layout', 'component-workflow-overview-layout'],
 ] as const;

@@ -11,6 +11,7 @@ import StorageIcon from '@material-ui/icons/Storage';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
+import VerifiedUserIcon from '@material-ui/icons/VerifiedUser';
 
 // Single source of truth for OpenChoreo platform kind icons. Consumed
 // twice: `IconBundleBlueprint` (kind:x-keyed shape via LEGACY_KIND_ICONS)
@@ -35,6 +36,12 @@ export const KIND_ICONS: Record<string, IconComponent> = {
   resource: StorageIcon,
   traittype: ExtensionIcon,
   clustertraittype: ExtensionIcon,
+  // Deployment hooks (alpha): a gate that must pass before a deploy proceeds.
+  // Distinct from AccountTreeIcon (deploymentpipeline) and
+  // PlayCircleOutlineIcon (workflow) on purpose — all three appear side by
+  // side under "Platform Configuration" and must stay tellable apart.
+  hook: VerifiedUserIcon,
+  clusterhook: VerifiedUserIcon,
   workflow: PlayCircleOutlineIcon,
   clusterworkflow: PlayCircleOutlineIcon,
   componentworkflow: SettingsApplicationsIcon,
