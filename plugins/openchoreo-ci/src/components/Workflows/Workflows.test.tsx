@@ -1,8 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { TestApiProvider } from '@backstage/test-utils';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
-import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import {
+  alertApiRef,
+  discoveryApiRef,
+  fetchApiRef,
+} from '@backstage/core-plugin-api';
 import { mockComponentEntity } from '@openchoreo/test-utils';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import { Workflows } from './Workflows';
@@ -65,8 +69,17 @@ jest.mock('@openchoreo/backstage-plugin-react', () => ({
     }),
   }),
   useBuildPermission: () => mockUseBuildPermission(),
-  useOpenChoreoMutation: (fn: any) => ({
-    mutate: fn,
+  useOpenChoreoMutation: (fn: any, opts?: any) => ({
+    mutate: async (...args: any[]) => {
+      try {
+        const res = await fn(...args);
+        await opts?.onSuccess?.(res, args);
+        return res;
+      } catch (err: any) {
+        await opts?.onError?.(err, args);
+        throw err;
+      }
+    },
     isLoading: false,
     error: null,
     reset: jest.fn(),
@@ -109,9 +122,22 @@ jest.mock('@openchoreo/backstage-design-system', () => ({
     </div>
   ),
   SplitButton: (props: any) => (
-    <button data-testid="split-button" disabled={props.disabled}>
-      Build
-    </button>
+    <div data-testid="split-button-group">
+      <button
+        data-testid="split-button"
+        disabled={props.disabled}
+        onClick={() => props.onClick?.('build-latest')}
+      >
+        Build
+      </button>
+      <button
+        data-testid="split-button-custom"
+        disabled={props.disabled}
+        onClick={() => props.onClick?.('build-custom')}
+      >
+        Custom
+      </button>
+    </div>
   ),
   PageLoader: () => <div data-testid="progress" />,
 }));
@@ -136,7 +162,31 @@ jest.mock('../OverviewTab', () => ({
   OverviewTab: () => <div data-testid="overview-tab">Overview</div>,
 }));
 jest.mock('../BuildWithParamsDialog', () => ({
-  BuildWithParamsDialog: () => null,
+  // Mimics the real dialog's handleTrigger → catch → setError flow so we can
+  // verify that triggerWithParamsOp throws a friendly message.
+  BuildWithParamsDialog: (props: any) => {
+    const [err, setErr] = require('react').useState('');
+    if (!props.open) return null;
+    return (
+      <div data-testid="params-dialog">
+        <button
+          data-testid="params-trigger"
+          onClick={async () => {
+            try {
+              await props.onTrigger({});
+            } catch (e: any) {
+              setErr(e.message);
+            }
+          }}
+        >
+          Trigger
+        </button>
+        {err && (
+          <span data-testid="params-dialog-error">{err}</span>
+        )}
+      </div>
+    );
+  },
 }));
 
 // ---- Helpers ----
@@ -145,7 +195,16 @@ jest.mock('../BuildWithParamsDialog', () => ({
 // trigger infinite re-renders.
 const testEntity = mockComponentEntity();
 
-function renderWithRouter(ui: React.ReactElement) {
+const mockAlertApi = {
+  post: jest.fn(),
+  alert$: jest.fn(),
+};
+
+function renderWithRouter(
+  ui: React.ReactElement,
+  options?: { alertApi?: typeof mockAlertApi },
+) {
+  const alertApi = options?.alertApi ?? mockAlertApi;
   return render(
     <MemoryRouter>
       <TestApiProvider
@@ -153,6 +212,7 @@ function renderWithRouter(ui: React.ReactElement) {
           [openChoreoCiClientApiRef, mockCiClient],
           [discoveryApiRef, mockDiscoveryApi],
           [fetchApiRef, mockFetchApi],
+          [alertApiRef, alertApi],
         ]}
       >
         <EntityProvider entity={testEntity}>{ui}</EntityProvider>
@@ -189,6 +249,7 @@ const defaultBuildPermission = {
 describe('Workflows', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAlertApi.post.mockClear();
     mockUseWorkflowRouting.mockReturnValue(defaultRoutingState);
     mockUseBuildPermission.mockReturnValue(defaultBuildPermission);
   });
@@ -292,5 +353,276 @@ describe('Workflows', () => {
     expect(
       screen.getByText('Failed to fetch workflow data'),
     ).toBeInTheDocument();
+  });
+
+  describe('Build Latest error handling', () => {
+    let unhandledRejections: any[] = [];
+    const rejectionHandler = (reason: any) => {
+      unhandledRejections.push(reason);
+    };
+
+    beforeEach(() => {
+      unhandledRejections = [];
+      process.on('unhandledRejection', rejectionHandler);
+
+      mockUseWorkflowData.mockReturnValue({
+        builds: [],
+        componentDetails: {
+          componentWorkflow: {
+            name: 'my-workflow',
+            kind: 'Workflow',
+            parameters: {},
+          },
+        },
+        loading: false,
+        error: null,
+        fetchBuilds: jest.fn(),
+        fetchComponentDetails: jest.fn(),
+      });
+    });
+
+    afterEach(() => {
+      process.removeListener('unhandledRejection', rejectionHandler);
+    });
+
+    // Go API direct shape: { code: "NOT_FOUND", error: "Workflow not found" }
+    it('404 with Go API string-error shape ({error: string}) posts alert', async () => {
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        json: async () => ({ code: 'NOT_FOUND', error: 'Workflow not found' }),
+        text: async () =>
+          JSON.stringify({ code: 'NOT_FOUND', error: 'Workflow not found' }),
+      });
+
+      renderWithRouter(<Workflows />);
+
+      const buildButton = screen.getByTestId('split-button');
+      fireEvent.click(buildButton);
+
+      await waitFor(() => {
+        expect(mockAlertApi.post).toHaveBeenCalledTimes(1);
+      });
+      expect(mockAlertApi.post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining(
+            'The referenced workflow "my-workflow" no longer exists. Please select or configure a new build workflow.',
+          ),
+          severity: 'error',
+        }),
+      );
+      expect(unhandledRejections).toHaveLength(0);
+    });
+
+    // BFF shape (what the browser actually hits):
+    // { error: { name: "NotFoundError", message: "Workflow not found" } }
+    it('404 with BFF nested-object shape ({error: {message}}) posts alert', async () => {
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        json: async () => ({
+          error: { name: 'NotFoundError', message: 'Workflow not found' },
+        }),
+        text: async () =>
+          JSON.stringify({
+            error: { name: 'NotFoundError', message: 'Workflow not found' },
+          }),
+      });
+
+      renderWithRouter(<Workflows />);
+
+      const buildButton = screen.getByTestId('split-button');
+      fireEvent.click(buildButton);
+
+      await waitFor(() => {
+        expect(mockAlertApi.post).toHaveBeenCalledTimes(1);
+      });
+      expect(mockAlertApi.post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining(
+            'The referenced workflow "my-workflow" no longer exists. Please select or configure a new build workflow.',
+          ),
+          severity: 'error',
+        }),
+      );
+      expect(unhandledRejections).toHaveLength(0);
+    });
+
+    // Message-field shape: { message: "Workflow not found" }
+    it('404 with message-field shape ({message}) posts alert', async () => {
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        json: async () => ({ message: 'Workflow not found' }),
+        text: async () => JSON.stringify({ message: 'Workflow not found' }),
+      });
+
+      renderWithRouter(<Workflows />);
+
+      const buildButton = screen.getByTestId('split-button');
+      fireEvent.click(buildButton);
+
+      await waitFor(() => {
+        expect(mockAlertApi.post).toHaveBeenCalledTimes(1);
+      });
+      expect(mockAlertApi.post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining(
+            'The referenced workflow "my-workflow" no longer exists. Please select or configure a new build workflow.',
+          ),
+          severity: 'error',
+        }),
+      );
+      expect(unhandledRejections).toHaveLength(0);
+    });
+
+    // Non-JSON body (e.g. HTML 404 page from a proxy)
+    it('404 with non-JSON body posts alert with fallback message', async () => {
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        json: async () => {
+          throw new Error('Unexpected token < in JSON');
+        },
+        text: async () => '<html><body>404 Not Found</body></html>',
+      });
+
+      renderWithRouter(<Workflows />);
+
+      const buildButton = screen.getByTestId('split-button');
+      fireEvent.click(buildButton);
+
+      await waitFor(() => {
+        expect(mockAlertApi.post).toHaveBeenCalledTimes(1);
+      });
+      expect(mockAlertApi.post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining(
+            'The referenced workflow "my-workflow" no longer exists. Please select or configure a new build workflow.',
+          ),
+          severity: 'error',
+        }),
+      );
+      expect(unhandledRejections).toHaveLength(0);
+    });
+
+    // Empty JSON body ({}) falls back to workflow not found message on 404
+    it('404 with empty JSON body posts alert with detailed workflow message', async () => {
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        json: async () => ({}),
+        text: async () => '{}',
+      });
+
+      renderWithRouter(<Workflows />);
+
+      const buildButton = screen.getByTestId('split-button');
+      fireEvent.click(buildButton);
+
+      await waitFor(() => {
+        expect(mockAlertApi.post).toHaveBeenCalledTimes(1);
+      });
+      expect(mockAlertApi.post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining(
+            'The referenced workflow "my-workflow" no longer exists. Please select or configure a new build workflow.',
+          ),
+          severity: 'error',
+        }),
+      );
+      expect(unhandledRejections).toHaveLength(0);
+    });
+
+    // Non-404 error with empty JSON body falls back to HTTP status
+    it('500 with empty JSON body posts alert with fallback HTTP status message', async () => {
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: async () => ({}),
+        text: async () => '{}',
+      });
+
+      renderWithRouter(<Workflows />);
+
+      const buildButton = screen.getByTestId('split-button');
+      fireEvent.click(buildButton);
+
+      await waitFor(() => {
+        expect(mockAlertApi.post).toHaveBeenCalledTimes(1);
+      });
+      expect(mockAlertApi.post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining('HTTP 500: Internal Server Error'),
+          severity: 'error',
+        }),
+      );
+      expect(unhandledRejections).toHaveLength(0);
+    });
+  });
+
+  describe('Build with Params error handling', () => {
+    it('404 shows friendly message in dialog, not generic HTTP status', async () => {
+      mockUseWorkflowData.mockReturnValue({
+        builds: [],
+        componentDetails: {
+          componentWorkflow: {
+            name: 'my-workflow',
+            kind: 'Workflow',
+            parameters: {},
+          },
+        },
+        loading: false,
+        error: null,
+        fetchBuilds: jest.fn(),
+        fetchComponentDetails: jest.fn(),
+      });
+
+      // First fetch call is from the schema fetch (if any); the params-dialog
+      // trigger will be the next one.
+      mockFetchApi.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        json: async () => ({ code: 'NOT_FOUND', error: 'Workflow not found' }),
+        text: async () =>
+          JSON.stringify({ code: 'NOT_FOUND', error: 'Workflow not found' }),
+      });
+
+      renderWithRouter(<Workflows />);
+
+      // Click "Build with Custom Parameters" to open the dialog
+      const customButton = screen.getByTestId('split-button-custom');
+      fireEvent.click(customButton);
+
+      // Dialog should appear
+      await waitFor(() => {
+        expect(screen.getByTestId('params-dialog')).toBeInTheDocument();
+      });
+
+      // Click the trigger button inside the mock dialog
+      const triggerButton = screen.getByTestId('params-trigger');
+      fireEvent.click(triggerButton);
+
+      // The dialog should render the friendly error, not "HTTP 404: Not Found"
+      await waitFor(() => {
+        expect(screen.getByTestId('params-dialog-error')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('params-dialog-error')).toHaveTextContent(
+        'The referenced workflow "my-workflow" no longer exists. Please select or configure a new build workflow.',
+      );
+      // Must NOT show the generic HTTP status message
+      expect(screen.getByTestId('params-dialog-error').textContent).not.toContain(
+        'HTTP 404',
+      );
+      // No toast — the dialog owns the error display
+      expect(mockAlertApi.post).not.toHaveBeenCalled();
+    });
   });
 });
