@@ -219,6 +219,23 @@ For day-to-day development commands (test, lint, build, plugin development workf
 - **`@openchoreo/backstage-design-system`** - Design system primitives
 - **`@openchoreo/backstage-plugin-catalog-backend-module`** - Catalog entity provider
 - **`@openchoreo/backstage-plugin-scaffolder-backend-module`** - Scaffolder actions
+- **`@openchoreo/backstage-portal-app`** - The complete portal frontend shell (`createPortalApp`)
+- **`@openchoreo/backstage-portal-backend`** - The complete portal backend (`portalBackendFeatures`)
+- **`@openchoreo/create-portal`** - CLI that scaffolds a custom portal on the two packages above
+
+## Building a Custom Portal
+
+To run your own OpenChoreo Portal — your plugins, pages, and branding on top
+of the full OpenChoreo experience — scaffold one instead of forking this repo:
+
+```bash
+npx @openchoreo/create-portal
+```
+
+The result is a standard Backstage app pinned to one OpenChoreo release,
+with a Dockerfile whose image drops into the OpenChoreo Helm chart in place of
+the stock portal. See [`packages/create-portal`](packages/create-portal/README.md)
+and [`packages/portal-app`](packages/portal-app/README.md) for details.
 
 ## Installation
 
