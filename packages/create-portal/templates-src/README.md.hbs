@@ -1,0 +1,143 @@
+# {{name}}
+
+Your custom [OpenChoreo](https://openchoreo.dev) Portal — a thin
+[Backstage](https://backstage.io) app built on the published
+`@openchoreo/backstage-portal-app` and `@openchoreo/backstage-portal-backend`
+packages, pinned to portal release `{{version}}`.
+
+You own this repository: add plugins, replace pages, and re-brand without
+forking the OpenChoreo monorepo.
+
+## Prerequisites
+
+- Node.js 20 or 22, and Yarn (via `corepack enable`; the repo pins its own
+  Yarn under `.yarn/releases`).
+- `@openchoreo/*` packages resolve from `{{registry}}` (see `.yarnrc.yml`).
+  If you point that at a private registry, set an `npmAuthToken` for the
+  `openchoreo` scope in your user-level `~/.yarnrc.yml` — don't commit
+  registry tokens to this repo.
+
+## Local development
+
+```sh
+yarn install
+yarn start   # frontend on :3000, backend on :7007
+```
+
+Local settings live in `app-config.local.yaml` (gitignored; the scaffold
+seeded it from `app-config.local.yaml.example`). Point `openchoreo.baseUrl`,
+`thunder.baseUrl`, and the `auth.providers.openchoreo-auth` URLs at your
+OpenChoreo control plane — the defaults target a local k3d install on
+`*.openchoreo.localhost:8080`.
+
+## Adding plugins
+
+Optional OpenChoreo plugins, community Backstage plugins, and your in-house
+plugins are all the same thing: packages this portal depends on.
+
+- **Frontend**: `yarn workspace app add <package>`, then pass the plugin's
+  feature through `createPortalApp({ features: [...] })` in
+  `packages/app/src/App.tsx`.
+- **Backend**: `yarn workspace backend add <package>`, then
+  `backend.add(import('<package>'))` in `packages/backend/src/index.ts`.
+- **In-house**: scaffold into `plugins/` with `yarn new`.
+
+## Customizing the portal
+
+Everything the portal shell and the OpenChoreo plugins contribute is a
+Backstage [New Frontend System](https://backstage.io/docs/frontend-system/)
+extension, so most changes are configuration, not code:
+
+```yaml
+app:
+  extensions:
+    # Hide a tab or a page you don't use
+    - entity-content:openchoreo-observability/wirelogs: false
+    # Move a tab into a different group
+    - entity-content:openchoreo-ci/workflows:
+        config:
+          group: engineering
+```
+
+To replace a piece outright, contribute an extension with the same ID from a
+feature you pass to `createPortalApp({ features })` — features passed there
+load after the portal's own, so yours win.
+
+Optional OpenChoreo capabilities are switched with
+`openchoreo.features.*.enabled` in `app-config.yaml`; keep them in sync with
+what your OpenChoreo control plane actually runs.
+
+## Branding
+
+Logo, product name, and brand color are runtime configuration — no rebuild:
+
+```yaml
+app:
+  branding:
+    name: Acme Portal
+    iconLogo: data:image/svg+xml;base64,…
+    fullLogo: data:image/svg+xml;base64,…
+    theme:
+      light:
+        primaryColor: '#0f766e'
+      dark:
+        primaryColor: '#2dd4bf'
+```
+
+Browser-chrome assets (favicons, PWA manifest) live in `packages/app/public/`
+and are yours to replace.
+
+## Building the image
+
+The scaffold ships a `yarn.lock` seeded with the dependency set portal
+release `{{version}}` was tested with; the first `yarn install` trims it to
+what this portal uses. Commit the updated lockfile, then:
+
+```sh
+docker build . -f packages/backend/Dockerfile \
+  -t registry.example.com/acme/portal:0.1.0
+```
+
+Deploy it by pointing the OpenChoreo Helm chart at your image:
+
+```sh
+helm upgrade openchoreo-control-plane … \
+  --set backstage.image.repository=registry.example.com/acme/portal \
+  --set backstage.image.tag=0.1.0
+```
+
+## Upgrading to a new portal release
+
+All `@openchoreo/*` packages version in lockstep, so an upgrade is one
+version bump across `packages/app/package.json` and
+`packages/backend/package.json`, plus any skeleton changes (configs,
+Dockerfile, scaffolder templates) the release made.
+
+`.openchoreo-portal.json` records the template release this repo was
+generated from. Every release is also published as a tag of the
+[`openchoreo/portal-template`](https://github.com/openchoreo/portal-template)
+repo, so git can three-way merge skeleton changes into your customizations.
+
+Once, right after scaffolding, record the template release you started
+from as the merge base. This merge changes no files — it only links the
+histories:
+
+```sh
+git remote add portal-template https://github.com/openchoreo/portal-template
+git fetch portal-template --tags
+git merge -s ours --allow-unrelated-histories v{{version}} \
+  -m "chore: record portal-template v{{version}} as the upgrade base"
+```
+
+For every upgrade after that:
+
+```sh
+git fetch portal-template --tags
+git merge <new release tag>   # e.g. v{{version}} -> the next release
+```
+
+Resolve any conflicts (they only appear where you changed the same lines as
+the release). For `yarn.lock`, take the release's version
+(`git checkout --theirs yarn.lock`) and let `yarn install` re-add your own
+dependencies. Then run `yarn install && yarn tsc && yarn test:all`, rebuild
+your image, and update `.openchoreo-portal.json`'s `release` field.
