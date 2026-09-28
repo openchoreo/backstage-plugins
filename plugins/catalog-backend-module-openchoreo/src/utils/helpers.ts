@@ -20,7 +20,7 @@ type NewWorkload = OpenChoreoComponents['schemas']['Workload'];
 
 /**
  * Resolves the owner for a Project (System) entity from the
- * `backstage.io/owner` annotation, falling back to `defaultOwner`.
+ * `backstage.io/owner` annotation, falling back to `defaultOwner`
  */
 export function resolveProjectOwner(
   project: NewProject,
