@@ -164,6 +164,13 @@ auth:
       dangerouslyAllowOutsideDevelopment: ${BACKSTAGE_GUEST_DANGEROUSLY_ALLOW_OUTSIDE_DEVELOPMENT}
 
 catalog:
+  # The Dockerfile ships this file AS /app/app-config.yaml (it replaces the
+  # base config, not layers on it), so the global kind allowlist must be
+  # restated here — without it Backstage's defaults apply, which exclude the
+  # OpenChoreo kinds.
+  rules:
+    - allow:
+        [Component, System, API, Resource, Location, User, Group, Environment]
   locations:
     # Placeholder groups for Backstage entity owner references
     - type: file
@@ -256,6 +263,7 @@ openchoreo:
   # only sync mechanism so you may want a much smaller frequency.
   # Environment variable: OPENCHOREO_CATALOG_SYNC_FREQUENCY (seconds)
 
+  # portal-template:strip-start
   # Upstream URL the openchoreo-portal-assistant-backend plugin forwards
   # to (Portal Assistant). Env-var-gated: when OPENCHOREO_PORTAL_ASSISTANT_URL
   # is unset, Backstage substitutes the placeholder as undefined and the
@@ -266,6 +274,7 @@ openchoreo:
   # service is deployed.
   # Example: OPENCHOREO_PORTAL_ASSISTANT_URL=http://portal-assistant.openchoreo-control-plane.svc.cluster.local:8080
   portalAssistantUrl: ${OPENCHOREO_PORTAL_ASSISTANT_URL}
+  # portal-template:strip-end
 
   schedule:
     frequency: ${OPENCHOREO_CATALOG_SYNC_FREQUENCY}
