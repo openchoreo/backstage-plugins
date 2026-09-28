@@ -4,6 +4,7 @@ import {
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   type ImmediateCatalogService,
   translateResourceToEntity,
@@ -70,6 +71,13 @@ export const createResourceAction = (
               description: 'Description of what this Resource is for',
             })
             .optional(),
+        owner: z =>
+          z
+            .string({
+              description:
+                'Entity ref of the owning group (e.g. group:default/team-a)',
+            })
+            .optional(),
         typeKind: z =>
           z.enum(['ResourceType', 'ClusterResourceType'], {
             description:
@@ -115,6 +123,7 @@ export const createResourceAction = (
         resourceName,
         displayName,
         description,
+        owner,
         typeKind,
         typeName,
         parameters,
@@ -148,6 +157,9 @@ export const createResourceAction = (
       }
       if (description) {
         annotations['openchoreo.dev/description'] = description;
+      }
+      if (owner?.trim()) {
+        annotations[CHOREO_ANNOTATIONS.BACKSTAGE_OWNER] = owner.trim();
       }
 
       const hasParameters = parameters && Object.keys(parameters).length > 0;
@@ -217,7 +229,7 @@ export const createResourceAction = (
             namespaceName,
             {
               locationKey: 'OpenChoreoEntityProvider',
-              defaultOwner: `group:default/${defaultOwner}`,
+              defaultOwner: owner?.trim() || `group:default/${defaultOwner}`,
             },
           );
 

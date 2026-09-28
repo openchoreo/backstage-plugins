@@ -210,6 +210,15 @@ export class RtdToTemplateConverter {
           type: 'string',
           description: 'Describe what this Resource is for',
         },
+        owner: {
+          title: 'Owner',
+          type: 'string',
+          description: 'Optional. The group that owns this resource.',
+          'ui:field': 'OwnerPicker',
+          'ui:options': {
+            catalogFilter: { kind: ['Group'] },
+          },
+        },
       },
     };
 
@@ -249,6 +258,7 @@ export class RtdToTemplateConverter {
           resourceName: '${{ parameters.resource_name }}',
           displayName: '${{ parameters.displayName }}',
           description: '${{ parameters.description }}',
+          owner: '${{ parameters.owner }}',
           typeKind: rtdKind,
           typeName: rt.metadata.name,
           parameters: '${{ parameters.parameters }}',

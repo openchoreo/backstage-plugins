@@ -222,6 +222,7 @@ describe('RtdToTemplateConverter', () => {
         resourceName: '${{ parameters.resource_name }}',
         displayName: '${{ parameters.displayName }}',
         description: '${{ parameters.description }}',
+        owner: '${{ parameters.owner }}',
         typeKind: 'ResourceType',
         typeName: 'postgres',
         parameters: '${{ parameters.parameters }}',

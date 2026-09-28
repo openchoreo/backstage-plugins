@@ -78,14 +78,32 @@ export function extractMetadataLabels(resource: {
   return out;
 }
 
-/** Merges a CR's labels into a translated entity's `metadata.labels`, additively. */
+/**
+ * Merges the CR's labels into `metadata.labels`, and projects the
+ * `backstage.io/owner` annotation onto `spec.owner` when present.
+ */
 export function applyMetadataLabels<T extends Entity>(
   entity: T,
-  resource: { metadata?: { labels?: Record<string, string> } },
+  resource: {
+    metadata?: {
+      labels?: Record<string, string>;
+      annotations?: Record<string, string>;
+    };
+  },
 ): T {
   const extra = extractMetadataLabels(resource);
-  if (Object.keys(extra).length === 0) return entity;
-  entity.metadata.labels = { ...(entity.metadata.labels ?? {}), ...extra };
+  if (Object.keys(extra).length > 0) {
+    entity.metadata.labels = { ...(entity.metadata.labels ?? {}), ...extra };
+  }
+
+  const owner =
+    resource.metadata?.annotations?.[
+      CHOREO_ANNOTATIONS.BACKSTAGE_OWNER
+    ]?.trim();
+  if (owner && entity.spec) {
+    (entity.spec as Record<string, unknown>).owner = owner;
+  }
+
   return entity;
 }
 

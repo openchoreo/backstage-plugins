@@ -4,6 +4,7 @@ import {
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   type ImmediateCatalogService,
   translateProjectToEntity,
@@ -211,6 +212,13 @@ export const createProjectAction = (
           z
             .string({ description: 'The description of the project' })
             .optional(),
+        owner: z =>
+          z
+            .string({
+              description:
+                'Entity ref of the owning group (e.g. group:default/team-a)',
+            })
+            .optional(),
         deploymentPipeline: z =>
           z.string({
             description: 'The deployment pipeline for the project',
@@ -363,6 +371,11 @@ export const createProjectAction = (
                   'openchoreo.dev/description': ctx.input.description,
                 }
               : {}),
+            ...(ctx.input.owner?.trim()
+              ? {
+                  [CHOREO_ANNOTATIONS.BACKSTAGE_OWNER]: ctx.input.owner.trim(),
+                }
+              : {}),
           },
         },
         spec,
@@ -415,7 +428,8 @@ export const createProjectAction = (
             namespaceName,
             {
               locationKey: 'provider:OpenChoreoEntityProvider',
-              defaultOwner: `group:default/${defaultOwner}`,
+              defaultOwner:
+                ctx.input.owner?.trim() || `group:default/${defaultOwner}`,
             },
           );
 
