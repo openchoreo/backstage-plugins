@@ -97,7 +97,9 @@ export function applyMetadataLabels<T extends Entity>(
   }
 
   const owner =
-    resource.metadata?.annotations?.[CHOREO_ANNOTATIONS.BACKSTAGE_OWNER]?.trim();
+    resource.metadata?.annotations?.[
+      CHOREO_ANNOTATIONS.BACKSTAGE_OWNER
+    ]?.trim();
   if (owner && entity.spec) {
     (entity.spec as Record<string, unknown>).owner = owner;
   }
