@@ -77,16 +77,17 @@ describe('customOverrides', () => {
     ).toBe('app');
   });
 
-  it('registers extensions on the customAppModule (SignInPage, Translation, LogRowAction, Progress + PageLayout swaps)', () => {
+  it('registers extensions on the customAppModule (SignInPage, Translation, Progress + PageLayout swaps)', () => {
     const extensions = ((customAppModule as any).extensions ?? []) as Array<{
       id: string;
     }>;
     expect(Array.isArray(extensions)).toBe(true);
 
-    // SignInPage, Translation override (catalog-import), LogRowAction renderer,
-    // and the two swappable-component overrides: core-progress (PageLoader) and
-    // core-page-layout (OpenChoreoPageLayout).
-    expect(extensions).toHaveLength(5);
+    // SignInPage, Translation override (catalog-import), and the two
+    // swappable-component overrides: core-progress (PageLoader) and
+    // core-page-layout (OpenChoreoPageLayout). The assistant's LogRowAction
+    // renderer lives in the host app (packages/app), not the published shell.
+    expect(extensions).toHaveLength(4);
     expect(extensions.map(e => e.id)).toContain('component:app/progress');
     expect(extensions.map(e => e.id)).toContain('component:app/page-layout');
   });
