@@ -32,6 +32,19 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'];
 // is present. If neither button shows up, the session is already live
 // and we proceed.
 async function dismissSignIn(page: import('@playwright/test').Page) {
+  // Bounded wait for either a sign-in control or the post-login sidebar —
+  // `isVisible()` returns immediately, so checking straight after `goto`
+  // races SPA hydration and could skip the sign-in click entirely.
+  await page
+    .getByRole('button', { name: /^(Enter|Sign In)$/ })
+    .or(
+      page.locator(
+        'nav[aria-label*="sidebar" i], a[href="/"][aria-label="Home"]',
+      ),
+    )
+    .first()
+    .waitFor({ state: 'visible', timeout: 15_000 })
+    .catch(() => undefined);
   for (const name of ['Enter', 'Sign In'] as const) {
     const btn = page.getByRole('button', { name });
     if (await btn.isVisible().catch(() => false)) {
