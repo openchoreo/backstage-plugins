@@ -377,16 +377,17 @@ export function OpenChoreoAboutCard({
     entityLocation?.startsWith('url:') || entityLocation?.startsWith('file:');
 
   // Reload the on-screen entity so edits (e.g. owner via the Definition tab)
-  // show without renavigating. Location-backed entities also get a backend
-  // re-read scheduled.
+  // show without renavigating. This is an independent read of current catalog
+  // state — kept separate from the location-backed re-read scheduling below,
+  // which is async and doesn't reflect in this read.
   const refreshEntity = useCallback(async () => {
-    try {
-      if (allowRefresh && canRefresh) {
+    refreshEntityContext?.();
+    if (allowRefresh && canRefresh) {
+      try {
         await catalogApi.refreshEntity(stringifyEntityRef(entity));
+      } catch (e) {
+        errorApi.post(e as Error);
       }
-      refreshEntityContext?.();
-    } catch (e) {
-      errorApi.post(e as Error);
     }
   }, [
     allowRefresh,
