@@ -23,3 +23,4 @@ export { ClusterProjectTypeEntityProcessor } from './ClusterProjectTypeEntityPro
 export { ProjectTypeEntityProcessor } from './ProjectTypeEntityProcessor';
 export { SystemEntityProcessor } from './SystemEntityProcessor';
 export { ObservabilityAlertsNotificationChannelEntityProcessor } from './ObservabilityAlertsNotificationChannelEntityProcessor';
+export { OwnerRelationProcessor } from './OwnerRelationProcessor';

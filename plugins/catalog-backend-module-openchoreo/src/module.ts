@@ -35,6 +35,7 @@ import {
   ProjectTypeEntityProcessor,
   SystemEntityProcessor,
   ObservabilityAlertsNotificationChannelEntityProcessor,
+  OwnerRelationProcessor,
 } from './processors';
 import {
   immediateCatalogServiceRef,
@@ -194,6 +195,9 @@ export const catalogModuleOpenchoreo = createBackendModule({
         catalog.addProcessor(
           new ObservabilityAlertsNotificationChannelEntityProcessor(),
         );
+
+        // Emits ownedBy/ownerOf from spec.owner for custom OpenChoreo kinds.
+        catalog.addProcessor(new OwnerRelationProcessor());
 
         // Wire the OpenChoreo event-driven flow only when enabled. When
         // disabled the entity provider falls back to poll-only mode

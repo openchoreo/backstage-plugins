@@ -238,6 +238,15 @@ export class PtdToTemplateConverter {
           type: 'string',
           description: 'Describe what this Project is for',
         },
+        owner: {
+          title: 'Owner',
+          type: 'string',
+          description: 'Optional. The group that owns this project.',
+          'ui:field': 'OwnerPicker',
+          'ui:options': {
+            catalogFilter: { kind: ['Group'] },
+          },
+        },
         deployment_pipeline: {
           title: 'Deployment Pipeline',
           type: 'string',
@@ -296,6 +305,7 @@ export class PtdToTemplateConverter {
           projectName: '${{ parameters.project_name }}',
           displayName: '${{ parameters.displayName }}',
           description: '${{ parameters.description }}',
+          owner: '${{ parameters.owner }}',
           deploymentPipeline: '${{ parameters.deployment_pipeline }}',
           autoDeploy: '${{ parameters.auto_deploy }}',
           typeKind: ptdKind,
