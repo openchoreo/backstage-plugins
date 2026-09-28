@@ -256,7 +256,9 @@ function EntityChrome({ routes }: OpenChoreoCatalogEntityPageContentProps) {
 function ChromeGate(props: OpenChoreoCatalogEntityPageContentProps) {
   const { entity, loading, error } = useAsyncEntity();
 
-  if (loading) return <Progress />;
+  // Only blank on the initial load; keep the chrome mounted during a background
+  // refresh (e.g. the About card's Refresh button) so it doesn't flash a spinner.
+  if (loading && !entity) return <Progress />;
   if (error) {
     return (
       <Box py={4}>

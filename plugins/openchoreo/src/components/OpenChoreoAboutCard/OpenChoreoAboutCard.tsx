@@ -20,7 +20,7 @@ import {
   Link,
   MarkdownContent,
 } from '@backstage/core-components';
-import { alertApiRef, errorApiRef, useApi } from '@backstage/core-plugin-api';
+import { errorApiRef, useApi } from '@backstage/core-plugin-api';
 
 import {
   ScmIntegrationIcon,
@@ -39,6 +39,7 @@ import {
   EntityRefLinks,
   getEntityRelations,
   getEntitySourceLocation,
+  useAsyncEntity,
   useEntity,
 } from '@backstage/plugin-catalog-react';
 import { useEntityPermission } from '@backstage/plugin-catalog-react/alpha';
@@ -349,8 +350,8 @@ export function OpenChoreoAboutCard({
 }: OpenChoreoAboutCardProps) {
   const classes = useStyles();
   const { entity } = useEntity();
+  const { refresh: refreshEntityContext } = useAsyncEntity();
   const catalogApi = useApi(catalogApiRef);
-  const alertApi = useApi(alertApiRef);
   const errorApi = useApi(errorApiRef);
   const { allowed: canRefresh } = useEntityPermission(
     catalogEntityRefreshPermission,
@@ -375,18 +376,26 @@ export function OpenChoreoAboutCard({
   const allowRefresh =
     entityLocation?.startsWith('url:') || entityLocation?.startsWith('file:');
 
+  // Reload the on-screen entity so edits (e.g. owner via the Definition tab)
+  // show without renavigating. Location-backed entities also get a backend
+  // re-read scheduled.
   const refreshEntity = useCallback(async () => {
     try {
-      await catalogApi.refreshEntity(stringifyEntityRef(entity));
-      alertApi.post({
-        message: 'Refresh scheduled',
-        severity: 'info',
-        display: 'transient',
-      });
+      if (allowRefresh && canRefresh) {
+        await catalogApi.refreshEntity(stringifyEntityRef(entity));
+      }
+      refreshEntityContext?.();
     } catch (e) {
       errorApi.post(e as Error);
     }
-  }, [catalogApi, entity, alertApi, errorApi]);
+  }, [
+    allowRefresh,
+    canRefresh,
+    catalogApi,
+    entity,
+    refreshEntityContext,
+    errorApi,
+  ]);
 
   return (
     <Card className={cardClass}>
@@ -394,15 +403,13 @@ export function OpenChoreoAboutCard({
         title="About"
         action={
           <>
-            {allowRefresh && canRefresh && (
-              <IconButton
-                aria-label="Refresh"
-                title="Schedule entity refresh"
-                onClick={refreshEntity}
-              >
-                <CachedIcon />
-              </IconButton>
-            )}
+            <IconButton
+              aria-label="Refresh"
+              title="Refresh"
+              onClick={refreshEntity}
+            >
+              <CachedIcon />
+            </IconButton>
             {showEditIcon && (
               <IconButton
                 component={Link}
