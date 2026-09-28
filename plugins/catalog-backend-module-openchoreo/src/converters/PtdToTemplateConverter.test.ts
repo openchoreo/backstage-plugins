@@ -219,6 +219,7 @@ describe('PtdToTemplateConverter', () => {
         projectName: '${{ parameters.project_name }}',
         displayName: '${{ parameters.displayName }}',
         description: '${{ parameters.description }}',
+        owner: '${{ parameters.owner }}',
         deploymentPipeline: '${{ parameters.deployment_pipeline }}',
         autoDeploy: '${{ parameters.auto_deploy }}',
         typeKind: 'ProjectType',
