@@ -66,3 +66,6 @@ number identifies a whole portal. The shell carries no dependency on the
 private Portal Assistant: the assistant ships its own wiring from
 `@openchoreo/backstage-plugin-openchoreo-portal-assistant/alpha`, and the stock
 `app` package installs it through discovery like any other plugin.
+
+To scaffold a portal of your own from this package, see
+[`@openchoreo/create-portal`](../create-portal/README.md).
