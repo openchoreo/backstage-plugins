@@ -244,6 +244,8 @@ yarn workspace backend add \
 
 See the [installation guide](https://openchoreo.dev/docs/platform-engineer-guide/backstage-plugins/installing-into-existing-backstage/) for the full wiring, including the optional tab packs.
 
+The backend packages also work under Backstage's backend feature discovery, which you opt into with `backend.add(discoveryFeatureLoader)`. Each package's default export carries everything that package contributes — for the catalog module that includes the `AnnotationStore` and `ImmediateCatalogService` factories that `@openchoreo/backstage-plugin-backend` depends on. Adding any of them explicitly as well is safe: an explicitly installed service factory takes precedence over one offered by a loader. Note that discovery does not cover the root HTTP router, so the IDP token middleware still has to be wired by hand.
+
 Releases from `1.3.0` onward are published from CI using [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) and carry a signed [provenance attestation](https://docs.npmjs.com/generating-provenance-statements) linking the tarball to the workflow run that built it.
 
 To check a published version without installing anything:
