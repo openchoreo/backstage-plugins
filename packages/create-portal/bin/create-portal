@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+/* eslint-disable no-restricted-syntax */
+const path = require('node:path');
+
+// Figure out whether we're running inside the backstage-plugins repo (src/
+// present, run through the CLI's on-the-fly TS transform) or as an installed
+// package (built dist/ is the entry point).
+const isLocal = require('node:fs').existsSync(
+  path.resolve(__dirname, '../src'),
+);
+
+if (!isLocal) {
+  require('..');
+} else {
+  require('@backstage/cli/config/nodeTransform.cjs');
+  require('../src');
+}

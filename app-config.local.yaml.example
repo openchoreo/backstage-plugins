@@ -39,11 +39,13 @@ openchoreo:
   baseUrl: http://api.openchoreo.localhost:8080/api/v1
   # token: ""  # Optional: uncomment if you need API authentication
 
+  # portal-template:strip-start
   # Upstream URL the openchoreo-portal-assistant-backend plugin forwards
   # to (Portal Assistant). The k3d gateway routes
   # /api/v1alpha1/portal-assistant/* to the portal-assistant pod via
   # HTTPRoute. Only needed if you've enabled the assistant feature below.
   # portalAssistantUrl: http://openchoreo.localhost:8080
+  # portal-template:strip-end
 
   # OAuth2 Client Credentials for background tasks (Catalog Entity Provider)
   # Required for the Catalog Provider to fetch organizations, projects, and components
@@ -75,8 +77,10 @@ openchoreo:
       enabled: true    # Set to false to hide Access Control sidebar and pages
     secretManagement:
       enabled: true    # Set to false to hide Secrets settings tab
+    # portal-template:strip-start
     assistant:
-      enabled: true   # Opt-in. Set to true after deploying perch-agent and OPENCHOREO_PERCH_AGENT_URL
+      enabled: false # Opt-in. Set to true after deploying the Portal Assistant and uncommenting `portalAssistantUrl` above
+    # portal-template:strip-end
 
 # Thunder IDP configuration (k3d cluster)
 thunder:

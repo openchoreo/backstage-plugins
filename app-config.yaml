@@ -243,6 +243,7 @@ openchoreo:
   # Required by Backstage schema validation. Custom OpenChoreo kinds don't use owner.
   defaultOwner: 'openchoreo-users'
 
+  # portal-template:strip-start
   # Upstream URL the openchoreo-portal-assistant-backend plugin forwards
   # to (Portal Assistant). Env-var-gated: when OPENCHOREO_PORTAL_ASSISTANT_URL
   # is unset, Backstage substitutes the placeholder as undefined and the
@@ -255,6 +256,7 @@ openchoreo:
   # For in-cluster Backstage: http://portal-assistant.openchoreo-control-plane.svc.cluster.local:8080
   # For external access: configure via OPENCHOREO_PORTAL_ASSISTANT_URL env var.
   portalAssistantUrl: ${OPENCHOREO_PORTAL_ASSISTANT_URL}
+  # portal-template:strip-end
 
   schedule:
     frequency: 300 # seconds between runs (default: 300, the periodic full sync acts as a safety net behind the event-forwarder's real-time deltas)
