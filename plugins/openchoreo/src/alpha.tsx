@@ -1,6 +1,7 @@
 import {
   ApiBlueprint,
   configApiRef,
+  createFrontendFeatureLoader,
   createFrontendPlugin,
   discoveryApiRef,
   fetchApiRef,
@@ -31,9 +32,12 @@ import {
   isEditableAnnotationsEntity,
 } from './components/AnnotationEditor/useAnnotationEditorContextMenuItemProps';
 
+import { openChoreoEntityGroupsModule } from './extensions/openChoreoEntityGroupsModule';
+import { openChoreoAppModule } from './appModule';
+
 export { openChoreoEntityPageOverride } from './extensions/openChoreoEntityPageOverride';
-export { openChoreoEntityGroupsModule } from './extensions/openChoreoEntityGroupsModule';
-export { openChoreoAppModule } from './appModule';
+export { openChoreoEntityGroupsModule };
+export { openChoreoAppModule };
 
 import {
   rootCatalogEnvironmentRouteRef,
@@ -884,7 +888,14 @@ const execTerminalPage = PageBlueprint.make({
   },
 });
 
-export default createFrontendPlugin({
+/**
+ * The OpenChoreo frontend plugin: entity tabs and cards, scaffolder field
+ * extensions and the org-level pages.
+ *
+ * Prefer the default export of this entry point, which also carries the
+ * module the plugin needs in order to function.
+ */
+export const openChoreoPlugin = createFrontendPlugin({
   pluginId: 'openchoreo',
   routes: {
     catalogEnvironment: rootCatalogEnvironmentRouteRef,
@@ -960,4 +971,30 @@ export default createFrontendPlugin({
     workflowOverviewLayout,
     componentWorkflowOverviewLayout,
   ],
+});
+
+/**
+ * Default export for `@openchoreo/backstage-plugin/alpha`.
+ *
+ * A feature loader rather than the plugin alone, so that the plugin arrives
+ * together with the module it cannot function without. `openChoreoAppModule`
+ * supplies the shared query client and the `fetchApi`/`permissionApi`
+ * overrides that attach the user's IDP token — without it the entity tabs
+ * mount and then throw on first render.
+ *
+ * This is what makes the plugin work under Backstage's feature discovery,
+ * which is on by default in new apps: discovery only reads the default export
+ * of a package's root and `./alpha` entry points, so a named export alongside
+ * this one is never picked up on its own.
+ *
+ * `openChoreoEntityGroupsModule` is deliberately not bundled here. It is
+ * recommended rather than required, and hosts that pin their own entity tab
+ * groups should not have ours applied implicitly — add it to
+ * `createApp({ features })` to get the canonical OpenChoreo tab order.
+ *
+ * Listing either of these explicitly as well is harmless: a module applied
+ * twice simply re-applies the same implementation.
+ */
+export default createFrontendFeatureLoader({
+  loader: () => [openChoreoPlugin, openChoreoAppModule],
 });

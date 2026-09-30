@@ -284,6 +284,8 @@ const app = createApp({
 });
 ```
 
+[Feature discovery](https://backstage.io/docs/frontend-system/building-apps/installing-plugins) — `app.packages: all`, the default in new apps — works too: adding the package as a dependency is enough. The `/alpha` default export is a feature loader carrying both the plugin and the `openChoreoAppModule` it depends on, so discovery cannot pick up one without the other. Add `openChoreoEntityGroupsModule` explicitly if you want OpenChoreo's canonical entity tab order.
+
 If you want the entire OpenChoreo portal (custom pages, sign-in, catalog view, everything), install `@openchoreo/backstage-portal-app` instead — that package composes all of the above plus a lot more:
 
 ```ts

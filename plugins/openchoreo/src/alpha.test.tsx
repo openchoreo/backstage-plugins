@@ -1,4 +1,4 @@
-import openchoreoPlugin from './alpha';
+import openchoreoAlpha, { openChoreoPlugin as openchoreoPlugin } from './alpha';
 
 const ALPHA_EXTENSION_NAMES = [
   // backend client
@@ -139,5 +139,28 @@ describe('openchoreo alpha plugin', () => {
   it('exposes one extension per documented entry (no silent drops)', () => {
     const extensions = (openchoreoPlugin as any).extensions as Array<unknown>;
     expect(extensions).toHaveLength(ALPHA_EXTENSION_NAMES.length);
+  });
+});
+
+describe('openchoreo alpha default export', () => {
+  it('is a feature loader, so discovery picks up the modules too', () => {
+    expect((openchoreoAlpha as any).$$type).toBe(
+      '@backstage/FrontendFeatureLoader',
+    );
+  });
+
+  it('loads the plugin plus the app module it depends on', async () => {
+    const loaded = await (openchoreoAlpha as any).loader({
+      config: { getOptionalString: () => undefined },
+    });
+
+    expect(loaded).toContain(openchoreoPlugin);
+    expect(loaded).toHaveLength(2);
+
+    const types = loaded.map((f: any) => f.$$type);
+    expect(types).toEqual([
+      '@backstage/FrontendPlugin',
+      '@backstage/FrontendModule',
+    ]);
   });
 });
