@@ -12,6 +12,9 @@ export const accessControlRouteRef = createRouteRef({
 export const resourceEnvironmentsRouteRef = createRouteRef({
   id: 'resource-environments',
 });
+export const secretsRouteRef = createRouteRef({
+  id: 'secrets',
+});
 export const execTerminalRouteRef = createRouteRef({
   id: 'exec-terminal',
 });
