@@ -7,8 +7,11 @@ const ALPHA_EXTENSION_NAMES = [
   ['api', 'openchoreo-auth'],
   // self-contained response-cache provider
   ['plugin-wrapper', 'query-provider'],
-  // routed page (opened via window.open from the resource drawer)
+  // routed pages
   ['page', 'exec-terminal'],
+  // settings tabs contributed to upstream's user-settings page
+  ['sub-page', 'access-control'],
+  ['sub-page', 'secrets'],
   // entity context menu items (delete + annotation edit)
   ['entity-context-menu-item', 'delete-entity'],
   ['entity-context-menu-item', 'edit-annotations'],

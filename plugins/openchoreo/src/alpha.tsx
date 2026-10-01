@@ -8,6 +8,7 @@ import {
   oauthRequestApiRef,
   PageBlueprint,
   PluginWrapperBlueprint,
+  SubPageBlueprint,
 } from '@backstage/frontend-plugin-api';
 import { OAuth2 } from '@backstage/core-app-api';
 import {
@@ -42,6 +43,7 @@ export { openChoreoAppModule };
 import {
   rootCatalogEnvironmentRouteRef,
   accessControlRouteRef,
+  secretsRouteRef,
   execTerminalRouteRef,
   resourceEnvironmentsRouteRef,
 } from './routes';
@@ -874,6 +876,38 @@ const openChoreoUserTokenFormDecorator = FormDecoratorBlueprint.make({
   params: { decorator: openChoreoTokenDecorator },
 });
 
+// Org-level settings tabs. These were previously exported as plain components,
+// so a host had to mount them by hand and feature discovery could not surface
+// them at all. They attach to upstream's user-settings page rather than
+// standing alone, which is where the OpenChoreo portal already puts them — so
+// every host, portal or not, gets them in the same place. A host that would
+// rather place them itself can switch them off through `app.extensions`.
+const accessControlSettingsTab = SubPageBlueprint.make({
+  name: 'access-control',
+  attachTo: { id: 'page:user-settings', input: 'pages' },
+  params: {
+    path: 'access-control',
+    routeRef: accessControlRouteRef,
+    title: 'Access Control',
+    loader: () =>
+      import('./components/AccessControl').then(m => (
+        <m.AccessControlContent />
+      )),
+  },
+});
+
+const secretsSettingsTab = SubPageBlueprint.make({
+  name: 'secrets',
+  attachTo: { id: 'page:user-settings', input: 'pages' },
+  params: {
+    path: 'secrets',
+    routeRef: secretsRouteRef,
+    title: 'Secrets',
+    loader: () =>
+      import('./components/Secrets').then(m => <m.SecretsContent />),
+  },
+});
+
 // Opened via window.open() from the resource drawer; no title/icon = no nav item.
 const execTerminalPage = PageBlueprint.make({
   name: 'exec-terminal',
@@ -900,12 +934,15 @@ export const openChoreoPlugin = createFrontendPlugin({
   routes: {
     catalogEnvironment: rootCatalogEnvironmentRouteRef,
     accessControl: accessControlRouteRef,
+    secrets: secretsRouteRef,
     execTerminal: execTerminalRouteRef,
     resourceEnvironments: resourceEnvironmentsRouteRef,
   },
   extensions: [
     openChoreoClientApi,
     openChoreoAuthApi,
+    accessControlSettingsTab,
+    secretsSettingsTab,
     queryProvider,
     execTerminalPage,
     deleteEntityContextMenuItem,
