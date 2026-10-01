@@ -1,19 +1,31 @@
-# openchoreo-ci
+# @openchoreo/backstage-plugin-openchoreo-ci
 
-Welcome to the openchoreo-ci plugin!
+Backstage frontend plugin that adds the **Build** tab to OpenChoreo component pages:
+workflow and build runs, per-step status and logs, and manual build triggering.
 
-_This plugin was created through the Backstage CLI_
+![Build from the portal](https://openchoreo.dev/img/explore/backstage-powered-developer-portal/build-from-the-portal.png)
 
-## Requirements
+This is an optional add-on to the OpenChoreo **Core** install
+([`@openchoreo/backstage-plugin`](https://www.npmjs.com/package/@openchoreo/backstage-plugin)),
+and needs the OpenChoreo build plane deployed in your cluster
+(`./install.sh --with-build` on the k3d quick start).
 
-Requires [`@openchoreo/backstage-plugin`](../openchoreo) (the OpenChoreo
-core plugin) to be installed in the same Backstage app. The core plugin
-provides the fetch / permission / auth APIs this plugin uses.
+## Installation
 
-## Getting started
+```bash
+yarn workspace app add @openchoreo/backstage-plugin-openchoreo-ci
+yarn workspace backend add \
+  @openchoreo/backstage-plugin-openchoreo-ci-backend \
+  @openchoreo/backstage-plugin-openchoreo-workflows-backend
+```
 
-Your plugin has been added to the example app in this repository, meaning you'll be able to access it by running `yarn start` in the root directory, and then navigating to [/openchoreo-ci](http://localhost:3000/openchoreo-ci).
+Both backends are required. The tab triggers builds through the CI backend, but reads
+the builds list and creates workflow runs through `openchoreo-workflows-backend`, so
+installing only the CI backend leaves the tab unable to load.
 
-You can also serve the plugin in isolation by running `yarn start` in the plugin directory.
-This method of serving the plugin provides quicker iteration speed and a faster startup and hot reloads.
-It is only meant for local development, and the setup for it can be found inside the [/dev](./dev) directory.
+**Full setup instructions**:
+[Installing into an existing Backstage app](https://openchoreo.dev/docs/platform-engineer-guide/backstage-plugins/installing-into-existing-backstage/).
+
+## License
+
+Apache-2.0

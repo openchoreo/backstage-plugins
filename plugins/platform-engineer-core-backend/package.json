@@ -1,6 +1,7 @@
 {
   "name": "@openchoreo/backstage-plugin-platform-engineer-core-backend",
   "version": "1.3.0",
+  "description": "Backstage backend plugin serving cross-platform environment and plane information for the OpenChoreo platform engineer view.",
   "license": "Apache-2.0",
   "main": "src/index.ts",
   "types": "src/index.ts",

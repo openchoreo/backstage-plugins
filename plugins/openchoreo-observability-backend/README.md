@@ -1,30 +1,25 @@
-# openchoreo-observability-backend
+# @openchoreo/backstage-plugin-openchoreo-observability-backend
 
-This plugin backend was templated using the Backstage CLI. You should replace this text with a description of your plugin backend.
+Backend half of the OpenChoreo observability plugin. Mounts at
+`/api/openchoreo-observability` and serves runtime logs, metrics, traces, alerts,
+audit logs, and cost data from the OpenChoreo observability plane to
+[`@openchoreo/backstage-plugin-openchoreo-observability`](https://www.npmjs.com/package/@openchoreo/backstage-plugin-openchoreo-observability).
 
 ## Installation
 
-This plugin is installed via the `@openchoreo/backstage-plugin-openchoreo-observability-backend` package. To install it to your backend package, run the following command:
-
 ```bash
-# From your root directory
-yarn --cwd packages/backend add @openchoreo/backstage-plugin-openchoreo-observability-backend
+yarn workspace backend add @openchoreo/backstage-plugin-openchoreo-observability-backend
 ```
 
-Then add the plugin to your backend in `packages/backend/src/index.ts`:
-
-```ts
-const backend = createBackend();
-// ...
+```ts title="packages/backend/src/index.ts"
 backend.add(
   import('@openchoreo/backstage-plugin-openchoreo-observability-backend'),
 );
 ```
 
-## Development
+**Full setup instructions**:
+[Installing into an existing Backstage app](https://openchoreo.dev/docs/platform-engineer-guide/backstage-plugins/installing-into-existing-backstage/).
 
-This plugin backend can be started in a standalone mode from directly in this
-package with `yarn start`. It is a limited setup that is most convenient when
-developing the plugin backend itself.
+## License
 
-If you want to run the entire project, including the frontend, run `yarn start` from the root directory.
+Apache-2.0

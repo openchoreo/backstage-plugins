@@ -1,6 +1,7 @@
 {
   "name": "@openchoreo/backstage-plugin-platform-engineer-core",
   "version": "1.3.0",
+  "description": "Backstage frontend plugin giving platform engineers a cross-platform view of environments, data planes, and platform health.",
   "license": "Apache-2.0",
   "main": "src/index.ts",
   "types": "src/index.ts",

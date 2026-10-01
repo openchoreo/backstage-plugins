@@ -1,6 +1,7 @@
 {
   "name": "@openchoreo/backstage-plugin-openchoreo-ci-backend",
   "version": "1.3.0",
+  "description": "Backstage backend plugin powering the OpenChoreo CI tab: workflow runs, run details, and build triggering.",
   "license": "Apache-2.0",
   "main": "src/index.ts",
   "types": "src/index.ts",

@@ -1,28 +1,44 @@
-# choreo
+# @openchoreo/backstage-plugin-backend
 
-This plugin backend was templated using the Backstage CLI. You should replace this text with a description of your plugin backend.
+The core Backstage **backend** plugin for [OpenChoreo](https://openchoreo.dev).
+
+It mounts at `/api/openchoreo` and serves the OpenChoreo control plane to the
+OpenChoreo frontend plugins — projects, components, environments, deployments,
+promotions, workload configuration, secrets, and access control — attaching the
+caller's identity provider token to each upstream call.
+
+This plugin is required by [`@openchoreo/backstage-plugin`](https://www.npmjs.com/package/@openchoreo/backstage-plugin);
+install the two together.
 
 ## Installation
 
-This plugin is installed via the `@internal/plugin-choreo-backend` package. To install it to your backend package, run the following command:
-
 ```bash
-# From your root directory
-yarn --cwd packages/backend add @internal/plugin-choreo-backend
+yarn workspace backend add @openchoreo/backstage-plugin-backend
 ```
 
-Then add the plugin to your backend in `packages/backend/src/index.ts`:
-
-```ts
-const backend = createBackend();
-// ...
-backend.add(import('@internal/plugin-choreo-backend'));
+```ts title="packages/backend/src/index.ts"
+backend.add(import('@openchoreo/backstage-plugin-backend'));
 ```
 
-## Development
+`@openchoreo/openchoreo-client-node` and the other shared libraries are dependencies of
+this package, so there is nothing else to install for it to work. You will separately
+want `@openchoreo/openchoreo-auth` in your backend, because the IDP token middleware it
+provides has to be wired into the root router by hand.
 
-This plugin backend can be started in a standalone mode from directly in this
-package with `yarn start`. It is a limited setup that is most convenient when
-developing the plugin backend itself.
+Configuration lives in two places, and they are not interchangeable. The control plane
+URL goes in `openchoreo.baseUrl`, and `openchoreo.auth` holds the **service** client
+credentials used for background work such as the catalog entity provider. The
+**sign-in** client is separate, under `auth.providers.openchoreo-auth` — see
+[`@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth`](https://www.npmjs.com/package/@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth).
 
-If you want to run the entire project, including the frontend, run `yarn dev` from the root directory.
+**Full setup instructions** — including the IDP token middleware the plugin depends on:
+[Installing into an existing Backstage app](https://openchoreo.dev/docs/platform-engineer-guide/backstage-plugins/installing-into-existing-backstage/).
+
+## Documentation
+
+- [Backstage plugins overview](https://openchoreo.dev/docs/platform-engineer-guide/backstage-plugins/overview/)
+- [Troubleshooting](https://openchoreo.dev/docs/platform-engineer-guide/backstage-plugins/troubleshooting/)
+
+## License
+
+Apache-2.0

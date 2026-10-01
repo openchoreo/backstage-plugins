@@ -2,7 +2,7 @@
   "name": "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users",
   "version": "1.3.0",
   "license": "Apache-2.0",
-  "description": "The openchoreo-users backend module for the catalog plugin.",
+  "description": "Backstage catalog entity provider that syncs users and groups from the Thunder identity provider used by OpenChoreo.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "publishConfig": {
