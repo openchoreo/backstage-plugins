@@ -1,17 +1,13 @@
 import { useEffect, useMemo, type ReactNode } from 'react';
 import type { AppTheme } from '@backstage/core-plugin-api';
 import { UnifiedThemeProvider } from '@backstage/theme';
-import {
-  buildOpenChoreoTheme,
-  ChoreoTokensProvider,
-  darkTokens,
-  lightTokens,
-  OpenChoreoIcon,
-  openChoreoDarkTheme,
-  openChoreoTheme,
-  resolveBrandTokens,
-  type ThemeTokens,
-} from '@openchoreo/backstage-design-system';
+import { buildOpenChoreoTheme } from './buildOpenChoreoTheme';
+import { ChoreoTokensProvider } from './ChoreoTokensProvider';
+import { darkTokens, lightTokens, type ThemeTokens } from './tokens';
+import { OpenChoreoIcon } from '../icons/OpenChoreoIcon';
+import { openChoreoDarkTheme } from './openChoreoDarkTheme';
+import { openChoreoTheme } from './openChoreoTheme';
+import { resolveBrandTokens } from './brand';
 import { toBrandOverrides, useBranding } from './branding';
 
 // Backstage v1.51's `UnifiedThemeProvider` already sets `data-theme-mode` on

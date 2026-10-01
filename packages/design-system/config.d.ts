@@ -1,11 +1,17 @@
 export interface Config {
   app?: {
     /**
-     * Portal branding overrides — re-brand the OpenChoreo portal via config,
+     * Branding overrides for the OpenChoreo themes — re-brand via config,
      * without a fork or rebuild. All values are optional; omitting the whole
      * block yields the stock OpenChoreo look. Unrelated to `app.title`
      * (browser/window title) and `organization.name` (Backstage org
      * components) — there is deliberately no fallback chaining between them.
+     *
+     * `theme.*.primaryColor` applies anywhere the OpenChoreo themes are
+     * registered, including an external Backstage app that installs the
+     * OpenChoreo plugins. `name`, `iconLogo`, and `fullLogo` drive the
+     * OpenChoreo portal's own sidebar and sign-in card, so they have no
+     * effect in a host that supplies its own app shell.
      * @deepVisibility frontend
      */
     branding?: {

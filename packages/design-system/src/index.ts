@@ -11,6 +11,14 @@ export { useChoreoTokens } from './theme/useChoreoTokens';
 export { resolveBrandTokens } from './theme/brand';
 export type { BrandPaletteOverrides } from './theme/brand';
 export { ChoreoTokensProvider } from './theme/ChoreoTokensProvider';
+export { appThemes } from './theme/appThemes';
+export {
+  brandName,
+  readBrandingConfig,
+  useBranding,
+  DEFAULT_BRAND_NAME,
+} from './theme/branding';
+export type { BrandingConfig } from './theme/branding';
 export { OpenChoreoIcon } from './icons/OpenChoreoIcon';
 export { StatusBadge } from './components/StatusBadge';
 export type { StatusType } from './components/StatusBadge';

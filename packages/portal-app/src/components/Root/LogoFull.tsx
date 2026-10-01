@@ -1,7 +1,10 @@
 import { Box, makeStyles } from '@material-ui/core';
 import { Typography } from '@material-ui/core';
-import { OpenChoreoIcon } from '@openchoreo/backstage-design-system';
-import { brandName, useBranding } from '../../branding';
+import {
+  brandName,
+  OpenChoreoIcon,
+  useBranding,
+} from '@openchoreo/backstage-design-system';
 
 const useStyles = makeStyles(theme => ({
   logoText: {

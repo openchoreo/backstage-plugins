@@ -16,5 +16,9 @@
 
 export { createPortalApp } from './createPortalApp';
 export type { PortalAppOptions } from './createPortalApp';
-export { brandName, useBranding, DEFAULT_BRAND_NAME } from './branding';
-export type { BrandingConfig } from './branding';
+export {
+  brandName,
+  useBranding,
+  DEFAULT_BRAND_NAME,
+} from '@openchoreo/backstage-design-system';
+export type { BrandingConfig } from '@openchoreo/backstage-design-system';

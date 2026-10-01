@@ -6,7 +6,6 @@ import {
   AppRootWrapperBlueprint,
   IconBundleBlueprint,
   NavContentBlueprint,
-  ThemeBlueprint,
 } from '@backstage/plugin-app-react';
 import {
   EntityContentBlueprint,
@@ -23,7 +22,6 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import { apis } from './apis';
 import { LEGACY_KIND_ICONS } from './kindIcons';
-import { appThemes } from './themes';
 import { PortalNavContent } from './components/Root/PortalNavContent';
 import { ScaffolderPreselectionProvider } from '@openchoreo/backstage-plugin';
 
@@ -38,13 +36,6 @@ const iconBundle = IconBundleBlueprint.make({
   name: 'kind-icons',
   params: { icons: LEGACY_KIND_ICONS },
 });
-
-const themeExtensions = appThemes.map(theme =>
-  ThemeBlueprint.make({
-    name: theme.id,
-    params: { theme },
-  }),
-);
 
 const navContent = NavContentBlueprint.make({
   params: { component: PortalNavContent },
@@ -109,7 +100,6 @@ export const appModule = createFrontendModule({
   extensions: [
     ...apiExtensions,
     iconBundle,
-    ...themeExtensions,
     navContent,
     scaffolderPreselectionWrapper,
     assistantDrawerWrapper,
