@@ -1,6 +1,7 @@
 {
   "name": "@openchoreo/backstage-plugin",
   "version": "1.3.0",
+  "description": "Backstage frontend plugin for OpenChoreo: cell diagrams, environment and deployment views, secrets, and access control on catalog entity pages.",
   "license": "Apache-2.0",
   "main": "src/index.ts",
   "types": "src/index.ts",

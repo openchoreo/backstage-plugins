@@ -2,7 +2,7 @@
   "name": "@openchoreo/backstage-plugin-scaffolder-backend-module",
   "version": "1.3.0",
   "license": "Apache-2.0",
-  "description": "The openchoreo module for @backstage/plugin-scaffolder-backend",
+  "description": "Backstage scaffolder actions for OpenChoreo: create projects, components, and related control plane resources from software templates.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "repository": {

@@ -18,10 +18,11 @@ src/
 
 ## Installation
 
-This package is designed to be used within the OpenChoreo Backstage monorepo:
+A Backstage host does not install this directly — it is an ordinary dependency of the
+OpenChoreo frontend plugins. Inside this monorepo, add it to a workspace that needs it:
 
 ```bash
-yarn workspace @openchoreo/backstage-plugin-openchoreo add @openchoreo/backstage-plugin-react@workspace:^
+yarn workspace @openchoreo/backstage-plugin add @openchoreo/backstage-plugin-react@workspace:^
 ```
 
 ## Usage

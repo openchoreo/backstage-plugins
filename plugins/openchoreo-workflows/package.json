@@ -1,6 +1,7 @@
 {
   "name": "@openchoreo/backstage-plugin-openchoreo-workflows",
   "version": "1.3.0",
+  "description": "Backstage frontend plugin for OpenChoreo generic workflows: browse workflows, trigger runs, and inspect run history.",
   "license": "Apache-2.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
