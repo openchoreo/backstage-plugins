@@ -9735,6 +9735,8 @@ __metadata:
   resolution: "@openchoreo/backstage-design-system@workspace:packages/design-system"
   dependencies:
     "@backstage/cli": "npm:^0.36.2"
+    "@backstage/core-plugin-api": "npm:^1.12.6"
+    "@backstage/test-utils": "npm:^1.7.18"
     "@backstage/theme": "npm:^0.7.3"
     "@material-ui/core": "npm:4.12.4"
     "@material-ui/icons": "npm:^4.11.3"

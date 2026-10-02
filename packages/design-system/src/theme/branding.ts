@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { ConfigApi, configApiRef, useApi } from '@backstage/core-plugin-api';
-import { BrandPaletteOverrides } from '@openchoreo/backstage-design-system';
+import { BrandPaletteOverrides } from './brand';
 
 /** Product name used when `app.branding.name` is not configured. */
 export const DEFAULT_BRAND_NAME = 'OpenChoreo';

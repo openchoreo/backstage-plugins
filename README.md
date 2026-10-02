@@ -318,6 +318,38 @@ Installing `@openchoreo/backstage-plugin` (and the sibling plugins for CI / obse
 - **Per-kind Overview layouts** (`EntityContentLayoutBlueprint`) — 18 bespoke grids that arrange the cards in the same positions as the portal. Component, System (Project), Domain (Namespace), managed Resource, Environment, Dataplane / ClusterDataplane, WorkflowPlane / Cluster, ObservabilityPlane / Cluster, DeploymentPipeline, and every Type / Workflow family kind get a bespoke layout; upstream kinds (User, Group, API, vanilla Resource) fall back to Backstage's default 2-column info/content grid
 - **Context menu items** (`EntityContextMenuItemBlueprint`) — permission-gated "Delete" and "Edit annotations" entries in the entity's `...` menu
 - **The `OpenChoreoAboutCard` + `ContainedCatalogGraphCard`** components, exposed as regular React exports for direct use if you compose your own layouts
+- **Themes** (`ThemeBlueprint`) — the OpenChoreo light and dark themes, added to your theme picker alongside your own (see below)
+
+### Themes and branding
+
+`@openchoreo/backstage-plugin` registers two themes, `openchoreo-light` and `openchoreo-dark`. They appear in Settings next to whatever themes your app already has, and the OpenChoreo cards and tabs are designed against their palette — under the stock Backstage themes some surfaces lose contrast, and dark mode paints the page background grey.
+
+To make one of them the only choice, switch the upstream pair off:
+
+```yaml
+app:
+  extensions:
+    - theme:app/light: false
+    - theme:app/dark: false
+```
+
+To keep your own themes and drop ours, do the inverse with `theme:app/openchoreo-light` and `theme:app/openchoreo-dark`.
+
+A brand accent recolors the primary palette, links, selection, header gradients, and graph accents in whichever of the two themes is active:
+
+```yaml
+app:
+  branding:
+    theme:
+      light:
+        primaryColor: '#0d9488'
+      dark:
+        primaryColor: '#2dd4bf'
+```
+
+Hex with a leading `#`, or fully-opaque comma-separated `rgb()`/`rgba()`/`hsl()`/`hsla()`. Named colors, space-separated CSS4 syntax, and alpha below 1 are ignored with a console warning, which leaves the stock palette in place. Parts of the accent render as text, so prefer at least 4.5:1 against the page background; lower-contrast values log a warning.
+
+The sibling keys `app.branding.name`, `iconLogo`, and `fullLogo` only drive the OpenChoreo portal's sidebar and sign-in card. They do nothing in an app with its own shell.
 
 ### Entity page chrome
 

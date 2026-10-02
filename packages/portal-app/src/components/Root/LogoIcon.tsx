@@ -1,5 +1,7 @@
-import { OpenChoreoIcon } from '@openchoreo/backstage-design-system';
-import { useBranding } from '../../branding';
+import {
+  OpenChoreoIcon,
+  useBranding,
+} from '@openchoreo/backstage-design-system';
 
 const LogoIcon = () => {
   const branding = useBranding();

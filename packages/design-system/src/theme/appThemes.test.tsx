@@ -2,8 +2,9 @@ import { render, screen } from '@testing-library/react';
 import { useTheme } from '@material-ui/core/styles';
 import { configApiRef } from '@backstage/core-plugin-api';
 import { TestApiProvider, mockApis } from '@backstage/test-utils';
-import { useChoreoTokens } from '@openchoreo/backstage-design-system';
-import { appThemes } from './themes';
+import { darkTokens } from './tokens';
+import { useChoreoTokens } from './useChoreoTokens';
+import { appThemes } from './appThemes';
 
 // Probes the two token paths a brand color must reach: the MUI palette
 // (via UnifiedThemeProvider) and the extended tokens (via useChoreoTokens).
@@ -70,6 +71,24 @@ describe('appThemes', () => {
     );
     expect(screen.getByTestId('palette-primary').textContent).toBe('#2dd4bf');
     expect(screen.getByTestId('graph-edge').textContent).toBe('#2dd4bf');
+  });
+
+  // BUI's own dark palette resolves `--bui-bg-app` to #333, which is what the
+  // page background reads from. Without this bridge an app gets a grey page
+  // under the dark theme.
+  it('writes the dark surface into the BUI page-background variable', () => {
+    renderThemeProvider('openchoreo-dark', mockApis.config({ data: {} }));
+    expect(document.body.style.getPropertyValue('--bui-bg-app')).toBe(
+      darkTokens.surface.default,
+    );
+    expect(document.body.style.getPropertyValue('--bui-bg-solid')).toBe(
+      darkTokens.primary.main,
+    );
+  });
+
+  it('leaves the BUI page background alone in light mode', () => {
+    renderThemeProvider('openchoreo-light', mockApis.config({ data: {} }));
+    expect(document.body.style.getPropertyValue('--bui-bg-app')).toBe('');
   });
 
   it('serves the stock theme when no branding is configured', () => {

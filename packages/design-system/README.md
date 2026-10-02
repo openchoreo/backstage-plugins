@@ -8,6 +8,20 @@ You do not normally install this yourself: it is an ordinary dependency of the
 OpenChoreo frontend plugins, so adding `@openchoreo/backstage-plugin` brings it along.
 Add it directly only if you import the theme or components into your own code.
 
+## What's in here
+
+- `openChoreoTheme` / `openChoreoDarkTheme` — the prebuilt Backstage themes, and
+  `buildOpenChoreoTheme` to build one from your own tokens.
+- `appThemes` — the same two themes as `AppTheme` entries, ready for
+  `ThemeBlueprint`. `@openchoreo/backstage-plugin` already registers these, so an
+  app that installs the plugins gets them without touching this package.
+- `lightTokens` / `darkTokens` / `useChoreoTokens` — the design tokens, including
+  the extended set (graph, entity-kind palettes) that MUI's theme has no slot for.
+- `useBranding` / `brandName` / `readBrandingConfig` — readers for `app.branding.*`,
+  whose schema this package declares. `resolveBrandTokens` applies a brand accent
+  to a token set.
+- UI primitives — `Card`, `StatusBadge`, `Spinner`, `YamlViewer`, and the rest.
+
 ## Installation
 
 ```bash
