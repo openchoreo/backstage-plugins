@@ -92,6 +92,10 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
       throw new Error(`API request failed (${response.status}): ${errorText}`);
     }
 
+    if (response.status === 204) {
+      return undefined as unknown as T;
+    }
+
     return response.json();
   }
 
@@ -236,5 +240,17 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
 
     const entries = (await response.json()) as WorkflowRunEventEntry[];
     return entries;
+  }
+
+  async deleteWorkflowRun(
+    namespaceName: string,
+    projectName: string,
+    componentName: string,
+    runName: string,
+  ): Promise<void> {
+    return this.apiFetch<void>('/workflow-run', {
+      method: 'DELETE',
+      params: { namespaceName, projectName, componentName, runName },
+    });
   }
 }
