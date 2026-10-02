@@ -270,6 +270,8 @@ const ObservabilityRuntimeLogsContent = ({
             }
             projectName={project}
             componentName={componentName}
+            entityNamespace={entity.metadata.namespace}
+            entityKind={entity.kind}
             renderRowAction={renderRowAction}
           />
         </>
