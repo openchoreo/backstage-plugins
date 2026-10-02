@@ -77,6 +77,8 @@ openchoreo:
       enabled: true    # Set to false to hide Secrets settings tab
     assistant:
       enabled: true   # Opt-in. Set to true after deploying perch-agent and OPENCHOREO_PERCH_AGENT_URL
+    costInsights:  # Cost insights shown in catalog overviews and cost insight page's insight tab
+      enabled: true
 
 # Thunder IDP configuration (k3d cluster)
 thunder:

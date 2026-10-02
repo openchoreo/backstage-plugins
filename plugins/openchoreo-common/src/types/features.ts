@@ -42,6 +42,11 @@ export interface OpenChoreoFeatures {
    * to collect it.
    */
   deliveryInsights: { enabled: boolean };
+  /**
+   * Cost summary cards on Project/Component overview pages, and the Insights
+   * tab inside the Cost Insights page. Opt-in: defaults to false
+   */
+  costInsights: { enabled: boolean };
 }
 
 /**
@@ -54,4 +59,5 @@ export type FeatureName =
   | 'authz'
   | 'secretManagement'
   | 'assistant'
-  | 'deliveryInsights';
+  | 'deliveryInsights'
+  | 'costInsights';

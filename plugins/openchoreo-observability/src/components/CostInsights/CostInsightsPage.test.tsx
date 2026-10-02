@@ -20,9 +20,11 @@ jest.mock('./CostInsightsGraphs', () => ({
 jest.mock('./ForecastDivergenceChart', () => ({
   ForecastDivergenceChart: () => <div data-testid="forecast" />,
 }));
+const mockUseCostInsightsEnabled = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
   ...jest.requireActual('@openchoreo/backstage-plugin-react'),
   TimeRangeFilter: () => <div data-testid="time-range" />,
+  useCostInsightsEnabled: () => mockUseCostInsightsEnabled(),
 }));
 // The Cost Analysis tab lazy-loads this; stub it so the tab can be exercised
 // without its catalog/permission dependencies.
@@ -76,6 +78,7 @@ const data = {
 };
 
 function setupDefaults() {
+  mockUseCostInsightsEnabled.mockReturnValue(true);
   mockUseResolvedScopeSelection.mockImplementation((selection: any) => ({
     resolved: {
       ...selection,
@@ -243,6 +246,14 @@ describe('CostInsightsPage', () => {
     await renderPage();
     expect(screen.getByText('Insights')).toBeInTheDocument();
     expect(screen.getByText('Analysis Reports')).toBeInTheDocument();
+  });
+
+  it('drops the Insights tab when cost insights is disabled', async () => {
+    mockUseCostInsightsEnabled.mockReturnValue(false);
+    await renderPage();
+    expect(screen.queryByText('Insights')).not.toBeInTheDocument();
+    expect(screen.getByText('Analysis Reports')).toBeInTheDocument();
+    expect(screen.queryByTestId('cost-table')).not.toBeInTheDocument();
   });
 
   it('prompts to pick a project on the Cost Analysis tab when none is scoped', async () => {

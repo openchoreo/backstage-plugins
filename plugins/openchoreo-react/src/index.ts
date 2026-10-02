@@ -219,6 +219,7 @@ export {
   useSecretManagementEnabled,
   useAssistantEnabled,
   useDeliveryInsightsEnabled,
+  useCostInsightsEnabled,
 } from './hooks/useOpenChoreoFeatures';
 export {
   useComponentEntityDetails,

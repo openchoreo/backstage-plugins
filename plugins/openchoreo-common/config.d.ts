@@ -132,6 +132,21 @@ export interface Config {
          */
         enabled?: boolean;
       };
+
+      /**
+       * Cost Insights configuration.
+       * @deepVisibility frontend
+       */
+      costInsights?: {
+        /**
+         * Enable or disable the cost summary cards on Project/Component
+         * overview pages and the Insights tab inside the Cost Insights page.
+         * Opt-in: defaults to false. The page itself stays, showing only its
+         * Analysis Reports tab.
+         * @visibility frontend
+         */
+        enabled?: boolean;
+      };
     };
 
     /**

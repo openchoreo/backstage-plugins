@@ -328,7 +328,8 @@ const projectCostAnalysisEntityContent = EntityContentBlueprint.make({
  * Cost Insights summary card, shown on the Component and Project (System)
  * overview pages. Filtered to entities carrying the openchoreo namespace
  * annotation (the scope the card resolves cost by) and gated on the
- * observability feature so it vanishes when the host has it disabled.
+ * observability and `costInsights` features, so it vanishes when the host has
+ * either disabled.
  */
 const costInsightsSummaryCard = EntityCardBlueprint.make({
   name: 'cost-insights-summary',
@@ -343,7 +344,9 @@ const costInsightsSummaryCard = EntityCardBlueprint.make({
     loader: () =>
       import('./components/CostInsights/CostInsightsSummaryCard').then(m => (
         <FeatureGate feature="observability">
-          <m.CostInsightsSummaryCard />
+          <FeatureGate feature="costInsights">
+            <m.CostInsightsSummaryCard />
+          </FeatureGate>
         </FeatureGate>
       )),
   },

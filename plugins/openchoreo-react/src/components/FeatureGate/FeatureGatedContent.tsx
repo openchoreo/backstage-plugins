@@ -29,6 +29,7 @@ export function FeatureGatedContent({
       secretManagement: 'Secret Management',
       assistant: 'Portal Assistant',
       deliveryInsights: 'Delivery Insights',
+      costInsights: 'Cost Insights',
     };
 
     return (
