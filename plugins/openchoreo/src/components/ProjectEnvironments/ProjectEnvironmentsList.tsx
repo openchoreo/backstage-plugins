@@ -20,10 +20,7 @@ import { useEnvironmentPolling } from '../Environments/hooks';
 import { ProjectDeployFlowCanvas } from './ProjectDeployFlowCanvas';
 import { ProjectEnvironmentDetailPanel } from './ProjectEnvironmentDetailPanel';
 import { ProjectSetupDetailPane } from './ProjectSetupDetailPane';
-import {
-  ProjectEnvironmentsProvider,
-  type ActionKind,
-} from './ProjectEnvironmentsContext';
+import { ProjectEnvironmentsProvider } from './ProjectEnvironmentsContext';
 import { useProjectDeployFlowCanvasStyles } from './styles';
 
 /**
@@ -43,10 +40,6 @@ export const ProjectEnvironmentsList = () => {
   const [envs, setEnvs] = useState<ProjectEnvironment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [pendingAction, setPendingAction] = useState<{
-    env: string;
-    kind: ActionKind;
-  } | null>(null);
   const [selectedEnvName, setSelectedEnvNameState] = useState<string | null>(
     null,
   );
@@ -147,25 +140,16 @@ export const ProjectEnvironmentsList = () => {
   useEnvironmentPolling(isAnyPending, fetchEnvs);
 
   const handlePromote = useCallback(
-    async (environment: string, releaseName: string) => {
-      setPendingAction({ env: environment, kind: 'promote' });
-      try {
-        await client.updateProjectReleaseBinding(entity, environment, {
-          projectRelease: releaseName,
-        });
-        if (cancelledRef.current) return;
-        notification.showSuccess(`Promoted ${environment} to ${releaseName}`);
-        await fetchEnvs();
-      } catch (err: unknown) {
-        if (cancelledRef.current) return;
-        notification.showError(
-          `Failed to promote ${environment}: ${getErrorMessage(err)}`,
-        );
-      } finally {
-        if (!cancelledRef.current) setPendingAction(null);
-      }
+    (environment: string, releaseName: string) => {
+      const params = new URLSearchParams({
+        action: 'promote',
+        release: releaseName,
+      });
+      navigate(
+        `overrides/${encodeURIComponent(environment)}?${params.toString()}`,
+      );
     },
-    [client, entity, notification, fetchEnvs],
+    [navigate],
   );
 
   const selectedEnv = envs.find(e => e.name === selectedEnvName) ?? null;
@@ -177,7 +161,7 @@ export const ProjectEnvironmentsList = () => {
       refetch: fetchEnvs,
       selectedEnvName,
       setSelectedEnvName,
-      pendingAction,
+      pendingAction: null,
       onPromote: handlePromote,
     }),
     [
@@ -186,7 +170,6 @@ export const ProjectEnvironmentsList = () => {
       fetchEnvs,
       selectedEnvName,
       setSelectedEnvName,
-      pendingAction,
       handlePromote,
     ],
   );
