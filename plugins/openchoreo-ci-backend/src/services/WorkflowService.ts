@@ -448,7 +448,11 @@ export class WorkflowService {
 
     try {
       if (hasLiveObservability) {
-        // Use OpenChoreo API directly for recent workflow runs
+        // Live path while the Argo Workflow CR exists. After
+        // podGC.strategy=OnWorkflowSuccess, pods are deleted but the CR (and
+        // hasLiveObservability=true) remains — live /logs then returns [].
+        // Align with GenericWorkflowService: fall back to Observer for
+        // terminal runs when live logs are empty.
         const client = createOpenChoreoApiClient({
           baseUrl: this.baseUrl,
           token,
@@ -477,83 +481,54 @@ export class WorkflowService {
           throw new Error('Failed to fetch workflow run logs: invalid payload');
         }
 
-        const entries: LogEntry[] = data.map(entry => ({
+        const liveEntries: LogEntry[] = data.map(entry => ({
           timestamp: entry.timestamp ?? '',
           log: entry.log,
         }));
 
-        this.logger.debug(
-          entries.length > 0
-            ? `Successfully fetched ${entries.length} workflow run logs from openchoreo-api`
-            : `No live logs yet for run ${runName}`,
+        if (liveEntries.length > 0) {
+          this.logger.debug(
+            `Successfully fetched ${liveEntries.length} workflow run logs from openchoreo-api`,
+          );
+          return liveEntries;
+        }
+
+        // Incremental poll while running: empty means no new lines yet.
+        if (
+          typeof options.sinceSeconds === 'number' &&
+          options.sinceSeconds > 0
+        ) {
+          this.logger.debug(
+            `No live logs yet for run ${runName} (sinceSeconds=${options.sinceSeconds})`,
+          );
+          return liveEntries;
+        }
+
+        const terminal = await this.isWorkflowRunTerminal(
+          namespaceName,
+          runName,
+          token,
         );
-        return entries;
+        if (!terminal) {
+          this.logger.debug(`No live logs yet for run ${runName}`);
+          return liveEntries;
+        }
+
+        this.logger.info(
+          `Live logs empty for terminal run ${runName}; falling back to observer-api`,
+        );
+        // Fall through to Observer below.
       }
 
-      // Use observer API for older workflow runs
-      const { observerUrl } = await this.resolver.resolveForBuild(
+      // Observer path: older runs, or terminal runs after podGC cleared live pods.
+      return await this.fetchWorkflowRunLogsFromObserver(
         namespaceName,
         projectName,
+        componentName,
+        runName,
+        options,
         token,
       );
-
-      if (!observerUrl) {
-        throw new ObservabilityNotConfiguredError(componentName);
-      }
-
-      const obsClient = createObservabilityClientWithUrl(
-        observerUrl,
-        token,
-        this.logger,
-      );
-
-      this.logger.debug(
-        `Sending workflow run logs request for component ${componentName} with run: ${runName}`,
-      );
-
-      // The observer rejects queries where the time range exceeds 30 days.
-      // Cap the window at 29 days to stay safely within that limit regardless
-      // of clock skew or boundary-comparison behaviour on the observer side.
-      const maxAllowedMs = 29 * 24 * 60 * 60 * 1000;
-      const requestedMs =
-        typeof options.sinceSeconds === 'number' && options.sinceSeconds > 0
-          ? options.sinceSeconds * 1000
-          : maxAllowedMs;
-      const sinceMs = Math.min(requestedMs, maxAllowedMs);
-      const startTime = new Date(Date.now() - sinceMs).toISOString();
-      const endTime = new Date().toISOString();
-
-      const { data, error, response } = await obsClient.POST(
-        '/api/v1/logs/query',
-        {
-          body: {
-            startTime,
-            endTime,
-            limit: 1000,
-            sortOrder: 'asc',
-            searchScope: {
-              namespace: namespaceName,
-              workflowRunName: runName,
-              ...(options.step ? { taskName: options.step } : {}),
-            },
-          },
-        },
-      );
-
-      assertApiResponse({ data, error, response }, 'fetch workflow run logs');
-
-      const entries: LogEntry[] = ((data?.logs || []) as any[]).map(
-        (entry: any) => ({
-          timestamp: entry.timestamp ?? '',
-          log: entry.log,
-        }),
-      );
-
-      this.logger.debug(
-        `Successfully fetched ${entries.length} workflow run logs from observer-api`,
-      );
-
-      return entries;
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {
         this.logger.info(
@@ -568,6 +543,117 @@ export class WorkflowService {
       );
       throw error;
     }
+  }
+
+  /**
+   * True when WorkflowRun has reached a terminal phase.
+   * Used to decide Observer fallback after live pod logs are gone (podGC).
+   */
+  private async isWorkflowRunTerminal(
+    namespaceName: string,
+    runName: string,
+    token?: string,
+  ): Promise<boolean> {
+    const terminal = new Set([
+      'Succeeded',
+      'Failed',
+      'Completed',
+      'Error',
+      'Cancelled',
+    ]);
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}',
+        { params: { path: { namespaceName, runName } } },
+      );
+      if (error || !response.ok || !data) {
+        return false;
+      }
+      return terminal.has(deriveWorkflowRunStatus(data));
+    } catch (err) {
+      this.logger.debug(
+        `Could not determine terminal status for run ${runName}: ${err}`,
+      );
+      return false;
+    }
+  }
+
+  private async fetchWorkflowRunLogsFromObserver(
+    namespaceName: string,
+    projectName: string,
+    componentName: string,
+    runName: string,
+    options: { step?: string; sinceSeconds?: number } = {},
+    token?: string,
+  ): Promise<LogEntry[]> {
+    const { observerUrl } = await this.resolver.resolveForBuild(
+      namespaceName,
+      projectName,
+      token,
+    );
+
+    if (!observerUrl) {
+      throw new ObservabilityNotConfiguredError(componentName);
+    }
+
+    const obsClient = createObservabilityClientWithUrl(
+      observerUrl,
+      token,
+      this.logger,
+    );
+
+    this.logger.debug(
+      `Sending workflow run logs request for component ${componentName} with run: ${runName}`,
+    );
+
+    // The observer rejects queries where the time range exceeds 30 days.
+    // Cap the window at 29 days to stay safely within that limit regardless
+    // of clock skew or boundary-comparison behaviour on the observer side.
+    const maxAllowedMs = 29 * 24 * 60 * 60 * 1000;
+    const requestedMs =
+      typeof options.sinceSeconds === 'number' && options.sinceSeconds > 0
+        ? options.sinceSeconds * 1000
+        : maxAllowedMs;
+    const sinceMs = Math.min(requestedMs, maxAllowedMs);
+    const startTime = new Date(Date.now() - sinceMs).toISOString();
+    const endTime = new Date().toISOString();
+
+    const { data, error, response } = await obsClient.POST(
+      '/api/v1/logs/query',
+      {
+        body: {
+          startTime,
+          endTime,
+          limit: 1000,
+          sortOrder: 'asc',
+          searchScope: {
+            namespace: namespaceName,
+            workflowRunName: runName,
+            ...(options.step ? { taskName: options.step } : {}),
+          },
+        },
+      },
+    );
+
+    assertApiResponse({ data, error, response }, 'fetch workflow run logs');
+
+    const entries: LogEntry[] = ((data?.logs || []) as any[]).map(
+      (entry: any) => ({
+        timestamp: entry.timestamp ?? '',
+        log: entry.log,
+      }),
+    );
+
+    this.logger.debug(
+      `Successfully fetched ${entries.length} workflow run logs from observer-api`,
+    );
+
+    return entries;
   }
 
   async fetchWorkflowRunEvents(
