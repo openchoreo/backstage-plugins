@@ -46,6 +46,10 @@ app:
     # `page:kubernetes` needs an entity context (throws standalone); we
     # want only the entity-page tab from the kubernetes plugin.
     - page:kubernetes: false
+    # Hide upstream /settings tabs we don't want; leaves General +
+    # OpenChoreo's Access Control / Secrets sub-pages.
+    - sub-page:user-settings/auth-providers: false
+    - sub-page:user-settings/feature-flags: false
     - entity-card:catalog/about: false
     - entity-card:catalog/links: false
     - entity-card:catalog/labels: false
