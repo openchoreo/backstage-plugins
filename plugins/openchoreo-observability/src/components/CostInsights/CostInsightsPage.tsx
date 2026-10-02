@@ -17,7 +17,10 @@ import {
   RefreshOverlay,
 } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { TimeRangeFilter } from '@openchoreo/backstage-plugin-react';
+import {
+  TimeRangeFilter,
+  useCostInsightsEnabled,
+} from '@openchoreo/backstage-plugin-react';
 import { parseUrlTimeRange, writeUrlTimeRange } from '../../utils/urlTimeRange';
 import { CostInsightsScopeFilters } from './CostInsightsScopeFilters';
 import {
@@ -476,8 +479,11 @@ const CostAnalysisTab = () => {
 const CostInsightsTabBar = () => {
   const classes = useStyles();
   const location = useLocation();
+  const costInsightsEnabled = useCostInsightsEnabled();
   const analysisPath = `${COST_INSIGHTS_PATH}/cost-analysis`;
+  // Gated off, the index renders Analysis Reports too, so it is always current.
   const onCostAnalysis =
+    !costInsightsEnabled ||
     location.pathname === analysisPath ||
     location.pathname.startsWith(`${analysisPath}/`);
   const tabClass = (active: boolean) =>
@@ -485,14 +491,16 @@ const CostInsightsTabBar = () => {
 
   return (
     <Box className={classes.tabBar} role="tablist">
-      <RouterLink
-        to={{ pathname: COST_INSIGHTS_PATH, search: location.search }}
-        className={tabClass(!onCostAnalysis)}
-        role="tab"
-        aria-selected={!onCostAnalysis}
-      >
-        Insights
-      </RouterLink>
+      {costInsightsEnabled && (
+        <RouterLink
+          to={{ pathname: COST_INSIGHTS_PATH, search: location.search }}
+          className={tabClass(!onCostAnalysis)}
+          role="tab"
+          aria-selected={!onCostAnalysis}
+        >
+          Insights
+        </RouterLink>
+      )}
       <RouterLink
         to={{
           pathname: analysisPath,
@@ -510,6 +518,7 @@ const CostInsightsTabBar = () => {
 
 export const CostInsightsPage = () => {
   const { selection, setSelection } = useCostSelection();
+  const costInsightsEnabled = useCostInsightsEnabled();
 
   return (
     <Page themeId="tool">
@@ -521,7 +530,16 @@ export const CostInsightsPage = () => {
         />
         <CostInsightsTabBar />
         <Routes>
-          <Route index element={<CostInsightsInsightsTab />} />
+          <Route
+            index
+            element={
+              costInsightsEnabled ? (
+                <CostInsightsInsightsTab />
+              ) : (
+                <CostAnalysisTab />
+              )
+            }
+          />
           <Route path="cost-analysis/*" element={<CostAnalysisTab />} />
         </Routes>
       </Content>
