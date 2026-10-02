@@ -241,7 +241,7 @@ export const ProjectEnvironmentOverridesPage = ({
     setSaving(true);
     setSaveError(null);
     try {
-      await persist(overrides);
+      await persist(hasFields ? overrides : {});
       notification.showSuccess(
         isDeployMode
           ? `Deployed ${effectiveRelease} to ${envDisplayName}.`
@@ -258,6 +258,7 @@ export const ProjectEnvironmentOverridesPage = ({
   }, [
     effectiveRelease,
     envDisplayName,
+    hasFields,
     isDeployMode,
     isPromoteMode,
     notification,
