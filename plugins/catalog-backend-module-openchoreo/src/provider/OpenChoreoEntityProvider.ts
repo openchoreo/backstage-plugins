@@ -547,11 +547,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       for (const ns of namespaces) {
         const nsName = getName(ns)!;
         try {
-          const workflowplanes = await fetchAllPages<NewWorkflowPlane>(() =>
+          const workflowplanes = await fetchAllPages<NewWorkflowPlane>(cursor =>
             client
               .GET('/api/v1/namespaces/{namespaceName}/workflowplanes', {
                 params: {
                   path: { namespaceName: nsName },
+                  query: { limit: 100, cursor },
                 },
               })
               .then(res => {
@@ -587,11 +588,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         const nsName = getName(ns)!;
         try {
           const observabilityplanes =
-            await fetchAllPages<NewObservabilityPlane>(() =>
+            await fetchAllPages<NewObservabilityPlane>(cursor =>
               client
                 .GET('/api/v1/namespaces/{namespaceName}/observabilityplanes', {
                   params: {
                     path: { namespaceName: nsName },
+                    query: { limit: 100, cursor },
                   },
                 })
                 .then(res => {
@@ -663,20 +665,25 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           >();
 
           try {
-            const pipelines = await fetchAllPages<NewDeploymentPipeline>(() =>
-              client
-                .GET('/api/v1/namespaces/{namespaceName}/deploymentpipelines', {
-                  params: {
-                    path: { namespaceName: nsName },
-                  },
-                })
-                .then(res => {
-                  if (res.error)
-                    throw new Error(
-                      `Failed to fetch deployment pipelines for ${nsName}`,
-                    );
-                  return res.data;
-                }),
+            const pipelines = await fetchAllPages<NewDeploymentPipeline>(
+              cursor =>
+                client
+                  .GET(
+                    '/api/v1/namespaces/{namespaceName}/deploymentpipelines',
+                    {
+                      params: {
+                        path: { namespaceName: nsName },
+                        query: { limit: 100, cursor },
+                      },
+                    },
+                  )
+                  .then(res => {
+                    if (res.error)
+                      throw new Error(
+                        `Failed to fetch deployment pipelines for ${nsName}`,
+                      );
+                    return res.data;
+                  }),
             );
 
             // The DP↔Project relation pair is emitted by
