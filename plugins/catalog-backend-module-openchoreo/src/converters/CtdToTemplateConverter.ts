@@ -28,6 +28,26 @@ export interface ComponentType {
   };
 }
 
+/** A configured git provider that can host newly-created repositories. */
+export interface GitProviderConfig {
+  /** Integration key, e.g. 'github', 'gitlab'. */
+  provider: string;
+  /** Host, e.g. 'github.com'. */
+  host: string;
+  /** Scaffolder publish action id, e.g. 'publish:github'. */
+  publishAction: string;
+}
+
+/** Starter-skeleton source used to seed created repos with buildable content. */
+export interface StarterSkeletonConfig {
+  /** Base URL, e.g. `https://github.com/org/skeletons/tree/main`; runtime is appended. */
+  baseUrl?: string;
+  /** Runtime keys per workloadType (e.g. { Service: ['react', 'java'] }). */
+  runtimes?: Record<string, string[]>;
+  /** Fallback runtimes when a workloadType has no explicit entry. */
+  defaultRuntimes?: string[];
+}
+
 /**
  * Configuration for the Component Type to Template converter
  */
@@ -36,16 +56,61 @@ export interface CtdConverterConfig {
    * Default owner for generated templates (required by Backstage Template kind schema)
    */
   defaultOwner?: string;
+  /** Git providers available for in-wizard repo creation; empty disables it. */
+  gitProviders?: GitProviderConfig[];
+  /** Master switch for in-wizard repo creation. Defaults to true. */
+  repoCreationEnabled?: boolean;
+  /** Starter-skeleton source used to seed created repositories. */
+  starterSkeletons?: StarterSkeletonConfig;
 }
+
+// Providers whose repoUrl needs only owner + repo. Azure/Bitbucket need extra
+// fields (organization/project/workspace), so they're excluded for now.
+const PROVIDER_PUBLISH_ACTIONS: Record<string, string> = {
+  github: 'publish:github',
+  gitlab: 'publish:gitlab',
+  gitea: 'publish:gitea',
+};
+
+/** Runtimes offered when neither the workloadType nor config specify any. */
+const DEFAULT_RUNTIMES = ['react', 'nodejs', 'java', 'python', 'go'];
 
 /**
  * Converts OpenChoreo Component Types to Backstage Template entities
  */
 export class CtdToTemplateConverter {
   private readonly defaultOwner: string;
+  private readonly gitProviders: GitProviderConfig[];
+  private readonly repoCreationConfigEnabled: boolean;
+  private readonly starterSkeletons?: StarterSkeletonConfig;
 
   constructor(config?: CtdConverterConfig) {
     this.defaultOwner = config?.defaultOwner || 'guests';
+    this.gitProviders = config?.gitProviders ?? [];
+    this.repoCreationConfigEnabled = config?.repoCreationEnabled ?? true;
+    this.starterSkeletons = config?.starterSkeletons;
+  }
+
+  /** Scaffolder publish action id for an integration key, if known. */
+  static publishActionForProvider(provider: string): string | undefined {
+    return PROVIDER_PUBLISH_ACTIONS[provider];
+  }
+
+  /**
+   * Repo creation is available only when enabled by config AND at least one
+   * git provider is configured. When off, templates render existing-repo only
+   * and no fetch/publish steps are emitted.
+   */
+  private get repoCreationEnabled(): boolean {
+    return this.repoCreationConfigEnabled && this.gitProviders.length > 0;
+  }
+
+  /** Runtimes to offer for a workloadType, honoring config overrides. */
+  private runtimesForWorkloadType(workloadType: string): string[] {
+    const configured =
+      this.starterSkeletons?.runtimes?.[workloadType] ??
+      this.starterSkeletons?.defaultRuntimes;
+    return configured && configured.length > 0 ? configured : DEFAULT_RUNTIMES;
   }
 
   /**
@@ -176,6 +241,17 @@ export class CtdToTemplateConverter {
           title: 'Description',
           type: 'string',
           description: 'Brief description of what this component does',
+        },
+        owner: {
+          title: 'Owner',
+          type: 'string',
+          description: 'The group that owns this component.',
+          'ui:field': 'OwnerPicker',
+          'ui:options': {
+            catalogFilter: {
+              kind: ['Group'],
+            },
+          },
         },
       },
     };
@@ -314,20 +390,7 @@ export class CtdToTemplateConverter {
         },
         // build-from-source branch
         workflow_name: workflowField,
-        git_source: {
-          title: 'Source Repository',
-          type: 'object',
-          'ui:field': 'GitSourceField',
-          'ui:options': {
-            namespaceName: namespaceName,
-          },
-          properties: {
-            repo_url: { type: 'string' },
-            branch: { type: 'string' },
-            component_path: { type: 'string' },
-            git_secret_ref: { type: 'string' },
-          },
-        },
+        git_source: this.generateGitSourceField(componentType, namespaceName),
         workflow_parameters: {
           title: 'Workflow Parameters',
           type: 'object',
@@ -380,6 +443,60 @@ export class CtdToTemplateConverter {
       properties: {
         buildAndDeploy: buildAndDeployObject,
       },
+    };
+  }
+
+  /**
+   * Build the `git_source` field. With git providers configured it also carries
+   * the create-repo options; otherwise it's the existing repo-only field.
+   */
+  private generateGitSourceField(
+    componentType: ComponentType,
+    namespaceName: string,
+  ): any {
+    const uiOptions: Record<string, any> = { namespaceName };
+    const properties: Record<string, any> = {
+      repo_url: { type: 'string' },
+      branch: { type: 'string' },
+      component_path: { type: 'string' },
+      git_secret_ref: { type: 'string' },
+    };
+
+    if (this.repoCreationEnabled) {
+      uiOptions.repoCreation = {
+        providers: this.gitProviders.map(p => ({
+          provider: p.provider,
+          host: p.host,
+        })),
+        // 'config' → curated runtime dropdown; 'url' → optional user URL field
+        // (falls back to an empty repo when left blank).
+        ...(this.starterSkeletons?.baseUrl
+          ? {
+              starterMode: 'config',
+              runtimes: this.runtimesForWorkloadType(
+                componentType.metadata.workloadType,
+              ),
+            }
+          : { starterMode: 'url' }),
+      };
+      // create-repo values consumed by the publish/fetch steps
+      properties.mode = { type: 'string' };
+      properties.provider = { type: 'string' };
+      properties.repo_host = { type: 'string' };
+      properties.repoUrl = { type: 'string' };
+      properties.owner = { type: 'string' };
+      properties.repo_name = { type: 'string' };
+      properties.visibility = { type: 'string' };
+      properties.runtime = { type: 'string' };
+      properties.starter_url = { type: 'string' };
+    }
+
+    return {
+      title: 'Source Repository',
+      type: 'object',
+      'ui:field': 'GitSourceField',
+      'ui:options': uiOptions,
+      properties,
     };
   }
 
@@ -449,7 +566,10 @@ export class CtdToTemplateConverter {
   }
 
   /**
-   * Generate scaffolder steps for the template
+   * Generate scaffolder steps for the template.
+   * With git providers configured, a create-repo flow (skeleton fetch +
+   * per-provider publish) is prepended and `repo_url` resolves from whichever
+   * publish ran, else from the user-entered existing repo.
    */
   private generateSteps(
     componentType: ComponentType,
@@ -457,7 +577,9 @@ export class CtdToTemplateConverter {
       | 'ComponentType'
       | 'ClusterComponentType' = 'ComponentType',
   ): any[] {
+    const repoSteps = this.generateRepoCreationSteps(componentType);
     return [
+      ...repoSteps,
       {
         id: 'create-component',
         name: 'Create OpenChoreo Component',
@@ -469,6 +591,7 @@ export class CtdToTemplateConverter {
           componentName: '${{ parameters.component_name }}',
           displayName: '${{ parameters.displayName }}',
           description: '${{ parameters.description }}',
+          owner: '${{ parameters.owner }}',
 
           // Component Type
           componentType: componentType.metadata.name,
@@ -482,7 +605,7 @@ export class CtdToTemplateConverter {
           deploymentSource: '${{ parameters.buildAndDeploy.deploymentSource }}',
           autoDeploy: '${{ parameters.buildAndDeploy.autoDeploy }}',
           containerImage: '${{ parameters.buildAndDeploy.containerImage }}',
-          repo_url: '${{ parameters.buildAndDeploy.git_source.repo_url }}',
+          repo_url: this.repoUrlExpression(),
           branch: '${{ parameters.buildAndDeploy.git_source.branch }}',
           component_path:
             '${{ parameters.buildAndDeploy.git_source.component_path }}',
@@ -497,5 +620,86 @@ export class CtdToTemplateConverter {
         },
       },
     ];
+  }
+
+  /**
+   * Conditional steps that seed a skeleton and publish a new repo. All are
+   * gated on create mode, so they no-op for existing-repo or non-source flows.
+   */
+  private generateRepoCreationSteps(componentType: ComponentType): any[] {
+    if (!this.repoCreationEnabled) return [];
+
+    const createMode =
+      "${{ parameters.buildAndDeploy.git_source.mode == 'create' }}";
+    const steps: any[] = [];
+
+    const baseUrl = this.starterSkeletons?.baseUrl;
+    if (baseUrl) {
+      // Config mode: curated skeleton templated from the configured base URL.
+      steps.push({
+        id: 'fetch-skeleton',
+        name: 'Fetch starter skeleton',
+        if: createMode,
+        action: 'fetch:template',
+        input: {
+          url: `${baseUrl.replace(
+            /\/$/,
+            '',
+          )}/\${{ parameters.buildAndDeploy.git_source.runtime }}`,
+          values: {
+            componentName: '${{ parameters.component_name }}',
+            description: '${{ parameters.description }}',
+            workloadType: componentType.metadata.workloadType,
+          },
+        },
+      });
+    } else {
+      // URL mode (no config): copy the user-provided starter verbatim, only
+      // when supplied. Blank starter_url → no fetch → empty repo.
+      steps.push({
+        id: 'fetch-skeleton',
+        name: 'Fetch starter template',
+        if: "${{ parameters.buildAndDeploy.git_source.mode == 'create' and parameters.buildAndDeploy.git_source.starter_url }}",
+        action: 'fetch:plain',
+        input: {
+          url: '${{ parameters.buildAndDeploy.git_source.starter_url }}',
+        },
+      });
+    }
+
+    for (const { provider, publishAction } of this.gitProviders) {
+      steps.push({
+        id: `publish-${provider}`,
+        name: `Create repository (${provider})`,
+        if: `\${{ parameters.buildAndDeploy.git_source.mode == 'create' and parameters.buildAndDeploy.git_source.provider == '${provider}' }}`,
+        action: publishAction,
+        input: {
+          repoUrl: '${{ parameters.buildAndDeploy.git_source.repoUrl }}',
+          description: '${{ parameters.description }}',
+          defaultBranch: '${{ parameters.buildAndDeploy.git_source.branch }}',
+          repoVisibility:
+            '${{ parameters.buildAndDeploy.git_source.visibility }}',
+        },
+      });
+    }
+
+    return steps;
+  }
+
+  /**
+   * Resolve repo_url from whichever publish step ran, else the existing repo.
+   */
+  private repoUrlExpression(): string {
+    if (!this.repoCreationEnabled) {
+      return '${{ parameters.buildAndDeploy.git_source.repo_url }}';
+    }
+    const publishOutputs = this.gitProviders.map(
+      p => `steps['publish-${p.provider}'].output.remoteUrl`,
+    );
+    const chain = [
+      ...publishOutputs,
+      'parameters.buildAndDeploy.git_source.repo_url',
+    ].join(' or ');
+    return `\${{ ${chain} }}`;
   }
 }

@@ -35,6 +35,12 @@ import {
 import { deriveVersionLabel } from '../utils/deriveVersionLabel';
 import type { ActionTrackers, Environment } from '../types';
 import { ReleaseManifestDialog } from './ReleaseManifestDialog';
+import { EnvironmentHookSection } from './EnvironmentHookSection';
+import {
+  hasHooks,
+  type EnvironmentHooks,
+  type HookGatePhase,
+} from '../hooks/hookModel';
 
 export interface MiniEnvironmentNodeProps {
   environment: Environment;
@@ -57,6 +63,10 @@ export interface MiniEnvironmentNodeProps {
   onOpenOverrides: () => void;
   onOpenReleaseDetails: () => void;
   onPromote: (targetEnvName: string) => void | Promise<void>;
+  /** Deployment hooks (alpha) bound on this environment, with live status. */
+  hooks?: EnvironmentHooks;
+  /** Opens a hook's run page. */
+  onOpenHook?: (phase: HookGatePhase, hookName: string) => void;
 }
 
 /**
@@ -79,6 +89,8 @@ export const MiniEnvironmentNode = ({
   onOpenOverrides,
   onOpenReleaseDetails,
   onPromote,
+  hooks,
+  onOpenHook,
 }: MiniEnvironmentNodeProps) => {
   const classes = useMiniEnvironmentNodeStyles();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -352,6 +364,12 @@ export const MiniEnvironmentNode = ({
                     </>
                   )}
                 </Box>
+              )}
+              {hasHooks(hooks) && onOpenHook && (
+                <EnvironmentHookSection
+                  hooks={hooks!}
+                  onOpenHook={onOpenHook}
+                />
               )}
               <Box className={classes.actionRow}>{renderActions()}</Box>
             </>

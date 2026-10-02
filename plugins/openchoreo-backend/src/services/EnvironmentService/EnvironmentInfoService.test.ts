@@ -200,6 +200,41 @@ describe('EnvironmentInfoService', () => {
       );
     });
 
+    // The Deploy tab draws each environment's hook status from this, without
+    // a per-environment call to the hooks endpoint.
+    it("carries the binding's hook gate onto the environment", async () => {
+      const gate = {
+        key: 'k1',
+        preDeploy: [{ name: 'image-scan', phase: 'Failed', message: 'CVE' }],
+      };
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({ items: [k8sEnvironment], pagination: {} }),
+      );
+      mockGET.mockResolvedValueOnce(
+        createOkResponse({
+          items: [
+            {
+              ...k8sReleaseBinding,
+              status: { ...k8sReleaseBinding.status, gate },
+            },
+          ],
+        }),
+      );
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(createOkResponse(k8sPipeline));
+
+      const result = await createService().fetchDeploymentInfo(
+        {
+          projectName: 'my-project',
+          componentName: 'api-service',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result[0].deployment.gate).toEqual(gate);
+    });
+
     describe('projectDeploymentStatus', () => {
       const makeProjectBinding = (
         env: string,
@@ -1716,6 +1751,78 @@ describe('EnvironmentInfoService', () => {
 
       expect(mockPUT).not.toHaveBeenCalled();
       expect(mockPOST).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('release binding hooks (alpha)', () => {
+    it('fetches the gate of one binding', async () => {
+      const gate = { key: 'k1', preDeploy: [], postDeploy: [] };
+      mockGET.mockResolvedValueOnce(createOkResponse(gate));
+
+      const result = await createService().fetchReleaseBindingHooks(
+        { namespaceName: 'test-ns', bindingName: 'api-service-dev' },
+        'token-123',
+      );
+
+      expect(result).toEqual(gate);
+      expect(mockGET).toHaveBeenCalledWith(
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/hooks',
+        {
+          params: {
+            path: {
+              namespaceName: 'test-ns',
+              releaseBindingName: 'api-service-dev',
+            },
+          },
+        },
+      );
+    });
+
+    it('posts the retry phase and returns the transformed binding', async () => {
+      mockPOST.mockResolvedValueOnce(createOkResponse(k8sReleaseBinding));
+
+      const result = await createService().retryReleaseBindingHook(
+        {
+          namespaceName: 'test-ns',
+          bindingName: 'api-service-dev',
+          hookName: 'image-scan',
+          phase: 'preDeploy',
+        },
+        'token-123',
+      );
+
+      expect(result.name).toBe('api-service-dev');
+      expect(mockPOST).toHaveBeenCalledWith(
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/hooks/{hookName}/retry',
+        {
+          params: {
+            path: {
+              namespaceName: 'test-ns',
+              releaseBindingName: 'api-service-dev',
+              hookName: 'image-scan',
+            },
+          },
+          body: { phase: 'preDeploy' },
+        },
+      );
+    });
+
+    // The router relies on this mapping to answer 403 when the user lacks
+    // releasebinding:update.
+    it('surfaces a control-plane 403 on retry as NotAllowedError', async () => {
+      mockPOST.mockResolvedValueOnce(createErrorResponse(403, 'forbidden'));
+
+      await expect(
+        createService().retryReleaseBindingHook(
+          {
+            namespaceName: 'test-ns',
+            bindingName: 'api-service-dev',
+            hookName: 'image-scan',
+            phase: 'preDeploy',
+          },
+          'token-123',
+        ),
+      ).rejects.toMatchObject({ name: 'NotAllowedError' });
     });
   });
 });

@@ -1,4 +1,42 @@
 import { Entity } from '@backstage/catalog-model';
+import { JsonValue } from '@backstage/types';
+
+/**
+ * A hook bound on an environment (deployment hooks, alpha). Mirrors the
+ * CRD `HookBinding`; kept JSON-shaped so it can live inside entity spec.
+ *
+ * @public
+ */
+export interface EnvironmentHookBinding {
+  name: string;
+  hookRef: {
+    kind?: string;
+    name: string;
+    [key: string]: JsonValue | undefined;
+  };
+  mode?: string;
+  parameters?: { [key: string]: JsonValue | undefined };
+  appliesTo?: Array<{
+    kind: string;
+    name: string;
+    [key: string]: JsonValue | undefined;
+  }>;
+  onFailure?: string;
+  timeout?: string;
+  retries?: number;
+  [key: string]: JsonValue | undefined;
+}
+
+/**
+ * Pre-deploy and post-deploy bindings of an environment.
+ *
+ * @public
+ */
+export interface EnvironmentHookSet {
+  preDeploy?: EnvironmentHookBinding[];
+  postDeploy?: EnvironmentHookBinding[];
+  [key: string]: JsonValue | undefined;
+}
 
 /**
  * Backstage catalog Environment kind Entity. Represents an OpenChoreo environment.
@@ -57,5 +95,9 @@ export interface EnvironmentEntityV1alpha1 extends Entity {
         };
       };
     };
+    /**
+     * Deployment hooks (alpha) run for every component deployment into this environment
+     */
+    hooks?: EnvironmentHookSet;
   };
 }

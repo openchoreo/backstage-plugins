@@ -92,6 +92,7 @@ export const BuildWorkflowPicker = ({
   idSchema,
   uiSchema,
   schema,
+  formContext,
 }: FieldExtensionComponentProps<WorkflowSelection>) => {
   const [workflowOptions, setWorkflowOptions] = useState<WorkflowOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -99,15 +100,38 @@ export const BuildWorkflowPicker = ({
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
 
-  // Get namespaceName and ctdKind from ui:options
+  // For templates that pick the component type at runtime: read namespace/kind/
+  // allowedWorkflows from a sibling field named by `ui:options.selectionField`.
+  // ui:options still wins, so templates that set them directly are unaffected.
+  const selectionField = uiSchema?.['ui:options']?.selectionField as
+    | string
+    | undefined;
+  const selection = selectionField
+    ? ((formContext?.formData as any)?.[selectionField] as
+        | {
+            namespaceName?: string;
+            componentTypeKind?: string;
+            allowedWorkflows?: AllowedWorkflowRef[];
+          }
+        | undefined)
+    : undefined;
+
+  // Namespace comes from ui:options, else the project_namespace field (workflows
+  // live in the project's namespace), matching the sibling git/params fields.
   const namespaceName =
-    typeof uiSchema?.['ui:options']?.namespaceName === 'string'
+    (typeof uiSchema?.['ui:options']?.namespaceName === 'string'
       ? uiSchema['ui:options'].namespaceName
-      : '';
+      : undefined) ??
+    (formContext?.formData as any)?.project_namespace?.namespace_name ??
+    (formContext?.formData as any)?.namespace_name ??
+    selection?.namespaceName ??
+    '';
   const ctdKind =
-    typeof uiSchema?.['ui:options']?.ctdKind === 'string'
+    (typeof uiSchema?.['ui:options']?.ctdKind === 'string'
       ? (uiSchema['ui:options'].ctdKind as string)
-      : 'ComponentType';
+      : undefined) ??
+    selection?.componentTypeKind ??
+    'ComponentType';
   const isClusterComponentType = ctdKind === 'ClusterComponentType';
   const defaultWorkflowKind: WorkflowKind = isClusterComponentType
     ? 'ClusterWorkflow'
@@ -116,7 +140,9 @@ export const BuildWorkflowPicker = ({
   const allowedWorkflows =
     (uiSchema?.['ui:options']?.allowedWorkflows as
       | AllowedWorkflowRef[]
-      | undefined) ?? undefined;
+      | undefined) ??
+    selection?.allowedWorkflows ??
+    undefined;
 
   const [selectedKey, setSelectedKey] = useState<string>('');
 

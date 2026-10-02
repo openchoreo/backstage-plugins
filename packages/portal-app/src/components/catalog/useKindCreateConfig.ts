@@ -16,6 +16,8 @@ import {
   useResourceCreatePermission,
   useTraitCreatePermission,
   useClusterTraitCreatePermission,
+  useHookCreatePermission,
+  useClusterHookCreatePermission,
   useWorkflowPermission,
   useClusterWorkflowPermission,
 } from '@openchoreo/backstage-plugin-react';
@@ -50,6 +52,8 @@ export function useKindCreateConfig(): KindCreateConfig | null {
   const resourcePerm = useResourceCreatePermission();
   const traitPerm = useTraitCreatePermission();
   const clusterTraitPerm = useClusterTraitCreatePermission();
+  const hookPerm = useHookCreatePermission();
+  const clusterHookPerm = useClusterHookCreatePermission();
   const workflowPerm = useWorkflowPermission();
   const clusterWorkflowPerm = useClusterWorkflowPermission();
 
@@ -198,6 +202,28 @@ export function useKindCreateConfig(): KindCreateConfig | null {
         canCreate: clusterTraitPerm.canCreate,
         loading: clusterTraitPerm.loading,
         deniedTooltip: clusterTraitPerm.createDeniedTooltip,
+      };
+    case 'hook':
+      return {
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-hook',
+        }),
+        buttonLabel: 'Create Hook',
+        canCreate: hookPerm.canCreate,
+        loading: hookPerm.loading,
+        deniedTooltip: hookPerm.createDeniedTooltip,
+      };
+    case 'clusterhook':
+      return {
+        createPath: templateRoute({
+          namespace: 'default',
+          templateName: 'create-openchoreo-clusterhook',
+        }),
+        buttonLabel: 'Create Cluster Hook',
+        canCreate: clusterHookPerm.canCreate,
+        loading: clusterHookPerm.loading,
+        deniedTooltip: clusterHookPerm.createDeniedTooltip,
       };
     case 'workflow':
       return {

@@ -18,6 +18,7 @@ jest.mock('./styles', () => ({
     promotionPathRow: 'promotionPathRow',
     envBox: 'envBox',
     arrow: 'arrow',
+    subsectionTitle: 'subsectionTitle',
   }),
 }));
 
@@ -158,5 +159,97 @@ describe('CustomReviewStep — Notification Channel templates', () => {
     const meta = JSON.stringify(tables()[0]);
     expect(meta).toContain('alerts@example.com');
     expect(meta).not.toContain('Webhook Config');
+  });
+});
+
+describe('CustomReviewStep — Environment templates', () => {
+  const environmentConfig = {
+    environment_name: 'staging',
+    namespace_name: 'default',
+    isProduction: false,
+    hooks: {
+      preDeploy: [
+        {
+          name: 'image-scan',
+          hookRef: { kind: 'ClusterHook', name: 'trivy-image-scan' },
+          mode: 'Sync',
+          onFailure: 'Block',
+          timeout: '30m',
+          retries: 0,
+          appliesTo: [{ kind: 'ClusterComponentType', name: 'service' }],
+          parameters: { severity: 'CRITICAL', ignoreUnfixed: 'true' },
+        },
+      ],
+      postDeploy: [
+        {
+          name: 'notify',
+          hookRef: { kind: 'Hook', name: 'slack-notify' },
+          mode: 'Async',
+          // Stale Sync-only fields must not be shown for an Async hook.
+          onFailure: 'Ignore',
+          timeout: '5m',
+          appliesTo: [],
+          parameters: {},
+        },
+      ],
+    },
+  };
+
+  // Pre- and post-deploy hooks run at different points and fail differently,
+  // so the review keeps them apart instead of flattening them into the
+  // environment's own fields.
+  it('shows pre- and post-deploy hooks in their own sections, one table per binding', () => {
+    render(<CustomReviewStep {...makeProps({ environmentConfig })} />);
+
+    expect(screen.getByText('Pre-deploy Hooks')).toBeInTheDocument();
+    expect(screen.getByText('Post-deploy Hooks')).toBeInTheDocument();
+    expect(screen.getByText('image-scan')).toBeInTheDocument();
+    expect(screen.getByText('notify')).toBeInTheDocument();
+
+    const [details, pre, post] = tables();
+    expect(
+      Object.keys(details).some(k => k.toLowerCase().includes('hook')),
+    ).toBe(false);
+    expect(Object.values(details)).toContain('staging');
+    expect(pre).toEqual({
+      Hook: 'trivy-image-scan (ClusterHook)',
+      Mode: 'Sync',
+      'On Failure': 'Block',
+      Timeout: '30m',
+      Retries: '0',
+      'Applies To': 'service (ClusterComponentType)',
+      Parameters: 'severity=CRITICAL, ignoreUnfixed=true',
+    });
+    expect(post).toEqual({ Hook: 'slack-notify (Hook)', Mode: 'Async' });
+  });
+
+  it('marks an empty phase when only the other one has hooks', () => {
+    render(
+      <CustomReviewStep
+        {...makeProps({
+          environmentConfig: {
+            ...environmentConfig,
+            hooks: {
+              preDeploy: environmentConfig.hooks.preDeploy,
+              postDeploy: [],
+            },
+          },
+        })}
+      />,
+    );
+    expect(screen.getByText('No post-deploy hooks.')).toBeInTheDocument();
+  });
+
+  it('shows no hook sections for an environment without hooks', () => {
+    render(
+      <CustomReviewStep
+        {...makeProps({
+          environmentConfig: { environment_name: 'dev', isProduction: false },
+        })}
+      />,
+    );
+    expect(screen.queryByText('Pre-deploy Hooks')).not.toBeInTheDocument();
+    expect(screen.queryByText('Post-deploy Hooks')).not.toBeInTheDocument();
+    expect(tables()).toHaveLength(1);
   });
 });

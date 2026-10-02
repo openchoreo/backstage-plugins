@@ -98,6 +98,7 @@ export {
   ConsumingComponentsCard,
 } from './components/ResourceOverview';
 export { TraitTypeOverviewCard } from './components/TraitTypeOverview';
+export { HookOverviewCard, HookBindingsCard } from './components/HookOverview';
 export { WorkflowOverviewCard } from './components/WorkflowOverview';
 export { ComponentWorkflowOverviewCard } from './components/ComponentWorkflowOverview';
 export { ResourceDefinitionTab } from './components/ResourceDefinition';

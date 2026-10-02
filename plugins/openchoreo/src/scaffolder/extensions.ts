@@ -74,6 +74,16 @@ export const scaffolderFieldExtensions = [
     }),
   ),
   makeFormFieldExtension(
+    'cluster-hook-form-with-yaml',
+    () => import('./HookFormWithYaml/HookFormWithYamlExtension'),
+    m => ({
+      name: 'ClusterHookFormWithYaml',
+      component: m.ClusterHookFormWithYamlExtension,
+      schema: m.HookFormWithYamlSchema,
+      validation: m.clusterHookFormWithYamlValidation,
+    }),
+  ),
+  makeFormFieldExtension(
     'cluster-project-type-yaml-editor',
     () =>
       import(
@@ -123,6 +133,16 @@ export const scaffolderFieldExtensions = [
       name: 'ComponentNamePicker',
       component: m.ComponentNamePicker,
       validation: m.componentNamePickerValidation,
+    }),
+  ),
+  makeFormFieldExtension(
+    'component-type-selector-field',
+    () => import('./ComponentTypeSelectorField/ComponentTypeSelectorField'),
+    m => ({
+      name: 'ComponentTypeSelectorField',
+      component: m.ComponentTypeSelectorField,
+      schema: m.ComponentTypeSelectorFieldSchema,
+      validation: m.componentTypeSelectorFieldValidation,
     }),
   ),
   makeFormFieldExtension(
@@ -208,6 +228,16 @@ export const scaffolderFieldExtensions = [
     }),
   ),
   makeFormFieldExtension(
+    'hook-form-with-yaml',
+    () => import('./HookFormWithYaml/HookFormWithYamlExtension'),
+    m => ({
+      name: 'HookFormWithYaml',
+      component: m.HookFormWithYamlExtension,
+      schema: m.HookFormWithYamlSchema,
+      validation: m.hookFormWithYamlValidation,
+    }),
+  ),
+  makeFormFieldExtension(
     'namespace-entity-picker',
     () => import('./NamespaceEntityPicker/NamespaceEntityPicker'),
     m => ({
@@ -254,6 +284,16 @@ export const scaffolderFieldExtensions = [
       name: 'ProjectTypeYamlEditor',
       component: m.ProjectTypeYamlEditorExtension,
       validation: m.projectTypeYamlEditorValidation,
+    }),
+  ),
+  makeFormFieldExtension(
+    'repo-create-field',
+    () => import('./RepoCreateField/RepoCreateField'),
+    m => ({
+      name: 'RepoCreateField',
+      component: m.RepoCreateField,
+      schema: m.RepoCreateFieldSchema,
+      validation: m.repoCreateFieldValidation,
     }),
   ),
   makeFormFieldExtension(

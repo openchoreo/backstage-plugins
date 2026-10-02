@@ -165,11 +165,72 @@ function DeploymentPipelineReview({ data }: { data: Record<string, unknown> }) {
 // EnvironmentReview
 // ---------------------------------------------------------------------------
 
+/** Shape of one hook binding in the environment form (deployment hooks, alpha). */
+interface ReviewHookBinding {
+  name?: string;
+  hookRef?: { kind?: string; name?: string };
+  mode?: string;
+  onFailure?: string;
+  timeout?: string;
+  retries?: number;
+  appliesTo?: Array<{ kind?: string; name?: string }>;
+  parameters?: Record<string, string>;
+}
+
+const HOOK_PHASES = [
+  {
+    key: 'preDeploy',
+    title: 'Pre-deploy Hooks',
+    empty: 'No pre-deploy hooks.',
+  },
+  {
+    key: 'postDeploy',
+    title: 'Post-deploy Hooks',
+    empty: 'No post-deploy hooks.',
+  },
+] as const;
+
+/** Review rows for one binding; failure policy only applies to Sync hooks. */
+function hookBindingMetadata(b: ReviewHookBinding): Record<string, string> {
+  const meta: Record<string, string> = {};
+  const mode = b.mode ?? 'Sync';
+  if (b.hookRef?.name) {
+    setMeta(meta, 'Hook', `${b.hookRef.name} (${b.hookRef.kind ?? 'Hook'})`);
+  }
+  setMeta(meta, 'Mode', mode);
+  if (mode === 'Sync') {
+    if (b.onFailure) setMeta(meta, 'On Failure', b.onFailure);
+    if (b.timeout) setMeta(meta, 'Timeout', b.timeout);
+    if (b.retries !== undefined) setMeta(meta, 'Retries', String(b.retries));
+  }
+  const appliesTo = (b.appliesTo ?? []).filter(a => a.name);
+  if (appliesTo.length > 0) {
+    setMeta(
+      meta,
+      'Applies To',
+      appliesTo.map(a => `${a.name} (${a.kind})`).join(', '),
+    );
+  }
+  const params = Object.entries(b.parameters ?? {}).filter(
+    ([, v]) => v !== undefined && v !== '',
+  );
+  if (params.length > 0) {
+    setMeta(meta, 'Parameters', params.map(([k, v]) => `${k}=${v}`).join(', '));
+  }
+  return meta;
+}
+
 function EnvironmentReview({ data }: { data: Record<string, unknown> }) {
   const classes = useStyles();
   const config = (data.environmentConfig ?? data) as Record<string, unknown>;
   const metadata: Record<string, string> = {};
-  flattenToMetadata(config, '', metadata);
+  flattenToMetadata(config, '', metadata, new Set(['hooks']));
+
+  const hooks = config.hooks as
+    | Partial<Record<'preDeploy' | 'postDeploy', ReviewHookBinding[]>>
+    | undefined;
+  const hasHooks =
+    (hooks?.preDeploy?.length ?? 0) + (hooks?.postDeploy?.length ?? 0) > 0;
 
   return (
     <>
@@ -177,6 +238,29 @@ function EnvironmentReview({ data }: { data: Record<string, unknown> }) {
         Environment Details
       </Typography>
       <StructuredMetadataTable metadata={metadata} />
+
+      {hasHooks &&
+        HOOK_PHASES.map(({ key, title, empty }) => {
+          const bindings = hooks?.[key] ?? [];
+          return (
+            <Fragment key={key}>
+              <Typography className={classes.sectionTitle}>{title}</Typography>
+              {bindings.length === 0 && (
+                <Typography variant="body2" color="textSecondary">
+                  {empty}
+                </Typography>
+              )}
+              {bindings.map((b, i) => (
+                <Fragment key={`${key}-${b.name ?? i}`}>
+                  <Typography className={classes.subsectionTitle}>
+                    {b.name || `Hook ${i + 1}`}
+                  </Typography>
+                  <StructuredMetadataTable metadata={hookBindingMetadata(b)} />
+                </Fragment>
+              ))}
+            </Fragment>
+          );
+        })}
     </>
   );
 }

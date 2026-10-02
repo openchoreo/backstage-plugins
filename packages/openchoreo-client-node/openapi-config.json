@@ -19,7 +19,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "c0e6cd4c",
-  "lastSyncDate": "2026-09-08T00:00:00+05:30",
-  "lastSyncDescription": "feat: migrate url-shortener postgres to a Resource (#4081)"
+  "lastSyncCommit": "c2a23721b",
+  "lastSyncDate": "2026-09-23T22:47:03+05:30",
+  "lastSyncDescription": "feat: deployment hooks alpha \u2014 Hook/ClusterHook CRUD, release-binding gate ops, workflowrun resume/stop; hook bindings scoped to component types only (no onHookChange, no triggerOn). open-choreo feat/hooks-alpha, uncommitted on top of c2a23721b"
 }

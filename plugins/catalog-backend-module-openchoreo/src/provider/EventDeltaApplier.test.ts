@@ -108,6 +108,7 @@ describe('EventDeltaApplier.handleEvent', () => {
       ],
     },
     { kind: 'Trait', expectedRefs: ['traittype:test-ns/order'] },
+    { kind: 'Hook', expectedRefs: ['hook:test-ns/order'] },
     {
       kind: 'ResourceType',
       expectedRefs: [
@@ -179,6 +180,10 @@ describe('EventDeltaApplier.handleEvent', () => {
     {
       kind: 'ClusterTrait',
       expectedRefs: ['clustertraittype:openchoreo-cluster/global'],
+    },
+    {
+      kind: 'ClusterHook',
+      expectedRefs: ['clusterhook:openchoreo-cluster/global'],
     },
     {
       kind: 'ClusterWorkflow',

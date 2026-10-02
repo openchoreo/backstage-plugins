@@ -11,6 +11,8 @@ export { WorkflowEntityProcessor } from './WorkflowEntityProcessor';
 export { CustomAnnotationProcessor } from './CustomAnnotationProcessor';
 export { ClusterComponentTypeEntityProcessor } from './ClusterComponentTypeEntityProcessor';
 export { ClusterTraitTypeEntityProcessor } from './ClusterTraitTypeEntityProcessor';
+export { HookEntityProcessor } from './HookEntityProcessor';
+export { ClusterHookEntityProcessor } from './ClusterHookEntityProcessor';
 export { ClusterDataplaneEntityProcessor } from './ClusterDataplaneEntityProcessor';
 export { ClusterObservabilityPlaneEntityProcessor } from './ClusterObservabilityPlaneEntityProcessor';
 export { ClusterWorkflowPlaneEntityProcessor } from './ClusterWorkflowPlaneEntityProcessor';

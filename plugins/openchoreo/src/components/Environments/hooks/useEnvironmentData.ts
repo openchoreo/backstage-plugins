@@ -1,7 +1,10 @@
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
-import type { ReleaseBindingCondition } from '@openchoreo/backstage-plugin-common';
+import type {
+  DeploymentGateStatus,
+  ReleaseBindingCondition,
+} from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isForbiddenError } from '../../../utils/errorUtils';
 
@@ -46,6 +49,9 @@ export interface Environment {
     lastDeployed?: string;
     image?: string;
     releaseName?: string;
+    /** Deployment hooks (alpha): the binding's gate for the current release;
+     *  absent when the environment binds no hooks. */
+    gate?: DeploymentGateStatus;
   };
   endpoints: EndpointInfo[];
   promotionTargets?: {

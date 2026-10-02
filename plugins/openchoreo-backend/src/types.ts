@@ -3,6 +3,7 @@ import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node
 import type {
   WorkloadResource,
   ReleaseBindingCondition,
+  DeploymentGateStatus,
 } from '@openchoreo/backstage-plugin-common';
 import type { ModelsSecretReferences } from './services/SecretReferencesService/SecretReferencesService';
 import type {
@@ -124,6 +125,9 @@ export interface Environment {
     lastDeployed?: string;
     image?: string;
     releaseName?: string;
+    /** Deployment hooks (alpha): the binding's gate; absent when the
+     *  environment binds no hooks. */
+    gate?: DeploymentGateStatus;
   };
   endpoints: EndpointInfo[];
   promotionTargets?: {

@@ -27,6 +27,7 @@ export {
   buildRuntimeLogsBasePath,
   buildOverridesPath,
   buildReleaseDetailsPath,
+  buildHookRunPath,
   buildWorkloadConfigPath,
   buildOverridesPathWithTab,
   buildWorkflowRunPath,

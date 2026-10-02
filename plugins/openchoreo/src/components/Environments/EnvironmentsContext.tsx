@@ -1,6 +1,7 @@
 import { createContext, useContext, ReactNode } from 'react';
 import type { Environment } from './hooks/useEnvironmentData';
 import type { ComponentError } from './hooks/useAutoDeploy';
+import type { EnvironmentHooks } from './hooks/hookModel';
 import type { PendingAction } from './types';
 
 /**
@@ -101,6 +102,11 @@ interface EnvironmentsContextValue {
    * the controller updates status to a different name, the pill clears.
    */
   beginAwaitingNewRelease: () => void;
+  /**
+   * Deployment hooks (alpha) per environment, keyed by `Environment.name`.
+   * Empty when no environment binds hooks or the feature is off.
+   */
+  hooksByEnvironment: ReadonlyMap<string, EnvironmentHooks>;
   /** Currently selected canvas tile (env or setup). Null = nothing selected. */
   selection: Selection;
   /** Setter for the canvas selection. */

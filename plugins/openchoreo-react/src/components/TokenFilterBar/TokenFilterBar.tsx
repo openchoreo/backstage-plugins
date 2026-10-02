@@ -217,6 +217,12 @@ export interface TokenFilterBarProps {
   ariaLabel?: string;
   /** Appended to the hint line — a note about how the values are counted. */
   valuesFootnote?: ReactNode;
+  /** Render the caption hint beneath the field (default true). */
+  showHint?: boolean;
+  /** Header above the field list (default "Fields you can filter on"). */
+  fieldsHeader?: string;
+  /** Show each field option's description on a second line (default true). */
+  showFieldDescription?: boolean;
   disabled?: boolean;
 }
 
@@ -246,6 +252,9 @@ export const TokenFilterBar = ({
   emptyPlaceholder = 'Filter records',
   ariaLabel = 'Filter records',
   valuesFootnote,
+  showHint = true,
+  fieldsHeader = 'Fields you can filter on',
+  showFieldDescription = true,
   disabled = false,
 }: TokenFilterBarProps) => {
   const classes = useTokenFilterBarStyles();
@@ -448,9 +457,7 @@ export const TokenFilterBar = ({
   };
 
   const listHeader =
-    path === null
-      ? 'Fields you can filter on'
-      : `Values of ${path} in this window`;
+    path === null ? fieldsHeader : `Values of ${path} in this window`;
 
   const showFootnote = Boolean(valuesFootnote) && path !== null;
 
@@ -615,9 +622,11 @@ export const TokenFilterBar = ({
               return (
                 <Box className={classes.optionRow}>
                   <span className={classes.optionPath}>{option.path}</span>
-                  <span className={classes.optionDesc}>
-                    {byPath.get(option.path)?.description}
-                  </span>
+                  {showFieldDescription && (
+                    <span className={classes.optionDesc}>
+                      {byPath.get(option.path)?.description}
+                    </span>
+                  )}
                 </Box>
               );
             }
@@ -665,9 +674,11 @@ export const TokenFilterBar = ({
         />
       </PopoverFrameContext.Provider>
 
-      <Typography variant="caption" className={classes.hint}>
-        {hint}
-      </Typography>
+      {showHint && (
+        <Typography variant="caption" className={classes.hint}>
+          {hint}
+        </Typography>
+      )}
     </Box>
   );
 };

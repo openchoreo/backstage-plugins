@@ -5,6 +5,49 @@ import type {
   ComponentRelease,
   ReleaseBindingCondition,
 } from '@openchoreo/backstage-plugin-common';
+
+// ---------------------------------------------------------------------------
+// Deployment hook runs (alpha). A hook runs as a WorkflowRun; its status, logs
+// and events are served by the openchoreo-workflows backend.
+// ---------------------------------------------------------------------------
+
+export interface HookRunStep {
+  name: string;
+  phase: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+}
+
+export interface HookRunStatus {
+  status: string;
+  steps: HookRunStep[];
+  hasLiveObservability: boolean;
+}
+
+export interface HookRunLogs {
+  logs: { timestamp: string; log: string }[];
+  totalCount: number;
+  /** Set when logs are unavailable, e.g. OBSERVABILITY_NOT_CONFIGURED */
+  error?: string;
+  message?: string;
+}
+
+export interface HookRunEvent {
+  timestamp: string;
+  type: string;
+  reason: string;
+  message: string;
+}
+
+export interface HookRun {
+  name: string;
+  workflowName: string;
+  namespaceName: string;
+  status: string;
+  parameters?: Record<string, unknown>;
+  createdAt: string;
+  finishedAt?: string;
+}
 import type { Environment } from '../components/RuntimeLogs/types';
 
 // ============================================
@@ -584,6 +627,8 @@ export type PlatformResourceKind =
   | 'clusterresourcetypes'
   | 'clusterprojecttypes'
   | 'clustertraits'
+  | 'hooks'
+  | 'clusterhooks'
   | 'clusterworkflows'
   | 'clusterdataplanes'
   | 'clusterobservabilityplanes'
@@ -597,6 +642,7 @@ export const CLUSTER_SCOPED_RESOURCE_KINDS: ReadonlySet<PlatformResourceKind> =
     'clusterresourcetypes',
     'clusterprojecttypes',
     'clustertraits',
+    'clusterhooks',
     'clusterworkflows',
     'clusterdataplanes',
     'clusterobservabilityplanes',
@@ -680,6 +726,37 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     bindingName: string,
   ): Promise<any>;
+
+  /** Deployment hooks (alpha): ask the controller to re-run one hook binding. */
+  retryReleaseBindingHook(
+    namespaceName: string,
+    bindingName: string,
+    hookName: string,
+    phase: 'preDeploy' | 'postDeploy',
+  ): Promise<unknown>;
+
+  /** Deployment hooks (alpha): the WorkflowRun that executed a hook. */
+  fetchHookRun(namespaceName: string, runName: string): Promise<HookRun>;
+
+  /** Deployment hooks (alpha): run status with its steps. */
+  fetchHookRunStatus(
+    namespaceName: string,
+    runName: string,
+  ): Promise<HookRunStatus>;
+
+  /** Deployment hooks (alpha): logs of one step (`task`) of a hook run. */
+  fetchHookRunLogs(
+    namespaceName: string,
+    runName: string,
+    task?: string,
+  ): Promise<HookRunLogs>;
+
+  /** Deployment hooks (alpha): Kubernetes events of one step of a hook run. */
+  fetchHookRunEvents(
+    namespaceName: string,
+    runName: string,
+    task?: string,
+  ): Promise<HookRunEvent[]>;
 
   /** Patch component settings (e.g., autoDeploy) */
   patchComponent(entity: Entity, autoDeploy: boolean): Promise<any>;
