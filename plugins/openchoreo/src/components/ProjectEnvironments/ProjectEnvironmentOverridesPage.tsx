@@ -60,11 +60,13 @@ const useStyles = makeStyles(theme => ({
 export interface ProjectEnvironmentOverridesPageProps {
   envName: string;
   /**
-   * When set, the wizard runs in deploy mode: the binding is pinned to
-   * this release on save and the primary action reads "Deploy". Comes from
-   * the wizard chain that follows a project parameter edit.
+   * When set, the binding is pinned to this release on save. Used by the
+   * deploy wizard and by promotion so the user can review environment
+   * overrides before advancing the binding.
    */
   releaseFromUrl?: string;
+  /** Pins the selected release while deploying or promoting. */
+  action?: 'deploy' | 'promote';
   onBack: () => void;
   onSaved: () => void;
 }
@@ -82,6 +84,7 @@ export interface ProjectEnvironmentOverridesPageProps {
 export const ProjectEnvironmentOverridesPage = ({
   envName,
   releaseFromUrl,
+  action,
   onBack,
   onSaved,
 }: ProjectEnvironmentOverridesPageProps) => {
@@ -127,7 +130,12 @@ export const ProjectEnvironmentOverridesPage = ({
     'this project';
   const envDisplayName = envInfo?.name ?? envName;
   const hasBinding = Boolean(envInfo?.bindingName);
-  const isDeployMode = Boolean(releaseFromUrl);
+  // Keep compatibility with callers that predate the explicit action prop:
+  // a release URL without an action was the original deploy flow.
+  const pageAction = action ?? (releaseFromUrl ? 'deploy' : undefined);
+  const isDeployMode = pageAction === 'deploy';
+  const isPromoteMode = pageAction === 'promote';
+  const isPinMode = isDeployMode || isPromoteMode;
 
   const effectiveRelease =
     releaseFromUrl ?? envInfo?.projectRelease ?? envInfo?.latestRelease ?? '';
@@ -237,7 +245,9 @@ export const ProjectEnvironmentOverridesPage = ({
       notification.showSuccess(
         isDeployMode
           ? `Deployed ${effectiveRelease} to ${envDisplayName}.`
-          : `Saved overrides for ${envDisplayName}.`,
+          : isPromoteMode
+            ? `Promoted ${effectiveRelease} to ${envDisplayName}.`
+            : `Saved overrides for ${envDisplayName}.`,
       );
       onSaved();
     } catch (err: unknown) {
@@ -249,6 +259,7 @@ export const ProjectEnvironmentOverridesPage = ({
     effectiveRelease,
     envDisplayName,
     isDeployMode,
+    isPromoteMode,
     notification,
     onSaved,
     overrides,
@@ -270,24 +281,26 @@ export const ProjectEnvironmentOverridesPage = ({
   }, [envDisplayName, notification, onSaved, persist]);
 
   const permDenied = !permLoading && !canUpdate;
-  const canPrimary = isDeployMode ? Boolean(effectiveRelease) : hasBinding;
+  const canPrimary = isPinMode ? Boolean(effectiveRelease) : hasBinding;
   const primaryDisabled =
     saving ||
     clearing ||
     permLoading ||
     !canUpdate ||
     !canPrimary ||
-    (!isDeployMode && !hasChanges);
+    (!isPinMode && !hasChanges);
   let primaryLabel: string;
   if (isDeployMode) {
     primaryLabel = saving ? 'Deploying' : 'Deploy';
+  } else if (isPromoteMode) {
+    primaryLabel = saving ? 'Promoting' : 'Promote';
   } else {
     primaryLabel = saving ? 'Saving' : 'Save Overrides';
   }
 
   const headerActions = !loading && !loadError && (
     <Box className={classes.actionsRow}>
-      {!isDeployMode && (
+      {!isPinMode && (
         <Button
           onClick={handleClear}
           disabled={
@@ -326,8 +339,10 @@ export const ProjectEnvironmentOverridesPage = ({
   );
 
   const subtitle = isDeployMode
-    ? `Pin ${envDisplayName} to ${effectiveRelease} and set any ${envDisplayName}-specific overrides.`
-    : `Set ${envDisplayName}-specific values that override the ${projectTypeName} defaults for this binding only.`;
+    ? `Deploy ${effectiveRelease} to ${envDisplayName} with any ${envDisplayName}-specific overrides.`
+    : isPromoteMode
+      ? `Review ${envDisplayName}-specific overrides, then promote ${effectiveRelease}.`
+      : `Set ${envDisplayName}-specific values that override the ${projectTypeName} defaults for this binding only.`;
 
   if (isForbiddenError(loadError)) {
     return (
@@ -340,7 +355,13 @@ export const ProjectEnvironmentOverridesPage = ({
 
   return (
     <DetailPageLayout
-      title={`Configure Environment Overrides — ${envDisplayName}`}
+      title={
+        isPromoteMode
+          ? `Promote to ${envDisplayName}`
+          : isDeployMode
+            ? `Deploy to ${envDisplayName}`
+            : `Configure Environment Overrides — ${envDisplayName}`
+      }
       subtitle={subtitle}
       onBack={onBack}
       actions={headerActions}
@@ -362,7 +383,7 @@ export const ProjectEnvironmentOverridesPage = ({
         </Box>
       )}
 
-      {!loading && !loadError && !isDeployMode && !hasBinding && (
+      {!loading && !loadError && !isPinMode && !hasBinding && (
         <Box mb={2}>
           <Alert severity="info">
             No binding exists for {envDisplayName} yet. Deploy this project to{' '}
@@ -379,7 +400,7 @@ export const ProjectEnvironmentOverridesPage = ({
         </Box>
       )}
 
-      {!loading && !loadError && (isDeployMode || hasBinding) && (
+      {!loading && !loadError && (isPinMode || hasBinding) && (
         <Box className={classes.formCard}>
           {hasFields ? (
             <>
