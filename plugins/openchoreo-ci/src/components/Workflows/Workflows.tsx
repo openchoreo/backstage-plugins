@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   useApi,
+  alertApiRef,
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
@@ -65,10 +66,75 @@ function unwrapParametersSchema(schema: any): any {
   return schema;
 }
 
+/**
+ * Parse an error response body and throw with a user-friendly message.
+ *
+ * Handles the three known shapes:
+ *   - Go API direct:  { code: "NOT_FOUND", error: "Workflow not found" }
+ *   - BFF wrapped:    { error: { name: "NotFoundError", message: "Workflow not found" } }
+ *   - message-field:  { message: "Workflow not found" }
+ *
+ * If the error message indicates that the Workflow or ClusterWorkflow was not found,
+ * returns an actionable, detailed remediation message.
+ * Falls back to `HTTP <status>: <statusText>` when the body is not JSON or
+ * none of the above fields are present.
+ *
+ * @param response - The failed Response object
+ * @param workflowName - The optional name of the referenced workflow
+ */
+async function throwResponseError(
+  response: Response,
+  workflowName?: string,
+): Promise<never> {
+  let friendlyMessage: string | undefined;
+  try {
+    const body = await response.json();
+    if (typeof body.error === 'string') {
+      friendlyMessage = body.error;
+    } else if (
+      body.error &&
+      typeof body.error === 'object' &&
+      typeof body.error.message === 'string'
+    ) {
+      friendlyMessage = body.error.message;
+    } else if (typeof body.message === 'string') {
+      friendlyMessage = body.message;
+    }
+  } catch {
+    // json() failed — body is not JSON (e.g. HTML 404 from a proxy)
+  }
+
+  const isWorkflowMissing =
+    !!friendlyMessage &&
+    /\b(?:cluster)?workflow(?:\s+["'][^"']+["'])?\s+(?:was\s+)?not found\b/i.test(
+      friendlyMessage,
+    );
+
+  if (isWorkflowMissing) {
+    if (workflowName) {
+      throw new Error(
+        `The referenced workflow "${workflowName}" no longer exists. Please select or configure a new build workflow.`,
+      );
+    }
+    throw new Error(
+      'The referenced workflow no longer exists. Please select or configure a new build workflow.',
+    );
+  }
+
+  throw new Error(
+    friendlyMessage ?? `HTTP ${response.status}: ${response.statusText}`,
+  );
+}
+
+/**
+ * Main Workflows component providing CI workflow management, triggering,
+ * status visualization, and configuration tabs for an entity.
+ */
 export const Workflows = () => {
   const classes = useStyles();
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
+  const alertApi = useApi(alertApiRef);
   const { entity } = useEntity();
   const client = useApi(openChoreoCiClientApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
@@ -227,10 +293,15 @@ export const Workflows = () => {
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        await throwResponseError(response, workflow.name);
       }
     }, [discoveryApi, fetchApi, getEntityDetails, workflowData]),
-    { onSuccess: () => workflowData.fetchBuilds() },
+    {
+      onSuccess: () => workflowData.fetchBuilds(),
+      onError: (err: Error) => {
+        alertApi.post({ message: err.message, severity: 'error' });
+      },
+    },
   );
 
   // Mutation for triggering a workflow with custom parameters.
@@ -271,7 +342,7 @@ export const Workflows = () => {
         );
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          await throwResponseError(response, workflow.name);
         }
       },
       [discoveryApi, fetchApi, getEntityDetails, workflowData],
@@ -331,10 +402,20 @@ export const Workflows = () => {
     [],
   );
 
+  /**
+   * Handles build action selection from the split button.
+   *
+   * @param key - The action key ('build-latest' or 'build-custom')
+   */
   const handleBuildAction = useCallback(
-    (key: string) => {
+    async (key: string) => {
       if (key === 'build-latest') {
-        triggerWorkflowOp.mutate();
+        try {
+          await triggerWorkflowOp.mutate();
+        } catch {
+          // Error is already surfaced via the onError alert callback;
+          // catch here only to prevent an unhandled promise rejection.
+        }
       } else if (key === 'build-custom') {
         handleOpenParamsDialog();
       }
