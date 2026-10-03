@@ -181,9 +181,7 @@ jest.mock('../BuildWithParamsDialog', () => ({
         >
           Trigger
         </button>
-        {err && (
-          <span data-testid="params-dialog-error">{err}</span>
-        )}
+        {err && <span data-testid="params-dialog-error">{err}</span>}
       </div>
     );
   },
@@ -479,8 +477,8 @@ describe('Workflows', () => {
       expect(unhandledRejections).toHaveLength(0);
     });
 
-    // Non-JSON body (e.g. HTML 404 page from a proxy)
-    it('404 with non-JSON body posts alert with fallback message', async () => {
+    // Non-JSON body (e.g. HTML 404 page from a proxy) falls back to HTTP status
+    it('404 with non-JSON body posts alert with fallback HTTP status message', async () => {
       mockFetchApi.fetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
@@ -501,17 +499,15 @@ describe('Workflows', () => {
       });
       expect(mockAlertApi.post).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: expect.stringContaining(
-            'The referenced workflow "my-workflow" no longer exists. Please select or configure a new build workflow.',
-          ),
+          message: expect.stringContaining('HTTP 404: Not Found'),
           severity: 'error',
         }),
       );
       expect(unhandledRejections).toHaveLength(0);
     });
 
-    // Empty JSON body ({}) falls back to workflow not found message on 404
-    it('404 with empty JSON body posts alert with detailed workflow message', async () => {
+    // Empty JSON body ({}) falls back to HTTP status when no workflow absence error is present
+    it('404 with empty JSON body posts alert with fallback HTTP status message', async () => {
       mockFetchApi.fetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
@@ -530,9 +526,7 @@ describe('Workflows', () => {
       });
       expect(mockAlertApi.post).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: expect.stringContaining(
-            'The referenced workflow "my-workflow" no longer exists. Please select or configure a new build workflow.',
-          ),
+          message: expect.stringContaining('HTTP 404: Not Found'),
           severity: 'error',
         }),
       );
@@ -618,9 +612,9 @@ describe('Workflows', () => {
         'The referenced workflow "my-workflow" no longer exists. Please select or configure a new build workflow.',
       );
       // Must NOT show the generic HTTP status message
-      expect(screen.getByTestId('params-dialog-error').textContent).not.toContain(
-        'HTTP 404',
-      );
+      expect(
+        screen.getByTestId('params-dialog-error').textContent,
+      ).not.toContain('HTTP 404');
       // No toast — the dialog owns the error display
       expect(mockAlertApi.post).not.toHaveBeenCalled();
     });

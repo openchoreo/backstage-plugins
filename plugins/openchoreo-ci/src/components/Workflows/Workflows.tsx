@@ -74,9 +74,13 @@ function unwrapParametersSchema(schema: any): any {
  *   - BFF wrapped:    { error: { name: "NotFoundError", message: "Workflow not found" } }
  *   - message-field:  { message: "Workflow not found" }
  *
- * If the workflow was not found (404 / 'Workflow not found'), returns an actionable, detailed message.
+ * If the error message indicates that the Workflow or ClusterWorkflow was not found,
+ * returns an actionable, detailed remediation message.
  * Falls back to `HTTP <status>: <statusText>` when the body is not JSON or
  * none of the above fields are present.
+ *
+ * @param response - The failed Response object
+ * @param workflowName - The optional name of the referenced workflow
  */
 async function throwResponseError(
   response: Response,
@@ -100,10 +104,13 @@ async function throwResponseError(
     // json() failed — body is not JSON (e.g. HTML 404 from a proxy)
   }
 
-  if (
-    response.status === 404 ||
-    (friendlyMessage && friendlyMessage.toLowerCase().includes('not found'))
-  ) {
+  const isWorkflowMissing =
+    !!friendlyMessage &&
+    /\b(?:cluster)?workflow(?:\s+["'][^"']+["'])?\s+(?:was\s+)?not found\b/i.test(
+      friendlyMessage,
+    );
+
+  if (isWorkflowMissing) {
     if (workflowName) {
       throw new Error(
         `The referenced workflow "${workflowName}" no longer exists. Please select or configure a new build workflow.`,
@@ -119,6 +126,10 @@ async function throwResponseError(
   );
 }
 
+/**
+ * Main Workflows component providing CI workflow management, triggering,
+ * status visualization, and configuration tabs for an entity.
+ */
 export const Workflows = () => {
   const classes = useStyles();
   const discoveryApi = useApi(discoveryApiRef);
@@ -391,6 +402,11 @@ export const Workflows = () => {
     [],
   );
 
+  /**
+   * Handles build action selection from the split button.
+   *
+   * @param key - The action key ('build-latest' or 'build-custom')
+   */
   const handleBuildAction = useCallback(
     async (key: string) => {
       if (key === 'build-latest') {
