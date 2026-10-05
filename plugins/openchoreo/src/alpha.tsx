@@ -11,6 +11,7 @@ import {
   SubPageBlueprint,
 } from '@backstage/frontend-plugin-api';
 import { OAuth2 } from '@backstage/core-app-api';
+import { Content } from '@backstage/core-components';
 import {
   EntityCardBlueprint,
   EntityContentBlueprint,
@@ -882,6 +883,11 @@ const openChoreoUserTokenFormDecorator = FormDecoratorBlueprint.make({
 // standing alone, which is where the OpenChoreo portal already puts them — so
 // every host, portal or not, gets them in the same place. A host that would
 // rather place them itself can switch them off through `app.extensions`.
+// The loader result renders inside upstream's `Page` component, whose CSS
+// grid places `Content` in the `pageContent` cell (the `1fr` column). Without
+// the wrapper the body is auto-placed and shrinks to its intrinsic width —
+// upstream's own General/Auth/Feature-Flags sub-pages wrap in `Content` for
+// the same reason.
 const accessControlSettingsTab = SubPageBlueprint.make({
   name: 'access-control',
   attachTo: { id: 'page:user-settings', input: 'pages' },
@@ -891,7 +897,9 @@ const accessControlSettingsTab = SubPageBlueprint.make({
     title: 'Access Control',
     loader: () =>
       import('./components/AccessControl').then(m => (
-        <m.AccessControlContent />
+        <Content>
+          <m.AccessControlContent />
+        </Content>
       )),
   },
 });
@@ -904,7 +912,11 @@ const secretsSettingsTab = SubPageBlueprint.make({
     routeRef: secretsRouteRef,
     title: 'Secrets',
     loader: () =>
-      import('./components/Secrets').then(m => <m.SecretsContent />),
+      import('./components/Secrets').then(m => (
+        <Content>
+          <m.SecretsContent />
+        </Content>
+      )),
   },
 });
 

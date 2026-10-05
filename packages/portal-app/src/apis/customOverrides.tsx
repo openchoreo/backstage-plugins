@@ -424,21 +424,23 @@ export const searchPluginAlpha = searchPluginAlphaBase.withOverrides({
   ],
 });
 
-// /settings → legacy SettingsLayout chrome with three curated tabs
-// (General / Access Control / Secrets). Bypasses upstream SubPageBlueprint
-// collection.
+// /settings/general → upstream General tab plus OpenChoreo's PlatformAboutCard
+// as a fourth grid card. Access Control / Secrets tabs come from the base
+// plugin's SubPageBlueprints; Auth Providers / Feature Flags are hidden via
+// `app.extensions` in app-config.yaml.
 export const userSettingsPluginAlpha =
   userSettingsPluginAlphaBase.withOverrides({
     extensions: [
-      userSettingsPluginAlphaBase.getExtension('page:user-settings').override({
-        params: {
-          noHeader: true,
-          loader: () =>
-            import('../components/settings/OpenChoreoUserSettingsPage').then(
-              m => <m.OpenChoreoUserSettingsPage />,
-            ),
-        },
-      }),
+      userSettingsPluginAlphaBase
+        .getExtension('sub-page:user-settings/general')
+        .override({
+          params: {
+            loader: () =>
+              import('../components/settings/OpenChoreoGeneralSettings').then(
+                m => <m.OpenChoreoGeneralSettings />,
+              ),
+          },
+        }),
     ],
   });
 
