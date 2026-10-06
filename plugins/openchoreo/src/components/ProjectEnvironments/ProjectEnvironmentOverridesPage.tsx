@@ -242,13 +242,15 @@ export const ProjectEnvironmentOverridesPage = ({
     setSaveError(null);
     try {
       await persist(hasFields ? overrides : {});
-      notification.showSuccess(
-        isDeployMode
-          ? `Deployed ${effectiveRelease} to ${envDisplayName}.`
-          : isPromoteMode
-            ? `Promoted ${effectiveRelease} to ${envDisplayName}.`
-            : `Saved overrides for ${envDisplayName}.`,
-      );
+      let successMessage: string;
+      if (isDeployMode) {
+        successMessage = `Deployed ${effectiveRelease} to ${envDisplayName}.`;
+      } else if (isPromoteMode) {
+        successMessage = `Promoted ${effectiveRelease} to ${envDisplayName}.`;
+      } else {
+        successMessage = `Saved overrides for ${envDisplayName}.`;
+      }
+      notification.showSuccess(successMessage);
       onSaved();
     } catch (err: unknown) {
       setSaveError(getErrorMessage(err));
@@ -339,11 +341,23 @@ export const ProjectEnvironmentOverridesPage = ({
     </Box>
   );
 
-  const subtitle = isDeployMode
-    ? `Deploy ${effectiveRelease} to ${envDisplayName} with any ${envDisplayName}-specific overrides.`
-    : isPromoteMode
-      ? `Review ${envDisplayName}-specific overrides, then promote ${effectiveRelease}.`
-      : `Set ${envDisplayName}-specific values that override the ${projectTypeName} defaults for this binding only.`;
+  let subtitle: string;
+  if (isDeployMode) {
+    subtitle = `Deploy ${effectiveRelease} to ${envDisplayName} with any ${envDisplayName}-specific overrides.`;
+  } else if (isPromoteMode) {
+    subtitle = `Review ${envDisplayName}-specific overrides, then promote ${effectiveRelease}.`;
+  } else {
+    subtitle = `Set ${envDisplayName}-specific values that override the ${projectTypeName} defaults for this binding only.`;
+  }
+
+  let pageTitle: string;
+  if (isPromoteMode) {
+    pageTitle = `Promote to ${envDisplayName}`;
+  } else if (isDeployMode) {
+    pageTitle = `Deploy to ${envDisplayName}`;
+  } else {
+    pageTitle = `Configure Environment Overrides — ${envDisplayName}`;
+  }
 
   if (isForbiddenError(loadError)) {
     return (
@@ -356,13 +370,7 @@ export const ProjectEnvironmentOverridesPage = ({
 
   return (
     <DetailPageLayout
-      title={
-        isPromoteMode
-          ? `Promote to ${envDisplayName}`
-          : isDeployMode
-            ? `Deploy to ${envDisplayName}`
-            : `Configure Environment Overrides — ${envDisplayName}`
-      }
+      title={pageTitle}
       subtitle={subtitle}
       onBack={onBack}
       actions={headerActions}
