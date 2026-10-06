@@ -26,7 +26,7 @@ yarn tsc            # TypeScript check
 Some issues only appear in production builds. Periodically test with a production build to catch them early:
 
 - **CSS class name mangling**: Material-UI generates descriptive class names in development (e.g., `makeStyles-root-123`) but short, mangled names in production (e.g., `jss1`). Any custom CSS selectors that rely on development class name patterns will silently break in production.
-- **Stricter plugin initialization**: Some plugins start without issues when their configuration is missing in development mode, but fail at startup in production mode. For example, the Jenkins plugin tolerates missing config in dev but throws errors in production.
+- **Stricter plugin initialization**: Some plugins start without issues when their configuration is missing in development mode, but fail at startup in production mode.
 
 ```bash
 # Build all packages with production optimizations
