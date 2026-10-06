@@ -173,7 +173,11 @@ export const AddWidgetDialog = (props: AddWidgetDialogProps) => {
                     focusRipple
                   >
                     <div className={classes.previewFrame}>
-                      <div className={classes.previewScale}>
+                      <div
+                        className={classes.previewScale}
+                        aria-hidden="true"
+                        {...{ inert: '' }}
+                      >
                         {widget.component}
                       </div>
                       <div className={classes.clickBlocker} />

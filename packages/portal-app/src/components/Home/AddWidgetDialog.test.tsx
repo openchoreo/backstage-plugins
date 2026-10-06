@@ -92,4 +92,12 @@ describe('AddWidgetDialog', () => {
       screen.queryByPlaceholderText('Search widgets'),
     ).not.toBeInTheDocument();
   });
+
+  it('hides live previews from assistive tech and the tab order', async () => {
+    await renderDialog();
+
+    const preview = screen.getByTestId('preview-Projects').parentElement;
+    expect(preview).toHaveAttribute('aria-hidden', 'true');
+    expect(preview).toHaveAttribute('inert');
+  });
 });
