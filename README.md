@@ -74,7 +74,7 @@ If you're running OpenChoreo locally and want to connect Backstage (running at l
 **Note:** The following steps are for the [single cluster setup](https://openchoreo.dev/docs/getting-started/try-it-out/on-your-environment/).
 
 ```bash
-helm upgrade openchoreo-control-plane oci://ghcr.io/openchoreo/helm-charts/openchoreo-control-plane \
+helm upgrade openchoreo-control-plane oci://cr.openchoreo.dev/openchoreo/helm-charts/openchoreo-control-plane \
   --version 0.0.0-latest-dev \
   --namespace openchoreo-control-plane \
   --reuse-values \
@@ -98,7 +98,7 @@ When running Backstage locally with `yarn start`, the OpenChoreo event-forwarder
 To point the event-forwarder at your local Backstage:
 
 ```bash
-helm upgrade openchoreo-control-plane oci://ghcr.io/openchoreo/helm-charts/openchoreo-control-plane \
+helm upgrade openchoreo-control-plane oci://cr.openchoreo.dev/openchoreo/helm-charts/openchoreo-control-plane \
   --version 0.0.0-latest-dev \
   --namespace openchoreo-control-plane \
   --reuse-values \
