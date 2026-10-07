@@ -103,7 +103,11 @@ The `Changeset Check` workflow ([`.github/workflows/changeset-check.yml`](.githu
 
 ## Releasing
 
-Releases are tag-driven. Pushing a `v*.*.*` tag triggers the [release workflow](.github/workflows/release.yml), which retags the Docker image in GHCR **and** publishes every public `@openchoreo/*` package to GitHub Packages (`https://npm.pkg.github.com`). Authentication uses the auto-issued `GITHUB_TOKEN` — no extra secrets needed.
+Releases are tag-driven. Pushing a `v*.*.*` tag triggers the [release workflow](.github/workflows/release.yml), which publishes every public `@openchoreo/*` package to the **public npm registry** and then retags the Docker image in GHCR.
+
+**There are no publish secrets.** Authentication is [npm trusted publishing](https://docs.npmjs.com/trusted-publishers): the `publish-npm` job mints a short-lived OIDC token that npm exchanges for a publish credential, accepted only from `openchoreo/backstage-plugins`, from `release.yml`, in the `npm-publish` environment. That job deliberately does not check out the repository or install dependencies — `build` does that without OIDC access and hands over tarballs — so no dependency lifecycle script runs while the token is reachable.
+
+On this release line a stable `vX.Y.Z` publishes under the `release-1.2` dist-tag once a newer line holds `latest`.
 
 ### Cutting a release
 
@@ -133,7 +137,8 @@ Releases are tag-driven. Pushing a `v*.*.*` tag triggers the [release workflow](
 
 5. **CI publishes**. The release workflow:
    - Retags the existing Docker image (built earlier on the `main` push) to `vX.Y.Z` in GHCR.
-   - Runs `yarn install --immutable && yarn tsc && yarn build:all`, then `yarn workspaces foreach --all --no-private --topological --verbose npm publish --tolerate-republish --access public --tag <latest|next>` to publish npm packages to GitHub Packages.
+   - `build` (no OIDC access) runs `yarn install --immutable && yarn tsc && yarn build:all`, packs every public workspace with `yarn pack`, fails if any tarball still contains a `workspace:` specifier, and uploads the tarballs.
+   - `publish-npm` (holds `id-token: write`) downloads them and runs `npm publish <tarball> --access public --provenance`, after a required reviewer approves the `npm-publish` environment.
    - On **stable** tags (`vX.Y.Z`) publishes under the `latest` npm dist-tag.
    - On **prerelease** tags (`vX.Y.Z-rc.N`, `vX.Y.Z-test.N`, etc. — any tag containing a hyphen) publishes under the `next` dist-tag, leaving `latest` untouched.
 
@@ -142,8 +147,10 @@ Releases are tag-driven. Pushing a `v*.*.*` tag triggers the [release workflow](
 ### Verifying a release
 
 ```bash
-yarn npm info @openchoreo/backstage-plugin --registry=https://npm.pkg.github.com
-yarn npm info @openchoreo/backstage-design-system --registry=https://npm.pkg.github.com
+VERSION=1.2.6   # the version just released, without the leading v
+
+yarn npm info "@openchoreo/backstage-plugin@${VERSION}"
+npm view "@openchoreo/backstage-plugin@${VERSION}" dist.attestations
 ```
 
 Both should show the new version. Confirm under `dist-tags` that stable releases moved `latest` and prereleases moved `next`. To confirm `workspace:^` rewriting worked, inspect the `dependencies` field of any published `@openchoreo/*` package — every version specifier should be a concrete range (e.g. `^1.1.0`), never `workspace:^`.
