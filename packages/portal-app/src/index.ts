@@ -1,15 +1,9 @@
 /**
- * The OpenChoreo Portal's frontend shell as composable building blocks.
- *
- * This package is the agreed landing place for app-shell pieces as they are
- * migrated to the new frontend system: sign-in, navigation/layout, custom
- * catalog/entity/scaffolder pages, and scaffolder field extensions. Migrated
- * code lives here (not in packages/app) so the custom-portal scaffold can
- * consume it — see the portal composition proposal.
- *
- * The package stays private until the migration cleans up the legacy-bridged
- * pieces; the PR that makes it publishable flips `private` and adds it to the
- * changeset linked group.
+ * The OpenChoreo Portal's frontend shell as composable building blocks:
+ * app assembly (`createPortalApp`), sign-in, navigation/layout, custom
+ * catalog/entity/scaffolder pages, and scaffolder field extensions. The stock
+ * portal and every portal scaffolded by `@openchoreo/create-portal` render
+ * this shell; host apps extend it through `createPortalApp({ features })`.
  *
  * @packageDocumentation
  */
@@ -22,3 +16,8 @@ export {
   DEFAULT_BRAND_NAME,
 } from '@openchoreo/backstage-design-system';
 export type { BrandingConfig } from '@openchoreo/backstage-design-system';
+export {
+  portalAssistantIntegrationApiRef,
+  usePortalAssistant,
+} from './assistant/PortalAssistantIntegrationApi';
+export type { PortalAssistantIntegration } from './assistant/PortalAssistantIntegrationApi';

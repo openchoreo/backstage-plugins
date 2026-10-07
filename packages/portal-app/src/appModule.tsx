@@ -11,15 +11,8 @@ import {
   EntityContentBlueprint,
   EntityContentLayoutBlueprint,
 } from '@backstage/plugin-catalog-react/alpha';
-import {
-  AssistantDrawerProvider,
-  FailedBuildSnackbar,
-  InvestigateDependencyButton,
-} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
-import {
-  portalAssistantIntegrationApiRef,
-  type PortalAssistantIntegration,
-} from '@openchoreo/backstage-plugin-react';
+import { Fragment, PropsWithChildren } from 'react';
+import { usePortalAssistant } from './assistant/PortalAssistantIntegrationApi';
 import { apis } from './apis';
 import { LEGACY_KIND_ICONS } from './kindIcons';
 import { PortalNavContent } from './components/Root/PortalNavContent';
@@ -46,28 +39,18 @@ const scaffolderPreselectionWrapper = AppRootWrapperBlueprint.make({
   params: { component: ScaffolderPreselectionProvider },
 });
 
+// Assistant drawer slot — the shell has no dependency on any assistant
+// implementation; hosts register one via `portalAssistantIntegrationApiRef`.
+// Falls back to a Fragment so the tree is identical when no assistant is
+// installed.
+const AssistantAppWrapper = ({ children }: PropsWithChildren<{}>) => {
+  const { AppWrapper = Fragment } = usePortalAssistant();
+  return <AppWrapper>{children}</AppWrapper>;
+};
+
 const assistantDrawerWrapper = AppRootWrapperBlueprint.make({
   name: 'assistant-drawer',
-  params: { component: AssistantDrawerProvider },
-});
-
-// Fills the `portalAssistantIntegrationApiRef` slots the OpenChoreo plugins
-// expose: the failed-build notifier (Overview/Build tabs) and the deploy-panel
-// "Investigate with AI" action. `AppWrapper` is unset — the drawer provider is
-// already mounted via `assistantDrawerWrapper` above.
-const assistantIntegration = ApiBlueprint.make({
-  name: 'portal-assistant-integration',
-  params: defineParams =>
-    defineParams({
-      api: portalAssistantIntegrationApiRef,
-      deps: {},
-      factory: (): PortalAssistantIntegration => ({
-        BuildFailureNotifier: FailedBuildSnackbar,
-        renderInvestigateAction: scope => (
-          <InvestigateDependencyButton {...scope} />
-        ),
-      }),
-    }),
+  params: { component: AssistantAppWrapper },
 });
 
 // Portal-only. Adopters get vanilla upstream api-docs behavior on API pages.
@@ -103,7 +86,6 @@ export const appModule = createFrontendModule({
     navContent,
     scaffolderPreselectionWrapper,
     assistantDrawerWrapper,
-    assistantIntegration,
     apiTryOutEntityContent,
     apiOverviewLayout,
   ],
