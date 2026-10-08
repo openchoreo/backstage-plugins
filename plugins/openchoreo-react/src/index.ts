@@ -14,6 +14,7 @@ export {
 export {
   openChoreoFetchApiRef,
   OpenChoreoScopedFetchApi,
+  type OpenChoreoScopedFetchApiOptions,
 } from './api/openChoreoFetchApi';
 
 // Components

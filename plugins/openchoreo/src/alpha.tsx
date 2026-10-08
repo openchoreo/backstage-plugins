@@ -97,12 +97,14 @@ const openChoreoFetchApi = ApiBlueprint.make({
         configApi: configApiRef,
       },
       factory: ({ baseFetchApi, tokenApi, configApi }) =>
-        new OpenChoreoScopedFetchApi(
+        new OpenChoreoScopedFetchApi({
           baseFetchApi,
           tokenApi,
-          configApi.getOptionalBoolean('openchoreo.features.auth.enabled') ??
+          authEnabled:
+            configApi.getOptionalBoolean('openchoreo.features.auth.enabled') ??
             true,
-        ),
+          backendBaseUrl: configApi.getString('backend.baseUrl'),
+        }),
     }),
 });
 

@@ -23,6 +23,12 @@ Requests bound for an OpenChoreo backend now go through a new
 replacing it. The host keeps its middleware, and OpenChoreo credentials travel
 only to OpenChoreo.
 
+Destinations are checked rather than trusted: the IDP token is attached only to
+requests bound for `backend.baseUrl`, so a caller passing an unrelated URL
+cannot send the user's credentials to a third party. Direct mode (the
+`x-openchoreo-direct` signal) remains an explicit per-request opt-in for
+external OpenChoreo services.
+
 The token itself comes from a new `openChoreoTokenApiRef` capability rather
 than from a named auth provider. The default implementation sources it from the
 `openchoreo-auth` OAuth provider exactly as before, so nothing changes for the
