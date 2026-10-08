@@ -13,7 +13,7 @@ jest.mock('@backstage/core-plugin-api', () => ({
         getBaseUrl: jest.fn().mockResolvedValue('http://test/api'),
       };
     }
-    if (ref.id === 'core.fetch') {
+    if (ref.id === 'openchoreo.fetch') {
       return { fetch: mockFetch };
     }
     return {};

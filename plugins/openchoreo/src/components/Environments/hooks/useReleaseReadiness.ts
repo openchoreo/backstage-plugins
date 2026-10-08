@@ -1,9 +1,6 @@
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
@@ -34,7 +31,7 @@ export const useReleaseReadiness = (
   entity: Entity,
 ): UseReleaseReadinessResult => {
   const discovery = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const client = useApi(openChoreoClientApiRef);
   const entityRef = stringifyEntityRef(entity);
 

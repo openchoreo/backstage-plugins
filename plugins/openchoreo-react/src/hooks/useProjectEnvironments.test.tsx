@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '../api/openChoreoFetchApi';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useProjectEnvironments } from './useProjectEnvironments';
@@ -52,7 +53,7 @@ function renderHookWithApis() {
       },
       wrapper: createQueryWrapper([
         [discoveryApiRef, mockDiscoveryApi as any],
-        [fetchApiRef, mockFetchApi as any],
+        [openChoreoFetchApiRef, mockFetchApi as any],
         [catalogApiRef, mockCatalogApi as any],
       ]),
     },
@@ -71,7 +72,7 @@ describe('useProjectEnvironments', () => {
       {
         wrapper: createQueryWrapper([
           [discoveryApiRef, mockDiscoveryApi as any],
-          [fetchApiRef, mockFetchApi as any],
+          [openChoreoFetchApiRef, mockFetchApi as any],
           [catalogApiRef, mockCatalogApi as any],
         ]),
       },
@@ -90,7 +91,7 @@ describe('useProjectEnvironments', () => {
       {
         wrapper: createQueryWrapper([
           [discoveryApiRef, mockDiscoveryApi as any],
-          [fetchApiRef, mockFetchApi as any],
+          [openChoreoFetchApiRef, mockFetchApi as any],
           [catalogApiRef, mockCatalogApi as any],
         ]),
       },

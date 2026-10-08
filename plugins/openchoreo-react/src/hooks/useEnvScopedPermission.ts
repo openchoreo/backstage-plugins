@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '../api/openChoreoFetchApi';
 import { usePermission } from '@backstage/plugin-permission-react';
 import type {
   Permission,
@@ -73,7 +70,7 @@ export function useEnvScopedPermission(
   const authzEnabled = useAuthzEnabled();
 
   const discovery = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
 
   const [envAllowed, setEnvAllowed] = useState<boolean | undefined>(undefined);
   const [envLoading, setEnvLoading] = useState<boolean>(false);

@@ -2,7 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { TestApiProvider } from '@backstage/test-utils';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
-import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { mockComponentEntity } from '@openchoreo/test-utils';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import { Workflows } from './Workflows';
@@ -57,6 +58,7 @@ jest.mock('@backstage/core-components', () => ({
 // Mock @openchoreo/backstage-plugin-react
 const mockUseBuildPermission = jest.fn();
 jest.mock('@openchoreo/backstage-plugin-react', () => ({
+  ...jest.requireActual('@openchoreo/backstage-plugin-react'),
   useComponentEntityDetails: () => ({
     getEntityDetails: jest.fn().mockResolvedValue({
       componentName: 'test-component',
@@ -152,7 +154,7 @@ function renderWithRouter(ui: React.ReactElement) {
         apis={[
           [openChoreoCiClientApiRef, mockCiClient],
           [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
+          [openChoreoFetchApiRef, mockFetchApi],
         ]}
       >
         <EntityProvider entity={testEntity}>{ui}</EntityProvider>

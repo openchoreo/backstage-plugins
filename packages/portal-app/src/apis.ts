@@ -1,3 +1,4 @@
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import {
   ScmIntegrationsApi,
   scmIntegrationsApiRef,
@@ -58,7 +59,9 @@ export const apis: AnyApiFactory[] = [
     api: perchAgentApiRef,
     deps: {
       discoveryApi: discoveryApiRef,
-      fetchApi: fetchApiRef,
+      // The agent is reached in direct mode, so this must be the
+      // OpenChoreo-scoped fetch API that carries the IDP token.
+      fetchApi: openChoreoFetchApiRef,
     },
     factory: ({ discoveryApi, fetchApi }) =>
       new PerchAgentClient({ discoveryApi, fetchApi }),

@@ -13,14 +13,18 @@ const mockFetch = jest.fn();
 const mockDiscoveryApi = { getBaseUrl: mockGetBaseUrl };
 const mockFetchApi = { fetch: mockFetch };
 jest.mock('@backstage/core-plugin-api', () => {
+  const actual = jest.requireActual('@backstage/core-plugin-api');
   const discoveryRef = Symbol('discoveryApiRef');
   const fetchRef = Symbol('fetchApiRef');
   return {
+    ...actual,
     discoveryApiRef: discoveryRef,
     fetchApiRef: fetchRef,
-    useApi: (apiRef: symbol) => {
+    useApi: (apiRef: any) => {
       if (apiRef === discoveryRef) return mockDiscoveryApi;
       if (apiRef === fetchRef) return mockFetchApi;
+      // the OpenChoreo-scoped fetch API the hooks now depend on
+      if (apiRef?.id === 'openchoreo.fetch') return mockFetchApi;
       return {};
     },
   };

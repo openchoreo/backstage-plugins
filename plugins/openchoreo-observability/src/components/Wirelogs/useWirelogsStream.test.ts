@@ -14,11 +14,8 @@ if (typeof (globalThis as any).TextDecoder === 'undefined') {
 }
 
 import { act, renderHook, waitFor } from '@testing-library/react';
-import {
-  discoveryApiRef,
-  fetchApiRef,
-  useApi,
-} from '@backstage/core-plugin-api';
+import { discoveryApiRef, useApi } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { useWirelogsStream } from './useWirelogsStream';
 
 jest.mock('@backstage/core-plugin-api', () => {
@@ -69,7 +66,7 @@ function makeApis() {
   const fetch = jest.fn();
   (useApi as jest.Mock).mockImplementation(ref => {
     if (ref === discoveryApiRef) return { getBaseUrl };
-    if (ref === fetchApiRef) return { fetch };
+    if (ref === openChoreoFetchApiRef) return { fetch };
     return undefined;
   });
   return { getBaseUrl, fetch };

@@ -1,9 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useDataPlaneNetPolProvider } from './useDataPlaneNetPolProvider';
 
@@ -26,7 +23,7 @@ describe('useDataPlaneNetPolProvider', () => {
     getBaseUrl.mockResolvedValue('http://backend/api/observability');
     (useApi as jest.Mock).mockImplementation(ref => {
       if (ref === discoveryApiRef) return discoveryApi;
-      if (ref === fetchApiRef) return fetchApi;
+      if (ref === openChoreoFetchApiRef) return fetchApi;
       return undefined;
     });
   });

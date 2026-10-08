@@ -15,7 +15,8 @@
  *   - refetch() re-invokes the client.
  */
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useWorkflowRun, type WorkflowRunDetails } from './useWorkflowRun';
 
@@ -66,7 +67,7 @@ function renderWorkflowRun(runName?: string) {
   return renderHook(() => useWorkflowRun(runName), {
     wrapper: createQueryWrapper([
       [discoveryApiRef, mockDiscoveryApi as any],
-      [fetchApiRef, mockFetchApi as any],
+      [openChoreoFetchApiRef, mockFetchApi as any],
     ]),
   });
 }

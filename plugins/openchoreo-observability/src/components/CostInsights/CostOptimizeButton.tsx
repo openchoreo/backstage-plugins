@@ -11,11 +11,8 @@ import {
 } from '@material-ui/core';
 import CheckIcon from '@material-ui/icons/Check';
 import { Alert, AlertTitle } from '@material-ui/lab';
-import {
-  useApi,
-  fetchApiRef,
-  discoveryApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import {
@@ -87,7 +84,7 @@ export const CostOptimizeButton = ({
   onOptimized,
   disabled: disabledProp,
 }: CostOptimizeButtonProps) => {
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const discovery = useApi(discoveryApiRef);
 
   const resourceRef = useComponentEntityRef(scope);

@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '../api/openChoreoFetchApi';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import { usePermission } from '@backstage/plugin-permission-react';
@@ -51,7 +48,7 @@ export const useComponentUpdateContextPermission =
 
     const authzEnabled = useAuthzEnabled();
     const discovery = useApi(discoveryApiRef);
-    const fetchApi = useApi(fetchApiRef);
+    const fetchApi = useApi(openChoreoFetchApiRef);
 
     // Tagged with the input tuple it was evaluated for, so a stale result from
     // a previously rendered entity is never reused.

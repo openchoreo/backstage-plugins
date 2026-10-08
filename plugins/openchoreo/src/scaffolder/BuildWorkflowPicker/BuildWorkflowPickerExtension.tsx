@@ -13,11 +13,8 @@ import {
   Link,
 } from '@material-ui/core';
 import { NotificationBanner } from '@openchoreo/backstage-plugin-react';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import type { WorkflowKind, WorkflowSelection } from '../types';
 
 export type { WorkflowSelection };
@@ -97,7 +94,7 @@ export const BuildWorkflowPicker = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
 
   // Get namespaceName and ctdKind from ui:options
   const namespaceName =

@@ -3,8 +3,11 @@ import openchoreoAlpha, { openChoreoPlugin as openchoreoPlugin } from './alpha';
 const ALPHA_EXTENSION_NAMES = [
   // backend client
   ['api', 'open-choreo-client'],
-  // OpenChoreo IDP auth (fetch/permission overrides live in openChoreoAppModule)
+  // OpenChoreo IDP auth (the permission override lives in openChoreoAppModule)
   ['api', 'openchoreo-auth'],
+  // user token capability + the OpenChoreo-scoped fetch API built on it
+  ['api', 'openchoreo-token'],
+  ['api', 'openchoreo-fetch'],
   // self-contained response-cache provider
   ['plugin-wrapper', 'query-provider'],
   // routed pages

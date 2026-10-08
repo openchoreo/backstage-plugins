@@ -4,6 +4,18 @@
  * Shared React components, hooks, and utilities for OpenChoreo Backstage plugins
  */
 
+// APIs
+export {
+  openChoreoTokenApiRef,
+  type OpenChoreoTokenApi,
+  type OpenChoreoTokenRequestOptions,
+  type OpenChoreoSessionState,
+} from './api/openChoreoTokenApiRef';
+export {
+  openChoreoFetchApiRef,
+  OpenChoreoScopedFetchApi,
+} from './api/openChoreoFetchApi';
+
 // Components
 export { SummaryWidgetWrapper } from './components/SummaryWidgetWrapper';
 export {

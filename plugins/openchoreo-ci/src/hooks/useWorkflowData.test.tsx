@@ -18,7 +18,8 @@
  */
 import { ReactNode } from 'react';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { mockComponentEntity } from '@openchoreo/test-utils';
 import { createQueryWrapper } from '@openchoreo/test-utils';
@@ -70,7 +71,7 @@ const runItem = (overrides: Record<string, unknown> = {}) => ({
 function wrapper({ children }: { children: ReactNode }) {
   const QueryWrapper = createQueryWrapper([
     [discoveryApiRef, mockDiscoveryApi as any],
-    [fetchApiRef, mockFetchApi as any],
+    [openChoreoFetchApiRef, mockFetchApi as any],
   ]);
   return (
     <QueryWrapper>

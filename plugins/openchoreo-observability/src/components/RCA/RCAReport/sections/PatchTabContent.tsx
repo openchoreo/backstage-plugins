@@ -11,7 +11,8 @@ import BuildIcon from '@material-ui/icons/Build';
 import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
-import { useApi, fetchApiRef } from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { useRcaUpdatePermission } from '@openchoreo/backstage-plugin-react';
 import { useRCAReportStyles } from '../styles';
 import { FormattedText } from '../FormattedText';
@@ -232,7 +233,7 @@ export const PatchTabContent = ({
   revisedActions,
 }: PatchTabContentProps) => {
   const classes = useRCAReportStyles();
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const {
     canUpdateRca,
     loading: permissionLoading,

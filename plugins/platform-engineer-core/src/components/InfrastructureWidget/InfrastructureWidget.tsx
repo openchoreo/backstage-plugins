@@ -1,8 +1,5 @@
-import {
-  discoveryApiRef,
-  fetchApiRef,
-  useApi,
-} from '@backstage/core-plugin-api';
+import { discoveryApiRef, useApi } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { fetchPlatformOverview } from '../../api/platformOverview';
 import {
@@ -42,7 +39,7 @@ const EMPTY_COUNTS: InfrastructureCounts = {
  */
 export const InfrastructureWidget = () => {
   const discovery = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const catalogApi = useApi(catalogApiRef);
 
   const { data, loading, isRefetching, error } =

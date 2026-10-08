@@ -1,8 +1,5 @@
-import {
-  discoveryApiRef,
-  fetchApiRef,
-  useApi,
-} from '@backstage/core-plugin-api';
+import { discoveryApiRef, useApi } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import {
   Environment,
   useOpenChoreoQuery,
@@ -47,7 +44,7 @@ export const useWirelogsEnvironments = (
   namespaceName: string | undefined,
 ): UseWirelogsEnvironmentsResult => {
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const {
     environments: baseEnvs,
     loading: baseLoading,

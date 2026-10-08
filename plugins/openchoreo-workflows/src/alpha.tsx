@@ -1,8 +1,8 @@
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import {
   ApiBlueprint,
   createFrontendPlugin,
   discoveryApiRef,
-  fetchApiRef,
   PageBlueprint,
   PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
@@ -18,7 +18,7 @@ const genericWorkflowsClientApi = ApiBlueprint.make({
   params: defineParams =>
     defineParams({
       api: genericWorkflowsClientApiRef,
-      deps: { discoveryApi: discoveryApiRef, fetchApi: fetchApiRef },
+      deps: { discoveryApi: discoveryApiRef, fetchApi: openChoreoFetchApiRef },
       factory: ({ discoveryApi, fetchApi }) =>
         new GenericWorkflowsClient(discoveryApi, fetchApi),
     }),

@@ -199,3 +199,21 @@ export const RELATION_NOTIFIES = 'notifies';
  * RELATION_NOTIFIES.
  */
 export const RELATION_NOTIFIED_BY = 'notifiedBy';
+
+/**
+ * Header carrying the user's OpenChoreo IDP access token from the browser to
+ * the Backstage backend, which forwards it to the OpenChoreo API.
+ *
+ * The Backstage session token travels in `Authorization` and authenticates the
+ * caller to the Backstage backend; this header is what authenticates the user
+ * to OpenChoreo itself. Canonical definition for both sides of the wire.
+ */
+export const OPENCHOREO_TOKEN_HEADER = 'x-openchoreo-token';
+
+/**
+ * Request-local signal asking the OpenChoreo fetch API to call an external
+ * OpenChoreo service directly rather than via the Backstage backend: the IDP
+ * token goes in `Authorization` and no Backstage token is sent. Stripped
+ * before the request leaves the browser, so it never reaches the network.
+ */
+export const OPENCHOREO_DIRECT_HEADER = 'x-openchoreo-direct';

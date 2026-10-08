@@ -1,8 +1,8 @@
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import {
   ApiBlueprint,
   createFrontendPlugin,
   discoveryApiRef,
-  fetchApiRef,
   PluginWrapperBlueprint,
 } from '@backstage/frontend-plugin-api';
 import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
@@ -17,7 +17,7 @@ const ciClientApi = ApiBlueprint.make({
   params: defineParams =>
     defineParams({
       api: openChoreoCiClientApiRef,
-      deps: { discoveryApi: discoveryApiRef, fetchApi: fetchApiRef },
+      deps: { discoveryApi: discoveryApiRef, fetchApi: openChoreoFetchApiRef },
       factory: ({ discoveryApi, fetchApi }) =>
         new OpenChoreoCiClient(discoveryApi, fetchApi),
     }),

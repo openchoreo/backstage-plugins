@@ -1,5 +1,6 @@
 import { useApi } from '@backstage/core-plugin-api';
-import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '../api/openChoreoFetchApi';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
@@ -105,7 +106,7 @@ export interface UseSecretReferencesResult {
  */
 export function useSecretReferences(): UseSecretReferencesResult {
   const discovery = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const { entity } = useEntity();
 
   const { data, loading, isRefetching, error } = useOpenChoreoQuery<

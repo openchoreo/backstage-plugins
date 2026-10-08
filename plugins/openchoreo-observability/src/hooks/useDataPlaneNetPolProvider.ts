@@ -1,8 +1,5 @@
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 
 export interface UseDataPlaneNetPolProviderResult {
@@ -29,7 +26,7 @@ export const useDataPlaneNetPolProvider = (
   dataPlaneRef: { kind?: string; name?: string } | undefined,
 ): UseDataPlaneNetPolProviderResult => {
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
 
   const dpName = dataPlaneRef?.name;
   const dpKind = dataPlaneRef?.kind ?? 'DataPlane';

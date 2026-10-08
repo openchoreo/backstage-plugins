@@ -1,8 +1,5 @@
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
@@ -41,7 +38,7 @@ function isBuildActive(build?: ModelsBuild | null): boolean {
 export function useWorkflowsSummary() {
   const { entity } = useEntity();
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
 
   const queryKey = ['workflows-summary', stringifyEntityRef(entity)];

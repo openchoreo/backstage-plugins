@@ -9,11 +9,8 @@ import {
   Checkbox,
   FormControlLabel,
 } from '@material-ui/core';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import type {
   BuildTemplateResponse,
   BuildTemplateParameter as BaseBuildTemplateParameter,
@@ -59,7 +56,7 @@ export const BuildTemplateParameters = ({
   const [loading, setLoading] = useState(false);
 
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
 
   // Get the selected build template and namespace from form context
   const selectedTemplateName = formContext?.formData?.build_template_name;

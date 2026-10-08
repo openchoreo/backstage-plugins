@@ -18,6 +18,13 @@ const OPENCHOREO_TOKEN_HEADER = 'x-openchoreo-token';
 const DIRECT_MODE_HEADER = 'x-openchoreo-direct';
 
 /**
+ * @deprecated Use `openChoreoFetchApiRef` / `OpenChoreoScopedFetchApi` from
+ * `@openchoreo/backstage-plugin-react` instead. This implementation replaces
+ * the app-wide `core.fetch`, which drops the host's own fetch middleware
+ * (`plugin://` resolution, scoped identity injection) and attaches credentials
+ * to every request regardless of destination. It is no longer registered by
+ * `openChoreoAppModule` and will be removed in a future major release.
+ *
  * Custom FetchApi implementation that automatically injects authentication tokens.
  *
  * This wrapper supports two modes:

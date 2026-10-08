@@ -3,7 +3,8 @@ import { Button, Box, LinearProgress, Tooltip } from '@material-ui/core';
 import CheckIcon from '@material-ui/icons/Check';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import { Alert } from '@material-ui/lab';
-import { useApi, fetchApiRef } from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { useFinopsUpdatePermission } from '@openchoreo/backstage-plugin-react';
 import type { FinOpsAgentApi } from '../../api/FinOpsAgentApi';
 import type { FinOpsRemediationAction } from '../../types';
@@ -33,7 +34,7 @@ export const FinOpsApplyButton = ({
   chatContext,
   onApplied,
 }: FinOpsApplyButtonProps) => {
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const {
     canUpdateFinops,
     loading: permissionLoading,
