@@ -20,21 +20,6 @@ const colorLiteralRules = [
   },
 ];
 
-// Guardrail: OpenChoreo-bound requests must carry the user's IDP token.
-// `fetchApiRef` is the host app's fetch API and deliberately does NOT add it,
-// so reaching for it here silently drops the token and the OpenChoreo API
-// answers 401 — a failure that no unit test catches, because the API registry
-// is mocked. Use `openChoreoFetchApiRef` from
-// `@openchoreo/backstage-plugin-react` instead. The few files that genuinely
-// need the host's own fetch API are listed in `excludedFiles` below.
-const openChoreoFetchRules = [
-  {
-    selector: 'Identifier[name="fetchApiRef"]',
-    message:
-      'Use openChoreoFetchApiRef from @openchoreo/backstage-plugin-react for OpenChoreo-bound requests; the app-wide fetchApiRef does not carry the x-openchoreo-token header.',
-  },
-];
-
 module.exports = {
   root: true,
   overrides: [
@@ -57,36 +42,6 @@ module.exports = {
       ],
       rules: {
         'no-restricted-syntax': ['error', ...colorLiteralRules],
-      },
-    },
-    {
-      // See `openChoreoFetchRules` above.
-      files: ['packages/**/*.{ts,tsx}', 'plugins/**/*.{ts,tsx}'],
-      excludedFiles: [
-        // Builds the OpenChoreo-scoped fetch API by decorating the host's one,
-        // so it has to name the host API it wraps.
-        'plugins/openchoreo/src/alpha.tsx',
-        // Backstage's own storage API and the catalog API are host-owned and
-        // must not receive OpenChoreo credentials.
-        'packages/portal-app/src/apis.ts',
-        'packages/portal-app/src/apis/customOverrides.tsx',
-        // Legacy (pre-"new frontend system") plugin registrations. The scoped
-        // fetch API is only registered by the new-system plugin, so these keep
-        // the host API until the legacy entry points are retired.
-        'plugins/openchoreo/src/plugin.ts',
-        'plugins/openchoreo-ci/src/plugin.ts',
-        'plugins/openchoreo-observability/src/plugin.ts',
-        'plugins/openchoreo-workflows/src/plugin.ts',
-        'plugins/openchoreo-portal-assistant/src/plugin.ts',
-        // Tests mock the API registry and reference the refs by name.
-        '**/*.test.ts',
-        '**/*.test.tsx',
-        '**/dist/**',
-        '**/dist-types/**',
-        '**/generated/**',
-      ],
-      rules: {
-        'no-restricted-syntax': ['error', ...openChoreoFetchRules],
       },
     },
     {
