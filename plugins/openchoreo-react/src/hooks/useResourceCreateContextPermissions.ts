@@ -1,9 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '../api/openChoreoFetchApi';
 import { usePermission } from '@backstage/plugin-permission-react';
 import { openchoreoResourceCreatePermission } from '@openchoreo/backstage-plugin-common';
 import { useAuthzEnabled } from './useOpenChoreoFeatures';
@@ -47,7 +44,7 @@ export function useResourceCreateContextPermissions(
 
   const authzEnabled = useAuthzEnabled();
   const discovery = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
 
   const [results, setResults] = useState<
     Record<string, ResourceCreateContextDecision>

@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import type {
   WirelogEvent,
   WirelogStreamStatus,
@@ -61,7 +58,7 @@ export function useWirelogsStream({
   maxBuffer = DEFAULT_MAX_BUFFER,
 }: UseWirelogsStreamArgs): UseWirelogsStreamResult {
   const discovery = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
 
   const [flows, setFlows] = useState<WirelogEvent[]>([]);
   const [status, setStatus] = useState<WirelogStreamStatus>('idle');

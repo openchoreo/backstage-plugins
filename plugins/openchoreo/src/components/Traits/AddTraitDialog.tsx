@@ -14,11 +14,8 @@ import {
   Box,
   Typography,
 } from '@material-ui/core';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { RjsfForm } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
@@ -101,7 +98,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
   const classes = useTraitsStyles();
   const { entity } = useEntity();
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
 
   const componentTypeKind =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND];

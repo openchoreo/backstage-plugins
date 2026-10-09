@@ -1,8 +1,5 @@
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import {
   useComponentEntityDetails,
   useOpenChoreoQuery,
@@ -41,7 +38,7 @@ interface UseWorkflowRunResult {
  */
 export function useWorkflowRun(runName?: string): UseWorkflowRunResult {
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
 
   const { data, loading, isRefetching, error, refetch } =

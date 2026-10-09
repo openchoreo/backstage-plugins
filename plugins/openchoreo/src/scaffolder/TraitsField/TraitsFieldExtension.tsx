@@ -13,11 +13,8 @@ import {
 } from '@material-ui/core';
 import DeleteIcon from '@material-ui/icons/Delete';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { RjsfForm } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
 import { NoTraitsAvailableMessage } from './NoTraitsAvailableMessage';
@@ -258,7 +255,7 @@ export const TraitsField = ({
   );
 
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
 
   // Get namespace name from ui:options
   const namespaceName =

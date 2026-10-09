@@ -7,13 +7,17 @@ function extensionIds(): string[] {
 }
 
 describe('openChoreoAppModule', () => {
-  it('overrides the core fetch and permission APIs', () => {
+  it('overrides the permission API', () => {
     expect(extensionIds()).toEqual(
-      expect.arrayContaining([
-        'api:app/core.fetch',
-        'api:app/plugin.permission.api',
-      ]),
+      expect.arrayContaining(['api:app/plugin.permission.api']),
     );
+  });
+
+  // Replacing the app-wide fetch API would strip the host's own middleware for
+  // every plugin and attach OpenChoreo credentials to unrelated requests;
+  // OpenChoreo calls go through `openChoreoFetchApiRef` instead.
+  it('does not override the app-wide fetch API', () => {
+    expect(extensionIds()).not.toContain('api:app/core.fetch');
   });
 
   // Themes ship from here (not the portal) so a host app that only installs

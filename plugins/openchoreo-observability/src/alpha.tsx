@@ -6,7 +6,6 @@ import {
   createExtensionInput,
   createFrontendPlugin,
   discoveryApiRef,
-  fetchApiRef,
   PageBlueprint,
   PluginWrapperBlueprint,
   SubPageBlueprint,
@@ -18,6 +17,7 @@ import {
 import {
   FeatureGate,
   FeatureGatedContent,
+  openChoreoFetchApiRef,
 } from '@openchoreo/backstage-plugin-react';
 import {
   CHOREO_ANNOTATIONS,
@@ -53,7 +53,7 @@ const observabilityApi = ApiBlueprint.make({
   params: defineParams =>
     defineParams({
       api: observabilityApiRef,
-      deps: { discoveryApi: discoveryApiRef, fetchApi: fetchApiRef },
+      deps: { discoveryApi: discoveryApiRef, fetchApi: openChoreoFetchApiRef },
       factory: ({ discoveryApi, fetchApi }) =>
         new ObservabilityClient({ discoveryApi, fetchApi }),
     }),
@@ -80,7 +80,7 @@ const rcaAgentApi = ApiBlueprint.make({
   params: defineParams =>
     defineParams({
       api: rcaAgentApiRef,
-      deps: { discoveryApi: discoveryApiRef, fetchApi: fetchApiRef },
+      deps: { discoveryApi: discoveryApiRef, fetchApi: openChoreoFetchApiRef },
       factory: ({ discoveryApi, fetchApi }) =>
         new RCAAgentClient({ discoveryApi, fetchApi }),
     }),
@@ -91,7 +91,7 @@ const finopsAgentApi = ApiBlueprint.make({
   params: defineParams =>
     defineParams({
       api: finopsAgentApiRef,
-      deps: { discoveryApi: discoveryApiRef, fetchApi: fetchApiRef },
+      deps: { discoveryApi: discoveryApiRef, fetchApi: openChoreoFetchApiRef },
       factory: ({ discoveryApi, fetchApi }) =>
         new FinOpsAgentClient({ discoveryApi, fetchApi }),
     }),

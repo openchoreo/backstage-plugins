@@ -1,8 +1,5 @@
-import {
-  discoveryApiRef,
-  fetchApiRef,
-  useApi,
-} from '@backstage/core-plugin-api';
+import { discoveryApiRef, useApi } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '../api/openChoreoFetchApi';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { Environment } from '../components/EnvironmentFilter/types';
@@ -72,7 +69,7 @@ export const useProjectEnvironments = (
   namespaceName: string | undefined,
 ): UseProjectEnvironmentsResult => {
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const catalogApi = useApi(catalogApiRef);
 
   const enabled = Boolean(projectName && namespaceName);

@@ -3,7 +3,6 @@ import {
   configApiRef,
   createFrontendModule,
   discoveryApiRef,
-  fetchApiRef,
   identityApiRef,
 } from '@backstage/frontend-plugin-api';
 import {
@@ -14,26 +13,16 @@ import { permissionApiRef } from '@backstage/plugin-permission-react';
 import { appThemes } from '@openchoreo/backstage-design-system';
 import { OpenChoreoQueryProvider } from '@openchoreo/backstage-plugin-react';
 import { openChoreoAuthApiRef } from './api/authRefs';
-import { OpenChoreoFetchApi } from './api/OpenChoreoFetchApi';
 import { OpenChoreoPermissionApi } from './api/OpenChoreoPermissionApi';
 
-// pluginId: 'app' so extension IDs match `api:app/core.fetch` /
-// `api:app/plugin.permission.api` and override them — otherwise
-// API_FACTORY_CONFLICT.
-const openChoreoFetchApi = ApiBlueprint.make({
-  name: fetchApiRef.id,
-  params: defineParams =>
-    defineParams({
-      api: fetchApiRef,
-      deps: {
-        identityApi: identityApiRef,
-        oauthApi: openChoreoAuthApiRef,
-        configApi: configApiRef,
-      },
-      factory: ({ identityApi, oauthApi, configApi }) =>
-        new OpenChoreoFetchApi(identityApi, oauthApi, configApi),
-    }),
-});
+// pluginId: 'app' so the extension ID matches `api:app/plugin.permission.api`
+// and overrides it — otherwise API_FACTORY_CONFLICT.
+//
+// `core.fetch` is deliberately NOT overridden: replacing it would strip the
+// host's own fetch middleware (`plugin://` resolution, identity injection
+// scoped to the host's backend) for every plugin in the app, and would attach
+// OpenChoreo credentials to unrelated requests. OpenChoreo-bound calls use
+// `openChoreoFetchApiRef` instead, which decorates the host's fetch API.
 
 const openChoreoPermissionApi = ApiBlueprint.make({
   name: permissionApiRef.id,
@@ -81,7 +70,6 @@ const themeExtensions = appThemes.map(theme =>
 export const openChoreoAppModule = createFrontendModule({
   pluginId: 'app',
   extensions: [
-    openChoreoFetchApi,
     openChoreoPermissionApi,
     openChoreoQueryWrapper,
     ...themeExtensions,

@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { Entity } from '@backstage/catalog-model';
 import { createQueryWrapper } from '@openchoreo/test-utils';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
@@ -29,7 +30,7 @@ function renderUseReleaseReadiness(client: any) {
     wrapper: createQueryWrapper([
       [openChoreoClientApiRef, client],
       [discoveryApiRef, mockDiscoveryApi as any],
-      [fetchApiRef, mockFetchApi as any],
+      [openChoreoFetchApiRef, mockFetchApi as any],
     ]),
   });
 }

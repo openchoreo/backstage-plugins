@@ -15,11 +15,8 @@ import Autocomplete from '@material-ui/lab/Autocomplete';
 import { RjsfForm } from '@openchoreo/backstage-design-system';
 import validator from '@rjsf/validator-ajv8';
 import { JSONSchema7 } from 'json-schema';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import {
@@ -145,7 +142,7 @@ export const BuildWithParamsDialog = ({
   const { entity } = useEntity();
   const client = useApi(openChoreoCiClientApiRef);
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const catalogApi = useApi(catalogApiRef);
 
   const [schema, setSchema] = useState<JSONSchema7 | null>(null);

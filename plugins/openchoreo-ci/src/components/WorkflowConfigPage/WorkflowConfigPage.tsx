@@ -18,8 +18,8 @@ import {
   useApi,
   alertApiRef,
   discoveryApiRef,
-  fetchApiRef,
 } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import {
@@ -102,7 +102,7 @@ export const WorkflowConfigPage = ({
   const client = useApi(openChoreoCiClientApiRef);
   const alertApi = useApi(alertApiRef);
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

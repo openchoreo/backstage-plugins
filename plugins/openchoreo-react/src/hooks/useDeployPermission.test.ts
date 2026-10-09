@@ -24,6 +24,7 @@ jest.mock('@backstage/catalog-model', () => ({
 // registry. Stub them so renderHook doesn't fail when no environment arg is
 // passed (the env-aware branch never runs in these tests).
 jest.mock('@backstage/core-plugin-api', () => ({
+  ...jest.requireActual('@backstage/core-plugin-api'),
   useApi: () => ({}),
   discoveryApiRef: {},
   fetchApiRef: {},

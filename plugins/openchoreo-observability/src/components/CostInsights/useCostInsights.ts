@@ -1,8 +1,5 @@
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import {
   useOpenChoreoQuery,
   calculateTimeRange,
@@ -55,7 +52,7 @@ export function useCostInsights(
 ): UseCostInsightsResult {
   const api = useApi(observabilityApiRef);
   const discovery = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const { scopes, level, environments, timeRange, granularity } = params;
   const summaryOnly = params.summaryOnly ?? false;
   // Dedupe so a repeated env or scope can't fan out duplicate requests and

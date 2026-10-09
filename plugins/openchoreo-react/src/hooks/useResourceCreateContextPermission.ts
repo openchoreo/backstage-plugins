@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '../api/openChoreoFetchApi';
 import { usePermission } from '@backstage/plugin-permission-react';
 import { openchoreoResourceCreatePermission } from '@openchoreo/backstage-plugin-common';
 import { useAuthzEnabled } from './useOpenChoreoFeatures';
@@ -46,7 +43,7 @@ export function useResourceCreateContextPermission(
 
   const authzEnabled = useAuthzEnabled();
   const discovery = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
 
   const [ctxAllowed, setCtxAllowed] = useState<boolean | undefined>(undefined);
   const [ctxLoading, setCtxLoading] = useState<boolean>(false);

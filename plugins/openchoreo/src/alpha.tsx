@@ -51,20 +51,66 @@ import {
 import { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
 import { OpenChoreoClient } from './api/OpenChoreoClient';
 import { openChoreoAuthApiRef } from './api/authRefs';
+import { OAuthOpenChoreoTokenApi } from './api/OAuthOpenChoreoTokenApi';
+import {
+  openChoreoFetchApiRef,
+  openChoreoTokenApiRef,
+  OpenChoreoScopedFetchApi,
+} from '@openchoreo/backstage-plugin-react';
 
 const openChoreoClientApi = ApiBlueprint.make({
   name: 'open-choreo-client',
   params: defineParams =>
     defineParams({
       api: openChoreoClientApiRef,
-      deps: { discoveryApi: discoveryApiRef, fetchApi: fetchApiRef },
+      deps: { discoveryApi: discoveryApiRef, fetchApi: openChoreoFetchApiRef },
       factory: ({ discoveryApi, fetchApi }) =>
         new OpenChoreoClient(discoveryApi, fetchApi),
     }),
 });
 
-// OAuth2 client for the OpenChoreo IDP. Consumed by the openChoreoAppModule's
-// fetch/permission overrides and by the portal's SignInPage.
+// Supplies the OpenChoreo user token to everything that talks to an OpenChoreo
+// backend. Sourcing it from the `openchoreo-auth` OAuth provider is an
+// implementation detail of this factory: a host whose own session already
+// carries an OpenChoreo-accepted token overrides this API alone.
+const openChoreoTokenApi = ApiBlueprint.make({
+  name: 'openchoreo-token',
+  params: defineParams =>
+    defineParams({
+      api: openChoreoTokenApiRef,
+      deps: { oauthApi: openChoreoAuthApiRef },
+      factory: ({ oauthApi }) => new OAuthOpenChoreoTokenApi(oauthApi),
+    }),
+});
+
+// An OpenChoreo-scoped fetch API that decorates the host's own. Registered as
+// a plugin API rather than an override of `core.fetch`, so the host keeps its
+// fetch middleware and the OpenChoreo token reaches OpenChoreo requests only.
+const openChoreoFetchApi = ApiBlueprint.make({
+  name: 'openchoreo-fetch',
+  params: defineParams =>
+    defineParams({
+      api: openChoreoFetchApiRef,
+      deps: {
+        baseFetchApi: fetchApiRef,
+        tokenApi: openChoreoTokenApiRef,
+        configApi: configApiRef,
+      },
+      factory: ({ baseFetchApi, tokenApi, configApi }) =>
+        new OpenChoreoScopedFetchApi({
+          baseFetchApi,
+          tokenApi,
+          authEnabled:
+            configApi.getOptionalBoolean('openchoreo.features.auth.enabled') ??
+            true,
+          backendBaseUrl: configApi.getString('backend.baseUrl'),
+        }),
+    }),
+});
+
+// OAuth2 client for the OpenChoreo IDP. Consumed by `openChoreoTokenApi`
+// above, by the openChoreoAppModule's permission override, and by the portal's
+// SignInPage.
 const openChoreoAuthApi = ApiBlueprint.make({
   name: 'openchoreo-auth',
   params: defineParams =>
@@ -953,6 +999,8 @@ export const openChoreoPlugin = createFrontendPlugin({
   extensions: [
     openChoreoClientApi,
     openChoreoAuthApi,
+    openChoreoTokenApi,
+    openChoreoFetchApi,
     accessControlSettingsTab,
     secretsSettingsTab,
     queryProvider,

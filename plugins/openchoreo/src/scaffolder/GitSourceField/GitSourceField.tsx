@@ -14,11 +14,8 @@ import {
 } from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import AddIcon from '@material-ui/icons/Add';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import {
   CHOREO_ANNOTATIONS,
@@ -89,7 +86,7 @@ export const GitSourceField = ({
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const catalogApi = useApi(catalogApiRef);
   const secretManagementEnabled = useSecretManagementEnabled();
 

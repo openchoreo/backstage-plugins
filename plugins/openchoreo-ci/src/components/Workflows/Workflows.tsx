@@ -1,9 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { ResponseErrorPanel, EmptyState } from '@backstage/core-components';
 import { Typography, Button, Box, CircularProgress } from '@material-ui/core';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
@@ -68,7 +65,7 @@ function unwrapParametersSchema(schema: any): any {
 export const Workflows = () => {
   const classes = useStyles();
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const { entity } = useEntity();
   const client = useApi(openChoreoCiClientApiRef);
   const { getEntityDetails } = useComponentEntityDetails();

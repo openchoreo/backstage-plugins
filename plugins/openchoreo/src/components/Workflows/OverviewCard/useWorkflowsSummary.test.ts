@@ -1,6 +1,7 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { Entity } from '@backstage/catalog-model';
-import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useWorkflowsSummary } from './useWorkflowsSummary';
 
@@ -52,7 +53,7 @@ function renderUseWorkflowsSummary() {
   return renderHook(() => useWorkflowsSummary(), {
     wrapper: createQueryWrapper([
       [discoveryApiRef, mockDiscoveryApi as any],
-      [fetchApiRef, mockFetchApi as any],
+      [openChoreoFetchApiRef, mockFetchApi as any],
     ]),
   });
 }

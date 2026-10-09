@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '../api/openChoreoFetchApi';
 import { usePermission } from '@backstage/plugin-permission-react';
 import type {
   Permission,
@@ -65,7 +62,7 @@ export function useWorkflowScopedPermission(
   const authzEnabled = useAuthzEnabled();
 
   const discovery = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
 
   const [wfAllowed, setWfAllowed] = useState<boolean | undefined>(undefined);
   const [wfLoading, setWfLoading] = useState<boolean>(false);

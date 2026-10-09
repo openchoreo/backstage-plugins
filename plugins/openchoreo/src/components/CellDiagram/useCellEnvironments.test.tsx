@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { createQueryWrapper } from '@openchoreo/test-utils';
 import { useCellEnvironments } from './useCellEnvironments';
 
@@ -26,7 +27,7 @@ function setup() {
   return renderHook(() => useCellEnvironments('proj-1', 'ns-1'), {
     wrapper: createQueryWrapper([
       [discoveryApiRef, mockDiscoveryApi as any],
-      [fetchApiRef, mockFetchApi as any],
+      [openChoreoFetchApiRef, mockFetchApi as any],
     ]),
   });
 }

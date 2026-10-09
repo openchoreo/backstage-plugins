@@ -67,12 +67,19 @@ jest.mock('@openchoreo/backstage-plugin-react', () => {
     jest.requireActual(
       '@openchoreo/backstage-plugin-react/src/hooks/useOpenChoreoQuery',
     );
+  // Same reasoning for the OpenChoreo-scoped fetch API ref the hooks now use.
+  const { openChoreoFetchApiRef } =
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    jest.requireActual(
+      '@openchoreo/backstage-plugin-react/src/api/openChoreoFetchApi',
+    );
   // Each recompute advances "now" (mirroring the real calculateTimeRange,
   // which uses `new Date()`), so the Refresh button produces a new fetch key
   // and triggers a refetch.
   let rangeCall = 0;
   return {
     useOpenChoreoQuery,
+    openChoreoFetchApiRef,
     EmptyState: ({ title, description, action }: any) => (
       <div data-testid="empty-state">
         <div>{title}</div>
@@ -110,7 +117,7 @@ jest.mock('@openchoreo/backstage-plugin-react', () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { useApi } = require('@backstage/core-plugin-api');
       const discoveryApi = useApi({ id: 'discovery' });
-      const fetchApi = useApi({ id: 'fetch' });
+      const fetchApi = useApi({ id: 'openchoreo.fetch' });
       const catalogApi = useApi({ id: 'catalog' });
       const [state, setState] = React.useState({
         environments: [],
@@ -398,7 +405,8 @@ function setupMockClient(
   useApi.mockImplementation((ref: { id: string }) => {
     if (ref.id === 'catalog') return mockCatalogApi;
     if (ref.id === 'discovery') return mockDiscoveryApi;
-    if (ref.id === 'fetch') return mockFetchApi;
+    if (ref.id === 'fetch' || ref.id === 'openchoreo.fetch')
+      return mockFetchApi;
     return mockClient;
   });
   return mockClient;

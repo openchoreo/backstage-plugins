@@ -1,11 +1,8 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import { Typography, Box } from '@material-ui/core';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import {
   CHOREO_ANNOTATIONS,
@@ -80,7 +77,7 @@ export const BuildWorkflowParameters = ({
   const prevWorkflowRef = useRef<string | undefined>(undefined);
 
   const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const catalogApi = useApi(catalogApiRef);
 
   // Get the selected workflow from sibling field in the same section.

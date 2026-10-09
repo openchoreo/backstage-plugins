@@ -21,6 +21,7 @@ jest.mock('@backstage/catalog-model', () => ({
 }));
 
 jest.mock('@backstage/core-plugin-api', () => ({
+  ...jest.requireActual('@backstage/core-plugin-api'),
   useApi: () => ({}),
   discoveryApiRef: {},
   fetchApiRef: {},

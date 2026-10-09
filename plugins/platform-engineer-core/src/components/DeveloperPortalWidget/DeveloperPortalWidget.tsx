@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  discoveryApiRef,
-  fetchApiRef,
-  useApi,
-} from '@backstage/core-plugin-api';
+import { discoveryApiRef, useApi } from '@backstage/core-plugin-api';
+import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { fetchDistinctDeployedComponentsCount } from '../../api/distinctDeployedComponents';
 import { SummaryWidgetWrapper } from '@openchoreo/backstage-plugin-react';
@@ -20,7 +17,7 @@ export const DeveloperPortalWidget = () => {
   const [error, setError] = useState<string | null>(null);
 
   const discovery = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const fetchApi = useApi(openChoreoFetchApiRef);
   const catalogApi = useApi(catalogApiRef);
 
   const fetchData = useCallback(async () => {
