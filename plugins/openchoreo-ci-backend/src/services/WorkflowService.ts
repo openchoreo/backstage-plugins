@@ -31,6 +31,27 @@ type WorkflowRunStatusResponse = ComponentWorkflowRunStatusResponse;
  * the K8s conditions are stale (e.g. controller hasn't reconciled yet).
  */
 function deriveWorkflowRunStatus(run: any): string {
+  const completedCondition = (run.status?.conditions ?? []).find(
+    (c: any) => c.type === 'WorkflowCompleted',
+  );
+
+  if (
+    completedCondition?.status === 'False' &&
+    completedCondition.reason &&
+    completedCondition.reason !== 'WorkflowPending' &&
+    completedCondition.reason !== 'WorkflowRunning'
+  ) {
+    return 'Failed';
+  }
+
+  if (
+    (run.status?.conditions ?? []).some(
+      (c: any) => c.type === 'WorkflowFailed' && c.status === 'True',
+    )
+  ) {
+    return 'Failed';
+  }
+
   const readyCondition = (run.status?.conditions ?? []).find(
     (c: any) => c.type === 'Ready',
   );
@@ -89,6 +110,7 @@ function transformWorkflowRun(run: any): ModelsBuild {
     workloadFromSource: annotations['openchoreo.dev/workload-from-source'],
     startedAt: run.status?.startedAt,
     completedAt: run.status?.completedAt,
+    conditions: run.status?.conditions,
     workflow: run.spec?.workflow
       ? {
           name: run.spec.workflow.name,

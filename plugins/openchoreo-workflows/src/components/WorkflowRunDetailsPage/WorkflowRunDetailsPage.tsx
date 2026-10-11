@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Content,
   InfoCard,
   StructuredMetadataTable,
 } from '@backstage/core-components';
 import { Alert, AlertTitle } from '@material-ui/lab';
-import { Box, IconButton, Paper, Typography } from '@material-ui/core';
+import { Box, IconButton, Paper, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Chip } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
@@ -58,12 +58,14 @@ function formatDate(dateString?: string): string {
 export const WorkflowRunDetailsPage = () => {
   const classes = useStyles();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { runName } = useParams<{ runName: string }>();
   const decodedRunName = runName ? decodeURIComponent(runName) : '';
+  const namespaceParam = searchParams.get('namespace') || searchParams.get('namespaceName') || undefined;
   const [activeTab, setActiveTab] = useState<RunDetailsTab>('logs');
 
   const { run, loading, error, refetch } =
-    useWorkflowRunDetails(decodedRunName);
+    useWorkflowRunDetails(decodedRunName, namespaceParam);
 
   const handleBack = () => {
     navigate(-1);
@@ -124,7 +126,16 @@ export const WorkflowRunDetailsPage = () => {
     );
   }
 
-  const displayStatus = run.phase || run.status;
+  const hasPreArgoFailure = run.conditions?.some(
+    c =>
+      (c.type === 'WorkflowFailed' && c.status === 'True') ||
+      (c.type === 'WorkflowCompleted' &&
+        c.status === 'False' &&
+        c.reason &&
+        c.reason !== 'WorkflowPending' &&
+        c.reason !== 'WorkflowRunning'),
+  );
+  const displayStatus = hasPreArgoFailure ? 'Failed' : run.phase || run.status;
 
   const metadata = {
     Name: run.name,
@@ -177,6 +188,59 @@ export const WorkflowRunDetailsPage = () => {
             <InfoCard title="Run Details">
               <StructuredMetadataTable metadata={metadata} />
             </InfoCard>
+            {run.conditions && run.conditions.length > 0 && (
+              <Box className={classes.section} mt={3}>
+                <InfoCard title="Conditions">
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell scope="col">Type</TableCell>
+                          <TableCell scope="col">Status</TableCell>
+                          <TableCell scope="col">Reason</TableCell>
+                          <TableCell scope="col">Message</TableCell>
+                          <TableCell scope="col">Last Transition</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {run.conditions.map((condition, index) => (
+                          <TableRow key={`${condition.type}-${index}`}>
+                            <TableCell>
+                              <Typography variant="body2" style={{ fontWeight: 500 }}>
+                                {condition.type}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={condition.status}
+                                size="small"
+                                style={{
+                                  backgroundColor: condition.status === 'True' ? '#e6f4ea' : condition.status === 'False' ? '#fce8e6' : '#e8f0fe',
+                                  color: condition.status === 'True' ? '#137333' : condition.status === 'False' ? '#c5221f' : '#1967d2',
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">{condition.reason ?? '-'}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" style={{ maxWidth: 400, wordBreak: 'break-word', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                                {condition.message ?? '-'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {condition.lastTransitionTime ? new Date(condition.lastTransitionTime).toLocaleString() : '-'}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </InfoCard>
+              </Box>
+            )}
             {run.parameters && Object.keys(run.parameters).length > 0 && (
               <Box className={classes.section}>
                 <InfoCard title="Parameters">

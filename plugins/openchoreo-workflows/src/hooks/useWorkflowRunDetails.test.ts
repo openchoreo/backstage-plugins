@@ -51,4 +51,45 @@ describe('useWorkflowRunDetails', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.isRefetching).toBe(false);
   });
+
+  it('merges status and conditions from getWorkflowRunStatus into run details', async () => {
+    const run = makeRun('run-failed');
+    run.status = 'Pending';
+    const mockConditions = [
+      {
+        type: 'WorkflowCompleted',
+        status: 'False',
+        reason: 'WorkflowRenderingFailed',
+        message: 'CEL compilation error in template',
+      },
+    ];
+    const client = {
+      getWorkflowRun: jest.fn().mockResolvedValue(run),
+      getWorkflowRunStatus: jest.fn().mockResolvedValue({
+        status: 'Failed',
+        steps: [],
+        hasLiveObservability: false,
+        conditions: mockConditions,
+      }),
+    };
+    const { result } = renderUseWorkflowRunDetails(client);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.run?.status).toBe('Failed');
+    expect(result.current.run?.conditions).toEqual(mockConditions);
+    expect(client.getWorkflowRunStatus).toHaveBeenCalledWith('ns-a', 'run-1');
+  });
+
+  it('falls back gracefully if getWorkflowRunStatus throws', async () => {
+    const run = makeRun('run-legacy');
+    const client = {
+      getWorkflowRun: jest.fn().mockResolvedValue(run),
+      getWorkflowRunStatus: jest.fn().mockRejectedValue(new Error('Status endpoint unavailable')),
+    };
+    const { result } = renderUseWorkflowRunDetails(client);
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.run?.status).toBe('Succeeded');
+    expect(result.current.error).toBeNull();
+  });
 });

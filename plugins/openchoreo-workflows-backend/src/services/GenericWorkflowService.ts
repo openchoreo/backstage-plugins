@@ -28,7 +28,7 @@ import {
  *   4. WorkflowRunning + True → Running
  *   5. Default → Pending
  */
-function deriveWorkflowRunStatus(run: any): string {
+export function deriveWorkflowRunStatus(run: any): string {
   const conditions = (run.status?.conditions ?? []) as any[];
 
   if (conditions.length === 0) {
@@ -59,6 +59,19 @@ function deriveWorkflowRunStatus(run: any): string {
     return 'Running';
   }
 
+  if (
+    conditions.some(
+      c =>
+        c.type === 'WorkflowCompleted' &&
+        c.status === 'False' &&
+        c.reason &&
+        c.reason !== 'WorkflowPending' &&
+        c.reason !== 'WorkflowRunning',
+    )
+  ) {
+    return 'Failed';
+  }
+
   return 'Pending';
 }
 
@@ -75,6 +88,7 @@ function transformWorkflowRun(run: any): import('../types').WorkflowRun {
     parameters: run.spec?.workflow?.parameters,
     createdAt: run.metadata?.creationTimestamp,
     finishedAt: run.status?.completedAt,
+    conditions: run.status?.conditions,
   };
 }
 

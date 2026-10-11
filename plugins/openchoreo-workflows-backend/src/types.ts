@@ -61,6 +61,7 @@ export interface WorkflowRun {
   parameters?: Record<string, unknown>;
   createdAt?: string;
   finishedAt?: string;
+  conditions?: any[];
 }
 
 /**

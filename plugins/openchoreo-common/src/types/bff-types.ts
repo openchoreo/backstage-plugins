@@ -299,6 +299,7 @@ export interface ComponentWorkflowRunResponse {
   startedAt?: string;
   /** Format: date-time — when the workflow run finished execution */
   completedAt?: string;
+  conditions?: WorkflowRunCondition[];
 }
 
 export interface ComponentWorkflowConfigResponse {
@@ -309,6 +310,14 @@ export interface ComponentWorkflowConfigResponse {
   parameters?: {
     [key: string]: unknown;
   };
+}
+
+export interface WorkflowRunCondition {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
 }
 
 /** @description Status response for a component workflow run */
@@ -328,6 +337,7 @@ export interface ComponentWorkflowRunStatusResponse {
    *     - This field is used to determine whether the workflow run logs/events should be fetched from openchoreo-api or observer-api.
    */
   hasLiveObservability: boolean;
+  conditions?: WorkflowRunCondition[];
 }
 
 /** @description Status of an individual workflow step */

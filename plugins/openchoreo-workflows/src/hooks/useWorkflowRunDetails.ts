@@ -60,7 +60,7 @@ export function useWorkflowRunDetails(
 ): UseWorkflowRunDetailsResult {
   const client = useApi(genericWorkflowsClientApiRef);
   const contextNamespace = useSelectedNamespace();
-  const resolvedNamespace = namespaceName ?? contextNamespace;
+  const resolvedNamespace = namespaceName || contextNamespace || 'default';
 
   const { data, loading, isRefetching, error, refetch } =
     useOpenChoreoQuery<WorkflowRun>(
@@ -73,7 +73,19 @@ export function useWorkflowRunDetails(
         // stops the loop instead of hammering the backend for the full window.
         for (let attempt = 0; ; attempt++) {
           try {
-            return await client.getWorkflowRun(resolvedNamespace!, runName);
+            const runData = await client.getWorkflowRun(resolvedNamespace!, runName);
+            try {
+              const statusData = await client.getWorkflowRunStatus(resolvedNamespace!, runName);
+              if (statusData?.status) {
+                runData.status = statusData.status as any;
+              }
+              if (statusData?.conditions) {
+                runData.conditions = statusData.conditions;
+              }
+            } catch {
+              // Status endpoint fallback: continue with runData
+            }
+            return runData;
           } catch (err) {
             if (
               err instanceof NotFoundError &&
