@@ -28,7 +28,7 @@ describe('portalBackendFeatures', () => {
   it('composes the full portal plugin set', () => {
     // If you add or remove a feature in features.ts, update this count —
     // the composition is this package's contract.
-    expect(portalFeatureLoaders).toHaveLength(28);
+    expect(portalFeatureLoaders).toHaveLength(29);
     for (const load of portalFeatureLoaders) {
       expect(typeof load).toBe('function');
     }

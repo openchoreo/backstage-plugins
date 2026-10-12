@@ -16,6 +16,7 @@ import openchoreoPluginAlpha, {
 import openchoreoCiPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-ci/alpha';
 import openchoreoObservabilityPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
 import openchoreoWorkflowsPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-workflows/alpha';
+import openchoreoImageSecurityPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-image-security/alpha';
 import platformEngineerCorePluginAlpha from '@openchoreo/backstage-plugin-platform-engineer-core/alpha';
 
 import {
@@ -85,6 +86,7 @@ export function createPortalApp(options?: PortalAppOptions) {
       platformEngineerCorePluginAlpha,
       openchoreoObservabilityPluginAlpha,
       openchoreoWorkflowsPluginAlpha,
+      openchoreoImageSecurityPluginAlpha,
       // Home plugin provides `page:home`; our module contributes the custom
       // layout and widgets, and app-config points `page:home` at `/`.
       homePluginAlpha,

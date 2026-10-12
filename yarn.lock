@@ -9917,6 +9917,40 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@openchoreo/backstage-plugin-openchoreo-image-security-backend@workspace:^, @openchoreo/backstage-plugin-openchoreo-image-security-backend@workspace:plugins/openchoreo-image-security-backend":
+  version: 0.0.0-use.local
+  resolution: "@openchoreo/backstage-plugin-openchoreo-image-security-backend@workspace:plugins/openchoreo-image-security-backend"
+  dependencies:
+    "@backstage/backend-plugin-api": "npm:^1.9.1"
+    "@backstage/cli": "npm:^0.36.2"
+    "@backstage/errors": "npm:^1.3.1"
+    "@openchoreo/openchoreo-auth": "workspace:^"
+    "@openchoreo/openchoreo-client-node": "workspace:^"
+    "@types/express": "npm:4.17.21"
+    express: "npm:4.21.1"
+    express-promise-router: "npm:4.1.1"
+  languageName: unknown
+  linkType: soft
+
+"@openchoreo/backstage-plugin-openchoreo-image-security@workspace:^, @openchoreo/backstage-plugin-openchoreo-image-security@workspace:plugins/openchoreo-image-security":
+  version: 0.0.0-use.local
+  resolution: "@openchoreo/backstage-plugin-openchoreo-image-security@workspace:plugins/openchoreo-image-security"
+  dependencies:
+    "@backstage/catalog-model": "npm:^1.9.0"
+    "@backstage/cli": "npm:^0.36.2"
+    "@backstage/core-components": "npm:^0.18.10"
+    "@backstage/core-plugin-api": "npm:^1.12.6"
+    "@backstage/frontend-plugin-api": "npm:^0.17.0"
+    "@backstage/plugin-catalog-react": "npm:^3.0.0"
+    "@material-ui/core": "npm:4.12.4"
+    "@openchoreo/backstage-plugin-common": "workspace:^"
+    react-use: "npm:17.6.0"
+  peerDependencies:
+    react: ^18.0.0
+    react-router-dom: ^6.0.0
+  languageName: unknown
+  linkType: soft
+
 "@openchoreo/backstage-plugin-openchoreo-observability-backend@workspace:^, @openchoreo/backstage-plugin-openchoreo-observability-backend@workspace:plugins/openchoreo-observability-backend":
   version: 0.0.0-use.local
   resolution: "@openchoreo/backstage-plugin-openchoreo-observability-backend@workspace:plugins/openchoreo-observability-backend"
@@ -10379,6 +10413,7 @@ __metadata:
     "@openchoreo/backstage-plugin": "workspace:^"
     "@openchoreo/backstage-plugin-common": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-ci": "workspace:^"
+    "@openchoreo/backstage-plugin-openchoreo-image-security": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-observability": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-portal-assistant": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-workflows": "workspace:^"
@@ -10441,6 +10476,7 @@ __metadata:
     "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^"
     "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-ci-backend": "workspace:^"
+    "@openchoreo/backstage-plugin-openchoreo-image-security-backend": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-observability-backend": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-workflows-backend": "workspace:^"
     "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy": "workspace:^"
