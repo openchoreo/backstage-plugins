@@ -25,6 +25,8 @@
       "@openchoreo/backstage-plugin-openchoreo-ci-backend",
       "@openchoreo/backstage-plugin-openchoreo-workflows",
       "@openchoreo/backstage-plugin-openchoreo-workflows-backend",
+      "@openchoreo/backstage-plugin-openchoreo-image-security",
+      "@openchoreo/backstage-plugin-openchoreo-image-security-backend",
       "@openchoreo/backstage-plugin-thunder-idp-client-node",
       "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users",
       "@openchoreo/cell-diagram",
