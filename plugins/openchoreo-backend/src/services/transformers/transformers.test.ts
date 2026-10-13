@@ -447,7 +447,7 @@ describe('transformComponentWorkflowRun', () => {
     expect(result.workflow?.name).toBe('docker-build');
   });
 
-  it('derives status from Ready condition reason', () => {
+  it('derives status as Failed from Ready condition failure reason', () => {
     const withReason: OpenChoreoComponents['schemas']['WorkflowRun'] = {
       ...run,
       status: {
@@ -461,8 +461,39 @@ describe('transformComponentWorkflowRun', () => {
         ],
       },
     };
-    expect(transformComponentWorkflowRun(withReason).status).toBe(
-      'BuildFailed',
+    expect(transformComponentWorkflowRun(withReason).status).toBe('Failed');
+  });
+
+  it('derives status as Failed from WorkflowCompleted reason WorkflowFailed', () => {
+    const completedFailed: OpenChoreoComponents['schemas']['WorkflowRun'] = {
+      ...run,
+      status: {
+        completedAt: '2026-08-04T10:26:02Z',
+        conditions: [
+          {
+            type: 'WorkflowCompleted',
+            status: 'True',
+            reason: 'WorkflowFailed',
+            lastTransitionTime: '2026-08-04T10:26:02Z',
+          },
+          {
+            type: 'WorkflowRunning',
+            status: 'False',
+            reason: 'WorkflowRunning',
+            lastTransitionTime: '2026-08-04T10:26:02Z',
+          },
+        ],
+        tasks: [
+          {
+            name: 'verify-prerequisites',
+            phase: 'Pending',
+            startedAt: '2026-08-04T09:55:40Z',
+          },
+        ],
+      },
+    };
+    expect(transformComponentWorkflowRun(completedFailed).status).toBe(
+      'Failed',
     );
   });
 
