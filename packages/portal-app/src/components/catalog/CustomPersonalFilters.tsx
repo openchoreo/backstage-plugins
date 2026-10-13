@@ -10,7 +10,6 @@ import {
 import StarIcon from '@material-ui/icons/StarOutline';
 import StarFilledIcon from '@material-ui/icons/Star';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
-import { useTheme } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   catalogApiRef,
@@ -90,6 +89,7 @@ export const StarredFilter = () => {
 };
 
 export const StarredChip = () => {
+  const classes = usePersonalFilterStyles();
   const { filters, updateFilters, backendEntities } = useEntityList();
   const { starredEntities } = useStarredEntities();
 
@@ -117,10 +117,11 @@ export const StarredChip = () => {
     <Tooltip title="Filter to starred entities">
       <Chip
         size="small"
+        className={classes.filterControl}
         icon={isStarred ? <StarFilledIcon /> : <StarIcon />}
         label={`Starred (${starredCount})`}
         onClick={handleToggle}
-        variant={isStarred ? 'default' : 'outlined'}
+        variant="outlined"
         color={isStarred ? 'primary' : 'default'}
         disabled={starredCount === 0}
       />
@@ -129,7 +130,7 @@ export const StarredChip = () => {
 };
 
 export const TypeChip = () => {
-  const theme = useTheme();
+  const classes = usePersonalFilterStyles();
   const catalogApi = useApi(catalogApiRef);
   const { filters, updateFilters } = useEntityList();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -197,6 +198,7 @@ export const TypeChip = () => {
     <>
       <Chip
         size="small"
+        className={classes.filterControl}
         label={label}
         deleteIcon={
           <ArrowDropDownIcon
@@ -205,17 +207,9 @@ export const TypeChip = () => {
         }
         onDelete={handleOpen}
         onClick={handleOpen}
-        variant={selectedTypes.length > 0 ? 'default' : 'outlined'}
+        variant="outlined"
         color={selectedTypes.length > 0 ? 'primary' : 'default'}
         disabled={isDisabled}
-        style={
-          selectedTypes.length > 0
-            ? {
-                color: theme.palette.primary.contrastText,
-                backgroundColor: theme.palette.primary.main,
-              }
-            : undefined
-        }
       />
       <Menu
         anchorEl={anchorEl}
@@ -261,7 +255,7 @@ class EntityProjectFilter {
 }
 
 export const ProjectChip = () => {
-  const theme = useTheme();
+  const classes = usePersonalFilterStyles();
   const catalogApi = useApi(catalogApiRef);
   const { filters, updateFilters, queryParameters } = useEntityList();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -389,6 +383,7 @@ export const ProjectChip = () => {
     <>
       <Chip
         size="small"
+        className={classes.filterControl}
         label={label}
         deleteIcon={
           <ArrowDropDownIcon
@@ -397,17 +392,9 @@ export const ProjectChip = () => {
         }
         onDelete={handleOpen}
         onClick={handleOpen}
-        variant={selectedProjects.length > 0 ? 'default' : 'outlined'}
+        variant="outlined"
         color={selectedProjects.length > 0 ? 'primary' : 'default'}
         disabled={isDisabled}
-        style={
-          selectedProjects.length > 0
-            ? {
-                color: theme.palette.primary.contrastText,
-                backgroundColor: theme.palette.primary.main,
-              }
-            : undefined
-        }
       />
       <Menu
         anchorEl={anchorEl}
@@ -457,7 +444,7 @@ class EntityComponentFilter {
 }
 
 export const ComponentChip = () => {
-  const theme = useTheme();
+  const classes = usePersonalFilterStyles();
   const catalogApi = useApi(catalogApiRef);
   const { filters, updateFilters, queryParameters } = useEntityList();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -572,6 +559,7 @@ export const ComponentChip = () => {
     <>
       <Chip
         size="small"
+        className={classes.filterControl}
         label={label}
         deleteIcon={
           <ArrowDropDownIcon
@@ -580,17 +568,9 @@ export const ComponentChip = () => {
         }
         onDelete={handleOpen}
         onClick={handleOpen}
-        variant={selectedComponents.length > 0 ? 'default' : 'outlined'}
+        variant="outlined"
         color={selectedComponents.length > 0 ? 'primary' : 'default'}
         disabled={isDisabled}
-        style={
-          selectedComponents.length > 0
-            ? {
-                color: theme.palette.primary.contrastText,
-                backgroundColor: theme.palette.primary.main,
-              }
-            : undefined
-        }
       />
       <Menu
         anchorEl={anchorEl}
@@ -621,7 +601,7 @@ export const ComponentChip = () => {
 };
 
 export const NamespaceChip = () => {
-  const theme = useTheme();
+  const classes = usePersonalFilterStyles();
   const catalogApi = useApi(catalogApiRef);
   const { filters, updateFilters, queryParameters } = useEntityList();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -732,6 +712,7 @@ export const NamespaceChip = () => {
     <>
       <Chip
         size="small"
+        className={classes.filterControl}
         label={label}
         deleteIcon={
           <ArrowDropDownIcon
@@ -740,17 +721,9 @@ export const NamespaceChip = () => {
         }
         onDelete={handleOpen}
         onClick={handleOpen}
-        variant={selectedNamespaces.length > 0 ? 'default' : 'outlined'}
+        variant="outlined"
         color={selectedNamespaces.length > 0 ? 'primary' : 'default'}
         disabled={isDisabled}
-        style={
-          selectedNamespaces.length > 0
-            ? {
-                color: theme.palette.primary.contrastText,
-                backgroundColor: theme.palette.primary.main,
-              }
-            : undefined
-        }
       />
       <Menu
         anchorEl={anchorEl}

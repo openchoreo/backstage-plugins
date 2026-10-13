@@ -1,0 +1,36 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-openchoreo-hook
+  title: Hook
+  description: Define a deployment hook (alpha) that runs a workflow before or after components are deployed into an environment. Bind it on a deployment pipeline's promotion target.
+spec:
+  owner: openchoreo-users
+  type: Hook
+  # Enable user token injection for user-based authorization at OpenChoreo API
+  EXPERIMENTAL_formDecorators:
+    - id: openchoreo:inject-user-token
+  parameters:
+    - title: Hook Details
+      required:
+        - hookConfig
+      properties:
+        hookConfig:
+          title: ' '
+          type: object
+          ui:field: HookFormWithYaml
+          ui:backstage:
+            review:
+              mask: '(Hook definition provided)'
+  steps:
+    - id: create-openchoreo-hook
+      name: Create OpenChoreo Hook
+      action: openchoreo:hook-definition:create
+      input:
+        namespaceName: ${{ parameters.hookConfig.namespace_name }}
+        yamlContent: ${{ parameters.hookConfig.yamlContent }}
+  output:
+    links:
+      - title: View Hook
+        icon: catalog
+        entityRef: ${{ steps['create-openchoreo-hook'].output.entityRef }}

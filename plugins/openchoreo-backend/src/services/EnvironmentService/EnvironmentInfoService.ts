@@ -15,6 +15,7 @@ import {
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 import type {
+  DeploymentGateStatus,
   EnvironmentResponse,
   ReleaseBindingResponse,
 } from '@openchoreo/backstage-plugin-common';
@@ -535,6 +536,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         lastDeployed,
         image,
         releaseName,
+        gate: binding?.gate,
       },
       endpoints,
     };
@@ -1448,6 +1450,79 @@ export class EnvironmentInfoService implements EnvironmentService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Deployment hooks (alpha): the gate of one release binding — the current
+   * key and the status of every hook its Environment binds.
+   */
+  async fetchReleaseBindingHooks(
+    request: { namespaceName: string; bindingName: string },
+    token?: string,
+  ): Promise<DeploymentGateStatus> {
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      token,
+      logger: this.logger,
+    });
+
+    const { data, error, response } = await client.GET(
+      '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/hooks',
+      {
+        params: {
+          path: {
+            namespaceName: request.namespaceName,
+            releaseBindingName: request.bindingName,
+          },
+        },
+      },
+    );
+
+    assertApiResponse({ data, error, response }, 'fetch release binding hooks');
+
+    return data as DeploymentGateStatus;
+  }
+
+  /**
+   * Deployment hooks (alpha): asks the controller to re-run one hook binding.
+   * Returns the annotated release binding.
+   */
+  async retryReleaseBindingHook(
+    request: {
+      namespaceName: string;
+      bindingName: string;
+      hookName: string;
+      phase: 'preDeploy' | 'postDeploy';
+    },
+    token?: string,
+  ): Promise<ReleaseBindingResponse> {
+    this.logger.info(
+      `Retrying ${request.phase} hook ${request.hookName} on release binding ${request.bindingName}`,
+    );
+
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      token,
+      logger: this.logger,
+    });
+
+    const { data, error, response } = await client.POST(
+      '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/hooks/{hookName}/retry',
+      {
+        params: {
+          path: {
+            namespaceName: request.namespaceName,
+            releaseBindingName: request.bindingName,
+            hookName: request.hookName,
+          },
+        },
+        body: { phase: request.phase },
+      },
+    );
+
+    assertApiResponse({ data, error, response }, 'retry release binding hook');
+
+    return transformReleaseBinding(data!);
   }
 
   /**

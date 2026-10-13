@@ -777,6 +777,58 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clusterhooks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List cluster hooks
+     * @description Returns a list of cluster-scoped deployment hooks.
+     */
+    get: operations['listClusterHooks'];
+    put?: never;
+    /**
+     * Create cluster hook
+     * @description Creates a new cluster-scoped deployment hook.
+     */
+    post: operations['createClusterHook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterhooks/{clusterHookName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a cluster hook
+     * @description Returns details of a specific cluster-scoped deployment hook.
+     */
+    get: operations['getClusterHook'];
+    /**
+     * Update cluster hook
+     * @description Replaces an existing cluster-scoped deployment hook (full update).
+     */
+    put: operations['updateClusterHook'];
+    post?: never;
+    /**
+     * Delete cluster hook
+     * @description Deletes a cluster-scoped deployment hook by name.
+     */
+    delete: operations['deleteClusterHook'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/namespaces/{namespaceName}/componenttypes': {
     parameters: {
       query?: never;
@@ -916,6 +968,58 @@ export interface paths {
     put?: never;
     post?: never;
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/hooks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List hooks
+     * @description Returns a paginated list of deployment hooks in the namespace.
+     */
+    get: operations['listHooks'];
+    put?: never;
+    /**
+     * Create hook
+     * @description Creates a new deployment hook within a namespace.
+     */
+    post: operations['createHook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/hooks/{hookName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get hook
+     * @description Returns details of a specific deployment hook.
+     */
+    get: operations['getHook'];
+    /**
+     * Update hook
+     * @description Replaces an existing deployment hook (full update).
+     */
+    put: operations['updateHook'];
+    post?: never;
+    /**
+     * Delete hook
+     * @description Deletes a deployment hook by name.
+     */
+    delete: operations['deleteHook'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1171,6 +1275,46 @@ export interface paths {
     get: operations['getWorkflowRunEvents'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/resume': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Resume a suspended workflow run
+     * @description Resumes a workflow run that is paused at a suspend step (for example a deployment-hook approval), the same as `argo resume`: clears `spec.suspend` on the Argo Workflow and marks every active Suspend node as Succeeded so the workflow continues.
+     */
+    post: operations['resumeWorkflowRun'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/stop': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Stop a workflow run
+     * @description Stops a running workflow run, the same as `argo stop`: sets `spec.shutdown: Stop` on the Argo Workflow so running steps finish and exit handlers run, and records the reason on the WorkflowRun.
+     */
+    post: operations['stopWorkflowRun'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1554,7 +1698,11 @@ export interface paths {
      *     The git provider is automatically detected from the request headers:
      *     - GitHub: `X-Hub-Signature-256`
      *     - GitLab: `X-Gitlab-Token`
-     *     - Bitbucket: `X-Event-Key`
+     *     - Bitbucket: `X-Event-Key` (signed with `X-Hub-Signature`)
+     *
+     *     Every provider is authenticated: GitHub and Bitbucket via HMAC-SHA256 signature
+     *     verification against the configured webhook secret, GitLab via its shared token.
+     *     Requests without a valid signature/token for the detected provider are rejected.
      */
     post: operations['handleAutoBuild'];
     delete?: never;
@@ -1821,6 +1969,88 @@ export interface paths {
     get: operations['getReleaseBindingK8sResourceLogs'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1alpha1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/trigger': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Manually trigger the cronjob of a release binding
+     * @description Creates a Job from the deployed CronJob's spec.jobTemplate with an owner reference back to the CronJob, the same behaviour as `kubectl create job --from=cronjob/<name>`. Only allowed when the component's workload type is cronjob. The triggered Job (and its pods) appear in the resource tree and logs like any other CronJob-owned Job.
+     *
+     *     An optional request body can override the container args for this run only. The override applies to the created Job and does not change the CronJob, so scheduled runs are unaffected.
+     */
+    post: operations['triggerReleaseBindingCronJob'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/hooks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List deployment hook status for a release binding
+     * @description Returns the deployment gate of a release binding: the current gate key and the status of every pre-deploy and post-deploy hook bound by the binding's Environment. Both lists are empty when no hooks are bound or the hooks feature is disabled.
+     */
+    get: operations['listReleaseBindingHooks'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/hooks/{hookName}/retry': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Retry a deployment hook
+     * @description Asks the controller to re-run one hook binding of the release binding's deployment gate by setting the `openchoreo.dev/hook-retry` annotation to `<phase>/<hookName>`. The controller deletes the hook's previous run, resets its status entry and starts it again.
+     */
+    post: operations['retryReleaseBindingHook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/gate/acknowledge': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Acknowledge a post-deploy hook alert
+     * @description Acknowledges an `Alert` post-deploy hook failure for the given gate key by setting the `openchoreo.dev/gate-acknowledged` annotation. The controller clears the PostDeployHooksPassed condition for that key and restores Ready.
+     */
+    post: operations['acknowledgeReleaseBindingGate'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2712,13 +2942,13 @@ export interface components {
     /** @description Audit trail read path */
     AuditLogsFeature: {
       /**
-       * @description Whether clients can query audit logs through observerURL
+       * @description Whether audit logging is enabled
        * @example true
        */
       enabled: boolean;
       /**
        * Format: uri
-       * @description Base URL of the observer that serves the audit trail. Omitted when enabled is false.
+       * @description Base URL of the observer that serves audit logs. Omitted when audit logging is disabled or the referenced observability plane is not found.
        * @example https://observer.example.com
        */
       observerURL?: string;
@@ -3218,6 +3448,8 @@ export interface components {
        */
       isProduction?: boolean;
       gateway?: components['schemas']['GatewaySpec'];
+      /** @description Pre-deploy and post-deploy hooks that run for every component deployment into this environment (alpha) */
+      hooks?: components['schemas']['HookSet'];
     };
     /** @description Observed state of an Environment */
     EnvironmentStatus: {
@@ -3758,8 +3990,12 @@ export interface components {
         /** @description Name of the ClusterTrait resource */
         name: string;
       }[];
-      /** @description CEL-based validation rules evaluated during rendering */
+      /** @description CEL-based validation rules evaluated before rendering. Deprecated: use preRenderValidations (mutually exclusive). */
       validations?: components['schemas']['ValidationRule'][];
+      /** @description CEL-based validation rules evaluated before rendering; replaces the deprecated validations field */
+      preRenderValidations?: components['schemas']['ValidationRule'][];
+      /** @description CEL-based validation rules evaluated after all traits are applied, against the final rendered Kubernetes resources */
+      postRenderValidations?: components['schemas']['PostRenderValidation'][];
       /** @description Templates that generate Kubernetes resources dynamically */
       resources: {
         /** @description Unique identifier for this resource within the component type */
@@ -3812,8 +4048,12 @@ export interface components {
     ClusterTraitSpec: {
       parameters?: components['schemas']['SchemaSection'];
       environmentConfigs?: components['schemas']['SchemaSection'];
-      /** @description CEL-based validation rules evaluated during rendering */
+      /** @description CEL-based validation rules evaluated before rendering. Deprecated: use preRenderValidations (mutually exclusive). */
       validations?: components['schemas']['ValidationRule'][];
+      /** @description CEL-based validation rules evaluated before rendering; replaces the deprecated validations field */
+      preRenderValidations?: components['schemas']['ValidationRule'][];
+      /** @description CEL-based validation rules evaluated after all traits are applied, against the final rendered Kubernetes resources */
+      postRenderValidations?: components['schemas']['PostRenderValidation'][];
       /** @description New Kubernetes resources to create when this trait is applied */
       creates?: {
         /**
@@ -3869,9 +4109,306 @@ export interface components {
           value?: unknown;
         }[];
       }[];
+      /** @description Whole resources to delete that were previously produced by the ComponentType or earlier traits. Workload resource kinds (e.g. Deployment, StatefulSet, CronJob) cannot be removed. */
+      removes?: components['schemas']['TraitRemove'][];
     };
     /** @description Observed state of a ClusterTrait */
     ClusterTraitStatus: Record<string, never>;
+    /** @description Paginated list of cluster-scoped deployment hooks */
+    ClusterHookList: {
+      items: components['schemas']['ClusterHook'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description ClusterHook resource.
+     *     Cluster-scoped version of Hook. May only reference a ClusterWorkflow.
+     */
+    ClusterHook: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ClusterHook
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['HookSpec'];
+      readonly status?: components['schemas']['HookStatus'];
+    };
+    /** @description Paginated list of deployment hooks */
+    HookList: {
+      items: components['schemas']['Hook'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description Hook resource.
+     *     A platform-engineer-defined action that a DeploymentPipeline binds to a promotion
+     *     target as a pre-deploy or post-deploy step.
+     */
+    Hook: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example Hook
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['HookSpec'];
+      readonly status?: components['schemas']['HookStatus'];
+    };
+    /** @description Desired state of a Hook or ClusterHook */
+    HookSpec: {
+      /**
+       * @description Executor type. Only Workflow is supported.
+       * @default Workflow
+       * @enum {string}
+       */
+      type: 'Workflow';
+      /** @description The Workflow or ClusterWorkflow the hook runs. A ClusterHook may only reference a ClusterWorkflow. */
+      workflowRef: {
+        /**
+         * @description Kind of referenced workflow resource
+         * @default ClusterWorkflow
+         * @enum {string}
+         */
+        kind: 'Workflow' | 'ClusterWorkflow';
+        /**
+         * @description Referenced workflow resource name
+         * @example trivy-scan
+         */
+        name: string;
+      };
+      /** @description Maps the workflow's inputs to value sources */
+      parameters?: components['schemas']['HookParameter'][];
+      /** @description Component types the hook is enabled for. Empty enables it for every component; a binding's appliesTo can narrow this but not widen it. */
+      enabledTo?: components['schemas']['HookSubjectRef'][];
+    };
+    /** @description Names a component type a hook is enabled for */
+    HookSubjectRef: {
+      /**
+       * @description Type kind
+       * @enum {string}
+       */
+      kind: 'ComponentType' | 'ClusterComponentType';
+      /**
+       * @description Name of the type resource
+       * @example service
+       */
+      name: string;
+    };
+    /**
+     * @description Maps one input of the hook's workflow to a value source. Exactly one of value, from,
+     *     default or required is set, except that from may be combined with overridable.
+     */
+    HookParameter: {
+      /**
+       * @description Workflow input this parameter feeds
+       * @example image
+       */
+      name: string;
+      /** @description Fixed literal. A binding cannot override it. */
+      value?: string;
+      /**
+       * @description CEL expression (${...}) evaluated against the deployment context
+       * @example ${deployment.workload.containers.main.image}
+       */
+      from?: string;
+      /** @description Value used when the binding does not supply one */
+      default?: string;
+      /**
+       * @description Lets a binding replace the value computed by from
+       * @default false
+       */
+      overridable: boolean;
+      /**
+       * @description Every binding must supply this parameter
+       * @default false
+       */
+      required: boolean;
+      /** @description Optional OpenAPI v3 fragment describing the parameter value */
+      schema?: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description Observed state of a Hook or ClusterHook */
+    HookStatus: {
+      /**
+       * Format: int64
+       * @description Most recent generation observed by the controller
+       */
+      observedGeneration?: number;
+      /** @description Latest available observations of the hook's state */
+      conditions?: components['schemas']['Condition'][];
+    };
+    /** @description Reference to a Hook or ClusterHook */
+    HookRef: {
+      /**
+       * @description Kind of hook resource
+       * @default Hook
+       * @enum {string}
+       */
+      kind: 'Hook' | 'ClusterHook';
+      /**
+       * @description Hook resource name
+       * @example trivy-image-scan
+       */
+      name: string;
+    };
+    /** @description Scopes a hook binding to components of a component type */
+    HookSubjectSelector: {
+      /**
+       * @description Type kind to match
+       * @enum {string}
+       */
+      kind: 'ComponentType' | 'ClusterComponentType';
+      /**
+       * @description Name of the type resource
+       * @example service
+       */
+      name: string;
+    };
+    /** @description Attaches a hook to a promotion target as a pre-deploy or post-deploy step */
+    HookBinding: {
+      /**
+       * @description Binding name, unique across both phases of a target
+       * @example image-scan
+       */
+      name: string;
+      hookRef: components['schemas']['HookRef'];
+      /**
+       * @description Whether the deployment waits for the hook
+       * @default Sync
+       * @enum {string}
+       */
+      mode: 'Sync' | 'Async';
+      /** @description Values for the hook's open parameters (default, required, or from+overridable), keyed by parameter name */
+      parameters?: {
+        [key: string]: string;
+      };
+      /** @description Restricts the binding to components of the listed component types. Empty applies to every component. */
+      appliesTo?: components['schemas']['HookSubjectSelector'][];
+      /**
+       * @description What a failed Sync hook does to the deployment. Defaults to Block for pre-deploy and Ignore for post-deploy.
+       * @enum {string}
+       */
+      onFailure?: 'Block' | 'Ignore' | 'Alert';
+      /**
+       * @description Bounds a Sync hook's run time as a Go duration. Defaults to 30m.
+       * @example 30m
+       */
+      timeout?: string;
+      /**
+       * Format: int32
+       * @description Automatic re-runs after a Sync failure
+       * @default 0
+       */
+      retries: number;
+    };
+    /** @description Pre-deploy and post-deploy hook bindings of a promotion target */
+    HookSet: {
+      /** @description Hooks that run before the RenderedRelease is created */
+      preDeploy?: components['schemas']['HookBinding'][];
+      /** @description Hooks that run after the release reports ResourcesReady */
+      postDeploy?: components['schemas']['HookBinding'][];
+    };
+    /** @description Observed state of one hook binding for the current gate key */
+    DeploymentHookStatus: {
+      /**
+       * @description Binding name
+       * @example image-scan
+       */
+      name: string;
+      hookRef?: components['schemas']['HookRef'];
+      /**
+       * @description Effective mode of the binding (Sync or Async)
+       * @example Sync
+       */
+      mode?: string;
+      /**
+       * @description Observed phase of the run. One of Pending, Running, Succeeded, Failed, TimedOut, Skipped, Dispatched, DispatchFailed, PlaneUnavailable.
+       * @example Succeeded
+       */
+      phase?: string;
+      /** @description Machine-readable reason for the phase */
+      reason?: string;
+      /** @description Human-readable detail, copied from the failing task when available */
+      message?: string;
+      /** @description Name of the WorkflowRun that executed the hook */
+      workflowRunRef?: string;
+      /**
+       * Format: int32
+       * @description 1-based attempt number of the current run
+       */
+      attempt?: number;
+      /**
+       * Format: date-time
+       * @description When the current attempt started
+       */
+      startedAt?: string;
+      /**
+       * Format: date-time
+       * @description When the current attempt reached a terminal phase
+       */
+      finishedAt?: string;
+    };
+    /** @description Records one gate pass */
+    GatePassRecord: {
+      /** @description Gate key that passed */
+      key: string;
+      /** @description ComponentRelease name the key was computed for */
+      release?: string;
+      /** @description Hash of the effective hook set at the time of the pass */
+      hookSetHash?: string;
+      /**
+       * Format: date-time
+       * @description When the gate passed
+       */
+      passedAt?: string;
+    };
+    /** @description Observed state of the hook gate on a ReleaseBinding */
+    DeploymentGateStatus: {
+      /** @description Identifies the current deployment attempt (hash of the release, the effective hook set and, for ConfigChange bindings, the config) */
+      key?: string;
+      /** @description Last key whose pre-deploy hooks all passed */
+      passedKey?: string;
+      /** @description Hash of the effective hook set for the current key */
+      hookSetHash?: string;
+      /** @description ComponentRelease name of the last pass */
+      lastPassedRelease?: string;
+      /** @description Key whose post-deploy hooks have been started */
+      postDeployKey?: string;
+      /** @description Most recent gate passes, newest first */
+      history?: components['schemas']['GatePassRecord'][];
+      /** @description Status of each pre-deploy binding for the current key */
+      preDeploy?: components['schemas']['DeploymentHookStatus'][];
+      /** @description Status of each post-deploy binding for the current key */
+      postDeploy?: components['schemas']['DeploymentHookStatus'][];
+    };
+    /** @description Names the phase of the hook binding to re-run */
+    HookRetryRequest: {
+      /**
+       * @description Gate phase the binding belongs to
+       * @enum {string}
+       */
+      phase: 'preDeploy' | 'postDeploy';
+    };
+    /** @description Acknowledges an Alert post-deploy failure for one gate key */
+    GateAcknowledgeRequest: {
+      /** @description The gate key being acknowledged (status.gate.key) */
+      key: string;
+    };
+    /** @description Optional reason recorded when a workflow run is stopped */
+    WorkflowRunStopRequest: {
+      /** @description Why the run was stopped; recorded on the WorkflowRun */
+      reason?: string;
+    };
     /** @description Paginated list of component types */
     ComponentTypeList: {
       items: components['schemas']['ComponentType'][];
@@ -3942,8 +4479,12 @@ export interface components {
         /** @description Name of the Trait or ClusterTrait resource */
         name: string;
       }[];
-      /** @description CEL-based validation rules evaluated during rendering */
+      /** @description CEL-based validation rules evaluated before rendering. Deprecated: use preRenderValidations (mutually exclusive). */
       validations?: components['schemas']['ValidationRule'][];
+      /** @description CEL-based validation rules evaluated before rendering; replaces the deprecated validations field */
+      preRenderValidations?: components['schemas']['ValidationRule'][];
+      /** @description CEL-based validation rules evaluated after all traits are applied, against the final rendered Kubernetes resources */
+      postRenderValidations?: components['schemas']['PostRenderValidation'][];
       /** @description Templates that generate Kubernetes resources dynamically */
       resources: {
         /** @description Unique identifier for this resource within the component type */
@@ -3996,8 +4537,12 @@ export interface components {
     TraitSpec: {
       parameters?: components['schemas']['SchemaSection'];
       environmentConfigs?: components['schemas']['SchemaSection'];
-      /** @description CEL-based validation rules evaluated during rendering */
+      /** @description CEL-based validation rules evaluated before rendering. Deprecated: use preRenderValidations (mutually exclusive). */
       validations?: components['schemas']['ValidationRule'][];
+      /** @description CEL-based validation rules evaluated before rendering; replaces the deprecated validations field */
+      preRenderValidations?: components['schemas']['ValidationRule'][];
+      /** @description CEL-based validation rules evaluated after all traits are applied, against the final rendered Kubernetes resources */
+      postRenderValidations?: components['schemas']['PostRenderValidation'][];
       /** @description New Kubernetes resources to create when this trait is applied */
       creates?: {
         /**
@@ -4053,12 +4598,73 @@ export interface components {
           value?: unknown;
         }[];
       }[];
+      /** @description Whole resources to delete that were previously produced by the ComponentType or earlier traits. Workload resource kinds (e.g. Deployment, StatefulSet, CronJob) cannot be removed. */
+      removes?: components['schemas']['TraitRemove'][];
     };
     /** @description Observed state of a Trait */
     TraitStatus: Record<string, never>;
+    /** @description Whole resource to delete that was previously produced by the ComponentType or earlier traits. Shared by TraitSpec and ClusterTraitSpec. */
+    TraitRemove: {
+      /** @description CEL expression for repeating this remove */
+      forEach?: string;
+      /** @description Loop variable name when using forEach */
+      var?: string;
+      /** @description Target resource to remove; matching resources are deleted entirely */
+      target: {
+        /** @description API group of the resource */
+        group: string;
+        /** @description API version of the resource */
+        version: string;
+        /** @description Resource type to remove */
+        kind: string;
+        /** @description CEL expression to filter which resources to remove */
+        where?: string;
+      };
+      /**
+       * @description Target plane for this remove
+       * @default dataplane
+       * @enum {string}
+       */
+      targetPlane: 'dataplane' | 'observabilityplane';
+    };
     /** @description CEL-based validation rule evaluated during rendering */
     ValidationRule: {
       /** @description CEL expression wrapped in ${...} that must evaluate to true */
+      rule: string;
+      /** @description Error message shown when the rule evaluates to false */
+      message: string;
+    };
+    /** @description CEL-based validation rule evaluated after all traits are applied, against the final rendered Kubernetes resources */
+    PostRenderValidation: {
+      /** @description Optional CEL guard evaluated against the source's context; if it evaluates to false the validation is skipped */
+      when?: string;
+      /** @description Optional CEL expression yielding a list; the validation is repeated per item with the loop variable bound. Requires var. */
+      forEach?: string;
+      /** @description Loop variable name for forEach iterations; available in target.where and rule. Required when forEach is set. */
+      var?: string;
+      /** @description Rendered resources this validation applies to */
+      target: {
+        /** @description API group of the resource */
+        group: string;
+        /** @description API version of the resource */
+        version: string;
+        /** @description Resource type to select */
+        kind: string;
+        /** @description CEL expression to filter which resources to select */
+        where?: string;
+        /**
+         * @description Require at least one rendered resource to match this target; when true and none match, the validation fails
+         * @default true
+         */
+        mustMatch: boolean;
+      };
+      /**
+       * @description Plane to scope selection to; without it a rule matches resources of the same GVK across every plane
+       * @default dataplane
+       * @enum {string}
+       */
+      targetPlane: 'dataplane' | 'observabilityplane';
+      /** @description CEL expression wrapped in ${...}, evaluated with resource bound to each match; must evaluate to true */
       rule: string;
       /** @description Error message shown when the rule evaluates to false */
       message: string;
@@ -4642,6 +5248,8 @@ export interface components {
       resolvedConnections?: components['schemas']['ResolvedConnection'][];
       /** @description Connections that could not be resolved */
       pendingConnections?: components['schemas']['PendingConnection'][];
+      /** @description Deployment hook gate for this binding's environment; absent when no hooks are bound (alpha) */
+      gate?: components['schemas']['DeploymentGateStatus'];
     };
     /** @description Holds the resolved URL for a single connection */
     ResolvedConnection: {
@@ -5050,8 +5658,10 @@ export interface components {
     };
     /**
      * @description Desired state of a ProjectReleaseBinding. spec.owner and spec.environment
-     *     are immutable after creation. spec.projectRelease is the promote pin and is
-     *     advanced manually via `occ project promote` or kubectl edit.
+     *     are immutable after creation. spec.projectRelease is the promote pin:
+     *     left unset, the Project controller seeds it once with the project's
+     *     latest release; advancing it afterwards is manual (API update, GitOps,
+     *     kubectl edit).
      */
     ProjectReleaseBindingSpec: {
       /** @description Identifies the project this binding belongs to. */
@@ -5068,7 +5678,7 @@ export interface components {
        */
       environment: string;
       /**
-       * @description Pinned ProjectRelease name. Advanced manually (e.g. via `occ project promote`).
+       * @description Pinned ProjectRelease name. Left unset, it is seeded once by the Project controller with the latest release; advanced manually afterwards (e.g. via `occ project promote`).
        * @example my-app-abc123
        */
       projectRelease?: string;
@@ -5469,6 +6079,31 @@ export interface components {
       /** @description Optional human-readable message explaining the health status */
       message?: string;
     };
+    /** @description Reports that children of one kind could not be discovered under a node. It is attached to the nearest node the client can see, so a failure while expanding a hidden intermediate resource still surfaces somewhere. Its presence means the node's children of that kind are incomplete, not that there are none. */
+    ChildDiscoveryStatus: {
+      /**
+       * @description API group of the child kind that could not be discovered (empty for core)
+       * @example apps
+       */
+      group?: string;
+      /**
+       * @description API version of the child kind that could not be discovered
+       * @example v1
+       */
+      version: string;
+      /**
+       * @description Kind of the child resources that could not be discovered
+       * @example ReplicaSet
+       */
+      kind: string;
+      /**
+       * @description Why discovery of this child kind did not complete. Currently `forbidden`, meaning the platform is not permitted to list that kind, or `error`, which covers every other failure including a truncated result. Left open rather than enumerated so a new state does not break existing clients; treat an unrecognized value as `error`.
+       * @example forbidden
+       */
+      state: string;
+      /** @description Optional human-readable detail about the failure */
+      message?: string;
+    };
     /** @description A single resource in the resource tree */
     ResourceNode: {
       /** @description API group of the resource */
@@ -5492,11 +6127,20 @@ export interface components {
       createdAt?: string;
       /** @description References to parent resources */
       parentRefs?: components['schemas']['ResourceRef'][];
-      /** @description Full Kubernetes resource object */
+      /** @description The Kubernetes resource object. Reduced to `apiVersion`, `kind` and `metadata` when `metadataOnly` is true. */
       object: {
         [key: string]: unknown;
       };
       health?: components['schemas']['HealthInfo'];
+      /** @description True when `object` has been projected down to `apiVersion`, `kind` and `metadata` and therefore carries no spec, status or data. Absent means the metadata-only projection was not applied; resource-specific sanitization can still remove fields. A Secret's `data` and `stringData` are removed that way, unconditionally, whether or not the projection applied. */
+      metadataOnly?: boolean;
+      /**
+       * @description How this node was attributed to its parent, when the attribution was not exact. Set to `labelSelector` when the node was matched heuristically by labels, which can over-match; absent for exact ownerRef matches. Consoles should badge nodes that carry it.
+       * @example labelSelector
+       */
+      matchedBy?: string;
+      /** @description Per-kind child-discovery failures under this node. Present only when at least one kind of child could not be discovered; absent means discovery completed for every kind configured under this node. */
+      childrenStatus?: components['schemas']['ChildDiscoveryStatus'][];
     };
     /** @description A Kubernetes event associated with a resource */
     ResourceEvent: {
@@ -5564,6 +6208,37 @@ export interface components {
     ResourcePodLogsResponse: {
       /** @description Log entries from the pod */
       logEntries: components['schemas']['PodLogEntry'][];
+    };
+    /** @description Optional per-run overrides applied to the Job created from a manual cronjob trigger */
+    CronJobTriggerRequest: {
+      /**
+       * @description Replaces the container args for this run only. An empty array clears the args inherited from the CronJob's jobTemplate; omitting the field or sending null keeps them. Applies to the container named `main`, or to the only container if the pod has exactly one.
+       * @example [
+       *       "--mode",
+       *       "backfill",
+       *       "--date",
+       *       "2026-08-25"
+       *     ]
+       */
+      args?: string[] | null;
+    };
+    /** @description Response describing the Job created from a manual cronjob trigger */
+    CronJobTriggerResponse: {
+      /**
+       * @description Name of the Job that was created from the CronJob's jobTemplate
+       * @example my-task-1721563200
+       */
+      jobName: string;
+      /**
+       * @description Data plane namespace where the Job was created
+       * @example dp-my-project-my-component-dev
+       */
+      namespace: string;
+      /**
+       * @description Name of the CronJob the Job was created from
+       * @example my-task
+       */
+      cronJobName: string;
     };
     /** @description Response containing resource trees for all rendered releases owned by a release binding */
     K8sResourceTreeResponse: {
@@ -6264,6 +6939,37 @@ export interface components {
          */
         resources?: components['schemas']['WorkloadResourceDependency'][];
       };
+      source?: components['schemas']['WorkloadSource'];
+    };
+    /**
+     * @description Commit provenance of the image in container. Populated by the producer
+     *     (native CI's push-workload step, or an external CI calling this API or occ
+     *     directly) alongside the image, enabling Delivery Insights to compute Lead
+     *     Time for Changes from real deployments. Optional: DF/CFR/MTTR compute
+     *     without it; Lead Time reports unavailable when absent.
+     */
+    WorkloadSource: {
+      /**
+       * @description VCS commit SHA the running image was built from
+       * @example 7f01217e694993f0e12cbc74f104ba1a97e6048b
+       */
+      commit?: string;
+      /**
+       * @description VCS branch the commit was built from
+       * @example main
+       */
+      branch?: string;
+      /**
+       * @description VCS repository URL the commit belongs to
+       * @example https://github.com/my-org/my-repo
+       */
+      repository?: string;
+      /**
+       * Format: date-time
+       * @description When the commit was authored, not when it was committed or built.
+       *     This is the timestamp Lead Time for Changes measures from.
+       */
+      authoredAt?: string;
     };
     /** @description Observed state of a Workload */
     WorkloadStatus: Record<string, never>;
@@ -6934,10 +7640,14 @@ export interface components {
     ClusterComponentTypeNameParam: string;
     /** @description ClusterTrait name */
     ClusterTraitNameParam: string;
+    /** @description ClusterHook name */
+    ClusterHookNameParam: string;
     /** @description ClusterWorkflow name */
     ClusterWorkflowNameParam: string;
     /** @description Trait name */
     TraitNameParam: string;
+    /** @description Hook name (for release binding hook operations, the binding name on the Environment) */
+    HookNameParam: string;
     /** @description Secret reference name */
     SecretReferenceNameParam: string;
     /** @description Deployment pipeline name */
@@ -9035,6 +9745,162 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  listClusterHooks: {
+    parameters: {
+      query?: {
+        /**
+         * @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of cluster hooks */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterHookList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createClusterHook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterHook'];
+      };
+    };
+    responses: {
+      /** @description Cluster hook created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterHook'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterHook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterHook name */
+        clusterHookName: components['parameters']['ClusterHookNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster hook details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterHook'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateClusterHook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterHook name */
+        clusterHookName: components['parameters']['ClusterHookNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterHook'];
+      };
+    };
+    responses: {
+      /** @description Cluster hook updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterHook'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteClusterHook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterHook name */
+        clusterHookName: components['parameters']['ClusterHookNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterHook deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
   listComponentTypes: {
     parameters: {
       query?: {
@@ -9422,6 +10288,174 @@ export interface operations {
         content: {
           'application/json': components['schemas']['SchemaResponse'];
         };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listHooks: {
+    parameters: {
+      query?: {
+        /**
+         * @description A label selector to filter resources using Kubernetes label selector syntax.
+         *     Supports equality-based requirements: "key=value" (equality), "key!=value" (inequality).
+         *     Supports set-based requirements: "key in (val1,val2)" (value in set), "key notin (val1,val2)" (value not in set).
+         *     Supports existence checks: "key" (label exists), "!key" (label does not exist).
+         *     Multiple requirements are comma-separated and ANDed together.
+         */
+        labelSelector?: components['parameters']['LabelSelectorParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of hooks */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HookList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createHook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Hook'];
+      };
+    };
+    responses: {
+      /** @description Hook created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Hook'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getHook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Hook name (for release binding hook operations, the binding name on the Environment) */
+        hookName: components['parameters']['HookNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Hook details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Hook'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateHook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Hook name (for release binding hook operations, the binding name on the Environment) */
+        hookName: components['parameters']['HookNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Hook'];
+      };
+    };
+    responses: {
+      /** @description Hook updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Hook'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      422: components['responses']['UnprocessableContent'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteHook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Hook name (for release binding hook operations, the binding name on the Environment) */
+        hookName: components['parameters']['HookNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Hook deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
@@ -10069,6 +11103,71 @@ export interface operations {
       400: components['responses']['BadRequest'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  resumeWorkflowRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow run name */
+        runName: components['parameters']['WorkflowRunNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The workflow run */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkflowRun'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  stopWorkflowRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow run name */
+        runName: components['parameters']['WorkflowRunNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['WorkflowRunStopRequest'];
+      };
+    };
+    responses: {
+      /** @description The workflow run */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkflowRun'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
       500: components['responses']['InternalError'];
     };
   };
@@ -10996,6 +12095,8 @@ export interface operations {
         'X-Gitlab-Token'?: string;
         /** @description Bitbucket webhook event-key header used to detect Bitbucket events. */
         'X-Event-Key'?: string;
+        /** @description Bitbucket webhook HMAC-SHA256 signature (`sha256=<hex>`) used to validate Bitbucket events. */
+        'X-Hub-Signature'?: string;
       };
       path?: never;
       cookie?: never;
@@ -11762,6 +12863,140 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ResourcePodLogsResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  triggerReleaseBindingCronJob: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    /** @description Optional per-run overrides applied to the created Job */
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['CronJobTriggerRequest'];
+      };
+    };
+    responses: {
+      /** @description The Job created from the CronJob */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CronJobTriggerResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listReleaseBindingHooks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deployment gate status */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DeploymentGateStatus'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  retryReleaseBindingHook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+        /** @description Hook name (for release binding hook operations, the binding name on the Environment) */
+        hookName: components['parameters']['HookNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['HookRetryRequest'];
+      };
+    };
+    responses: {
+      /** @description Retry requested; the annotated release binding */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBinding'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  acknowledgeReleaseBindingGate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GateAcknowledgeRequest'];
+      };
+    };
+    responses: {
+      /** @description Acknowledgement recorded; the annotated release binding */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBinding'];
         };
       };
       400: components['responses']['BadRequest'];

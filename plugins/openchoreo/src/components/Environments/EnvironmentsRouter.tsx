@@ -3,6 +3,7 @@ import { EnvironmentsList } from './EnvironmentsList';
 import { WorkloadConfigWrapper } from './wrappers/WorkloadConfigWrapper';
 import { OverridesWrapper } from './wrappers/OverridesWrapper';
 import { ReleaseDetailsWrapper } from './wrappers/ReleaseDetailsWrapper';
+import { HookRunWrapper } from './wrappers/HookRunWrapper';
 
 /**
  * Router component for the Environments section.
@@ -12,6 +13,7 @@ import { ReleaseDetailsWrapper } from './wrappers/ReleaseDetailsWrapper';
  * - Workload config: /workload-config
  * - Overrides: /overrides/:envName
  * - Release details: /release/:envName
+ * - Deployment hook run: /hook/:envName/:phase/:hookName
  */
 export const EnvironmentsRouter = () => {
   return (
@@ -20,6 +22,10 @@ export const EnvironmentsRouter = () => {
       <Route path="/workload-config" element={<WorkloadConfigWrapper />} />
       <Route path="/overrides/:envName" element={<OverridesWrapper />} />
       <Route path="/release/:envName" element={<ReleaseDetailsWrapper />} />
+      <Route
+        path="/hook/:envName/:phase/:hookName"
+        element={<HookRunWrapper />}
+      />
     </Routes>
   );
 };

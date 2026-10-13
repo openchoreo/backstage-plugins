@@ -1,3 +1,4 @@
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   ComponentResource,
   ComponentTrait,
@@ -45,6 +46,7 @@ export interface ComponentResourceInput {
   description?: string;
   namespaceName: string;
   projectName: string;
+  owner?: string;
 
   // Section 2: Component Type Configuration
   componentType: string; // The component type name (e.g., "nodejs-service")
@@ -114,6 +116,14 @@ export function buildComponentResource(
   if (input.description) {
     resource.metadata.annotations!['openchoreo.dev/description'] =
       input.description;
+  }
+
+  // Persist the owning group on the CR. The catalog sync reads this annotation
+  // (see resolveComponentOwner) and projects it onto the Component entity's
+  // spec.owner, so the catalog links the component to its owning group.
+  if (input.owner?.trim()) {
+    resource.metadata.annotations![CHOREO_ANNOTATIONS.BACKSTAGE_OWNER] =
+      input.owner.trim();
   }
 
   // Add workflow configuration only for build-from-source deployment source

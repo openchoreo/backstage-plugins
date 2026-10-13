@@ -1,0 +1,35 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-openchoreo-clusterhook
+  title: ClusterHook
+  description: Define a cluster-wide deployment hook (alpha) that runs a ClusterWorkflow before or after components are deployed. Bind it on any deployment pipeline's promotion target.
+spec:
+  owner: openchoreo-users
+  type: ClusterHook
+  # Enable user token injection for user-based authorization at OpenChoreo API
+  EXPERIMENTAL_formDecorators:
+    - id: openchoreo:inject-user-token
+  parameters:
+    - title: ClusterHook Details
+      required:
+        - hookConfig
+      properties:
+        hookConfig:
+          title: ' '
+          type: object
+          ui:field: ClusterHookFormWithYaml
+          ui:backstage:
+            review:
+              mask: '(ClusterHook definition provided)'
+  steps:
+    - id: create-openchoreo-clusterhook
+      name: Create OpenChoreo ClusterHook
+      action: openchoreo:clusterhook-definition:create
+      input:
+        yamlContent: ${{ parameters.hookConfig.yamlContent }}
+  output:
+    links:
+      - title: View ClusterHook
+        icon: catalog
+        entityRef: ${{ steps['create-openchoreo-clusterhook'].output.entityRef }}

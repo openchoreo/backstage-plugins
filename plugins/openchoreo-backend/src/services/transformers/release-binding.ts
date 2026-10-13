@@ -32,6 +32,18 @@ const PROGRESSING_REASONS = [
   'NamespaceProgressing',
 ] as const;
 
+/**
+ * Ready reasons set while the deployment-hook gate holds a new release back
+ * (controller_conditions.go). They describe the gate, not a deployment: the
+ * previously rendered release keeps serving until the gate opens.
+ */
+const GATE_REASONS = [
+  'HooksRunning',
+  'HookFailed',
+  'HookTimedOut',
+  'PlaneUnavailable',
+] as const;
+
 /** Reasons that represent an intentional non-deployed state, not an error. */
 const NON_ERROR_REASONS = ['ResourcesUndeployed'] as const;
 
@@ -117,6 +129,33 @@ export function deriveBindingStatusDetailed(
       reason: readyCond.reason,
       message: readyCond.message,
     };
+  }
+
+  // Ready=False because the hook gate is holding a new release. If an earlier
+  // release is still serving (ResourcesReady=True, which the controller left
+  // at the previous generation), the environment is Active; a first deploy
+  // waiting on its hooks is Pending. A first deploy the gate blocked falls
+  // through to Failed.
+  if (
+    GATE_REASONS.includes(readyCond.reason as (typeof GATE_REASONS)[number])
+  ) {
+    const serving = conditions.some(
+      c => c.type === 'ResourcesReady' && c.status === 'True',
+    );
+    if (serving) {
+      return {
+        status: 'Ready',
+        reason: readyCond.reason,
+        message: readyCond.message,
+      };
+    }
+    if (readyCond.reason === 'HooksRunning') {
+      return {
+        status: 'NotReady',
+        reason: readyCond.reason,
+        message: readyCond.message,
+      };
+    }
   }
 
   // Ready=False: distinguish progressing from errors
@@ -247,5 +286,8 @@ export function transformReleaseBinding(
         }),
       );
     })(),
+    // Deployment hooks (alpha): same shape as the BFF type; absent when the
+    // environment binds no hooks.
+    gate: binding.status?.gate as ReleaseBindingResponse['gate'],
   };
 }

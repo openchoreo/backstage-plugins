@@ -30,6 +30,7 @@ import {
   userSettingsPluginAlpha,
 } from './apis/customOverrides';
 
+import orgPluginAlpha from '@backstage/plugin-org/alpha';
 import kubernetesPluginAlpha from '@backstage/plugin-kubernetes/alpha';
 import jenkinsPluginAlpha from '@backstage-community/plugin-jenkins/alpha';
 import githubActionsPluginAlpha from '@backstage-community/plugin-github-actions/alpha';
@@ -64,6 +65,11 @@ export function createPortalApp(options?: PortalAppOptions) {
       catalogGraphPluginAlpha,
       catalogPluginAlpha,
       catalogImportPluginAlpha,
+      // Org plugin contributes the User/Group entity overview cards
+      // (user-profile, group-profile, members-list, ownership). Without it,
+      // User and Group entity pages (e.g. those synced from Microsoft Graph)
+      // render with no cards.
+      orgPluginAlpha,
       apiDocsPluginAlpha,
       kubernetesPluginAlpha,
       techdocsPluginAlpha,

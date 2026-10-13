@@ -49,6 +49,8 @@ import {
   useTraitCreatePermission,
   useComponentTypePermission,
   useClusterTraitCreatePermission,
+  useClusterHookCreatePermission,
+  useHookCreatePermission,
   useClusterComponentTypePermission,
   useClusterResourceTypePermission,
   useResourceTypePermission,
@@ -100,6 +102,8 @@ const PLATFORM_TYPES = [
   'ResourceType',
   'ClusterWorkflow',
   'Workflow',
+  'ClusterHook',
+  'Hook',
 ];
 // 'Project'/'Component'/'Resource' are in KNOWN_CARD_TYPES but NOT in
 // APPLICATION_TYPES — their per-type templates are rendered under the
@@ -175,6 +179,8 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   const traitPerm = useTraitCreatePermission();
   const componentTypePerm = useComponentTypePermission();
   const clusterTraitPerm = useClusterTraitCreatePermission();
+  const clusterHookPerm = useClusterHookCreatePermission();
+  const hookPerm = useHookCreatePermission();
   const clusterComponentTypePerm = useClusterComponentTypePermission();
   const clusterResourceTypePerm = useClusterResourceTypePermission();
   const resourceTypePerm = useResourceTypePermission();
@@ -206,6 +212,10 @@ const TemplateListContent = (props: TemplateListPageProps) => {
           return !traitPerm.loading && !traitPerm.canCreate;
         case 'ClusterTrait':
           return !clusterTraitPerm.loading && !clusterTraitPerm.canCreate;
+        case 'Hook':
+          return !hookPerm.loading && !hookPerm.canCreate;
+        case 'ClusterHook':
+          return !clusterHookPerm.loading && !clusterHookPerm.canCreate;
         case 'ComponentType':
           return !componentTypePerm.loading && !componentTypePerm.canCreate;
         case 'ClusterComponentType':
@@ -253,6 +263,8 @@ const TemplateListContent = (props: TemplateListPageProps) => {
       notificationChannelPerm,
       traitPerm,
       clusterTraitPerm,
+      clusterHookPerm,
+      hookPerm,
       componentTypePerm,
       clusterComponentTypePerm,
       clusterResourceTypePerm,

@@ -12,6 +12,7 @@ import {
   EnvironmentPromotionCard,
   EnvironmentDeployedComponentsCard,
   EnvironmentGatewayConfigurationCard,
+  EnvironmentHooksCard,
 } from '../../components/EnvironmentOverview';
 import { EntityWarningStrip } from './EntityWarningStrip';
 import { OpenChoreoAboutCard } from '../../components/OpenChoreoAboutCard';
@@ -29,6 +30,9 @@ export default function EnvironmentOverviewLayout({
       </Grid>
       <Grid item md={6} xs={12}>
         <EnvironmentPromotionCard />
+      </Grid>
+      <Grid item xs={12}>
+        <EnvironmentHooksCard />
       </Grid>
       <Grid item xs={12}>
         <EnvironmentDeployedComponentsCard />

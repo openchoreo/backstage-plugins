@@ -246,6 +246,7 @@ export const DeploymentPipelineCard = () => {
               <PipelineFlowVisualization
                 environments={data.environments}
                 promotionPaths={data.promotionPaths}
+                environmentHooks={data.environmentHooks}
                 pipelineEntityRef={data.pipelineEntityRef}
                 environmentNamespace={entity.metadata.namespace || 'default'}
               />

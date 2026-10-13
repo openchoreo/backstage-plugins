@@ -284,6 +284,24 @@ export const openchoreoClusterTraitCreatePermission = createPermission({
 });
 
 /**
+ * Permission to create a deployment hook (alpha).
+ * Requires namespace context.
+ */
+export const openchoreoHookCreatePermission = createPermission({
+  name: 'openchoreo.hook.create',
+  attributes: { action: 'create' },
+});
+
+/**
+ * Permission to create a cluster-scoped deployment hook (alpha).
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterHookCreatePermission = createPermission({
+  name: 'openchoreo.clusterhook.create',
+  attributes: { action: 'create' },
+});
+
+/**
  * Permission to create a new workflow.
  * Requires organization context.
  */
@@ -650,6 +668,30 @@ export const openchoreoClusterTraitUpdatePermission = createPermission({
  */
 export const openchoreoClusterTraitDeletePermission = createPermission({
   name: 'openchoreo.clustertrait.delete',
+  attributes: { action: 'delete' },
+});
+
+/** Permission to update a deployment hook (alpha). Requires namespace context. */
+export const openchoreoHookUpdatePermission = createPermission({
+  name: 'openchoreo.hook.update',
+  attributes: { action: 'update' },
+});
+
+/** Permission to delete a deployment hook (alpha). Requires namespace context. */
+export const openchoreoHookDeletePermission = createPermission({
+  name: 'openchoreo.hook.delete',
+  attributes: { action: 'delete' },
+});
+
+/** Permission to update a cluster-scoped deployment hook (alpha). */
+export const openchoreoClusterHookUpdatePermission = createPermission({
+  name: 'openchoreo.clusterhook.update',
+  attributes: { action: 'update' },
+});
+
+/** Permission to delete a cluster-scoped deployment hook (alpha). */
+export const openchoreoClusterHookDeletePermission = createPermission({
+  name: 'openchoreo.clusterhook.delete',
   attributes: { action: 'delete' },
 });
 
@@ -1189,6 +1231,8 @@ export const openchoreoPermissions = [
   openchoreoClusterResourceTypeCreatePermission,
   openchoreoClusterProjectTypeCreatePermission,
   openchoreoClusterTraitCreatePermission,
+  openchoreoHookCreatePermission,
+  openchoreoClusterHookCreatePermission,
   openchoreoWorkflowCreatePermission,
   openchoreoClusterWorkflowCreatePermission,
   openchoreoComponentWorkflowCreatePermission,
@@ -1228,6 +1272,10 @@ export const openchoreoPermissions = [
   openchoreoClusterProjectTypeDeletePermission,
   openchoreoClusterTraitUpdatePermission,
   openchoreoClusterTraitDeletePermission,
+  openchoreoHookUpdatePermission,
+  openchoreoHookDeletePermission,
+  openchoreoClusterHookUpdatePermission,
+  openchoreoClusterHookDeletePermission,
   openchoreoClusterDataplaneUpdatePermission,
   openchoreoClusterDataplaneDeletePermission,
   openchoreoClusterWorkflowplaneUpdatePermission,
@@ -1320,6 +1368,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.projecttype.create': 'projecttype:create',
   'openchoreo.clusterprojecttype.create': 'clusterprojecttype:create',
   'openchoreo.clustertrait.create': 'clustertrait:create',
+  'openchoreo.hook.create': 'hook:create',
+  'openchoreo.clusterhook.create': 'clusterhook:create',
   // Update & Delete actions for resource definition kinds
   'openchoreo.componenttype.update': 'componenttype:update',
   'openchoreo.componenttype.delete': 'componenttype:delete',
@@ -1358,6 +1408,10 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.clusterprojecttype.delete': 'clusterprojecttype:delete',
   'openchoreo.clustertrait.update': 'clustertrait:update',
   'openchoreo.clustertrait.delete': 'clustertrait:delete',
+  'openchoreo.hook.update': 'hook:update',
+  'openchoreo.hook.delete': 'hook:delete',
+  'openchoreo.clusterhook.update': 'clusterhook:update',
+  'openchoreo.clusterhook.delete': 'clusterhook:delete',
   'openchoreo.clusterdataplane.update': 'clusterdataplane:update',
   'openchoreo.clusterdataplane.delete': 'clusterdataplane:delete',
   'openchoreo.clusterworkflowplane.update': 'clusterworkflowplane:update',
@@ -1413,6 +1467,8 @@ export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
   'ClusterProjectType',
   'TraitType',
   'ClusterTraitType',
+  'Hook',
+  'ClusterHook',
   'Workflow',
   'ClusterWorkflow',
   'ComponentWorkflow',
@@ -1495,6 +1551,12 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   },
   clustertraittype: {
     'catalog.entity.read': 'clustertrait:view',
+  },
+  hook: {
+    'catalog.entity.read': 'hook:view',
+  },
+  clusterhook: {
+    'catalog.entity.read': 'clusterhook:view',
   },
   workflow: {
     'catalog.entity.read': 'workflow:view',

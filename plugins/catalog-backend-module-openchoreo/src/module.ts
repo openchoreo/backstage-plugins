@@ -23,6 +23,8 @@ import {
   CustomAnnotationProcessor,
   ClusterComponentTypeEntityProcessor,
   ClusterTraitTypeEntityProcessor,
+  HookEntityProcessor,
+  ClusterHookEntityProcessor,
   ClusterDataplaneEntityProcessor,
   ClusterObservabilityPlaneEntityProcessor,
   ClusterWorkflowPlaneEntityProcessor,
@@ -154,6 +156,10 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register the ClusterTraitType entity processor
         catalog.addProcessor(new ClusterTraitTypeEntityProcessor());
+
+        // Register the Hook / ClusterHook entity processors (deployment hooks, alpha)
+        catalog.addProcessor(new HookEntityProcessor());
+        catalog.addProcessor(new ClusterHookEntityProcessor());
 
         // Register the ClusterDataplane entity processor
         catalog.addProcessor(new ClusterDataplaneEntityProcessor());

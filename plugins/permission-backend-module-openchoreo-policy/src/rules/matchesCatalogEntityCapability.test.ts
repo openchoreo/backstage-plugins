@@ -396,6 +396,37 @@ describe('matchesCatalogEntityCapability.apply', () => {
       const entity = makeEntity('ClusterTraittype', {});
       expect(apply(entity, {}, ['clustertraittype'])).toBe(false);
     });
+
+    // Deployment hooks (alpha): a ClusterHook has no namespace annotation, so
+    // it must be judged as cluster-scoped (org-wide path only), while a Hook
+    // is judged by its namespace like a TraitType.
+    it('allows a ClusterHook with an org-wide clusterhook:view capability', () => {
+      const entity = makeEntity('ClusterHook', {});
+      expect(
+        apply(entity, {
+          clusterhook: {
+            action: 'clusterhook:view',
+            allowedPaths: ['*'],
+            deniedPaths: [],
+          },
+        }),
+      ).toBe(true);
+    });
+
+    it('denies a namespaced Hook outside the allowed namespace', () => {
+      const entity = makeEntity('Hook', {
+        [CHOREO_ANNOTATIONS.NAMESPACE]: 'other',
+      });
+      expect(
+        apply(entity, {
+          hook: {
+            action: 'hook:view',
+            allowedPaths: ['ns/acme'],
+            deniedPaths: [],
+          },
+        }),
+      ).toBe(false);
+    });
   });
 
   describe('invalid JSON handling', () => {

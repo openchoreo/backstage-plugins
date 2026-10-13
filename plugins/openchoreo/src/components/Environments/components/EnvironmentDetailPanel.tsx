@@ -40,6 +40,7 @@ import { useEnvironmentStatusVariant } from '../hooks/useEnvironmentStatusVarian
 import { NO_DRIFT, type ReleaseDriftInfo } from '../hooks/computeReleaseDrift';
 import { useReleases } from '../hooks/useReleases';
 import { useEnvironmentsContext } from '../EnvironmentsContext';
+import { EnvironmentHooksNote } from './EnvironmentHooksNote';
 import { derivePrimaryUrl } from '../utils/invokeUrlUtils';
 import { ComponentReleaseDiffDialog } from './ComponentReleaseDiffDialog';
 import { EnvironmentActions } from './EnvironmentActions';
@@ -146,7 +147,8 @@ export const EnvironmentDetailPanel = ({
   const [browserOpen, setBrowserOpen] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
   const { entity } = useEntity();
-  const { environments, renderInvestigateAction } = useEnvironmentsContext();
+  const { environments, renderInvestigateAction, hooksByEnvironment } =
+    useEnvironmentsContext();
   // A promote target whose project is not deployed there blocks the promote.
   const isTargetProjectBlocked = useMemo(
     () => makeIsTargetProjectBlocked(environments),
@@ -530,6 +532,17 @@ export const EnvironmentDetailPanel = ({
                     </Tooltip>
                   </Box>
                 )}
+              </Box>
+            )}
+
+            {hooksByEnvironment?.has(environment.name) && (
+              <Box className={classes.section} data-testid="env-hooks-section">
+                <Typography className={classes.sectionTitle}>
+                  Deployment hooks
+                </Typography>
+                <EnvironmentHooksNote
+                  hooks={hooksByEnvironment.get(environment.name)}
+                />
               </Box>
             )}
 

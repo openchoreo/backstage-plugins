@@ -27,6 +27,11 @@ const backend = createBackend();
 // factories.
 backend.add(portalBackendFeatures);
 
+// Microsoft Graph org integration — ingests Azure AD users and groups into the
+// catalog. Config lives under catalog.providers.microsoftGraphOrg (see
+// app-config.local.yaml for local dev). Self-inactive when unconfigured.
+backend.add(import('@backstage/plugin-catalog-backend-module-msgraph'));
+
 // External CI Platform Integrations
 // GitLab: Requires integrations.gitlab config at startup. Uncomment after configuring in app-config.local.yaml
 // For production, config is in app-config.production.yaml with Helm-injected env vars

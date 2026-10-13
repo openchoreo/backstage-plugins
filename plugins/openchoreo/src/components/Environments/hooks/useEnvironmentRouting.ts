@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   buildEnvironmentsBasePath,
+  buildHookRunPath,
   buildOverridesPath,
   buildReleaseDetailsPath,
   buildWorkloadConfigPath,
@@ -14,12 +15,16 @@ export type EnvironmentView =
   | 'list'
   | 'workload-config'
   | 'overrides'
-  | 'release-details';
+  | 'release-details'
+  | 'hook-run';
 
 export interface EnvironmentRoutingState {
   view: EnvironmentView;
   envName?: string;
   pendingAction?: PendingAction;
+  /** hook-run view: gate phase and binding name */
+  hookPhase?: 'preDeploy' | 'postDeploy';
+  hookName?: string;
 }
 
 /**
@@ -78,6 +83,19 @@ export function useEnvironmentRouting() {
       return { view: 'release-details', envName };
     }
 
+    // Check for hook run path: .../hook/envName/phase/hookName
+    const hookMatch = path.match(
+      /\/hook\/([^/]+)\/(preDeploy|postDeploy)\/([^/]+)$/,
+    );
+    if (hookMatch) {
+      return {
+        view: 'hook-run',
+        envName: decodeURIComponent(hookMatch[1]),
+        hookPhase: hookMatch[2] as 'preDeploy' | 'postDeploy',
+        hookName: decodeURIComponent(hookMatch[3]),
+      };
+    }
+
     return { view: 'list' };
   }, [location.pathname, searchParams]);
 
@@ -104,6 +122,13 @@ export function useEnvironmentRouting() {
     [navigate, basePath],
   );
 
+  const navigateToHookRun = useCallback(
+    (envName: string, phase: 'preDeploy' | 'postDeploy', hookName: string) => {
+      navigate(buildHookRunPath(basePath, envName, phase, hookName));
+    },
+    [navigate, basePath],
+  );
+
   /**
    * Navigate back to the previous view.
    * Uses browser history by default.
@@ -118,6 +143,7 @@ export function useEnvironmentRouting() {
     navigateToWorkloadConfig,
     navigateToOverrides,
     navigateToReleaseDetails,
+    navigateToHookRun,
     goBack,
   };
 }

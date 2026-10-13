@@ -27,3 +27,4 @@ export {
 } from './release-binding';
 export { transformResourceReleaseBinding } from './resource-release-binding';
 export { transformProjectReleaseBinding } from './project-release-binding';
+export { transformHook, transformClusterHook, toHookSpec } from './hook';

@@ -439,6 +439,17 @@ const environmentGatewayConfigurationCard = EntityCardBlueprint.make({
   },
 });
 
+const environmentHooksCard = EntityCardBlueprint.make({
+  name: 'environment-hooks',
+  params: {
+    filter: isOpenChoreoManagedOfKind('environment'),
+    loader: () =>
+      import('./components/EnvironmentOverview').then(m => (
+        <m.EnvironmentHooksCard />
+      )),
+  },
+});
+
 // ─── Dataplane page cards (kind:dataplane) ────────────────────────────────
 const dataplaneStatusCard = EntityCardBlueprint.make({
   name: 'dataplane-status',
@@ -634,6 +645,31 @@ const traitTypeOverviewCard = EntityCardBlueprint.make({
       import('./components/TraitTypeOverview').then(m => (
         <m.TraitTypeOverviewCard />
       )),
+  },
+});
+
+// ─── Hook / ClusterHook overview cards (deployment hooks, alpha) ──────────
+//
+// Same two cards on both kinds: the parameter mapping (HookOverviewCard) and
+// the pipelines that bind the hook (HookBindingsCard). Ungated, matching every
+// other kind's cards — the `hooks` feature flag gates the catalog kinds and the
+// create flow in portal-app, so an unflagged install never surfaces these
+// entities in the first place.
+const hookOverviewCard = EntityCardBlueprint.make({
+  name: 'hook-overview',
+  params: {
+    filter: isOpenChoreoManagedOfKind('hook', 'clusterhook'),
+    loader: () =>
+      import('./components/HookOverview').then(m => <m.HookOverviewCard />),
+  },
+});
+
+const hookBindingsCard = EntityCardBlueprint.make({
+  name: 'hook-bindings',
+  params: {
+    filter: isOpenChoreoManagedOfKind('hook', 'clusterhook'),
+    loader: () =>
+      import('./components/HookOverview').then(m => <m.HookBindingsCard />),
   },
 });
 
@@ -892,6 +928,17 @@ const traitTypeOverviewLayout = EntityContentLayoutBlueprint.make({
   },
 });
 
+const hookOverviewLayout = EntityContentLayoutBlueprint.make({
+  name: 'hook-overview-layout',
+  params: {
+    filter: isOpenChoreoManagedOfKind('hook', 'clusterhook'),
+    loader: () =>
+      import('./extensions/entityLayouts/HookOverviewLayout').then(
+        m => m.default,
+      ),
+  },
+});
+
 const workflowOverviewLayout = EntityContentLayoutBlueprint.make({
   name: 'workflow-overview-layout',
   params: {
@@ -1027,6 +1074,7 @@ export const openChoreoPlugin = createFrontendPlugin({
     environmentPromotionCard,
     environmentDeployedComponentsCard,
     environmentGatewayConfigurationCard,
+    environmentHooksCard,
     dataplaneStatusCard,
     dataplaneEnvironmentsCard,
     dataplaneGatewayConfigurationCard,
@@ -1044,6 +1092,8 @@ export const openChoreoPlugin = createFrontendPlugin({
     componentTypeOverviewCard,
     resourceTypeOverviewCard,
     traitTypeOverviewCard,
+    hookOverviewCard,
+    hookBindingsCard,
     workflowOverviewCard,
     componentWorkflowOverviewCard,
     ...scaffolderFieldExtensions,
@@ -1065,6 +1115,7 @@ export const openChoreoPlugin = createFrontendPlugin({
     resourceTypeOverviewLayout,
     projectTypeOverviewLayout,
     traitTypeOverviewLayout,
+    hookOverviewLayout,
     workflowOverviewLayout,
     componentWorkflowOverviewLayout,
   ],

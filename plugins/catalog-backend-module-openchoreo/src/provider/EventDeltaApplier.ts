@@ -34,6 +34,8 @@ import {
   translateNewClusterDataplaneToEntity,
   translateNewClusterObservabilityPlaneToEntity,
   translateNewClusterTraitToEntity,
+  translateNewClusterHookToEntity,
+  translateNewHookToEntity,
   translateNewClusterWorkflowPlaneToEntity,
   translateNewClusterWorkflowToEntity,
   translateNewComponentToEntity,
@@ -96,6 +98,8 @@ type NewClusterComponentType =
 type NewClusterResourceType =
   OpenChoreoComponents['schemas']['ClusterResourceType'];
 type NewClusterTrait = OpenChoreoComponents['schemas']['ClusterTrait'];
+type NewHook = OpenChoreoComponents['schemas']['Hook'];
+type NewClusterHook = OpenChoreoComponents['schemas']['ClusterHook'];
 type NewClusterWorkflow = OpenChoreoComponents['schemas']['ClusterWorkflow'];
 type NewClusterDataPlane = OpenChoreoComponents['schemas']['ClusterDataPlane'];
 type NewClusterObservabilityPlane =
@@ -582,6 +586,26 @@ export class EventDeltaApplier {
         params: { path: { cptName: name } },
       }) as any,
       'clusterprojecttype',
+      name,
+    );
+  }
+
+  private fetchHook(client: OpenChoreoApiClient, ns: string, name: string) {
+    return this.fetchOne<NewHook>(
+      client.GET('/api/v1/namespaces/{namespaceName}/hooks/{hookName}', {
+        params: { path: { namespaceName: ns, hookName: name } },
+      }) as any,
+      'hook',
+      `${ns}/${name}`,
+    );
+  }
+
+  private fetchClusterHook(client: OpenChoreoApiClient, name: string) {
+    return this.fetchOne<NewClusterHook>(
+      client.GET('/api/v1/clusterhooks/{clusterHookName}', {
+        params: { path: { clusterHookName: name } },
+      }) as any,
+      'clusterhook',
       name,
     );
   }
@@ -1570,6 +1594,32 @@ export class EventDeltaApplier {
     );
   }
 
+  private async refreshHook(ns: string, name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const hook = await this.fetchHook(client, ns, name);
+    if (!hook) {
+      await this.removeEntityRefs([this.buildEntityRef('hook', ns, name)]);
+      return;
+    }
+    await this.upsertEntities([
+      translateNewHookToEntity(hook, ns, this.translatorContext),
+    ]);
+  }
+
+  private async refreshClusterHook(name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const ch = await this.fetchClusterHook(client, name);
+    if (!ch) {
+      await this.removeEntityRefs([
+        this.buildEntityRef('clusterhook', 'openchoreo-cluster', name),
+      ]);
+      return;
+    }
+    await this.upsertEntities([
+      translateNewClusterHookToEntity(ch, this.translatorContext) as Entity,
+    ]);
+  }
+
   private async refreshClusterTrait(name: string): Promise<void> {
     const client = await this.createApiClient();
     const ct = await this.fetchClusterTrait(client, name);
@@ -1716,6 +1766,9 @@ export class EventDeltaApplier {
       case 'trait':
         await this.refreshTrait(ns, name);
         return;
+      case 'hook':
+        await this.refreshHook(ns, name);
+        return;
       case 'resourcetype':
         await this.refreshResourceType(ns, name);
         return;
@@ -1739,6 +1792,9 @@ export class EventDeltaApplier {
         return;
       case 'clustertrait':
         await this.refreshClusterTrait(name);
+        return;
+      case 'clusterhook':
+        await this.refreshClusterHook(name);
         return;
       case 'clusterworkflow':
         await this.refreshClusterWorkflow(name);

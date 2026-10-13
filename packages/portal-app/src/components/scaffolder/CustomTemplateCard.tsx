@@ -1,4 +1,12 @@
-import { Box, Typography, Chip, IconButton, Tooltip } from '@material-ui/core';
+import {
+  Box,
+  Typography,
+  Chip,
+  IconButton,
+  Tooltip,
+  SvgIcon,
+  SvgIconProps,
+} from '@material-ui/core';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import StarIcon from '@material-ui/icons/Star';
 import StarBorderIcon from '@material-ui/icons/StarBorder';
@@ -18,6 +26,14 @@ import { useStarredEntity } from '@backstage/plugin-catalog-react';
 import type { TemplateEntityV1beta3 } from '@backstage/plugin-scaffolder-common';
 import { useStyles } from './styles';
 
+// Fishing hook glyph (Material Symbols "Phishing", Apache-2.0). Not shipped in
+// @material-ui/icons v4, so the path is inlined.
+const HookIcon = (props: SvgIconProps) => (
+  <SvgIcon {...props}>
+    <path d="M17 6.18V2h-2v4.18C13.84 6.6 13 7.7 13 9s.84 2.4 2 2.82V15c0 2.21-1.79 4-4 4s-4-1.79-4-4v-1.17l1.59 1.59L10 14 5 9v6c0 3.31 2.69 6 6 6s6-2.69 6-6v-3.18c1.16-.41 2-1.51 2-2.82s-.84-2.4-2-2.82M16 10c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1" />
+  </SvgIcon>
+);
+
 const TYPE_ICONS: Record<string, React.ReactElement> = {
   'System (Project)': <FolderOutlinedIcon fontSize="inherit" />,
   Component: <WidgetsOutlinedIcon fontSize="inherit" />,
@@ -35,6 +51,8 @@ const TYPE_ICONS: Record<string, React.ReactElement> = {
   ComponentWorkflow: <SettingsApplicationsOutlinedIcon fontSize="inherit" />,
   Namespace: <ApartmentOutlined fontSize="inherit" />,
   DeploymentPipeline: <AccountTreeOutlined fontSize="inherit" />,
+  Hook: <HookIcon fontSize="inherit" />,
+  ClusterHook: <HookIcon fontSize="inherit" />,
 };
 
 const DEFAULT_ICON = <DescriptionOutlinedIcon fontSize="inherit" />;

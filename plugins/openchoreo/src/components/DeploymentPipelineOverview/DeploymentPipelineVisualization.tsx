@@ -8,12 +8,18 @@ import {
   type PipelinePromotionPath,
 } from '@openchoreo/backstage-plugin-react';
 import { useDeploymentPipelineOverviewStyles } from './styles';
+import { pipelineEnvironmentHooks } from './pipelineHooks';
+import { useEnvironmentHooks } from './useEnvironmentHooks';
+
+interface RawTarget {
+  name: string;
+}
 
 interface RawPromotionPath {
   sourceEnvironment?: string;
   sourceEnvironmentRef?: string | { name?: string };
-  targetEnvironments?: Array<{ name: string }>;
-  targetEnvironmentRefs?: Array<{ name: string }>;
+  targetEnvironments?: RawTarget[];
+  targetEnvironmentRefs?: RawTarget[];
 }
 
 export const DeploymentPipelineVisualization = () => {
@@ -24,6 +30,8 @@ export const DeploymentPipelineVisualization = () => {
     | { promotionPaths?: RawPromotionPath[] }
     | undefined;
   const namespace = entity.metadata.namespace || 'default';
+  // Hooks are bound on the target Environment, not on the pipeline.
+  const environmentHooks = useEnvironmentHooks(namespace);
 
   const { environments, promotionPaths } = useMemo(() => {
     const rawPaths = spec?.promotionPaths ?? [];
@@ -80,6 +88,11 @@ export const DeploymentPipelineVisualization = () => {
     return { environments: envOrder, promotionPaths: paths };
   }, [spec]);
 
+  const hooksByEnvironment = useMemo(
+    () => pipelineEnvironmentHooks(environmentHooks, namespace),
+    [environmentHooks, namespace],
+  );
+
   if (environments.length === 0) {
     return (
       <Card padding={24} className={classes.card}>
@@ -105,6 +118,7 @@ export const DeploymentPipelineVisualization = () => {
         environments={environments}
         promotionPaths={promotionPaths}
         environmentNamespace={namespace}
+        environmentHooks={hooksByEnvironment}
       />
     </Card>
   );

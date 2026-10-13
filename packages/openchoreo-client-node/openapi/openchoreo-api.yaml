@@ -53,10 +53,14 @@ tags:
     description: Cluster-scoped ComponentType templates defined by platform engineers
   - name: ClusterTraits
     description: Cluster-scoped Trait templates for composable cross-cutting concerns
+  - name: ClusterHooks
+    description: Cluster-scoped deployment hooks bound by Environments (alpha)
   - name: ComponentTypes
     description: ComponentType templates defined by platform engineers
   - name: Traits
     description: Trait templates for composable cross-cutting concerns
+  - name: Hooks
+    description: Deployment hooks bound by Environments (alpha)
   - name: ClusterWorkflows
     description: Cluster-scoped workflow templates for building and automating tasks
   - name: Workflows
@@ -1910,6 +1914,145 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   # =============================================================================
+  # ClusterHook Endpoints (Cluster-Scoped, alpha)
+  # =============================================================================
+
+  /api/v1/clusterhooks:
+    get:
+      operationId: listClusterHooks
+      summary: List cluster hooks
+      description: Returns a list of cluster-scoped deployment hooks.
+      tags: [ClusterHooks]
+      parameters:
+        - $ref: '#/components/parameters/LabelSelectorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: List of cluster hooks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterHookList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      operationId: createClusterHook
+      summary: Create cluster hook
+      description: Creates a new cluster-scoped deployment hook.
+      tags: [ClusterHooks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterHook'
+      responses:
+        '201':
+          description: Cluster hook created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterHook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/clusterhooks/{clusterHookName}:
+    get:
+      operationId: getClusterHook
+      summary: Get a cluster hook
+      description: Returns details of a specific cluster-scoped deployment hook.
+      tags: [ClusterHooks]
+      parameters:
+        - $ref: '#/components/parameters/ClusterHookNameParam'
+      responses:
+        '200':
+          description: Cluster hook details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterHook'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      operationId: updateClusterHook
+      summary: Update cluster hook
+      description: Replaces an existing cluster-scoped deployment hook (full update).
+      tags: [ClusterHooks]
+      parameters:
+        - $ref: '#/components/parameters/ClusterHookNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterHook'
+      responses:
+        '200':
+          description: Cluster hook updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterHook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      operationId: deleteClusterHook
+      summary: Delete cluster hook
+      description: Deletes a cluster-scoped deployment hook by name.
+      tags: [ClusterHooks]
+      parameters:
+        - $ref: '#/components/parameters/ClusterHookNameParam'
+      responses:
+        '204':
+          description: ClusterHook deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # =============================================================================
   # ComponentType Endpoints
   # =============================================================================
 
@@ -2240,6 +2383,151 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SchemaResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # =============================================================================
+  # Hook Endpoints (alpha)
+  # =============================================================================
+
+  /api/v1/namespaces/{namespaceName}/hooks:
+    get:
+      operationId: listHooks
+      summary: List hooks
+      description: Returns a paginated list of deployment hooks in the namespace.
+      tags: [Hooks]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/LabelSelectorParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: List of hooks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HookList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      operationId: createHook
+      summary: Create hook
+      description: Creates a new deployment hook within a namespace.
+      tags: [Hooks]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Hook'
+      responses:
+        '201':
+          description: Hook created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/hooks/{hookName}:
+    get:
+      operationId: getHook
+      summary: Get hook
+      description: Returns details of a specific deployment hook.
+      tags: [Hooks]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/HookNameParam'
+      responses:
+        '200':
+          description: Hook details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hook'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      operationId: updateHook
+      summary: Update hook
+      description: Replaces an existing deployment hook (full update).
+      tags: [Hooks]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/HookNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Hook'
+      responses:
+        '200':
+          description: Hook updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      operationId: deleteHook
+      summary: Delete hook
+      description: Deletes a deployment hook by name.
+      tags: [Hooks]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/HookNameParam'
+      responses:
+        '204':
+          description: Hook deleted successfully
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2820,6 +3108,73 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/workflowruns/{runName}/resume:
+    post:
+      operationId: resumeWorkflowRun
+      summary: Resume a suspended workflow run
+      description: >-
+        Resumes a workflow run that is paused at a suspend step (for example a deployment-hook approval),
+        the same as `argo resume`: clears `spec.suspend` on the Argo Workflow and marks every active
+        Suspend node as Succeeded so the workflow continues.
+      tags: [Workflows]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/WorkflowRunNameParam'
+      responses:
+        '200':
+          description: The workflow run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRun'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/workflowruns/{runName}/stop:
+    post:
+      operationId: stopWorkflowRun
+      summary: Stop a workflow run
+      description: >-
+        Stops a running workflow run, the same as `argo stop`: sets `spec.shutdown: Stop` on the Argo
+        Workflow so running steps finish and exit handlers run, and records the reason on the WorkflowRun.
+      tags: [Workflows]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/WorkflowRunNameParam'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowRunStopRequest'
+      responses:
+        '200':
+          description: The workflow run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRun'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -3744,7 +4099,11 @@ paths:
         The git provider is automatically detected from the request headers:
         - GitHub: `X-Hub-Signature-256`
         - GitLab: `X-Gitlab-Token`
-        - Bitbucket: `X-Event-Key`
+        - Bitbucket: `X-Event-Key` (signed with `X-Hub-Signature`)
+
+        Every provider is authenticated: GitHub and Bitbucket via HMAC-SHA256 signature
+        verification against the configured webhook secret, GitLab via its shared token.
+        Requests without a valid signature/token for the detected provider are rejected.
       tags: [AutoBuild]
       security: []
       parameters:
@@ -3766,6 +4125,12 @@ paths:
           schema:
             type: string
           description: Bitbucket webhook event-key header used to detect Bitbucket events.
+        - in: header
+          name: X-Hub-Signature
+          required: false
+          schema:
+            type: string
+          description: Bitbucket webhook HMAC-SHA256 signature (`sha256=<hex>`) used to validate Bitbucket events.
       requestBody:
         required: true
         content:
@@ -4451,6 +4816,149 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ResourcePodLogsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1alpha1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/trigger:
+    post:
+      operationId: triggerReleaseBindingCronJob
+      summary: Manually trigger the cronjob of a release binding
+      description: >-
+        Creates a Job from the deployed CronJob's spec.jobTemplate with an owner reference back to the
+        CronJob, the same behaviour as `kubectl create job --from=cronjob/<name>`. Only allowed when the
+        component's workload type is cronjob. The triggered Job (and its pods) appear in the resource tree
+        and logs like any other CronJob-owned Job.
+
+
+        An optional request body can override the container args for this run only. The override applies
+        to the created Job and does not change the CronJob, so scheduled runs are unaffected.
+      tags: [ReleaseBindings]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ReleaseBindingNameParam'
+      requestBody:
+        required: false
+        description: Optional per-run overrides applied to the created Job
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CronJobTriggerRequest'
+      responses:
+        '200':
+          description: The Job created from the CronJob
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CronJobTriggerResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/hooks:
+    get:
+      operationId: listReleaseBindingHooks
+      summary: List deployment hook status for a release binding
+      description: >-
+        Returns the deployment gate of a release binding: the current gate key and the status of every
+        pre-deploy and post-deploy hook bound by the binding's Environment.
+        Both lists are empty when no hooks are bound or the hooks feature is disabled.
+      tags: [ReleaseBindings]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ReleaseBindingNameParam'
+      responses:
+        '200':
+          description: Deployment gate status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeploymentGateStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/hooks/{hookName}/retry:
+    post:
+      operationId: retryReleaseBindingHook
+      summary: Retry a deployment hook
+      description: >-
+        Asks the controller to re-run one hook binding of the release binding's deployment gate by setting
+        the `openchoreo.dev/hook-retry` annotation to `<phase>/<hookName>`. The controller deletes the
+        hook's previous run, resets its status entry and starts it again.
+      tags: [ReleaseBindings]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ReleaseBindingNameParam'
+        - $ref: '#/components/parameters/HookNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HookRetryRequest'
+      responses:
+        '200':
+          description: Retry requested; the annotated release binding
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseBinding'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/gate/acknowledge:
+    post:
+      operationId: acknowledgeReleaseBindingGate
+      summary: Acknowledge a post-deploy hook alert
+      description: >-
+        Acknowledges an `Alert` post-deploy hook failure for the given gate key by setting the
+        `openchoreo.dev/gate-acknowledged` annotation. The controller clears the PostDeployHooksPassed
+        condition for that key and restores Ready.
+      tags: [ReleaseBindings]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ReleaseBindingNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GateAcknowledgeRequest'
+      responses:
+        '200':
+          description: Acknowledgement recorded; the annotated release binding
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseBinding'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -6447,6 +6955,15 @@ components:
         type: string
         example: autoscaler
 
+    ClusterHookNameParam:
+      name: clusterHookName
+      in: path
+      required: true
+      description: ClusterHook name
+      schema:
+        type: string
+        example: trivy-image-scan
+
     ClusterWorkflowNameParam:
       name: clusterWorkflowName
       in: path
@@ -6464,6 +6981,15 @@ components:
       schema:
         type: string
         example: autoscaler
+
+    HookNameParam:
+      name: hookName
+      in: path
+      required: true
+      description: Hook name (for release binding hook operations, the binding name on the Environment)
+      schema:
+        type: string
+        example: image-scan
 
     SecretReferenceNameParam:
       name: secretReferenceName
@@ -6792,6 +7318,19 @@ components:
   # ===========================================================================
   # Schemas
   # ===========================================================================
+  #
+  # Adding an `enum` here can rename constants elsewhere in the generated code.
+  # oapi-codegen resolves enum constant names in a single global namespace and
+  # only prefixes them with their schema name when two collide, so introducing an
+  # enum whose values are all unique makes an existing prefixed constant lose its
+  # prefix. This has already broken the build once: a new enum renamed
+  # `WorkflowStepStatusPhaseError` to `Error`, which hand-written code in
+  # internal/openchoreo-api/api/handlers/workflows.go refers to by name.
+  #
+  # Prefer a plain `type: string` whose description lists the values and tells
+  # clients how to treat an unrecognized one. If an enum is genuinely needed, run
+  # `make generate` and read the whole diff of the generated files, not just the
+  # schema you added.
   schemas:
     # -------------------------------------------------------------------------
     # Error Response
@@ -6950,12 +7489,12 @@ components:
       properties:
         enabled:
           type: boolean
-          description: Whether clients can query audit logs through observerURL
+          description: Whether audit logging is enabled
           example: true
         observerURL:
           type: string
           format: uri
-          description: Base URL of the observer that serves the audit trail. Omitted when enabled is false.
+          description: Base URL of the observer that serves audit logs. Omitted when audit logging is disabled or the referenced observability plane is not found.
           example: https://observer.example.com
 
     # -------------------------------------------------------------------------
@@ -7609,6 +8148,10 @@ components:
           example: false
         gateway:
           $ref: '#/components/schemas/GatewaySpec'
+        hooks:
+          description: Pre-deploy and post-deploy hooks that run for every component deployment into this environment (alpha)
+          allOf:
+            - $ref: '#/components/schemas/HookSet'
 
     EnvironmentStatus:
       type: object
@@ -8446,9 +8989,19 @@ components:
                 minLength: 1
         validations:
           type: array
-          description: CEL-based validation rules evaluated during rendering
+          description: 'CEL-based validation rules evaluated before rendering. Deprecated: use preRenderValidations (mutually exclusive).'
           items:
             $ref: '#/components/schemas/ValidationRule'
+        preRenderValidations:
+          type: array
+          description: CEL-based validation rules evaluated before rendering; replaces the deprecated validations field
+          items:
+            $ref: '#/components/schemas/ValidationRule'
+        postRenderValidations:
+          type: array
+          description: CEL-based validation rules evaluated after all traits are applied, against the final rendered Kubernetes resources
+          items:
+            $ref: '#/components/schemas/PostRenderValidation'
         resources:
           type: array
           description: Templates that generate Kubernetes resources dynamically
@@ -8541,9 +9094,19 @@ components:
           $ref: '#/components/schemas/SchemaSection'
         validations:
           type: array
-          description: CEL-based validation rules evaluated during rendering
+          description: 'CEL-based validation rules evaluated before rendering. Deprecated: use preRenderValidations (mutually exclusive).'
           items:
             $ref: '#/components/schemas/ValidationRule'
+        preRenderValidations:
+          type: array
+          description: CEL-based validation rules evaluated before rendering; replaces the deprecated validations field
+          items:
+            $ref: '#/components/schemas/ValidationRule'
+        postRenderValidations:
+          type: array
+          description: CEL-based validation rules evaluated after all traits are applied, against the final rendered Kubernetes resources
+          items:
+            $ref: '#/components/schemas/PostRenderValidation'
         creates:
           type: array
           description: New Kubernetes resources to create when this trait is applied
@@ -8629,10 +9192,439 @@ components:
                       description: JSON Pointer to the field to modify
                     value:
                       description: Value to set (for add/replace operations)
+        removes:
+          type: array
+          description: Whole resources to delete that were previously produced by the ComponentType or earlier traits. Workload resource kinds (e.g. Deployment, StatefulSet, CronJob) cannot be removed.
+          items:
+            $ref: '#/components/schemas/TraitRemove'
 
     ClusterTraitStatus:
       type: object
       description: Observed state of a ClusterTrait
+
+    # -------------------------------------------------------------------------
+    # Hooks (alpha)
+    # -------------------------------------------------------------------------
+    ClusterHookList:
+      type: object
+      description: Paginated list of cluster-scoped deployment hooks
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterHook'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ClusterHook:
+      type: object
+      description: |
+        ClusterHook resource.
+        Cluster-scoped version of Hook. May only reference a ClusterWorkflow.
+      required:
+        - metadata
+      properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ClusterHook
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/HookSpec'
+        status:
+          readOnly: true
+          allOf:
+            - $ref: '#/components/schemas/HookStatus'
+
+    HookList:
+      type: object
+      description: Paginated list of deployment hooks
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Hook'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Hook:
+      type: object
+      description: |
+        Hook resource.
+        A platform-engineer-defined action that a DeploymentPipeline binds to a promotion
+        target as a pre-deploy or post-deploy step.
+      required:
+        - metadata
+      properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: Hook
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/HookSpec'
+        status:
+          readOnly: true
+          allOf:
+            - $ref: '#/components/schemas/HookStatus'
+
+    HookSpec:
+      type: object
+      description: Desired state of a Hook or ClusterHook
+      required:
+        - workflowRef
+      properties:
+        type:
+          type: string
+          description: Executor type. Only Workflow is supported.
+          enum: [Workflow]
+          default: Workflow
+        workflowRef:
+          type: object
+          description: The Workflow or ClusterWorkflow the hook runs. A ClusterHook may only reference a ClusterWorkflow.
+          required:
+            - name
+          properties:
+            kind:
+              type: string
+              description: Kind of referenced workflow resource
+              enum: [Workflow, ClusterWorkflow]
+              default: ClusterWorkflow
+            name:
+              type: string
+              description: Referenced workflow resource name
+              minLength: 1
+              example: trivy-scan
+        parameters:
+          type: array
+          description: Maps the workflow's inputs to value sources
+          items:
+            $ref: '#/components/schemas/HookParameter'
+        enabledTo:
+          type: array
+          description: Component types the hook is enabled for. Empty enables it for every component; a binding's appliesTo can narrow this but not widen it.
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/HookSubjectRef'
+
+    HookSubjectRef:
+      type: object
+      description: Names a component type a hook is enabled for
+      required:
+        - kind
+        - name
+      properties:
+        kind:
+          type: string
+          description: Type kind
+          enum: [ComponentType, ClusterComponentType]
+        name:
+          type: string
+          description: Name of the type resource
+          minLength: 1
+          example: service
+
+    HookParameter:
+      type: object
+      description: |
+        Maps one input of the hook's workflow to a value source. Exactly one of value, from,
+        default or required is set, except that from may be combined with overridable.
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Workflow input this parameter feeds
+          pattern: '^[a-zA-Z][a-zA-Z0-9_-]*$'
+          minLength: 1
+          maxLength: 63
+          example: image
+        value:
+          type: string
+          description: Fixed literal. A binding cannot override it.
+        from:
+          type: string
+          description: CEL expression (${...}) evaluated against the deployment context
+          example: ${deployment.workload.containers.main.image}
+        default:
+          type: string
+          description: Value used when the binding does not supply one
+        overridable:
+          type: boolean
+          description: Lets a binding replace the value computed by from
+          default: false
+        required:
+          type: boolean
+          description: Every binding must supply this parameter
+          default: false
+        schema:
+          type: object
+          description: Optional OpenAPI v3 fragment describing the parameter value
+          additionalProperties: true
+
+    HookStatus:
+      type: object
+      description: Observed state of a Hook or ClusterHook
+      properties:
+        observedGeneration:
+          type: integer
+          format: int64
+          description: Most recent generation observed by the controller
+        conditions:
+          type: array
+          description: Latest available observations of the hook's state
+          items:
+            $ref: '#/components/schemas/Condition'
+
+    HookRef:
+      type: object
+      description: Reference to a Hook or ClusterHook
+      required:
+        - name
+      properties:
+        kind:
+          type: string
+          description: Kind of hook resource
+          enum: [Hook, ClusterHook]
+          default: Hook
+        name:
+          type: string
+          description: Hook resource name
+          minLength: 1
+          example: trivy-image-scan
+
+    HookSubjectSelector:
+      type: object
+      description: Scopes a hook binding to components of a component type
+      required:
+        - kind
+        - name
+      properties:
+        kind:
+          type: string
+          description: Type kind to match
+          enum: [ComponentType, ClusterComponentType]
+        name:
+          type: string
+          description: Name of the type resource
+          minLength: 1
+          example: service
+
+    HookBinding:
+      type: object
+      description: Attaches a hook to a promotion target as a pre-deploy or post-deploy step
+      required:
+        - name
+        - hookRef
+      properties:
+        name:
+          type: string
+          description: Binding name, unique across both phases of a target
+          pattern: '^[a-z]([-a-z0-9]*[a-z0-9])?$'
+          minLength: 1
+          maxLength: 40
+          example: image-scan
+        hookRef:
+          $ref: '#/components/schemas/HookRef'
+        mode:
+          type: string
+          description: Whether the deployment waits for the hook
+          enum: [Sync, Async]
+          default: Sync
+        parameters:
+          type: object
+          description: Values for the hook's open parameters (default, required, or from+overridable), keyed by parameter name
+          additionalProperties:
+            type: string
+        appliesTo:
+          type: array
+          description: Restricts the binding to components of the listed component types. Empty applies to every component.
+          items:
+            $ref: '#/components/schemas/HookSubjectSelector'
+        onFailure:
+          type: string
+          description: What a failed Sync hook does to the deployment. Defaults to Block for pre-deploy and Ignore for post-deploy.
+          enum: [Block, Ignore, Alert]
+        timeout:
+          type: string
+          description: Bounds a Sync hook's run time as a Go duration. Defaults to 30m.
+          pattern: '^(\d+h)?(\d+m)?(\d+s)?$'
+          example: 30m
+        retries:
+          type: integer
+          format: int32
+          description: Automatic re-runs after a Sync failure
+          minimum: 0
+          maximum: 5
+          default: 0
+
+    HookSet:
+      type: object
+      description: Pre-deploy and post-deploy hook bindings of a promotion target
+      properties:
+        preDeploy:
+          type: array
+          description: Hooks that run before the RenderedRelease is created
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/HookBinding'
+        postDeploy:
+          type: array
+          description: Hooks that run after the release reports ResourcesReady
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/HookBinding'
+
+    DeploymentHookStatus:
+      type: object
+      description: Observed state of one hook binding for the current gate key
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Binding name
+          example: image-scan
+        hookRef:
+          $ref: '#/components/schemas/HookRef'
+        mode:
+          type: string
+          description: Effective mode of the binding (Sync or Async)
+          example: Sync
+        phase:
+          type: string
+          description: >-
+            Observed phase of the run. One of Pending, Running, Succeeded, Failed, TimedOut, Skipped,
+            Dispatched, DispatchFailed, PlaneUnavailable.
+          example: Succeeded
+        reason:
+          type: string
+          description: Machine-readable reason for the phase
+        message:
+          type: string
+          description: Human-readable detail, copied from the failing task when available
+        workflowRunRef:
+          type: string
+          description: Name of the WorkflowRun that executed the hook
+        attempt:
+          type: integer
+          format: int32
+          description: 1-based attempt number of the current run
+        startedAt:
+          type: string
+          format: date-time
+          description: When the current attempt started
+        finishedAt:
+          type: string
+          format: date-time
+          description: When the current attempt reached a terminal phase
+
+    GatePassRecord:
+      type: object
+      description: Records one gate pass
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          description: Gate key that passed
+        release:
+          type: string
+          description: ComponentRelease name the key was computed for
+        hookSetHash:
+          type: string
+          description: Hash of the effective hook set at the time of the pass
+        passedAt:
+          type: string
+          format: date-time
+          description: When the gate passed
+
+    DeploymentGateStatus:
+      type: object
+      description: Observed state of the hook gate on a ReleaseBinding
+      properties:
+        key:
+          type: string
+          description: Identifies the current deployment attempt (hash of the release, the effective hook set and, for ConfigChange bindings, the config)
+        passedKey:
+          type: string
+          description: Last key whose pre-deploy hooks all passed
+        hookSetHash:
+          type: string
+          description: Hash of the effective hook set for the current key
+        lastPassedRelease:
+          type: string
+          description: ComponentRelease name of the last pass
+        postDeployKey:
+          type: string
+          description: Key whose post-deploy hooks have been started
+        history:
+          type: array
+          description: Most recent gate passes, newest first
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/GatePassRecord'
+        preDeploy:
+          type: array
+          description: Status of each pre-deploy binding for the current key
+          items:
+            $ref: '#/components/schemas/DeploymentHookStatus'
+        postDeploy:
+          type: array
+          description: Status of each post-deploy binding for the current key
+          items:
+            $ref: '#/components/schemas/DeploymentHookStatus'
+
+    HookRetryRequest:
+      type: object
+      description: Names the phase of the hook binding to re-run
+      required:
+        - phase
+      properties:
+        phase:
+          type: string
+          description: Gate phase the binding belongs to
+          enum: [preDeploy, postDeploy]
+
+    GateAcknowledgeRequest:
+      type: object
+      description: Acknowledges an Alert post-deploy failure for one gate key
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          description: The gate key being acknowledged (status.gate.key)
+          minLength: 1
+
+    WorkflowRunStopRequest:
+      type: object
+      description: Optional reason recorded when a workflow run is stopped
+      properties:
+        reason:
+          type: string
+          description: Why the run was stopped; recorded on the WorkflowRun
+          maxLength: 1024
 
     # -------------------------------------------------------------------------
     # ComponentTypes
@@ -8740,9 +9732,19 @@ components:
                 description: Name of the Trait or ClusterTrait resource
         validations:
           type: array
-          description: CEL-based validation rules evaluated during rendering
+          description: 'CEL-based validation rules evaluated before rendering. Deprecated: use preRenderValidations (mutually exclusive).'
           items:
             $ref: '#/components/schemas/ValidationRule'
+        preRenderValidations:
+          type: array
+          description: CEL-based validation rules evaluated before rendering; replaces the deprecated validations field
+          items:
+            $ref: '#/components/schemas/ValidationRule'
+        postRenderValidations:
+          type: array
+          description: CEL-based validation rules evaluated after all traits are applied, against the final rendered Kubernetes resources
+          items:
+            $ref: '#/components/schemas/PostRenderValidation'
         resources:
           type: array
           description: Templates that generate Kubernetes resources dynamically
@@ -8833,9 +9835,19 @@ components:
           $ref: '#/components/schemas/SchemaSection'
         validations:
           type: array
-          description: CEL-based validation rules evaluated during rendering
+          description: 'CEL-based validation rules evaluated before rendering. Deprecated: use preRenderValidations (mutually exclusive).'
           items:
             $ref: '#/components/schemas/ValidationRule'
+        preRenderValidations:
+          type: array
+          description: CEL-based validation rules evaluated before rendering; replaces the deprecated validations field
+          items:
+            $ref: '#/components/schemas/ValidationRule'
+        postRenderValidations:
+          type: array
+          description: CEL-based validation rules evaluated after all traits are applied, against the final rendered Kubernetes resources
+          items:
+            $ref: '#/components/schemas/PostRenderValidation'
         creates:
           type: array
           description: New Kubernetes resources to create when this trait is applied
@@ -8921,10 +9933,53 @@ components:
                       description: JSON Pointer to the field to modify
                     value:
                       description: Value to set (for add/replace operations)
+        removes:
+          type: array
+          description: Whole resources to delete that were previously produced by the ComponentType or earlier traits. Workload resource kinds (e.g. Deployment, StatefulSet, CronJob) cannot be removed.
+          items:
+            $ref: '#/components/schemas/TraitRemove'
 
     TraitStatus:
       type: object
       description: Observed state of a Trait
+
+    TraitRemove:
+      type: object
+      description: Whole resource to delete that was previously produced by the ComponentType or earlier traits. Shared by TraitSpec and ClusterTraitSpec.
+      required:
+        - target
+      properties:
+        forEach:
+          type: string
+          description: 'CEL expression for repeating this remove'
+        var:
+          type: string
+          description: Loop variable name when using forEach
+        target:
+          type: object
+          description: Target resource to remove; matching resources are deleted entirely
+          required:
+            - group
+            - version
+            - kind
+          properties:
+            group:
+              type: string
+              description: API group of the resource
+            version:
+              type: string
+              description: API version of the resource
+            kind:
+              type: string
+              description: Resource type to remove
+            where:
+              type: string
+              description: 'CEL expression to filter which resources to remove'
+        targetPlane:
+          type: string
+          description: Target plane for this remove
+          enum: [dataplane, observabilityplane]
+          default: dataplane
 
     ValidationRule:
       type: object
@@ -8941,6 +9996,67 @@ components:
           type: string
           description: Error message shown when the rule evaluates to false
           minLength: 1
+
+    PostRenderValidation:
+      type: object
+      description: CEL-based validation rule evaluated after all traits are applied, against the final rendered Kubernetes resources
+      required:
+        - target
+        - rule
+        - message
+      properties:
+        when:
+          type: string
+          pattern: '^\$\{[\s\S]+\}\s*$'
+          description: "Optional CEL guard evaluated against the source's context; if it evaluates to false the validation is skipped"
+        forEach:
+          type: string
+          pattern: '^\$\{[\s\S]+\}\s*$'
+          description: 'Optional CEL expression yielding a list; the validation is repeated per item with the loop variable bound. Requires var.'
+        var:
+          type: string
+          pattern: '^[a-zA-Z_][a-zA-Z0-9_]*$'
+          description: 'Loop variable name for forEach iterations; available in target.where and rule. Required when forEach is set.'
+        target:
+          type: object
+          description: Rendered resources this validation applies to
+          required:
+            - group
+            - version
+            - kind
+          properties:
+            group:
+              type: string
+              description: API group of the resource
+            version:
+              type: string
+              minLength: 1
+              description: API version of the resource
+            kind:
+              type: string
+              minLength: 1
+              description: Resource type to select
+            where:
+              type: string
+              pattern: '^\$\{[\s\S]+\}\s*$'
+              description: 'CEL expression to filter which resources to select'
+            mustMatch:
+              type: boolean
+              description: Require at least one rendered resource to match this target; when true and none match, the validation fails
+              default: true
+        targetPlane:
+          type: string
+          enum: [dataplane, observabilityplane]
+          default: dataplane
+          description: 'Plane to scope selection to; without it a rule matches resources of the same GVK across every plane'
+        rule:
+          type: string
+          pattern: '^\$\{[\s\S]+\}\s*$'
+          description: 'CEL expression wrapped in ${...}, evaluated with resource bound to each match; must evaluate to true'
+        message:
+          type: string
+          minLength: 1
+          description: Error message shown when the rule evaluates to false
 
     Trait:
       type: object
@@ -9787,6 +10903,10 @@ components:
           description: Connections that could not be resolved
           items:
             $ref: '#/components/schemas/PendingConnection'
+        gate:
+          description: Deployment hook gate for this binding's environment; absent when no hooks are bound (alpha)
+          allOf:
+            - $ref: '#/components/schemas/DeploymentGateStatus'
 
     ResolvedConnection:
       type: object
@@ -10416,8 +11536,10 @@ components:
       type: object
       description: |
         Desired state of a ProjectReleaseBinding. spec.owner and spec.environment
-        are immutable after creation. spec.projectRelease is the promote pin and is
-        advanced manually via `occ project promote` or kubectl edit.
+        are immutable after creation. spec.projectRelease is the promote pin:
+        left unset, the Project controller seeds it once with the project's
+        latest release; advancing it afterwards is manual (API update, GitOps,
+        kubectl edit).
       required:
         - owner
         - environment
@@ -10440,7 +11562,7 @@ components:
           example: dev
         projectRelease:
           type: string
-          description: Pinned ProjectRelease name. Advanced manually (e.g. via `occ project promote`).
+          description: Pinned ProjectRelease name. Left unset, it is seeded once by the Project controller with the latest release; advanced manually afterwards (e.g. via `occ project promote`).
           example: my-app-abc123
         environmentConfigs:
           type: object
@@ -11026,6 +12148,44 @@ components:
           type: string
           description: Optional human-readable message explaining the health status
 
+    ChildDiscoveryStatus:
+      type: object
+      description: >-
+        Reports that children of one kind could not be discovered under a node.
+        It is attached to the nearest node the client can see, so a failure while
+        expanding a hidden intermediate resource still surfaces somewhere. Its
+        presence means the node's children of that kind are incomplete, not that
+        there are none.
+      required:
+        - version
+        - kind
+        - state
+      properties:
+        group:
+          type: string
+          description: API group of the child kind that could not be discovered (empty for core)
+          example: apps
+        version:
+          type: string
+          description: API version of the child kind that could not be discovered
+          example: v1
+        kind:
+          type: string
+          description: Kind of the child resources that could not be discovered
+          example: ReplicaSet
+        state:
+          type: string
+          description: >-
+            Why discovery of this child kind did not complete. Currently `forbidden`,
+            meaning the platform is not permitted to list that kind, or `error`,
+            which covers every other failure including a truncated result. Left open
+            rather than enumerated so a new state does not break existing clients;
+            treat an unrecognized value as `error`.
+          example: forbidden
+        message:
+          type: string
+          description: Optional human-readable detail about the failure
+
     ResourceNode:
       type: object
       description: A single resource in the resource tree
@@ -11069,9 +12229,36 @@ components:
         object:
           type: object
           additionalProperties: true
-          description: Full Kubernetes resource object
+          description: >-
+            The Kubernetes resource object. Reduced to `apiVersion`, `kind` and
+            `metadata` when `metadataOnly` is true.
         health:
           $ref: '#/components/schemas/HealthInfo'
+        metadataOnly:
+          type: boolean
+          description: >-
+            True when `object` has been projected down to `apiVersion`, `kind` and
+            `metadata` and therefore carries no spec, status or data. Absent means
+            the metadata-only projection was not applied; resource-specific
+            sanitization can still remove fields. A Secret's `data` and
+            `stringData` are removed that way, unconditionally, whether or not
+            the projection applied.
+        matchedBy:
+          type: string
+          description: >-
+            How this node was attributed to its parent, when the attribution was not
+            exact. Set to `labelSelector` when the node was matched heuristically by
+            labels, which can over-match; absent for exact ownerRef matches. Consoles
+            should badge nodes that carry it.
+          example: labelSelector
+        childrenStatus:
+          type: array
+          description: >-
+            Per-kind child-discovery failures under this node. Present only when at
+            least one kind of child could not be discovered; absent means discovery
+            completed for every kind configured under this node.
+          items:
+            $ref: '#/components/schemas/ChildDiscoveryStatus'
 
     ResourceEvent:
       type: object
@@ -11155,6 +12342,42 @@ components:
           description: Log entries from the pod
           items:
             $ref: '#/components/schemas/PodLogEntry'
+
+    CronJobTriggerRequest:
+      type: object
+      description: Optional per-run overrides applied to the Job created from a manual cronjob trigger
+      properties:
+        args:
+          type: array
+          nullable: true
+          description: >-
+            Replaces the container args for this run only. An empty array clears the args inherited from
+            the CronJob's jobTemplate; omitting the field or sending null keeps them. Applies to the
+            container named `main`, or to the only container if the pod has exactly one.
+          items:
+            type: string
+          example: ['--mode', 'backfill', '--date', '2026-08-25']
+
+    CronJobTriggerResponse:
+      type: object
+      description: Response describing the Job created from a manual cronjob trigger
+      required:
+        - jobName
+        - namespace
+        - cronJobName
+      properties:
+        jobName:
+          type: string
+          description: Name of the Job that was created from the CronJob's jobTemplate
+          example: 'my-task-1721563200'
+        namespace:
+          type: string
+          description: Data plane namespace where the Job was created
+          example: 'dp-my-project-my-component-dev'
+        cronJobName:
+          type: string
+          description: Name of the CronJob the Job was created from
+          example: 'my-task'
 
     K8sResourceTreeResponse:
       type: object
@@ -12129,6 +13352,36 @@ components:
               maxItems: 50
               items:
                 $ref: '#/components/schemas/WorkloadResourceDependency'
+        source:
+          $ref: '#/components/schemas/WorkloadSource'
+
+    WorkloadSource:
+      type: object
+      description: |
+        Commit provenance of the image in container. Populated by the producer
+        (native CI's push-workload step, or an external CI calling this API or occ
+        directly) alongside the image, enabling Delivery Insights to compute Lead
+        Time for Changes from real deployments. Optional: DF/CFR/MTTR compute
+        without it; Lead Time reports unavailable when absent.
+      properties:
+        commit:
+          type: string
+          description: VCS commit SHA the running image was built from
+          example: 7f01217e694993f0e12cbc74f104ba1a97e6048b
+        branch:
+          type: string
+          description: VCS branch the commit was built from
+          example: main
+        repository:
+          type: string
+          description: VCS repository URL the commit belongs to
+          example: https://github.com/my-org/my-repo
+        authoredAt:
+          type: string
+          format: date-time
+          description: |
+            When the commit was authored, not when it was committed or built.
+            This is the timestamp Lead Time for Changes measures from.
 
     WorkloadStatus:
       type: object
