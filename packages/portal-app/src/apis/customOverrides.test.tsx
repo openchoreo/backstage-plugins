@@ -77,16 +77,21 @@ describe('customOverrides', () => {
     ).toBe('app');
   });
 
-  it('registers extensions on the customAppModule (SignInPage, Translation, LogRowAction, Progress + PageLayout swaps)', () => {
+  it('registers extensions on the customAppModule (SignInPage, Translation, Progress + PageLayout swaps)', () => {
     const extensions = ((customAppModule as any).extensions ?? []) as Array<{
       id: string;
     }>;
     expect(Array.isArray(extensions)).toBe(true);
 
-    // SignInPage, Translation override (catalog-import), LogRowAction renderer,
-    // and the two swappable-component overrides: core-progress (PageLoader) and
+    // SignInPage, Translation override (catalog-import), and the two
+    // swappable-component overrides: core-progress (PageLoader) and
     // core-page-layout (OpenChoreoPageLayout).
-    expect(extensions).toHaveLength(5);
+    //
+    // The assistant's LogRowAction renderer used to be a fifth entry here. It
+    // now ships from the assistant plugin's own alpha module so the shell
+    // carries no dependency on the private plugin — see
+    // plugins/openchoreo-portal-assistant/src/alpha.tsx.
+    expect(extensions).toHaveLength(4);
     expect(extensions.map(e => e.id)).toContain('component:app/progress');
     expect(extensions.map(e => e.id)).toContain('component:app/page-layout');
   });

@@ -3,7 +3,9 @@
  *
  * OpenChoreo-specific fetch / permission / auth factories now ship from
  * `@openchoreo/backstage-plugin` as ApiBlueprints, so they're not in this
- * app-scoped `apis` array — covered by the plugin's own tests.
+ * app-scoped `apis` array — covered by the plugin's own tests. The Perch agent
+ * factory likewise moved to the assistant plugin's own alpha module, which the
+ * app installs through feature discovery.
  */
 import {
   AnyApiFactory,
@@ -12,15 +14,8 @@ import {
 } from '@backstage/core-plugin-api';
 import { visitsApiRef } from '@backstage/plugin-home';
 import { scmIntegrationsApiRef } from '@backstage/integration-react';
-import {
-  perchAgentApiRef,
-  PerchAgentClient,
-} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
-
 import { apis } from './apis';
 
-const stubDiscovery = { getBaseUrl: async () => 'http://localhost' } as any;
-const stubFetch = { fetch: globalThis.fetch ?? (() => undefined) } as any;
 const stubIdentity = {
   getCredentials: async () => ({}),
   getProfileInfo: async () => ({}),
@@ -45,12 +40,7 @@ function invoke(factory: AnyApiFactory, deps: Record<string, unknown>) {
 describe('apis registry', () => {
   it('registers a factory for every required api ref (no silent drops)', () => {
     const ids = apis.map(f => f.api.id);
-    for (const ref of [
-      scmIntegrationsApiRef,
-      visitsApiRef,
-      storageApiRef,
-      perchAgentApiRef,
-    ]) {
+    for (const ref of [scmIntegrationsApiRef, visitsApiRef, storageApiRef]) {
       expect(ids).toContain(ref.id);
     }
   });
@@ -59,15 +49,6 @@ describe('apis registry', () => {
     const ids = apis.map(f => f.api.id);
     expect(ids).not.toContain(fetchApiRef.id);
     // permission and openchoreo-auth are also owned by the base plugin now
-  });
-
-  it('builds the PerchAgentClient via its factory', () => {
-    const f = findFactory(apis, perchAgentApiRef);
-    const instance = invoke(f, {
-      discoveryApi: stubDiscovery,
-      fetchApi: stubFetch,
-    });
-    expect(instance).toBeInstanceOf(PerchAgentClient);
   });
 
   it('builds the visits api', () => {

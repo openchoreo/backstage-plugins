@@ -1,4 +1,3 @@
-import { openChoreoFetchApiRef } from '@openchoreo/backstage-plugin-react';
 import {
   ScmIntegrationsApi,
   scmIntegrationsApiRef,
@@ -16,15 +15,6 @@ import {
 } from '@backstage/core-plugin-api';
 import { VisitsWebStorageApi, visitsApiRef } from '@backstage/plugin-home';
 import { UserSettingsStorage } from '@backstage/plugin-user-settings';
-// NOTE: `perchAgentApiRef` is also declared on `openchoreoPerchPlugin.apis`
-// in plugins/openchoreo-portal-assistant/src/plugin.ts. That declaration is
-// NOT picked up at runtime because the plugin only exports plain React
-// components. Removing this app-level factory causes NotImplementedError
-// in AssistantDrawerProvider.
-import {
-  perchAgentApiRef,
-  PerchAgentClient,
-} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
 
 // OpenChoreo fetch/permission/auth factories are contributed by
 // `@openchoreo/backstage-plugin` (base) as ApiBlueprints — no manual
@@ -54,16 +44,5 @@ export const apis: AnyApiFactory[] = [
       identityApi: identityApiRef,
     },
     factory: deps => UserSettingsStorage.create(deps),
-  }),
-  createApiFactory({
-    api: perchAgentApiRef,
-    deps: {
-      discoveryApi: discoveryApiRef,
-      // The agent is reached in direct mode, so this must be the
-      // OpenChoreo-scoped fetch API that carries the IDP token.
-      fetchApi: openChoreoFetchApiRef,
-    },
-    factory: ({ discoveryApi, fetchApi }) =>
-      new PerchAgentClient({ discoveryApi, fetchApi }),
   }),
 ];
