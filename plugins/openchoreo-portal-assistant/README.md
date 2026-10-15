@@ -75,9 +75,13 @@ have no consumers — mount them yourself if you want those launchers.
 
 The plugin is feature-gated by `openchoreo.features.assistant.enabled`
 (env var `OPENCHOREO_FEATURES_ASSISTANT_ENABLED`); when disabled the
-launchers render `null`. Note: the env var still says
-`ASSISTANT` — the rename to `PERCH` is layer-2 work tracked separately
-because it would break existing installs.
+launchers render `null`. The `ASSISTANT` spelling is current: #559 renamed
+this plugin _from_ Perch _to_ Portal Assistant, so the config key, plugin id
+and apiRef id all read `portal-assistant`. Only internal TypeScript symbols
+(`perchAgentApiRef`, `PerchAgentClient`, `PerchAgentApi`,
+`openchoreoPerchPlugin`) still carry the old name; renaming those is cosmetic
+and tracked separately. `perch-agent` in comments and config prose refers to
+the upstream _service_, not to this plugin.
 
 ## Backend
 

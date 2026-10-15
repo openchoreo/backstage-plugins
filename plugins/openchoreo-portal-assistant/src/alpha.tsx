@@ -29,8 +29,8 @@ const assistantDrawerWrapper = AppRootWrapperBlueprint.make({
 // plugin only exports plain React components and never registers a routable
 // or component extension, so the plugin loader never visits its `apis` array.
 // Removing this factory causes NotImplementedError in AssistantDrawerProvider.
-const perchAgent = ApiBlueprint.make({
-  name: 'perch-agent',
+const portalAssistantService = ApiBlueprint.make({
+  name: 'portal-assistant-service',
   params: defineParams =>
     defineParams({
       api: perchAgentApiRef,
@@ -66,7 +66,7 @@ const assistantIntegration = ApiBlueprint.make({
 
 // Per-row "investigate" action for the observability runtime-logs tables.
 // Registered here rather than inside the observability plugin so observability
-// owns no dependency on perch — the host composes the two.
+// owns no dependency on the assistant — the host composes the two.
 const investigateLogAction = LogRowActionBlueprint.make({
   name: 'investigate-log',
   params: {
@@ -93,7 +93,7 @@ export const assistantFeature = createFrontendModule({
   pluginId: 'app',
   extensions: [
     assistantDrawerWrapper,
-    perchAgent,
+    portalAssistantService,
     assistantIntegration,
     investigateLogAction,
   ],

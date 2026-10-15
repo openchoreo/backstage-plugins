@@ -11,13 +11,15 @@ import { PerchAgentClient, perchAgentApiRef } from './api/PerchAgentApi';
  * openchoreo-portal-assistant — the OpenChoreo Portal Assistant for Backstage.
  *
  * This is an internal-only plugin: it's deployed as part of the OpenChoreo
- * Backstage app and has no third-party consumers. The plugin shell exists
- * for one specific reason — to register the ``perchAgentApiRef`` API
- * factory through Backstage's idiomatic apiRef pattern, so consumers do
- * ``useApi(perchAgentApiRef)`` instead of constructing the client by
- * hand.
+ * Backstage app and has no third-party consumers. The shell exists so
+ * consumers can do ``useApi(perchAgentApiRef)`` instead of constructing the
+ * client by hand.
  *
- * UI components (FAB, drawer provider, launchers) are exported directly
+ * NOTE: the ``apis`` array below is never read at runtime — this plugin
+ * registers no routable or component extension, so the loader never visits
+ * it. The factory that actually gets wired lives in ``../alpha``.
+ *
+ * UI components (drawer provider, launchers) are exported directly
  * from {@link ./index} as plain React components — they are NOT wrapped in
  * ``createComponentExtension``. Lazy-loading the leaf launchers via the
  * extension API would save ~5 KB of bundle that's already on the critical

@@ -69,8 +69,8 @@ export type ChatScope = {
    * Discriminator that lets the agent layer in case-specific guidance on
    * top of the base system prompt. Set by purpose-built launchers
    * (FailedBuildSnackbar, BuildPagePromptLauncher) that already know what
-   * kind of conversation they're starting; left undefined for the generic
-   * FAB.
+   * kind of conversation they're starting; left undefined when the chat is
+   * opened without a specific case.
    */
   caseType?: ChatCaseType;
   /**
