@@ -6,11 +6,11 @@ describe('assistant alpha module', () => {
     expect(assistantFeature).toBeDefined();
   });
 
-  // Feature discovery reads a package's *default* export and silently ignores
-  // anything that isn't a FrontendPlugin/FrontendModule. If this default ever
-  // stops being the module, `app.packages` loads nothing and the assistant
-  // disappears with no error.
-  it('default-exports the feature so `app.packages` discovers it', () => {
+  // Frontend feature discovery reads a package's *default* export and silently
+  // ignores anything that isn't a FrontendPlugin/FrontendModule. Discovery is
+  // not enabled yet, but keeping this default correct is what makes enabling
+  // `app.packages` a config-only change later.
+  it('default-exports the feature, as discovery will require', () => {
     expect(assistantDefault).toBe(assistantFeature);
     expect((assistantDefault as any).$$type).toBe('@backstage/FrontendModule');
   });

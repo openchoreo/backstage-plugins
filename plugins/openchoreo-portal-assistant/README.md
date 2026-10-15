@@ -1,9 +1,9 @@
 # @openchoreo/backstage-plugin-openchoreo-portal-assistant
 
 The Backstage frontend for **Perch** — the OpenChoreo AI assistant. Provides
-the chat drawer, the global FAB, and the contextual launchers mounted on
-component pages (failed-build snackbar, build-tab launcher, logs-tab "Ask
-Perch" pill).
+the chat drawer and the contextual launchers mounted on component pages
+(failed-build snackbar, deploy-panel and log-row "investigate" actions). There
+is no global FAB — see "Status" below.
 
 ## Requirements
 
@@ -17,10 +17,13 @@ This plugin is part of the OpenChoreo Backstage app. It is **not** published
 as a standalone Backstage plugin and has no third-party consumers — there
 are no public extension points, no scaffolder actions, no permission rules.
 
-The plugin shell exists for one reason: to register the
-`perchAgentApiRef` API factory through Backstage's idiomatic apiRef
-pattern, so consumers do `useApi(perchAgentApiRef)` instead of
-constructing the client by hand.
+The plugin shell exists so consumers can do `useApi(perchAgentApiRef)`
+instead of constructing the client by hand. Note that the `apis` array on
+`openchoreoPerchPlugin` (`src/plugin.ts`) is **never read at runtime** — the
+plugin registers no routable or component extension, so the loader never
+visits it. The factory that actually gets wired lives in the alpha module
+(`src/alpha.tsx`); removing it there causes `NotImplementedError` in
+`AssistantDrawerProvider`.
 
 UI components (`AssistantDrawerProvider` and the page-scoped launchers)
 are exported as plain React components from `src/index.ts`. They are
@@ -40,29 +43,39 @@ the app root.
 
 ## Mounting
 
-```tsx
-// packages/app/src/components/Root/Root.tsx
-import { AssistantDrawerProvider } from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
-
-<AssistantDrawerProvider>
-  {/* app shell — the provider owns the chat drawer's open state and
-      renders the drawer itself; mount it once at the app root so any
-      launcher anywhere can call openDrawer({...}). */}
-</AssistantDrawerProvider>;
-```
+Everything is wired by the package's **default export** from `./alpha` — a
+`createFrontendModule({ pluginId: 'app' })` carrying the drawer wrapper, the
+`perchAgentApiRef` factory, the `portalAssistantIntegrationApiRef` slots, and
+the observability log-row action. A host installs it as one feature:
 
 ```tsx
-// packages/app/src/components/catalog/EntityPage.tsx
-import {
-  FailedBuildSnackbar,
-  BuildPagePromptLauncher,
-  LogsPageDebugPrompt,
-} from '@openchoreo/backstage-plugin-openchoreo-portal-assistant';
+// packages/app/src/App.tsx
+import assistantFeature from '@openchoreo/backstage-plugin-openchoreo-portal-assistant/alpha';
+
+export default createPortalApp({ features: [assistantFeature] }).createRoot();
 ```
+
+Because that is the _default_ export, a host with `app.packages` enabled in
+app-config picks the assistant up from the dependency alone and needs no
+`features` entry. Enabling discovery is tracked separately.
+
+The wiring deliberately does **not** live in
+`@openchoreo/backstage-portal-app`: this is a private plugin, and keeping it
+out of the shell is what lets the shell be published. A portal that should not
+ship the assistant drops the install.
+
+The drawer mounts itself at the app root via `AppRootWrapperBlueprint`, so
+hosts no longer wrap the shell in `<AssistantDrawerProvider>` by hand. The
+remaining surfaces reach the host through `portalAssistantIntegrationApiRef`
+(see `usePortalAssistant` in `@openchoreo/backstage-plugin-react`), which
+renders nothing when no implementation is registered.
+
+`BuildPagePromptLauncher` and `LogsPageDebugPrompt` are exported but currently
+have no consumers — mount them yourself if you want those launchers.
 
 The plugin is feature-gated by `openchoreo.features.assistant.enabled`
 (env var `OPENCHOREO_FEATURES_ASSISTANT_ENABLED`); when disabled the
-launchers and FAB render `null`. Note: the env var still says
+launchers render `null`. Note: the env var still says
 `ASSISTANT` — the rename to `PERCH` is layer-2 work tracked separately
 because it would break existing installs.
 
@@ -82,8 +95,10 @@ Configure the upstream in `app-config.yaml`:
 
 ```yaml
 openchoreo:
-  perchAgentUrl: ${OPENCHOREO_PERCH_AGENT_URL}
+  portalAssistantUrl: ${OPENCHOREO_PORTAL_ASSISTANT_URL}
 ```
+
+The backend plugin self-disables when that key is unset.
 
 The backend plugin streams ndjson byte-for-byte for `/chat`, so the
 LLM-call latency profile matches what you'd get from a direct hit. It

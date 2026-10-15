@@ -79,12 +79,15 @@ const investigateLogAction = LogRowActionBlueprint.make({
 /**
  * Everything the Portal Assistant (Perch) contributes to a host app.
  *
- * This is the package's default export, so a host with `app.packages` enabled
- * in app-config picks the assistant up purely by depending on this package —
- * no `features` array in `App.tsx`. The assistant is a PRIVATE plugin, and
- * keeping its wiring here rather than in `@openchoreo/backstage-portal-app`
- * means the published shell carries no dependency on it; a portal that should
- * not ship the assistant simply omits the dependency.
+ * The assistant is a PRIVATE plugin, and keeping its wiring here rather than in
+ * `@openchoreo/backstage-portal-app` means the published shell carries no
+ * dependency on it — a portal that should not ship the assistant simply drops
+ * the install. `packages/app` installs this module explicitly today.
+ *
+ * It is also the package's *default* export, which is the shape frontend
+ * feature discovery requires: a host that enables `app.packages` in app-config
+ * would pick the assistant up from the dependency alone, with no `features`
+ * array. Enabling that is tracked separately — don't move this default.
  */
 export const assistantFeature = createFrontendModule({
   pluginId: 'app',
