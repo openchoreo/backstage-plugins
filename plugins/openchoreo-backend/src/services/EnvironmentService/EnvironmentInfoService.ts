@@ -33,6 +33,9 @@ type ModelsEnvironment = EnvironmentResponse;
 
 type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
 
+type CronJobTriggerResponse =
+  OpenChoreoComponents['schemas']['CronJobTriggerResponse'];
+
 type NewResourceReleaseBinding =
   OpenChoreoComponents['schemas']['ResourceReleaseBinding'];
 
@@ -1107,6 +1110,68 @@ export class EnvironmentInfoService implements EnvironmentService {
       const totalTime = Date.now() - startTime;
       this.logger.error(
         `Error triggering rollout restart for binding ${request.bindingName} on component ${request.componentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Runs the CronJob of a ReleaseBinding once, outside its schedule.
+   * The API creates a Job from the CronJob's jobTemplate on the data plane,
+   * the same way `kubectl create job --from=cronjob/<name>` would. The Job
+   * is owned by the CronJob, so it shows up in the resource tree and logs.
+   *
+   * @param {Object} request - The trigger request parameters
+   * @param {string} request.componentName - Name of the component
+   * @param {string} request.namespaceName - Name of the namespace owning the project
+   * @param {string} request.bindingName - Name of the binding whose CronJob to run
+   * @returns {Promise<CronJobTriggerResponse>} The Job that was created
+   * @throws {Error} When the component is not a cronjob or the Job cannot be created
+   */
+  async triggerReleaseBindingCronJob(
+    request: {
+      componentName: string;
+      namespaceName: string;
+      bindingName: string;
+    },
+    token?: string,
+  ): Promise<CronJobTriggerResponse> {
+    try {
+      this.logger.info(
+        `Triggering cronjob for component: ${request.componentName}, binding: ${request.bindingName}`,
+      );
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.POST(
+        '/api/v1alpha1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/trigger',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              releaseBindingName: request.bindingName,
+            },
+          },
+        },
+      );
+
+      assertApiResponse({ data, error, response }, 'trigger cronjob');
+
+      this.logger.debug(
+        `Created job ${data!.jobName} from cronjob ${data!.cronJobName} in ${
+          data!.namespace
+        }.`,
+      );
+
+      return data!;
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error triggering cronjob for binding ${request.bindingName} on component ${request.componentName}:`,
         error as Error,
       );
       throw error;

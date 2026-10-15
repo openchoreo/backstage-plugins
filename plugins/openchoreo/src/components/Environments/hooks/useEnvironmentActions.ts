@@ -92,6 +92,21 @@ export function useEnvironmentActions(
     [entity, client, refetch, notification],
   );
 
+  // Run now creates a Job from the binding's CronJob, like
+  // `kubectl create job --from=cronjob/<name>`. The Job is owned by the
+  // CronJob, so it appears in the resource tree once the refetch lands.
+  const handleRunNow = useCallback(
+    async (bindingName: string) => {
+      const { jobName } = await client.triggerReleaseBindingCronJob(
+        entity,
+        bindingName,
+      );
+      await refetch();
+      notification.showSuccess(`Started job ${jobName}`);
+    },
+    [entity, client, refetch, notification],
+  );
+
   // Removing the deployment deletes the release binding for the env;
   // the controller cascades to env-specific overrides and dataplane
   // resources. Different from Undeploy, which keeps the binding.
@@ -151,6 +166,7 @@ export function useEnvironmentActions(
     handleUndeploy,
     handleRedeploy,
     handleRolloutRestart,
+    handleRunNow,
     handleRemoveDeployment,
   };
 }

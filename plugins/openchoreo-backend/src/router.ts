@@ -311,6 +311,29 @@ export async function createRouter({
     );
   });
 
+  router.post('/trigger-cronjob-binding', requireAuth, async (req, res) => {
+    const { componentName, namespaceName, bindingName } = req.body;
+
+    if (!componentName || !namespaceName || !bindingName) {
+      throw new InputError(
+        'componentName, namespaceName and bindingName are required in request body',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await environmentInfoService.triggerReleaseBindingCronJob(
+        {
+          componentName: componentName as string,
+          namespaceName: namespaceName as string,
+          bindingName: bindingName as string,
+        },
+        userToken,
+      ),
+    );
+  });
+
   router.get(
     '/cell-diagram',
     async (req: express.Request, res: express.Response) => {

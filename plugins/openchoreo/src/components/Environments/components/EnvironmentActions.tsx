@@ -3,6 +3,7 @@ import { makeStyles } from '@material-ui/core/styles';
 import AutorenewIcon from '@material-ui/icons/Autorenew';
 import PauseCircleOutlineIcon from '@material-ui/icons/PauseCircleOutline';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
+import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import { usePromotionAction } from '../hooks/usePromotionAction';
 import type { ItemActionTracker } from '../types';
 import { EnvironmentActionsProps } from '../types';
@@ -34,11 +35,13 @@ const UNDEPLOY_TOOLTIP =
   'Tear down the running Kubernetes resources but keep the release binding and overrides — Redeploy will bring it back.';
 const ROLLOUT_RESTART_TOOLTIP =
   'Restart the running pods without changing the release. Useful for picking up new secrets or recovering from a stuck rollout.';
+const RUN_NOW_TOOLTIP =
+  'Run the scheduled task once now, outside its schedule. Scheduled runs are not affected.';
 
 /**
  * "Manage the running deployment" action row for the env detail panel.
  *
- *   [ Undeploy / Redeploy ] [ Rollout restart ]
+ *   [ Undeploy / Redeploy ] [ Rollout restart | Run now ]
  *
  * Configure overrides moved up next to the Deployed timestamp;
  * Remove deployment moved down to the danger zone accordion at the
@@ -54,9 +57,11 @@ export const EnvironmentActions = ({
   rolloutRestartTracker,
   canRolloutRestart = true,
   rolloutRestartDeniedTooltip = '',
+  runNowTracker,
   onSuspend,
   onRedeploy,
   onRolloutRestart,
+  onRunNow,
 }: EnvironmentActionsProps) => {
   const classes = useStyles();
 
@@ -81,8 +86,11 @@ export const EnvironmentActions = ({
     !!onRolloutRestart && !!bindingName && isActiveDeployment;
   const rolloutInFlight =
     !!bindingName && !!rolloutRestartTracker?.isActive(bindingName);
+  const showRunNow = !!onRunNow && !!bindingName && isActiveDeployment;
+  const runNowInFlight =
+    !!bindingName && !!runNowTracker?.isActive(bindingName);
 
-  if (!undeployAction && !showRolloutRestart) {
+  if (!undeployAction && !showRolloutRestart && !showRunNow) {
     return null;
   }
 
@@ -140,6 +148,29 @@ export const EnvironmentActions = ({
               onClick={() => onRolloutRestart?.()}
             >
               {rolloutInFlight ? 'Restarting...' : 'Rollout restart'}
+            </Button>
+          </span>
+        </Tooltip>
+      )}
+
+      {showRunNow && (
+        <Tooltip
+          title={
+            !canRolloutRestart && rolloutRestartDeniedTooltip
+              ? rolloutRestartDeniedTooltip
+              : RUN_NOW_TOOLTIP
+          }
+        >
+          <span>
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              startIcon={<PlayArrowIcon fontSize="small" />}
+              disabled={runNowInFlight || !canRolloutRestart}
+              onClick={() => onRunNow?.()}
+            >
+              {runNowInFlight ? 'Starting...' : 'Run now'}
             </Button>
           </span>
         </Tooltip>

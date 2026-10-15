@@ -7,6 +7,7 @@ const mockClient = {
   deleteReleaseBinding: jest.fn(),
   fetchEnvironmentInfo: jest.fn(),
   rolloutRestartReleaseBinding: jest.fn(),
+  triggerReleaseBindingCronJob: jest.fn(),
 };
 
 jest.mock('@backstage/core-plugin-api', () => ({
@@ -250,6 +251,70 @@ describe('useEnvironmentActions.handleRolloutRestart', () => {
         await result.current.handleRolloutRestart('beta-web-staging');
       }),
     ).rejects.toThrow('forbidden');
+
+    expect(showSuccess).not.toHaveBeenCalled();
+    expect(refetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('useEnvironmentActions.handleRunNow', () => {
+  const entity = mockComponentEntity();
+  const refetch = jest.fn();
+  const showSuccess = jest.fn();
+  const showError = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockClient.triggerReleaseBindingCronJob.mockResolvedValue({
+      jobName: 'nightly-sync-x7k2p',
+      namespace: 'dp-test',
+      cronJobName: 'nightly-sync',
+    });
+  });
+
+  it('triggers the cronjob, refetches and names the created job', async () => {
+    const { result } = renderHook(() =>
+      useEnvironmentActions(
+        entity,
+        refetch,
+        { showSuccess, showError },
+        tracker(),
+      ),
+    );
+
+    await act(async () => {
+      await result.current.handleRunNow('nightly-sync-dev');
+    });
+
+    expect(mockClient.triggerReleaseBindingCronJob).toHaveBeenCalledWith(
+      entity,
+      'nightly-sync-dev',
+    );
+    expect(refetch).toHaveBeenCalled();
+    expect(showSuccess).toHaveBeenCalledWith(
+      expect.stringContaining('nightly-sync-x7k2p'),
+    );
+  });
+
+  it('propagates API errors and does not show a success toast', async () => {
+    mockClient.triggerReleaseBindingCronJob.mockRejectedValue(
+      new Error('not a cronjob'),
+    );
+
+    const { result } = renderHook(() =>
+      useEnvironmentActions(
+        entity,
+        refetch,
+        { showSuccess, showError },
+        tracker(),
+      ),
+    );
+
+    await expect(
+      act(async () => {
+        await result.current.handleRunNow('nightly-sync-dev');
+      }),
+    ).rejects.toThrow('not a cronjob');
 
     expect(showSuccess).not.toHaveBeenCalled();
     expect(refetch).not.toHaveBeenCalled();
