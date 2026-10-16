@@ -23,7 +23,9 @@ export default createPortalApp({
 This package is **private for now**. It is the landing place for app-shell
 pieces as they are migrated to the new frontend system — parts of the shell
 still run through `@backstage/core-compat-api` (legacy bridge) and are being
-migrated piece by piece. It becomes publishable once the migration removes the
-legacy-bridged internals (and the dependency on the private portal-assistant
-plugin is decoupled); that PR flips `private` and adds the package to the
-changeset linked group.
+migrated piece by piece. The shell no longer depends on the private
+portal-assistant plugin: the assistant ships its own wiring from
+`@openchoreo/backstage-plugin-openchoreo-portal-assistant/alpha` and the `app`
+package installs it. Removing the legacy-bridged internals is the remaining
+blocker; that PR flips `private` and adds the
+package to the changeset linked group.
