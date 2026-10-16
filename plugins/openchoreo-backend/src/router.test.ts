@@ -22,6 +22,7 @@ function createMockServices() {
       deleteReleaseBinding: jest.fn(),
       updateComponentBinding: jest.fn(),
       rolloutRestartReleaseBinding: jest.fn(),
+      triggerReleaseBindingCronJob: jest.fn(),
       createComponentRelease: jest.fn(),
       deployRelease: jest.fn(),
       fetchComponentReleaseSchema: jest.fn(),
@@ -856,6 +857,51 @@ describe('createRouter', () => {
           ),
         }),
       });
+    });
+  });
+
+  describe('POST /trigger-cronjob-binding', () => {
+    it('triggers the cronjob of a binding and returns the created job', async () => {
+      const mockResult = {
+        jobName: 'my-task-abc12',
+        namespace: 'dp-ns-project-dev-1234',
+        cronJobName: 'my-task',
+      };
+      services.environmentInfoService.triggerReleaseBindingCronJob.mockResolvedValue(
+        mockResult,
+      );
+
+      const response = await request(app)
+        .post('/trigger-cronjob-binding')
+        .send({
+          componentName: 'my-component',
+          namespaceName: 'my-namespace',
+          bindingName: 'my-binding',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(mockResult);
+      expect(
+        services.environmentInfoService.triggerReleaseBindingCronJob,
+      ).toHaveBeenCalledWith(
+        {
+          componentName: 'my-component',
+          namespaceName: 'my-namespace',
+          bindingName: 'my-binding',
+        },
+        'mock-user-token',
+      );
+    });
+
+    it('returns 400 when required body fields are missing', async () => {
+      const response = await request(app)
+        .post('/trigger-cronjob-binding')
+        .send({ componentName: 'my-component' });
+
+      expect(response.status).toBe(400);
+      expect(
+        services.environmentInfoService.triggerReleaseBindingCronJob,
+      ).not.toHaveBeenCalled();
     });
   });
 

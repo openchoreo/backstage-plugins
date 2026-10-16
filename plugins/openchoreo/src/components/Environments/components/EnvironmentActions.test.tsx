@@ -159,6 +159,42 @@ describe('EnvironmentActions', () => {
     ).toBeEnabled();
   });
 
+  it('shows Run now when an active deployment + onRunNow are provided', async () => {
+    const onRunNow = jest.fn();
+    renderActions({
+      bindingName: 'my-binding',
+      onRunNow,
+    });
+    const button = screen.getByRole('button', { name: /run now/i });
+    expect(button).toBeEnabled();
+    expect(
+      screen.queryByRole('button', { name: /rollout restart/i }),
+    ).toBeNull();
+
+    await userEvent.click(button);
+    expect(onRunNow).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables Run now without permission to modify the binding', () => {
+    renderActions({
+      bindingName: 'my-binding',
+      onRunNow: jest.fn(),
+      canRolloutRestart: false,
+    });
+    expect(screen.getByRole('button', { name: /run now/i })).toBeDisabled();
+  });
+
+  it('shows Starting... while a run is being triggered', () => {
+    renderActions({
+      bindingName: 'my-binding',
+      onRunNow: jest.fn(),
+      runNowTracker: createTracker({
+        isActive: jest.fn().mockReturnValue(true),
+      }),
+    });
+    expect(screen.getByRole('button', { name: /starting/i })).toBeDisabled();
+  });
+
   it('does not render Configure overrides — that lives next to the Deployed line now', () => {
     renderActions({
       bindingName: 'my-binding',
