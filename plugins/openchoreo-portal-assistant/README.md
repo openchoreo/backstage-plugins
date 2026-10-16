@@ -46,18 +46,27 @@ the app root.
 Everything is wired by the package's **default export** from `./alpha` — a
 `createFrontendModule({ pluginId: 'app' })` carrying the drawer wrapper, the
 `perchAgentApiRef` factory, the `portalAssistantIntegrationApiRef` slots, and
-the observability log-row action. A host installs it as one feature:
+the observability log-row action.
+
+Because that is the _default_ export, the dependency is the whole installation.
+The portal's `app` package has `app.packages: all` in `app-config.yaml`, so
+frontend feature discovery installs the assistant with no `features` entry and
+no import:
+
+```yaml
+app:
+  packages: all
+```
+
+A host that does not use discovery installs the same export by hand:
 
 ```tsx
-// packages/app/src/App.tsx
 import assistantFeature from '@openchoreo/backstage-plugin-openchoreo-portal-assistant/alpha';
 
 export default createPortalApp({ features: [assistantFeature] }).createRoot();
 ```
 
-Because that is the _default_ export, a host with `app.packages` enabled in
-app-config picks the assistant up from the dependency alone and needs no
-`features` entry. Enabling discovery is tracked separately.
+Keep it the _default_ export either way — discovery reads nothing else.
 
 The wiring deliberately does **not** live in
 `@openchoreo/backstage-portal-app`: this is a private plugin, and keeping it

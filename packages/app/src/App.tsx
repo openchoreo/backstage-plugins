@@ -1,10 +1,19 @@
-import { createPortalApp } from '@openchoreo/backstage-portal-app';
-import assistantFeature from '@openchoreo/backstage-plugin-openchoreo-portal-assistant/alpha';
+import { createApp } from '@backstage/frontend-defaults';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 
-// The Portal Assistant is a PRIVATE plugin, so it is installed here by the app
-// rather than from inside `@openchoreo/backstage-portal-app` — that keeps the
-// published shell free of any dependency on it, and a portal that should not
-// ship the assistant simply drops this import. It is already shaped for
-// frontend feature discovery (`app.packages` in app-config), which would let
-// this list go away entirely; enabling that is tracked separately.
-export default createPortalApp({ features: [assistantFeature] }).createRoot();
+// No `features` array. `app.packages` in app-config.yaml turns on frontend
+// feature discovery, which installs every dependency of this package that
+// default-exports a frontend feature from its root or `./alpha` entry point:
+//
+//   @openchoreo/backstage-portal-app           the whole portal shell (a
+//                                              feature loader, ~24 features)
+//   ...-openchoreo-portal-assistant            the private Portal Assistant
+//
+// Adding a plugin to this portal is therefore `yarn add` plus nothing. The
+// `loadingElement` stays here because it is the only piece a feature cannot
+// supply — it is the Suspense fallback rendered before any feature exists.
+export default createApp({
+  advanced: {
+    loadingElement: <PageLoader />,
+  },
+}).createRoot();

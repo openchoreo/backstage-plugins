@@ -7,6 +7,12 @@
  * code lives here (not in packages/app) so the custom-portal scaffold can
  * consume it — see the portal composition proposal.
  *
+ * The shell installs itself through frontend feature discovery: the `./alpha`
+ * entry point default-exports a feature loader carrying the whole portal, so an
+ * app package only needs this dependency plus `app.packages` in its config.
+ * {@link createPortalApp} is the no-config alternative for hosts that would
+ * rather call one function; both read the same loader.
+ *
  * The package stays private until the migration cleans up the legacy-bridged
  * pieces; the PR that makes it publishable flips `private` and adds it to the
  * changeset linked group.

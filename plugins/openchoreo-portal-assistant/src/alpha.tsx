@@ -82,12 +82,12 @@ const investigateLogAction = LogRowActionBlueprint.make({
  * The assistant is a PRIVATE plugin, and keeping its wiring here rather than in
  * `@openchoreo/backstage-portal-app` means the published shell carries no
  * dependency on it — a portal that should not ship the assistant simply drops
- * the install. `packages/app` installs this module explicitly today.
+ * the install.
  *
  * It is also the package's *default* export, which is the shape frontend
- * feature discovery requires: a host that enables `app.packages` in app-config
- * would pick the assistant up from the dependency alone, with no `features`
- * array. Enabling that is tracked separately — don't move this default.
+ * feature discovery requires. `packages/app` has `app.packages: all`, so the
+ * assistant is installed from the dependency alone, with no `features` array
+ * and no import — don't move this default, nothing else is read.
  */
 export const assistantFeature = createFrontendModule({
   pluginId: 'app',

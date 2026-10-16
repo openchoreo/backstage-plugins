@@ -21,6 +21,31 @@ app:
   # For local k3d: http://openchoreo.localhost (set via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml)
   # For production: external ingress URL (set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.baseUrl)
   baseUrl: ${BACKSTAGE_BASE_URL}
+  # Frontend feature discovery, and the whole of this portal's composition.
+  # Installs any dependency of `packages/app` whose `backstage.role` is
+  # frontend-plugin/frontend-plugin-module and whose root or `./alpha` entry
+  # point default-exports a frontend feature. Two dependencies qualify:
+  #
+  #   @openchoreo/backstage-portal-app  the portal shell — its `./alpha`
+  #                                     default export is a feature loader
+  #                                     carrying ~24 features in a fixed order
+  #   ...-openchoreo-portal-assistant   the private Portal Assistant, which the
+  #                                     published shell must not depend on
+  #
+  # So `packages/app/src/App.tsx` has no `features` array, and adding a plugin
+  # to a portal is just adding the dependency.
+  #
+  # Scope: only the app package's own *direct* dependencies are scanned, and
+  # only the *default* export of each entry point is read — a named export is
+  # never picked up on its own. The portal's ~24 features are not discovered
+  # individually; they arrive through the shell's loader, which is what keeps
+  # their order (and the plugin-scoped `withOverrides`) ours to declare rather
+  # than a side effect of dependency-name sort order.
+  #
+  # Must live in this base config: the frontend config is inlined into the
+  # bundle at build time, so a value set only in app-config.production.yaml
+  # would be missing from dev builds.
+  packages: all
   # Tab groups + order for the canonical entity page.
   pages:
     entity:
@@ -39,7 +64,7 @@ app:
     # Tab order of the Platform section. Extensions named here are ordered ahead of
     # the rest, in this order, so Overview stays the first tab — which is also where
     # `/platform-overview` redirects to. Without this the order would depend on the
-    # `features` array order in `createPortalApp`.
+    # `portalFeatures` order in the shell's feature loader.
     - sub-page:platform-engineer-core/overview
     - sub-page:openchoreo-observability/platform-logs
     # Serve the composable home at `/` and trim built-in home widgets

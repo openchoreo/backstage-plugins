@@ -175,7 +175,7 @@ export function createCachingCatalogApi(deps: {
  *
  * The `page:catalog/entity` chrome override that mounts `OpenChoreoEntityLayout`
  * lives in `@openchoreo/backstage-plugin/alpha` as `openChoreoEntityPageOverride`
- * and is wired into `createPortalApp`'s `features` array. Everything about the
+ * and is wired into `portalFeatures` in `../alpha`. Everything about the
  * OC entity-page chrome — compact header, styled tab bar, delete / annotation
  * context-menu extras, existence-check empty state — ships from the plugin so
  * external adopters can adopt the same look with one import.
