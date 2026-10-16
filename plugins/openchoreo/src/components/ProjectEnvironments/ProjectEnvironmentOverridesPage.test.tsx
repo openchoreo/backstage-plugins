@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 import { ProjectEnvironmentOverridesPage } from './ProjectEnvironmentOverridesPage';
 
 const mockClient = {
@@ -147,7 +153,184 @@ describe('ProjectEnvironmentOverridesPage (deploy mode)', () => {
   });
 });
 
+describe('ProjectEnvironmentOverridesPage (promote mode)', () => {
+  beforeEach(() => {
+    mockClient.fetchProjectEnvironmentInfo.mockResolvedValue([
+      {
+        name: 'Staging',
+        resourceName: 'staging',
+        bindingName: 'my-app-staging',
+        projectRelease: 'rel-1',
+      },
+    ]);
+    mockClient.fetchProjectReleaseBindings.mockResolvedValue({
+      data: {
+        items: [
+          { environment: 'staging', environmentConfigs: { replicas: 2 } },
+        ],
+      },
+    });
+  });
+
+  it('reviews overrides before saving the selected release and edited values together', async () => {
+    const onSaved = jest.fn();
+    let finishPromotion!: () => void;
+    mockClient.updateProjectReleaseBinding.mockReturnValue(
+      new Promise<void>(resolve => {
+        finishPromotion = resolve;
+      }),
+    );
+
+    render(
+      <ProjectEnvironmentOverridesPage
+        envName="staging"
+        releaseFromUrl="rel-2"
+        action="promote"
+        onBack={jest.fn()}
+        onSaved={onSaved}
+      />,
+    );
+
+    const promote = await screen.findByRole('button', { name: 'Promote' });
+    expect(
+      screen.getByRole('heading', { name: 'Promote to Staging' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Review Staging-specific overrides, then promote rel-2.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /clear overrides/i }),
+    ).not.toBeInTheDocument();
+    expect(mockClient.fetchProjectReleaseSchema).toHaveBeenCalledWith(
+      'test-ns',
+      'rel-2',
+      'environmentConfigs',
+    );
+    expect(mockClient.updateProjectReleaseBinding).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('rjsf-change'));
+    fireEvent.click(promote);
+
+    expect(mockClient.updateProjectReleaseBinding).toHaveBeenCalledWith(
+      entity,
+      'staging',
+      { projectRelease: 'rel-2', environmentConfigs: { replicas: 5 } },
+    );
+    expect(screen.getByRole('button', { name: 'Promoting' })).toBeDisabled();
+    expect(onSaved).not.toHaveBeenCalled();
+
+    await act(async () => finishPromotion());
+    expect(
+      await screen.findByText(/Promoted rel-2 to Staging\./),
+    ).toBeInTheDocument();
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  it('promotes to an environment without a binding or override edits', async () => {
+    mockClient.fetchProjectEnvironmentInfo.mockResolvedValue([
+      { name: 'Staging', resourceName: 'staging' },
+    ]);
+    mockClient.fetchProjectReleaseBindings.mockResolvedValue({
+      data: { items: [] },
+    });
+
+    render(
+      <ProjectEnvironmentOverridesPage
+        envName="staging"
+        releaseFromUrl="rel-2"
+        action="promote"
+        onBack={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    );
+
+    const promote = await screen.findByRole('button', { name: 'Promote' });
+    expect(promote).toBeEnabled();
+    expect(screen.queryByText(/no binding exists/i)).not.toBeInTheDocument();
+    fireEvent.click(promote);
+    await waitFor(() =>
+      expect(mockClient.updateProjectReleaseBinding).toHaveBeenCalledWith(
+        entity,
+        'staging',
+        { projectRelease: 'rel-2', environmentConfigs: {} },
+      ),
+    );
+  });
+
+  it('discards obsolete overrides when the promoted release has no override schema', async () => {
+    mockClient.fetchProjectReleaseSchema.mockResolvedValue({
+      success: true,
+      data: {},
+    });
+    render(
+      <ProjectEnvironmentOverridesPage
+        envName="staging"
+        releaseFromUrl="rel-2"
+        action="promote"
+        onBack={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByText(/declares no environment-configs/i),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Promote' }));
+    await waitFor(() =>
+      expect(mockClient.updateProjectReleaseBinding).toHaveBeenCalledWith(
+        entity,
+        'staging',
+        { projectRelease: 'rel-2', environmentConfigs: {} },
+      ),
+    );
+  });
+});
+
 describe('ProjectEnvironmentOverridesPage (edit mode)', () => {
+  it('saves changed overrides while keeping the existing release', async () => {
+    mockClient.fetchProjectEnvironmentInfo.mockResolvedValue([
+      {
+        name: 'dev',
+        resourceName: 'development',
+        bindingName: 'my-app-development',
+        projectRelease: 'rel-1',
+      },
+    ]);
+    mockClient.fetchProjectReleaseBindings.mockResolvedValue({
+      data: {
+        items: [
+          { environment: 'development', environmentConfigs: { replicas: 2 } },
+        ],
+      },
+    });
+    const onSaved = jest.fn();
+    render(
+      <ProjectEnvironmentOverridesPage
+        envName="development"
+        onBack={jest.fn()}
+        onSaved={onSaved}
+      />,
+    );
+
+    const save = await screen.findByRole('button', { name: 'Save Overrides' });
+    expect(save).toBeDisabled();
+    fireEvent.click(screen.getByTestId('rjsf-change'));
+    fireEvent.click(save);
+    await waitFor(() =>
+      expect(mockClient.updateProjectReleaseBinding).toHaveBeenCalledWith(
+        entity,
+        'development',
+        { projectRelease: 'rel-1', environmentConfigs: { replicas: 5 } },
+      ),
+    );
+    expect(
+      await screen.findByText(/Saved overrides for dev\./),
+    ).toBeInTheDocument();
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
   it('shows an info banner when the env has no binding yet', async () => {
     mockClient.fetchProjectEnvironmentInfo.mockResolvedValue([
       { name: 'dev', resourceName: 'development', latestRelease: 'rel-2' },
