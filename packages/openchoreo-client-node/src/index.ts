@@ -52,7 +52,11 @@ export {
 } from './resource-utils';
 
 // Export pagination utilities (new API)
-export { fetchAllPages } from './pagination-utils';
+export {
+  fetchAllPages,
+  type FetchAllPagesOptions,
+  type PaginatedResponse,
+} from './pagination-utils';
 
 // Export generated types as namespaces
 export * as OpenChoreoAPI from './generated/openchoreo';
