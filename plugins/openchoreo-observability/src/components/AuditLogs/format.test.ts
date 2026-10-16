@@ -1,6 +1,7 @@
 import {
   actorInitials,
   formatTotal,
+  parameterRows,
   relativeAge,
   scopeSegments,
   shortUserAgent,
@@ -97,6 +98,48 @@ describe('scopeSegments', () => {
   it('is empty when the record carries no resource', () => {
     expect(scopeSegments(undefined)).toEqual([]);
     expect(scopeSegments(null)).toEqual([]);
+  });
+});
+
+describe('parameterRows', () => {
+  it('keeps scalars as they are', () => {
+    expect(
+      parameterRows({ podName: 'api', sinceSeconds: 3600, previous: false }),
+    ).toEqual([
+      ['podName', ['api']],
+      ['sinceSeconds', ['3600']],
+      ['previous', ['false']],
+    ]);
+  });
+
+  it('names a nested value by its dotted path', () => {
+    expect(
+      parameterRows({
+        actor: { id: ['alice', 'bob'] },
+        returned: { items: { name: ['db-creds'] } },
+      }),
+    ).toEqual([
+      ['actor.id', ['alice', 'bob']],
+      ['returned.items.name', ['db-creds']],
+    ]);
+  });
+
+  it('keeps list elements apart when one contains a comma', () => {
+    expect(
+      parameterRows({
+        user_agent: ['Mozilla/5.0 (KHTML, like Gecko)', 'curl'],
+      }),
+    ).toEqual([['user_agent', ['Mozilla/5.0 (KHTML, like Gecko)', 'curl']]]);
+  });
+
+  it('keeps what it cannot flatten as JSON', () => {
+    expect(parameterRows({ empty: [], mixed: [{ a: 1 }], none: null })).toEqual(
+      [
+        ['empty', ['[]']],
+        ['mixed', ['[{"a":1}]']],
+        ['none', ['null']],
+      ],
+    );
   });
 });
 

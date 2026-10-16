@@ -26,6 +26,17 @@ describe('tokensToFilters', () => {
     });
   });
 
+  it('nests a returned item name as the record nests it', () => {
+    const tokens: AuditQueryToken[] = [
+      { path: 'returned.items.name', value: 'db-creds' },
+      { path: 'returned.items.name', value: 'api-key' },
+    ];
+
+    expect(tokensToFilters(tokens)).toEqual({
+      returned: { items: { name: ['db-creds', 'api-key'] } },
+    });
+  });
+
   it('ORs values on one path into a single field', () => {
     const tokens: AuditQueryToken[] = [
       { path: 'result', value: 'denied' },

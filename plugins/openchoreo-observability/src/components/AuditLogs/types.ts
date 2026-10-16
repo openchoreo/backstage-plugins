@@ -40,6 +40,25 @@ export interface AuditLogResource {
   metadata?: Record<string, unknown>;
 }
 
+/** What an `access` read was asked for. Present on a denied read too. */
+export interface AuditLogRequest {
+  parameters?: Record<string, unknown>;
+}
+
+export interface AuditLogReturnedItem {
+  type: string;
+  namespace?: string;
+  name: string;
+  uid?: string;
+}
+
+/** What the operation handed back, never the content. Present only on success. */
+export interface AuditLogReturned {
+  /** Entries returned. Greater than the number of `items` when the list was cut. */
+  count: number;
+  items?: AuditLogReturnedItem[];
+}
+
 /** Where the record was collected, as stamped by the collector. */
 export interface AuditLogCollectorInfo {
   namespaceName?: string;
@@ -69,6 +88,10 @@ export interface AuditLogRecord {
   http?: AuditLogHttpInfo;
   /** `null` on an event with no resource — the key is published either way. */
   resource?: AuditLogResource | null;
+  /** From schema 1.1. */
+  request?: AuditLogRequest;
+  /** From schema 1.1. */
+  returned?: AuditLogReturned;
   metadata?: Record<string, unknown>;
   collector?: AuditLogCollectorInfo;
   /** The raw collected line, when the storage backend retains it. */
@@ -107,6 +130,15 @@ export interface AuditLogsResourceFilter {
   name?: string[];
 }
 
+/** A storage module older than schema 1.1 ignores this filter. */
+export interface AuditLogsReturnedItemsFilter {
+  name?: string[];
+}
+
+export interface AuditLogsReturnedFilter {
+  items?: AuditLogsReturnedItemsFilter;
+}
+
 export type AuditSortOrder = 'asc' | 'desc';
 export type AuditResult = 'success' | 'failure' | 'denied';
 
@@ -136,6 +168,7 @@ export interface AuditLogsQueryRequest {
   timelineInterval?: string;
   actor?: AuditLogsActorFilter;
   resource?: AuditLogsResourceFilter;
+  returned?: AuditLogsReturnedFilter;
   action?: string[];
   category?: AuditCategory[];
   result?: AuditResult[];
@@ -227,11 +260,16 @@ export const AUDIT_PICKABLE_FILTERS = [
 export type AuditPickableFilter = (typeof AUDIT_PICKABLE_FILTERS)[number];
 
 /**
- * Filters the query accepts but `/filter-values` cannot list: both are
- * near-unique per record, so there is no list to pick from — a caller filters
- * them by an exact value already in hand, off a log line or another record.
+ * Filters the query accepts but `/filter-values` cannot list, so there is no
+ * list to pick from — a caller filters them by an exact value already in hand,
+ * off a log line or another record. `event_id` and `request_id` are near-unique
+ * per record; `returned.items.name` is outside the endpoint's filter enum.
  */
-export const AUDIT_EXACT_ONLY_FILTERS = ['event_id', 'request_id'] as const;
+export const AUDIT_EXACT_ONLY_FILTERS = [
+  'event_id',
+  'request_id',
+  'returned.items.name',
+] as const;
 
 export type AuditExactOnlyFilter = (typeof AUDIT_EXACT_ONLY_FILTERS)[number];
 
@@ -280,6 +318,7 @@ export const AUDIT_FILTER_DESCRIPTIONS: Record<AuditFilterPath, string> = {
   user_agent: 'the client as it identified itself — a claim, not proof',
   event_id: 'a record’s own id, for fetching one you already know',
   request_id: 'correlation id shared with the access log line',
+  'returned.items.name': 'name of an object a read returned, e.g. a secret',
 };
 
 /**
