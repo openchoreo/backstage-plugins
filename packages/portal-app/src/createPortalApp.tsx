@@ -1,42 +1,8 @@
-import { catalogPlugin } from '@backstage/plugin-catalog';
-import { catalogImportPlugin } from '@backstage/plugin-catalog-import';
-import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
-import { techdocsPlugin } from '@backstage/plugin-techdocs';
-import { techDocsReportIssueAddonModule } from '@backstage/plugin-techdocs-module-addons-contrib/alpha';
-import { PageLoader } from '@openchoreo/backstage-design-system';
-
 import { createApp } from '@backstage/frontend-defaults';
 import type { FrontendFeature } from '@backstage/frontend-plugin-api';
-import { appModule } from './appModule';
+import { PageLoader } from '@openchoreo/backstage-design-system';
 
-import openchoreoPluginAlpha, {
-  openChoreoAppModule,
-  openChoreoEntityPageOverride,
-} from '@openchoreo/backstage-plugin/alpha';
-import openchoreoCiPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-ci/alpha';
-import openchoreoObservabilityPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-observability/alpha';
-import openchoreoWorkflowsPluginAlpha from '@openchoreo/backstage-plugin-openchoreo-workflows/alpha';
-import platformEngineerCorePluginAlpha from '@openchoreo/backstage-plugin-platform-engineer-core/alpha';
-
-import {
-  apiDocsPluginAlpha,
-  catalogGraphPluginAlpha,
-  catalogImportPluginAlpha,
-  catalogPluginAlpha,
-  customAppModule,
-  scaffolderPluginAlpha as upstreamScaffolderPluginAlpha,
-  searchPluginAlpha,
-  techdocsPluginAlpha,
-  userSettingsPluginAlpha,
-} from './apis/customOverrides';
-
-import kubernetesPluginAlpha from '@backstage/plugin-kubernetes/alpha';
-import jenkinsPluginAlpha from '@backstage-community/plugin-jenkins/alpha';
-import githubActionsPluginAlpha from '@backstage-community/plugin-github-actions/alpha';
-import gitlabPluginAlpha from '@immobiliarelabs/backstage-plugin-gitlab/alpha';
-import homePluginAlpha from '@backstage/plugin-home/alpha';
-import { portalAppPlugin } from './portalPlugin';
-import { homeModule } from './components/Home';
+import portalFeatureLoader from './alpha';
 
 /** Options for {@link createPortalApp}. */
 export interface PortalAppOptions {
@@ -48,63 +14,28 @@ export interface PortalAppOptions {
 }
 
 /**
- * Assembles the OpenChoreo Portal frontend app. The stock portal renders
- * `createPortalApp().createRoot()`; a custom portal can pass extra features.
+ * Assembles the OpenChoreo Portal frontend app in one call, for a host that
+ * would rather not configure anything: `createPortalApp().createRoot()`.
+ *
+ * This is a convenience over the discovery path, not an alternative
+ * composition. The features come from the same default-exported loader
+ * discovery uses (`./alpha`), so the two cannot drift — and a host that
+ * enables `app.packages` *and* calls this gets the portal once, since feature
+ * loaders are de-duplicated by reference.
+ *
+ * The only thing this adds is the branded `loadingElement`, which no feature
+ * can contribute: it is the Suspense fallback `createApp` renders before any
+ * feature has loaded. Apps that compose `createApp` themselves should pass
+ * `advanced.loadingElement` to avoid falling back to Backstage's spinner.
+ *
+ * Route bindings are deliberately absent. All five bindings the portal needs
+ * (catalog → scaffolder/techdocs, scaffolder → catalog-import/techdocs) are
+ * already each external route ref's upstream `defaultTarget`, which
+ * `resolveRouteBindings` applies when nothing binds them explicitly.
  */
 export function createPortalApp(options?: PortalAppOptions) {
   return createApp({
-    features: [
-      // APIs first so overrides below win via last-write-wins.
-      appModule,
-      // Ships OC fetch/permission overrides on pluginId 'app' so they
-      // replace Backstage's default core.fetch / plugin.permission.api.
-      openChoreoAppModule,
-      customAppModule,
-      upstreamScaffolderPluginAlpha,
-      catalogGraphPluginAlpha,
-      catalogPluginAlpha,
-      catalogImportPluginAlpha,
-      apiDocsPluginAlpha,
-      kubernetesPluginAlpha,
-      techdocsPluginAlpha,
-      searchPluginAlpha,
-      jenkinsPluginAlpha,
-      githubActionsPluginAlpha,
-      gitlabPluginAlpha,
-      userSettingsPluginAlpha,
-      techDocsReportIssueAddonModule,
-      // `openchoreoCiPluginAlpha` before `openchoreoPluginAlpha` so within
-      // the `deployment` tab group Build (CI) shows before Deploy (base).
-      openchoreoCiPluginAlpha,
-      openchoreoPluginAlpha,
-      // `platformEngineerCorePluginAlpha` before `openchoreoObservabilityPluginAlpha`
-      // so the Platform section's Overview tab is collected before the Logs tab
-      // observability contributes. Extension inputs keep registration order, and the
-      // first tab is also where `/platform-overview` redirects to. `app-config.yaml`
-      // pins the same order explicitly under `app.extensions`.
-      platformEngineerCorePluginAlpha,
-      openchoreoObservabilityPluginAlpha,
-      openchoreoWorkflowsPluginAlpha,
-      // Home plugin provides `page:home`; our module contributes the custom
-      // layout and widgets, and app-config points `page:home` at `/`.
-      homePluginAlpha,
-      homeModule,
-      portalAppPlugin,
-      // Mounts OpenChoreoEntityLayout as the page:catalog/entity chrome.
-      openChoreoEntityPageOverride,
-      ...(options?.features ?? []),
-    ],
-    bindRoutes({ bind }) {
-      bind(catalogPlugin.externalRoutes, {
-        createComponent: scaffolderPlugin.routes.root,
-        viewTechDoc: techdocsPlugin.routes.docRoot,
-        createFromTemplate: scaffolderPlugin.routes.selectedTemplate,
-      });
-      bind(scaffolderPlugin.externalRoutes, {
-        registerComponent: catalogImportPlugin.routes.importPage,
-        viewTechDoc: techdocsPlugin.routes.docRoot,
-      });
-    },
+    features: [portalFeatureLoader, ...(options?.features ?? [])],
     advanced: {
       loadingElement: <PageLoader />,
     },
