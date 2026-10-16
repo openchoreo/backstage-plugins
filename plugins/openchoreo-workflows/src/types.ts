@@ -20,6 +20,17 @@ export type WorkflowRunStatus =
   | 'Error';
 
 /**
+ * A Kubernetes-style condition on a workflow run
+ */
+export interface WorkflowRunCondition {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+}
+
+/**
  * Generic workflow run
  */
 export interface WorkflowRun {
@@ -32,6 +43,7 @@ export interface WorkflowRun {
   parameters?: Record<string, unknown>;
   createdAt: string;
   finishedAt?: string;
+  conditions?: WorkflowRunCondition[];
 }
 
 /**
@@ -83,6 +95,7 @@ export interface WorkflowStepStatus {
   finishedAt?: string | null;
 }
 
+
 /**
  * Status response for a workflow run including steps
  */
@@ -90,6 +103,7 @@ export interface WorkflowRunStatusResponse {
   status: string;
   steps: WorkflowStepStatus[];
   hasLiveObservability: boolean;
+  conditions?: WorkflowRunCondition[];
 }
 
 /**

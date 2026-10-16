@@ -6,6 +6,14 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Chip,
+  Paper,
 } from '@material-ui/core';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import CheckIcon from '@material-ui/icons/Check';
@@ -327,6 +335,64 @@ export const RunMetadataContent = ({
               </Box>
             </Grid>
           )}
+
+        {/* Conditions */}
+        {workflowRunDetails?.conditions && workflowRunDetails.conditions.length > 0 && (
+          <Grid item xs={12}>
+            <Box className={classes.metadataCard}>
+              <Typography variant="h6" gutterBottom>
+                Conditions
+              </Typography>
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell scope="col">Type</TableCell>
+                      <TableCell scope="col">Status</TableCell>
+                      <TableCell scope="col">Reason</TableCell>
+                      <TableCell scope="col">Message</TableCell>
+                      <TableCell scope="col">Last Transition</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {workflowRunDetails.conditions.map((condition, index) => (
+                      <TableRow key={`${condition.type}-${index}`}>
+                        <TableCell>
+                          <Typography variant="body2" style={{ fontWeight: 500 }}>
+                            {condition.type}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={condition.status}
+                            size="small"
+                            style={{
+                              backgroundColor: condition.status === 'True' ? '#e6f4ea' : condition.status === 'False' ? '#fce8e6' : '#e8f0fe',
+                              color: condition.status === 'True' ? '#137333' : condition.status === 'False' ? '#c5221f' : '#1967d2',
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{condition.reason ?? '-'}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" style={{ maxWidth: 400, wordBreak: 'break-word' }}>
+                            {condition.message ?? '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {condition.lastTransitionTime ? new Date(condition.lastTransitionTime).toLocaleString() : '-'}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+          </Grid>
+        )}
       </Grid>
     </Box>
   );

@@ -333,6 +333,27 @@ export const LogsContent = ({ build }: LogsContentProps) => {
   }
 
   if (!statusState || !statusState.steps || statusState.steps.length === 0) {
+    if (statusState?.status === 'Failed' && statusState.conditions) {
+      const failedCondition = statusState.conditions.find(
+        (c: any) =>
+          (c.type === 'WorkflowFailed' && c.status === 'True') ||
+          (c.type === 'WorkflowCompleted' &&
+            c.status === 'False' &&
+            c.reason &&
+            c.reason !== 'WorkflowPending' &&
+            c.reason !== 'WorkflowRunning'),
+      );
+      if (failedCondition) {
+        return (
+          <Alert severity="error">
+            <Typography variant="subtitle2">{failedCondition.reason}</Typography>
+            <Typography variant="body2" style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+              {failedCondition.message}
+            </Typography>
+          </Alert>
+        );
+      }
+    }
     return (
       <Typography variant="body2" color="textSecondary">
         No steps available for this workflow run
