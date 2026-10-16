@@ -108,4 +108,129 @@ describe('AuditEventDrawer', () => {
 
     expect(screen.getByText('No validated token.')).toBeInTheDocument();
   });
+
+  it('shows what a 1.1 read was asked for and what it returned', () => {
+    render(
+      <AuditEventDrawer
+        {...defaults}
+        record={{
+          ...record,
+          schema_version: '1.1',
+          action: 'list_secrets',
+          category: 'access',
+          result: 'success',
+          request: {
+            parameters: {
+              podName: 'checkout-7f9c',
+              sinceSeconds: 3600,
+              actor: { id: ['alice'] },
+              user_agent: ['Mozilla/5.0 (KHTML, like Gecko)', 'curl/8.4.0'],
+            },
+          },
+          returned: {
+            count: 3,
+            items: [
+              {
+                type: 'secret',
+                namespace: 'acme',
+                name: 'db-creds',
+                uid: 'uid-a',
+              },
+              { type: 'secret', name: 'api-key' },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Parameters')).toBeInTheDocument();
+    expect(screen.getByText('podName')).toBeInTheDocument();
+    expect(screen.getByText('checkout-7f9c')).toBeInTheDocument();
+    expect(screen.getByText('sinceSeconds')).toBeInTheDocument();
+    expect(screen.getByText('3600')).toBeInTheDocument();
+    expect(screen.getByText('actor.id')).toBeInTheDocument();
+    expect(screen.getByText('alice')).toBeInTheDocument();
+    expect(
+      screen.getByText('Mozilla/5.0 (KHTML, like Gecko)'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('curl/8.4.0')).toBeInTheDocument();
+
+    expect(screen.getByText('Returned')).toBeInTheDocument();
+    expect(screen.getByText('3 entries')).toBeInTheDocument();
+    expect(
+      screen.getByText('The list was cut: 2 of 3 identified.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTitle('Filter by returned.items.name:db-creds'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTitle('Filter by returned.items.name:api-key'),
+    ).toBeInTheDocument();
+  });
+
+  it('filters by a returned object’s name', async () => {
+    const onAddToken = jest.fn();
+    render(
+      <AuditEventDrawer
+        {...defaults}
+        record={{
+          ...record,
+          schema_version: '1.1',
+          result: 'success',
+          returned: {
+            count: 1,
+            items: [{ type: 'secret', namespace: 'acme', name: 'db-creds' }],
+          },
+        }}
+        onAddToken={onAddToken}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByTitle('Filter by returned.items.name:db-creds'),
+    );
+    expect(onAddToken).toHaveBeenCalledWith('returned.items.name', 'db-creds');
+  });
+
+  it('shows a count of zero rather than treating it as absent', () => {
+    render(
+      <AuditEventDrawer
+        {...defaults}
+        record={{
+          ...record,
+          schema_version: '1.1',
+          result: 'success',
+          returned: { count: 0 },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('0 entries')).toBeInTheDocument();
+    expect(
+      screen.getByText('No object identities recorded.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/The list was cut/)).not.toBeInTheDocument();
+  });
+
+  it('says so when a request carries no parameters', () => {
+    render(
+      <AuditEventDrawer
+        {...defaults}
+        record={{
+          ...record,
+          schema_version: '1.1',
+          request: { parameters: {} },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('No parameters recorded.')).toBeInTheDocument();
+  });
+
+  it('renders a 1.0 record with no parameters or returned row', () => {
+    render(<AuditEventDrawer {...defaults} />);
+
+    expect(screen.queryByText('Parameters')).not.toBeInTheDocument();
+    expect(screen.queryByText('Returned')).not.toBeInTheDocument();
+  });
 });

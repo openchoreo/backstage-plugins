@@ -81,6 +81,38 @@ export function scopeSegments(resource?: AuditLogResource | null): string[] {
   ].filter((value): value is string => Boolean(value));
 }
 
+const isScalar = (value: unknown): value is string | number | boolean =>
+  ['string', 'number', 'boolean'].includes(typeof value);
+
+/**
+ * Request parameters as one row each, by the same rule for every operation:
+ * a nested object extends the key with a dot, as the query bar names fields,
+ * and a list of scalars keeps each element as its own value, since joining
+ * them would blur values that contain the separator. Anything else stays JSON.
+ */
+export function parameterRows(
+  parameters: Record<string, unknown>,
+  prefix = '',
+): Array<[string, string[]]> {
+  return Object.entries(parameters).flatMap(
+    ([key, value]): Array<[string, string[]]> => {
+      const path = prefix ? `${prefix}.${key}` : key;
+      if (
+        value !== null &&
+        typeof value === 'object' &&
+        !Array.isArray(value)
+      ) {
+        return parameterRows(value as Record<string, unknown>, path);
+      }
+      if (isScalar(value)) return [[path, [String(value)]]];
+      if (Array.isArray(value) && value.length > 0 && value.every(isScalar)) {
+        return [[path, value.map(String)]];
+      }
+      return [[path, [JSON.stringify(value)]]];
+    },
+  );
+}
+
 /** A count, grouped for reading. The API counts fully, so it is exact. */
 export function formatTotal(total: number): string {
   return total.toLocaleString();

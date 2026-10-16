@@ -4,7 +4,13 @@ import CloseIcon from '@material-ui/icons/Close';
 import { JsonViewer } from '@openchoreo/backstage-design-system';
 import { useAuditDrawerStyles, useAuditResultPillStyles } from './styles';
 import { AuditFilterPath, AuditLogRecord } from './types';
-import { fullTime, relativeAge, surfaceLabel } from './format';
+import {
+  formatTotal,
+  fullTime,
+  parameterRows,
+  relativeAge,
+  surfaceLabel,
+} from './format';
 
 export interface AuditEventDrawerProps {
   record?: AuditLogRecord;
@@ -135,6 +141,9 @@ export const AuditEventDrawer = ({
             : []),
         ]
       : [];
+  const parameters = parameterRows(record?.request?.parameters ?? {});
+  const returned = record?.returned;
+  const returnedItems = returned?.items ?? [];
   // A result this client predates gets no pill styling rather than borrowing
   // another outcome's, which would misreport it.
   const pillClass = record
@@ -260,6 +269,59 @@ export const AuditEventDrawer = ({
                     : undefined}
                 </Field>
                 <Field label="Outcome">{drill('result', record.result)}</Field>
+                {record.request && (
+                  <Field label="Parameters" absent="No parameters recorded.">
+                    {parameters.length > 0 ? (
+                      <span className={classes.params}>
+                        {parameters.map(([key, values]) => (
+                          <Fragment key={key}>
+                            <span className={classes.paramKey}>{key}</span>
+                            <span className={classes.paramValues}>
+                              {values.map((value, index) => (
+                                <span key={index}>{value}</span>
+                              ))}
+                            </span>
+                          </Fragment>
+                        ))}
+                      </span>
+                    ) : undefined}
+                  </Field>
+                )}
+                {returned && (
+                  <Field
+                    label="Returned"
+                    hint={
+                      returnedItems.length > 0 &&
+                      returned.count > returnedItems.length
+                        ? `The list was cut: ${returnedItems.length} of ${returned.count} identified.`
+                        : undefined
+                    }
+                  >
+                    <span>
+                      {`${formatTotal(returned.count)} ${
+                        returned.count === 1 ? 'entry' : 'entries'
+                      }`}
+                    </span>
+                    {returnedItems.length > 0 ? (
+                      returnedItems.map((item, index) => (
+                        <span
+                          key={`${index}-${item.name}`}
+                          className={classes.returnedItem}
+                        >
+                          <span className={classes.paramKey}>{item.type}</span>
+                          <span className={classes.returnedName}>
+                            {item.namespace && `${item.namespace}/`}
+                            {drill('returned.items.name', item.name)}
+                          </span>
+                        </span>
+                      ))
+                    ) : (
+                      <span className={classes.returnedNone}>
+                        No object identities recorded.
+                      </span>
+                    )}
+                  </Field>
+                )}
               </dl>
             </Box>
 

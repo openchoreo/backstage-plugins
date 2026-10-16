@@ -188,6 +188,26 @@ describe('AuditQueryBar', () => {
     expect(onToggleToken).toHaveBeenCalledWith('request_id', 'abc-123');
   });
 
+  it('takes a returned item name as typed, without asking for a list', async () => {
+    const onToggleToken = jest.fn();
+    render(<AuditQueryBar {...defaults} onToggleToken={onToggleToken} />);
+
+    // /filter-values does not list returned.items.name.
+    await userEvent.type(
+      screen.getByLabelText('Filter audit records'),
+      'returned.items.name:db-creds',
+    );
+    expect(mockUseAuditFilterValues).toHaveBeenLastCalledWith(
+      expect.objectContaining({ enabled: false }),
+    );
+    await userEvent.click(screen.getByText('db-creds'));
+
+    expect(onToggleToken).toHaveBeenCalledWith(
+      'returned.items.name',
+      'db-creds',
+    );
+  });
+
   it('says an exact-value field has no list rather than showing an empty one', async () => {
     render(<AuditQueryBar {...defaults} />);
 
