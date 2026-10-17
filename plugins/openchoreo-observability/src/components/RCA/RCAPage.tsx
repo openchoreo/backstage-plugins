@@ -20,6 +20,8 @@ import { EnvironmentsStatusNotice } from '../common';
 import { RCAReport } from './RCAReport';
 import { EntityLinkContext } from './RCAReport/EntityLinkContext';
 
+const RCA_DEFAULT_TIME_RANGE = '24h';
+
 const RCAListContent = () => {
   const { entity } = useEntity();
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
@@ -33,7 +35,10 @@ const RCAListContent = () => {
     loading: environmentsLoading,
     status: environmentsStatus,
   } = useProjectEnvironments(projectName, namespace);
-  const { filters, updateFilters } = useUrlFilters({ environments });
+  const { filters, updateFilters } = useUrlFilters({
+    environments,
+    defaultTimeRange: RCA_DEFAULT_TIME_RANGE,
+  });
 
   const {
     reports,
