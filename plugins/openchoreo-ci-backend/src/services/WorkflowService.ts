@@ -8,6 +8,7 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 import {
   CHOREO_LABELS,
+  deriveWorkflowRunDisplayStatus,
   type ComponentWorkflowRunResponse,
   type ComponentWorkflowRunStatusResponse,
   type WorkflowResponse,
@@ -23,51 +24,9 @@ type ModelsBuild = ComponentWorkflowRunResponse;
 
 type WorkflowRunStatusResponse = ComponentWorkflowRunStatusResponse;
 
-/**
- * Derive a string status from a raw K8s WorkflowRun.
- *
- * completedAt is treated as the strongest signal: if set, the run is
- * definitively done and we never return an in-progress status, even if
- * the K8s conditions are stale (e.g. controller hasn't reconciled yet).
- */
+/** @see deriveWorkflowRunDisplayStatus */
 function deriveWorkflowRunStatus(run: any): string {
-  const readyCondition = (run.status?.conditions ?? []).find(
-    (c: any) => c.type === 'Ready',
-  );
-  const tasks = (run.status?.tasks ?? []) as any[];
-
-  // completedAt is the strongest completion signal — takes priority
-  if (run.status?.completedAt) {
-    if (tasks.some((t: any) => t.phase === 'Failed' || t.phase === 'Error')) {
-      return 'Failed';
-    }
-    const reason = readyCondition?.reason;
-    if (reason && reason !== 'Running' && reason !== 'Pending') {
-      return reason;
-    }
-    return 'Succeeded';
-  }
-
-  // Trust the Ready condition when the run has not yet completed
-  if (readyCondition) {
-    return (
-      readyCondition.reason ||
-      (readyCondition.status === 'True' ? 'Succeeded' : 'Running')
-    );
-  }
-
-  // No conditions — fall back to tasks then timing
-  if (tasks.some((t: any) => t.phase === 'Failed' || t.phase === 'Error')) {
-    return 'Failed';
-  }
-  if (tasks.every((t: any) => t.phase === 'Succeeded') && tasks.length > 0) {
-    return 'Succeeded';
-  }
-  if (tasks.some((t: any) => t.phase === 'Running')) {
-    return 'Running';
-  }
-  if (run.status?.startedAt) return 'Running';
-  return 'Pending';
+  return deriveWorkflowRunDisplayStatus(run);
 }
 
 /** Transform a raw K8s-style WorkflowRun object into the flat ModelsBuild shape. */
