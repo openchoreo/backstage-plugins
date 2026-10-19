@@ -17,6 +17,7 @@ import { parseCapabilityPath } from '../utils/pathUtils';
 export const NAMESPACE_SCOPED_KINDS = new Set([
   'componenttype',
   'resourcetype',
+  'endpointtype',
   'traittype',
   'workflow',
   'componentworkflow',

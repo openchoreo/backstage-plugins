@@ -393,6 +393,46 @@ export const openchoreoResourceDeletePermission = createPermission({
 });
 
 /**
+ * Permission to update an endpoint.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoEndpointUpdatePermission = createPermission({
+  name: 'openchoreo.endpoint.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete an endpoint.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoEndpointDeletePermission = createPermission({
+  name: 'openchoreo.endpoint.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update an endpoint type.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoEndpointTypeUpdatePermission = createPermission({
+  name: 'openchoreo.endpointtype.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete an endpoint type.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoEndpointTypeDeletePermission = createPermission({
+  name: 'openchoreo.endpointtype.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
  * Permission to update a trait.
  * Resource-based: requires the specific entity context.
  */
@@ -614,6 +654,24 @@ export const openchoreoClusterResourceTypeUpdatePermission = createPermission({
  */
 export const openchoreoClusterResourceTypeDeletePermission = createPermission({
   name: 'openchoreo.clusterresourcetype.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a cluster endpoint type.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterEndpointTypeUpdatePermission = createPermission({
+  name: 'openchoreo.clusterendpointtype.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster endpoint type.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterEndpointTypeDeletePermission = createPermission({
+  name: 'openchoreo.clusterendpointtype.delete',
   attributes: { action: 'delete' },
 });
 
@@ -1202,6 +1260,10 @@ export const openchoreoPermissions = [
   openchoreoProjectTypeDeletePermission,
   openchoreoResourceUpdatePermission,
   openchoreoResourceDeletePermission,
+  openchoreoEndpointUpdatePermission,
+  openchoreoEndpointDeletePermission,
+  openchoreoEndpointTypeUpdatePermission,
+  openchoreoEndpointTypeDeletePermission,
   openchoreoTraitUpdatePermission,
   openchoreoTraitDeletePermission,
   openchoreoWorkflowUpdatePermission,
@@ -1224,6 +1286,8 @@ export const openchoreoPermissions = [
   openchoreoClusterComponentTypeDeletePermission,
   openchoreoClusterResourceTypeUpdatePermission,
   openchoreoClusterResourceTypeDeletePermission,
+  openchoreoClusterEndpointTypeUpdatePermission,
+  openchoreoClusterEndpointTypeDeletePermission,
   openchoreoClusterProjectTypeUpdatePermission,
   openchoreoClusterProjectTypeDeletePermission,
   openchoreoClusterTraitUpdatePermission,
@@ -1328,6 +1392,10 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.projecttype.update': 'projecttype:update',
   'openchoreo.projecttype.delete': 'projecttype:delete',
   'openchoreo.resource.update': 'resource:update',
+  'openchoreo.endpoint.update': 'endpoint:update',
+  'openchoreo.endpoint.delete': 'endpoint:delete',
+  'openchoreo.endpointtype.update': 'endpointtype:update',
+  'openchoreo.endpointtype.delete': 'endpointtype:delete',
   'openchoreo.resource.delete': 'resource:delete',
   'openchoreo.trait.update': 'trait:update',
   'openchoreo.trait.delete': 'trait:delete',
@@ -1353,6 +1421,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.clustercomponenttype.update': 'clustercomponenttype:update',
   'openchoreo.clustercomponenttype.delete': 'clustercomponenttype:delete',
   'openchoreo.clusterresourcetype.update': 'clusterresourcetype:update',
+  'openchoreo.clusterendpointtype.update': 'clusterendpointtype:update',
+  'openchoreo.clusterendpointtype.delete': 'clusterendpointtype:delete',
   'openchoreo.clusterresourcetype.delete': 'clusterresourcetype:delete',
   'openchoreo.clusterprojecttype.update': 'clusterprojecttype:update',
   'openchoreo.clusterprojecttype.delete': 'clusterprojecttype:delete',

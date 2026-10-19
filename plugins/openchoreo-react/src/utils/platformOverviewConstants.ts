@@ -15,6 +15,8 @@ import {
   RELATION_OBSERVES,
   RELATION_BUILDS_ON,
   RELATION_BUILDS,
+  RELATION_ROUTES_TO,
+  RELATION_ROUTED_BY,
 } from '@openchoreo/backstage-plugin-common';
 
 export type GraphViewDefinition = {
@@ -41,11 +43,12 @@ export const APPLICATION_VIEW: GraphViewDefinition = {
   id: 'developer',
   label: 'Developer Resources',
   description:
-    'Projects, Components, Resources, Deployment Pipelines, and Environments',
+    'Projects, Components, Resources, Endpoints, Deployment Pipelines, and Environments',
   kinds: [
     'system',
     'component',
     'resource',
+    'endpoint',
     'deploymentpipeline',
     'environment',
   ],
@@ -58,12 +61,15 @@ export const APPLICATION_VIEW: GraphViewDefinition = {
     RELATION_DEPLOYED_BY,
     RELATION_USES_PIPELINE,
     RELATION_PIPELINE_USED_BY,
+    RELATION_ROUTES_TO,
+    RELATION_ROUTED_BY,
   ],
   relationPairs: [
     [RELATION_PART_OF, RELATION_HAS_PART],
     [RELATION_OWNED_BY, RELATION_OWNER_OF],
     [RELATION_DEPLOYS_TO, RELATION_DEPLOYED_BY],
     [RELATION_USES_PIPELINE, RELATION_PIPELINE_USED_BY],
+    [RELATION_ROUTES_TO, RELATION_ROUTED_BY],
   ],
 };
 
