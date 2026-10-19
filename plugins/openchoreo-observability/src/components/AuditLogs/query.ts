@@ -168,6 +168,11 @@ export function tokensToFilters(
       case 'request_id':
         request.request_id = take('request_id', values);
         break;
+      case 'returned.items.name':
+        request.returned = {
+          items: { name: take('returned.items.name', values) },
+        };
+        break;
       default:
         break;
     }

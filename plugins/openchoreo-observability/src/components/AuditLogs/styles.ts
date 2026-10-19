@@ -332,6 +332,35 @@ export const useAuditDrawerStyles = makeStyles(theme => ({
     maxWidth: '52ch',
   },
   absent: { color: theme.palette.text.disabled },
+  params: {
+    display: 'grid',
+    gridTemplateColumns: 'max-content minmax(0, 1fr)',
+    gap: `2px ${theme.spacing(1.5)}px`,
+    fontFamily: 'monospace',
+  },
+  paramKey: { color: theme.palette.text.secondary },
+  paramValues: {
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+  },
+  returnedItem: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: theme.spacing(1),
+    marginTop: 4,
+    fontFamily: 'monospace',
+  },
+  returnedName: {
+    display: 'inline-flex',
+    alignItems: 'baseline',
+    minWidth: 0,
+  },
+  returnedNone: {
+    display: 'block',
+    marginTop: 2,
+    color: theme.palette.text.disabled,
+  },
   drill: {
     font: 'inherit',
     fontFamily: 'monospace',
