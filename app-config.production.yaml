@@ -10,6 +10,14 @@ app:
   # For local k3d: http://openchoreo.localhost (set via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml)
   # For production: external ingress URL (set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.baseUrl)
   baseUrl: ${BACKSTAGE_BASE_URL}
+  # Frontend feature discovery. Must be set here as well as in app-config.yaml
+  # — this file is the whole config at runtime (the image copies it over
+  # app-config.yaml), and app-backend injects it into the served bundle, where
+  # `discoverAvailableFeatures` re-reads `app.packages`. Under Rspack the
+  # build-time config is not inlined, so there is no fallback: unset here and
+  # the portal renders empty, with no error and no `features` array in App.tsx
+  # to fall back on. See the longer note in app-config.yaml.
+  packages: all
   # Tab groups + order for the canonical entity page.
   pages:
     entity:
@@ -28,8 +36,8 @@ app:
     # Tab order of the Platform section. Extensions named here are ordered
     # ahead of the rest, in this order, so Overview stays the first tab —
     # which is also where `/platform-overview` redirects to. Without this
-    # the order would depend on the `features` array order in
-    # `createPortalApp`.
+    # the order would depend on the `portalFeatures` order in the shell's
+    # feature loader.
     - sub-page:platform-engineer-core/overview
     - sub-page:openchoreo-observability/platform-logs
     # Serve the composable home page at `/` and trim built-in home widgets.

@@ -42,9 +42,21 @@ app:
   # their order (and the plugin-scoped `withOverrides`) ours to declare rather
   # than a side effect of dependency-name sort order.
   #
-  # Must live in this base config: the frontend config is inlined into the
-  # bundle at build time, so a value set only in app-config.production.yaml
-  # would be missing from dev builds.
+  # Needed in BOTH this file and app-config.production.yaml, because the two
+  # halves of discovery read different configs:
+  #
+  #   build time  the CLI reads this file to generate the module that sets
+  #               `window['__@backstage/discovered__']`. The production image
+  #               builds the frontend from this file (Dockerfile stage 1,
+  #               before app-config.production.yaml is copied over it).
+  #   run time    `discoverAvailableFeatures` re-reads `app.packages` and
+  #               returns nothing if it is unset. Under Rspack the build-time
+  #               config is NOT inlined (`process.env.APP_CONFIG` is `[]`);
+  #               app-backend injects the config it loaded, which in the image
+  #               is app-config.production.yaml.
+  #
+  # Set it in only one of the two and the portal renders empty in that half,
+  # with no error — App.tsx has no `features` array to fall back on.
   packages: all
   # Tab groups + order for the canonical entity page.
   pages:

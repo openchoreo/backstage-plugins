@@ -17734,6 +17734,7 @@ __metadata:
     express-session: "npm:1.18.2"
     node-gyp: "npm:10.3.1"
     pg: "npm:8.16.3"
+    yaml: "npm:^2.8.1"
   languageName: unknown
   linkType: soft
 
