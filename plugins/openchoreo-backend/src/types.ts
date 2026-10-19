@@ -3,6 +3,7 @@ import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node
 import type {
   WorkloadResource,
   ReleaseBindingCondition,
+  ResolvedEndpointBackend,
 } from '@openchoreo/backstage-plugin-common';
 import type { ModelsSecretReferences } from './services/SecretReferencesService/SecretReferencesService';
 import type {
@@ -163,6 +164,37 @@ export interface ResourceEnvironment {
     resourceName?: string;
   }[];
   /** Latest ResourceRelease cut by the Resource controller, if any. */
+  latestRelease?: string;
+}
+
+/**
+ * Per-environment view of an Endpoint's deploy state. One entry per
+ * environment in the project's deployment pipeline, including environments
+ * where no EndpointReleaseBinding exists yet (so the UI can render a Deploy
+ * affordance against them).
+ */
+export interface EndpointEnvironment {
+  uid?: string;
+  name: string;
+  resourceName?: string;
+  dataPlaneRef?: string;
+  dataPlaneKind?: 'DataPlane' | 'ClusterDataPlane';
+  bindingName?: string;
+  /** The EndpointRelease pinned to this environment (binding.spec.endpointRelease). */
+  endpointRelease?: string;
+  /** Per-environment values for the type's environmentConfigs schema. */
+  endpointTypeEnvironmentConfigs?: Record<string, unknown>;
+  status?: 'Ready' | 'NotReady' | 'Failed';
+  statusReason?: string;
+  statusMessage?: string;
+  lastDeployed?: string;
+  /** How each backend resolved in this environment. */
+  backends?: ResolvedEndpointBackend[];
+  promotionTargets?: {
+    name: string;
+    resourceName?: string;
+  }[];
+  /** Latest EndpointRelease cut by the Endpoint controller, if any. */
   latestRelease?: string;
 }
 

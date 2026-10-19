@@ -51,6 +51,9 @@ import type {
   ResourceEventsResponse,
   PodLogsResponse,
   ResourceEnvironment,
+  EndpointEnvironment,
+  EndpointReleaseBindingsResponse,
+  EndpointReleaseResponse,
   ResourceTypeOutput,
 } from './OpenChoreoClientApi';
 import type { Environment } from '../components/RuntimeLogs/types';
@@ -102,6 +105,14 @@ const API_ENDPOINTS = {
   RESOURCE_TYPE_OUTPUTS: '/resource-type-outputs',
   CLUSTER_RESOURCE_TYPE_OUTPUTS: '/cluster-resource-type-outputs',
   RESOURCE_RELEASE_SCHEMA: '/resource-release-schema',
+  ENDPOINT_ENVIRONMENT_INFO: '/endpoint-environment-info',
+  ENDPOINT_RELEASE_BINDINGS: '/endpoint-release-bindings',
+  UPDATE_ENDPOINT_RELEASE_BINDING: '/update-endpoint-release-binding',
+  DELETE_ENDPOINT_RELEASE_BINDING: '/delete-endpoint-release-binding',
+  ENDPOINT_RELEASE: '/endpoint-release',
+  ENDPOINT_RELEASE_SCHEMA: '/endpoint-release-schema',
+  ENDPOINT_TYPE_SCHEMA: '/endpoint-type-schema',
+  CLUSTER_ENDPOINT_TYPE_SCHEMA: '/cluster-endpoint-type-schema',
   COMPONENT_TRAITS: '/component-traits',
   RELEASE_LINE: '/release-line',
   COMPONENT_CONFIG: '/component-config',
@@ -235,6 +246,29 @@ function extractResourceEntityMetadata(entity: Entity): ResourceEntityMetadata {
   }
 
   return { resourceName, projectName, namespaceName };
+}
+
+interface EndpointEntityMetadata {
+  endpointName: string;
+  projectName: string;
+  namespaceName: string;
+}
+
+function extractEndpointEntityMetadata(entity: Entity): EndpointEntityMetadata {
+  const endpointName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ENDPOINT];
+  const projectName = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  const namespaceName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+
+  if (!endpointName || !projectName || !namespaceName) {
+    throw new Error(
+      'Missing required OpenChoreo annotations on Endpoint entity. ' +
+        `Required: ${CHOREO_ANNOTATIONS.ENDPOINT}, ${CHOREO_ANNOTATIONS.PROJECT}, ${CHOREO_ANNOTATIONS.NAMESPACE}`,
+    );
+  }
+
+  return { endpointName, projectName, namespaceName };
 }
 
 interface ProjectEntityMetadata {
@@ -590,6 +624,112 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         namespaceName,
         environment,
       },
+    });
+  }
+
+  async fetchEndpointEnvironmentInfo(
+    entity: Entity,
+  ): Promise<EndpointEnvironment[]> {
+    return this.apiFetch<EndpointEnvironment[]>(
+      API_ENDPOINTS.ENDPOINT_ENVIRONMENT_INFO,
+      { params: { ...extractEndpointEntityMetadata(entity) } },
+    );
+  }
+
+  async fetchEndpointReleaseBindings(
+    entity: Entity,
+  ): Promise<EndpointReleaseBindingsResponse> {
+    return this.apiFetch<EndpointReleaseBindingsResponse>(
+      API_ENDPOINTS.ENDPOINT_RELEASE_BINDINGS,
+      { params: { ...extractEndpointEntityMetadata(entity) } },
+    );
+  }
+
+  async updateEndpointReleaseBinding(
+    entity: Entity,
+    environment: string,
+    options: {
+      endpointRelease?: string;
+      endpointTypeEnvironmentConfigs?: Record<string, unknown>;
+    },
+  ): Promise<unknown> {
+    return this.apiFetch(API_ENDPOINTS.UPDATE_ENDPOINT_RELEASE_BINDING, {
+      method: 'PUT',
+      body: {
+        ...extractEndpointEntityMetadata(entity),
+        environment,
+        ...(options.endpointRelease !== undefined
+          ? { releaseName: options.endpointRelease }
+          : {}),
+        ...(options.endpointTypeEnvironmentConfigs !== undefined
+          ? {
+              endpointTypeEnvironmentConfigs:
+                options.endpointTypeEnvironmentConfigs,
+            }
+          : {}),
+      },
+    });
+  }
+
+  async deleteEndpointReleaseBinding(
+    entity: Entity,
+    environment: string,
+  ): Promise<unknown> {
+    return this.apiFetch(API_ENDPOINTS.DELETE_ENDPOINT_RELEASE_BINDING, {
+      method: 'DELETE',
+      body: { ...extractEndpointEntityMetadata(entity), environment },
+    });
+  }
+
+  async fetchEndpointRelease(
+    entity: Entity,
+    releaseName: string,
+  ): Promise<EndpointReleaseResponse> {
+    const { namespaceName } = extractEndpointEntityMetadata(entity);
+    return this.apiFetch<EndpointReleaseResponse>(
+      API_ENDPOINTS.ENDPOINT_RELEASE,
+      { params: { namespaceName, releaseName } },
+    );
+  }
+
+  async fetchEndpointReleaseSchema(
+    namespaceName: string,
+    releaseName: string,
+    section: 'parameters' | 'environmentConfigs',
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
+    return this.apiFetch(API_ENDPOINTS.ENDPOINT_RELEASE_SCHEMA, {
+      params: { namespaceName, releaseName, section },
+    });
+  }
+
+  async fetchEndpointTypeSchema(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
+    const annotations = entity.metadata.annotations ?? {};
+    const etName = annotations[CHOREO_ANNOTATIONS.ENDPOINTTYPE];
+    if (!etName) {
+      throw new Error(
+        `Missing ${CHOREO_ANNOTATIONS.ENDPOINTTYPE} annotation on entity`,
+      );
+    }
+
+    if (
+      annotations[CHOREO_ANNOTATIONS.ENDPOINTTYPE_KIND] ===
+      'ClusterEndpointType'
+    ) {
+      return this.apiFetch(API_ENDPOINTS.CLUSTER_ENDPOINT_TYPE_SCHEMA, {
+        params: { cetName: etName },
+      });
+    }
+
+    const namespaceName = annotations[CHOREO_ANNOTATIONS.NAMESPACE];
+    if (!namespaceName) {
+      throw new Error(
+        `Missing ${CHOREO_ANNOTATIONS.NAMESPACE} annotation on entity`,
+      );
+    }
+    return this.apiFetch(API_ENDPOINTS.ENDPOINT_TYPE_SCHEMA, {
+      params: { namespaceName, etName },
     });
   }
 

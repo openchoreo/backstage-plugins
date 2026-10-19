@@ -7,6 +7,7 @@ import {
   ResourceEnvironment,
   ResourceBindingOutput,
   ProjectEnvironment,
+  EndpointEnvironment,
 } from '../../types';
 import {
   createOpenChoreoApiClient,
@@ -25,6 +26,7 @@ import {
   transformReleaseBinding,
 } from '../transformers';
 import { deriveBindingStatusDetailed } from '../transformers/release-binding';
+import { transformResolvedEndpointBackends } from '../transformers/endpoint-release-binding';
 import {
   deriveProjectDeploymentStatus,
   type ProjectDeploymentStatus,
@@ -44,6 +46,13 @@ type NewProjectReleaseBinding =
   OpenChoreoComponents['schemas']['ProjectReleaseBinding'];
 
 type NewProject = OpenChoreoComponents['schemas']['Project'];
+
+type NewEndpointReleaseBinding =
+  OpenChoreoComponents['schemas']['EndpointReleaseBinding'];
+
+type NewEndpoint = OpenChoreoComponents['schemas']['Endpoint'];
+
+type OpenChoreoApiClient = ReturnType<typeof createOpenChoreoApiClient>;
 
 /**
  * Thrown when the deployment pipeline that governs a component/project/resource
@@ -2199,6 +2208,503 @@ export class EnvironmentInfoService implements EnvironmentService {
       );
       throw error;
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Endpoint release bindings
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Lists the EndpointReleaseBindings of an Endpoint, restricted to the
+   * owning project. The openchoreo-api filters by endpoint name only, so the
+   * project check keeps two projects' same-named Endpoints apart.
+   */
+  private async listEndpointBindings(
+    client: OpenChoreoApiClient,
+    namespaceName: string,
+    endpointName: string,
+    projectName: string,
+  ): Promise<NewEndpointReleaseBinding[]> {
+    const items = await fetchAllPages(cursor =>
+      client
+        .GET('/api/v1/namespaces/{namespaceName}/endpointreleasebindings', {
+          params: {
+            path: { namespaceName },
+            query: { endpoint: endpointName, limit: 100, cursor },
+          },
+        })
+        .then(res => {
+          assertApiResponse(res, 'fetch endpoint release bindings');
+          return res.data;
+        }),
+    );
+    return items.filter(b => b.spec?.owner?.projectName === projectName);
+  }
+
+  /**
+   * Finds the binding that pins an Endpoint to one environment. Bindings are
+   * looked up by owner and environment rather than by name, because bindings
+   * created outside the portal (occ, MCP) need not follow the
+   * `<endpoint>-<environment>` convention the portal uses when creating one.
+   */
+  private async findEndpointBindingForEnv(
+    client: OpenChoreoApiClient,
+    request: {
+      endpointName: string;
+      projectName: string;
+      namespaceName: string;
+      environment: string;
+    },
+  ): Promise<NewEndpointReleaseBinding | undefined> {
+    const bindings = await this.listEndpointBindings(
+      client,
+      request.namespaceName,
+      request.endpointName,
+      request.projectName,
+    );
+    const env = request.environment.toLowerCase();
+    return bindings.find(b => b.spec?.environment?.toLowerCase() === env);
+  }
+
+  async fetchEndpointReleaseBindings(
+    request: {
+      endpointName: string;
+      projectName: string;
+      namespaceName: string;
+    },
+    token?: string,
+  ): Promise<{ items: NewEndpointReleaseBinding[] }> {
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      token,
+      logger: this.logger,
+    });
+    const items = await this.listEndpointBindings(
+      client,
+      request.namespaceName,
+      request.endpointName,
+      request.projectName,
+    );
+    return { items };
+  }
+
+  /**
+   * Fetches the per-environment view of an Endpoint: one entry per
+   * environment in the project's deployment pipeline, joined with the
+   * Endpoint's bindings and status.latestRelease. Environments without a
+   * binding are included so the UI can offer to deploy there. Mirrors
+   * fetchResourceEnvironmentInfo, reporting backend resolution in place of
+   * resource outputs.
+   */
+  async fetchEndpointEnvironmentInfo(
+    request: {
+      endpointName: string;
+      projectName: string;
+      namespaceName: string;
+    },
+    token?: string,
+  ): Promise<EndpointEnvironment[]> {
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      token,
+      logger: this.logger,
+    });
+
+    const isAuthError = (error: unknown) =>
+      error instanceof Error &&
+      (error.name === 'NotAllowedError' ||
+        error.name === 'AuthenticationError');
+
+    // Bindings and the Endpoint soft-fail: the view still renders the
+    // pipeline when either is unavailable. Environments and the pipeline
+    // are required.
+    const [environments, bindings, pipeline, endpoint] = await Promise.all([
+      fetchAllPages(cursor =>
+        client
+          .GET('/api/v1/namespaces/{namespaceName}/environments', {
+            params: {
+              path: { namespaceName: request.namespaceName },
+              query: { limit: 100, cursor },
+            },
+          })
+          .then(res => {
+            assertApiResponse(res, 'fetch environments');
+            return res.data;
+          }),
+      ),
+      this.listEndpointBindings(
+        client,
+        request.namespaceName,
+        request.endpointName,
+        request.projectName,
+      ).catch(error => {
+        if (isAuthError(error)) throw error;
+        this.logger.warn(
+          `Failed to fetch endpoint bindings for ${request.endpointName}: ${error}`,
+        );
+        return [] as NewEndpointReleaseBinding[];
+      }),
+      this.fetchProjectPipeline(
+        client,
+        request.namespaceName,
+        request.projectName,
+      ),
+      client
+        .GET('/api/v1/namespaces/{namespaceName}/endpoints/{endpointName}', {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              endpointName: request.endpointName,
+            },
+          },
+        })
+        .then(({ data, error, response }) =>
+          error || !response.ok ? null : (data as NewEndpoint),
+        )
+        .catch(error => {
+          if (isAuthError(error)) throw error;
+          this.logger.warn(
+            `Failed to fetch endpoint ${request.endpointName}: ${error}`,
+          );
+          return null;
+        }),
+    ]);
+
+    if (environments.length === 0) {
+      return [];
+    }
+    if (!pipeline) {
+      throw new PipelineUnavailableError(
+        `The deployment pipeline for project "${request.projectName}" could not be loaded. It may be missing or misconfigured.`,
+      );
+    }
+
+    const latestRelease = endpoint?.status?.latestRelease?.name;
+    return this.orderByPipeline(
+      environments.map(transformEnvironment),
+      bindings,
+      pipeline,
+      (env, binding, promotionTargets) =>
+        this.createEndpointEnvironment(
+          env,
+          binding,
+          promotionTargets,
+          latestRelease,
+        ),
+    );
+  }
+
+  /**
+   * Resolves the deployment pipeline of a project, or null when the project
+   * has none or it cannot be read. Authorization errors propagate.
+   */
+  private async fetchProjectPipeline(
+    client: OpenChoreoApiClient,
+    namespaceName: string,
+    projectName: string,
+  ): Promise<any | null> {
+    const {
+      data: project,
+      error: projectError,
+      response: projectResponse,
+    } = await client.GET(
+      '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
+      { params: { path: { namespaceName, projectName } } },
+    );
+    assertPipelineFetchAllowed(
+      { data: project, error: projectError, response: projectResponse },
+      'fetch project',
+    );
+    const pipelineName = project?.spec?.deploymentPipelineRef?.name;
+    if (projectError || !projectResponse.ok || !pipelineName) {
+      return null;
+    }
+
+    const { data, error, response } = await client.GET(
+      '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}',
+      {
+        params: {
+          path: { namespaceName, deploymentPipelineName: pipelineName },
+        },
+      },
+    );
+    assertPipelineFetchAllowed(
+      { data, error, response },
+      'fetch deployment pipeline',
+    );
+    if (error || !response.ok) {
+      return null;
+    }
+    return transformDeploymentPipeline(data!);
+  }
+
+  /**
+   * Orders environments by the deployment pipeline and pairs each with the
+   * binding pinned to it, building one view entry per environment.
+   * Environments a binding references but the pipeline does not are
+   * appended, so drift is visible instead of silently hidden.
+   */
+  private orderByPipeline<B extends { spec?: { environment?: string } }, T>(
+    environmentData: ModelsEnvironment[],
+    bindings: B[],
+    deploymentPipeline: any,
+    create: (
+      env: ModelsEnvironment,
+      binding: B | undefined,
+      promotionTargets: any[] | undefined,
+    ) => T,
+  ): T[] {
+    const envMap = new Map<string, ModelsEnvironment>();
+    const envNameMap = new Map<string, string>();
+    for (const env of environmentData) {
+      const displayName = env.displayName || env.name;
+      envMap.set(displayName, env);
+      envMap.set(displayName.toLowerCase(), env);
+      envNameMap.set(displayName.toLowerCase(), displayName);
+      if (env.name && env.name.toLowerCase() !== displayName.toLowerCase()) {
+        envMap.set(env.name, env);
+        envMap.set(env.name.toLowerCase(), env);
+        envNameMap.set(env.name.toLowerCase(), displayName);
+      }
+    }
+
+    const bindingsByEnv = new Map<string, B>();
+    for (const binding of bindings) {
+      const envKey = binding.spec?.environment;
+      if (!envKey) continue;
+      bindingsByEnv.set(
+        envNameMap.get(envKey.toLowerCase()) || envKey,
+        binding,
+      );
+    }
+
+    const promotionPaths = deploymentPipeline?.promotionPaths ?? [];
+    if (promotionPaths.length === 0) {
+      return [];
+    }
+
+    const promotionMap = new Map<string, any[]>();
+    for (const path of promotionPaths) {
+      const sourceRef = getSourceEnvName(path.sourceEnvironmentRef);
+      const sourceEnv = envNameMap.get(sourceRef.toLowerCase()) || sourceRef;
+      const targets = path.targetEnvironmentRefs.map((ref: any) => ({
+        ...ref,
+        name: envNameMap.get(ref.name.toLowerCase()) || ref.name,
+        resourceName: ref.name,
+      }));
+      promotionMap.set(sourceEnv, [
+        ...(promotionMap.get(sourceEnv) ?? []),
+        ...targets,
+      ]);
+    }
+
+    const ordered: T[] = [];
+    const processed = new Set<string>();
+    for (const envName of this.getEnvironmentOrder(
+      promotionPaths,
+      envNameMap,
+    )) {
+      const envData = envMap.get(envName);
+      if (envData && !processed.has(envName)) {
+        processed.add(envName);
+        ordered.push(
+          create(
+            envData,
+            bindingsByEnv.get(envName),
+            promotionMap.get(envName),
+          ),
+        );
+      }
+    }
+    for (const [envName, binding] of bindingsByEnv.entries()) {
+      const envData = envMap.get(envName);
+      if (envData && !processed.has(envName)) {
+        processed.add(envName);
+        ordered.push(create(envData, binding, undefined));
+      }
+    }
+    return ordered;
+  }
+
+  private createEndpointEnvironment(
+    envData: ModelsEnvironment,
+    binding: NewEndpointReleaseBinding | undefined,
+    promotionTargets: any[] | undefined,
+    latestRelease: string | undefined,
+  ): EndpointEnvironment {
+    const result: EndpointEnvironment = {
+      uid: envData.uid,
+      name: envData.displayName || envData.name,
+      resourceName: envData.name,
+      dataPlaneRef: envData.dataPlaneRef?.name,
+      dataPlaneKind: envData.dataPlaneRef?.kind as
+        | 'DataPlane'
+        | 'ClusterDataPlane'
+        | undefined,
+      latestRelease,
+    };
+
+    if (binding) {
+      result.bindingName = binding.metadata?.name;
+      result.endpointRelease = binding.spec?.endpointRelease;
+      result.endpointTypeEnvironmentConfigs = binding.spec
+        ?.endpointTypeEnvironmentConfigs as Record<string, unknown> | undefined;
+      // The Ready condition's transition time tracks re-renders, so it
+      // moves on every promote; fall back to creation for bindings the
+      // controller has not reconciled yet (same as Resource bindings).
+      const readyCond = (
+        binding.status?.conditions as
+          | Array<{ type?: string; lastTransitionTime?: string }>
+          | undefined
+      )?.find(c => c.type === 'Ready');
+      result.lastDeployed =
+        readyCond?.lastTransitionTime ?? binding.metadata?.creationTimestamp;
+      const derived = deriveBindingStatusDetailed(binding as any);
+      if (derived) {
+        result.status = derived.status;
+        result.statusReason = derived.reason;
+        result.statusMessage = derived.message;
+      }
+      result.backends = transformResolvedEndpointBackends(binding);
+    }
+
+    if (promotionTargets && promotionTargets.length > 0) {
+      result.promotionTargets = promotionTargets.map((ref: any) => ({
+        name: ref.name,
+        resourceName: ref.resourceName,
+      }));
+    }
+
+    return result;
+  }
+
+  /**
+   * Deploys or promotes an Endpoint to an environment: updates the binding
+   * pinned to that environment, or creates `<endpoint>-<environment>` when
+   * there is none. Only the provided fields change on an existing binding,
+   * so saving overrides keeps the pinned release and vice versa.
+   */
+  async updateEndpointReleaseBinding(
+    request: {
+      endpointName: string;
+      projectName: string;
+      namespaceName: string;
+      environment: string;
+      releaseName?: string;
+      endpointTypeEnvironmentConfigs?: Record<string, unknown>;
+    },
+    token?: string,
+  ) {
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      token,
+      logger: this.logger,
+    });
+
+    const existing = await this.findEndpointBindingForEnv(client, request);
+    const specChanges = {
+      ...(request.releaseName !== undefined
+        ? { endpointRelease: request.releaseName }
+        : {}),
+      ...(request.endpointTypeEnvironmentConfigs !== undefined
+        ? {
+            endpointTypeEnvironmentConfigs:
+              request.endpointTypeEnvironmentConfigs,
+          }
+        : {}),
+    };
+
+    if (existing?.metadata?.name) {
+      const bindingName = existing.metadata.name;
+      const { data, error, response } = await client.PUT(
+        '/api/v1/namespaces/{namespaceName}/endpointreleasebindings/{endpointReleaseBindingName}',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              endpointReleaseBindingName: bindingName,
+            },
+          },
+          body: {
+            ...existing,
+            spec: { ...existing.spec!, ...specChanges },
+          },
+        },
+      );
+      assertApiResponse(
+        { data, error, response },
+        'update endpoint release binding',
+      );
+      return data;
+    }
+
+    const bindingName = `${request.endpointName}-${request.environment}`;
+    const { data, error, response } = await client.POST(
+      '/api/v1/namespaces/{namespaceName}/endpointreleasebindings',
+      {
+        params: { path: { namespaceName: request.namespaceName } },
+        body: {
+          metadata: { name: bindingName, namespace: request.namespaceName },
+          spec: {
+            owner: {
+              projectName: request.projectName,
+              endpointName: request.endpointName,
+            },
+            environment: request.environment,
+            ...specChanges,
+          },
+        },
+      },
+    );
+    assertApiResponse(
+      { data, error, response },
+      'create endpoint release binding',
+    );
+    return data;
+  }
+
+  /**
+   * Undeploys an Endpoint from an environment by deleting the binding pinned
+   * to it. Its finalizer removes the rendered routes from the data plane.
+   */
+  async deleteEndpointReleaseBinding(
+    request: {
+      endpointName: string;
+      projectName: string;
+      namespaceName: string;
+      environment: string;
+    },
+    token?: string,
+  ) {
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      token,
+      logger: this.logger,
+    });
+
+    const existing = await this.findEndpointBindingForEnv(client, request);
+    if (!existing?.metadata?.name) {
+      throw new NotFoundError(
+        `Endpoint ${request.endpointName} has no binding in environment ${request.environment}`,
+      );
+    }
+
+    const { error, response } = await client.DELETE(
+      '/api/v1/namespaces/{namespaceName}/endpointreleasebindings/{endpointReleaseBindingName}',
+      {
+        params: {
+          path: {
+            namespaceName: request.namespaceName,
+            endpointReleaseBindingName: existing.metadata.name,
+          },
+        },
+      },
+    );
+    assertApiResponse(
+      { data: undefined, error, response },
+      'delete endpoint release binding',
+    );
+    return { success: true };
   }
 
   /**
