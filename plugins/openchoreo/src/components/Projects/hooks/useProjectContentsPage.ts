@@ -7,9 +7,12 @@ import {
   hasReleaseLines,
 } from '@openchoreo/backstage-plugin-common';
 import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
-import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import {
+  openChoreoClientApiRef,
+  type EndpointEnvironment,
+} from '../../../api/OpenChoreoClientApi';
 
-/** Per-environment deployment status, shared by Components and Resources. */
+/** Per-environment deployment status, shared by Components, Resources and Endpoints. */
 export interface EnvironmentDeploymentStatus {
   isDeployed: boolean;
   /** Status from the (Resource)ReleaseBinding: Ready, NotReady, Failed, etc. */
@@ -28,7 +31,7 @@ export interface ReleaseLineDeployments {
 }
 
 /** Entity kinds surfaced in the project's "Project Contents" table. */
-export type ProjectContentKind = 'component' | 'resource';
+export type ProjectContentKind = 'component' | 'resource' | 'endpoint';
 
 /** A single row in the unified Project Contents table. */
 export interface ProjectContentItem {
@@ -111,6 +114,25 @@ type BindingLike = {
   statusMessage?: string;
 };
 
+/**
+ * An Endpoint's per-environment state, as the binding-like status the
+ * Deployment column renders. Environments with no binding are not deployed.
+ */
+function endpointDeploymentStatus(
+  envs: EndpointEnvironment[] | undefined,
+): DeploymentStatusByEnv {
+  return toDeploymentStatus(
+    (envs ?? [])
+      .filter(env => env.bindingName)
+      .map(env => ({
+        environment: env.name,
+        status: env.status ?? 'NotReady',
+        statusReason: env.statusReason,
+        statusMessage: env.statusMessage,
+      })),
+  );
+}
+
 function toDeploymentStatus(bindings?: BindingLike[]): DeploymentStatusByEnv {
   const status: DeploymentStatusByEnv = {};
   for (const binding of bindings ?? []) {
@@ -127,7 +149,7 @@ function toDeploymentStatus(bindings?: BindingLike[]): DeploymentStatusByEnv {
   return status;
 }
 
-const ALL_KINDS = ['Component', 'Resource'];
+const ALL_KINDS = ['Component', 'Resource', 'Endpoint'];
 
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
@@ -171,8 +193,11 @@ function buildOrderFields(
 }
 
 function toBaseItem(entity: Entity): ProjectContentItem {
+  const kindLower = entity.kind.toLowerCase();
   const kindValue: ProjectContentKind =
-    entity.kind.toLowerCase() === 'resource' ? 'resource' : 'component';
+    kindLower === 'resource' || kindLower === 'endpoint'
+      ? kindLower
+      : 'component';
   return {
     entity,
     kind: kindValue,
@@ -297,6 +322,12 @@ export function useProjectContentsPage(
       const entries = await Promise.all(
         baseItems.map(async (item): Promise<[string, RowDeployment]> => {
           try {
+            if (item.kind === 'endpoint') {
+              const envs = await client.fetchEndpointEnvironmentInfo(
+                item.entity,
+              );
+              return [rowKey(item), { status: endpointDeploymentStatus(envs) }];
+            }
             if (hasReleaseLines(item.entity)) {
               const lines = await client.fetchReleaseLines(item.entity);
               return [

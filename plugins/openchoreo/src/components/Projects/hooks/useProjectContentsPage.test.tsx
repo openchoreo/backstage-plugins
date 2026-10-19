@@ -98,7 +98,7 @@ describe('useProjectContentsPage', () => {
       expect.objectContaining({
         limit: 5,
         filter: {
-          kind: ['Component', 'Resource'],
+          kind: ['Component', 'Resource', 'Endpoint'],
           'spec.system': 'url-shortener',
           'metadata.namespace': 'default',
         },

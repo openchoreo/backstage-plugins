@@ -13,41 +13,78 @@ import {
   endpointBackendsFieldValidation,
 } from './EndpointBackendsField';
 import { EndpointSchemaField } from '../EndpointSchemaField/EndpointSchemaField';
+import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import {
   isRoutable,
   readProjectNamespace,
-  toWorkloadEndpointOption,
+  workloadEndpointOptions,
 } from './useProjectWorkloadEndpoints';
 
-function apiEntity(
-  component: string,
-  endpoint: string,
-  visibility: string,
-  definition = 'No schema available',
-  type = 'openapi',
-) {
+function component(name: string) {
   return {
     apiVersion: 'backstage.io/v1alpha1',
-    kind: 'API',
+    kind: 'Component',
     metadata: {
-      name: `store-${component}-${endpoint}`,
+      name,
       namespace: 'acme',
       annotations: {
         'openchoreo.io/project': 'store',
-        'openchoreo.io/component': component,
-        'openchoreo.io/endpoint-name': endpoint,
-        'openchoreo.io/endpoint-visibility': visibility,
+        'openchoreo.io/component': name,
+        'openchoreo.io/namespace': 'acme',
       },
     },
-    spec: { type, definition },
+    spec: {},
   };
 }
 
-const APIS = [
-  apiEntity('orders', 'http', 'external', 'openapi: 3.0.0'),
-  apiEntity('orders', 'admin', 'project'),
-  apiEntity('billing', 'grpc', 'internal'),
+const COMPONENTS = [
+  component('orders'),
+  component('billing'),
+  component('batch'),
 ];
+
+// orders/http has a schema; billing/grpc has none, which the catalog's API
+// entities would miss.
+const WORKLOADS: Record<string, any> = {
+  orders: {
+    spec: {
+      endpoints: {
+        http: {
+          port: 8080,
+          type: 'HTTP',
+          visibility: ['external'],
+          schema: { type: 'openapi', content: 'openapi: 3.0.0' },
+        },
+        admin: { port: 9090, type: 'HTTP' },
+      },
+    },
+  },
+  billing: {
+    spec: {
+      endpoints: {
+        grpc: { port: 5000, type: 'gRPC', visibility: ['internal'] },
+      },
+    },
+  },
+};
+
+function makeApis(): [any, any][] {
+  const catalog = {
+    getEntities: jest.fn().mockResolvedValue({ items: COMPONENTS }),
+  };
+  const client = {
+    fetchWorkloadInfo: jest.fn((entity: any) => {
+      const workload = WORKLOADS[entity.metadata.name];
+      return workload
+        ? Promise.resolve(workload)
+        : Promise.reject(new Error('No workload found for this component'));
+    }),
+  };
+  return [
+    [catalogApiRef, catalog],
+    [openChoreoClientApiRef, client],
+  ];
+}
 
 const formContext = {
   formData: {
@@ -58,10 +95,6 @@ const formContext = {
   },
 };
 
-function makeCatalog(items = APIS) {
-  return { getEntities: jest.fn().mockResolvedValue({ items }) };
-}
-
 function validate(value: any) {
   const errors: string[] = [];
   endpointBackendsFieldValidation(value, {
@@ -71,22 +104,28 @@ function validate(value: any) {
 }
 
 describe('workload endpoint options', () => {
-  it('reads component, endpoint, visibility and schema from an API entity', () => {
-    expect(toWorkloadEndpointOption(APIS[0] as any)).toEqual({
-      component: 'orders',
-      endpoint: 'http',
-      visibility: ['external'],
-      schemaType: 'openapi',
-      schemaContent: 'openapi: 3.0.0',
-    });
+  it("reads endpoints, visibility and schema from a Workload's spec", () => {
     expect(
-      toWorkloadEndpointOption(APIS[1] as any)?.schemaContent,
-    ).toBeUndefined();
+      workloadEndpointOptions('orders', WORKLOADS.orders.spec.endpoints),
+    ).toEqual([
+      {
+        component: 'orders',
+        endpoint: 'http',
+        visibility: ['external'],
+        schemaType: 'openapi',
+        schemaContent: 'openapi: 3.0.0',
+      },
+      { component: 'orders', endpoint: 'admin', visibility: [] },
+    ]);
   });
 
   it('routes only to internal or external endpoints', () => {
-    expect(isRoutable(toWorkloadEndpointOption(APIS[0] as any)!)).toBe(true);
-    expect(isRoutable(toWorkloadEndpointOption(APIS[1] as any)!)).toBe(false);
+    const [http, admin] = workloadEndpointOptions(
+      'orders',
+      WORKLOADS.orders.spec.endpoints,
+    );
+    expect(isRoutable(http)).toBe(true);
+    expect(isRoutable(admin)).toBe(false);
   });
 
   it('strips entity-ref prefixes from the project form value', () => {
@@ -135,7 +174,7 @@ describe('endpointBackendsFieldValidation', () => {
 describe('EndpointBackendsField', () => {
   it('asks for a project before offering backends', () => {
     render(
-      <TestApiProvider apis={[[catalogApiRef, makeCatalog()]]}>
+      <TestApiProvider apis={makeApis()}>
         <EndpointBackendsField
           {...({
             formData: [],
@@ -149,11 +188,12 @@ describe('EndpointBackendsField', () => {
     expect(screen.getByText('Select a project first.')).toBeInTheDocument();
   });
 
-  it('queries the project API entities and adds a first backend at full weight', async () => {
-    const catalog = makeCatalog();
+  it("reads the project's components and their Workloads, then adds a first backend at full weight", async () => {
+    const apis = makeApis();
+    const [[, catalog], [, client]] = apis;
     const onChange = jest.fn();
     render(
-      <TestApiProvider apis={[[catalogApiRef, catalog]]}>
+      <TestApiProvider apis={apis}>
         <EndpointBackendsField
           {...({ formData: [], onChange, formContext, uiSchema: {} } as any)}
         />
@@ -167,11 +207,12 @@ describe('EndpointBackendsField', () => {
     );
     expect(catalog.getEntities).toHaveBeenCalledWith({
       filter: {
-        kind: 'API',
+        kind: 'Component',
         'metadata.namespace': 'acme',
         'metadata.annotations.openchoreo.io/project': 'store',
       },
     });
+    expect(client.fetchWorkloadInfo).toHaveBeenCalledTimes(3);
 
     fireEvent.click(screen.getByRole('button', { name: /add backend/i }));
     expect(onChange).toHaveBeenCalledWith([
@@ -181,7 +222,7 @@ describe('EndpointBackendsField', () => {
 
   it('offers only routable workload endpoints of the chosen component', async () => {
     render(
-      <TestApiProvider apis={[[catalogApiRef, makeCatalog()]]}>
+      <TestApiProvider apis={makeApis()}>
         <EndpointBackendsField
           {...({
             formData: [
@@ -207,13 +248,41 @@ describe('EndpointBackendsField', () => {
     expect(within(listbox).getByText('http (external)')).toBeInTheDocument();
     expect(within(listbox).queryByText(/admin/)).toBeNull();
   });
+
+  it('offers a workload endpoint that has no schema', async () => {
+    render(
+      <TestApiProvider apis={makeApis()}>
+        <EndpointBackendsField
+          {...({
+            formData: [
+              { name: '', component: 'billing', endpoint: '', weight: 100 },
+            ],
+            onChange: jest.fn(),
+            formContext,
+            uiSchema: {},
+          } as any)}
+        />
+      </TestApiProvider>,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /add backend/i }),
+      ).toBeEnabled(),
+    );
+    fireEvent.mouseDown(
+      screen.getByRole('button', { name: 'Workload endpoint for backend 1' }),
+    );
+    const listbox = await screen.findByRole('listbox');
+    expect(within(listbox).getByText('grpc (internal)')).toBeInTheDocument();
+  });
 });
 
 describe('EndpointSchemaField', () => {
   it("copies the first backend's workload endpoint schema", async () => {
     const onChange = jest.fn();
     render(
-      <TestApiProvider apis={[[catalogApiRef, makeCatalog()]]}>
+      <TestApiProvider apis={makeApis()}>
         <EndpointSchemaField
           {...({
             formData: undefined,
@@ -248,7 +317,7 @@ describe('EndpointSchemaField', () => {
   it('keeps an edited schema instead of re-copying it', async () => {
     const onChange = jest.fn();
     render(
-      <TestApiProvider apis={[[catalogApiRef, makeCatalog()]]}>
+      <TestApiProvider apis={makeApis()}>
         <EndpointSchemaField
           {...({
             formData: { type: 'openapi', content: 'my own schema' },

@@ -6,9 +6,18 @@ import { useOpenChoreoQuery } from '@openchoreo/backstage-plugin-react';
 
 export interface ProjectContentFacets {
   /** Project-wide entity counts per kind (independent of search/type filters). */
-  counts: { all: number; component: number; resource: number };
+  counts: {
+    all: number;
+    component: number;
+    resource: number;
+    endpoint: number;
+  };
   /** Distinct, sorted `spec.type` values per kind. */
-  typesByKind: { component: string[]; resource: string[] };
+  typesByKind: {
+    component: string[];
+    resource: string[];
+    endpoint: string[];
+  };
   loading: boolean;
   /** A background refresh is in flight while data is already on screen. */
   isRefetching: boolean;
@@ -17,8 +26,8 @@ export interface ProjectContentFacets {
 }
 
 const EMPTY: ProjectContentFacets = {
-  counts: { all: 0, component: 0, resource: 0 },
-  typesByKind: { component: [], resource: [] },
+  counts: { all: 0, component: 0, resource: 0, endpoint: 0 },
+  typesByKind: { component: [], resource: [], endpoint: [] },
   loading: false,
   isRefetching: false,
   refetch: async () => {},
@@ -39,7 +48,7 @@ function readTypeFacet(
 
 /**
  * Derives the Kind-chip counts and the Type-filter option lists for a project
- * with two `getEntityFacets` calls (one per kind), faceted on `spec.type`. The
+ * with one `getEntityFacets` call per kind, faceted on `spec.type`. The
  * counts are project-wide totals, so the chips stay stable as the user filters.
  */
 export function useProjectContentFacets(
@@ -59,7 +68,7 @@ export function useProjectContentFacets(
         return { counts: EMPTY.counts, typesByKind: EMPTY.typesByKind };
       }
       const base = { 'spec.system': project, 'metadata.namespace': namespace };
-      const [componentRes, resourceRes] = await Promise.all([
+      const [componentRes, resourceRes, endpointRes] = await Promise.all([
         catalogApi.getEntityFacets({
           filter: { ...base, kind: 'Component' },
           facets: ['spec.type'],
@@ -68,19 +77,26 @@ export function useProjectContentFacets(
           filter: { ...base, kind: 'Resource' },
           facets: ['spec.type'],
         }),
+        catalogApi.getEntityFacets({
+          filter: { ...base, kind: 'Endpoint' },
+          facets: ['spec.type'],
+        }),
       ]);
 
       const component = readTypeFacet(componentRes.facets);
       const resource = readTypeFacet(resourceRes.facets);
+      const endpoint = readTypeFacet(endpointRes.facets);
       return {
         counts: {
-          all: component.total + resource.total,
+          all: component.total + resource.total + endpoint.total,
           component: component.total,
           resource: resource.total,
+          endpoint: endpoint.total,
         },
         typesByKind: {
           component: component.types,
           resource: resource.types,
+          endpoint: endpoint.types,
         },
       };
     },

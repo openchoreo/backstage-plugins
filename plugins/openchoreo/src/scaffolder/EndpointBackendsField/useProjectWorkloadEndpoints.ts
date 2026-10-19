@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
-import type { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 
 /** Visibilities an Endpoint can route to; project-only endpoints are refused. */
 const ROUTABLE_VISIBILITIES = ['internal', 'external'];
-
-/** Placeholder the catalog stores for a workload endpoint without a schema. */
-const NO_SCHEMA = 'No schema available';
 
 /** A component workload endpoint an Endpoint can route to. */
 export interface WorkloadEndpointOption {
@@ -38,28 +35,31 @@ export function readProjectNamespace(
   };
 }
 
-export function toWorkloadEndpointOption(
-  api: Entity,
-): WorkloadEndpointOption | undefined {
-  const annotations = api.metadata.annotations ?? {};
-  const component = annotations[CHOREO_ANNOTATIONS.COMPONENT];
-  const endpoint = annotations[CHOREO_ANNOTATIONS.ENDPOINT_NAME];
-  if (!component || !endpoint) return undefined;
-  const definition = (api.spec as { definition?: string } | undefined)
-    ?.definition;
-  const hasSchema = !!definition && definition !== NO_SCHEMA;
-  return {
+/** Workload endpoint fields this field reads, as served by the BFF. */
+interface WorkloadEndpointSpec {
+  visibility?: string[];
+  schema?: { type?: string; content?: string };
+}
+
+/**
+ * Lists a component's workload endpoints from its Workload's
+ * `spec.endpoints`. The Workload is the source of truth: endpoints without a
+ * schema have no API entity in the catalog, so the catalog alone would miss
+ * them.
+ */
+export function workloadEndpointOptions(
+  component: string,
+  endpoints: Record<string, WorkloadEndpointSpec> | undefined,
+): WorkloadEndpointOption[] {
+  return Object.entries(endpoints ?? {}).map(([endpoint, spec]) => ({
     component,
     endpoint,
-    visibility: (annotations[CHOREO_ANNOTATIONS.ENDPOINT_VISIBILITY] ?? '')
-      .split(',')
-      .map(v => v.trim())
-      .filter(Boolean),
-    ...(hasSchema && {
-      schemaType: (api.spec as { type?: string }).type,
-      schemaContent: definition,
+    visibility: spec.visibility ?? [],
+    ...(spec.schema?.content && {
+      schemaType: spec.schema.type,
+      schemaContent: spec.schema.content,
     }),
-  };
+  }));
 }
 
 export function isRoutable(option: WorkloadEndpointOption): boolean {
@@ -67,9 +67,9 @@ export function isRoutable(option: WorkloadEndpointOption): boolean {
 }
 
 /**
- * Lists the workload endpoints of a project's components, read from the API
- * entities the catalog keeps for each workload endpoint. Endpoint-backed API
- * entities have no component annotation and are skipped.
+ * Lists the workload endpoints of a project's components: the components come
+ * from the catalog, their endpoints from each component's Workload. A
+ * component without a Workload contributes no endpoints.
  */
 export function useProjectWorkloadEndpoints(
   namespace: string | undefined,
@@ -80,6 +80,7 @@ export function useProjectWorkloadEndpoints(
   error?: Error;
 } {
   const catalogApi = useApi(catalogApiRef);
+  const client = useApi(openChoreoClientApiRef);
   const [state, setState] = useState<{
     options: WorkloadEndpointOption[];
     loading: boolean;
@@ -96,16 +97,35 @@ export function useProjectWorkloadEndpoints(
     catalogApi
       .getEntities({
         filter: {
-          kind: 'API',
+          kind: 'Component',
           'metadata.namespace': namespace,
           [`metadata.annotations.${CHOREO_ANNOTATIONS.PROJECT}`]: project,
         },
       })
-      .then(({ items }) => {
+      .then(({ items }) =>
+        Promise.all(
+          items.map(component =>
+            client
+              .fetchWorkloadInfo(component)
+              .then(workload =>
+                workloadEndpointOptions(
+                  component.metadata.annotations?.[
+                    CHOREO_ANNOTATIONS.COMPONENT
+                  ] ?? component.metadata.name,
+                  workload?.spec?.endpoints as
+                    | Record<string, WorkloadEndpointSpec>
+                    | undefined,
+                ),
+              )
+              // No Workload yet (or not readable): nothing to route to.
+              .catch(() => [] as WorkloadEndpointOption[]),
+          ),
+        ),
+      )
+      .then(perComponent => {
         if (cancelled) return;
-        const options = items
-          .map(toWorkloadEndpointOption)
-          .filter((o): o is WorkloadEndpointOption => o !== undefined)
+        const options = perComponent
+          .flat()
           .sort((a, b) =>
             `${a.component}/${a.endpoint}`.localeCompare(
               `${b.component}/${b.endpoint}`,
@@ -124,7 +144,7 @@ export function useProjectWorkloadEndpoints(
     return () => {
       cancelled = true;
     };
-  }, [catalogApi, namespace, project]);
+  }, [catalogApi, client, namespace, project]);
 
   return state;
 }

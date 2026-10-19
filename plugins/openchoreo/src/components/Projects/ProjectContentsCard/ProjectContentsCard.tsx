@@ -53,7 +53,7 @@ import { getKindLabel } from './kindPalette';
 import { useProjectContentsCardStyles } from './styles';
 
 const PAGE_SIZE = 5;
-const KIND_ORDER: ProjectContentKind[] = ['component', 'resource'];
+const KIND_ORDER: ProjectContentKind[] = ['component', 'resource', 'endpoint'];
 
 /**
  * Mark a row as deleted in the UI immediately, before the catalog re-ingests
@@ -210,7 +210,11 @@ export const ProjectContentsCard = () => {
     [kinds, facets.typesByKind],
   );
   const allTypes = useMemo(
-    () => [...facets.typesByKind.component, ...facets.typesByKind.resource],
+    () => [
+      ...facets.typesByKind.component,
+      ...facets.typesByKind.resource,
+      ...facets.typesByKind.endpoint,
+    ],
     [facets.typesByKind],
   );
 
