@@ -12,7 +12,8 @@ const makeWidget = (
   name,
   title,
   description,
-  component: <div data-testid={`preview-${name}`}>{title} preview</div>,
+  // The real widget. The dialog must never render it.
+  component: <div data-testid={`real-${name}`}>{title} (real widget)</div>,
 });
 
 const widgets: Widget[] = [
@@ -21,15 +22,36 @@ const widgets: Widget[] = [
   makeWidget('Visited', 'Recently Visited', 'Pages you visited recently'),
 ];
 
+const ProjectsPreview = () => <div data-testid="sample-Projects">sample</div>;
+const DeploymentsPreview = () => (
+  <div data-testid="sample-Deployments">sample</div>
+);
+
+// Visited has no preview on purpose, to cover the fallback.
+const previews = {
+  Projects: ProjectsPreview,
+  Deployments: DeploymentsPreview,
+};
+
 const renderDialog = (items: Widget[] = widgets, handleAdd = jest.fn()) =>
-  renderInTestApp(<AddWidgetDialog widgets={items} handleAdd={handleAdd} />);
+  renderInTestApp(
+    <AddWidgetDialog
+      widgets={items}
+      handleAdd={handleAdd}
+      previews={previews}
+    />,
+  );
 
 describe('AddWidgetDialog', () => {
   it('shows every available widget with its title and description', async () => {
     await renderDialog();
 
-    expect(screen.getByText('My Projects')).toBeInTheDocument();
-    expect(screen.getByText('Recent Deployments')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /My Projects/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Recent Deployments/ }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Latest releases')).toBeInTheDocument();
     expect(screen.getAllByRole('button')).toHaveLength(widgets.length);
   });
@@ -39,9 +61,15 @@ describe('AddWidgetDialog', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Search widgets'), 'proj');
 
-    expect(screen.getByText('My Projects')).toBeInTheDocument();
-    expect(screen.queryByText('Recent Deployments')).not.toBeInTheDocument();
-    expect(screen.queryByText('Recently Visited')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /My Projects/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Recent Deployments/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Recently Visited/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('also matches on description, ignoring case', async () => {
@@ -52,8 +80,12 @@ describe('AddWidgetDialog', () => {
       'LATEST',
     );
 
-    expect(screen.getByText('Recent Deployments')).toBeInTheDocument();
-    expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Recent Deployments/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /My Projects/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows a message when nothing matches the search', async () => {
@@ -67,14 +99,18 @@ describe('AddWidgetDialog', () => {
     expect(
       screen.getByText('No widgets match your search.'),
     ).toBeInTheDocument();
-    expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /My Projects/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('calls handleAdd with the widget when its card is clicked', async () => {
     const handleAdd = jest.fn();
     await renderDialog(widgets, handleAdd);
 
-    await userEvent.click(screen.getByText('Recent Deployments'));
+    await userEvent.click(
+      screen.getByRole('button', { name: /Recent Deployments/ }),
+    );
 
     expect(handleAdd).toHaveBeenCalledTimes(1);
     expect(handleAdd).toHaveBeenCalledWith(widgets[1]);
@@ -93,11 +129,29 @@ describe('AddWidgetDialog', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('hides live previews from assistive tech and the tab order', async () => {
+  it('shows the sample preview and never renders the real widget', async () => {
     await renderDialog();
 
-    const preview = screen.getByTestId('preview-Projects').parentElement;
-    expect(preview).toHaveAttribute('aria-hidden', 'true');
-    expect(preview).toHaveAttribute('inert');
+    expect(screen.getByTestId('sample-Projects')).toBeInTheDocument();
+    expect(screen.getByTestId('sample-Deployments')).toBeInTheDocument();
+    expect(screen.queryByTestId('real-Projects')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('real-Deployments')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('real-Visited')).not.toBeInTheDocument();
+  });
+
+  it('shows "No Preview Available" for a widget without a preview', async () => {
+    await renderDialog();
+
+    expect(screen.getAllByText('No Preview Available')).toHaveLength(1);
+  });
+
+  it('hides the previews from assistive tech and the tab order', async () => {
+    await renderDialog();
+
+    const hidden = screen
+      .getByTestId('sample-Projects')
+      .closest('[aria-hidden="true"]');
+    expect(hidden).not.toBeNull();
+    expect(hidden).toHaveAttribute('inert');
   });
 });

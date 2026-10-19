@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { useMemo, useState } from 'react';
+import { ComponentType, useMemo, useState } from 'react';
 import { Widget } from './types';
 import Box from '@material-ui/core/Box';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -27,14 +27,43 @@ import SearchIcon from '@material-ui/icons/Search';
 import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
 import { useTranslationRef } from '@backstage/frontend-plugin-api';
 import { homeTranslationRef } from './translation';
+import { InfoCard } from '@backstage/core-components';
+import { widgetPreviews } from './widgetPreviews';
 
 interface AddWidgetDialogProps {
   widgets: Widget[];
   handleAdd: (widget: Widget) => void;
+  /** Preview components keyed by widget name. Defaults to the OpenChoreo previews. */
+  previews?: Record<string, ComponentType>;
 }
 
 const getTitle = (widget: Widget) => {
   return widget.title || widget.name;
+};
+
+// Static preview of a widget, in the same card frame the real widget uses.
+// Widgets without a registered preview show a fallback message.
+const WidgetPreview = ({
+  widget,
+  previews,
+}: {
+  widget: Widget;
+  previews: Record<string, ComponentType>;
+}) => {
+  const { t } = useTranslationRef(homeTranslationRef);
+  const Preview = previews[widget.name];
+
+  return (
+    <InfoCard title={getTitle(widget)} divider>
+      {Preview ? (
+        <Preview />
+      ) : (
+        <Typography variant="body2" color="textSecondary">
+          {t('addWidgetDialog.noPreviewAvailable')}
+        </Typography>
+      )}
+    </InfoCard>
+  );
 };
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -112,7 +141,7 @@ const useStyles = makeStyles((theme: Theme) =>
 );
 
 export const AddWidgetDialog = (props: AddWidgetDialogProps) => {
-  const { widgets, handleAdd } = props;
+  const { widgets, handleAdd, previews = widgetPreviews } = props;
   const { t } = useTranslationRef(homeTranslationRef);
   const classes = useStyles();
   const [searchQuery, setSearchQuery] = useState('');
@@ -178,7 +207,7 @@ export const AddWidgetDialog = (props: AddWidgetDialogProps) => {
                         aria-hidden="true"
                         {...{ inert: '' }}
                       >
-                        {widget.component}
+                        <WidgetPreview widget={widget} previews={previews} />
                       </div>
                       <div className={classes.clickBlocker} />
                       <div className={classes.addOverlay}>

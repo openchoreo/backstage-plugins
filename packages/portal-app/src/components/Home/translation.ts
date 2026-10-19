@@ -30,6 +30,7 @@ export const homeTranslationRef = createTranslationRef({
         'All available widgets have been added to the dashboard.',
       searchPlaceholder: 'Search widgets',
       noMatchingWidgets: 'No widgets match your search.',
+      noPreviewAvailable: 'No Preview Available',
     },
     customHomepageButtons: {
       edit: 'Edit',
