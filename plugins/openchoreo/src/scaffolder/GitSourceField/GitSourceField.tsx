@@ -48,6 +48,7 @@ interface GitSecret {
 // K8s Secret types used by git secrets.
 const K8S_BASIC_AUTH = 'kubernetes.io/basic-auth';
 const K8S_SSH_AUTH = 'kubernetes.io/ssh-auth';
+const K8S_OPAQUE = 'Opaque';
 
 const CREATE_NEW_SECRET = '__create_new__';
 const NO_SECRET = '__no_secret__';
@@ -305,10 +306,13 @@ export const GitSourceField = ({
 
   const handleCreateSecret = async (
     secretName: string,
-    secretType: 'basic-auth' | 'ssh-auth',
+    secretType: 'basic-auth' | 'ssh-auth' | 'github-app',
     tokenOrKey: string,
     username?: string,
     sshKeyId?: string,
+    appId?: string,
+    installationId?: string,
+    privateKey?: string,
   ) => {
     // The target plane comes from the selected workflow's annotations.
     if (!workflowPlaneRefKind || !workflowPlaneRef) {
@@ -327,10 +331,15 @@ export const GitSourceField = ({
         k8sSecretType = K8S_BASIC_AUTH;
         secretData.password = tokenOrKey;
         if (username) secretData.username = username;
-      } else {
+      } else if (secretType === 'ssh-auth') {
         k8sSecretType = K8S_SSH_AUTH;
         secretData['ssh-privatekey'] = tokenOrKey;
         if (sshKeyId) secretData['ssh-key-id'] = sshKeyId;
+      } else {
+        k8sSecretType = K8S_OPAQUE;
+        secretData['app-id'] = appId ?? '';
+        secretData['installation-id'] = installationId ?? '';
+        secretData['private-key'] = privateKey ?? '';
       }
 
       const requestBody = {

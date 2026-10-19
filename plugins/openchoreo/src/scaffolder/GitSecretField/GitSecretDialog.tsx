@@ -19,7 +19,7 @@ import {
 import { alpha, useTheme } from '@material-ui/core/styles';
 import { useChoreoTokens } from '@openchoreo/backstage-design-system';
 
-type SecretType = 'basic-auth' | 'ssh-auth';
+type SecretType = 'basic-auth' | 'ssh-auth' | 'github-app';
 
 interface GitSecretDialogProps {
   open: boolean;
@@ -30,14 +30,14 @@ interface GitSecretDialogProps {
     tokenOrKey: string,
     username?: string,
     sshKeyId?: string,
+    appId?: string,
+    installationId?: string,
+    privateKey?: string,
   ) => Promise<void>;
   existingSecretNames?: string[];
 }
 
-/**
- * Dialog for creating a new git secret inline during the scaffolder flow.
- * Supports both Basic Authentication (token) and SSH Authentication (SSH key).
- */
+// Dialog for creating a new git secret inline during the scaffolder flow, supporting Basic Authentication, SSH Authentication, and GitHub App credentials.
 export const GitSecretDialog = ({
   open,
   onClose,
@@ -52,6 +52,9 @@ export const GitSecretDialog = ({
   const [sshKey, setSshKey] = useState('');
   const [username, setUsername] = useState('');
   const [sshKeyId, setSshKeyId] = useState('');
+  const [appId, setAppId] = useState('');
+  const [installationId, setInstallationId] = useState('');
+  const [privateKey, setPrivateKey] = useState('');
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -78,6 +81,13 @@ export const GitSecretDialog = ({
     if (secretType === 'ssh-auth' && !sshKey.trim()) {
       setError('SSH key is required for SSH Authentication');
       return;
+    }
+
+    if (secretType === 'github-app') {
+      if (!appId.trim() || !installationId.trim() || !privateKey.trim()) {
+        setError('App ID, Installation ID and Private Key are required for GitHub App Authentication');
+        return;
+      }
     }
 
     // Validate secret name format (Kubernetes naming convention)
@@ -118,6 +128,9 @@ export const GitSecretDialog = ({
         formattedValue,
         username.trim() || undefined,
         sshKeyId.trim() || undefined,
+        appId.trim() || undefined,
+        installationId.trim() || undefined,
+        privateKey.trim() || undefined,
       );
 
       // Reset form on success
@@ -126,6 +139,9 @@ export const GitSecretDialog = ({
       setSshKey('');
       setUsername('');
       setSshKeyId('');
+      setAppId('');
+      setInstallationId('');
+      setPrivateKey('');
       setSecretType('basic-auth');
     } catch (err) {
       setError(
@@ -143,6 +159,9 @@ export const GitSecretDialog = ({
       setSshKey('');
       setUsername('');
       setSshKeyId('');
+      setAppId('');
+      setInstallationId('');
+      setPrivateKey('');
       setUploadedFileName('');
       setSecretType('basic-auth');
       setError(null);
@@ -247,6 +266,12 @@ export const GitSecretDialog = ({
               label="SSH Authentication"
               disabled={loading}
             />
+            <FormControlLabel
+              value="github-app"
+              control={<Radio color="primary" />}
+              label="GitHub App"
+              disabled={loading}
+            />
           </RadioGroup>
         </FormControl>
 
@@ -282,7 +307,7 @@ export const GitSecretDialog = ({
               permissions.
             </FormHelperText>
           </Box>
-        ) : (
+        ) : secretType === 'ssh-auth' ? (
           <Box style={{ marginTop: 16 }}>
             <TextField
               margin="dense"
@@ -376,6 +401,55 @@ export const GitSecretDialog = ({
               </FormHelperText>
             </Box>
           </Box>
+        ) : (
+          <Box style={{ marginTop: 16 }}>
+            <TextField
+              margin="dense"
+              label="App ID"
+              fullWidth
+              variant="outlined"
+              value={appId}
+              onChange={e => setAppId(e.target.value)}
+              disabled={loading}
+              required
+            />
+            <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
+              The GitHub App ID.
+            </FormHelperText>
+
+            <TextField
+              margin="dense"
+              label="Installation ID"
+              fullWidth
+              variant="outlined"
+              value={installationId}
+              onChange={e => setInstallationId(e.target.value)}
+              disabled={loading}
+              required
+              style={{ marginTop: 16 }}
+            />
+            <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
+              The installation ID of the GitHub App on the target organization or repository.
+            </FormHelperText>
+
+            <TextField
+              margin="dense"
+              label="Private Key"
+              fullWidth
+              variant="outlined"
+              multiline
+              rows={8}
+              value={privateKey}
+              onChange={e => setPrivateKey(e.target.value)}
+              disabled={loading}
+              placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+              required
+              style={{ marginTop: 16 }}
+            />
+            <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
+              The private key generated for the GitHub App, in PEM format.
+            </FormHelperText>
+          </Box>
         )}
 
         {error && (
@@ -396,7 +470,9 @@ export const GitSecretDialog = ({
             loading ||
             !secretName.trim() ||
             (secretType === 'basic-auth' && !token.trim()) ||
-            (secretType === 'ssh-auth' && !sshKey.trim())
+            (secretType === 'ssh-auth' && !sshKey.trim()) ||
+            (secretType === 'github-app' &&
+              (!appId.trim() || !installationId.trim() || !privateKey.trim()))
           }
           startIcon={loading ? <CircularProgress size={20} /> : null}
         >
