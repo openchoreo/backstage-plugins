@@ -275,7 +275,7 @@ export const GitSecretDialog = ({
           </RadioGroup>
         </FormControl>
 
-        {secretType === 'basic-auth' ? (
+        {secretType === 'basic-auth' && (
           <Box style={{ marginTop: 16 }}>
             <TextField
               margin="dense"
@@ -307,7 +307,9 @@ export const GitSecretDialog = ({
               permissions.
             </FormHelperText>
           </Box>
-        ) : secretType === 'ssh-auth' ? (
+        )}
+
+        {secretType === 'ssh-auth' && (
           <Box style={{ marginTop: 16 }}>
             <TextField
               margin="dense"
@@ -401,7 +403,9 @@ export const GitSecretDialog = ({
               </FormHelperText>
             </Box>
           </Box>
-        ) : (
+        )}
+
+        {secretType === 'github-app' && (
           <Box style={{ marginTop: 16 }}>
             <TextField
               margin="dense"
