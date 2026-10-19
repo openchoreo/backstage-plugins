@@ -85,7 +85,9 @@ export const GitSecretDialog = ({
 
     if (secretType === 'github-app') {
       if (!appId.trim() || !installationId.trim() || !privateKey.trim()) {
-        setError('App ID, Installation ID and Private Key are required for GitHub App Authentication');
+        setError(
+          'App ID, Installation ID and Private Key are required for GitHub App Authentication',
+        );
         return;
       }
     }
@@ -433,7 +435,8 @@ export const GitSecretDialog = ({
               style={{ marginTop: 16 }}
             />
             <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
-              The installation ID of the GitHub App on the target organization or repository.
+              The installation ID of the GitHub App on the target organization
+              or repository.
             </FormHelperText>
 
             <TextField
