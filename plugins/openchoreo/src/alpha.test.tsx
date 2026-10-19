@@ -41,6 +41,7 @@ const ALPHA_EXTENSION_NAMES = [
   ['entity-card', 'resource-deployments'],
   ['entity-card', 'consuming-components'],
   // endpoint
+  ['entity-content', 'endpoint-deploy'],
   ['entity-card', 'endpoint-routing'],
   ['entity-card', 'endpoint-deployments'],
   ['entity-card', 'endpoint-api'],

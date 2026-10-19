@@ -12,33 +12,49 @@ import {
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import type { Entity } from '@backstage/catalog-model';
 import { YamlViewer } from '@openchoreo/backstage-design-system';
 import YAML from 'yaml';
-import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
+import {
+  openChoreoClientApiRef,
+  type OpenChoreoClientApi,
+} from '../../api/OpenChoreoClientApi';
 import { useNotification } from '../../hooks';
 
-export interface ResourceReleaseManifestDialogProps {
+/**
+ * Fetches a release CR by name. Pass a stable function (a module-level
+ * constant), since the dialog refetches when it changes.
+ */
+export type LoadRelease = (
+  client: OpenChoreoClientApi,
+  entity: Entity,
+  releaseName: string,
+) => Promise<{ success: boolean; data?: Record<string, unknown> }>;
+
+export interface ReleaseManifestDialogProps {
   open: boolean;
   onClose: () => void;
   releaseName?: string;
   environmentName: string;
+  loadRelease: LoadRelease;
 }
 
 /**
- * Modal dialog that fetches the ResourceRelease CR for the given
- * `releaseName` and renders it as YAML. Mirrors the Component-side
- * ReleaseManifestDialog so users can inspect the frozen snapshot
- * pinned to an env without dropping to kubectl.
+ * Modal dialog that fetches the release CR for the given `releaseName` and
+ * renders it as YAML. Mirrors the Component-side ReleaseManifestDialog so
+ * users can inspect the frozen snapshot pinned to an env without dropping to
+ * kubectl. Resource and Endpoint deploy tabs supply their own loader.
  *
  * Refetches every time the dialog opens — manifests are small enough
  * that staleness is more annoying than re-fetching.
  */
-export const ResourceReleaseManifestDialog = ({
+export const ReleaseManifestDialog = ({
   open,
   onClose,
   releaseName,
   environmentName,
-}: ResourceReleaseManifestDialogProps) => {
+  loadRelease,
+}: ReleaseManifestDialogProps) => {
   const api = useApi(openChoreoClientApiRef);
   const { entity } = useEntity();
   const notification = useNotification();
@@ -54,8 +70,7 @@ export const ResourceReleaseManifestDialog = ({
     setLoading(true);
     setError(null);
     setYamlText(null);
-    api
-      .fetchResourceRelease(entity, releaseName)
+    loadRelease(api, entity, releaseName)
       .then(response => {
         if (cancelled) return;
         if (!response?.success || !response.data) {
@@ -74,7 +89,7 @@ export const ResourceReleaseManifestDialog = ({
     return () => {
       cancelled = true;
     };
-  }, [api, entity, open, releaseName]);
+  }, [api, entity, open, releaseName, loadRelease]);
 
   const handleCopy = async () => {
     if (!yamlText) return;
@@ -92,9 +107,9 @@ export const ResourceReleaseManifestDialog = ({
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      aria-labelledby="resource-release-manifest-dialog-title"
+      aria-labelledby="release-manifest-dialog-title"
     >
-      <DialogTitle id="resource-release-manifest-dialog-title">
+      <DialogTitle id="release-manifest-dialog-title">
         Release manifest — {environmentName}
       </DialogTitle>
       <DialogContent dividers>
@@ -132,3 +147,16 @@ export const ResourceReleaseManifestDialog = ({
     </Dialog>
   );
 };
+
+const loadResourceRelease: LoadRelease = (client, entity, releaseName) =>
+  client.fetchResourceRelease(entity, releaseName);
+
+export type ResourceReleaseManifestDialogProps = Omit<
+  ReleaseManifestDialogProps,
+  'loadRelease'
+>;
+
+/** Release manifest dialog for a Resource's ResourceReleases. */
+export const ResourceReleaseManifestDialog = (
+  props: ResourceReleaseManifestDialogProps,
+) => <ReleaseManifestDialog {...props} loadRelease={loadResourceRelease} />;

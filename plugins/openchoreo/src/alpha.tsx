@@ -410,7 +410,21 @@ const consumingComponentsCard = EntityCardBlueprint.make({
   },
 });
 
-// ─── Endpoint page cards (kind:endpoint) ──────────────────────────────────
+// ─── Endpoint page tab + cards (kind:endpoint) ───────────────────────────
+
+const endpointDeployEntityContent = EntityContentBlueprint.make({
+  name: 'endpoint-deploy',
+  params: {
+    path: '/environments',
+    title: 'Deploy',
+    group: 'deploy',
+    filter: isOpenChoreoManagedOfKind('endpoint'),
+    loader: () =>
+      import('./components/EndpointEnvironments').then(m => (
+        <m.EndpointEnvironments />
+      )),
+  },
+});
 
 const endpointRoutingCard = EntityCardBlueprint.make({
   name: 'endpoint-routing',
@@ -1117,6 +1131,7 @@ export const openChoreoPlugin = createFrontendPlugin({
     resourceParametersCard,
     resourceDeploymentsCard,
     consumingComponentsCard,
+    endpointDeployEntityContent,
     endpointRoutingCard,
     endpointDeploymentsCard,
     endpointApiCard,
