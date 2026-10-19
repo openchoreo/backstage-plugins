@@ -104,6 +104,8 @@ const ALPHA_EXTENSION_NAMES = [
   ['scaffolder-form-field', 'project-namespace-field'],
   ['scaffolder-form-field', 'project-parameters-field'],
   ['scaffolder-form-field', 'project-type-yaml-editor'],
+  ['scaffolder-form-field', 'endpoint-backends-field'],
+  ['scaffolder-form-field', 'endpoint-schema-field'],
   ['scaffolder-form-field', 'resource-name-picker'],
   ['scaffolder-form-field', 'resource-parameters-field'],
   ['scaffolder-form-field', 'resource-type-yaml-editor'],

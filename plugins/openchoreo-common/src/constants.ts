@@ -52,6 +52,14 @@ export const CHOREO_ANNOTATIONS = {
   RTD_DISPLAY_NAME: 'openchoreo.io/rtd-display-name',
   RTD_GENERATED: 'openchoreo.io/rtd-generated',
   RTD_KIND: 'openchoreo.io/rtd-kind',
+  // (Cluster)EndpointType Definition (ETD) annotations
+  // Umbrella prefix `ETD` mirrors `RTD`/`CTD`: marks scaffolder Templates
+  // generated per (Cluster)EndpointType so the Endpoint-creation browse view
+  // (`?view=endpoints`) can list them. The kind is carried in ETD_KIND.
+  ETD_NAME: 'openchoreo.io/etd-name',
+  ETD_DISPLAY_NAME: 'openchoreo.io/etd-display-name',
+  ETD_GENERATED: 'openchoreo.io/etd-generated',
+  ETD_KIND: 'openchoreo.io/etd-kind',
   // (Cluster)ProjectType Definition (PTD) annotations
   // Umbrella prefix `PTD` mirrors `RTD`/`CTD`: marks scaffolder Templates
   // generated per (Cluster)ProjectType so the Project-creation browse view

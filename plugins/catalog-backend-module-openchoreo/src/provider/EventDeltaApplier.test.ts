@@ -129,7 +129,13 @@ describe('EventDeltaApplier.handleEvent', () => {
       kind: 'Endpoint',
       expectedRefs: ['endpoint:test-ns/order', 'api:test-ns/endpoint-order'],
     },
-    { kind: 'EndpointType', expectedRefs: ['endpointtype:test-ns/order'] },
+    {
+      kind: 'EndpointType',
+      expectedRefs: [
+        'endpointtype:test-ns/order',
+        'template:test-ns/template-endpoint-order',
+      ],
+    },
     { kind: 'Workflow', expectedRefs: ['workflow:test-ns/order'] },
   ];
 
@@ -178,7 +184,10 @@ describe('EventDeltaApplier.handleEvent', () => {
     },
     {
       kind: 'ClusterEndpointType',
-      expectedRefs: ['clusterendpointtype:openchoreo-cluster/global'],
+      expectedRefs: [
+        'clusterendpointtype:openchoreo-cluster/global',
+        'template:openchoreo-cluster/template-endpoint-global',
+      ],
     },
     {
       kind: 'ClusterProjectType',

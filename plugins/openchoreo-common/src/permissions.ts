@@ -248,6 +248,15 @@ export const openchoreoResourceCreatePermission = createPermission({
 });
 
 /**
+ * Permission to create a new endpoint in a project. Project context resolved
+ * server-side.
+ */
+export const openchoreoEndpointCreatePermission = createPermission({
+  name: 'openchoreo.endpoint.create',
+  attributes: { action: 'create' },
+});
+
+/**
  * Permission to create a new cluster component type.
  * Cluster-scoped permission (no namespace context required).
  */
@@ -1282,6 +1291,7 @@ export const openchoreoPermissions = [
   openchoreoResourceTypeCreatePermission,
   openchoreoProjectTypeCreatePermission,
   openchoreoResourceCreatePermission,
+  openchoreoEndpointCreatePermission,
   openchoreoClusterComponentTypeCreatePermission,
   openchoreoClusterResourceTypeCreatePermission,
   openchoreoClusterProjectTypeCreatePermission,
@@ -1418,6 +1428,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.componenttype.create': 'componenttype:create',
   'openchoreo.resourcetype.create': 'resourcetype:create',
   'openchoreo.resource.create': 'resource:create',
+  'openchoreo.endpoint.create': 'endpoint:create',
   'openchoreo.workflow.create': 'workflow:create',
   'openchoreo.clusterworkflow.create': 'clusterworkflow:create',
   'openchoreo.componentworkflow.create': 'workflow:create',

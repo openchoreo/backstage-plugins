@@ -74,6 +74,11 @@ import {
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import { RtdToTemplateConverter } from '../converters/RtdToTemplateConverter';
 import {
+  EtdToTemplateConverter,
+  endpointTemplateName,
+} from '../converters/EtdToTemplateConverter';
+import { buildEndpointTypeTemplate } from './endpointTypeTemplates';
+import {
   PtdToTemplateConverter,
   ProjectTypeCRD,
 } from '../converters/PtdToTemplateConverter';
@@ -142,6 +147,7 @@ export class EventDeltaApplier {
   private readonly getConnection: () => EntityProviderConnection | undefined;
   private readonly ctdConverter: CtdToTemplateConverter;
   private readonly rtdConverter: RtdToTemplateConverter;
+  private readonly etdConverter: EtdToTemplateConverter;
   private readonly ptdConverter: PtdToTemplateConverter;
   private readonly remoteTemplateFetcher?: RemoteTemplateFetcher;
   private readonly catalogService?: CatalogService;
@@ -156,6 +162,8 @@ export class EventDeltaApplier {
     getConnection: () => EntityProviderConnection | undefined;
     ctdConverter: CtdToTemplateConverter;
     rtdConverter: RtdToTemplateConverter;
+    /** Defaults to a converter using `defaultOwner`. */
+    etdConverter?: EtdToTemplateConverter;
     ptdConverter: PtdToTemplateConverter;
     /** Resolves custom templates; shared with the provider. Undefined disables it. */
     remoteTemplateFetcher?: RemoteTemplateFetcher;
@@ -179,6 +187,9 @@ export class EventDeltaApplier {
     this.translatorContext = opts.translatorContext;
     this.ctdConverter = opts.ctdConverter;
     this.rtdConverter = opts.rtdConverter;
+    this.etdConverter =
+      opts.etdConverter ??
+      new EtdToTemplateConverter({ defaultOwner: opts.defaultOwner });
     this.ptdConverter = opts.ptdConverter;
     this.remoteTemplateFetcher = opts.remoteTemplateFetcher;
     this.getConnection = opts.getConnection;
@@ -1713,15 +1724,25 @@ export class EventDeltaApplier {
     if (!et) {
       await this.removeEntityRefs([
         this.buildEntityRef('endpointtype', ns, name),
+        this.buildEntityRef('template', ns, endpointTemplateName(name)),
       ]);
       return;
     }
+    const template = await buildEndpointTypeTemplate({
+      client,
+      converter: this.etdConverter,
+      type: et,
+      namespaceName: ns,
+      locationKey: this.locationKey(),
+      logger: this.logger,
+    });
     await this.upsertEntities([
       translateNewEndpointTypeToEntity(
         et,
         ns,
         this.translatorContext,
       ) as Entity,
+      ...(template ? [template] : []),
     ]);
   }
 
@@ -1731,14 +1752,27 @@ export class EventDeltaApplier {
     if (!cet) {
       await this.removeEntityRefs([
         this.buildEntityRef('clusterendpointtype', 'openchoreo-cluster', name),
+        this.buildEntityRef(
+          'template',
+          'openchoreo-cluster',
+          endpointTemplateName(name),
+        ),
       ]);
       return;
     }
+    const template = await buildEndpointTypeTemplate({
+      client,
+      converter: this.etdConverter,
+      type: cet,
+      locationKey: this.locationKey(),
+      logger: this.logger,
+    });
     await this.upsertEntities([
       translateNewClusterEndpointTypeToEntity(
         cet,
         this.translatorContext,
       ) as Entity,
+      ...(template ? [template] : []),
     ]);
   }
 

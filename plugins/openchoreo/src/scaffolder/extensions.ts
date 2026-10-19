@@ -257,6 +257,25 @@ export const scaffolderFieldExtensions = [
     }),
   ),
   makeFormFieldExtension(
+    'endpoint-backends-field',
+    () => import('./EndpointBackendsField/EndpointBackendsField'),
+    m => ({
+      name: 'EndpointBackendsField',
+      component: m.EndpointBackendsField,
+      schema: m.EndpointBackendsFieldSchema,
+      validation: m.endpointBackendsFieldValidation,
+    }),
+  ),
+  makeFormFieldExtension(
+    'endpoint-schema-field',
+    () => import('./EndpointSchemaField/EndpointSchemaField'),
+    m => ({
+      name: 'EndpointSchemaField',
+      component: m.EndpointSchemaField,
+      schema: m.EndpointSchemaFieldSchema,
+    }),
+  ),
+  makeFormFieldExtension(
     'resource-name-picker',
     () => import('./ResourceNamePicker/ResourceNamePickerExtension'),
     m => ({
