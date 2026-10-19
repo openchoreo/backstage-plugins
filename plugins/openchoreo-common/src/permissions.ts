@@ -1397,6 +1397,7 @@ export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
   'Component',
   'ReleaseLine',
   'Resource',
+  'Endpoint',
   'System',
   'Domain',
   'Dataplane',
@@ -1408,9 +1409,11 @@ export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
   'ClusterObservabilityPlane',
   'ComponentType',
   'ResourceType',
+  'EndpointType',
   'ProjectType',
   'ClusterComponentType',
   'ClusterResourceType',
+  'ClusterEndpointType',
   'ClusterProjectType',
   'TraitType',
   'ClusterTraitType',
@@ -1452,6 +1455,11 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
     'catalog.entity.delete': 'resource:delete',
     'catalog.entity.refresh': 'resource:update',
   },
+  endpoint: {
+    'catalog.entity.read': 'endpoint:view',
+    'catalog.entity.delete': 'endpoint:delete',
+    'catalog.entity.refresh': 'endpoint:update',
+  },
   system: {
     'catalog.entity.read': 'project:view',
   },
@@ -1485,6 +1493,9 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   resourcetype: {
     'catalog.entity.read': 'resourcetype:view',
   },
+  endpointtype: {
+    'catalog.entity.read': 'endpointtype:view',
+  },
   projecttype: {
     'catalog.entity.read': 'projecttype:view',
   },
@@ -1493,6 +1504,9 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   },
   clusterresourcetype: {
     'catalog.entity.read': 'clusterresourcetype:view',
+  },
+  clusterendpointtype: {
+    'catalog.entity.read': 'clusterendpointtype:view',
   },
   clusterprojecttype: {
     'catalog.entity.read': 'clusterprojecttype:view',

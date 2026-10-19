@@ -52,6 +52,10 @@ import {
   translateNewReleaseLineToEntity,
   translateNewResourceToEntity,
   translateNewResourceTypeToEntity,
+  translateNewEndpointToEntities,
+  translateNewEndpointTypeToEntity,
+  translateNewClusterEndpointTypeToEntity,
+  endpointApiEntityName,
   translateNewTraitToEntity,
   translateNewWorkflowPlaneToEntity,
   translateNewWorkflowToEntity,
@@ -93,6 +97,10 @@ type NewClusterProjectType =
   OpenChoreoComponents['schemas']['ClusterProjectType'];
 type NewResource = OpenChoreoComponents['schemas']['ResourceInstance'];
 type NewReleaseLine = OpenChoreoComponents['schemas']['ReleaseLine'];
+type NewEndpoint = OpenChoreoComponents['schemas']['Endpoint'];
+type NewEndpointType = OpenChoreoComponents['schemas']['EndpointType'];
+type NewClusterEndpointType =
+  OpenChoreoComponents['schemas']['ClusterEndpointType'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 type NewClusterComponentType =
@@ -576,6 +584,41 @@ export class EventDeltaApplier {
         params: { path: { crtName: name } },
       }) as any,
       'clusterresourcetype',
+      name,
+    );
+  }
+
+  private fetchEndpoint(client: OpenChoreoApiClient, ns: string, name: string) {
+    return this.fetchOne<NewEndpoint>(
+      client.GET(
+        '/api/v1/namespaces/{namespaceName}/endpoints/{endpointName}',
+        { params: { path: { namespaceName: ns, endpointName: name } } },
+      ) as any,
+      'endpoint',
+      `${ns}/${name}`,
+    );
+  }
+
+  private fetchEndpointType(
+    client: OpenChoreoApiClient,
+    ns: string,
+    name: string,
+  ) {
+    return this.fetchOne<NewEndpointType>(
+      client.GET('/api/v1/namespaces/{namespaceName}/endpointtypes/{etName}', {
+        params: { path: { namespaceName: ns, etName: name } },
+      }) as any,
+      'endpointtype',
+      `${ns}/${name}`,
+    );
+  }
+
+  private fetchClusterEndpointType(client: OpenChoreoApiClient, name: string) {
+    return this.fetchOne<NewClusterEndpointType>(
+      client.GET('/api/v1/clusterendpointtypes/{cetName}', {
+        params: { path: { cetName: name } },
+      }) as any,
+      'clusterendpointtype',
       name,
     );
   }
@@ -1636,6 +1679,69 @@ export class EventDeltaApplier {
     ]);
   }
 
+  /**
+   * Refresh an Endpoint and the API entity carrying its schema. The API
+   * entity's name is derived from the Endpoint name, so it is removed by
+   * ref both when the Endpoint is deleted and when it no longer declares a
+   * schema.
+   */
+  private async refreshEndpoint(ns: string, name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const endpoint = await this.fetchEndpoint(client, ns, name);
+    const apiRef = this.buildEntityRef('api', ns, endpointApiEntityName(name));
+    if (!endpoint) {
+      await this.removeEntityRefs([
+        this.buildEntityRef('endpoint', ns, name),
+        apiRef,
+      ]);
+      return;
+    }
+    const entities = translateNewEndpointToEntities(
+      endpoint,
+      ns,
+      this.translatorContext,
+    );
+    await this.upsertEntities(entities);
+    if (!entities.some(e => e.kind === 'API')) {
+      await this.removeEntityRefs([apiRef]);
+    }
+  }
+
+  private async refreshEndpointType(ns: string, name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const et = await this.fetchEndpointType(client, ns, name);
+    if (!et) {
+      await this.removeEntityRefs([
+        this.buildEntityRef('endpointtype', ns, name),
+      ]);
+      return;
+    }
+    await this.upsertEntities([
+      translateNewEndpointTypeToEntity(
+        et,
+        ns,
+        this.translatorContext,
+      ) as Entity,
+    ]);
+  }
+
+  private async refreshClusterEndpointType(name: string): Promise<void> {
+    const client = await this.createApiClient();
+    const cet = await this.fetchClusterEndpointType(client, name);
+    if (!cet) {
+      await this.removeEntityRefs([
+        this.buildEntityRef('clusterendpointtype', 'openchoreo-cluster', name),
+      ]);
+      return;
+    }
+    await this.upsertEntities([
+      translateNewClusterEndpointTypeToEntity(
+        cet,
+        this.translatorContext,
+      ) as Entity,
+    ]);
+  }
+
   private async refreshWorkflow(ns: string, name: string): Promise<void> {
     const client = await this.createApiClient();
     const wf = await this.fetchWorkflow(client, ns, name);
@@ -1911,6 +2017,12 @@ export class EventDeltaApplier {
       case 'releaseline':
         await this.refreshReleaseLine(ns, name);
         return;
+      case 'endpoint':
+        await this.refreshEndpoint(ns, name);
+        return;
+      case 'endpointtype':
+        await this.refreshEndpointType(ns, name);
+        return;
       case 'workflow':
         await this.refreshWorkflow(ns, name);
         return;
@@ -1919,6 +2031,9 @@ export class EventDeltaApplier {
         return;
       case 'clusterresourcetype':
         await this.refreshClusterResourceType(name);
+        return;
+      case 'clusterendpointtype':
+        await this.refreshClusterEndpointType(name);
         return;
       case 'clusterprojecttype':
         await this.refreshClusterProjectType(name);

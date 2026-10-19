@@ -8,6 +8,7 @@ import BuildIcon from '@material-ui/icons/Build';
 import CategoryIcon from '@material-ui/icons/Category';
 import LayersIcon from '@material-ui/icons/Layers';
 import StorageIcon from '@material-ui/icons/Storage';
+import RouterIcon from '@material-ui/icons/Router';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
@@ -31,10 +32,13 @@ export const KIND_ICONS: Record<string, IconComponent> = {
   clustercomponenttype: CategoryIcon,
   resourcetype: LayersIcon,
   clusterresourcetype: LayersIcon,
+  endpointtype: LayersIcon,
+  clusterendpointtype: LayersIcon,
   projecttype: CategoryIcon,
   clusterprojecttype: CategoryIcon,
   resource: StorageIcon,
   releaseline: CallSplitIcon,
+  endpoint: RouterIcon,
   traittype: ExtensionIcon,
   clustertraittype: ExtensionIcon,
   workflow: PlayCircleOutlineIcon,

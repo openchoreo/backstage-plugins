@@ -340,6 +340,50 @@ describe('matchesCatalogEntityCapability.apply', () => {
     });
   });
 
+  describe('Endpoint entities (project-scoped like Resource)', () => {
+    const endpoint = () =>
+      makeEntity('Endpoint', {
+        [CHOREO_ANNOTATIONS.NAMESPACE]: 'acme',
+        [CHOREO_ANNOTATIONS.PROJECT]: 'payments',
+      });
+
+    it('matches a project-level allow via the PROJECT annotation', () => {
+      expect(
+        apply(endpoint(), {
+          endpoint: {
+            action: 'endpoint:view',
+            allowedPaths: ['ns/acme/project/payments'],
+            deniedPaths: [],
+          },
+        }),
+      ).toBe(true);
+    });
+
+    it('project-level deny hides the Endpoint', () => {
+      expect(
+        apply(endpoint(), {
+          endpoint: {
+            action: 'endpoint:view',
+            allowedPaths: ['*'],
+            deniedPaths: ['ns/acme/project/payments'],
+          },
+        }),
+      ).toBe(false);
+    });
+
+    it('a deny on a backend component does not hide the Endpoint', () => {
+      expect(
+        apply(endpoint(), {
+          endpoint: {
+            action: 'endpoint:view',
+            allowedPaths: ['*'],
+            deniedPaths: ['ns/acme/project/payments/component/orders'],
+          },
+        }),
+      ).toBe(true);
+    });
+  });
+
   describe('cluster-scoped entities', () => {
     it('allows ClusterDataplane only when global wildcard "*" is allowed', () => {
       const entity = makeEntity('ClusterDataplane', {});
@@ -590,6 +634,23 @@ describe('matchesCatalogEntityCapability.toQuery', () => {
       expect(serialized).toContain(CHOREO_ANNOTATIONS.PROJECT);
       expect(serialized).toContain('payments');
       expect(serialized).toContain('"not"');
+    });
+  });
+
+  describe('Endpoint kind', () => {
+    it('keys the project-level filter off the PROJECT annotation', () => {
+      const result = toQuery({
+        endpoint: {
+          action: 'endpoint:view',
+          allowedPaths: ['ns/acme/project/payments'],
+          deniedPaths: [],
+        },
+      }) as any;
+
+      const serialized = JSON.stringify(result);
+      expect(serialized).toContain(CHOREO_ANNOTATIONS.PROJECT);
+      expect(serialized).toContain('payments');
+      expect(serialized).not.toContain(CHOREO_ANNOTATIONS.PROJECT_ID);
     });
   });
 });
